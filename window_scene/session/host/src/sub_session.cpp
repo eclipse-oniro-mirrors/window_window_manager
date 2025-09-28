@@ -454,10 +454,6 @@ void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
             TLOGE(WmsLogTag::WMS_LAYOUT, "ScreenSession is null");
             continue;
         }
-        if (screenSession->GetDisplayNode() == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "DisplayNode is null");
-            continue;
-        }
         if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
             TLOGD(WmsLogTag::WMS_LAYOUT, "virtual screen, no need to add cross parent child");
             continue;

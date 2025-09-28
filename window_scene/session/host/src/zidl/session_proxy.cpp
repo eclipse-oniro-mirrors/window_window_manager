@@ -2660,7 +2660,7 @@ WSError SessionProxy::SetDecorVisible(bool isVisible)
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "remote is null");
+        TLOGE(WmsLogTag::WMS_DECOR, "remote is null");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     MessageParcel reply;
