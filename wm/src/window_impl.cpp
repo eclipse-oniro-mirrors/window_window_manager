@@ -3781,8 +3781,6 @@ void WindowImpl::UpdateViewportConfig(const Rect& rect, const sptr<Display>& dis
             config.SetOrientation(static_cast<int32_t>(displayInfo->GetDisplayOrientation()));
         }
     }
-    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u type %{public}d area %{public}s",
-          property_->GetWindowId(), type, avoidArea->ToString().c_str());
     uiContent_->UpdateViewportConfig(config, reason, rsTransaction, avoidAreas, occupiedAreaInfo_);
     WLOGFD("Id:%{public}u, windowRect:[%{public}d, %{public}d, %{public}u, %{public}u]",
         property_->GetWindowId(), rect.posX_, rect.posY_, rect.width_, rect.height_);
