@@ -56,7 +56,11 @@ void AvoidAreaController::ProcessWindowChange(const sptr<WindowNode>& windowNode
     switch (avoidType) {
         case AvoidControlType::AVOID_NODE_ADD:
         case AvoidControlType::AVOID_NODE_REMOVE:
-            AddOrRemoveOverlayWindowIfNeed(windowNode, avoidType == AvoidControlType::AVOID_NODE_ADD);
+            if (!WindowHelper::IsOverlayWindow(windowNode->GetWindowType())) {
+                UpdateOverlayWindowIfNeed(windowNode, checkFunc);
+            } else {
+                AddOrRemoveOverlayWindowIfNeed(windowNode, avoidType == AvoidControlType::AVOID_NODE_ADD);
+            }
             break;
         case AvoidControlType::AVOID_NODE_UPDATE:
             UpdateOverlayWindowIfNeed(windowNode, checkFunc);
@@ -71,8 +75,7 @@ void AvoidAreaController::AddOrRemoveOverlayWindowIfNeed(const sptr<WindowNode>&
     WindowGravity windowGravity;
     uint32_t percent;
     overlayNode->GetWindowGravity(windowGravity, percent);
-    if (!WindowHelper::IsOverlayWindow(overlayNode->GetWindowType()) ||
-        windowGravity == WindowGravity::WINDOW_GRAVITY_FLOAT) {
+    if (windowGravity == WindowGravity::WINDOW_GRAVITY_FLOAT) {
         WLOGE("IsOverlayWindow Failed.");
         return;
     }
