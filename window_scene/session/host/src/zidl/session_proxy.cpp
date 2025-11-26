@@ -832,6 +832,10 @@ WSError SessionProxy::NotifySessionException(const sptr<AAFwk::SessionInfo> abil
         TLOGE(WmsLogTag::WMS_LIFE, "Write identity token info failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
+    if (!data.WriteBool(abilitySessionInfo->shouldSkipKillInStartup)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write shouldSkipKillInStartup failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
     if (!data.WriteBool(exceptionInfo.needRemoveSession)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write needRemoveSession info failed");
         return WSError::WS_ERROR_IPC_FAILED;
