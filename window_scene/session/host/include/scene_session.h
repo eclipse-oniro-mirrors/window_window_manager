@@ -158,6 +158,7 @@ using FindScenePanelRsNodeByZOrderFunc = std::function<std::shared_ptr<Rosen::RS
 using ForceSplitFullScreenChangeCallback = std::function<void(uint32_t uid, bool isFullScreen)>;
 using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
+using NotifyRecoverWindowEffectFunc = std::function<void(bool recoverCorner, bool recoverShadow)>;
 
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
@@ -919,6 +920,8 @@ public:
     std::string GetAbilityColorMode() const;
     void SetSecurityLayerWhenEnterForeground();
     void RegisterSnapshotSkipChangeCallback(NotifySnapshotSkipChangeFunc&& callback);
+    void SetRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
+    WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
 
     /*
      * Window Pattern
@@ -1497,6 +1500,7 @@ private:
     NotifySetWindowShadowsFunc onSetWindowShadowsFunc_;
     UpdateScreenshotAppEventRegisteredFunc updateScreenshotAppEventRegisteredFunc_;
     NotifySnapshotSkipChangeFunc onSnapshotSkipChangeFunc_;
+    NotifyRecoverWindowEffectFunc onRecoverWindowEffectFunc_;
 
     /*
      * PC Window Sidebar Blur

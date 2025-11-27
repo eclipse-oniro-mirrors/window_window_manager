@@ -6599,6 +6599,43 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
     return UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_MASK);
 }
 
+WMError WindowSceneSessionImpl::ClearWindowMask()
+{
+    TLOGI(WmsLogTag::WMS_PC, "WindowId: %{public}u", GetWindowId());
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_PC, "session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+
+    float cornerRadius = property_->GetWindowCornerRadius();
+    bool recoverConfigCorner = cornerRadius == WINDOW_CORNER_RADIUS_INVALID;
+    hostSession->SetWindowCornerRadius(cornerRadius);
+
+    ShadowsInfo shadowsInfo = property_->GetWindowShadows();
+    bool recoverConfigShadow = !shadowsInfo.hasRadiusValue_;
+    if (recoverConfigShadow) {
+        shadowsInfo.radius_ = WINDOW_SHADOW_RADIUS_INVALID;
+    }
+    hostSession->SetWindowShadows(shadowsInfo);
+
+    if (recoverConfigCorner || recoverConfigShadow) {
+        // 新增session IPC通路，回调scb，
+    }
+
+    surfaceNode_->SetCornerRadius(0.0f);// todo 恢复默认值
+    surfaceNode_->SetMask(nullptr);
+    RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
+
+    property_->SetIsShaped(false);
+    WMError ret = UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_MASK);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PC, "UpdateProperty failed, id:%{public}u", GetWindowId());
+    }
+    return ret;
+}
+
 WMError WindowSceneSessionImpl::SetFollowParentMultiScreenPolicy(bool enabled)
 {
     if (IsWindowSessionInvalid()) {

@@ -335,6 +335,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleRestartApp(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SEND_COMMAND_EVENT):
             return HandleSendCommonEvent(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT):
+            return HandleRecoverWindowEffect(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -2078,6 +2080,23 @@ int SessionStub::HandleSetWindowShadows(MessageParcel& data, MessageParcel& repl
         return ERR_INVALID_DATA;
     }
     TLOGI(WmsLogTag::WMS_ANIMATION, "HandleSetWindowShadows end");
+    return ERR_NONE;
+}
+
+int SessionStub::HandleRecoverWindowEffect(MessageParcel& data, MessageParcel& reply)
+{
+    bool recoverCorner = false;
+    if (!data.ReadBool(recoverCorner)) {
+        TLOGE(WmsLogTag::WMS_PC, "Read recoverCorner failed.");
+        return ERR_INVALID_DATA;
+    }
+    bool recoverShadow = false;
+    if (!data.ReadBool(recoverShadow)) {
+        TLOGE(WmsLogTag::WMS_PC, "Read recoverShadow failed.");
+        return ERR_INVALID_DATA;
+    }
+    TLOGD(WmsLogTag::WMS_PC, "cornerRadius: %{public}f", cornerRadius);
+    RecoverWindowEffect(recoverCorner, recoverShadow);
     return ERR_NONE;
 }
 

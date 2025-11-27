@@ -160,6 +160,7 @@ public:
      */
     WSError SetWindowCornerRadius(float cornerRadius) override;
     WSError SetWindowShadows(const ShadowsInfo& shadowsInfo) override;
+    WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
 
     WSError NotifySupportWindowModesChange(
         const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
