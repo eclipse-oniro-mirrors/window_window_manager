@@ -20,6 +20,8 @@
 #include "dm_common.h"
 #include "noncopyable.h"
 
+typedef struct napi_env_* napi_env;
+
 namespace OHOS::Rosen {
 class DisplayInfo;
 class CutoutInfo;
@@ -197,6 +199,12 @@ public:
      * @return { FoldCreaseRegion } fold crease region in the current display mode.
      */
     DMError GetLiveCreaseRegion(FoldCreaseRegion& region) const;
+
+    void SetDisplayInfoEnv(napi_env env);
+
+    void SetDisplayUptateTime(std::chrono::steady_clock::time_poin currentTime);
+
+    std::chrono::steady_clock::time_poin GetDisplayUptateTime();
 
 protected:
     // No more methods or variables can be defined here.

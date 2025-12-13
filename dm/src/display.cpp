@@ -25,6 +25,7 @@
 #include "dm_common.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
+#include "pixel_map_napi.h"
 
 namespace OHOS::Rosen {
 class Display::Impl : public RefBase {
@@ -48,11 +49,46 @@ public:
         displayInfo_ = value;
     }
 
+    void SetDisplayInfoEnv(napi_env env)
+    {
+        env_ = env;
+    }
+
+    napi_env GetDisplayInfoEnv()
+    {
+        return env_;
+    }
+
+    void SetValidFlag(bool validFlag)
+    {
+        validFlag_ = validFlag;
+    }
+
+    bool GetValidFlag() const
+    {
+        return validFlag_;
+    }
+
+    void SetDisplayUptateTime(std::chrono::steady_clock::time_poin currentTime)
+    {
+        displayUptateTime_ = currentTime;
+    }
+
+    std::chrono::steady_clock::time_point GetDisplayUptateTime()
+    {
+        return displayUptateTime_;
+    }
+
 private:
-    sptr<DisplayInfo> displayInfo_;
+    static thread_local sptr<DisplayInfo> displayInfo_;
+    static thread_local bool validFlag_;
+    static thread_local napi_env env_;
+    std::chrono::steady_clock::time_point displayUptateTime_;
     std::mutex displayInfoMutex_;
 };
-
+thread_local sptr<DisplayInfo> displayInfo_;
+thread_local bool validFlag_ = false;
+thread_local napi_env env_ = nullptr;
 Display::Display(const std::string& name, sptr<DisplayInfo> info)
     : pImpl_(new Impl(name, info))
 {
@@ -190,8 +226,27 @@ void Display::UpdateDisplayInfo(sptr<DisplayInfo> displayInfo) const
 
 void Display::UpdateDisplayInfo() const
 {
-    auto displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(GetId());
+    napi_env env = pImpl_->GetDisplayInfoEnv();
+    if (!pImpl_->GetValidFlag()) {
+        auto displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(GetId());
+    }
     UpdateDisplayInfo(displayInfo);
+    pImpl_->SetValidFlag(true);
+    pid_t pid = getpid();
+    pid_t tid = gettid();
+    TLOGI(WmsLogTag::DMS, "set validFlag ture PID %{pubilc}d TID %{pubilc}d", pid, tid);
+    if (env != nullptr) {
+        auto asyncTask = [this]() {
+            pImpl_->SetValidFlag(false);
+            pid_t asyncpid = getpid();
+            pid_t asynctid = gettid();
+            TLOGI(WmsLogTag::DMS, "set validFlag ture PID %{pubilc}d TID %{pubilc}d", asyncpid, asynctid);
+        };
+        napi_send_event(env,asyncTask,napi_eprio_vip,"UpdateDisplayValid");
+    }
+    else {
+        pImpl_->SetValidFlag(false);
+    }
 }
 
 float Display::GetVirtualPixelRatio() const
@@ -230,8 +285,10 @@ sptr<DisplayInfo> Display::GetDisplayInfoWithCache() const
 
 sptr<CutoutInfo> Display::GetCutoutInfo() const
 {
-    return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(GetId(), GetWidth(),
-                                                                          GetHeight(), GetOriginRotation());
+    auto displayInfo = GetDisplayInfo();
+    return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(GetId(), displayInfo->GetWidth(),
+                                                                          displayInfo->GetHeight(),
+                                                                          displayInfo->GetOriginRotation());
 }
 
 DMError Display::GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner) const
