@@ -444,6 +444,26 @@ HWTEST_F(DisplayManagerTest, GetDisplayById, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetDisplayById01
+ * @tc.desc: GetDisplayById fun
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetDisplayById01, TestSize.Level1)
+{
+    DisplayId displayId = 100;
+    sptr<DisplayInfo> displayinfo = new DisplayInfo();
+    sptr<Display> display1 = new Display("displaymock", displayinfo);
+    auto currentTime = std::chrono::steady_clock::now();
+    display1->SetDisplayUptateTime(currentTime);
+    DisplayManager::GetInstance().pImpl_->dislayMap_.insert(std::make_pair(dispalyId, display1));
+    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+
+
+    auto ret = DisplayManager::GetInstance().GetDisplayById(displayId);
+    ASSERT_EQ(ret, display1);
+}
+
+/**
  * @tc.name: GetVisibleAreaDisplayInfoById
  * @tc.desc: GetVisibleAreaDisplayInfoById fun
  * @tc.type: FUNC
@@ -1941,7 +1961,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     auto currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display1->SetDisplayUptateTime(currentTime);
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1956,7 +1976,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display2));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display2->SetDisplayUptateTime(currentTime);
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1971,7 +1991,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display3));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display3->SetDisplayUptateTime(currentTime);
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1986,7 +2006,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display4));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display4->SetDisplayUptateTime(currentTime);
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -2012,7 +2032,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalNotMainMod, TestSi
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     auto currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display1->SetDisplayUptateTime(currentTime);
     std::cout << "start convert" << std::endl;
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
@@ -2095,7 +2115,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeNotMainMode, TestS
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     auto currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display1->SetDisplayUptateTime(currentTime);
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelative(globalPosition,
         relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_OK);
@@ -2178,7 +2198,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     auto currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display1->SetDisplayUptateTime(currentTime);
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(
         globalPosition, displayId, relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -2193,7 +2213,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display2));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display2->SetDisplayUptateTime(currentTime);
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
         displayId, relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -2219,7 +2239,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdNotMa
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
     DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
     auto currentTime = std::chrono::steady_clock::now();
-    DisplayManager::GetInstance().pImpl_->displayUptateTimeMap_[displayId] = currentTime;
+    display1->SetDisplayUptateTime(currentTime);
     DMError errorCode =
         DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
             displayId, relativePosition);

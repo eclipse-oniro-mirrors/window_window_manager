@@ -224,6 +224,29 @@ void Display::UpdateDisplayInfo(sptr<DisplayInfo> displayInfo) const
     pImpl_->SetDisplayInfo(displayInfo);
 }
 
+void Display::SetDisplayInfoEnv(napi_env env)
+{
+    if (pImpl_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
+        return;
+    }
+    pImpl_->SetDisplayInfoEnv(env);
+}
+
+void Display::SetDisplayUptateTime(std::chrono::steady_clock:time_poin currentTime)
+{
+    if (pImpl_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, pImpl_ is nullptr);
+        return;
+    }
+    pImpl_->SetDisplayUptateTime(currentTime);
+}
+
+std::chrono::steady_clock::time_poin Display::GetDisplayUptateTime()
+{
+    return pImpl_->GetDisplayUptateTime();
+}
+
 void Display::UpdateDisplayInfo() const
 {
     napi_env env = pImpl_->GetDisplayInfoEnv();
