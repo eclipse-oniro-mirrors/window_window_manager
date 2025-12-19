@@ -33,7 +33,7 @@ public:
     Impl(const std::string& name, sptr<DisplayInfo> info)
     {
         name_= name;
-        displayInfo_ = info;
+        SetDisplayInfo(info);
     }
     ~Impl() = default;
     DEFINE_VAR_FUNC_GET_SET(std::string, Name, name);
@@ -47,14 +47,15 @@ public:
     {
         std::lock_guard<std::mutex> lock(displayInfoMutex_);
         displayInfo_ = value;
+        displayUpdateTime_ = std::chrono::steady_clock::now();
     }
 
-    void SetDisplayInfoEnv(napi_env env)
+    void SetDisplayInfoEnv(display_napi_env env)
     {
         env_ = env;
     }
 
-    napi_env GetDisplayInfoEnv()
+    display_napi_env GetDisplayInfoEnv()
     {
         return env_;
     }
@@ -69,26 +70,19 @@ public:
         return validFlag_;
     }
 
-    void SetDisplayUptateTime(std::chrono::steady_clock::time_poin currentTime)
+    std::chrono::steady_clock::time_point GetDisplayUpdateTime()
     {
-        displayUptateTime_ = currentTime;
-    }
-
-    std::chrono::steady_clock::time_point GetDisplayUptateTime()
-    {
-        return displayUptateTime_;
+        return displayUpdateTime_;
     }
 
 private:
-    static thread_local sptr<DisplayInfo> displayInfo_;
-    static thread_local bool validFlag_;
-    static thread_local napi_env env_;
-    std::chrono::steady_clock::time_point displayUptateTime_;
+    sptr<DisplayInfo> displayInfo_;
+    bool validFlag_ = false;
+    display_napi_env env_ = nullptr;
+    std::chrono::steady_clock::time_point displayUpdateTime_{};
     std::mutex displayInfoMutex_;
 };
-thread_local sptr<DisplayInfo> displayInfo_;
-thread_local bool validFlag_ = false;
-thread_local napi_env env_ = nullptr;
+
 Display::Display(const std::string& name, sptr<DisplayInfo> info)
     : pImpl_(new Impl(name, info))
 {
@@ -217,6 +211,7 @@ void Display::UpdateDisplayInfo(sptr<DisplayInfo> displayInfo) const
         TLOGE(WmsLogTag::DMS, "displayInfo is invalid");
         return;
     }
+
     if (pImpl_ == nullptr) {
         TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
         return;
@@ -224,51 +219,63 @@ void Display::UpdateDisplayInfo(sptr<DisplayInfo> displayInfo) const
     pImpl_->SetDisplayInfo(displayInfo);
 }
 
-void Display::SetDisplayInfoEnv(napi_env env)
+//per display info on thread which is presented for env
+//env is used to update display info
+void Display::SetDisplayInfoEnv(display_napi_env env)
 {
     if (pImpl_ == nullptr) {
         TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
         return;
     }
+
     pImpl_->SetDisplayInfoEnv(env);
 }
 
-void Display::SetDisplayUptateTime(std::chrono::steady_clock:time_poin currentTime)
+uint32_t Display::GetDisplayInfoLifeTime()
 {
     if (pImpl_ == nullptr) {
-        TLOGE(WmsLogTag::DMS, pImpl_ is nullptr);
-        return;
+        TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
+        return 0;
     }
-    pImpl_->SetDisplayUptateTime(currentTime);
-}
 
-std::chrono::steady_clock::time_poin Display::GetDisplayUptateTime()
-{
-    return pImpl_->GetDisplayUptateTime();
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() -
+        pImpl_->GetDisplayUpdateTime()).count();
 }
 
 void Display::UpdateDisplayInfo() const
 {
-    napi_env env = pImpl_->GetDisplayInfoEnv();
-    if (!pImpl_->GetValidFlag()) {
-        auto displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(GetId());
+    if (pImpl_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
+        return;
+    }
+
+    if (pImpl_->GetValidFlag()) {
+        TLOGD(WmsLogTag::DMS, "do nothing PID %{public}d TID %{public}d ENV", getpid(), gettid());
+        return;
+    }
+
+    auto displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(GetId());
+    if (displayInfo == nullptr || pImpl_ == nullptr) {
+            return;
     }
     UpdateDisplayInfo(displayInfo);
-    pImpl_->SetValidFlag(true);
-    pid_t pid = getpid();
-    pid_t tid = gettid();
-    TLOGI(WmsLogTag::DMS, "set validFlag ture PID %{pubilc}d TID %{pubilc}d", pid, tid);
+    
+    display_napi_env env = pImpl_->GetDisplayInfoEnv();
     if (env != nullptr) {
+        pImpl_->SetValidFlag(true);
+        TLOGD(WmsLogTag::DMS, "set validFlag true PID %{public}d TID %{public}d", getpid(), gettid());
+
+        //post task to current thread, the task will be executed after current task
+        //the task is used to presented current task is finish
         auto asyncTask = [this]() {
             pImpl_->SetValidFlag(false);
-            pid_t asyncpid = getpid();
-            pid_t asynctid = gettid();
-            TLOGI(WmsLogTag::DMS, "set validFlag ture PID %{pubilc}d TID %{pubilc}d", asyncpid, asynctid);
+            TLOGD(WmsLogTag::DMS, "set validFlag false PID %{public}d TID %{public}d", getpid(), gettid());
         };
-        napi_send_event(env,asyncTask,napi_eprio_vip,"UpdateDisplayValid");
-    }
-    else {
-        pImpl_->SetValidFlag(false);
+        napi_status ret = napi_send_event(env, asyncTask, napi_eprio_vip, "UpdateDisplayValid");
+        if (ret != napi_status::napi_ok) {
+            pImpl_->SetValidFlag(false);
+            TLOGE(WmsLogTag::DMS, "Failed to SendEvent");
+        }
     }
 }
 
@@ -309,9 +316,11 @@ sptr<DisplayInfo> Display::GetDisplayInfoWithCache() const
 sptr<CutoutInfo> Display::GetCutoutInfo() const
 {
     auto displayInfo = GetDisplayInfo();
-    return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(GetId(), displayInfo->GetWidth(),
-                                                                          displayInfo->GetHeight(),
-                                                                          displayInfo->GetOriginRotation());
+    if (displayInfo == nullptr) {
+        return nullptr;
+    }
+    return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(
+        GetId(), displayInfo->GetWidth(), displayInfo->GetHeight(), displayInfo->GetOriginRotation());
 }
 
 DMError Display::GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner) const

@@ -60,13 +60,6 @@ void DisplayTest::TearDown()
 }
 
 namespace {
-
-std::string g_errLog;
-void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
-    const char* msg)
-{
-    g_errLog = msg;
-}    
 /**
  * @tc.name: GetCutoutInfo01
  * @tc.desc: GetCutoutInfo with valid defaultDisplayId and return success
@@ -105,8 +98,8 @@ HWTEST_F(DisplayTest, UpdateDisplayInfo01, TestSize.Level1)
  */
 HWTEST_F(DisplayTest, UpdateDisplayInfo02, TestSize.Level1)
 {
-    defaultDisplay_->pImpl_->SetValidFlag(false);
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    defaultDisplay_->pImpl_->SetValidFlag(false);
     EXPECT_CALL(m->Mock(), GetDisplayInfo(_)).Times(1);
 
     defaultDisplay_->UpdateDisplayInfo();
@@ -115,37 +108,19 @@ HWTEST_F(DisplayTest, UpdateDisplayInfo02, TestSize.Level1)
 
 /**
  * @tc.name: UpdateDisplayInfo03
- * @tc.desc: UpdateDisplayInfo with validFlag true
+ * @tc.desc: UpdateDisplayInfo with validFlag false
  * @tc.type: FUNC
  * @tc.require: issueI5K0JP
  */
 HWTEST_F(DisplayTest, UpdateDisplayInfo03, TestSize.Level1)
 {
-    defaultDisplay_->pImpl_->SetValidFlag(false);
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    defaultDisplay_->pImpl_->SetValidFlag(false);
     EXPECT_CALL(m->Mock(), GetDisplayInfo(_)).Times(0);
 
     defaultDisplay_->UpdateDisplayInfo();
-    EXPECT_FALSE(defaultDisplay_->pImpl_->GetValidFlag());
-}
-
-/**
- * @tc.name: UpdateDisplayInfo04
- * @tc.desc: UpdateDisplayInfo with validFlag true and env not nullptr
- * @tc.type: FUNC
- * @tc.require: issueI5K0JP
- */
-HWTEST_F(DisplayTest, UpdateDisplayInfo04, TestSize.Level1)
-{
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(defaultDisplay_->pImpl_->GetValidFlag());
     defaultDisplay_->pImpl_->SetValidFlag(false);
-    napi_env = reinterpret_cast<napi_env>(0x12345678);
-    defaultDisplay_->SetDisplayInfoEnv(env);
-
-    defaultDisplay_->UpdateDisplayInfo();
-    EXPECT_TRUE(g_errLog.find("set validFlag false PID") != std::string::npos);
-    g_errLog.clear();
 }
 
 /**
@@ -400,12 +375,12 @@ HWTEST_F(DisplayTest, GetOriginRotation, TestSize.Level1)
  */
 HWTEST_F(DisplayTest, GetDisplayInfoEnv, TestSize.Level1)
 {
-    sptr<DisplayInfo> baseInfo = sptr<DipslayInfo>::MakeSptr();
-    sptr<Display> display = sptr<Display>::MakeSptr("",baseInfo);
-    napi_env env = reinterpret_cast<napi_env>(0x12345678);
+    sptr<DisplayInfo> baseInfo = sptr<DisplayInfo>::MakeSptr();
+    sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
+    napi_env env = reinterpret_cast<napi_env>(0x1234);
     display->SetDisplayInfoEnv(env);
     EXPECT_EQ(display->pImpl_->GetDisplayInfoEnv(), env);
-
+    display->SetDisplayInfoEnv(nullptr);
 }
 
 /**
@@ -415,28 +390,14 @@ HWTEST_F(DisplayTest, GetDisplayInfoEnv, TestSize.Level1)
  */
 HWTEST_F(DisplayTest, GetValidFlag, TestSize.Level1)
 {
-    sptr<DisplayInfo> baseInfo = sptr<DipslayInfo>::MakeSptr();
-    sptr<Display> display = sptr<Display>::MakeSptr("",baseInfo);
+    sptr<DisplayInfo> baseInfo = sptr<DisplayInfo>::MakeSptr();
+    sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
     bool flag = true;
     display->pImpl_->SetValidFlag(flag);
 
     EXPECT_EQ(display->pImpl_->GetValidFlag(), flag);
 }
 
-/**
- * @tc.name: GetDisplayUptateTime
- * @tc.desc: GetDisplayUptateTime
- * @tc.type: FUNC
- */
-HWTEST_F(DisplayTest, GetDisplayUptateTime, TestSize.Level1)
-{
-    sptr<DisplayInfo> baseInfo = sptr<DipslayInfo>::MakeSptr();
-    sptr<Display> display = sptr<Display>::MakeSptr("",baseInfo);
-    auto currentTime = std::chrono::steady_clock::now();
-    display->SetDisplayUptateTime(currentTime);
-
-    EXPECT_EQ(display->pImpl_->GetValidFlag(), currentTime);
-}
 }
 } // namespace Rosen
 } // namespace OHOS

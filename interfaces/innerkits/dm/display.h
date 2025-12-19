@@ -19,8 +19,8 @@
 #include <string>
 #include "dm_common.h"
 #include "noncopyable.h"
+typedef struct napi_env__* display_napi_env;
 
-typedef struct napi_env_* napi_env;
 
 namespace OHOS::Rosen {
 class DisplayInfo;
@@ -200,17 +200,18 @@ public:
      */
     DMError GetLiveCreaseRegion(FoldCreaseRegion& region) const;
 
-    void SetDisplayInfoEnv(napi_env env);
-
-    void SetDisplayUptateTime(std::chrono::steady_clock::time_poin currentTime);
-
-    std::chrono::steady_clock::time_poin GetDisplayUptateTime();
+    /**
+     * @brief Set the display info 
+     * @param env display_napi_env of the display
+     * @return 
+     */
+    void SetDisplayInfoEnv(display_napi_env env);
 
 protected:
     // No more methods or variables can be defined here.
     Display(const std::string& name, sptr<DisplayInfo> info);
 private:
-    // No more methods or variables can be defined here.
+    uint32_t GetDisplayInfoLifeTime();
     void UpdateDisplayInfo(sptr<DisplayInfo>) const;
     void UpdateDisplayInfo() const;
     class Impl;

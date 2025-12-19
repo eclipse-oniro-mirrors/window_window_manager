@@ -251,7 +251,6 @@ bool JsDisplay::IsCallbackRegistered(napi_env env, const std::string& type, napi
 
 napi_value JsDisplay::OnRegisterDisplayManagerCallback(napi_env env, napi_callback_info info)
 {
-    display->SetDisplayInfoEnv(env);
     TLOGD(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -327,7 +326,6 @@ DMError JsDisplay::RegisterDisplayListenerWithType(napi_env env, const std::stri
 
 napi_value JsDisplay::OnUnregisterDisplayManagerCallback(napi_env env, napi_callback_info info)
 {
-    display->SetDisplayInfoEnv(env);
     TLOGI(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -440,6 +438,7 @@ napi_valuetype GetType(napi_env env, napi_value value)
 
 napi_value JsDisplay::OnGetCutoutInfo(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(env);
     TLOGD(WmsLogTag::DMS, "called");
     napi_value result = nullptr;
     size_t argc = 4;
@@ -449,7 +448,6 @@ napi_value JsDisplay::OnGetCutoutInfo(napi_env env, napi_callback_info info)
     if (argc >= ARGC_ONE && argv[ARGC_ONE - 1] != nullptr && GetType(env, argv[ARGC_ONE - 1]) == napi_function) {
         lastParam = argv[ARGC_ONE - 1];
     }
-    display->SetDisplayInfoEnv(env);
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, env, task = napiAsyncTask.get()]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplay::OnGetCutoutInfo");
@@ -516,7 +514,6 @@ napi_value JsDisplay::OnGetAvailableArea(napi_env env, napi_callback_info info)
         lastParam = argv[ARGC_ONE - 1];
     }
     napi_value result = nullptr;
-    display->SetDisplayInfoEnv(env);
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = JsDisplay::CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, env, task = napiAsyncTask.get()]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplay::OnGetAvailableArea");
@@ -546,7 +543,6 @@ napi_value JsDisplay::OnGetDisplayCapability(napi_env env, napi_callback_info in
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     std::string capabilitInfo;
-    display->SetDisplayInfoEnv(env);
     DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(display_->GetDisplayCapability(capabilitInfo));
     if (ret == DmErrorCode::DM_OK) {
         TLOGI(WmsLogTag::DMS, "success, displayCapability = %{public}s", capabilitInfo.c_str());
@@ -595,6 +591,7 @@ napi_value JsDisplay::OnHasImmersiveWindow(napi_env env, napi_callback_info info
 
 napi_value JsDisplay::OnGetLiveCreaseRegion(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(env);
     TLOGI(WmsLogTag::DMS, "called");
     FoldCreaseRegion region;
     DMError nativeErrorCode = display_->GetLiveCreaseRegion(region);
@@ -647,6 +644,7 @@ static napi_value CreateJsColorSpaceArray(napi_env env, const std::vector<uint32
 
 napi_value JsDisplay::OnGetSupportedColorSpaces(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(env);
     TLOGI(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -657,7 +655,6 @@ napi_value JsDisplay::OnGetSupportedColorSpaces(napi_env env, napi_callback_info
         lastParam = argv[ARGC_ONE - 1];
     }
     napi_value result = nullptr;
-    display->SetDisplayInfoEnv(env);
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = JsDisplay::CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, env, task = napiAsyncTask.get()]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplay::OnGetSupportedColorSpaces");
@@ -717,6 +714,7 @@ static napi_value CreateJsHDRFormatArray(napi_env env, const std::vector<uint32_
 
 napi_value JsDisplay::OnGetSupportedHDRFormats(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(env);
     TLOGI(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -727,7 +725,6 @@ napi_value JsDisplay::OnGetSupportedHDRFormats(napi_env env, napi_callback_info 
         lastParam = argv[ARGC_ONE - 1];
     }
     napi_value result = nullptr;
-    display->SetDisplayInfoEnv(env);
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = JsDisplay::CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, env, task = napiAsyncTask.get()]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplay::OnGetSupportedHDRFormats");
