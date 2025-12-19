@@ -20,9 +20,13 @@ group("unittest") {
 
   deps = [
     ":extension_window_extension_context_test",
-    ":extension_window_extension_proxy_test",
     ":extension_window_extension_stub_impl_test",
   ]
+  if (window_manager_use_sceneboard) {
+    deps += [
+      ":extension_window_extension_proxy_test",
+    ]
+  }
 }
 
 ohos_unittest("extension_window_extension_proxy_test") {

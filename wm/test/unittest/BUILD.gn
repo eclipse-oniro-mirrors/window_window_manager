@@ -26,7 +26,6 @@ group("unittest") {
     ":wm_get_snapshot_callback_proxy_test",
     ":wm_get_snapshot_callback_stub_test",
     ":wm_gtx_input_event_sender_test",
-    ":wm_input_transfer_station_new_test",
     ":wm_input_transfer_station_test",
     ":wm_pattern_detach_callback_proxy_test",
     ":wm_pattern_detach_callback_test",
@@ -62,8 +61,8 @@ group("unittest") {
     "window_recover:wm_window_recover_manager_test",
   ]
   if (!window_manager_use_sceneboard) {
-    deps += [ 
-      ":wm_window_proxy_test",
+    deps += [
+      
     ]
   }
   if (window_manager_use_sceneboard) {
@@ -92,7 +91,9 @@ group("unittest") {
       "event_distribution:wm_oh_window_event_test",
       "event_distribution:wm_window_scene_session_impl_event_test",
       "special_window:window_scene_session_impl_special_window_test",
-      "ui_extension:wm_window_extension_session_impl_test"
+      "ui_extension:wm_window_extension_session_impl_test",
+      ":wm_window_proxy_test",
+      ":wm_input_transfer_station_new_test",
     ]
   }
 }
