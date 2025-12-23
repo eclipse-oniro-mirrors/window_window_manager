@@ -679,8 +679,8 @@ HWTEST_F(ScreenPropertyTest, GetPropertyChangeReason, TestSize.Level1)
 {
     ScreenProperty* property = new(std::nothrow) ScreenProperty();
     ASSERT_NE(property, nullptr);
-    std::string propertyChangeReason = "a";
-    std::string propertyChangeReason_copy = property->GetPropertyChangeReason();
+    ScreenPropertyChangeReason propertyChangeReason = ScreenPropertyChangeReason::SCREEN_MODE_CHANGE;
+    ScreenPropertyChangeReason propertyChangeReason_copy = property->GetPropertyChangeReason();
     property->SetPropertyChangeReason(propertyChangeReason);
     ASSERT_EQ(propertyChangeReason, property->GetPropertyChangeReason());
     property->SetPropertyChangeReason(propertyChangeReason_copy);
