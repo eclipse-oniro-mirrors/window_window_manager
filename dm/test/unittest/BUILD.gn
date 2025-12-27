@@ -54,6 +54,8 @@ ohos_unittest("dm_display_test") {
     "c_utils:utils",
     "hilog:libhilog",
     "napi:ace_napi",
+    "runtime_core:ani",
+    "runtime_core:ani_helpers"
   ]
 }
 

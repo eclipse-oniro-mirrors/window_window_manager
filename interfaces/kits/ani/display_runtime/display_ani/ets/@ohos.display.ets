@@ -352,6 +352,8 @@ export interface Display {
     getDisplayCapability(): string;
 }
 
+export native function displayInfoFinalizerCallback(nativeObj: long): void;
+let displayInfoFinalizerRegister = new FinalizationRegistry<long>(displayInfoFinalizerCallback);
 export class DisplayImpl implements Display {
     static { loadLibraryWithPermissionCheck("displayani_kit.z", "@ohos.display"); }
 
@@ -409,11 +411,22 @@ export class DisplayImpl implements Display {
 
     displayRef: long;
 
+    displayInfoRef: long;
+
     setDisplayRef(nativeObj : long) : void{
         this.displayRef = nativeObj;
     }
 
+    private setDisplayInfoRef(nativeObj : long) : void{
+        if(this.displayInfoRef) {
+            displayInfoFinalizerRegister.unregister(this);
+        }
+        displayInfoFinalizerRegister.register(this, nativeObj, this);
+        this.displayInfoRef = nativeObj;
+    }
+
     getCutoutInfo(callback: AsyncCallback<CutoutInfo>): void {
+        this.getDisplayInfoRefInternal();
         taskpool.execute((): CutoutInfo => {
             let res: CutoutInfo = new CutoutInfoImpl();
             this.getCutoutInfoInternal(res);
@@ -427,6 +440,7 @@ export class DisplayImpl implements Display {
     }
 
     getCutoutInfo(): Promise<CutoutInfo> {
+        this.getDisplayInfoRefInternal();
         return new Promise<CutoutInfo>((resolve: (value: CutoutInfo) => void, reject: (error: BusinessError) => void ) => {
             taskpool.execute((): CutoutInfo => {
                 let res: CutoutInfo = new CutoutInfoImpl()
@@ -540,6 +554,7 @@ export class DisplayImpl implements Display {
     native getRoundedCornerInternal(roundedCorner: Array<RoundedCorner>): void;
     native getDisplayCapabilityInternal(): string;
     native hasImmersiveWindowInternal(): boolean;
+    native getDisplayInfoRefInternal(): void;
 
     native static nativeTransferStatic(input: ESValue, display: Object): boolean;
     native static nativeTransferDynamic(nativeObj: long): ESValue;

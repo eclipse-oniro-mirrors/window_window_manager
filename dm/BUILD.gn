@@ -89,6 +89,9 @@ ohos_static_library("libdm_static") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "napi:ace_napi",
+    "runtime_core:ani",
+    "runtime_core:ani_helpers",
+    "eventhandler:libeventhandler",
   ]
 
   part_name = "window_manager"
@@ -144,6 +147,9 @@ ohos_shared_library("libdm") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "napi:ace_napi",
+    "runtime_core:ani",
+    "runtime_core:ani_helpers",
+    "eventhandler:libeventhandler",
   ]
 
   innerapi_tags = [ "platformsdk" ]

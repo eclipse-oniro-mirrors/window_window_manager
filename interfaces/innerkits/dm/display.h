@@ -19,7 +19,8 @@
 #include <string>
 #include "dm_common.h"
 #include "noncopyable.h"
-typedef struct napi_env__* display_napi_env;
+#include "display_info.h"
+typedef struct napi_env__* DisplayNapiEnv;
 
 
 namespace OHOS::Rosen {
@@ -30,6 +31,11 @@ class FoldCreaseRegion;
 class Display : public RefBase {
 friend class DisplayManager;
 public:
+    enum class EnvType {
+        NONE,
+        NAPI,
+        ANI
+    };
     ~Display();
     Display(const Display&) = delete;
     Display(Display&&) = delete;
@@ -146,7 +152,7 @@ public:
      *
      * @return Cutout info of the display.
      */
-    sptr<CutoutInfo> GetCutoutInfo() const;
+    sptr<CutoutInfo> GetCutoutInfo(sptr<DisplayInfo> displayinfo = nullptr) const;
 
     /**
      * @brief Get rounded corner of the display.
@@ -201,11 +207,11 @@ public:
     DMError GetLiveCreaseRegion(FoldCreaseRegion& region) const;
 
     /**
-     * @brief Set the display info 
-     * @param env display_napi_env of the display
-     * @return 
+     * @brief Set the display info env
+     * @param env Pointer to the display environment configuration data.
+     * @param type Type of the enviroment configuration, determines how env is interpreted.
      */
-    void SetDisplayInfoEnv(display_napi_env env);
+    void SetDisplayInfoEnv(void* env, EnvType type);
 
 protected:
     // No more methods or variables can be defined here.

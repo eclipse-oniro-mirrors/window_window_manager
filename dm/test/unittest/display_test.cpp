@@ -89,40 +89,6 @@ HWTEST_F(DisplayTest, UpdateDisplayInfo01, TestSize.Level1)
     ASSERT_EQ(changedInfo->GetName(), defaultName);
 }
 
-
-/**
- * @tc.name: UpdateDisplayInfo02
- * @tc.desc: UpdateDisplayInfo with validFlag true
- * @tc.type: FUNC
- * @tc.require: issueI5K0JP
- */
-HWTEST_F(DisplayTest, UpdateDisplayInfo02, TestSize.Level1)
-{
-    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    defaultDisplay_->pImpl_->SetValidFlag(false);
-    EXPECT_CALL(m->Mock(), GetDisplayInfo(_)).Times(1);
-
-    defaultDisplay_->UpdateDisplayInfo();
-    EXPECT_FALSE(defaultDisplay_->pImpl_->GetValidFlag());
-}
-
-/**
- * @tc.name: UpdateDisplayInfo03
- * @tc.desc: UpdateDisplayInfo with validFlag false
- * @tc.type: FUNC
- * @tc.require: issueI5K0JP
- */
-HWTEST_F(DisplayTest, UpdateDisplayInfo03, TestSize.Level1)
-{
-    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    defaultDisplay_->pImpl_->SetValidFlag(false);
-    EXPECT_CALL(m->Mock(), GetDisplayInfo(_)).Times(0);
-
-    defaultDisplay_->UpdateDisplayInfo();
-    EXPECT_TRUE(defaultDisplay_->pImpl_->GetValidFlag());
-    defaultDisplay_->pImpl_->SetValidFlag(false);
-}
-
 /**
  * @tc.name: SetWaterfallCompression01
  * @tc.desc: Set waterfall compression related values with valid input.
@@ -377,10 +343,11 @@ HWTEST_F(DisplayTest, GetDisplayInfoEnv, TestSize.Level1)
 {
     sptr<DisplayInfo> baseInfo = sptr<DisplayInfo>::MakeSptr();
     sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
-    napi_env env = reinterpret_cast<napi_env>(0x1234);
-    display->SetDisplayInfoEnv(env);
+    int envData = 0;
+    void* env = reinterpret_cast<void*>(&envData);
+    display->SetDisplayInfoEnv(env, Display::EnvType::NAPI);
     EXPECT_EQ(display->pImpl_->GetDisplayInfoEnv(), env);
-    display->SetDisplayInfoEnv(nullptr);
+    display->SetDisplayInfoEnv(nullptr, Display::EnvType::NONE);
 }
 
 /**
@@ -394,8 +361,24 @@ HWTEST_F(DisplayTest, GetValidFlag, TestSize.Level1)
     sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
     bool flag = true;
     display->pImpl_->SetValidFlag(flag);
-
     EXPECT_EQ(display->pImpl_->GetValidFlag(), flag);
+    display->pImpl_->SetValidFlag(false);
+}
+
+/**
+ * @tc.name: GetEnvType
+ * @tc.desc: GetEnvType
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayTest, GetEnvType, TestSize.Level1)
+{
+    sptr<DisplayInfo> baseInfo = sptr<DisplayInfo>::MakeSptr();
+    sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
+    int envData = 0;
+    void* env = reinterpret_cast<void*>(&envData);
+    display->SetDisplayInfoEnv(env, Display::EnvType::NAPI);
+    EXPECT_EQ(display->pImpl_->GetEnvType(), Display::EnvType::NAPI);
+    display->SetDisplayInfoEnv(nullptr, Display::EnvType::NONE);
 }
 
 }

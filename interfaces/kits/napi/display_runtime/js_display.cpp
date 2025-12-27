@@ -438,7 +438,7 @@ napi_valuetype GetType(napi_env env, napi_value value)
 
 napi_value JsDisplay::OnGetCutoutInfo(napi_env env, napi_callback_info info)
 {
-    display_->SetDisplayInfoEnv(env);
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGD(WmsLogTag::DMS, "called");
     napi_value result = nullptr;
     size_t argc = 4;
@@ -448,10 +448,11 @@ napi_value JsDisplay::OnGetCutoutInfo(napi_env env, napi_callback_info info)
     if (argc >= ARGC_ONE && argv[ARGC_ONE - 1] != nullptr && GetType(env, argv[ARGC_ONE - 1]) == napi_function) {
         lastParam = argv[ARGC_ONE - 1];
     }
+    sptr<DisplayInfo> displayinfo = display_->GetDisplayInfo();
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [this, env, task = napiAsyncTask.get()]() {
+    auto asyncTask = [this, env, task = napiAsyncTask.get(), displayinfo]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplay::OnGetCutoutInfo");
-        sptr<CutoutInfo> cutoutInfo = display_->GetCutoutInfo();
+        sptr<CutoutInfo> cutoutInfo = display_->GetCutoutInfo(displayinfo);
         if (cutoutInfo != nullptr) {
             task->Resolve(env, CreateJsCutoutInfoObject(env, cutoutInfo));
             TLOGND(WmsLogTag::DMS, "JsDisplay::OnGetCutoutInfo success");
@@ -591,7 +592,7 @@ napi_value JsDisplay::OnHasImmersiveWindow(napi_env env, napi_callback_info info
 
 napi_value JsDisplay::OnGetLiveCreaseRegion(napi_env env, napi_callback_info info)
 {
-    display_->SetDisplayInfoEnv(env);
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGI(WmsLogTag::DMS, "called");
     FoldCreaseRegion region;
     DMError nativeErrorCode = display_->GetLiveCreaseRegion(region);
@@ -644,7 +645,7 @@ static napi_value CreateJsColorSpaceArray(napi_env env, const std::vector<uint32
 
 napi_value JsDisplay::OnGetSupportedColorSpaces(napi_env env, napi_callback_info info)
 {
-    display_->SetDisplayInfoEnv(env);
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGI(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -714,7 +715,7 @@ static napi_value CreateJsHDRFormatArray(napi_env env, const std::vector<uint32_
 
 napi_value JsDisplay::OnGetSupportedHDRFormats(napi_env env, napi_callback_info info)
 {
-    display_->SetDisplayInfoEnv(env);
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGI(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -970,7 +971,7 @@ napi_value CreateJsDisplayObject(napi_env env, sptr<Display>& display)
         TLOGE(WmsLogTag::DMS, "Failed to GetDisplayInfo");
         return NapiGetUndefined(env);
     }
-    display->SetDisplayInfoEnv(env);
+    display->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     NapiSetNamedProperty(env, objValue, info);
 
     if (jsDisplayObj == nullptr || jsDisplayObj->GetNapiValue() == nullptr) {
