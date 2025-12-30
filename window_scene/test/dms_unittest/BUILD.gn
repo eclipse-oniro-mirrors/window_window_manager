@@ -1244,17 +1244,6 @@ if (window_manager_fold_ability) {
       ":ws_unittest_common",
       "${window_base_path}/window_scene/interfaces/innerkits:libwsutils"
     ]
-    
-      external_deps = test_external_deps
-    external_deps += [ "init:libbegetutil" ]
-  }
-
-    ohos_unittest("ws_fold_screen_policy_test"){
-	  module_out_path = module_out_path
-
-    sources = [ "fold_screen_policy_test.cpp" ]
-
-    deps = [ ":ws_unittest_common" ]
 
     external_deps = test_external_deps
     external_deps += [ "init:libbegetutil" ]
