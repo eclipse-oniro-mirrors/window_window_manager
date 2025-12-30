@@ -1192,6 +1192,16 @@ if (window_manager_fold_ability) {
     external_deps = test_external_deps
     external_deps += [ "init:libbegetutil" ]
 
+    ohos_unittest("ws_fold_screen_policy_test"){
+      module_out_path = module_out_path
+
+      sources = ["fold_screen_policy_test.cpp"]
+
+      deps = [":ws_unittest_common"]
+      external_deps = test_external_deps
+      external_deps +=["init:libbegetutil"]
+    }
+
     defines = []
     if (defined(global_parts_info) &&
         defined(global_parts_info.sensors_sensor)) {
