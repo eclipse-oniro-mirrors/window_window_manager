@@ -14,7 +14,7 @@ http://www.apache.org/licenses/LICENSE-2.0
 *limitations under the License.
 */
 
-#include <gtwst/gtest.h>
+#include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 #include "screen_session_manager/include/fold_screen_controller/fold_screen_policy.h"
@@ -51,7 +51,7 @@ public:
 
 };
 
-class Fold Screen Policy Test: public testing::Test{
+class FoldScreenPolicy Test: public testing::Test{
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -62,20 +62,23 @@ public:
     std::unique_ptr<MockFoldScreenPolicy> mockPolicy;
 };
 
+void FoldScreenPolicyTest::SetUpTestCase
+{
+}
+
 void FoldScreenPolicyTest::TearDownTestCase()
 {
-
 }
 
 void FoldScreenPolicyTest::SetUp()
 {
     mockPolicy = std::make_unique<MockFoldScreenPolicy>();
-    std::testing::Mock::VerifyAndClearExpectations(mockPolicy.get());
+    ::testing::Mock::VerifyAndClearExpectations(mockPolicy.get());
 }
 
 void FoldScreenPolicyTest::TearDown()
 {
-    std::testing::Mock::VerifyAndClearExpectations(mockPolicy.get());
+    ::testing::Mock::VerifyAndClearExpectations(mockPolicy.get());
     usleep(SLEEP_TIME_US);
 }
 
@@ -96,9 +99,9 @@ namespace{
 HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl01, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
-    FoldStatus targetFoldStatus = FoldStatus::UNKNOWN;
+    FoldStatus targetStatus = FoldStatus::UNKNOWN;
     EXPECT_CALL(*mockPolicy, GetSupportedFoldStatus()).Times(1).WillOnce(ReturnRef(supportedFoldStatusForTest));
-    EXPECT_CALL(*mockPolicy, IsFoldStatusSupported(testing::_, targetFoldStatus)).Times(1).WillOnce(Return(false));
+    EXPECT_CALL(*mockPolicy, IsFoldStatusSupported(testing::_, targetStatus)).Times(1).WillOnce(Return(false));
     g_errLog.clear();
     DMError ret = mockPolicy->SetFoldStatusAndLockControl(true, targetStatus);
     EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
@@ -115,7 +118,7 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl01, TestSize.Level1)
 HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl02, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
-    FoldStatus targetFoldStatus = FoldStatus::UNKNOWN;
+    FoldStatus targetStatus = FoldStatus::UNKNOWN;
     EXPECT_CALL(*mockPolicy, GetFoldStatus()).Times(1).WillOnce(Return(targetStatus));
     EXPECT_CALL(*mockPolicy, GetPhysicalFoldStatus()).Times(1).WillOnce(Return(targetStatus));
     g_errLog.clear();
@@ -165,7 +168,7 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl04, TestSize.Level1)
     EXPECT_CALL(*mockPolicy, GetPhysicalFoldStatus()).Times(1).WillOnce(Return(physicStatus));
 
     FoldDisplayMode mode = FoldDisplayMode::MAIN;
-    EXPECT_CALL(*mockPolicy, GetModeMatchStatus(physicStatusStatus)).Times(1).WillOnce(Return(mode));
+    EXPECT_CALL(*mockPolicy, GetModeMatchStatus(physicStatus)).Times(1).WillOnce(Return(mode));
     EXPECT_CALL(*mockPolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET)).Times(1);
 
     g_errLog.clear();
