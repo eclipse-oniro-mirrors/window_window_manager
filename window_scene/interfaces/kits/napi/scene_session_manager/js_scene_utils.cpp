@@ -1754,6 +1754,10 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
             TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to set startAnimationSystemOptions");
         }
     }
+    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->needAnimation) {
+        napi_set_named_property(env, objValue, "needAnimation",
+            CreateJsValue(env, *(sessionInfo.windowCreateParams->needAnimation)));
+    }
     napi_set_named_property(env, objValue, "atomicServiceInfo",
         CreateJsAtomicServiceInfo(env, sessionInfo.atomicServiceInfo_));
     return objValue;

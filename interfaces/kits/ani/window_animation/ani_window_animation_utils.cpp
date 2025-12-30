@@ -593,7 +593,7 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
     } else {
         TLOGW(WmsLogTag::WMS_ANIMATION, "[ANI] There is no animationParams.");
     }
-    
+
     ani_ref aniAnimationSystemParams = nullptr;
     if (!CheckIsUndefinedAndGetProperty(env, aniObject, "systemAnimationParams", &aniAnimationSystemParams) &&
         IsSystemCalling()) {
@@ -604,6 +604,11 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
         }
     } else {
         TLOGW(WmsLogTag::WMS_ANIMATION, "[ANI] There is no systemAnimationParams.");
+    }
+    ani_boolean isNeeded = false;
+    ani_status status = env->Object_GetPropertyByName_Boolean(aniObject, "needAnimation", &isNeeded);
+    if (status == ANI_OK) {
+        windowCreateParams.needAnimation = std::make_shared<bool>(isNeeded);
     }
     return true;
 }
