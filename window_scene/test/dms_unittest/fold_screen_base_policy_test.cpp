@@ -26,6 +26,8 @@
 #define protected public
 #include "fold_screen_base_policy.h"
 #include "fold_crease_region_controller.h"
+#include "fold_screen_state_internel.h"
+
 #undef private
 #undef protected
 
@@ -45,14 +47,31 @@ namespace Rosen {
 namespace DMS {
 constexpr uint32_t SLEEP_TIME_US = 100000;
 
+class MockFoldScreenBasePolicy:public: MockFoldScreenBasePolicy{
+public:
+    MOCK_METHOD(bool, GetModeChangeRuningStatus, (),(override));
+    MOCK_METHOD(FoldStatus, GetFoldStatus, (), (override));
+    MOCK_METHOD(FoldStatus, GetPhysicalFoldStatus, (), (override));
+    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode, DisplayModeChangeReason reason), (override));
+    MOCK_METHOD(bool, GetPhysicalFoldLockFlag, (),(override, const));
+
+    MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (FoldStatus status), (override));
+    MOCK_METHOD(FoldStatus, GetForcedFoldStatus, (), (override, const));
+
+    MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (), (override));
+    MOCK_METHOD(const std::unordered_set<FoldStatus>& supportedFoldStatus, (FoldStatus targetFoldStatus), (override, const));
+    MOCK_METHOD(FoldStatus, GetForcedFoldStatus, (), (override, const));
+};
+
 class FoldScreenBasePolicyTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
-
+    static const std::unordered_set<FoldStatus> supportedFoldStatusForTest;
     bool newController = false;
+    std::unique_ptr<MockFoldScreenBasePolicy> mockBasePolicy;
 };
 
 void FoldScreenBasePolicyTest::SetUpTestCase() {}
@@ -65,6 +84,8 @@ void FoldScreenBasePolicyTest::SetUp()
         ScreenSessionManager::GetInstance().foldScreenController_ = new (std::nothrow) DMS::FoldScreenBaseController();
         newController = true;
     }
+    mockBasePolicy = std::make_unique<MockFoldScreenBasePolicy>();
+    std::testing::Mock::VerifyAndClearExpectations(mockBasePolicy.get());
 }
 
 void FoldScreenBasePolicyTest::TearDown()
@@ -73,9 +94,16 @@ void FoldScreenBasePolicyTest::TearDown()
         ScreenSessionManager::GetInstance().foldScreenController_ == nullptr;
         newController = false;
     }
+    std::testing::Mock::VerifyAndClearExpectations(mockBasePolicy.get());
     LOG_SetCallback(nullptr);
     usleep(SLEEP_TIME_US);
 }
+
+const std::unordered_set<FoldStatus> FoldScreenBasePolicyTest::supportedFoldStatusForTest = {
+    FoldStatus::EXPAND,
+    FoldStatus::FOLDED,
+    FoldStatus::HALF_FOLD
+};
 
 namespace {
 
@@ -295,6 +323,140 @@ HWTEST_F(FoldScreenBasePolicyTest, GetCurrentFoldCreaseRegionTest, TestSize.Leve
     auto ret = FoldCreaseRegionController::GetInstance().GetCurrentFoldCreaseRegion();
     EXPECT_TRUE(ret != nullptr);
     LOG_SetCallback(nullptr);
+}
+
+/**
+*@tc.name: SetFoldStatusAndLockControl01
+*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.type: FUNC
+*/
+
+HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl01, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    FoldScreenPolicy* policy = mockBasePolicy.get();
+    FoldStatus targetFoldStatus = FoldStatus::FOLDED;
+
+    EXPECT_CALL(*mockPolicy, GetModeChangeRuningStatus()).Times(1).WillOnce(Return(true));
+    g_errLog.clear();
+    DMError ret = Policy->SetFoldStatusAndLockControl(true, targetStatus);
+    EXPECT_EQ(ret, DMError::DM_ERROR_DISPLAY_MODE_SWITCH_PENDING);
+
+    EXPECT_TRUE(g_logMsg.find("last process not complete")! = std::string::npos);
+    g_logMsg.clear();
+}
+
+/**
+*@tc.name: SetFoldStatusAndLockControl02
+*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.type: FUNC
+*/
+
+HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl02, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    FoldScreenPolicy* policy = mockBasePolicy.get();
+    FoldStatus targetStatus = FoldStatus::UNKNOWN;
+
+    EXPECT_CALL(*mockBasePolicy, GetModeChangeRuningStatus()).Times(1).WillOnce(Return(false));
+    EXPECT_CALL(*mockBasePolicy, GetSupportedFoldStatus()).Times(1).WillOnce(ReturnRef(supportedFoldStatusForTest));
+
+    EXPECT_CALL(*mockBasePolicy, IsFoldStatusSupported(testing::_, targetStatus)).Times(1).WillOnce(Return(false));
+    g_logMsg.clear();
+    DMError ret = Policy->SetFoldStatusAndLockControl(true, targetStatus);
+    EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+
+    EXPECT_TRUE(g_logMsg.find("Current device does not support this fold status")! = std::string::npos);
+    g_logMsg.clear();
+}
+
+/**
+*@tc.name: SetFoldStatusAndLockControl03
+*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.type: FUNC
+*/
+
+HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl03, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    FoldScreenBasePolicy* policy = mockBasePolicy.get();
+    FoldStatus targetStatus = FoldStatus::UNKNOWN;
+
+    EXPECT_CALL(*mockBasePolicy, GetModeChangeRuningStatus()).Times(1).WillOnce(Return(false));
+    EXPECT_CALL(*mockBasePolicy, GetPhysicalFoldStatus()).Times(1).WillOnce(Return(targetStatus));
+    g_logMsg.clear();
+    DMError ret = Policy->SetFoldStatusAndLockControl(false, targetStatus);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    g_logMsg.clear();
+}
+
+/**
+*@tc.name: SetFoldStatusAndLockControl04
+*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.type: FUNC
+*/
+
+HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl04, TestSize.Level1)
+{
+    if(FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()){
+
+    LOG_SetCallback(MyLogCallback);
+    FoldScreenPolicy* policy = mockBasePolicy.get();
+    FoldStatus oldStatus = FoldStatus::FOLDED;
+    FoldStatus targetStatus = FoldStatus::UNKNOWN;
+
+    EXPECT_CALL(*mockBasePolicy, GetModeChangeRuningStatus()).Times(1).WillOnce(Return(false));
+    EXPECT_CALL(*mockBasePolicy, GetSupportedFoldStatus()).Times(1).WillOnce(ReturnRef(supportedFoldStatusForTest));
+
+    EXPECT_CALL(*mockBasePolicy, IsFoldStatusSupported(testing::_, targetStatus)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(*mockBasePolicy, GetFoldStatus()).Times(1).WillOnce(Return(oldStatus));
+
+    FoldDisplayMode mode = FoldDisplayMode::MAIN;
+    EXPECT_CALL(*mockBasePolicy, GetModeMatchStatus(targetStatus)).Times(1).WillOnce(Return(mode));
+    EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET)).Times(1);
+    g_logMsg.clear();
+    DMError ret = Policy->SetFoldStatusAndLockControl(true, targetStatus);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    EXPECT_TRUE(g_logMsg.find("Change fold status from")!= std::string::npos);
+    g_logMsg.clear();
+    }
+}
+
+/**
+*@tc.name: SetFoldStatusAndLockControl05
+*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.type: FUNC
+*/
+
+HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl05, TestSize.Level1)
+{
+    if(FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()){
+
+    LOG_SetCallback(MyLogCallback);
+    FoldScreenBasePolicy* policy = mockBasePolicy.get();
+    FoldStatus oldStatus = FoldStatus::FOLDED;
+    FoldStatus targetStatus = FoldStatus::UNKNOWN;
+
+    EXPECT_CALL(*mockBasePolicy, GetModeChangeRuningStatus()).Times(1).WillOnce(Return(false));
+    EXPECT_CALL(*mockBasePolicy, GetSupportedFoldStatus()).Times(1).WillOnce(ReturnRef(supportedFoldStatusForTest));
+
+    EXPECT_CALL(*mockBasePolicy, IsFoldStatusSupported(testing::_, physicStatus)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(*mockBasePolicy, GetFoldStatus()).Times(1).WillOnce(Return(oldStatus));
+
+    EXPECT_CALL(*mockBasePolicy, GetPhysicalFoldStatus()).Times(1).WillOnce(Return(physicStatus));
+
+    FoldDisplayMode mode = FoldDisplayMode::MAIN;
+    EXPECT_CALL(*mockBasePolicy, GetModeMatchStatus(physicStatus)).Times(1).WillOnce(Return(mode));
+    EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET)).Times(1);
+
+    g_logMsg.clear();
+    DMError ret = Policy->SetFoldStatusAndLockControl(false, physicStatus);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    EXPECT_TRUE(g_logMsg.find("Change fold status from") != std::string::npos);
+    g_logMsg.clear();
+    }
 }
 
 }
