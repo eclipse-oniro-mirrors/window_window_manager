@@ -5,7 +5,7 @@
 *You may obtain a copy of the License at
 *
 *
-http://www.apache.org/licenses/LICENSE-2.0
+*http://www.apache.org/licenses/LICENSE-2.0
 *
 *Unless required by applicable law or agreed to in writing,software
 *distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,28 +30,28 @@ namespace{
     }
 }
 namespace OHOS{
-    namespace Rosen{
-        namespace{
-            constexpr uint32_t SLEEP_TIME_US = 100000;
+namespace Rosen{
+namespace{
+constexpr uint32_t SLEEP_TIME_US = 100000;
 }
 
 class MockFoldScreenPolicy: public FoldScreenPolicy{
 public:
     MOCK_METHOD(FoldStatus, GetFoldStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetPhysicalFoldStatus, (), (override));
-    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode, displayModeChangeReason reason), (override));
+    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode, DisplayModeChangeReason reason), (override));
     MOCK_METHOD(bool, GetPhysicalFoldLockFlag, (), (override, const));
     MOCK_METHOD(FoldStatus, GetForcedFoldStatus, (), (override, const));
 
     MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (), (override));
 
     MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (FoldStatus status), (override));
-    MOCK_METHOD(const std::unordered_set<FoldStatus>&, GetSupportedFoldStatus, (), (override, const));
-    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>& supportedFoldStatus, FoldStatus targetFoldStatus), (override, const));
+    MOCK_METHOD(const std::unordered_set<FoldStatus>&, GetSupportedFoldStates, (), (override, const));
+    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>& supportedFoldStates, FoldStatus targetFoldStatus), (override, const));
 
 };
 
-class FoldScreenPolicy Test: public testing::Test{
+class FoldScreenPolicyTest: public testing::Test{
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -62,7 +62,7 @@ public:
     std::unique_ptr<MockFoldScreenPolicy> mockPolicy;
 };
 
-void FoldScreenPolicyTest::SetUpTestCase
+void FoldScreenPolicyTest::SetUpTestCase()
 {
 }
 
@@ -92,7 +92,7 @@ namespace{
 
 /**
 *@tc.name: SetFoldStatusAndLockControl01
-*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.desc:test function : SetFoldStatusAndLockControl
 *@tc.type: FUNC
 */
 
@@ -106,13 +106,13 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl01, TestSize.Level1)
     DMError ret = mockPolicy->SetFoldStatusAndLockControl(true, targetStatus);
     EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
 
-    EXPECT_TRUE(g_errLog.find("Current device does not support this fold status")! = std::string::npos);
+    EXPECT_TRUE(g_errLog.find("Current device does not support this fold status") != std::string::npos);
     g_errLog.clear();
 }
 
 /**
 *@tc.name: SetFoldStatusAndLockControl02
-*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.desc:test function : SetFoldStatusAndLockControl
 *@tc.type: FUNC
 */
 HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl02, TestSize.Level1)
@@ -129,7 +129,7 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl02, TestSize.Level1)
 
 /**
 *@tc.name: SetFoldStatusAndLockControl03
-*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.desc:test function : SetFoldStatusAndLockControl
 *@tc.type: FUNC
 */
 HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl03, TestSize.Level1)
@@ -150,13 +150,13 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl03, TestSize.Level1)
     DMError ret = mockPolicy->SetFoldStatusAndLockControl(true, targetStatus);
     EXPECT_EQ(ret, DMError::DM_OK);
 
-    EXPECT_TRUE(g_errLog.find("Change fold status from")! = std::string::npos);
+    EXPECT_TRUE(g_errLog.find("Change fold status from") != std::string::npos);
     g_errLog.clear();
 }
 
 /**
 *@tc.name: SetFoldStatusAndLockControl04
-*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.desc:test function : SetFoldStatusAndLockControl
 *@tc.type: FUNC
 */
 HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl04, TestSize.Level1)
@@ -175,7 +175,7 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl04, TestSize.Level1)
     DMError ret = mockPolicy->SetFoldStatusAndLockControl(false, physicStatus);
     EXPECT_EQ(ret, DMError::DM_OK);
 
-    EXPECT_TRUE(g_errLog.find("Change fold status from")! = std::string::npos);
+    EXPECT_TRUE(g_errLog.find("Change fold status from") != std::string::npos);
     g_errLog.clear();
 }
 }
