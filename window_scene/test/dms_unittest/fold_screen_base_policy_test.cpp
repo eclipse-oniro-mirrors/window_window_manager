@@ -60,7 +60,7 @@ public:
 
     MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (), (override));
     MOCK_METHOD(const std::unordered_set<FoldStatus>&, GetSupportedFoldStates, (override, const));
-    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>&supportedFoldStates, FoldStatus targetFoldStatus), (override, const));
+    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>& supportedFoldStates, FoldStatus targetFoldStatus), (override, const));
 };
 
 class FoldScreenBasePolicyTest : public testing::Test {
@@ -94,7 +94,7 @@ void FoldScreenBasePolicyTest::TearDown()
         ScreenSessionManager::GetInstance().foldScreenController_ == nullptr;
         newController = false;
     }
-    std::testing::Mock::VerifyAndClearExpectations(mockBasePolicy.get());
+    ::testing::Mock::VerifyAndClearExpectations(mockBasePolicy.get());
     LOG_SetCallback(nullptr);
     usleep(SLEEP_TIME_US);
 }
@@ -327,7 +327,7 @@ HWTEST_F(FoldScreenBasePolicyTest, GetCurrentFoldCreaseRegionTest, TestSize.Leve
 
 /**
 *@tc.name: SetFoldStatusAndLockControl01
-*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.desc:test function : SetFoldStatusAndLockControl
 *@tc.type: FUNC
 */
 
@@ -339,16 +339,16 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl01, TestSize.Level
 
     EXPECT_CALL(*mockBasePolicy, GetModeChangeRunningStatus()).Times(1).WillOnce(Return(true));
     g_logMsg.clear();
-    DMError ret = Policy->SetFoldStatusAndLockControl(true, targetStatus);
+    DMError ret = policy->SetFoldStatusAndLockControl(true, targetStatus);
     EXPECT_EQ(ret, DMError::DM_ERROR_DISPLAY_MODE_SWITCH_PENDING);
 
-    EXPECT_TRUE(g_logMsg.find("last process not complete")! = std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("last process not complete") != std::string::npos);
     g_logMsg.clear();
 }
 
 /**
 *@tc.name: SetFoldStatusAndLockControl02
-*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.desc:test function : SetFoldStatusAndLockControl
 *@tc.type: FUNC
 */
 
@@ -363,16 +363,16 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl02, TestSize.Level
 
     EXPECT_CALL(*mockBasePolicy, IsFoldStatusSupported(testing::_, targetStatus)).Times(1).WillOnce(Return(false));
     g_logMsg.clear();
-    DMError ret = Policy->SetFoldStatusAndLockControl(true, targetStatus);
+    DMError ret = policy->SetFoldStatusAndLockControl(true, targetStatus);
     EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
 
-    EXPECT_TRUE(g_logMsg.find("Current device does not support this fold status")! = std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("Current device does not support this fold status") != std::string::npos);
     g_logMsg.clear();
 }
 
 /**
 *@tc.name: SetFoldStatusAndLockControl03
-*@tc.desc:test function: SetFoldStatusAndLockControl
+*@tc.desc:test function : SetFoldStatusAndLockControl
 *@tc.type: FUNC
 */
 
@@ -385,7 +385,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl03, TestSize.Level
     EXPECT_CALL(*mockBasePolicy, GetModeChangeRuningStatus()).Times(1).WillOnce(Return(false));
     EXPECT_CALL(*mockBasePolicy, GetPhysicalFoldStatus()).Times(1).WillOnce(Return(targetStatus));
     g_logMsg.clear();
-    DMError ret = Policy->SetFoldStatusAndLockControl(false, targetStatus);
+    DMError ret = policy->SetFoldStatusAndLockControl(false, targetStatus);
     EXPECT_EQ(ret, DMError::DM_OK);
     g_logMsg.clear();
 }
@@ -415,7 +415,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl04, TestSize.Level
     EXPECT_CALL(*mockBasePolicy, GetModeMatchStatus(targetStatus)).Times(1).WillOnce(Return(mode));
     EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET)).Times(1);
     g_logMsg.clear();
-    DMError ret = Policy->SetFoldStatusAndLockControl(true, targetStatus);
+    DMError ret = policy->SetFoldStatusAndLockControl(true, targetStatus);
     EXPECT_EQ(ret, DMError::DM_OK);
 
     EXPECT_TRUE(g_logMsg.find("Change fold status from")!= std::string::npos);
@@ -438,7 +438,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl05, TestSize.Level
     FoldStatus oldStatus = FoldStatus::FOLDED;
     FoldStatus physicStatus = FoldStatus::UNKNOWN;
 
-    EXPECT_CALL(*mockBasePolicy, GetModeChangeRuningStatus()).Times(1).WillOnce(Return(false));
+    EXPECT_CALL(*mockBasePolicy, GetModeChangeRunningStatus()).Times(1).WillOnce(Return(false));
     EXPECT_CALL(*mockBasePolicy, GetSupportedFoldStatus()).Times(1).WillOnce(ReturnRef(supportedFoldStatusForTest));
 
     EXPECT_CALL(*mockBasePolicy, IsFoldStatusSupported(testing::_, physicStatus)).Times(1).WillOnce(Return(true));
@@ -451,7 +451,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl05, TestSize.Level
     EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET)).Times(1);
 
     g_logMsg.clear();
-    DMError ret = Policy->SetFoldStatusAndLockControl(false, physicStatus);
+    DMError ret = policy->SetFoldStatusAndLockControl(false, physicStatus);
     EXPECT_EQ(ret, DMError::DM_OK);
 
     EXPECT_TRUE(g_logMsg.find("Change fold status from") != std::string::npos);
