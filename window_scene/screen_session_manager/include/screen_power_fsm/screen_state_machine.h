@@ -68,8 +68,9 @@ enum class ScreenPowerEvent {
     WAKEUP_BEGIN,
     SUSPEND_BEGIN,
     WAKEUP_BEGIN_ADVANCED,
-    SCREEN_POWER_EVENT_MAX,
+    FOLD_SCREEN_SET_POWER,
     SYNC_POWER_ON, //Special scenario, PMS force synchronization ON state
+    SCREEN_POWER_EVENT_MAX,
 };
 
 enum class AodStatus {
@@ -79,10 +80,11 @@ enum class AodStatus {
     AOD_STATUS_MAX,
 };
 
+using SwitchScreenCallback = std::function<void ()>;
 using StateEvent = std::pair<ScreenTransitionState, ScreenPowerEvent>;
 using ScreenPowerInfoType = std::variant<std::monostate, PowerStateChangeReason,
     DisplayState, std::pair<ScreenPowerState, PowerStateChangeReason>, std::pair<ScreenId, ScreenPowerStatus>,
-    std::pair<DisplayId, DisplayState>>;
+    std::pair<DisplayId, DisplayState>, SwitchScreenCallback>;
 using Action = std::function<bool (ScreenPowerEvent, const ScreenPowerInfoType&)>;
 
 struct Transition {
@@ -129,6 +131,7 @@ private:
     static bool DoWaitAodRequest(ScreenPowerEvent event, const ScreenPowerInfoType& type);
     static bool DoSetScreenPowerForAll(ScreenPowerEvent event, const ScreenPowerInfoType& type);
     static bool ActionScreenPowerOff(ScreenPowerEvent event, const ScreenPowerInfoType& type);
+    static bool DoSetScreenFoldPowerFunc(ScreenPowerEvent event, const ScreenPowerInfoType& type);
 
     ScreenStateTimer timer_;
     std::mutex mtx;
