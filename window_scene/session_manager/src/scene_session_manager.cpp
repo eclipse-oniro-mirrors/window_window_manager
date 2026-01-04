@@ -870,6 +870,10 @@ void SceneSessionManager::ConfigWindowSceneXml(const WindowSceneConfig::ConfigIt
     if (item.IsMap()) {
         ConfigSingleHandCompatibleMode(item);
     }
+    item = config["singleHandModeEnable"].GetProp("enable");
+    if (item.IsBool()) {
+        singleHandModeEnable_ = item.boolValue_;
+    }
 }
 
 void SceneSessionManager::ConfigWindowImmersive(const WindowSceneConfig::ConfigItem& immersiveConfig)
@@ -9310,6 +9314,11 @@ const SingleHandCompatibleModeConfig& SceneSessionManager::GetSingleHandCompatib
     return singleHandCompatibleModeConfig_;
 }
 
+bool SceneSessionManager::GetSingleHandModeEnable() const
+{
+    return singleHandModeEnable_;
+}
+
 #ifdef SECURITY_COMPONENT_MANAGER_ENABLE
 static void FillSecCompEnhanceData(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
     MMI::PointerEvent::PointerItem& pointerItem)
@@ -10965,7 +10974,7 @@ void SceneSessionManager::GetOrientationFromResourceManager(AppExecFwk::AbilityI
     }
 
     resourceMgr->GetResConfig(*resConfig);
-    TLOGE(WmsLogTag::DEFAULT, "deviceType:%{public}d", resConfig->GetDeviceType());
+    TLOGI(WmsLogTag::DEFAULT, "deviceType:%{public}d", resConfig->GetDeviceType());
     resourceMgr = Global::Resource::CreateResourceManager(
         abilityInfo.bundleName, abilityInfo.moduleName, "", {}, *resConfig);
     if (resourceMgr == nullptr) {

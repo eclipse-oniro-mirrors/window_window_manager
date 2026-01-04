@@ -88,6 +88,7 @@ public:
     static napi_value UpdateWindowMode(napi_env env, napi_callback_info info);
     static napi_value NotifySingleHandInfoChange(napi_env env, napi_callback_info info);
     static napi_value GetSingleHandCompatibleModeConfig(napi_env env, napi_callback_info info);
+    static napi_value GetSingleHandModeEnable(napi_env env, napi_callback_info info);
     static napi_value GetRootSceneUIContext(napi_env env, napi_callback_info info);
     static napi_value SendTouchEvent(napi_env env, napi_callback_info info);
     static napi_value AddWindowDragHotArea(napi_env env, napi_callback_info info);
@@ -224,6 +225,7 @@ private:
     napi_value OnUpdateWindowMode(napi_env env, napi_callback_info info);
     napi_value OnNotifySingleHandInfoChange(napi_env env, napi_callback_info info);
     napi_value OnGetSingleHandCompatibleModeConfig(napi_env env, napi_callback_info info);
+    napi_value OnGetSingleHandModeEnable(napi_env env, napi_callback_info info);
     napi_value OnGetRootSceneUIContext(napi_env env, napi_callback_info info);
     napi_value OnSendTouchEvent(napi_env env, napi_callback_info info);
     napi_value OnAddWindowDragHotArea(napi_env env, napi_callback_info info);
