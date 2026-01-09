@@ -1263,6 +1263,40 @@ HWTEST_F(ScreenSessionTest, UpdatePropertyByActiveModeChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdatePropertyByScreenMode
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdatePropertyByScreenMode01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    RSScreenModeInfo screenMode;
+    session->UpdatePropertyByScreenMode(screenMode);
+    EXPECT_TRUE(g_errLog.find("Invalid RSScreenModeInfo") != std::string::npos);
+    g_errLog.clear();
+}
+
+/**
+ * @tc.name: UpdatePropertyByScreenMode
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdatePropertyByScreenMode02, TestSize.Level1)
+{
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    RSScreenModeInfo screenMode;
+    screenMode.SetScreenHeight(2440);
+    screenMode.SetScreenWidth(2240);
+    screenMode.SetScreenRefreshRate(90);
+    screenMode.SetScreenModeId(0);
+    session->UpdatePropertyByScreenMode(screenMode);
+    ASSERT_EQ(session->GetScreenProperty().GetBounds().rect_.width_, 2240);
+    ASSERT_EQ(session->GetScreenProperty().GetBounds().rect_.height_, 2440);
+}
+
+/**
  * @tc.name: SetSupportedRefreshRate
  * @tc.desc: normal function
  * @tc.type: FUNC

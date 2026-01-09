@@ -386,6 +386,14 @@ public:
     void SetAspectRatio(float ratio);
     float GetAspectRatio() const;
 
+    /*
+     * Prelaunch Starting Window
+     */
+    void SetPrelaunch(bool isPrelaunch);
+    bool IsPrelaunch() const;
+    void SetFrameNum(int32_t frameNum);
+    int32_t GetFrameNum() const;
+
 private:
     void setTouchHotAreasInner(const std::vector<Rect>& rects, std::vector<Rect>& touchHotAreas);
     bool MarshallingTouchHotAreasInner(const std::vector<Rect>& touchHotAreas, Parcel& parcel) const;
@@ -658,6 +666,12 @@ private:
      * Window Layout
      */
     float aspectRatio_ { 0.0f };
+
+    /*
+     * Prelaunch Starting Window
+     */
+    bool isPrelaunch_ = false;
+    int32_t frameNum_ = 0;
 };
 
 class CompatibleModeProperty : public Parcelable {

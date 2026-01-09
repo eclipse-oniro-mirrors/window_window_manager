@@ -162,6 +162,7 @@ using CompatibleModeChangeCallback = std::function<void(CompatibleStyleMode mode
 using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
 using GetSCBEnterRecentFunc = std::function<bool()>;
+using ForceNotifyOccupiedAreaChangeCallback = std::function<void(DisplayId displayId)>;
 
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
@@ -211,7 +212,7 @@ public:
         SetWindowPatternOpacityFunc setOpacityFunc_;
     };
 
-    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
+    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
     virtual ~SceneSession();
 
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
@@ -296,6 +297,7 @@ public:
     virtual void OpenKeyboardSyncTransaction() {}
     virtual void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect,
         bool isKeyboardShow, const WindowAnimationInfo& animationInfo) {}
+    virtual void ForceProcessKeyboardOccupiedAreaInfo(){};
     WSError ChangeSessionVisibilityWithStatusBar(const sptr<AAFwk::SessionInfo> info, bool visible) override;
     WSError PendingSessionActivation(const sptr<AAFwk::SessionInfo> info) override;
     WSError BatchPendingSessionsActivation(const std::vector<sptr<AAFwk::SessionInfo>>& abilitySessionInfos,
@@ -365,6 +367,7 @@ public:
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void NotifyOutsideDownEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     WSError NotifyFrameLayoutFinishFromApp(bool notifyListener, const WSRect& rect) override;
+    WMError NotifyRemovePrelaunchStartingWindow() override;
     void SetForegroundInteractiveStatus(bool interactive) override;
     WSError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
 
@@ -840,7 +843,13 @@ public:
     bool IsDirtyDragWindow();
     void ResetDirtyDragFlags();
     void ResetSizeChangeReasonIfDirty();
-    void SetRequestNextVsyncFunc(RequestVsyncFunc&& func);
+
+    /**
+     * @brief Set the VsyncStation used by the session.
+     *
+     * @param vsyncStation Shared pointer to the VsyncStation instance.
+     */
+    void SetVsyncStation(const std::shared_ptr<VsyncStation>& vsyncStation);
 
     /**
      * @brief Request a vsync event for drag operation.
@@ -865,30 +874,23 @@ public:
         const WSRect& globalRect, bool isGlobal, bool needFlush, bool needSetBoundsNextVsync);
 
     /**
-     * @brief Request a move-resample operation to run on the next vsync.
+     * @brief Request a move resampling operation to run on the next vsync.
      *
-     * @param isGlobal Whether to compute the target rect in global coordinates.
-     * @param needFlush Whether a surface flush is required.
+     * This registers a vsync callback and posts the resample work to the
+     * SSM thread, forming one iteration of the move resampling loop.
      */
-    void RequestMoveResampleOnNextVsync(bool isGlobal, bool needFlush);
+    void RequestMoveResampleOnNextVsync();
 
     /**
-     * @brief Handle a move-resample triggered by a vsync event.
+     * @brief Perform one move resampling iteration for the given vsync timestamp.
+     *
+     * This method resamples the moving position at the specified vsync moment,
+     * updates the target rectangle, applies the new surface bounds, and then
+     * schedules the next resample iteration.
      *
      * @param vsyncTimeUs Vsync timestamp in microseconds.
-     * @param isGlobal Whether to compute the target rect in global coordinates.
-     * @param needFlush Whether a surface flush is required.
      */
-    void OnVsyncMoveResample(int64_t vsyncTimeUs, bool isGlobal, bool needFlush);
-
-    /**
-     * @brief Perform move-resample and apply the updated target rect.
-     *
-     * @param vsyncTimeUs Vsync timestamp in microseconds.
-     * @param isGlobal Whether to compute the target rect in global coordinates.
-     * @param needFlush Whether a surface flush is required.
-     */
-    void ApplyMoveResample(int64_t vsyncTimeUs, bool isGlobal, bool needFlush);
+    void PerformMoveResampleOnVsync(int64_t vsyncTimeUs);
 
     void RegisterLayoutFullScreenChangeCallback(NotifyLayoutFullScreenChangeFunc&& callback);
     bool SetFrameGravity(Gravity gravity);
@@ -954,6 +956,8 @@ public:
         WSPropertyChangeAction action) { return WMError::WM_OK; }
     virtual void HandleKeyboardMoveDragEnd(const WSRect& rect, SizeChangeReason reason = SizeChangeReason::UNDEFINED,
         DisplayId displayId = DISPLAY_ID_INVALID) { return; }
+    void RegisterNotifyOccupiedAreaChangeCallback(ForceNotifyOccupiedAreaChangeCallback&& callback);
+    void ForceNotifyKeyboardOccupiedArea();
 
     /*
      * Window Focus
@@ -1118,7 +1122,6 @@ protected:
 
     friend class MoveDragController;
     sptr<MoveDragController> moveDragController_ = nullptr;
-    std::atomic<bool> canRequestMoveResampleVsync_ = true;
 
     std::mutex displayIdSetDuringMoveToMutex_;
     std::set<uint64_t> displayIdSetDuringMoveTo_;
@@ -1248,14 +1251,14 @@ private:
      */
     virtual void HandleMoveDragSurfaceNode(SizeChangeReason reason);
     void OnMoveDragCallback(SizeChangeReason reason,
-                            TargetRectUpdateState state = TargetRectUpdateState::UPDATED_DIRECTLY);
+                            TargetRectUpdateMode mode = TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     bool DragResizeWhenEndFilter(SizeChangeReason reason);
     void HandleMoveDragEvent(SizeChangeReason reason);
     bool IsDragResizeScale(SizeChangeReason reason);
     void InitializeCrossMoveDrag();
     WSError InitializeMoveInputBar();
     void HandleMoveDragSurfaceBounds(WSRect& rect, WSRect& globalRect, SizeChangeReason reason,
-                                     TargetRectUpdateState state = TargetRectUpdateState::UPDATED_DIRECTLY);
+                                     TargetRectUpdateMode mode = TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     void HandleMoveDragEnd(WSRect& rect, SizeChangeReason reason);
     void WindowScaleTransfer(WSRect& rect, float scaleX, float scaleY);
     bool IsCompatibilityModeScale(float scaleX, float scaleY);
@@ -1271,13 +1274,13 @@ private:
     void HandleSubSessionCrossNode(SizeChangeReason reason);
 
     /**
-     * @brief Request a one-shot vsync callback.
+     * @brief Get the current FPS for this session.
      *
-     * Schedules the specified VsyncCallback to be invoked on the next vsync signal.
+     * This method queries the VsyncStation to retrieve the current FPS value.
      *
-     * @param vsyncCallback Callback object to be invoked on the next vsync.
+     * @return Optional FPS value; std::nullopt if unavailable.
      */
-    void RequestNextVsync(std::shared_ptr<VsyncCallback> vsyncCallback);
+    std::optional<uint32_t> GetFpsFromVsync() const;
 
     /**
      * @brief Run the given callback on the next vsync.
@@ -1290,15 +1293,12 @@ private:
     void RunOnNextVsync(OnCallback&& callback);
 
     /**
-     * @brief Run the given callback after a specified number of vsync signals.
+     * @brief Run the given callback once after a specified number of vsyncs.
      *
-     * The callback is invoked on the N-th vsync following this call.
-     * Equivalent to @ref RunOnNextVsync when @p vsyncCount is 1.
-     *
-     * @param vsyncCount Number of vsync intervals to wait before invoking the callback.
-     * @param callback Callable object to be executed on the N-th vsync.
+     * @param delayVsyncCount Number of vsyncs to wait before executing the callback.
+     * @param callback        Callback to be executed after the specified vsync delay.
      */
-    void RunAfterNVsyncs(uint32_t vsyncCount, OnCallback&& callback);
+    void RunAfterNVsyncs(uint32_t delayVsyncCount, OnCallback&& callback);
 
     void RestoreGravityWhenDragEnd();
 
@@ -1631,6 +1631,11 @@ private:
      * Window Transition Animation For PC
      */
     UpdateTransitionAnimationFunc updateTransitionAnimationFunc_;
+
+     /*
+     * Keyboard
+     */
+    ForceNotifyOccupiedAreaChangeCallback forceNotifyOccupiedAreaChangeFunc_;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SCENE_SESSION_H

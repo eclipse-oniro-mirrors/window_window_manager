@@ -970,6 +970,20 @@ HWTEST_F(SessionStubTest, HandleNotifyFrameLayoutFinish, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleRemovePrelaunchStartingWindow
+ * @tc.desc: sessionStub HandleRemovePrelaunchStartingWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, HandleRemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    auto result = session_->HandleRemovePrelaunchStartingWindow(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleSnapshotUpdate
  * @tc.desc: sessionStub HandleSnapshotUpdate
  * @tc.type: FUNC
@@ -1004,20 +1018,20 @@ HWTEST_F(SessionStubTest, HandleSyncSessionEvent, TestSize.Level1)
  */
 HWTEST_F(SessionStubTest, HandleRestoreFloatMainWindow, TestSize.Level1)
 {
-    MessageParcel data;
-    MessageParcel reply;
-
-    auto result = session_->HandleRestoreFloatMainWindow(data, reply);
-    ASSERT_EQ(result, ERR_INVALID_VALUE);
-
-    MessageParcel data1;
-    MessageParcel reply1;
-    MessageOption option;
     sptr<SessionStub> sessionStub = sptr<SessionStubMocker>::MakeSptr();
     ASSERT_NE(nullptr, sessionStub);
-    data.WriteInterfaceToken(SessionStub::GetDescriptor());
-    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RESTORE_FLOAT_MAIN_WINDOW);
-    EXPECT_EQ(sessionStub->ProcessRemoteRequest(code, data1, reply1, option), ERR_INVALID_VALUE);
+    {
+        MessageParcel data1;
+        MessageParcel reply1;
+        EXPECT_EQ(sessionStub->HandleRestoreFloatMainWindow(data1, reply1), ERR_INVALID_VALUE);
+    }
+    {
+        MessageParcel data2;
+        MessageParcel reply2;
+        std::shared_ptr<AAFwk::WantParams> wantParams = std::make_shared<AAFwk::WantParams>();
+        data2.WriteParcelable(wantParams.get());
+        EXPECT_EQ(sessionStub->HandleRestoreFloatMainWindow(data2, reply2), ERR_NONE);
+    }
 }
 
 /**

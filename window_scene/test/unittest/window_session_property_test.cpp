@@ -643,21 +643,6 @@ HWTEST_F(WindowSessionPropertyTest, SetFocusable, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTouchable
- * @tc.desc: SetTouchable and GetTouchable to check the value
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionPropertyTest, SetTouchable, TestSize.Level1)
-{
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(nullptr, property);
-    property->SetTouchable(true);
-    ASSERT_EQ(property->GetTouchable(), true);
-    property->SetTouchable(false);
-    ASSERT_EQ(property->GetTouchable(), false);
-}
-
-/**
  * @tc.name: SetForceHide
  * @tc.desc: SetForceHide and GetForceHide to check the value
  * @tc.type: FUNC
@@ -1765,6 +1750,30 @@ HWTEST_F(WindowSessionPropertyTest, GetRotationLocked, TestSize.Level0)
     EXPECT_EQ(property->GetRotationLocked(), true);
     property->isRotationLock_ = false;
     EXPECT_EQ(property->GetRotationLocked(), false);
+}
+
+/**
+ * @tc.name: FrameNum
+ * @tc.desc: Test FrameNum
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, FrameNum, TestSize.Level0)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetFrameNum(3);
+    EXPECT_EQ(property->GetFrameNum(), 3);
+}
+
+/**
+ * @tc.name: Prelaunch
+ * @tc.desc: Test Prelaunch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, Prelaunch, TestSize.Level0)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetPrelaunch(true);
+    EXPECT_TRUE(property->IsPrelaunch());
 }
 
 /**

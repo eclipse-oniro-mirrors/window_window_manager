@@ -736,6 +736,18 @@ void ScreenSession::UpdatePropertyByActiveMode()
     }
 }
 
+void ScreenSession::UpdatePropertyByScreenMode(RSScreenModeInfo screenMode)
+{
+    if (screenMode.GetScreenWidth() == -1 && screenMode.GetScreenHeight() == -1 && screenMode.GetScreenModeId() == -1) {
+        TLOGE(WmsLogTag::DMS, "Invalid RSScreenModeInfo, cannot update property");
+        return;
+    }
+    auto screeBounds = property_.GetBounds();
+    screeBounds.rect_.width_ = screenMode.GetScreenWidth();
+    screeBounds.rect_.height_ = screenMode.GetScreenHeight();
+    property_.SetBounds(screeBounds);
+}
+
 ScreenProperty ScreenSession::UpdatePropertyByFoldControl(const ScreenProperty& updatedProperty,
     FoldDisplayMode foldDisplayMode, bool firstSCBConnect)
 {
@@ -3428,8 +3440,9 @@ void ScreenSession::SetUniqueRotation(int32_t rotation)
     uniqueRotation_ = rotation;
 }
 
-const std::map<int32_t, int32_t>& ScreenSession::GetUniqueRotationOrientationMap() const
+const std::map<int32_t, int32_t> ScreenSession::GetUniqueRotationOrientationMap() const
 {
+    std::shared_lock<std::shared_mutex> lock(rotationMapMutex_);
     return uniqueRotationOrientationMap_;
 }
 
@@ -3454,6 +3467,7 @@ bool ScreenSession::UpdateRotationOrientationMap(UniqueScreenRotationOptions& ro
 
 void ScreenSession::SetUniqueRotationOrientationMap(const std::map<int32_t, int32_t>& rotationOrientationMap)
 {
+    std::unique_lock<std::shared_mutex> lock(rotationMapMutex_);
     uniqueRotationOrientationMap_ = rotationOrientationMap;
 }
 

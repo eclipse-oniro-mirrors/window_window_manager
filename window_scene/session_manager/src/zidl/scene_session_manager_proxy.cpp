@@ -2633,7 +2633,7 @@ WSError SceneSessionManagerProxy::ResetSpecificWindowZIndex(int32_t pid)
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option(MessageOption::TF_ASYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_FOCUS, "Write interfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;

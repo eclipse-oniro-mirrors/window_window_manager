@@ -1078,6 +1078,25 @@ HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarPropertyForPage, TestSize.L
 }
 
 /**
+ * @tc.name: UpdateStatusBarColorHistory
+ * @tc.desc: UpdateStatusBarColorHistory test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateStatusBarColorHistory");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto reason = WindowSceneSessionImpl::StatusBarColorChangeReason::WINDOW_CONFIGURATION;
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+    reason = WindowSceneSessionImpl::StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
+    std::optional<uint32_t> op;
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, op), 1);
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+}
+
+/**
  * @tc.name: SetSystemBarPropertyForPage
  * @tc.desc: SetSystemBarPropertyForPage
  * @tc.type: FUNC
@@ -1128,9 +1147,60 @@ HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForPage, Function | Small
     window->property_ = property;
     window->state_ = WindowState::STATE_SHOWN;
     std::optional<uint32_t> color;
+    EXPECT_EQ(WMError::WM_DO_NOTHING, window->SetStatusBarColorForPage(color));
+    window->isAtomicServiceUseColor_ = true;
     EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
-    std::optional<uint32_t> colo1 = { 0x00FFFFFF };
-    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(colo1));
+    window->isAtomicServiceUseColor_ = true;
+    window->isNavigationUseColor_ = true;
+    window->statusBarColorHistory_.push(
+        std::pair<WindowSceneSessionImpl::StatusBarColorChangeReason,
+        uint32_t>(WindowSceneSessionImpl::StatusBarColorChangeReason::NAVIGATION_CONFIGURATION, 1));
+    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
+    window->isAtomicServiceUseColor_ = true;
+    window->statusBarColorHistory_.push(
+        std::pair<WindowSceneSessionImpl::StatusBarColorChangeReason,
+        uint32_t>(WindowSceneSessionImpl::StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION, 1));
+    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
+    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(std::optional<uint32_t>(0x00FFFFFF)));
+}
+
+/**
+ * @tc.name: SetSystemBarProperties
+ * @tc.desc: SetSystemBarProperties test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, SetSystemBarProperties, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::map<WindowType, SystemBarProperty> properties;
+    std::map<WindowType, SystemBarPropertyFlag> propertyFlags;
+    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
+    propertyFlags[type] = SystemBarPropertyFlag();
+    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    propertyFlags[type].contentColorFlag = true;
+    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    properties[type] = SystemBarProperty();
+    window->nowsystemBarPropertyMap_[type] = SystemBarProperty();
+    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    window->nowsystemBarPropertyMap_[type].contentColor_ = 0;
+    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: GetSystemBarProperties
+ * @tc.desc: GetSystemBarProperties test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetSystemBarProperties, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::map<WindowType, SystemBarProperty> properties;
+    EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
+    window->nowsystemBarPropertyMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
+    EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
 }
 
 /**

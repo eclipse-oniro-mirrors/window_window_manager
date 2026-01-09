@@ -75,7 +75,7 @@ ScenePersistence::ScenePersistence(const std::string& bundleName, int32_t persis
 {
     InitAstcEnabled();
     auto suffix = isAstcEnabled_ ? ASTC_IMAGE_SUFFIX : IMAGE_SUFFIX;
-    for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
+    for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
         snapshotPath_[screenStatus] = snapshotDirectory_ + bundleName + UNDERLINE_SEPARATOR +
             std::to_string(persistentId) + UNDERLINE_SEPARATOR + std::to_string(screenStatus) + suffix;
     }
@@ -202,7 +202,7 @@ void ScenePersistence::RenameSnapshotFromOldPersistentId(const int32_t& oldPersi
             TLOGNE(WmsLogTag::WMS_PATTERN, "scenePersistence is nullptr");
             return;
         }
-        for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
+        for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
             scenePersistence->RenameSnapshotFromOldPersistentId(oldPersistentId, screenStatus);
         }
         auto suffix = scenePersistence->isAstcEnabled_ ? ASTC_IMAGE_SUFFIX : IMAGE_SUFFIX;
@@ -263,7 +263,7 @@ bool ScenePersistence::FindClosestFormSnapshot(SnapshotStatus& key)
     }
     bool isFolded = (key == SCREEN_FOLDED);
     if (isFolded) {
-        for (uint32_t screenStatus = SCREEN_EXPAND; screenStatus < capacity_; screenStatus--) {
+        for (int32_t screenStatus = SCREEN_EXPAND; screenStatus >= SCREEN_UNKNOWN; screenStatus--) {
             if (hasSnapshot_[screenStatus]) {
                 key = screenStatus;
                 return true;
@@ -271,7 +271,7 @@ bool ScenePersistence::FindClosestFormSnapshot(SnapshotStatus& key)
         }
         return false;
     }
-    for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < capacity_; screenStatus++) {
+    for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < capacity_; screenStatus++) {
         if (hasSnapshot_[screenStatus]) {
             key = screenStatus;
             return true;

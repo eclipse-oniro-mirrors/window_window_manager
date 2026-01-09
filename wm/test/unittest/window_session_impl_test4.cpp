@@ -2376,6 +2376,51 @@ HWTEST_F(WindowSessionImplTest4, FlushLayoutSize, TestSize.Level1)
 }
 
 /**
+ * @tc.name: FlushVsync
+ * @tc.desc: FlushVsync test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, FlushVsync, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: FlushVsync start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("FlushVsync");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->FlushVsync();
+    ASSERT_EQ(window->vsyncCount_, 0);
+
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->SetPrelaunch(false);
+    window->FlushVsync();
+    ASSERT_EQ(window->vsyncCount_, 0);
+
+    window->property_->SetPrelaunch(true);
+    window->property_->SetFrameNum(0);
+    window->FlushVsync();
+    ASSERT_EQ(window->vsyncCount_, 0);
+
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->SetPrelaunch(true);
+    int frameNum = 3;
+    window->property_->SetFrameNum(frameNum);
+    for (int idx = 0; idx < frameNum; ++idx) {
+        window->FlushVsync();
+    }
+    ASSERT_EQ(window->vsyncCount_, 3);
+    ASSERT_EQ(window->hasNotifyPrelaunchStartingwindow_, true);
+    window->FlushVsync();
+    ASSERT_EQ(window->vsyncCount_, 3);
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: FlushVsync end";
+}
+
+/**
  * @tc.name: NotifySnapshotUpdate
  * @tc.desc: NotifySnapshotUpdate
  * @tc.type: FUNC

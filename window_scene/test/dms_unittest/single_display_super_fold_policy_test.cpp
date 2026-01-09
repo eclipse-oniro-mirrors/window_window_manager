@@ -17,6 +17,7 @@
 #include <gmock/gmock.h>
 
 #include "screen_session_manager/include/fold_screen_controller/single_display_super_fold_policy.h"
+#include "screen_session_manager/include/screen_session_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -534,6 +535,32 @@ HWTEST_F(SingleDisplaySuperFoldPolicyTest, ChangeScreenDisplayModeInner, TestSiz
     displayMode = FoldDisplayMode::SUB;
     policy.ChangeScreenDisplayModeInner(displayMode, reason);
     EXPECT_FALSE(policy.onBootAnimation_);
+}
+
+/**
+ * @tc.name: ChangeScreenDisplayModeInner
+ * @tc.desc: test fold exit coordination
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplaySuperFoldPolicyTest, ChangeScreenDisplayModeInnerTest_foldExitCoordination, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplaySuperFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    policy.currentFoldStatus_ = FoldStatus::FOLDED;
+    policy.currentDisplayMode_ = FoldDisplayMode::COORDINATION;
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenSessionManager::GetInstance().screenSessionMap_.insert({screenid, screenSession});
+    FoldDisplayMode displayMode = FoldDisplayMode::FULL;
+    DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT;
+    policy.ChangeScreenDisplayModeInner(displayMode, reason);
+    EXPECT_EQ(policy.currentDisplayMode_, FoldDisplayMode::FULL);
+
+    policy.currentFoldStatus_ = FoldStatus::EXPAND;
+    policy.ChangeScreenDisplayModeInner(displayMode, reason);
+    EXPECT_EQ(policy.currentDisplayMode_, FoldDisplayMode::FULL);
 }
 
 /**

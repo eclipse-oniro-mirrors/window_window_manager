@@ -135,6 +135,7 @@ private:
     void HandleKeyboardOffDisplayNotify(sptr<ScreenSession>& screenSession);
     void HandleSystemKeyboardStatusDisplayNotify(sptr<ScreenSession>& screenSession, bool isTpKeyboardOn = false);
     void ReportNotifySuperFoldStatusChange(int32_t currentStatus, int32_t nextStatus, float postureAngle);
+    void UpdateScreenHalfState(sptr<ScreenSession>& screenSession, SuperFoldStatusChangeEvents changeEvent);
 
     void HandleExtendToHalfFoldDisplayNotifyInServer(sptr<ScreenSession>& screenSession);
     void HandleHalfFoldToExtendDisplayNotifyInServer(sptr<ScreenSession>& screenSession);

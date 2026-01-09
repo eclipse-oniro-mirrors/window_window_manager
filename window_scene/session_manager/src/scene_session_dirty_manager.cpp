@@ -48,7 +48,6 @@ const std::string SCREENSHOT_WINDOW_NAME_PREFIX = "ScreenShotWindow";
 const std::string PREVIEW_WINDOW_NAME_PREFIX = "PreviewWindow";
 const std::string VOICEINPUT_WINDOW_NAME_PREFIX = "__VoiceHardwareInput";
 const std::string SCREEN_LOCK_WINDOW = "scbScreenLock";
-const std::string COOPERATION_DISPLAY_NAME = "Cooperation";
 constexpr int32_t CURSOR_DRAG_COUNT_MAX = 1;
 } // namespace
 
@@ -246,8 +245,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
     auto screenProperty = screensProperties[displayId];
     auto isScreenLockWindow = sceneSession->GetSessionInfo().bundleName_.find(SCREEN_LOCK_WINDOW) != std::string::npos;
     bool isRotateWindow = !NearEqual(PositiveFmod(screenProperty.GetPhysicalRotation() -
-        screenProperty.GetScreenComponentRotation(), DIRECTION360),
-        PositiveFmod(sceneSession->GetCurrentRotation(), DIRECTION360));
+        screenProperty.GetScreenComponentRotation(), DIRECTION360), DIRECTION360);
     bool isSystem = sceneSession->GetSessionInfo().isSystem_;
     bool displayModeIsFull = static_cast<MMI::DisplayMode>(displayMode) == MMI::DisplayMode::FULL;
     bool displayModeIsGlobalFull = displayMode == FoldDisplayMode::GLOBAL_FULL;
@@ -262,8 +260,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
 
     if (isRotate || !isSystem || displayModeIsFull || displayModeIsGlobalFull ||
         (displayModeIsMain && foldScreenStateInternel) || displayModeIsCoordination) {
-        if (isScreenLockWindow && isRotateWindow && ((displayModeIsMain && foldScreenStateInternel) ||
-            (displayModeIsFull && FoldScreenStateInternel::IsSingleDisplayPocketFoldDevice()))) {
+        if (isScreenLockWindow && isRotateWindow) {
             CalSpecialNotRotateTransform(sceneSession, screenProperty, transform, useUIExtension);
             return;
         }
@@ -275,6 +272,10 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
         }
         transform = transform.Translate(translate)
                              .Scale(scale, sceneSession->GetPivotX(), sceneSession->GetPivotY()).Inverse();
+        return;
+    }
+    if (isScreenLockWindow && isRotateWindow) {
+        CalSpecialNotRotateTransform(sceneSession, screenProperty, transform, useUIExtension);
         return;
     }
     CalNotRotateTransform(sceneSession, transform, useUIExtension);
@@ -396,7 +397,6 @@ static void UpdateKeyboardHotAreasInner(const sptr<SceneSession>& sceneSession, 
     }
     auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
     std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
-    isLandscape = isLandscape || (dispName == COOPERATION_DISPLAY_NAME);
     if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         if (keyboardTouchHotAreas.isKeyboardEmpty()) {
             return;

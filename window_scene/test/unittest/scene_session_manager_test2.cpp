@@ -26,6 +26,7 @@
 #include "session/host/include/scene_session.h"
 #include "session/host/include/session_utils.h"
 #include "session/host/include/main_session.h"
+#include "session/host/include/move_drag_controller.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
 #include "session_manager.h"
@@ -229,7 +230,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigWindowLayout, TestSize.Level1)
 
 /**
  * @tc.name: ConfigMoveDrag
- * @tc.desc: Verify ConfigMoveDrag handles all input cases and returns correct values
+ * @tc.desc: Verify ConfigMoveDrag only validates top-level type and returns expected values
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerTest2, ConfigMoveDrag, TestSize.Level1)
@@ -243,57 +244,124 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveDrag, TestSize.Level1)
         EXPECT_FALSE(ret);
     }
 
-    // Case 2: moveResample.enable MISSING → return true + warning path
+    // Case 2: moveDragConfig is a MAP → return true (sub-config errors are ignored)
     {
+        ConfigItem moveResample; // even if invalid, ConfigMoveDrag still returns true
+        moveResample.SetValue(123); // not a map
         ConfigItem moveDrag;
-        ConfigItem moveResample;
-
-        // moveResample = {} (MAP)
-        moveResample.SetValue(std::map<std::string, ConfigItem>{});
-        // moveDrag = { "moveResample": moveResample }
-        moveDrag.SetValue({ { "moveResample", moveResample } });
-
-        bool ret = ssm_->ConfigMoveDrag(moveDrag);
-        EXPECT_TRUE(ret);  // return true even if enable is invalid
-    }
-
-    // Case 3: enable exists but NOT BOOL → warning, return true
-    {
-        ConfigItem moveDrag;
-        ConfigItem moveResample;
-        ConfigItem enableProp;
-
-        enableProp.SetValue(std::string("not_bool")); // STRING → NOT BOOL
-        // moveResample.property = { "enable": STRING }
-        moveResample.SetValue(std::map<std::string, ConfigItem>{});
-        moveResample.SetProperty({ { "enable", enableProp } });
-        moveDrag.SetValue({ { "moveResample", moveResample } });
-
-        bool ret = ssm_->ConfigMoveDrag(moveDrag);
-        EXPECT_TRUE(ret);  // still true, just warns
-    }
-
-    // Case 4: enable is BOOL → call SetMoveResampleEnabled → return true
-    {
-        bool before = SessionUtils::IsMoveResampleEnabled();
-
-        ConfigItem moveDrag;
-        ConfigItem moveResample;
-        ConfigItem enableProp;
-
-        enableProp.SetValue(true);  // valid bool
-        moveResample.SetValue(std::map<std::string, ConfigItem>{});
-        moveResample.SetProperty({ { "enable", enableProp } });
         moveDrag.SetValue({ { "moveResample", moveResample } });
 
         bool ret = ssm_->ConfigMoveDrag(moveDrag);
         EXPECT_TRUE(ret);
-
-        bool after = SessionUtils::IsMoveResampleEnabled();
-        EXPECT_NE(before, after);  // should be changed
-
-        SessionUtils::SetMoveResampleEnabled(before);  // restore
     }
+}
+
+/**
+ * @tc.name: ConfigMoveResampleWithInvalidConfig
+ * @tc.desc: Verify ConfigMoveResample returns false for invalid config structure
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleWithInvalidConfig, TestSize.Level1)
+{
+    // Case 1: moveResampleConfig is NOT a MAP → return false
+    {
+        ConfigItem moveResample;
+        moveResample.SetValue(123);
+
+        EXPECT_FALSE(ssm_->ConfigMoveResample(moveResample));
+    }
+
+    // Case 2: enable MISSING → return false
+    {
+        ConfigItem moveResample;
+        moveResample.SetValue(std::map<std::string, ConfigItem>{});
+
+        EXPECT_FALSE(ssm_->ConfigMoveResample(moveResample));
+    }
+
+    // Case 3: enable NOT BOOL → return false
+    {
+        ConfigItem enableProp;
+        enableProp.SetValue(std::string("not a bool"));
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue(std::map<std::string, ConfigItem>{});
+
+        EXPECT_FALSE(ssm_->ConfigMoveResample(moveResample));
+    }
+}
+
+/**
+ * @tc.name: ConfigMoveResampleFpsRangeFallback
+ * @tc.desc: Verify invalid fpsRange falls back to default
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+
+    // Case 1: resampleFpsRange INVALID TYPE → fallback to default (nullopt/nullopt), return true
+    {
+        ConfigItem fpsRange;
+        fpsRange.SetValue(std::string("not an int array"));
+
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "resampleFpsRange", fpsRange } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+        auto [enable, minFps, maxFps] = MoveDragController::GetMoveResampleSystemConfig();
+        EXPECT_TRUE(enable);
+        EXPECT_FALSE(minFps.has_value());
+        EXPECT_FALSE(maxFps.has_value());
+    }
+
+    // Case 2: resampleFpsRange SIZE != 2 → fallback to default (nullopt/nullopt), return true
+    {
+        ConfigItem fpsRange;
+        fpsRange.SetValue(std::vector<int>{60, 120, 144});
+
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "resampleFpsRange", fpsRange } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+        auto [enable, minFps, maxFps] = MoveDragController::GetMoveResampleSystemConfig();
+        EXPECT_TRUE(enable);
+        EXPECT_FALSE(minFps.has_value());
+        EXPECT_FALSE(maxFps.has_value());
+    }
+}
+
+
+/**
+ * @tc.name: ConfigMoveResampleFpsRangeValid
+ * @tc.desc: Verify valid fpsRange is normalized and applied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeValid, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+
+    ConfigItem fpsRange;
+    fpsRange.SetValue(std::vector<int>{120, 60}); // reversed
+
+    ConfigItem moveResample;
+    moveResample.SetProperty({ { "enable", enableProp } });
+    moveResample.SetValue({ { "resampleFpsRange", fpsRange } });
+
+    EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+    auto [enable, minFps, maxFps] = MoveDragController::GetMoveResampleSystemConfig();
+    EXPECT_TRUE(enable);
+    ASSERT_TRUE(minFps.has_value());
+    ASSERT_TRUE(maxFps.has_value());
+    EXPECT_EQ(*minFps, 60);
+    EXPECT_EQ(*maxFps, 120);
 }
 
 /**

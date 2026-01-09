@@ -1234,6 +1234,55 @@ HWTEST_F(MainSessionTest, RegisterForceSplitEnableListener, TestSize.Level1)
     EXPECT_TRUE(callbackCalled);
     EXPECT_EQ(enableForceSplit, callbackResult);
 }
+
+/**
+ * @tc.name: Prelaunch
+ * @tc.desc: Test Prelaunch
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, Prelaunch, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "PrelaunchBundle";
+    info.moduleName_ = "PrelaunchModule";
+    info.abilityName_ = "PrelaunchAbility";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    session->SetPrelaunch();
+    EXPECT_TRUE(session->GetSessionInfo().isPrelaunch_);
+
+    bool isPrelaunch = session->IsPrelaunch();
+    // return false within 6 second
+    EXPECT_FALSE(isPrelaunch);
+}
+
+/**
+ * @tc.name: RemovePrelaunchStartingWindow
+ * @tc.desc: RemovePrelaunchStartingWindow test
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, RemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "PrelaunchBundle";
+    info.moduleName_ = "PrelaunchModule";
+    info.abilityName_ = "PrelaunchAbility";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    class TLifecycleListener : public ILifecycleListener {
+    public:
+        virtual ~TLifecycleListener() {}
+        void OnRemovePrelaunchStartingWindow() override { isCalled = true; }
+        bool isCalled = false;
+    };
+
+    auto lifecycleListener = std::make_shared<TLifecycleListener>();
+    session->RegisterLifecycleListener(lifecycleListener);
+    session->RemovePrelaunchStartingWindow();
+    EXPECT_TRUE(lifecycleListener->isCalled);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

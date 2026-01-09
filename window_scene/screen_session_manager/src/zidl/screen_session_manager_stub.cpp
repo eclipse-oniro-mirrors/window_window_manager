@@ -20,7 +20,6 @@
 #include <ipc_skeleton.h>
 #include "transaction/rs_marshalling_helper.h"
 #include "session_manager/include/scene_session_manager.h"
-#include "dms_global_mutex.h"
 #include "marshalling_helper.h"
 
 namespace OHOS::Rosen {
@@ -32,12 +31,15 @@ const static float INVALID_DEFAULT_DENSITY = 1.0f;
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
 constexpr uint32_t  MAX_CREASE_REGION_SIZE = 20;
 constexpr uint32_t MAP_SIZE_MAX_NUM = 100;
+const std::map<DisplayManagerMessage, IPCPriority> EVENT_PRIORITY_MAP{
+    { DisplayManagerMessage::TRANS_ID_GET_DEFAULT_DISPLAY_INFO,  IPCPriority::VIP },
+};
 }
 
 int32_t ScreenSessionManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply,
     MessageOption& option)
 {
-    DmUtils::HoldLock callbackLock;
+    DmUtils::HoldLock callbackLock(GetIPCPriority(code));
     int32_t result = OnRemoteRequestInner(code, data, reply, option);
     return result;
 }
@@ -428,24 +430,28 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             std::vector<uint64_t> missionIds;
             if (!data.ReadUInt64Vector(&missionIds)) {
-                TLOGE(WmsLogTag::DMS, "AddWhitelist::fail to receive missionIds from proxy");
+                TLOGE(WmsLogTag::DMS, "fail to receive missionIds");
                 reply.WriteInt32(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM));
                 break;
             }
             DMError result = AddVirtualScreenWhiteList(screenId, missionIds);
-            reply.WriteUint32(static_cast<uint32_t>(result));
+            if (!reply.WriteUint32(static_cast<uint32_t>(result))) {
+                TLOGE(WmsLogTag::DMS, "read reply hookInfo failed!");
+            }
             break;
         }
         case DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_WHITE_LIST: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             std::vector<uint64_t> missionIds;
             if (!data.ReadUInt64Vector(&missionIds)) {
-                TLOGE(WmsLogTag::DMS, "RemoveWhitelist::fail to receive missionIds from proxy");
+                TLOGE(WmsLogTag::DMS, "fail to receive missionIds");
                 reply.WriteInt32(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM));
                 break;
             }
             DMError result = RemoveVirtualScreenWhiteList(screenId, missionIds);
-            reply.WriteUint32(static_cast<uint32_t>(result));
+            if (!reply.WriteUint32(static_cast<uint32_t>(result))) {
+                TLOGE(WmsLogTag::DMS, "read reply hookInfo failed!");
+            }
             break;
         }
         case DisplayManagerMessage::TRANS_ID_IS_ON_BOARD_DISPLAY: {
@@ -1864,5 +1870,14 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenAutoRotation(MessageParcel& d
     }
     DMError ret = SetVirtualScreenAutoRotation(screenId, enable);
     reply.WriteInt32(static_cast<int32_t>(ret));
+}
+
+IPCPriority ScreenSessionManagerStub::GetIPCPriority(uint32_t code)
+{
+    auto it = EVENT_PRIORITY_MAP.find(static_cast<DisplayManagerMessage>(code));
+    if (it == EVENT_PRIORITY_MAP.end()) {
+        return IPCPriority::LOW;
+    }
+    return it->second;
 }
 } // namespace OHOS::Rosen

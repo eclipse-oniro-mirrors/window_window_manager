@@ -472,6 +472,22 @@ HWTEST_F(WindowSceneSessionImplTest2, GetTopNavDestinationName01, TestSize.Level
 }
 
 /**
+ * @tc.name: GetWindowStateSnapshot01
+ * @tc.desc: test GetWindowStateSnapshot.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, GetWindowStateSnapshot01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetWindowStateSnapshot01");
+    option->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
+    sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::string winStateSnapshotJsonStr;
+    auto errCode = windowSceneSession->GetWindowStateSnapshot(winStateSnapshotJsonStr);
+    EXPECT_EQ(errCode, WMError::WM_OK);
+}
+
+/**
  * @tc.name: UpdateDefaultStatusBarColor01
  * @tc.desc: test UpdateDefaultStatusBarColor
  * @tc.type: FUNC

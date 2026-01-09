@@ -31,8 +31,8 @@ constexpr uint32_t MIN_SYSTEM_WINDOW_HEIGHT = 5;
 constexpr uint8_t MAX_FB_CLICK_COUNT = 8;
 const std::string FB_CLICK_EVENT = "click";
 
-SystemSession::SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
-    : SceneSession(info, specificCallback)
+SystemSession::SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
+    int32_t userId): SceneSession(info, specificCallback, userId)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "Create");
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());

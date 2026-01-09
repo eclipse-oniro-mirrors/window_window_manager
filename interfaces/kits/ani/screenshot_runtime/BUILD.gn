@@ -74,6 +74,7 @@ ohos_shared_library("screenshotani_kit") {
     "image_framework:image_native",
     "image_framework:image_taihe",
     "runtime_core:ani",
+    "runtime_core:ani_helpers",
   ]
 
   innerapi_tags = [ "platformsdk" ]

@@ -279,11 +279,11 @@ template<typename T>
 const char* GetClassName()
 {
     if (std::is_same<T, int>::value) {
-        return "std.core.Int;";
+        return "std.core.Int";
     } else if (std::is_same<T, double>::value) {
-        return "std.core.Double;";
+        return "std.core.Double";
     } else if (std::is_same<T, long>::value) {
-        return "std.core.Long;";
+        return "std.core.Long";
     } else {
         return nullptr;
     }

@@ -309,6 +309,9 @@ void SessionManager::RegisterSMSRecoverListener()
             TLOGI(WmsLogTag::WMS_RECOVER, "listener has been registered");
             return;
         }
+        if (!smsRecoverListener_) {
+            smsRecoverListener_ = sptr<SessionManagerServiceRecoverListener>::MakeSptr(userId_);
+        }
     }
     sptr<IMockSessionManagerInterface> mockProxy = nullptr;
     {
@@ -319,7 +322,6 @@ void SessionManager::RegisterSMSRecoverListener()
         }
         mockProxy = mockSessionManagerServiceProxy_;
     }
-    smsRecoverListener_ = sptr<SessionManagerServiceRecoverListener>::MakeSptr(userId_);
     mockProxy->RegisterSMSRecoverListener(smsRecoverListener_, userId_, false);
     {
         std::lock_guard<std::mutex> lock(recoverListenerMutex_);
@@ -494,6 +496,19 @@ void SessionManager::OnFoundationDied()
     }
     std::lock_guard<std::mutex> lock(mockSessionManagerServiceMutex_);
     mockSessionManagerServiceProxy_ = nullptr;
+}
+
+void SessionManager::NotifySetSpecificWindowZIndex()
+{
+    TLOGI(WmsLogTag::WMS_FOCUS, "enter");
+    sptr<IMockSessionManagerInterface> mockProxy = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mockSessionManagerServiceMutex_);
+        mockProxy = mockSessionManagerServiceProxy_;
+    }
+    if (mockProxy) {
+        mockProxy->NotifySetSpecificWindowZIndex();
+    }
 }
 
 FoundationDeathRecipient::FoundationDeathRecipient(int32_t userId) : userId_(userId) {}

@@ -33,6 +33,14 @@ ScreenSessionManagerLite::~ScreenSessionManagerLite()
 
 void ScreenSessionManagerLite::ConnectToServer()
 {
+    {
+        std::shared_lock<std::shared_mutex> sharedLock(screenSessionManagerMutex_);
+        if (screenSessionManager_) {
+            return;
+        }
+    }
+
+    std::unique_lock<std::shared_mutex> uniqueLock(screenSessionManagerMutex_);
     if (screenSessionManager_) {
         return;
     }

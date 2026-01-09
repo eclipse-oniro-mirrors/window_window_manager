@@ -666,12 +666,17 @@ HWTEST_F(WindowSceneSessionImplTest4, IsInMappingRegionForCompatibleMode, TestSi
     windowSceneSessionImpl->property_->SetWindowRect({ 880, 0, 800, 1600 });
     int32_t displayX = 400;
     int32_t displayY = 400;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     bool ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(true, ret);
     displayX = 1000;
     displayY = 1000;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(false, ret);
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
+    ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
+    EXPECT_EQ(true, ret);
 }
 
 /**
@@ -1495,22 +1500,27 @@ HWTEST_F(WindowSceneSessionImplTest4, PreLayoutOnShow02, TestSize.Level1)
 
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
     sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
-    displayInfo->name_ = "Cooperation"; // 白名单
 
     KeyboardLayoutParams tmpParams;
-    const Rect expected = {1, 2, 3, 4};
-    tmpParams.LandscapeKeyboardRect_ = expected;
+    const Rect landscapeKeyboardRect = {1, 1, 4, 3};
+    tmpParams.LandscapeKeyboardRect_ = landscapeKeyboardRect;
+    const Rect portraitKeyboardRect = {1, 1, 3, 4};
+    tmpParams.PortraitKeyboardRect_ = portraitKeyboardRect;
 
+    displayInfo->width_ = 10;
+    displayInfo->height_ = 8;
     window->property_->SetRequestRect({0, 0, 0, 0});
     window->property_->SetKeyboardLayoutParams(tmpParams);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_NE(window->property_->requestRect_, expected);
+    ASSERT_NE(window->property_->requestRect_, landscapeKeyboardRect);
 
     tmpParams.displayId_ = 0;
     displayInfo->screenId_ = 0;
+    displayInfo->width_ = 8;
+    displayInfo->height_ = 10;
     window->property_->AddKeyboardLayoutParams(0, tmpParams);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_EQ(window->property_->requestRect_, expected);
+    ASSERT_EQ(window->property_->requestRect_, portraitKeyboardRect);
 }
 
 /**

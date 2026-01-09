@@ -104,28 +104,6 @@ WSRect AdjustRectByAspectRatio(const WSRect& rect,
                                const WindowDecoration& decoration,
                                float aspectRatio,
                                int tolerancePx = 2);
-
-/**
- * @brief Enable or disable move event resampling.
- *
- * Updates the persisted parameter `persist.windowlayout.enablemoveresample`
- * to indicate whether resampling is enabled; actual behavior is decided by
- * MoveDragController.
- *
- * @param enable True to enable resampling, false to disable.
- */
-void SetMoveResampleEnabled(bool enable);
-
-/**
- * @brief Check if move event resampling is enabled.
- *
- * Reads the persisted parameter `persist.windowlayout.enablemoveresample`
- * to get the configuration setting; actual behavior during move operations
- * is determined by MoveDragController.
- *
- * @return True if resampling is enabled, false otherwise.
- */
-bool IsMoveResampleEnabled();
 } // namespace SessionUtils
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_UTILS_H

@@ -13,6 +13,7 @@
 
 import("//build/test.gni")
 import("../../../windowmanager_aafwk.gni")
+import("./wm_test_external_deps.gni")
 module_out_path = "window_manager/window_manager/wm"
 
 group("unittest") {
@@ -56,6 +57,9 @@ group("unittest") {
     ":wm_window_scene_test",
     ":wm_window_stub_test",
     ":wm_load_intention_event_test",
+    "event_distribution:wm_window_impl_event_test",
+    "event_distribution:wm_window_option_event_test",
+    "event_distribution:wm_window_session_impl_event_test",
     "layout:wm_layout_test",
     "rotation:wm_window_extension_session_impl_rotation_test",
     "rotation:wm_window_session_impl_rotation_test",
@@ -98,33 +102,6 @@ group("unittest") {
   }
 }
 
-test_external_deps = [
-  "ability_base:configuration",
-  "ability_base:want",
-  "ability_runtime:ability_context_native",
-  "ability_runtime:ability_manager",
-  "ability_runtime:app_context",
-  "accessibility:accessibility_common",
-  "ace_engine:ace_uicontent",
-  "bundle_framework:appexecfwk_base",
-  "c_utils:utils",
-  "googletest:gmock",
-  "googletest:gtest_main",
-  "graphic_2d:librender_service_base",
-  "graphic_2d:librender_service_client",
-  "graphic_2d:window_animation",
-  "hilog:libhilog",
-  "hilog:libhilog_base",
-  "image_framework:image_native",
-  "input:libmmi-client",
-  "input:oh_input_manager",
-  "ipc:ipc_core",
-  "ipc:ipc_single",
-  "napi:ace_napi",
-  "power_manager:powermgr_client",
-  "safwk:system_ability_fwk",
-]
-
 ohos_unittest("wm_window_manager_test") {
   module_out_path = module_out_path
 
@@ -137,7 +114,6 @@ ohos_unittest("wm_window_manager_test") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "ffrt:libffrt" ]
 }
 
 ohos_unittest("wm_window_display_change_adapter_test") {
@@ -174,7 +150,6 @@ ohos_unittest("wm_window_impl_test") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "common_event_service:cesfwk_innerkits" ]
 }
 
 ohos_unittest("wm_window_impl_test2") {
@@ -188,7 +163,6 @@ ohos_unittest("wm_window_impl_test2") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "common_event_service:cesfwk_innerkits" ]
 }
 
 ohos_unittest("wm_window_impl_test3") {
@@ -199,7 +173,6 @@ ohos_unittest("wm_window_impl_test3") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "common_event_service:cesfwk_innerkits" ]
 }
 
 ohos_unittest("wm_window_impl_test5") {
@@ -210,7 +183,6 @@ ohos_unittest("wm_window_impl_test5") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "common_event_service:cesfwk_innerkits" ]
 }
 
 ohos_unittest("wm_window_scene_effect_test") {
@@ -241,7 +213,6 @@ ohos_unittest("wm_window_session_impl_test") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_session_impl_test2") {
@@ -252,7 +223,6 @@ ohos_unittest("wm_window_session_impl_test2") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_session_impl_test3") {
@@ -266,7 +236,6 @@ ohos_unittest("wm_window_session_impl_test3") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_session_impl_test4") {
@@ -287,7 +256,6 @@ ohos_unittest("wm_window_session_impl_test4") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_session_impl_test5") {
@@ -301,7 +269,6 @@ ohos_unittest("wm_window_session_impl_test5") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_compatible_mode_window_session_impl_test") {
@@ -312,7 +279,6 @@ ohos_unittest("wm_compatible_mode_window_session_impl_test") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_effect_test") {
@@ -393,10 +359,6 @@ ohos_unittest("wm_window_scene_test") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [
-    "ability_runtime:app_context",
-    "common_event_service:cesfwk_innerkits",
-  ]
 }
 
 ohos_unittest("wm_window_test") {
@@ -410,7 +372,6 @@ ohos_unittest("wm_window_test") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "common_event_service:cesfwk_innerkits" ]
 }
 
 ohos_unittest("wm_window_impl_listener_test") {
@@ -456,7 +417,6 @@ ohos_unittest("wm_window_scene_session_impl_test") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_scene_session_impl_test2") {
@@ -467,7 +427,6 @@ ohos_unittest("wm_window_scene_session_impl_test2") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_scene_session_impl_test3") {
@@ -478,7 +437,6 @@ ohos_unittest("wm_window_scene_session_impl_test3") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_scene_session_impl_test4") {
@@ -498,7 +456,6 @@ ohos_unittest("wm_window_scene_session_impl_test4") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("wm_window_scene_session_impl_test5") {
@@ -514,10 +471,6 @@ ohos_unittest("wm_window_scene_session_impl_test5") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [
-    "init:libbegetutil",
-    "ability_runtime:app_context",
-  ]
 }
 
 ohos_unittest("wm_window_scene_session_impl_test6") {
@@ -532,12 +485,7 @@ ohos_unittest("wm_window_scene_session_impl_test6") {
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-    "init:libbegetutil",
-    "ability_runtime:app_context",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_window_manager_stub_proxy_test") {
@@ -588,10 +536,6 @@ ohos_unittest("wm_picture_in_picture_controller_test") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [
-    "ability_runtime:runtime",
-    "ace_engine:ace_xcomponent_controller",
-  ]
 }
 
 ohos_unittest("wm_picture_in_picture_manager_test") {
@@ -605,10 +549,6 @@ ohos_unittest("wm_picture_in_picture_manager_test") {
   ]
 
   external_deps = test_external_deps
-  external_deps += [
-    "ability_runtime:runtime",
-    "ace_engine:ace_xcomponent_controller",
-  ]
 }
 
 ohos_unittest("wm_picture_in_picture_option_test") {
@@ -619,10 +559,6 @@ ohos_unittest("wm_picture_in_picture_option_test") {
   deps = [ ":wm_unittest_common" ]
 
   external_deps = test_external_deps
-  external_deps += [
-    "ability_runtime:runtime",
-    "ace_engine:ace_xcomponent_controller",
-  ]
 }
 
 ohos_unittest("wm_web_picture_in_picture_controller_interface_test") {
@@ -637,12 +573,7 @@ ohos_unittest("wm_web_picture_in_picture_controller_interface_test") {
     "${window_base_path}/wm:libpip_web",
   ]
 
-  external_deps = [
-    "ability_runtime:runtime",
-    "ace_engine:ace_xcomponent_controller",
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_web_picture_in_picture_controller_test") {
@@ -652,12 +583,7 @@ ohos_unittest("wm_web_picture_in_picture_controller_test") {
 
   deps = [ ":wm_unittest_common" ]
 
-  external_deps = [
-    "ability_runtime:runtime",
-    "ace_engine:ace_xcomponent_controller",
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_oh_window_pip_test") {
@@ -672,12 +598,7 @@ ohos_unittest("wm_oh_window_pip_test") {
     "${window_base_path}/wm:libpip_ndk",
   ]
 
-  external_deps = [
-    "ability_runtime:runtime",
-    "ace_engine:ace_xcomponent_controller",
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_floating_ball_test") {
@@ -690,13 +611,7 @@ ohos_unittest("wm_floating_ball_test") {
 
   deps = [ ":wm_unittest_common" ]
 
-  external_deps = [
-    "ability_runtime:runtime",
-    "c_utils:utils",
-    "graphic_2d:librender_service_base",
-    "graphic_2d:librender_service_client",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_floating_ball_new_test") {
@@ -709,14 +624,7 @@ ohos_unittest("wm_floating_ball_new_test") {
 
   deps = [ ":wm_unittest_common" ]
 
-  external_deps = [
-    "ability_runtime:ability_connect_callback_stub",
-    "ability_runtime:runtime",
-    "c_utils:utils",
-    "graphic_2d:librender_service_base",
-    "graphic_2d:librender_service_client",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_floating_ball_manager_test") {
@@ -726,11 +634,7 @@ ohos_unittest("wm_floating_ball_manager_test") {
 
   deps = [ ":wm_unittest_common" ]
 
-  external_deps = [
-    "ability_runtime:runtime",
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_floating_ball_manager_new_test") {
@@ -740,11 +644,7 @@ ohos_unittest("wm_floating_ball_manager_new_test") {
 
   deps = [ ":wm_unittest_common" ]
 
-  external_deps = [
-    "ability_runtime:runtime",
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_window_manager_agent_proxy_test") {
@@ -810,10 +710,7 @@ ohos_unittest("wm_get_snapshot_callback_proxy_test") {
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_get_snapshot_callback_stub_test") {
@@ -825,7 +722,7 @@ ohos_unittest("wm_get_snapshot_callback_stub_test") {
 
   deps = [ ":wm_unittest_common" ]
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_window_adapter_lite_test") {
@@ -910,6 +807,8 @@ config("wm_unittest_common_public_config") {
     "${window_base_path}/window_scene",
     "${window_base_path}/window_scene/test/mock",
     "${window_base_path}/window_scene/session/host/include/zidl",
+    "${window_base_path}/window_scene/session_manager/include",
+    "${window_base_path}/window_scene/screen_session_manager/include",
     "${dmserver_gen_path}",
   ]
 }
@@ -934,6 +833,10 @@ ohos_static_library("wm_unittest_common") {
     "${window_base_path}/resources/config/build:testcase_flags",
   ]
 
+  deps = [
+    "${window_base_path}/window_scene/session_manager:scene_session_manager_static",
+  ]
+
   public_deps = [
     # need delete it for abilitycontext
     "${window_base_path}/dm:libdm",
@@ -942,7 +845,6 @@ ohos_static_library("wm_unittest_common") {
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/session:scene_session",
-    "${window_base_path}/window_scene/session_manager:scene_session_manager",
     "${window_base_path}/wm:libwm",
     "${window_base_path}/wm:libwm_lite",
     "${window_base_path}/wmserver:libwms",
@@ -961,6 +863,7 @@ ohos_static_library("wm_unittest_common") {
     "ability_base:want",
     "ability_runtime:ability_context_native",
     "ability_runtime:app_context",
+    "ability_runtime:session_handler",
     "accessibility:accessibility_common",
     "bundle_framework:appexecfwk_base",
     "c_utils:utils",
@@ -969,6 +872,7 @@ ohos_static_library("wm_unittest_common") {
     "hilog:libhilog_base",
     "image_framework:image_native",
     "input:libmmi-client",
+    "input:libmmi-napi",
     "ipc:ipc_core",
     "ipc:ipc_single",
     "power_manager:powermgr_client",

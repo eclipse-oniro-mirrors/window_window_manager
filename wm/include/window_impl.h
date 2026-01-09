@@ -404,8 +404,8 @@ private:
 
     void NotifyAfterForeground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
     void NotifyAfterBackground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
-    void NotifyAfterDidForeground(uint32_t reason);
-    void NotifyAfterDidBackground(uint32_t reason);
+    void NotifyAfterDidForeground(uint32_t reason, bool forceNotify = false);
+    void NotifyAfterDidBackground(uint32_t reason, bool forceNotify = false);
     void NotifyAfterFocused();
     void NotifyAfterUnfocused(bool needNotifyUiContent = true);
     void NotifyAfterResumed();

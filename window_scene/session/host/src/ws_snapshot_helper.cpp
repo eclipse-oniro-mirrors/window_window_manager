@@ -33,14 +33,14 @@ WSSnapshotHelper* WSSnapshotHelper::GetInstance()
     return &instance;
 }
 
-uint32_t WSSnapshotHelper::GetScreenStatus()
+int32_t WSSnapshotHelper::GetScreenStatus()
 {
     std::lock_guard lock(statusMutex_);
     return GetInstance()->screenStatus_;
 }
 
 // LCOV_EXCL_START
-uint32_t WSSnapshotHelper::GetScreenStatus(FoldStatus foldStatus)
+int32_t WSSnapshotHelper::GetScreenStatus(FoldStatus foldStatus)
 {
     if (foldStatus == FoldStatus::UNKNOWN || foldStatus == FoldStatus::FOLDED ||
         foldStatus == FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_EXPAND ||
@@ -61,7 +61,7 @@ DisplayOrientation WSSnapshotHelper::GetDisplayOrientation(int32_t rotation)
     return DisplayOrientation::PORTRAIT;
 }
 
-void WSSnapshotHelper::SetWindowScreenStatus(uint32_t screenStatus)
+void WSSnapshotHelper::SetWindowScreenStatus(int32_t screenStatus)
 {
     std::lock_guard lock(statusMutex_);
     GetInstance()->screenStatus_ = screenStatus;

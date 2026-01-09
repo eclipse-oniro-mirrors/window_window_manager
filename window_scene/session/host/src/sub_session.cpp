@@ -32,8 +32,8 @@ constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "SubSes
 constexpr int32_t SUFFIX_INDEX = -1;
 } // namespace
 
-SubSession::SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
-    : SceneSession(info, specificCallback)
+SubSession::SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId)
+    : SceneSession(info, specificCallback, userId)
 {
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
     TLOGD(WmsLogTag::WMS_LIFE, "Create");

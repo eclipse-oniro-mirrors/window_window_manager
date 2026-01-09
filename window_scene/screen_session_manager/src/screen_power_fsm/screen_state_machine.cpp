@@ -331,6 +331,10 @@ void ScreenStateMachine::InitStateMachineTbl()
         ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoScreenPowerOn};
     stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
         ScreenTransitionState::SCREEN_ADVANCED_ON, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
+    stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::SUSPEND_BEGIN}] = {
+        ScreenTransitionState::SCREEN_ADVANCED_ON, &ScreenStateMachine::DoSuspendBegin};
+    stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::SET_DISPLAY_STATE}] = {
+        ScreenTransitionState::WAIT_LOCK_SCREEN_IND, &ScreenStateMachine::DoSetDisplayState};
 
     stateMachine_[{ScreenTransitionState::SCREEN_DOZE, ScreenPowerEvent::WAKEUP_BEGIN}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin,

@@ -21,6 +21,7 @@
 #include "input_event.h"
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
+#include "mock_vsync_station.h"
 #include "pointer_event.h"
 #include "session/host/include/main_session.h"
 #include "session/host/include/scene_session.h"
@@ -957,10 +958,15 @@ HWTEST_F(SceneSessionLayoutTest, NotifyWindowStatusDidChangeAfterShowWindow, Tes
     info.bundleName_ = "NotifyWindowStatusDidChangeAfterShowWindow";
     auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    sceneSession->SetRequestNextVsyncFunc([](const std::shared_ptr<VsyncCallback>& cb) {
-        cb->onCallback(0, 0);
-    });
-    ASSERT_NE(nullptr, sceneSession->requestNextVsyncFunc_);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+    sceneSession->SetVsyncStation(mockVsyncStation);
+    ASSERT_NE(sceneSession->vsyncStation_, nullptr);
 
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     sceneSession->sessionStage_ = mockSessionStage;
@@ -982,15 +988,21 @@ HWTEST_F(SceneSessionLayoutTest, NotifyWindowStatusDidChangeIfNeedWhenSessionEve
     info.bundleName_ = "NotifyWindowStatusDidChangeIfNeedWhenSessionEvent";
     auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    sceneSession->SetRequestNextVsyncFunc([](const std::shared_ptr<VsyncCallback>& cb) {
-        cb->onCallback(0, 0);
-    });
-    ASSERT_NE(nullptr, sceneSession->requestNextVsyncFunc_);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+    sceneSession->SetVsyncStation(mockVsyncStation);
+
     sceneSession->RegisterGetIsDockAutoHideFunc([](){return true;});
 
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     sceneSession->sessionStage_ = mockSessionStage;
     sceneSession->handler_ = nullptr;
+    sceneSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
     EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
     sceneSession->NotifyWindowStatusDidChangeIfNeedWhenSessionEvent(SessionEvent::EVENT_MAXIMIZE);
 }
@@ -1007,10 +1019,16 @@ HWTEST_F(SceneSessionLayoutTest, ExecuteWindowStatusChangeNotification, TestSize
     info.bundleName_ = "ExecuteWindowStatusChangeNotification";
     auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    sceneSession->SetRequestNextVsyncFunc([](const std::shared_ptr<VsyncCallback>& cb) {
-        cb->onCallback(0, 0);
-    });
-    ASSERT_NE(nullptr, sceneSession->requestNextVsyncFunc_);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+    sceneSession->SetVsyncStation(mockVsyncStation);
+    ASSERT_NE(sceneSession->vsyncStation_, nullptr);
+
     sceneSession->RegisterGetIsDockAutoHideFunc([](){return true;});
 
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();

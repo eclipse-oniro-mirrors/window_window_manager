@@ -61,6 +61,8 @@ test_external_deps = [
   "hilog:libhilog",
   "preferences:native_preferences",
   "init:libbegetutil",
+  "time_service:time_client",
+  "ability_runtime:wantagent_innerkits",
 ]
 
 ohos_unittest("utils_task_sequence_process_test") {

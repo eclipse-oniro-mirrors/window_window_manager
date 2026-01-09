@@ -1692,18 +1692,6 @@ HWTEST_F(SceneSessionManagerTest12, HasFloatingWindowForeground01, TestSize.Leve
 }
 
 /**
- * @tc.name: ConfigSupportFollowRelativePositionToParent
- * @tc.desc: test ConfigSupportFollowRelativePositionToParent
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest12, ConfigSupportFollowRelativePositionToParent01, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    ssm_->ConfigSupportFollowRelativePositionToParent();
-    EXPECT_EQ(ssm_->systemConfig_.supportFollowRelativePositionToParent_, false);
-}
-
-/**
  * @tc.name: HasFloatingWindowForeground02
  * @tc.desc: test HasFloatingWindowForeground with not existed abilityToken
  * @tc.type: FUNC

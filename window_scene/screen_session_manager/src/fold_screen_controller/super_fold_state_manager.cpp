@@ -593,9 +593,46 @@ void SuperFoldStateManager::HandleDisplayNotify(SuperFoldStatusChangeEvents chan
               property.GetIsFakeInUse(),
               property.GetCurrentValidHeight(),
               isKeyboardOn_);
-
+        UpdateScreenHalfState(screenSession, changeEvent);
         screenSession->NotifyFoldPropertyChange(
             property, ScreenPropertyChangeReason::SUPER_FOLD_STATUS_CHANGE, FoldDisplayMode::UNKNOWN);
+    }
+}
+
+void SuperFoldStateManager::UpdateScreenHalfState(sptr<ScreenSession>& screenSession,
+    SuperFoldStatusChangeEvents changeEvent)
+{
+    switch (changeEvent) {
+        case SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED:
+            screenSession->SetIsBScreenHalf(true);
+            break;
+        case SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED:
+            screenSession->SetIsBScreenHalf(false);
+            break;
+        case SuperFoldStatusChangeEvents::KEYBOARD_ON:
+            screenSession->SetIsBScreenHalf(true);
+            break;
+        case SuperFoldStatusChangeEvents::KEYBOARD_OFF:
+            screenSession->SetIsBScreenHalf(true);
+            break;
+        case SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_ON: {
+            SuperFoldStatus curFoldState = curState_.load();
+            if (!isKeyboardOn_ && curFoldState == SuperFoldStatus::HALF_FOLDED) {
+                screenSession->SetIsFakeInUse(false);
+                screenSession->SetIsBScreenHalf(true);
+            }
+            break;
+            }
+        case SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF: {
+            SuperFoldStatus curFoldStateOff = curState_.load();
+            if (!isKeyboardOn_ && curFoldStateOff == SuperFoldStatus::HALF_FOLDED) {
+                screenSession->SetIsFakeInUse(true);
+                screenSession->SetIsBScreenHalf(true);
+            }
+            break;
+        }
+        default:
+            break;
     }
 }
 
@@ -814,7 +851,6 @@ void SuperFoldStateManager::HandleSystemKeyboardStatusDisplayNotifyInServer(
 void SuperFoldStateManager::HandleExtendToHalfFoldDisplayNotify(sptr<ScreenSession>& screenSession)
 {
     TLOGI(WmsLogTag::DMS, "SuperFoldStateManager HandleExtendToHalfFoldDisplayNotify");
-    screenSession->SetIsBScreenHalf(true);
     ScreenSessionManager::GetInstance().NotifyDisplayChanged(
         screenSession->ConvertToDisplayInfo(), DisplayChangeEvent::SUPER_FOLD_RESOLUTION_CHANGED);
     sptr<ScreenSession> fakeScreenSession = screenSession->GetFakeScreenSession();
@@ -908,7 +944,6 @@ DMError SuperFoldStateManager::RefreshExternalRegion()
 void SuperFoldStateManager::HandleHalfFoldToExtendDisplayNotify(sptr<ScreenSession>& screenSession)
 {
     TLOGI(WmsLogTag::DMS, "SuperFoldStateManager HandleHalfFoldToExtendDisplayNotify");
-    screenSession->SetIsBScreenHalf(false);
     sptr<ScreenSession> fakeScreenSession = screenSession->GetFakeScreenSession();
     sptr<DisplayInfo> fakeDisplayInfo = fakeScreenSession->ConvertToDisplayInfo();
     if (fakeDisplayInfo == nullptr) {
@@ -927,7 +962,6 @@ void SuperFoldStateManager::HandleHalfFoldToExtendDisplayNotify(sptr<ScreenSessi
 void SuperFoldStateManager::HandleKeyboardOnDisplayNotify(sptr<ScreenSession>& screenSession)
 {
     TLOGI(WmsLogTag::DMS, "SuperFoldStateManager HandleKeyboardOnDisplayNotify");
-    screenSession->SetIsBScreenHalf(true);
     sptr<ScreenSession> fakeScreenSession = screenSession->GetFakeScreenSession();
     sptr<DisplayInfo> fakeDisplayInfo = fakeScreenSession->ConvertToDisplayInfo();
     if (fakeDisplayInfo == nullptr) {
@@ -944,7 +978,6 @@ void SuperFoldStateManager::HandleKeyboardOnDisplayNotify(sptr<ScreenSession>& s
 void SuperFoldStateManager::HandleKeyboardOffDisplayNotify(sptr<ScreenSession>& screenSession)
 {
     TLOGI(WmsLogTag::DMS, "SuperFoldStateManager HandleKeyboardOffDisplayNotify");
-    screenSession->SetIsBScreenHalf(true);
     sptr<ScreenSession> fakeScreenSession = screenSession->GetFakeScreenSession();
     ScreenSessionManager::GetInstance().NotifyDisplayCreate(
         fakeScreenSession->ConvertToDisplayInfo());
@@ -968,10 +1001,6 @@ void SuperFoldStateManager::HandleSystemKeyboardStatusDisplayNotify(
 {
     SuperFoldStatus curFoldState = curState_.load();
     TLOGD(WmsLogTag::DMS, "curFoldState: %{public}u", curFoldState);
-    if (!isKeyboardOn_ && curFoldState == SuperFoldStatus::HALF_FOLDED) {
-        screenSession->SetIsFakeInUse(!isTpKeyboardOn);
-        screenSession->SetIsBScreenHalf(true);
-    }
     sptr<ScreenSession> fakeScreenSession = screenSession->GetFakeScreenSession();
     sptr<DisplayInfo> fakeDisplayInfo = fakeScreenSession->ConvertToDisplayInfo();
     if (fakeDisplayInfo == nullptr) {

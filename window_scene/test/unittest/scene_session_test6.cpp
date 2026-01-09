@@ -23,6 +23,8 @@
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "mock/mock_scene_session.h"
+#include "mock_vsync_station.h"
 #include "screen_manager.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
 #include "session/host/include/sub_session.h"
@@ -1502,41 +1504,118 @@ HWTEST_F(SceneSessionTest6, TestGetWindowDecoration, TestSize.Level1)
 }
 
 /**
- * @tc.name: TestRunAfterNVsyncs
- * @tc.desc: Test RunAfterNVsyncs and RestoreGravityWhenDragEnd with various conditions
+ * @tc.name: TestRunAfterNVsyncsOnce
+ * @tc.desc: Verify RunAfterNVsyncs executes callback after 1 vsync
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest6, TestRunAfterNVsyncs, TestSize.Level1)
+HWTEST_F(SceneSessionTest6, TestRunAfterNVsyncsOnce, TestSize.Level1)
 {
     SessionInfo info;
     auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+
     bool taskExecuted = false;
 
-    // Case 1: vsyncCount = 1
-    session->requestNextVsyncFunc_ = [](const std::shared_ptr<VsyncCallback>& cb) {
-        cb->onCallback(0, 0);
-    };
-    session->RunAfterNVsyncs(1, [&](int64_t, int64_t) { taskExecuted = true; });
-    EXPECT_TRUE(taskExecuted);
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .Times(1)
+        .WillOnce(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
 
-    // Case 2: vsyncCount = 3
-    taskExecuted = false;
-    session->requestNextVsyncFunc_ = [](const std::shared_ptr<VsyncCallback>& cb) {
-        static int times = 0;
-        if (++times <= 3) cb->onCallback(0, 0);
-    };
-    session->RunAfterNVsyncs(3, [&](int64_t, int64_t) { taskExecuted = true; });
-    EXPECT_TRUE(taskExecuted);
+    session->RunAfterNVsyncs(1, [&](int64_t, int64_t) {
+        taskExecuted = true;
+    });
 
-    // Case 3: requestNextVsyncFunc_ = nullptr
-    taskExecuted = false;
-    session->requestNextVsyncFunc_ = nullptr;
-    session->RunAfterNVsyncs(1, [&](int64_t, int64_t) { taskExecuted = true; });
+    EXPECT_TRUE(taskExecuted);
+}
+
+/**
+ * @tc.name: TestRunAfterNVsyncsThreeTimes
+ * @tc.desc: Verify RunAfterNVsyncs executes callback after 3 vsyncs
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, TestRunAfterNVsyncsThreeTimes, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+
+    bool taskExecuted = false;
+    int vsyncTimes = 0;
+
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .Times(3)
+        .WillRepeatedly(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            if (++vsyncTimes <= 3) {
+                cb->onCallback(0, 0);
+            }
+        }));
+
+    session->RunAfterNVsyncs(3, [&](int64_t, int64_t) {
+        taskExecuted = true;
+    });
+
+    EXPECT_EQ(vsyncTimes, 3);
+    EXPECT_TRUE(taskExecuted);
+}
+
+/**
+ * @tc.name: TestRunAfterNVsyncsWithNullVsyncStation
+ * @tc.desc: Verify RunAfterNVsyncs does nothing when VsyncStation is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, TestRunAfterNVsyncsWithNullVsyncStation, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    bool taskExecuted = false;
+
+    session->SetVsyncStation(nullptr);
+    session->RunAfterNVsyncs(1, [&](int64_t, int64_t) {
+        taskExecuted = true;
+    });
+
     EXPECT_FALSE(taskExecuted);
+}
 
-    // Case 4: RestoreGravityWhenDragEnd will not crash
+/**
+ * @tc.name: TestRestoreGravityWhenDragEndNormal
+ * @tc.desc: Verify RestoreGravityWhenDragEnd triggers RestoreToPreDragGravity after delayed vsyncs
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, TestRestoreGravityWhenDragEndNormal, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    // Force PostTask to execute immediately
+    session->handler_ = nullptr;
+
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    moveDragController->preDragGravity_ = Gravity::BOTTOM_RIGHT;
+    session->moveDragController_ = moveDragController;
+
+    struct RSSurfaceNodeConfig config;
+    auto surfaceNode = RSSurfaceNode::Create(config);
+    session->surfaceNode_ = surfaceNode;
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+    session->SetVsyncStation(mockVsyncStation);
+
     session->RestoreGravityWhenDragEnd();
-    SUCCEED();
+
+    Gravity gravity = surfaceNode->GetStagingProperties().GetFrameGravity();
+    EXPECT_EQ(gravity, Gravity::BOTTOM_RIGHT);
+    EXPECT_EQ(moveDragController->preDragGravity_, std::nullopt);
 }
 
 /**
@@ -1942,6 +2021,21 @@ HWTEST_F(SceneSessionTest6, NotifySnapshotUpdate, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyRemovePrelaunchStartingWindow
+ * @tc.desc: NotifyRemovePrelaunchStartingWindow test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifyRemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WMError ret = sceneSession->NotifyRemovePrelaunchStartingWindow();
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
  * @tc.name: GetMoveRectForWindowDrag_Test
  * @tc.desc: GetMoveRectForWindowDrag_Test
  * @tc.type: FUNC
@@ -2006,44 +2100,101 @@ HWTEST_F(SceneSessionTest6, TestIsCrossDisplayDragSupported, TestSize.Level1)
 }
 
 /**
- * @tc.name: TestRequestMoveResampleOnNextVsync
- * @tc.desc: Covers all branches of RequestMoveResampleOnNextVsync
+ * @tc.name: TestRequestMoveResampleOnNextVsyncNotStartMove
+ * @tc.desc: Skip resample when drag not started
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest6, TestRequestMoveResampleOnNextVsync, TestSize.Level1)
+HWTEST_F(SceneSessionTest6, TestRequestMoveResampleOnNextVsyncNotStartMove, TestSize.Level1)
 {
     SessionInfo info;
-    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto session = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+
     session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+
+    // Simulate move not started
+    session->moveDragController_->isStartMove_ = false;
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
 
     // Force PostTask to execute immediately
     session->handler_ = nullptr;
 
-    bool called = false;
-    session->requestNextVsyncFunc_ = [&](auto cb) {
-        cb->onCallback(100000, 0);
-        called = true;
-    };
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
 
-    // Case 1: Normal call → should run callback
-    session->canRequestMoveResampleVsync_ = true;
-    session->moveDragController_->isStartMove_ = false;
-    session->RequestMoveResampleOnNextVsync(true, true);
-    EXPECT_TRUE(called);
+    EXPECT_CALL(*session, SetSurfaceBounds(_, _, _)).Times(0);
 
-    called = false;
-    session->canRequestMoveResampleVsync_ = true;
+    session->RequestMoveResampleOnNextVsync();
+}
+
+/**
+ * @tc.name: TestRequestMoveResampleOnNextVsyncResampleInactive
+ * @tc.desc: Skip resample when move resample is inactive
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, TestRequestMoveResampleOnNextVsyncResampleInactive, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+
+    // Simulate move started but resample inactive
     session->moveDragController_->isStartMove_ = true;
-    session->RequestMoveResampleOnNextVsync(true, true);
-    EXPECT_TRUE(called);
+    session->moveDragController_->moveDragProperty_.isMoveResampleActive_ = false;
 
-    // Case 2: Multiple requests before next vsync → ignored
-    called = false;
-    session->canRequestMoveResampleVsync_ = true;
-    session->requestNextVsyncFunc_ = [&](auto cb) {};
-    session->RequestMoveResampleOnNextVsync(false, false);
-    session->RequestMoveResampleOnNextVsync(false, false);
-    EXPECT_FALSE(called);
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+    session->handler_ = nullptr;
+
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+
+    EXPECT_CALL(*session, SetSurfaceBounds(_, _, _)).Times(0);
+
+    session->RequestMoveResampleOnNextVsync();
+}
+
+/**
+ * @tc.name: TestRequestMoveResampleOnNextVsyncResampleActive
+ * @tc.desc: Resample updates target rect and schedules next vsync
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, TestRequestMoveResampleOnNextVsyncResampleActive, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->isStartMove_ = true;
+    session->moveDragController_->moveDragProperty_.isMoveResampleActive_ = true;
+    session->moveDragController_->moveDragProperty_.isResampleFpsRangeChecked_ = true;
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+    session->handler_ = nullptr;
+
+    int vsyncCount = 0;
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            if (++vsyncCount <= 2) {
+                cb->onCallback(0, 0);
+            }
+        }));
+
+    EXPECT_CALL(*session, SetSurfaceBounds(_, true, true)).Times(AtLeast(1));
+
+    session->RequestMoveResampleOnNextVsync();
+
+    EXPECT_GE(vsyncCount, 2);
 }
 
 /**

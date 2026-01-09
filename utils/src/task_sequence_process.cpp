@@ -17,25 +17,35 @@
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
-TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize)
-    : maxQueueSize_(maxQueueSize)
-    {
-        if (maxQueueSize_ <= 0) {
-            maxQueueSize_ = 1;
-        }
-        TLOGI(WmsLogTag::DMS, "TaskSequenceProcess created with maxQueueSize: %{public}u", maxQueueSize_);
+TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize, uint64_t maxTimeInterval, std::string timerName)
+    : maxQueueSize_(maxQueueSize), maxTimeInterval_(maxTimeInterval), timerName_(timerName)
+{
+    if (maxQueueSize_ <= 0) {
+        maxQueueSize_ = 1;
     }
-TaskSequenceProcess::~TaskSequenceProcess() = default;
+    if (!CreateSysTimer()) {
+        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess created fail, maxQueueSize: %{public}u", maxQueueSize_);
+    }
+}
+
+TaskSequenceProcess::~TaskSequenceProcess()
+{
+    DestroySysTimer();
+};
 
 std::function<void()> TaskSequenceProcess::PopFromQueue()
 {
     std::lock_guard<std::mutex> lock(queueMutex_);
-    TLOGI(WmsLogTag::DMS, "TaskSequenceProcess taskQueue_.size(): %{public}zu", taskQueue_.size());
-    if (taskQueue_.empty()) {
+    if (taskQueue_.empty() || taskRunningFlag_.load()) {
         TLOGI(WmsLogTag::DMS, "TaskSequenceProcess do not pop");
-        return std::function<void()>();
+        return nullptr;
     }
     std::function<void()> task = taskQueue_.front();
+    taskRunningFlag_.store(true);
+    if (!StartSysTimer()) {
+        taskRunningFlag_.store(false);
+        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess do not StartSysTimer succ");
+    }
     taskQueue_.pop();
     return task;
 }
@@ -53,10 +63,9 @@ void TaskSequenceProcess::ExecTask()
 {
     std::function<void()> task = PopFromQueue();
     if (!task) {
-        TLOGI(WmsLogTag::DMS, "TaskSequenceProcess do not execute");
+        TLOGD(WmsLogTag::DMS, "TaskSequenceProcess do not execute");
         return;
     }
-    taskRunningFlag_.store(true);
     task();
 }
 
@@ -68,7 +77,56 @@ void TaskSequenceProcess::AddTask(const std::function<void()>& task)
 
 void TaskSequenceProcess::FinishTask()
 {
-    ExecTask();
     taskRunningFlag_.store(false);
+    StopSysTimer();
+    ExecTask();
+}
+
+bool TaskSequenceProcess::CreateSysTimer()
+{
+    TLOGI(WmsLogTag::DMS, "TaskSequenceProcess CreatSysTimer");
+
+    std::lock_guard<std::mutex> lock(timerMutex_);
+    if (taskTimerId_ != 0) {
+        TLOGW(WmsLogTag::DMS, "TaskTimerId is not zero");
+        return false;
+    }
+    std::shared_ptr<WindowSysTimer> taskSysTimer = std::make_unique<WindowSysTimer>(false, maxTimeInterval_, false);
+    std::function<void()> callback = [this]() { taskRunningFlag_.store(false); };
+    taskSysTimer->SetCallbackInfo(callback);
+    taskSysTimer->SetName(timerName_);
+    taskTimerId_ = MiscServices::TimeServiceClient::GetInstance()->CreateTimer(taskSysTimer);
+
+    return taskTimerId_ ? true : false;
+}
+
+void TaskSequenceProcess::DestroySysTimer()
+{
+    std::lock_guard<std::mutex> lock(timerMutex_);
+    MiscServices::TimeServiceClient::GetInstance()->DestroyTimer(taskTimerId_);
+    taskTimerId_ = 0;
+}
+
+bool TaskSequenceProcess::StartSysTimer()
+{
+    std::lock_guard<std::mutex> lock(timerMutex_);
+    if (taskTimerId_ == 0) {
+        TLOGW(WmsLogTag::DMS, "TaskTimerId is zero");
+        return false;
+    }
+    auto currentTime = MiscServices::TimeServiceClient::GetInstance()->GetBootTimeMs();
+    uint64_t triggerTime = currentTime + maxTimeInterval_;
+    bool result = MiscServices::TimeServiceClient::GetInstance()->StartTimer(taskTimerId_, triggerTime);
+    return result;
+}
+
+void TaskSequenceProcess::StopSysTimer()
+{
+    std::lock_guard<std::mutex> lock(timerMutex_);
+    if (taskTimerId_ == 0) {
+        TLOGW(WmsLogTag::DMS, "TaskSequenceProcess TaskTimerId is zero");
+        return;
+    }
+    MiscServices::TimeServiceClient::GetInstance()->StopTimer(taskTimerId_);
 }
 } // namespace OHOS::Rosen

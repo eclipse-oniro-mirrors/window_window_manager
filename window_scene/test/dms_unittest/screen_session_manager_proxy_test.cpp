@@ -1595,10 +1595,10 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetFoldStatusLocked, TestSize.Level1)
 {
     bool locked = true;
     screenSessionManagerProxy->SetFoldStatusLocked(locked);
-    if (IsFoldable()) {
-        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    } else {
+    if (ScreenSessionManager::GetInstance().IsFoldable()) {
         EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
+    } else {
+        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
     }
 }
 

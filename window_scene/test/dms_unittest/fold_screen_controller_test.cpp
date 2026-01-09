@@ -944,8 +944,7 @@ namespace {
     HWTEST_F(FoldScreenControllerTest, NotifyRunSensorFoldStateManager, TestSize.Level1)
     {
         std::recursive_mutex mutex;
-        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = std::shared_ptr<TaskScheduler>();
-        FoldScreenController fsc_(mutex, screenPowerTaskScheduler);
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
         g_errLog.clear();
         LOG_SetCallback(MyLogCallback);
         fsc_.NotifyRunSensorFoldStateManager();

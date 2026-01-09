@@ -110,7 +110,8 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     // ========================= Window Layout Config =========================
     { "windowLayout",                                 WindowSceneConfig::ValueType::MAP },
     { "moveDrag",                                     WindowSceneConfig::ValueType::MAP },
-    { "moveResample",                                 WindowSceneConfig::ValueType::UNDIFINED },
+    { "moveResample",                                 WindowSceneConfig::ValueType::MAP },
+    { "resampleFpsRange",                             WindowSceneConfig::ValueType::INTS },
     // ========================================================================
 };
 

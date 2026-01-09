@@ -21,6 +21,7 @@
 
 #include "hitrace_meter.h"
 #include "input_manager.h"
+#include "parameters.h"
 #include "pointer_event.h"
 #include "transaction/rs_transaction.h"
 #include "ui/rs_surface_node.h"
@@ -41,15 +42,23 @@
 #include "window_manager_hilog.h"
 #include "wm_common_inner.h"
 
-#define RETURN_IF_NULL(param, ...)                                          \
-    do {                                                                    \
-        if (!param) {                                                       \
-            TLOGE(WmsLogTag::WMS_LAYOUT, "The %{public}s is null", #param); \
-            return __VA_ARGS__;                                             \
-        }                                                                   \
-    } while (false)                                                         \
+#define RETURN_IF_NULL_WITH_FUNC(param, funcName, ...)                                         \
+    do {                                                                                       \
+        if (!param) {                                                                          \
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: %{public}s is null", funcName, #param); \
+            return __VA_ARGS__;                                                                \
+        }                                                                                      \
+    } while (0)
+
+#define RETURN_IF_NULL(param, ...) RETURN_IF_NULL_WITH_FUNC(param, __func__, __VA_ARGS__)
 
 namespace OHOS::Rosen {
+namespace {
+// The system parameter keys for move resampling configuration.
+constexpr const char* MOVE_RESAMPLE_ENABLE_PARAM_KEY = "persist.windowlayout.moveresample.enable";
+constexpr const char* MOVE_RESAMPLE_MIN_FPS_PARAM_KEY = "persist.windowlayout.moveresample.minfps";
+constexpr const char* MOVE_RESAMPLE_MAX_FPS_PARAM_KEY = "persist.windowlayout.moveresample.maxfps";
+}
 
 const std::map<DragType, uint32_t> STYLEID_MAP = {
     {DragType::DRAG_UNDEFINED,        MMI::MOUSE_ICON::DEFAULT},
@@ -152,8 +161,8 @@ MoveDragController::MoveDragController(wptr<SceneSession> sceneSession) : sceneS
         winType_ = session->GetWindowType();
     }
 
-    // Move Resample
-    enableMoveResample_ = SessionUtils::IsMoveResampleEnabled();
+    // Move Resampling System Config
+    std::tie(enableMoveResample_, resampleMinFps_, resampleMaxFps_) = MoveDragController::GetMoveResampleSystemConfig();
 }
 
 void MoveDragController::OnConnect(ScreenId id)
@@ -259,9 +268,16 @@ bool MoveDragController::GetMovable() const
     return isMovable_;
 }
 
-void MoveDragController::SetTargetRect(const WSRect& rect)
+void MoveDragController::UpdateTargetRect(SizeChangeReason reason, std::optional<WSRect> rectOpt)
 {
-    moveDragProperty_.targetRect_ = rect;
+    moveDragProperty_.targetRectChangeReason_ = reason;
+    if (rectOpt) {
+        moveDragProperty_.targetRect_ = *rectOpt;
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Update targetRect: %{public}s, reason: %{public}u",
+              moveDragProperty_.targetRect_.ToString().c_str(), static_cast<uint32_t>(reason));
+    } else {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Only update reason: %{public}u", static_cast<uint32_t>(reason));
+    }
 }
 
 WSRect MoveDragController::GetTargetRect(TargetRectCoordinate coordinate) const
@@ -327,8 +343,13 @@ void MoveDragController::UpdateSubWindowGravityWhenFollow(const sptr<MoveDragCon
 /** @note @window.drag */
 void MoveDragController::InitMoveDragProperty()
 {
-    moveDragProperty_ = {
-        -1, -1, -1, -1, -1, -1, moveDragProperty_.scaleX_, moveDragProperty_.scaleY_, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    auto lastScaleX = moveDragProperty_.scaleX_;
+    auto lastScaleY = moveDragProperty_.scaleY_;
+    moveDragProperty_.Reset();
+    moveDragProperty_.scaleX_ = lastScaleX;
+    moveDragProperty_.scaleY_ = lastScaleY;
+
+    moveResampler_.Reset();
 
     // Sync properties from SceneSession
     SyncPropertiesFromSceneSession();
@@ -359,7 +380,7 @@ void MoveDragController::InitCrossDisplayProperty(DisplayId displayId, uint64_t 
 /** @note @window.drag */
 void MoveDragController::ResetCrossMoveDragProperty()
 {
-    moveDragProperty_ = {-1, -1, -1, -1, -1, -1, 1.0f, 1.0f, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    moveDragProperty_.Reset();
     DMError error = ScreenManager::GetInstance().UnregisterScreenListener(this);
     if (error != DMError::DM_OK) {
         TLOGW(WmsLogTag::WMS_LAYOUT,
@@ -444,24 +465,22 @@ bool MoveDragController::IsValidMoveEvent(const std::shared_ptr<MMI::PointerEven
 void MoveDragController::ProcessMoveRectUpdate(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
                                                SizeChangeReason reason)
 {
-    auto originalRect = GetMoveRectForWindowDrag();
+    auto originalRect = CallSceneSession(&SceneSession::GetMoveRectForWindowDrag, WSRect::EMPTY_RECT);
     // NOTE: Special handling for input windows; Intrusive modification, should be optimized.
-    if (WindowHelper::IsInputWindow(winType_) && CalcMoveInputBarRect(pointerEvent, originalRect)) {
+    if (WindowHelper::IsInputWindow(winType_) && CalcMoveInputBarRect(pointerEvent, originalRect, reason)) {
         ModifyWindowCoordinates(pointerEvent);
-        OnMoveDragCallback(reason);
+        OnMoveDragCallback(reason, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
         return;
     }
 
-    // Move drag property not initialized
     if (moveDragProperty_.isEmpty()) {
         InitializeMoveDragPropertyNotValid(pointerEvent, originalRect);
         return;
     }
 
-    // Regular update process
-    auto state = UpdateTargetRectOnMoveEvent(pointerEvent);
+    auto mode = UpdateTargetRectOnMoveEvent(pointerEvent, reason);
     ModifyWindowCoordinates(pointerEvent);
-    OnMoveDragCallback(reason, state);
+    OnMoveDragCallback(reason, mode);
 }
 
 bool MoveDragController::HandleMoving(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
@@ -604,20 +623,21 @@ bool MoveDragController::ShouldBlockCrossDisplay(const std::shared_ptr<MMI::Poin
 }
 
 /** @note @window.drag */
-TargetRectUpdateState MoveDragController::UpdateTargetRectOnDragEvent(
-    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+TargetRectUpdateMode MoveDragController::UpdateTargetRectOnDragEvent(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason)
 {
     if (ShouldBlockCrossDisplay(pointerEvent)) {
-        return TargetRectUpdateState::UNCHANGED;
+        return TargetRectUpdateMode::NONE;
     }
+
     const auto [offsetX, offsetY] = ComputeOffsetFromStart(pointerEvent);
-    moveDragProperty_.targetRect_ = !MathHelper::NearZero(aspectRatio_) ?
+    TLOGD(WmsLogTag::WMS_LAYOUT, "offsetX: %{public}d, offsetY: %{public}d", offsetX, offsetY);
+
+    auto targetRect = !MathHelper::NearZero(aspectRatio_) ?
         CalcFixedAspectRatioTargetRect(type_, offsetX, offsetY, aspectRatio_, moveDragProperty_.originalRect_) :
         CalcFreeformTargetRect(type_, offsetX, offsetY, moveDragProperty_.originalRect_);
-    TLOGD(WmsLogTag::WMS_LAYOUT,
-          "targetRect: %{public}s, offsetX: %{public}d, offsetY: %{public}d",
-          moveDragProperty_.targetRect_.ToString().c_str(), offsetX, offsetY);
-    return TargetRectUpdateState::UPDATED_DIRECTLY;
+    UpdateTargetRect(reason, targetRect);
+    return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
 }
 
 Gravity MoveDragController::GetGravity() const
@@ -716,8 +736,8 @@ bool MoveDragController::HandleDragStart(const std::shared_ptr<MMI::PointerEvent
     TLOGD(WmsLogTag::WMS_LAYOUT, "Drag start, originalRect: %{public}s",
           moveDragProperty_.originalRect_.ToString().c_str());
 
-    UpdateTargetRectOnDragEvent(pointerEvent);
-    OnMoveDragCallback(SizeChangeReason::DRAG_START);
+    UpdateTargetRectOnDragEvent(pointerEvent, SizeChangeReason::DRAG_START);
+    OnMoveDragCallback(SizeChangeReason::DRAG_START, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     return true;
 }
 
@@ -728,8 +748,8 @@ bool MoveDragController::HandleDragging(const std::shared_ptr<MMI::PointerEvent>
         return true;
     }
 
-    UpdateTargetRectOnDragEvent(pointerEvent);
-    OnMoveDragCallback(SizeChangeReason::DRAG);
+    UpdateTargetRectOnDragEvent(pointerEvent, SizeChangeReason::DRAG);
+    OnMoveDragCallback(SizeChangeReason::DRAG, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     return true;
 }
 
@@ -757,8 +777,8 @@ bool MoveDragController::HandleDragEnd(const std::shared_ptr<MMI::PointerEvent>&
     ResSchedReportData(OHOS::ResourceSchedule::ResType::RES_TYPE_RESIZE_WINDOW, false);
     NotifyWindowInputPidChange(isStartDrag_);
 
-    UpdateTargetRectOnDragEvent(pointerEvent);
-    OnMoveDragCallback(SizeChangeReason::DRAG_END);
+    UpdateTargetRectOnDragEvent(pointerEvent, SizeChangeReason::DRAG_END);
+    OnMoveDragCallback(SizeChangeReason::DRAG_END, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     return true;
 }
 
@@ -778,9 +798,11 @@ void MoveDragController::MoveDragInterrupted(bool resetPosition)
     };
     if (resetPosition) {
         moveDragEndDisplayId_ = moveDragStartDisplayId_;
-        moveDragProperty_.targetRect_ = moveDragProperty_.originalRect_;
+        UpdateTargetRect(reason, moveDragProperty_.originalRect_);
+    } else {
+        UpdateTargetRect(reason);
     }
-    OnMoveDragCallback(reason);
+    OnMoveDragCallback(reason, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
 }
 
 void MoveDragController::StopMoving()
@@ -792,7 +814,8 @@ void MoveDragController::StopMoving()
         SetStartMoveFlag(false);
         ProcessWindowDragHotAreaFunc(windowDragHotAreaType_ != WINDOW_HOT_AREA_TYPE_UNDEFINED, reason);
     };
-    OnMoveDragCallback(reason);
+    UpdateTargetRect(reason);
+    OnMoveDragCallback(reason, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
 }
 
 WSRect MoveDragController::GetScreenRectById(DisplayId displayId)
@@ -883,16 +906,13 @@ std::pair<int32_t, int32_t> MoveDragController::ComputeOffsetFromStart(
 {
     auto pointerItemOpt = GetPointerItem(pointerEvent);
     RETURN_IF_NULL(pointerItemOpt, { 0, 0 });
-    const auto& pointerItem = *pointerItemOpt;
 
-    auto offset = GetLegacyGlobalDisplayOffset(static_cast<DisplayId>(pointerEvent->GetTargetDisplayId()));
-    if (!offset) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Screen offset is null, cannot calculate unified translate.");
-        return { 0, 0 };
-    }
-    const auto [curDisplayOffsetX, curDisplayOffsetY] = *offset;
+    auto displayOffset = GetLegacyGlobalDisplayOffset(static_cast<DisplayId>(pointerEvent->GetTargetDisplayId()));
+    RETURN_IF_NULL(displayOffset, { 0, 0 });
 
     // The current position of the pointer in the unified coordinate system
+    const auto& pointerItem = *pointerItemOpt;
+    const auto [curDisplayOffsetX, curDisplayOffsetY] = *displayOffset;
     const int32_t curUnifiedX = curDisplayOffsetX + pointerItem.GetDisplayX();
     const int32_t curUnifiedY = curDisplayOffsetY + pointerItem.GetDisplayY();
 
@@ -978,8 +998,8 @@ void MoveDragController::SetInputBarCrossAttr(MoveDirection moveDirection, Displ
         UpdateMoveAvailableArea(targetDisplayId);
     }
     moveInputBarStartDisplayId_ = targetDisplayId;
-    originalDisplayOffsetX_ = screenSizeProperty_.currentDisplayStartX;
-    originalDisplayOffsetY_ = screenSizeProperty_.currentDisplayStartY;
+    originalDisplayOffsetX_ = static_cast<int32_t>(screenSizeProperty_.currentDisplayStartX);
+    originalDisplayOffsetY_ = static_cast<int32_t>(screenSizeProperty_.currentDisplayStartY);
     screenSizeProperty_.Reset();
 }
 
@@ -1096,8 +1116,8 @@ void MoveDragController::CalcMoveForSameDisplay(const std::shared_ptr<MMI::Point
     AdjustTargetPositionByAvailableArea(moveDragFinalX, moveDragFinalY);
 }
 
-bool MoveDragController::CalcMoveInputBarRect(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
-                                              const WSRect& originalRect)
+bool MoveDragController::CalcMoveInputBarRect(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent,  const WSRect& originalRect, SizeChangeReason reason)
 {
     if (!CheckAndInitializeMoveDragProperty(pointerEvent, originalRect)) {
         return false;
@@ -1145,65 +1165,83 @@ bool MoveDragController::CalcMoveInputBarRect(const std::shared_ptr<MMI::Pointer
                 break;
         }
     }
-    moveDragProperty_.targetRect_ = { moveDragFinalX, moveDragFinalY, originalRect.width_, originalRect.height_ };
+    WSRect targetRect = { moveDragFinalX, moveDragFinalY, originalRect.width_, originalRect.height_ };
+    UpdateTargetRect(reason, targetRect);
     TLOGD(WmsLogTag::WMS_KEYBOARD, "move rect: %{public}s", moveDragProperty_.targetRect_.ToString().c_str());
     return true;
 }
 
-void MoveDragController::UpdateTargetRectWithOffset(int32_t offsetX, int32_t offsetY)
+void MoveDragController::UpdateTargetRectWithOffset(int32_t offsetX, int32_t offsetY, SizeChangeReason reason)
 {
     // The position is updated relative to the move start offset, while the size
     // must be refreshed because the window may resize during movement.
-    auto curRect = GetMoveRectForWindowDrag();
-    moveDragProperty_.targetRect_ = {
+    auto curRect = CallSceneSession(&SceneSession::GetMoveRectForWindowDrag, WSRect::EMPTY_RECT);
+    WSRect targetRect = {
         moveDragProperty_.originalRect_.posX_ + offsetX,
         moveDragProperty_.originalRect_.posY_ + offsetY,
         curRect.width_,
         curRect.height_
     };
-    TLOGD(WmsLogTag::WMS_LAYOUT, "targetRect: %{public}s",
-          moveDragProperty_.targetRect_.ToString().c_str());
+    UpdateTargetRect(reason, targetRect);
 }
 
-TargetRectUpdateState MoveDragController::UpdateTargetRectOnMoveEvent(
-    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoveEvent(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason)
 {
     if (ShouldBlockCrossDisplay(pointerEvent)) {
-        return TargetRectUpdateState::UNCHANGED;
+        return TargetRectUpdateMode::NONE;
     }
 
     const auto [offsetX, offsetY] = ComputeOffsetFromStart(pointerEvent);
 
-    // If resampling is necessary, do not update targetRect here. Instead, push
-    // the event into moveResampler so that targetRect can be updated on the next
-    // vsync using resampled data.
-    if (ShouldResampleMoveEvent(pointerEvent)) {
+    // If move resampling is active and the drag operation has not ended yet,
+    // do not update targetRect immediately. Instead, push the move event into
+    // moveResampler so that the target rect can be updated on the next vsync
+    // using resampled data.
+    //
+    // Note:
+    // - When reason is DRAG_END, it indicates that the drag-move operation
+    //   has finished. In this case, isStartMove_ will be set to false and
+    //   move resampling must be stopped.
+    // - No further events should be pushed into moveResampler after DRAG_END.
+    // - The final position at DRAG_END should be applied to the window
+    //   immediately, without resampling.
+    if (moveDragProperty_.isMoveResampleActive_ && reason != SizeChangeReason::DRAG_END) {
         const int64_t eventTimeUs = pointerEvent->GetActionTime();
         moveResampler_.PushEvent(eventTimeUs, offsetX, offsetY);
-        TLOGD(WmsLogTag::WMS_LAYOUT,
-              "eventTimeUs: %{public}" PRId64 ", offsetX: %{public}d, offsetY: %{public}d",
-              eventTimeUs, offsetX, offsetY);
-        return TargetRectUpdateState::RESAMPLE_REQUIRED;
+        return TargetRectUpdateMode::RESAMPLE_SCHEDULED;
     }
 
-    // Otherwise, update targetRect with offset directly.
-    UpdateTargetRectWithOffset(offsetX, offsetY);
-    return TargetRectUpdateState::UPDATED_DIRECTLY;
+    UpdateTargetRectWithOffset(offsetX, offsetY, reason);
+    return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
 }
 
-TargetRectUpdateState MoveDragController::ComputeResampledTargetRectOnVsync(int64_t vsyncTimeUs)
+std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectOnVsync(int64_t vsyncTimeUs)
 {
-    // If not in moving state, skip the resampled targetRect update.
     if (!GetStartMoveFlag()) {
         TLOGW(WmsLogTag::WMS_LAYOUT, "Not in moving state, skip resampled targetRect update.");
-        return TargetRectUpdateState::UNCHANGED;
+        return { TargetRectUpdateMode::NONE, WSRect::EMPTY_RECT };
     }
 
+    // Update move resampling activation based on the effective FPS observed
+    // on the first resample vsync during a drag-move.
+    UpdateResampleActivationByFps();
+
+    if (!moveDragProperty_.isMoveResampleActive_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Move resampling not activated, skip resampled targetRect update.");
+        return { TargetRectUpdateMode::NONE, WSRect::EMPTY_RECT };
+    }
+
+    // Compute pointer position at this vsync via resampling.
     auto sample = moveResampler_.ResampleAt(vsyncTimeUs);
-    // NOTE: When the drag ends on a different display, the screen offset should
-    // be applied. To be optimized later.
-    UpdateTargetRectWithOffset(sample.posX, sample.posY);
-    return TargetRectUpdateState::UPDATED_DIRECTLY;
+
+    // Update internal targetRect_ using the resampled offset.
+    UpdateTargetRectWithOffset(sample.posX, sample.posY, moveDragProperty_.targetRectChangeReason_);
+
+    // Resampling occurs only during DRAG_MOVE. The returned rectangle is always
+    // expressed in the legacy global (unified) coordinate system.
+    auto rect = GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
+    return { TargetRectUpdateMode::UPDATED_IMMEDIATELY, rect };
 }
 
 /** @note @window.drag */
@@ -1222,7 +1260,7 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
 
     InitMoveDragProperty();
     hasPointDown_ = true;
-    auto originalRect = GetGlobalOrWinRect();
+    auto originalRect = CallSceneSession(&SceneSession::GetGlobalOrWinRect, WSRect::EMPTY_RECT);
     moveDragProperty_.originalRect_ = originalRect;
     auto display = DisplayManager::GetInstance().GetDisplayById(
         static_cast<uint64_t>(pointerEvent->GetTargetDisplayId()));
@@ -1243,7 +1281,8 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
     if (type_ == AreaType::UNDEFINED) {
         return false;
     }
-    if (auto property = GetSessionProperty()) {
+    auto property = CallSceneSession(&SceneSession::GetSessionProperty, sptr<WindowSessionProperty>(nullptr));
+    if (property) {
         isAdaptToDragScale_ = property->IsAdaptToDragScale();
     }
     moveDragProperty_.pointerId_ = pointerItem.GetOriginPointerId();
@@ -1524,7 +1563,7 @@ WSError MoveDragController::UpdateMoveTempProperty(const std::shared_ptr<MMI::Po
         case MMI::PointerEvent::POINTER_ACTION_UP:
         case MMI::PointerEvent::POINTER_ACTION_BUTTON_UP:
         case MMI::PointerEvent::POINTER_ACTION_CANCEL: {
-            moveTempProperty_ = {-1, -1, -1, -1, -1, -1, -1, -1};
+            moveTempProperty_.Reset();
             break;
         }
         default:
@@ -1562,10 +1601,10 @@ void MoveDragController::HandleStartMovingWithCoordinate(const MoveCoordinatePro
     WSRect targetRect = MapRectFromTargetToStart(property.winRect, property.displayId);
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "displayId:%{public}" PRIu64 " targetRect: %{public}s",
         property.displayId, targetRect.ToString().c_str());
-    moveDragProperty_.targetRect_ = targetRect;
+    UpdateTargetRect(SizeChangeReason::DRAG_MOVE, targetRect);
     moveDragEndDisplayId_ = property.displayId;
     if (isMovable) {
-        OnMoveDragCallback(SizeChangeReason::DRAG_MOVE, TargetRectUpdateState::UPDATED_DIRECTLY);
+        OnMoveDragCallback(SizeChangeReason::DRAG_MOVE, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     }
 }
 
@@ -1612,11 +1651,16 @@ void MoveDragController::CalcFirstMoveTargetRect(const WSRect& windowRect, bool 
         targetRect.posY_ = moveDragProperty_.originalRect_.posY_ + offsetY;
         targetRect = MapRectFromTargetToStart(targetRect, specifyMoveStartDisplayId_);
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, first move rect: %{public}s",
-        persistentId_, targetRect.ToString().c_str());
-    moveDragProperty_.targetRect_ = targetRect;
+    UpdateTargetRect(SizeChangeReason::DRAG_MOVE, targetRect);
     isAdaptToProportionalScale_ = useWindowRect;
-    OnMoveDragCallback(SizeChangeReason::DRAG_MOVE, TargetRectUpdateState::UPDATED_DIRECTLY);
+    bool resampleActivated = ShouldOpenMoveResample(moveTempProperty_.pointerType_);
+    moveDragProperty_.isMoveResampleActive_ = resampleActivated;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, first move rect: %{public}s, resampleActivated: %{public}d",
+          persistentId_, targetRect.ToString().c_str(), resampleActivated);
+
+    auto mode = resampleActivated ?
+        TargetRectUpdateMode::RESAMPLE_ACTIVATED : TargetRectUpdateMode::UPDATED_IMMEDIATELY;
+    OnMoveDragCallback(SizeChangeReason::DRAG_MOVE, mode);
 }
 
 /** @note @window.drag */
@@ -1712,7 +1756,7 @@ void MoveDragController::ResSchedReportData(int32_t type, bool onOffTag)
 }
 
 template <typename Ret, typename Func, typename... Args>
-Ret MoveDragController::CallWithSceneSession(Func func, Ret defaultValue, Args&& ...args) const
+Ret MoveDragController::CallSceneSession(Func func, Ret defaultValue, Args&& ...args) const
 {
     if (auto session = sceneSession_.promote()) {
         return (session->*func)(std::forward<Args>(args)...);
@@ -1723,7 +1767,7 @@ Ret MoveDragController::CallWithSceneSession(Func func, Ret defaultValue, Args&&
 }
 
 template <typename Func, typename... Args>
-void MoveDragController::CallVoidFuncWithSceneSession(Func func, Args&& ...args) const
+void MoveDragController::CallSceneSessionVoid(Func func, Args&& ...args) const
 {
     if (auto session = sceneSession_.promote()) {
         (session->*func)(std::forward<Args>(args)...);
@@ -1732,35 +1776,50 @@ void MoveDragController::CallVoidFuncWithSceneSession(Func func, Args&& ...args)
     TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to get sceneSession, windowId: %{public}d", persistentId_);
 }
 
-sptr<WindowSessionProperty> MoveDragController::GetSessionProperty() const
+void MoveDragController::OnMoveDragCallback(SizeChangeReason reason, TargetRectUpdateMode mode)
 {
-    return CallWithSceneSession(&SceneSession::GetSessionProperty, sptr<WindowSessionProperty>(nullptr));
+    CallSceneSessionVoid(&SceneSession::OnMoveDragCallback, reason, mode);
 }
 
-WSRect MoveDragController::GetGlobalOrWinRect() const
+void MoveDragController::SetMoveResampleSystemConfig(
+    bool enable, std::optional<uint32_t> minFps, std::optional<uint32_t> maxFps)
 {
-    return CallWithSceneSession(&SceneSession::GetGlobalOrWinRect, WSRect::EMPTY_RECT);
+    system::SetParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, enable ? "true" : "false");
+    std::string minFpsStr = minFps ? std::to_string(*minFps) : ""; // empty value means unlimited
+    std::string maxFpsStr = maxFps ? std::to_string(*maxFps) : "";
+    system::SetParameter(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY, minFpsStr);
+    system::SetParameter(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY, maxFpsStr);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "enable: %{public}d, minFps: %{public}s, maxFps: %{public}s",
+          enable, minFpsStr.c_str(), maxFpsStr.c_str());
 }
 
-WSRect MoveDragController::GetMoveRectForWindowDrag() const
+std::tuple<bool, std::optional<uint32_t>, std::optional<uint32_t>> MoveDragController::GetMoveResampleSystemConfig()
 {
-    return CallWithSceneSession(&SceneSession::GetMoveRectForWindowDrag, WSRect::EMPTY_RECT);
-}
+    bool enable = system::GetBoolParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, false);
+    std::optional<uint32_t> minFps;
+    std::optional<uint32_t> maxFps;
+    std::string minFpsStr = system::GetParameter(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY, "");
+    std::string maxFpsStr = system::GetParameter(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY, "");
 
-void MoveDragController::OnMoveDragCallback(SizeChangeReason reason, TargetRectUpdateState state)
-{
-    CallVoidFuncWithSceneSession(&SceneSession::OnMoveDragCallback, reason, state);
-}
-
-bool MoveDragController::ShouldResampleMoveEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const
-{
-    if (!enableMoveResample_) {
-        return false;
-    }
-    RETURN_IF_NULL(pointerEvent, false);
-    // Currently, only touchscreen move events support move resample
-    return pointerEvent->GetSourceType() == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN &&
-           pointerEvent->GetPointerAction() == MMI::PointerEvent::POINTER_ACTION_MOVE;
+    auto parseOptionalUint32 = [](const std::string& str) -> std::optional<uint32_t> {
+        if (str.empty()) {
+            return std::nullopt;
+        }
+        uint32_t value = 0;
+        auto [_, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+        if (ec != std::errc{}) {
+            return std::nullopt;
+        }
+        return value;
+    };
+    minFps = parseOptionalUint32(minFpsStr);
+    maxFps = parseOptionalUint32(maxFpsStr);
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+          "enable: %{public}d, minFps: %{public}s, maxFps: %{public}s",
+          enable,
+          minFps ? std::to_string(*minFps).c_str() : "unlimited",
+          maxFps ? std::to_string(*maxFps).c_str() : "unlimited");
+    return { enable, minFps, maxFps };
 }
 
 bool MoveDragController::IsInvalidMouseEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const
@@ -1773,10 +1832,7 @@ bool MoveDragController::IsInvalidMouseEvent(const std::shared_ptr<MMI::PointerE
 bool MoveDragController::SyncPropertiesFromSceneSession()
 {
     auto session = sceneSession_.promote();
-    if (!session) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to get sceneSession, windowId: %{public}d", persistentId_);
-        return false;
-    }
+    RETURN_IF_NULL(session, false);
 
     aspectRatio_ = session->GetAspectRatio();
     limits_ = session->GetWindowLimits();
@@ -1790,5 +1846,70 @@ bool MoveDragController::SyncPropertiesFromSceneSession()
           limits_.ToString().c_str(), decoration_.ToString().c_str(),
           supportCrossDisplay_);
     return true;
+}
+
+bool MoveDragController::ShouldOpenMoveResample(int32_t pointerType) const
+{
+    // Global enable switch
+    if (!enableMoveResample_) {
+        return false;
+    }
+
+    // Only touchscreen events support move resampling.
+    // For other pointer types (e.g. mouse input), we prefer immediate
+    // responsiveness over additional smoothing. Mouse events are typically
+    // delivered at high frequency with fine-grained movement, and applying
+    // resampling may introduce unnecessary latency and reduce perceived
+    // precision.
+    if (pointerType != MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) {
+        return false;
+    }
+
+    // Input windows do not support move resampling. To be optimized later.
+    if (WindowHelper::IsInputWindow(winType_)) {
+        return false;
+    }
+    return true;
+}
+
+void MoveDragController::UpdateResampleActivationByFps()
+{
+    // FPS range validation is only applicable when move resampling is active.
+    if (!moveDragProperty_.isMoveResampleActive_) {
+        return;
+    }
+
+    // Perform the FPS range check at most once per drag-move operation.
+    if (moveDragProperty_.isResampleFpsRangeChecked_) {
+        return;
+    }
+    moveDragProperty_.isResampleFpsRangeChecked_ = true;
+
+    // Query the effective display FPS during drag-move and disable move
+    // resampling if it falls outside the configured range.
+    std::optional<uint32_t> curFps =
+        CallSceneSession(&SceneSession::GetFpsFromVsync, std::optional<uint32_t>(std::nullopt));
+    if (!curFps) {
+        moveDragProperty_.isMoveResampleActive_ = false;
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Failed to get current FPS, disabling move resampling.");
+        return;
+    }
+
+    if ((resampleMinFps_ && *curFps < *resampleMinFps_) || (resampleMaxFps_ && *curFps > *resampleMaxFps_)) {
+        moveDragProperty_.isMoveResampleActive_ = false;
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+              "Current FPS %{public}u is outside resample range [%{public}s, %{public}s], "
+              "disabling move resampling.",
+              *curFps,
+              resampleMinFps_ ? std::to_string(*resampleMinFps_).c_str() : "unlimited",
+              resampleMaxFps_ ? std::to_string(*resampleMaxFps_).c_str() : "unlimited");
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+          "Current FPS %{public}u is within resample range [%{public}s, %{public}s], "
+          "keeping move resampling active.",
+          *curFps,
+          resampleMinFps_ ? std::to_string(*resampleMinFps_).c_str() : "unlimited",
+          resampleMaxFps_ ? std::to_string(*resampleMaxFps_).c_str() : "unlimited");
 }
 } // namespace OHOS::Rosen

@@ -1189,5 +1189,72 @@ HWTEST_F(DisplayManagerAdapterTest, UnregisterDisplayManagerAgent, TestSize.Leve
         screenSessionManagerServiceProxy;
 }
 
+/**
+ * @tc.name: AddVirtualScreenWhiteList_proxyIsNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, AddVirtualScreenWhiteList_proxyIsNull, TestSize.Level1)
+{
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: AddVirtualScreenWhiteList_proxyNotNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is not nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, AddVirtualScreenWhiteList_proxyNotNull, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_TRUE(g_errLog.find("Device not support") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenWhiteList_proxyIsNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, RemoveVirtualScreenWhiteList_proxyIsNull, TestSize.Level1)
+{
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenWhiteList_proxyNotNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is not nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, RemoveVirtualScreenWhiteList_proxyNotNull, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_TRUE(g_errLog.find("Device not support") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen

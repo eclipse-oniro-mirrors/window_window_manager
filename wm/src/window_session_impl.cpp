@@ -1519,6 +1519,39 @@ void WindowSessionImpl::FlushLayoutSize(int32_t width, int32_t height)
     }
 }
 
+void WindowSessionImpl::FlushVsync()
+{
+    if (!WindowHelper::IsMainWindow(GetType())) {
+        return;
+    }
+
+    if (!property_->IsPrelaunch()) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch is false");
+        return;
+    }
+
+    if (property_->GetFrameNum() == 0) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch frameNum is 0");
+        return;
+    }
+
+    if (hasNotifyPrelaunchStartingwindow_) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch startingwindow has notify");
+        return;
+    }
+
+    vsyncCount_++;
+    TLOGI(WmsLogTag::WMS_PATTERN, "prelaunch frameNum:%{public}d, vsyncCount:%{public}d",
+        property_->GetFrameNum(), vsyncCount_);
+
+    if (vsyncCount_ >= property_->GetFrameNum()) {
+        if (auto session = GetHostSession()) {
+            session->NotifyRemovePrelaunchStartingWindow();
+            hasNotifyPrelaunchStartingwindow_ = true;
+        }
+    }
+}
+
 WMError WindowSessionImpl::NotifySnapshotUpdate()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "NotifySnapshotUpdate, id: %u", GetWindowId());

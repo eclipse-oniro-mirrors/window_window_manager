@@ -72,6 +72,7 @@ public:
     MOCK_CONST_METHOD2(ConvertGlobalRectToRelative, WSRect(const WSRect& globalRect, DisplayId targetDisplayId));
     MOCK_METHOD1(SetIsShowDecorInFreeMultiWindow, WSError(bool isShow));
     MOCK_METHOD(WSError, SetContentAspectRatio, (float ratio, bool isPersistent, bool needUpdateRect), (override));
+    MOCK_METHOD1(GetGlobalScaledRect, WMError(Rect& globalScaledRect));
 };
 } // namespace Rosen
 } // namespace OHOS

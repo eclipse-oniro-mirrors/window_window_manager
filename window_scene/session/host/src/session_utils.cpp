@@ -15,16 +15,10 @@
 
 #include "session_utils.h"
 
-#include "parameters.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
 namespace SessionUtils {
-namespace {
-// The system parameter key that enables resampling for window move events.
-constexpr const char* ENABLE_MOVE_RESAMPLE_PARAM_KEY = "persist.windowlayout.enablemoveresample";
-}
-
 bool IsAspectRatioValid(float aspectRatio, const WindowLimits& limits, const WindowDecoration& decoration)
 {
     if (MathHelper::NearZero(aspectRatio)) {
@@ -145,19 +139,6 @@ WSRect AdjustRectByAspectRatio(const WSRect& rect,
         return rect;
     }
     return adjustedRect;
-}
-
-void SetMoveResampleEnabled(bool enable)
-{
-    system::SetParameter(ENABLE_MOVE_RESAMPLE_PARAM_KEY, enable ? "true" : "false");
-    TLOGD(WmsLogTag::WMS_LAYOUT, "enable: %{public}d", enable);
-}
-
-bool IsMoveResampleEnabled()
-{
-    bool enable = system::GetBoolParameter(ENABLE_MOVE_RESAMPLE_PARAM_KEY, false);
-    TLOGD(WmsLogTag::WMS_LAYOUT, "enable: %{public}d", enable);
-    return enable;
 }
 } // namespace SessionUtils
 } // namespace OHOS::Rosen

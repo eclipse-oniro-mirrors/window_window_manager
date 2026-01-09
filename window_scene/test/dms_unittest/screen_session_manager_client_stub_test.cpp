@@ -602,6 +602,7 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnScreenConnectionChanged05, 
     data.WriteUint32(2);
     data.WriteBool(true);
     data.WriteInt32(1);
+    data.WriteInt32(3);
     uint64_t mapSize = 5;
     data.WriteUint64(mapSize);
     for (int i = 0; i < mapSize; ++i) {

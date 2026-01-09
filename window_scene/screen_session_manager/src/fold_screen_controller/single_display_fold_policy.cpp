@@ -148,10 +148,6 @@ bool SingleDisplayFoldPolicy::CheckDisplayModeChange(FoldDisplayMode displayMode
         return false;
     }
     SetLastCacheDisplayMode(displayMode);
-    if (GetModeChangeRunningStatus()) {
-        TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
-        return false;
-    }
     TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, lastElapsedMs: %{public}" PRId64 "ms",
         displayMode, getFoldingElapsedMs());
 

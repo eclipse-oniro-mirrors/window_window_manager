@@ -246,8 +246,6 @@ public:
 };
 
 class OH_DisplayChangeListener : public DisplayManager::IDisplayListener {
-private:
-    OH_NativeDisplayManager_DisplayChangeCallback innerDisplayChangeFunc_;
 public:
     explicit OH_DisplayChangeListener(OH_NativeDisplayManager_DisplayChangeCallback displayChangeFunc)
     {
@@ -269,12 +267,9 @@ public:
         }
         TLOGD(WmsLogTag::DMS, "[DMNDK] callback displayId=%{public}" PRIu64, displayId);
         innerDisplayChangeFunc_(static_cast<uint64_t>(displayId));
-        sptr<Display> display = DisplayManager::GetInstance().GetDefaultDisplaySync();
-        if (display != nullptr) {
-            TLOGI(WmsLogTag::DMS, "[DMNDK] cb R: %{public}d O: %{public}d",
-                display->GetRotation(), display->GetOrientation());
-        }
     }
+private:
+    OH_NativeDisplayManager_DisplayChangeCallback innerDisplayChangeFunc_;
 };
 
 static sptr<DisplayInfo> OH_GetDefaultDisplayInfo()

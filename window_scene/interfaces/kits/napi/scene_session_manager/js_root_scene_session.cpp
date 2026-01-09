@@ -400,21 +400,28 @@ static int32_t GetRealCallerSessionId(const sptr<SceneSession>& sceneSession)
     return realCallerSessionId;
 }
 
+void JsRootSceneSession::SetSceneSessionForPrelaunch(const SessionInfo& info, const sptr<SceneSession>& sceneSession)
+{
+    if (info.isPrelaunch_) {
+        sceneSession->SetPrelaunch();
+        sceneSession->EditSessionInfo().frameNum_ = info.frameNum_;
+    }
+}
+
 void JsRootSceneSession::PendingSessionActivation(SessionInfo& info)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d,bundleName:%{public}s,moduleName:%{public}s,abilityName:%{public}s,"
-        "appIndex:%{public}d,reuse:%{public}d,requestId:%{public}d,specifiedFlag:%{public}s",
+        "appIndex:%{public}d,reuse:%{public}d,requestId:%{public}d,specifiedFlag:%{public}s,prelaunch:%{public}d,"
+        "frameNum:%{public}d",
         info.persistentId_, info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(),
-        info.appIndex_, info.reuse, info.requestId, info.specifiedFlag_.c_str());
+        info.appIndex_, info.reuse, info.requestId, info.specifiedFlag_.c_str(), info.isPrelaunch_, info.frameNum_);
     sptr<SceneSession> sceneSession = GenSceneSession(info);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "sceneSession is nullptr");
         return;
     }
-    if (info.isPrelaunch_) {
-        sceneSession->SetPrelaunch();
-    }
 
+    SetSceneSessionForPrelaunch(info, sceneSession);
     if (info.want != nullptr) {
         bool isNeedBackToOther = info.want->GetBoolParam(AAFwk::Want::PARAM_BACK_TO_OTHER_MISSION_STACK, false);
         TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d isNeedBackToOther: %{public}d",

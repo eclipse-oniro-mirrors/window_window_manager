@@ -472,6 +472,7 @@ struct SessionInfo {
     bool isAncoApplication_ = false;
     int32_t scenarios = 0;
     bool isPrelaunch_ = false;
+    int32_t frameNum_ = 0;
 
     /*
      * Keyboard
@@ -1106,6 +1107,8 @@ struct SessionEventParam {
     uint32_t gravity = 0;
     uint32_t waterfallResidentState = 0;
     uint32_t compatibleStyleMode = 0;
+    int32_t windowGlobalPosX_ = 0;
+    int32_t windowGlobalPosY_ = 0;
 };
 
 struct BackgroundParams {
@@ -1268,14 +1271,14 @@ enum class LifeCycleChangeReason {
 
     SCREEN_LOCK,
 
-    SCREEN_ROTATION,
-
     LAST_SCENE_TRANSFER,
 
     /*
      * Drive batch of windows go background quickly
      */
     QUICK_BATCH_BACKGROUND,
+
+    SCREEN_ROTATION,
 
     REASON_END,
 };

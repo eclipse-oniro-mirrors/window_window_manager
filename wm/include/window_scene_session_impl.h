@@ -296,6 +296,7 @@ public:
     WMError GetWindowDensityInfo(WindowDensityInfo& densityInfo) override;
     WMError IsMainWindowFullScreenAcrossDisplays(bool& isAcrossDisplays) override;
     WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) override;
+    WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
     WMError SetRotationLocked(bool locked) override;
     WMError GetRotationLocked(bool& locked) override;
 
@@ -335,7 +336,6 @@ public:
     WMError UpdateSystemBarProperties(const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags) override;
     WMError SetStatusBarColorForPage(const std::optional<uint32_t> color) override;
-    bool isAtomicServiceUseColor_ = false;
 
     /*
      * Window Pattern
@@ -511,6 +511,15 @@ private:
     WMError updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty);
     std::mutex nowsystemBarPropertyMapMutex_;
     std::unordered_map<WindowType, SystemBarProperty> nowsystemBarPropertyMap_;
+    bool isAtomicServiceUseColor_ = false;
+    bool isNavigationUseColor_ = false;
+    enum class StatusBarColorChangeReason {
+        WINDOW_CONFIGURATION,
+        NAVIGATION_CONFIGURATION,
+        ATOMICSERVICE_CONFIGURATION,
+    };
+    std::stack<std::pair<StatusBarColorChangeReason, uint32_t>> statusBarColorHistory_;
+    uint32_t UpdateStatusBarColorHistory(StatusBarColorChangeReason reason, std::optional<uint32_t> color);
 
     /*
      * Window Animation

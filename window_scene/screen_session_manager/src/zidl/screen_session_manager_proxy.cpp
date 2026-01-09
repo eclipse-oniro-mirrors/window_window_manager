@@ -1325,27 +1325,25 @@ DMError ScreenSessionManagerProxy::RemoveVirtualScreenBlockList(const std::vecto
 DMError ScreenSessionManagerProxy::AddVirtualScreenWhiteList(ScreenId screenId,
     const std::vector<uint64_t>& missionIds)
 {
-    return SendVirtualScreenWhiteListRequest<DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_WHITE_LIST>
-        (screenId, missionIds);
+    return SendVirtualScreenWhiteListRequest(screenId, missionIds,
+        DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_WHITE_LIST);
 }
 
 DMError ScreenSessionManagerProxy::RemoveVirtualScreenWhiteList(ScreenId screenId,
     const std::vector<uint64_t>& missionIds)
 {
-    return SendVirtualScreenWhiteListRequest<DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_WHITE_LIST>
-        (screenId, missionIds);
+    return SendVirtualScreenWhiteListRequest(screenId, missionIds,
+        DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_WHITE_LIST);
 }
 
-template <DisplayManagerMessage TRANS_ID_WHITELIST>
 DMError ScreenSessionManagerProxy::SendVirtualScreenWhiteListRequest(ScreenId screenId,
-    const std::vector<uint64_t>& missionIds)
+    const std::vector<uint64_t>& missionIds, DisplayManagerMessage transId)
 {
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGW(WmsLogTag::DMS, "remote is nullptr");
         return DMError::DM_ERROR_REMOTE_CREATE_FAILED;
     }
-
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
@@ -1364,12 +1362,17 @@ DMError ScreenSessionManagerProxy::SendVirtualScreenWhiteListRequest(ScreenId sc
         return DMError::DM_ERROR_IPC_FAILED;
     }
 
-    int32_t errCode = remote->SendRequest(static_cast<uint32_t>(TRANS_ID_WHITELIST), data, reply, option);
+    int32_t errCode = remote->SendRequest(static_cast<uint32_t>(transId), data, reply, option);
     if (errCode != ERR_NONE) {
-        TLOGE(WmsLogTag::DMS, "SendRequest failed, transId:%{public}d", static_cast<uint32_t>(TRANS_ID_WHITELIST));
+        TLOGE(WmsLogTag::DMS, "SendRequest failed, transId:%{public}d", static_cast<uint32_t>(transId));
         return DMError::DM_ERROR_IPC_FAILED;
     }
-    return static_cast<DMError>(reply.ReadInt32());
+    int32_t rawErrorCode = 0;
+    if (!reply.ReadInt32(rawErrorCode)) {
+        TLOGE(WmsLogTag::DMS, "read result failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(rawErrorCode);
 }
 
 bool ScreenSessionManagerProxy::IsOnboardDisplay(DisplayId displayId)

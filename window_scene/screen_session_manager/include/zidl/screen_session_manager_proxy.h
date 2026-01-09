@@ -88,8 +88,8 @@ public:
 
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
 
-    template <DisplayManagerMessage TRANS_ID_WHITELIST>
-    DMError SendVirtualScreenWhiteListRequest(ScreenId screenId, const std::vector<uint64_t>& missionIds);
+    DMError SendVirtualScreenWhiteListRequest(ScreenId screenId, const std::vector<uint64_t>& missionIds,
+        DisplayManagerMessage transId);
 
     DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds) override;
 

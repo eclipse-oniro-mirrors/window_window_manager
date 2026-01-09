@@ -144,6 +144,8 @@ ohos_shared_library("screen_session_manager") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "screenlock_mgr:screenlock_client",
+    "time_service:time_client",
+    "ability_runtime:wantagent_innerkits",
   ]
 
   defines = []

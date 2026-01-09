@@ -108,7 +108,7 @@ HWTEST_F(ScreenSessionManagerLiteTest, GetFoldDisplayMode, TestSize.Level1)
         GTEST_SKIP();
     }
     FoldDisplayMode ret = screenSessionManagerLite.GetFoldDisplayMode();
-    ASSERT_NE(ret, FoldDisplayMode::UNKNOWN);
+    ASSERT_EQ(ret, FoldDisplayMode::UNKNOWN);
 }
 
 /**

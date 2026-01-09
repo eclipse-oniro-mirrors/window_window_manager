@@ -305,6 +305,13 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, MinimizeAllWindow01, TestSize.Level1
     ssm_->sceneSessionMap_.insert({9, sceneSession});
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
+
+    ssm_->minimizeAllFunc_ == nullptr;
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
+    MinimizeAllFunc func = [](DisplayId displayId, int32_t excludeWindowId) {};
+    ssm_->RegisterMinimizeAllCallback(std::move(func));
+    ASSERT_NE(ssm_->minimizeAllFunc_, nullptr);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 }
 
 /**
@@ -409,6 +416,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, GetAllMainWindowInfo, TestSize.Level
     EXPECT_EQ(ssm_->GetAllMainWindowInfo(infos), WMError::WM_OK);
     EXPECT_EQ(static_cast<int32_t>(infos.size()), 0);
     EXPECT_TRUE(g_logMsg.find("session is nullptr or sessionState is disconnect") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
  
 /**
@@ -472,6 +480,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, GetMainWindowSnapshot, TestSize.Leve
     ssm_->GetMainWindowSnapshot(windowIds, configs, callback);
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_TRUE(g_logMsg.find("is not mainWindow") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
  
 /**
@@ -521,6 +530,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, GetMainWindowSnapshot01, TestSize.Le
     }
     callback = sceneSession->AsObject();
     EXPECT_EQ(ssm_->GetMainWindowSnapshot(windowIdsMaxSize, configs, callback), WMError::WM_ERROR_INVALID_PARAM);
+    LOG_SetCallback(nullptr);
 }
 
 } // namespace

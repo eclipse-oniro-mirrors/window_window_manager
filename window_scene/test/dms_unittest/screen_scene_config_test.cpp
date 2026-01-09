@@ -1229,7 +1229,7 @@ HWTEST_F(ScreenSceneConfigTest, ParseStrToUll, TestSize.Level1)
 
     input = "123abc";
     result = ScreenSceneConfig::ParseStrToUll(input);
-    EXPECT_EQ(result, 123u);
+    EXPECT_EQ(result, 0u);
 
     input = "";
     result = ScreenSceneConfig::ParseStrToUll(input);

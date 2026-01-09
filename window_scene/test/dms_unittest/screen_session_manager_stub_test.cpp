@@ -3453,6 +3453,19 @@ HWTEST_F(ScreenSessionManagerStubTest, ProcSetPrimaryDisplaySystemDpi, Function 
 }
 
 /**
+ * @tc.name: GetIPCPriority
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, GetIPCPriorityTest, TestSize.Level1)
+{
+    IPCPriority IPCPriority = stub_->GetIPCPriority(0);
+    EXPECT_EQ(IPCPriority, IPCPriority::VIP);
+    IPCPriority = stub_->GetIPCPriority(1000);
+    EXPECT_EQ(IPCPriority, IPCPriority::LOW);
+}
+
+/**
  * @tc.name: GetPhysicalScreenIds
  * @tc.desc: normal function, GetPhysicalScreenIds test
  * @tc.type: FUNC

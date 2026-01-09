@@ -36,11 +36,10 @@ namespace OHOS::Rosen {
 namespace {
     constexpr float MOVE_DRAG_POSITION_Z = 100.5f;
     constexpr int32_t INSERT_TO_THE_END = -1;
-    const std::string COOPERATION_DISPLAY_NAME = "Cooperation";
 }
 KeyboardSession::KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-    const sptr<KeyboardSessionCallback>& keyboardCallback)
-    : SystemSession(info, specificCallback)
+    const sptr<KeyboardSessionCallback>& keyboardCallback, int32_t userId)
+    : SystemSession(info, specificCallback, userId)
 {
     keyboardCallback_ = keyboardCallback;
     scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, GetPersistentId());
@@ -408,6 +407,14 @@ bool KeyboardSession::CalculateOccupiedArea(const sptr<SceneSession>& callingSes
     occupiedAreaInfo = sptr<OccupiedAreaChangeInfo>::MakeSptr(OccupiedAreaType::TYPE_INPUT,
         SessionHelper::TransferToRect(safeRect), safeRect.height_, textFieldPositionY, textFieldHeight);
     return true;
+}
+
+void KeyboardSession::ForceProcessKeyboardOccupiedAreaInfo()
+{
+    if (IsVisibleForeground() && GetKeyboardGravity() == SessionGravity::SESSION_GRAVITY_BOTTOM) {
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "set CalculateOccupiedAreaWaitUntilDragEnd");
+        isCalculateOccupiedAreaWaitUntilDragEnd_ = true;
+    }
 }
 
 void KeyboardSession::ProcessKeyboardOccupiedAreaInfo(uint32_t callingId, bool needRecalculateAvoidAreas,
@@ -1146,6 +1153,11 @@ void KeyboardSession::CalculateOccupiedAreaAfterUIRefresh()
             TLOGD(WmsLogTag::WMS_KEYBOARD, "Calling session rect has changed");
             needRecalculateOccupiedArea = true;
         }
+        if (reason == SizeChangeReason::DRAG_END && isCalculateOccupiedAreaWaitUntilDragEnd_) {
+            needRecalculateOccupiedArea = true;
+            isCalculateOccupiedAreaWaitUntilDragEnd_ = false;
+            TLOGI(WmsLogTag::WMS_KEYBOARD, "CalculateOccupiedAreaWaitUntilDragEnd");
+        }
     }
     if (needRecalculateOccupiedArea) {
         ProcessKeyboardOccupiedAreaInfo(callingId, false, stateChanged_);
@@ -1215,7 +1227,6 @@ WMError KeyboardSession::IsLandscape(uint64_t displayId, bool& isLandscape)
     }
     auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
     std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
-    isLandscape = isLandscape || (dispName == COOPERATION_DISPLAY_NAME);
     TLOGI(WmsLogTag::WMS_KEYBOARD, "s-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d|%{public}s",
         displayId, displayWidth, displayHeight, isLandscape, dispName.c_str());
     return WMError::WM_OK;

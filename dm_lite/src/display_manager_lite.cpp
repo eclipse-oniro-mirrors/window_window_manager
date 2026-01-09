@@ -720,7 +720,7 @@ void DisplayManagerLite::Impl::ClearDisplayStateCallback()
     TLOGD(WmsLogTag::DMS, "[UL_POWER]Clear displaystatecallback enter");
     displayStateCallback_ = nullptr;
     if (displayStateAgent_ != nullptr) {
-        TLOGI(WmsLogTag::DMS, "[UL_POWER]UnregisterDisplayManagerAgent enter and displayStateAgent_ is cleared");
+        TLOGI(WmsLogTag::DMS, "[UL_POWER]cleared");
         SingletonContainer::Get<DisplayManagerAdapterLite>().UnregisterDisplayManagerAgent(displayStateAgent_,
             DisplayManagerAgentType::DISPLAY_STATE_LISTENER);
         displayStateAgent_ = nullptr;

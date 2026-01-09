@@ -27,4 +27,5 @@ interface OHOS.Rosen.IMockSessionManagerInterface {
     void SetSnapshotSkipByIdNamesMap([in] Map<int, String[]> userIdAndBundleNames);
     void GetSceneSessionManagerLiteByClient([in] int userId, [out] IRemoteObject sceneSessionManagerLite);
     void GetSceneSessionManagerByClient([in] int userId, [out] IRemoteObject sceneSessionManager);
+    void NotifySetSpecificWindowZIndex();
 }

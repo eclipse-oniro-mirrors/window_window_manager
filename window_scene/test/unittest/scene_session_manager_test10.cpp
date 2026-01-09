@@ -873,23 +873,6 @@ HWTEST_F(SceneSessionManagerTest10, TestIsInDefaultScreen_02, TestSize.Level1)
 }
 
 /**
- * @tc.name: RegisterRequestVsyncFunc
- * @tc.desc: test RegisterRequestVsyncFunc01
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, RegisterRequestVsyncFunc01, TestSize.Level1)
-{
-    ssm_->RegisterRequestVsyncFunc(nullptr);
-    SessionInfo info;
-    info.abilityName_ = "RegisterRequestVsyncFunc01";
-    info.bundleName_ = "RegisterRequestVsyncFunc01";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    ssm_->RegisterRequestVsyncFunc(sceneSession);
-    ASSERT_NE(nullptr, sceneSession->requestNextVsyncFunc_);
-}
-
-/**
  * @tc.name: RegisterSessionPropertyChangeNotifyManagerFunc
  * @tc.desc: test RegisterSessionPropertyChangeNotifyManagerFunc01
  * @tc.type: FUNC

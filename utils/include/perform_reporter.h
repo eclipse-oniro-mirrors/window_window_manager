@@ -132,6 +132,9 @@ public:
         const std::string& msg);
     int32_t ReportSpecWindowLifeCycleChange(WindowLifeCycleReportInfo reportInfo);
 
+    // IO record
+    void ReportWindowIO(const std::string& scenes, const std::string& subScene, double sizeKB);
+
 private:
     void UpdateReportInfo(FullInfoMap& infoMap, const std::string& bundleName,
         const std::string& packageName);
@@ -142,6 +145,9 @@ private:
     void Report(const std::string& reportTag, const std::string& msg);
     void ClearRecordedInfos();
 
+    // IO record
+    void ReportWindowIOPerDay();
+
     BundleNameMap windowCreateReportInfos_;
     BundleNameMap windowShowReportInfos_;
     BundleNameMap windowHideReportInfos_;
@@ -150,6 +156,12 @@ private:
     FullInfoMap windowNavigationBarReportInfos_;
 
     std::mutex mtx_;
+
+    // IO record
+    std::mutex reportWindowIOMutex_;
+    std::unordered_map<std::string, std::unordered_map<std::string, double>> ioRecordMap_;
+    bool firstIOTimeInitialized_ = false;
+    std::chrono::steady_clock::time_point firstIOTime_;
 };
 }
 }

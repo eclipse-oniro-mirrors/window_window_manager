@@ -97,13 +97,13 @@ __attribute__((no_sanitize("cfi"))) bool StopAod(int32_t status)
         const char* dlsymError = nullptr;
         do {
             cnt++;
-            g_stopAodFunc = reinterpret_cast<StopAodFunc>(dlsym(g_handle, "StopAod"));
+            g_stopAodFunc = reinterpret_cast<StopAodFunc>(dlsym(g_handle, "Stop"));
             dlsymError = dlerror();
             if (dlsymError) {
                 TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
                 usleep(SLEEP_TIME_US);
             }
-            TLOGI(WmsLogTag::DMS, "dlsym %{public}s, retry cnt: %{public}d", "StopAod", cnt);
+            TLOGI(WmsLogTag::DMS, "dlsym %{public}s, retry cnt: %{public}d", "Stop", cnt);
         } while (!g_stopAodFunc && cnt < RETRY_TIMES);
     }
     if (g_stopAodFunc == nullptr) {

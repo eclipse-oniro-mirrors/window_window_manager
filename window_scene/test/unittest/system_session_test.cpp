@@ -1146,7 +1146,7 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level
     EXPECT_NE(property, nullptr);
     property->SetWindowType(WindowType::WINDOW_TYPE_MEDIA);
     systemSession->SetSessionProperty(property);
-    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_OPERATION);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     systemSession->SetSessionProperty(property);
 
@@ -1156,6 +1156,8 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level
 
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
     systemSession->state_.store(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+    systemSession->state_.store(SessionState::STATE_ACTIVE);
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
     systemSession->RegisterGetSCBEnterRecentFunc([]() {
         return true;

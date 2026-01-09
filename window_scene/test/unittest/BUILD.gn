@@ -87,6 +87,8 @@ group("unittest") {
     "event_distribution:ws_scene_session_event_test",
     "event_distribution:ws_session_proxy_event_test",
     "event_distribution:ws_session_stub_event_test",
+    "event_distribution:ws_session_event_test",
+    "event_distribution:ws_window_session_property_event_test",
     "rotation:ws_scene_session_manager_rotation_test",
     "rotation:ws_scene_session_rotation_test",
     "rotation:ws_session_stage_proxy_rotation_test",
@@ -911,6 +913,8 @@ ohos_unittest("ws_scene_session_manager_supplement_test") {
 ohos_unittest("ws_scene_session_test") {
   module_out_path = module_out_path
 
+  include_dirs = [ "${window_base_path}/wm/test/mock" ]
+
   sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
     "scene_session_test.cpp",
@@ -1012,6 +1016,7 @@ ohos_unittest("ws_move_drag_controller_test") {
 
   include_dirs = [
     "${window_base_path}/window_scene/session/host/include",
+    "${window_base_path}/wm/test/mock",
   ]
 
   sources = [
@@ -1514,7 +1519,7 @@ ohos_static_library("ws_unittest_common") {
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
     "${window_base_path}/window_scene/session:scene_session",
     "${window_base_path}/window_scene/session:screen_session",
-    "${window_base_path}/window_scene/session_manager:scene_session_manager",
+    "${window_base_path}/window_scene/session_manager:scene_session_manager_static",
     "${window_base_path}/window_scene/session_manager:session_manager",
     "${window_base_path}/window_scene/session_manager:session_manager_lite",
     "${window_base_path}/wm:libwm",
