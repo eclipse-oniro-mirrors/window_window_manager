@@ -230,6 +230,37 @@ HWTEST_F(SceneSessionManagerTest10, TestRequestSceneSessionDestructionInner_01, 
 }
 
 /**
+ * @tc.name: TestRequestSceneSessionDestructionInner_02
+ * @tc.desc: Test RequestSceneSessionDestructionInner with session is dropping
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, TestRequestSceneSessionDestructionInner_02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback = nullptr;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback);
+
+    auto task1 = []() {};
+    sceneSession->PostLifeCycleTask(task1, "task1", LifeCycleTaskType::START);
+    sptr<AAFwk::SessionInfo> sceneSessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    bool needRemoveSession = false;
+    bool isForceClean = false;
+
+    SessionInfo sessionInfo;
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+    auto res =
+        ssm_->RequestSceneSessionDestructionInner(sceneSession, sceneSessionInfo, needRemoveSession, isForceClean);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    sceneSession->ClearLifeCycleTask();
+    res = ssm_->RequestSceneSessionDestructionInner(sceneSession, sceneSessionInfo,
+        needRemoveSession, isForceClean);
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
  * @tc.name: TestRegisterWindowManagerAgent_01
  * @tc.desc: Test RegisterWindowManagerAgent with WindowManagerAgentType WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR
  * @tc.type: FUNC

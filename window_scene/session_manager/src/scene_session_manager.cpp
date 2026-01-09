@@ -1961,7 +1961,8 @@ void SceneSessionManager::GetMainSessionByAbilityInfo(const AbilityInfoBase& abi
     }
 }
 
-sptr<SceneSession> SceneSessionManager::GetSceneSessionByIdentityInfo(const SessionIdentityInfo& info)
+sptr<SceneSession> SceneSessionManager::GetSceneSessionByIdentityInfo(const SessionIdentityInfo& info,
+    bool needFilterRemoving)
 {
     std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
     for (const auto& [_, sceneSession] : sceneSessionMap_) {
@@ -1973,6 +1974,9 @@ sptr<SceneSession> SceneSessionManager::GetSceneSessionByIdentityInfo(const Sess
             sceneSession->GetSessionInfo().appInstanceKey_ != info.instanceKey_ ||
             sceneSession->GetSessionInfo().specifiedFlag_ != info.specifiedFlag_ ||
             sceneSession->GetSessionInfo().windowType_ != info.windowType_) {
+            continue;
+        }
+        if (needFilterRemoving && sceneSession->isRemoving_) {
             continue;
         }
         const auto& sessionModuleName = sceneSession->GetSessionInfo().moduleName_;
@@ -3003,7 +3007,8 @@ sptr<SceneSession> SceneSessionManager::GetSceneSessionBySessionInfo(const Sessi
     }
 
     if (sessionInfo.persistentId_ != INVALID_SESSION_ID) {
-        if (auto session = GetSceneSession(sessionInfo.persistentId_)) {
+        auto session = GetSceneSession(sessionInfo.persistentId_);
+        if (session != nullptr && !session->isRemoving_) {
             TLOGI(WmsLogTag::WMS_LIFE, "get exist session persistentId: %{public}d", sessionInfo.persistentId_);
             return session;
         }
@@ -4146,6 +4151,14 @@ WSError SceneSessionManager::RequestSceneSessionDestruction(const sptr<SceneSess
     bool needRemoveSession, bool isSaveSnapshot, bool isForceClean, bool isUserRequestedExit,
     LifeCycleChangeReason reason)
 {
+    taskScheduler_->PostSyncTask([this, sceneSession, needRemoveSession] {
+        if (sceneSession == nullptr) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "Destruct session is nullptr.");
+            return WSError::WS_ERROR_NULLPTR;
+        }
+        sceneSession->isRemoving_ = needRemoveSession;
+        return WSError::WS_OK;
+    }, "MarkRemovingBeforeDestruction");
     auto task = [this, weakSceneSession = wptr(sceneSession), needRemoveSession, isSaveSnapshot, isForceClean,
                  isUserRequestedExit, reason]() THREAD_SAFETY_GUARD(SCENE_GUARD) {
         auto sceneSession = weakSceneSession.promote();
@@ -4220,11 +4233,34 @@ void SceneSessionManager::ResetWantInfo(const sptr<SceneSession>& sceneSession)
     }
 }
 
+void SceneSessionManager::MoveStartLifeCycleTask(const sptr<SceneSession>& sceneSession)
+{
+    if(!sceneSession->IsPcWindow()) {
+        TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d is not pc window", sceneSession->GetPersistentId());
+        return;
+    }
+    if(!sceneSession->isRemoving_) {
+        TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d is not removing.", sceneSession->GetPersistentId());
+        return;
+    }
+    auto lastTask = sceneSession->GetLastLifeCycleTask();
+    if (lastTask != nullptr && lastTask->type == LifeCycleTaskType::START) {
+        TLOGW(WmsLogTag::WMS_LIFE, "id:%{public}d is removing", sceneSession->GetPersistentId());
+        SessionInfo newSessionInfo = sceneSession->GetSessionInfo();
+        newSessionInfo.persistentId_ = INVALID_SESSION_ID;
+        sptr<SceneSession> newSession = RequestSceneSession(newSessionInfo, nullptr);
+        newSession->PostLifeCycleTask(std::move(lastTask->task), lastTask->name, LifeCycleTaskType::START);
+    }
+}
+
 WSError SceneSessionManager::RequestSceneSessionDestructionInner(sptr<SceneSession>& sceneSession,
     sptr<AAFwk::SessionInfo> sceneSessionInfo, const bool needRemoveSession, const bool isForceClean,
     bool isUserRequestedExit, LifeCycleChangeReason reason)
 {
     auto persistentId = sceneSession->GetPersistentId();
+    if (!isUserRequestedExit) {
+        MoveStartLifeCycleTask(sceneSession);
+    }
     TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d] Begin CloseUIAbility, system: %{public}d",
         persistentId, sceneSession->GetSessionInfo().isSystem_);
     if (isForceClean) {

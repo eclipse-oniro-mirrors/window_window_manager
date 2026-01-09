@@ -2115,6 +2115,15 @@ void Session::ClearLifeCycleTask()
     lifeCycleTaskQueue_.clear();
 }
 
+sptr<Session::SessionLifeCycleTask> Session::GetLastLifeCycleTask() const
+{
+    std::lock_guard<std::mutex> lock(lifeCycleTaskQueueMutex_);
+    if (lifeCycleTaskQueue_.empty()) {
+        return nullptr;
+    }
+    return lifeCycleTaskQueue_.back();
+}
+
 void Session::PostLifeCycleTask(Task&& task, const std::string& name, const LifeCycleTaskType& taskType)
 {
     sptr<SessionLifeCycleTask> frontLifeCycleTask = nullptr;

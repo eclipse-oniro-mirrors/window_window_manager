@@ -230,7 +230,7 @@ public:
         const std::map<int32_t, sptr<SceneSession>>& sessionMap);
     void PostFlushWindowInfoTask(FlushWindowInfoTask&& task, const std::string& taskName, const int delayTime);
 
-    sptr<SceneSession> GetSceneSessionByIdentityInfo(const SessionIdentityInfo& info);
+    sptr<SceneSession> GetSceneSessionByIdentityInfo(const SessionIdentityInfo& info, bool needFilterRemoving = false);
     sptr<SceneSession> GetSceneSessionByType(WindowType type);
     std::vector<sptr<SceneSession>> GetSceneSessionByBundleName(const std::string& bundleName);
 
@@ -1027,6 +1027,7 @@ private:
     WMError CheckWindowIds(
         const std::vector<int32_t>& windowIds, const sptr<IRemoteObject>& callback);
     void RegisterWindowStateErrorCallbackToMMI();
+    void MoveStartLifeCycleTask(const sptr<SceneSession>& sceneSession);
     std::unordered_map<std::string, std::unordered_set<int32_t>> appsWithBoundSystemTrayMap_;
     MinimizeAllFunc minimizeAllFunc_;
 

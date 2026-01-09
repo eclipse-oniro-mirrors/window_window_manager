@@ -1446,6 +1446,24 @@ HWTEST_F(WindowSessionTest4, SetLifeCycleTaskRunning, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetLastLifeCycleTask
+ * @tc.desc: check func GetLastLifeCycleTask
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, GetLastLifeCycleTask, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->ClearLifeCycleTask();
+    auto ret = session_->GetLastLifeCycleTask();
+    EXPECT_EQ(ret, nullptr);
+
+    auto task1 = [](){};
+    session_->PostLifeCycleTask(task1, "task1", LifeCycleTaskType::START);
+    ret = session_->GetLastLifeCycleTask();
+    EXPECT_NE(ret, nullptr);
+}
+
+/**
  * @tc.name: SetHidingStartingWindow
  * @tc.desc: check func SetHidingStartingWindow
  * @tc.type: FUNC
