@@ -6311,7 +6311,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
         UpdateDecorEnable(true);
     }
     if (WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING) &&
-        !(isAnco() && windowSystemConfig_.IsPhoneWindow())) {
+        !(IsAnco() && windowSystemConfig_.IsPhoneWindow())) {
         UpdateImmersiveBySwitchMode(enable);
     }
     SwitchSubWindow(enable, GetPersistentId());
