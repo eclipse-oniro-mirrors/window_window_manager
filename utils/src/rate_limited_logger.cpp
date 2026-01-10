@@ -25,8 +25,13 @@ RateLimitedLogger& RateLimitedLogger::getInstance()
     return instance_;
 }
 
-bool RateLimitedLogger::logFunction(const std::uintptr_t& functionAddress, uint32_t timeWindowMs, uint32_t maxCount)
+bool RateLimitedLogger::logFunction(const std::string& functionName, int32_t timeWindowMs, int32_t maxCount)
 {
+    // Parameter abnormality
+    if (timeWindowMs <= 0 || maxCount <= 0) {
+        return false;
+    }
+
     // Disable log rate limiting, always print logs
     if (!enabled_) {
         return true;
@@ -36,7 +41,7 @@ bool RateLimitedLogger::logFunction(const std::uintptr_t& functionAddress, uint3
     auto now = std::chrono::steady_clock::now();
 
     // Find or create function record
-    auto& record = functionRecords_[functionAddress];
+    auto& record = functionRecords_[functionName];
     
     // If new record or time window expired, reset count
     if (record.count == 0 ||
@@ -46,7 +51,7 @@ bool RateLimitedLogger::logFunction(const std::uintptr_t& functionAddress, uint3
     }
 
     // Check if within limit
-    if (static_cast<uint32_t>(record.count) < maxCount) {
+    if (record.count < maxCount) {
         record.count++;
         return true;
     }
@@ -65,10 +70,10 @@ void RateLimitedLogger::setEnabled(bool enabled)
     enabled_ = enabled;
 }
 
-int32_t RateLimitedLogger::getCurrentCount(const std::uintptr_t& functionAddress)
+int32_t RateLimitedLogger::getCurrentCount(const std::string& functionName)
 {
     std::lock_guard<std::mutex> lock(functionRecordsMutex_);
-    auto it = functionRecords_.find(functionAddress);
+    auto it = functionRecords_.find(functionName);
     return (it != functionRecords_.end()) ? it->second.count : 0;
 }
 } // namespace Rosen
