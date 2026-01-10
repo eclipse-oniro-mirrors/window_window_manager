@@ -1451,8 +1451,10 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
             (windowModeSupportType == WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN) :
             (WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
             !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING));
-        bool isAncoInPh
-        bool onlySupportFullScreen = isWindowModeSupportFullscreen && IsPcOrPadFreeMultiWindowMode();
+        bool isAncoInPhoneFreeMultiWindowMode = IsAnco() && IsFreeMultiWindowMode() &&
+            windowSystemConfig_.IsPhoneWindow();
+        bool onlySupportFullScreen = (isWindowModeSupportFullscreen && IsPcOrPadFreeMultiWindowMode()) ||
+            isAncoInPhoneFreeMultiWindowMode;
         bool compatibleDisableFullScreen = property_->IsFullScreenDisabled();
         if ((onlySupportFullScreen || property_->GetFullScreenStart()) && !compatibleDisableFullScreen) {
             TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d fullScreenStart:%{public}d",
@@ -3283,7 +3285,10 @@ WMError WindowSceneSessionImpl::SetLayoutFullScreen(bool status)
         // compatibleMode app may set statusBarColor before ignoreSafeArea
         auto systemBarProperties = property_->GetSystemBarProperty();
         if (status && systemBarProperties.find(WindowType::WINDOW_TYPE_STATUS_BAR) != systemBarProperties.end()) {
-            //
+            if (IsAnco() && (windowSystemConfig_.IsPadWindow() || windowSystemConfig_.IsPcWindow())) {
+                TLOGI(WmsLogTag::WMS_IMMS, "anco in pad or pc window need not hook.");
+                return WMError::WM_OK;
+            }
             auto statusBarProperty = systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR];
             HookDecorButtonStyleInCompatibleMode(statusBarProperty.contentColor_);
         }
@@ -3415,8 +3420,11 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
                 static_cast<uint8_t>(SubSystemId::WM_UIEXT));
         }
         if (property_->IsAdaptToImmersive() && isIgnoreSafeArea_) {
-            // 
-            HookDecorButtonStyleInCompatibleMode(property.contentColor_);
+            if (IsAnco() && (windowSystemConfig_.IsPadWindow() || windowSystemConfig_.IsPcWindow())) {
+                TLOGI(WmsLogTag::WMS_IMMS, "anco in pad or pc window need not hook.");
+            } else {
+                HookDecorButtonStyleInCompatibleMode(property.contentColor_);
+            }
         }
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_PROPS);
@@ -6284,13 +6292,19 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     if (enable) {
         PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
     }
+    if (!(IsAnco() && windowSystemConfig_.IsPadWindow())) {
+        UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
+    }
+    if (enable && IsAnco() && windowSystemConfig_.IsPadWindow()) {
+        uiContent_->SetContainerModalTitleVisible(false, true);
+        uiContent_->EnableContainerModalCustomGesture(true);
+    }
+    UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     UpdateEnableDragWhenSwitchMultiWindow(enable);
     if (!enable && !WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
         UpdateDecorEnable(true);
     }
-    auto mainWindow = FindMainWindowWithContext();
-    bool isAnco = mainWindow != nullptr && mainWindow->IsAnco();
     if (WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING) &&
         !(isAnco() && windowSystemConfig_.IsPhoneWindow())) {
         UpdateImmersiveBySwitchMode(enable);

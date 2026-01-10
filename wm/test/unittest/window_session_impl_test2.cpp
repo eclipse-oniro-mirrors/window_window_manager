@@ -1458,7 +1458,6 @@ HWTEST_F(WindowSessionImplTest2, UpdateDecorEnableToAce, TestSize.Level1)
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
 }
 
-//
 /**
  * @tc.name: UpdateDecorEnableToAce02
  * @tc.desc: UpdateDecorEnableToAce02
