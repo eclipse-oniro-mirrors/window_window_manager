@@ -1451,6 +1451,7 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
             (windowModeSupportType == WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN) :
             (WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
             !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING));
+        bool isAncoInPh
         bool onlySupportFullScreen = isWindowModeSupportFullscreen && IsPcOrPadFreeMultiWindowMode();
         bool compatibleDisableFullScreen = property_->IsFullScreenDisabled();
         if ((onlySupportFullScreen || property_->GetFullScreenStart()) && !compatibleDisableFullScreen) {
@@ -3282,6 +3283,7 @@ WMError WindowSceneSessionImpl::SetLayoutFullScreen(bool status)
         // compatibleMode app may set statusBarColor before ignoreSafeArea
         auto systemBarProperties = property_->GetSystemBarProperty();
         if (status && systemBarProperties.find(WindowType::WINDOW_TYPE_STATUS_BAR) != systemBarProperties.end()) {
+            //
             auto statusBarProperty = systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR];
             HookDecorButtonStyleInCompatibleMode(statusBarProperty.contentColor_);
         }
@@ -3413,6 +3415,7 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
                 static_cast<uint8_t>(SubSystemId::WM_UIEXT));
         }
         if (property_->IsAdaptToImmersive() && isIgnoreSafeArea_) {
+            // 
             HookDecorButtonStyleInCompatibleMode(property.contentColor_);
         }
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
@@ -6275,7 +6278,9 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     NotifyFreeWindowModeChange(enable);
     // Switch process finish, update system config
     SetFreeMultiWindowMode(enable);
-    UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
+    if (!(IsAnco() && windowSystemConfig_.IsPadWindow())) {
+        UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
+    }
     if (enable) {
         PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
     }
@@ -6287,7 +6292,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     auto mainWindow = FindMainWindowWithContext();
     bool isAnco = mainWindow != nullptr && mainWindow->IsAnco();
     if (WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING) &&
-        !isAnco) {
+        !(isAnco() && windowSystemConfig_.IsPhoneWindow())) {
         UpdateImmersiveBySwitchMode(enable);
     }
     SwitchSubWindow(enable, GetPersistentId());

@@ -2261,6 +2261,7 @@ HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo, TestSize.
     EXPECT_EQ(supportType & expceted, expceted);
 }
 
+//
 /**
  * @tc.name: GetConfigurationFromAbilityInfo02
  * @tc.desc: GetConfigurationFromAbilityInfo02

@@ -2617,6 +2617,7 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
 {
     if (auto uiContent = GetUIContentSharedPtr()) {
         WindowMode mode = GetWindowMode();
+        bool 
         bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
             mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
             (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !(IsAnco() &&
@@ -2651,6 +2652,7 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
     }
     if (needNotify) {
         if (auto uiContent = GetUIContentSharedPtr()) {
+            bool 
             bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
                 mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
                 (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !(IsAnco() &&
