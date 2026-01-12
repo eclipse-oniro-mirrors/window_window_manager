@@ -2444,7 +2444,7 @@ HWTEST_F(WindowSceneSessionImplTest2, SetTitleButtonVisible03, TestSize.Level1)
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
     window->windowSystemConfig_.isSystemDecorEnable_ = false;
     WMError res = window->SetTitleButtonVisible(false, false, false, true);
-    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+    ASSERT_EQ(res, WMError::WM_OK);
     window->windowSystemConfig_.isSystemDecorEnable_ = true;
     res = window->SetTitleButtonVisible(false, false, false, true);
     ASSERT_EQ(res, WMError::WM_OK);

@@ -3808,7 +3808,7 @@ WMError WindowSceneSessionImpl::SetWindowTitle(const std::string& title)
     }
     if (!IsDecorEnable()) {
         TLOGE(WmsLogTag::WMS_DECOR, "DecorEnable is false");
-        return WMError::WM_ERROR_INVALID_WINDOW;
+        return WMError::WM_OK;
     }
     if (WindowHelper::IsMainWindow(GetType())) {
         auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(GetContext());
