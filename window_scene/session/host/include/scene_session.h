@@ -505,6 +505,7 @@ public:
     /*
      * Window Immersive
      */
+    bool IsInLSState() const override;
     WSError OnNeedAvoid(bool status) override;
     AvoidArea GetAvoidAreaByType(AvoidAreaType type, const WSRect& rect = WSRect::EMPTY_RECT,
         int32_t apiVersion = API_VERSION_INVALID) override;

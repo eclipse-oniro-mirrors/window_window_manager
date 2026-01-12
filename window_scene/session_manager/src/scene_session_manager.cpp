@@ -13320,15 +13320,17 @@ void SceneSessionManager::UpdateAvoidAreaForLSStateChange(int32_t curState, int3
     constexpr int32_t nonLSState = 0;
     SetLSState(curState > nonLSState);
     TLOGI(WmsLogTag::WMS_IMMS, "curState %{public}d, preState %{public}d", curState, preState);
+    std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
     {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        for (auto& iter : sceneSessionMap_) {
-            auto session = iter.second;
-            if (session == nullptr || !IsSessionVisibleForeground(session)) {
-                continue;
-            }
-            session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END);
+        sceneSessionMapCopy = sceneSessionMap_;
+    }
+    for (auto& iter : sceneSessionMapCopy) {
+        auto session = iter.second;
+        if (session == nullptr || !IsSessionVisibleForeground(session)) {
+            continue;
         }
+        session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END);
     }
 }
 

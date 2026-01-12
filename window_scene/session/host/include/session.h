@@ -259,6 +259,7 @@ public:
      */
     void UpdateStatusBarVisible(bool isStatusBarVisible) { isStatusBarVisible_ = isStatusBarVisible; }
     bool IsStatusBarVisible() const;
+    virtual bool IsInLSState() const { return false; }
 
     /*
      * Cross Display Move Drag

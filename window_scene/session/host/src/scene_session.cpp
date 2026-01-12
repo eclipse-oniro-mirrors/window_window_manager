@@ -3258,10 +3258,26 @@ int32_t SceneSession::GetUIExtPersistentIdBySurfaceNodeId(uint64_t surfaceNodeId
     return ret->second;
 }
 
+bool SceneSession::IsInLSState() const
+{
+    auto windowType = GetWindowType();
+    if (WindowHelper::IsMainWindow(windowType)) {
+        if (GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN || GetIsMidScene() ||
+            !specificCallback_ || !specificCallback_->onGetLSState_ || !specificCallback_->onGetLSState_()) {
+            return WSError::WS_DO_NOTHING;
+        }
+    } else if  (WindowHelper::IsSubWindow(windowType) || WindowHelper::IsSystemWindow(windowType)) {
+        if (auto parentSession = GetParentSession()) {
+            return parentSession->IsInLSState();
+        }
+        return false;
+    }
+    return true;
+}
+
 WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
 {
-    if (GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN || GetIsMidScene() ||
-        !specificCallback_ || !specificCallback_->onGetLSState_ || !specificCallback_->onGetLSState_()) {
+    if (!IsInLSState()) {
         TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, not in LS state", GetPersistentId());
         return WSError::WS_DO_NOTHING;
     }
@@ -3282,6 +3298,8 @@ void SceneSession::CalculateWindowRectByScale(WSRect& winRect)
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
         return;
     }
+    winRect.posX_ *= scaleX;
+    winRect.posY_ *= scaleY;
     winRect.width_ *= scaleX;
     winRect.height_ *= scaleY;
 }
@@ -3293,10 +3311,10 @@ void SceneSession::CalculateAvoidAreaByScale(Rect& avoidAreaRect) const
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
         return;
     }
-    avoidAreaRect.posX_ = std::ceil(avoidAreaRect.posX_ / scaleX);
-    avoidAreaRect.posY_ = std::ceil(avoidAreaRect.posY_ / scaleY);
-    avoidAreaRect.width_ = std::ceil(avoidAreaRect.width_ / scaleX);
-    avoidAreaRect.height_ = std::ceil(avoidAreaRect.height_ / scaleY);
+    avoidAreaRect.posX_ = std::ceil(static_cast<float>(avoidAreaRect.posX_) / scaleX);
+    avoidAreaRect.posY_ = std::ceil(static_cast<float>(avoidAreaRect.posY_) / scaleY);
+    avoidAreaRect.width_ = std::ceil(static_cast<float>(avoidAreaRect.width_) / scaleX);
+    avoidAreaRect.height_ = std::ceil(static_cast<float>(avoidAreaRect.height_) / scaleY);
 }
 
 AvoidArea SceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, const WSRect& rect, bool ignoreVisibility)
