@@ -961,7 +961,9 @@ private:
     sptr<KeyboardSession::KeyboardSessionCallback> CreateKeyboardSessionCallback();
     void FillSessionInfo(sptr<SceneSession>& sceneSession);
     std::shared_ptr<AppExecFwk::AbilityInfo> QueryAbilityInfoFromBMS(const int32_t uId, const std::string& bundleName,
-        const std::string& abilityName, const std::string& moduleName, bool isAtomicServiceFreeInstall = false);
+        const std::string& abilityName, const std::string& moduleName, bool isAtomicServiceFreeInstall = false,
+        bool isTargetPlugin = false, const std::string& hostBundleName = "");
+    std::shared_ptr<AppExecFwk::AbilityInfo> GetFreeInstalledAtomicServiceAbilityInfo(const std::string& bundleName);
     std::vector<sptr<SceneSession>> GetSubSceneSession(int32_t parentWindowId);
     void RemoveDuplicateSubSession(const std::vector<std::pair<uint64_t, WindowVisibilityState>>& visibilityChangeInfo,
         std::vector<sptr<SceneSession>>& subSessions);

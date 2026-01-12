@@ -932,6 +932,14 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
         TLOGE(WmsLogTag::WMS_LIFE, "Read frameNum failed.");
         return ERR_INVALID_DATA;
     }
+    if (!data.ReadBool(abilitySessionInfo->isTargetPlugin)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isTargetPlugin failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadString(abilitySessionInfo->hostBundleName)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read hostBundleName failed.");
+        return ERR_INVALID_DATA;
+    }
     WSError errCode = PendingSessionActivation(abilitySessionInfo);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;

@@ -44,6 +44,9 @@ public:
         AppExecFwk::BundleInfo& bundleInfo, int32_t userId));
     MOCK_METHOD3(QueryLauncherAbilityInfos, ErrCode(const AAFwk::Want &want, int32_t userId,
         std::vector<AppExecFwk::AbilityInfo>& abilityInfos));
+    MOCK_METHOD6(GetPluginAbilityInfo, ErrCode(const std::string &hostBundleName, const std::string &pluginBundleName,
+        const std::string &pluginModuleName, const std::string &pluginAbilityName,
+        const int32_t userId, AppExecFwk::AbilityInfo &abilityInfos));
 };
 } // namespace Rosen
 } // namespace OHOS

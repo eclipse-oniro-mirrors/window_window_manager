@@ -1756,6 +1756,14 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     }
     napi_set_named_property(env, objValue, "atomicServiceInfo",
         CreateJsAtomicServiceInfo(env, sessionInfo.atomicServiceInfo_));
+    napi_set_named_property(env, objValue, "isTargetPlugin",
+        CreateJsValue(env, sessionInfo.isTargetPlugin));
+    napi_set_named_property(env, objValue, "hostBundleName",
+        CreateJsValue(env, sessionInfo.hostBundleName));
+    napi_set_named_property(env, objValue, "hostAppIndex",
+        CreateJsValue(env, sessionInfo.hostAppIndex));
+    napi_set_named_property(env, objValue, "hostAppInstanceKey",
+        CreateJsValue(env, sessionInfo.hostAppInstanceKey));
     return objValue;
 }
 

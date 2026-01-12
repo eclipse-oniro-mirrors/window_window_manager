@@ -5963,6 +5963,10 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
     info.isFoundationCall_ = isFoundationCall;
     info.specifiedFlag_ = abilitySessionInfo->specifiedFlag;
     info.reuseDelegatorWindow = abilitySessionInfo->reuseDelegatorWindow;
+    info.isTargetPlugin = abilitySessionInfo->isTargetPlugin;
+    info.hostBundleName = abilitySessionInfo->hostBundleName;
+    info.hostAppIndex = session->GetSessionInfo().appIndex_;
+    info.hostAppInstanceKey = session->GetAppInstanceKey();
     if (session->IsPcOrPadEnableActivation()) {
         info.startWindowOption = abilitySessionInfo->startWindowOption;
         int32_t maxWindowWidth = abilitySessionInfo->want.GetIntParam(AAFwk::Want::PARAM_RESV_MAX_WINDOW_WIDTH, 0);
@@ -6010,14 +6014,16 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         "needClearInNotShowRecent:%{public}u, appInstanceKey: %{public}s,"
         "supportedWindowModes.size:%{public}zu, requestId:%{public}d,"
         "maxWindowWidth:%{public}d, minWindowWidth:%{public}d, maxWindowHeight:%{public}d, minWindowHeight:%{public}d,"
-        "reuseDelegatorWindow:%{public}d, startWindowType:%{public}d, isPrelaunch:%{public}d, frameNum:%{public}d",
+        "reuseDelegatorWindow:%{public}d, startWindowType:%{public}d, isPrelaunch:%{public}d, frameNum:%{public}d,"
+        "isTargetPlugin:%{public}d, hostBundleName:%{public}s",
         info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(), info.appIndex_,
         info.sessionAffinity.c_str(), info.callState_, info.persistentId_, info.uiAbilityId_, info.windowMode,
         info.callerPersistentId_, info.needClearInNotShowRecent_, info.appInstanceKey_.c_str(),
         info.supportedWindowModes.size(), info.requestId,
         info.windowSizeLimits.maxWindowWidth, info.windowSizeLimits.minWindowWidth,
         info.windowSizeLimits.maxWindowHeight, info.windowSizeLimits.minWindowHeight,
-        info.reuseDelegatorWindow, info.startWindowType_, info.isPrelaunch_, info.frameNum_);
+        info.reuseDelegatorWindow, info.startWindowType_, info.isPrelaunch_, info.frameNum_,
+        info.isTargetPlugin, info.hostBundleName.c_str());
     return info;
 }
 
