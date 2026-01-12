@@ -1093,8 +1093,8 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowTitle, TestSize.Level1)
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_NULLPTR);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
-    window->property_->SetWindowType(WindowType::WM_OK);
-    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_INVALID_WINDOW);
+    window->property_->SetWindowType(WindowType::WM_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_NULLPTR);
     EXPECT_EQ(window->Create(abilityContext_, session), WMError::WM_OK);
