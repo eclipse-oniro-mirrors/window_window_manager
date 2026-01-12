@@ -496,14 +496,14 @@ private:
      * Window Immersive
      */
     void UpdateDefaultStatusBarColor() override;
-    bool userLimitsSet_ = false;
-    bool forceLimits_ = false;
+    std::atomic<bool> userLimitsSet_ = false;
+    std::atomic<bool> forceLimits_ = false;
     uint32_t setSameSystembarPropertyCnt_ = 0;
     std::atomic<uint32_t> getAvoidAreaCnt_ = 0;
     std::atomic<bool> enableImmersiveMode_ = false;
     std::atomic<bool> cacheEnableImmersiveMode_ = false;
     std::atomic<bool> maximizeLayoutFullScreen_ = false;
-    bool titleHoverShowEnabled_ = true;
+    std::atomic<bool> titleHoverShowEnabled_ = true;
     bool dockHoverShowEnabled_ = true;
     void PreLayoutOnShow(WindowType type, const sptr<DisplayInfo>& info = nullptr);
     void MobileAppInPadLayoutFullScreenChange(bool statusBarEnable, bool navigationEnable);

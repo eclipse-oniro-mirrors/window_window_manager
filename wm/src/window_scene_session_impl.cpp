@@ -15,6 +15,7 @@
 
 #include "window_scene_session_impl.h"
 
+#include <atomic>
 #include <chrono>
 #include <limits>
 #include <ability_manager_client.h>
@@ -1568,7 +1569,7 @@ void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
     // systemLimits: physical pixels, systemLimitsVP: virtual pixels
     const auto& [systemLimits, systemLimitsVP] = GetSystemSizeLimits(displayWidth, displayHeight, virtualPixelRatio);
 
-    customizedLimits = userLimitsSet_ ? property_->GetUserWindowLimits() : property_->GetConfigWindowLimitsVP();
+    customizedLimits = userLimitsSet_.load() ? property_->GetUserWindowLimits() : property_->GetConfigWindowLimitsVP();
 
     newLimits = systemLimits;
     newLimitsVP = systemLimitsVP;
@@ -1611,7 +1612,7 @@ void WindowSceneSessionImpl::ProcessPhysicalPixelLimits(WindowLimits& newLimits,
     uint32_t limitMinHeight = systemLimits.minHeight_;
 
     // Breaking through system limitations
-    if (forceLimits_ && IsPcOrFreeMultiWindowCapabilityEnabled()) {
+    if (forceLimits_.load() && IsPcOrFreeMultiWindowCapabilityEnabled()) {
         const uint32_t forceLimitMinWidth =
             static_cast<uint32_t>(FORCE_LIMIT_MIN_FLOATING_WIDTH * virtualPixelRatio);
         const uint32_t forceLimitMinHeight =
@@ -1728,7 +1729,7 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits()
 
     // When the system window has not been set with 'setWindowLimits',
     // manually change its minimum width and height limit to 1 px.
-    if (WindowHelper::IsSystemWindowButNotDialog(GetType()) && !userLimitsSet_) {
+    if (WindowHelper::IsSystemWindowButNotDialog(GetType()) && !userLimitsSet_.load()) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, set min limits to 1 px, preMinW:%{public}u, preMinH:%{public}u",
             GetPersistentId(), newLimits.minWidth_, newLimits.minHeight_);
         newLimits.minWidth_ = 1;
@@ -3923,7 +3924,7 @@ bool WindowSceneSessionImpl::CheckWaterfallResidentState(WaterfallResidentState 
 
 void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation presentation)
 {
-    titleHoverShowEnabled_ = true;
+    titleHoverShowEnabled_.store(true);
     dockHoverShowEnabled_ = true;
     switch (presentation) {
         case MaximizePresentation::ENTER_IMMERSIVE:
@@ -3934,7 +3935,7 @@ void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation pres
             break;
         case MaximizePresentation::ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER:
             enableImmersiveMode_ = true;
-            titleHoverShowEnabled_ = false;
+            titleHoverShowEnabled_.store(false);
             dockHoverShowEnabled_ = false;
             break;
         case MaximizePresentation::FOLLOW_APP_IMMERSIVE_SETTING:
@@ -6482,12 +6483,12 @@ WMError WindowSceneSessionImpl::SetWindowLimits(WindowLimits& windowLimits, bool
     WindowLimits customizedLimits;
     if (windowLimits.pixelUnit_ == PixelUnit::VP) {
         customizedLimits = property_->GetWindowLimitsVP();
-        forceLimits_ = false;
+        forceLimits_.store(false);
     } else {
         customizedLimits = property_->GetWindowLimits();
         forceLimits_ = isForcible;
     }
-    userLimitsSet_ = true;
+    userLimitsSet_.store(true);
 
     uint32_t minWidth = windowLimits.minWidth_ ? windowLimits.minWidth_ : customizedLimits.minWidth_;
     uint32_t minHeight = windowLimits.minHeight_ ? windowLimits.minHeight_ : customizedLimits.minHeight_;
