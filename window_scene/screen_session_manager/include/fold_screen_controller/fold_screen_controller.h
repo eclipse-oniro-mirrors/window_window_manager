@@ -19,6 +19,7 @@
 #include <refbase.h>
 
 #include "common/include/task_scheduler.h"
+#include "../infra/include/fold_screen/fold_screen_base_controller.h"
 #include "fold_screen_controller/fold_screen_policy.h"
 #include "fold_screen_controller/fold_screen_state_machine.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
@@ -34,44 +35,49 @@ enum class DisplayDeviceType :uint32_t {
     SINGLE_DISPLAY_SUPER_DEVICE,
 };
 
-class FoldScreenController : public RefBase {
+class FoldScreenController : public DMS::FoldScreenBaseController {
 public:
     FoldScreenController(std::recursive_mutex& displayInfoMutex,
         std::shared_ptr<TaskScheduler> screenPowerTaskScheduler);
     virtual ~FoldScreenController();
 
-    void BootAnimationFinishPowerInit();
-    void SetDisplayMode(const FoldDisplayMode displayMode);
-    void RecoverDisplayMode();
-    FoldDisplayMode GetDisplayMode();
-    bool IsFoldable();
-    FoldStatus GetFoldStatus();
-    bool GetTentMode();
-    FoldDisplayMode GetModeMatchStatus();
-    void SetFoldStatus(FoldStatus foldStatus);
-    void OnTentModeChanged(int tentType, int32_t hall = -1);
-    sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
-    FoldCreaseRegion GetLiveCreaseRegion() const;
-    ScreenId GetCurrentScreenId();
-    void LockDisplayStatus(bool locked);
-    void SetOnBootAnimation(bool onBootAnimation);
-    void UpdateForPhyScreenPropertyChange();
-    void ExitCoordination();
-    Drawing::Rect GetScreenSnapshotRect();
-    void SetMainScreenRegion(DMRect& mainScreenRegion);
-    std::chrono::steady_clock::time_point GetStartTimePoint();
-    bool GetIsFirstFrameCommitReported();
-    void SetIsFirstFrameCommitReported(bool isFirstFrameCommitReported);
+    void BootAnimationFinishPowerInit() override;
+    void SetDisplayMode(const FoldDisplayMode displayMode) override;
+    void RecoverDisplayMode() override;
+    FoldDisplayMode GetDisplayMode() override;
+    bool IsFoldable() override;
+    FoldStatus GetFoldStatus() override;
+    bool GetTentMode() override;
+    FoldDisplayMode GetModeMatchStatus() override;
+    void SetFoldStatus(FoldStatus foldStatus) override;
+    void OnTentModeChanged(int tentType, int32_t hall = -1) override;
+    sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion() override;
+    FoldCreaseRegion GetLiveCreaseRegion() const override;
+    ScreenId GetCurrentScreenId() override;
+    void LockDisplayStatus(bool locked) override;
+    DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus) override;
+    DMError RestorePhysicalFoldStatus() override;
+    bool GetPhysicalFoldLockFlag() const override;
+    FoldStatus GetPhysicalFoldStatus() const override;
+    void SetOnBootAnimation(bool onBootAnimation) override;
+    void UpdateForPhyScreenPropertyChange() override;
+    void ExitCoordination() override;
+    Drawing::Rect GetScreenSnapshotRect() override;
+    void SetMainScreenRegion(DMRect& mainScreenRegion) override;
+    std::chrono::steady_clock::time_point GetStartTimePoint() override;
+    bool GetIsFirstFrameCommitReported() override;
+    void SetIsFirstFrameCommitReported(bool isFirstFrameCommitReported) override;
     /*
      *    Avoid fold to expand process queues public interface
      */
-    bool GetModeChangeRunningStatus();
-    void SetdisplayModeChangeStatus(bool status);
-    bool GetdisplayModeRunningStatus();
-    FoldDisplayMode GetLastCacheDisplayMode();
-    void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command);
-    void SetIsClearingBootAnimation(bool isClearingBootAnimation);
-    nlohmann::ordered_json GetFoldCreaseRegionJson();
+    bool GetModeChangeRunningStatus() override;
+    void SetdisplayModeChangeStatus(bool status) override;
+    bool GetdisplayModeRunningStatus() override;
+    FoldDisplayMode GetLastCacheDisplayMode() override;
+    void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
+    void SetIsClearingBootAnimation(bool isClearingBootAnimation) override;
+    nlohmann::ordered_json GetFoldCreaseRegionJson() override;
+    void NotifyRunSensorFoldStateManager() override;
 private:
     sptr<FoldScreenPolicy> GetFoldScreenPolicy(DisplayDeviceType productType);
     sptr<FoldScreenPolicy> foldScreenPolicy_;

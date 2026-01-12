@@ -121,6 +121,7 @@ namespace {
         std::recursive_mutex mutex;
         FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
 
+        fsc_.foldScreenPolicy_ = new FoldScreenPolicy();
         ASSERT_NE(fsc_.foldScreenPolicy_, nullptr);
         auto mode = fsc_.GetDisplayMode();
         FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
@@ -166,6 +167,120 @@ namespace {
     }
 
     /**
+     * @tc.name: ForceSetFoldStatusAndLock01
+     * @tc.desc: test function :ForceSetFoldStatusAndLock
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, ForceSetFoldStatusAndLock01, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
+        fsc_.foldScreenPolicy_ = nullptr;
+        DMError ret = fsc_.ForceSetFoldStatusAndLock(FoldStatus::FOLDED);
+        ASSERT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+    }
+
+    /**
+     * @tc.name: ForceSetFoldStatusAndLock02
+     * @tc.desc: test function :ForceSetFoldStatusAndLock
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, ForceSetFoldStatusAndLock02, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        LOG_SetCallback(MyLogCallback);
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
+        fsc_.foldScreenPolicy_ = new FoldScreenPolicy();
+        bool wasFoldStatusLocked = fsc_.foldScreenPolicy_->GetPhysicalFoldLockFlag();
+        FoldStatus previousForceFoldStatus = fsc_.foldScreenPolicy_->GetForceFoldStatus();
+        DMError ret = fsc_.ForceSetFoldStatusAndLock(FoldStatus::FOLDED);
+        if (ret == DMError::DM_OK) {
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetPhysicalFoldLockFlag(), true);
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetForceFoldStatus(), FoldStatus::FOLDED);
+            fsc_.RestorePhysicalFoldStatus();
+        } else {
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetPhysicalFoldLockFlag(), wasFoldStatusLocked);
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetForceFoldStatus(), previousForceFoldStatus);
+        }
+    }
+
+    /**
+     * @tc.name: RestorePhysicalFoldStatus01
+     * @tc.desc: test function :RestorePhysicalFoldStatus
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, RestorePhysicalFoldStatus01, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
+        fsc_.foldScreenPolicy_ = nullptr;
+        DMError ret = fsc_.RestorePhysicalFoldStatus();
+        ASSERT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+    }
+
+    /**
+     * @tc.name: RestorePhysicalFoldStatus02
+     * @tc.desc: test function :RestorePhysicalFoldStatus
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, RestorePhysicalFoldStatus02, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        LOG_SetCallback(MyLogCallback);
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
+        fsc_.foldScreenPolicy_ = new FoldScreenPolicy();
+        bool wasFoldStatusLocked = fsc_.foldScreenPolicy_->GetPhysicalFoldLockFlag();
+        FoldStatus previousForcedFoldStatus = fsc_.foldScreenPolicy_->GetForceFoldStatus();
+        g_errLog.clear();
+
+        fsc_.ForceSetFoldStatusAndLock(FoldStatus::FOLDED);
+        DMError ret = fsc_.RestorePhysicalFoldStatus();
+        if (ret == DMError::DM_OK) {
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetPhysicalFoldLockFlag(), false);
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetForceFoldStatus(), FoldStatus::UNKNOWN);
+        } else {
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetPhysicalFoldLockFlag(), wasFoldStatusLocked);
+            ASSERT_EQ(fsc_.foldScreenPolicy_->GetForceFoldStatus(), previousForcedFoldStatus);
+        }
+
+        g_errLog.clear();
+    }
+
+    /**
+     * @tc.name: GetPhysicalFoldLockFlagAndPhysicalFoldStatus01
+     * @tc.desc: test function :GetPhysicalFoldLockFlag and GetPhysicalFoldStatus
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, GetPhysicalFoldLockFlagAndPhysicalFoldStatus01, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
+        auto wasFoldStatus = fsc_.GetFoldStatus();
+        fsc_.foldScreenPolicy_ = nullptr;
+        ASSERT_EQ(fsc_.GetPhysicalFoldLockFlag(), false);
+        ASSERT_EQ(fsc_.GetPhysicalFoldStatus(), wasFoldStatus);
+    }
+
+    /**
+     * @tc.name: GetPhysicalFoldLockFlagAndPhysicalFoldStatus02
+     * @tc.desc: test function :GetPhysicalFoldLockFlag and GetPhysicalFoldStatus
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, GetPhysicalFoldLockFlagAndPhysicalFoldStatus02, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
+        auto wasFoldStatus = fsc_.GetFoldStatus();
+        fsc_.foldScreenPolicy_ = new FoldScreenPolicy();
+        DMError ret = fsc_.ForceSetFoldStatusAndLock(FoldStatus::FOLDED);
+        if (ret == DMError::DM_OK) {
+            ASSERT_EQ(fsc_.GetPhysicalFoldLockFlag(), true);
+        } else {
+            ASSERT_EQ(fsc_.GetPhysicalFoldStatus(), wasFoldStatus);
+        }
+    }
+
+    /**
      * @tc.name: GetDisplayMode
      * @tc.desc: test function :GetDisplayMode
      * @tc.type: FUNC
@@ -196,11 +311,11 @@ namespace {
     }
 
     /**
-     * @tc.name: GetFoldStatus
+     * @tc.name: GetFoldStatus01
      * @tc.desc: test function :GetFoldStatus
      * @tc.type: FUNC
      */
-    HWTEST_F(FoldScreenControllerTest, GetFoldStatus, TestSize.Level1)
+    HWTEST_F(FoldScreenControllerTest, GetFoldStatus01, TestSize.Level1)
     {
         std::recursive_mutex mutex;
         FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
@@ -208,6 +323,32 @@ namespace {
         fsc_.foldScreenPolicy_ = nullptr;
         auto ret = fsc_.GetFoldStatus();
         ASSERT_EQ(ret, FoldStatus::UNKNOWN);
+    }
+
+    /**
+     * @tc.name: GetFoldStatus02
+     * @tc.desc: test function :GetFoldStatus
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, GetFoldStatus02, TestSize.Level1)
+    {
+        g_errLog.clear();
+        std::recursive_mutex mutex;
+        FoldScreenController fsc_(mutex, std::shared_ptr<TaskScheduler>());
+
+        fsc_.foldScreenPolicy_ = new FoldScreenPolicy();
+        ASSERT_NE(fsc_.foldScreenPolicy_, nullptr);
+
+        FoldStatus wasFoldStatus = fsc_.GetFoldStatus();
+        DMError ret = fsc_.ForceSetFoldStatusAndLock(FoldStatus::FOLDED);
+        if (ret == DMError::DM_OK) {
+            EXPECT_EQ(fsc_.GetFoldStatus(), fsc_.foldScreenPolicy_->GetForceFoldStatus());
+            EXPECT_TRUE(g_errLog.find("foldScreenPolicy_ lock fold status") == std::string::npos);
+            fsc_.RestorePhysicalFoldStatus();
+        } else {
+            EXPECT_EQ(fsc_.GetFoldStatus(), wasFoldStatus);
+        }
+        g_errLog.clear();
     }
 
     /**
@@ -793,6 +934,24 @@ namespace {
         EXPECT_FALSE(fsc_->foldScreenPolicy_->isClearingBootAnimation_);
         fsc_->SetIsClearingBootAnimation(true);
         EXPECT_TRUE(fsc_->foldScreenPolicy_->isClearingBootAnimation_);
+    }
+
+    /**
+     * @tc.name: NotifyRunSensorFoldStateManager
+     * @tc.desc: test function :NotifyRunSensorFoldStateManager
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, NotifyRunSensorFoldStateManager, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = std::shared_ptr<TaskScheduler>();
+        FoldScreenController fsc_(mutex, screenPowerTaskScheduler);
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        fsc_.NotifyRunSensorFoldStateManager();
+        EXPECT_TRUE(g_errLog.find("TaskSequenceProcess") != std::string::npos);
+        LOG_SetCallback(nullptr);
+        g_errLog.clear();
     }
 }
 } // namespace Rosen

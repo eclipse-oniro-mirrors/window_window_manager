@@ -111,7 +111,7 @@ public:
     void AddWindowFlag(WindowFlag flag);
 
     /**
-     * @brief Remove winodw flag.
+     * @brief Remove window flag.
      *
      * @param flag The flag value removed.
      */
@@ -647,6 +647,20 @@ public:
      */
     int64_t GetStartModalExtensionTimeStamp() const;
 
+    /**
+     * @brief Set whether the lifecycle of the subwindow follows creator of subwindow.
+     *
+     * @param followCreatorLifecycle True means the lifecycle of the subwindow follows creator of subwindow.
+     */
+    void SetFollowCreatorLifecycle(bool followCreatorLifecycle);
+
+    /**
+     * @brief Get whether the lifecycle of the subwindow follows creator of subwindow.
+     *
+     * @return The lifecycle of the subwindow follows creator of subwindow if true or not if false.
+     */
+    bool IsFollowCreatorLifecycle() const;
+
 private:
     Rect windowRect_ { 0, 0, 0, 0 };
     WindowType type_ { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW };
@@ -697,6 +711,7 @@ private:
     bool isDensityFollowHost_ = false;
     bool isConstrainedModal_ = false;
     int64_t startModalExtensionTimeStamp_ = -1;
+    bool followCreatorLifecycle_ = false;
 };
 } // namespace Rosen
 } // namespace OHOS

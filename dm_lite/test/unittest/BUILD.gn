@@ -27,6 +27,7 @@ group("unittest") {
     ":dm_display_lite_proxy_test",
     ":dm_screen_manager_lite_test",
     ":dm_display_manager_lite_proxy_test",
+    ":dm_display_manager_proxy_mock_test",
   ]
 }
 
@@ -103,6 +104,27 @@ ohos_unittest("dm_display_lite_proxy_test") {
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
+  ]
+}
+
+ohos_unittest("dm_display_manager_proxy_mock_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [ "./mock" ]
+
+  sources = [
+    "./mock/mock_message_parcel.cpp",
+    "display_manager_lite_proxy_mock_test.cpp",
+  ]
+
+  deps = [ ":dm_unittest_common_lite" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "googletest:gmock",
+    "googletest:gtest",
+    "googletest:gtest_main",
   ]
 }
 

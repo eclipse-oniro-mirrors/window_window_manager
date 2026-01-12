@@ -33,12 +33,12 @@ public:
         : env_(env), jsCallBack_(callback) {}
     ~JsPiPWindowListener();
     std::shared_ptr<NativeReference> GetCallbackRef() const;
-    void OnPreparePictureInPictureStart() override;
-    void OnPictureInPictureStart() override;
-    void OnPreparePictureInPictureStop() override;
-    void OnPictureInPictureStop() override;
+    void OnPreparePictureInPictureStart(PiPStateChangeReason reason) override;
+    void OnPictureInPictureStart(PiPStateChangeReason reason) override;
+    void OnPreparePictureInPictureStop(PiPStateChangeReason reason) override;
+    void OnPictureInPictureStop(PiPStateChangeReason reason) override;
     void OnPictureInPictureOperationError(int32_t errorCode) override;
-    void OnRestoreUserInterface() override;
+    void OnRestoreUserInterface(PiPStateChangeReason reason) override;
     void OnActionEvent(const std::string& actionEvent, int32_t statusCode) override;
     void OnControlEvent(PiPControlType controlType, PiPControlStatus statusCode) override;
     void OnPipSizeChange(const PiPWindowSize& size) override;
@@ -46,7 +46,8 @@ public:
     void OnActiveStatusChange(bool status) override;
 
 private:
-    void OnPipListenerCallback(PiPState state, int32_t errorCode);
+    void OnPipListenerCallback(PiPState state, PiPStateChangeReason reason);
+    std::string GetStringByStateChangeReason(PiPStateChangeReason reason);
     napi_env env_ = nullptr;
     std::shared_ptr<NativeReference> jsCallBack_ = nullptr;
 };

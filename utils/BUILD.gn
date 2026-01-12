@@ -169,6 +169,7 @@ ohos_shared_library("libwmutil_base") {
     "src/cutout_info.cpp",
     "src/display_change_info.cpp",
     "src/display_info.cpp",
+    "src/rate_limited_logger.cpp",
     "src/screen_group_info.cpp",
     "src/screen_info.cpp",
     "src/screenshot_info.cpp",
@@ -180,6 +181,7 @@ ohos_shared_library("libwmutil_base") {
     "src/window_pid_visibility_info.cpp",
     "src/window_visibility_info.cpp",
     "src/wm_common.cpp",
+    "src/dm_common.cpp",
     "src/wm_math.cpp",
     "src/wm_occlusion_region.cpp",
     "src/xml_config_base.cpp",
@@ -192,6 +194,7 @@ ohos_shared_library("libwmutil_base") {
     "c_utils:utils",
     "hilog:libhilog",
     "ipc:ipc_single",
+    "init:libbegetutil",
   ]
 
   innerapi_tags = [ "platformsdk" ]
@@ -219,12 +222,14 @@ ohos_shared_library("libwmutil") {
     "src/surface_reader.cpp",
     "src/surface_reader_handler_impl.cpp",
     "src/sys_cap_util.cpp",
+    "src/task_sequence_process.cpp",
     "src/typec_port_info.cpp",
     "src/vsync_station.cpp",
     "src/window_frame_trace_impl.cpp",
     "src/window_property.cpp",
     "src/window_transition_info.cpp",
     "src/ffrt_queue_helper.cpp",
+    "src/ffrt_serial_queue_helper.cpp",
   ]
 
   configs = [

@@ -55,9 +55,13 @@ enum class KeyboardLifeCycleException {
     CREATE_EXCEPTION,
 };
 
-const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {
-    {KeyboardLifeCycleException::ANIM_SYNC_EXCEPTION, "ANIM_SYNC_EXCEPTION"},
-    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"}
+static constexpr size_t WINDOW_PROFILE_STATISTIC_SIZE = 50;
+struct WindowProfileSum {
+    std::vector<std::string> windowInfo = std::vector<std::string>(WINDOW_PROFILE_STATISTIC_SIZE, "");
+    int32_t totalWindowCount = -1;
+    int32_t visibleWindowCount = -1;
+    int32_t invisibleWindowCount = -1;
+    int32_t minimizeWindowCount = -1;
 };
 
 struct WindowLifeCycleReportInfo {
@@ -119,7 +123,7 @@ public:
     void ReportStartWindow(const std::string& bundleName, const std::string& windowName);
     void ReportRecordedInfos();
     void ReportContainerStartBegin(int32_t missionId, const std::string& bundleName, int64_t timestamp);
-    int32_t ReportWindowProfileInfo(const WindowProfileInfo& windowProfileInfo);
+    int32_t ReportWindowProfileInfo(const WindowProfileSum& windowProfileSum);
     void ReportWindowException(int32_t detectionType, int32_t pid, const std::string& windowInfo);
     int32_t ReportUIExtensionException(int32_t exceptionType, int32_t pid, int32_t persistentId,
         const std::string& uiextInfo);

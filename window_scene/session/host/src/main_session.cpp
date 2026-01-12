@@ -34,16 +34,7 @@ MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCall
     : SceneSession(info, specificCallback)
 {
     scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, GetPersistentId(), capacity_);
-    if (info.persistentId_ != 0 && info.persistentId_ != GetPersistentId()) {
-        // persistentId changed due to id conflicts. Need to rename the old snapshot if exists
-        scenePersistence_->RenameSnapshotFromOldPersistentId(info.persistentId_);
-    }
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
-    auto isPersistentImageFit = ScenePersistentStorage::HasKey(
-        "SetImageForRecent_" + std::to_string(GetPersistentId()), ScenePersistentStorageType::MAXIMIZE_STATE);
-    if (isPersistentImageFit) {
-        scenePersistence_->SetHasSnapshot(true);
-    }
 
     WLOGFD("Create MainSession");
 }
@@ -53,13 +44,16 @@ MainSession::~MainSession()
     WLOGD("~MainSession, id: %{public}d", GetPersistentId());
 }
 
-void MainSession::OnFirstStrongRef(const void*)
+void MainSession::OnFirstStrongRef(const void* objectId)
 {
+    // OnFirstStrongRef is overridden in the parent class IPCObjectStub,
+    // so its parent implementation must be invoked here to avoid IPC communication issues.
+    SceneSession::OnFirstStrongRef(objectId);
+
     moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(this));
     if (specificCallback_ != nullptr && specificCallback_->onWindowInputPidChangeCallback_ != nullptr) {
         moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback_->onWindowInputPidChangeCallback_);
     }
-    SetMoveDragCallback();
     std::string key = GetRatioPreferenceKey();
     if (!key.empty()) {
         if (ScenePersistentStorage::HasKey(key, ScenePersistentStorageType::ASPECT_RATIO)) {
@@ -69,7 +63,6 @@ void MainSession::OnFirstStrongRef(const void*)
                   "init aspectRatio, bundleName:%{public}s, key:%{public}s, value:%{public}f",
                   sessionInfo_.bundleName_.c_str(), key.c_str(), aspectRatio);
             Session::SetAspectRatio(aspectRatio);
-            moveDragController_->SetAspectRatio(aspectRatio);
         }
     }
 }
@@ -238,6 +231,50 @@ void MainSession::SetExitSplitOnBackground(bool isExitSplitOnBackground)
 bool MainSession::IsExitSplitOnBackground() const
 {
     return isExitSplitOnBackground_;
+}
+
+void MainSession::RecoverSnapshotPersistence(const SessionInfo& info)
+{
+    if (scenePersistence_ == nullptr) {
+        return;
+    }
+    if (info.persistentId_ != 0 && info.persistentId_ != GetPersistentId()) {
+        // persistentId changed due to id conflicts. Need to rename the old snapshot if exists
+        scenePersistence_->RenameSnapshotFromOldPersistentId(info.persistentId_);
+        RenameSnapshotFromOldPersistentId(info.persistentId_);
+    }
+    if (info.isPersistentRecover_) {
+        if (HasSnapshot()) {
+            TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d", GetPersistentId());
+        }
+        RecoverImageForRecent();
+    } else {
+        ClearSnapshotPersistence();
+    }
+}
+
+void MainSession::ClearSnapshotPersistence()
+{
+    if (scenePersistence_ == nullptr) {
+        return;
+    }
+    auto task = [weakThis = wptr(this), where = __func__]() {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s, session is nullptr", where);
+            return;
+        }
+        TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s, %{public}d", where, session->GetPersistentId());
+        session->DeletePersistentImageFit();
+        for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
+            session->DeleteHasSnapshot(screenStatus);
+        }
+        session->DeleteHasSnapshotFreeMultiWindow();
+    };
+    auto snapshotFfrtHelper = scenePersistence_->GetSnapshotFfrtHelper();
+    std::string taskName = "ClearSnapshotPersistence" + std::to_string(GetPersistentId());
+    snapshotFfrtHelper->CancelTask(taskName);
+    snapshotFfrtHelper->SubmitTask(std::move(task), taskName);
 }
 
 void MainSession::NotifyClientToUpdateInteractive(bool interactive)
@@ -622,6 +659,19 @@ bool MainSession::IsFullScreenInForceSplit()
     return isFullScreenInForceSplit_.load();
 }
 
+void MainSession::RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback)
+{
+    compatibleModeChangeCallback_ = callback;
+}
+
+WSError MainSession::NotifyCompatibleModeChange(CompatibleStyleMode mode)
+{
+    if (compatibleModeChangeCallback_) {
+        compatibleModeChangeCallback_(mode);
+    }
+    return WSError::WS_OK;
+}
+
 bool MainSession::RestoreAspectRatio(float ratio)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, ratio: %{public}f", GetPersistentId(), ratio);
@@ -632,9 +682,30 @@ bool MainSession::RestoreAspectRatio(float ratio)
         return false;
     }
     Session::SetAspectRatio(ratio);
-    if (moveDragController_) {
-        moveDragController_->SetAspectRatio(ratio);
-    }
     return true;
+}
+
+WMError MainSession::GetAppForceLandscapeConfigEnable(bool& enableForceSplit)
+{
+    if (forceSplitEnableFunc_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "forceSplitEnableFunc_ is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    enableForceSplit = forceSplitEnableFunc_(sessionInfo_.bundleName_);
+    return WMError::WM_OK;
+}
+
+WSError MainSession::NotifyAppForceLandscapeConfigEnableUpdated()
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    return sessionStage_->NotifyAppForceLandscapeConfigEnableUpdated();
+}
+
+void MainSession::RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func)
+{
+    forceSplitEnableFunc_ = std::move(func);
 }
 } // namespace OHOS::Rosen

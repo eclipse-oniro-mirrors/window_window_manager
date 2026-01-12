@@ -1,0 +1,53 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/test.gni")
+import("../../../../windowmanager_aafwk.gni")
+
+module_out_path = "window_manager/window_manager/window_scene/window_immersive"
+ws_unittest_common = "../:ws_unittest_common"
+
+group("unittest") {
+  testonly = true
+  deps = [ ":window_immersive_avoid_area_test" ]
+}
+
+ohos_unittest("window_immersive_avoid_area_test") {
+  module_out_path = module_out_path
+  sources = [ "window_immersive_avoid_area_test.cpp" ]
+  cflags_cc = [ "-Wno-thread-safety" ]
+  deps = [ ws_unittest_common ]
+  external_deps = [
+    "ability_base:configuration",
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:mission_info",
+    "ability_runtime:session_handler",
+    "accessibility:accessibility_common",
+    "accessibility:accessibility_interface",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+    "bundle_framework:libappexecfwk_common",
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "googletest:gmock",
+    "googletest:gtest",
+    "googletest:gtest_main",
+    "graphic_2d:librender_service_client",
+    "graphic_2d:window_animation",
+    "hilog:libhilog",
+    "image_framework:image_native",
+    "input:libmmi-napi",
+    "preferences:native_preferences",
+  ]
+}

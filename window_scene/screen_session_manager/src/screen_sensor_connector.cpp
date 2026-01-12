@@ -14,6 +14,7 @@
  */
 
 #include "screen_sensor_connector.h"
+#include "screen_session_manager.h"
 #include <chrono>
 #include <securec.h>
 
@@ -25,9 +26,6 @@ namespace {
     constexpr int32_t MOTION_ACTION_LEFT_LANDSCAPE = 1;
     constexpr int32_t MOTION_ACTION_PORTRAIT_INVERTED = 2;
     constexpr int32_t MOTION_ACTION_RIGHT_LANDSCAPE = 3;
-    constexpr int32_t MOTION_ACTION_TENT_MODE_OFF = 0;
-    constexpr int32_t MOTION_ACTION_TENT_MODE_ON = 1;
-    constexpr int32_t MOTION_ACTION_TENT_MODE_HOVER = 2;
     const int32_t MOTION_TYPE_ROTATION = 700;
     const int32_t MOTION_TYPE_TENT = 2800;
 #endif
@@ -171,9 +169,12 @@ void TentMotionEventCallback(const MotionSensorEvent& motionData)
         realHall = -1;
     }
 
-    if (motionData.status == MOTION_ACTION_TENT_MODE_OFF || motionData.status == MOTION_ACTION_TENT_MODE_ON ||
-        motionData.status == MOTION_ACTION_TENT_MODE_HOVER) {
+    TentMode motionStatus = static_cast<TentMode>(motionData.status);
+    if (motionStatus == TentMode::UNKNOWN ||
+        motionStatus == TentMode::TENT_MODE ||
+        motionStatus == TentMode::HOVER) {
         ScreenTentProperty::HandleSensorEventInput(motionData.status, realHall);
+        ScreenSessionManager::GetInstance().NotifyTentModeChange(motionStatus);
     } else {
         TLOGE(WmsLogTag::DMS, "tent motion:%{public}d invalid", motionData.status);
     }

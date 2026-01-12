@@ -147,6 +147,13 @@ public:
     sptr<CutoutInfo> GetCutoutInfo() const;
 
     /**
+     * @brief Get rounded corner of the display.
+     * @param roundedCorner roundedCorner of the display.
+     * @return DM_OK means get success, others means get failed.
+     */
+    DMError GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner) const;
+
+    /**
      * @brief Judge if current display has immersive window.
      * @param immersive The flag to represent if current display has immersive window.
      *

@@ -44,13 +44,16 @@ SubSession::~SubSession()
     TLOGD(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
 }
 
-void SubSession::OnFirstStrongRef(const void*)
+void SubSession::OnFirstStrongRef(const void* objectId)
 {
+    // OnFirstStrongRef is overridden in the parent class IPCObjectStub,
+    // so its parent implementation must be invoked here to avoid IPC communication issues.
+    SceneSession::OnFirstStrongRef(objectId);
+
     moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(this));
     if (specificCallback_ != nullptr && specificCallback_->onWindowInputPidChangeCallback_ != nullptr) {
         moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback_->onWindowInputPidChangeCallback_);
     }
-    SetMoveDragCallback();
 }
 
 WSError SubSession::Show(sptr<WindowSessionProperty> property)

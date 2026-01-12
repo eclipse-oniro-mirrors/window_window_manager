@@ -756,6 +756,45 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick08, Function | SmallTest
         MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN, false);
     EXPECT_EQ(hasNotifyManagerToRaise, true);
 }
+
+/**
+ * @tc.name: HandleSubWindowClick09
+ * @tc.desc: test the modal sub window click
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick09, Function | SmallTest | Level2)
+{
+    SessionInfo info1;
+    info1.abilityName_ = "mainSession";
+    info1.moduleName_ = "mainSession";
+    info1.bundleName_ = "mainSession";
+    sptr<Session> mainSession = sptr<Session>::MakeSptr(info1);
+    SessionInfo info2;
+    info2.abilityName_ = "subSession";
+    info2.moduleName_ = "subSession";
+    info2.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(info2);
+
+    bool hasNotifyManagerToRaise = false;
+    mainSession->SetClickListener([&hasNotifyManagerToRaise](bool requestFocus, bool isClick) {
+        hasNotifyManagerToRaise = true;
+    });
+    subSession->SetParentSession(mainSession);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetWindowFlags(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_MODAL));
+    subSession->SetSessionProperty(property);
+
+    subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(hasNotifyManagerToRaise, true);
+
+    subSession->SetParentSession(nullptr);
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

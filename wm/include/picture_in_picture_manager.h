@@ -46,6 +46,10 @@ public:
     static void DoPreRestore();
     static void DoRestore();
     static void DoClose(bool destroyWindow, bool needAnim);
+    static void DoCloseWithReason(bool destroyWindow, bool needAnim, PiPStateChangeReason reason);
+    static void DoActionCloseByRequest();
+    static void DoActionCloseByPanel();
+    static void DoActionCloseByDumpster();
     static void DoActionClose();
     static void DoPrepareSource();
     static void DoLocateSource();

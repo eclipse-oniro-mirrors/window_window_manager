@@ -925,6 +925,21 @@ public:
     virtual void OnFreeWindowModeChange(bool isInFreeWindowMode) {}
 };
 
+/**
+ * @class IUIContentCreateListener
+ *
+ * @brief IUIContentCreateListener is used to observe the ui content create.
+ */
+class IUIContentCreateListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when ui content create.
+     *
+     * @param uiContent created UIContent object.
+     */
+    virtual void OnUIContentCreate(std::weak_ptr<Ace::UIContent> uiContent) {}
+};
+
 static WMError DefaultCreateErrCode = WMError::WM_OK;
 class Window : virtual public RefBase {
 public:
@@ -2340,12 +2355,6 @@ public:
     {
         return WMError::WM_OK;
     }
-    virtual WMError NapiSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
-        BackupAndRestoreType type = BackupAndRestoreType::NONE, sptr<IRemoteObject> token = nullptr,
-        AppExecFwk::Ability* ability = nullptr)
-    {
-        return WMError::WM_OK;
-    }
     virtual WMError AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
         BackupAndRestoreType type = BackupAndRestoreType::NONE, sptr<IRemoteObject> token = nullptr,
         AppExecFwk::Ability* ability = nullptr)
@@ -2569,6 +2578,21 @@ public:
     virtual void NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 
     /**
+     * @brief Convert orientation and rotation between window and display
+     *
+     * @param from The type of the value to be converted.
+     * @param to The target type of conversion.
+     * @param value The value to be converted.
+     * @param convertedValue The converted value.
+     * @return WM_OK means convert success, others means convert failed.
+     */
+    virtual WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
+        const int32_t value, int32_t& convertedValue)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Get requested orientation.
      *
      * @return Orientation screen orientation.
@@ -2704,6 +2728,18 @@ public:
      * @return WMError
      */
     virtual WMError Restore() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Restores the main window of current window to foreground.
+     * Only TYPE_FLOAT can use this interface, when the main window in the background
+     * need to be moved to foreground after the TYPE_FLOAT window is clicked
+     *
+     * @return WMError
+     */
+    virtual WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief close the window. It is called by ACE when close button is clicked.
@@ -2993,6 +3029,13 @@ public:
      * @return True means pc window or free multi window capility enabled, false means the opposite.
      */
     virtual bool IsPcOrFreeMultiWindowCapabilityEnabled() const { return false; }
+
+    /**
+     * @brief Is phone, pad, pc window or not.
+     *
+     * @return True means phone, pad or pc window, false means the opposite.
+     */
+    virtual bool IsPhonePadOrPcWindow() const { return false; }
 
     /**
      * @brief Is pc window or pad free multi-window.
@@ -3346,6 +3389,17 @@ public:
         return WMError::WM_OK;
     }
 
+    /*
+     * @brief Set Status Bar Color For Page
+     *
+     * @param color Status Bar Color
+     * @return WMError
+     */
+    virtual WMError SetStatusBarColorForPage(const std::optional<uint32_t> color)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief Set Specific System Bar(include status bar and nav bar) Property
      *
@@ -3582,6 +3636,15 @@ public:
      * @return custom density.
      */
     virtual float GetCustomDensity() const { return UNDEFINED_DENSITY; }
+
+    /**
+     * @brief UIExtension window call to set custom density, once called this method to set custom density,
+     * UIExtension window will dinore FOLLOW_HOST_DPI and use specified density.
+     *
+     * @param density the custom density of UIExtension window.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetUIExtCustomDensity(const float density) { return WMError::WM_OK; }
 
     /**
      * @brief Get the window density of current window.
@@ -4796,12 +4859,27 @@ public:
     virtual WMError GetPiPSettingSwitchStatus(bool& switchStatus) const { return WMError::WM_OK; }
 
     /**
+     * @brief Get picture-in-picture isPipEnabled of system setting.
+     *
+     * @param isPipEnabled  picture-in-picture isPipEnabled value.
+     * @return WM_OK means get success.
+     */
+    virtual WMError GetIsPipEnabled(bool& isPipEnabled) const { return WMError::WM_OK; }
+
+    /**
      * @brief Set parent windowId of picture-in-picture window.
      *
      * @param windowId parent windowId of picture-in-picture window.
      * @return WMError::WM_OK means set success, otherwise failed.
      */
     virtual WMError SetPipParentWindowId(uint32_t windowId) const { return WMError::WM_OK; }
+
+    /**
+     * @brief get is pip active
+     *
+     * @return WMError
+     */
+    virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
 
     /**
      * @brief return true if current window is anco, otherwise return false
@@ -4827,6 +4905,39 @@ public:
     virtual void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) {}
 
     /**
+     * @brief Register a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError UnregisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Update compatible style mode of the window.
+     *
+     * @param mode CompatibleStyleMode.
+     * @return WM_OK means update mode success, others means failed.
+     */
+    virtual WMError UpdateCompatibleStyleMode(CompatibleStyleMode mode)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
      * @brief register a listener to listen whether the window title bar is show or hide.
      *
      * @param listener IWindowTitleChangeListener.
@@ -4846,6 +4957,57 @@ public:
     virtual WMError UnregisterWindowTitleChangeListener(const sptr<IWindowTitleChangeListener>& listener)
     {
         return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Set whether the window receive drag event.
+     *
+     * @param enabled - whether the window receive drag event.
+     *        True: - means default state, the window can receive drag event.
+     *        False: - means the window can't receive drag event.
+     * @return Returns the status code of the execution.
+     */
+    virtual WMError SetReceiveDragEventEnabled(bool enabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief  whether the window receive drag event.
+     *
+     * @return - The value true means the window can receive drag event, and false means the opposite.
+     */
+    virtual bool IsReceiveDragEventEnabled()
+    {
+        return true;
+    }
+
+    /**
+     * @brief Set whether the window supports event separation capability.
+     *        When the window doesn't support event separation capability:
+     *        After the first finger touch the window,
+     *        subsequent fingers' events will be sent to that window regardless of whether they click on it.
+     *        If the first finger does not touch the window,
+     *        the system will discard the events when subsequent fingers touch the window.
+     *
+     * @param enabled - Whether the window supports event separation capability.
+     *        True: - means default state, the event will be sent to the window that the finger taps.
+     *        False: - means the window doesn't support event separation capability.
+     * @return - Returns the status code of the execution.
+     */
+    virtual WMError SetSeparationTouchEnabled(bool enabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief   Get whether the window supports event separation status.
+     *
+     * @return - The value true means the window supports event separation, and false means the opposite.
+     */
+    virtual bool IsSeparationTouchEnabled()
+    {
+        return true;
     }
 
     /**
@@ -4893,7 +5055,11 @@ public:
      *
      * @param rects Hot areas of anco window.
      */
-    static std::vector<Rect> GetAncoWindowHotAreas();
+    virtual std::vector<Rect> GetAncoWindowHotAreas()
+    {
+        std::vector<Rect> rectAreas;
+        return rectAreas;
+    }
 
     /**
      * @brief Check if the current device is in free window mode.
@@ -4961,6 +5127,14 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    /**
+     * @brief Set status bar color for uiExtension.
+     *
+     * @param color Color numeric to set.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
 };
 }
 }

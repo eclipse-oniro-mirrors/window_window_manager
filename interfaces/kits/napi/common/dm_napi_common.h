@@ -33,8 +33,8 @@ constexpr OHOS::HiviewDFX::HiLogLabel LABEL = { LOG_CORE, OHOS::Rosen::HILOG_DOM
 
 const int PARAM_NUMBER = 2; // 2: callback func input number, also reused by Promise
 
-#define GNAPI_LOG(fmt, ...) OHOS::HiviewDFX::HiLog::Info(LABEL, \
-    "%{public}s:%{public}d " fmt, __func__, __LINE__, ##__VA_ARGS__)
+#define GNAPI_LOG(fmt, ...) HILOG_IMPL(LABEL.type, LOG_INFO, LABEL.domain, LABEL.tag, \
+    "%{public}s: " fmt, __func__, ##__VA_ARGS__)
 
 #define GNAPI_ASSERT(env, assertion, fmt, ...)  \
     do {                                        \

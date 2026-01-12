@@ -75,3 +75,44 @@ ohos_unittest("wm_window_scene_session_impl_event_test") {
     "init:libbegetutil",
   ]
 }
+
+ohos_unittest("wm_window_impl_event_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_impl_event_test.cpp" ]
+
+  deps = [
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+    wm_unittest_common,
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [ "common_event_service:cesfwk_innerkits" ]
+}
+
+ohos_unittest("wm_window_option_event_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_option_event_test.cpp" ]
+
+  deps = [
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+    wm_unittest_common,
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_window_session_impl_event_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_session_impl_event_test.cpp" ]
+
+  deps = [
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+    wm_unittest_common,
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [ "init:libbegetutil" ]
+}

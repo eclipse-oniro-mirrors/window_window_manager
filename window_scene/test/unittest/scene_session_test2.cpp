@@ -26,6 +26,7 @@
 #include "session/host/include/main_session.h"
 #include "wm_common.h"
 #include "mock/mock_session_stage.h"
+#include "mock_vsync_station.h"
 #include "input_event.h"
 #include <pointer_event.h>
 #include "ui/rs_surface_node.h"
@@ -1792,16 +1793,13 @@ HWTEST_F(SceneSessionTest2, HandleMoveDragEvent, TestSize.Level1)
     session->dragResizeTypeDuringDrag_ = DragResizeType::RESIZE_SCALE;
     session->compatibleDragScaleFlags_ = true;
  
-    session->SetRequestNextVsyncFunc(nullptr);
-    ASSERT_EQ(nullptr, session->requestNextVsyncFunc_);
+    session->SetVsyncStation(nullptr);
+    ASSERT_EQ(nullptr, session->vsyncStation_);
     session->HandleMoveDragEvent(reason);
- 
-    session->SetRequestNextVsyncFunc([](const std::shared_ptr<VsyncCallback>& callback) {
-        SessionInfo info1;
-        info1.abilityName_ = "HandleMoveDragEventRequestNextVsync";
-        info1.bundleName_ = "HandleMoveDragEventRequestNextVsync";
-    });
-    ASSERT_NE(nullptr, session->requestNextVsyncFunc_);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+    ASSERT_NE(nullptr, session->vsyncStation_);
     session->HandleMoveDragEvent(reason);
     EXPECT_EQ(WSError::WS_OK, session->OnSessionEvent(event));
 }

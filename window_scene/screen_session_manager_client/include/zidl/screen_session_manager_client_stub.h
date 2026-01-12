@@ -72,6 +72,7 @@ private:
     int HandleOnScreenModeChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnAnimationFinish(MessageParcel& data, MessageParcel& reply);
     int HandleSetInternalClipToBounds(MessageParcel& data, MessageParcel& reply);
+    int HandleTentModeChange(MessageParcel& data, MessageParcel& reply);
 
     HandleScreenChangeMap HandleScreenChangeMap_ {};
 };

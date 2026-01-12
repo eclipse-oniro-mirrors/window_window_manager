@@ -109,7 +109,7 @@ static std::string GetHexColor(uint32_t color)
     return finalColor;
 }
 
-napi_value GetStatusBarPropertyObject(napi_env env, sptr<Window>& window)
+napi_value GetHostStatusBarPropertyObject(napi_env env, sptr<Window>& window)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "in");
     napi_value objValue = nullptr;

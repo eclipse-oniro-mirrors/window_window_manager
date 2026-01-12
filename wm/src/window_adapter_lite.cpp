@@ -132,6 +132,71 @@ WMError WindowAdapterLite::UnregisterWindowManagerAgent(WindowManagerAgentType t
     return ret;
 }
 
+WMError WindowAdapterLite::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+
+    auto type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    // Flags only used to independent recovery.
+    observedFlags_ |= static_cast<uint32_t>(windowInfoKey);
+    interestedFlags_ |= interestInfo;
+
+    auto ret = wmsProxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    if (ret == WMError::WM_OK) {
+        std::lock_guard<std::mutex> lock(windowManagerLiteAgentMapMutex_);
+        windowManagerLiteAgentMap_[type].insert(windowManagerAgent);
+    } else {
+        TLOGE(WmsLogTag::WMS_SCB, "failed due to proxy, type: %{public}d", type);
+    }
+    return ret;
+}
+
+WMError WindowAdapterLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    auto ret = wmsProxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+
+    observedFlags_ &= ~(static_cast<uint32_t>(windowInfoKey));
+    interestedFlags_ &= ~interestInfo;
+
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    std::lock_guard<std::mutex> lock(windowManagerLiteAgentMapMutex_);
+    if (windowManagerLiteAgentMap_.find(type) == windowManagerLiteAgentMap_.end()) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "WINDOW_MANAGER_AGENT_TYPE_PROPERTY not found");
+        return ret;
+    }
+
+    auto& agentSet = windowManagerLiteAgentMap_[type];
+    auto agent = std::find(agentSet.begin(), agentSet.end(), windowManagerAgent);
+    if (agent == agentSet.end()) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "Cannot find WINDOW_MANAGER_AGENT_TYPE_PROPERTY");
+        return ret;
+    }
+    agentSet.erase(agent);
+
+    return ret;
+}
+
+WMError WindowAdapterLite::RecoverWindowPropertyChangeFlag()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!windowManagerServiceProxy_ || !windowManagerServiceProxy_->AsObject()) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "proxy is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    auto ret = windowManagerServiceProxy_->RecoverWindowPropertyChangeFlag(observedFlags_, interestedFlags_);
+    TLOGI(WmsLogTag::WMS_RECOVER, "ret=%{public}d", static_cast<int32_t>(ret));
+    return ret;
+}
+
 // called after InitSSMProxy()
 void WindowAdapterLite::ReregisterWindowManagerLiteAgent()
 {
@@ -220,6 +285,7 @@ void WindowAdapterLite::OnUserSwitch()
     ClearWindowAdapter();
     InitSSMProxy();
     ReregisterWindowManagerLiteAgent();
+    RecoverWindowPropertyChangeFlag();
 }
 
 void WindowAdapterLite::ClearWindowAdapter()
@@ -263,6 +329,16 @@ void WindowAdapterLite::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId
     } else {
         wmsProxy->GetFocusWindowInfo(focusInfo);
     }
+}
+
+void WindowAdapterLite::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                        std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    INIT_PROXY_CHECK_RETURN();
+    TLOGD(WmsLogTag::WMS_FOCUS, "request on adapter lite");
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
+    wmsProxy->GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
 }
 
 WMError WindowAdapterLite::GetWindowModeType(WindowModeType& windowModeType)

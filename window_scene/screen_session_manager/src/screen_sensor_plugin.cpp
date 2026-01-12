@@ -19,9 +19,12 @@ namespace OHOS {
 namespace Rosen {
 namespace {
     constexpr uint32_t SLEEP_TIME_US = 10000;
+    constexpr uint32_t RETRY_TIMES = 3;
 }
 
 static void *g_handle = nullptr;
+static MotionSubscribeCallbackPtr g_motionSubscribeCallbackPtr = nullptr;
+static MotionUnsubscribeCallbackPtr g_motionUnsubscribeCallbackPtr = nullptr;
 
 bool LoadMotionSensor(void)
 {
@@ -30,7 +33,6 @@ bool LoadMotionSensor(void)
         return true;
     }
     int32_t cnt = 0;
-    int32_t retryTimes = 3;
     const char* dlopenError = nullptr;
     do {
         cnt++;
@@ -41,7 +43,7 @@ bool LoadMotionSensor(void)
         }
         TLOGI(WmsLogTag::DMS, "dlopen %{public}s, retry cnt: %{public}d", PLUGIN_SO_PATH.c_str(), cnt);
         usleep(SLEEP_TIME_US);
-    } while (!g_handle && cnt < retryTimes);
+    } while (!g_handle && cnt < RETRY_TIMES);
     return g_handle != nullptr;
 }
 
@@ -52,6 +54,8 @@ void UnloadMotionSensor(void)
         dlclose(g_handle);
         g_handle = nullptr;
     }
+    g_motionSubscribeCallbackPtr = nullptr;
+    g_motionUnsubscribeCallbackPtr = nullptr;
 }
 
 __attribute__((no_sanitize("cfi"))) bool SubscribeCallback(int32_t motionType, OnMotionChangedPtr callback)
@@ -64,13 +68,26 @@ __attribute__((no_sanitize("cfi"))) bool SubscribeCallback(int32_t motionType, O
         TLOGE(WmsLogTag::DMS, "g_handle is nullptr");
         return false;
     }
-    MotionSubscribeCallbackPtr func = (MotionSubscribeCallbackPtr)(dlsym(g_handle, "MotionSubscribeCallback"));
-    const char* dlsymError = dlerror();
-    if  (dlsymError) {
-        TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
-        return false;
+    if (g_motionSubscribeCallbackPtr == nullptr) {
+        int32_t cnt = 0;
+        const char* dlsymError = nullptr;
+        do {
+            cnt++;
+            g_motionSubscribeCallbackPtr = reinterpret_cast<MotionSubscribeCallbackPtr>(dlsym(
+                g_handle, "MotionSubscribeCallback"));
+            dlsymError = dlerror();
+            if (dlsymError) {
+                TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
+                usleep(SLEEP_TIME_US);
+            }
+            TLOGI(WmsLogTag::DMS, "dlsym %{public}s, retry cnt: %{public}d", "MotionSubscribeCallback", cnt);
+        } while (!g_motionSubscribeCallbackPtr && cnt < RETRY_TIMES);
     }
-    return func(motionType, callback);
+    if (g_motionSubscribeCallbackPtr == nullptr) {
+        return false;
+    } else {
+        return g_motionSubscribeCallbackPtr(motionType, callback);
+    }
 }
 
 __attribute__((no_sanitize("cfi"))) bool UnsubscribeCallback(int32_t motionType, OnMotionChangedPtr callback)
@@ -83,14 +100,26 @@ __attribute__((no_sanitize("cfi"))) bool UnsubscribeCallback(int32_t motionType,
         TLOGE(WmsLogTag::DMS, "g_handle is nullptr");
         return false;
     }
-    MotionUnsubscribeCallbackPtr func =
-        (MotionUnsubscribeCallbackPtr)(dlsym(g_handle, "MotionUnsubscribeCallback"));
-    const char* dlsymError = dlerror();
-    if  (dlsymError) {
-        TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
-        return false;
+    if (g_motionUnsubscribeCallbackPtr == nullptr) {
+        int32_t cnt = 0;
+        const char* dlsymError = nullptr;
+        do {
+            cnt++;
+            g_motionUnsubscribeCallbackPtr = reinterpret_cast<MotionUnsubscribeCallbackPtr>(dlsym(
+                g_handle, "MotionUnsubscribeCallback"));
+            dlsymError = dlerror();
+            if (dlsymError) {
+                TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
+                usleep(SLEEP_TIME_US);
+            }
+            TLOGI(WmsLogTag::DMS, "dlsym %{public}s, retry cnt: %{public}d", "MotionUnsubscribeCallback", cnt);
+        } while (!g_motionUnsubscribeCallbackPtr && cnt < RETRY_TIMES);
     }
-    return func(motionType, callback);
+    if (g_motionUnsubscribeCallbackPtr == nullptr) {
+        return false;
+    } else {
+        return g_motionUnsubscribeCallbackPtr(motionType, callback);
+    }
 }
 }
 }

@@ -319,7 +319,7 @@ HWTEST_F(DisplayPowerTest, window_life_cycle_001, TestSize.Level1)
     sptr<WindowOption> option = new WindowOption();
     sptr<Window> window = Window::Create("window1", option, nullptr);
     if (window == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     EXPECT_EQ(WMError::WM_OK, window->Show());
 

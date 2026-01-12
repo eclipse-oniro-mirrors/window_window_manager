@@ -18,11 +18,14 @@ namespace OHOS {
 namespace Rosen {
 namespace {
     constexpr uint32_t SLEEP_TIME_US = 10000;
+    constexpr uint32_t RETRY_TIMES = 3;
 }
 
 static void *g_handle = nullptr;
 using IsInAodFunc = bool (*)();
 using StopAodFunc = bool (*)(int32_t);
+static IsInAodFunc g_isInAodFunc = nullptr;
+static StopAodFunc g_stopAodFunc = nullptr;
 
 bool LoadAodLib(void)
 {
@@ -31,7 +34,6 @@ bool LoadAodLib(void)
         return true;
     }
     int32_t cnt = 0;
-    int32_t retryTimes = 3;
     const char* dlopenError = nullptr;
     do {
         cnt++;
@@ -42,7 +44,7 @@ bool LoadAodLib(void)
         }
         TLOGI(WmsLogTag::DMS, "dlopen %{public}s, retry cnt: %{public}d", PLUGIN_AOD_SO_PATH.c_str(), cnt);
         usleep(SLEEP_TIME_US);
-    } while (!g_handle && cnt < retryTimes);
+    } while (!g_handle && cnt < RETRY_TIMES);
     return g_handle != nullptr;
 }
 
@@ -53,6 +55,8 @@ void UnloadAodLib(void)
         dlclose(g_handle);
         g_handle = nullptr;
     }
+    g_isInAodFunc = nullptr;
+    g_stopAodFunc = nullptr;
 }
 
 __attribute__((no_sanitize("cfi"))) bool IsInAod()
@@ -61,13 +65,25 @@ __attribute__((no_sanitize("cfi"))) bool IsInAod()
         TLOGE(WmsLogTag::DMS, "g_handle is nullptr");
         return false;
     }
-    IsInAodFunc func = (IsInAodFunc)(dlsym(g_handle, "IsInAod"));
-    const char* dlsymError = dlerror();
-    if  (dlsymError) {
-        TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
-        return false;
+    if (g_isInAodFunc == nullptr) {
+        int32_t cnt = 0;
+        const char* dlsymError = nullptr;
+        do {
+            cnt++;
+            g_isInAodFunc = reinterpret_cast<IsInAodFunc>(dlsym(g_handle, "IsInAod"));
+            dlsymError = dlerror();
+            if (dlsymError) {
+                TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
+                usleep(SLEEP_TIME_US);
+            }
+            TLOGI(WmsLogTag::DMS, "dlsym %{public}s, retry cnt: %{public}d", "IsInAod", cnt);
+        } while (!g_isInAodFunc && cnt < RETRY_TIMES);
     }
-    return func();
+    if (g_isInAodFunc == nullptr) {
+        return false;
+    } else {
+        return g_isInAodFunc();
+    }
 }
 
 __attribute__((no_sanitize("cfi"))) bool StopAod(int32_t status)
@@ -76,13 +92,25 @@ __attribute__((no_sanitize("cfi"))) bool StopAod(int32_t status)
         TLOGE(WmsLogTag::DMS, "g_handle is nullptr");
         return false;
     }
-    StopAodFunc func = reinterpret_cast<StopAodFunc>(dlsym(g_handle, "Stop"));
-    const char* dlsymError = dlerror();
-    if  (dlsymError) {
-        TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
-        return false;
+    if (g_stopAodFunc == nullptr) {
+        int32_t cnt = 0;
+        const char* dlsymError = nullptr;
+        do {
+            cnt++;
+            g_stopAodFunc = reinterpret_cast<StopAodFunc>(dlsym(g_handle, "StopAod"));
+            dlsymError = dlerror();
+            if (dlsymError) {
+                TLOGE(WmsLogTag::DMS, "dlsym error: %{public}s", dlsymError);
+                usleep(SLEEP_TIME_US);
+            }
+            TLOGI(WmsLogTag::DMS, "dlsym %{public}s, retry cnt: %{public}d", "StopAod", cnt);
+        } while (!g_stopAodFunc && cnt < RETRY_TIMES);
     }
-    return func(status);
+    if (g_stopAodFunc == nullptr) {
+        return false;
+    } else {
+        return g_stopAodFunc(status);
+    }
 }
 }
 }

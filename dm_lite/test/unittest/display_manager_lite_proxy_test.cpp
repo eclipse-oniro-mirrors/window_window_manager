@@ -26,6 +26,14 @@ using namespace testing;
 using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+        const char* msg)
+    {
+        g_logMsg += msg;
+    }
+}
 class DisplayManagerLiteProxyTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -488,7 +496,26 @@ HWTEST_F(DisplayManagerLiteProxyTest, SetResolution, TestSize.Level1)
     uint32_t height = 2400;
     float vpr = 2.8;
     auto ret = displayManagerLiteProxy->SetResolution(id, width, height, vpr);
-    ASSERT_NE(ret, DMError::DM_OK);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SyncScreenPowerState
+ * @tc.desc: SyncScreenPowerState
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyTest, SyncScreenPowerState, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
+    sptr<IRemoteObject> impl =
+        SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_->AsObject();
+    sptr<DisplayManagerLiteProxy> displayManagerLiteProxy = new DisplayManagerLiteProxy(impl);
+
+    displayManagerLiteProxy->SyncScreenPowerState(ScreenPowerState::POWER_ON);
+    EXPECT_TRUE(g_logMsg.find("Sync power state success") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 }

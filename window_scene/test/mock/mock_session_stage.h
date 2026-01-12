@@ -86,17 +86,21 @@ public:
     MOCK_METHOD3(NotifyPipWindowSizeChange, WSError(double width, double height, double scale));
     MOCK_METHOD1(NotifyPiPActiveStatusChange, WSError(bool status));
     MOCK_METHOD1(NotifyWindowCrossAxisChange, void(CrossAxisState state));
-    MOCK_METHOD1(LinkKeyFrameNode, WSError(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode));
+    MOCK_METHOD0(LinkKeyFrameNode, WSError(void));
     MOCK_METHOD1(SetStageKeyFramePolicy, WSError(const KeyFramePolicy& keyFramePolicy));
     MOCK_METHOD1(SetCurrentRotation, WSError(int32_t currentRotation));
     MOCK_METHOD0(NotifyLifecyclePausedStatus, void(void));
     MOCK_METHOD1(NotifyAppUseControlStatus, void(bool isUseControl));
     MOCK_METHOD1(NotifyExtensionSecureLimitChange, WSError(bool isLimit));
     MOCK_METHOD0(NotifyAppForceLandscapeConfigUpdated, WSError(void));
+    MOCK_METHOD0(NotifyAppForceLandscapeConfigEnableUpdated, WSError(void));
     MOCK_METHOD0(NotifyAppHookWindowInfoUpdated, WSError(void));
     MOCK_METHOD1(GetRouterStackInfo, WMError(std::string& routerStackInfo));
     MOCK_METHOD1(SendFbActionEvent, WSError(const std::string& action));
     MOCK_METHOD1(UpdateIsShowDecorInFreeMultiWindow, WSError(bool isShow));
+    MOCK_METHOD1(UpdateBrightness, WSError(float brightness));
+    MOCK_METHOD0(AddSidebarBlur, WSError(void));
+    MOCK_METHOD1(SetSidebarBlurStyleWithType, WSError(SidebarBlurType type));
 };
 } // namespace Rosen
 } // namespace OHOS

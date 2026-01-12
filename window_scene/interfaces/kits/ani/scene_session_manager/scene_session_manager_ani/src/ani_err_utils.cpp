@@ -92,13 +92,13 @@ ani_status AniErrUtils::CreateBusinessError(ani_env* env, int32_t error, std::st
 {
     TLOGI(WmsLogTag::DMS, "[ANI] in1");
     ani_class aniClass;
-    ani_status status = env->FindClass("Lescompat/Error;", &aniClass);
+    ani_status status = env->FindClass("escompat.Error", &aniClass);
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] class not found, status:%{public}d", static_cast<int32_t>(status));
         return status;
     }
     ani_method aniCtor;
-    status = env->Class_FindMethod(aniClass, "<ctor>", "Lstd/core/String;Lescompat/ErrorOptions;:V", &aniCtor);
+    status = env->Class_FindMethod(aniClass, "<ctor>", "C{std.core.String}C{escompat.ErrorOptions}:", &aniCtor);
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] ctor not found, status:%{public}d", static_cast<int32_t>(status));
         return status;

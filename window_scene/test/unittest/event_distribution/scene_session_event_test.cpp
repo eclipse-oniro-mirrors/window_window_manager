@@ -31,6 +31,8 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+private:
+    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
 };
 
 void SceneSessionEventTest::SetUpTestCase() {}
@@ -159,6 +161,119 @@ HWTEST_F(SceneSessionEventTest, UnlockCursor, TestSize.Level1)
     parameters.emplace_back(1);
     ret = sceneSession->UnlockCursor(parameters);
     EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: SetReceiveDragEventEnabled
+ * @tc.desc: SetReceiveDragEventEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionEventTest, SetReceiveDragEventEnabled, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetReceiveDragEventEnabled";
+    info.bundleName_ = "SetReceiveDragEventEnabled";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    std::vector<int32_t> parameters;
+
+    // Test CheckParameters: The format is incorrect(size<1).
+    MockAccesstokenKit::MockAccessTokenKitRet(0);
+    auto ret = sceneSession->SetReceiveDragEventEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_ERROR_ILLEGAL_PARAM);
+    
+    // Test CheckParameters: The format is incorrect(length error).
+    parameters.emplace_back(SET_RECEIVE_DRAG_EVENT_LENGTH + 1);
+    ret = sceneSession->SetReceiveDragEventEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_ERROR_ILLEGAL_PARAM);
+
+    // Test CheckParameters: The format is incorrect(size error).
+    parameters.clear();
+    parameters.emplace_back(SET_RECEIVE_DRAG_EVENT_LENGTH);
+    ret = sceneSession->SetReceiveDragEventEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_ERROR_ILLEGAL_PARAM);
+
+    // test normal process
+    parameters.clear();
+    parameters.emplace_back(SET_RECEIVE_DRAG_EVENT_LENGTH);
+    parameters.emplace_back(1);
+    sceneSession->persistentId_ = 1;
+    ret = sceneSession->SetReceiveDragEventEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    // test normal process
+    parameters.clear();
+    parameters.emplace_back(SET_RECEIVE_DRAG_EVENT_LENGTH);
+    parameters.emplace_back(0);
+    sceneSession->persistentId_ = 1;
+    ret = sceneSession->SetReceiveDragEventEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: SetSeparationTouchEnabled
+ * @tc.desc: SetSeparationTouchEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionEventTest, SetSeparationTouchEnabled, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSeparationTouchEnabled";
+    info.bundleName_ = "SetSeparationTouchEnabled";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    std::vector<int32_t> parameters;
+
+    // Test CheckParameters: The format is incorrect(size<1).
+    MockAccesstokenKit::MockAccessTokenKitRet(0);
+    auto ret = sceneSession->SetSeparationTouchEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_ERROR_ILLEGAL_PARAM);
+    
+    // Test CheckParameters: The format is incorrect(length error).
+    parameters.emplace_back(WINDOW_SEPARATION_TOUCH_ENABLED_LENGTH + 1);
+    ret = sceneSession->SetSeparationTouchEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_ERROR_ILLEGAL_PARAM);
+
+    // Test CheckParameters: The format is incorrect(size error).
+    parameters.clear();
+    parameters.emplace_back(WINDOW_SEPARATION_TOUCH_ENABLED_LENGTH);
+    ret = sceneSession->SetSeparationTouchEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_ERROR_ILLEGAL_PARAM);
+
+    // test normal process
+    parameters.clear();
+    parameters.emplace_back(WINDOW_SEPARATION_TOUCH_ENABLED_LENGTH);
+    parameters.emplace_back(1);
+    sceneSession->persistentId_ = 1;
+    ret = sceneSession->SetSeparationTouchEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    // test normal process
+    parameters.clear();
+    parameters.emplace_back(WINDOW_SEPARATION_TOUCH_ENABLED_LENGTH);
+    parameters.emplace_back(0);
+    sceneSession->persistentId_ = 1;
+    ret = sceneSession->SetSeparationTouchEnabled(parameters);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverWindowEffect
+ * @tc.desc: RecoverWindowEffect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionAnimationTest, RecoverWindowEffect, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "RecoverWindowEffect";
+    info.bundleName_ = "RecoverWindowEffect";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    NotifyRecoverWindowEffectFunc func;
+    session->SetRecoverWindowEffectCallback(func);
+    EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
+
+    func = [](bool recoverCorner, bool recoverShadow) { return; };
+    session->SetRecoverWindowEffectCallback(func);
+    EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
+    usleep(WAIT_SYNC_IN_NS);
 }
 } // namespace
 } // namespace Rosen

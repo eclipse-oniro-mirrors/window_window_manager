@@ -21,7 +21,10 @@ group("unittest") {
   deps = [
     ":ws_ability_info_manager_test",
     ":ws_anomaly_detection_test",
+    ":ws_compatible_mode_main_session_test",
     ":ws_compatible_mode_property_test",
+    ":ws_compatible_mode_session_proxy_test",
+    ":ws_compatible_mode_session_stub_test",
     ":ws_dfx_hisysevent_test",
     ":ws_ffrt_helper_test",
     ":ws_main_session_lifecycle_test",
@@ -84,6 +87,8 @@ group("unittest") {
     "event_distribution:ws_scene_session_event_test",
     "event_distribution:ws_session_proxy_event_test",
     "event_distribution:ws_session_stub_event_test",
+    "event_distribution:ws_session_event_test",
+    "event_distribution:ws_window_session_property_event_test",
     "rotation:ws_scene_session_manager_rotation_test",
     "rotation:ws_scene_session_rotation_test",
     "rotation:ws_session_stage_proxy_rotation_test",
@@ -93,12 +98,11 @@ group("unittest") {
     "window_focus:unittest",
     "window_pattern:window_pattern_starting_window_rdb_test",
     "window_recover:ws_window_recover_session_test",
+    "window_immersive:window_immersive_avoid_area_test",
   ]
 
-  defines = []
   if (window_manager_feature_support_dmsfwk) {
      deps += [ ":ws_distributed_client_test" ]
-     defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
   }
 
   if (window_manager_use_sceneboard) {
@@ -909,6 +913,8 @@ ohos_unittest("ws_scene_session_manager_supplement_test") {
 ohos_unittest("ws_scene_session_test") {
   module_out_path = module_out_path
 
+  include_dirs = [ "${window_base_path}/wm/test/mock" ]
+
   sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
     "scene_session_test.cpp",
@@ -1008,7 +1014,15 @@ ohos_unittest("ws_window_event_channel_test") {
 ohos_unittest("ws_move_drag_controller_test") {
   module_out_path = module_out_path
 
-  sources = [ "move_drag_controller_test.cpp" ]
+  include_dirs = [
+    "${window_base_path}/window_scene/session/host/include",
+    "${window_base_path}/wm/test/mock",
+  ]
+
+  sources = [
+    "move_drag_controller_test.cpp",
+    "move_resampler_test.cpp"
+  ]
 
   deps = [
     ":ws_unittest_common",
@@ -1484,6 +1498,7 @@ ohos_static_library("ws_unittest_common") {
     "window_keyboard:*",
     "window_pattern:*",
     "window_recover:*",
+    "window_immersive:*",
   ]
   testonly = true
 
@@ -1648,6 +1663,67 @@ ohos_unittest("pip_change_listener_stub_test") {
 
   sources = [
   "pip_change_listener_stub_test.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_compatible_mode_main_session_test") {
+  module_out_path = module_out_path
+
+  sources = [ "compatible_mode_main_session_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_compatible_mode_session_proxy_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/window_scene/session/host/include/zidl",
+    "${window_base_path}/window_scene/test/mock",
+  ]
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_message_parcel.cpp",
+    "compatible_mode_session_proxy_test.cpp",
+  ]
+
+  defines = [
+    "ENABLE_MOCK_READ_UINT32",
+    "ENABLE_MOCK_READ_INT32",
+  ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/window_scene/session:screen_session",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:session_info",
+    "ability_base:want",
+  ]
+}
+
+ohos_unittest("ws_compatible_mode_session_stub_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/window_scene/session/host/include/zidl",
+    "${window_base_path}/window_scene/test/mock",
+  ]
+
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_message_parcel.cpp",
+    "compatible_mode_session_stub_test.cpp",
+  ]
+
+  defines = [
+    "ENABLE_MOCK_READ_INT32",
   ]
 
   deps = [ ":ws_unittest_common" ]

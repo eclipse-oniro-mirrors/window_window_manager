@@ -155,6 +155,12 @@ public:
     ScreenPowerState GetScreenPower();
 
     /**
+     * @brief Sync screen power state, only for PMS.
+     *
+     */
+    void SyncScreenPowerState(ScreenPowerState state);
+
+    /**
      * @brief Get all physical screen ids.
      *
      * @param screenIds Store physical screen ids.

@@ -666,10 +666,15 @@ HWTEST_F(WindowSceneSessionImplTest4, IsInMappingRegionForCompatibleMode, TestSi
     windowSceneSessionImpl->property_->SetWindowRect({ 880, 0, 800, 1600 });
     int32_t displayX = 400;
     int32_t displayY = 400;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     bool ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(true, ret);
     displayX = 1000;
     displayY = 1000;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
+    ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
+    EXPECT_EQ(false, ret);
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
     ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(false, ret);
 }
@@ -895,35 +900,6 @@ HWTEST_F(WindowSceneSessionImplTest4, SetSpecificBarProperty, TestSize.Level0)
     EXPECT_EQ(WMError::WM_OK, ret);
     property.settingFlag_ = SystemBarSettingFlag::COLOR_SETTING;
     ret = windowSceneSessionImpl->SetSpecificBarProperty(type, property);
-    EXPECT_EQ(WMError::WM_OK, ret);
-}
-
-/**
- * @tc.name: SetSystemBarPropertyForPage
- * @tc.desc: SetSystemBarPropertyForPage
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest4, SetSystemBarPropertyForPage, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetSystemBarPropertyForPage");
-    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    windowSceneSessionImpl->hostSession_ = session;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetPersistentId(1);
-    windowSceneSessionImpl->property_ = property;
-    std::optional<SystemBarProperty> prop;
-    windowSceneSessionImpl->state_ = WindowState::STATE_DESTROYED;
-    auto ret = windowSceneSessionImpl->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
-    windowSceneSessionImpl->state_ = WindowState::STATE_SHOWN;
-    windowSceneSessionImpl->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
-    ret = windowSceneSessionImpl->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
-    EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
-    windowSceneSessionImpl->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    ret = windowSceneSessionImpl->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 
@@ -1498,11 +1474,10 @@ HWTEST_F(WindowSceneSessionImplTest4, PreLayoutOnShow01, TestSize.Level1)
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_APP_SUB_WINDOW, displayInfo);
     window->hostSession_ = session;
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_APP_SUB_WINDOW, displayInfo);
-    Rect originRect = window->GetRect();
     Rect testRect = {10, 20, 100, 200};
     window->GetProperty()->SetRequestRect(testRect);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_EQ(window->GetRect(), originRect);
+    ASSERT_EQ(window->GetRect(), testRect);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_APP_SUB_WINDOW, displayInfo);
     ASSERT_EQ(window->GetRect(), testRect);
 }
@@ -1525,21 +1500,27 @@ HWTEST_F(WindowSceneSessionImplTest4, PreLayoutOnShow02, TestSize.Level1)
 
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
     sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
-    displayInfo->name_ = "Cooperation"; // 白名单
 
     KeyboardLayoutParams tmpParams;
-    const Rect expected = {1, 2, 3, 4};
-    tmpParams.PortraitKeyboardRect_ = expected;
+    const Rect landscapeKeyboardRect = {1, 1, 4, 3};
+    tmpParams.LandscapeKeyboardRect_ = landscapeKeyboardRect;
+    const Rect portraitKeyboardRect = {1, 1, 3, 4};
+    tmpParams.PortraitKeyboardRect_ = portraitKeyboardRect;
 
+    displayInfo->width_ = 10;
+    displayInfo->height_ = 8;
+    window->property_->SetRequestRect({0, 0, 0, 0});
     window->property_->SetKeyboardLayoutParams(tmpParams);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_EQ(window->property_->windowRect_, expected);
+    ASSERT_NE(window->property_->requestRect_, landscapeKeyboardRect);
 
     tmpParams.displayId_ = 0;
     displayInfo->screenId_ = 0;
+    displayInfo->width_ = 8;
+    displayInfo->height_ = 10;
     window->property_->AddKeyboardLayoutParams(0, tmpParams);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_EQ(window->property_->windowRect_, expected);
+    ASSERT_EQ(window->property_->requestRect_, portraitKeyboardRect);
 }
 
 /**
@@ -1892,6 +1873,52 @@ HWTEST_F(WindowSceneSessionImplTest4, OnContainerModalEvent, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnContainerModalEvent
+ * @tc.desc: test OnContainerModalEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, OnContainerModalEvent02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("OnContainerModalEvent02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    EXPECT_NE(nullptr, session);
+    window->hostSession_ = session;
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_2_3_landscape", ""));
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_1_1_landscape", ""));
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_18_9_landscape", ""));
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_default_landscape", ""));
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_split_landscape", ""));
+    ASSERT_EQ(WMError::WM_DO_NOTHING, window->OnContainerModalEvent("win_change_to_split_landscape_error", ""));
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_hover_event", ""));
+}
+
+/**
+ * @tc.name: HideTitleButton
+ * @tc.desc: test HideTitleButton
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, HideTitleButton, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("HideTitleButton");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    EXPECT_NE(nullptr, session);
+    window->hostSession_ = session;
+    bool hideSplitButton = true;
+    bool hideMaximizeButton = true;
+    bool hideMinimizeButton = true;
+    bool hideCloseButton = true;
+    window->HideTitleButton(hideSplitButton, hideMaximizeButton, hideMinimizeButton, hideCloseButton);
+}
+
+/**
  * @tc.name: UpdateConfigurationSyncForAll
  * @tc.desc: UpdateConfigurationSyncForAll
  * @tc.type: FUNC
@@ -2226,6 +2253,33 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowContainerColor01, TestSize.Level1
     activeColor = "rgb#00000000";
     res = window->SetWindowContainerColor(activeColor, inactiveColor);
     EXPECT_EQ(res, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: SetWindowContainerColor02
+ * @tc.desc: SetWindowContainerColor
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowContainerColor02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetBundleName("SetWindowContainerColor");
+    option->SetWindowName("SetWindowContainerColor");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::string activeColor = "#00000000";
+    std::string inactiveColor = "#FF000000";
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    auto res = window->SetWindowContainerColor(activeColor, inactiveColor);
+    EXPECT_EQ(res, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+
+    window->containerColorList_.insert("SetWindowContainerColor");
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    res = window->SetWindowContainerColor(activeColor, inactiveColor);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    res = window->SetWindowContainerColor(activeColor, inactiveColor);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
 }
 
 /**

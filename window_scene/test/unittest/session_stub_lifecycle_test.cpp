@@ -177,6 +177,7 @@ HWTEST_F(SessionStubLifecycleTest, HandlePendingSessionActivation03, TestSize.Le
     EXPECT_EQ(data.WriteInt64(10), true);
     EXPECT_EQ(data.WriteUint32(9), true);
     EXPECT_EQ(data.WriteInt32(4), true);
+    EXPECT_EQ(data.WriteInt32(0), true);
     EXPECT_EQ(data.WriteBool(false), true);
     EXPECT_EQ(data.WriteParcelable(nullptr), true);
 
@@ -188,7 +189,6 @@ HWTEST_F(SessionStubLifecycleTest, HandlePendingSessionActivation03, TestSize.Le
     EXPECT_EQ(data.WriteBool(false), true);
     EXPECT_EQ(data.WriteBool(false), true);
     EXPECT_EQ(data.WriteString("instanceKey"), true);
-    EXPECT_EQ(data.WriteBool(false), true);
     EXPECT_EQ(data.WriteUint32(0), true);
     EXPECT_EQ(data.WriteString("specifiedFlag"), true);
     EXPECT_EQ(data.WriteBool(false), true);

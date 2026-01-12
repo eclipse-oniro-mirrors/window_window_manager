@@ -127,8 +127,8 @@ void ScenePersistence::SaveSnapshot(const std::shared_ptr<Media::PixelMap>& pixe
     bool freeMultiWindow)
 {
     savingSnapshotSum_.fetch_add(1);
-    SetIsSavingSnapshot(key, freeMultiWindow, true);
-    TLOGI(WmsLogTag::WMS_PATTERN, "isSavingSnapshot:%{public}d", isSavingSnapshot_[key].load());
+    SetIsSavingSnapshot(true);
+    TLOGI(WmsLogTag::WMS_PATTERN, "isSavingSnapshot:%{public}d", isSavingSnapshot_.load());
     std::string path = freeMultiWindow ? snapshotFreeMultiWindowPath_ : snapshotPath_[key];
     auto task = [weakThis = wptr(this), pixelMap, resetSnapshotCallback,
         savingSnapshotSum = savingSnapshotSum_.load(), key, rotate, path, freeMultiWindow]() {
@@ -179,29 +179,19 @@ void ScenePersistence::SaveSnapshot(const std::shared_ptr<Media::PixelMap>& pixe
     snapshotFfrtHelper_->SubmitTask(std::move(task), "SaveSnapshot" + path);
 }
 
-bool ScenePersistence::IsSavingSnapshot(SnapshotStatus key, bool freeMultiWindow)
+bool ScenePersistence::IsSavingSnapshot()
 {
-    if (freeMultiWindow) {
-        return isSavingSnapshotFreeMultiWindow_.load();
-    }
-    return isSavingSnapshot_[key].load();
+    return isSavingSnapshot_.load();
 }
 
-void ScenePersistence::SetIsSavingSnapshot(SnapshotStatus key, bool freeMultiWindow, bool isSavingSnapshot)
+void ScenePersistence::SetIsSavingSnapshot(bool isSavingSnapshot)
 {
-    if (freeMultiWindow) {
-        isSavingSnapshotFreeMultiWindow_.store(isSavingSnapshot);
-    } else {
-        isSavingSnapshot_[key].store(isSavingSnapshot);
-    }
+    isSavingSnapshot_.store(isSavingSnapshot);
 }
 
 void ScenePersistence::ResetSnapshotCache()
 {
-    for (auto& isSavingSnapshot : isSavingSnapshot_) {
-        isSavingSnapshot.store(false);
-    }
-    isSavingSnapshotFreeMultiWindow_.store(false);
+    isSavingSnapshot_.store(false);
 }
 
 void ScenePersistence::RenameSnapshotFromOldPersistentId(const int32_t& oldPersistentId)

@@ -679,8 +679,8 @@ HWTEST_F(ScreenPropertyTest, GetPropertyChangeReason, TestSize.Level1)
 {
     ScreenProperty* property = new(std::nothrow) ScreenProperty();
     ASSERT_NE(property, nullptr);
-    std::string propertyChangeReason = "a";
-    std::string propertyChangeReason_copy = property->GetPropertyChangeReason();
+    ScreenPropertyChangeReason propertyChangeReason = ScreenPropertyChangeReason::SCREEN_MODE_CHANGE;
+    ScreenPropertyChangeReason propertyChangeReason_copy = property->GetPropertyChangeReason();
     property->SetPropertyChangeReason(propertyChangeReason);
     ASSERT_EQ(propertyChangeReason, property->GetPropertyChangeReason());
     property->SetPropertyChangeReason(propertyChangeReason_copy);
@@ -1026,6 +1026,85 @@ HWTEST_F(ScreenPropertyTest, SetInputOffset, TestSize.Level1)
     property->SetInputOffset(1, 2);
     EXPECT_EQ(property->GetInputOffsetX(), 1);
     EXPECT_EQ(property->GetInputOffsetY(), 2);
+}
+
+/**
+@tc.name : SetIsDestroyDisplay
+@tc.desc : SetIsDestroyDisplay
+@tc.type: FUNC
+*/
+HWTEST_F(ScreenPropertyTest, SetIsDestroyDisplay, TestSize.Level1) {
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: SetIsDestroyDisplay start";
+    ScreenProperty* property = new(std::nothrow) ScreenProperty();
+    ASSERT_NE(property, nullptr);
+    property->SetIsDestroyDisplay(true);
+    EXPECT_TRUE(property->isDestroyDisplay_);
+    delete property;
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: SetIsDestroyDisplay end";
+}
+
+/**
+@tc.name : GetIsDestroyDisplay
+@tc.desc : GetIsDestroyDisplay
+@tc.type: FUNC
+*/
+HWTEST_F(ScreenPropertyTest, GetIsDestroyDisplay, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: GetIsDestroyDisplay start";
+
+    ScreenProperty* property1 = new (std::nothrow) ScreenProperty();
+    ASSERT_NE(property1, nullptr);
+    EXPECT_FALSE(property1->GetIsDestroyDisplay());
+    delete property1;
+
+    ScreenProperty* property2 = new (std::nothrow) ScreenProperty();
+    ASSERT_NE(property2, nullptr);
+    property2->SetIsDestroyDisplay(true);
+    EXPECT_TRUE(property2->GetIsDestroyDisplay());
+    delete property2;
+
+    ScreenProperty* property3 = new (std::nothrow) ScreenProperty();
+    ASSERT_NE(property3, nullptr);
+    property3->SetIsDestroyDisplay(false);
+    EXPECT_FALSE(property3->GetIsDestroyDisplay());
+    delete property3;
+
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: GetIsDestroyDisplay end";
+}
+
+HWTEST_F(ScreenPropertyTest, SetPhysicalTouchBoundsDirectly, TestSize.Level1)
+{
+    std::shared_ptr<ScreenProperty> property = std::make_shared<ScreenProperty>();
+
+    RRect zeroBounds;
+    zeroBounds.rect_.width_ = 0;
+    zeroBounds.rect_.height_ = 0;
+
+    property->SetPhysicalTouchBoundsDirectly(zeroBounds);
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        EXPECT_EQ(property->physicalTouchBounds_.rect_.width_, 0);
+        EXPECT_EQ(property->physicalTouchBounds_.rect_.height_, 0);
+    }
+
+    RRect negativeBounds;
+    negativeBounds.rect_.width_ = -100;
+    negativeBounds.rect_.height_ = -200;
+
+    property->SetPhysicalTouchBoundsDirectly(negativeBounds);
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        EXPECT_EQ(property->physicalTouchBounds_.rect_.width_, -100);
+        EXPECT_EQ(property->physicalTouchBounds_.rect_.height_, -200);
+    }
+
+    RRect normalBounds;
+    normalBounds.rect_.width_ = 1920;
+    normalBounds.rect_.height_ = 1080;
+
+    property->SetPhysicalTouchBoundsDirectly(normalBounds);
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        EXPECT_EQ(property->physicalTouchBounds_.rect_.width_, 1920);
+        EXPECT_EQ(property->physicalTouchBounds_.rect_.height_, 1080);
+    }
 }
 } // namespace
 } // namespace Rosen

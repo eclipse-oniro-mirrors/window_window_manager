@@ -48,6 +48,8 @@ public:
     void ResetSessionDirty();
     std::pair<std::vector<MMI::WindowInfo>, std::vector<std::shared_ptr<Media::PixelMap>>>
         GetFullWindowInfoList();
+    void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
+        std::vector<MMI::Rect>& pointerHotAreas) const;
 
     /*
      * Multi User

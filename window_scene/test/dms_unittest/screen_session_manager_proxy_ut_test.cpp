@@ -75,7 +75,8 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetPrivacyStateByDisplayId, TestSize.L
     int resultValue = 0;
     std::function<void()> func = [&]()
     {
-        screenSessionManagerProxy->SetPrivacyStateByDisplayId(id, hasPrivate);
+        std::unordered_map<DisplayId, bool> privacyBundleDisplayId = {{id, hasPrivate}};
+        screenSessionManagerProxy->SetPrivacyStateByDisplayId(privacyBundleDisplayId);
         resultValue = 1;
     };
     func();

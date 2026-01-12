@@ -263,7 +263,7 @@ HWTEST_F(SessionManagerAgentControllerTest, NotifyWindowPropertyChange01, TestSi
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
     uint32_t propertyDirtyFlags = 0;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     EXPECT_EQ(WMError::WM_OK,
               SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));

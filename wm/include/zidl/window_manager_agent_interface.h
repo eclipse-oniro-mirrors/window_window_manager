@@ -22,28 +22,6 @@
 
 namespace OHOS {
 namespace Rosen {
-enum class WindowManagerAgentType : uint32_t {
-    WINDOW_MANAGER_AGENT_TYPE_FOCUS,
-    WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
-    WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
-    WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
-    WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM = 7,
-    WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
-    WINDOW_MANAGER_AGENT_TYPE_CAMERA_WINDOW,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
-    WINDOW_MANAGER_AGENT_TYPE_PIP,
-    WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY,
-    WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
-    WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
-    WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
-    WINDOW_MANAGER_AGENT_TYPE_END,
-};
-
 class IWindowManagerAgent : public IRemoteBroker {
 public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.IWindowManagerAgent");
@@ -67,9 +45,11 @@ public:
         TRANS_ID_NOTIFY_WINDOW_PROPERTY_CHANGE,
         TRANS_ID_NOTIFY_WINDOW_SYSTEM_BAR_PROPERTY_CHANGE,
         TRANS_ID_NOTIFY_WINDOW_SUPPORT_ROTATION_CHANGE,
+        TRANS_ID_NOTIFY_DISPLAY_GROUP_INFO_CHANGE,
     };
 
     virtual void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) = 0;
+    virtual void UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd) = 0;
     virtual void UpdateWindowModeTypeInfo(WindowModeType type) = 0;
     virtual void UpdateSystemBarRegionTints(DisplayId displayId, const SystemBarRegionTints& tints) = 0;
     virtual void NotifyAccessibilityWindowInfo(const std::vector<sptr<AccessibilityWindowInfo>>& infos,
@@ -87,8 +67,7 @@ public:
     virtual void NotifyWindowPidVisibilityChanged(const sptr<WindowPidVisibilityInfo>& info) = 0;
     virtual void NotifyWindowSystemBarPropertyChange(WindowType type, const SystemBarProperty& systemBarProperty) = 0;
     virtual void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground) = 0;
-    virtual void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-        const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList) = 0;
+    virtual void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) = 0;
     virtual void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo) = 0;
 };
 } // namespace Rosen

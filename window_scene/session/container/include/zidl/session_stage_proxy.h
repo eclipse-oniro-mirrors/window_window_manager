@@ -37,7 +37,6 @@ public:
             0, WindowAnimationCurve::LINEAR, {0.0f, 0.0f, 0.0f, 0.0f} },
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {}) override;
     WSError UpdateGlobalDisplayRectFromServer(const WSRect& rect, SizeChangeReason reason) override;
-    void UpdateDensity() override;
     WSError UpdateOrientation() override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
     WSError HandleBackEvent() override;
@@ -93,7 +92,7 @@ public:
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
 
-    WSError LinkKeyFrameNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode) override;
+    WSError LinkKeyFrameNode() override;
     WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
 
     WSError SetDragActivated(bool dragActivated) override;
@@ -111,6 +110,7 @@ public:
         const std::shared_ptr<RSTransaction>& rsTransaction) override;
     WSError SetCurrentRotation(int32_t currentRotation) override;
     WSError NotifyAppForceLandscapeConfigUpdated() override;
+    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
     WSError NotifyAppHookWindowInfoUpdated() override;
     WSError CloseSpecificScene() override;
 
@@ -121,6 +121,12 @@ public:
     WSError SendFbActionEvent(const std::string& action) override;
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
+
+    // Window Property
+    WSError UpdateBrightness(float brightness) override;
+    void UpdateDensity() override;
+    WSError AddSidebarBlur() override;
+    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;

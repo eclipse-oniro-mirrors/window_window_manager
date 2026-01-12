@@ -381,6 +381,25 @@ HWTEST_F(SceneSessionTest, GetRequestedOrientation, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetKeepScreenOn01
+ * @tc.desc: SetKeepScreenOn true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetKeepScreenOn01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetKeepScreenOn01";
+    info.bundleName_ = "SetKeepScreenOn01";
+    info.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    EXPECT_EQ(sceneSession->SetKeepScreenOn(true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsKeepScreenOn(), true);
+    EXPECT_EQ(sceneSession->SetKeepScreenOn(false), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsKeepScreenOn(), false);
+}
+
+/**
  * @tc.name: IsKeepScreenOn01
  * @tc.desc: IsKeepScreenOn true
  * @tc.type: FUNC
@@ -410,6 +429,25 @@ HWTEST_F(SceneSessionTest, IsKeepScreenOn02, TestSize.Level1)
     ASSERT_NE(sceneSession, nullptr);
     ASSERT_EQ(WSError::WS_OK, sceneSession->SetKeepScreenOn(false));
     ASSERT_EQ(false, sceneSession->IsKeepScreenOn());
+}
+
+/**
+ * @tc.name: SetViewKeepScreenOn01
+ * @tc.desc: SetViewKeepScreenOn true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetViewKeepScreenOn01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetViewKeepScreenOn01";
+    info.bundleName_ = "SetViewKeepScreenOn01";
+    info.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    EXPECT_EQ(sceneSession->SetViewKeepScreenOn(true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsViewKeepScreenOn(), true);
+    EXPECT_EQ(sceneSession->SetViewKeepScreenOn(false), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsViewKeepScreenOn(), false);
 }
 
 /**
@@ -2186,26 +2224,6 @@ HWTEST_F(SceneSessionTest, GetAppForceLandscapeConfig, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetMoveDragCallback
- * @tc.desc: SetMoveDragCallback
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, SetMoveDragCallback, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "SetMoveDragCallback";
-    info.bundleName_ = "SetMoveDragCallback";
-    sptr<SceneSession::SpecificSessionCallback> specificCallback =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback, nullptr);
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
-
-    sceneSession->moveDragController_ = nullptr;
-    sceneSession->SetMoveDragCallback();
-}
-
-/**
  * @tc.name: SetDefaultDisplayIdIfNeed
  * @tc.desc: SetDefaultDisplayIdIfNeed
  * @tc.type: FUNC
@@ -2417,6 +2435,43 @@ HWTEST_F(SceneSessionTest, GetGlobalOrWinRect, Function | SmallTest | Level2)
     rect = sceneSession->GetGlobalOrWinRect();
     EXPECT_EQ(2, rect.posX_);
     EXPECT_EQ(2, rect.posY_);
+}
+
+/**
+ * @tc.name: GetWindowLimits
+ * @tc.desc: Verify GetWindowLimits handles null property and valid property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetWindowLimits, TestSize.Level1)
+{
+    SessionInfo info;
+    auto sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Case 1: property_ is null → return default WindowLimits()
+    {
+        sceneSession->property_ = nullptr;
+        WindowLimits limits = sceneSession->GetWindowLimits();
+
+        EXPECT_EQ(limits.maxWidth_, static_cast<uint32_t>(INT32_MAX));
+        EXPECT_EQ(limits.maxHeight_, static_cast<uint32_t>(INT32_MAX));
+        EXPECT_EQ(limits.minWidth_, 1);
+        EXPECT_EQ(limits.minHeight_, 1);
+    }
+
+    // Case 2: property_ valid → return property->limits_
+    {
+        auto property = sptr<WindowSessionProperty>::MakeSptr();
+        WindowLimits expectedLimits(800, 600, 200, 100, 0.0, 0.0);
+
+        property->SetWindowLimits(expectedLimits);
+        sceneSession->property_ = property;
+        WindowLimits limits = sceneSession->GetWindowLimits();
+
+        EXPECT_EQ(limits.maxWidth_, 800);
+        EXPECT_EQ(limits.maxHeight_, 600);
+        EXPECT_EQ(limits.minWidth_, 200);
+        EXPECT_EQ(limits.minHeight_, 100);
+    }
 }
 } // namespace
 } // namespace Rosen

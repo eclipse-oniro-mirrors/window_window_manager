@@ -68,7 +68,7 @@ public:
     AvoidArea GetAvoidAreaByType(uint32_t windowId, AvoidAreaType avoidAreaType);
     WMError SetWindowMode(sptr<WindowNode>& node, WindowMode dstMode);
     WMError GetTopWindowId(uint32_t mainWinId, uint32_t& topWinId);
-    void MinimizeAllAppWindows(DisplayId displayId);
+    void MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId = 0);
     WMError ToggleShownStateForAllAppWindows();
     WMError SetWindowLayoutMode(DisplayId displayId, WindowLayoutMode mode);
 

@@ -58,7 +58,11 @@ public:
     void NotifyScreenMagneticStateChanged(bool isMagneticState);
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
     ClientAgentContainer<IDisplayManagerAgent, DisplayManagerAgentType> dmAgentContainer_;
+    ClientAgentContainer<IDisplayManagerAgent, std::string> dmAttributeAgentContainer_;
     void NotifyAbnormalScreenConnectChange(ScreenId screenId);
+    void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes);
+    bool IsAgentListenedAttributes(std::set<std::string>& listenedAttributes,
+        const std::vector<std::string>& attributes);
 private:
     ScreenSessionManagerAdapter() {}
     virtual ~ScreenSessionManagerAdapter() = default;

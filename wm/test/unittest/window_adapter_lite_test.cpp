@@ -279,6 +279,24 @@ HWTEST_F(WindowAdapterLiteTest, ListWindowInfo01, Function | SmallTest | Level2)
 }
 
 /**
+ * @tc.name: RecoverWindowPropertyChangeFlag
+ * @tc.desc: test RecoverWindowPropertyChangeFlag
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, RecoverWindowPropertyChangeFlag01, TestSize.Level1)
+{
+    ASSERT_NE(instance_, nullptr);
+    auto ret = instance_->RecoverWindowPropertyChangeFlag();
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    auto oldProxy = instance_->windowManagerServiceProxy_;
+    instance_->windowManagerServiceProxy_ = nullptr;
+    ret = instance_->RecoverWindowPropertyChangeFlag();
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    instance_->windowManagerServiceProxy_ = oldProxy;
+}
+
+/**
  * @tc.name: SendPointerEventForHover
  * @tc.desc: SendPointerEventForHover
  * @tc.type: FUNC

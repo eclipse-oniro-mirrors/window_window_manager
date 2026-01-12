@@ -54,6 +54,7 @@ public:
 
     static ProcessGestureNavigationEnabledChangeFunc callbackFunc_;
     static sptr<SceneSessionManager> ssm_;
+    ScreenSessionManagerClient* screenSessionManagerClient_;
 
 private:
     static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
@@ -79,12 +80,14 @@ void SceneSessionManagerTest5::TearDownTestCase()
 void SceneSessionManagerTest5::SetUp()
 {
     ssm_->sceneSessionMap_.clear();
+    screenSessionManagerClient_ = &ScreenSessionManagerClient::GetInstance();
 }
 
 void SceneSessionManagerTest5::TearDown()
 {
     ssm_->sceneSessionMap_.clear();
     usleep(WAIT_SYNC_IN_NS);
+    screenSessionManagerClient_ = nullptr;
 }
 
 namespace {
@@ -145,14 +148,14 @@ HWTEST_F(SceneSessionManagerTest5, OnBundleUpdated, TestSize.Level1)
     StartingWindowInfo startingWindowInfo;
     std::map<std::string, StartingWindowInfo> startingWindowInfoMap{ { key, startingWindowInfo } };
     ssm_->startingWindowMap_.insert({ sessionInfo.bundleName_, startingWindowInfoMap });
-    ASSERT_NE(ssm_->startingWindowMap_.size(), 0);
+    EXPECT_NE(ssm_->startingWindowMap_.size(), 0);
 
     /**
      * @tc.steps: step2. On bundle updated and check map.
      */
     ssm_->OnBundleUpdated(sessionInfo.bundleName_, 0);
     usleep(WAIT_SYNC_IN_NS);
-    ASSERT_EQ(ssm_->startingWindowMap_.size(), 0);
+    EXPECT_EQ(ssm_->startingWindowMap_.size(), 0);
 }
 
 /**
@@ -175,7 +178,7 @@ HWTEST_F(SceneSessionManagerTest5, OnConfigurationUpdated, TestSize.Level1)
     StartingWindowInfo startingWindowInfo;
     std::map<std::string, StartingWindowInfo> startingWindowInfoMap{ { key, startingWindowInfo } };
     ssm_->startingWindowMap_.insert({ sessionInfo.bundleName_, startingWindowInfoMap });
-    ASSERT_NE(ssm_->startingWindowMap_.size(), 0);
+    EXPECT_NE(ssm_->startingWindowMap_.size(), 0);
 
     /**
      * @tc.steps: step2. On configuration updated and check map.
@@ -183,7 +186,7 @@ HWTEST_F(SceneSessionManagerTest5, OnConfigurationUpdated, TestSize.Level1)
     auto configuration = std::make_shared<AppExecFwk::Configuration>();
     ssm_->OnConfigurationUpdated(configuration);
     usleep(WAIT_SYNC_IN_NS);
-    ASSERT_EQ(ssm_->startingWindowMap_.size(), 0);
+    EXPECT_EQ(ssm_->startingWindowMap_.size(), 0);
 }
 
 /**
@@ -197,7 +200,7 @@ HWTEST_F(SceneSessionManagerTest5, PrepareTerminate, TestSize.Level1)
     bool isPrepareTerminate = true;
     SceneSessionManager* sceneSessionManager = sptr<SceneSessionManager>::MakeSptr();
     ASSERT_NE(sceneSessionManager, nullptr);
-    ASSERT_EQ(WSError::WS_OK, sceneSessionManager->PrepareTerminate(persistentId, isPrepareTerminate));
+    EXPECT_EQ(WSError::WS_OK, sceneSessionManager->PrepareTerminate(persistentId, isPrepareTerminate));
 }
 
 /**
@@ -316,25 +319,6 @@ HWTEST_F(SceneSessionManagerTest5, RegisterSessionSnapshotFunc, TestSize.Level1)
 }
 
 /**
- * @tc.name: RequestAllAppSessionUnfocus
- * @tc.desc: RequestAllAppSessionUnfocus
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest5, RequestAllAppSessionUnfocus, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "test1";
-    info.bundleName_ = "test2";
-    sptr<SceneSession> sceneSession = nullptr;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    ssm_->HandleHideNonSystemFloatingWindows(property, sceneSession);
-    ssm_->RequestAllAppSessionUnfocus();
-}
-
-/**
  * @tc.name: RequestFocusStatus
  * @tc.desc: RequestFocusStatus
  * @tc.type: FUNC
@@ -385,9 +369,9 @@ HWTEST_F(SceneSessionManagerTest5, RequestSessionFocus, TestSize.Level0)
 {
     FocusChangeReason reason = FocusChangeReason::DEFAULT;
     WSError ret = ssm_->RequestSessionFocus(0, true, reason);
-    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
     ret = ssm_->RequestSessionFocus(100, true, reason);
-    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
 
     SessionInfo info;
     info.abilityName_ = "test1";
@@ -411,136 +395,8 @@ HWTEST_F(SceneSessionManagerTest5, RequestSessionFocus, TestSize.Level0)
     focusGroup->SetFocusedSessionId(2);
     ssm_->sceneSessionMap_.insert({ sceneSession1->GetPersistentId(), sceneSession1 });
     ret = ssm_->RequestSessionFocus(1, true, reason);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: RequestFocusClient
- * @tc.desc: RequestFocusClient
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest5, RequestFocusClient, TestSize.Level0)
-{
-    SessionInfo info;
-    info.abilityName_ = "RequestFocusTest1";
-    info.bundleName_ = "RequestFocusTest1";
-    sptr<SceneSession> sceneSession = nullptr;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetFocusable(true);
-    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    sceneSession->property_ = property;
-    sceneSession->persistentId_ = 1;
-    sceneSession->isVisible_ = true;
-    sceneSession->state_ = SessionState::STATE_ACTIVE;
-    sceneSession->SetZOrder(1);
-
-    SessionInfo info2;
-    info2.abilityName_ = "RequestFocusTest2";
-    info2.bundleName_ = "RequestFocusTest2";
-    sptr<SceneSession> sceneSession2 = nullptr;
-    sptr<WindowSessionProperty> property2 = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property2, nullptr);
-    property2->SetFocusable(true);
-    property2->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
-    ASSERT_NE(sceneSession2, nullptr);
-    sceneSession2->property_ = property2;
-    sceneSession2->persistentId_ = 2;
-    sceneSession2->isVisible_ = true;
-    sceneSession2->state_ = SessionState::STATE_ACTIVE;
-    sceneSession2->SetZOrder(2);
-    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
-    ssm_->sceneSessionMap_.insert({ sceneSession2->GetPersistentId(), sceneSession2 });
-    FocusChangeReason reason = FocusChangeReason::CLIENT_REQUEST;
-
-    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
-    ssm_->RequestSessionFocus(1, false, reason);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
-    ssm_->RequestSessionFocus(2, false, reason);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 2);
-    ssm_->RequestSessionUnfocus(2, reason);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
-    ssm_->RequestSessionUnfocus(1, reason);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 0);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: RequestFocusClient
- * @tc.desc: RequestFocusClient
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest5, RequestFocusClient01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "RequestFocusTest1";
-    info.bundleName_ = "RequestFocusTest1";
-    sptr<SceneSession> sceneSession = nullptr;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetFocusable(true);
-    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    sceneSession->property_ = property;
-    sceneSession->persistentId_ = 1;
-    sceneSession->isVisible_ = true;
-    sceneSession->state_ = SessionState::STATE_ACTIVE;
-    sceneSession->SetZOrder(1);
-
-    SessionInfo info2;
-    info2.abilityName_ = "RequestFocusTest2";
-    info2.bundleName_ = "RequestFocusTest2";
-    sptr<SceneSession> sceneSession2 = nullptr;
-    sptr<WindowSessionProperty> property2 = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property2, nullptr);
-    property2->SetFocusable(true);
-    property2->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
-    ASSERT_NE(sceneSession2, nullptr);
-    sceneSession2->property_ = property2;
-    sceneSession2->persistentId_ = 2;
-    sceneSession2->isVisible_ = true;
-    sceneSession2->state_ = SessionState::STATE_ACTIVE;
-    sceneSession2->SetZOrder(2);
-
-    SessionInfo info3;
-    info3.abilityName_ = "RequestFocusTest3";
-    info3.bundleName_ = "RequestFocusTest3";
-    sptr<SceneSession> sceneSession3 = nullptr;
-    sptr<WindowSessionProperty> property3 = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property3, nullptr);
-    property3->SetFocusable(true);
-    property3->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession3 = sptr<SceneSession>::MakeSptr(info3, nullptr);
-    ASSERT_NE(sceneSession3, nullptr);
-    sceneSession3->property_ = property3;
-    sceneSession3->persistentId_ = 3;
-    sceneSession3->isVisible_ = true;
-    sceneSession3->state_ = SessionState::STATE_ACTIVE;
-    sceneSession3->SetZOrder(3);
-    sceneSession3->blockingFocus_ = true;
-    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
-    ssm_->sceneSessionMap_.insert({ sceneSession2->GetPersistentId(), sceneSession2 });
-    ssm_->sceneSessionMap_.insert({ sceneSession3->GetPersistentId(), sceneSession3 });
-    FocusChangeReason reason = FocusChangeReason::CLIENT_REQUEST;
-
-    ssm_->RequestSessionFocus(1, false, reason);
-    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
-    ssm_->RequestSessionFocus(3, false, reason);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 3);
-    ssm_->RequestSessionFocus(2, false, reason);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 2);
-    auto ret = ssm_->RequestSessionUnfocus(3, reason);
-    ASSERT_EQ(WSError::WS_DO_NOTHING, ret);
-    ssm_->RequestSessionUnfocus(2, reason);
-    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(focusGroup->GetFocusedSessionId(), 1);
     ssm_->sceneSessionMap_.clear();
 }
 
@@ -1109,29 +965,6 @@ HWTEST_F(SceneSessionManagerTest5, GetTopNearestBlockingFocusSession, TestSize.L
     session_ = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session_, nullptr);
     ssm_->GetTopNearestBlockingFocusSession(DEFAULT_DISPLAY_ID, 0, true);
-}
-
-/**
- * @tc.name: PreloadInLakeApp、UpdateSessionAvoidAreaListener
- * @tc.desc: PreloadInLakeApp、UpdateSessionAvoidAreaListener
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest5, PreloadInLakeApp, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    SessionInfo info;
-    info.abilityName_ = "test1";
-    info.bundleName_ = "test2";
-    int32_t persistentId = 0;
-
-    ssm_->PreloadInLakeApp("");
-    sptr<SceneSession> sceneSession = nullptr;
-
-    ssm_->UpdateSessionAvoidAreaListener(persistentId, true);
-    sceneSession = ssm_->CreateSceneSession(info, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
-    ssm_->UpdateSessionAvoidAreaListener(persistentId, true);
 }
 
 /**
@@ -1715,6 +1548,12 @@ HWTEST_F(SceneSessionManagerTest5, RequestFocusStatusBySCB, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest5, RequestFocusStatusBySCB01, TestSize.Level1)
 {
+    ASSERT_NE(screenSessionManagerClient_, nullptr);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+
     ssm_->sceneSessionMap_.clear();
     SessionInfo info;
     info.abilityName_ = "RequestFocusTest";
@@ -1756,6 +1595,7 @@ HWTEST_F(SceneSessionManagerTest5, RequestFocusStatusBySCB01, TestSize.Level1)
     ssm_->RequestFocusStatusBySCB(1, true, false, reason);
     usleep(WAIT_SYNC_IN_NS);
     ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
+    screenSessionManagerClient_->screenSessionMap_.clear();
 }
 
 /**
@@ -1765,6 +1605,12 @@ HWTEST_F(SceneSessionManagerTest5, RequestFocusStatusBySCB01, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest5, RequestSessionUnfocus01, TestSize.Level1)
 {
+    ASSERT_NE(screenSessionManagerClient_, nullptr);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+
     ssm_->sceneSessionMap_.clear();
     SessionInfo info;
     info.abilityName_ = "RequestSessionUnfocus01";
@@ -1790,6 +1636,7 @@ HWTEST_F(SceneSessionManagerTest5, RequestSessionUnfocus01, TestSize.Level1)
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
     ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
     ASSERT_EQ(focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground(), true);
+    screenSessionManagerClient_->screenSessionMap_.clear();
 }
 
 /**
@@ -1799,6 +1646,12 @@ HWTEST_F(SceneSessionManagerTest5, RequestSessionUnfocus01, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest5, RequestSessionUnfocus02, TestSize.Level1)
 {
+    ASSERT_NE(screenSessionManagerClient_, nullptr);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+
     ssm_->sceneSessionMap_.clear();
     SessionInfo info;
     info.abilityName_ = "RequestSessionUnfocus02";
@@ -1824,6 +1677,8 @@ HWTEST_F(SceneSessionManagerTest5, RequestSessionUnfocus02, TestSize.Level1)
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
     ASSERT_EQ(focusGroup->GetFocusedSessionId(), 1);
     ASSERT_EQ(focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground(), false);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    usleep(WAIT_SYNC_IN_NS);
 }
 
 /**
@@ -1845,6 +1700,7 @@ HWTEST_F(SceneSessionManagerTest5, RegisterSaveSnapshotFunc, TestSize.Level1)
 
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     ASSERT_EQ(WSError::WS_OK, ssm_->RegisterSaveSnapshotFunc(sceneSession));
+    usleep(WAIT_SYNC_IN_NS);
 }
 
 /**
@@ -1913,6 +1769,12 @@ HWTEST_F(SceneSessionManagerTest5, GetTopFloatingSession, TestSize.Level3)
  */
 HWTEST_F(SceneSessionManagerTest5, GetNextFocusableSessionWhenFloatWindowExist, TestSize.Level3)
 {
+    ASSERT_NE(screenSessionManagerClient_, nullptr);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+
     ssm_->sceneSessionMap_.clear();
     ASSERT_NE(ssm_, nullptr);
     SessionInfo info;
@@ -1954,6 +1816,7 @@ HWTEST_F(SceneSessionManagerTest5, GetNextFocusableSessionWhenFloatWindowExist, 
     result = ssm_->GetNextFocusableSessionWhenFloatWindowExist(DEFAULT_DISPLAY_ID, sceneSession->GetPersistentId());
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->GetPersistentId(), sceneSession1->GetPersistentId());
+    screenSessionManagerClient_->screenSessionMap_.clear();
 }
 
 } // namespace

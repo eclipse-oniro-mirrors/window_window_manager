@@ -21,6 +21,7 @@
 
 #include "ability_context_impl.h"
 #include "accessibility_event_info.h"
+#include "application_context.h"
 #include "color_parser.h"
 #include "extension/extension_business_info.h"
 #include "mock_session.h"
@@ -102,6 +103,61 @@ HWTEST_F(WindowSessionImplTest, CreateWindowAndDestroy01, TestSize.Level1)
     window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext_, session));
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy(false));
+}
+
+/**
+ * @tc.name: UpdateDefaultStatusBarColor
+ * @tc.desc: UpdateDefaultStatusBarColor Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateDefaultStatusBarColor, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_SHOWN;
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    SystemBarProperty property = SystemBarProperty();
+    property.settingFlag_ = SystemBarSettingFlag::COLOR_SETTING;
+    window->property_->sysBarPropMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = property;
+    uint32_t contentColor = 0;
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_DO_NOTHING);
+
+    property.settingFlag_ = SystemBarSettingFlag::DEFAULT_SETTING;
+    window->property_->sysBarPropMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = property;
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_ERROR_NULLPTR);
+
+    std::shared_ptr<AbilityRuntime::Context> context = std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    context->applicationContext_ = std::make_shared<AbilityRuntime::ApplicationContext>();
+    ASSERT_EQ(WMError::WM_OK, window->Create(context, nullptr));
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_ERROR_NULLPTR);
+
+    context->applicationContext_->contextImpl_ = std::make_shared<AbilityRuntime::ContextImpl>();
+    context->applicationContext_->contextImpl_->config_ = std::make_shared<AppExecFwk::Configuration>();
+    ASSERT_EQ(WMError::WM_OK, window->Create(context, nullptr));
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_OK);
+
+    std::string key = AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE;
+    std::string value = AppExecFwk::ConfigurationInner::COLOR_MODE_LIGHT;
+    context->applicationContext_->contextImpl_->config_->configParameter_[key] = value;
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_OK);
+
+    value = AppExecFwk::ConfigurationInner::COLOR_MODE_DARK;
+    context->applicationContext_->contextImpl_->config_->configParameter_[key] = value;
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_OK);
+
+    key = AAFwk::GlobalConfigurationKey::COLORMODE_IS_SET_BY_APP;
+    value = AppExecFwk::ConfigurationInner::COLOR_MODE_LIGHT;
+    context->applicationContext_->contextImpl_->config_->configParameter_[key] = value;
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_OK);
+
+    value = AppExecFwk::ConfigurationInner::COLOR_MODE_DARK;
+    context->applicationContext_->contextImpl_->config_->configParameter_[key] = value;
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_OK);
+
+    window->specifiedColorMode_ = "light";
+    EXPECT_EQ(window->UpdateStatusBarColorByColorMode(contentColor), WMError::WM_OK);
 }
 
 /**
@@ -794,43 +850,6 @@ HWTEST_F(WindowSessionImplTest, SetFocusable, TestSize.Level1)
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
     GTEST_LOG_(INFO) << "WindowSessionImplTest: SetFocusable end";
-}
-
-/**
- * @tc.name: SetTouchable
- * @tc.desc: SetTouchable
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest, SetTouchable, TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "WindowSessionImplTest: SetTouchable start";
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetTouchable");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = new (std::nothrow) SessionMocker(sessionInfo);
-    ASSERT_NE(nullptr, session);
-    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
-    ASSERT_NE(window->property_, nullptr);
-    window->hostSession_ = session;
-    window->property_->SetPersistentId(1);
-    ASSERT_FALSE(window->IsWindowSessionInvalid());
-    WMError res = window->SetTouchable(true);
-    ASSERT_EQ(res, WMError::WM_OK);
-    ASSERT_NE(window->property_, nullptr);
-    ASSERT_TRUE(window->property_->touchable_);
-    ASSERT_EQ(WMError::WM_OK, window->Destroy());
-
-    // session is null
-    window = sptr<WindowSessionImpl>::MakeSptr(option);
-    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext_, nullptr));
-    res = window->SetTouchable(true);
-    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    res = window->SetTouchable(false);
-    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
-    GTEST_LOG_(INFO) << "WindowSessionImplTest: SetTouchable end";
 }
 
 /**
@@ -1934,11 +1953,11 @@ HWTEST_F(WindowSessionImplTest, SetMainWindowRaiseByClickEnabled, TestSize.Level
     EXPECT_EQ(retCode, WMError::WM_DO_NOTHING);
 
     window->state_ = WindowState::STATE_SHOWN;
-    window->property_->SetParentPersistentId(0);
+    window->property_->SetPersistentId(0);
     retCode = window->SetMainWindowRaiseByClickEnabled(true);
     EXPECT_EQ(retCode, WMError::WM_ERROR_INVALID_WINDOW);
 
-    window->property_->SetParentPersistentId(1);
+    window->property_->SetPersistentId(1);
     SessionInfo sessionInfo;
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;

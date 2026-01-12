@@ -163,34 +163,34 @@ HWTEST_F(WindowSessionImplTest3, RegisterWindowNoInteractionListener01, TestSize
 }
 
 /**
- * @tc.name: SetForceSplitEnable
- * @tc.desc: SetForceSplitEnable
+ * @tc.name: SetForceSplitConfig
+ * @tc.desc: SetForceSplitConfig
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest3, SetForceSplitEnable, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig, TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitEnable start";
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig start";
     logMsg.clear();
     LOG_SetCallback(MyLogCallback);
-    window_ = GetTestWindowImpl("SetForceSplitEnable");
+    window_ = GetTestWindowImpl("SetForceSplitConfig");
     ASSERT_NE(window_, nullptr);
 
     int32_t FORCE_SPLIT_MODE = 5;
     int32_t NAV_FORCE_SPLIT_MODE = 6;
-    AppForceLandscapeConfig config = { FORCE_SPLIT_MODE, "MainPage", true, "ArkuiOptions", false };
-    window_->SetForceSplitEnable(config);
+    AppForceLandscapeConfig config = { FORCE_SPLIT_MODE, true, false, {}, {}, {}, false, false, false, false };
+    window_->SetForceSplitConfig(config);
 
-    config = { FORCE_SPLIT_MODE, "MainPage", false, "ArkuiOptions", false };
-    window_->SetForceSplitEnable(config);
+    config = { FORCE_SPLIT_MODE, false, false, {}, {}, {}, false, false, false, false };
+    window_->SetForceSplitConfig(config);
 
-    config = { NAV_FORCE_SPLIT_MODE, "MainPage", true, "ArkuiOptions", false };
-    window_->SetForceSplitEnable(config);
+    config = { NAV_FORCE_SPLIT_MODE, true, false, {}, {}, {}, false, false, false, false };
+    window_->SetForceSplitConfig(config);
 
-    config = { NAV_FORCE_SPLIT_MODE, "MainPage", false, "ArkuiOptions", false };
-    window_->SetForceSplitEnable(config);
+    config = { NAV_FORCE_SPLIT_MODE, false, false, {}, {}, {}, false, false, false, false };
+    window_->SetForceSplitConfig(config);
     EXPECT_TRUE(logMsg.find("uiContent is null!") != std::string::npos);
     LOG_SetCallback(nullptr);
-    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitEnable end";
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig end";
 }
 
 /**
@@ -408,13 +408,8 @@ HWTEST_F(WindowSessionImplTest3, RegisterMainWindowCloseListeners, TestSize.Leve
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ret = window_->RegisterMainWindowCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_OK);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->RegisterMainWindowCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: RegisterMainWindowCloseListeners end";
 }
 
@@ -436,7 +431,6 @@ HWTEST_F(WindowSessionImplTest3, UnregisterMainWindowCloseListeners, TestSize.Le
 
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
     window_->property_->SetPersistentId(1);
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window_->state_ = WindowState::STATE_CREATED;
     ret = window_->UnregisterMainWindowCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
@@ -444,10 +438,6 @@ HWTEST_F(WindowSessionImplTest3, UnregisterMainWindowCloseListeners, TestSize.Le
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     ret = window_->UnregisterMainWindowCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_OK);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->UnregisterMainWindowCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: UnregisterMainWindowCloseListeners end";
 }
 
@@ -468,11 +458,6 @@ HWTEST_F(WindowSessionImplTest3, RegisterWindowWillCloseListeners, TestSize.Leve
 
     window_->property_->SetPersistentId(1);
     window_->state_ = WindowState::STATE_CREATED;
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->RegisterWindowWillCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     ret = window_->RegisterWindowWillCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
@@ -500,11 +485,6 @@ HWTEST_F(WindowSessionImplTest3, UnRegisterWindowWillCloseListeners, TestSize.Le
 
     window_->property_->SetPersistentId(1);
     window_->state_ = WindowState::STATE_CREATED;
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->UnRegisterWindowWillCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     ret = window_->UnRegisterWindowWillCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
@@ -694,11 +674,24 @@ HWTEST_F(WindowSessionImplTest3, UpdateRectForOtherReasonTask, TestSize.Level1)
     window_->UpdateRectForOtherReasonTask(wmRect, preRect, wmReason, rsTransaction);
     ASSERT_EQ(window_->postTaskDone_, true);
     WindowType windowType = window_->GetType();
+    Rect requestRect = { 0, 0, 50, 50 };
+    Rect windowRect = { 0, 0, 0, 0 };
     window_->postTaskDone_ = true;
+    window_->property_->SetWindowRect(windowRect);
+    window_->property_->SetRequestRect(requestRect);
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION);
     window_->SetNotifySizeChangeFlag(true);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, true);
     window_->UpdateRectForOtherReasonTask(wmRect, preRect, wmReason, rsTransaction);
-    ASSERT_EQ(window_->postTaskDone_, true);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, false);
+    window_->postTaskDone_ = true;
+    window_->property_->SetWindowRect(windowRect);
+    window_->property_->SetRequestRect(requestRect);
+    window_->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    window_->SetNotifySizeChangeFlag(true);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, true);
+    window_->UpdateRectForOtherReasonTask(wmRect, preRect, wmReason, rsTransaction);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, false);
     window_->property_->SetWindowType(windowType);
     window_->handler_ = nullptr;
     window_->UpdateRectForOtherReason(wmRect, preRect, wmReason, rsTransaction);
@@ -1593,6 +1586,55 @@ HWTEST_F(WindowSessionImplTest3, NotifyUIExtHostRectChangeInGlobalDisplayListene
     window->rectChangeInGlobalDisplayUIExtListenerIds_.clear();
     ASSERT_TRUE(window->rectChangeInGlobalDisplayUIExtListenerIds_.empty());
     window->NotifyUIExtHostRectChangeInGlobalDisplayListeners(rect, reason);
+}
+
+/**
+ * @tc.name: UpdateSubWindowStateWithOptions
+ * @tc.desc: UpdateSubWindowStateWithOptions
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, UpdateSubWindowStateWithOptions, Function | SmallTest | Level1)
+{
+    window_ = GetTestWindowImpl("MainWindow");
+    ASSERT_NE(window_, nullptr);
+    window_->property_->SetPersistentId(100);
+    StateChangeOption option(window_->GetPersistentId(), WindowState::STATE_HIDDEN, 0, false, false, false, false,
+        false);
+    window_->UpdateSubWindowStateWithOptions(option);
+
+    sptr<WindowSessionImpl> subwindow1 = nullptr;
+    sptr<WindowSessionImpl> subwindow2 = GetTestWindowImpl("SubWindow2");
+    ASSERT_NE(subwindow2, nullptr);
+    subwindow2->state_ = WindowState::STATE_SHOWN;
+    subwindow2->property_->SetPersistentId(2);
+    sptr<WindowSessionImpl> subwindow3 = GetTestWindowImpl("SubWindow3");
+    ASSERT_NE(subwindow3, nullptr);
+    subwindow3->state_ = WindowState::STATE_HIDDEN;
+    subwindow2->property_->SetPersistentId(3);
+    sptr<WindowSessionImpl> subwindow4 = GetTestWindowImpl("SubWindow4");
+    ASSERT_NE(subwindow4, nullptr);
+    subwindow3->state_ = WindowState::STATE_INITIAL;
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subwindow1);
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subwindow2);
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subwindow3);
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subwindow4);
+    // Hide branch
+    window_->UpdateSubWindowStateWithOptions(option);
+    subwindow2->followCreatorLifecycle_ = true;
+    subwindow2->state_ = WindowState::STATE_SHOWN;
+    window_->UpdateSubWindowStateWithOptions(option);
+    ASSERT_EQ(subwindow2->state_, WindowState::STATE_HIDDEN);
+
+    // Show branch
+    option.newState_ = WindowState::STATE_SHOWN;
+    window_->UpdateSubWindowStateWithOptions(option);
+    subwindow3->requestState_ = WindowState::STATE_SHOWN;
+    subwindow3->state_ = WindowState::STATE_HIDDEN;
+    window_->UpdateSubWindowStateWithOptions(option);
+    subwindow3->followCreatorLifecycle_ = true;
+    subwindow3->state_ = WindowState::STATE_HIDDEN;
+    window_->UpdateSubWindowStateWithOptions(option);
+    ASSERT_EQ(subwindow3->state_, WindowState::STATE_SHOWN);
 }
 } // namespace
 } // namespace Rosen

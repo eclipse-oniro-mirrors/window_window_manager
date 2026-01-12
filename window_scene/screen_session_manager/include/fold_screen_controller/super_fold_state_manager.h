@@ -86,9 +86,9 @@ public:
 
     nlohmann::ordered_json GetFoldCreaseRegionJson();
 
-    void HandleSuperFoldDisplayCallback(sptr<ScreenSession>& screenSession);
+    void HandleSuperFoldDisplayCallback(sptr<ScreenSession>& screenSession, SuperFoldStatusChangeEvents changeEvent);
 
-    void AddMirrorVirtualScreenIds(const std::vector<ScreenId>& screenIds);
+    void AddMirrorVirtualScreenIds(const std::vector<ScreenId>& screenIds, const DMRect& rect);
     void ClearMirrorVirtualScreenIds(const std::vector<ScreenId>& screenIds);
 
 private:
@@ -135,6 +135,7 @@ private:
     void HandleKeyboardOffDisplayNotify(sptr<ScreenSession>& screenSession);
     void HandleSystemKeyboardStatusDisplayNotify(sptr<ScreenSession>& screenSession, bool isTpKeyboardOn = false);
     void ReportNotifySuperFoldStatusChange(int32_t currentStatus, int32_t nextStatus, float postureAngle);
+    void UpdateScreenHalfState(sptr<ScreenSession>& screenSession, SuperFoldStatusChangeEvents changeEvent);
 
     void HandleExtendToHalfFoldDisplayNotifyInServer(sptr<ScreenSession>& screenSession);
     void HandleHalfFoldToExtendDisplayNotifyInServer(sptr<ScreenSession>& screenSession);
@@ -151,7 +152,11 @@ private:
     void ModifyMirrorScreenVisibleRect(SuperFoldStatus preState, SuperFoldStatus curState);
     // virtual keyboard change
     void ModifyMirrorScreenVisibleRect(bool isTpKeyBoardOn);
-    std::vector<ScreenId> mirrorScreenIds_;
+    void ModifyMirrorScreenVisibleRectInner(const OHOS::Rect& rsRect, std::vector<DisplayId>& displayIds);
+    std::vector<DisplayId> CalculateReCordingDisplayIds(const OHOS::Rect& nextRect);
+
+    std::map<ScreenId, OHOS::Rect> mirrorScreenVisibleRectMap_;
+
     std::mutex mirrorScreenIdsMutex_;
 
     uint32_t GetFoldCreaseHeight() const;

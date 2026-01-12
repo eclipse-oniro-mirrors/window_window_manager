@@ -20,5 +20,6 @@ group("ani_packages") {
     "screen_runtime:screen_ani",
     "screenshot_runtime:screenshot_ani",
     "window_runtime:window_stage_ani_pack",
+    "floating_ball:fbwindow_ani_pack",
   ]
 }

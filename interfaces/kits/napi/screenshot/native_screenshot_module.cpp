@@ -286,7 +286,7 @@ static void AsyncGetScreenshot(napi_env env, std::unique_ptr<Param> &param)
         TLOGE(WmsLogTag::DMS, "Invalid Input Param!");
         param->image = nullptr;
         param->wret = DmErrorCode::DM_ERROR_INVALID_PARAM;
-        param->errMessage = "Get Screenshot Failed: Invalid input param";
+        param->errMessage = "[screenshot][pick]msg: Get Screenshot Failed: Invalid input param";
         return;
     }
     CaptureOption option = { param->option.displayId, param->option.isNeedNotify, param->option.isNeedPointer,
@@ -320,7 +320,7 @@ static void AsyncGetScreenshot(napi_env env, std::unique_ptr<Param> &param)
     if (param->image == nullptr && param->wret == DmErrorCode::DM_OK) {
         TLOGI(WmsLogTag::DMS, "Get Screenshot failed!");
         param->wret = DmErrorCode::DM_ERROR_INVALID_SCREEN;
-        param->errMessage = "Get Screenshot failed: Screenshot image is nullptr";
+        param->errMessage = "[screenshot][pick]msg: Get Screenshot failed: Screenshot image is nullptr";
         return;
     }
 }
@@ -554,7 +554,7 @@ static void AsyncGetScreenCapture(napi_env env, std::unique_ptr<Param> &param)
     if (!param->validInputParam) {
         TLOGE(WmsLogTag::DMS, "screen capture failed!");
         param->wret = DmErrorCode::DM_ERROR_SYSTEM_INNORMAL;
-        param->errMessage = "Parameter error. Possible causes: "
+        param->errMessage = "[screenshot][capture]msg: Parameter error. Possible causes: "
             "1. Mandatory parameters are left unspecified; "
             "2. Incorrect parameter types.";
         return;
@@ -574,7 +574,7 @@ static void AsyncGetScreenCapture(napi_env env, std::unique_ptr<Param> &param)
     if (param->image == nullptr && param->wret == DmErrorCode::DM_OK) {
         TLOGI(WmsLogTag::DMS, "screen capture failed!");
         param->wret = DmErrorCode::DM_ERROR_SYSTEM_INNORMAL;
-        param->errMessage = "ScreenCapture failed: image is null.";
+        param->errMessage = "[screenshot][capture]msg: ScreenCapture failed: image is null.";
         return;
     }
 }
@@ -737,7 +737,7 @@ void SetDmErrorCodeObjectProperty(napi_env env, napi_value dmErrorCode)
 
 napi_value ScreenshotModuleInit(napi_env env, napi_value exports)
 {
-    TLOGI(WmsLogTag::DMS, "called");
+    TLOGI_LIMITN_HOUR(WmsLogTag::DMS, TEN_TIMES, "called");
 
     napi_value errorCode = nullptr;
     napi_value dmErrorCode = nullptr;

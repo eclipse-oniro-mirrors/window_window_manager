@@ -433,7 +433,7 @@ void WindowManagerProxy::ProcessPointUp(uint32_t windowId)
     }
 }
 
-WMError WindowManagerProxy::MinimizeAllAppWindows(DisplayId displayId)
+WMError WindowManagerProxy::MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -444,6 +444,10 @@ WMError WindowManagerProxy::MinimizeAllAppWindows(DisplayId displayId)
     }
     if (!data.WriteUint64(displayId)) {
         WLOGFE("Write displayId failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(excludeWindowId)) {
+        WLOGFE("Write excludeWindowId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();

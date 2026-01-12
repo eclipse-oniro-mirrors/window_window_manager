@@ -32,6 +32,7 @@ enum class ScreenTransitionState {
     SCREEN_ON,
     SCREEN_OFF,
     WAIT_SCREEN_ON_READY,
+    WAIT_SCREEN_ADVANCED_ON_READY,
     SCREEN_AOD,
     WAIT_LOCK_SCREEN_IND,
     WAIT_SCREEN_CTRL_RSP,
@@ -49,6 +50,8 @@ enum class ScreenPowerEvent {
     POWER_ON_DIRECTLY,
     POWER_OFF_DIRECTLY,
     SUSPEND,
+    SET_SCREEN_POWER_FOR_ALL_POWER_ON,
+    SET_SCREEN_POWER_FOR_ALL_POWER_OFF,
     OFF_CANCEL,
     SCREEN_MANAGE_RIGHT_REQ,
     AOD_ENTER_SUCCESS,
@@ -64,7 +67,9 @@ enum class ScreenPowerEvent {
     DMS_POWER_CB_END,
     WAKEUP_BEGIN,
     SUSPEND_BEGIN,
+    WAKEUP_BEGIN_ADVANCED,
     SCREEN_POWER_EVENT_MAX,
+    SYNC_POWER_ON, //Special scenario, PMS force synchronization ON state
 };
 
 enum class AodStatus {
@@ -122,6 +127,8 @@ private:
     static bool DoAodExitAndSetPowerAllOff(ScreenPowerEvent event, const ScreenPowerInfoType& type);
     static bool DoSuspendBegin(ScreenPowerEvent event, const ScreenPowerInfoType& type);
     static bool DoWaitAodRequest(ScreenPowerEvent event, const ScreenPowerInfoType& type);
+    static bool DoSetScreenPowerForAll(ScreenPowerEvent event, const ScreenPowerInfoType& type);
+    static bool ActionScreenPowerOff(ScreenPowerEvent event, const ScreenPowerInfoType& type);
 
     ScreenStateTimer timer_;
     std::mutex mtx;

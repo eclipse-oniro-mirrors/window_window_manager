@@ -267,7 +267,7 @@ HWTEST_F(WebPictureInPictureControllerTest, SetPipParentWindowId, TestSize.Level
     bool isPC = multiWindowUIType == "FreeFormMultiWindow";
     if (!isPC) {
         EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
-        return;
+        GTEST_SKIP();
     }
     webPipControl->mainWindow_  = nullptr;
     EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_PIP_INTERNAL_ERROR);

@@ -58,7 +58,7 @@ void MainSessionTest::SetUp()
     info.moduleName_ = "testMainSession2";
     info.bundleName_ = "testMainSession3";
     mainSession_ = sptr<MainSession>::MakeSptr(info, specificCallback);
-    EXPECT_NE(nullptr, mainSession_);
+    ASSERT_NE(nullptr, mainSession_);
 }
 
 void MainSessionTest::TearDown()
@@ -92,11 +92,11 @@ HWTEST_F(MainSessionTest, MainSession01, TestSize.Level1)
     info.moduleName_ = "";
     info.bundleName_ = "";
     pMainSession = sptr<MainSession>::MakeSptr(info, pSpecificCallback);
-    EXPECT_NE(nullptr, pMainSession);
+    ASSERT_NE(nullptr, pMainSession);
 
     info.persistentId_ = 0;
     pMainSession = sptr<MainSession>::MakeSptr(info, pSpecificCallback);
-    EXPECT_NE(nullptr, pMainSession);
+    ASSERT_NE(nullptr, pMainSession);
 
     info.persistentId_ = -1;
     info.abilityName_ = "MainSession01";
@@ -104,11 +104,11 @@ HWTEST_F(MainSessionTest, MainSession01, TestSize.Level1)
     info.bundleName_ = "MainSession03";
     pSpecificCallback = new (std::nothrow) MainSession::SpecificSessionCallback;
     pMainSession = sptr<MainSession>::MakeSptr(info, pSpecificCallback);
-    EXPECT_NE(nullptr, pMainSession);
+    ASSERT_NE(nullptr, pMainSession);
 
     info.persistentId_ = 0;
     pMainSession = sptr<MainSession>::MakeSptr(info, pSpecificCallback);
-    EXPECT_NE(nullptr, pMainSession);
+    ASSERT_NE(nullptr, pMainSession);
 }
 
 /**
@@ -305,21 +305,21 @@ HWTEST_F(MainSessionTest, CheckPointerEventDispatch, TestSize.Level1)
 
     mainSession_->SetSessionState(SessionState::STATE_FOREGROUND);
     bool res = mainSession_->CheckPointerEventDispatch(pointerEvent);
-    ASSERT_EQ(res, true);
+    EXPECT_EQ(res, true);
 
     mainSession_->SetSessionState(SessionState::STATE_ACTIVE);
     res = mainSession_->CheckPointerEventDispatch(pointerEvent);
-    ASSERT_EQ(res, true);
+    EXPECT_EQ(res, true);
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_LEAVE_WINDOW);
     mainSession_->SetSessionState(SessionState::STATE_DISCONNECT);
     res = mainSession_->CheckPointerEventDispatch(pointerEvent);
-    ASSERT_EQ(res, true);
+    EXPECT_EQ(res, true);
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_PULL_DOWN);
     mainSession_->SetSessionState(SessionState::STATE_DISCONNECT);
     res = mainSession_->CheckPointerEventDispatch(pointerEvent);
-    ASSERT_EQ(res, false);
+    EXPECT_EQ(res, false);
 }
 
 /**
@@ -401,7 +401,7 @@ HWTEST_F(MainSessionTest, IsExitSplitOnBackground01, TestSize.Level1)
     bool isExitSplitOnBackground = true;
     mainSession_->SetExitSplitOnBackground(isExitSplitOnBackground);
     bool ret = mainSession_->IsExitSplitOnBackground();
-    ASSERT_EQ(true, ret);
+    EXPECT_EQ(true, ret);
 }
 
 /**
@@ -414,7 +414,7 @@ HWTEST_F(MainSessionTest, IsExitSplitOnBackground02, TestSize.Level1)
     bool isExitSplitOnBackground = false;
     mainSession_->SetExitSplitOnBackground(isExitSplitOnBackground);
     bool ret = mainSession_->IsExitSplitOnBackground();
-    ASSERT_EQ(false, ret);
+    EXPECT_EQ(false, ret);
 }
 
 /**
@@ -579,9 +579,9 @@ HWTEST_F(MainSessionTest, NotifyMainModalTypeChange, TestSize.Level1)
     info.abilityName_ = "NotifyMainModalTypeChange";
     info.bundleName_ = "NotifyMainModalTypeChange";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
     sceneSession->RegisterMainModalTypeChangeCallback([](bool isModal) { return; });
-    EXPECT_NE(sceneSession->onMainModalTypeChange_, nullptr);
+    ASSERT_NE(sceneSession->onMainModalTypeChange_, nullptr);
     EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyMainModalTypeChange(true));
 }
 
@@ -618,8 +618,8 @@ HWTEST_F(MainSessionTest, IsModal, TestSize.Level1)
     info.abilityName_ = "IsModal";
     info.bundleName_ = "IsModal";
     sptr<MainSession> sceneSession = sptr<MainSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
-    EXPECT_EQ(sceneSession->IsModal(), false);
+    ASSERT_NE(sceneSession, nullptr);
+    ASSERT_EQ(sceneSession->IsModal(), false);
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     property->AddWindowFlag(WindowFlag::WINDOW_FLAG_IS_MODAL);
@@ -821,7 +821,7 @@ HWTEST_F(MainSessionTest, RegisterSessionLockStateChangeCallback, TestSize.Level
     bool isLockedState = true;
     session->SetSessionLockState(isLockedState);
     session->RegisterSessionLockStateChangeCallback([](bool isLockedState) {});
-    EXPECT_NE(session->onSessionLockStateChangeCallback_, nullptr);
+    ASSERT_NE(session->onSessionLockStateChangeCallback_, nullptr);
     EXPECT_EQ(session->GetSessionLockState(), isLockedState);
 }
 
@@ -835,31 +835,31 @@ HWTEST_F(MainSessionTest, SetRecentSessionState, TestSize.Level1)
     RecentSessionInfo info;
     SessionState state = SessionState::STATE_DISCONNECT;
     mainSession_->SetRecentSessionState(info, state);
-    ASSERT_EQ(info.sessionState, RecentSessionState::DISCONNECT);
+    EXPECT_EQ(info.sessionState, RecentSessionState::DISCONNECT);
 
     state = SessionState::STATE_CONNECT;
     mainSession_->SetRecentSessionState(info, state);
-    ASSERT_EQ(info.sessionState, RecentSessionState::CONNECT);
+    EXPECT_EQ(info.sessionState, RecentSessionState::CONNECT);
 
     state = SessionState::STATE_FOREGROUND;
     mainSession_->SetRecentSessionState(info, state);
-    ASSERT_EQ(info.sessionState, RecentSessionState::FOREGROUND);
+    EXPECT_EQ(info.sessionState, RecentSessionState::FOREGROUND);
 
     state = SessionState::STATE_BACKGROUND;
     mainSession_->SetRecentSessionState(info, state);
-    ASSERT_EQ(info.sessionState, RecentSessionState::BACKGROUND);
+    EXPECT_EQ(info.sessionState, RecentSessionState::BACKGROUND);
 
     state = SessionState::STATE_ACTIVE;
     mainSession_->SetRecentSessionState(info, state);
-    ASSERT_EQ(info.sessionState, RecentSessionState::ACTIVE);
+    EXPECT_EQ(info.sessionState, RecentSessionState::ACTIVE);
 
     state = SessionState::STATE_INACTIVE;
     mainSession_->SetRecentSessionState(info, state);
-    ASSERT_EQ(info.sessionState, RecentSessionState::INACTIVE);
+    EXPECT_EQ(info.sessionState, RecentSessionState::INACTIVE);
 
     state = SessionState::STATE_END;
     mainSession_->SetRecentSessionState(info, state);
-    ASSERT_EQ(info.sessionState, RecentSessionState::END);
+    EXPECT_EQ(info.sessionState, RecentSessionState::END);
 }
 
 /**
@@ -873,10 +873,10 @@ HWTEST_F(MainSessionTest, UpdateFlag, TestSize.Level1)
     info.abilityName_ = "UpdateFlag";
     info.bundleName_ = "UpdateFlag";
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(nullptr, session);
+    ASSERT_NE(nullptr, session);
 
     session->onUpdateFlagFunc_ = nullptr;
-    EXPECT_EQ(nullptr, session->onUpdateFlagFunc_);
+    ASSERT_EQ(nullptr, session->onUpdateFlagFunc_);
 
     std::string flag = "test";
     EXPECT_EQ(WSError::WS_OK, session->UpdateFlag(flag));
@@ -906,7 +906,7 @@ HWTEST_F(MainSessionTest, NotifySubAndDialogFollowRectChange01, TestSize.Level1)
     WSRect rect;
     subSession->isFollowParentLayout_ = false;
     mainSession->NotifySubAndDialogFollowRectChange(rect, false, false);
-    ASSERT_NE(false, isCall);
+    EXPECT_NE(false, isCall);
 
     subSession->isFollowParentLayout_ = true;
     sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
@@ -914,7 +914,7 @@ HWTEST_F(MainSessionTest, NotifySubAndDialogFollowRectChange01, TestSize.Level1)
     auto getSessionCallBack = [&subSession](int32_t persistentId) { return subSession; };
     callBack->onGetSceneSessionByIdCallback_ = getSessionCallBack;
     mainSession->NotifySubAndDialogFollowRectChange(rect, false, false);
-    ASSERT_EQ(true, isCall);
+    EXPECT_EQ(true, isCall);
 }
 
 /**
@@ -960,14 +960,14 @@ HWTEST_F(MainSessionTest, NotifySubAndDialogFollowRectChange_scaleMode, TestSize
     WSRect updateRect2;
     auto task2 = [&updateRect2](const WSRect& rect, bool isGlobal, bool needFlush) { updateRect2 = rect; };
     mainSession->RegisterNotifySurfaceBoundsChangeFunc(subSession2->GetPersistentId(), std::move(task2));
-    EXPECT_NE(nullptr, mainSession->notifySurfaceBoundsChangeFuncMap_[subSession1->GetPersistentId()]);
+    ASSERT_NE(nullptr, mainSession->notifySurfaceBoundsChangeFuncMap_[subSession1->GetPersistentId()]);
     WSRect rect = { 100, 100, 400, 400 };
-    WSRect resultRect = { 200, 200, 200, 200 };
+    WSRect resultRect = { 100, 100, 200, 200 };
     float scaleX = 0.5f;
     float scaleY = 0.5f;
     mainSession->SetScale(scaleX, scaleY, 0.5f, 0.5f);
     mainSession->SetSessionRect(rect);
-    EXPECT_EQ(rect, mainSession->GetSessionRect());
+    ASSERT_EQ(rect, mainSession->GetSessionRect());
     sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
     compatibleModeProperty->SetIsAdaptToProportionalScale(true);
     mainSession->property_->SetCompatibleModeProperty(compatibleModeProperty);
@@ -1012,7 +1012,7 @@ HWTEST_F(MainSessionTest, NotifySubAndDialogFollowRectChange_compatMode, TestSiz
     WSRect updateRect2;
     auto task2 = [&updateRect2](const WSRect& rect, bool isGlobal, bool needFlush) { updateRect2 = rect; };
     mainSession->RegisterNotifySurfaceBoundsChangeFunc(subSession2->GetPersistentId(), std::move(task2));
-    EXPECT_NE(nullptr, mainSession->notifySurfaceBoundsChangeFuncMap_[subSession1->GetPersistentId()]);
+    ASSERT_NE(nullptr, mainSession->notifySurfaceBoundsChangeFuncMap_[subSession1->GetPersistentId()]);
     float scaleX = 0.5f;
     float scaleY = 0.5f;
     mainSession->SetScale(scaleX, scaleY, 0.5f, 0.5f);
@@ -1036,7 +1036,7 @@ HWTEST_F(MainSessionTest, NotifySubAndDialogFollowRectChange_compatMode, TestSiz
     sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
     compatibleModeProperty->SetIsAdaptToProportionalScale(true);
     mainSession->property_->SetCompatibleModeProperty(compatibleModeProperty);
-    WSRect resultRect = { 200, 200, 200, 200 };
+    WSRect resultRect = { 100, 100, 200, 200 };
     mainSession->callingPid_ = 1;
     subSession1->callingPid_ = 1;
     subSession2->callingPid_ = 2;
@@ -1098,6 +1098,141 @@ HWTEST_F(MainSessionTest, RestoreAspectRatioTest, TestSize.Level1)
         EXPECT_TRUE(ret);
         EXPECT_FLOAT_EQ(session->GetAspectRatio(), ratio);
     }
+}
+
+/**
+ * @tc.name: IsExitSplitOnBackgroundRecover
+ * @tc.desc: Verify IsExitSplitOnBackgroundRecover.
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, IsExitSplitOnBackgroundRecover, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+
+    ASSERT_NE(session, nullptr);
+    int32_t snapShotRecoverValue = 0;
+    session->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), false);
+    session->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), true);
+    session->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), true);
+    session->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->isExitSplitOnBackground_ = true;
+    EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), true);
+}
+
+/**
+ * @tc.name: GetAppForceLandscapeConfigEnable01
+ * @tc.desc: Test GetAppForceLandscapeConfigEnable when forceSplitEnableFunc_ is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, GetAppForceLandscapeConfigEnable01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testMainSession1";
+    info.moduleName_ = "testMainSession2";
+    info.bundleName_ = "testMainSession3";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    
+    bool enableForceSplit = false;
+    WMError res = session->GetAppForceLandscapeConfigEnable(enableForceSplit);
+    EXPECT_EQ(res, WMError::WM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: GetAppForceLandscapeConfigEnable02
+ * @tc.desc: Test GetAppForceLandscapeConfigEnable when forceSplitEnableFunc_ is set
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, GetAppForceLandscapeConfigEnable02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testMainSession1";
+    info.moduleName_ = "testMainSession2";
+    info.bundleName_ = "testBundle";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    
+    bool expectedEnable = true;
+    session->RegisterForceSplitEnableListener(
+        [expectedEnable](const std::string& bundleName) {
+            return expectedEnable;
+        });
+    
+    bool enableForceSplit = false;
+    WMError res = session->GetAppForceLandscapeConfigEnable(enableForceSplit);
+    EXPECT_EQ(res, WMError::WM_OK);
+    EXPECT_EQ(enableForceSplit, expectedEnable);
+}
+
+/**
+ * @tc.name: NotifyAppForceLandscapeConfigEnableUpdated01
+ * @tc.desc: Test NotifyAppForceLandscapeConfigEnableUpdated when sessionStage_ is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, NotifyAppForceLandscapeConfigEnableUpdated01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testMainSession1";
+    info.moduleName_ = "testMainSession2";
+    info.bundleName_ = "testMainSession3";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = nullptr;
+    
+    WSError res = session->NotifyAppForceLandscapeConfigEnableUpdated();
+    EXPECT_EQ(res, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: NotifyAppForceLandscapeConfigEnableUpdated02
+ * @tc.desc: Test NotifyAppForceLandscapeConfigEnableUpdated when sessionStage_ is set
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, NotifyAppForceLandscapeConfigEnableUpdated02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testMainSession1";
+    info.moduleName_ = "testMainSession2";
+    info.bundleName_ = "testMainSession3";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    
+    WSError res = session->NotifyAppForceLandscapeConfigEnableUpdated();
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: RegisterForceSplitEnableListener
+ * @tc.desc: Test RegisterForceSplitEnableListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, RegisterForceSplitEnableListener, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testMainSession1";
+    info.moduleName_ = "testMainSession2";
+    info.bundleName_ = "testBundle";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    
+    bool callbackCalled = false;
+    bool callbackResult = true;
+    session->RegisterForceSplitEnableListener(
+        [&callbackCalled, callbackResult](const std::string& bundleName) {
+            callbackCalled = true;
+            return callbackResult;
+        });
+    
+    bool enableForceSplit = false;
+    WMError res = session->GetAppForceLandscapeConfigEnable(enableForceSplit);
+    EXPECT_EQ(res, WMError::WM_OK);
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(enableForceSplit, callbackResult);
 }
 } // namespace
 } // namespace Rosen

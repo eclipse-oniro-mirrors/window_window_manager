@@ -22,7 +22,7 @@ namespace OHOS {
 namespace Rosen {
 void WindowManagerAgent::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused)
 {
-    SingletonContainer::Get<WindowManager>().UpdateFocusChangeInfo(focusChangeInfo, focused);
+    WindowManager::GetInstance().UpdateFocusChangeInfo(focusChangeInfo, focused);
 }
 
 void WindowManagerAgent::UpdateWindowModeTypeInfo(WindowModeType type)
@@ -90,7 +90,7 @@ void WindowManagerAgent::NotifyWindowPidVisibilityChanged(const sptr<WindowPidVi
 }
 
 void WindowManagerAgent::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-    const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList)
+    const WindowInfoList& windowInfoList)
 {
     WindowManager::GetInstance().NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
 }

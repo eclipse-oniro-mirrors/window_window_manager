@@ -208,6 +208,37 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleUpdateSessionOcclusionStateListener
 }
 
 /**
+ * @tc.name: HandleGetRootUIContentRemoteObj01
+ * @tc.desc: test HandleGetRootUIContentRemoteObj
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetRootUIContentRemoteObj01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    ASSERT_NE(stub_, nullptr);
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_GET_ROOT_UI_CONTENT_REMOTE_OBJ);
+    auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    DisplayId displayId = 1000;
+    sptr<IRemoteObject> uiContentRemoteObj = nullptr;
+    data.ReadUint64(displayId);
+    res = stub_->HandleGetRootUIContentRemoteObj(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadUint64ErrorFlag(true);
+    res = stub_->HandleGetRootUIContentRemoteObj(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetReadUint64ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: HandleCreateUIEffectController
  * @tc.desc: test HandleCreateUIEffectController
  * @tc.type: FUNC

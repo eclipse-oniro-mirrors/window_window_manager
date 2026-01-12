@@ -107,12 +107,12 @@ HWTEST_F(SingleDisplaySensorSuperFoldStateManagerTest, UpdateSwitchScreenBoundar
     int hall = 0;
     SingleDisplaySensorSuperFoldStateManager manager;
     manager.UpdateSwitchScreenBoundaryForLargeFoldDevice(angel, hall);
-    EXPECT_TRUE(true);
+    EXPECT_EQ(manager.allowUserSensorForLargeFoldDevice, 0);
 
     angel = 91.0F;
     hall = 1;
     manager.UpdateSwitchScreenBoundaryForLargeFoldDevice(angel, hall);
-    EXPECT_TRUE(true);
+    EXPECT_EQ(manager.allowUserSensorForLargeFoldDevice, 1);
 }
 
 /**

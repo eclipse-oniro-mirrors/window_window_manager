@@ -42,9 +42,15 @@ public:
 
     using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+    virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
     virtual WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
         const sptr<IWindowManagerAgent>& windowManagerAgent);
     virtual WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
+        const sptr<IWindowManagerAgent>& windowManagerAgent);
+    virtual WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent);
+    virtual WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
         const sptr<IWindowManagerAgent>& windowManagerAgent);
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid);
     virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos);
@@ -84,6 +90,13 @@ private:
 
     static inline SingletonDelegator<WindowAdapterLite> delegator;
     bool InitSSMProxy();
+
+    /*
+     * Window Recover
+     */
+    uint32_t observedFlags_ = 0;
+    uint32_t interestedFlags_ = 0;
+    WMError RecoverWindowPropertyChangeFlag();
 
     /*
      * Multi user and multi screen

@@ -539,14 +539,14 @@ AvoidArea WindowRoot::GetAvoidAreaByType(uint32_t windowId, AvoidAreaType avoidA
     return container->GetAvoidAreaByType(node, avoidAreaType);
 }
 
-void WindowRoot::MinimizeAllAppWindows(DisplayId displayId)
+void WindowRoot::MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId)
 {
     auto container = GetOrCreateWindowNodeContainer(displayId);
     if (container == nullptr) {
         WLOGFE("can't find window node container, failed!");
         return;
     }
-    return container->MinimizeAllAppWindows(displayId);
+    return container->MinimizeAllAppWindows(displayId, excludeWindowId);
 }
 
 WMError WindowRoot::ToggleShownStateForAllAppWindows()

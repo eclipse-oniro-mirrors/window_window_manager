@@ -190,14 +190,14 @@ HWTEST_F(DisplayManagerConfigTest, ReadStringConfigInfo, TestSize.Level1)
     auto configFilePath = DisplayManagerConfig::GetConfigPath("etc/window/resources/display_manager_config.xml");
     xmlDocPtr docPtr = xmlReadFile(configFilePath.c_str(), nullptr, XML_PARSE_NOBLANKS);
     if (docPtr == nullptr) {
-        return;
+        GTEST_SKIP();
     }
 
     xmlNodePtr rootPtr = xmlDocGetRootElement(docPtr);
     if (rootPtr == nullptr || rootPtr->name == nullptr ||
         xmlStrcmp(rootPtr->name, reinterpret_cast<const xmlChar*>("Configs"))) {
         xmlFreeDoc(docPtr);
-        return;
+        GTEST_SKIP();
     }
     uint32_t readCount = 0;
     for (xmlNodePtr curNodePtr = rootPtr->xmlChildrenNode; curNodePtr != nullptr; curNodePtr = curNodePtr->next) {

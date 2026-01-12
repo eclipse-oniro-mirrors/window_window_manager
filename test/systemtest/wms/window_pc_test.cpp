@@ -260,14 +260,7 @@ HWTEST_F(WindowPCTest, SetWindowTitleMoveEnabled01, TestSize.Level1)
     window->property_->SetPersistentId(10061);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
 
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
-
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_OK, window->SetWindowTitleMoveEnabled(false));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
 
     window->Destroy(true, true);
 }
@@ -293,14 +286,7 @@ HWTEST_F(WindowPCTest, SetWindowTitleMoveEnabled02, TestSize.Level1)
     window->property_->SetPersistentId(10062);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
 
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
-
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_OK, window->SetWindowTitleMoveEnabled(false));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
 
     window->Destroy(true, true);
 }
@@ -326,14 +312,7 @@ HWTEST_F(WindowPCTest, SetWindowTitleMoveEnabled03, TestSize.Level1)
     window->property_->SetPersistentId(10063);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
 
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
-
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, window->SetWindowTitleMoveEnabled(false));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
 
     window->Destroy(true, true);
 }

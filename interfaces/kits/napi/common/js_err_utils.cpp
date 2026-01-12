@@ -88,6 +88,61 @@ static std::map<WMError, const char*> WM_ERROR_TO_ERROR_MSG_MAP {
     {WMError::WM_ERROR_TIMEOUT,                         WM_ERROR_MSG_TIMEOUT                     },
 };
 
+// The prefix information of the WM error message.
+constexpr const char* PRE_WM_ERROR_CODE_MSG_OK = "ok";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_NO_PERMISSION = "Permission verification failed. "
+    "The application does not have the permission required to call the API.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_NOT_SYSTEM_APP = "Permission verification failed. "
+    "A non-system application calls a system API.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_INVALID_PARAM = "Parameter error.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_DEVICE_NOT_SUPPORT = "Capability not supported. "
+    "Failed to call the API due to limited device capabilities.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_REPEAT_OPERATION = "Repeated operation.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_STATE_ABNORMALLY = "This window state is abnormal.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_SYSTEM_ABNORMALLY = "This window manager service works abnormally.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_INVALID_CALLING = "Unauthorized operation.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_STAGE_ABNORMALLY = "This window stage is abnormal.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_CONTEXT_ABNORMALLY = "This window context is abnormal.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_START_ABILITY_FAILED = "Failed to start the ability.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_INVALID_DISPLAY = "The display device is abnormal.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_INVALID_PARENT = "The parent window is invalid.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_INVALID_OP_IN_CUR_STATUS =
+    "The operation in the current window status is invalid.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_PIP_DESTROY_FAILED = "Failed to destroy the PiP window.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_PIP_STATE_ABNORMALLY = "The PiP window state is abnormal.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_PIP_CREATE_FAILED = "Failed to create the PiP window.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_PIP_INTERNAL_ERROR = "PiP internal error.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_PIP_REPEAT_OPERATION = "Repeated PiP operation.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_ILLEGAL_PARAM = "Parameter validation error.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_UI_EFFECT_ERROR = "Incorrect ui effect calling.";
+constexpr const char* PRE_WM_ERROR_CODE_MSG_TIMEOUT = "API call timed out.";
+
+static const std::map<WmErrorCode, const char*> PRE_WM_ERROR_CODE_TO_ERROR_MSG_MAP {
+    {WmErrorCode::WM_OK,                              PRE_WM_ERROR_CODE_MSG_OK                       },
+    {WmErrorCode::WM_ERROR_NO_PERMISSION,             PRE_WM_ERROR_CODE_MSG_NO_PERMISSION            },
+    {WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,            PRE_WM_ERROR_CODE_MSG_NOT_SYSTEM_APP           },
+    {WmErrorCode::WM_ERROR_INVALID_PARAM,             PRE_WM_ERROR_CODE_MSG_INVALID_PARAM            },
+    {WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,        PRE_WM_ERROR_CODE_MSG_DEVICE_NOT_SUPPORT       },
+    {WmErrorCode::WM_ERROR_REPEAT_OPERATION,          PRE_WM_ERROR_CODE_MSG_REPEAT_OPERATION         },
+    {WmErrorCode::WM_ERROR_STATE_ABNORMALLY,          PRE_WM_ERROR_CODE_MSG_STATE_ABNORMALLY         },
+    {WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,         PRE_WM_ERROR_CODE_MSG_SYSTEM_ABNORMALLY        },
+    {WmErrorCode::WM_ERROR_INVALID_CALLING,           PRE_WM_ERROR_CODE_MSG_INVALID_CALLING          },
+    {WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,          PRE_WM_ERROR_CODE_MSG_STAGE_ABNORMALLY         },
+    {WmErrorCode::WM_ERROR_CONTEXT_ABNORMALLY,        PRE_WM_ERROR_CODE_MSG_CONTEXT_ABNORMALLY       },
+    {WmErrorCode::WM_ERROR_START_ABILITY_FAILED,      PRE_WM_ERROR_CODE_MSG_START_ABILITY_FAILED     },
+    {WmErrorCode::WM_ERROR_INVALID_DISPLAY,           PRE_WM_ERROR_CODE_MSG_INVALID_DISPLAY          },
+    {WmErrorCode::WM_ERROR_INVALID_PARENT,            PRE_WM_ERROR_CODE_MSG_INVALID_PARENT           },
+    {WmErrorCode::WM_ERROR_INVALID_OP_IN_CUR_STATUS,  PRE_WM_ERROR_CODE_MSG_INVALID_OP_IN_CUR_STATUS },
+    {WmErrorCode::WM_ERROR_PIP_DESTROY_FAILED,        PRE_WM_ERROR_CODE_MSG_PIP_DESTROY_FAILED       },
+    {WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY,      PRE_WM_ERROR_CODE_MSG_PIP_STATE_ABNORMALLY     },
+    {WmErrorCode::WM_ERROR_PIP_CREATE_FAILED,         PRE_WM_ERROR_CODE_MSG_PIP_CREATE_FAILED        },
+    {WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,        PRE_WM_ERROR_CODE_MSG_PIP_INTERNAL_ERROR       },
+    {WmErrorCode::WM_ERROR_PIP_REPEAT_OPERATION,      PRE_WM_ERROR_CODE_MSG_PIP_REPEAT_OPERATION     },
+    {WmErrorCode::WM_ERROR_ILLEGAL_PARAM,             PRE_WM_ERROR_CODE_MSG_ILLEGAL_PARAM            },
+    {WmErrorCode::WM_ERROR_UI_EFFECT_ERROR,           PRE_WM_ERROR_CODE_MSG_UI_EFFECT_ERROR          },
+    {WmErrorCode::WM_ERROR_TIMEOUT,                   PRE_WM_ERROR_CODE_MSG_TIMEOUT                  },
+};
+
 constexpr const char* WM_ERROR_CODE_MSG_OK = "ok";
 constexpr const char* WM_ERROR_CODE_MSG_NO_PERMISSION = "Permission verification failed. "
     "The application does not have the permission required to call the API.";
@@ -198,6 +253,30 @@ static std::map<DMError, const char*> DM_ERROR_TO_ERROR_MSG_MAP {
     {DMError::DM_ERROR_UNKNOWN,                         DM_ERROR_MSG_UNKNOWN                      },
 };
 
+// The prefix information of the DM error message.
+constexpr const char* PRE_DM_ERROR_CODE_MSG_OK = "ok";
+constexpr const char* PRE_DM_ERROR_CODE_MSG_NO_PERMISSION = "Permission verification failed. "
+    "The application does not have the permission required to call the API.";
+constexpr const char* PRE_DM_ERROR_CODE_MSG_NOT_SYSTEM_APP = "Permission verification failed. "
+    "A non-system application calls a system API.";
+constexpr const char* PRE_DM_ERROR_CODE_MSG_INVALID_PARAM = "Parameter error.";
+constexpr const char* PRE_DM_ERROR_CODE_MSG_DEVICE_NOT_SUPPORT = "Capability not supported. "
+    "Failed to call the API due to limited device capabilities.";
+constexpr const char* PRE_DM_ERROR_CODE_MSG_INVALID_SCREEN = "Invalid display or screen.";
+constexpr const char* PRE_DM_ERROR_CODE_MSG_INVALID_CALLING = "Unauthorized operation.";
+constexpr const char* PRE_DM_ERROR_CODE_MSG_SYSTEM_INNORMAL = "This display manager service works abnormally.";
+
+static const std::map<DmErrorCode, const char*> PRE_DM_ERROR_CODE_TO_ERROR_MSG_MAP {
+    {DmErrorCode::DM_OK,                              PRE_DM_ERROR_CODE_MSG_OK                 },
+    {DmErrorCode::DM_ERROR_NO_PERMISSION,             PRE_DM_ERROR_CODE_MSG_NO_PERMISSION      },
+    {DmErrorCode::DM_ERROR_NOT_SYSTEM_APP,            PRE_DM_ERROR_CODE_MSG_NOT_SYSTEM_APP     },
+    {DmErrorCode::DM_ERROR_INVALID_PARAM,             PRE_DM_ERROR_CODE_MSG_INVALID_PARAM      },
+    {DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT,        PRE_DM_ERROR_CODE_MSG_DEVICE_NOT_SUPPORT },
+    {DmErrorCode::DM_ERROR_INVALID_SCREEN,            PRE_DM_ERROR_CODE_MSG_INVALID_SCREEN     },
+    {DmErrorCode::DM_ERROR_INVALID_CALLING,           PRE_DM_ERROR_CODE_MSG_INVALID_CALLING    },
+    {DmErrorCode::DM_ERROR_SYSTEM_INNORMAL,           PRE_DM_ERROR_CODE_MSG_SYSTEM_INNORMAL    },
+};
+
 constexpr const char* DM_ERROR_CODE_MSG_OK = "ok";
 constexpr const char* DM_ERROR_CODE_MSG_NO_PERMISSION = "no permission";
 constexpr const char* DM_ERROR_CODE_MSG_NOT_SYSTEM_APP = "not system app";
@@ -241,6 +320,18 @@ napi_value JsErrUtils::CreateJsValue(napi_env env, const T& value)
     }
 }
 
+std::string JsErrUtils::GetPreErrorMsg(const WmErrorCode& errorCode)
+{
+    return PRE_WM_ERROR_CODE_TO_ERROR_MSG_MAP.find(errorCode) != PRE_WM_ERROR_CODE_TO_ERROR_MSG_MAP.end() ?
+        PRE_WM_ERROR_CODE_TO_ERROR_MSG_MAP.at(errorCode) : "";
+}
+
+std::string JsErrUtils::GetPreErrorMsg(const DmErrorCode& errorCode)
+{
+    return PRE_DM_ERROR_CODE_TO_ERROR_MSG_MAP.find(errorCode) != PRE_DM_ERROR_CODE_TO_ERROR_MSG_MAP.end() ?
+        PRE_DM_ERROR_CODE_TO_ERROR_MSG_MAP.at(errorCode) : "";
+}
+
 std::string JsErrUtils::GetErrorMsg(const WMError& errorCode)
 {
     return WM_ERROR_TO_ERROR_MSG_MAP.find(errorCode) != WM_ERROR_TO_ERROR_MSG_MAP.end() ?
@@ -277,7 +368,7 @@ napi_value JsErrUtils::CreateJsError(napi_env env, const WmErrorCode& errorCode,
 {
     napi_value result = nullptr;
     napi_create_error(env, CreateJsValue(env, static_cast<int32_t>(errorCode)),
-        CreateJsValue(env, msg == "" ? GetErrorMsg(errorCode) : msg), &result);
+        CreateJsValue(env, msg == "" ? GetErrorMsg(errorCode) : (GetPreErrorMsg(errorCode) + msg)), &result);
     return result;
 }
 
@@ -293,7 +384,7 @@ napi_value JsErrUtils::CreateJsError(napi_env env, const DmErrorCode& errorCode,
 {
     napi_value result = nullptr;
     napi_create_error(env, CreateJsValue(env, static_cast<int32_t>(errorCode)),
-        CreateJsValue(env, msg == "" ? GetErrorMsg(errorCode) : msg), &result);
+        CreateJsValue(env, msg == "" ? GetErrorMsg(errorCode) : (GetPreErrorMsg(errorCode) + msg)), &result);
     return result;
 }
 } // namespace OHOS::Rosen

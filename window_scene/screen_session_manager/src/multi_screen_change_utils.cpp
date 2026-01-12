@@ -31,7 +31,7 @@ void MultiScreenChangeUtils::ScreenPropertyChangeNotify(sptr<ScreenSession>& inn
 {
     if (innerScreen != nullptr) {
         ScreenProperty property = innerScreen->GetScreenProperty();
-        property.SetPropertyChangeReason("screen mode change");
+        property.SetPropertyChangeReason(ScreenPropertyChangeReason::SCREEN_MODE_CHANGE);
         TLOGW(WmsLogTag::DMS, "property change screenId=%{public}" PRIu64, innerScreen->GetScreenId());
         innerScreen->PropertyChange(property, ScreenPropertyChangeReason::CHANGE_MODE);
         ScreenSessionManager::GetInstance().NotifyScreenChanged(innerScreen->ConvertToScreenInfo(),
@@ -41,7 +41,7 @@ void MultiScreenChangeUtils::ScreenPropertyChangeNotify(sptr<ScreenSession>& inn
     }
     if (externalScreen != nullptr) {
         ScreenProperty property = externalScreen->GetScreenProperty();
-        property.SetPropertyChangeReason("screen mode change");
+        property.SetPropertyChangeReason(ScreenPropertyChangeReason::SCREEN_MODE_CHANGE);
         TLOGW(WmsLogTag::DMS, "property change screenId=%{public}" PRIu64, externalScreen->GetScreenId());
         externalScreen->PropertyChange(property, ScreenPropertyChangeReason::CHANGE_MODE);
         ScreenSessionManager::GetInstance().NotifyScreenChanged(externalScreen->ConvertToScreenInfo(),

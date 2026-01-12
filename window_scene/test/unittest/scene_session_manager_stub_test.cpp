@@ -1440,6 +1440,26 @@ HWTEST_F(SceneSessionManagerStubTest, HandleGetFocusSessionInfo1, TestSize.Level
 }
 
 /**
+ * @tc.name: HandleGetFocusWindowInfoByAbilityToken
+ * @tc.desc: test HandleGetFocusWindowInfoByAbilityToken
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleGetFocusWindowInfoByAbilityToken, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<IRemoteObject> token = nullptr;
+    data.WriteRemoteObject(token);
+    int res = stub_->HandleGetFocusWindowInfoByAbilityToken(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    token = sptr<IRemoteObjectMocker>::MakeSptr();
+    data.WriteRemoteObject(token);
+    res = stub_->HandleGetFocusWindowInfoByAbilityToken(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleGetFocusSessionElement
  * @tc.desc: test HandleGetFocusSessionElement
  * @tc.type: FUNC
@@ -1699,7 +1719,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleConvertToRelativeCoordinateExtended,
     data1.WriteInt32(rect.width_);
     data1.WriteInt32(rect.height_);
     int res1 = stub_->HandleConvertToRelativeCoordinateExtended(data1, reply);
-    EXPECT_EQ(res1, ERR_NONE);
+    EXPECT_EQ(res1, ERR_TRANSACTION_FAILED);
 
     MessageParcel data2;
     data2.WriteInt32(rect.posX_);
@@ -2606,8 +2626,6 @@ HWTEST_F(SceneSessionManagerStubTest, HandleSetImageForRecentPixelMap, TestSize.
     int32_t persistentId = 1;
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
     data.WriteParcelable(pixelMap.get());
-    data.WriteUint32(static_cast<uint32_t>(imageFit));
-    data.WriteInt32(persistentId);
     int res = stub_->HandleSetImageForRecentPixelMap(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
 
@@ -2621,7 +2639,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleSetImageForRecentPixelMap, TestSize.
     opts.pixelFormat = Media::PixelFormat::RGBA_8888;
     opts.alphaType = Media::AlphaType::IMAGE_ALPHA_TYPE_OPAQUE;
     int32_t stride = opts.size.width;
-    std::shared_ptr<Media::PixelMap> pixelMap1 = Media::PixelMap::Create(colors, colorsLength, offset, stride, opts);
+    pixelMap = Media::PixelMap::Create(colors, colorsLength, offset, stride, opts);
 
     data.WriteParcelable(pixelMap.get());
     res = stub_->HandleSetImageForRecentPixelMap(data, reply);
@@ -2855,6 +2873,22 @@ HWTEST_F(SceneSessionManagerStubTest, HandleGetPiPSettingSwitchStatus, Function 
 }
 
 /**
+ *@tc.name: HandleGetIsPipEnabled
+ *@tc.desc: test HandleGetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(SceneSessionManagerStubTest, HandleGetIsPipEnabled, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    bool isPipEnabled = false;
+    data.WriteBool(isPipEnabled);
+    
+    int res = stub_->HandleGetIsPipEnabled(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleSetScreenPrivacyWindowTagSwitch01
  * @tc.desc: test HandleSetScreenPrivacyWindowTagSwitch
  * @tc.type: FUNC
@@ -3049,6 +3083,31 @@ HWTEST_F(SceneSessionManagerStubTest, HandleSetSpecificWindowZIndex, Function | 
     data.WriteUint64(2106);
     ret = stub_->HandleSetSpecificWindowZIndex(data, reply);
     EXPECT_EQ(ret, ERR_NONE);
+
+    data.WriteInt32(20);
+    ret = stub_->HandleSetSpecificWindowZIndex(data, reply);
+    EXPECT_EQ(ret, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: ResetSpecificWindowZIndex
+ * @tc.desc: ResetSpecificWindowZIndex
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, ResetSpecificWindowZIndex, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_RESET_SPECIFIC_WINDOW_ZINDEX);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    int ret = stub_->HandleResetSpecificWindowZIndex(data, reply);
+    EXPECT_EQ(ret, ERR_INVALID_DATA);
 
     data.WriteInt32(20);
     ret = stub_->HandleSetSpecificWindowZIndex(data, reply);

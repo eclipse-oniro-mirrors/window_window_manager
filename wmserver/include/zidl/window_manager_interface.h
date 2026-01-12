@@ -116,7 +116,7 @@ public:
         sptr<MoveDragProperty>& moveDragProperty) = 0;
     virtual void ProcessPointDown(uint32_t windowId, bool isPointDown) = 0;
     virtual void ProcessPointUp(uint32_t windowId) = 0;
-    virtual WMError MinimizeAllAppWindows(DisplayId displayId) = 0;
+    virtual WMError MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId = 0) = 0;
     virtual WMError ToggleShownStateForAllAppWindows() = 0;
     virtual WMError SetWindowLayoutMode(WindowLayoutMode mode) = 0;
     virtual WMError NotifyScreenshotEvent(ScreenshotEventType type) = 0;
@@ -188,11 +188,19 @@ public:
     {
         return WSError::WS_OK;
     }
+    virtual WMError GetRootUIContentRemoteObj(DisplayId displayId, sptr<IRemoteObject>& uiContentRemoteObj)
+    {
+        return WMError::WM_DO_NOTHING;
+    }
     virtual WMError GetWindowAnimationTargets(std::vector<uint32_t> missionIds,
         std::vector<sptr<RSWindowAnimationTarget>>& targets) = 0;
     virtual void SetMaximizeMode(MaximizeMode maximizeMode) = 0;
     virtual MaximizeMode GetMaximizeMode() = 0;
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+    virtual void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
+        const sptr<IRemoteObject>& abilityToken) {}
+    virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) = 0;
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid) { return WMError::WM_OK; }
     virtual WSError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener) { return WSError::WS_OK; }
     virtual WSError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener)
@@ -217,6 +225,10 @@ public:
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
     virtual WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex)
+    {
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual WSError ResetSpecificWindowZIndex(int32_t pid)
     {
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -369,6 +381,7 @@ public:
      * PiP Window
      */
     virtual WMError GetPiPSettingSwitchStatus(bool& switchStatus) { return WMError::WM_OK; }
+    virtual WMError GetIsPipEnabled(bool& isPipEnabled) { return WMError::WM_OK; }
 
     /*
      * Window outline

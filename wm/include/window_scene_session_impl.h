@@ -16,6 +16,8 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_SESSION_IMPL_H
 #define OHOS_ROSEN_WINDOW_SCENE_SESSION_IMPL_H
 
+#include <modifier/rs_property.h>
+
 #include "window_session_impl.h"
 #include "window_manager.h"
 #include "screen_manager.h"
@@ -169,6 +171,7 @@ public:
     bool GetDefaultDensityEnabled() override;
     WMError HideNonSecureWindows(bool shouldHide) override;
     void UpdateDensity() override;
+    WSError UpdateBrightness(float brightness) override;
     WSError UpdateOrientation() override;
     WMError GetTargetOrientationConfigInfo(Orientation targetOrientation,
         const std::map<Rosen::WindowType, Rosen::SystemBarProperty>& targetProperties,
@@ -180,7 +183,9 @@ public:
     WMError AdjustKeyboardLayout(const KeyboardLayoutParams params) override;
     WMError CheckAndModifyWindowRect(uint32_t& width, uint32_t& height) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
+    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
     WSError NotifyAppForceLandscapeConfigUpdated() override;
+    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
 
     /*
      * Sub Window
@@ -196,6 +201,8 @@ public:
     WMError SetFollowParentMultiScreenPolicy(bool enabled) override;
     WMError UseImplicitAnimation(bool useImplicit) override;
     bool IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
+    WSError AddSidebarBlur() override;
+    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
 
     /*
      * PC Window Layout
@@ -207,6 +214,7 @@ public:
     WMError IsWindowRectAutoSave(bool& enabled) override;
     WMError MaximizeFloating() override;
     WMError MaximizeForCompatibleMode();
+    WMError SwitchCompatibleMode(CompatibleStyleMode styleMode);
     WMError RecoverForCompatibleMode();
     WMError Maximize() override;
     WMError Maximize(MaximizePresentation presentation) override;
@@ -232,6 +240,7 @@ public:
     void HookDecorButtonStyleInCompatibleMode(uint32_t contentColor);
     WSError PcAppInPadNormalClose() override;
     void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
+    void SetForceSplitConfigEnable(bool enableForceSplit) override;
 
     /*
      * Free Multi Window
@@ -248,6 +257,7 @@ public:
     WMError GetWindowStatus(WindowStatus& windowStatus) override;
     bool GetIsUIExtFirstSubWindow() const override;
     bool GetIsUIExtAnySubWindow() const override;
+    bool IsInFreeWindowMode() const override;
 
     /*
      * Gesture Back
@@ -261,6 +271,7 @@ public:
     WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
     WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
     WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
+    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
 
     /*
      * Window Property
@@ -324,6 +335,9 @@ public:
     WMError SetFullScreen(bool status) override;
     WMError UpdateSystemBarProperties(const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags) override;
+    WMError SetStatusBarColorForPage(const std::optional<uint32_t> color) override;
+    bool isAtomicServiceUseColor_ = false;
+
     /*
      * Window Pattern
      */
@@ -347,12 +361,17 @@ public:
 
     WSError CloseSpecificScene() override;
     WMError SetSubWindowSource(SubWindowSource source) override;
+    WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams) override;
 
     /*
      * Window Event
      */
     WMError LockCursor(int32_t windowId, bool isCursorFollowMovement) override;
     WMError UnlockCursor(int32_t windowId) override;
+    WMError SetReceiveDragEventEnabled(bool enabled) override;
+    bool IsReceiveDragEventEnabled() override;
+    WMError SetSeparationTouchEnabled(bool enabled) override;
+    bool IsSeparationTouchEnabled() override;
 
 protected:
     WMError CreateAndConnectSpecificSession();
@@ -463,6 +482,7 @@ private:
     void ApplyCustomRatioConstraints(const WindowLimits& customizedLimits, double& maxRatio, double& minRatio);
     void RecalculateSizeLimitsWithRatios(WindowLimits& limits, WindowLimits& limitsVP, double maxRatio,
         double minRatio, PixelUnit pixelUnit);
+    void NotifyWindowStatusDidChangeAfterShowWindow();
 
     /*
      * PC Window Layout
@@ -476,7 +496,7 @@ private:
     /*
      * Window Immersive
      */
-    void UpdateDefaultStatusBarColor();
+    void UpdateDefaultStatusBarColor() override;
     bool userLimitsSet_ = false;
     bool forceLimits_ = false;
     uint32_t setSameSystembarPropertyCnt_ = 0;
@@ -489,8 +509,9 @@ private:
     void MobileAppInPadLayoutFullScreenChange(bool statusBarEnable, bool navigationEnable);
     WMError UpdateSystemBarPropertyForPage(WindowType type,
         const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag) override;
-    std::mutex systemBarPropertyForPageMapMutex_;
-    std::unordered_map<WindowType, std::optional<SystemBarProperty>> systemBarPropertyForPageMap_;
+    WMError updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty);
+    std::mutex nowsystemBarPropertyMapMutex_;
+    std::unordered_map<WindowType, SystemBarProperty> nowsystemBarPropertyMap_;
 
     /*
      * Window Animation
@@ -524,7 +545,7 @@ private:
     float GetMainWindowCustomDensity();
     float customDensity_ = UNDEFINED_DENSITY;
     bool isEnableDefaultDensityWhenCreate_ = false;
-    std::string specifiedColorMode_;
+    float rsCornerRadius_;
     WMError SetPcAppInpadSpecificSystemBarInvisible();
     WMError SetPcAppInpadOrientationLandscape();
 
@@ -604,9 +625,28 @@ private:
     std::mutex transitionAnimationConfigMutex_;
 
     /*
+     * Window Event
+     */
+    bool isReceiveDragEventEnabled_ = true;
+    bool isSeparationTouchEnabled_ = true;
+    std::bitset<ADVANCED_FEATURE_BIT_MAX> advancedFeatureFlag_ = 0;
+    void UpdateStartRecoverEventFlag();
+
+    /*
      * Window Decor
      */
     WMError GrayOutMaximizeButton(bool isGrayOut);
+
+    /*
+     * PC Window Sidebar Blur
+     */
+    std::shared_ptr<Rosen::RSAnimatableProperty<float>> blurRadiusValue_;
+    std::shared_ptr<Rosen::RSAnimatableProperty<float>> blurSaturationValue_;
+    std::shared_ptr<Rosen::RSAnimatableProperty<float>> blurBrightnessValue_;
+    std::shared_ptr<Rosen::RSAnimatableProperty<Rosen::RSColor>> blurMaskColorValue_;
+    void AddRSNodeModifier(bool isDark, const std::shared_ptr<RSBaseNode>& rsNode);
+    void ModifySidebarBlurProperty(bool isDark, SidebarBlurType type);
+    void UpdateSidebarBlurStyleWhenColorModeChange();
 };
 } // namespace Rosen
 } // namespace OHOS

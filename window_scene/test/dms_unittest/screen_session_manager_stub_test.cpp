@@ -3322,6 +3322,120 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest155, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnRemoteRequest155_1
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest155_1, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(0);
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTS_INPUT);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequest155_2
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest155_2, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(0);
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_SCREEN_SET_SUPPORTS_INPUT);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequest155_3
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest155_3, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(0);
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_GET_ROUNDED_CORNER);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequest155_4
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest155_4, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(0);
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_SCREEN_GET_BUNDLE_NAME);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequest156
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest156, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(0);
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_WHITE_LIST);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequest157
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest157, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(0);
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_WHITE_LIST);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
  * @tc.name: ProcSetPrimaryDisplaySystemDpi
  * @tc.desc: normal function, TRANS_ID_SET_PRIMARY_DISPLAY_SYSTEM_DPI test
  * @tc.type: FUNC
@@ -3421,6 +3535,178 @@ HWTEST_F(ScreenSessionManagerStubTest, NotifyIsFullScreenInForceSplitMode, TestS
         data.WriteBool(true);
         int res = stub_->OnRemoteRequest(code, data, reply, option);
         EXPECT_EQ(res, ERR_NONE);
+    }
+}
+
+/**
+ * @tc.name: SyncScreenPowerState
+ * @tc.desc: normal function, TRANS_ID_SYNC_SCREEN_POWER_STATE test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, SyncScreenPowerState, TestSize.Level3)
+{
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SYNC_SCREEN_POWER_STATE);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
+    }
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SYNC_SCREEN_POWER_STATE);
+        data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+        data.WriteUint32(0);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, ERR_NONE);
+    }
+}
+
+/**
+ * @tc.name: ProcGetDisplaySnapshotWithOption01
+ * @tc.desc: normal function, ProcGetDisplaySnapshotWithOption test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, ProcGetDisplaySnapshotWithOption01, TestSize.Level1)
+{
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT_WITH_OPTION);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
+    }
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT_WITH_OPTION);
+        data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+        data.WriteUint64(0);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        data.WriteFloat(0.5f);
+        data.WriteFloat(0.5f);
+        data.WriteInt32(200);
+        data.WriteInt32(200);
+        data.WriteUint32(200);
+        data.WriteUint32(200);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, ERR_NONE);
+    }
+}
+
+/**
+ * @tc.name: ProcGetDisplaySnapshotWithOption02
+ * @tc.desc: normal function, ProcGetDisplaySnapshotWithOption test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, ProcGetDisplaySnapshotWithOption02, TestSize.Level1)
+{
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT_WITH_OPTION);
+        data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        data.WriteUint64(0);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        stub_->ProcGetDisplaySnapshotWithOption(data, reply);
+        EXPECT_EQ(res, 0);
+    }
+}
+
+/**
+ * @tc.name: ProcGetDisplaySnapshotWithOption03
+ * @tc.desc: normal function, ProcGetDisplaySnapshotWithOption test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, ProcGetDisplaySnapshotWithOption03, TestSize.Level1)
+{
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT_WITH_OPTION);
+        data.WriteUint64(0);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        std::vector<uint64_t> windowIdList{10, 20, 30};
+        data.WriteUInt64Vector(windowIdList);
+        data.WriteFloat(0.5f);
+        data.WriteFloat(0.5f);
+        stub_->ProcGetDisplaySnapshotWithOption(data, reply);
+        data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, 0);
+    }
+}
+
+/**
+ * @tc.name: ProcGetDisplaySnapshotWithOption04
+ * @tc.desc: normal function, ProcGetDisplaySnapshotWithOption test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, ProcGetDisplaySnapshotWithOption04, TestSize.Level1)
+{
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT_WITH_OPTION);
+        data.WriteUint64(0);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        std::vector<uint64_t> windowIdList{10, 20, 30};
+        data.WriteUInt64Vector(windowIdList);
+        data.WriteFloat(0.5f);
+        data.WriteFloat(0.5f);
+        data.WriteInt32(200);
+        data.WriteInt32(200);
+        stub_->ProcGetDisplaySnapshotWithOption(data, reply);
+        data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, 0);
+    }
+}
+
+/**
+ * @tc.name: ProcGetDisplaySnapshotWithOption05
+ * @tc.desc: normal function, ProcGetDisplaySnapshotWithOption test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, ProcGetDisplaySnapshotWithOption05, TestSize.Level1)
+{
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT_WITH_OPTION);
+        data.WriteUint64(0);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        data.WriteBool(false);
+        std::vector<uint64_t> windowIdList{10, 20, 30};
+        data.WriteUInt64Vector(windowIdList);
+        data.WriteFloat(0.5f);
+        data.WriteFloat(0.5f);
+        data.WriteInt32(200);
+        data.WriteInt32(200);
+        data.WriteUint32(200);
+        stub_->ProcGetDisplaySnapshotWithOption(data, reply);
+        data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, 0);
     }
 }
 }

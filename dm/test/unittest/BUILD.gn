@@ -21,10 +21,7 @@ group("unittest") {
 
   deps = [
     ":dm_display_change_unit_test",
-    ":dm_display_manager_adapter_test",
-    ":dm_display_manager_agent_proxy_test",
     ":dm_display_manager_agent_stub_test",
-    ":dm_display_manager_test",
     ":dm_display_power_unit_test",
     ":dm_display_test",
     ":dm_oh_display_manager_test",
@@ -33,9 +30,14 @@ group("unittest") {
     ":dm_screenshot_test",
   ]
   if (!window_manager_use_sceneboard) {
-    deps += [ ":dm_screen_manager_ut_test" ]
+    deps += [ ":dm_screen_manager_ut_test"]
   } else {
-    deps += [ ":dm_screen_manager_test" ]
+    deps += [
+      ":dm_screen_manager_test",
+      ":dm_display_manager_adapter_test",
+      ":dm_display_manager_agent_proxy_test",
+      ":dm_display_manager_test",
+    ]
   }
 }
 

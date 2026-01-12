@@ -40,10 +40,12 @@ public:
     void ExitCoordination() override {};
     void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override {};
     FoldDisplayMode GetModeMatchStatus() override;
+    FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus) override;
     void SetIsClearingBootAnimation(bool isClearingBootAnimation) override;
     void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const override;
 private:
-    bool CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce);
+    bool CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce,
+        DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
     void ChangeScreenDisplayMode(FoldDisplayMode displayMode, bool isForce,
         DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
     void ChangeScreenDisplayModeToMain(sptr<ScreenSession> screenSession,

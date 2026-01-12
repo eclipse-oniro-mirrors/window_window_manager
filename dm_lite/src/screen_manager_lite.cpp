@@ -409,6 +409,11 @@ ScreenPowerState ScreenManagerLite::GetScreenPower()
     return SingletonContainer::Get<ScreenManagerAdapterLite>().GetScreenPower();
 }
 
+void ScreenManagerLite::SyncScreenPowerState(ScreenPowerState state)
+{
+    SingletonContainer::Get<ScreenManagerAdapterLite>().SyncScreenPowerState(state);
+}
+
 DMError ScreenManagerLite::GetPhysicalScreenIds(std::vector<ScreenId>& screenIds)
 {
     TLOGI(WmsLogTag::DMS, "enter");

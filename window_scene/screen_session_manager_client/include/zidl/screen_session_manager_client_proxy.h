@@ -70,6 +70,7 @@ public:
     void OnScreenModeChanged(ScreenModeChangeEvent screenModeChangeEvent) override;
     void OnAnimationFinish() override;
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override;
+    void OnTentModeChange(TentMode tentMode) override;
 private:
     static inline BrokerDelegator<ScreenSessionManagerClientProxy> delegator_;
     bool ScreenConnectWriteParam(const SessionOption& SessionOption, ScreenEvent screenEvent, MessageParcel& data);

@@ -19,6 +19,7 @@
 #include <map>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include "agent_death_recipient.h"
 #include "window_manager_hilog.h"
 #include "ipc_skeleton.h"
@@ -33,10 +34,14 @@ public:
     virtual ~ClientAgentContainer() = default;
 
     bool RegisterAgent(const sptr<T1>& agent, T2 type);
+    bool RegisterAttributeAgent(uintptr_t key, const sptr<T1>& agent, std::vector<T2>& attributes);
     bool UnregisterAgent(const sptr<T1>& agent, T2 type);
+    bool UnRegisterAllAttributeAgent(uintptr_t key, const sptr<T1>& agent);
+    bool UnRegisterAttribute(uintptr_t key, const sptr<T1>& agent, const std::vector<T2>& attributesOff);
     std::set<sptr<T1>> GetAgentsByType(T2 type);
     void SetAgentDeathCallback(std::function<void(const sptr<IRemoteObject>&)> callback);
     int32_t GetAgentPid(const sptr<T1>& agent);
+    std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> GetAttributeAgentsMap();
 
 private:
     void RemoveAgent(const sptr<IRemoteObject>& remoteObject);
@@ -61,6 +66,7 @@ private:
 
     std::recursive_mutex mutex_;
     std::map<T2, std::set<sptr<T1>>> agentMap_;
+    std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> attributeAgentMap_;
     std::map<sptr<T1>, int32_t> agentPidMap_;
     sptr<AgentDeathRecipient> deathRecipient_;
     std::function<void(const sptr<IRemoteObject>&)> deathCallback_;
@@ -84,6 +90,89 @@ bool ClientAgentContainer<T1, T2>::RegisterAgent(const sptr<T1>& agent, T2 type)
         WLOGFI("failed to add death recipient");
     }
     return true;
+}
+
+template<typename T1, typename T2>
+bool ClientAgentContainer<T1, T2>::RegisterAttributeAgent(uintptr_t key, const sptr<T1>& agent,
+    std::vector<T2>& attributes)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (agent == nullptr) {
+        WLOGFE("agent is invalid");
+        return false;
+    }
+    auto it = attributeAgentMap_.find(key);
+    if (it != attributeAgentMap_.end()) {
+        for (const auto& attr : attributes) {
+            it->second.second.insert(attr);
+        }
+    } else {
+        std::set<std::string> attrSet(attributes.begin(), attributes.end());
+        attributeAgentMap_[key] = {agent, attrSet};
+    }
+ 
+    auto iter = attributeAgentMap_.find(key);
+    if (iter != attributeAgentMap_.end()) {
+        std::ostringstream oss;
+        oss << "current listened attribute list:[";
+        for (const auto attribute : iter->second.second) {
+            oss << attribute << ",";
+        }
+        TLOGI(WmsLogTag::DMS, "%{public}s]", oss.str().c_str());
+    }
+    if (deathRecipient_ == nullptr || !agent->AsObject()->AddDeathRecipient(deathRecipient_)) {
+        WLOGFI("failed to add death recipient");
+    }
+    return true;
+}
+
+template<typename T1, typename T2>
+bool ClientAgentContainer<T1, T2>::UnRegisterAllAttributeAgent(uintptr_t key, const sptr<T1>& agent)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (agent == nullptr) {
+        WLOGFE("agent is invalid");
+        return false;
+    }
+    if (attributeAgentMap_.count(key) == 0) {
+        WLOGFD("repeat unregister agent");
+        return true;
+    }
+    attributeAgentMap_.erase(key);
+    agent->AsObject()->RemoveDeathRecipient(deathRecipient_);
+    return true;
+}
+
+template<typename T1, typename T2>
+bool ClientAgentContainer<T1, T2>::UnRegisterAttribute(uintptr_t key, const sptr<T1>& agent,
+    const std::vector<T2>& attributesOff)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (agent == nullptr) {
+        WLOGFE("agent is invalid");
+        return false;
+    }
+    if (attributeAgentMap_.count(key) == 0) {
+        WLOGFD("repeat unregister agent");
+        return true;
+    }
+    auto& attributes = attributeAgentMap_.at(key).second;
+    for (auto attribute : attributesOff) {
+        auto iter = attributes.find(attribute);
+        if (iter == attributes.end()) {
+            WLOGFD("could not find this attribute: %{public}s", attribute.c_str());
+            continue;
+        }
+        attributes.erase(iter);
+    }
+    return true;
+}
+
+template<typename T1, typename T2>
+std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> ClientAgentContainer<T1, T2>::GetAttributeAgentsMap()
+{
+    return attributeAgentMap_;
 }
 
 template<typename T1, typename T2>

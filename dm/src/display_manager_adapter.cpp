@@ -451,6 +451,26 @@ DMError ScreenManagerAdapter::RemoveVirtualScreenBlockList(const std::vector<int
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
+DMError ScreenManagerAdapter::AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->AddVirtualScreenWhiteList(screenId, missionIds);
+    }
+    TLOGE(WmsLogTag::DMS, "Device not support");
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError ScreenManagerAdapter::RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RemoveVirtualScreenWhiteList(screenId, missionIds);
+    }
+    TLOGE(WmsLogTag::DMS, "Device not support");
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError ScreenManagerAdapter::SetScreenPrivacyMaskImage(ScreenId screenId,
     const std::shared_ptr<Media::PixelMap>& privacyMaskImg)
 {
@@ -628,6 +648,30 @@ DMError BaseAdapter::UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAge
     ErrCode errCode = displayManagerServiceProxy_->UnregisterDisplayManagerAgent(displayManagerAgent,
         static_cast<uint32_t>(type), dmError);
     return ConvertToDMError(errCode, dmError);
+}
+
+DMError DisplayManagerAdapter::RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent> displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RegisterDisplayAttributeAgent(attributes, displayManagerAgent);
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent> displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->UnRegisterDisplayAttribute(attributes, displayManagerAgent);
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
 bool DisplayManagerAdapter::WakeUpBegin(PowerStateChangeReason reason)
@@ -1097,6 +1141,35 @@ sptr<CutoutInfo> DisplayManagerAdapter::GetCutoutInfo(DisplayId displayId, int32
     return cutoutInfo;
 }
 
+void PushRoundedCorner(std::vector<RoundedCorner>& roundedCorner, int32_t width, int32_t height, int radius)
+{
+    RoundedCorner topLeftCorner {CornerType::TOP_LEFT, {radius, radius}, radius};
+    RoundedCorner topRightCorner {CornerType::TOP_RIGHT, {width - radius, radius}, radius};
+    RoundedCorner bottomRightCorner {CornerType::BOTTOM_RIGHT, {width - radius, height - radius}, radius};
+    RoundedCorner bottomLeftCorner {CornerType::BOTTOM_LEFT, {radius, height - radius}, radius};
+    roundedCorner.push_back(topLeftCorner);
+    roundedCorner.push_back(topRightCorner);
+    roundedCorner.push_back(bottomRightCorner);
+    roundedCorner.push_back(bottomLeftCorner);
+}
+
+DMError DisplayManagerAdapter::GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner,
+    DisplayId displayId, int32_t width, int32_t height)
+{
+    TLOGD(WmsLogTag::DMS, "enter");
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        int radius = 0;
+        auto ret = screenSessionManagerServiceProxy_->GetRoundedCorner(displayId, radius);
+        if ((ret != DMError::DM_OK) || (radius == 0)) {
+            return ret;
+        }
+        PushRoundedCorner(roundedCorner, width, height, radius);
+        return DMError::DM_OK;
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError DisplayManagerAdapter::AddSurfaceNodeToDisplay(DisplayId displayId,
     std::shared_ptr<class RSSurfaceNode>& surfaceNode)
 {
@@ -1235,6 +1308,28 @@ DMError DisplayManagerAdapter::SetFoldStatusLockedFromJs(bool locked)
     }
 
     return DMError::DM_OK;
+}
+
+DMError DisplayManagerAdapter::ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->ForceSetFoldStatusAndLock(targetFoldStatus);
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::RestorePhysicalFoldStatus()
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RestorePhysicalFoldStatus();
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
 sptr<FoldCreaseRegion> DisplayManagerAdapter::GetCurrentFoldCreaseRegion()
@@ -1534,6 +1629,16 @@ void DisplayManagerAdapter::SetVirtualScreenBlackList(ScreenId screenId, std::ve
     }
 }
 
+bool DisplayManagerAdapter::IsOnboardDisplay(DisplayId displayId)
+{
+    INIT_PROXY_CHECK_RETURN(false);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->IsOnboardDisplay(displayId);
+    }
+    TLOGE(WmsLogTag::DMS, "fail");
+    return false;
+}
+
 void DisplayManagerAdapter::SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag)
 {
     INIT_PROXY_CHECK_RETURN();
@@ -1705,6 +1810,33 @@ DMError DisplayManagerAdapter::GetBrightnessInfo(DisplayId displayId, ScreenBrig
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->GetBrightnessInfo(displayId, brightnessInfo);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::GetSupportsInput(DisplayId displayId, bool& supportsInput)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->GetSupportsInput(displayId, supportsInput);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::SetSupportsInput(DisplayId displayId, bool supportsInput)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->SetSupportsInput(displayId, supportsInput);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::GetBundleName(DisplayId displayId, std::string& bundleName)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->GetBundleName(displayId, bundleName);
     }
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }

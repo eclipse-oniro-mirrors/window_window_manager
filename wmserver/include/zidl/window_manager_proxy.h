@@ -44,7 +44,7 @@ public:
         sptr<MoveDragProperty>& moveDragProperty) override;
     void ProcessPointDown(uint32_t windowId, bool isPointDown) override;
     void ProcessPointUp(uint32_t windowId) override;
-    WMError MinimizeAllAppWindows(DisplayId displayId) override;
+    WMError MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId = 0) override;
     WMError ToggleShownStateForAllAppWindows() override;
     WMError SetWindowLayoutMode(WindowLayoutMode mode) override;
     WMError NotifyScreenshotEvent(ScreenshotEventType type) override;
@@ -81,6 +81,8 @@ public:
     void SetMaximizeMode(MaximizeMode maximizeMode) override;
     MaximizeMode GetMaximizeMode() override;
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                         std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override {};
 private:
     static inline BrokerDelegator<WindowManagerProxy> delegator_;
 };

@@ -198,19 +198,6 @@ HWTEST_F(WindowSessionTest3, CheckFocusable, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTouchable03
- * @tc.desc: IsSessionValid() and touchable return true
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest3, SetTouchable03, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetSessionState(SessionState::STATE_FOREGROUND);
-    session_->sessionInfo_.isSystem_ = false;
-    EXPECT_EQ(WSError::WS_OK, session_->SetTouchable(true));
-}
-
-/**
  * @tc.name: GetTouchable02
  * @tc.desc: GetTouchable Test
  * @tc.type: FUNC
@@ -1245,6 +1232,41 @@ HWTEST_F(WindowSessionTest3, GetIsHighlighted, Function | SmallTest | Level2)
     bool isHighlighted = true;
     ASSERT_EQ(session_->GetIsHighlighted(isHighlighted), WSError::WS_OK);
     ASSERT_EQ(isHighlighted, false);
+}
+
+/**
+ * @tc.name: EncodeAndDecodeSnapShotRecoverValue
+ * @tc.desc: EncodeAndDecodeSnapShotRecoverValue Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, EncodeAndDecodeSnapShotRecoverValue, Function | SmallTest | Level2)
+{
+    ASSERT_NE(session_, nullptr);
+    int32_t snapShotRecoverValue = 0;
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    snapShotRecoverValue = session_->EncodeSnapShotRecoverValue(DisplayOrientation::PORTRAIT);
+    EXPECT_EQ(session_->DecodeSnapShotRecoverValue(snapShotRecoverValue,
+        SnapShotRecoverType::ROTATE), static_cast<int32_t>(DisplayOrientation::PORTRAIT));
+    EXPECT_EQ(session_->DecodeSnapShotRecoverValue(snapShotRecoverValue,
+        SnapShotRecoverType::EXIT_SPLIT_ON_BACKGROUND),
+        static_cast<int32_t>(session_->IsExitSplitOnBackgroundRecover()));
+}
+
+/**
+ * @tc.name: IsExitSplitOnBackgroundRecover
+ * @tc.desc: IsExitSplitOnBackgroundRecover Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, IsExitSplitOnBackgroundRecover, Function | SmallTest | Level2)
+{
+    ASSERT_NE(session_, nullptr);
+    int32_t snapShotRecoverValue = 0;
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), false);
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), true);
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), true);
 }
 } // namespace
 } // namespace Rosen

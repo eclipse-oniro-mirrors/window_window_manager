@@ -205,7 +205,12 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
                 TLOGE(WmsLogTag::WMS_LIFE, "Read displayID failed.");
                 return ERR_INVALID_DATA;
             }
-            WMError errCode = MinimizeAllAppWindows(displayId);
+            int32_t excludeWindowId = 0;
+            if (!data.ReadInt32(excludeWindowId)) {
+                TLOGE(WmsLogTag::WMS_LIFE, "Read excludeWindowId failed.");
+                return ERR_INVALID_DATA;
+            }
+            WMError errCode = MinimizeAllAppWindows(displayId, excludeWindowId);
             reply.WriteInt32(static_cast<int32_t>(errCode));
             break;
         }

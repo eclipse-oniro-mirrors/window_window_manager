@@ -171,6 +171,8 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
         return WMError::WM_OK;
     }
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId) override {}
+    void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                         std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override {}
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override
     {
         return WMError::WM_OK;
@@ -1122,6 +1124,33 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleListWindowInfo, TestSize.Level1)
     auto res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandleListWindowInfo(data, reply);
     EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleRegisterWindowPropertyChangeAgent
+ * @tc.desc: test function : HandleRegisterWindowPropertyChangeAgent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleRegisterWindowPropertyChangeAgent, Function | SmallTest | Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    ASSERT_NE(sceneSessionManagerLiteStub_, nullptr);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT);
+    auto res = sceneSessionManagerLiteStub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    WindowInfoKey windowInfoKey = WindowInfoKey::DISPLAY_ID;
+    uint32_t interestInfo = 0;
+    data.WriteInt32(static_cast<int32_t>(windowInfoKey));
+    data.WriteUint32(interestInfo);
+
+    res = sceneSessionManagerLiteStub_->HandleRegisterWindowPropertyChangeAgent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
 }
 
 /**

@@ -60,6 +60,38 @@ void WindowManagerAgentProxy::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>&
     }
 }
 
+void WindowManagerAgentProxy::UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd)
+{
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(displayGroupId)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Write displayGroupId failed");
+        return;
+    }
+    if (!data.WriteUint64(displayId)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Write displayId failed");
+        return;
+    }
+    if (!data.WriteBool(isAdd)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Write isAdd failed");
+        return;
+    }
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "remote is null");
+        return;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(WindowManagerAgentMsg::TRANS_ID_NOTIFY_DISPLAY_GROUP_INFO_CHANGE),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "SendRequest failed");
+    }
+}
+
 void WindowManagerAgentProxy::UpdateWindowModeTypeInfo(WindowModeType type)
 {
     MessageParcel data;
@@ -512,8 +544,8 @@ void WindowManagerAgentProxy::UpdatePiPWindowStateChanged(const std::string& bun
     }
 }
 
-void WindowManagerAgentProxy::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-    const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList)
+void WindowManagerAgentProxy::NotifyWindowPropertyChange(
+    uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
     MessageParcel data;
     MessageParcel reply;

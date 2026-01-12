@@ -209,6 +209,12 @@ HWTEST_F(ScreenSessionDumperTest, ExecuteDumpCmd, TestSize.Level1)
     sptr<ScreenSessionDumper> dumper8 = new ScreenSessionDumper(fd, args);
     dumper8->ExecuteDumpCmd();
     ASSERT_EQ(dumper8->fd_, 1);
+
+    fd = 1;
+    args = {u"-ln,1"};
+    sptr<ScreenSessionDumper> dumper10 = new ScreenSessionDumper(fd, args);
+    dumper10->ExecuteDumpCmd();
+    ASSERT_EQ(dumper10->fd_, 1);
 }
 
 /**
@@ -1083,6 +1089,35 @@ HWTEST_F(ScreenSessionDumperTest, DumpMultiUserInfo, TestSize.Level1)
     dumper->DumpMultiUserInfo(oldScbPids, userId, scbPid);
     ASSERT_NE(dumper->dumpInfo_, std::string());
 }
+
+/**
+ * @tc.name: ShowCurrentStatus
+ * @tc.desc: test function : ShowCurrentStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ShowCurrentStatus, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-lcd"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->dumpInfo_ = "";
+    dumper->ExecuteDumpCmd();
+ 
+    dumper->dumpInfo_ = "";
+    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_ON);
+    dumper->ShowCurrentStatus(SCREEN_ID_FULL);
+    ASSERT_TRUE(dumper->dumpInfo_.find("PANEL_POWER_STATUS_ON") == std::string::npos);
+ 
+    dumper->dumpInfo_ = "";
+    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF);
+    dumper->ShowCurrentStatus(SCREEN_ID_FULL);
+    ASSERT_TRUE(dumper->dumpInfo_.find("PANEL_POWER_STATUS_OFF") == std::string::npos);
+ 
+    dumper->dumpInfo_ = "";
+    dumper->ShowCurrentStatus(12478);
+    ASSERT_TRUE(dumper->dumpInfo_.find("status failed") == std::string::npos);
+}
+
 #ifdef FOLD_ABILITY_ENABLE
 /**
  * @tc.name: DumpFoldCreaseRegion
@@ -1464,6 +1499,60 @@ HWTEST_F(ScreenSessionDumperTest, SetFoldStatusLocked, TestSize.Level1)
     dumper->params_[0] = "-test";
     ret = dumper->SetFoldStatusLocked();
     ASSERT_EQ(ret, -1);
+}
+
+/**
+ * @tc.name: ForceSetFoldStatusAndLock
+ * @tc.desc: test function : ForceSetFoldStatusAndLock
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ForceSetFoldStatusAndLock, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u""};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    std::string emptyInput = "";
+    int ret = dumper->ForceSetFoldStatusAndLock(emptyInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string noCommaInput = "-ln1";
+    ret = dumper->ForceSetFoldStatusAndLock(noCommaInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string wrongPrefixInput = "-lx,1";
+    ret = dumper->ForceSetFoldStatusAndLock(wrongPrefixInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string invalidStatusInput = "-ln,999";
+    ret = dumper->ForceSetFoldStatusAndLock(invalidStatusInput);
+    ASSERT_EQ(ret, -1);
+
+    if (!ScreenSessionManager::GetInstance().IsFoldable()) {
+        GTEST_SKIP();
+    }
+    std::vector<std::string> validStatusValues = {
+        "1", "2", "3", "11", "21", "12", "22", "13", "23"};
+    for (const auto& status : validStatusValues) {
+        std::string validInput = "-ln," + status;
+        ret = dumper->ForceSetFoldStatusAndLock(validInput);
+        ASSERT_TRUE(ret == 0 || ret == -1);
+    }
+    dumper->RestorePhysicalFoldStatus();
+}
+
+/**
+ * @tc.name: RestorePhysicalFoldStatus
+ * @tc.desc: test function : RestorePhysicalFoldStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, RestorePhysicalFoldStatus, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u""};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int ret = dumper->RestorePhysicalFoldStatus();
+    ASSERT_TRUE(ret == 0 || ret == -1);
 }
 
 /**

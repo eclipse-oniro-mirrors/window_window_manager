@@ -492,7 +492,7 @@ HWTEST_F(WindowManagerAgentStubTest, OnRemoteRequest23, TestSize.Level1)
 HWTEST_F(WindowManagerAgentStubTest, ReadWindowInfoList01, TestSize.Level1)
 {
     MessageParcel data;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     data.WriteUint32(1);
     EXPECT_FALSE(stub_->ReadWindowInfoList(data, windowInfoList));
@@ -511,7 +511,7 @@ HWTEST_F(WindowManagerAgentStubTest, ReadWindowInfoList01, TestSize.Level1)
 HWTEST_F(WindowManagerAgentStubTest, ReadWindowInfoList02, TestSize.Level1)
 {
     MessageParcel data;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     data.WriteUint32(100000);
     EXPECT_FALSE(stub_->ReadWindowInfoList(data, windowInfoList));

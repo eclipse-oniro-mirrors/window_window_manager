@@ -39,11 +39,11 @@ public:
 
     void RegisterApplicationStateObserver();
 
-    void RegisterHallCallback();
-
     void UnRegisterPostureCallback();
 
     void UnRegisterHallCallback();
+
+    void RegisterHallCallback();
 
     void SetFoldScreenPolicy(sptr<FoldScreenPolicy> foldScreenPolicy);
 
@@ -53,52 +53,9 @@ public:
 
     void HandleHallData(const SensorEvent* const event);
 
-    void HandleSensorData(const SensorEvent* const event);
-
-    int32_t  UnSubscribeSensorCallback(int32_t sensorTypeId);
-
-    void CleanupCallback(int32_t sensorTypeId);
-
-    typedef bool (*IsFwdSensorEvent)(const SensorEvent* event);
-
-    int32_t SubscribeSensorCallback(int32_t sensorTypeId, int64_t interval, const RecordSensorCallback taskCallback);
-
-    typedef struct SensorCallbackEntry {
-        RecordSensorCallback taskCallback;
-        int64_t interval;
-    } SensorCallbackEntry;
-    
-    std::map<int32_t, SensorCallbackEntry> sensorCallbacks_;
-
-    std::unordered_map<int32_t, SensorUser> users_;
-
     void TriggerDisplaySwitch();
 
     bool GetSensorRegisterStatus(void);
-
-    typedef struct EXTHALLData {
-        float flag = 0.0F;
-        float hall = 0.0F; // BC axis angle
-        float hallNfc = 0.0F;
-        float hallProtectiveCase = 0.0F;
-        float hallAb = 0.0F;
-    } ExtHallData;
-
-    typedef struct PostureDataSecondary {
-        float postureAccxc = 0.0F;
-        float postureAccyc = 0.0F;
-        float postureAcczc = 0.0F;
-        float postureAccxb = 0.0F;
-        float postureAccyb = 0.0F;
-        float postureAcczb = 0.0F;
-        float postureBc = 0.0F;
-        float postureScreen = 0.0F;
-        float postureAccxx = 0.0F;
-        float postureAccyx = 0.0F;
-        float postureAcczx = 0.0F;
-        float postureAb = 0.0F;
-        float postureAbAnti = 0.0F;
-    } PostureDataSecondary;
 
     float GetGlobalAngle() const;
     void SetGlobalAngle(float angle);
@@ -112,10 +69,6 @@ private:
     sptr<FoldScreenPolicy> foldScreenPolicy_;
 
     sptr<SensorFoldStateManager> sensorFoldStateManager_;
-
-    std::recursive_mutex mutex_;
-
-    FoldStatus mState_ = FoldStatus::UNKNOWN;
 
     void NotifyFoldAngleChanged(float foldAngle);
     bool HandleAbnormalAngle();

@@ -23,6 +23,11 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_DISPLAY, "PerformReporter"};
+
+const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {
+    {KeyboardLifeCycleException::ANIM_SYNC_EXCEPTION, "ANIM_SYNC_EXCEPTION"},
+    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"}
+};
 }
 WM_IMPLEMENT_SINGLE_INSTANCE(WindowInfoReporter)
 
@@ -298,18 +303,17 @@ void WindowInfoReporter::ClearRecordedInfos()
     windowNavigationBarReportInfos_.clear();
 }
 
-int32_t WindowInfoReporter::ReportWindowProfileInfo(const WindowProfileInfo& windowProfileInfo)
+int32_t WindowInfoReporter::ReportWindowProfileInfo(const WindowProfileSum& windowProfileSum)
 {
-    std::string eventName = "WINDOW_PROFILE_INFORMATION";
+    std::string eventName = "WINDOW_PROFILE_STATISTIC";
     int32_t ret = HiSysEventWrite(
         OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::STATISTIC,
-        "BUNDLE_NAME", windowProfileInfo.bundleName,
-        "WINDOW_VISIBLE_STATE", windowProfileInfo.windowVisibleState,
-        "WINDOW_LOCATED_SCREEN", windowProfileInfo.windowLocatedScreen,
-        "WINDOW_SCENE_MODE", windowProfileInfo.windowSceneMode,
-        "WINDOW_ZORDER", windowProfileInfo.zorder,
-        "WINDOW_RECT", windowProfileInfo.rect);
+        "WINDOW_DETAIL", windowProfileSum.windowInfo,
+        "TOTAL_WINDOW_COUNT", windowProfileSum.totalWindowCount,
+        "VISIBLE_WINDOW_COUNT", windowProfileSum.visibleWindowCount,
+        "INVISIBLE_WINDOW_COUNT", windowProfileSum.invisibleWindowCount,
+        "MINIMIZE_WINDOW_COUNT", windowProfileSum.minimizeWindowCount);
     if (ret != 0) {
         WLOGFE("Write HiSysEvent error, ret:%{public}d", ret);
     }

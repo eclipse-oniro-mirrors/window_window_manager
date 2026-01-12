@@ -132,11 +132,16 @@ void SingleDisplayFoldPolicy::SetdisplayModeChangeStatus(bool status, bool isOnB
     }
 }
 
-bool SingleDisplayFoldPolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce)
+bool SingleDisplayFoldPolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce,
+    DisplayModeChangeReason reason)
 {
     if (isForce) {
         TLOGI(WmsLogTag::DMS, "force change displayMode");
         return true;
+    }
+    if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
+        TLOGI(WmsLogTag::DMS, "Fold status is locked, can't change to display mode: %{public}d", displayMode);
+        return false;
     }
     if (isClearingBootAnimation_) {
         TLOGI(WmsLogTag::DMS, "clearing bootAnimation not change displayMode");
@@ -163,12 +168,15 @@ bool SingleDisplayFoldPolicy::CheckDisplayModeChange(FoldDisplayMode displayMode
 
 void SingleDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason)
 {
-    if (!CheckDisplayModeChange(displayMode, false)) {
+    if (!CheckDisplayModeChange(displayMode, false, reason)) {
         return;
     }
+    TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, reason: %{public}d", displayMode, reason);
     ChangeScreenDisplayModeInner(displayMode, reason);
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
     ScreenSessionManager::GetInstance().SwitchScrollParam(displayMode);
+    TLOGD(WmsLogTag::DMS, "end change displaymode: %{public}d, reason: %{public}d", displayMode, reason);
+    return;
 }
 
 void SingleDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, bool isForce,
@@ -313,8 +321,13 @@ void SingleDisplayFoldPolicy::UpdateForPhyScreenPropertyChange()
 
 FoldDisplayMode SingleDisplayFoldPolicy::GetModeMatchStatus()
 {
+    return GetModeMatchStatus(currentFoldStatus_);
+}
+
+FoldDisplayMode SingleDisplayFoldPolicy::GetModeMatchStatus(FoldStatus targetFoldStatus)
+{
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
-    switch (currentFoldStatus_) {
+    switch (targetFoldStatus) {
         case FoldStatus::EXPAND: {
             displayMode = FoldDisplayMode::FULL;
             break;
@@ -513,18 +526,23 @@ void SingleDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> scree
 {
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
-    screenSession->SetRSScreenId(screenId);
+    screenSession->SetPhyScreenId(screenId);
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
         ScreenProperty property = screenSession->UpdatePropertyByFoldControl(screenProperty_);
-        screenSession->SetRotationAndScreenRotationOnly(Rotation::ROTATION_0);
+
         screenSession->PropertyChange(property, reason);
+
+        // To avoid the app get an incorrect and unready property after a display mode change notification, we
+        // temporarily modify the rotation value. The rotation will be corrected to its accurate value after SCB's
+        // property change.
+        screenSession->SetRotationAndScreenRotationOnly(Rotation::ROTATION_0);
         TLOGI(WmsLogTag::DMS, "screenBounds : width_= %{public}f, height_= %{public}f",
             screenSession->GetScreenProperty().GetBounds().rect_.width_,
             screenSession->GetScreenProperty().GetBounds().rect_.height_);
         ScreenSessionManager::GetInstance().NotifyDisplayChanged(screenSession->ConvertToDisplayInfo(),
             DisplayChangeEvent::DISPLAY_SIZE_CHANGED);
     } else {
-        screenSession->NotifyFoldPropertyChange(screenProperty_, reason, FoldDisplayMode::UNKNOWN);
+        screenSession->NotifyFoldPropertyChange(screenProperty_, reason, GetScreenDisplayMode());
     }
 }
 

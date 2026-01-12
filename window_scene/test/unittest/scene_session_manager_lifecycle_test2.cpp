@@ -227,19 +227,29 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, MinimizeAllAppWindows, TestSize.Leve
     ASSERT_NE(nullptr, sceneSession);
 
     DisplayId displayId = 0;
+    int32_t excludeWindowId = 0;
     MockAccesstokenKit::MockIsSACalling(false);
     MockAccesstokenKit::MockIsSystemApp(false);
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_ERROR_NOT_SYSTEM_APP);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_ERROR_NOT_SYSTEM_APP);
 
     MockAccesstokenKit::MockIsSACalling(true);
     MockAccesstokenKit::MockIsSystemApp(true);
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
+
+    excludeWindowId = 10000;
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_ERROR_INVALID_OPERATION);
+    excludeWindowId = 0;
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 }
 
 /**
@@ -258,6 +268,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, MinimizeAllWindow01, TestSize.Level1
     ASSERT_NE(nullptr, sceneSession);
 
     DisplayId displayId = 0;
+    int32_t excludeWindowId = 0;
     MockAccesstokenKit::MockIsSACalling(true);
     MockAccesstokenKit::MockIsSystemApp(true);
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
@@ -271,21 +282,29 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, MinimizeAllWindow01, TestSize.Level1
     ssm_->sceneSessionMap_.insert({1, nullptr});
     ssm_->sceneSessionMap_.insert({9, sceneSession});
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
+    excludeWindowId = 8;
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_ERROR_INVALID_OPERATION);
+    excludeWindowId = 9;
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
     sceneSession->property_ = property;
     ssm_->sceneSessionMap_.insert({9, sceneSession});
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 
     sceneSession->SetScreenId(1);
     ssm_->sceneSessionMap_.insert({9, sceneSession});
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 
     sceneSession->SetScreenId(1);
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
     sceneSession->property_ = property;
     ssm_->sceneSessionMap_.insert({9, sceneSession});
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
+    EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 }
 
 /**

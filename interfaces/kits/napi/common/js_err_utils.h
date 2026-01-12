@@ -61,6 +61,8 @@ private:
     template<class T>
     static napi_value CreateJsValue(napi_env env, const T& value);
 
+    static std::string GetPreErrorMsg(const WmErrorCode& errorCode);
+    static std::string GetPreErrorMsg(const DmErrorCode& errorCode);
     static std::string GetErrorMsg(const WMError& errorCode);
     static std::string GetErrorMsg(const WmErrorCode& errorCode);
     static std::string GetErrorMsg(const DMError& errorCode);

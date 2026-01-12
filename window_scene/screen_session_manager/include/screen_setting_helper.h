@@ -55,13 +55,18 @@ public:
     static std::map<std::string, MultiScreenInfo> GetMultiScreenInfo(const std::string& key = SETTING_SCREEN_MODE_KEY);
     static std::map<std::string, SupportedScreenModes> GetResolutionMode(const std::string& key =
         SETTING_SCREEN_RESOLUTION_MODE_KEY);
+    static std::map<std::string, uint32_t> GetBorderingAreaPercent(const std::string& key =
+        SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY);
     static bool GetScreenMode(MultiScreenInfo& info, const std::string& inputString);
     static bool UpdateScreenMode(MultiScreenInfo& info, uint32_t mode, bool isExternal);
     static bool GetScreenActiveMode(SupportedScreenModes& info, const std::string& inputString);
+    static bool GetAreaPercent(uint32_t& borderingAreaPercent, const std::string& inputString);
     static bool GetScreenRelativePosition(MultiScreenInfo& info, const std::string& inputString);
     static ScreenShape GetScreenShape(ScreenId screenId);
     static void RegisterSettingWireCastObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingWireCastObserver();
+    static void RegisterSettingBorderingAreaPercentObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingBorderingAreaPercentObserver();
     static void RegisterSettingExtendScreenDpiObserver(SettingObserver::UpdateFunc func);
     static void UnRegisterSettingExtendScreenDpiObserver();
     static void RegisterSettingDuringCallStateObserver(SettingObserver::UpdateFunc func);
@@ -116,6 +121,7 @@ private:
     static const constexpr char* SETTING_RESOLUTION_EFFECT_KEY {"user_set_resolution_effect_select"};
     static const constexpr char* SETTING_COMPATIBLE_APP_STRATEGY_KEY {"COMPATIBLE_APP_STRATEGY"};
     static const constexpr char* SETTING_SCREEN_RESOLUTION_MODE_KEY {"user_set_resolution_mode"};
+    static const constexpr char* SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY {"bordering_area_percent"};
     static const constexpr uint32_t BASE_TEN = 10;
     static sptr<SettingObserver> dpiObserver_;
     static sptr<SettingObserver> castObserver_;
@@ -125,6 +131,7 @@ private:
     static sptr<SettingObserver> duringCallStateObserver_;
     static sptr<SettingObserver> resolutionEffectObserver_;
     static sptr<SettingObserver> correctionExemptionListObserver_;
+    static sptr<SettingObserver> borderingAreaPercentObserver_;
 };
 } // namespace Rosen
 } // namespace OHOS

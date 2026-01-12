@@ -22,6 +22,7 @@
 #include <shared_mutex>
 
 #include "dm_common.h"
+#include "focus_change_info.h"
 #include "wm_common.h"
 #include "ws_common.h"
 #include "window_manager_hilog.h"
@@ -76,14 +77,17 @@ public:
     WSError UpdateFocusedSessionId(DisplayId displayId, int32_t persistentId);
     WSError UpdateFocusedAppSessionId(DisplayId displayId, int32_t persistentId);
     void LogDisplayIds();
+    std::unordered_map<DisplayId, DisplayGroupId> GetDisplayId2GroupIdMap();
+    void GetAllFocusGroup(std::unordered_map<DisplayGroupId, sptr<FocusGroup>>& focusGroupMap);
 
 private:
     sptr<FocusGroup> GetFocusGroupInner(DisplayId displayId);
 
-    std::unordered_map<DisplayId, sptr<FocusGroup>> focusGroupMap_;
+    std::unordered_map<DisplayGroupId, sptr<FocusGroup>> focusGroupMap_;
     std::unordered_map<DisplayId, DisplayGroupId> displayId2GroupIdMap_;
     std::unordered_map<DisplayId, DisplayGroupId> deletedDisplayId2GroupIdMap_;
     mutable std::mutex focusGroupMapMutex_;
+    mutable std::mutex displayId2GroupIdMapMutex_;
 };
 }
 }

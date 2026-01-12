@@ -39,6 +39,11 @@ static constexpr unsigned int HILOG_DOMAIN_DISPLAY = 0xD004201;
 #define WLOGFW(fmt, ...) WLOGW("%{public}s: " fmt, C_W_FUNC, ##__VA_ARGS__)
 #define WLOGFE(fmt, ...) WLOGE("%{public}s: " fmt, C_W_FUNC, ##__VA_ARGS__)
 
+#define WIN_LOG_LIMIT_HOURS 3600
+#define WIN_LOG_LIMIT_MINUTE 60
+#define THREE_TIMES 3
+#define TEN_TIMES 10
+
 enum class WmsLogTag : uint8_t {
     DEFAULT = 0,               // C04200
     DMS,                       // C04201
@@ -114,6 +119,97 @@ PRINT_TLOG(LOG_INFO, tag, FMT_PREFIX_NO_FUNC fmt, WMS_FILE_NAME, ##__VA_ARGS__)
 PRINT_TLOG(LOG_WARN, tag, FMT_PREFIX_NO_FUNC fmt, WMS_FILE_NAME, ##__VA_ARGS__)
 #define TLOGNE(tag, fmt, ...) \
 PRINT_TLOG(LOG_ERROR, tag, FMT_PREFIX_NO_FUNC fmt, WMS_FILE_NAME, ##__VA_ARGS__)
+
+
+#define WIN_PRINT_LIMIT(tag, level, intervals, canPrint, frequency)                                      \
+    do {                                                                                                 \
+        uint32_t hilogDomain = HILOG_DOMAIN_WINDOW + static_cast<uint32_t>(tag);                         \
+        const char *domainContent = ((tag) >= WmsLogTag::DEFAULT && (tag) < WmsLogTag::END) ?            \
+            g_domainContents[static_cast<uint32_t>(tag)] : "";                                           \
+        static auto last = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>();   \
+        static uint32_t supressed = 0;                                                                   \
+        static int printCount = 0;                                                                       \
+        auto now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()); \
+        auto duration = now - last;                                                                      \
+        if (duration.count() >= (intervals)) {                                                           \
+            last = now;                                                                                  \
+            uint32_t supressedCnt = supressed;                                                           \
+            supressed = 0;                                                                               \
+            printCount = 1;                                                                              \
+            if (supressedCnt != 0) {                                                                     \
+                ((void)HILOG_IMPL(LOG_CORE, (level), hilogDomain, domainContent,                         \
+                    "%{public}s log suppressed cnt %{public}u", __func__, supressedCnt));                \
+            }                                                                                            \
+            (canPrint) = true;                                                                           \
+        } else {                                                                                         \
+            if ((printCount++) < (frequency)) {                                                          \
+                (canPrint) = true;                                                                       \
+            } else {                                                                                     \
+                supressed++;                                                                             \
+                (canPrint) = false;                                                                      \
+            }                                                                                            \
+        }                                                                                                \
+    } while (0)
+
+#define TLOGI_LIMITN_HOUR(tag, freq, fmt, ...)                                                           \
+    do {                                                                                                 \
+        bool can = true;                                                                                 \
+        TLOGD(tag, fmt, ##__VA_ARGS__);                                                                  \
+        WIN_PRINT_LIMIT(tag, LOG_INFO, WIN_LOG_LIMIT_HOURS, can, freq);                                  \
+        if (can) {                                                                                       \
+            TLOGI(tag, fmt, ##__VA_ARGS__);                                                              \
+        }                                                                                                \
+    } while (0)
+
+#define TLOGW_LIMITN_HOUR(tag, freq, fmt, ...)                                                           \
+    do {                                                                                                 \
+        bool can = true;                                                                                 \
+        TLOGD(tag, fmt, ##__VA_ARGS__);                                                                  \
+        WIN_PRINT_LIMIT(tag, LOG_WARN, WIN_LOG_LIMIT_HOURS, can, freq);                                  \
+        if (can) {                                                                                       \
+            TLOGW(tag, fmt, ##__VA_ARGS__);                                                              \
+        }                                                                                                \
+    } while (0)
+
+#define TLOGE_LIMITN_HOUR(tag, freq, fmt, ...)                                                           \
+    do {                                                                                                 \
+        bool can = true;                                                                                 \
+        TLOGD(tag, fmt, ##__VA_ARGS__);                                                                  \
+        WIN_PRINT_LIMIT(tag, LOG_ERROR, WIN_LOG_LIMIT_HOURS, can, freq);                                 \
+        if (can) {                                                                                       \
+            TLOGE(tag, fmt, ##__VA_ARGS__);                                                              \
+        }                                                                                                \
+    } while (0)
+
+#define TLOGI_LIMITN_MIN(tag, freq, fmt, ...)                                                            \
+    do {                                                                                                 \
+        bool can = true;                                                                                 \
+        OGD(tag, fmt, ##__VA_ARGS__);                                                                    \
+        WIN_PRINT_LIMIT(tag, LOG_INFO, WIN_LOG_LIMIT_MINUTE, can, freq);                                 \
+        if (can) {                                                                                       \
+            TLOGI(tag, fmt, ##__VA_ARGS__);                                                              \
+        }                                                                                                \
+    } while (0)
+
+#define TLOGW_LIMITN_MIN(tag, freq, fmt, ...)                                                            \
+    do {                                                                                                 \
+        bool can = true;                                                                                 \
+        TLOGD(tag, fmt, ##__VA_ARGS__);                                                                  \
+        WIN_PRINT_LIMIT(tag, LOG_WARN, WIN_LOG_LIMIT_MINUTE, can, freq);                                 \
+        if (can) {                                                                                       \
+            TLOGW(tag, fmt, ##__VA_ARGS__);                                                              \
+        }                                                                                                \
+    } while (0)
+
+#define TLOGE_LIMITN_MIN(tag, freq, fmt, ...)                                                            \
+    do {                                                                                                 \
+        bool can = true;                                                                                 \
+        TLOGD(tag, fmt, ##__VA_ARGS__);                                                                  \
+        WIN_PRINT_LIMIT(tag, LOG_ERROR, WIN_LOG_LIMIT_MINUTE, can, freq);                                \
+        if (can) {                                                                                       \
+            TLOGE(tag, fmt, ##__VA_ARGS__);                                                              \
+        }                                                                                                \
+    } while (0)
 
 } // namespace OHOS
 }

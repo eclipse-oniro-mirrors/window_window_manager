@@ -34,6 +34,7 @@ constexpr const char* const ATOMICSERVICE_KEY_PARAM_NAME = "ohos.atomicService.w
 constexpr const char* const ATOMICSERVICE_KEY_PARAM_ENABLEANIMATION = "ohos.atomicService.window.param.enableAnimation";
 constexpr const char* const ATOMICSERVICE_KEY_PARAM_ISKEEPSCREENON = "ohos.atomicService.window.param.isKeepScreenOn";
 constexpr const char* const ATOMICSERVICE_KEY_PARAM_BRIGHTNESS = "ohos.atomicService.window.param.brightness";
+constexpr const char* const ATOMICSERVICE_KEY_PARAM_COLOR_NUMERIC = "ohos.atomicService.window.param.color.numeric";
 constexpr const char* const RECT_X = "rectX";
 constexpr const char* const RECT_Y = "rectY";
 constexpr const char* const RECT_WIDTH = "rectWidth";

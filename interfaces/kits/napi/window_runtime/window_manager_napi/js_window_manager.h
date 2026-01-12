@@ -37,6 +37,7 @@ public:
     static napi_value FindWindow(napi_env env, napi_callback_info info);
     static napi_value FindWindowSync(napi_env env, napi_callback_info info);
     static napi_value MinimizeAll(napi_env env, napi_callback_info info);
+    static napi_value MinimizeAllWithExclusion(napi_env env, napi_callback_info info);
     static napi_value ToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info);
     static napi_value RegisterWindowManagerCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterWindowMangerCallback(napi_env env, napi_callback_info info);
@@ -68,6 +69,7 @@ private:
     static napi_value OnFindWindow(napi_env env, napi_callback_info info);
     static napi_value OnFindWindowSync(napi_env env, napi_callback_info info);
     static napi_value OnMinimizeAll(napi_env env, napi_callback_info info);
+    static napi_value OnMinimizeAllWithExclusion(napi_env env, napi_callback_info info);
     static napi_value OnToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info);
     napi_value OnRegisterWindowManagerCallback(napi_env env, napi_callback_info info);
     napi_value OnUnregisterWindowManagerCallback(napi_env env, napi_callback_info info);
@@ -102,6 +104,8 @@ private:
     static void RegisterCallBackFunc(napi_env env, sptr<GetSnapshotCallback>& getSnapshotCallback,
         const std::shared_ptr<AbilityRuntime::NapiAsyncTask>& task,
         const std::shared_ptr<AbilityRuntime::NapiAsyncTask>& napiAsyncCallBackTask);
+    static WmErrorCode MinimizeAllParamParse(
+        napi_env env, size_t argc, napi_value* argv, int64_t& displayId, int32_t& excludeWindowId);
 };
 }  // namespace Rosen
 }  // namespace OHOS

@@ -73,7 +73,7 @@ void SingleDisplaySensorSuperFoldStateManager::UpdateSwitchScreenBoundaryForLarg
 {
     if (hall == HALL_FOLDED_THRESHOLD) {
         allowUserSensorForLargeFoldDevice = SMALLER_BOUNDARY_FLAG;
-    } else if (angle >= LARGER_BOUNDARY_FOR_THRESHOLD) {
+    } else if (std::isgreaterequal(angle, LARGER_BOUNDARY_FOR_THRESHOLD)) {
         allowUserSensorForLargeFoldDevice = LARGER_BOUNDARY_FLAG;
     }
 }

@@ -30,10 +30,8 @@ public:
         MessageOption& option) override;
 
 private:
-    bool ReadWindowInfoList(MessageParcel& data,
-        std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList);
-    bool ReadWindowInfo(MessageParcel& data,
-        std::unordered_map<WindowInfoKey, WindowChangeInfoType>& windowInfo);
+    bool ReadWindowInfoList(MessageParcel& data, WindowInfoList& windowInfoList);
+    bool ReadWindowInfo(MessageParcel& data, std::unordered_map<WindowInfoKey, WindowChangeInfoType>& windowInfo);
 };
 } // namespace Rosen
 } // namespace OHOS

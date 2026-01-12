@@ -48,6 +48,8 @@ public:
     DMError UnregisterScreenGroupListener(sptr<IScreenGroupListener> listener);
     DMError RegisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener);
     DMError UnregisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener);
+    DMError RegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener);
+    DMError UnRegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener);
     DMError RegisterDisplayManagerAgent();
     DMError UnregisterDisplayManagerAgent();
     void OnRemoteDied();
@@ -72,6 +74,7 @@ private:
     std::set<sptr<IScreenListener>> screenListeners_;
     std::set<sptr<IScreenGroupListener>> screenGroupListeners_;
     std::set<sptr<IVirtualScreenGroupListener>> virtualScreenGroupListeners_;
+    std::set<sptr<IRecordDisplayListener>> recordDisplayListeners_;
     sptr<IDisplayManagerAgent> virtualScreenAgent_ = nullptr;
     std::mutex virtualScreenAgentMutex_;
 };
@@ -159,6 +162,15 @@ public:
         }
         NotifyVirtualScreenGroupChanged(screenInfos[0], trigger, screenIds, groupEvent);
     };
+
+    void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds)
+    {
+        TLOGD(WmsLogTag::DMS, "begin");
+        for (auto listener: pImpl_->recordDisplayListeners_) {
+            listener->OnChange(displayIds);
+        }
+    };
+
 private:
     void NotifyVirtualScreenGroupChanged(sptr<ScreenInfo> screenInfo,
         const std::string trigger, std::vector<ScreenId>& ids, ScreenGroupChangeEvent groupEvent)
@@ -368,6 +380,46 @@ DMError ScreenManager::UnregisterScreenGroupListener(sptr<IScreenGroupListener> 
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterScreenGroupListener(listener);
+}
+
+DMError ScreenManager::RegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "RegisterRecordDisplayListener listener is nullptr.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return pImpl_->RegisterRecordDisplayListener(listener);
+}
+
+DMError ScreenManager::Impl::RegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    DMError regSucc = RegisterDisplayManagerAgent();
+    if (regSucc == DMError::DM_OK) {
+        recordDisplayListeners_.insert(listener);
+    }
+    return regSucc;
+}
+
+DMError ScreenManager::UnRegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "UnRegisterRecordDisplayListener listener is nullptr.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return pImpl_->UnRegisterRecordDisplayListener(listener);
+}
+
+DMError ScreenManager::Impl::UnRegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto iter = std::find(recordDisplayListeners_.begin(), recordDisplayListeners_.end(), listener);
+    if (iter == recordDisplayListeners_.end()) {
+        TLOGE(WmsLogTag::DMS, "could not find this listener");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    recordDisplayListeners_.erase(iter);
+    return isAllListenersRemoved() ? UnregisterDisplayManagerAgent() : DMError::DM_OK;
 }
 
 DMError ScreenManager::Impl::RegisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener)
@@ -626,6 +678,19 @@ DMError ScreenManager::RemoveVirtualScreenFromGroup(std::vector<ScreenId> screen
     }
     SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenFromGroup(screens);
     return DMError::DM_OK;
+}
+
+DMError ScreenManager::AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+{
+    DMError errCode = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenWhiteList(screenId, missionIds);
+    return errCode;
+}
+
+DMError ScreenManager::RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+{
+    DMError errCode = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenWhiteList(screenId,
+        missionIds);
+    return errCode;
 }
 
 ScreenId ScreenManager::CreateVirtualScreen(VirtualScreenOption option)

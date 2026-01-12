@@ -734,6 +734,16 @@ public:
         return !IsApproximatelyOne(transform.scaleX_) || !IsApproximatelyOne(transform.scaleY_);
     }
 
+    static bool IsSupportSetZIndexWindow(WindowType windowType)
+    {
+        return windowType == WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD ||
+               windowType == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
+               windowType == WindowType::WINDOW_TYPE_SCREENSHOT ||
+               windowType == WindowType::WINDOW_TYPE_SCREEN_CONTROL ||
+               windowType == WindowType::WINDOW_TYPE_FLOAT_NAVIGATION ||
+               windowType == WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION;
+    }
+
 private:
     WindowHelper() = default;
     ~WindowHelper() = default;

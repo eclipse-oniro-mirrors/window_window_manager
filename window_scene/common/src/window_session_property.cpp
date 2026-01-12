@@ -289,6 +289,11 @@ void WindowSessionProperty::SetUserRequestedOrientation(Orientation orientation)
     userRequestedOrientation_ = orientation;
 }
 
+void WindowSessionProperty::SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation)
+{
+    isSpecificSessionRequestOrientation_ = isSpecificSessionRequestOrientation;
+}
+
 void WindowSessionProperty::SetPrivacyMode(bool isPrivate)
 {
     isPrivacyMode_ = isPrivate;
@@ -448,6 +453,11 @@ Orientation WindowSessionProperty::GetDefaultRequestedOrientation() const
 Orientation WindowSessionProperty::GetUserRequestedOrientation() const
 {
     return userRequestedOrientation_;
+}
+
+bool WindowSessionProperty::GetIsSpecificSessionRequestOrientation() const
+{
+    return isSpecificSessionRequestOrientation_;
 }
 
 bool WindowSessionProperty::GetPrivacyMode() const
@@ -1217,6 +1227,12 @@ bool WindowSessionProperty::MarshallingSessionInfo(Parcel& parcel) const
         !parcel.WriteBool(sessionInfo_.isKeyboardDidHideRegistered_)) {
         return false;
     }
+    if (!parcel.WriteBool(sessionInfo_.isReceiveDragEventEnabled_)) {
+        return false;
+    }
+    if (!parcel.WriteBool(sessionInfo_.isSeparationTouchEnabled_)) {
+        return false;
+    }
     return true;
 }
 
@@ -1266,6 +1282,14 @@ bool WindowSessionProperty::UnmarshallingSessionInfo(Parcel& parcel, WindowSessi
         !parcel.ReadBool(info.isKeyboardDidShowRegistered_) ||
         !parcel.ReadBool(info.isKeyboardDidHideRegistered_)) {
         TLOGE(WmsLogTag::DEFAULT, "Failed to read keyboard registered state!");
+        return false;
+    }
+    if (!parcel.ReadBool(info.isReceiveDragEventEnabled_)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to read isReceiveDragEventEnabled!");
+        return false;
+    }
+    if (!parcel.ReadBool(info.isSeparationTouchEnabled_)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to read isSeparationTouchEnabled!");
         return false;
     }
     property->SetSessionInfo(info);
@@ -1427,6 +1451,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteUint32(static_cast<uint32_t>(requestedOrientation_)) &&
         parcel.WriteBool(needRotateAnimation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(userRequestedOrientation_)) &&
+        parcel.WriteBool(isSpecificSessionRequestOrientation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(windowMode_)) &&
         parcel.WriteUint32(flags_) && parcel.WriteBool(raiseEnabled_) &&
         parcel.WriteBool(topmost_) && parcel.WriteBool(mainWindowTopmost_) &&
@@ -1472,6 +1497,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isShowDecorInFreeMultiWindow_) &&
         parcel.WriteBool(isMobileAppInPadLayoutFullScreen_) &&
         parcel.WriteBool(isFullScreenInForceSplitMode_) &&
+        parcel.WriteInt32(static_cast<int32_t>(pageCompatibleMode_)) &&
         parcel.WriteFloat(aspectRatio_) &&
         parcel.WriteBool(isRotationLock_);
 }
@@ -1520,6 +1546,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetMaximizeMode(static_cast<MaximizeMode>(parcel.ReadUint32()));
     property->SetRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()), parcel.ReadBool());
     property->SetUserRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()));
+    property->SetIsSpecificSessionRequestOrientation(parcel.ReadBool());
     property->SetWindowMode(static_cast<WindowMode>(parcel.ReadUint32()));
     property->SetWindowFlags(parcel.ReadUint32());
     property->SetRaiseEnabled(parcel.ReadBool());
@@ -1593,6 +1620,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetIsShowDecorInFreeMultiWindow(parcel.ReadBool());
     property->SetMobileAppInPadLayoutFullScreen(parcel.ReadBool());
     property->SetIsFullScreenInForceSplitMode(parcel.ReadBool());
+    property->SetPageCompatibleMode(static_cast<CompatibleStyleMode>(parcel.ReadInt32()));
     property->SetAspectRatio(parcel.ReadFloat());
     property->SetRotationLocked(parcel.ReadBool());
     return property;
@@ -1713,6 +1741,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     aspectRatio_ = property->aspectRatio_;
     isRotationLock_ = property->isRotationLock_;
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
+    pageCompatibleMode_ = property->pageCompatibleMode_;
 }
 
 bool WindowSessionProperty::Write(Parcel& parcel, WSPropertyChangeAction action)
@@ -2461,6 +2490,22 @@ bool WindowSessionProperty::IsAdaptToSimulationScale() const
     return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToSimulationScale();
 }
 
+bool WindowSessionProperty::IsAdaptToCompatibleDevice() const
+{
+    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToCompatibleDevice();
+}
+
+RealTimeSwitchInfo WindowSessionProperty::GetRealTimeSwitchInfo() const
+{
+    if (!compatibleModeProperty_) {
+        RealTimeSwitchInfo switchInfo;
+        switchInfo.isNeedChange_ = false;
+        switchInfo.showTypes_ = 0;
+        return switchInfo;
+    }
+    return compatibleModeProperty_->GetRealTimeSwitchInfo();
+}
+
 void WindowSessionProperty::SetIsFullScreenInForceSplitMode(bool isFullScreenInForceSplitMode)
 {
     isFullScreenInForceSplitMode_ = isFullScreenInForceSplitMode;
@@ -2469,6 +2514,16 @@ void WindowSessionProperty::SetIsFullScreenInForceSplitMode(bool isFullScreenInF
 bool WindowSessionProperty::IsFullScreenInForceSplitMode() const
 {
     return isFullScreenInForceSplitMode_;
+}
+
+void WindowSessionProperty::SetPageCompatibleMode(CompatibleStyleMode compatibleMode)
+{
+    pageCompatibleMode_ = compatibleMode;
+}
+
+CompatibleStyleMode WindowSessionProperty::GetPageCompatibleMode() const
+{
+    return pageCompatibleMode_;
 }
 
 void WindowSessionProperty::SetPcAppInpadCompatibleMode(bool enabled)
@@ -2671,6 +2726,28 @@ bool CompatibleModeProperty::IsAdaptToSimulationScale() const
     return isAdaptToSimulationScale_;
 }
 
+void CompatibleModeProperty::SetIsAdaptToCompatibleDevice(bool enable)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "enable=%{public}d", enable);
+    isAdaptToCompatibleDevice_ = enable;
+}
+
+bool CompatibleModeProperty::IsAdaptToCompatibleDevice() const
+{
+    return isAdaptToCompatibleDevice_;
+}
+
+void CompatibleModeProperty::SetRealTimeSwitchInfo(const RealTimeSwitchInfo& switchInfo)
+{
+    realTimeSwitchInfo_.isNeedChange_ = switchInfo.isNeedChange_;
+    realTimeSwitchInfo_.showTypes_ = switchInfo.showTypes_;
+}
+
+RealTimeSwitchInfo CompatibleModeProperty::GetRealTimeSwitchInfo() const
+{
+    return realTimeSwitchInfo_;
+}
+
 bool CompatibleModeProperty::Marshalling(Parcel& parcel) const
 {
     return parcel.WriteBool(isAdaptToImmersive_) &&
@@ -2687,7 +2764,10 @@ bool CompatibleModeProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isFullScreenStart_) &&
         parcel.WriteBool(isSupportRotateFullScreen_) &&
         parcel.WriteBool(isAdaptToSubWindow_) &&
-        parcel.WriteBool(isAdaptToSimulationScale_);
+        parcel.WriteBool(isAdaptToSimulationScale_) &&
+        parcel.WriteBool(isAdaptToCompatibleDevice_) &&
+        parcel.WriteBool(realTimeSwitchInfo_.isNeedChange_) &&
+        parcel.WriteUint32(realTimeSwitchInfo_.showTypes_);
 }
 
 CompatibleModeProperty* CompatibleModeProperty::Unmarshalling(Parcel& parcel)
@@ -2711,6 +2791,9 @@ CompatibleModeProperty* CompatibleModeProperty::Unmarshalling(Parcel& parcel)
     property->isSupportRotateFullScreen_ = parcel.ReadBool();
     property->isAdaptToSubWindow_ = parcel.ReadBool();
     property->isAdaptToSimulationScale_ = parcel.ReadBool();
+    property->isAdaptToCompatibleDevice_ = parcel.ReadBool();
+    property->realTimeSwitchInfo_.isNeedChange_ = parcel.ReadBool();
+    property->realTimeSwitchInfo_.showTypes_ = parcel.ReadUint32();
     return property;
 }
 

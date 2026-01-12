@@ -36,6 +36,7 @@ public:
     static napi_value FindWindow(napi_env env, napi_callback_info info);
     static napi_value FindWindowSync(napi_env env, napi_callback_info info);
     static napi_value MinimizeAll(napi_env env, napi_callback_info info);
+    static napi_value MinimizeAllWithExclusion(napi_env env, napi_callback_info info);
     static napi_value ToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info);
     static napi_value RegisterWindowManagerCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterWindowMangerCallback(napi_env env, napi_callback_info info);

@@ -47,7 +47,8 @@ namespace uiExtension {
 
   function avoidAreaChangeCallback(cb: object, area: object, type: int): void {
     const func = cb as (data: AvoidAreaInfo) => void;
-    func({type: type as window.AvoidAreaType, area: area as window.AvoidArea});
+    let v: AvoidAreaInfo = {type: type as window.AvoidAreaType, area: area as window.AvoidArea}
+    func(v);
   }
 
   class UIEProperties implements WindowProxyProperties {
@@ -98,7 +99,7 @@ namespace uiExtension {
     public native getWindowAvoidArea(nativeObj: long, type: int, area: object): int;
     public native setWaterMarkFlag(nativeObj: long, enable: boolean): int;
     public native createSubWindowWithOptions(nativeObj: long, name: string,
-        subWindowOptions: window.SubWindowOptions): window.Window;
+        subWindowOptions: window.SubWindowOptions, followCreatorLifecycle: boolean): window.Window;
     public native occupyEvents(nativeObj: long, eventFlags: int): void;
     public native hideNonSecureWindows(nativeObj: long, shouldHide: boolean): int;
     public native onSync(nativeObj: long, type: string, callback: object): void;
@@ -167,9 +168,9 @@ namespace uiExtension {
           if (ret !== WmErrorCode.WM_OK) {
             hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `setWaterMarkFlag failed, ret: ${ret}`);
           }
-        }).then((ret: NullishType) :void => {
+        }).then((ret: Any) :void => {
           resolve(undefined);
-        }).catch((err: NullishType) :void => {
+        }).catch((err: Any) :void => {
           reject(err as BusinessError);
         });
       });
@@ -182,9 +183,9 @@ namespace uiExtension {
           if (ret !== WmErrorCode.WM_OK) {
             hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `hideNonSecureWindows failed, ret: ${ret}`);
           }
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
           resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
           reject(err as BusinessError);
         });
       });
@@ -193,10 +194,23 @@ namespace uiExtension {
     public createSubWindowWithOptions(name: string, subWindowOptions: window.SubWindowOptions): Promise<window.Window> {
       return new Promise<window.Window>((resolve: (value: window.Window) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): window.Window => {
-          return this.createSubWindowWithOptions(this.nativeObj, name, subWindowOptions);
-        }).then((ret: NullishType) => {
+          return this.createSubWindowWithOptions(this.nativeObj, name, subWindowOptions, false);
+        }).then((ret: Any) => {
             resolve(ret as window.Window);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
+            reject(err as BusinessError);
+        });
+      });
+    }
+
+    public createSubWindowWithOptions(name: string, subWindowConfig: window.SubWindowOptions,
+      followCreatorLifecycle: boolean): Promise<window.Window> {
+      return new Promise<window.Window>((resolve: (value: window.Window) => void, reject: (error: BusinessError) => void) => {
+        taskpool.execute((): window.Window => {
+          return this.createSubWindowWithOptions(this.nativeObj, name, subWindowConfig, followCreatorLifecycle);
+        }).then((ret: Any) => {
+            resolve(ret as window.Window);
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
       });
@@ -206,9 +220,9 @@ namespace uiExtension {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.occupyEvents(this.nativeObj, eventFlags);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
           resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
           reject(err as BusinessError);
         });
       });
@@ -333,6 +347,8 @@ namespace uiExtension {
     setWaterMarkFlag(enable: boolean): Promise<void>;
     hideNonSecureWindows(shouldHide: boolean): Promise<void>;
     createSubWindowWithOptions(name: string, subWindowOptions: window.SubWindowOptions): Promise<window.Window>;
+    createSubWindowWithOptions(name: string, subWindowConfig: window.SubWindowOptions,
+      followCreatorLifecycle: boolean): Promise<window.Window>;
     occupyEvents(eventFlags: int): Promise<void>;
     on<T>(type: string, callback: Callback<T>): void;
     off<T>(type: string, callback?: Callback<T>): void;

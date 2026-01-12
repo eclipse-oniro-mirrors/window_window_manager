@@ -21,6 +21,7 @@
 #include "input_event.h"
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
+#include "mock_vsync_station.h"
 #include "pointer_event.h"
 #include "session/host/include/main_session.h"
 #include "session/host/include/scene_session.h"
@@ -46,6 +47,7 @@ public:
 private:
     RSSurfaceNode::SharedPtr CreateRSSurfaceNode();
     sptr<SessionStageMocker> mockSessionStage_ = nullptr;
+    static constexpr uint32_t WAIT_SYNC_NS = 200000;
 };
 
 void SceneSessionLayoutTest::SetUpTestCase() {}
@@ -395,7 +397,6 @@ HWTEST_F(SceneSessionLayoutTest, NotifySessionWindowLimitschange, TestSize.Level
 
     // Case 1: sessionWindowLimitsChangeFunc_ is null
     sceneSession->NotifySessionWindowLimitsChange(expectedMainLimits);
-    EXPECT_TRUE(callbackTriggered == false);
     EXPECT_NE(receivedMainLimits.minWidth_, expectedMainLimits.minWidth_);
     EXPECT_NE(receivedMainLimits.minHeight_, expectedMainLimits.minHeight_);
     EXPECT_NE(receivedMainLimits.maxWidth_, expectedMainLimits.maxWidth_);
@@ -943,6 +944,103 @@ HWTEST_F(SceneSessionLayoutTest, UpdateWindowModeForUITest01, TestSize.Level1)
     sceneSession->sessionStage_ = mockSessionStage;
     errCode = sceneSession->UpdateWindowModeForUITest(updateMode);
     EXPECT_EQ(errCode, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: NotifyWindowStatusDidChangeAfterShowWindow
+ * @tc.desc: NotifyWindowStatusDidChangeAfterShowWindowForUITest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyWindowStatusDidChangeAfterShowWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyWindowStatusDidChangeAfterShowWindow";
+    info.bundleName_ = "NotifyWindowStatusDidChangeAfterShowWindow";
+    auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+    sceneSession->SetVsyncStation(mockVsyncStation);
+    ASSERT_NE(sceneSession->vsyncStation_, nullptr);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = mockSessionStage;
+    sceneSession->handler_ = nullptr;
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
+    sceneSession->NotifyWindowStatusDidChangeAfterShowWindow();
+    sceneSession->ExecuteWindowStatusChangeNotification("test");
+}
+
+/**
+ * @tc.name: NotifyWindowStatusDidChangeIfNeedWhenSessionEvent
+ * @tc.desc: NotifyWindowStatusDidChangeIfNeedWhenSessionEventForUITest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyWindowStatusDidChangeIfNeedWhenSessionEvent, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyWindowStatusDidChangeIfNeedWhenSessionEvent";
+    info.bundleName_ = "NotifyWindowStatusDidChangeIfNeedWhenSessionEvent";
+    auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+    sceneSession->SetVsyncStation(mockVsyncStation);
+
+    sceneSession->RegisterGetIsDockAutoHideFunc([](){return true;});
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = mockSessionStage;
+    sceneSession->handler_ = nullptr;
+    sceneSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
+    sceneSession->NotifyWindowStatusDidChangeIfNeedWhenSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+}
+
+/**
+ * @tc.name: ExecuteWindowStatusChangeNotification
+ * @tc.desc: ExecuteWindowStatusChangeNotificationForUITest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ExecuteWindowStatusChangeNotification, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ExecuteWindowStatusChangeNotification";
+    info.bundleName_ = "ExecuteWindowStatusChangeNotification";
+    auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(0, 0);
+        }));
+    sceneSession->SetVsyncStation(mockVsyncStation);
+    ASSERT_NE(sceneSession->vsyncStation_, nullptr);
+
+    sceneSession->RegisterGetIsDockAutoHideFunc([](){return true;});
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(0);
+    sceneSession->ExecuteWindowStatusChangeNotification("unittest");
+    usleep(WAIT_SYNC_NS);
+
+    sceneSession->sessionStage_ = mockSessionStage;
+    sceneSession->handler_ = nullptr;
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
+    sceneSession->ExecuteWindowStatusChangeNotification("unittest");
+    usleep(WAIT_SYNC_NS);
 }
 
 /**

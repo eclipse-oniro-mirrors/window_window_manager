@@ -106,9 +106,13 @@ public:
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     WMError Destroy(uint32_t reason = 0) override;
     virtual WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0);
-    WMError NapiSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
-        BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
     WMError NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
+        BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
+    WMError AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
+        BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
+    WMError NapiSetUIContentByName(const std::string& contentName, napi_env env, napi_value storage,
+        BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
+    WMError AniSetUIContentByName(const std::string& contentName, ani_env* env, ani_object storage,
         BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
     WMError SetUIContentByName(const std::string& contentInfo, napi_env env, napi_value storage,
         AppExecFwk::Ability* ability) override;
@@ -153,6 +157,7 @@ public:
      */
     bool IsPcWindow() const override;
     bool IsPadWindow() const override;
+    bool IsPhonePadOrPcWindow() const override;
     bool IsPcOrFreeMultiWindowCapabilityEnabled() const override;
     bool IsPcOrPadFreeMultiWindowMode() const override;
     bool IsPadAndNotFreeMultiWindowCompatibleMode() const override;
@@ -172,7 +177,7 @@ public:
     void NotifyClientWindowSize();
     bool IsFullScreenPcAppInPadMode() const;
     sptr<WindowSessionProperty> GetPropertyByContext() const;
-    std::vector<Rect> GetAncoWindowHotAreas();
+    std::vector<Rect> GetAncoWindowHotAreas() override;
 
     /*
      * Compatible Mode
@@ -187,6 +192,9 @@ public:
     static void RegisterWindowScaleCallback();
     static WMError GetWindowScaleCoordinate(uint32_t windowId, CursorInfo& cursorInfo);
     static sptr<WindowSessionImpl> GetScaleWindow(uint32_t windowId);
+    WMError RegisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener) override;
+    WMError UnregisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener) override;
+    WMError UpdateCompatibleStyleMode(CompatibleStyleMode mode) override;
 
     WMError SetWindowType(WindowType type) override;
     WMError SetBrightness(float brightness) override;
@@ -221,7 +229,8 @@ public:
     bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY) override;
     WMError SetIntentParam(const std::string& intentParam, const std::function<void()>& loadPageCallback,
         bool isColdStart) override;
-    void SetForceSplitEnable(AppForceLandscapeConfig& config);
+    virtual void SetForceSplitConfigEnable(bool enableForceSplit) {};
+    void SetForceSplitConfig(const AppForceLandscapeConfig& config);
 
     /*
      * inherits from session stage
@@ -232,6 +241,7 @@ public:
             WindowAnimationCurve::LINEAR, {0.0f, 0.0f, 0.0f, 0.0f} },
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {}) override;
     void UpdateDensity() override;
+    WSError UpdateBrightness(float brightness) override { return WSError::WS_OK; }
     void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     void UpdateAnimationSpeed(float speed) override;
     void UpdateAllWindowSpeed(float speed);
@@ -401,6 +411,7 @@ public:
     void UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo) override;
     WMError GetPiPSettingSwitchStatus(bool& switchStatus) const override;
     WMError SetPipParentWindowId(uint32_t windowId) const override;
+    WMError IsPiPActive(bool& status) override;
 
     WMError UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
         const std::shared_ptr<Media::PixelMap>& icon) override;
@@ -497,7 +508,7 @@ public:
     float GetVirtualPixelRatio() override;
     CrossAxisState GetCrossAxisState() override;
     void RegisterKeyFrameCallback();
-    WSError LinkKeyFrameNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode) override;
+    WSError LinkKeyFrameNode() override;
     WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
     WMError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
     WMError RegisterWindowStatusDidChangeListener(const sptr<IWindowStatusDidChangeListener>& listener) override;
@@ -596,6 +607,8 @@ public:
     WMError SetFollowScreenChange(bool isFollowScreenChange) override;
     void BeginRSTransaction(const std::shared_ptr<RSTransaction>& rsTransaction) const;
     WSError NotifyPageRotationIsIgnored() override;
+    WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
+        const int32_t value, int32_t& convertedValue) override;
 
     /*
      * UIExtension
@@ -700,14 +713,22 @@ protected:
     std::unordered_set<int32_t> rectChangeInGlobalDisplayUIExtListenerIds_;
     std::unordered_map<int32_t, sptr<IKeyboardDidShowListener>> keyboardDidShowUIExtListeners_;
     std::unordered_map<int32_t, sptr<IKeyboardDidHideListener>> keyboardDidHideUIExtListeners_;
+    bool followCreatorLifecycle_ = false;
+    bool isHiddenFollowingUIExtension_ = false;
     void WriteKeyboardInfoToWant(AAFwk::Want& want, const KeyboardPanelInfo& keyboardPanelInfo) const;
     void ReadKeyboardInfoFromWant(const AAFwk::Want& want, KeyboardPanelInfo& keyboardPanelInfo) const;
     static std::set<sptr<WindowSessionImpl>>& GetWindowExtensionSessionSet();
+    void SetIsHiddenFollowingUIExtension(bool isHiddenFollowingUIExtension)
+    {
+        isHiddenFollowingUIExtension_ = isHiddenFollowingUIExtension;
+    }
+    bool IsHiddenFollowingUIExtension() { return isHiddenFollowingUIExtension_; }
 
     /*
      * Sub Window
      */
     void UpdateSubWindowStateAndNotify(int32_t parentPersistentId, const WindowState newState);
+    void UpdateSubWindowStateWithOptions(const StateChangeOption& option);
     void DestroySubWindow();
     bool IsSubWindowMaximizeSupported() const override;
     void UpdateSubWindowInfo(uint32_t subWindowLevel, const std::shared_ptr<AbilityRuntime::Context>& context);
@@ -771,6 +792,7 @@ protected:
     float compatScaleX_ = 1.0f;
     float compatScaleY_ = 1.0f;
     std::atomic_bool isFullScreenInForceSplit_ { false };
+    std::vector<sptr<IUIContentCreateListener>> uiContentCreateListeners_;
 
     /*
      * DFX
@@ -837,9 +859,12 @@ protected:
     /*
      * Window Immersive
      */
+    virtual void UpdateDefaultStatusBarColor() { return; }
+    WMError UpdateStatusBarColorByColorMode(uint32_t& contentColor);
     std::map<AvoidAreaType, AvoidArea> lastAvoidAreaMap_;
     uint32_t GetStatusBarHeight() const override;
     WindowType rootHostWindowType_ = WindowType::APP_MAIN_WINDOW_BASE;
+    SystemBarSettingFlag systemBarSettingFlag_ = SystemBarSettingFlag::DEFAULT_SETTING;
 
     /*
      * PC Fold Screen
@@ -863,6 +888,7 @@ protected:
      */
     std::string colorMode_;
     bool hasDarkRes_;
+    std::string specifiedColorMode_;
     WindowVisibilityState lastVisibilityState_ = WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION;
     std::unordered_set<std::string> containerColorList_;
     float lastSystemDensity_ = UNDEFINED_DENSITY;
@@ -1028,7 +1054,9 @@ private:
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {});
     void SubmitNoInteractionMonitorTask(int32_t eventId, const IWindowNoInteractionListenerSptr& listener);
     virtual WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) { return WMError::WM_OK; };
+    virtual WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) { return WMError::WM_OK; };
     WSError NotifyAppForceLandscapeConfigUpdated() override;
+    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
     void SetFrameLayoutCallbackEnable(bool enable);
     void UpdateFrameLayoutCallbackIfNeeded(WindowSizeChangeReason wmReason);
     bool IsNotifyInteractiveDuplicative(bool interactive);
@@ -1192,6 +1220,7 @@ private:
      * PC Window
      */
     uint32_t targetAPIVersion_ = 0;
+    std::shared_ptr<Media::PixelMap> iconCache_;
 
     /*
      * Window Input Event

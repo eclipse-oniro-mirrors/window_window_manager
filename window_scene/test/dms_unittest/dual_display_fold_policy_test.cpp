@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "fold_screen_controller/dual_display_fold_policy.h"
 #include "fold_screen_controller/fold_screen_controller.h"
@@ -28,6 +29,14 @@ namespace Rosen {
 namespace {
 constexpr uint32_t SLEEP_TIME_US = 500000;
 const std::string DUAL_DISPLAY_FOLD_POLICY_TEST = "DualDisplayFoldPolicyTest";
+}
+namespace {
+    std::string g_errLog;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+    g_errLog = msg;
+    }
 }
 
 class DualDisplayFoldPolicyTest : public testing::Test {
@@ -154,6 +163,22 @@ namespace {
     }
 
     /**
+     * @tc.name: GetSupportedFoldStatus
+     * @tc.desc: GetSupportedFoldStatus
+     * @tc.type: FUNC
+     */
+    HWTEST_F(DualDisplayFoldPolicyTest, GetSupportedFoldStatus, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        DualDisplayFoldPolicy policy(mutex, std::shared_ptr<TaskScheduler>());
+        EXPECT_THAT(policy.GetSupportedFoldStatus(),
+            UnorderedElementsAre(
+                FoldStatus::EXPAND,
+                FoldStatus::FOLDED,
+                FoldStatus::HALF_FOLD));
+    }
+
+    /**
      * @tc.name: LockDisplayStatus
      * @tc.desc: LockDisplayStatus
      * @tc.type: FUNC
@@ -267,11 +292,11 @@ namespace {
     }
 
     /**
-     * @tc.name: GetModeMatchStatus
+     * @tc.name: GetModeMatchStatus01
      * @tc.desc: GetModeMatchStatus
      * @tc.type: FUNC
      */
-    HWTEST_F(DualDisplayFoldPolicyTest, GetModeMatchStatus, TestSize.Level1)
+    HWTEST_F(DualDisplayFoldPolicyTest, GetModeMatchStatus01, TestSize.Level1)
     {
         std::recursive_mutex mutex;
         DualDisplayFoldPolicy dualDisplayFoldPolicy(mutex, std::shared_ptr<TaskScheduler>());
@@ -292,6 +317,33 @@ namespace {
     }
 
     /**
+     * @tc.name: GetModeMatchStatus02
+     * @tc.desc: test function : GetModeMatchStatus
+     * @tc.type: FUNC
+     */
+    HWTEST_F(DualDisplayFoldPolicyTest, GetModeMatchStatus02, TestSize.Level1)
+    {
+        std::recursive_mutex mutex;
+        DualDisplayFoldPolicy policy(mutex, std::shared_ptr<TaskScheduler>());
+
+        FoldStatus targetFoldStatus = FoldStatus::EXPAND;
+        FoldDisplayMode ret = policy.GetModeMatchStatus(targetFoldStatus);
+        EXPECT_EQ(FoldDisplayMode::MAIN, ret);
+
+        targetFoldStatus = FoldStatus::FOLDED;
+        ret = policy.GetModeMatchStatus(targetFoldStatus);
+        EXPECT_EQ(FoldDisplayMode::SUB, ret);
+
+        targetFoldStatus = FoldStatus::HALF_FOLD;
+        ret = policy.GetModeMatchStatus(targetFoldStatus);
+        EXPECT_EQ(FoldDisplayMode::MAIN, ret);
+
+        targetFoldStatus = FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_EXPAND;
+        ret = policy.GetModeMatchStatus(targetFoldStatus);
+        EXPECT_EQ(FoldDisplayMode::UNKNOWN, ret);
+    }
+
+    /**
      * @tc.name: ReportFoldDisplayModeChange
      * @tc.desc: ReportFoldDisplayModeChange
      * @tc.type: FUNC
@@ -300,9 +352,11 @@ namespace {
     {
         std::recursive_mutex mutex;
         DualDisplayFoldPolicy dualDisplayFoldPolicy(mutex, std::shared_ptr<TaskScheduler>());
-        dualDisplayFoldPolicy.ReportFoldDisplayModeChange(FoldDisplayMode::FULL);
+        FoldDisplayMode expectMode = FoldDisplayMode::FULL;
+        dualDisplayFoldPolicy.ReportFoldDisplayModeChange(expectMode);
         FoldDisplayMode mode = ssm_.GetFoldDisplayMode();
-        ASSERT_EQ(mode, ssm_.GetFoldDisplayMode());
+        EXPECT_FALSE(g_errLog.find("Write HiSysEvent error, ret: %{public}d") !=
+                    std::string::npos);
     }
 
     /**
@@ -314,11 +368,11 @@ namespace {
     {
         std::recursive_mutex mutex;
         DualDisplayFoldPolicy dualDisplayFoldPolicy(mutex, std::shared_ptr<TaskScheduler>());
+        FoldDisplayMode originalmode = ssm_.GetFoldDisplayMode();
         int32_t offScreen = 0;
         int32_t onScreen = 1;
         dualDisplayFoldPolicy.ReportFoldStatusChangeBegin(offScreen, onScreen);
-        FoldDisplayMode mode = ssm_.GetFoldDisplayMode();
-        ASSERT_EQ(mode, ssm_.GetFoldDisplayMode());
+        ASSERT_FALSE(g_errLog.find("ReportFoldStatusChangeBegin Write HiSusEvent error") != std::string::npos);
     }
 
     /**
@@ -353,23 +407,6 @@ namespace {
         dualDisplayFoldPolicy.screenPowerTaskScheduler_ = std::make_shared<TaskScheduler>(threadName);
         dualDisplayFoldPolicy.ChangeScreenDisplayModeOnBootAnimation(screenSession, screenId);
         ASSERT_EQ(screenId, dualDisplayFoldPolicy.screenId_);
-    }
-
-    /**
-     * @tc.name: AddOrRemoveDisplayNodeToTree
-     * @tc.desc: AddOrRemoveDisplayNodeToTree
-     * @tc.type: FUNC
-     */
-    HWTEST_F(DualDisplayFoldPolicyTest, AddOrRemoveDisplayNodeToTree, TestSize.Level1)
-    {
-        std::recursive_mutex mutex;
-        DualDisplayFoldPolicy dualDisplayFoldPolicy(mutex, std::shared_ptr<TaskScheduler>());
-        sptr<ScreenSession> screenSession = new ScreenSession();
-        ScreenId screenId = 0;
-        int32_t command = 1;
-        dualDisplayFoldPolicy.AddOrRemoveDisplayNodeToTree(screenId, command);
-        FoldDisplayMode mode = ssm_.GetFoldDisplayMode();
-        ASSERT_EQ(mode, ssm_.GetFoldDisplayMode());
     }
 
     /**

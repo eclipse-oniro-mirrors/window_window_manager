@@ -113,67 +113,8 @@ enum class WindowStageLifeCycleEventType : uint32_t {
     BACKGROUND,
 };
 
-const std::map<WindowType, ApiWindowType> NATIVE_JS_TO_WINDOW_TYPE_MAP {
-    { WindowType::WINDOW_TYPE_APP_SUB_WINDOW,           ApiWindowType::TYPE_APP                      },
-    { WindowType::WINDOW_TYPE_DIALOG,                   ApiWindowType::TYPE_DIALOG                   },
-    { WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW,      ApiWindowType::TYPE_SYSTEM_ALERT             },
-    { WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT,       ApiWindowType::TYPE_INPUT_METHOD             },
-    { WindowType::WINDOW_TYPE_STATUS_BAR,               ApiWindowType::TYPE_STATUS_BAR               },
-    { WindowType::WINDOW_TYPE_PANEL,                    ApiWindowType::TYPE_PANEL                    },
-    { WindowType::WINDOW_TYPE_KEYGUARD,                 ApiWindowType::TYPE_KEYGUARD                 },
-    { WindowType::WINDOW_TYPE_VOLUME_OVERLAY,           ApiWindowType::TYPE_VOLUME_OVERLAY           },
-    { WindowType::WINDOW_TYPE_NAVIGATION_BAR,           ApiWindowType::TYPE_NAVIGATION_BAR           },
-    { WindowType::WINDOW_TYPE_FLOAT,                    ApiWindowType::TYPE_FLOAT                    },
-    { WindowType::WINDOW_TYPE_FLOAT_CAMERA,             ApiWindowType::TYPE_FLOAT_CAMERA             },
-    { WindowType::WINDOW_TYPE_WALLPAPER,                ApiWindowType::TYPE_WALLPAPER                },
-    { WindowType::WINDOW_TYPE_DESKTOP,                  ApiWindowType::TYPE_DESKTOP                  },
-    { WindowType::WINDOW_TYPE_LAUNCHER_RECENT,          ApiWindowType::TYPE_LAUNCHER_RECENT          },
-    { WindowType::WINDOW_TYPE_LAUNCHER_DOCK,            ApiWindowType::TYPE_LAUNCHER_DOCK            },
-    { WindowType::WINDOW_TYPE_VOICE_INTERACTION,        ApiWindowType::TYPE_VOICE_INTERACTION        },
-    { WindowType::WINDOW_TYPE_POINTER,                  ApiWindowType::TYPE_POINTER                  },
-    { WindowType::WINDOW_TYPE_SCREENSHOT,               ApiWindowType::TYPE_SCREENSHOT               },
-    { WindowType::WINDOW_TYPE_SYSTEM_TOAST,             ApiWindowType::TYPE_SYSTEM_TOAST             },
-    { WindowType::WINDOW_TYPE_DOCK_SLICE,               ApiWindowType::TYPE_DIVIDER                  },
-    { WindowType::WINDOW_TYPE_GLOBAL_SEARCH,            ApiWindowType::TYPE_GLOBAL_SEARCH            },
-    { WindowType::WINDOW_TYPE_HANDWRITE,                ApiWindowType::TYPE_HANDWRITE                },
-    { WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD,        ApiWindowType::TYPE_WALLET_SWIPE_CARD        },
-    { WindowType::WINDOW_TYPE_SCREEN_CONTROL,           ApiWindowType::TYPE_SCREEN_CONTROL           },
-    { WindowType::WINDOW_TYPE_FLOAT_NAVIGATION,         ApiWindowType::TYPE_FLOAT_NAVIGATION         },
-    { WindowType::WINDOW_TYPE_DYNAMIC,                  ApiWindowType::TYPE_DYNAMIC                  },
-    { WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION, ApiWindowType::TYPE_MUTISCREEN_COLLABORATION },
-    { WindowType::WINDOW_TYPE_FB,                       ApiWindowType::TYPE_FB                       },
-};
-
-const std::map<ApiWindowType, WindowType> JS_TO_NATIVE_WINDOW_TYPE_MAP {
-    { ApiWindowType::TYPE_APP,                      WindowType::WINDOW_TYPE_APP_SUB_WINDOW           },
-    { ApiWindowType::TYPE_DIALOG,                   WindowType::WINDOW_TYPE_DIALOG                   },
-    { ApiWindowType::TYPE_SYSTEM_ALERT,             WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW      },
-    { ApiWindowType::TYPE_INPUT_METHOD,             WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT       },
-    { ApiWindowType::TYPE_STATUS_BAR,               WindowType::WINDOW_TYPE_STATUS_BAR               },
-    { ApiWindowType::TYPE_PANEL,                    WindowType::WINDOW_TYPE_PANEL                    },
-    { ApiWindowType::TYPE_KEYGUARD,                 WindowType::WINDOW_TYPE_KEYGUARD                 },
-    { ApiWindowType::TYPE_VOLUME_OVERLAY,           WindowType::WINDOW_TYPE_VOLUME_OVERLAY           },
-    { ApiWindowType::TYPE_NAVIGATION_BAR,           WindowType::WINDOW_TYPE_NAVIGATION_BAR           },
-    { ApiWindowType::TYPE_FLOAT,                    WindowType::WINDOW_TYPE_FLOAT                    },
-    { ApiWindowType::TYPE_FLOAT_CAMERA,             WindowType::WINDOW_TYPE_FLOAT_CAMERA             },
-    { ApiWindowType::TYPE_WALLPAPER,                WindowType::WINDOW_TYPE_WALLPAPER                },
-    { ApiWindowType::TYPE_DESKTOP,                  WindowType::WINDOW_TYPE_DESKTOP                  },
-    { ApiWindowType::TYPE_LAUNCHER_RECENT,          WindowType::WINDOW_TYPE_LAUNCHER_RECENT          },
-    { ApiWindowType::TYPE_LAUNCHER_DOCK,            WindowType::WINDOW_TYPE_LAUNCHER_DOCK            },
-    { ApiWindowType::TYPE_VOICE_INTERACTION,        WindowType::WINDOW_TYPE_VOICE_INTERACTION        },
-    { ApiWindowType::TYPE_POINTER,                  WindowType::WINDOW_TYPE_POINTER                  },
-    { ApiWindowType::TYPE_SCREENSHOT,               WindowType::WINDOW_TYPE_SCREENSHOT               },
-    { ApiWindowType::TYPE_SYSTEM_TOAST,             WindowType::WINDOW_TYPE_SYSTEM_TOAST             },
-    { ApiWindowType::TYPE_DIVIDER,                  WindowType::WINDOW_TYPE_DOCK_SLICE               },
-    { ApiWindowType::TYPE_GLOBAL_SEARCH,            WindowType::WINDOW_TYPE_GLOBAL_SEARCH            },
-    { ApiWindowType::TYPE_HANDWRITE,                WindowType::WINDOW_TYPE_HANDWRITE                },
-    { ApiWindowType::TYPE_WALLET_SWIPE_CARD,        WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD        },
-    { ApiWindowType::TYPE_SCREEN_CONTROL,           WindowType::WINDOW_TYPE_SCREEN_CONTROL           },
-    { ApiWindowType::TYPE_FLOAT_NAVIGATION,         WindowType::WINDOW_TYPE_FLOAT_NAVIGATION         },
-    { ApiWindowType::TYPE_DYNAMIC,                  WindowType::WINDOW_TYPE_DYNAMIC                  },
-    { ApiWindowType::TYPE_MUTISCREEN_COLLABORATION, WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION },
-    { ApiWindowType::TYPE_FB,                       WindowType::WINDOW_TYPE_FB                       },
-};
+extern const std::map<WindowType, ApiWindowType> NATIVE_JS_TO_WINDOW_TYPE_MAP;
+extern const std::map<ApiWindowType, WindowType> JS_TO_NATIVE_WINDOW_TYPE_MAP;
 
 enum class ApiWindowMode : uint32_t {
     UNDEFINED = 1,
@@ -184,21 +125,8 @@ enum class ApiWindowMode : uint32_t {
     MODE_END = FLOATING
 };
 
-const std::map<WindowMode, ApiWindowMode> NATIVE_TO_JS_WINDOW_MODE_MAP {
-    { WindowMode::WINDOW_MODE_UNDEFINED,       ApiWindowMode::UNDEFINED  },
-    { WindowMode::WINDOW_MODE_FULLSCREEN,      ApiWindowMode::FULLSCREEN },
-    { WindowMode::WINDOW_MODE_SPLIT_PRIMARY,   ApiWindowMode::PRIMARY    },
-    { WindowMode::WINDOW_MODE_SPLIT_SECONDARY, ApiWindowMode::SECONDARY  },
-    { WindowMode::WINDOW_MODE_FLOATING,        ApiWindowMode::FLOATING   },
-};
-
-const std::map<ApiWindowMode, WindowMode> JS_TO_NATIVE_WINDOW_MODE_MAP {
-    {ApiWindowMode::UNDEFINED,  WindowMode::WINDOW_MODE_UNDEFINED       },
-    {ApiWindowMode::FULLSCREEN, WindowMode::WINDOW_MODE_FULLSCREEN      },
-    {ApiWindowMode::PRIMARY,    WindowMode::WINDOW_MODE_SPLIT_PRIMARY   },
-    {ApiWindowMode::SECONDARY,  WindowMode::WINDOW_MODE_SPLIT_SECONDARY },
-    {ApiWindowMode::FLOATING,   WindowMode::WINDOW_MODE_FLOATING        },
-};
+extern const std::map<WindowMode, ApiWindowMode> NATIVE_TO_JS_WINDOW_MODE_MAP;
+extern const std::map<ApiWindowMode, WindowMode> JS_TO_NATIVE_WINDOW_MODE_MAP;
 
 enum class ApiOrientation : uint32_t {
     BEGIN = 0,
@@ -223,48 +151,8 @@ enum class ApiOrientation : uint32_t {
     END = FOLLOW_DESKTOP,
 };
 
-const std::map<ApiOrientation, Orientation> JS_TO_NATIVE_ORIENTATION_MAP {
-    {ApiOrientation::UNSPECIFIED,                           Orientation::UNSPECIFIED                        },
-    {ApiOrientation::PORTRAIT,                              Orientation::VERTICAL                           },
-    {ApiOrientation::LANDSCAPE,                             Orientation::HORIZONTAL                         },
-    {ApiOrientation::PORTRAIT_INVERTED,                     Orientation::REVERSE_VERTICAL                   },
-    {ApiOrientation::LANDSCAPE_INVERTED,                    Orientation::REVERSE_HORIZONTAL                 },
-    {ApiOrientation::AUTO_ROTATION,                         Orientation::SENSOR                             },
-    {ApiOrientation::AUTO_ROTATION_PORTRAIT,                Orientation::SENSOR_VERTICAL                    },
-    {ApiOrientation::AUTO_ROTATION_LANDSCAPE,               Orientation::SENSOR_HORIZONTAL                  },
-    {ApiOrientation::AUTO_ROTATION_RESTRICTED,              Orientation::AUTO_ROTATION_RESTRICTED           },
-    {ApiOrientation::AUTO_ROTATION_PORTRAIT_RESTRICTED,     Orientation::AUTO_ROTATION_PORTRAIT_RESTRICTED  },
-    {ApiOrientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED,    Orientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED },
-    {ApiOrientation::LOCKED,                                Orientation::LOCKED                             },
-    {ApiOrientation::AUTO_ROTATION_UNSPECIFIED,             Orientation::AUTO_ROTATION_UNSPECIFIED          },
-    {ApiOrientation::USER_ROTATION_PORTRAIT,                Orientation::USER_ROTATION_PORTRAIT             },
-    {ApiOrientation::USER_ROTATION_LANDSCAPE,               Orientation::USER_ROTATION_LANDSCAPE            },
-    {ApiOrientation::USER_ROTATION_PORTRAIT_INVERTED,       Orientation::USER_ROTATION_PORTRAIT_INVERTED    },
-    {ApiOrientation::USER_ROTATION_LANDSCAPE_INVERTED,      Orientation::USER_ROTATION_LANDSCAPE_INVERTED   },
-    {ApiOrientation::FOLLOW_DESKTOP,                        Orientation::FOLLOW_DESKTOP                     },
-};
-
-const std::map<Orientation, ApiOrientation> NATIVE_TO_JS_ORIENTATION_MAP {
-    {Orientation::UNSPECIFIED,                           ApiOrientation::UNSPECIFIED                        },
-    {Orientation::VERTICAL,                              ApiOrientation::PORTRAIT                           },
-    {Orientation::HORIZONTAL,                            ApiOrientation::LANDSCAPE                          },
-    {Orientation::REVERSE_VERTICAL,                      ApiOrientation::PORTRAIT_INVERTED                  },
-    {Orientation::REVERSE_HORIZONTAL,                    ApiOrientation::LANDSCAPE_INVERTED                 },
-    {Orientation::SENSOR,                                ApiOrientation::AUTO_ROTATION                      },
-    {Orientation::SENSOR_VERTICAL,                       ApiOrientation::AUTO_ROTATION_PORTRAIT             },
-    {Orientation::SENSOR_HORIZONTAL,                     ApiOrientation::AUTO_ROTATION_LANDSCAPE            },
-    {Orientation::AUTO_ROTATION_RESTRICTED,              ApiOrientation::AUTO_ROTATION_RESTRICTED           },
-    {Orientation::AUTO_ROTATION_PORTRAIT_RESTRICTED,     ApiOrientation::AUTO_ROTATION_PORTRAIT_RESTRICTED  },
-    {Orientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED,    ApiOrientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED },
-    {Orientation::LOCKED,                                ApiOrientation::LOCKED                             },
-    {Orientation::FOLLOW_RECENT,                         ApiOrientation::UNSPECIFIED                        },
-    {Orientation::AUTO_ROTATION_UNSPECIFIED,             ApiOrientation::AUTO_ROTATION_UNSPECIFIED          },
-    {Orientation::USER_ROTATION_PORTRAIT,                ApiOrientation::USER_ROTATION_PORTRAIT             },
-    {Orientation::USER_ROTATION_LANDSCAPE,               ApiOrientation::USER_ROTATION_LANDSCAPE            },
-    {Orientation::USER_ROTATION_PORTRAIT_INVERTED,       ApiOrientation::USER_ROTATION_PORTRAIT_INVERTED    },
-    {Orientation::USER_ROTATION_LANDSCAPE_INVERTED,      ApiOrientation::USER_ROTATION_LANDSCAPE_INVERTED   },
-    {Orientation::FOLLOW_DESKTOP,                        ApiOrientation::FOLLOW_DESKTOP                     },
-};
+extern const std::map<ApiOrientation, Orientation> JS_TO_NATIVE_ORIENTATION_MAP;
+extern const std::map<Orientation, ApiOrientation> NATIVE_TO_JS_ORIENTATION_MAP;
 
 enum class RectChangeReason : uint32_t {
     UNDEFINED = 0,
@@ -276,37 +164,7 @@ enum class RectChangeReason : uint32_t {
     DRAG_END,
 };
 
-const std::map<WindowSizeChangeReason, RectChangeReason> JS_SIZE_CHANGE_REASON {
-    { WindowSizeChangeReason::UNDEFINED,                       RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::MAXIMIZE,                        RectChangeReason::MAXIMIZE   },
-    { WindowSizeChangeReason::RECOVER,                         RectChangeReason::RECOVER    },
-    { WindowSizeChangeReason::ROTATION,                        RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::DRAG,                            RectChangeReason::DRAG       },
-    { WindowSizeChangeReason::DRAG_START,                      RectChangeReason::DRAG_START },
-    { WindowSizeChangeReason::DRAG_MOVE,                       RectChangeReason::MOVE       },
-    { WindowSizeChangeReason::DRAG_END,                        RectChangeReason::DRAG_END   },
-    { WindowSizeChangeReason::RESIZE,                          RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::MOVE,                            RectChangeReason::MOVE       },
-    { WindowSizeChangeReason::HIDE,                            RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::TRANSFORM,                       RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::CUSTOM_ANIMATION_SHOW,           RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::FULL_TO_SPLIT,                   RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::SPLIT_TO_FULL,                   RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::FULL_TO_FLOATING,                RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::FLOATING_TO_FULL,                RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::MAXIMIZE_TO_SPLIT,               RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::SPLIT_TO_MAXIMIZE,               RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::PAGE_ROTATION,                   RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::SPLIT_DRAG_START,                RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::SPLIT_DRAG,                      RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::SPLIT_DRAG_END,                  RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::RESIZE_BY_LIMIT,                 RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::MAXIMIZE_IN_IMPLICT,             RectChangeReason::MAXIMIZE   },
-    { WindowSizeChangeReason::RECOVER_IN_IMPLICIT,             RectChangeReason::RECOVER    },
-    { WindowSizeChangeReason::SCREEN_RELATIVE_POSITION_CHANGE, RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::SNAPSHOT_ROTATION,               RectChangeReason::UNDEFINED  },
-    { WindowSizeChangeReason::END,                             RectChangeReason::UNDEFINED  },
-};
+extern const std::map<WindowSizeChangeReason, RectChangeReason> JS_SIZE_CHANGE_REASON;
 
 enum class ApiModalityType : uint32_t {
     BEGIN = 0,
@@ -422,6 +280,7 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     napi_value WindowStatusTypeInit(napi_env env);
     napi_value RectChangeReasonInit(napi_env env);
     napi_value RotationChangeTypeInit(napi_env env);
+    napi_value RotationInfoTypeInit(napi_env env);
     napi_value RectTypeInit(napi_env env);
     napi_value AnimationTypeInit(napi_env env);
     napi_value WindowTransitionTypeInit(napi_env env);

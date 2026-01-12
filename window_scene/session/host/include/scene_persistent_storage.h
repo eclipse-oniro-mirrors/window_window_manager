@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_PERSISTENT_STORAGE_H
 #define OHOS_ROSEN_WINDOW_PERSISTENT_STORAGE_H
 
+#include <shared_mutex>
 #include "preferences.h"
 #include "preferences_helper.h"
 
@@ -41,6 +42,7 @@ public:
     template <typename T>
     static void Insert(const std::string& key, const T& value, ScenePersistentStorageType storageType)
     {
+        std::unique_lock<std::shared_mutex> lock(storageMutex_);
         auto pref = GetPreference(storageType);
         if (!pref) {
             WLOGE("[ScenePersistentStorage] Preferences is nullptr");
@@ -68,6 +70,7 @@ public:
     template <typename T>
     static void Get(const std::string& key, T& value, ScenePersistentStorageType storageType)
     {
+        std::shared_lock<std::shared_mutex> lock(storageMutex_);
         auto pref = GetPreference(storageType);
         if (!pref) {
             WLOGE("[ScenePersistentStorage] Preferences is nullptr");
@@ -91,6 +94,8 @@ public:
         }
     }
 
+    static void RenameKeys(const std::map<std::string, std::string>& renameMap,
+        ScenePersistentStorageType storageType);
     static bool HasKey(const std::string& key, ScenePersistentStorageType storageType);
     static void Delete(const std::string& key, ScenePersistentStorageType storageType);
     static void InitDir(std::string dir);
@@ -100,6 +105,7 @@ private:
     static std::string saveDir_;
     static std::shared_ptr<PersistentPerference> GetPreference(ScenePersistentStorageType storageType);
     static std::map<ScenePersistentStorageType, std::string> storagePath_;
+    static std::shared_mutex storageMutex_;
 };
 } // namespace Rosen
 } // namespace OHOS

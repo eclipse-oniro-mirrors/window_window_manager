@@ -41,6 +41,8 @@ public:
     virtual WMError UpdateScreenLockStatusForApp(
         const std::string& bundleName, bool isRelease) { return WMError::WM_OK; }
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+    virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) = 0;
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid) = 0;
     virtual WMError CheckUIExtensionCreation(int32_t windowId, uint32_t tokenId, const AppExecFwk::ElementName& element,
         AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid) = 0;
@@ -70,6 +72,14 @@ public:
         const KeyFramePolicy& keyFramePolicy) { return WMError::WM_OK; }
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
         { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,

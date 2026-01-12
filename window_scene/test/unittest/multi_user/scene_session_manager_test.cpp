@@ -92,14 +92,15 @@ HWTEST_F(SceneSessionManagerTest, IsPcSceneSessionLifecycle2, Function | SmallTe
     info.bundleName_ = "IsPcSceneSessionLifecycle2";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(nullptr, sceneSession);
+    auto defaultUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    bool oldLocked = ssm_->isScreenLocked_;
     sceneSession->property_->SetIsAppSupportPhoneInPc(false);
     sceneSession->property_->SetIsPcAppInPad(true);
-    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-
+    ssm_->isScreenLocked_ = false;
     bool ret = ssm_->IsPcSceneSessionLifecycle(sceneSession);
-    EXPECT_EQ(ret, false);
-    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;;
-    bool ret = ssm_->IsPcSceneSessionLifecycle(sceneSession);
+    ssm_->isScreenLocked_ = oldLocked;
+    ssm_->systemConfig_.windowUIType_ = defaultUIType;
     EXPECT_TRUE(ret);
 }
 

@@ -76,6 +76,7 @@ ohos_shared_library("windowstageani_kit") {
     "ability_runtime:abilitykit_native",
     "ability_runtime:dialog_request_info_ani_kit",
     "ability_runtime:runtime",
+    "ability_runtime:ani_common",
     "access_token:libaccesstoken_sdk",
     "ace_engine:ace_uicontent",
     "bundle_framework:appexecfwk_base",

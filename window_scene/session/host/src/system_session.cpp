@@ -43,13 +43,16 @@ SystemSession::~SystemSession()
     TLOGD(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
 }
 
-void SystemSession::OnFirstStrongRef(const void*)
+void SystemSession::OnFirstStrongRef(const void* objectId)
 {
+    // OnFirstStrongRef is overridden in the parent class IPCObjectStub,
+    // so its parent implementation must be invoked here to avoid IPC communication issues.
+    SceneSession::OnFirstStrongRef(objectId);
+
     moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(this));
     if (specificCallback_ != nullptr && specificCallback_->onWindowInputPidChangeCallback_ != nullptr) {
         moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback_->onWindowInputPidChangeCallback_);
     }
-    SetMoveDragCallback();
 }
 
 void SystemSession::UpdateCameraWindowStatus(bool isShowing)
@@ -658,6 +661,87 @@ void SystemSession::SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloati
             session->fbWant_ = nullptr;
         }
     }, __func__);
+}
+
+void SystemSession::SetRestoreFloatMainWindowCallback(NotifyRestoreFloatMainWindowFunc&& func)
+{
+    PostTask(
+        [weakThis = wptr(this), func = std::move(func), where = __func__] {
+            TLOGI(WmsLogTag::WMS_SYSTEM, "Register Callback RestoreFloatMainWindow");
+            auto session = weakThis.promote();
+            if (!session || !func) {
+                TLOGNE(WmsLogTag::WMS_SYSTEM, "%{public}s session or func dont exists", where);
+                return;
+            }
+            session->restoreFloatMainWindowFunc_ = std::move(func);
+        }, __func__);
+}
+
+WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters)
+{
+    int32_t callingPid = IPCSkeleton::GetCallingPid();
+    if (GetWindowType() != WindowType::WINDOW_TYPE_FLOAT) {
+        TLOGNE(WmsLogTag::WMS_SYSTEM, "Check window type failed");
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
+    return PostSyncTask([weakThis = wptr(this), callingPid, wantParameters, where = __func__, state = state_.load()]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s session is null", where);
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
+        if (callingPid != session->GetCallingPid()) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s permission denied, not call by the same process", where);
+            return WMError::WM_ERROR_INVALID_CALLING;
+        }
+        if (state != SessionState::STATE_FOREGROUND && state != SessionState::STATE_ACTIVE) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s window state is not at foreground or active", where);
+            return WMError::WM_ERROR_INVALID_CALLING;
+        }
+        if (!session->getSCBEnterRecentFunc_) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "cannot get recent func");
+            return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+        }
+        if (session->getSCBEnterRecentFunc_()) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "current window is at recent state");
+            return WMError::WM_ERROR_START_ABILITY_FAILED;
+        }
+        {
+            std::lock_guard<std::mutex> lock(session->floatWindowDownEventMutex_);
+            if (session->floatWindowDownEventCnt_ == 0) {
+                TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s no enough click, deny", where);
+                return WMError::WM_ERROR_INVALID_CALLING;
+            }
+            session->floatWindowDownEventCnt_ = 0;
+        }
+        TLOGI(WmsLogTag::WMS_SYSTEM, "%{public}s restore float main window", where);
+        session->NotifyRestoreFloatMainWindow(wantParameters);
+        return WMError::WM_OK;
+    });
+}
+
+void SystemSession::NotifyRestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "Notify RestoreFloatingBallMainwindow");
+    PostTask(
+        [weakThis = wptr(this), wantParameters, where = __func__] {
+            auto session = weakThis.promote();
+            if (!session) {
+                TLOGNE(WmsLogTag::WMS_SYSTEM, "%{public}s session is null", where);
+                return;
+            }
+            if (session->restoreFloatMainWindowFunc_) {
+                TLOGI(WmsLogTag::WMS_SYSTEM, "restoreFloatMainWindowFunc");
+                session->restoreFloatMainWindowFunc_(wantParameters);
+            } else {
+                TLOGW(WmsLogTag::WMS_SYSTEM, "%{public}s restoreFloatMainWindowFunc Func is null", where);
+            }
+        }, __func__);
+}
+
+void SystemSession::RegisterGetSCBEnterRecentFunc(GetSCBEnterRecentFunc&& callback)
+{
+    getSCBEnterRecentFunc_ = std::move(callback);
 }
 
 void SystemSession::RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& callback)

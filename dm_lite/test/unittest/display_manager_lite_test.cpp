@@ -24,6 +24,13 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
+std::string g_errLog;
+void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+    const char* msg)
+{
+    g_errLog = msg;
+}
+
 using Mocker = SingletonMocker<DisplayManagerAdapterLite, MockDisplayManagerAdapterLite>;
 class DmMockDisplayListener : public DisplayManagerLite::IDisplayListener {
 public:
@@ -769,6 +776,27 @@ HWTEST_F(DisplayManagerTest, ClearDisplayModeCallbackLite01, TestSize.Level1)
     DisplayManagerLite::GetInstance().pImpl_->ClearDisplayModeCallback();
     EXPECT_TRUE(DisplayManagerLite::GetInstance().pImpl_->displayModeListenerAgent_ == nullptr);
 }
+
+/**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay fail and succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, IsOnboardDisplay, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    DisplayId displayId = DISPLAY_ID_INVALID;
+    DisplayManagerLite::GetInstance().IsOnboardDisplay(displayId);
+    EXPECT_TRUE(g_errLog.find("id invalid") != std::string::npos);
+
+    g_errLog.clear();
+    displayId = 10;
+    DisplayManagerLite::GetInstance().IsOnboardDisplay(displayId);
+    EXPECT_TRUE(g_errLog.find("id invalid") == std::string::npos);
+}
+
 }
 } // namespace Rosen
 } // namespace OHOS

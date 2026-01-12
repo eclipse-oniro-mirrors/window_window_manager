@@ -1351,9 +1351,9 @@ WMError WindowController::NotifyWindowClientPointUp(uint32_t windowId,
     return WMError::WM_OK;
 }
 
-void WindowController::MinimizeAllAppWindows(DisplayId displayId)
+void WindowController::MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId)
 {
-    windowRoot_->MinimizeAllAppWindows(displayId);
+    windowRoot_->MinimizeAllAppWindows(displayId, excludeWindowId);
     if (RemoteAnimation::NotifyAnimationByHome() != WMError::WM_OK) {
         MinimizeApp::ExecuteMinimizeAll();
     }

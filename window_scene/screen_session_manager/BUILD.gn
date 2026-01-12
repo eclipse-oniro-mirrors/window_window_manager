@@ -24,6 +24,8 @@ config("session_manager_public_config") {
     "${window_base_path}/window_scene/common/include",
     "${window_base_path}/window_scene/interfaces/include",
     "${window_base_path}/window_scene/screen_session_manager/include",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/fold_screen",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/common",
     "${window_base_path}/window_scene/screen_session_manager/include/zidl",
     "${window_base_path}/window_scene/session_manager_service/include",
 
@@ -211,6 +213,12 @@ ohos_shared_library("screen_session_manager") {
       "src/fold_screen_controller/super_fold_policy.cpp",
       "src/fold_screen_controller/super_fold_sensor_manager.cpp",
       "src/fold_screen_controller/super_fold_state_manager.cpp",
+      "infra/src/fold_screen/fold_screen_base_controller.cpp",
+      "infra/src/fold_screen/fold_screen_base_policy.cpp",
+      "infra/src/fold_screen/fold_crease_region_controller.cpp",
+      "infra/src/fold_screen/screen_sensor_mgr.cpp",
+      "infra/src/fold_screen/sensor_fold_state_mgr.cpp",
+      "infra/src/common/product_config.cpp",
     ]
     print("window manager fold ability is enabled.")
   } else {

@@ -18,9 +18,14 @@
 #ifdef RES_SCHED_ENABLE
 #include "res_sched_client.h"
 #include "res_type.h"
+#endif
+
+#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
+#include "session_manager/include/scene_session_manager.h"
+#endif
+
 #include "system_ability_definition.h"
 #include "window_manager_hilog.h"
-#endif
 
 namespace OHOS {
 namespace Rosen {
@@ -49,6 +54,21 @@ void SceneSystemAbilityListener::OnAddSystemAbility(int32_t systemAbilityId, con
         type = ResourceSchedule::ResType::RES_TYPE_KEY_PERF_SCENE;
         OHOS::ResourceSchedule::ResSchedClient::GetInstance().ReportData(type, userInteraction, payload);
         TLOGI(WmsLogTag::WMS_MAIN, "set RES_TYPE_KEY_PERF_SCENE success");
+    }
+#endif
+
+#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
+    if (systemAbilityId == POWER_MANAGER_SERVICE_ID) {
+        SceneSessionManager::GetInstance().RegisterBrightnessDataChangeListener();
+    }
+#endif
+}
+
+void SceneSystemAbilityListener::OnRemoveSystemAbility(int32_t systemAbilityId, const std::string& deviceId)
+{
+#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
+    if (systemAbilityId == POWER_MANAGER_SERVICE_ID) {
+        SceneSessionManager::GetInstance().UnregisterBrightnessDataChangeListener();
     }
 #endif
 }

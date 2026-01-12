@@ -47,6 +47,7 @@ group("unittest") {
     ":wm_window_impl_test5",
     ":wm_window_input_channel_test",
     ":wm_window_input_intercept_test",
+    ":wm_window_event_subscriber_test",
     ":wm_window_inspector_test",
     ":wm_window_manager_agent_proxy_test",
     ":wm_window_manager_stub_proxy_test",
@@ -54,6 +55,10 @@ group("unittest") {
     ":wm_window_scene_effect_test",
     ":wm_window_scene_test",
     ":wm_window_stub_test",
+    ":wm_load_intention_event_test",
+    "event_distribution:wm_window_impl_event_test",
+    "event_distribution:wm_window_option_event_test",
+    "event_distribution:wm_window_session_impl_event_test",
     "layout:wm_layout_test",
     "rotation:wm_window_extension_session_impl_rotation_test",
     "rotation:wm_window_session_impl_rotation_test",
@@ -61,12 +66,13 @@ group("unittest") {
     "window_recover:wm_window_recover_manager_test",
   ]
   if (!window_manager_use_sceneboard) {
-    deps += [ 
+    deps += [
       ":wm_window_proxy_test",
     ]
   }
   if (window_manager_use_sceneboard) {
     deps += [
+      ":wm_compatible_mode_window_session_impl_test",
       ":wm_oh_window_pip_test",
       ":wm_oh_window_test",
       ":wm_web_picture_in_picture_controller_interface_test",
@@ -301,6 +307,17 @@ ohos_unittest("wm_window_session_impl_test5") {
   external_deps += [ "init:libbegetutil" ]
 }
 
+ohos_unittest("wm_compatible_mode_window_session_impl_test") {
+  module_out_path = module_out_path
+
+  sources = [ "compatible_mode_window_session_impl_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [ "init:libbegetutil" ]
+}
+
 ohos_unittest("wm_window_effect_test") {
   module_out_path = module_out_path
 
@@ -509,15 +526,15 @@ ohos_unittest("wm_window_scene_session_impl_test5") {
 ohos_unittest("wm_window_scene_session_impl_test6") {
   module_out_path = module_out_path
   include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
- 
+
   sources = [ "window_scene_session_impl_test6.cpp" ]
- 
+
   deps = [
     ":wm_unittest_common",
     "${window_base_path}/test/common/utils:libtestutil",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
- 
+
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
@@ -785,32 +802,32 @@ ohos_unittest("wm_pattern_detach_callback_proxy_test") {
 
 ohos_unittest("wm_get_snapshot_callback_proxy_test") {
   module_out_path = module_out_path
- 
+
   sources = [
     "${window_base_path}/window_scene/test/mock/mock_message_parcel.cpp",
     "get_snapshot_callback_proxy_test.cpp",
   ]
- 
+
   deps = [
     ":wm_unittest_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
- 
+
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
   ]
 }
- 
+
 ohos_unittest("wm_get_snapshot_callback_stub_test") {
   module_out_path = module_out_path
- 
+
   sources = [
     "get_snapshot_callback_stub_test.cpp",
   ]
- 
+
   deps = [ ":wm_unittest_common" ]
- 
+
   external_deps = [ "c_utils:utils" ]
 }
 
@@ -828,6 +845,16 @@ ohos_unittest("ws_window_prepare_terminate_test") {
   module_out_path = module_out_path
 
   sources = [ "window_prepare_terminate_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_window_event_subscriber_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_event_subscriber_test.cpp" ]
 
   deps = [ ":wm_unittest_common" ]
 
@@ -854,6 +881,16 @@ ohos_unittest("wm_window_input_intercept_test") {
   module_out_path = module_out_path
 
   sources = [ "window_input_intercept_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_load_intention_event_test") {
+  module_out_path = module_out_path
+
+  sources = [ "load_intention_event_test.cpp" ]
 
   deps = [ ":wm_unittest_common" ]
 

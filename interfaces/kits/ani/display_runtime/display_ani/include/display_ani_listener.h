@@ -33,7 +33,8 @@ class DisplayAniListener : public DisplayManager::IDisplayListener,
                           public DisplayManager::ICaptureStatusListener,
                           public DisplayManager::IDisplayModeListener,
                           public DisplayManager::IAvailableAreaListener,
-                          public DisplayManager::IBrightnessInfoListener {
+                          public DisplayManager::IBrightnessInfoListener,
+                          public DisplayManager::IDisplayAttributeListener {
 public:
     DisplayAniListener(ani_env* env)
         : env_(env), weakRef_(wptr<DisplayAniListener> (this)) {}
@@ -54,8 +55,11 @@ public:
     ani_status CallAniMethodVoid(ani_object object, const char* cls,
         const char* method, const char* signature, ...);
     void OnBrightnessInfoChanged(DisplayId id, const ScreenBrightnessInfo& info) override;
+    void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attribuutes) override;
 
 private:
+    void RemoveDuplicateMethods(ani_env* env, std::vector<ani_ref>& callbacks);
+    void ProcessAttributeCallbacks(ani_env* env, const std::vector<std::string>& attributes, DisplayId displayId);
     ani_env* env_;
     std::mutex aniCallbackMtx_;
     std::map<std::string, std::vector<ani_ref>> aniCallback_;

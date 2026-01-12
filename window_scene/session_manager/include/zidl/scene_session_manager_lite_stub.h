@@ -60,6 +60,7 @@ private:
     int HandleGetParentMainWindowId(MessageParcel& data, MessageParcel& reply);
     //for window manager service
     int HandleGetFocusSessionInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAllGroupInfo(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleCheckWindowId(MessageParcel& data, MessageParcel& reply);
@@ -71,6 +72,9 @@ private:
     int HandleGetAppDragResizeType(MessageParcel& data, MessageParcel& reply);
     int HandleSetAppKeyFramePolicy(MessageParcel& data, MessageParcel& reply);
     int HandleListWindowInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleRegisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
+    int HandleUnregisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverWindowPropertyChangeFlag(MessageParcel& data, MessageParcel& reply);
     int HandleGetVisibilityWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionScreenLock(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowModeType(MessageParcel& data, MessageParcel& reply);

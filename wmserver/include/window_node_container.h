@@ -74,7 +74,7 @@ public:
     sptr<WindowNode> GetNextFocusableWindow(uint32_t windowId) const;
     sptr<WindowNode> GetNextRotatableWindow(uint32_t windowId) const;
     sptr<WindowNode> GetNextActiveWindow(uint32_t windowId) const;
-    void MinimizeAllAppWindows(DisplayId displayId);
+    void MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId = 0);
     void MinimizeOldestAppWindow();
     void MinimizeOldestMainFloatingWindow(uint32_t windowId);
     WMError ToggleShownStateForAllAppWindows(std::function<bool(uint32_t, WindowMode)> restoreFunc, bool restore);

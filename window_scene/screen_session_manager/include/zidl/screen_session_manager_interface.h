@@ -66,6 +66,19 @@ public:
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
+
+    virtual DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual DMError RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual bool IsOnboardDisplay(DisplayId displayId)
+    {
+        return false;
+    }
     virtual DMError SetScreenPrivacyMaskImage(ScreenId screenId,
         const std::shared_ptr<Media::PixelMap>& privacyMaskImg)
     {
@@ -160,6 +173,11 @@ public:
         DisplayManagerAgentType type) { return DMError::DM_OK; }
     virtual DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type) { return DMError::DM_OK; }
+    virtual DMError RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent) { return DMError::DM_OK; }
+    virtual DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent) { return DMError::DM_OK; }
+
     virtual bool WakeUpBegin(PowerStateChangeReason reason) { return false; }
     virtual bool WakeUpEnd() { return false; }
     virtual bool SuspendBegin(PowerStateChangeReason reason) { return false; }
@@ -173,6 +191,7 @@ public:
     virtual bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason) { return false; }
     virtual ScreenPowerState GetScreenPower(ScreenId dmsScreenId) { return ScreenPowerState::INVALID_STATE; }
     virtual ScreenPowerState GetScreenPower() { return ScreenPowerState::INVALID_STATE; }
+    virtual void SyncScreenPowerState(ScreenPowerState state) { }
     virtual bool SetDisplayState(DisplayState state) { return false; }
     virtual DisplayState GetDisplayState(DisplayId displayId) {return DisplayState::UNKNOWN; }
     virtual bool TryToCancelScreenOff() { return false; }
@@ -248,6 +267,8 @@ public:
 
     virtual void SetFoldStatusLocked(bool locked) {}
     virtual DMError SetFoldStatusLockedFromJs(bool locked) { return DMError::DM_OK; }
+    virtual DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus) { return DMError::DM_OK; }
+    virtual DMError RestorePhysicalFoldStatus() { return DMError::DM_OK; }
     virtual void SetFoldStatusExpandAndLocked(bool locked) {}
 
     virtual FoldDisplayMode GetFoldDisplayMode() { return FoldDisplayMode::UNKNOWN; }
@@ -298,7 +319,7 @@ public:
     virtual ScreenProperty GetPhyScreenProperty(ScreenId screenId) { return ScreenProperty(); }
     virtual void NotifyDisplayChangeInfoChanged(const sptr<DisplayChangeInfo>& info) {}
     virtual void SetScreenPrivacyState(bool hasPrivate) {}
-    virtual void SetPrivacyStateByDisplayId(DisplayId id, bool hasPrivate) {}
+    virtual void SetPrivacyStateByDisplayId(std::unordered_map<DisplayId, bool>& privacyBundleDisplayId) {}
     virtual void SetScreenPrivacyWindowList(DisplayId id, std::vector<std::string> privacyWindowList) {}
     virtual DMError GetAvailableArea(DisplayId displayId, DMRect& area) { return DMError::DM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area)
@@ -390,6 +411,8 @@ public:
         ScreenId& screenId, DMRect& screenArea) { return DMError::DM_OK; }
     virtual DMError GetBrightnessInfo(DisplayId displayId,
         ScreenBrightnessInfo& brightnessInfo) { return DMError::DM_OK; }
+    virtual DMError GetSupportsInput(DisplayId displayId, bool& supportsInput) { return DMError::DM_OK; };
+    virtual DMError SetSupportsInput(DisplayId displayId, bool supportsInput) { return DMError::DM_OK; };
     virtual DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) { return DMError::DM_OK; }
     virtual DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) { return DMError::DM_OK; }
@@ -399,6 +422,8 @@ public:
     {
         return DMError::DM_OK;
     }
+    virtual DMError GetRoundedCorner(DisplayId displayId, int& radius) { return DMError::DM_OK; }
+    virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName) { return DMError::DM_OK; }
 };
 } // namespace Rosen
 } // namespace OHOS

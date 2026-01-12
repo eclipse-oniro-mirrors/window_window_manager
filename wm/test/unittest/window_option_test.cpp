@@ -165,18 +165,6 @@ HWTEST_F(WindowOptionTest, Focusable01, TestSize.Level1)
 }
 
 /**
- * @tc.name: Touchable01
- * @tc.desc: SetTouchable/GetTouchable
- * @tc.type: FUNC
- */
-HWTEST_F(WindowOptionTest, Touchable01, TestSize.Level1)
-{
-    sptr<WindowOption> option = new WindowOption();
-    option->SetTouchable(true);
-    ASSERT_EQ(true, option->GetTouchable());
-}
-
-/**
  * @tc.name: DisplayId01
  * @tc.desc: SetDisplayId/GetDisplayId
  * @tc.type: FUNC

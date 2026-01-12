@@ -26,7 +26,7 @@ function main() {
 
     ws.getMainWindow().then((res:window.Window)=>{
       console.println('[ANI]getMainWindow primise');
-    }).catch((e:NullishType)=>{
+    }).catch((e:Any)=>{
       console.println('[ANI]getMainWindow catch');
     });
 
@@ -38,7 +38,7 @@ function main() {
 
     w.isWindowSupportWideGamut().then((res:boolean)=>{
       console.println('[ANI]isWindowSupportWideGamut primise' + res);
-    }).catch((e:NullishType)=>{
+    }).catch((e:Any)=>{
       console.println('[ANI]isWindowSupportWideGamut catch');
     });
 
@@ -48,7 +48,7 @@ function main() {
 
     w.setWindowLayoutFullScreen(true).then((res:int)=>{
       console.println('[ANI]setWindowLayoutFullScree primise' + res);
-    }).catch((e:NullishType)=>{
+    }).catch((e:Any)=>{
       console.println('[ANI]setWindowLayoutFullScreen catch');
     });
 
@@ -59,7 +59,7 @@ function main() {
     let systemBarProperties = new window.SystemBarPropertiesInternal();
     w.setWindowSystemBarProperties(systemBarProperties).then((res:int)=>{
       console.println('[ANI]setWindowSystemBarProperties primise' + res);
-    }).catch((e:NullishType)=>{
+    }).catch((e:Any)=>{
       console.println('[ANI]setWindowSystemBarProperties catch');
     });
 
@@ -69,7 +69,7 @@ function main() {
 
     w.setSpecificSystemBarEnabled('w', false, false).then((res:int)=>{
       console.println('[ANI]setSpecificSystemBarEnabled primise' + res);
-    }).catch((e:NullishType)=>{
+    }).catch((e:Any)=>{
       console.println('[ANI]setSpecificSystemBarEnabled catch');
     });
 
@@ -78,7 +78,7 @@ function main() {
     w.setWindowBackgroundColor('0xFFFFFF');
     w.setWindowColorSpace(window.ColorSpace.DEFAULT).then((ret: int) => {
       console.println('[ANI] in ret:' + ret);
-    }).catch((e: NullishType) => {
+    }).catch((e: Any) => {
       let err = e as BusinessError;
       console.println('[ANI] in code:' + err?.code + ' err:' + err?.message);
     });

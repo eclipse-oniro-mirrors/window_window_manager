@@ -34,6 +34,7 @@ public:
     std::shared_ptr<AppExecFwk::EventHandler> GetEventHandler();
 
     using Task = std::function<void()>;
+    virtual void PostAsyncTaskToExportHandler(Task&& task, const std::string& name, int64_t delayTime = 0);
     virtual void PostAsyncTask(Task&& task, const std::string& name, int64_t delayTime = 0);
     void PostTask(Task&& task, const std::string& name, int64_t delayTime = 0);
     void RemoveTask(const std::string& name);

@@ -447,6 +447,43 @@ HWTEST_F(WindowManagerServiceDumpTest, SceneSessionDumpSessionElementInfo, TestS
     sceneSession->DumpSessionElementInfo(params);
 }
 
+/**
+ * @tc.name: GetSCBDebugDumpInfo01
+ * @tc.desc: GetSCBDebugDumpInfo01
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerServiceDumpTest, GetSCBDebugDumpInfo01, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.abilityName_ = "Background01";
+    sessionInfo.bundleName_ = "GetSCBDebugDumpInfo01";
+    sptr<WindowSessionProperty> windowSessionProperty = sptr<WindowSessionProperty>::MakeSptr();
+    sptr<SceneSession> sceneSession = ssm_->RequestSceneSession(sessionInfo, windowSessionProperty);
+    ASSERT_EQ(nullptr, sceneSession);
+    std::string infos;
+    WSError result = ssm_->GetSCBDebugDumpInfo("SCBScenePanel getContainerSession 0", infos);
+    ASSERT_EQ(WSError::WS_OK, result);
+    ASSERT_FALSE(infos.empty());
+}
+
+/**
+ * @tc.name: GetSCBDebugDumpInfo02
+ * @tc.desc: GetSCBDebugDumpInfo02
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerServiceDumpTest, GetSCBDebugDumpInfo02, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.abilityName_ = "Background01";
+    sessionInfo.bundleName_ = "GetSCBDebugDumpInfo02";
+    sptr<WindowSessionProperty> windowSessionProperty = sptr<WindowSessionProperty>::MakeSptr();
+    sptr<SceneSession> sceneSession = ssm_->RequestSceneSession(sessionInfo, windowSessionProperty);
+    ASSERT_EQ(nullptr, sceneSession);
+    std::string infos;
+    WSError result = ssm_->GetSCBDebugDumpInfo("SCBScenePanel getContainerSession -f", infos);
+    ASSERT_EQ(WSError::WS_OK, result);
+    ASSERT_FALSE(infos.empty());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

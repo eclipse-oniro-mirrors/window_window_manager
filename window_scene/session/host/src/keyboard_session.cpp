@@ -36,7 +36,6 @@ namespace OHOS::Rosen {
 namespace {
     constexpr float MOVE_DRAG_POSITION_Z = 100.5f;
     constexpr int32_t INSERT_TO_THE_END = -1;
-    const std::string COOPERATION_DISPLAY_NAME = "Cooperation";
 }
 KeyboardSession::KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
     const sptr<KeyboardSessionCallback>& keyboardCallback)
@@ -661,18 +660,12 @@ void KeyboardSession::HandleKeyboardMoveDragEnd(const WSRect& rect, SizeChangeRe
 // Use focused session id when calling session id is invalid.
 void KeyboardSession::UseFocusIdIfCallingSessionIdInvalid(uint32_t callingSessionId)
 {
-    const auto focusedSessionId = static_cast<uint32_t>(GetFocusedSessionId());
     if (const auto callingSession = GetSceneSession(callingSessionId)) {
         GetSessionProperty()->SetCallingSessionId(callingSessionId);
-        // callingSession 合法时，并且当下面两个条件同时满足时；替换 callingSessionId 为 focusedSessionId
-        if (!(GetDisplayId() != callingSession->GetDisplayId() && callingSessionId != focusedSessionId)) {
-            // 有条件不满足，保持 callingSessionId 不变，直接返回
-            TLOGI(WmsLogTag::WMS_KEYBOARD, "continue using callingSession id: %{public}d", callingSessionId);
-            return;
-        }
+        return;
     }
 
-    // 进行替换
+    const auto focusedSessionId = static_cast<uint32_t>(GetFocusedSessionId());
     if (GetSceneSession(focusedSessionId) == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Focused session is null, id: %{public}d", focusedSessionId);
     } else {
@@ -1221,7 +1214,6 @@ WMError KeyboardSession::IsLandscape(uint64_t displayId, bool& isLandscape)
     }
     auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
     std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
-    isLandscape = isLandscape || (dispName == COOPERATION_DISPLAY_NAME);
     TLOGI(WmsLogTag::WMS_KEYBOARD, "s-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d|%{public}s",
         displayId, displayWidth, displayHeight, isLandscape, dispName.c_str());
     return WMError::WM_OK;

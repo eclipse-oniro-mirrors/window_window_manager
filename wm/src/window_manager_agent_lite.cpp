@@ -26,6 +26,11 @@ void WindowManagerAgentLite::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& 
     SingletonContainer::Get<WindowManagerLite>().UpdateFocusChangeInfo(focusChangeInfo, focused);
 }
 
+void WindowManagerAgentLite::UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd)
+{
+    SingletonContainer::Get<WindowManagerLite>().UpdateDisplayGroupInfo(displayGroupId, displayId, isAdd);
+}
+
 void WindowManagerAgentLite::UpdateWindowVisibilityInfo(const std::vector<sptr<WindowVisibilityInfo>>& visibilityInfos)
 {
     SingletonContainer::Get<WindowManagerLite>().UpdateWindowVisibilityInfo(visibilityInfos);
@@ -60,6 +65,12 @@ void WindowManagerAgentLite::NotifyCallingWindowDisplayChanged(const CallingWind
 void WindowManagerAgentLite::UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground)
 {
     SingletonContainer::Get<WindowManagerLite>().UpdatePiPWindowStateChanged(bundleName, isForeground);
+}
+
+void WindowManagerAgentLite::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
+    const WindowInfoList& windowInfoList)
+{
+    SingletonContainer::Get<WindowManagerLite>().NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
 }
 
 void WindowManagerAgentLite::NotifyAccessibilityWindowInfo(const std::vector<sptr<AccessibilityWindowInfo>>& infos,

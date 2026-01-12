@@ -873,23 +873,6 @@ HWTEST_F(SceneSessionManagerTest10, TestIsInDefaultScreen_02, TestSize.Level1)
 }
 
 /**
- * @tc.name: RegisterRequestVsyncFunc
- * @tc.desc: test RegisterRequestVsyncFunc01
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, RegisterRequestVsyncFunc01, TestSize.Level1)
-{
-    ssm_->RegisterRequestVsyncFunc(nullptr);
-    SessionInfo info;
-    info.abilityName_ = "RegisterRequestVsyncFunc01";
-    info.bundleName_ = "RegisterRequestVsyncFunc01";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    ssm_->RegisterRequestVsyncFunc(sceneSession);
-    ASSERT_NE(nullptr, sceneSession->requestNextVsyncFunc_);
-}
-
-/**
  * @tc.name: RegisterSessionPropertyChangeNotifyManagerFunc
  * @tc.desc: test RegisterSessionPropertyChangeNotifyManagerFunc01
  * @tc.type: FUNC
@@ -1238,6 +1221,163 @@ HWTEST_F(SceneSessionManagerTest10, NotifyAppUseControlListInner02, TestSize.Lev
 }
 
 /**
+ * @tc.name: NotifyAppUseControlListInner03
+ * @tc.desc: NotifyAppUseControlListInner
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, NotifyAppUseControlListInner03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    int32_t controlListSize = -1;
+    ssm_->notifyAppUseControlListFunc_ = [&controlListSize]
+        (ControlAppType type, int32_t userId, const std::vector<AppUseControlInfo>& controlList) {
+            controlListSize = controlList.size();
+        };
+    AppUseControlInfo controlById;
+    controlById.persistentId_ = 100;
+    controlById.bundleName_ = "bundleName";
+    controlById.appIndex_ = 0;
+    std::vector<AppUseControlInfo> controlList;
+    controlList.push_back(controlById);
+    ssm_->NotifyAppUseControlListInner(ControlAppType::APP_LOCK, 0, controlList);
+    EXPECT_EQ(controlListSize, -1);
+    ssm_->sceneSessionMap_.emplace(100, nullptr);
+    ssm_->NotifyAppUseControlListInner(ControlAppType::APP_LOCK, 0, controlList);
+    EXPECT_EQ(controlListSize, -1);
+
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 100;
+    sessionInfo.bundleName_ = "bundleName";
+    sessionInfo.appIndex_ = 0;
+    sessionInfo.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.emplace(100, sceneSession);
+
+    ssm_->NotifyAppUseControlListInner(ControlAppType::APP_LOCK, 0, controlList);
+    EXPECT_EQ(controlListSize, -1);
+
+    AppUseControlInfo controlByBundle;
+    controlByBundle.bundleName_ = "bundleName";
+    controlByBundle.appIndex_ = 0;
+    controlList.push_back(controlByBundle);
+    ssm_->NotifyAppUseControlListInner(ControlAppType::APP_LOCK, 0, controlList);
+    EXPECT_EQ(controlListSize, 1);
+}
+
+/**
+ * @tc.name: NotifyAppUseControlListInner04
+ * @tc.desc: NotifyAppUseControlListInner04
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, NotifyAppUseControlListInner04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    int32_t controlListSize = -1;
+    ssm_->notifyAppUseControlListFunc_ = [&controlListSize]
+        (ControlAppType type, int32_t userId, const std::vector<AppUseControlInfo>& controlList) {
+            controlListSize = controlList.size();
+        };
+    std::vector<AppUseControlInfo> controlList;
+    AppUseControlInfo controlById;
+    controlById.persistentId_ = 100;
+    controlById.bundleName_ = "bundleName";
+    controlById.appIndex_ = 0;
+    controlList.push_back(controlById);
+    AppUseControlInfo controlById2;
+    controlById2.persistentId_ = 100;
+    controlById2.bundleName_ = "errorBundleName";
+    controlById2.appIndex_ = 0;
+    controlList.push_back(controlById2);
+    AppUseControlInfo controlById3;
+    controlById3.persistentId_ = 100;
+    controlById3.bundleName_ = "bundleName";
+    controlById3.appIndex_ = 100;
+    controlList.push_back(controlById3);
+
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 100;
+    sessionInfo.bundleName_ = "bundleName";
+    sessionInfo.appIndex_ = 0;
+    sessionInfo.windowType_ = 1000;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.emplace(100, sceneSession);
+    ssm_->NotifyAppUseControlListInner(ControlAppType::APP_LOCK, 0, controlList);
+    EXPECT_EQ(controlListSize, -1);
+}
+
+/**
+ * @tc.name: GetSessionForAppUseControl01
+ * @tc.desc: GetSessionForAppUseControl
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetSessionForAppUseControl01, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 100;
+    sessionInfo.bundleName_ = "bundleName";
+    sessionInfo.appIndex_ = 0;
+    sessionInfo.windowType_ = 1000;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.emplace(100, sceneSession);
+
+    AppUseControlInfo controlById;
+    controlById.persistentId_ = 100;
+    controlById.bundleName_ = "bundleName";
+    controlById.appIndex_ = 0;
+
+    auto result = ssm_->GetSessionForAppUseControl(controlById);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
+ * @tc.name: GetSessionForAppUseControl02
+ * @tc.desc: GetSessionForAppUseControl
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetSessionForAppUseControl02, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 100;
+    sessionInfo.bundleName_ = "bundleName";
+    sessionInfo.appIndex_ = 0;
+    sessionInfo.windowType_ = 1000;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.emplace(100, sceneSession);
+
+    AppUseControlInfo controlById2;
+    controlById2.persistentId_ = 100;
+    controlById2.bundleName_ = "errorBundleName";
+    controlById2.appIndex_ = 0;
+
+    auto result = ssm_->GetSessionForAppUseControl(controlById2);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
+ * @tc.name: GetSessionForAppUseControl03
+ * @tc.desc: GetSessionForAppUseControl
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetSessionForAppUseControl03, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 100;
+    sessionInfo.bundleName_ = "bundleName";
+    sessionInfo.appIndex_ = 0;
+    sessionInfo.windowType_ = 1000;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.emplace(100, sceneSession);
+
+    AppUseControlInfo controlById3;
+    controlById3.persistentId_ = 100;
+    controlById3.bundleName_ = "bundleName";
+    controlById3.appIndex_ = 100;
+
+    auto result = ssm_->GetSessionForAppUseControl(controlById3);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
  * @tc.name: MinimizeMainSession
  * @tc.desc: test MinimizeMainSession
  * @tc.type: FUNC
@@ -1464,59 +1604,6 @@ HWTEST_F(SceneSessionManagerTest10, FilterForListWindowInfo08, TestSize.Level1)
         }
     }
     ASSERT_EQ(filterNum, 5);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 0, 0, 1260, 123 };
-    WSRect landspaceRect = { 0, 0, 2720, 123 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_SYSTEM, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    std::pair<WSRect, WSRect> nextSystemBarAvoidAreaRectInfo;
-    ret = ssm_->GetNextAvoidRectInfo(0, AvoidAreaType::TYPE_SYSTEM, nextSystemBarAvoidAreaRectInfo);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    ret = ssm_->GetNextAvoidRectInfo(0, AvoidAreaType::TYPE_NAVIGATION_INDICATOR, nextSystemBarAvoidAreaRectInfo);
-    ASSERT_EQ(ret, WSError::WS_DO_NOTHING);
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_01
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_01
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_01, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 0, 0, 1260, 123 };
-    WSRect landspaceRect = { 0, 0, 2720, 123 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_SYSTEM, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo";
-    info.bundleName_ = "NotifyNextAvoidRectInfo";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onGetNextAvoidAreaRectInfo_ =
-        [](DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
-            return ssm_->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    std::pair<WSRect, WSRect> nextSystemBarAvoidAreaRectInfo;
-    ret = sceneSession->specificCallback_->onGetNextAvoidAreaRectInfo_(
-        0, AvoidAreaType::TYPE_SYSTEM, nextSystemBarAvoidAreaRectInfo);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    ASSERT_EQ(nextSystemBarAvoidAreaRectInfo.first, portraitRect);
-    ASSERT_EQ(nextSystemBarAvoidAreaRectInfo.second, landspaceRect);
     ssm_->sceneSessionMap_.clear();
 }
 

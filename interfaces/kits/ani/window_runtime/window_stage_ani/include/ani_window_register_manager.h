@@ -86,6 +86,8 @@ private:
         bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowTitleButtonRectChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);
+    WmErrorCode ProcessWindowWillCloseRegister(const sptr<AniWindowListener>& listener, const sptr<Window>& window,
+        bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowRectChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessSubWindowCloseRegister(sptr<AniWindowListener> listener, sptr<Window> window,

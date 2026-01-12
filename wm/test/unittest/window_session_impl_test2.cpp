@@ -509,17 +509,16 @@ HWTEST_F(WindowSessionImplTest2, LinkKeyFrameNode, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     auto hostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    auto rsKeyFrameNode = RSWindowKeyFrameNode::Create();
     window->uiContent_ = nullptr;
     window->hostSession_ = nullptr;
-    ASSERT_EQ(window->LinkKeyFrameNode(rsKeyFrameNode), WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_ERROR_NULLPTR);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    ASSERT_EQ(window->LinkKeyFrameNode(rsKeyFrameNode), WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_ERROR_NULLPTR);
     window->uiContent_ = nullptr;
     window->hostSession_ = hostSession;
-    ASSERT_EQ(window->LinkKeyFrameNode(rsKeyFrameNode), WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_ERROR_NULLPTR);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    ASSERT_EQ(window->LinkKeyFrameNode(rsKeyFrameNode), WSError::WS_OK);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_OK);
     window->Destroy();
 }
 
@@ -555,25 +554,6 @@ HWTEST_F(WindowSessionImplTest2, NotifyUIContentFocusStatus, TestSize.Level1)
 
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->NotifyUIContentFocusStatus();
-    window->Destroy();
-}
-
-/**
- * @tc.name: NotifyAfterFocused
- * @tc.desc: NotifyAfterFocused
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest2, NotifyAfterFocused, TestSize.Level1)
-{
-    auto window = GetTestWindowImpl("NotifyAfterFocused");
-    ASSERT_NE(window, nullptr);
-    window->NotifyAfterFocused();
-    ASSERT_TRUE(window->shouldReNotifyFocus_);
-
-    window->shouldReNotifyFocus_ = false;
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->NotifyAfterFocused();
-    ASSERT_FALSE(window->shouldReNotifyFocus_);
     window->Destroy();
 }
 
@@ -1457,6 +1437,30 @@ HWTEST_F(WindowSessionImplTest2, UpdateDecorEnableToAce, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateDecorEnableToAce02
+ * @tc.desc: UpdateDecorEnableToAce02
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, UpdateDecorEnableToAce02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImpl: UpdateDecorEnableToAce02 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateDecorEnableToAce02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->windowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.isSystemDecorEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+
+    window->UpdateDecorEnableToAce(true);
+    ASSERT_FALSE(window->IsDecorEnable());
+}
+
+/**
  * @tc.name: UpdateDecorEnable
  * @tc.desc: UpdateDecorEnable
  * @tc.type: FUNC
@@ -1847,9 +1851,36 @@ HWTEST_F(WindowSessionImplTest2, SetDragKeyFramePolicy, TestSize.Level1)
     sptr<SessionMocker> hostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = hostSession;
     KeyFramePolicy keyFramePolicy;
-    ASSERT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_SHOWN;
+    ASSERT_FALSE(window->IsWindowSessionInvalid());
+
+    // other
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+
+    // phone
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    // subWindow
+    window->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_INVALID_CALLING);
+    // mainWindow
+    window->property_->type_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    // pad
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    // pc
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // pass
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    // invalid id
+    window->property_->SetPersistentId(0);
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_INVALID_WINDOW);
+    // invalid session
+    window->property_->SetPersistentId(1);
     window->hostSession_ = nullptr;
-    ASSERT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_NULLPTR);
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_INVALID_WINDOW);
 }
 
 /**

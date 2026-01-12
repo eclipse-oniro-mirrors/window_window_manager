@@ -131,7 +131,6 @@
             "//foundation/window/window_manager/wm:libpip_ndk"
           ],
           "service_group": [
-            "//foundation/window/window_manager/product:libdms_ext",
             "//foundation/window/window_manager/sa_profile:wms_sa_profile",
             "//foundation/window/window_manager/dmserver:libdms",
             "//foundation/window/window_manager/wmserver:libwms"
@@ -535,8 +534,7 @@
           "//foundation/window/window_manager/wmserver:test",
           "//foundation/window/window_manager/test:test",
           "//foundation/window/window_manager/extension/window_extension:test",
-          "//foundation/window/window_manager/window_scene:test",
-          "//foundation/window/window_manager/product:test"
+          "//foundation/window/window_manager/window_scene:test"
         ]
       }
     }

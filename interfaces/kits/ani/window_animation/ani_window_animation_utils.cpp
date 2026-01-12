@@ -147,9 +147,9 @@ bool ParseDurationValue(ani_env* env, ani_object aniObject, ani_long& aniDuratio
         TLOGW(WmsLogTag::WMS_ANIMATION, "[ANI] Duration is undefined.");
         return false;
     }
-    ret = env->Object_CallMethodByName_Long(static_cast<ani_object>(durationRef), "unboxed", ":l", &aniDuration);
+    ret = env->Object_CallMethodByName_Long(static_cast<ani_object>(durationRef), "toLong", ":l", &aniDuration);
     if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Unboxed duration value failed. %{public}d", ret);
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] toLong duration value failed. %{public}d", ret);
         return false;
     }
     return true;
@@ -206,11 +206,11 @@ template<typename T>
 const char* GetClassName()
 {
     if (std::is_same<T, int>::value) {
-        return "Lstd/core/Int;";
+        return "std.core.Int";
     } else if (std::is_same<T, double>::value) {
-        return "Lstd/core/Double;";
+        return "std.core.Double";
     } else if (std::is_same<T, long>::value) {
-        return "Lstd/core/Long;";
+        return "std.core.Long";
     } else {
         return nullptr;
     }
@@ -220,11 +220,11 @@ template<typename T>
 const char* GetCtorSignature()
 {
     if (std::is_same<T, int>::value) {
-        return "I:V";
+        return "i:";
     } else if (std::is_same<T, double>::value) {
-        return "D:V";
+        return "d:";
     } else if (std::is_same<T, long>::value) {
-        return "J:V";
+        return "l:";
     } else {
         return nullptr;
     }
@@ -440,14 +440,14 @@ ani_object ConvertWindowAnimationOptionToAniValue(ani_env* env,
             [[fallthrough]];
         }
         case WindowAnimationCurve::INTERPOLATION_SPRING: {
-            ani_array_ref params = nullptr;
-            if (env->Array_New_Ref(aniClass, ANIMATION_PARAM_SIZE, static_cast<ani_ref>(CreateAniUndefined(env)),
+            ani_array params = nullptr;
+            if (env->Array_New(ANIMATION_PARAM_SIZE, static_cast<ani_ref>(CreateAniUndefined(env)),
                 &params) != ANI_OK) {
                 TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] create array failed");
                 return nullptr;
             }
             for (uint32_t i = 0; i < ANIMATION_PARAM_SIZE; ++i) {
-                if (env->Array_Set_Ref(params, i, CreateDouble(env, animationConfig.param[i])) != ANI_OK) {
+                if (env->Array_Set(params, i, CreateDouble(env, animationConfig.param[i])) != ANI_OK) {
                     TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] set params failed at %{public}d", i);
                     return nullptr;
                 }
@@ -495,10 +495,10 @@ bool ConvertTransitionAnimationFromAniValue(ani_env* env, ani_object aniObject,
     }
 
     ani_double aniOpacityValue = 0;
-    ret = env->Object_CallMethodByName_Double(static_cast<ani_object>(aniOpacityObj), "unboxed", ":d",
+    ret = env->Object_CallMethodByName_Double(static_cast<ani_object>(aniOpacityObj), "toDouble", ":d",
         &aniOpacityValue);
     if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Opacity unboxed failed. ret: %{public}d", ret);
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Opacity toDouble failed. ret: %{public}d", ret);
         result = WmErrorCode::WM_ERROR_INVALID_PARAM;
         return false;
     }
@@ -705,13 +705,13 @@ bool ConvertWindowAnimationOptionFromAniValue(ani_env* env, ani_object aniAnimat
             }
             for (uint32_t i = 0; i < ANIMATION_PARAM_SIZE; ++i) {
                 ani_ref element;
-                ret = env->Array_Get_Ref(static_cast<ani_array_ref>(aniParam), i, &element);
+                ret = env->Array_Get(static_cast<ani_array>(aniParam), i, &element);
                 if (ret != ANI_OK) {
                     result = WmErrorCode::WM_ERROR_INVALID_PARAM;
                     return false;
                 }
                 ani_double value = 0;
-                ret = env->Object_CallMethodByName_Double(static_cast<ani_object>(element), "unboxed", ":d", &value);
+                ret = env->Object_CallMethodByName_Double(static_cast<ani_object>(element), "toDouble", ":d", &value);
                 if (ret != ANI_OK) {
                     result = WmErrorCode::WM_ERROR_INVALID_PARAM;
                     return false;

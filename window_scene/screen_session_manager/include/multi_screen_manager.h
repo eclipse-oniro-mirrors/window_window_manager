@@ -66,8 +66,8 @@ private:
         DMRect mainScreenRegion, ScreenId& screenGroupId, const RotationOption& rotationOption,
         bool forceMirror = false);
 
-    DMError PhysicalScreenMirrorSwitch(const std::vector<ScreenId>& screenIds, DMRect mainScreenRegion,
-        const RotationOption& rotationOption, bool forceMirror = false);
+    DMError PhysicalScreenMirrorSwitch(const ScreenId mainScreenId, const std::vector<ScreenId>& screenIds,
+        DMRect mainScreenRegion, const RotationOption& rotationOption, bool forceMirror = false);
 
     DMError PhysicalScreenUniqueSwitch(const std::vector<ScreenId>& screenIds);
 

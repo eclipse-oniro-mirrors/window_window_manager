@@ -27,7 +27,8 @@
 #include "fold_screen_controller/sensor_fold_state_manager/secondary_display_sensor_fold_state_manager.h"
 #include "fold_screen_controller/secondary_fold_sensor_manager.h"
 #include "fold_screen_state_internel.h"
-
+#include "sensor_fold_state_mgr.h"
+#include "screen_sensor_mgr.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -52,9 +53,8 @@ FoldScreenController::FoldScreenController(std::recursive_mutex& displayInfoMute
         sensorFoldStateManager_ = new SecondaryDisplaySensorFoldStateManager();
         TLOGI(WmsLogTag::DMS, "fold polocy: SECONDARY_DISPLAY_DEVICE");
     } else if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
-        foldScreenPolicy_ = GetFoldScreenPolicy(DisplayDeviceType::SINGLE_DISPLAY_SUPER_DEVICE);
-        sensorFoldStateManager_ = new SingleDisplaySensorSuperFoldStateManager();
         TLOGI(WmsLogTag::DMS, "fold polocy: SINGLE_DISPLAY_SUPER_DEVICE");
+        return;
     }
 
     if (foldScreenPolicy_ == nullptr) {
@@ -149,7 +149,17 @@ void FoldScreenController::SetDisplayMode(const FoldDisplayMode displayMode)
         TLOGW(WmsLogTag::DMS, "foldScreenPolicy_ is null");
         return;
     }
-    foldScreenPolicy_->ChangeScreenDisplayMode(displayMode);
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        foldScreenPolicy_->ChangeScreenDisplayMode(displayMode, DisplayModeChangeReason::SETMODE);
+    } else {
+        foldScreenPolicy_->ChangeScreenDisplayMode(displayMode);
+    }
+}
+
+void FoldScreenController::NotifyRunSensorFoldStateManager()
+{
+    TLOGI(WmsLogTag::DMS, "TaskSequenceProcess FoldScreenController::NotifyRunSensorFoldStateManager");
+    sensorFoldStateManager_->FinishTaskSequence();
 }
 
 void FoldScreenController::RecoverDisplayMode()
@@ -174,6 +184,42 @@ void FoldScreenController::RecoverDisplayMode()
     }
     TLOGI(WmsLogTag::DMS, "%{public}d -> %{public}d", currentDisplayMode, displayMode);
     foldScreenPolicy_->ChangeScreenDisplayMode(displayMode, DisplayModeChangeReason::RECOVER);
+}
+
+DMError FoldScreenController::ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus)
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return foldScreenPolicy_->SetFoldStatusAndLockControl(true, targetFoldStatus);
+}
+
+DMError FoldScreenController::RestorePhysicalFoldStatus()
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return foldScreenPolicy_->SetFoldStatusAndLockControl(false, FoldStatus::UNKNOWN);
+}
+
+bool FoldScreenController::GetPhysicalFoldLockFlag() const
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return false;
+    }
+    return foldScreenPolicy_->GetPhysicalFoldLockFlag();
+}
+
+FoldStatus FoldScreenController::GetPhysicalFoldStatus() const
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return FoldStatus::UNKNOWN;
+    }
+    return foldScreenPolicy_->GetPhysicalFoldStatus();
 }
 
 void FoldScreenController::LockDisplayStatus(bool locked)
@@ -228,6 +274,10 @@ FoldDisplayMode FoldScreenController::GetModeMatchStatus()
 
 bool FoldScreenController::GetTentMode()
 {
+    if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        return DMS::SensorFoldStateMgr::GetInstance().IsTentMode();
+    }
+
     if (sensorFoldStateManager_ == nullptr) {
         TLOGW(WmsLogTag::DMS, "sensorFoldStateManager_ is null");
         return false;
@@ -237,6 +287,10 @@ bool FoldScreenController::GetTentMode()
 
 void FoldScreenController::OnTentModeChanged(int tentType, int32_t hall)
 {
+    if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        return DMS::ScreenSensorMgr::GetInstance().HandleTentSensorData(tentType, hall);
+    }
+
     if (sensorFoldStateManager_ == nullptr) {
         TLOGW(WmsLogTag::DMS, "sensorFoldStateManager_ is null");
         return;

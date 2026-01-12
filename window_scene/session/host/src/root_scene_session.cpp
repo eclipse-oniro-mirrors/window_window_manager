@@ -31,6 +31,22 @@ void RootSceneSession::LoadContent(
     }
 }
 
+void RootSceneSession::SetGetUIContentFunc(GetUIContentFunc&& getUIContentFunc)
+{
+    getUIContentFunc_ = std::move(getUIContentFunc);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "isNullGetUIContentFunc=%{public}d", getUIContentFunc_ == nullptr);
+}
+
+Ace::UIContent* RootSceneSession::GetUIContent(DisplayId displayId)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "isNullGetUIContentFunc=%{public}d, displayId: %{public}" PRIu64,
+        getUIContentFunc_ == nullptr, displayId);
+    if (getUIContentFunc_) {
+        return getUIContentFunc_(displayId);
+    }
+    return nullptr;
+}
+
 void RootSceneSession::GetSystemAvoidAreaForRoot(const WSRect& rect, AvoidArea& avoidArea, bool ignoreVisibility)
 {
     std::vector<sptr<SceneSession>> statusBarVector;

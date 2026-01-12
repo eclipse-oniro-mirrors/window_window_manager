@@ -38,6 +38,16 @@ static napi_value CallJsFunction(napi_env env, napi_value method, napi_value con
     return callResult;
 }
 
+static const std::map<PiPStateChangeReason, std::string> PIP_STATE_CHANGE_REASON_TO_STRING_MAP = {
+    { PiPStateChangeReason::REQUEST_START,           "requestStart"       },
+    { PiPStateChangeReason::AUTO_START,              "autoStart"          },
+    { PiPStateChangeReason::REQUEST_DELETE,          "requestDelete"      },
+    { PiPStateChangeReason::PANEL_ACTION_DELETE,     "panelActionDelete"  },
+    { PiPStateChangeReason::DRAG_DELETE,             "dragDelete"         },
+    { PiPStateChangeReason::PANEL_ACTION_RESTORE,    "panelActionRestore" },
+    { PiPStateChangeReason::OTHER,                   "other"              },
+};
+
 JsPiPWindowListener::~JsPiPWindowListener()
 {
     TLOGI(WmsLogTag::WMS_PIP, "~JsWindowListener");
@@ -48,41 +58,56 @@ std::shared_ptr<NativeReference> JsPiPWindowListener::GetCallbackRef() const
     return jsCallBack_;
 }
 
-void JsPiPWindowListener::OnPreparePictureInPictureStart()
+void JsPiPWindowListener::OnPreparePictureInPictureStart(PiPStateChangeReason reason)
 {
-    OnPipListenerCallback(PiPState::ABOUT_TO_START, 0);
+    OnPipListenerCallback(PiPState::ABOUT_TO_START, reason);
 }
-
-void JsPiPWindowListener::OnPictureInPictureStart()
+ 
+void JsPiPWindowListener::OnPictureInPictureStart(PiPStateChangeReason reason)
 {
-    OnPipListenerCallback(PiPState::STARTED, 0);
+    OnPipListenerCallback(PiPState::STARTED, reason);
 }
-
-void JsPiPWindowListener::OnPreparePictureInPictureStop()
+ 
+void JsPiPWindowListener::OnPreparePictureInPictureStop(PiPStateChangeReason reason)
 {
-    OnPipListenerCallback(PiPState::ABOUT_TO_STOP, 0);
+    OnPipListenerCallback(PiPState::ABOUT_TO_STOP, reason);
 }
-
-void JsPiPWindowListener::OnPictureInPictureStop()
+ 
+void JsPiPWindowListener::OnPictureInPictureStop(PiPStateChangeReason reason)
 {
-    OnPipListenerCallback(PiPState::STOPPED, 0);
+    OnPipListenerCallback(PiPState::STOPPED, reason);
 }
-
-void JsPiPWindowListener::OnRestoreUserInterface()
+ 
+void JsPiPWindowListener::OnRestoreUserInterface(PiPStateChangeReason reason)
 {
-    OnPipListenerCallback(PiPState::ABOUT_TO_RESTORE, 0);
+    OnPipListenerCallback(PiPState::ABOUT_TO_RESTORE, reason);
 }
-
+ 
 void JsPiPWindowListener::OnPictureInPictureOperationError(int32_t errorCode)
 {
-    OnPipListenerCallback(PiPState::ERROR, errorCode);
+    TLOGI(WmsLogTag::WMS_PIP, "state: %{public}d", static_cast<int32_t>(PiPState::ERROR));
+    auto napiTask = [jsCallback = jsCallBack_, errorCode, env = env_]() {
+        napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(PiPState::ERROR)),
+            CreateJsValue(env, std::to_string(errorCode))};
+        CallJsFunction(env, jsCallback->GetNapiValue(), argv, ArraySize(argv));
+    };
+    if (env_ != nullptr) {
+        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnPictureInPictureOperationError");
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::WMS_PIP, "Failed to SendEvent");
+        }
+    } else {
+        TLOGE(WmsLogTag::WMS_PIP, "env is nullptr");
+    }
 }
-
-void JsPiPWindowListener::OnPipListenerCallback(PiPState state, int32_t errorCode)
+ 
+void JsPiPWindowListener::OnPipListenerCallback(PiPState state, PiPStateChangeReason reasonCode)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "state: %{public}d", static_cast<int32_t>(state));
-    auto napiTask = [jsCallback = jsCallBack_, state, errorCode, env = env_]() {
-        napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(state)), CreateJsValue(env, errorCode)};
+    TLOGI(WmsLogTag::WMS_PIP, "state: %{public}d, reason: %{public}d", static_cast<int32_t>(state),
+        static_cast<int32_t>(reasonCode));
+    std::string reason = GetStringByStateChangeReason(reasonCode);
+    auto napiTask = [jsCallback = jsCallBack_, state, reason, env = env_]() {
+        napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(state)), CreateJsValue(env, reason)};
         CallJsFunction(env, jsCallback->GetNapiValue(), argv, ArraySize(argv));
     };
     if (env_ != nullptr) {
@@ -191,7 +216,7 @@ void JsPiPWindowListener::OnActiveStatusChange(bool status)
             TLOGE(WmsLogTag::WMS_SYSTEM, "js callback is null");
             return;
         }
-        napi_value argv[] = {CreateJsValue(env, static_cast<int32_t>(status))};
+        napi_value argv[] = {CreateJsValue(env, status)};
         CallJsFunction(env, jsCallback->GetNapiValue(), argv, ArraySize(argv));
     };
     if (env_ != nullptr) {
@@ -202,6 +227,16 @@ void JsPiPWindowListener::OnActiveStatusChange(bool status)
     } else {
         TLOGE(WmsLogTag::WMS_PIP, "env is nullptr");
     }
+}
+
+std::string JsPiPWindowListener::GetStringByStateChangeReason(PiPStateChangeReason reasonCode)
+{
+    auto iter = PIP_STATE_CHANGE_REASON_TO_STRING_MAP.find(reasonCode);
+    if (iter != PIP_STATE_CHANGE_REASON_TO_STRING_MAP.end()) {
+        return iter->second;
+    }
+    TLOGE(WmsLogTag::WMS_PIP, "No mapping found for reasonCode: %{public}d", static_cast<int32_t>(reasonCode));
+    return "other";
 }
 } // namespace Rosen
 } // namespace OHOS

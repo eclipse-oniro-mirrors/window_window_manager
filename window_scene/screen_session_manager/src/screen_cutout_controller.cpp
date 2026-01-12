@@ -59,7 +59,8 @@ void ScreenCutoutController::GetCutoutArea(DisplayId displayId, uint32_t width, 
 {
     FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(width, height);
 
-    TLOGI(WmsLogTag::DMS, "display:[ID: %{public}" PRIu64 ", W: %{public}u, H: %{public}u, R: %{public}u,"
+    TLOGI_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES,
+        "display:[ID: %{public}" PRIu64 ", W: %{public}u, H: %{public}u, R: %{public}u,"
         "Mode %{public}u]", displayId, width, height, rotation, displayMode);
 
     std::vector<DMRect> boundaryRects;
@@ -69,7 +70,7 @@ void ScreenCutoutController::GetCutoutArea(DisplayId displayId, uint32_t width, 
     } else {
         boundaryRects = ScreenSceneConfig::GetCutoutBoundaryRect(displayId);
     }
-    CheckBoundaryRects(boundaryRects, width, height);
+    CheckBoundaryRectsWithRotation(boundaryRects, width, height, rotation);
     if (!boundaryRects.empty()) {
         CalcCutoutRects(boundaryRects, width, height, rotation, cutoutArea);
     }
@@ -105,9 +106,21 @@ void ScreenCutoutController::CalcCutoutRects(const std::vector<DMRect>& boundary
     }
 }
 
-void ScreenCutoutController::CheckBoundaryRects(std::vector<DMRect>& boundaryRects, uint32_t screenWidth,
-                                                uint32_t screenHeight) const
+/**
+ * @brief Check if the cutout area exceeds the screen boundaries
+ *
+ * @param boundaryRects List of cutout area rectangles in the initial physical screen orientation (rotation = 0).
+ *                      Items in the list will be cleared if the cutout area exceeds the screen boundaries.
+ * @param screenWidth Logical width of the current screen (in rotated coordinate system)
+ * @param screenHeight Logical height of the current screen (in rotated coordinate system)
+ * @param rotation Current screen rotation state
+ */
+void ScreenCutoutController::CheckBoundaryRectsWithRotation(std::vector<DMRect>& boundaryRects, uint32_t screenWidth,
+    uint32_t screenHeight, Rotation rotation) const
 {
+    if (rotation == Rotation::ROTATION_90 || rotation == Rotation::ROTATION_270) {
+        std::swap(screenWidth, screenHeight);
+    }
     for (auto iter = boundaryRects.begin(); iter != boundaryRects.end();) {
         DMRect boundaryRect = *iter;
         if ((boundaryRect.posX_ < 0) || (boundaryRect.posY_ < 0) ||

@@ -21,6 +21,8 @@
 #include "screen_session_manager/include/fold_screen_controller/sensor_fold_state_manager/secondary_display_sensor_fold_state_manager.h"
 #include "fold_screen_state_internel.h"
 #include "screen_session_manager.h"
+#include "screen_sensor_mgr.h"
+#include "fold_screen_common.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -81,6 +83,10 @@ void SecondaryFoldSensorManagerTest::SetUp()
 
 void SecondaryFoldSensorManagerTest::TearDown()
 {
+    DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(
+        SENSOR_TYPE_ID_POSTURE);
+    DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(
+        SENSOR_TYPE_ID_HALL_EXT);
 }
 
 namespace {
@@ -104,7 +110,7 @@ HWTEST_F(SecondaryFoldSensorManagerTest, RegisterPostureCallback01, TestSize.Lev
 HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterPostureCallback01, TestSize.Level1)
 {
     ONLY_FOR_SECONDARY_DISPLAY_FOLD
-    SecondaryFoldSensorManager::GetInstance().UnRegisterPostureCallback();
+    DMS::ScreenSensorMgr::GetInstance().UnRegisterPostureCallback();
     EXPECT_FALSE(SecondaryFoldSensorManager::GetInstance().IsPostureUserCallbackInvalid());
 }
 
@@ -128,120 +134,24 @@ HWTEST_F(SecondaryFoldSensorManagerTest, RegisterHallCallback01, TestSize.Level1
 HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterHallCallback01, TestSize.Level1)
 {
     ONLY_FOR_SECONDARY_DISPLAY_FOLD
-    SecondaryFoldSensorManager::GetInstance().UnRegisterHallCallback();
+    DMS::ScreenSensorMgr::GetInstance().UnRegisterHallCallback();
     EXPECT_FALSE(SecondaryFoldSensorManager::GetInstance().IsHallUserCallbackInvalid());
 }
 
 static std::vector<float> HandlePostureData(float postureBc, float postureAb, float postureAbAnti)
 {
-    FoldScreenSensorManager::PostureDataSecondary postureData = {
+    DMS::PostureDataSecondary postureData = {
         .postureBc = postureBc,
         .postureAb = postureAb,
         .postureAbAnti = postureAbAnti,
     };
     SensorEvent postureEvent = {
-        .dataLen = sizeof(FoldScreenSensorManager::PostureDataSecondary),
+        .dataLen = sizeof(DMS::PostureDataSecondary),
         .data = reinterpret_cast<uint8_t *>(&postureData),
     };
     OHOS::Rosen::SecondaryFoldSensorManager::GetInstance().HandlePostureData(&postureEvent);
     std::vector<float> postures = SecondaryFoldSensorManager::GetInstance().GetGlobalAngle();
     return postures;
-}
-
-/**
-* @tc.name: UnRegisterHallCallback02
-* @tc.desc: test function : UnRegisterHallCallback
-* @tc.type: FUNC
-*/
-HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterHallCallback02, TestSize.Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    SecondaryFoldSensorManager manager;
-    manager.RegisterPostureCallback();
-    manager.UnRegisterPostureCallback();
-
-    if (!(ssm_->IsFoldable())) {
-        GTEST_SKIP();
-    }
-    EXPECT_TRUE(g_logMsg.find("success.") != std::string::npos);
-    EXPECT_TRUE(g_logMsg.find("failed") == std::string::npos);
-
-    g_logMsg.clear();
-    LOG_SetCallback(nullptr);
-}
-
-/**
-* @tc.name: UnRegisterPostureCallback03
-* @tc.desc: test function : UnRegisterPostureCallback
-* @tc.type: FUNC
-*/
-HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterPostureCallback03, TestSize.Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    SecondaryFoldSensorManager manager;
-    manager.RegisterPostureCallback();
-    manager.UnRegisterPostureCallback();
-
-    if (!(ssm_->IsFoldable())) {
-        GTEST_SKIP();
-    }
-    EXPECT_TRUE(g_logMsg.find("UnRegisterPostureCallback failed with ret:") != std::string::npos);
-    EXPECT_TRUE(g_logMsg.find("success.") == std::string::npos);
-
-    g_logMsg.clear();
-    LOG_SetCallback(nullptr);
-}
-
-/**
-* @tc.name: UnRegisterHallCallback03
-* @tc.desc: test function : UnRegisterHallCallback
-* @tc.type: FUNC
-*/
-HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterHallCallback03, TestSize.Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    SecondaryFoldSensorManager manager;
-    manager.RegisterHallCallback();
-    manager.UnRegisterHallCallback();
-
-    if (!(ssm_->IsFoldable())) {
-        GTEST_SKIP();
-    }
-    EXPECT_TRUE(g_logMsg.find("success.") != std::string::npos);
-    EXPECT_TRUE(g_logMsg.find("failed") == std::string::npos);
-
-    g_logMsg.clear();
-    LOG_SetCallback(nullptr);
-}
-
-/**
-* @tc.name: UnRegisterHallCallback04
-* @tc.desc: test function : UnRegisterHallCallback
-* @tc.type: FUNC
-*/
-HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterHallCallback04, TestSize.Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    SecondaryFoldSensorManager manager;
-    manager.RegisterHallCallback();
-    manager.UnRegisterHallCallback();
-
-    if (!(ssm_->IsFoldable())) {
-        GTEST_SKIP();
-    }
-    EXPECT_TRUE(g_logMsg.find("UnRegisterHallCallback failed with ret:") != std::string::npos);
-    EXPECT_TRUE(g_logMsg.find("success.") == std::string::npos);
-
-    g_logMsg.clear();
-    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -315,13 +225,13 @@ HWTEST_F(SecondaryFoldSensorManagerTest, HandlePostureData04, TestSize.Level1)
 
 static std::vector<uint16_t> HandleHallDataExt(uint16_t hallBc, uint16_t hallAb)
 {
-    FoldScreenSensorManager::EXTHALLData hallData = {
+    DMS::ExtHallData hallData = {
         .flag = 26,
         .hall = hallBc,
         .hallAb = hallAb,
     };
     SensorEvent hallEvent = {
-        .dataLen = sizeof(FoldScreenSensorManager::EXTHALLData),
+        .dataLen = sizeof(DMS::ExtHallData),
         .data = reinterpret_cast<uint8_t *>(&hallData),
     };
     OHOS::Rosen::SecondaryFoldSensorManager::GetInstance().HandleHallDataExt(&hallEvent);
@@ -353,7 +263,7 @@ HWTEST_F(SecondaryFoldSensorManagerTest, HandleHallDataExt02, TestSize.Level1)
 {
     ONLY_FOR_SECONDARY_DISPLAY_FOLD
     SensorEvent hallEvent = {
-        .dataLen = sizeof(FoldScreenSensorManager::EXTHALLData),
+        .dataLen = sizeof(DMS::ExtHallData),
         .data = nullptr,
     };
     OHOS::Rosen::SecondaryFoldSensorManager::GetInstance().HandleHallDataExt(&hallEvent);

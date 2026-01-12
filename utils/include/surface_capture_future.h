@@ -24,7 +24,6 @@
 namespace OHOS {
 namespace Rosen {
 class SurfaceCaptureFuture : public SurfaceCaptureCallback, public Future<std::shared_ptr<Media::PixelMap>> {
-    constexpr static HiviewDFX::HiLogLabel TAG = {LOG_CORE, HILOG_DOMAIN_WINDOW, "SurfaceFuture"};
 public:
     SurfaceCaptureFuture() = default;
     ~SurfaceCaptureFuture() {};
@@ -50,7 +49,7 @@ public:
         std::unique_lock <std::mutex> lock(mutex_);
         if (!DmUtils::safe_wait_for(conditionVariable_, lock,
             std::chrono::milliseconds(timeOut), [this] { return IsReady(); })) {
-            OHOS::HiviewDFX::HiLog::Error(TAG, "wait for %{public}ld, timeout.", timeOut);
+            TLOGE(WmsLogTag::DEFAULT, "wait for %{public}ld, timeout.", timeOut);
         }
         return { pixelMap_, hdrPixelMap_ };
     }

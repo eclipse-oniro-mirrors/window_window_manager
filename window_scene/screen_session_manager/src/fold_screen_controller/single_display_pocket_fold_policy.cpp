@@ -142,17 +142,20 @@ void SingleDisplayPocketFoldPolicy::SetdisplayModeChangeStatus(bool status, bool
     }
 }
 
-void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode,
-    DisplayModeChangeReason reason)
+void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason)
 {
+    if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
+        TLOGI(WmsLogTag::DMS, "Fold status is locked, can't change to display mode: %{public}d", displayMode);
+        return;
+    }
     SetLastCacheDisplayMode(displayMode);
     if (GetModeChangeRunningStatus()) {
         TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
         return;
     }
-    TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, lastElapsedMs: %{public}" PRId64 "ms",
-        displayMode, getFoldingElapsedMs());
-    
+    TLOGI(WmsLogTag::DMS,
+        "start change displaymode: %{public}d, reason: %{public}d, lastElapsedMs: %{public}" PRId64 "ms",
+        displayMode, reason, getFoldingElapsedMs());
     sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
     if (screenSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "default screenSession is null");
@@ -172,17 +175,11 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode disp
         lastDisplayMode_ = displayMode;
     }
     if (!ScreenSessionManager::GetInstance().GetTentMode()) {
-        if (displayMode == FoldDisplayMode::MAIN) {
-            TLOGI(WmsLogTag::DMS, "Set device status to STATUS_FOLDED");
-            SetDeviceStatus(static_cast<uint32_t>(DMDeviceStatus::STATUS_FOLDED));
-            system::SetParameter("persist.dms.device.status",
-                std::to_string(static_cast<uint32_t>(DMDeviceStatus::STATUS_FOLDED)));
-        } else {
-            TLOGI(WmsLogTag::DMS, "Set device status to UNKNOWN");
-            SetDeviceStatus(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
-            system::SetParameter("persist.dms.device.status",
-                std::to_string(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN)));
-        }
+        TLOGI(WmsLogTag::DMS, "Set device status to %{public}s",
+            displayMode == FoldDisplayMode::MAIN ? "STATUS_FOLDED" : "UNKNOWN");
+        auto status = displayMode == FoldDisplayMode::MAIN ? DMDeviceStatus::STATUS_FOLDED : DMDeviceStatus::UNKNOWN;
+        SetDeviceStatus(static_cast<uint32_t>(status));
+        system::SetParameter("persist.dms.device.status", std::to_string(static_cast<uint32_t>(status)));
     }
     ChangeScreenDisplayModeProc(screenSession, displayMode, reason);
     {
@@ -191,6 +188,7 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode disp
     }
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
     ScreenSessionManager::GetInstance().SwitchScrollParam(displayMode);
+    return;
 }
 
 void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeProc(sptr<ScreenSession> screenSession,
@@ -316,8 +314,13 @@ void SingleDisplayPocketFoldPolicy::UpdateForPhyScreenPropertyChange()
 
 FoldDisplayMode SingleDisplayPocketFoldPolicy::GetModeMatchStatus()
 {
+    return GetModeMatchStatus(currentFoldStatus_);
+}
+
+FoldDisplayMode SingleDisplayPocketFoldPolicy::GetModeMatchStatus(FoldStatus targetFoldStatus)
+{
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
-    switch (currentFoldStatus_) {
+    switch (targetFoldStatus) {
         case FoldStatus::EXPAND: {
             displayMode = FoldDisplayMode::FULL;
             break;
@@ -527,19 +530,19 @@ void SingleDisplayPocketFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession>
 {
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
-    screenSession->SetRSScreenId(screenId);
+    screenSession->SetPhyScreenId(screenId);
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
         ScreenProperty property = screenSession->UpdatePropertyByFoldControl(screenProperty_);
         ScreenSessionManager::GetInstance().OnBeforeScreenPropertyChange(currentFoldStatus_);
-        screenSession->SetRotationAndScreenRotationOnly(Rotation::ROTATION_0);
         screenSession->PropertyChange(property, reason);
         TLOGI(WmsLogTag::DMS, "screenBounds : width_= %{public}f, height_= %{public}f",
             screenSession->GetScreenProperty().GetBounds().rect_.width_,
             screenSession->GetScreenProperty().GetBounds().rect_.height_);
+        screenSession->SetRotationAndScreenRotationOnly(Rotation::ROTATION_0);
         ScreenSessionManager::GetInstance().NotifyDisplayChanged(screenSession->ConvertToDisplayInfo(),
             DisplayChangeEvent::DISPLAY_SIZE_CHANGED);
     } else {
-        screenSession->NotifyFoldPropertyChange(screenProperty_, reason, FoldDisplayMode::UNKNOWN);
+        screenSession->NotifyFoldPropertyChange(screenProperty_, reason, GetScreenDisplayMode());
     }
 }
 
@@ -647,7 +650,7 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeToCoordination()
         return;
     }
     TLOGI(WmsLogTag::DMS, "change displaymode to coordination current mode=%{public}d", currentDisplayMode_);
-    
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(true);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::CONNECTED);
 
@@ -670,7 +673,7 @@ void SingleDisplayPocketFoldPolicy::CloseCoordinationScreen()
         return;
     }
     TLOGI(WmsLogTag::DMS, "Close Coordination Screen current mode=%{public}d", currentDisplayMode_);
-    
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
     // on main screen
     auto taskScreenOnMainOFF = [=] {
         TLOGNI(WmsLogTag::DMS, "CloseCoordinationScreen: screenIdMain OFF.");
@@ -710,6 +713,7 @@ void SingleDisplayPocketFoldPolicy::ExitCoordination()
         TLOGW(WmsLogTag::DMS, "change displaymode to coordination skipped, current coordination flag is false");
         return;
     }
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
     ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);

@@ -36,6 +36,7 @@ bool g_setReadInt32ErrorFlag = false;
 bool g_setReadUint64ErrorFlag = false;
 bool g_setReadInt64ErrorFlag = false;
 bool g_setReadFloatErrorFlag = false;
+bool g_setWriteUint64VectorErrorFlag = false;
 bool g_setReadStringVectorErrorFlag = false;
 bool g_setReadStringErrorFlag = false;
 std::vector<int32_t> g_int32Cache;
@@ -74,6 +75,7 @@ void MockMessageParcel::ClearAllErrorFlag()
     g_setReadInt64ErrorFlag = false;
     g_setReadFloatErrorFlag = false;
     g_setReadStringVectorErrorFlag = false;
+    g_setWriteUint64VectorErrorFlag = false;
     g_setReadStringErrorFlag = false;
 }
 
@@ -170,6 +172,11 @@ void MockMessageParcel::SetReadStringVectorErrorFlag(bool flag)
 void MockMessageParcel::SetReadStringErrorFlag(bool flag)
 {
     g_setReadStringErrorFlag = flag;
+}
+
+void MockMessageParcel::SetWriteUint64VectorErrorFlag(bool flag)
+{
+    g_setWriteUint64VectorErrorFlag = flag;
 }
 
 void MockMessageParcel::AddInt32Cache(int32_t value)
@@ -376,6 +383,14 @@ bool Parcel::WriteStringVector(const std::vector<std::string>& val)
 bool Parcel::ReadStringVector(std::vector<std::string>* val)
 {
     if (g_setReadStringVectorErrorFlag) {
+        return false;
+    }
+    return true;
+}
+
+bool Parcel::WriteUInt64Vector(const std::vector<uint64_t> &val)
+{
+    if (g_setWriteUint64VectorErrorFlag) {
         return false;
     }
     return true;

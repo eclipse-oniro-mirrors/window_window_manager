@@ -68,6 +68,7 @@ void SuperFoldStateManagerTest::SetUp()
 
 void SuperFoldStateManagerTest::TearDown()
 {
+    LOG_SetCallback(nullptr);
 }
 
 namespace {
@@ -479,15 +480,25 @@ HWTEST_F(SuperFoldStateManagerTest, RefreshMirrorRegionInner_NullptrScreenSessio
 */
 HWTEST_F(SuperFoldStateManagerTest, RefreshMirrorRegionInner_NormalCase, TestSize.Level1)
 {
-    ONLY_FOR_SUPERFOLD_DISPLAY_DEVICE
-    SuperFoldStateManager superFoldStateManager;
+    SuperFoldStateManager& superFoldStateManager = SuperFoldStateManager::GetInstance();
     superFoldStateManager.SetCurrentStatus(SuperFoldStatus::UNKNOWN);
-    sptr<ScreenSession> mainScreenSession = ssm_.GetOrCreateScreenSession(0);
+    ScreenSessionConfig config = {
+        .screenId = 0,
+        .rsId = 0,
+        .defaultScreenId = 0,
+        .name = "",
+        .property = ScreenProperty{},
+    };
+    sptr<ScreenSession> mainScreenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+    ssm_.screenSessionMap_[0] = mainScreenSession;
     ScreenProperty mainScreenProperty;
     mainScreenProperty.bounds_.rect_ = { 0, 0, 100, 100 };
     mainScreenSession->SetScreenProperty(mainScreenProperty);
  
-    sptr<ScreenSession> secondarySession = ssm_.GetOrCreateScreenSession(1);
+    config.screenId = 1;
+    config.rsId = 1;
+    sptr<ScreenSession> secondarySession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+    ssm_.screenSessionMap_[1] = secondarySession;
     superFoldStateManager.SetCurrentStatus(SuperFoldStatus::EXPANDED);
     ScreenProperty secondaryScreenProperty;
     secondaryScreenProperty.bounds_.rect_ = { 0, 0, 100, 100 };
@@ -504,7 +515,7 @@ HWTEST_F(SuperFoldStateManagerTest, RefreshExternalRegion_ShouldReturnOk_WhenNoE
 {
     ONLY_FOR_SUPERFOLD_DISPLAY_DEVICE
     ssm_.SetIsPhysicalExtendScreenConnected(false);
-    SuperFoldStateManager superFoldStateManager;
+    SuperFoldStateManager& superFoldStateManager = SuperFoldStateManager::GetInstance();
     DMError result = superFoldStateManager.RefreshExternalRegion();
     ssm_.SetIsPhysicalExtendScreenConnected(true);
  
@@ -598,6 +609,207 @@ HWTEST_F(SuperFoldStateManagerTest, GetFoldCreaseRect02, TestSize.Level1)
     func();
     EXPECT_TRUE(g_errLog.find("the current FoldCreaseRect is horizontal") != std::string::npos);
     LOG_SetCallback(nullptr);
+}
+
+/**
+@tc.name : HandleSuperFoldDisplayCallback
+@tc.desc : HandleSuperFoldDisplayCallback test.
+@tc.type: FUNC
+*/
+HWTEST_F(SuperFoldStateManagerTest, HandleSuperFoldDisplayCallback, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldStateManager& manager = SuperFoldStateManager::GetInstance();
+    sptr screenSession = ssm_.GetOrCreateScreenSession(0);
+    ScreenProperty screenProperty;
+    screenProperty.bounds_.rect_ = { 0, 0, 100, 100 };
+    screenSession->SetScreenProperty(screenProperty);
+    ssm_.InitFakeScreenSession(screenSession);
+
+    screenSession->UpdateSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::UNDEFINED);
+    manager.HandleSuperFoldDisplayCallback(screenSession, SuperFoldStatusChangeEvents::UNDEFINED);
+    EXPECT_TRUE(g_errLog.find("nothing to handle") != std::string::npos);
+    g_errLog.clear();
+
+    screenSession->UpdateSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
+    manager.HandleSuperFoldDisplayCallback(screenSession, SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
+
+    screenSession->UpdateSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+    manager.HandleSuperFoldDisplayCallback(screenSession, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+
+    screenSession->UpdateSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::KEYBOARD_ON);
+    manager.HandleSuperFoldDisplayCallback(screenSession, SuperFoldStatusChangeEvents::KEYBOARD_ON);
+
+    screenSession->UpdateSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::KEYBOARD_OFF);
+    manager.HandleSuperFoldDisplayCallback(screenSession, SuperFoldStatusChangeEvents::KEYBOARD_OFF);
+
+    screenSession->UpdateSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_ON);
+    manager.HandleSuperFoldDisplayCallback(screenSession, SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_ON);
+
+    screenSession->UpdateSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF);
+    manager.HandleSuperFoldDisplayCallback(screenSession, SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF);
+}
+
+/**
+@tc.name : HandleKeyboardOnDisplayNotify01
+@tc.desc : HandleKeyboardOnDisplayNotify01 test.
+@tc.type: FUNC
+*/
+HWTEST_F(SuperFoldStateManagerTest, HandleKeyboardOnDisplayNotify01, TestSize.Level1)
+{
+    sptr<ScreenSession> screenSession = ssm_.GetOrCreateScreenSession(0);
+    screenSession->SetIsFakeInUse(true);
+    sptr<ScreenSession> fakeScreenSession = sptr<ScreenSession>::MakeSptr();
+    screenSession->SetFakeScreenSession(fakeScreenSession);
+    screenSession->SetIsDestroyDisplay(false);
+    SuperFoldStateManager& manager = SuperFoldStateManager::GetInstance();
+    manager.HandleKeyboardOnDisplayNotify(screenSession);
+
+    EXPECT_GT(screenSession->GetValidHeight(), 0);
+    EXPECT_GT(screenSession->GetValidWidth(), 0);
+}
+
+/**
+@tc.name : HandleKeyboardOnDisplayNotify02
+@tc.desc : HandleKeyboardOnDisplayNotify02 test.
+@tc.type: FUNC
+*/
+HWTEST_F(SuperFoldStateManagerTest, HandleKeyboardOnDisplayNotify02, TestSize.Level1)
+{
+    sptr<ScreenSession> screenSession= ssm_.GetOrCreateScreenSession(0);
+    screenSession->SetIsFakeInUse(true);
+    sptr<ScreenSession> fakeScreenSession = sptr<ScreenSession>::MakeSptr();
+    screenSession->SetFakeScreenSession(fakeScreenSession);
+    screenSession->SetIsDestroyDisplay(true);
+    SuperFoldStateManager& manager = SuperFoldStateManager::GetInstance();
+    manager.HandleKeyboardOnDisplayNotify(screenSession);
+}
+
+/**
+ * @tc.name: UpdateBScreenHalfState
+ * @tc.desc: test function : UpdateBScreenHalfState test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldStateManagerTest, AngleChangeHalfFolded, TestSize.Level0)
+{
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    SuperFoldStatusChangeEvents changeEvent = SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED;
+
+    SuperFoldStateManager::GetInstance().UpdateScreenHalfState(screenSession, changeEvent);
+
+    EXPECT_TRUE(screenSession->GetIsBScreenHalf());
+}
+
+/**
+ * @tc.name: UpdateBScreenHalfState
+ * @tc.desc: test function : UpdateBScreenHalfState test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldStateManagerTest, AngleChangeExpanded, TestSize.Level0)
+{
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    SuperFoldStatusChangeEvents changeEvent = SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED;
+
+    SuperFoldStateManager::GetInstance().UpdateScreenHalfState(screenSession, changeEvent);
+
+    EXPECT_FALSE(screenSession->GetIsBScreenHalf());
+}
+
+/**
+ * @tc.name: UpdateBScreenHalfState
+ * @tc.desc: test function : UpdateBScreenHalfState test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldStateManagerTest, KeyboardOn, TestSize.Level0)
+{
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    SuperFoldStatusChangeEvents changeEvent = SuperFoldStatusChangeEvents::KEYBOARD_ON;
+
+    SuperFoldStateManager::GetInstance().UpdateScreenHalfState(screenSession, changeEvent);
+
+    EXPECT_TRUE(screenSession->GetIsBScreenHalf());
+}
+
+/**
+ * @tc.name: UpdateBScreenHalfState
+ * @tc.desc: test function : UpdateBScreenHalfState test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldStateManagerTest, KeyboardOff, TestSize.Level0)
+{
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    SuperFoldStatusChangeEvents changeEvent = SuperFoldStatusChangeEvents::KEYBOARD_OFF;
+
+    SuperFoldStateManager::GetInstance().UpdateScreenHalfState(screenSession, changeEvent);
+
+    EXPECT_TRUE(screenSession->GetIsBScreenHalf());
+}
+
+/**
+ * @tc.name: UpdateBScreenHalfState
+ * @tc.desc: test function : UpdateBScreenHalfState test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldStateManagerTest, SystemKeyboardOnAndHalfFolded, TestSize.Level0)
+{
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    SuperFoldStateManager& manager = SuperFoldStateManager::GetInstance();
+    auto isKeyboardOn = SuperFoldStateManager::GetInstance().GetKeyboardState();
+
+    manager.curState_.store(SuperFoldStatus::HALF_FOLDED);
+    SuperFoldStatus curFoldState = manager.curState_.load();
+    SuperFoldStatusChangeEvents changeEvent = SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_ON;
+    SuperFoldStateManager::GetInstance().DoKeyboardOff(changeEvent);
+    SuperFoldStateManager::GetInstance().UpdateScreenHalfState(screenSession, changeEvent);
+    EXPECT_TRUE(screenSession->GetIsBScreenHalf());
+
+    if (isKeyboardOn) {
+        SuperFoldStateManager::GetInstance().DoKeyboardOff(changeEvent);
+    } else {
+        SuperFoldStateManager::GetInstance().DoKeyboardOn(changeEvent);
+    }
+}
+
+/**
+ * @tc.name: UpdateBScreenHalfState
+ * @tc.desc: test function : UpdateBScreenHalfState test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldStateManagerTest, SystemKeyboardOffAndHalfFolded, TestSize.Level0)
+{
+    auto isKeyboardOn = SuperFoldStateManager::GetInstance().GetKeyboardState();
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    SuperFoldStateManager& manager = SuperFoldStateManager::GetInstance();
+
+    manager.curState_.store(SuperFoldStatus::HALF_FOLDED);
+    SuperFoldStatusChangeEvents changeEvent = SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF;
+    SuperFoldStateManager::GetInstance().DoKeyboardOff(changeEvent);
+    SuperFoldStateManager::GetInstance().UpdateScreenHalfState(screenSession, changeEvent);
+    EXPECT_TRUE(screenSession->GetIsBScreenHalf());
+
+    if (isKeyboardOn) {
+        SuperFoldStateManager::GetInstance().DoKeyboardOff(changeEvent);
+    } else {
+        SuperFoldStateManager::GetInstance().DoKeyboardOn(changeEvent);
+    }
+}
+
+/**
+ * @tc.name: UpdateBScreenHalfState
+ * @tc.desc: test function : UpdateBScreenHalfState test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldStateManagerTest, UnknownEvent, TestSize.Level0)
+{
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    screenSession->SetIsBScreenHalf(true);
+
+    SuperFoldStatusChangeEvents changeEvent = static_cast<SuperFoldStatusChangeEvents>(999);
+
+    SuperFoldStateManager::GetInstance().UpdateScreenHalfState(screenSession, changeEvent);
+
+    EXPECT_TRUE(screenSession->GetIsBScreenHalf());
 }
 }
 }

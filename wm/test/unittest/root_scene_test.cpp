@@ -161,7 +161,16 @@ HWTEST_F(RootSceneTest, UpdateConfigurationForAll, TestSize.Level1)
 HWTEST_F(RootSceneTest, RegisterInputEventListener01, TestSize.Level1)
 {
     sptr<RootScene> rootScene = sptr<RootScene>::MakeSptr();
+    auto prevStaticRootScene = RootScene::staticRootScene_;
+
+    RootScene::staticRootScene_ = nullptr;
     rootScene->RegisterInputEventListener();
+
+    sptr<RootScene> staticRootScene = sptr<RootScene>::MakeSptr();
+    RootScene::staticRootScene_ = staticRootScene;
+    rootScene->RegisterInputEventListener();
+
+    RootScene::staticRootScene_ = prevStaticRootScene;
     ASSERT_EQ(1, rootScene->GetWindowId());
 }
 

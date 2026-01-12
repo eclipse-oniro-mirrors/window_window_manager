@@ -170,6 +170,29 @@ void ScreenSessionManagerClient::OnScreenConnectionChanged(SessionOption option,
     }
 }
 
+void ScreenSessionManagerClient::RegisterTentModeChangeListener(ITentModeListener* listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to register tent mode listener, listener is null");
+        return;
+    }
+
+    tentModeListener_ = listener;
+    ConnectToServer();
+
+    OnTentModeChange(tentMode_);
+    TLOGI(WmsLogTag::DMS, "Success to register tent mode connection listener");
+}
+
+void ScreenSessionManagerClient::OnTentModeChange(TentMode tentMode)
+{
+    TLOGD(WmsLogTag::DMS, "tentMode callback trigger");
+    tentMode_ = tentMode;
+    if (tentModeListener_) {
+        tentModeListener_->OnTentModeChange(tentMode);
+    }
+}
+
 void ScreenSessionManagerClient::HandleScreenDisconnectEvent(SessionOption option, ScreenEvent screenEvent)
 {
     if (HandleScreenDisconnection(option)) {
@@ -230,7 +253,7 @@ sptr<ScreenSession> ScreenSessionManagerClient::GetScreenSession(ScreenId screen
     std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
     auto iter = screenSessionMap_.find(screenId);
     if (iter == screenSessionMap_.end()) {
-        TLOGE(WmsLogTag::DMS, "Error found screen session with id: %{public}" PRIu64, screenId);
+        TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "Error found screen session with id: %{public}" PRIu64, screenId);
         return nullptr;
     }
     return iter->second;
@@ -255,102 +278,7 @@ void ScreenSessionManagerClient::OnPropertyChanged(ScreenId screenId,
         TLOGE(WmsLogTag::DMS, "screenSession is null");
         return;
     }
-    screenSession->SetScreenProperty(property);
-    ScreenProperty screenProperty = screenSession->GetScreenProperty();
-    SuperFoldStatusChangeEvents changeEvent = screenSession->GetSuperFoldStatusChangeEvent();
-    int32_t validHeight = screenProperty.GetCurrentValidHeight();
-    bool isKeyboardOn = screenProperty.GetIsKeyboardOn();
-    SuperFoldStatus currentState = GetSuperFoldStatus();
-    switch (changeEvent) {
-        case SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED: {
-            TLOGI(WmsLogTag::DMS, "handle extend change to half fold");
-            screenSession->UpdatePropertyByFakeInUse(true);
-            break;
-        }
-        case SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED: {
-            TLOGI(WmsLogTag::DMS, "handle half fold change to expanded");
-            screenSession->UpdatePropertyByFakeInUse(false);
-            break;
-        }
-        case SuperFoldStatusChangeEvents::KEYBOARD_ON: {
-            TLOGI(WmsLogTag::DMS, "handle keyboard on");
-            HandleKeyboardOnPropertyChange(screenSession, validHeight);
-            break;
-        }
-        case SuperFoldStatusChangeEvents::KEYBOARD_OFF: {
-            TLOGI(WmsLogTag::DMS, "handle keyboard off");
-            HandleKeyboardOffPropertyChange(screenSession);
-            break;
-        }
-        case SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_ON: {
-            TLOGI(WmsLogTag::DMS, "handle system keyboard on");
-            HandleSystemKeyboardOnPropertyChange(screenSession, currentState, isKeyboardOn, validHeight);
-            break;
-        }
-        case SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF: {
-            TLOGI(WmsLogTag::DMS, "handle system keyboard off");
-            HandleSystemKeyboardOffPropertyChange(screenSession, currentState, isKeyboardOn);
-            break;
-        }
-        default:
-            TLOGE(WmsLogTag::DMS, "nothing to handle");
-    }
-    screenSession->PropertyChange(screenSession->GetScreenProperty(), reason);
-}
-
-void ScreenSessionManagerClient::HandleKeyboardOnPropertyChange(sptr<ScreenSession>& screenSession, int32_t height)
-{
-    TLOGI(WmsLogTag::DMS, "Client HandleKeyboardOnPropertyChange");
-    auto screenBounds = screenSession->GetScreenProperty().GetBounds();
-    screenSession->UpdatePropertyByFakeInUse(false);
-    if (screenBounds.rect_.GetWidth() < screenBounds.rect_.GetHeight()) {
-        screenSession->SetValidHeight(height);
-        screenSession->SetValidWidth(screenBounds.rect_.GetWidth());
-    } else {
-        screenSession->SetValidHeight(height);
-        screenSession->SetValidWidth(screenBounds.rect_.GetHeight());
-    }
-    screenSession->SetScreenAreaHeight(DISPLAY_B_HEIGHT);
-}
-
-void ScreenSessionManagerClient::HandleKeyboardOffPropertyChange(sptr<ScreenSession>& screenSession)
-{
-    TLOGI(WmsLogTag::DMS, "Client HandleKeyboardOffPropertyChange");
-    auto screenBounds = screenSession->GetScreenProperty().GetBounds();
-    screenSession->UpdatePropertyByFakeInUse(true);
-    screenSession->SetValidHeight(screenBounds.rect_.GetHeight());
-    screenSession->SetValidWidth(screenBounds.rect_.GetWidth());
-    screenSession->SetScreenAreaHeight(DISPLAY_A_HEIGHT);
-}
-
-void ScreenSessionManagerClient::HandleSystemKeyboardOnPropertyChange(sptr<ScreenSession>& screenSession,
-    SuperFoldStatus currentStatus, bool isKeyboardOn, int32_t validHeight)
-{
-    TLOGI(WmsLogTag::DMS, "Client HandleSystemKeyboardOnPropertyChange");
-    if (!isKeyboardOn && currentStatus == SuperFoldStatus::HALF_FOLDED) {
-        TLOGI(WmsLogTag::DMS, "KeyboardOff and currentStatus is HALF_FOLDED");
-        screenSession->UpdatePropertyByFakeInUse(false);
-    }
-    auto screenBounds = screenSession->GetScreenProperty().GetBounds();
-    if (screenBounds.rect_.GetWidth() < screenBounds.rect_.GetHeight()) {
-        screenSession->SetPointerActiveWidth(static_cast<int32_t>(screenBounds.rect_.GetWidth()));
-        screenSession->SetPointerActiveHeight(static_cast<int32_t>(validHeight));
-    } else {
-        screenSession->SetPointerActiveWidth(static_cast<int32_t>(screenBounds.rect_.GetHeight()));
-        screenSession->SetPointerActiveHeight(static_cast<int32_t>(validHeight));
-    }
-}
-
-void ScreenSessionManagerClient::HandleSystemKeyboardOffPropertyChange(sptr<ScreenSession>& screenSession,
-    SuperFoldStatus currentStatus, bool isKeyboardOn)
-{
-    TLOGI(WmsLogTag::DMS, "Client HandleSystemKeyboardOffPropertyChange");
-    if (!isKeyboardOn && currentStatus == SuperFoldStatus::HALF_FOLDED) {
-        TLOGI(WmsLogTag::DMS, "KeyboardOff and currentStatus is HALF_FOLDED");
-        screenSession->UpdatePropertyByFakeInUse(true);
-    }
-    screenSession->SetPointerActiveWidth(0);
-    screenSession->SetPointerActiveHeight(0);
+    screenSession->PropertyChange(property, reason);
 }
 
 void ScreenSessionManagerClient::OnScreenPropertyChanged(ScreenId screenId, float rotation, RRect bounds)
@@ -364,6 +292,10 @@ void ScreenSessionManagerClient::OnScreenPropertyChanged(ScreenId screenId, floa
         return;
     }
     screenSession->ModifyScreenPropertyWithLock(rotation, bounds);
+    if (currentstate_ != SuperFoldStatus::KEYBOARD) {
+        screenSession->SetValidHeight(bounds.rect_.GetHeight());
+        screenSession->SetValidWidth(bounds.rect_.GetWidth());
+    }
     if (!screenSessionManager_) {
         TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return;
@@ -390,13 +322,15 @@ bool ScreenSessionManagerClient::OnFoldPropertyChange(ScreenId screenId, const S
         screenProperty.SetDeviceOrientation(deviceOrientation);
         screenProperty.SetScreenAreaOffsetY(property.GetScreenAreaOffsetY());
         screenProperty.SetScreenAreaHeight(property.GetScreenAreaHeight());
+        screenProperty.SetScreenAreaWidth(property.GetScreenAreaWidth());
+        screenProperty.SetInputOffset(property.GetInputOffsetX(), property.GetInputOffsetY());
     }
     screenProperty.SetPhysicalTouchBounds(screenSession->GetRotationCorrection(displayMode));
-    screenProperty.SetInputOffsetY();
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() || FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
         screenProperty.SetValidHeight(screenProperty.GetBounds().rect_.GetHeight());
         screenProperty.SetValidWidth(screenProperty.GetBounds().rect_.GetWidth());
     }
+
     screenSession->PropertyChange(screenProperty, reason);
     return true;
 }
@@ -634,25 +568,30 @@ void ScreenSessionManagerClient::SetScreenPrivacyState(bool hasPrivate)
     TLOGD(WmsLogTag::DMS, "End calling the SetScreenPrivacyState() of screenSessionManager_");
 }
 
-void ScreenSessionManagerClient::SetPrivacyStateByDisplayId(DisplayId id, bool hasPrivate)
+void ScreenSessionManagerClient::SetPrivacyStateByDisplayId(std::unordered_map<DisplayId, bool>& privacyBundleDisplayId)
 {
     if (!screenSessionManager_) {
         TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return;
     }
-    TLOGD(WmsLogTag::DMS, "Begin calling the SetPrivacyStateByDisplayId, hasPrivate: %{public}d", hasPrivate);
-    screenSessionManager_->SetPrivacyStateByDisplayId(id, hasPrivate);
+    for (const auto& iter : privacyBundleDisplayId) {
+        TLOGD(WmsLogTag::DMS, "displayId: %{public}" PRIu64" hasPrivate: %{public}d", iter.first, iter.second);
+    }
+    screenSessionManager_->SetPrivacyStateByDisplayId(privacyBundleDisplayId);
     TLOGD(WmsLogTag::DMS, "End calling the SetPrivacyStateByDisplayId");
 }
 
-void ScreenSessionManagerClient::SetScreenPrivacyWindowList(DisplayId id, std::vector<std::string> privacyWindowList)
+void ScreenSessionManagerClient::SetScreenPrivacyWindowList(
+    std::unordered_map<DisplayId, std::vector<std::string>>& privacyBundleList)
 {
     if (!screenSessionManager_) {
         TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return;
     }
-    TLOGD(WmsLogTag::DMS, "Begin calling the SetScreenPrivacyWindowList(), id: %{public}" PRIu64, id);
-    screenSessionManager_->SetScreenPrivacyWindowList(id, privacyWindowList);
+    for (const auto& iter : privacyBundleList) {
+        TLOGD(WmsLogTag::DMS, "Begin calling the SetScreenPrivacyWindowList(), id: %{public}" PRIu64, iter.first);
+        screenSessionManager_->SetScreenPrivacyWindowList(iter.first, iter.second);
+    }
     TLOGD(WmsLogTag::DMS, "End calling the SetScreenPrivacyWindowList()");
 }
 

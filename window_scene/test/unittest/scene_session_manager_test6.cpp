@@ -150,19 +150,6 @@ HWTEST_F(SceneSessionManagerTest6, UpdateSecSurfaceInfo, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetBehindWindowFilterEnabled
- * @tc.desc: SetBehindWindowFilterEnabled
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest6, SetBehindWindowFilterEnabled, TestSize.Level1)
-{
-    int ret = 0;
-    ssm_->SetBehindWindowFilterEnabled(true);
-    ssm_->SetBehindWindowFilterEnabled(false);
-    ASSERT_EQ(ret, 0);
-}
-
-/**
  * @tc.name: GetWindowLayerChangeInfo
  * @tc.desc: Simulate window Layer change
  * @tc.type: FUNC
@@ -340,6 +327,8 @@ HWTEST_F(SceneSessionManagerTest6, DealwithVisibilityChange01, TestSize.Level0)
     ssm_->DealwithVisibilityChange(visibilityChangeInfos, currVisibleData);
     ASSERT_EQ(sceneSession1->GetRSVisible(), true);
     ASSERT_EQ(sceneSession2->GetRSVisible(), false);
+    ssm_->taskScheduler_ ->PostAsyncTaskToExportHandler([]() {}, "testNotifyMemMgr");
+    ssm_->taskScheduler_ ->PostAsyncTaskToExportHandler([]() {}, "testNotifyMemMgr", 100);
 }
 
 /**
@@ -525,6 +514,9 @@ HWTEST_F(SceneSessionManagerTest6, RecoverWatermarkImageForApp, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     std::string watermarkName = "watermark#1";
     EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(watermarkName), WMError::WM_OK);
+    EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(""), WMError::WM_OK);
+    EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(watermarkName), WMError::WM_OK);
+    ssm_->appWatermarkPidMap_.clear();
 }
 
 /**
@@ -852,7 +844,7 @@ HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles, TestSize.L
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.clear();
     DisplayId displayId = 0;
-    std::unordered_set<std::string> privacyBundles;
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundles;
     ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundles);
     SessionInfo sessionInfoFirst;
     sessionInfoFirst.bundleName_ = "";
@@ -884,7 +876,7 @@ HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles, TestSize.L
 HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles01, TestSize.Level1)
 {
     DisplayId displayId = 0;
-    std::unordered_set<std::string> privacyBundles;
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundles;
     ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundles);
     SessionInfo sessionInfoFirst;
     sessionInfoFirst.bundleName_ = "privacy.test.first";
@@ -922,7 +914,7 @@ HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles01, TestSize
 HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles02, TestSize.Level1)
 {
     DisplayId displayId = 0;
-    std::unordered_set<std::string> privacyBundles;
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundles;
     ASSERT_NE(nullptr, ssm_);
     ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundles);
     SessionInfo sessionInfoFirst;
@@ -2556,6 +2548,37 @@ HWTEST_F(SceneSessionManagerTest6, CheckIfReuseSession05, TestSize.Level1)
     ASSERT_EQ(ret4, BrokerStates::BROKER_UNKOWN);
     ssm_->abilityInfoMap_.erase(list);
     ssm_->collaboratorMap_.erase(1);
+}
+
+/**
+ * @tc.name: CheckIfReuseSession06
+ * @tc.desc: Test if CollaboratorType is RESERVE_TYPE and collaboratorMap_ not exist
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, CheckIfReuseSession06, TestSize.Level1)
+{
+    EXPECT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    ssm_->currentUserId_ = 123;
+
+    SessionInfo sessionInfo;
+    sessionInfo.moduleName_ = "SceneSessionManager";
+    sessionInfo.bundleName_ = "SceneSessionManagerTest6";
+    sessionInfo.abilityName_ = "CheckIfReuseSession06";
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+
+    SceneSessionManager::SessionInfoList list = { .uid_ = 123,
+                                                  .bundleName_ = "SceneSessionManagerTest6",
+                                                  .abilityName_ = "CheckIfReuseSession06",
+                                                  .moduleName_ = "SceneSessionManager" };
+
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    EXPECT_NE(abilityInfo, nullptr);
+    abilityInfo->applicationInfo.codePath = std::to_string(CollaboratorType::REDIRECT_TYPE);
+    ssm_->abilityInfoMap_[list] = abilityInfo;
+    auto ret2 = ssm_->CheckIfReuseSession(sessionInfo);
+    EXPECT_EQ(ret2, BrokerStates::BROKER_UNKOWN);
+    ssm_->abilityInfoMap_.erase(list);
 }
 
 /**

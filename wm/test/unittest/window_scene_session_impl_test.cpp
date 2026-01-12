@@ -932,6 +932,7 @@ HWTEST_F(WindowSceneSessionImplTest, GetGlobalScaledRect, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSession->hostSession_ = session;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->GetGlobalScaledRect(globalScaledRect));
 }
 
@@ -2306,6 +2307,10 @@ HWTEST_F(WindowSceneSessionImplTest, SetWindowShadowEnabled01, TestSize.Level1)
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetWindowShadowEnabled(false));
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetWindowShadowEnabled(true));
 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetWindowShadowEnabled(false));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetWindowShadowEnabled(true));
+
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     ASSERT_NE(nullptr, session);
@@ -2685,6 +2690,11 @@ HWTEST_F(WindowSceneSessionImplTest, SetGestureBackEnabled, TestSize.Level1)
     window->property_->SetWindowName("SetGestureBackEnabled");
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetGestureBackEnabled(false));
+    window->property_->compatibleModeProperty_ = sptr<CompatibleModeProperty>::MakeSptr();
+    window->property_->compatibleModeProperty_->SetIsAdaptToCompatibleDevice(true);
+    EXPECT_EQ(window->SetGestureBackEnabled(false), WMError::WM_OK);
+    bool enabled = false;
+    EXPECT_EQ(window->GetGestureBackEnabled(enabled), WMError::WM_OK);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     window->state_ = WindowState::STATE_CREATED;
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
@@ -2811,29 +2821,46 @@ HWTEST_F(WindowSceneSessionImplTest, SetFollowParentMultiScreenPolicy, Function 
     window->hostSession_ = session;
     window->property_->SetWindowName("SetFollowParentMultiScreenPolicy");
     window->property_->SetPersistentId(0);
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetFollowParentMultiScreenPolicy(true));
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetFollowParentMultiScreenPolicy(false));
+
+    // Case 1: Invalid window
     window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetFollowParentMultiScreenPolicy(true));
+    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetFollowParentMultiScreenPolicy(false));
+
+    // Case 2: Phone window
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetFollowParentMultiScreenPolicy(true));
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetFollowParentMultiScreenPolicy(false));
+    EXPECT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(true));
+    EXPECT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(false));
+
+    // Case 3: Pad mainwindow with freeMultiWindow mode disable
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.freeMultiWindowEnable_ = false;
     window->windowSystemConfig_.freeMultiWindowSupport_ = false;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetFollowParentMultiScreenPolicy(true));
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetFollowParentMultiScreenPolicy(false));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, window->SetFollowParentMultiScreenPolicy(true));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, window->SetFollowParentMultiScreenPolicy(false));
+
+    // Case 4: Pad mainwindow with freeMultiWindow mode enable
     window->windowSystemConfig_.freeMultiWindowEnable_ = true;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
-    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, window->SetFollowParentMultiScreenPolicy(true));
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, window->SetFollowParentMultiScreenPolicy(false));
-    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-    ASSERT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(true));
-    ASSERT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(false));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    ASSERT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(true));
-    ASSERT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(false));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, window->SetFollowParentMultiScreenPolicy(true));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, window->SetFollowParentMultiScreenPolicy(false));
 
+    // Case 5: Pad subwindow with freeMultiWindow mode enable
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    EXPECT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(true));
+    EXPECT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(false));
+    
+    // Case 6: PC subwindow
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    EXPECT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(true));
+    EXPECT_EQ(WMError::WM_OK, window->SetFollowParentMultiScreenPolicy(false));
+
+    // Case 7: Pc app in pad
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->property_->SetPcAppInpadCompatibleMode(true);
     window->windowSystemConfig_.freeMultiWindowEnable_ = false;
@@ -2904,6 +2931,62 @@ HWTEST_F(WindowSceneSessionImplTest, SetSubWindowSource02, TestSize.Level1)
     window->hostSession_ = nullptr;
     auto res = window->SetSubWindowSource(SubWindowSource::SUB_WINDOW_SOURCE_ARKUI);
     EXPECT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+}
+
+/**
+ * @tc.name: RestoreMainWindow
+ * @tc.desc: SetSubWindowSource test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RestoreMainWindow, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RestoreMainWindow");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetParentPersistentId(-1);
+    window->SetWindowType(WindowType::WINDOW_TYPE_MEDIA);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    EXPECT_EQ(WMError::WM_OK, window->Create(abilityContext_, session));
+    window->state_ = WindowState::STATE_CREATED;
+    window->hostSession_ = session;
+    {
+        std::unique_lock<std::shared_mutex> lock(window->windowSessionMutex_);
+        WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->property_->GetWindowName(),
+            std::pair<uint64_t, sptr<WindowSessionImpl>>(window->property_->GetPersistentId(), window)));
+    }
+    
+    std::shared_ptr<AAFwk::WantParams> wantParams = std::shared_ptr<AAFwk::WantParams>();
+    WMError res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+    window->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+
+    sptr<WindowOption> parentOption = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RestoreParentMainWindow");
+    sptr<WindowSceneSessionImpl> parentWindow = sptr<WindowSceneSessionImpl>::MakeSptr(parentOption);
+    parentWindow->property_->SetPersistentId(100);
+    window->property_->SetParentPersistentId(100);
+    {
+        std::unique_lock<std::shared_mutex> lock(window->windowSessionMutex_);
+        WindowSessionImpl::windowSessionMap_.insert(std::make_pair(parentWindow->property_->GetWindowName(),
+            std::pair<uint64_t, sptr<WindowSessionImpl>>(parentWindow->property_->GetPersistentId(), parentWindow)));
+    }
+
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+    window->state_ = WindowState::STATE_SHOWN;
+
+    window->hostSession_ = nullptr;
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+    window->hostSession_ = session;
+
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_OK);
 }
 
 /**

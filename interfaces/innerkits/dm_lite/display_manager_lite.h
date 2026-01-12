@@ -314,6 +314,14 @@ public:
     VirtualScreenFlag GetVirtualScreenFlag(ScreenId screenId);
 
     /**
+     * @brief Determine whether the display is onboard.
+     *
+     * @param displayId display id.
+     * @return displayid whether onboard
+    */
+    bool IsOnboardDisplay(DisplayId displayId);
+
+    /**
      * @brief Set System Keyboard status.
      *
      * @param isTpKeyboardOn whether system keyboard with touchpad is shown, default is false.

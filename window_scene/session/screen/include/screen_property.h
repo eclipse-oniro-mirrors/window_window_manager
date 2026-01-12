@@ -36,6 +36,11 @@ enum class ScreenPropertyChangeReason : uint32_t {
     SUPER_FOLD_STATUS_CHANGE,
     VIRTUAL_PIXEL_RATIO_CHANGE,
     ACCESS_INFO_CHANGE,
+    FOLD_SCREEN_EXPAND_SWITCH_USER,
+    FOLD_SCREEN_FOLDING_SWITCH_USER,
+    SCREEN_MODE_CHANGE,
+    ACTIVE_MODE_CHANGE,
+    RESOLUTION_EFFECT_CHANGE,
 };
 class ScreenProperty {
 public:
@@ -57,8 +62,8 @@ public:
     void SetIsFakeInUse(bool isFakeInUse);
     bool GetIsFakeInUse() const;
 
-    void SetIsPreFakeInUse(bool isPreFakeInUse);
-    bool GetIsPreFakeInUse() const;
+    void SetIsDestroyDisplay(bool isPreFakeInUse);
+    bool GetIsDestroyDisplay() const;
 
     void SetScaleX(float scaleX);
     float GetScaleX() const;
@@ -99,8 +104,8 @@ public:
     void SetRsId(ScreenId rsId);
     ScreenId GetRsId() const;
 
-    void SetPropertyChangeReason(std::string propertyChangeReason);
-    std::string GetPropertyChangeReason() const;
+    void SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason);
+    ScreenPropertyChangeReason GetPropertyChangeReason() const;
 
     void SetDefaultDeviceRotationOffset(uint32_t defaultRotationOffset);
     uint32_t GetDefaultDeviceRotationOffset() const;
@@ -210,15 +215,17 @@ public:
         creaseRect_ = creaseRect;
     }
 
-    RRect GetPhysicalTouchBounds();
+    FoldDisplayMode GetDisplayMode() const;
+    void SetDisplayMode(FoldDisplayMode mode);
+    RRect GetPhysicalTouchBounds() const;
 
     void SetPhysicalTouchBounds(Rotation rotationOffset);
+    void SetPhysicalTouchBoundsDirectly(RRect physicalTouchBounds);
 
-    int32_t GetInputOffsetX();
+    int32_t GetInputOffsetX() const;
 
-    int32_t GetInputOffsetY();
+    int32_t GetInputOffsetY() const;
 
-    void SetInputOffsetY();
     void SetInputOffset(int32_t x, int32_t y);
     void SetMirrorWidth(uint32_t mirrorWidth);
     uint32_t GetMirrorWidth() const;
@@ -256,6 +263,16 @@ public:
         return isKeyboardOn_;
     }
 
+    void SetFoldStatus(SuperFoldStatus status)
+    {
+        foldStatus_ = status;
+    }
+
+    SuperFoldStatus GetFoldStatus() const
+    {
+        return foldStatus_;
+    }
+
     // OffScreenRender
     void SetCurrentOffScreenRendering(bool enable) { isCurrentOffScreenRendering_ = enable; }
     bool GetCurrentOffScreenRendering() { return isCurrentOffScreenRendering_; }
@@ -269,9 +286,9 @@ public:
     uint32_t GetScreenRealDPI() { return screenRealDPI_; }
 
     void SetPointerActiveWidth(uint32_t pointerActiveWidth);
-    uint32_t GetPointerActiveWidth();
+    uint32_t GetPointerActiveWidth() const;
     void SetPointerActiveHeight(uint32_t pointerActiveHeight);
-    uint32_t GetPointerActiveHeight();
+    uint32_t GetPointerActiveHeight() const;
 
     // displayInfo
     void SetDisplayGroupId(DisplayGroupId displayGroupId) { displayGroupId_ = displayGroupId; }
@@ -302,7 +319,7 @@ private:
     RRect phyBounds_;
     RRect fakeBounds_;
     bool isFakeInUse_ = false;  // is fakeBounds can be used
-    bool isPreFakeInUse_ = false;  // is fakeBounds can be used
+    bool isDestroyDisplay_ = false;  // is fakeBounds can be used
 
     float scaleX_ { 1.0f };
     float scaleY_ { 1.0f };
@@ -322,7 +339,7 @@ private:
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
 
-    std::string propertyChangeReason_ { "" };
+    ScreenPropertyChangeReason propertyChangeReason_;
 
     float virtualPixelRatio_ { 1.0f };
     float defaultDensity_ { 1.0f };
@@ -358,6 +375,7 @@ private:
     uint32_t pointerActiveHeight_ { 0 };
 
     ScreenShape screenShape_ { ScreenShape::RECTANGLE };
+    SuperFoldStatus foldStatus_ { SuperFoldStatus::UNKNOWN };
 
     ScreenType type_ { ScreenType::REAL };
 
@@ -387,6 +405,8 @@ private:
 
     uint32_t mirrorWidth_ { 0 };
     uint32_t mirrorHeight_ { 0 };
+
+    FoldDisplayMode displayMode_;
 };
 } // namespace OHOS::Rosen
 

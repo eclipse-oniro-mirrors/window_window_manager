@@ -15,9 +15,15 @@
 
 #include "fold_screen_controller/fold_screen_policy.h"
 #include "window_manager_hilog.h"
+#include "screen_session_manager.h"
 
 namespace OHOS::Rosen {
-const uint32_t MODE_CHANGE_TIMEOUT_MS = 2000;
+    const uint32_t MODE_CHANGE_TIMEOUT_MS = 2000;
+    static const std::unordered_set<FoldStatus> SUPPORTED_FOLD_STATUS = {
+        FoldStatus::EXPAND,
+        FoldStatus::FOLDED,
+        FoldStatus::HALF_FOLD
+};
 FoldScreenPolicy::FoldScreenPolicy() = default;
 FoldScreenPolicy::~FoldScreenPolicy() = default;
 
@@ -27,6 +33,26 @@ void FoldScreenPolicy::LockDisplayStatus(bool locked)
 {
     lockDisplayStatus_ = locked;
 }
+
+bool FoldScreenPolicy::IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
+    FoldStatus targetFoldStatus) const
+{
+    return supportedFoldStatus.find(targetFoldStatus) != supportedFoldStatus.end();
+}
+
+bool FoldScreenPolicy::GetPhysicalFoldLockFlag() const
+{
+    return physicalFoldLockFlag_.load(std::memory_order_relaxed);
+}
+
+FoldStatus FoldScreenPolicy::GetFoldStatus()
+{
+    if (!GetPhysicalFoldLockFlag()) {
+        return lastFoldStatus_;
+    }
+    return GetForceFoldStatus();
+}
+
 void FoldScreenPolicy::SendSensorResult(FoldStatus foldStatus) {}
 
 ScreenId FoldScreenPolicy::GetCurrentScreenId()
@@ -57,16 +83,49 @@ FoldDisplayMode FoldScreenPolicy::GetScreenDisplayMode()
     return lastDisplayMode_;
 }
 
-FoldStatus FoldScreenPolicy::GetFoldStatus()
+FoldStatus FoldScreenPolicy::GetPhysicalFoldStatus()
 {
     return lastFoldStatus_;
 }
 
-void FoldScreenPolicy::SetFoldStatus(FoldStatus foldStatus)
+FoldStatus FoldScreenPolicy::GetForceFoldStatus() const
 {
-    TLOGI(WmsLogTag::DMS, "FoldStatus: %{public}d", foldStatus);
-    currentFoldStatus_ = foldStatus;
-    lastFoldStatus_ = foldStatus;
+    return forceFoldStatus_.load(std::memory_order_relaxed);
+}
+
+void FoldScreenPolicy::SetFoldLockFlagAndFoldStatus(bool physicalFoldLockFlag, FoldStatus targetFoldStatus)
+{
+    TLOGI(WmsLogTag::DMS, "Set physicalFoldLockFlag as %{public}d, forceFoldStatus as %{public}d",
+        physicalFoldLockFlag, targetFoldStatus);
+    physicalFoldLockFlag_.store(physicalFoldLockFlag, std::memory_order_relaxed);
+    forceFoldStatus_.store(targetFoldStatus, std::memory_order_relaxed);
+}
+
+DMError FoldScreenPolicy::SetFoldStatusAndLockControl(bool isLocked, FoldStatus targetFoldStatus)
+{
+    if (GetModeChangeRunningStatus()) {
+        TLOGW(WmsLogTag::DMS, "last process not complete!");
+        return DMError::DM_ERROR_DISPLAY_MODE_SWITCH_PENDING;
+    }
+    if (isLocked && IsFoldStatusSupported(GetSupportedFoldStatus(), targetFoldStatus)) {
+        TLOGE(WmsLogTag::DMS, "Current device does not support this fold status: %{public}d", targetFoldStatus);
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    FoldStatus currentFoldStatus = GetFoldStatus();
+    FoldStatus changeFoldStatus = isLocked ? targetFoldStatus : GetPhysicalFoldStatus();
+    SetFoldLockFlagAndFoldStatus(isLocked, targetFoldStatus);
+    if (currentFoldStatus == changeFoldStatus) {
+        TLOGW(WmsLogTag::DMS,
+            "current fold status: %{public}d equal to change fold status, no need to change", currentFoldStatus);
+        return DMError::DM_OK;
+    }
+    TLOGI(WmsLogTag::DMS, "Change fold status from %{public}d to %{public}d", currentFoldStatus, changeFoldStatus);
+    ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(changeFoldStatus);
+    FoldDisplayMode targetDisplayMode = GetModeMatchStatus(changeFoldStatus);
+    TLOGI(WmsLogTag::DMS,
+        "Get fold status: %{public}d, display mode: %{public}d", changeFoldStatus, targetDisplayMode);
+    ChangeScreenDisplayMode(targetDisplayMode, DisplayModeChangeReason::FORCE_SET);
+    return DMError::DM_OK;
 }
 
 std::chrono::steady_clock::time_point FoldScreenPolicy::GetStartTimePoint()
@@ -88,6 +147,13 @@ void FoldScreenPolicy::ClearState()
 {
     currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
     currentFoldStatus_ = FoldStatus::UNKNOWN;
+}
+
+void FoldScreenPolicy::SetFoldStatus(FoldStatus foldStatus)
+{
+    TLOGI(WmsLogTag::DMS, "SetFoldStatus: %{public}d", foldStatus);
+    currentFoldStatus_ = foldStatus;
+    lastFoldStatus_ = foldStatus;
 }
 
 void FoldScreenPolicy::ExitCoordination() {};
@@ -146,4 +212,9 @@ void FoldScreenPolicy::SetMainScreenRegion(DMRect& mainScreenRegion) {}
 void FoldScreenPolicy::SetIsClearingBootAnimation(bool isClearingBootAnimation) {}
 
 void FoldScreenPolicy::GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const {}
+
+const std::unordered_set<FoldStatus>& FoldScreenPolicy::GetSupportedFoldStatus() const
+{
+    return SUPPORTED_FOLD_STATUS;
+}
 } // namespace OHOS::Rosen

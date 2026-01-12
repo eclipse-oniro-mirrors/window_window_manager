@@ -55,6 +55,7 @@ class ViewportConfig;
 
 namespace OHOS::AAFwk {
 class Want;
+class WantParams;
 }
 
 namespace OHOS {
@@ -384,6 +385,11 @@ public:
     virtual void NotifyPreferredOrientationChange(Orientation orientation) = 0;
     virtual void SetUserRequestedOrientation(Orientation orientation) = 0;
     virtual Orientation GetRequestedOrientation() = 0;
+    virtual WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
+        const int32_t value, int32_t& convertedValue)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual void SetRequestWindowModeSupportType(uint32_t windowModeSupportType) = 0;
     virtual uint32_t GetRequestWindowModeSupportType() const = 0;
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) = 0;
@@ -396,6 +402,10 @@ public:
     virtual WMError Maximize() = 0;
     virtual WMError Recover() = 0;
     virtual WMError Restore() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError SetWindowRectAutoSave(bool enabled,
         bool isSaveBySpecifiedFlag = false) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
@@ -485,6 +495,7 @@ public:
     virtual bool IsPcWindow() const { return false; }
     virtual bool IsPadWindow() const { return false; }
     virtual bool IsPcOrFreeMultiWindowCapabilityEnabled() const { return false; }
+    virtual bool IsPhonePadOrPcWindow() const { return false; }
     virtual bool IsPcOrPadFreeMultiWindowMode() const { return false; }
     virtual bool IsPadAndNotFreeMultiWindowCompatibleMode() const { return false; }
     virtual bool IsSceneBoardEnabled() const { return false; }
@@ -912,6 +923,57 @@ public:
      * @return WMError::WM_OK on success, others means failed.
      */
     virtual WMError GetRotationLocked(bool& locked) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Set whether the window receive drag event.
+     *
+     * @param enabled - whether the window receive drag event.
+     *        True: - means default state, the window can receive drag event.
+     *        False: - means the window can't receive drag event.
+     * @return Returns the status code of the execution.
+     */
+    virtual WMError SetReceiveDragEventEnabled(bool enabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief  whether the window receive drag event.
+     *
+     * @return - The value true means the window can receive drag event, and false means the opposite.
+     */
+    virtual bool IsReceiveDragEventEnabled()
+    {
+        return true;
+    }
+
+    /**
+     * @brief Set whether the window supports event separation capability.
+     *        When the window doesn't support event separation capability:
+     *        After the first finger touch the window,
+     *        subsequent fingers' events will be sent to that window regardless of whether they click on it.
+     *        If the first finger does not touch the window,
+     *        the system will discard the events when subsequent fingers touch the window.
+     *
+     * @param enabled - Whether the window supports event separation capability.
+     *        True: - means default state, the event will be sent to the window that the finger taps.
+     *        False: - means the window doesn't support event separation capability.
+     * @return - Promise that returns no value.
+     */
+    virtual WMError SetSeparationTouchEnabled(bool enabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief   Get whether the window supports event separation status.
+     *
+     * @return - The value true means the window supports event separation, and false means the opposite.
+     */
+    virtual bool IsSeparationTouchEnabled()
+    {
+        return true;
+    }
 };
 }
 }

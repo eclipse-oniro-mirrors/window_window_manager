@@ -387,18 +387,31 @@ HWTEST_F(SceneSessionDirtyManagerTest, GetHostComponentWindowInfo, TestSize.Leve
     Matrix3f transform;
     MMI::WindowInfo ret;
     MMI::WindowInfo windowInfo;
-    ret = manager_->GetHostComponentWindowInfo(secSurfaceInfo, hostWindowinfo, transform);
+    ret = manager_->GetHostComponentWindowInfo(secSurfaceInfo, hostWindowinfo, nullptr, transform);
+    ASSERT_EQ(ret.id, windowInfo.id);
+
+    SessionInfo info;
+    info.abilityName_ = "TestAbilityName";
+    info.bundleName_ = "TestBundleName";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    ret = manager_->GetSecComponentWindowInfo(secSurfaceInfo, hostWindowinfo, sceneSession, transform);
     ASSERT_EQ(ret.id, windowInfo.id);
 
     SecRectInfo secRectInfo;
     secSurfaceInfo.upperNodes.emplace_back(secRectInfo);
     secSurfaceInfo.hostPid = 1;
     windowInfo.pid = 1;
-    ret = manager_->GetHostComponentWindowInfo(secSurfaceInfo, hostWindowinfo, transform);
+    ret = manager_->GetHostComponentWindowInfo(secSurfaceInfo, hostWindowinfo, sceneSession, transform);
     ASSERT_EQ(ret.pid, windowInfo.pid);
 
-    ret = manager_->GetHostComponentWindowInfo(secSurfaceInfo, hostWindowinfo, transform);
+    ret = manager_->GetHostComponentWindowInfo(secSurfaceInfo, hostWindowinfo, sceneSession, transform);
     ASSERT_EQ(ret.defaultHotAreas.size(), 1);
+
+    sceneSession->SetIsStartMoving(true);
+    ret = manager_->GetHostComponentWindowInfo(secSurfaceInfo, hostWindowinfo, sceneSession, transform);
+    ASSERT_EQ(ret.agentPid, static_cast<int32_t>(getpid()));
 }
 
 /**

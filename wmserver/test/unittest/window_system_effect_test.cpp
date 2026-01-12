@@ -55,7 +55,7 @@ void WindowSystemEffectTest::SetUp()
     sptr<DisplayInfo> displayInfo = display->GetDisplayInfo();
     ASSERT_TRUE((displayInfo != nullptr));
     auto property = CreateWindowProperty();
-    node_ = new WindowNode(); // 101 is windowId
+    node_ = sptr<WindowNode>::MakeSptr(); // 101 is windowId
     node_->SetWindowProperty(property);
     node_->SetWindowRect({0, 0, 100, 100}); // 100 test data
     node_->leashWinSurfaceNode_ = CreateRSSurfaceNode("leashSurfaceNodeTest");
@@ -73,9 +73,9 @@ void WindowSystemEffectTest::SetUp()
 
 void WindowSystemEffectTest::TearDown()
 {
-    node_ = nullptr;
     AppWindowEffectConfig config;
     effectConfig_ = config;
+    node_ = nullptr;
 }
 
 RSSurfaceNode::SharedPtr WindowSystemEffectTest::CreateRSSurfaceNode(std::string name)

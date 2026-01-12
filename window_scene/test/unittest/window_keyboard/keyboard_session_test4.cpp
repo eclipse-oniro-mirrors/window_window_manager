@@ -564,10 +564,16 @@ HWTEST_F(KeyboardSessionTest4, HandleActionUpdateKeyboardTouchHotArea02, TestSiz
  */
 HWTEST_F(KeyboardSessionTest4, TestIsLandscapeWithValidSession, TestSize.Level1)
 {
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
     sptr<KeyboardSession> keyboardSession = GetKeyboardSession("IsLandscape", "IsLandscape");
     bool isLandscape = false;
-    EXPECT_EQ(keyboardSession->IsLandscape(0, isLandscape), WMError::WM_OK);
+    
+    screenSessionManagerClient_->screenSessionMap_.clear();
     EXPECT_EQ(keyboardSession->IsLandscape(1234, isLandscape), WMError::WM_ERROR_INVALID_DISPLAY);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+    EXPECT_EQ(keyboardSession->IsLandscape(0, isLandscape), WMError::WM_OK);
+    screenSessionManagerClient_->screenSessionMap_.clear();
 }
 } // namespace
 } // namespace Rosen

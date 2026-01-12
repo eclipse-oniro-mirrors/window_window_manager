@@ -59,7 +59,7 @@ void ScreenSessionManagerExt::OnScreenChangeDefault(ScreenId screenId,
     COMBINE_FUNC(OnScreenChangeDefault(screenId, screenEvent, reason));
 }
 
-void ScreenSessionManagerExt::ScreenConnectionChanged(sptr<ScreenSession> screenSession,
+void ScreenSessionManagerExt::ScreenConnectionChanged(sptr<ScreenSession>& screenSession,
     ScreenId screenId, ScreenEvent screenEvent, bool phyMirrorEnable)
 {
     COMBINE_FUNC(ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable));

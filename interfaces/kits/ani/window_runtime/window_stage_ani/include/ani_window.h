@@ -52,6 +52,8 @@ public:
     static void SetWindowColorSpace(ani_env* env, ani_object obj, ani_long nativeObj, ani_int colorSpace);
     static void SetPreferredOrientation(ani_env* env, ani_object obj, ani_long nativeObj, ani_int orientation);
     static ani_int GetPreferredOrientation(ani_env* env, ani_object obj, ani_long nativeObj);
+    static ani_int ConvertOrientationAndRotation(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_int from, ani_int to, ani_int value);
     static void SetWindowPrivacyMode(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isPrivacyMode);
     static void Recover(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetUIContent(ani_env* env, ani_object obj, ani_long nativeObj, ani_string path);
@@ -65,6 +67,10 @@ public:
     static void RaiseAboveTarget(ani_env* env, ani_object obj, ani_long nativeObj, ani_int windowId);
     static void RaiseToAppTop(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetTopmost(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isTopmost);
+    static void SetReceiveDragEventEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
+    static ani_boolean IsReceiveDragEventEnabled(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void SetSeparationTouchEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
+    static ani_boolean IsSeparationTouchEnabled(ani_env* env, ani_object obj, ani_long nativeObj);
     static void RequestFocus(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isFocused);
     static void SetSubWindowModal(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isModal);
     static void SetSubWindowModalType(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isModal,
@@ -90,6 +96,16 @@ public:
         ani_long timeout, ani_ref callback);
     static void UnregisterWindowCallback(ani_env* env, ani_object obj, ani_long nativeObj, ani_string type,
         ani_ref callback);
+    static void SetWindowTitle(ani_env* env, ani_object obj, ani_long nativeObj, ani_string titleName);
+    static void SetTitleButtonVisible(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isMaximizeVisible,
+        ani_boolean isMinimizeVisible, ani_boolean isSplitVisible, ani_boolean isCloseVisible);
+    static void SetWindowTitleMoveEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
+    static ani_object GetTitleButtonRect(ani_env* env, ani_object obj, ani_long nativeObj);
+    static ani_object GetDecorButtonStyle(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void SetTitleAndDockHoverShown(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object isTitleHoverShown, ani_object isDockHoverShown);
+    static void SetHandwritingFlag(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enable);
+    static ani_boolean GetWindowDecorVisible(ani_env* env, ani_object obj, ani_long nativeObj);
     static void ShowWindow(ani_env* env, ani_object obj, ani_long nativeObj);
     static void ShowWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_object aniShowWindowOptions);
@@ -118,6 +134,7 @@ public:
                                       ani_double ratio, ani_boolean isPersistent, ani_boolean needUpdateRect);
     static ani_object CreateAniWindow(ani_env* env, OHOS::sptr<OHOS::Rosen::Window>& window);
     static ani_int GetWindowStatus(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void Minimize(ani_env* env, ani_object obj, ani_long nativeObj);
     static void Maximize(ani_env* env, ani_object obj, ani_long nativeObj,
                          ani_object aniPresentation, ani_object aniAcrossDisplay);
     static void StartMoving(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -144,11 +161,15 @@ public:
     static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_string name, ani_object options);
     static void Hide(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void RestoreMainWindow(ani_env* env, ani_object obj, ani_long nativeObj, ani_object wantParameters);
 
     ani_ref GetParentWindow(ani_env* env);
     void SetParentWindow(ani_env* env, ani_int windowId);
     void SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost);
+    void SetDecorButtonStyle(ani_env* env, ani_object decorStyle);
+    void SetWindowTitleButtonVisible(ani_env* env, ani_object visibleParam);
     void Restore(ani_env* env);
+    void HideWindowFunction(ani_env* env, WmErrorCode errCode);
     /*
      * Window Layout
      */
@@ -156,11 +177,11 @@ public:
     void MoveWindowTo(ani_env* env, ani_int x, ani_int y);
     ani_object GetGlobalRect(ani_env* env);
 
-    ani_double GetWindowDecorHeight(ani_env* env);
+    ani_int GetWindowDecorHeight(ani_env* env);
     ani_object SetWindowBackgroundColor(ani_env* env, const std::string& color);
     ani_object SetImmersiveModeEnabledState(ani_env* env, bool enable);
     ani_object SetWindowDecorVisible(ani_env* env, bool isVisible);
-    ani_object SetWindowDecorHeight(ani_env* env, ani_double height);
+    ani_object SetWindowDecorHeight(ani_env* env, ani_int height);
     ani_object GetWindowPropertiesSync(ani_env* env);
     ani_boolean IsWindowSupportWideGamut(ani_env* env);
     ani_object SetWindowLayoutFullScreen(ani_env* env, ani_boolean isLayoutFullScreen);
@@ -220,6 +241,7 @@ private:
     void OnSetWindowColorSpace(ani_env* env, ani_int colorSpace);
     void OnSetPreferredOrientation(ani_env* env, ani_int orientation);
     ani_int OnGetPreferredOrientation(ani_env* env);
+    ani_int OnConvertOrientationAndRotation(ani_env* env, ani_int from, ani_int to, ani_int value);
     void OnSetWindowPrivacyMode(ani_env* env, ani_boolean isPrivacyMode);
     void OnRecover(ani_env* env);
     void OnSetUIContent(ani_env* env, ani_string path);
@@ -234,6 +256,10 @@ private:
     void OnRaiseAboveTarget(ani_env* env, ani_int windowId);
     void OnRaiseToAppTop(ani_env* env);
     void OnSetTopmost(ani_env* env, ani_boolean isTopmost);
+    void OnSetReceiveDragEventEnabled(ani_env* env, ani_boolean enabled);
+    bool OnIsReceiveDragEventEnabled(ani_env* env);
+    void OnSetSeparationTouchEnabled(ani_env* env, ani_boolean enabled);
+    bool OnIsSeparationTouchEnabled(ani_env* env);
     void OnRequestFocus(ani_env* env, ani_boolean isFocused);
     void OnSetSubWindowModal(ani_env* env, ani_boolean isModal);
     void OnSetSubWindowModalType(ani_env* env, ani_boolean isModal, ani_int modalityType);
@@ -251,6 +277,15 @@ private:
     void OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_ref callback);
     void OnShowWindow(ani_env* env);
     void OnShowWindowWithOptions(ani_env* env, ani_object aniShowWindowOptions);
+    void OnSetWindowTitle(ani_env* env, ani_string titleName);
+    void OnSetTitleButtonVisible(ani_env* env, ani_boolean isMaximizeVisible,
+        ani_boolean isMinimizeVisible, ani_boolean isSplitVisible, ani_boolean isCloseVisible);
+    void OnSetWindowTitleMoveEnabled(ani_env* env, ani_boolean enabled);
+    ani_object OnGetTitleButtonRect(ani_env* env);
+    ani_object OnGetDecorButtonStyle(ani_env* env);
+    void OnSetTitleAndDockHoverShown(ani_env* env, ani_object isTitleHoverShown, ani_object isDockHoverShown);
+    void OnSetHandwritingFlag(ani_env* env, ani_boolean enable);
+    ani_boolean OnGetWindowDecorVisible(ani_env* env);
     void OnBindDialogTarget(ani_env* env, ani_object argv, ani_ref deathCallback);
     void OnDestroyWindow(ani_env* env);
     ani_boolean OnIsWindowShowing(ani_env* env);
@@ -293,6 +328,7 @@ private:
     void OnSetWindowShadowEnabled(ani_env* env, ani_boolean enable);
     bool OnIsImmersiveLayout(ani_env* env);
     void OnKeepKeyboardOnFocus(ani_env* env, ani_boolean keepKeyboardFlag);
+    void OnRestoreMainWindow(ani_env* env, ani_object wantParameters);
 
     /*
      * Window Layout
@@ -300,6 +336,7 @@ private:
     void OnSetContentAspectRatio(
         ani_env* env, ani_double ratio, ani_boolean isPersistent, ani_boolean needUpdateRect);
     ani_int OnGetWindowStatus(ani_env* env);
+    void OnMinimize(ani_env* env);
     void OnMaximize(ani_env* env, ani_object aniPresentation, ani_object aniAcrossDisplay);
     void OnStartMoving(ani_env* env);
     void OnStartMoveWindowWithCoordinate(ani_env* env, ani_int offsetX, ani_int offsetY);

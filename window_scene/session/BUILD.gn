@@ -18,6 +18,7 @@ config("session_public_config") {
   include_dirs = [
     "host/include",
     "${window_base_path}/window_scene",
+    "${window_base_path}/window_scene/screen_session_manager_client/include",
     "${window_base_path}/window_scene/intention_event/service/anr_manager/include",
     "${window_base_path}/window_scene/intention_event/framework/anr_handler/include",
     "${window_base_path}/window_scene/intention_event/utils/include",
@@ -105,6 +106,7 @@ ohos_shared_library("scene_session") {
     "host/src/layout_controller.cpp",
     "host/src/main_session.cpp",
     "host/src/move_drag_controller.cpp",
+    "host/src/move_resampler.cpp",
     "host/src/multi_instance_manager.cpp",
     "host/src/pc_fold_screen_controller.cpp",
     "host/src/pc_fold_screen_manager.cpp",
@@ -148,6 +150,7 @@ ohos_shared_library("scene_session") {
     "ability_runtime:ability_manager",
     "ability_runtime:ability_start_setting",
     "ability_runtime:app_context",
+    "ability_runtime:app_manager",
     "ability_runtime:process_options",
     "ability_runtime:start_window_option",
     "bundle_framework:appexecfwk_base",

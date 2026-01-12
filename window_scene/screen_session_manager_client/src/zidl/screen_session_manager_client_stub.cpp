@@ -161,6 +161,10 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleSetInternalClipToBounds(data, reply);
     };
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_TENT_MODE_CHANGE] =
+        [this](MessageParcel& data, MessageParcel& reply) {
+        return HandleTentModeChange(data, reply);
+    };
 }
 
 ScreenSessionManagerClientStub::ScreenSessionManagerClientStub()
@@ -284,7 +288,7 @@ int ScreenSessionManagerClientStub::ReadRotationOrientationMap(MessageParcel& da
     std::map<int32_t, int32_t>& rotationOrientationMap)
 {
     uint64_t mapSize = 0;
-    if (!data.ReadUint64(mapSize)) {
+    if (!data.ReadUint64(mapSize) || mapSize > ROTATION_NUM) {
         TLOGE(WmsLogTag::DMS, "Failed to read rotationOrientationMap size");
         return ERR_INVALID_DATA;
     }
@@ -450,6 +454,14 @@ int ScreenSessionManagerClientStub::HandleOnScreenshot(MessageParcel& data, Mess
     TLOGD(WmsLogTag::DMS, "enter");
     auto displayId = static_cast<DisplayId>(data.ReadUint64());
     OnScreenshot(displayId);
+    return ERR_NONE;
+}
+
+int ScreenSessionManagerClientStub::HandleTentModeChange(MessageParcel& data, MessageParcel& reply)
+{
+    auto tentMode = static_cast<TentMode>(data.ReadUint32());
+    TLOGD(WmsLogTag::DMS, "begin, tentMode = %{public}" PRIu32, static_cast<uint32_t>(tentMode));
+    OnTentModeChange(tentMode);
     return ERR_NONE;
 }
 

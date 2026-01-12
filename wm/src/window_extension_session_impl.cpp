@@ -19,6 +19,7 @@
 #include <float_wrapper.h>
 #include <hitrace_meter.h>
 #include <int_wrapper.h>
+#include <long_wrapper.h>
 #include <ipc_types.h>
 #include <parameters.h>
 #include <string_wrapper.h>
@@ -29,6 +30,7 @@
 #include <input_method_controller.h>
 #endif
 
+#include "configuration.h"
 #include "display_info.h"
 #include "input_transfer_station.h"
 #include "perform_reporter.h"
@@ -150,6 +152,7 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     state_ = WindowState::STATE_CREATED;
     isUIExtensionAbilityProcess_ = true;
     property_->SetIsUIExtensionAbilityProcess(true);
+    UpdateDefaultStatusBarColor();
     TLOGI(WmsLogTag::WMS_LIFE, "Created name:%{public}s %{public}d",
         property_->GetWindowName().c_str(), GetPersistentId());
     AddSetUIContentTimeoutCheck();
@@ -192,6 +195,7 @@ void WindowExtensionSessionImpl::UpdateConfiguration(const std::shared_ptr<AppEx
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "uiContent null, ext win=%{public}u, display=%{public}" PRIu64,
             GetWindowId(), GetDisplayId());
     }
+    UpdateDefaultStatusBarColor();
 }
 
 void WindowExtensionSessionImpl::UpdateConfigurationForSpecified(
@@ -205,6 +209,12 @@ void WindowExtensionSessionImpl::UpdateConfigurationForSpecified(
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "uiContent null, ext win=%{public}u, display=%{public}" PRIu64,
             GetWindowId(), GetDisplayId());
+    }
+    if (configuration != nullptr) {
+        TLOGI(WmsLogTag::WMS_IMMS, "extension win=%{public}u, colorMode=%{public}s, display=%{public}" PRIu64,
+            GetWindowId(), specifiedColorMode_.c_str(), GetDisplayId());
+        specifiedColorMode_ = configuration->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE);
+        UpdateDefaultStatusBarColor();
     }
 }
 
@@ -261,6 +271,22 @@ void WindowExtensionSessionImpl::UpdateConfigurationSyncForAll(
             window->GetWindowId(), window->GetDisplayId());
         window->UpdateConfigurationSync(configuration);
     }
+}
+
+void WindowExtensionSessionImpl::UpdateDefaultStatusBarColor()
+{
+    if (!property_->GetIsAtomicService()) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win %{public}u no support", GetPersistentId());
+        return;
+    }
+    uint32_t contentColor = 0;
+    auto ret = UpdateStatusBarColorByColorMode(contentColor);
+    if (ret != WMError::WM_OK) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win %{public}u no need update", GetPersistentId());
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u, contentColor %{public}x", GetPersistentId(), contentColor);
+    SetStatusBarColorForExtensionInner(contentColor);
 }
 
 WMError WindowExtensionSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason)
@@ -821,12 +847,6 @@ WMError WindowExtensionSessionImpl::NapiSetUIContent(const std::string& contentI
     return SetUIContentInner(contentInfo, env, storage, token, ability, false, EnvironmentType::NAPI);
 }
 
-WMError WindowExtensionSessionImpl::NapiSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
-    BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
-{
-    return SetUIContentInner(contentInfo, env, storage, token, ability, false, EnvironmentType::ANI);
-}
-
 WMError WindowExtensionSessionImpl::AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
     BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
 {
@@ -874,7 +894,8 @@ WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& content
         uiContent->SetHostParams(extensionConfig_);
         if (initByName) {
             if (envType == EnvironmentType::ANI) {
-                uiContent->InitializeByNameWithAniStorage(this, contentInfo, static_cast<ani_object>(storage));
+                uiContent->InitializeByNameWithAniStorage(this, contentInfo, static_cast<ani_object>(storage),
+                    property_->GetParentId());
             } else {
                 uiContent->InitializeByName(this, contentInfo, static_cast<napi_value>(storage),
                     property_->GetParentId());
@@ -1069,6 +1090,10 @@ void WindowExtensionSessionImpl::UpdateSystemViewportConfig()
         if (!window) {
             return;
         }
+        if (window->isDensityCustomized_) {
+            TLOGNI(WmsLogTag::WMS_UIEXT, "UpdateSystemViewportConfig: Density is customized");
+            return;
+        }
         if (window->isDensityFollowHost_) {
             TLOGNW(WmsLogTag::WMS_UIEXT, "UpdateSystemViewportConfig: Density is follow host");
             return;
@@ -1106,9 +1131,10 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfig(const SessionVie
 
         TLOGNI(WmsLogTag::WMS_UIEXT, "UpdateSessionViewportConfig: Id:%{public}d, isDensityFollowHost_:%{public}d, "
             "displayId:%{public}" PRIu64", density:%{public}f, lastDensity:%{public}f, orientation:%{public}d, "
-            "lastOrientation:%{public}d",
+            "lastOrientation:%{public}d, isDensityCustomized:%{public}d",
             window->GetPersistentId(), viewportConfig.isDensityFollowHost_, viewportConfig.displayId_,
-            viewportConfig.density_, window->lastDensity_, viewportConfig.orientation_, window->lastOrientation_);
+            viewportConfig.density_, window->lastDensity_, viewportConfig.orientation_, window->lastOrientation_,
+            window->isDensityCustomized_);
 
         window->NotifyDisplayInfoChange(viewportConfig);
         window->property_->SetDisplayId(viewportConfig.displayId_);
@@ -1118,16 +1144,57 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfig(const SessionVie
             window->lastDensity_ = viewportConfig.density_;
             window->lastOrientation_ = viewportConfig.orientation_;
             window->lastDisplayId_ = viewportConfig.displayId_;
+            window->lastTransform_ = viewportConfig.transform_;
         }
     };
     handler_->PostTask(task, "UpdateSessionViewportConfig");
     return WSError::WS_OK;
 }
 
+WMError WindowExtensionSessionImpl::SetUIExtCustomDensity(const float density)
+{
+    if (std::islessequal(density, 0.0f)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Invalid density_: %{public}f", density);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    if (!handler_) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "handler_ is null");
+        return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+    }
+    auto task = [weak = wptr(this), density]() {
+        auto window = weak.promote();
+        if (!window) {
+            TLOGNE(WmsLogTag::WMS_UIEXT, "window is null");
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_UIEXT, "Customize density:%{public}f", density);
+        window->customizedDensity_ = density;
+        window->isDensityCustomized_ = true;
+
+        SessionViewportConfig config;
+        config.isDensityFollowHost_ = false;
+        config.density_ = density;
+        config.orientation_ = window->lastOrientation_;
+        config.displayId_ = window->lastDisplayId_;
+        config.transform_ = window->lastTransform_;
+        window->UpdateSessionViewportConfig(config);
+    };
+    handler_->PostTask(task, "SetUIExtCustomDensity");
+    return WMError::WM_OK;
+}
+
 void WindowExtensionSessionImpl::UpdateExtensionDensity(SessionViewportConfig& config)
 {
-    TLOGD(WmsLogTag::WMS_UIEXT, "isFollowHost:%{public}d, densityValue:%{public}f", config.isDensityFollowHost_,
-        config.density_);
+    TLOGD(WmsLogTag::WMS_UIEXT, "isFollowHost:%{public}d, densityValue:%{public}f,isDensityCustomized_:%{public}d, "
+        "customizedDensity:%{public}f", config.isDensityFollowHost_, config.density_, isDensityCustomized_,
+        customizedDensity_);
+    if (isDensityCustomized_) {
+        if (config.isDensityFollowHost_) {
+            hostDensityValue_ = config.density_;
+        }
+        config.density_ = customizedDensity_;
+        return;
+    }
     isDensityFollowHost_ = config.isDensityFollowHost_;
     if (config.isDensityFollowHost_) {
         hostDensityValue_ = config.density_;
@@ -1195,6 +1262,7 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfigInner(const Sessi
         TLOGW(WmsLogTag::WMS_UIEXT, "uiContent is null!");
         return WSError::WS_ERROR_NULLPTR;
     }
+    virtualPixelRatio_ = config.density_;
     uiContent->UpdateViewportConfig(viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, lastAvoidAreaMap_);
     return WSError::WS_OK;
 }
@@ -1332,7 +1400,9 @@ WMError WindowExtensionSessionImpl::Hide(uint32_t reason, bool withAnimation, bo
     WSError ret = hostSession->Background();
     WMError res = static_cast<WMError>(ret);
     if (res == WMError::WM_OK) {
-        UpdateSubWindowStateAndNotify(GetPersistentId(), WindowState::STATE_HIDDEN);
+        StateChangeOption option(GetPersistentId(), WindowState::STATE_HIDDEN, reason, withAnimation, false, false,
+            isFromInnerkits, waitDetach);
+        UpdateSubWindowStateWithOptions(option);
         state_ = WindowState::STATE_HIDDEN;
         requestState_ = WindowState::STATE_HIDDEN;
         NotifyAfterBackground();
@@ -1372,6 +1442,9 @@ WSError WindowExtensionSessionImpl::NotifyDensityFollowHost(bool isFollowHost, f
 
 float WindowExtensionSessionImpl::GetVirtualPixelRatio(const sptr<DisplayInfo>& displayInfo)
 {
+    if (isDensityCustomized_) {
+        return customizedDensity_;
+    }
     if (isDensityFollowHost_ && hostDensityValue_ != std::nullopt) {
         return hostDensityValue_->load();
     }
@@ -1677,6 +1750,29 @@ WMError WindowExtensionSessionImpl::ExtensionSetBrightness(float brightness)
     AAFwk::WantParams want;
     want.SetParam(Extension::ATOMICSERVICE_KEY_FUNCTION, AAFwk::String::Box("setWindowBrightness"));
     want.SetParam(Extension::ATOMICSERVICE_KEY_PARAM_BRIGHTNESS, AAFwk::Float::Box(brightness));
+    if (TransferExtensionData(want) != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "send failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::SetStatusBarColorForExtension(uint32_t color)
+{
+    TLOGI(WmsLogTag::WMS_UIEXT, "id=%{public}d", GetPersistentId());
+    WMError ret = SetStatusBarColorForExtensionInner(color);
+    if (ret == WMError::WM_OK) {
+        systemBarSettingFlag_ = SystemBarSettingFlag::COLOR_SETTING;
+    }
+    return ret;
+}
+
+WMError WindowExtensionSessionImpl::SetStatusBarColorForExtensionInner(uint32_t color)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "id=%{public}d", GetPersistentId());
+    AAFwk::WantParams want;
+    want.SetParam(Extension::ATOMICSERVICE_KEY_FUNCTION, AAFwk::String::Box("setStatusBarColor"));
+    want.SetParam(Extension::ATOMICSERVICE_KEY_PARAM_COLOR_NUMERIC, AAFwk::Long::Box(color));
     if (TransferExtensionData(want) != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "send failed");
         return WMError::WM_ERROR_IPC_FAILED;

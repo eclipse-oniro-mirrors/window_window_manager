@@ -153,7 +153,7 @@ void AniWindowStage::OnLoadContent(ani_env* env, ani_string path, ani_object sto
     if (isLoadByName) {
         ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->AniSetUIContentByName(contentPath, env, storage));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->NapiSetUIContent(contentPath, env, storage));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->AniSetUIContent(contentPath, env, storage));
     }
     TLOGI(WmsLogTag::WMS_LIFE, "[ANI] Window [%{public}u, %{public}s] load content end, ret=%{public}d",
         mainWindow->GetWindowId(), mainWindow->GetWindowName().c_str(), ret);
@@ -275,8 +275,8 @@ void DropWindowStageByAni(ani_object aniObj)
     auto obj = g_localObjs.find(reinterpret_cast<ani_object>(aniObj));
     if (obj != g_localObjs.end()) {
         delete obj->second;
+        g_localObjs.erase(obj);
     }
-    g_localObjs.erase(obj);
 }
 
 AniWindowStage* GetWindowStageFromAni(void* aniObj)
@@ -299,7 +299,7 @@ __attribute__((no_sanitize("cfi")))
 
     ani_status ret;
     ani_class cls = nullptr;
-    if ((ret = env->FindClass("L@ohos/window/window/WindowStageInternal;", &cls)) != ANI_OK) {
+    if ((ret = env->FindClass("@ohos.window.window.WindowStageInternal", &cls)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] null env %{public}u", ret);
         return cls;
     }
@@ -307,7 +307,7 @@ __attribute__((no_sanitize("cfi")))
     std::unique_ptr<AniWindowStage> windowStage = std::make_unique<AniWindowStage>(windowScene);
 
     ani_method initFunc = nullptr;
-    if ((ret = env->Class_FindMethod(cls, "<ctor>", ":V", &initFunc)) != ANI_OK) {
+    if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] get ctor fail %{public}u", ret);
         return nullptr;
     }
@@ -317,7 +317,7 @@ __attribute__((no_sanitize("cfi")))
         return nullptr;
     }
     ani_method setObjFunc = nullptr;
-    if ((ret = env->Class_FindMethod(cls, "setNativeObj", "J:V", &setObjFunc)) != ANI_OK) {
+    if ((ret = env->Class_FindMethod(cls, "setNativeObj", "l:", &setObjFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] call setNativeObj fail %{public}u", ret);
         return nullptr;
     }
@@ -370,24 +370,21 @@ void AniWindowStage::OnDisableWindowDecor(ani_env* env)
         return;
     }
 }
-    
-void AniWindowStage::SetShowOnLockScreen(ani_env* env, ani_class cls, ani_long nativeObj, ani_boolean showOnLockScreen)
+
+void AniWindowStage::SetWindowRectAutoSave(ani_env* env, ani_class cls, ani_long nativeObj,
+    ani_boolean enabled, bool isSaveBySpecifiedFlag)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniWindowStage* aniWindowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
     if (aniWindowStage != nullptr) {
-        aniWindowStage->OnSetShowOnLockScreen(env, showOnLockScreen);
+        aniWindowStage->OnSetWindowRectAutoSave(env, enabled, isSaveBySpecifiedFlag);
     } else {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] aniWindowStage is nullptr");
     }
 }
-void AniWindowStage::OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockScreen)
+
+void AniWindowStage::OnSetWindowRectAutoSave(ani_env* env, ani_boolean enabled, bool isSaveBySpecifiedFlag)
 {
-    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI]set show on lock screen permission denied!");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
-        return;
-    }
     auto windowScene = GetWindowScene().lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI]windowScene is nullptr!");
@@ -396,8 +393,84 @@ void AniWindowStage::OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockS
     }
     auto mainWindow = windowScene->GetMainWindow();
     if (mainWindow == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] mainWindowis nullptr!");
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] mainWindow is nullptr!");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetWindowRectAutoSave(enabled, isSaveBySpecifiedFlag));
+    if (ret != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, ret);
+        return;
+    }
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] OnSetWindowRectAutoSave end!");
+}
+
+ani_boolean AniWindowStage::IsWindowRectAutoSave(ani_env* env, ani_class cls, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
+    AniWindowStage* aniWindowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
+    if (aniWindowStage != nullptr) {
+        return aniWindowStage->OnIsWindowRectAutoSave(env);
+    } else {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] aniWindowStage is nullptr");
+        return false;
+    }
+}
+
+ani_boolean AniWindowStage::OnIsWindowRectAutoSave(ani_env* env)
+{
+    auto windowScene = GetWindowScene().lock();
+    if (windowScene == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI]windowScene is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return false;
+    }
+    auto mainWindow = windowScene->GetMainWindow();
+    if (mainWindow == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] mainWindow is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return false;
+    }
+    bool enabled = false;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->IsWindowRectAutoSave(enabled));
+    if (ret != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, ret);
+        return false;
+    }
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] OnIsWindowRectAutoSave end!");
+    return ani_boolean(enabled);
+}
+    
+void AniWindowStage::SetShowOnLockScreen(ani_env* env, ani_class cls, ani_long nativeObj, ani_boolean showOnLockScreen)
+{
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI]");
+    AniWindowStage* aniWindowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
+    if (aniWindowStage != nullptr) {
+        aniWindowStage->OnSetShowOnLockScreen(env, showOnLockScreen);
+    } else {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] aniWindowStage is nullptr");
+    }
+}
+void AniWindowStage::OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockScreen)
+{
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI]set show on lock screen permission denied!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+            "[window][SetShowOnLockScreen]msg: permission denied");
+        return;
+    }
+    auto windowScene = GetWindowScene().lock();
+    if (windowScene == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI]windowScene is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][SetShowOnLockScreen]msg: invalid windowScene");
+        return;
+    }
+    auto mainWindow = windowScene->GetMainWindow();
+    if (mainWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] mainWindow is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][SetShowOnLockScreen]msg: invalid mainWindow");
         return;
     }
     if (showOnLockScreen) {
@@ -405,7 +478,7 @@ void AniWindowStage::OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockS
     } else {
         mainWindow->RemoveWindowFlag(OHOS::Rosen::WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED);
     }
-    TLOGE(WmsLogTag::DEFAULT, "[ANI] OnSetShowOnLockScreen end!");
+    TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] OnSetShowOnLockScreen end!");
 }
 
 void AniWindowStage::SetWindowModal(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isModal)
@@ -425,24 +498,28 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
     auto windowScene = GetWindowScene().lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI]windowScene is nullptr!");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowModal]msg: windowScene is nullptr");
         return;
     }
     auto window = windowScene->GetMainWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] mainWindow is nullptr!");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowModal]msg: windowScene is nullptr");
         return;
     }
     if (!window->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "device not support");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
+            "[window][setWindowModal]msg: device not support");
         return;
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowModal(isModal));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "failed, ret is %{public}d", ret);
-        AniWindowUtils::AniThrowError(env, ret, "Set main window modal failed");
+        AniWindowUtils::AniThrowError(env, ret,
+            "window][setWindowModal]msg: Set main window modal failed");
         return;
     }
     TLOGI(WmsLogTag::WMS_HIERARCHY, "id:%{public}u, name:%{public}s, isModal:%{public}d",
@@ -487,7 +564,7 @@ void AniWindowStage::OnSetImageForRecent(ani_env* env, ani_object imageResource,
     ani_long imageResourceId;
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
     if (isLong) {
-        env->Object_CallMethodByName_Long(imageResource, "unboxed", ":l", &imageResourceId);
+        env->Object_CallMethodByName_Long(imageResource, "toLong", ":l", &imageResourceId);
         if (imageResourceId < MIN_RESOURCE_ID || imageResourceId > MAX_RESOURCE_ID) {
             TLOGE(WmsLogTag::WMS_PATTERN, "imageResourceId invalid: %{public}d", static_cast<int32_t>(imageResourceId));
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);

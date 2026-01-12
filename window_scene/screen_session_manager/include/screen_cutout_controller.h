@@ -40,7 +40,8 @@ private:
     void CalcCutoutRects(const std::vector<DMRect>& boundaryRects, uint32_t width, uint32_t height,
                          Rotation rotation, std::vector<DMRect>& cutoutRects) const;
     void InitRect(uint32_t left, uint32_t top, uint32_t width, uint32_t height, DMRect& rect) const;
-    void CheckBoundaryRects(std::vector<DMRect>& boundaryRects, uint32_t screenWidth, uint32_t screenHeight) const;
+    void CheckBoundaryRectsWithRotation(std::vector<DMRect>& boundaryRects, uint32_t screenWidth, uint32_t screenHeight,
+        Rotation rotation) const;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SCREEN_CUTOUT_CONTROLLER_H

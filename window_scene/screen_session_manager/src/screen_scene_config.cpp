@@ -267,11 +267,18 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
 
 uint64_t ScreenSceneConfig::ParseStrToUll(const std::string& contentStr)
 {
-    uint64_t num = 0;
-    if (!contentStr.empty() && std::all_of(contentStr.begin(), contentStr.end(), ::isdigit)) {
-        num = std::stoull(contentStr);
-    } else {
+    if (contentStr.empty()) {
         TLOGE(WmsLogTag::DMS, "Invalid value: %{public}s", contentStr.c_str());
+        return 0;
+    }
+    uint64_t num;
+    auto result = std::from_chars(contentStr.data(), contentStr.data() + contentStr.size(), num);
+    if (result.ec == std::errc::invalid_argument) {
+        TLOGE(WmsLogTag::DMS, "Invalid value: %{public}s", contentStr.c_str());
+        return 0;
+    } else if (result.ec == std::errc::result_out_of_range) {
+        TLOGE(WmsLogTag::DMS, "Value out of range: %{public}s", contentStr.c_str());
+        return 0;
     }
     return num;
 }
@@ -291,7 +298,12 @@ void ScreenSceneConfig::ParseDisplaysConfig(const xmlNodePtr& currNode)
             }
             std::string nodeName = reinterpret_cast<const char*>(fileNode->name);
             xmlChar* content = xmlNodeGetContent(fileNode);
-            std::string contentStr = reinterpret_cast<const char*>(content);
+            std::string contentStr;
+            if (content) {
+                contentStr = reinterpret_cast<const char*>(content);
+                xmlFree(content);
+                content = nullptr;
+            }
             if (nodeName == "physicalId") {
                 config.physicalId = static_cast<ScreenId>(ParseStrToUll(contentStr));
             } else if (nodeName == "logicalId") {
@@ -302,10 +314,6 @@ void ScreenSceneConfig::ParseDisplaysConfig(const xmlNodePtr& currNode)
                 config.dpi = atoi(contentStr.c_str());
             } else if (nodeName == "flags") {
                 config.hasFlag = ParseFlagsConfig(fileNode, config.flag);
-            }
-            if (content) {
-                xmlFree(content);
-                content = nullptr;
             }
         }
         displaysConfigs_.push_back(config);

@@ -48,32 +48,6 @@ namespace OHOS {
 namespace Rosen {
 constexpr Rect g_emptyRect = {0, 0, 0, 0};
 
-const std::map<ApiWindowType, std::string> API_TO_ANI_STRING_TYPE_MAP {
-    {ApiWindowType::TYPE_BASE,                 "TYPE_APP"                  },
-    {ApiWindowType::TYPE_APP,                  "TYPE_APP"                  },
-    {ApiWindowType::TYPE_SYSTEM_ALERT,         "TYPE_SYSTEM_ALERT"         },
-    {ApiWindowType::TYPE_INPUT_METHOD,         "TYPE_INPUT_METHOD"         },
-    {ApiWindowType::TYPE_STATUS_BAR,           "TYPE_STATUS_BAR"           },
-    {ApiWindowType::TYPE_PANEL,                "TYPE_PANEL"                },
-    {ApiWindowType::TYPE_KEYGUARD,             "TYPE_KEYGUARD"             },
-    {ApiWindowType::TYPE_VOLUME_OVERLAY,       "TYPE_VOLUME_OVERLAY"       },
-    {ApiWindowType::TYPE_NAVIGATION_BAR,       "TYPE_NAVIGATION_BAR"       },
-    {ApiWindowType::TYPE_FLOAT,                "TYPE_FLOAT"                },
-    {ApiWindowType::TYPE_WALLPAPER,            "TYPE_WALLPAPER"            },
-    {ApiWindowType::TYPE_DESKTOP,              "TYPE_DESKTOP"              },
-    {ApiWindowType::TYPE_LAUNCHER_RECENT,      "TYPE_LAUNCHER_RECENT"      },
-    {ApiWindowType::TYPE_LAUNCHER_DOCK,        "TYPE_LAUNCHER_DOCK"        },
-    {ApiWindowType::TYPE_VOICE_INTERACTION,    "TYPE_VOICE_INTERACTION"    },
-    {ApiWindowType::TYPE_POINTER,              "TYPE_POINTER"              },
-    {ApiWindowType::TYPE_FLOAT_CAMERA,         "TYPE_FLOAT_CAMERA"         },
-    {ApiWindowType::TYPE_DIALOG,               "TYPE_DIALOG"               },
-    {ApiWindowType::TYPE_SCREENSHOT,           "TYPE_SCREENSHOT"           },
-    {ApiWindowType::TYPE_SYSTEM_TOAST,         "TYPE_SYSTEM_TOAST"         },
-    {ApiWindowType::TYPE_DIVIDER,              "TYPE_DIVIDER"              },
-    {ApiWindowType::TYPE_GLOBAL_SEARCH,        "TYPE_GLOBAL_SEARCH"        },
-    {ApiWindowType::TYPE_HANDWRITE,            "TYPE_HANDWRITE"            },
-};
-
 class AniWindowUtils {
 public:
     static ani_status InitAniCreator(ani_env* env,
@@ -88,8 +62,17 @@ public:
     static ani_status GetPropertyBoolObject(ani_env* env, const char* propertyName, ani_object object, bool& result);
     static bool GetPropertyRectObject(ani_env* env, const char* propertyName,
         ani_object object, Rect& result);
+    static ani_status GetOptionalProperty(ani_env* env, ani_object object, const char* propertyName,
+        ani_ref& outPropRef, bool& outIsUndefined);
+    static ani_status GetOptionalIntProperty(ani_env* env, const char* propertyName,
+        ani_object object, std::optional<ani_int>& optIntProp);
+    template <typename EnumType>
+    static ani_status GetOptionalEnumProperty(
+        ani_env* env, const char* propertyName, ani_object object, std::optional<EnumType>& optEnumProp);
     static bool GetIntObject(ani_env* env, const char* propertyName, ani_object object, int32_t& result);
     static ani_status GetDoubleObject(ani_env* env, ani_object double_object, double& result);
+    static ani_status GetBooleanObject(ani_env* env, ani_object boolean_object, bool& result);
+    static bool GetPropertyUIntObject(ani_env* env, const char* propertyName, ani_object object, uint32_t& result);
     static ani_status GetIntVector(ani_env* env, ani_object ary, std::vector<int32_t>& result);
     static ani_status GetPropertyLongObject(ani_env* env, const char* propertyName, ani_object object, int64_t& result);
     static ani_status GetEnumValue(ani_env* env, ani_enum_item enumPara, uint32_t& result);
@@ -108,6 +91,13 @@ public:
     static ani_object CreateAniWindowArray(ani_env* env, std::vector<ani_ref>& windows);
     static ani_object CreateAniSize(ani_env* env, int32_t width, int32_t height);
     static ani_object CreateAniRect(ani_env* env, const Rect& rect);
+    static ani_object CreateAniTitleButtonRect(ani_env* env, const TitleButtonRect& rect);
+    static ani_object CreateAniDecorButtonStyle(ani_env* env, const DecorButtonStyle& style);
+    static ani_status SetOptionalFieldInt(ani_env* env, ani_object obj, ani_class cls,
+        const char* method, ani_int aniInt);
+    static bool SetDecorButtonStyleFromAni(ani_env* env, DecorButtonStyle& decorButtonStyle,
+        const ani_object& decorStyle);
+    static bool GetColorMode(ani_env* env, const ani_object& decorStyle, int32_t& colorMode);
     static ani_object CreateAniWindowLimits(ani_env* env, const WindowLimits& windowLimits);
     static ani_object CreateAniAvoidArea(ani_env* env, const AvoidArea& avoidArea,
         AvoidAreaType type, bool useActualVisibility = false);
@@ -219,7 +209,6 @@ public:
      */
     template <typename EnumType>
     static std::vector<EnumType> ExtractEnumValues(ani_env* env, ani_object enumArrayObj);
-
     static bool ParseSubWindowOptions(ani_env *env, ani_object aniObject, const sptr<WindowOption>& windowOption);
     static bool ParseRectParam(ani_env *env, ani_object aniObject, const sptr<WindowOption>& windowOption);
     static bool ParseModalityParam(ani_env *env, ani_object aniObject, const sptr<WindowOption>& windowOption);
@@ -261,15 +250,40 @@ std::vector<EnumType> AniWindowUtils::ExtractEnumValues(ani_env* env, ani_object
     return result;
 }
 
+template <typename EnumType>
+ani_status AniWindowUtils::GetOptionalEnumProperty(
+    ani_env* env, const char* propertyName, ani_object object, std::optional<EnumType>& optEnumProp)
+{
+    optEnumProp.reset();
+
+    ani_ref propRef;
+    bool isUndefined;
+    ani_status ret = AniWindowUtils::GetOptionalProperty(env, object, propertyName, propRef, isUndefined);
+    if (ret != ANI_OK || isUndefined) {
+        return ret;
+    }
+
+    uint32_t enumValue = 0;
+    ret = AniWindowUtils::GetEnumValue(env, static_cast<ani_enum_item>(propRef), enumValue);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "[ANI] Failed to get enum value for %{public}s, ret: %{public}d",
+              propertyName, static_cast<int32_t>(ret));
+        return ret;
+    }
+    optEnumProp = static_cast<EnumType>(enumValue);
+    return ANI_OK;
+}
+
 template<typename T>
 const char* GetClassName()
 {
     if (std::is_same<T, int>::value) {
-        return "Lstd/core/Int;";
+        return "std.core.Int;";
     } else if (std::is_same<T, double>::value) {
-        return "Lstd/core/Double;";
+        return "std.core.Double;";
     } else if (std::is_same<T, long>::value) {
-        return "Lstd/core/Long;";
+        return "std.core.Long;";
     } else {
         return nullptr;
     }
@@ -279,11 +293,11 @@ template<typename T>
 const char* GetCtorSignature()
 {
     if (std::is_same<T, int>::value) {
-        return "I:V";
+        return "i:";
     } else if (std::is_same<T, double>::value) {
-        return "D:V";
+        return "d:";
     } else if (std::is_same<T, long>::value) {
-        return "J:V";
+        return "l:";
     } else {
         return nullptr;
     }

@@ -57,8 +57,8 @@ public:
     void SaveSnapshot(const std::shared_ptr<Media::PixelMap>& pixelMap,
         const std::function<void()> resetSnapshotCallback = []() {}, SnapshotStatus key = defaultStatus,
         DisplayOrientation rotate = DisplayOrientation::PORTRAIT, bool freeMultiWindow = false);
-    bool IsSavingSnapshot(SnapshotStatus key = defaultStatus, bool freeMultiWindow = false);
-    void SetIsSavingSnapshot(SnapshotStatus key, bool freeMultiWindow, bool isSavingSnapshot);
+    bool IsSavingSnapshot();
+    void SetIsSavingSnapshot(bool isSavingSnapshot);
     void ResetSnapshotCache();
     void RenameSnapshotFromOldPersistentId(const int32_t& oldPersistentId);
     void RenameSnapshotFromOldPersistentId(const int32_t& oldPersistentId, SnapshotStatus key);
@@ -86,8 +86,7 @@ private:
     static bool isAstcEnabled_;
 
     std::atomic<int> savingSnapshotSum_ { 0 };
-    std::atomic<bool> isSavingSnapshot_[SCREEN_COUNT] = {};
-    std::atomic<bool> isSavingSnapshotFreeMultiWindow_ { false };
+    std::atomic<bool> isSavingSnapshot_ = { false };
 
     static std::shared_ptr<WSFFRTHelper> snapshotFfrtHelper_;
     mutable std::mutex savingSnapshotMutex_;

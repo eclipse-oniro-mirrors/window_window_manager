@@ -40,6 +40,7 @@ public:
     void ExitCoordination() override;
     void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
     FoldDisplayMode GetModeMatchStatus() override;
+    FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus) override;
     void BootAnimationFinishPowerInit() override;
     void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const override;
 private:

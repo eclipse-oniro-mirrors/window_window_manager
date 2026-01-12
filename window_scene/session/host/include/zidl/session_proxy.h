@@ -55,6 +55,7 @@ public:
     WSError OnTitleAndDockHoverShowChange(bool isTitleHoverShown = true,
         bool isDockHoverShown = true) override;
     WSError OnRestoreMainWindow() override;
+    WMError RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams) override;
     WSError OnSetWindowRectAutoSave(bool enabled, bool isSaveBySpecifiedFlag) override;
     WSError RaiseToAppTop() override;
     WSError UpdateSessionRect(const WSRect& rect, SizeChangeReason reason, bool isGlobal = false,
@@ -72,6 +73,8 @@ public:
     WSError GetTargetOrientationConfigInfo(Orientation targetOrientation,
         const std::map<Rosen::WindowType, Rosen::SystemBarProperty>& targetProperties,
         const std::map<Rosen::WindowType, Rosen::SystemBarProperty>& currentProperties) override;
+    WSError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
+        const int32_t value, int32_t& convertedValue) override;
     WSError RequestSessionBack(bool needMoveToBackground) override;
     WSError MarkProcessed(int32_t eventId) override;
     WSError SetGlobalMaximizeMode(MaximizeMode mode) override;
@@ -112,6 +115,7 @@ public:
     WSError SetAutoStartPiP(bool isAutoStart, uint32_t priority, uint32_t width, uint32_t height) override;
     WSError UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo) override;
     WSError SetPipParentWindowId(uint32_t windowId) override;
+    WMError IsPiPActive(bool& status) override;
 
     WMError UpdateFloatingBall(const FloatingBallTemplateInfo& fbTemplateInfo) override;
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override;
@@ -135,6 +139,7 @@ public:
     WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
+    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
     WSError NotifyFrameLayoutFinishFromApp(bool notifyListener, const WSRect& rect) override;
     WMError NotifySnapshotUpdate() override;
     WSError SetDialogSessionBackGestureEnabled(bool isEnabled) override;
@@ -199,6 +204,7 @@ public:
         std::shared_ptr<RSTransaction>& rsTransaction) override;
     WSError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
     WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) override;
+    void NotifyWindowStatusDidChangeAfterShowWindow() override;
 
     /**
      * Window Transition Animation For PC
@@ -227,7 +233,8 @@ public:
      * Compatible Mode
      */
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
-
+    WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
+    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
     /**
      * Restart app
      */

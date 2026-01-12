@@ -7,7 +7,8 @@
             "run-on-create": true,
             "distributed": false,
             "bootphase": "CoreStartPhase",
-            "dump_level": 1
+            "dump_level": 1,
+            "min_hdi_proxy_version": []
         }
     ]
 }

@@ -29,6 +29,21 @@ std::shared_ptr<AppExecFwk::EventHandler> TaskScheduler::GetEventHandler()
     return handler_;
 }
 
+void TaskScheduler::PostAsyncTaskToExportHandler(Task&& task, const std::string& name, int64_t delayTime)
+{
+    if (exportHandler_ == nullptr || (delayTime == 0 && exportHandler_->GetEventRunner()->IsCurrentRunnerThread())) {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:%s", name.c_str());
+        task();
+        return;
+    }
+    auto localTask = [this, task = std::move(task), name] {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:%s", name.c_str());
+        task();
+    };
+    exportHandler_->PostTask(std::move(localTask), "wms:" + name, delayTime,
+        AppExecFwk::EventQueue::Priority::IMMEDIATE);
+}
+
 void TaskScheduler::PostAsyncTask(Task&& task, const std::string& name, int64_t delayTime)
 {
     if (delayTime == 0 && handler_->GetEventRunner()->IsCurrentRunnerThread()) {

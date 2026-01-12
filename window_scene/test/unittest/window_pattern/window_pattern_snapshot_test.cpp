@@ -265,10 +265,6 @@ HWTEST_F(WindowPatternSnapshotTest, IsSavingSnapshot, TestSize.Level1)
     ASSERT_NE(nullptr, scenePersistence);
     bool result = scenePersistence->IsSavingSnapshot();
     EXPECT_EQ(result, false);
-
-    auto key = defaultStatus;
-    result = scenePersistence->IsSavingSnapshot(key, true);
-    EXPECT_EQ(result, false);
 }
 
 /**
@@ -391,27 +387,7 @@ HWTEST_F(WindowPatternSnapshotTest, ResetSnapshotCache, TestSize.Level1)
     int32_t persistentId = 1423;
     sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
     scenePersistence->ResetSnapshotCache();
-    auto key = defaultStatus;
-    ASSERT_EQ(scenePersistence->isSavingSnapshot_[key], false);
-}
-
-/**
- * @tc.name: GetSessionSnapshotPixelMap01
- * @tc.desc: SceneSesionManager get session snapshot pixelmap
- * @tc.type: FUNC
- */
-HWTEST_F(WindowPatternSnapshotTest, GetSessionSnapshotPixelMap01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "GetPixelMap";
-    info.bundleName_ = "GetPixelMap1";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
-
-    int32_t persistentId = 65535;
-    float scaleValue = 0.5f;
-    auto pixelMap = ssm_->GetSessionSnapshotPixelMap(persistentId, scaleValue);
-    ASSERT_EQ(pixelMap, nullptr);
+    ASSERT_EQ(scenePersistence->isSavingSnapshot_, false);
 }
 
 /**
@@ -419,14 +395,14 @@ HWTEST_F(WindowPatternSnapshotTest, GetSessionSnapshotPixelMap01, TestSize.Level
  * @tc.desc: GetSessionSnapshotPixelMap
  * @tc.type: FUNC
  */
-HWTEST_F(WindowPatternSnapshotTest, GetSessionSnapshotPixelMap02, TestSize.Level1)
+HWTEST_F(WindowPatternSnapshotTest, GetSessionSnapshotPixelMap, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     SessionInfo info;
     info.abilityName_ = "GetPixelMap";
     info.bundleName_ = "GetPixelMap1";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->isPersistentImageFit_ = true;
     sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     int32_t persistentId = 1;
@@ -438,7 +414,7 @@ HWTEST_F(WindowPatternSnapshotTest, GetSessionSnapshotPixelMap02, TestSize.Level
     std::string bundleName = "testBundleName";
     int32_t testpersistentId = 1;
     sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, testpersistentId);
-    ASSERT_NE(sceneSession->scenePersistence_, nullptr);
+    sceneSession->isPersistentImageFit_ = false;
     struct RSSurfaceNodeConfig config;
     sceneSession->surfaceNode_ = RSSurfaceNode::Create(config);
     ASSERT_NE(sceneSession->surfaceNode_, nullptr);
@@ -508,24 +484,29 @@ HWTEST_F(WindowPatternSnapshotTest, Snapshot01, TestSize.Level1)
  */
 HWTEST_F(WindowPatternSnapshotTest, Snapshot02, TestSize.Level1)
 {
-    ASSERT_NE(session_, nullptr);
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     int32_t persistentId = 1424;
     std::string bundleName = "testBundleName";
-    session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
-    ASSERT_NE(session_->scenePersistence_, nullptr);
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ASSERT_NE(sceneSession->scenePersistence_, nullptr);
     struct RSSurfaceNodeConfig config;
-    session_->surfaceNode_ = RSSurfaceNode::Create(config);
-    ASSERT_NE(session_->surfaceNode_, nullptr);
-    ASSERT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    sceneSession->surfaceNode_ = RSSurfaceNode::Create(config);
+    ASSERT_NE(sceneSession->surfaceNode_, nullptr);
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
 
-    session_->bufferAvailable_ = true;
-    ASSERT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    sceneSession->bufferAvailable_ = true;
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
 
-    session_->surfaceNode_->bufferAvailable_ = true;
-    ASSERT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    sceneSession->surfaceNode_->bufferAvailable_ = true;
+    sceneSession->property_->SetPrivacyMode(false);
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
 
-    session_->surfaceNode_ = nullptr;
-    ASSERT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    sceneSession->property_->SetPrivacyMode(true);
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
+
+    sceneSession->surfaceNode_ = nullptr;
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
 }
 
 /**
@@ -543,6 +524,75 @@ HWTEST_F(WindowPatternSnapshotTest, ResetSnapshot, TestSize.Level1)
 
     session_->ResetSnapshot();
     ASSERT_EQ(nullptr, session_->snapshot_);
+}
+
+/**
+ * @tc.name: ResetPreloadSnapshot
+ * @tc.desc: ResetPreloadSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, ResetPreloadSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->preloadSnapshot_ = nullptr;
+    ASSERT_EQ(session_->GetPreloadSnapshot(), nullptr);
+
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1423;
+    session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    session_->preloadSnapshot_ = std::make_shared<Media::PixelMap>();
+    ASSERT_NE(session_->GetPreloadSnapshot(), nullptr);
+
+    session_->ResetPreloadSnapshot();
+    ASSERT_EQ(nullptr, session_->preloadSnapshot_);
+}
+
+/**
+ * @tc.name: PreloadSnapshot
+ * @tc.desc: PreloadSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, PreloadSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1423;
+    session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    session_->snapshot_ = std::make_shared<Media::PixelMap>();
+    ASSERT_NE(session_->snapshot_, nullptr);
+
+    session_->preloadSnapshot_ = nullptr;
+    session_->PreloadSnapshot();
+    ASSERT_NE(session_->preloadSnapshot_, nullptr);
+
+    session_->snapshot_ = nullptr;
+    session_->preloadSnapshot_ = nullptr;
+    auto tempScenePersistence = session_->scenePersistence_;
+    session_->scenePersistence_ = nullptr;
+    ASSERT_EQ(session_->scenePersistence_, nullptr);
+    session_->PreloadSnapshot();
+    ASSERT_EQ(session_->preloadSnapshot_, nullptr);
+
+    session_->preloadSnapshot_ = nullptr;
+    session_->scenePersistence_ = tempScenePersistence;
+    session_->PreloadSnapshot();
+    ASSERT_EQ(session_->preloadSnapshot_, nullptr);
+}
+
+/**
+ * @tc.name: InitDmaReclaimParam
+ * @tc.desc: InitDmaReclaimParam Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, InitDmaReclaimParam, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->enableDmaReclaim_ = false;
+    EXPECT_EQ(ssm_->IsDmaReclaimEnabled(), false);
+    ssm_->InitDmaReclaimParam();
+    EXPECT_TRUE(g_logMsg.find("Dma reclaim enabled:") != std::string::npos);
 }
 
 /**
@@ -621,8 +671,7 @@ HWTEST_F(WindowPatternSnapshotTest, GetSnapshotPixelMap, TestSize.Level1)
     session_->scenePersistence_ = nullptr;
     ASSERT_EQ(nullptr, session_->GetSnapshotPixelMap(6.6f, 8.8f));
     session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("GetSnapshotPixelMap", 2024);
-    auto key = defaultStatus;
-    session_->scenePersistence_->isSavingSnapshot_[key].store(true);
+    session_->scenePersistence_->isSavingSnapshot_.store(true);
     session_->snapshot_ = nullptr;
     ASSERT_EQ(nullptr, session_->GetSnapshotPixelMap(6.6f, 8.8f));
 }
@@ -867,12 +916,8 @@ HWTEST_F(WindowPatternSnapshotTest, ConfigSupportSnapshotAllSessionStatus, TestS
 HWTEST_F(WindowPatternSnapshotTest, SetIsSavingSnapshot, TestSize.Level1)
 {
     ASSERT_NE(scenePersistence, nullptr);
-    auto key = defaultStatus;
-    scenePersistence->SetIsSavingSnapshot(key, true, true);
-    EXPECT_EQ(scenePersistence->isSavingSnapshotFreeMultiWindow_, true);
-    
-    scenePersistence->SetIsSavingSnapshot(key, false, true);
-    EXPECT_EQ(scenePersistence->isSavingSnapshot_[key], true);
+    scenePersistence->SetIsSavingSnapshot(true);
+    EXPECT_EQ(scenePersistence->IsSavingSnapshot(), true);
 }
 
 /**
@@ -1070,9 +1115,7 @@ HWTEST_F(WindowPatternSnapshotTest, CheckSurfaceNodeForSnapshot, TestSize.Level1
     session_->surfaceNode_->bufferAvailable_ = true;
     EXPECT_EQ(session_->CheckSurfaceNodeForSnapshot(session_->surfaceNode_), true);
 
-    ScenePersistentStorage::InitDir("/data/Snapshot");
-    ScenePersistentStorage::Insert("SetImageForRecent_" + std::to_string(session_->persistentId_),
-        0, ScenePersistentStorageType::MAXIMIZE_STATE);
+    session_->isPersistentImageFit_ = true;
     EXPECT_EQ(session_->CheckSurfaceNodeForSnapshot(session_->surfaceNode_), false);
 }
 
@@ -1087,12 +1130,12 @@ HWTEST_F(WindowPatternSnapshotTest, GetNeedUseBlurSnapshot, TestSize.Level1)
     info.screenId_ = 0;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
 
-    sceneSession->isPrivacyMode_ = false;
+    sceneSession->property_->SetPrivacyMode(false);
     ControlInfo controlInfo = { .isNeedControl = false, .isControlRecentOnly = false };
     sceneSession->appUseControlMap_[ControlAppType::APP_LOCK] = controlInfo;
     EXPECT_EQ(sceneSession->GetNeedUseBlurSnapshot(), false);
 
-    sceneSession->isPrivacyMode_ = true;
+    sceneSession->property_->SetPrivacyMode(true);
     controlInfo.isNeedControl = true;
     sceneSession->appUseControlMap_[ControlAppType::APP_LOCK] = controlInfo;
     EXPECT_EQ(sceneSession->GetNeedUseBlurSnapshot(), true);
@@ -1107,36 +1150,77 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
 {
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
-    ASSERT_NE(session_, nullptr);
+    SessionInfo info;
+    info.screenId_ = 0;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ControlAppType type = ControlAppType::CONTROL_APP_TYPE_BEGIN;
     ControlInfo controlInfo = { .isNeedControl = false, .isControlRecentOnly = false };
-    session_->property_ = sptr<WindowSessionProperty>::MakeSptr();
-    session_->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-    session_->UpdateAppLockSnapshot(type, controlInfo);
+    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
 
-    session_->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    session_->UpdateAppLockSnapshot(type, controlInfo);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
 
     type = ControlAppType::APP_LOCK;
-    session_->isSnapshotBlur_.store(false);
-    session_->UpdateAppLockSnapshot(type, controlInfo);
+    sceneSession->isSnapshotBlur_.store(false);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
 
-    session_->state_ = SessionState::STATE_ACTIVE;
+    sceneSession->state_ = SessionState::STATE_ACTIVE;
     controlInfo.isNeedControl = true;
-    session_->UpdateAppLockSnapshot(type, controlInfo);
-    EXPECT_EQ(session_->isAppLockControl_.load(), true);
+    session_->isPersistentImageFit_ = true;
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
+
+    session_->isPersistentImageFit_ = false;
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 
     controlInfo.isNeedControl = false;
-    session_->isSnapshotBlur_.store(true);
-    session_->UpdateAppLockSnapshot(type, controlInfo);
-    EXPECT_EQ(session_->isAppLockControl_.load(), false);
+    sceneSession->isSnapshotBlur_.store(true);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
+    sceneSession->property_->SetPrivacyMode(true);
+    sceneSession->snapshotPrivacyMode_.store(true);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+
+    sceneSession->property_->SetPrivacyMode(true);
+    sceneSession->snapshotPrivacyMode_.store(false);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+
+    sceneSession->property_->SetPrivacyMode(false);
+    sceneSession->snapshotPrivacyMode_.store(true);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+
+    sceneSession->property_->SetPrivacyMode(false);
+    sceneSession->snapshotPrivacyMode_.store(false);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+}
+
+/**
+ * @tc.name: GetSnapshotPrivacyMode
+ * @tc.desc: GetSnapshotPrivacyMode Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, GetSnapshotPrivacyMode, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+
+    session_->snapshotPrivacyMode_.store(true);
     session_->state_ = SessionState::STATE_BACKGROUND;
-    session_->UpdateAppLockSnapshot(type, controlInfo);
-    EXPECT_EQ(session_->isAppLockControl_.load(), false);
+    EXPECT_EQ(session_->GetSnapshotPrivacyMode(), true);
+
+    session_->state_ = SessionState::STATE_ACTIVE;
+    EXPECT_EQ(session_->GetSnapshotPrivacyMode(), false);
 }
 
 /**
@@ -1243,15 +1327,190 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyAddOrRemoveSnapshotWindow, TestSize.Le
     info.abilityName_ = "NotifyAddOrRemoveSnapshotWindow";
     info.bundleName_ = "NotifyAddOrRemoveSnapshotWindow";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ScenePersistentStorage::InitDir("/data/Snapshot");
 
     sceneSession->NotifyAddOrRemoveSnapshotWindow(true);
     EXPECT_TRUE(g_logMsg.find("NotifyAddOrRemoveSnapshotWindow") == std::string::npos);
 
-    ScenePersistentStorage::Insert("SetImageForRecent_" + std::to_string(sceneSession->persistentId_),
-        0, ScenePersistentStorageType::MAXIMIZE_STATE);
+    sceneSession->isPersistentImageFit_ = true;
     sceneSession->NotifyAddOrRemoveSnapshotWindow(true);
     EXPECT_TRUE(g_logMsg.find("NotifyAddOrRemoveSnapshotWindow") != std::string::npos);
+}
+
+/**
+ * @tc.name: RecoverSnapshotPersistence
+ * @tc.desc: RecoverSnapshotPersistence Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, RecoverSnapshotPersistence, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 1234;
+    info.isPersistentRecover_ = false;
+    info.abilityName_ = "RecoverSnapshotPersistence";
+    info.bundleName_ = "RecoverSnapshotPersistence";
+    sptr<MainSession> pMainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    pMainSession->scenePersistence_ = nullptr;
+    pMainSession->RecoverSnapshotPersistence(info);
+
+    info.persistentId_ = 0;
+    sptr<ScenePersistence> scenePersistence =
+        sptr<ScenePersistence>::MakeSptr(info.bundleName_, pMainSession->GetPersistentId());
+    pMainSession->scenePersistence_ = scenePersistence;
+    pMainSession->ClearSnapshotPersistence();
+    usleep(WAIT_SYNC_IN_NS);
+    pMainSession->RecoverSnapshotPersistence(info);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(pMainSession->HasSnapshot(), false);
+
+    info.persistentId_ = 1111;
+    info.isPersistentRecover_ = true;
+    sptr<MainSession> pMainSession1 = sptr<MainSession>::MakeSptr(info, nullptr);
+    pMainSession1->ClearSnapshotPersistence();
+    usleep(WAIT_SYNC_IN_NS);
+    pMainSession->RecoverSnapshotPersistence(info);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(pMainSession->HasSnapshot(), false);
+
+    pMainSession1->RecoverSnapshotPersistence(info);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(pMainSession1->HasSnapshot(), false);
+
+    ScenePersistentStorage::InitDir("/data/Snapshot");
+    ScenePersistentStorage::Insert("Snapshot_RecoverSnapshotPersistence_2222",
+        0, ScenePersistentStorageType::MAXIMIZE_STATE);
+    info.persistentId_ = 2222;
+    pMainSession1->RecoverSnapshotPersistence(info);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(pMainSession1->HasSnapshot(), true);
+}
+
+/**
+ * @tc.name: ClearSnapshotPersistence
+ * @tc.desc: ClearSnapshotPersistence Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, ClearSnapshotPersistence, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 0;
+    info.isPersistentRecover_ = false;
+    info.abilityName_ = "ClearSnapshotPersistence";
+    info.bundleName_ = "ClearSnapshotPersistence";
+    sptr<MainSession> pMainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    pMainSession->scenePersistence_ = nullptr;
+    pMainSession->ClearSnapshotPersistence();
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(pMainSession->HasSnapshot(), false);
+
+    sptr<ScenePersistence> scenePersistence =
+        sptr<ScenePersistence>::MakeSptr(info.bundleName_, pMainSession->GetPersistentId());
+    pMainSession->scenePersistence_ = scenePersistence;
+    pMainSession->ClearSnapshotPersistence();
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(pMainSession->HasSnapshot(), false);
+}
+
+/**
+ * @tc.name: RenameKeys
+ * @tc.desc: RenameKeys Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, RenameKeys, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 1112;
+    info.isPersistentRecover_ = false;
+    info.abilityName_ = "RenameKeys";
+    info.bundleName_ = "RenameKeys";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    std::map<std::string, std::string> renameMap;
+    ScenePersistentStorage::RenameKeys(renameMap, ScenePersistentStorageType::MAXIMIZE_STATE);
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), false);
+
+    renameMap[""] = "SetImageForRecent_1112";
+    renameMap["SetImageForRecent_1"] = "";
+    renameMap["SetImageForRecent_2"] = "SetImageForRecent_2";
+    renameMap["SetImageForRecent_3"] = "SetImageForRecent_4";
+    renameMap["SetImageForRecent_5"] = "SetImageForRecent_1112";
+    ScenePersistentStorage::RenameKeys(renameMap, ScenePersistentStorageType::MAXIMIZE_STATE);
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), false);
+
+
+    ScenePersistentStorage::InitDir("/data/Snapshot");
+    ScenePersistentStorage::Insert("SetImageForRecent_5", 0, ScenePersistentStorageType::MAXIMIZE_STATE);
+    ScenePersistentStorage::Insert("SetImageForRecent_5", 0, ScenePersistentStorageType::ASPECT_RATIO);
+    ScenePersistentStorage::RenameKeys(renameMap, ScenePersistentStorageType::ASPECT_RATIO);
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), false);
+
+    ScenePersistentStorage::RenameKeys(renameMap, ScenePersistentStorageType::MAXIMIZE_STATE);
+    sceneSession->RecoverImageForRecent();
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), true);
+}
+
+/**
+ * @tc.name: RenameSnapshotFromOldPersistentId02
+ * @tc.desc: RenameSnapshotFromOldPersistentId Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, RenameSnapshotFromOldPersistentId02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 1113;
+    info.isPersistentRecover_ = false;
+    info.abilityName_ = "RenameSnapshotFromOldPersistentId02";
+    info.bundleName_ = "RenameSnapshotFromOldPersistentId02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(info.bundleName_, 1113);
+    sceneSession->scenePersistence_ = scenePersistence;
+    
+    sceneSession->RenameSnapshotFromOldPersistentId(11);
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), false);
+}
+
+/**
+ * @tc.name: DeletePersistentImageFit
+ * @tc.desc: DeletePersistentImageFit Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, DeletePersistentImageFit, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 2222;
+    info.abilityName_ = "DeletePersistentImageFit";
+    info.bundleName_ = "DeletePersistentImageFit";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    
+    sceneSession->isPersistentImageFit_ = true;
+    sceneSession->DeletePersistentImageFit();
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), true);
+
+    ScenePersistentStorage::InitDir("/data/Snapshot");
+    ScenePersistentStorage::Insert("SetImageForRecent_2222", 0, ScenePersistentStorageType::MAXIMIZE_STATE);
+    sceneSession->DeletePersistentImageFit();
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), false);
+}
+
+/**
+ * @tc.name: RecoverImageForRecent
+ * @tc.desc: RecoverImageForRecent Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, RecoverImageForRecent, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 2223;
+    info.isPersistentRecover_ = false;
+    info.abilityName_ = "RecoverImageForRecent";
+    info.bundleName_ = "RecoverImageForRecent";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->DeletePersistentImageFit();
+    sceneSession->RecoverImageForRecent();
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), false);
+
+    ScenePersistentStorage::InitDir("/data/Snapshot");
+    ScenePersistentStorage::Insert("SetImageForRecent_2223", 0, ScenePersistentStorageType::MAXIMIZE_STATE);
+    sceneSession->RecoverImageForRecent();
+    EXPECT_EQ(sceneSession->IsPersistentImageFit(), true);
 }
 } // namespace
 } // namespace Rosen

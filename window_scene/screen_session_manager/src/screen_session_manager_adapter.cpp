@@ -94,6 +94,39 @@ void ScreenSessionManagerAdapter::OnDisplayChange(sptr<DisplayInfo> displayInfo,
     }
 }
 
+void ScreenSessionManagerAdapter::OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo,
+    const std::vector<std::string>& attributes)
+{
+    INIT_PROXY_CHECK_RETURN();
+    if (attributes.empty()) {
+        TLOGE(WmsLogTag::DMS, "attributes is empty");
+        return;
+    }
+ 
+    std::set<sptr<IDisplayManagerAgent>> agents;
+    auto agentsMap = dmAttributeAgentContainer_.GetAttributeAgentsMap();
+    for (auto it = agentsMap.begin(); it != agentsMap.end(); ++it) {
+        if (IsAgentListenedAttributes(it->second.second, attributes)) {
+            agents.insert(it->second.first);
+        }
+    }
+ 
+    for (auto& agent : agents) {
+        agent->OnDisplayAttributeChange(displayInfo, attributes);
+    }
+}
+
+bool ScreenSessionManagerAdapter::IsAgentListenedAttributes(std::set<std::string>& listendAttributes,
+    const std::vector<std::string>& attributes)
+{
+    for (auto attribute : attributes) {
+        if (listendAttributes.find(attribute) != listendAttributes.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ScreenSessionManagerAdapter::NotifyScreenModeChange(const std::vector<sptr<ScreenInfo>> screenInfos)
 {
     INIT_PROXY_CHECK_RETURN();

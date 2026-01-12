@@ -456,9 +456,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest, NotifyForegroundInteractiveStatus, Te
     sptr<SceneSession> sceneSession;
     sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(nullptr, sceneSession);
-    int ret = 0;
     ssm_->NotifyForegroundInteractiveStatus(sceneSession, interactive);
-    ASSERT_EQ(ret, 0);
 }
 
 /**

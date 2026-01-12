@@ -32,6 +32,7 @@
 #include "input_transfer_station.h"
 #include "window_manager_hilog.h"
 #include "root_scene.h"
+#include "load_intention_event.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -125,8 +126,8 @@ void ScreenScene::RegisterInputEventListener()
                 std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::Create(INPUT_AND_VSYNC_THREAD));
         }
     }
-    if (!(DelayedSingleton<IntentionEventManager>::GetInstance()->EnableInputEventListener(uiContent_.get(),
-        handler_, this))) {
+    if (RootScene::staticRootScene_ != nullptr && LoadIntentionEvent() &&
+        !EnableInputEventListener(uiContent_.get(), handler_, this)) {
         TLOGI(WmsLogTag::DMS, "EnableInputEventListener fail");
     }
     InputTransferStation::GetInstance().MarkRegisterToMMI();

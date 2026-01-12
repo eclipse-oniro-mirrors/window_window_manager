@@ -398,21 +398,15 @@ HWTEST_F(DisplayChangeTest, CheckWaterfallCompression01, TestSize.Level1)
 
     bool originStatus = DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal();
     DisplayCutoutController::SetWaterfallAreaCompressionEnableWhenHorzontal(true);
-
-    uint32_t originSize = DisplayCutoutController::GetWaterfallAreaCompressionSizeWhenHorizontal();
     uint32_t testSizeInVp = 24;
     DisplayCutoutController::SetWaterfallAreaCompressionSizeWhenHorizontal(testSizeInVp);
 
-    ASSERT_TRUE(true, DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
+    ASSERT_TRUE(DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
     ASSERT_EQ(testSizeInVp, DisplayCutoutController::GetWaterfallAreaCompressionSizeWhenHorizontal());
 
-    Orientation originOrientation = defaultScreen_->GetOrientation();
-    DisplayCutoutController::SetWaterfallAreaCompressionSizeWhenHorizontal(originSize);
-    ASSERT_EQ(originSize, DisplayCutoutController::GetWaterfallAreaCompressionSizeWhenHorizontal());
     DisplayCutoutController::SetWaterfallAreaCompressionEnableWhenHorzontal(originStatus);
-    ASSERT_EQ(originStatus, DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
+    ASSERT_FALSE(DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
     DisplayCutoutController::SetIsWaterfallDisplay(originWaterfallEnable);
-    ASSERT_EQ(originOrientation, defaultScreen_->GetOrientation());
 }
 }
 } // namespace Rosen

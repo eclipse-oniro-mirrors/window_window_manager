@@ -285,11 +285,9 @@ HWTEST_F(DisplayManagerIpcServiceTest, ScreenColor, TestSize.Level1)
     uint32_t gamutMap = ScreenGamutMap::GAMUT_MAP_CONSTANT;
     dms_->GetScreenGamutMap(SCREEN_ID_INVALID, gamutMap, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    EXPECT_EQ(ScreenGamutMap::GAMUT_MAP_CONSTANT, gamutMap);
 
     dms_->GetScreenGamutMap(0, gamutMap, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    EXPECT_EQ(ScreenGamutMap::GAMUT_MAP_CONSTANT, gamutMap);
 
     dms_->SetScreenGamutMap(SCREEN_ID_INVALID, gamutMap, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);

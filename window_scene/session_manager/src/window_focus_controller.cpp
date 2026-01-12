@@ -14,6 +14,7 @@
  */
 
 #include "session_manager/include/window_focus_controller.h"
+#include "session_manager_agent_controller.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -88,6 +89,7 @@ WSError WindowFocusController::AddFocusGroup(DisplayGroupId displayGroupId, Disp
     if (deletedDisplayId2GroupIdMap_.find(displayId) != deletedDisplayId2GroupIdMap_.end()) {
         deletedDisplayId2GroupIdMap_.erase(displayId);
     }
+    SessionManagerAgentController::GetInstance().UpdateDisplayGroupInfo(displayGroupId, displayId, true);
     return WSError::WS_OK;
 }
 
@@ -118,6 +120,7 @@ WSError WindowFocusController::RemoveFocusGroup(DisplayGroupId displayGroupId, D
     displayId2GroupIdMap_.erase(displayId);
     deletedDisplayId2GroupIdMap_[displayId] = displayGroupId;
     LogDisplayIds();
+    SessionManagerAgentController::GetInstance().UpdateDisplayGroupInfo(displayGroupId, displayId, false);
     return WSError::WS_OK;
 }
 // LCOV_EXCL_STOP
@@ -173,6 +176,18 @@ std::vector<std::pair<DisplayId, int32_t>> WindowFocusController::GetAllFocusedS
         allFocusGroup.emplace_back(std::make_pair(elem.first, curFocusGroup->GetFocusedSessionId()));
     }
     return allFocusGroup;
+}
+
+std::unordered_map<DisplayId, DisplayGroupId> WindowFocusController::GetDisplayId2GroupIdMap()
+{
+    std::lock_guard<std::mutex> lock(displayId2GroupIdMapMutex_);
+    return displayId2GroupIdMap_;
+}
+
+void WindowFocusController::GetAllFocusGroup(std::unordered_map<DisplayGroupId, sptr<FocusGroup>>& focusGroupMap)
+{
+    std::lock_guard<std::mutex> lock(focusGroupMapMutex_);
+    focusGroupMap = focusGroupMap_;
 }
 
 // LCOV_EXCL_START

@@ -214,6 +214,87 @@ void DisplayAniListener::OnChange(DisplayId id)
             AppExecFwk::EventQueue::Priority::IMMEDIATE);
     }
 }
+
+void DisplayAniListener::OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attributes)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin, displayId: %{public}" PRIu64, displayId);
+    auto thisListener = weakRef_.promote();
+    if (thisListener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] this listener is nullptr");
+        return;
+    }
+ 
+    std::lock_guard<std::mutex> lock(aniCallbackMtx_);
+    TLOGD(WmsLogTag::DMS, "called, displayId: %{public}d", static_cast<uint32_t>(displayId));
+    if (aniCallback_.empty()) {
+        TLOGE(WmsLogTag::DMS, "[ANI] OnChange not register!");
+        return;
+    }
+    if (attributes.empty()) {
+        TLOGE(WmsLogTag::DMS, "[ANI] attributes are empty!");
+        return;
+    }
+    if (env_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] null env");
+        return;
+    }
+
+    auto task = [env = env_, attributes, displayId, this] {
+        ProcessAttributeCallbacks(env, attributes, displayId);
+    };
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::DMS, "[ANI] get main event handler failed!");
+        return;
+    }
+    eventHandler_->PostTask(std::move(task), "dms:AniDisplayListener::AttributeChangeCallBack", 0,
+        AppExecFwk::EventQueue::Priority::IMMEDIATE);
+}
+
+void DisplayAniListener::ProcessAttributeCallbacks(ani_env* env, const std::vector<std::string>& attributes,
+    DisplayId displayId)
+{
+    std::vector<ani_ref> callbacks;
+    for (auto attribute : attributes) {
+        if (aniCallback_.find(attribute) == aniCallback_.end()) {
+            TLOGD(WmsLogTag::DMS, "current listener dose not listen: %{public}s, continue", attribute.c_str());
+            continue;
+        }
+        for (auto& callback : aniCallback_[attribute]) {
+            ani_boolean undefRes = 0;
+            env->Reference_IsUndefined(callback, &undefRes);
+            if (!undefRes) {
+                callbacks.push_back(callback);
+            }
+        }
+    }
+    RemoveDuplicateMethods(env, callbacks);
+    for (auto callback : callbacks) {
+        DisplayAniUtils::CallAniFunctionVoid(env, "L@ohos/display/display;", "displayEventCallBack",
+            nullptr, callback, static_cast<ani_long>(displayId));
+    }
+}
+
+void DisplayAniListener::RemoveDuplicateMethods(ani_env* env, std::vector<ani_ref>& callbacks)
+{
+    std::vector<ani_ref> uniqueMethods;
+    
+    for (auto& currentMethod : callbacks) {
+        if (!currentMethod) continue;
+        
+        ani_boolean isDuplicate = false;
+        for (const auto& existingMethod : uniqueMethods) {
+            env->Reference_StrictEquals(currentMethod, existingMethod, &isDuplicate);
+            if (isDuplicate) {
+                break;
+            }
+        }
+        if (!isDuplicate) {
+            uniqueMethods.push_back(std::move(currentMethod));
+        }
+    }
+    callbacks = std::move(uniqueMethods);
+}
+
 void DisplayAniListener::OnPrivateWindow(bool hasPrivate)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] called, hasPrivate: %{public}u",
@@ -422,7 +503,7 @@ void DisplayAniListener::OnAvailableAreaChanged(DMRect area)
                     return;
                 }
                 DisplayAniUtils::ConvertRect(area, rectObj, env);
-                DisplayAniUtils::CallAniFunctionVoid(env, "L@ohos/display/display;", "availableAreaChangedCallback",
+                DisplayAniUtils::CallAniFunctionVoid(env, "@ohos.display.display", "availableAreaChangedCallback",
                     nullptr, oneAniCallback, rectObj);
             };
             if (!eventHandler_) {
@@ -483,7 +564,7 @@ void DisplayAniListener::OnBrightnessInfoChanged(DisplayId id, const ScreenBrigh
         auto task = [env = env_, oneAniCallback, id, screenBrightness = brightnessInfo] () {
             ani_object obj = DisplayAniUtils::CreateBrightnessInfoObject(env);
             DisplayAniUtils::CvtBrightnessInfo(env, obj, screenBrightness);
-            DisplayAniUtils::CallAniFunctionVoid(env, "L@ohos/display/display;", "brightnessInfoChangeCallback",
+            DisplayAniUtils::CallAniFunctionVoid(env, "@ohos.display.display", "brightnessInfoChangeCallback",
                 nullptr, oneAniCallback, id, obj);
         };
         if (!eventHandler_) {

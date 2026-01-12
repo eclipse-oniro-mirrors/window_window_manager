@@ -64,9 +64,9 @@ export function makeMirror(mainScreen: long, mirrorScreen: Array<long>, callback
     taskpool.execute((): long => {
         let res: long = makeMirrorInternal(mainScreen, mirrorScreen);
         return res;
-    }).then((ret: NullishType) => {
+    }).then((ret: Any) => {
         callback(null, ret as long);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, -1);
     });
 }
@@ -76,9 +76,9 @@ export function makeMirror(mainScreen: long, mirrorScreen: Array<long>): Promise
         taskpool.execute((): long => {
             let res: long = makeMirrorInternal(mainScreen, mirrorScreen);
             return res;
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as long);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     })
@@ -95,9 +95,9 @@ export function getAllScreens(callback: AsyncCallback<Array<Screen>>): void {
         getAllScreensInternal(screens);
         minusScreens(screens);
         return screens;
-    }).then((ret: NullishType) => {
+    }).then((ret: Any) => {
         callback(null, ret as Array<Screen>);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, new Array<Screen>());
     });
 }
@@ -113,9 +113,9 @@ export function getAllScreens(): Promise<Array<Screen>> {
                 getAllScreensInternal(screens);
                 minusScreens(screens);
                 return screens;
-            }).then((ret: NullishType) => {
+            }).then((ret: Any) => {
                 resolve(ret as Array<Screen>);
-            }).catch((err: NullishType) => {
+            }).catch((err: Any) => {
                 reject(err as BusinessError);
             });
         }
@@ -150,9 +150,9 @@ export function createVirtualScreen(options: VirtualScreenOption, callback: Asyn
         let screen = new ScreenImpl();
         createVirtualScreenInternal(options, screen);
         return screen;
-    }).then((ret: NullishType) => {
+    }).then((ret: Any) => {
         callback(null, ret as Screen);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -163,9 +163,9 @@ export function createVirtualScreen(options: VirtualScreenOption): Promise<Scree
             let screen = new ScreenImpl();
             createVirtualScreenInternal(options, screen);
             return screen;
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as Screen);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -176,7 +176,7 @@ export function setVirtualScreenSurface(screenId: long, surfaceId: string, callb
         setVirtualScreenSurfaceInternal(screenId, surfaceId);
     }).then(() => {
         callback(null, undefined);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -187,7 +187,7 @@ export function setVirtualScreenSurface(screenId: long, surfaceId: string): Prom
             setVirtualScreenSurfaceInternal(screenId, surfaceId);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -198,7 +198,7 @@ export function destroyVirtualScreen(screenId: long, callback: AsyncCallback<voi
         destroyVirtualScreenInternal(screenId);
     }).then(() => {
         callback(null, undefined);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -209,7 +209,7 @@ export function destroyVirtualScreen(screenId: long): Promise<void> {
             destroyVirtualScreenInternal(screenId);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -218,9 +218,9 @@ export function destroyVirtualScreen(screenId: long): Promise<void> {
 export function isScreenRotationLocked(callback: AsyncCallback<boolean>): void {
     taskpool.execute((): boolean => {
         return isScreenRotationLockedInternal();
-    }).then((ret: NullishType) => {
+    }).then((ret: Any) => {
         callback(null, ret as boolean);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -229,9 +229,9 @@ export function isScreenRotationLocked(): Promise<boolean> {
     return new Promise<boolean>((resolve: (value: boolean) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): boolean => {
             return isScreenRotationLockedInternal();
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as boolean);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -242,7 +242,7 @@ export function setScreenRotationLocked(isLocked: boolean, callback: AsyncCallba
         setScreenRotationLockedInternal(isLocked);
     }).then(() => {
         callback(null, undefined);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -253,7 +253,7 @@ export function setScreenRotationLocked(isLocked: boolean): Promise<void> {
             setScreenRotationLockedInternal(isLocked);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -266,7 +266,7 @@ export function setMultiScreenRelativePosition(mainScreenOptions: MultiScreenPos
             setMultiScreenRelativePositionInternal(mainScreenOptions, secondaryScreenOptions);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -279,7 +279,7 @@ export function setMultiScreenMode(primaryScreenId: long, secondaryScreenId: lon
             setMultiScreenModeInternal(primaryScreenId, secondaryScreenId, secondaryScreenMode);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -291,7 +291,7 @@ export function setScreenPrivacyMaskImage(screenId: long, image?: image.PixelMap
             setScreenPrivacyMaskImageInternal(screenId, image);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -302,9 +302,9 @@ export function makeUnique(uniqueScreen: Array<long>): Promise<Array<long>> {
         reject: (error: BusinessError) => void ) => {
         taskpool.execute((): Array<long> => {
             return makeUniqueInternal(uniqueScreen);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as Array<long>);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -315,9 +315,9 @@ export function makeMirrorWithRegion(mainScreen: long, mirrorScreen: Array<long>
     return new Promise<long>((resolve: (value: long) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): long => {
             return makeMirrorWithRegionInternal(mainScreen, mirrorScreen, mainScreenRegion);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as long);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     })
@@ -328,7 +328,7 @@ export function stopMirror(mirrorScreen: Array<long>, callback: AsyncCallback<vo
         stopMirrorInternal(mirrorScreen);
     }).then(() => {
         callback(null, undefined);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -339,7 +339,7 @@ export function stopMirror(mirrorScreen: Array<long>): Promise<void> {
             stopMirrorInternal(mirrorScreen);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -348,9 +348,9 @@ export function stopMirror(mirrorScreen: Array<long>): Promise<void> {
 export function makeExpand(options: Array<ExpandOption>, callback: AsyncCallback<long>): void {
     taskpool.execute((): long => {
         return makeExpandInternal(options);
-    }).then((ret: NullishType) => {
+    }).then((ret: Any) => {
         callback(null, ret as long);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -359,9 +359,9 @@ export function makeExpand(options: Array<ExpandOption>): Promise<long> {
     return new Promise<long>((resolve: (value: long) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): long => {
             return makeExpandInternal(options);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as long);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -372,7 +372,7 @@ export function stopExpand(expandScreen: Array<long>, callback: AsyncCallback<vo
         stopExpandInternal(expandScreen);
     }).then(() => {
         callback(null, undefined);
-    }).catch((err: NullishType) => {
+    }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
 }
@@ -383,7 +383,7 @@ export function stopExpand(expandScreen: Array<long>): Promise<void> {
             stopExpandInternal(expandScreen);
         }).then(() => {
             resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -465,7 +465,7 @@ class ScreenImpl implements Screen {
             this.setDensityDpiInternal(densityDpi);
         }).then(() => {
             callback(null, undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             callback(err as BusinessError, undefined);
         });
     }
@@ -476,7 +476,7 @@ class ScreenImpl implements Screen {
                 this.setDensityDpiInternal(densityDpi);
             }).then(() => {
                 resolve(undefined);
-            }).catch((err: NullishType) => {
+            }).catch((err: Any) => {
                 reject(err as BusinessError);
             });
         });
@@ -505,7 +505,7 @@ class ScreenImpl implements Screen {
             this.setScreenActiveModeInternal(modeIndex);
         }).then(() => {
             callback(null, undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             callback(err as BusinessError, undefined);
         });
     }
@@ -517,7 +517,7 @@ class ScreenImpl implements Screen {
                 this.setScreenActiveModeInternal(modeIndex);
             }).then(() => {
                 resolve(undefined);
-            }).catch((err: NullishType) => {
+            }).catch((err: Any) => {
                 reject(err as BusinessError);
             });
         });
@@ -528,7 +528,7 @@ class ScreenImpl implements Screen {
             this.setOrientationInternal(orientation);
         }).then(() => {
             callback(null, undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             callback(err as BusinessError, undefined);
         });
     }
@@ -540,7 +540,7 @@ class ScreenImpl implements Screen {
                 this.setOrientationInternal(orientation);
             }).then(() => {
                 resolve(undefined);
-            }).catch((err: NullishType) => {
+            }).catch((err: Any) => {
                 reject(err as BusinessError);
             });
         });
@@ -627,6 +627,8 @@ export interface VirtualScreenOption {
     density: double;
 
     surfaceId: string;
+
+    supportsFocus?: boolean;
 }
 
 class VirtualScreenOptionImpl implements VirtualScreenOption {
@@ -639,6 +641,8 @@ class VirtualScreenOptionImpl implements VirtualScreenOption {
     density: double;
 
     surfaceId: string;
+
+    supportsFocus?: boolean;
 }
 
 export interface Rect {

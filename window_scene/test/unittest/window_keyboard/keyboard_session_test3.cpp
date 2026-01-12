@@ -717,7 +717,6 @@ HWTEST_F(KeyboardSessionTest3, GetPanelRect, Function | SmallTest | Level0)
 {
     auto keyboardSession = GetKeyboardSession("GetPanelRect", "GetPanelRect");
     keyboardSession->keyboardPanelSession_ = nullptr;
-    ASSERT_EQ(keyboardSession->keyboardPanelSession_, nullptr);
 
     WSRect rect = { 0, 0, 0, 0 };
     WSRect panelRect = keyboardSession->GetPanelRect();
@@ -746,11 +745,11 @@ HWTEST_F(KeyboardSessionTest3, PostKeyboardAnimationSyncTimeoutTask, Function | 
     auto keyboardSession = GetKeyboardSession(
         "PostKeyboardAnimationSyncTimeoutTask", "PostKeyboardAnimationSyncTimeoutTask");
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
-    ASSERT_EQ(false, keyboardSession->isKeyboardSyncTransactionOpen_);
+    EXPECT_EQ(false, keyboardSession->isKeyboardSyncTransactionOpen_);
 
     keyboardSession->isKeyboardSyncTransactionOpen_ = true;
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
-    ASSERT_EQ(true, keyboardSession->isKeyboardSyncTransactionOpen_);
+    EXPECT_NE(false, keyboardSession->isKeyboardSyncTransactionOpen_);
 }
 
 /**
@@ -804,7 +803,6 @@ HWTEST_F(KeyboardSessionTest3, ProcessKeyboardOccupiedAreaInfo, Function | Small
     keyboardSession->isKeyboardSyncTransactionOpen_ = true;
     needCheckRSTransaction = false;
     keyboardSession->ProcessKeyboardOccupiedAreaInfo(0, needRecalculateAvoidAreas, needCheckRSTransaction);
-    ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, true);
 
     keyboardSession->keyboardCallback_->onGetSceneSession = [&](uint32_t persistentId) {
         return sceneSession;

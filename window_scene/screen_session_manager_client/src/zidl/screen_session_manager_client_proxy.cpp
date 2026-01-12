@@ -41,6 +41,33 @@ void ScreenSessionManagerClientProxy::OnScreenConnectionChanged(SessionOption Se
     }
 }
 
+void ScreenSessionManagerClientProxy::OnTentModeChange(TentMode tentMode)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(tentMode))) {
+        TLOGE(WmsLogTag::DMS, "Write tentMode failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_TENT_MODE_CHANGE),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+}
+
 bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(const SessionOption& sessionOption,
     ScreenEvent screenEvent, MessageParcel& data)
 {

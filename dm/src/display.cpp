@@ -234,6 +234,12 @@ sptr<CutoutInfo> Display::GetCutoutInfo() const
                                                                           GetHeight(), GetOriginRotation());
 }
 
+DMError Display::GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner) const
+{
+    return SingletonContainer::Get<DisplayManagerAdapter>().GetRoundedCorner(roundedCorner,
+        GetId(), GetWidth(), GetHeight());
+}
+
 DMError Display::HasImmersiveWindow(bool& immersive)
 {
     return SingletonContainer::Get<DisplayManagerAdapter>().HasImmersiveWindow(GetScreenId(), immersive);

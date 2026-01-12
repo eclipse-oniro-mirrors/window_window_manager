@@ -50,6 +50,25 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
             UpdateFocusChangeInfo(info, focused);
             break;
         }
+        case WindowManagerAgentMsg::TRANS_ID_NOTIFY_DISPLAY_GROUP_INFO_CHANGE: {
+            DisplayGroupId displayGroupId = DISPLAY_GROUP_ID_INVALID;
+            if (!data.ReadUint64(displayGroupId)) {
+                TLOGE(WmsLogTag::WMS_FOCUS, "read displayGroupId failed");
+                return ERR_INVALID_DATA;
+            }
+            DisplayId displayId = DISPLAY_ID_INVALID;
+            if (!data.ReadUint64(displayId)) {
+                TLOGE(WmsLogTag::WMS_FOCUS, "read displayId failed");
+                return ERR_INVALID_DATA;
+            }
+            bool isAdd = true;
+            if (!data.ReadBool(isAdd)) {
+                TLOGE(WmsLogTag::WMS_FOCUS, "read isAdd failed");
+                return ERR_INVALID_DATA;
+            }
+            UpdateDisplayGroupInfo(displayGroupId, displayId, isAdd);
+            break;
+        }
         case WindowManagerAgentMsg::TRANS_ID_NOTIFY_WINDOW_SYSTEM_BAR_PROPERTY_CHANGE: {
             // LCOV_EXCL_START
             uint32_t type = 0;
@@ -252,7 +271,7 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
                 return ERR_INVALID_DATA;
             }
 
-            std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+            WindowInfoList windowInfoList;
             if (!ReadWindowInfoList(data, windowInfoList)) {
                 TLOGE(WmsLogTag::WMS_ATTRIBUTE, "fail to read windowInfoList.");
                 return ERR_INVALID_DATA;
@@ -277,8 +296,7 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
 }
 
 // LCOV_EXCL_START
-bool WindowManagerAgentStub::ReadWindowInfoList(MessageParcel& data,
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList)
+bool WindowManagerAgentStub::ReadWindowInfoList(MessageParcel& data, WindowInfoList& windowInfoList)
 {
     uint32_t windowInfoListLength = 0;
     if (!data.ReadUint32(windowInfoListLength)) {

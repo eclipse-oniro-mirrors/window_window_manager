@@ -378,7 +378,7 @@ std::string SessionPermission::GetCallingBundleName()
 }
 
 bool SessionPermission::VerifyPermissionByBundleName(
-    const std::string& permissionName, const std::string& bundleName, uint32_t userId)
+    const std::string& bundleName, const std::string& permissionName, uint32_t userId)
 {
     auto bundleManagerServiceProxy = GetBundleManagerProxy();
     if (!bundleManagerServiceProxy) {

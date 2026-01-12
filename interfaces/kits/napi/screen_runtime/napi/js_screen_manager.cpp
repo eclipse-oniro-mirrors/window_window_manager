@@ -546,6 +546,9 @@ napi_value OnSetMultiScreenMode(napi_env env, napi_callback_info info)
     if (!ConvertFromJsValue(env, argv[INDEX_ONE], secondaryScreenId)) {
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter to int");
     }
+    if (mainScreenId < 0 || secondaryScreenId < 0) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "ScreenId cannot be a negative number");
+    }
     MultiScreenMode screenMode;
     if (!ConvertFromJsValue(env, argv[INDEX_TWO], screenMode)) {
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter");
@@ -850,7 +853,7 @@ static int32_t GetMultiScreenPositionOptionsFromJs(napi_env env, napi_value opti
     napi_value screedIdValue = nullptr;
     napi_value startXValue = nullptr;
     napi_value startYValue = nullptr;
-    uint32_t screenId;
+    int64_t screenId;
     uint32_t startX;
     uint32_t startY;
     napi_get_named_property(env, optionObject, "id", &screedIdValue);
@@ -858,6 +861,10 @@ static int32_t GetMultiScreenPositionOptionsFromJs(napi_env env, napi_value opti
     napi_get_named_property(env, optionObject, "startY", &startYValue);
     if (!ConvertFromJsValue(env, screedIdValue, screenId)) {
         TLOGE(WmsLogTag::DMS, "Failed to convert screedIdValue to callbackType");
+        return -1;
+    }
+    if (screenId < 0) {
+        TLOGE(WmsLogTag::DMS, "Failed to convert,screenIdValue must be non-negative number");
         return -1;
     }
     if (!ConvertFromJsValue(env, startXValue, startX)) {

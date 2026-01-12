@@ -67,6 +67,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUnregisterWindowPropertyChangeAgent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_FOCUS_SESSION_INFO):
             return HandleGetFocusSessionInfo(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_FOCUS_SESSION_INFO_BY_ABILITY_TOKEN):
+            return HandleGetFocusWindowInfoByAbilityToken(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SESSION_LABEL):
             return HandleSetSessionLabel(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SESSION_ICON):
@@ -117,6 +119,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetSessionSnapshotById(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_UI_CONTENT_REMOTE_OBJ):
             return HandleGetUIContentRemoteObj(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_ROOT_UI_CONTENT_REMOTE_OBJ):
+            return HandleGetRootUIContentRemoteObj(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_BIND_DIALOG_TARGET):
             return HandleBindDialogTarget(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_NOTIFY_DUMP_INFO_RESULT):
@@ -272,6 +276,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleRemoveSessionBlackList(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_SWITCH_STATUS):
             return HandleGetPiPSettingSwitchStatus(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_IS_PIP_ENABLED):
+            return HandleGetIsPipEnabled(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RECOVER_WINDOW_PROPERTY_CHANGE_FLAG):
             return HandleRecoverWindowPropertyChangeFlag(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_ALL_WINDOW):
@@ -282,6 +288,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleSetSpecificWindowZIndex(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SUPPORT_ROTATION_REGISTERED):
             return HandleNotifySupportRotationRegistered(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RESET_SPECIFIC_WINDOW_ZINDEX):
+            return HandleResetSpecificWindowZIndex(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -629,6 +637,20 @@ int SceneSessionManagerStub::HandleGetFocusSessionInfo(MessageParcel& data, Mess
         return ERR_INVALID_DATA;
     }
     GetFocusWindowInfo(focusInfo, displayId);
+    reply.WriteParcelable(&focusInfo);
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetFocusWindowInfoByAbilityToken(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "Run");
+    sptr<IRemoteObject> abilityToken = data.ReadRemoteObject();
+    if (!abilityToken) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "AbilityToken is null.");
+        return ERR_INVALID_DATA;
+    }
+    FocusChangeInfo focusInfo;
+    GetFocusWindowInfoByAbilityToken(focusInfo, abilityToken);
     reply.WriteParcelable(&focusInfo);
     return ERR_NONE;
 }
@@ -1065,6 +1087,30 @@ int SceneSessionManagerStub::HandleGetUIContentRemoteObj(MessageParcel& data, Me
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleGetRootUIContentRemoteObj(MessageParcel& data, MessageParcel& reply)
+{
+    DisplayId displayId = 0;
+    if (!data.ReadUint64(displayId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read displayId failed");
+        return ERR_INVALID_DATA;
+    }
+    sptr<IRemoteObject> uiContentRemoteObj;
+    auto errCode = GetRootUIContentRemoteObj(displayId, uiContentRemoteObj);
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get uiContent failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteRemoteObject(uiContentRemoteObj)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write remote object failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleBindDialogTarget(MessageParcel& data, MessageParcel& reply)
 {
     WLOGFI("run HandleBindDialogTarget!");
@@ -1271,7 +1317,7 @@ int SceneSessionManagerStub::HandleGetTopWindowId(MessageParcel& data, MessagePa
         TLOGE(WmsLogTag::WMS_HIERARCHY, "read mainWinId failed");
         return ERR_INVALID_DATA;
     }
-    uint32_t topWinId;
+    uint32_t topWinId = 0;
     WMError ret = GetTopWindowId(mainWinId, topWinId);
     reply.WriteUint32(topWinId);
     reply.WriteUint32(static_cast<uint32_t>(ret));
@@ -2413,7 +2459,12 @@ int SceneSessionManagerStub::HandleMinimizeAllAppWindows(MessageParcel& data, Me
         TLOGE(WmsLogTag::WMS_LIFE, "Read displayId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = MinimizeAllAppWindows(displayId);
+    int32_t excludeWindowId = 0;
+    if (!data.ReadInt32(excludeWindowId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read excludeWindowId failed.");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = MinimizeAllAppWindows(displayId, excludeWindowId);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write errCode failed.");
         return ERR_INVALID_DATA;
@@ -2625,6 +2676,21 @@ int SceneSessionManagerStub::HandleGetPiPSettingSwitchStatus(MessageParcel& data
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply)
+{
+    bool isPipEnabled = false;
+    WMError errCode = GetIsPipEnabled(isPipEnabled);
+    if (!reply.WriteBool(isPipEnabled)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write isPipEnabled fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleUpdateOutline(MessageParcel& data, MessageParcel& reply)
 {
     sptr<IRemoteObject> remoteObject = data.ReadRemoteObject();
@@ -2700,6 +2766,22 @@ int SceneSessionManagerStub::HandleSetSpecificWindowZIndex(MessageParcel& data, 
         return ERR_INVALID_DATA;
     }
     WSError ret = SetSpecificWindowZIndex(windowType, zIndex);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Write errCode fail");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleResetSpecificWindowZIndex(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGI(WmsLogTag::WMS_FOCUS, "in");
+    int32_t pid = 0;
+    if (!data.ReadInt32(pid)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Read pid fail");
+        return ERR_INVALID_DATA;
+    }
+    WSError ret = ResetSpecificWindowZIndex(pid);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_FOCUS, "Write errCode fail");
         return ERR_INVALID_DATA;

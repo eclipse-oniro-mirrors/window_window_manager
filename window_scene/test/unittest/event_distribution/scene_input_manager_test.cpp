@@ -977,6 +977,27 @@ HWTEST_F(SceneInputManagerTest, CheckNeedUpdateForDisplayInfos, TestSize.Level1)
     ASSERT_TRUE(SceneInputManager::GetInstance().CheckNeedUpdate(screenInfos, displayInfos, windowInfoList));
     ASSERT_FALSE(SceneInputManager::GetInstance().CheckNeedUpdate(screenInfos, displayInfos, windowInfoList));
 }
+
+/**
+ * @tc.name: UpdateHotAreas
+ * @tc.desc: UpdateHotAreas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, UpdateHotAreas, TestSize.Level1)
+{
+    std::vector<MMI::Rect> touchHotAreas(0);
+    std::vector<MMI::Rect> pointerHotAreas(0);
+    SessionInfo sessionInfo;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    std::vector<OHOS::Rosen::Rect> touchHotAreasInSceneSession(0);
+    sceneSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
+    sceneSession->GetSessionProperty()->type_ = WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT;
+    touchHotAreas.clear();
+    pointerHotAreas.clear();
+    sceneSession->GetSessionProperty()->SetDisplayId(-100);
+    SceneInputManager::GetInstance().UpdateHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
+    ASSERT_EQ(touchHotAreas.size(), 1);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

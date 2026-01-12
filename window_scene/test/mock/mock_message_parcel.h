@@ -47,6 +47,7 @@ public:
     static void SetWriteParcelableErrorCount(int count);
     static void SetWriteUint32ErrorCount(int count);
     static void AddInt32Cache(int32_t value);
+    static void SetWriteUint64VectorErrorFlag(bool flag);
 };
 }
 }

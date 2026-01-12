@@ -64,6 +64,7 @@ public:
     ErrCode RegisterSMSRecoverListener(const sptr<IRemoteObject>& listener, int32_t userId, bool isLite) override;
     ErrCode UnregisterSMSRecoverListener(int32_t userId, bool isLite) override;
     void UnregisterSMSRecoverListenerInner(int32_t clientUserId, DisplayId displayId, int32_t pid, bool isLite);
+    void ResetSpecificWindowZIndex(int32_t clientUserId, int32_t pid);
 
     /*
      * Window Snapshot

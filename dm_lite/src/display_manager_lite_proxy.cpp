@@ -734,6 +734,34 @@ ScreenPowerState DisplayManagerLiteProxy::GetScreenPower()
 #endif
 }
 
+void DisplayManagerLiteProxy::SyncScreenPowerState(ScreenPowerState state)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(state))) {
+        TLOGE(WmsLogTag::DMS, "Write power state failed");
+        return;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SYNC_SCREEN_POWER_STATE),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "Sync power state success");
+#endif
+}
+
 bool DisplayManagerLiteProxy::SetDisplayState(DisplayState state)
 {
 #ifdef SCENE_BOARD_ENABLED
@@ -1036,6 +1064,34 @@ DMError DisplayManagerLiteProxy::SetSystemKeyboardStatus(bool isTpKeyboardOn)
 #else
     return DMError::DM_ERROR_UNKNOWN;
 #endif
+}
+
+bool DisplayManagerLiteProxy::IsOnboardDisplay(DisplayId displayId)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return false;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "write interface token failed");
+        return false;
+    }
+    if (!data.WriteUint64(displayId)) {
+        TLOGE(WmsLogTag::DMS, "write displayId failed");
+        return false;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_IS_ON_BOARD_DISPLAY),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "send request failed");
+        return false;
+    }
+    bool res = reply.ReadBool();
+    TLOGI(WmsLogTag::DMS, "res %{public}s", res ? "true" : "false");
+    return res;
 }
 
 sptr<ScreenInfo> DisplayManagerLiteProxy::GetScreenInfoById(ScreenId screenId)

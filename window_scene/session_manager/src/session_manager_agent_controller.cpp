@@ -111,6 +111,21 @@ void SessionManagerAgentController::UpdateFocusChangeInfo(const sptr<FocusChange
     }
 }
 
+void SessionManagerAgentController::UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId,
+                                                           bool isAdd)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "in");
+    for (auto& agent : smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO)) {
+        if (agent != nullptr) {
+            TLOGD(WmsLogTag::WMS_FOCUS, "Get agent for display group notification success");
+            agent->UpdateDisplayGroupInfo(displayGroupId, displayId, isAdd);
+        } else {
+            TLOGW(WmsLogTag::WMS_FOCUS, "agent is invalid");
+        }
+    }
+}
+
 void SessionManagerAgentController::UpdateWindowModeTypeInfo(WindowModeType type)
 {
     TLOGD(WmsLogTag::WMS_MAIN, "SessionManagerAgentController UpdateWindowModeTypeInfo type: %{public}d",
@@ -289,8 +304,8 @@ void SessionManagerAgentController::NotifyWindowSystemBarPropertyChange(
     }
 }
 
-void SessionManagerAgentController::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-    const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList)
+void SessionManagerAgentController::NotifyWindowPropertyChange(
+    uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
     for (const auto& agent : smAgentContainer_.GetAgentsByType(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY)) {

@@ -2055,6 +2055,23 @@ HWTEST_F(SceneSessionTest4, SetPipParentWindowIdTest, Function | SmallTest | Lev
 }
 
 /**
+ * @tc.name: IsPiPActiveTest
+ * @tc.desc: IsPiPActive function test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, IsPiPActiveTest, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsPiPActive";
+    info.bundleName_ = "IsPiPActive";
+    sptr<SceneSession> sceneSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    sceneSession->pipActiveStatus_.store(true);
+    bool status = false;
+    ASSERT_EQ(sceneSession->IsPiPActive(status), WMError::WM_OK);
+    ASSERT_EQ(status, true);
+}
+
+/**
  * @tc.name: UpdatePiPTemplateInfoTest
  * @tc.desc: UpdatePiPTemplateInfo function test
  * @tc.type: FUNC

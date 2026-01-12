@@ -43,6 +43,7 @@ ohos_shared_library("window_scene_common") {
     "src/task_scheduler.cpp",
     "src/dms_task_scheduler.cpp",
     "src/window_session_property.cpp",
+    "src/ws_common.cpp",
   ]
 
   public_configs = [ ":window_scene_common_public_config" ]

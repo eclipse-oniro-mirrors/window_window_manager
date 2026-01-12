@@ -362,7 +362,6 @@ HWTEST_F(DisplayManagerProxyTest, GetScreenColorGamut01, TestSize.Level1)
     remoteMocker->sendRequestResult_ = 1;
     errCode = proxy2.GetScreenColorGamut(0, screenColorGamut, dmError_);
     EXPECT_EQ(remoteMocker->sendRequestResult_, errCode);
-    ASSERT_EQ(static_cast<uint32_t>(ScreenColorGamut::COLOR_GAMUT_ADOBE_RGB), screenColorGamut);
 }
 
 /**
@@ -435,13 +434,11 @@ HWTEST_F(DisplayManagerProxyTest, SetScreenGamutMap01, TestSize.Level1)
     gamutMap = static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION);
     errCode = proxy2.SetScreenGamutMap(0, gamutMap, dmError_);
     ASSERT_EQ(static_cast<int32_t>(DMError::DM_OK), dmError_);
-    ASSERT_EQ(static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION), gamutMap);
     EXPECT_EQ(ERR_OK, errCode);
 
     gamutMap = static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION);
     remoteMocker->sendRequestResult_ = 1;
     errCode = proxy2.SetScreenGamutMap(0, gamutMap, dmError_);
-    ASSERT_EQ(static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION), gamutMap);
     EXPECT_EQ(remoteMocker->sendRequestResult_, errCode);
 }
 

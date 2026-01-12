@@ -373,60 +373,6 @@ HWTEST_F(KeyboardSessionTest2, AdjustKeyboardLayout05, Function | SmallTest | Le
 }
 
 /**
- * @tc.name: HandleMoveDragSurfaceNode01
- * @tc.desc: HandleMoveDragSurfaceNode test
- * @tc.type: FUNC
- */
-HWTEST_F(KeyboardSessionTest2, HandleMoveDragSurfaceNode01, Function | SmallTest | Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(KeyboardSessionTest2Callback);
-    sptr<KeyboardSession> keyboardSession =
-        GetKeyboardSession("HandleMoveDragSurfaceNode01", "HandleMoveDragSurfaceNode01");
-    ASSERT_NE(keyboardSession, nullptr);
-
-    ScreenSessionManagerClient::GetInstance().RegisterScreenConnectionListener(this);
-    SessionOption option = {
-        .rsId_ = 0,
-        .isExtend_ = false,
-        .screenId_ = 0,
-    };
-    ScreenEvent screenEvent = ScreenEvent::CONNECTED;
-    ScreenSessionManagerClient::GetInstance().OnScreenConnectionChanged(option, screenEvent);
-
-    sptr<MoveDragController> moveDragController = keyboardSession->GetMoveDragController();
-    ASSERT_NE(moveDragController, nullptr);
-    WSRect rect = { 0, 0, 200, 200 };
-    moveDragController->SetTargetRect(rect);
-    keyboardSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_MOVE);
-    EXPECT_TRUE(g_logMsg.find("keyboardPanelSession_ is null") != std::string::npos);
-
-    moveDragController->ResetCrossMoveDragProperty();
-    moveDragController->SetTargetRect(rect);
-    SessionInfo info;
-    info.abilityName_ = "HandleMoveDragSurfaceNode01";
-    info.bundleName_ = "HandleMoveDragSurfaceNode01";
-    sptr<SceneSession> panelSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(panelSession, nullptr);
-    keyboardSession->BindKeyboardPanelSession(panelSession);
-    keyboardSession->SetFindScenePanelRsNodeByZOrderFunc(
-        [this](uint64_t screenId, uint32_t targetZOrder) { return CreateRSSurfaceNode(); });
-    keyboardSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_MOVE);
-    EXPECT_TRUE(g_logMsg.find("keyboardPanelSurfaceNode is null") != std::string::npos);
-
-    moveDragController->ResetCrossMoveDragProperty();
-    moveDragController->SetTargetRect(rect);
-    struct RSSurfaceNodeConfig config;
-    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
-    panelSession->SetSurfaceNode(surfaceNode);
-    keyboardSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_MOVE);
-    EXPECT_TRUE(g_logMsg.find("Add widow") != std::string::npos);
-
-    keyboardSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_END);
-    EXPECT_TRUE(g_logMsg.find("Remove window") != std::string::npos);
-}
-
-/**
  * @tc.name: CheckIfNeedRaiseCallingSession
  * @tc.desc: CheckIfNeedRaiseCallingSession
  * @tc.type: FUNC

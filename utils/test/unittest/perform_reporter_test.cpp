@@ -488,15 +488,15 @@ HWTEST_F(PerformReporterTest, ReportEventDispatchException, TestSize.Level1)
 HWTEST_F(PerformReporterTest, ReportWindowProfileInfo017, TestSize.Level1)
 {
     int32_t res = 0;
-    WindowProfileInfo windowProfileInfo;
-    windowProfileInfo.bundleName = "bundleName";
-    windowProfileInfo.windowLocatedScreen = 0;
-    windowProfileInfo.windowSceneMode = 102;
-    windowProfileInfo.windowVisibleState = 2;
-    windowProfileInfo.rect = "[0 0 60 90]";
-    windowProfileInfo.zorder = 110;
+    WindowProfileSum windowProfileSum;
+    windowProfileSum.windowInfo[0] = "bundleName, 3, 0, 102, 115, [121 373 1047 1117];";
+    windowProfileSum.totalWindowCount = 1;
+    windowProfileSum.visibleWindowCount = 0;
+    windowProfileSum.invisibleWindowCount = 1;
+    windowProfileSum.minimizeWindowCount = 0;
+ 
     WindowInfoReporter windowInfoReporter;
-    res = windowInfoReporter.ReportWindowProfileInfo(windowProfileInfo);
+    res = windowInfoReporter.ReportWindowProfileInfo(windowProfileSum);
     ASSERT_EQ(res, 0);
 }
 

@@ -121,13 +121,44 @@ void DisplayAniUtils::ConvertDisplayPhysicalResolution(std::vector<DisplayPhysic
 
     for (uint32_t i = 0; i < displayPhysicalArray.size() && i < static_cast<uint32_t>(arrayObjLen); i++) {
         ani_ref obj;
-        env->Object_CallMethodByName_Ref(arrayObj, "$_get", "I:Lstd/core/Object;", &obj, (ani_int)i);
+        env->Object_CallMethodByName_Ref(arrayObj, "$_get", "i:Y", &obj, (ani_int)i);
         env->Object_SetFieldByName_Int(static_cast<ani_object>(obj), "foldDisplayMode_",
             static_cast<ani_int>(displayPhysicalArray[i].foldDisplayMode_));
         env->Object_SetFieldByName_Long(static_cast<ani_object>(obj), "<property>physicalWidth",
             displayPhysicalArray[i].physicalWidth_);
         env->Object_SetFieldByName_Long(static_cast<ani_object>(obj), "<property>physicalHeight",
             displayPhysicalArray[i].physicalHeight_);
+    }
+}
+
+void DisplayAniUtils::ConvertRoundedCorner(const std::vector<RoundedCorner>& roundedCornerArray,
+    ani_object arrayObj, ani_env *env)
+{
+    ani_int arrayObjLen;
+    env->Object_GetPropertyByName_Int(arrayObj, "length", &arrayObjLen);
+    for (uint32_t i = 0; i < roundedCornerArray.size() && i < static_cast<uint32_t>(arrayObjLen); i++) {
+        ani_ref obj;
+        env->Object_CallMethodByName_Ref(arrayObj, "$_get", "I:Lstd/core/Object;", &obj, (ani_int)i);
+        env->Object_SetFieldByName_Ref(static_cast<ani_object>(obj), "<property>type",
+            DisplayAniUtils::CreateAniEnum(env, "@ohos.display.display.CornerType",
+            static_cast<ani_size>(roundedCornerArray[i].type)));
+
+        ani_object positionObj = CreatePositionObject(env);
+        if (positionObj == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] Create position object failed");
+            return;
+        }
+        if (ANI_OK != env->Object_SetFieldByName_Long(positionObj, "<property>x", roundedCornerArray[i].position.x)) {
+            return;
+        }
+        if (ANI_OK != env->Object_SetFieldByName_Long(positionObj, "<property>y", roundedCornerArray[i].position.y)) {
+            return;
+        }
+        if (ANI_OK != env->Object_SetFieldByName_Ref(static_cast<ani_object>(obj), "<property>position", positionObj)) {
+            return;
+        }
+        env->Object_SetFieldByName_Int(static_cast<ani_object>(obj), "<property>radius",
+            roundedCornerArray[i].radius);
     }
 }
 
@@ -350,7 +381,7 @@ ani_status DisplayAniUtils::GetAniArrayInt(ani_env* env, ani_object arrayObj, st
     }
     auto array = reinterpret_cast<ani_array>(arrayObj);
     std::vector<ani_int> nativeArray(length);
- 
+
     for (auto i = 0; i < length; i++) {
         ani_ref intRef {};
         ani_int intValue {};
@@ -405,6 +436,27 @@ ani_object DisplayAniUtils::CreateAniUndefined(ani_env* env)
     return static_cast<ani_object>(aniRef);
 }
 
+static DmErrorCode GetFocusFromAni(ani_env* env, ani_object virtualScreenObj, VirtualScreenOption& option)
+{
+    ani_ref supportsFocus = nullptr;
+    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "<property>supportsFocus", &supportsFocus) != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "Failed to get supportsFocus.");
+        return DmErrorCode::DM_ERROR_INVALID_PARAM;
+    }
+    ani_boolean isUndefined;
+    env->Reference_IsUndefined(supportsFocus, &isUndefined);
+    if (isUndefined) {
+        TLOGD(WmsLogTag::DMS, "supportsFocus is undefined.");
+    } else {
+        ani_boolean result;
+        env->Object_CallMethodByName_Boolean(static_cast<ani_object>(supportsFocus), "toBoolean", ":z", &result);
+        option.supportsFocus_ = static_cast<bool>(result);
+        TLOGD(WmsLogTag::DMS, "Convert supportsFocus:%{public}d", option.supportsFocus_);
+    }
+    option.supportsInput_ = false;
+    return DmErrorCode::DM_OK;
+}
+
 DmErrorCode DisplayAniUtils::GetVirtualScreenOptionFromAni(
     ani_env* env, ani_object virtualScreenConfigObj, VirtualScreenOption& option)
 {
@@ -437,16 +489,16 @@ DmErrorCode DisplayAniUtils::GetVirtualScreenOptionFromAni(
     option.width_ = static_cast<uint32_t>(width);
     option.height_ = static_cast<uint32_t>(height);
     option.density_ = static_cast<float>(density);
- 
+
     env->Object_GetPropertyByName_Ref(virtualScreenConfigObj, "<property>surfaceId",
         &surfaceId);
     if (!DisplayAniUtils::GetSurfaceFromAni(env, static_cast<ani_string>(surfaceId), option.surface_)) {
         TLOGE(WmsLogTag::DMS, "[ANI] Failed to convert surface.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
-    return DmErrorCode::DM_OK;
+    return GetFocusFromAni(env, virtualScreenConfigObj, option);
 }
- 
+
 bool DisplayAniUtils::GetSurfaceFromAni(ani_env* env, ani_string surfaceIdAniValue, sptr<Surface>& surface)
 {
     if (surfaceIdAniValue == nullptr) {
@@ -547,7 +599,7 @@ ani_object DisplayAniUtils::CreatePositionObject(ani_env* env)
         return nullptr;
     }
     ani_method aniCtor;
-    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":V", &aniCtor);
+    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":", &aniCtor);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Class_FindMethod failed");
         return nullptr;
@@ -560,7 +612,7 @@ ani_object DisplayAniUtils::CreatePositionObject(ani_env* env)
     }
     return positionObj;
 }
- 
+
 ani_object DisplayAniUtils::CreateRelativePostionObject(ani_env* env)
 {
     ani_class aniClass{};
@@ -570,7 +622,7 @@ ani_object DisplayAniUtils::CreateRelativePostionObject(ani_env* env)
         return nullptr;
     }
     ani_method aniCtor;
-    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":V", &aniCtor);
+    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":", &aniCtor);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Class_FindMethod failed");
         return nullptr;
@@ -583,7 +635,7 @@ ani_object DisplayAniUtils::CreateRelativePostionObject(ani_env* env)
     }
     return rlativePostionObj;
 }
- 
+
 DmErrorCode DisplayAniUtils::GetPositionFromAni(ani_env* env, Position& globalPosition, ani_object positionObj)
 {
     ani_long positionX;
@@ -602,7 +654,7 @@ DmErrorCode DisplayAniUtils::GetPositionFromAni(ani_env* env, Position& globalPo
     globalPosition.y = static_cast<int32_t>(positionY);
     return DmErrorCode::DM_OK;
 }
- 
+
 DmErrorCode DisplayAniUtils::SetPositionObj(ani_env* env, Position& globalPosition, ani_object positionObj)
 {
     if (ANI_OK != env->Object_SetFieldByName_Long(positionObj, "<property>x", globalPosition.x)) {
@@ -613,7 +665,7 @@ DmErrorCode DisplayAniUtils::SetPositionObj(ani_env* env, Position& globalPositi
     }
     return DmErrorCode::DM_OK;
 }
- 
+
 DmErrorCode DisplayAniUtils::GetRelativePostionFromAni(
     ani_env* env, RelativePosition& relativePosition, ani_object relativePositionObj)
 {
@@ -640,7 +692,7 @@ DmErrorCode DisplayAniUtils::GetRelativePostionFromAni(
     }
     return DmErrorCode::DM_OK;
 }
- 
+
 DmErrorCode DisplayAniUtils::SetRelativePostionObj(
     ani_env* env, RelativePosition& relativePosition, ani_object relativePositionObj)
 {
@@ -664,7 +716,7 @@ DmErrorCode DisplayAniUtils::SetRelativePostionObj(
     }
     return DmErrorCode::DM_OK;
 }
- 
+
 void DisplayAniUtils::SetFoldCreaseRegion(ani_env* env, FoldCreaseRegion& region, ani_object foldCreaseRegionObj)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
@@ -691,7 +743,7 @@ void DisplayAniUtils::SetFoldCreaseRegion(ani_env* env, FoldCreaseRegion& region
     for (int i = 0; i < std::min(int(length), static_cast<int>(rects.size())); i++) {
         ani_ref currentCrease;
         if (ANI_OK != env->Object_CallMethodByName_Ref(static_cast<ani_object>(creaseRectsObj),
-            "$_get", "I:Lstd/core/Object;", &currentCrease, (ani_int)i)) {
+            "$_get", "i:Y", &currentCrease, (ani_int)i)) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail", (ani_int)i);
         }
         TLOGI(WmsLogTag::DMS, "current i: %{public}d", i);
@@ -711,7 +763,7 @@ std::shared_ptr<DisplayAni> DisplayAniUtils::FindAniDisplayObject(sptr<Display> 
     }
     return g_AniDisplayMap[displayId];
 }
- 
+
 void DisplayAniUtils::DisposeAniDisplayObject(DisplayId displayId)
 {
     TLOGI(WmsLogTag::DMS, "displayId : %{public}" PRIu64"", displayId);
@@ -751,7 +803,7 @@ ani_object DisplayAniUtils::CreateBrightnessInfoObject(ani_env* env)
         return nullptr;
     }
     ani_method aniCtor;
-    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":V", &aniCtor);
+    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":", &aniCtor);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Class_FindMethod failed");
         return nullptr;
@@ -763,6 +815,28 @@ ani_object DisplayAniUtils::CreateBrightnessInfoObject(ani_env* env)
         return nullptr;
     }
     return brightnessInfoObj;
+}
+
+ani_status DisplayAniUtils::GetStdStringVector(ani_env* env, ani_object arryObj, std::vector<std::string>& result)
+{
+    ani_int length;
+    ani_status ret = env->Object_GetPropertyByName_Int(arryObj, "length", &length);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get array length failed, status: %{public}d", ret);
+        return ret;
+    }
+    for (int32_t i = 0; i< static_cast<int32_t>(length); i++) {
+        ani_ref stringRef;
+        ret = env->Object_CallMethodByName_Ref(arryObj, "$_get", "I:Lstd/core/Object;", &stringRef, (ani_int)i);
+        if (ret != ANI_OK) {
+            TLOGE(WmsLogTag::DMS, "[ANI] Get index: %{public}d element failed, status: %{public}d", (ani_int)i, ret);
+            return ret;
+        }
+        std::string str;
+        DisplayAniUtils::GetStdString(env, static_cast<ani_string>(stringRef), str);
+        result.emplace_back(str);
+    }
+    return ANI_OK;
 }
 }
 }

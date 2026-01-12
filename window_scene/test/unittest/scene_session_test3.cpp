@@ -107,6 +107,62 @@ HWTEST_F(SceneSessionTest3, NotifyClientToUpdateRectTask, TestSize.Level1)
 
     std::shared_ptr<RSTransaction> rs;
     EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+
+    sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE);
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+
+    sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG);
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+
+    sceneSession->UpdateSizeChangeReason(SizeChangeReason::ROTATION);
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+}
+
+/**
+ * @tc.name: UpdateCrossPlaneState
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, UpdateCrossPlaneState, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateCrossPlaneState";
+    info.bundleName_ = "UpdateCrossPlaneState";
+    sptr<SceneSession> sceneSession = new (std::nothrow) SceneSession(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    WSRect rect = { 0, 0, 800, 800 };
+    sceneSession->SetScreenId(0);
+
+    PcFoldScreenManager::GetInstance().displayId_ = 0;
+    PcFoldScreenManager::GetInstance().screenFoldStatus_ = SuperFoldStatus::FOLDED;
+    PcFoldScreenManager::GetInstance().hasSystemKeyboard_ = false;
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    PcFoldScreenManager::GetInstance().screenFoldStatus_ = SuperFoldStatus::HALF_FOLDED;
+    PcFoldScreenManager::GetInstance().hasSystemKeyboard_ = true;
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    PcFoldScreenManager::GetInstance().SetDisplayRects(
+        { 0, 0, 2472, 1739 }, { 0, 1791, 2472, 1648 }, { 0, 1740, 2472, 50 });
+    PcFoldScreenManager::GetInstance().hasSystemKeyboard_ = false;
+
+    rect = { 0, 1630, 100, 500 };
+    EXPECT_EQ(CrossPlaneState::CROSS_ALL_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 0, 100, 100 };
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1800, 100, 100 };
+    EXPECT_EQ(CrossPlaneState::CROSS_VIRTUAL_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1750, 10, 100 };
+    EXPECT_EQ(CrossPlaneState::CROSS_VIRTUAL_CREASE_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1730, 20, 30 };
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_CREASE_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1741, 1, 1 };
+    EXPECT_EQ(CrossPlaneState::CROSS_CREASE_PLANE, sceneSession->UpdateCrossPlaneState(rect));
 }
 
 /**
@@ -1236,11 +1292,11 @@ HWTEST_F(SceneSessionTest3, RegisterUpdateAppUseControlCallback, Function | Smal
 }
 
 /**
- * @tc.name: NotifyUpdateAppUseControl
+ * @tc.name: NotifyUpdateAppUseControl01
  * @tc.desc: NotifyUpdateAppUseControl
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl, Function | SmallTest | Level3)
+HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl01, Function | SmallTest | Level3)
 {
     logMsg.clear();
     LOG_SetCallback(MyLogCallback);
@@ -1275,6 +1331,44 @@ HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl, Function | SmallTest | Le
         .isControlRecentOnly = false
     };
     sceneSession->NotifyUpdateAppUseControl(type, controlInfoThd);
+    EXPECT_TRUE(logMsg.find("isAppUseControl:") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyUpdateAppUseControl02
+ * @tc.desc: NotifyUpdateAppUseControl
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl02, Function | SmallTest | Level3)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SessionInfo info;
+    info.abilityName_ = "NotifyUpdateAppUseControl";
+    info.bundleName_ = "NotifyUpdateAppUseControl";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto callback = [](ControlAppType type, bool isNeedControl, bool isControlRecentOnly) {
+        std::cout << "isNeedControl:" << isNeedControl << ";isControlRecentOnly:" << isControlRecentOnly << std::endl;
+    };
+    sceneSession->onUpdateAppUseControlFunc_ = std::move(callback);
+    sceneSession->sessionStage_ = nullptr;
+    ControlAppType type = ControlAppType::APP_LOCK;
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+
+    ControlInfo controlInfo1 = {
+        .isNeedControl = false,
+        .isControlRecentOnly = true
+    };
+    sceneSession->NotifyUpdateAppUseControl(type, controlInfo1);
+
+    sceneSession->Session::SetSessionState(SessionState::STATE_BACKGROUND);
+    sceneSession->NotifyUpdateAppUseControl(type, controlInfo1);
+    ControlInfo controlInfo2 = {
+        .isNeedControl = true,
+        .isControlRecentOnly = true
+    };
+    sceneSession->NotifyUpdateAppUseControl(type, controlInfo2);
     EXPECT_TRUE(logMsg.find("isAppUseControl:") != std::string::npos);
     LOG_SetCallback(nullptr);
 }

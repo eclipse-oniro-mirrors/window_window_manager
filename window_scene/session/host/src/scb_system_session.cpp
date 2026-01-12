@@ -53,7 +53,8 @@ SCBSystemSession::SCBSystemSession(const SessionInfo& info, const sptr<SpecificS
             }
         }
         surfaceNode_ = Rosen::RSSurfaceNode::Create(config, Rosen::RSSurfaceNodeType::APP_WINDOW_NODE);
-        shadowSurfaceNode_ = surfaceNode_ ? surfaceNode_->CreateShadowSurfaceNode() : nullptr;
+        shadowSurfaceNode_ = RSAdapterUtil::IsClientMultiInstanceEnabled() && surfaceNode_ ?
+            surfaceNode_->CreateShadowSurfaceNode() : nullptr;
         RSAdapterUtil::SetRSUIContext(surfaceNode_, GetRSUIContext(), true);
         TLOGD(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
               RSAdapterUtil::RSNodeToStr(surfaceNode_).c_str(), name.c_str());

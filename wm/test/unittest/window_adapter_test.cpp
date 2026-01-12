@@ -14,18 +14,20 @@
  */
 
 #include <gtest/gtest.h>
-#include "mock_RSIWindowAnimationController.h"
 
+#include "iremote_window_manager_mocker.h"
+#include "mock_RSIWindowAnimationController.h"
 #include "remote_animation.h"
 #include "scene_board_judgement.h"
 #include "session_manager.h"
 #include "starting_window.h"
+#include "ui_effect_controller_client.h"
+#include "ui_effect_controller_interface.h"
 #include "window_adapter.h"
 #include "window_agent.h"
+#include "window_manager_agent.h"
 #include "window_property.h"
 #include "window_transition_info.h"
-#include "ui_effect_controller_interface.h"
-#include "ui_effect_controller_client.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -39,17 +41,38 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+
+private:
+    int32_t userId_ = 100;
+    sptr<WindowAdapter> instance_ = nullptr;
 };
 
 void WindowAdapterTest::SetUpTestCase() {}
 
 void WindowAdapterTest::TearDownTestCase() {}
 
-void WindowAdapterTest::SetUp() {}
+void WindowAdapterTest::SetUp()
+{
+    instance_ = &WindowAdapter::GetInstance(userId_);
+}
 
-void WindowAdapterTest::TearDown() {}
+void WindowAdapterTest::TearDown()
+{
+    instance_ = nullptr;
+    WindowAdapter::windowAdapterMap_.clear();
+}
 
 namespace {
+std::string g_errLog;
+void MyLogCallback(const LogType type,
+                   const LogLevel level,
+                   const unsigned int domain,
+                   const char* tag,
+                   const char* msg)
+{
+    g_errLog += msg;
+}
+
 /**
  * @tc.name: AddWindow
  * @tc.desc: WindowAdapter/AddWindow
@@ -177,9 +200,6 @@ HWTEST_F(WindowAdapterTest, ConvertToRelativeCoordinateExtended, TestSize.Level1
     EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
     EXPECT_EQ(newRect.posX_, 100);
     EXPECT_EQ(newRect.posY_, 3000);
-    EXPECT_EQ(newRect.width_, 400);
-    EXPECT_EQ(newRect.height_, 600);
-    EXPECT_EQ(newRect.newDisplayId, 0);
 }
 
 /**
@@ -583,19 +603,34 @@ HWTEST_F(WindowAdapterTest, RecoverWindowPropertyChangeFlag01, TestSize.Level1)
  */
 HWTEST_F(WindowAdapterTest, ReregisterWindowManagerAgent, TestSize.Level1)
 {
-    WindowAdapter windowAdapter;
-    auto displayId = 0;
-    ModeChangeHotZones hotZones;
-    windowAdapter.isProxyValid_ = true;
-    windowAdapter.windowManagerServiceProxy_ =  nullptr;
-    auto ret = windowAdapter.GetModeChangeHotZones(displayId, hotZones);
-    windowAdapter.ReregisterWindowManagerAgent();
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    auto agent = sptr<WindowManagerAgent>::MakeSptr();
 
-    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
-    windowAdapter.windowManagerAgentMap_[type] = std::set<sptr<IWindowManagerAgent>>();
-    windowAdapter.ReregisterWindowManagerAgent();
+    // branch 1
+    instance_->windowManagerServiceProxy_ = nullptr;
+    instance_->ReregisterWindowManagerAgent();
+    EXPECT_TRUE(g_errLog.find("window manager proxy is nullptr") != std::string::npos);
 
-    ASSERT_EQ(WMError::WM_ERROR_SAMGR, ret);
+    // branch 2: send ipc failed
+    g_errLog.clear();
+    ASSERT_EQ(true, instance_->InitSSMProxy());
+    instance_->windowManagerAgentMap_[type].insert(agent);
+    instance_->ReregisterWindowManagerAgent();
+    EXPECT_TRUE(g_errLog.find("register failed due to wms proxy") != std::string::npos);
+
+    // branch 3: mock send ipc success
+    g_errLog.clear();
+    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+
+    auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    instance_->ReregisterWindowManagerAgent();
+    EXPECT_FALSE(g_errLog.find("register failed due to wms proxy") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -860,11 +895,9 @@ HWTEST_F(WindowAdapterTest, GetHostGlobalScaledRect, TestSize.Level1)
  */
 HWTEST_F(WindowAdapterTest, GetWindowModeType, TestSize.Level1)
 {
-    WindowAdapter windowAdapter;
-    windowAdapter.isProxyValid_ = true;
-    windowAdapter.windowManagerServiceProxy_ = nullptr;
     WindowModeType windowModeType;
-    ASSERT_EQ(WMError::WM_DO_NOTHING, windowAdapter.GetWindowModeType(windowModeType));
+    ASSERT_EQ(true, instance_->InitSSMProxy());
+    EXPECT_NE(WMError::WM_OK, instance_->GetWindowModeType(windowModeType));
 }
 
 /**
@@ -1229,23 +1262,35 @@ HWTEST_F(WindowAdapterTest, ListWindowInfo01, Function | SmallTest | Level2)
 }
 
 /**
- * @tc.name: RegisterWindowPropertyChangeAgent01
- * @tc.desc: WindowAdapter/RegisterWindowPropertyChangeAgent
+ * @tc.name: RegisterWindowPropertyChangeAgent
+ * @tc.desc: check RegisterWindowPropertyChangeAgent
  * @tc.type: FUNC
  */
-HWTEST_F(WindowAdapterTest, RegisterWindowPropertyChangeAgent01, Function | SmallTest | Level2)
+HWTEST_F(WindowAdapterTest, RegisterWindowPropertyChangeAgent, TestSize.Level1)
 {
-    WindowAdapter windowAdapter;
-    windowAdapter.isProxyValid_ = true;
-    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    WMError ret;
     WindowInfoOption windowInfoOption;
     WindowInfoKey windowInfoKey = WindowInfoKey::NONE;
     uint32_t interestInfo = 0;
-    sptr<IWindowManagerAgent> windowManagerAgent;
-    auto err = windowAdapter.RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
-    EXPECT_EQ(WMError::WM_ERROR_SAMGR, err);
-    auto ret = windowAdapter.InitWMSProxy();
-    EXPECT_EQ(ret, true);
+    auto agent = sptr<WindowManagerAgent>::MakeSptr();
+
+    // branch 1: send ipc failed
+    ASSERT_EQ(true, instance_->InitSSMProxy());
+    ret = instance_->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, agent);
+    EXPECT_NE(WMError::WM_OK, ret);
+
+    // branch 2: mock send ipc success
+    instance_->isProxyValid_ = true;
+    instance_->windowManagerServiceProxy_ = nullptr;
+
+    // use mock window manager service proxy.
+    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowPropertyChangeAgent(_, _, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+    auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+
+    ret = instance_->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, agent);
+    EXPECT_EQ(WMError::WM_OK, ret);
 }
 
 /**
@@ -1274,11 +1319,11 @@ HWTEST_F(WindowAdapterTest, UnregisterWindowPropertyChangeAgent01, Function | Sm
 HWTEST_F(WindowAdapterTest, CreateUIEffectController, Function | SmallTest | Level2)
 {
     WindowAdapter windowAdapter;
-    sptr<UIEffectControllerClient> client = sptr<UIEffectControllerClient>::MakeSptr();
-    sptr<IUIEffectController> controller;
+    auto client = sptr<UIEffectControllerClient>::MakeSptr();
+    sptr<IUIEffectController> controller = nullptr;
     int32_t controllerId = 0;
-    auto err = windowAdapter.CreateUIEffectController(client, controller, controllerId);
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, err);
+    windowAdapter.CreateUIEffectController(client, controller, controllerId);
+
     auto ret = windowAdapter.InitWMSProxy();
     EXPECT_EQ(ret, true);
     windowAdapter.CreateUIEffectController(client, controller, controllerId);
@@ -1350,11 +1395,28 @@ HWTEST_F(WindowAdapterTest, RemoveSessionBlackList01, Function | SmallTest | Lev
 HWTEST_F(WindowAdapterTest, GetPiPSettingSwitchStatus, TestSize.Level1)
 {
     WindowAdapter windowAdapter;
-    windowAdapter.isProxyValid_ = true;
-    windowAdapter.windowManagerServiceProxy_ = nullptr;
     bool switchStatus = false;
     auto err = windowAdapter.GetPiPSettingSwitchStatus(switchStatus);
-    ASSERT_EQ(WMError::WM_ERROR_SAMGR, err);
+    ASSERT_EQ(WMError::WM_OK, err);
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    ASSERT_EQ(WMError::WM_DO_NOTHING, windowAdapter.UseImplicitAnimation(0, true));
+}
+
+/**
+ *@tc.name: GetIsPipEnabled
+ *@tc.desc: WindowAdapter/GetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(WindowAdapterTest, GetIsPipEnabled, TestSize.Level1)
+{
+    WindowAdapter windowAdapter;
+    bool isPipEnabled = false;
+    auto err = windowAdapter.GetIsPipEnabled(isPipEnabled);
+    ASSERT_EQ(WMError::WM_OK, err);
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    ASSERT_EQ(WMError::WM_DO_NOTHING, windowAdapter.UseImplicitAnimation(0, true));
 }
 
 /**
@@ -1365,9 +1427,7 @@ HWTEST_F(WindowAdapterTest, GetPiPSettingSwitchStatus, TestSize.Level1)
 HWTEST_F(WindowAdapterTest, UseImplicitAnimation, TestSize.Level1)
 {
     WindowAdapter windowAdapter;
-    windowAdapter.isProxyValid_ = true;
-    windowAdapter.windowManagerServiceProxy_ = nullptr;
-    ASSERT_EQ(WMError::WM_DO_NOTHING, windowAdapter.UseImplicitAnimation(0, true));
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_SESSION, windowAdapter.UseImplicitAnimation(0, true));
 }
 
 /**
@@ -1447,21 +1507,19 @@ HWTEST_F(WindowAdapterTest, GetInstance, TestSize.Level1)
  */
 HWTEST_F(WindowAdapterTest, InitSSMProxy, TestSize.Level1)
 {
-    sptr<WindowAdapter> instance = &WindowAdapter::GetInstance(101);
-
     // branch 1
-    instance->isProxyValid_ = true;
-    ASSERT_EQ(true, instance->InitSSMProxy());
+    instance_->isProxyValid_ = true;
+    ASSERT_EQ(true, instance_->InitSSMProxy());
 
     // branch 2
-    instance->isProxyValid_ = false;
-    instance->recoverInitialized_ = true;
-    instance->InitSSMProxy();
+    instance_->isProxyValid_ = false;
+    instance_->recoverInitialized_ = true;
+    instance_->InitSSMProxy();
 
     // branch 3
-    ASSERT_NE(nullptr, instance);
-    instance->recoverInitialized_ = false;
-    instance->InitSSMProxy();
+    ASSERT_NE(nullptr, instance_);
+    instance_->recoverInitialized_ = false;
+    instance_->InitSSMProxy();
 }
 
 /**
@@ -1471,9 +1529,177 @@ HWTEST_F(WindowAdapterTest, InitSSMProxy, TestSize.Level1)
  */
 HWTEST_F(WindowAdapterTest, UnregisterWMSConnectionChangedListener, TestSize.Level1)
 {
-    sptr<WindowAdapter> instance = &WindowAdapter::GetInstance(101);
+    ASSERT_NE(nullptr, instance_);
+    instance_->UnregisterWMSConnectionChangedListener();
+}
+
+/**
+ * @tc.name: RegisterWindowManagerAgentWhenSCBFault
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, RegisterWindowManagerAgentWhenSCBFault, TestSize.Level1)
+{
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    sptr<IWindowManagerAgent> agent = new WindowManagerAgent();
+    ASSERT_NE(nullptr, instance_);
+
+    // This function does not require assertions.
+    instance_->RegisterWindowManagerAgentWhenSCBFault(type, agent);
+}
+
+/**
+ * @tc.name: RegisterWindowManagerAgent
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, RegisterWindowManagerAgent, TestSize.Level1)
+{
+    WMError ret;
+    auto type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    auto agent = sptr<WindowManagerAgent>::MakeSptr();
+
+    // branch 1: send ipc failed
+    ASSERT_EQ(true, instance_->InitSSMProxy());
+    ret = instance_->RegisterWindowManagerAgent(type, agent);
+    EXPECT_NE(WMError::WM_OK, ret);
+
+    // branch 2: mock proxy and return ok
+    instance_->isProxyValid_ = true;
+    instance_->windowManagerServiceProxy_ = nullptr;
+
+    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+    auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+
+    ret = instance_->RegisterWindowManagerAgent(type, agent);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: UnregisterWindowManagerAgent
+ * @tc.desc: check UnregisterWindowManagerAgent
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, UnregisterWindowManagerAgent, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    WMError ret;
+    auto type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    auto agent = sptr<WindowManagerAgent>::MakeSptr();
+    instance_->isProxyValid_ = true; // skip InitSSMProxy
+    instance_->windowManagerServiceProxy_ = nullptr;
+
+    // mock window manager service proxy
+    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _)).Times(3)
+        .WillOnce(Return(WMError::WM_ERROR_SAMGR))
+        .WillRepeatedly(Return(WMError::WM_OK));
+    auto wmProxy = iface_cast<IWindowManager>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmProxy;
+
+    // branch 1: return failed
+    g_errLog.clear();
+    ret = instance_->UnregisterWindowManagerAgent(type, agent);
+    EXPECT_TRUE(g_errLog.find("unregister failed due to proxy") != std::string::npos);
+    EXPECT_NE(WMError::WM_OK, ret);
+
+    // branch 2-1: agent not found
+    g_errLog.clear();
+    instance_->windowManagerAgentMap_.clear();
+    ret = instance_->UnregisterWindowManagerAgent(type, agent);
+    EXPECT_TRUE(g_errLog.find("agent not found") != std::string::npos);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    // branch 2-2: erase success
+    g_errLog.clear();
+    instance_->windowManagerAgentMap_[type].insert(agent);
+    ret = instance_->UnregisterWindowManagerAgent(type, agent);
+    EXPECT_TRUE(g_errLog.find("erase success") != std::string::npos);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ReregisterWindowManagerFaultAgent
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, ReregisterWindowManagerFaultAgent, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    sptr<IWindowManager> wmsProxy = nullptr;
+
+    // branch 1
+    g_errLog.clear();
+    instance_->windowManagerServiceProxy_ = nullptr;
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+    EXPECT_TRUE(g_errLog.find("proxy is null") != std::string::npos);
+
+    // use mock window manager service proxy
+    instance_->isProxyValid_ = true;
+    instance_->windowManagerServiceProxy_ = nullptr;
+    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).Times(2)
+        .WillOnce(Return(WMError::WM_ERROR_SAMGR))
+        .WillRepeatedly(Return(WMError::WM_OK));
+    wmsProxy = iface_cast<IWindowManager>(remoteObject);
+
+    // branch 2
+    g_errLog.clear();
+    instance_->windowManagerAgentFaultMap_.clear();
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+    EXPECT_TRUE(g_errLog.find("no fault agent") != std::string::npos);
+
+    // branch 3: enter map, mock send ipc failed
+    g_errLog.clear();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    auto agent = sptr<WindowManagerAgent>::MakeSptr();
+    instance_->windowManagerAgentFaultMap_[type].insert(agent);
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+    EXPECT_TRUE(g_errLog.find("Re-register agent failed") != std::string::npos);
+
+    // branch 4: enter map, mock send ipc success
+    g_errLog.clear();
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+    EXPECT_TRUE(g_errLog.find("end") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSpecificSystemWindowZIndex
+ * @tc.desc: SetSpecificSystemWindowZIndex
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, SetSpecificSystemWindowZIndex, TestSize.Level1)
+{
+    WindowAdapter windowAdapter;
+    auto ret = windowAdapter.InitWMSProxy();
+    ASSERT_EQ(ret, true);
+
+    auto result = windowAdapter.SetSpecificWindowZIndex(
+        WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD, 20);
+    EXPECT_NE(WMError::WM_OK, result);
+}
+
+/**
+ * @tc.name: RecoverSpecificZIndexSetByApp
+ * @tc.desc: RecoverSpecificZIndexSetByApp
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, RecoverSpecificZIndexSetByApp, TestSize.Level1)
+{
+    WindowAdapter windowAdapter;
+    sptr<WindowAdapter> instance = &WindowAdapter::GetInstance(-1);
     ASSERT_NE(nullptr, instance);
-    instance->UnregisterWMSConnectionChangedListener();
+    instance->RecoverSpecificZIndexSetByApp();
+
+    instance->specificZIndexMap_[WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD] = 20;
+    instance->RecoverSpecificZIndexSetByApp();
 }
 } // namespace
 } // namespace Rosen

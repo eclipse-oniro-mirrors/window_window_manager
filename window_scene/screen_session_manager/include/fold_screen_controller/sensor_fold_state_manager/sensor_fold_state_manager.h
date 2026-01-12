@@ -19,11 +19,10 @@
 #include <mutex>
 #include <refbase.h>
 #include <chrono>
-
 #include "common/include/task_scheduler.h"
 #include "dm_common.h"
 #include "fold_screen_controller/fold_screen_policy.h"
-
+#include "task_sequence_process.h"
 namespace OHOS::Rosen {
 enum class ReportTentModeStatus : int32_t {
     NORMAL_EXIT_TENT_MODE = 0,
@@ -44,7 +43,7 @@ public:
     virtual void RegisterApplicationStateObserver();
     void ClearState(sptr<FoldScreenPolicy> foldScreenPolicy);
     bool IsTentMode();
-
+    void FinishTaskSequence();
 protected:
     virtual FoldStatus HandleSecondaryOneStep(FoldStatus currentStatus, FoldStatus nextStatus,
         const std::vector<float>& previousAngles, const std::vector<uint16_t>& previousHalls) { return nextStatus; }
@@ -72,6 +71,7 @@ private:
 
     void ProcessNotifyFoldStatusChange(FoldStatus currentStatus, FoldStatus nextStatus,
         const std::vector<float>& angles, sptr<FoldScreenPolicy> foldScreenPolicy);
+    TaskSequenceProcess taskProcessor_;
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_SMALL_DEVICE_SCREEN_SENSOR_MANAGER_H

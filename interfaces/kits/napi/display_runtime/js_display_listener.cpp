@@ -210,8 +210,86 @@ void JsDisplayListener::OnChange(DisplayId id)
             TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
         }
     } else {
+        TLOGE_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES, "env is nullptr");
+    }
+}
+
+void JsDisplayListener::OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attributes)
+{
+    std::lock_guard<std::mutex> lock(mtx_);
+    TLOGD(WmsLogTag::DMS, "called, displayId: %{public}d", static_cast<uint32_t>(displayId));
+    if (jsCallBack_.empty()) {
+        TLOGE(WmsLogTag::DMS, "not register!");
+        return;
+    }
+    if (attributes.empty()) {
+        TLOGE(WmsLogTag::DMS, "attributes is empty!");
+        return;
+    }
+ 
+    auto napiTask = [self = weakRef_, displayId, attributes, env = env_]() {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnAttributeChange");
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || env == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            return;
+        }
+        thisListener->ProcessAttributeCallbacks(env, attributes, displayId, thisListener);
+    };
+    if (env_ != nullptr) {
+        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnAttributeChange");
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
+        }
+    } else {
         TLOGE(WmsLogTag::DMS, "env is nullptr");
     }
+}
+
+void JsDisplayListener::ProcessAttributeCallbacks(napi_env env, const std::vector<std::string>& attributes,
+    DisplayId displayId, sptr<JsDisplayListener> thisListener)
+{
+    std::vector<napi_value> methods;
+    for (auto attribute : attributes) {
+        if (thisListener->jsCallBack_.find(attribute) == thisListener->jsCallBack_.end()) {
+            TLOGD(WmsLogTag::DMS, "current listener dose not listen: %{public}s, continue", attribute.c_str());
+            continue;
+        }
+        for (auto& callback : thisListener->jsCallBack_[attribute]) {
+            napi_value method = callback->GetNapiValue();
+            if (method == nullptr) {
+                TLOGE(WmsLogTag::DMS, "Failed to get method callback from object");
+                continue;
+            }
+            methods.push_back(method);
+        }
+    }
+    thisListener->RemoveDuplicateMethods(methods);
+    napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(displayId))};
+    for (auto method: methods) {
+        napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
+    }
+}
+ 
+void JsDisplayListener::RemoveDuplicateMethods(std::vector<napi_value>& methods)
+{
+    std::vector<napi_value> uniqueMethods;
+    
+    for (auto& currentMethod : methods) {
+        if (!currentMethod) continue;
+        
+        bool isDuplicate = false;
+        for (const auto& existingMethod : uniqueMethods) {
+            napi_strict_equals(env_, currentMethod, existingMethod, &isDuplicate);
+            if (isDuplicate) {
+                break;
+            }
+        }
+        if (!isDuplicate) {
+            uniqueMethods.push_back(std::move(currentMethod));
+        }
+    }
+    methods = std::move(uniqueMethods);
 }
 
 void JsDisplayListener::OnPrivateWindow(bool hasPrivate)

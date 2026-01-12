@@ -707,7 +707,7 @@ HWTEST_F(WindowManagerAgentProxyTest, NotifyWindowPropertyChange, TestSize.Level
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     uint32_t propertyDirtyFlags = 0;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
@@ -725,7 +725,7 @@ HWTEST_F(WindowManagerAgentProxyTest, NotifyWindowPropertyChange01, TestSize.Lev
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     uint32_t propertyDirtyFlags = 0;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteUint32ErrorFlag(true);
@@ -743,7 +743,7 @@ HWTEST_F(WindowManagerAgentProxyTest, NotifyWindowPropertyChange02, TestSize.Lev
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     uint32_t propertyDirtyFlags = 0;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
     std::unordered_map<WindowInfoKey, WindowChangeInfoType> info = {
         { WindowInfoKey::APP_INDEX, 0 },
     };

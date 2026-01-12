@@ -16,6 +16,8 @@
 #include <gtest/gtest.h>
 #include <vsync_station.h>
 
+#include "mock_vsync_station.h"
+
 using namespace testing;
 using namespace testing::ext;
 
@@ -157,6 +159,129 @@ HWTEST_F(VsyncStationTest, DecreaseRequestVsyncTimes, TestSize.Level1)
     if (current != 0) {
         EXPECT_EQ(current - 1, desired);
     }
+}
+
+/**
+ * @tc.name: TestRunOnceOnNextVsync
+ * @tc.desc: Verify RunOnceOnNextVsync triggers callback on next vsync
+ * @tc.type: FUNC
+ */
+HWTEST_F(VsyncStationTest, TestRunOnceOnNextVsync, TestSize.Level1)
+{
+    auto station = std::make_shared<MockVsyncStation>();
+    bool callbackCalled = false;
+
+    EXPECT_CALL(*station, RequestVsync(_))
+        .WillOnce(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(100, 1);
+        }));
+
+    station->RunOnceOnNextVsync([&](int64_t timestamp, int64_t frameCount) {
+        callbackCalled = true;
+        EXPECT_EQ(timestamp, 100);
+        EXPECT_EQ(frameCount, 1);
+    });
+
+    EXPECT_TRUE(callbackCalled);
+}
+
+/**
+ * @tc.name: TestRunOnceAfterNVsyncsDelayZero
+ * @tc.desc: Verify RunOnceAfterNVsyncs does nothing when delayVsyncCount is 0
+ * @tc.type: FUNC
+ */
+HWTEST_F(VsyncStationTest, TestRunOnceAfterNVsyncsDelayZero, TestSize.Level1)
+{
+    auto station = std::make_shared<MockVsyncStation>();
+    bool callbackCalled = false;
+
+    EXPECT_CALL(*station, RequestVsync(_)).Times(0);
+
+    station->RunOnceAfterNVsyncs(0, [&](int64_t, int64_t) { callbackCalled = true; });
+
+    EXPECT_FALSE(callbackCalled);
+}
+
+/**
+ * @tc.name: TestRunOnceAfterNVsyncsDelayOne
+ * @tc.desc: Verify RunOnceAfterNVsyncs with delay=1 behaves like RunOnceOnNextVsync
+ * @tc.type: FUNC
+ */
+HWTEST_F(VsyncStationTest, TestRunOnceAfterNVsyncsDelayOne, TestSize.Level1)
+{
+    auto station = std::make_shared<MockVsyncStation>();
+    bool callbackCalled = false;
+
+    EXPECT_CALL(*station, RequestVsync(_))
+        .WillOnce(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            cb->onCallback(200, 2);
+        }));
+
+    station->RunOnceAfterNVsyncs(1, [&](int64_t timestamp, int64_t frameCount) {
+        callbackCalled = true;
+        EXPECT_EQ(timestamp, 200);
+        EXPECT_EQ(frameCount, 2);
+    });
+
+    EXPECT_TRUE(callbackCalled);
+}
+
+/**
+ * @tc.name: TestRunOnceAfterNVsyncsMultiple
+ * @tc.desc: Verify RunOnceAfterNVsyncs triggers callback after N vsyncs
+ * @tc.type: FUNC
+ */
+HWTEST_F(VsyncStationTest, TestRunOnceAfterNVsyncsMultiple, TestSize.Level1)
+{
+    auto station = std::make_shared<MockVsyncStation>();
+
+    bool callbackCalled = false;
+    int vsyncCount = 0;
+
+    EXPECT_CALL(*station, RequestVsync(_))
+        .WillRepeatedly(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            ++vsyncCount;
+            cb->onCallback(1000 + vsyncCount, vsyncCount);
+        }));
+
+    station->RunOnceAfterNVsyncs(3, [&](int64_t timestamp, int64_t frameCount) {
+        callbackCalled = true;
+        EXPECT_EQ(frameCount, 3);
+        EXPECT_EQ(timestamp, 1003);
+    });
+
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(vsyncCount, 3);
+}
+
+/**
+ * @tc.name: TestRunOnceAfterNVsyncsStationDestroyed
+ * @tc.desc: Verify no crash when VsyncStation is destroyed before completion
+ * @tc.type: FUNC
+ */
+HWTEST_F(VsyncStationTest, TestRunOnceAfterNVsyncsStationDestroyed, TestSize.Level1)
+{
+    bool callbackCalled = false;
+    std::shared_ptr<VsyncCallback> savedCallback;
+
+    {
+        auto station = std::make_shared<MockVsyncStation>();
+
+        EXPECT_CALL(*station, RequestVsync(_))
+            .WillOnce(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+                savedCallback = cb;
+            }));
+
+        station->RunOnceAfterNVsyncs(2, [&](int64_t, int64_t) { callbackCalled = true; });
+    } // station destroyed here
+
+    ASSERT_NE(savedCallback, nullptr);
+    savedCallback->onCallback(0, 1); // remaining -> 1, weakThis.lock() == null
+
+    EXPECT_FALSE(callbackCalled);
 }
 } // namespace
 } // namespace Rosen

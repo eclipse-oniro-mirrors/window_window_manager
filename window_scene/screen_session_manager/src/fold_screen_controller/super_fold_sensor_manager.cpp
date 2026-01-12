@@ -25,7 +25,7 @@
 #include "fold_screen_controller/fold_screen_controller_config.h"
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
-#include "fold_screen_controller/fold_screen_sensor_manager.h"
+#include "screen_sensor_mgr.h"
 
 namespace OHOS {
  
@@ -64,35 +64,35 @@ static void SensorHallDataCallback(SensorEvent *event)
 
 void SuperFoldSensorManager::RegisterPostureCallback()
 {
-    OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    curInterval_ = POSTURE_INTERVAL;
+    DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL, SensorPostureDataCallback);
 }
 
 void SuperFoldSensorManager::UnregisterPostureCallback()
 {
-    int ret = OHOS::Rosen::FoldScreenSensorManager::GetInstance().UnSubscribeSensorCallback(
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(
         SENSOR_TYPE_ID_POSTURE);
     if (ret == SENSOR_SUCCESS) {
         TLOGI(WmsLogTag::DMS, "success.");
     } else {
-        TLOGE(WmsLogTag::DMS, "UnregisterPostureCallback failed with ret: %d", ret);
+        TLOGE(WmsLogTag::DMS, "UnregisterPostureCallback failed with ret: %{public}d", ret);
     }
 }
 
 void SuperFoldSensorManager::RegisterHallCallback()
 {
-    OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_HALL, POSTURE_INTERVAL, SensorHallDataCallback);
 }
 
 void SuperFoldSensorManager::UnregisterHallCallback()
 {
-    int ret = OHOS::Rosen::FoldScreenSensorManager::GetInstance().UnSubscribeSensorCallback(
-        SENSOR_TYPE_ID_HALL_EXT);
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
     if (ret == SENSOR_SUCCESS) {
         TLOGI(WmsLogTag::DMS, "success.");
     } else {
-        TLOGE(WmsLogTag::DMS, "UnRegisterHallCallback failed with ret: %d", ret);
+        TLOGE(WmsLogTag::DMS, "UnRegisterHallCallback failed with ret: %{public}d", ret);
     }
 }
 
@@ -112,18 +112,16 @@ void SuperFoldSensorManager::HandlePostureData(const SensorEvent * const event)
     }
     PostureData *postureData = reinterpret_cast<PostureData *>(event[SENSOR_EVENT_FIRST_DATA].data);
     curAngle_ = (*postureData).angle;
-    auto& user = FoldScreenSensorManager::GetInstance().users_[SENSOR_TYPE_ID_POSTURE];
     if (curAngle_ > UNFOLD_ANGLE && curInterval_ != POSTURE_INTERVAL_FOR_WIDE_ANGLE) {
-        int32_t setBatchRet = SetBatch(SENSOR_TYPE_ID_POSTURE, &user,
-            POSTURE_INTERVAL_FOR_WIDE_ANGLE, POSTURE_INTERVAL_FOR_WIDE_ANGLE);
-        int32_t activateRet = ActivateSensor(SENSOR_TYPE_ID_POSTURE, &user);
-        if (setBatchRet == 0 && activateRet == 0) {
+        int32_t ret = DMS::ScreenSensorMgr::GetInstance().UpdateSensorInterval(
+            SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL_FOR_WIDE_ANGLE);
+        if (ret == SENSOR_SUCCESS) {
             curInterval_ = POSTURE_INTERVAL_FOR_WIDE_ANGLE;
         }
     } else if (curAngle_ < UNFOLD_ANGLE && curInterval_ != POSTURE_INTERVAL) {
-        int32_t setBatchRet = SetBatch(SENSOR_TYPE_ID_POSTURE, &user, POSTURE_INTERVAL, POSTURE_INTERVAL);
-        int32_t activateRet = ActivateSensor(SENSOR_TYPE_ID_POSTURE, &user);
-        if (setBatchRet == 0 && activateRet == 0) {
+        int32_t ret =
+            DMS::ScreenSensorMgr::GetInstance().UpdateSensorInterval(SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL);
+        if (ret == SENSOR_SUCCESS) {
             curInterval_ = POSTURE_INTERVAL;
         }
     }
@@ -206,7 +204,7 @@ void SuperFoldSensorManager::NotifyHallChanged(uint16_t Hall)
 {
     SuperFoldStatusChangeEvents events;
     if (Hall == HALL_REMOVE_KEYBOARD_THRESHOLD) {
-        TLOGI(WmsLogTag::DMS, "NotifyHallChanged: Keyboard off!");
+        TLOGD(WmsLogTag::DMS, "NotifyHallChanged: Keyboard off!");
         events = SuperFoldStatusChangeEvents::KEYBOARD_OFF;
     } else if (Hall == HALL_HAVE_KEYBOARD_THRESHOLD) {
         if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::EXPANDED) {

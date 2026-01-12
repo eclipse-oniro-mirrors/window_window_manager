@@ -32,7 +32,14 @@ bool SuperFoldPolicy::IsFakeDisplayExist()
 
 bool SuperFoldPolicy::IsNeedSetSnapshotRect(DisplayId displayId)
 {
-    return (displayId == DEFAULT_DISPLAY_ID) || (displayId == DISPLAY_ID_FAKE);
+    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_DEFAULT);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "session nullptr.");
+        return false;
+    }
+    auto rotation = screenSession->GetRotation();
+    return ((displayId == DEFAULT_DISPLAY_ID) || (displayId == DISPLAY_ID_FAKE)) &&
+        (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180);
 }
 
 Drawing::Rect SuperFoldPolicy::GetSnapshotRect(DisplayId displayId, bool isCaptureFullOfScreen)

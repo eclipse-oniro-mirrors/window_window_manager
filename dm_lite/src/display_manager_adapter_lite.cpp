@@ -292,6 +292,16 @@ DMError DisplayManagerAdapterLite::SetSystemKeyboardStatus(bool isTpKeyboardOn)
     return displayManagerServiceProxy_->SetSystemKeyboardStatus(isTpKeyboardOn);
 }
 
+bool DisplayManagerAdapterLite::IsOnboardDisplay(DisplayId displayId)
+{
+    INIT_PROXY_CHECK_RETURN(false);
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->IsOnboardDisplay(displayId);
+    }
+    TLOGE(WmsLogTag::DMS, "fail");
+    return false;
+}
+
 sptr<ScreenInfo> ScreenManagerAdapterLite::GetScreenInfo(ScreenId screenId)
 {
     if (screenId == SCREEN_ID_INVALID) {
@@ -342,6 +352,22 @@ ScreenPowerState ScreenManagerAdapterLite::GetScreenPower()
     INIT_PROXY_CHECK_RETURN(ScreenPowerState::INVALID_STATE);
 
     return displayManagerServiceProxy_->GetScreenPower();
+}
+
+void ScreenManagerAdapterLite::SyncScreenPowerState(ScreenPowerState state)
+{
+    if (IsScreenLessDevice()) {
+        TLOGI(WmsLogTag::DMS, "screenless device");
+        return;
+    }
+    INIT_PROXY_CHECK_RETURN();
+
+    if (displayManagerServiceProxy_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "null proxy object");
+        return;
+    }
+    displayManagerServiceProxy_->SyncScreenPowerState(state);
+    TLOGI(WmsLogTag::DMS, "sync power state success");
 }
 
 DMError ScreenManagerAdapterLite::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos)

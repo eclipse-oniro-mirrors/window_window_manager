@@ -233,6 +233,12 @@ auto SceneInputManager::GetFullWindowInfoList() ->
     return sceneSessionDirty_->GetFullWindowInfoList();
 }
 
+void SceneInputManager::UpdateHotAreas(const sptr<SceneSession>& sceneSession,
+    std::vector<MMI::Rect>& touchHotAreas, std::vector<MMI::Rect>& pointerHotAreas) const
+{
+    sceneSessionDirty_->UpdateHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
+}
+
 std::vector<MMI::ScreenInfo> SceneInputManager::ConstructScreenInfos(
     std::map<ScreenId, ScreenProperty>& screensProperties)
 {
@@ -551,7 +557,8 @@ void DumpUIExtentionWindowInfo(const MMI::WindowInfo& windowInfo)
         dumpUecWindowInfo << ";{" << str << "}";
     }
     TLOGND(WmsLogTag::WMS_EVENT, "DumpUecWindowInfo: wid;surfaceId;uecInfoSize"
-        "{wInfo:wId|pid|uid|[x,y,width,height]|agentWindowId|flags|displayId|action|zOrder,hot:[x,y,width,height]}");
+        "{wInfo:wId|pid|agentPid|uid|[x,y,width,height]|agentWindowId|flags|displayId|action|zOrder"
+        ",hot:[x,y,width,height]}");
     TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s", dumpUecWindowInfo.str().c_str());
 }
 

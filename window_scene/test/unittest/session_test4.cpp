@@ -1159,6 +1159,62 @@ HWTEST_F(WindowSessionTest4, GetWindowMetaInfoForWindowInfo01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetWindowMetaInfoForWindowInfo02
+ * @tc.desc: GetWindowMetaInfoForWindowInfo Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, GetWindowMetaInfoForWindowInfo02, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.bundleName_ = "bundleName";
+    sessionInfo.abilityName_ = "abilityName";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    WindowMetaInfo windowMetaInfo = sceneSession->GetWindowMetaInfoForWindowInfo();
+    ASSERT_EQ(windowMetaInfo.isTouchable, true);
+    auto screenId = 0;
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    sptr<DisplayInfo> displayInfo = new(std::nothrow) DisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetScreenId(screenId);
+    displayInfo->SetDisplayId(screenId);
+    sceneSession->GetSessionProperty()->SetDisplayId(screenId);
+    screenSession->SetTouchEnabledFromJs(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    windowMetaInfo = sceneSession->GetWindowMetaInfoForWindowInfo();
+    ASSERT_EQ(windowMetaInfo.isTouchable, false);
+    screenSession->SetTouchEnabledFromJs(true);
+    sceneSession->SetSystemTouchable(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    windowMetaInfo = sceneSession->GetWindowMetaInfoForWindowInfo();
+    ASSERT_EQ(windowMetaInfo.isTouchable, false);
+    sceneSession->SetSystemTouchable(true);
+    sceneSession->SetForegroundInteractiveStatus(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    windowMetaInfo = sceneSession->GetWindowMetaInfoForWindowInfo();
+    ASSERT_EQ(windowMetaInfo.isTouchable, false);
+    sceneSession->SetForegroundInteractiveStatus(true);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    windowMetaInfo = sceneSession->GetWindowMetaInfoForWindowInfo();
+    ASSERT_EQ(windowMetaInfo.isTouchable, true);
+    screenSession->SetTouchEnabledFromJs(false);
+    sceneSession->SetSystemTouchable(false);
+    sceneSession->SetForegroundInteractiveStatus(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    windowMetaInfo = sceneSession->GetWindowMetaInfoForWindowInfo();
+    ASSERT_EQ(windowMetaInfo.isTouchable, false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
  * @tc.name: GetWantSafely01
  * @tc.desc: GetWantSafely Test
  * @tc.type: FUNC
@@ -1727,6 +1783,38 @@ HWTEST_F(WindowSessionTest4, PrelaunchCheck, TestSize.Level1)
     session_->SetPrelaunch();
     bool result = session_->IsPrelaunch();
     EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: GetIsMidScene_SubSession
+ * @tc.desc: GetIsMidScene_SubSession Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, GetIsMidScene_SubSession, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetIsMidScene";
+    info.moduleName_ = "GetIsMidScene";
+    info.bundleName_ = "GetIsMidScene";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(subSession, nullptr);
+    subSession->SetIsMidScene(false);
+    ASSERT_NE(session_, nullptr);
+    subSession->SetParentSession(session_);
+
+    session_->SetIsMidScene(false);
+    sleep(1);
+    bool isMidScene = false;
+    auto result = subSession->GetIsMidScene(isMidScene);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(isMidScene, false);
+
+    session_->SetIsMidScene(true);
+    sleep(1);
+    isMidScene = false;
+    result = subSession->GetIsMidScene(isMidScene);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(isMidScene, true);
 }
 } // namespace
 } // namespace Rosen

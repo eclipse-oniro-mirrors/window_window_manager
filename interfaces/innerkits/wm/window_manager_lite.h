@@ -61,6 +61,22 @@ public:
     WMError UnregisterFocusChangedListener(const sptr<IFocusChangedListener>& listener);
 
     /**
+     * @brief Register all display group info changed listener.
+     *
+     * @param listener IAllGroupInfoChangedListener.
+     * @return WM_OK means register success, others mean register failure.
+     */
+    WMError RegisterAllGroupInfoChangedListener(const sptr<IAllGroupInfoChangedListener>& listener);
+
+    /**
+     * @brief Unregister all display group info changed listener.
+     *
+     * @param listener IAllGroupInfoChangedListener.
+     * @return WM_OK means unregister success, others mean unregister failure.
+     */
+    WMError UnregisterAllGroupInfoChangedListener(const sptr<IAllGroupInfoChangedListener>& listener);
+
+    /**
      * @brief Register visibility changed listener.
      *
      * @param listener IVisibilityChangedListener.
@@ -100,6 +116,16 @@ public:
      * @return FocusChangeInfo object about focus window.
      */
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+
+    /**
+     * @brief Get all group infomation.
+     *
+     * @param displayId2GroupIdMap display id to display group id map.
+     * @param allFocusInfoList focus infomation in every display group.
+     * @return void.
+     */
+    void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                         std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
 
     /**
      * @brief Register drawingcontent changed listener.
@@ -359,6 +385,15 @@ public:
     WMError UnregisterWindowUpdateListener(const sptr<IWindowUpdateListener>& listener);
 
     /**
+     * @brief notify window info change.
+     *
+     * @param flags mark the changed value.
+     * @param windowInfoList the changed window info list.
+     * @return WM_OK means notify success, others means notify failed.
+     */
+    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList);
+
+    /**
      * @brief Register window info change callback.
      *
      * @param observedInfo Property which to observe.
@@ -463,6 +498,7 @@ private:
     std::recursive_mutex mutex_;
     class Impl;
     std::unique_ptr<Impl> pImpl_;
+    std::unordered_map<WindowInfoKey, uint32_t> interestInfoMap_;
 
     /**
      * Multi user and multi screen
@@ -478,6 +514,7 @@ private:
     void UpdateFocusStatus(uint32_t windowId, const sptr<IRemoteObject>& abilityToken, WindowType windowType,
         DisplayId displayId, bool focused) const;
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) const;
+    void UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd) const;
     void UpdateWindowVisibilityInfo(
         const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos) const;
     void UpdateWindowDrawingContentInfo(
@@ -497,6 +534,8 @@ private:
         const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+    WMError RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+    WMError UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
 };
 } // namespace Rosen
 } // namespace OHOS

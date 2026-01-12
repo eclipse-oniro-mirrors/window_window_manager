@@ -146,7 +146,7 @@ ani_status ScreenAniUtils::ConvertScreens(ani_env *env, std::vector<sptr<Screen>
     TLOGI(WmsLogTag::DMS, "[ANI] screens size %{public}u", static_cast<uint32_t>(screens.size()));
     for (uint32_t i = 0; i < screens.size(); i++) {
         ani_ref currentScreenAni;
-        if (ANI_OK != env->Object_CallMethodByName_Ref(screensAni, "$_get", "I:Lstd/core/Object;",
+        if (ANI_OK != env->Object_CallMethodByName_Ref(screensAni, "$_get", "i:Y",
             &currentScreenAni, (ani_int)i)) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail", (ani_int)i);
             return ANI_ERROR;
@@ -203,6 +203,26 @@ ani_enum_item ScreenAniUtils::CreateAniEnum(ani_env* env, const char* enum_descr
     return enumItem;
 }
 
+static DmErrorCode GetScreenFocusFromAni(ani_env* env, ani_object virtualScreenObj, VirtualScreenOption& option)
+{
+    ani_ref focus = nullptr;
+    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "<property>supportsFocus", &focus) != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "Failed to get supportsFocus.");
+        return DmErrorCode::DM_ERROR_INVALID_PARAM;
+    }
+    ani_boolean isUndefined;
+    env->Reference_IsUndefined(focus, &isUndefined);
+    if (isUndefined) {
+        TLOGD(WmsLogTag::DMS, "supportsFocus is undefined.");
+    } else {
+        ani_boolean result;
+        env->Object_CallMethodByName_Boolean(static_cast<ani_object>(focus), "toBoolean", ":z", &result);
+        option.supportsFocus_ = static_cast<bool>(result);
+        TLOGD(WmsLogTag::DMS, "Convert supportsFocus:%{public}d", option.supportsFocus_);
+    }
+    return DmErrorCode::DM_OK;
+}
+
 DmErrorCode ScreenAniUtils::GetVirtualScreenOption(ani_env* env, ani_object options, VirtualScreenOption& option)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
@@ -253,7 +273,7 @@ DmErrorCode ScreenAniUtils::GetVirtualScreenOption(ani_env* env, ani_object opti
         TLOGE(WmsLogTag::DMS, "Failed to get surface, ret:%{public}d", ret);
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
-    return DmErrorCode::DM_OK;
+    return GetScreenFocusFromAni(env, options, option);
 }
 
 ani_status ScreenAniUtils::GetSurfaceFromAni(ani_env* env, ani_string surfaceIdAniStr, sptr<Surface>& surface)
@@ -333,8 +353,8 @@ ani_object ScreenAniUtils::CreateAniArray(ani_env* env, size_t size)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
     ani_class arrayCls;
-    if (env->FindClass("escompat.Array", &arrayCls) != ANI_OK) {
-        TLOGE(WmsLogTag::DMS, "Failed to find class escompat.Array");
+    if (env->FindClass("std.core.Array", &arrayCls) != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "Failed to find class std.core.Array");
         return CreateAniUndefined(env);
     }
     ani_method arrayCtor;
@@ -400,7 +420,7 @@ ani_status ScreenAniUtils::GetScreenIdArrayFromAni(ani_env* env, ani_object mirr
     TLOGI(WmsLogTag::DMS, "[ANI] length %{public}d", (ani_int)length);
     for (int32_t i = 0; i < length; i++) {
         ani_ref screenIdRef;
-        ret = env->Object_CallMethodByName_Ref(mirrorScreen, "$_get", "I:Lstd/core/Object;",
+        ret = env->Object_CallMethodByName_Ref(mirrorScreen, "$_get", "i:Y",
             &screenIdRef, (ani_int)i);
         if (ret != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u failed, ret: %{public}u", (ani_int)i, ret);

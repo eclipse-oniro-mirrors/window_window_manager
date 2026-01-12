@@ -95,6 +95,43 @@ HWTEST_F(SessionProxyEventTest, SendCommonEvent, TestSize.Level1)
     ret = proxy->SendCommonEvent(1, parameters);
     EXPECT_EQ(ret, WMError::WM_OK);
 }
+
+/**
+ * @tc.name: RecoverWindowEffect
+ * @tc.desc: RecoverWindowEffect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyEventTest, RecoverWindowEffect, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    SessionEvent event = SessionEvent::EVENT_MAXIMIZE;
+    SessionEventParam param { .waterfallResidentState = 0 };
+
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->RecoverWindowEffect(event, param));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: Failed to write recoverCorner or recoverShadow
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->RecoverWindowEffect(event, param));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    // Case 3: remote is nullptr
+    sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->RecoverWindowEffect(event, param));
+
+    // Case 4: Failed to send request
+    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failProxy->RecoverWindowEffect(event, param));
+
+    // Case 5: Success
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    EXPECT_EQ(WSError::WS_OK, okProxy->RecoverWindowEffect(event, param));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

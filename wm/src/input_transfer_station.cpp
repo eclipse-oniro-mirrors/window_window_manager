@@ -23,6 +23,9 @@
 #include "gtx_input_event_sender.h"
 #include <hitrace_meter.h>
 #include "window_input_intercept.h"
+#include "window_input_redistribute_impl.h"
+#include "window_event_subscriber.h"
+#include "sys_cap_util.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -31,11 +34,19 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "InputTr
 }
 
 const std::string GAME_CONTROLLER_SO_PATH = "/system/lib64/libgamecontroller_event.z.so";
+const std::string TOUCH_PREDICTOR_SO_PATH = "/system/lib64/libtouch_predictor.so";
 
 static std::unique_ptr<void, void(*)(void*)> gameControllerHandle_{nullptr, [](void* handle) {
     if (handle) {
         dlclose(handle);
         TLOGI(WmsLogTag::WMS_EVENT, "[dlclose] GameController unloaded");
+    }
+}};
+
+static std::unique_ptr<void, void(*)(void*)> touchPredictorHandle_{nullptr, [](void* handle) {
+    if (handle) {
+        dlclose(handle);
+        TLOGI(WmsLogTag::WMS_EVENT, "[dlclose] TouchPredictor unloaded");
     }
 }};
 
@@ -103,12 +114,18 @@ void InputEventListener::HandleInputEvent(std::shared_ptr<MMI::PointerEvent> poi
         return;
     }
     channel->HandlePointerEvent(pointerEvent);
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, pointerEvent);
     GtxInputEventSender::GetInstance().SetTouchEvent(channel->GetWindowRect(), pointerEvent);
 }
 
 void InputEventListener::OnInputEvent(std::shared_ptr<MMI::KeyEvent> keyEvent) const
 {
     if (WindowInputIntercept::GetInstance().IsInputIntercept(keyEvent)) {
+        return;
+    }
+    if (WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_BEFORE_SEND_TO_COMPONENT, keyEvent)) {
         return;
     }
     HandleInputEvent(keyEvent);
@@ -129,7 +146,27 @@ void InputEventListener::OnInputEvent(std::shared_ptr<MMI::PointerEvent> pointer
     if (WindowInputIntercept::GetInstance().IsInputIntercept(pointerEvent)) {
         return;
     }
+    if (WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_BEFORE_SEND_TO_COMPONENT, pointerEvent)) {
+        return;
+    }
     HandleInputEvent(pointerEvent);
+}
+
+void InputTransferStation::LoadTouchPredictor()
+{
+    if (isTouchPredictorLoaded_) {
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_EVENT, "in");
+    isTouchPredictorLoaded_ = true;
+    void* handle = dlopen(TOUCH_PREDICTOR_SO_PATH.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+    if (handle) {
+        TLOGI(WmsLogTag::WMS_EVENT, "dlopen TouchPredictor success");
+        touchPredictorHandle_.reset(handle);
+    } else {
+        TLOGW(WmsLogTag::WMS_EVENT, "dlopen %{public}s", dlerror());
+    }
 }
 
 void InputTransferStation::LoadGameController()
@@ -195,6 +232,8 @@ void InputTransferStation::AddInputWindow(const sptr<Window>& window)
     if (!isGameControllerLoaded_) {
         LoadGameController();
     }
+    WindowEventSubscribeProxy::GetInstance()->SetBundleName(SysCapUtil::GetBundleName());
+    WindowEventSubscribeProxy::GetInstance()->SubscribeEvent();
 }
 
 void InputTransferStation::RemoveInputWindow(uint32_t windowId)
@@ -218,6 +257,27 @@ void InputTransferStation::RemoveInputWindow(uint32_t windowId)
     } else {
         TLOGE(WmsLogTag::WMS_EVENT, "Can not find windowId: %{public}u", windowId);
     }
+}
+
+void InputTransferStation::InjectTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (pointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "PointerEvent is nullptr");
+        return;
+    }
+    uint32_t invalidId = static_cast<uint32_t>(-1);
+    uint32_t windowId = static_cast<uint32_t>(pointerEvent->GetAgentWindowId());
+    auto channel = GetInputChannel(windowId);
+    if (channel == nullptr) {
+        if (windowId != invalidId) {
+            TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "WindowInputChannel is nullptr InputTracking id:%{public}d "
+                "windowId:%{public}u",
+                pointerEvent->GetId(), windowId);
+        }
+        pointerEvent->MarkProcessed();
+        return;
+    }
+    channel->InjectTouchEvent(pointerEvent);
 }
 
 sptr<WindowInputChannel> InputTransferStation::GetInputChannel(uint32_t windowId)

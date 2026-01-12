@@ -193,6 +193,12 @@ void SceneSessionManagerLite::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Dis
     return SceneSessionManager::GetInstance().GetFocusWindowInfo(focusInfo, displayId);
 }
 
+void SceneSessionManagerLite::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                              std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    SceneSessionManager::GetInstance().GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
+}
+
 WMError SceneSessionManagerLite::RegisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
@@ -403,6 +409,25 @@ WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowIn
     std::vector<sptr<WindowInfo>>& infos)
 {
     return SceneSessionManager::GetInstance().ListWindowInfo(windowInfoOption, infos);
+}
+
+WMError SceneSessionManagerLite::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    return SceneSessionManager::GetInstance().RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+}
+
+WMError SceneSessionManagerLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    return SceneSessionManager::GetInstance().UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+}
+
+WMError SceneSessionManagerLite::RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
+{
+    return SceneSessionManager::GetInstance().RecoverWindowPropertyChangeFlag(observedFlags, interestedFlags);
 }
 
 WSError SceneSessionManagerLite::GetRecentMainSessionInfoList(std::vector<RecentSessionInfo>& recentSessionInfoList)

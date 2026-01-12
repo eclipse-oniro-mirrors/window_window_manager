@@ -54,6 +54,9 @@ ScreenSessionManager *ssm_;
 void SuperFoldSensorManagerTest::SetUpTestCase()
 {
     ssm_ = &ScreenSessionManager::GetInstance();
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GTEST_SKIP();
+    }
 }
 
 void SuperFoldSensorManagerTest::TearDownTestCase()

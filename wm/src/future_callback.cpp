@@ -14,6 +14,7 @@
  */
 
 #include "future_callback.h"
+#include "rate_limited_logger.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS {
@@ -22,8 +23,8 @@ namespace Rosen {
 WSError FutureCallback::OnUpdateSessionRect(const Rect& rect, WindowSizeChangeReason reason,
     int32_t persistentId)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, rect:%{public}s, reason:%{public}u",
-        persistentId, rect.ToString().c_str(), reason);
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
+        "Id:%{public}d, rect:%{public}s, reason:%{public}u", persistentId, rect.ToString().c_str(), reason);
     switch (reason) {
         case WindowSizeChangeReason::MOVE:
             moveToFuture_.SetValue(rect);
