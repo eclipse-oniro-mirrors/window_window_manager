@@ -476,7 +476,7 @@ struct SessionInfo {
     bool isTargetPlugin = false;
     std::string hostBundleName = "";
     int32_t hostAppIndex = 0;
-    std::hostAppInstanceKey = "";
+    std::string hostAppInstanceKey = "";
 
     /*
      * Keyboard

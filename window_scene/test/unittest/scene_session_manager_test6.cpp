@@ -2614,19 +2614,19 @@ HWTEST_F(SceneSessionManagerTest6, GetStartupPageTest, TestSize.Level1)
     EXPECT_NE(ssm_, nullptr);
     ssm_->bundleMgr_ = ssm_->GetBundleManager();
     SessionInfo sessionInfo;
-    sessionInfo.isTargrtPlugin = true;
-    StartingWindowInfo startWindowInfo;
-    startWindowInfo.iconPathEarlyVersion_ = "default";
-    ssm_->GetStartupPage(sessionInfo, startWindowInfo);
-    EXPECT_EQ(startWindowInfo.iconPathEarlyVersion_, "default");
+    sessionInfo.isTargetPlugin = true;
+    StartingWindowInfo startingWindowInfo;
+    startingWindowInfo.iconPathEarlyVersion_ = "default";
+    ssm_->GetStartupPage(sessionInfo, startingWindowInfo);
+    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "default");
 
 
     sessionInfo.want = std::make_shared<AAFwk::Want>();
     EXPECT_NE(sessionInfo.want, nullptr);
     const std::string pathFromDesk = "pathFromDesk";
     sessionInfo.want->SetParam("realAppIcon", pathFromDesk);
-    ssm_->GetStartupPage(sessionInfo, startWindowInfo);
-    EXPECT_EQ(startWindowInfo.iconPathEarlyVersion_, "pathFromDesk");
+    ssm_->GetStartupPage(sessionInfo, startingWindowInfo);
+    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "pathFromDesk");
 }
 
 /**
@@ -2650,7 +2650,7 @@ HWTEST_F(SceneSessionManagerTest6, GetFreeInstalledAtomicServiceAbilityInfoTest0
 HWTEST_F(SceneSessionManagerTest6, GetFreeInstalledAtomicServiceAbilityInfoTest02, TestSize.Level1)
 {
     sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
-    EXPECT_CALL(*bundleMgrMocker, GetBundleInfoV9(_, _, _, _)).WillOnce(Retrun(true));
+    EXPECT_CALL(*bundleMgrMocker, GetBundleInfoV9(_, _, _, _)).WillOnce(Return(true));
     ssm_->bundleMgr_ = bundleMgrMocker;
     std::string bundleName = "bundleName02";
     auto ret = ssm_->GetFreeInstalledAtomicServiceAbilityInfo(bundleName);
@@ -2710,7 +2710,7 @@ HWTEST_F(SceneSessionManagerTest6, GetFreeInstalledAtomicServiceAbilityInfoTest0
 HWTEST_F(SceneSessionManagerTest6, QueryAbilityInfoFromBMSTest, TestSize.Level1)
 {
     ssm_->bundleMgr_ = ssm_->GetBundleManager();
-    cosnt int32_t uId = 32;
+    const int32_t uId = 32;
     SessionInfo sessionInfo_;
     sessionInfo_.bundleName_ = "BundleNameBMS";
     auto res = ssm_->QueryAbilityInfoFromBMS(uId, sessionInfo_.bundleName_, sessionInfo_.abilityName_,
@@ -2726,7 +2726,7 @@ HWTEST_F(SceneSessionManagerTest6, QueryAbilityInfoFromBMSTest, TestSize.Level1)
     EXPECT_EQ(res, nullptr);
 
     sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
-    EXPECT_CALL(*bundleMgrMocker, GetPluginAbilityInfo(_, _, _, _, _, _)).WillOnce(Retrun(ERR_OK));
+    EXPECT_CALL(*bundleMgrMocker, GetPluginAbilityInfo(_, _, _, _, _, _)).WillOnce(Return(ERR_OK));
     ssm_->bundleMgr_ = bundleMgrMocker;
     res = ssm_->QueryAbilityInfoFromBMS(uId, sessionInfo_.bundleName_, sessionInfo_.abilityName_,
         sessionInfo_.moduleName_, false, sessionInfo_.isTargetPlugin, sessionInfo_.hostBundleName);

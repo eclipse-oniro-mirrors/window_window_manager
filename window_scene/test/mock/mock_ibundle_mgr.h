@@ -46,7 +46,7 @@ public:
         std::vector<AppExecFwk::AbilityInfo>& abilityInfos));
     MOCK_METHOD6(GetPluginAbilityInfo, ErrCode(const std::string &hostBundleName, const std::string &pluginBundleName,
         const std::string &pluginModuleName, const std::string &pluginAbilityName,
-        const int32_t userId, AppExecFwk::AbilityInfo &abilityInfos));
+        const int32_t userId, AppExecFwk::AbilityInfo &abilityInfo));
 };
 } // namespace Rosen
 } // namespace OHOS

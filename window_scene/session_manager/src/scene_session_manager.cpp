@@ -14054,7 +14054,7 @@ bool SceneSessionManager::CheckCollaboratorType(int32_t type)
 BrokerStates SceneSessionManager::CheckIfReuseSession(SessionInfo& sessionInfo)
 {
     auto abilityInfo = QueryAbilityInfoFromBMS(currentUserId_, sessionInfo.bundleName_, sessionInfo.abilityName_,
-        sessionInfo.moduleName_, IsAtomicServiceFreeInstall(sessionInfo), sessionInfo.IsTargetPlugin,
+        sessionInfo.moduleName_, IsAtomicServiceFreeInstall(sessionInfo), sessionInfo.isTargetPlugin,
         sessionInfo.hostBundleName);
     if (abilityInfo == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "abilityInfo is nullptr!");
