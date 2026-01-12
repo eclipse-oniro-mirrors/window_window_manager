@@ -6648,9 +6648,8 @@ std::shared_ptr<AppExecFwk::AbilityInfo> SceneSessionManager::QueryAbilityInfoFr
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_PERMISSION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_METADATA);
     if (isTargetPlugin) {
-        int32_t pluginRet = bundleMgr_->GetPluginAbilityInfo(sessionInfo.hostBundleName,
-            sessionInfo.bundleName_, sessionInfo.moduleName_, sessionInfo.abilityName_,
-            currentUserId_, abilityInfo);
+        int32_t pluginRet = bundleMgr_->GetPluginAbilityInfo(hostBundleName, bundleName, moduleName,
+            abilityName, uId, *abilityInfo);
         if (pluginRet != ERR_OK) {
             TLOGE(WmsLogTag::DEFAULT, "GetPluginAbilityInfo failed, errCode: %{public}d", pluginRet);
             return nullptr;
@@ -6691,7 +6690,6 @@ std::shared_ptr<AppExecFwk::AbilityInfo> SceneSessionManager::GetFreeInstalledAt
     TLOGE(WmsLogTag::WMS_LIFE, "Get abilityInfo failed, bundleName:%{public}s.", bundleName.c_str());
     return nullptr;
 }
-
 
 static void GetTopWindowByTraverseSessionTree(const sptr<SceneSession>& session,
     uint32_t& topWinId, uint32_t& zOrder)
