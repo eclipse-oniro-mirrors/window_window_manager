@@ -444,7 +444,7 @@ public:
     DMError VirtualScreenUniqueSwitch(const std::vector<ScreenId>& screenIds,
         const UniqueScreenRotationOptions& rotationOptions);
     int32_t GetDeviceOrientationAPI14(sptr<ScreenSession> screenSession, Rotation rotation);
-    void FixPowerStatus();
+    void FixPowerStatus(bool isSync = false);
     void FoldScreenPowerInit();
     DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy) override;
     DMError ResetAllFreezeStatus() override;

@@ -468,7 +468,7 @@ void ScreenSessionManager::FoldScreenPowerInit()
             TLOGNFI(WmsLogTag::DMS, "ScreenSessionManager Fold Screen Power Init, invalid active screen id");
         }
         ScreenStateMachine::GetInstance().IncScreenStateInitRef();
-        FixPowerStatus();
+        FixPowerStatus(true);
         foldScreenController_->SetIsClearingBootAnimation(false);
         foldScreenController_->SetOnBootAnimation(false);
         RegisterApplicationStateObserver();
@@ -476,10 +476,14 @@ void ScreenSessionManager::FoldScreenPowerInit()
 #endif
 }
 
-void ScreenSessionManager::FixPowerStatus()
+void ScreenSessionManager::FixPowerStatus(bool isSync)
 {
     if (!PowerMgr::PowerMgrClient::GetInstance().IsScreenOn()) {
-        PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
+        if (isSync) {
+            PowerMgr::PowerMgrClient::GetInstance().WakeupDevice();
+        } else {
+            PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
+        }
         TLOGNFI(WmsLogTag::DMS, "Fix Screen Power State");
     }
 }
