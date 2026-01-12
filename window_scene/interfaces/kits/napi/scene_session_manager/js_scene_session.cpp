@@ -236,11 +236,8 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {CALLING_SESSION_ID_CHANGE_CB,          ListenerFuncType::CALLING_SESSION_ID_CHANGE_CB},
     {ROTATION_LOCK_CHANGE_CB,               ListenerFuncType::ROTATION_LOCK_CHANGE_CB},
     {SNAPSHOT_SKIP_CHANGE_CB,               ListenerFuncType::SNAPSHOT_SKIP_CHANGE_CB},
-<<<<<<< HEAD
-    {RECOVER_WINDOW_EFFECT_CB,           ListenerFuncType::RECOVER_WINDOW_EFFECT_CB},
-=======
     {COMPATIBLE_MODE_CHANGE_CB,             ListenerFuncType::COMPATIBLE_MODE_CHANGE_CB},
->>>>>>> upgrade/master
+    {RECOVER_WINDOW_EFFECT_CB,           ListenerFuncType::RECOVER_WINDOW_EFFECT_CB},
 };
 
 const std::vector<std::string> g_syncGlobalPositionPermission {

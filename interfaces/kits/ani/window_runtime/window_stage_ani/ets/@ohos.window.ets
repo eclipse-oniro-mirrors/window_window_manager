@@ -2925,8 +2925,8 @@ export class WindowInternal implements Window {
     private native setWindowSystemBarEnableSync(nativeObj: long, names: Array<'status' | 'navigation'>): void;
     private native setWindowTouchableSync(nativeObj: long, isTouchable: boolean): void;
     private native setDialogBackGestureEnabledSync(nativeObj: long, enabled: boolean): void;
-    private native setWindowMaskSync(nativeObj: long): void;
-    private native clearWindowMaskSync(nativeObj: long, windowMask: Array<Array<long>>): void;
+    private native setWindowMaskSync(nativeObj: long, windowMask: Array<Array<long>>): void;
+    private native clearWindowMaskSync(nativeObj: long): void;
     private native getUIContextSync(nativeObj: long): UIContext;
     private native getWindowAvoidAreaSync(nativeObj: long, type: int): AvoidArea;
     private native setWindowBrightness(nativeObj: long, brightness: double): void;
