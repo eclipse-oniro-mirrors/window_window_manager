@@ -245,8 +245,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
     auto screenProperty = screensProperties[displayId];
     auto isScreenLockWindow = sceneSession->GetSessionInfo().bundleName_.find(SCREEN_LOCK_WINDOW) != std::string::npos;
     bool isRotateWindow = !NearEqual(PositiveFmod(screenProperty.GetPhysicalRotation() -
-        screenProperty.GetScreenComponentRotation(), DIRECTION360),
-        PositiveFmod(sceneSession->GetCurrentRotation(), DIRECTION360));
+        screenProperty.GetScreenComponentRotation(), DIRECTION360), DIRECTION360);
     bool isSystem = sceneSession->GetSessionInfo().isSystem_;
     bool displayModeIsFull = static_cast<MMI::DisplayMode>(displayMode) == MMI::DisplayMode::FULL;
     bool displayModeIsGlobalFull = displayMode == FoldDisplayMode::GLOBAL_FULL;
@@ -261,8 +260,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
 
     if (isRotate || !isSystem || displayModeIsFull || displayModeIsGlobalFull ||
         (displayModeIsMain && foldScreenStateInternel) || displayModeIsCoordination) {
-        if (isScreenLockWindow && isRotateWindow && ((displayModeIsMain && foldScreenStateInternel) ||
-            (displayModeIsFull && FoldScreenStateInternel::IsSingleDisplayPocketFoldDevice()))) {
+        if (isScreenLockWindow && isRotateWindow) {
             CalSpecialNotRotateTransform(sceneSession, screenProperty, transform, useUIExtension);
             return;
         }
@@ -274,6 +272,10 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
         }
         transform = transform.Translate(translate)
                              .Scale(scale, sceneSession->GetPivotX(), sceneSession->GetPivotY()).Inverse();
+        return;
+    }
+    if (isScreenLockWindow && isRotateWindow) {
+        CalSpecialNotRotateTransform(sceneSession, screenProperty, transform, useUIExtension);
         return;
     }
     CalNotRotateTransform(sceneSession, transform, useUIExtension);

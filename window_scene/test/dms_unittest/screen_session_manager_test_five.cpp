@@ -916,8 +916,10 @@ HWTEST_F(ScreenSessionManagerTest, IsOnboardDisplay01, TestSize.Level0)
     ssm->screenSessionMap_.erase(50);
     EXPECT_NE(ssm, nullptr);
     DisplayId id = 50;
-    auto res = ssm->IsOnboardDisplay(id);
-    EXPECT_EQ(res, false);
+    bool isOnboardDisplay = false;
+    auto res = ssm->IsOnboardDisplay(id, isOnboardDisplay);
+    EXPECT_EQ(isOnboardDisplay, false);
+    EXPECT_EQ(res, DMError::DM_ERROR_INVALID_PARAM);
     ssm->screenSessionMap_.erase(50);
 }
 
@@ -934,11 +936,13 @@ HWTEST_F(ScreenSessionManagerTest, IsOnboardDisplay02, TestSize.Level0)
     bool isPcNow = ssm->GetPcStatus();
     ssm->SetPcStatus(true);
     DisplayId id = 0;
+    bool isOnboardDisplay = false;
     ssm->screenIdManager_.sms2RsScreenIdMap_[id] = 0;
     sptr<ScreenSession> screenSession = new ScreenSession(id, ScreenProperty(), 0);
     ssm->screenSessionMap_.insert(std::make_pair(id, screenSession));
-    auto res = ssm->IsOnboardDisplay(id);
-    EXPECT_EQ(res, true);
+    auto res = ssm->IsOnboardDisplay(id, isOnboardDisplay);
+    EXPECT_EQ(isOnboardDisplay, true);
+    EXPECT_EQ(res, DMError::DM_OK);
     ssm->screenIdManager_.sms2RsScreenIdMap_.clear();
     ssm->screenSessionMap_.erase(0);
     ssm->SetPcStatus(isPcNow);
@@ -957,10 +961,12 @@ HWTEST_F(ScreenSessionManagerTest, IsOnboardDisplay03, TestSize.Level0)
     bool isPcNow = ssm->GetPcStatus();
     ssm->SetPcStatus(true);
     DisplayId id = 100;
+    bool isOnboardDisplay = false;
     sptr<ScreenSession> screenSession = new ScreenSession(id, ScreenProperty(), 0);
     ssm->screenSessionMap_.insert(std::make_pair(id, screenSession));
-    auto res = ssm->IsOnboardDisplay(id);
-    EXPECT_EQ(res, false);
+    auto res = ssm->IsOnboardDisplay(id, isOnboardDisplay);
+    EXPECT_EQ(isOnboardDisplay, false);
+    EXPECT_EQ(res, DMError::DM_ERROR_INVALID_PARAM);
     ssm->screenSessionMap_.erase(100);
     ssm->SetPcStatus(isPcNow);
 }
@@ -978,10 +984,12 @@ HWTEST_F(ScreenSessionManagerTest, IsOnboardDisplay04, TestSize.Level0)
     bool isPcNow = ssm->GetPcStatus();
     ssm->SetPcStatus(false);
     DisplayId id = 0;
+    bool isOnboardDisplay = false;
     sptr<ScreenSession> screenSession = new ScreenSession(id, ScreenProperty(), 0);
     ssm->screenSessionMap_.insert(std::make_pair(id, screenSession));
-    auto res = ssm->IsOnboardDisplay(id);
-    EXPECT_EQ(res, true);
+    auto res = ssm->IsOnboardDisplay(id, isOnboardDisplay);
+    EXPECT_EQ(isOnboardDisplay, true);
+    EXPECT_EQ(res, DMError::DM_OK);
     ssm->screenSessionMap_.erase(0);
     ssm->SetPcStatus(isPcNow);
 }
@@ -999,10 +1007,12 @@ HWTEST_F(ScreenSessionManagerTest, IsOnboardDisplay05, TestSize.Level0)
     bool isPcNow = ssm->GetPcStatus();
     ssm->SetPcStatus(false);
     DisplayId id = 100;
+    bool isOnboardDisplay = false;
     sptr<ScreenSession> screenSession = new ScreenSession(id, ScreenProperty(), 0);
     ssm->screenSessionMap_.insert(std::make_pair(id, screenSession));
-    auto res = ssm->IsOnboardDisplay(id);
-    EXPECT_EQ(res, false);
+    auto res = ssm->IsOnboardDisplay(id, isOnboardDisplay);
+    EXPECT_EQ(isOnboardDisplay, false);
+    EXPECT_EQ(res, DMError::DM_OK);
     ssm->screenSessionMap_.erase(100);
     ssm->SetPcStatus(isPcNow);
 }

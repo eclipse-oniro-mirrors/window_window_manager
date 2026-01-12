@@ -70,12 +70,14 @@ public:
     static bool IsSupportDuringCall();
     static uint32_t GetNumberConfigValue(const std::string& name, const uint32_t& default_value);
     static bool IsConcurrentUser();
+    static void UpdateCutoutBoundRect(uint64_t displayId, float rogRatio);
 
 private:
     static std::map<int32_t, std::string> xmlNodeMap_;
     static std::map<std::string, bool> enableConfig_;
     static std::map<std::string, std::vector<int>> intNumbersConfig_;
     static std::map<std::string, std::string> stringConfig_;
+    static std::map<uint64_t, std::vector<DMRect>> defaultCutoutBoundaryRectMap_;
     static std::map<uint64_t, std::vector<DMRect>> cutoutBoundaryRectMap_;
     static std::map<std::string, std::vector<std::string>> stringListConfig_;
     static std::vector<DisplayConfig> displaysConfigs_;

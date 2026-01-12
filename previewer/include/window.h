@@ -782,6 +782,17 @@ public:
     virtual void NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 
     /**
+     * @brief Get window state snapshot.
+     *
+     * @param winStateSnapshotJsonStr The state snapshot of specified window.
+     * @return WM_OK means get success, others means get failed.
+     */
+    virtual WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Set the parent window of a sub window.
      *
      * @param newParentWindowId new parent window id.
@@ -974,6 +985,11 @@ public:
     {
         return true;
     }
+
+    /**
+     * @brief Flush vsync for prelaunch.
+     */
+    virtual void FlushVsync() {}
 };
 }
 }

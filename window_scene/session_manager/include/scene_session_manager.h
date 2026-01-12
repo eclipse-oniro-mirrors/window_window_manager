@@ -175,6 +175,7 @@ using ConvertSystemConfigFunc = std::function<void(const std::string& configItem
 using NotifyVirtualPixelChangeFunc = std::function<void(float density, DisplayId displayId)>;
 using NotifySetSpecificWindowZIndexFunc = std::function<void(WindowType windowType, int32_t zIndex,
     SetSpecificZIndexReason reason)>;
+using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 class AppAnrListener : public IRemoteStub<AppExecFwk::IAppDebugListener> {
 public:
     void OnAppDebugStarted(const std::vector<AppExecFwk::AppDebugInfo>& debugInfos) override;
@@ -470,7 +471,7 @@ public:
     WSError RegisterIAbilityManagerCollaborator(int32_t type,
         const sptr<AAFwk::IAbilityManagerCollaborator>& impl) override;
     WSError UnregisterIAbilityManagerCollaborator(int32_t type) override;
-    void ClearAllCollaboratorSessions();
+    void ClearCollaboratorSessionsByType(int32_t type);
 
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override;
     void GetSceneSessionPrivacyModeBundles(DisplayId displayId,
@@ -865,6 +866,7 @@ public:
     bool IsAppBoundSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey);
     void UpdateAppBoundSystemTrayStatus(const std::string &key, int32_t pid, bool enabled);
     void RegisterIsAppBoundSystemTrayFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterMinimizeAllCallback(MinimizeAllFunc&& func);
 
     /*
      * Window Pattern
@@ -1026,6 +1028,7 @@ private:
         const std::vector<int32_t>& windowIds, const sptr<IRemoteObject>& callback);
     void RegisterWindowStateErrorCallbackToMMI();
     std::unordered_map<std::string, std::unordered_set<int32_t>> appsWithBoundSystemTrayMap_;
+    MinimizeAllFunc minimizeAllFunc_;
 
     /*
      * Window Focus
@@ -1468,9 +1471,10 @@ private:
     const int32_t BROKER_UID = 5557;
     const int32_t BROKER_RESERVE_UID = 5005;
     std::shared_mutex collaboratorMapLock_;
+    std::shared_mutex collaboratorDeathRecipientMapLock_;
     std::unordered_map<int32_t, sptr<AAFwk::IAbilityManagerCollaborator>> collaboratorMap_;
+    std::unordered_map<int32_t, sptr<AgentDeathRecipient>> collaboratorDeathRecipientMap_;
     std::atomic<int64_t> containerStartAbilityTime_ { 0 };
-    sptr<AgentDeathRecipient> collaboratorDeathRecipient_;
     BrokerStates NotifyStartAbility(
         int32_t collaboratorType, const SessionInfo& sessionInfo, int32_t persistentId = 0);
     void NotifySessionCreate(const sptr<SceneSession> sceneSession, const SessionInfo& sessionInfo);
@@ -1484,6 +1488,7 @@ private:
     void NotifyCollaboratorAfterStart(sptr<SceneSession>& sceneSession, sptr<AAFwk::SessionInfo>& sceneSessionInfo);
     void UpdateCollaboratorSessionWant(sptr<SceneSession>& session, int32_t persistentId = 0);
     sptr<AAFwk::IAbilityManagerCollaborator> GetCollaboratorByType(int32_t collaboratorType);
+    sptr<AgentDeathRecipient> GetCollaboratorDeathRecipient(int32_t collaboratorType);
     void GetCollaboratorAbilityInfos(const std::vector<AppExecFwk::BundleInfo>& bundleInfos,
         std::vector<SCBAbilityInfo>& scbAbilityInfos, int32_t userId);
 

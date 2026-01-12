@@ -69,6 +69,31 @@ HWTEST_F(DmsGlobalMutexTest, HoldLock_MultiThread_Counter, TestSize.Level1)
     HoldLock::resMtx.unlock();
 }
 
+/** @tc.name: VipPriorityEvent_LockTime
+
+@tc.desc: 该测试用例验证在Vip优先级场景下，被锁阻塞时等锁时长是否符合预期。
+
+@tc.type: FUNC
+
+@tc.level: Level1 */
+HWTEST_F(DmsGlobalMutexTest, VipPriorityEvent_LockTime, TestSize.Level1)
+{
+    // 当前没有锁
+    EXPECT_FALSE(DmUtils::HoldLock::lockStatus);
+
+    auto threadFunc = []() {
+        DmUtils::HoldLock holdLock(IPCPriority::VIP);
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    };
+    std::thread t1(threadFunc);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // 当前线程vip任务trylock失败
+    DmUtils::HoldLock holdLock(IPCPriority::VIP);
+    // trylock失败，lockStatus状态不变
+    EXPECT_FALSE(DmUtils::HoldLock::lockStatus);
+    t1.join();
+}
+
 /** @tc.name: DropLock_NoLock
 
 @tc.desc: 该测试用例验证在无锁状态下，DropLock 对象的构造和析构不会改变锁的状态（即不产生副作用）。

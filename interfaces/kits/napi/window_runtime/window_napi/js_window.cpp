@@ -456,6 +456,13 @@ napi_value JsWindow::GetStatusBarProperty(napi_env env, napi_callback_info info)
     return (me != nullptr) ? me->OnGetStatusBarPropertySync(env, info) : nullptr;
 }
 
+napi_value JsWindow::GetWindowStateSnapshot(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnGetWindowStateSnapshot(env, info) : nullptr;
+}
+
 napi_value JsWindow::GetAvoidArea(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
@@ -1416,7 +1423,8 @@ WMError UpdateStatusBarProperty(const sptr<Window>& window, const uint32_t conte
     property.contentColor_ = contentColor;
     property.settingFlag_ = static_cast<SystemBarSettingFlag>(static_cast<uint32_t>(property.settingFlag_) |
         static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING));
-    return window->SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, property);
+    SystemBarPropertyFlag flag = { false, false, true, false };
+    return window->UpdateSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, property, flag);
 }
 
 napi_value NapiGetUndefined(napi_env env)
@@ -3786,6 +3794,51 @@ napi_value JsWindow::OnGetStatusBarPropertySync(napi_env env, napi_callback_info
             "[window][getStatusBarProperty]msg: Internal task error");
     }
     return objValue;
+}
+
+napi_value JsWindow::OnGetWindowStateSnapshot(napi_env env, napi_callback_info info)
+{
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    const char* const where = __func__;
+    auto asyncTask = [weakToken = wptr<Window>(windowToken_), env, task = napiAsyncTask, where] {
+        auto weakWindow = weakToken.promote();
+        if (weakWindow == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: window is nullptr", where);
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][getWindowStateSnapshot]msg: The window is not created or destroyed"));
+            return;
+        }
+        std::string winStateSnapshot;
+        WMError errCode = weakWindow->GetWindowStateSnapshot(winStateSnapshot);
+        if (errCode != WMError::WM_OK) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: get window state snapshot failed, errCode=%{public}d",
+                where, static_cast<int32_t>(errCode));
+            auto retErrCode = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+            if (WM_JS_TO_ERROR_CODE_MAP.count(errCode) > 0) {
+                retErrCode = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
+            }
+            task->Reject(env, JsErrUtils::CreateJsError(env, retErrCode,
+                "[window][getWindowStateSnapshot]msg: get window state snapshot failed"));
+            return;
+        }
+        auto objValue = CreateJsValue(env, winStateSnapshot);
+        if (objValue == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: create js object failed: winStateSnapshot=%{public}s",
+                where, winStateSnapshot.c_str());
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
+                "[window][getWindowStateSnapshot]msg: this window manager service works abnormally"));
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winStateSnapshot=%{public}s", where, winStateSnapshot.c_str());
+        task->Resolve(env, objValue);
+    };
+    if (napi_send_event(env, asyncTask, napi_eprio_high, "OnGetWindowStateSnapshot") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "napi_send_event failed");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
+            "[window][getWindowStateSnapshot]msg: this window manager service works abnormally"));
+    }
+    return result;
 }
 
 napi_value JsWindow::OnEnableLandscapeMultiWindow(napi_env env, napi_callback_info info)
@@ -8202,6 +8255,10 @@ napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info
     }
     DecorButtonStyle decorButtonStyle;
     WMError res = windowToken_->GetDecorButtonStyle(decorButtonStyle);
+    if (res == WMError::WM_ERROR_DEVICE_NOT_SUPPORT) {
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
+            "[window][setDecorButtonStyle]msg: Device not support.");
+    }
     if (res != WMError::WM_OK) {
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
             "[window][setDecorButtonStyle]msg: Called by invalid window type.");
@@ -10037,6 +10094,7 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
         moduleName, JsWindow::SetWindowSystemBarProperties);
     BindNativeFunction(env, object, "setStatusBarColor", moduleName, JsWindow::SetStatusBarColor);
     BindNativeFunction(env, object, "getStatusBarProperty", moduleName, JsWindow::GetStatusBarProperty);
+    BindNativeFunction(env, object, "getWindowStateSnapshot", moduleName, JsWindow::GetWindowStateSnapshot);
     BindNativeFunction(env, object, "getAvoidArea", moduleName, JsWindow::GetAvoidArea);
     BindNativeFunction(env, object, "getWindowAvoidArea", moduleName, JsWindow::GetWindowAvoidAreaSync);
     BindNativeFunction(env, object, "getWindowAvoidAreaIgnoringVisibility",

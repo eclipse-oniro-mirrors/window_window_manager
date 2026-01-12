@@ -272,6 +272,31 @@ HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeInnerTest, TestSize.Le
 }
 
 /**
+ * @tc.name: ChangeScreenDisplayModeInner
+ * @tc.desc: test fold exit coordination
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeInnerTest_foldExitCoordination, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    FoldScreenBasePolicy::GetInstance().currentFoldStatus_ = FoldStatus::FOLDED;
+    FoldScreenBasePolicy::GetInstance().currentDisplayMode_ = FoldDisplayMode::COORDINATION;
+    
+    FoldDisplayMode displayMode = FoldDisplayMode::FULL;
+    DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT;
+    FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayModeInner(displayMode, reason);
+    EXPECT_EQ(FoldScreenBasePolicy::GetInstance().currentDisplayMode_, FoldDisplayMode::FULL);
+    EXPECT_TRUE(g_logMsg.find("Exit coordination and recover full") != std::string::npos);
+
+    FoldScreenBasePolicy::GetInstance().currentFoldStatus_ = FoldStatus::EXPAND;
+    FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayModeInner(displayMode, reason);
+    EXPECT_EQ(FoldScreenBasePolicy::GetInstance().currentDisplayMode_, FoldDisplayMode::FULL);
+    EXPECT_TRUE(g_logMsg.find("Exit coordination and recover full") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: GetAllCreaseRegionTest
  * @tc.desc: test function : GetAllCreaseRegion
  * @tc.type: FUNC

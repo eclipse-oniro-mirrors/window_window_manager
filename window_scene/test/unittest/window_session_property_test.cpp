@@ -1753,6 +1753,30 @@ HWTEST_F(WindowSessionPropertyTest, GetRotationLocked, TestSize.Level0)
 }
 
 /**
+ * @tc.name: FrameNum
+ * @tc.desc: Test FrameNum
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, FrameNum, TestSize.Level0)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetFrameNum(3);
+    EXPECT_EQ(property->GetFrameNum(), 3);
+}
+
+/**
+ * @tc.name: Prelaunch
+ * @tc.desc: Test Prelaunch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, Prelaunch, TestSize.Level0)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetPrelaunch(true);
+    EXPECT_TRUE(property->IsPrelaunch());
+}
+
+/**
  * @tc.name: AddKeyboardLayoutParams
  * @tc.desc: Test AddKeyboardLayoutParams
  * @tc.type: FUNC

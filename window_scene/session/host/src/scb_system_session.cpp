@@ -36,8 +36,8 @@ const std::unordered_map<std::string, SurfaceWindowType> surfaceWindowTypeMap = 
 };
 } // namespace
 
-SCBSystemSession::SCBSystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
-    : SceneSession(info, specificCallback)
+SCBSystemSession::SCBSystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
+    int32_t userId): SceneSession(info, specificCallback, userId)
 {
     auto name = sessionInfo_.bundleName_;
     auto pos = name.find_last_of('.');

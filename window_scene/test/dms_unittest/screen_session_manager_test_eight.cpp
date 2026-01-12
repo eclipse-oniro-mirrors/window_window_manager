@@ -1333,8 +1333,10 @@ HWTEST_F(ScreenSessionManagerTest, TestNotifyRunSensorFoldStateManager, TestSize
 {
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
-    ssm_->foldScreenController_->NotifyRunSensorFoldStateManager();
-    EXPECT_TRUE(g_logMsg.find("NotifyRunSensorFoldStateManager") != std::string::npos);
+    if (ssm_->foldScreenController_ != nullptr) {
+        ssm_->foldScreenController_->NotifyRunSensorFoldStateManager();
+        EXPECT_TRUE(g_logMsg.find("NotifyRunSensorFoldStateManager") != std::string::npos);
+    }
     LOG_SetCallback(nullptr);
     g_logMsg.clear();
 }

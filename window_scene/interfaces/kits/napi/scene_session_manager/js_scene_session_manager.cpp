@@ -90,6 +90,7 @@ const std::string NOTIFY_SUPPORT_ROTATION_REGISTERED_CB = "notifySupportRotation
 const std::string UI_EFFECT_SET_PARAMS_CB = "uiEffectSetParams";
 const std::string UI_EFFECT_ANIMATE_TO_CB = "uiEffectAnimateTo";
 const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
+const std::string MINIMIZE_ALL_CB = "minimizeAll";
 
 const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {CREATE_SYSTEM_SESSION_CB,     ListenerFunctionType::CREATE_SYSTEM_SESSION_CB},
@@ -118,6 +119,7 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {UI_EFFECT_ANIMATE_TO_CB,      ListenerFunctionType::UI_EFFECT_ANIMATE_TO_CB},
     {VIRTUAL_DENSITY_CHANGE_CB,   ListenerFunctionType::VIRTUAL_DENSITY_CHANGE_CB},
     {SET_SPECIFIC_SESSION_ZINDEX_CB,     ListenerFunctionType::SET_SPECIFIC_SESSION_ZINDEX_CB},
+    {MINIMIZE_ALL_CB,     ListenerFunctionType::MINIMIZE_ALL_CB},
 };
 } // namespace
 
@@ -1740,6 +1742,9 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
         case ListenerFunctionType::NOTIFY_SUPPORT_ROTATION_REGISTERED_CB:
             ProcessSupportRotationRegister();
             break;
+        case ListenerFunctionType::MINIMIZE_ALL_CB:
+            RegisterMinimizeAllCallback();
+            break;
         default:
             break;
     }
@@ -3144,7 +3149,7 @@ napi_value JsSceneSessionManager::OnSendTouchEvent(napi_env env, napi_callback_i
         return NapiGetUndefined(env);
     }
     uint32_t identity = static_cast<uint32_t>(SendTouchAction::ACTION_NORMAL);
-    if (argc == ARGC_THREE && !ConvertFromJsValue(env, argv[ARGC_TWO], zIndex)) {
+    if (argc == ARGC_THREE && !ConvertFromJsValue(env, argv[ARGC_TWO], identity)) {
         TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to identity");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
@@ -5965,5 +5970,31 @@ napi_value JsSceneSessionManager::OnGetJsonProfile(napi_env env, napi_callback_i
     napi_value result = nullptr;
     napi_create_string_utf8(env, profileInfo.c_str(), profileInfo.length(), &result);
     return result;
+}
+
+void JsSceneSessionManager::RegisterMinimizeAllCallback()
+{
+    TLOGND(WmsLogTag::WMS_LIFE, "RegisterMinimizeAllCallback called");
+    SceneSessionManager::GetInstance().RegisterMinimizeAllCallback(
+        [this](DisplayId displayId, int32_t excludeWindowId) {
+        this->OnMinimizeAll(displayId, excludeWindowId);
+    });
+}
+
+void JsSceneSessionManager::OnMinimizeAll(DisplayId displayId, int32_t excludeWindowId)
+{
+    TLOGNI(WmsLogTag::WMS_LIFE, "in");
+    const char* const where = __func__;
+    taskScheduler_->PostMainThreadTask([this, where, displayId, excludeWindowId,
+        jsCallBack = GetJSCallback(MINIMIZE_ALL_CB), env = env_] {
+        if (jsCallBack == nullptr) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s, jsCallBack is nullptr", where);
+            return;
+        }
+        napi_value jsDisplayIdObj = CreateJsNumber(env, static_cast<int64_t>(displayId));
+        napi_value jsExcludeWindowIdObj = CreateJsValue(env, excludeWindowId);
+        napi_value argv[] = { jsDisplayIdObj, jsExcludeWindowIdObj };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+        }, __func__);
 }
 } // namespace OHOS::Rosen

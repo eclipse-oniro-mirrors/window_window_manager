@@ -19,7 +19,6 @@
 #include <vector>
 #include "iapplication_state_observer.h"
 #include "fold_screen_common.h"
-#include "task_sequence_process.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -72,7 +71,6 @@ private:
     std::vector<int32_t> foldAlgorithmStrategy_;
     std::recursive_mutex statusMutex_;
     FoldStatus globalFoldStatus_ = FoldStatus::UNKNOWN;
-    TaskSequenceProcess taskProcessor_;
 };
 
 }  // namespace DMS

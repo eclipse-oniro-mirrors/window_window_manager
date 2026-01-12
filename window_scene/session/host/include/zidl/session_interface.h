@@ -296,6 +296,7 @@ public:
         return WSError::WS_OK;
     }
     virtual WMError NotifySnapshotUpdate() { return WMError::WM_OK; }
+    virtual WMError NotifyRemovePrelaunchStartingWindow() { return WMError::WM_OK; }
     virtual void NotifyExtensionDied() {}
     virtual void NotifyExtensionTimeout(int32_t errorCode) {}
     virtual void TriggerBindModalUIExtension() {}

@@ -1110,7 +1110,19 @@ HWTEST_F(SceneSessionDirtyManagerTest, CalTransformTest_01, TestSize.Level1)
     manager_->CalTransform(sceneSession, transform, testSingleHandData);
     ASSERT_EQ(transform, transform.Translate(translate)
         .Scale(scale, sceneSession->GetPivotX(), sceneSession->GetPivotY()).Inverse());
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.erase(screenId);
+
+    sceneSession->sessionInfo_.bundleName_ = "CalTransformTest_SCBScreenLock_01";
+    screenSession->GetScreenProperty().SetPhysicalRotation(180.0f);
+    screenSession->GetScreenProperty().SetScreenComponentRotation(90.0f);
+    manager_->CalTransform(sceneSession, transform, testSingleHandData);
+
+    sceneSession->sessionInfo_.bundleName_ = "CalTransformTest_SCBDesktop_01";
+    manager_->CalTransform(sceneSession, transform, testSingleHandData);
+
+    sceneSession->sessionInfo_.bundleName_ = "CalTransformTest_SCBScreenLock_01";
+    screenSession->GetScreenProperty().SetPhysicalRotation(180.0f);
+    screenSession->GetScreenProperty().SetScreenComponentRotation(180.0f);
+    manager_->CalTransform(sceneSession, transform, testSingleHandData);
     ScreenSessionManagerClient::GetInstance().OnUpdateFoldDisplayMode(displayMode);
 }
 

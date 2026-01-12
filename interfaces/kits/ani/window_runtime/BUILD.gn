@@ -67,6 +67,7 @@ ohos_shared_library("windowstageani_kit") {
     "../../../../interfaces/kits/napi/window_runtime:windowstage_kit",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
+    "../../../../window_scene/interfaces/innerkits:libwsutils",
     "../../../../wm:libwm",
   ]
 

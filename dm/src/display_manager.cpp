@@ -2679,13 +2679,13 @@ void DisplayManager::SetVirtualScreenBlackList(ScreenId screenId, std::vector<ui
         typeBlackList);
 }
 
-bool DisplayManager::IsOnboardDisplay(DisplayId displayId)
+DMError DisplayManager::IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
 {
     if (displayId == DISPLAY_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "fail");
-        return false;
+        return DMError::DM_ERROR_INVALID_PARAM;
     }
-    return SingletonContainer::Get<DisplayManagerAdapter>().IsOnboardDisplay(displayId);
+    return SingletonContainer::Get<DisplayManagerAdapter>().IsOnboardDisplay(displayId, isOnboardDisplay);
 }
 
 void DisplayManager::DisablePowerOffRenderControl(ScreenId screenId)

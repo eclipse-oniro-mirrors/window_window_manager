@@ -18,6 +18,7 @@
 #include <hitrace_meter.h>
 
 #include "ani.h"
+#include <ani_signature_builder.h>
 #include "display.h"
 #include "display_ani.h"
 #include "display_info.h"
@@ -29,6 +30,8 @@
 
 namespace OHOS {
 namespace Rosen {
+
+using namespace arkts::ani_signature;
 
 static thread_local std::map<DisplayId, std::shared_ptr<DisplayAni>> g_AniDisplayMap;
 std::recursive_mutex g_mutex;
@@ -89,10 +92,10 @@ void DisplayAniUtils::ConvertRect(DMRect rect, ani_object rectObj, ani_env* env)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] rect area info: %{public}d, %{public}d, %{public}u, %{public}u",
         rect.posX_, rect.posY_, rect.width_, rect.height_);
-    env->Object_SetFieldByName_Long(rectObj, "<property>left", rect.posX_);
-    env->Object_SetFieldByName_Long(rectObj, "<property>width", rect.width_);
-    env->Object_SetFieldByName_Long(rectObj, "<property>top", rect.posY_);
-    env->Object_SetFieldByName_Long(rectObj, "<property>height", rect.height_);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("left").c_str(), rect.posX_);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("width").c_str(), rect.width_);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("top").c_str(), rect.posY_);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("height").c_str(), rect.height_);
 }
 
 void DisplayAniUtils::ConvertWaterArea(WaterfallDisplayAreaRects waterfallDisplayAreaRects,
@@ -103,10 +106,10 @@ void DisplayAniUtils::ConvertWaterArea(WaterfallDisplayAreaRects waterfallDispla
     ani_ref rightObj;
     ani_ref topObj;
     ani_ref bottomObj;
-    env->Object_GetFieldByName_Ref(waterfallObj, "<property>left", &leftObj);
-    env->Object_GetFieldByName_Ref(waterfallObj, "<property>right", &rightObj);
-    env->Object_GetFieldByName_Ref(waterfallObj, "<property>top", &topObj);
-    env->Object_GetFieldByName_Ref(waterfallObj, "<property>bottom", &bottomObj);
+    env->Object_GetFieldByName_Ref(waterfallObj, Builder::BuildPropertyName("left").c_str(), &leftObj);
+    env->Object_GetFieldByName_Ref(waterfallObj, Builder::BuildPropertyName("right").c_str(), &rightObj);
+    env->Object_GetFieldByName_Ref(waterfallObj, Builder::BuildPropertyName("top").c_str(), &topObj);
+    env->Object_GetFieldByName_Ref(waterfallObj, Builder::BuildPropertyName("bottom").c_str(), &bottomObj);
     ConvertRect(waterfallDisplayAreaRects.left, static_cast<ani_object>(leftObj), env);
     ConvertRect(waterfallDisplayAreaRects.right, static_cast<ani_object>(rightObj), env);
     ConvertRect(waterfallDisplayAreaRects.top, static_cast<ani_object>(topObj), env);
@@ -124,10 +127,10 @@ void DisplayAniUtils::ConvertDisplayPhysicalResolution(std::vector<DisplayPhysic
         env->Object_CallMethodByName_Ref(arrayObj, "$_get", "i:Y", &obj, (ani_int)i);
         env->Object_SetFieldByName_Int(static_cast<ani_object>(obj), "foldDisplayMode_",
             static_cast<ani_int>(displayPhysicalArray[i].foldDisplayMode_));
-        env->Object_SetFieldByName_Long(static_cast<ani_object>(obj), "<property>physicalWidth",
-            displayPhysicalArray[i].physicalWidth_);
-        env->Object_SetFieldByName_Long(static_cast<ani_object>(obj), "<property>physicalHeight",
-            displayPhysicalArray[i].physicalHeight_);
+        env->Object_SetFieldByName_Long(static_cast<ani_object>(obj),
+            Builder::BuildPropertyName("physicalWidth").c_str(), displayPhysicalArray[i].physicalWidth_);
+        env->Object_SetFieldByName_Long(static_cast<ani_object>(obj),
+            Builder::BuildPropertyName("physicalHeight").c_str(), displayPhysicalArray[i].physicalHeight_);
     }
 }
 
@@ -139,7 +142,7 @@ void DisplayAniUtils::ConvertRoundedCorner(const std::vector<RoundedCorner>& rou
     for (uint32_t i = 0; i < roundedCornerArray.size() && i < static_cast<uint32_t>(arrayObjLen); i++) {
         ani_ref obj;
         env->Object_CallMethodByName_Ref(arrayObj, "$_get", "I:Lstd/core/Object;", &obj, (ani_int)i);
-        env->Object_SetFieldByName_Ref(static_cast<ani_object>(obj), "<property>type",
+        env->Object_SetFieldByName_Ref(static_cast<ani_object>(obj), Builder::BuildPropertyName("type").c_str(),
             DisplayAniUtils::CreateAniEnum(env, "@ohos.display.display.CornerType",
             static_cast<ani_size>(roundedCornerArray[i].type)));
 
@@ -148,16 +151,20 @@ void DisplayAniUtils::ConvertRoundedCorner(const std::vector<RoundedCorner>& rou
             TLOGE(WmsLogTag::DMS, "[ANI] Create position object failed");
             return;
         }
-        if (ANI_OK != env->Object_SetFieldByName_Long(positionObj, "<property>x", roundedCornerArray[i].position.x)) {
+        if (ANI_OK != env->Object_SetFieldByName_Long(
+            positionObj, Builder::BuildPropertyName("x").c_str(), roundedCornerArray[i].position.x)) {
             return;
         }
-        if (ANI_OK != env->Object_SetFieldByName_Long(positionObj, "<property>y", roundedCornerArray[i].position.y)) {
+        if (ANI_OK != env->Object_SetFieldByName_Long(
+            positionObj, Builder::BuildPropertyName("y").c_str(), roundedCornerArray[i].position.y)) {
             return;
         }
-        if (ANI_OK != env->Object_SetFieldByName_Ref(static_cast<ani_object>(obj), "<property>position", positionObj)) {
+        if (ANI_OK != env->Object_SetFieldByName_Ref(
+            static_cast<ani_object>(obj), Builder::BuildPropertyName("position").c_str(), positionObj)) {
             return;
         }
-        env->Object_SetFieldByName_Int(static_cast<ani_object>(obj), "<property>radius",
+        env->Object_SetFieldByName_Int(
+            static_cast<ani_object>(obj), Builder::BuildPropertyName("radius").c_str(),
             roundedCornerArray[i].radius);
     }
 }
@@ -175,6 +182,11 @@ ani_enum_item DisplayAniUtils::CreateAniEnum(ani_env* env, const char* enum_desc
     return enumItem;
 }
 
+std::string propName(const std::string_view& name)
+{
+    return Builder::BuildPropertyName(name);
+}
+
 ani_status DisplayAniUtils::CvtDisplay(sptr<Display> display, ani_env* env, ani_object obj)
 {
     sptr<DisplayInfo> info = display->GetDisplayInfoWithCache();
@@ -182,7 +194,7 @@ ani_status DisplayAniUtils::CvtDisplay(sptr<Display> display, ani_env* env, ani_
         TLOGE(WmsLogTag::DMS, "[ANI] Failed to GetDisplayInfo");
         return ANI_ERROR;
     }
-    int setfieldid = env->Object_SetFieldByName_Long(obj, "<property>id", info->GetDisplayId());
+    int setfieldid = env->Object_SetFieldByName_Long(obj, propName("id").c_str(), info->GetDisplayId());
     if (ANI_OK != setfieldid) {
         TLOGE(WmsLogTag::DMS, "[ANI] set id failed: %{public}d", setfieldid);
     }
@@ -190,18 +202,18 @@ ani_status DisplayAniUtils::CvtDisplay(sptr<Display> display, ani_env* env, ani_
         static_cast<uint32_t>(info->GetDisplayId()), info->GetName().c_str());
     ani_string str = nullptr;
     env->String_NewUTF8(info->GetName().data(), info->GetName().size(), &str);
-    env->Object_SetFieldByName_Ref(obj, "<property>name", str);
-    env->Object_SetFieldByName_Boolean(obj, "<property>alive", info->GetAliveStatus());
+    env->Object_SetFieldByName_Ref(obj, propName("name").c_str(), str);
+    env->Object_SetFieldByName_Boolean(obj, propName("alive").c_str(), info->GetAliveStatus());
     if (NATIVE_TO_JS_DISPLAY_STATE_MAP.count(info->GetDisplayState()) != 0) {
-        env->Object_SetFieldByName_Ref(obj, "<property>state", DisplayAniUtils::CreateAniEnum(
+        env->Object_SetFieldByName_Ref(obj, propName("state").c_str(), DisplayAniUtils::CreateAniEnum(
             env, "@ohos.display.display.DisplayState", static_cast<ani_size>(info->GetDisplayState())));
     } else {
-        env->Object_SetFieldByName_Ref(obj, "<property>state", DisplayAniUtils::CreateAniEnum(
+        env->Object_SetFieldByName_Ref(obj, propName("state").c_str(), DisplayAniUtils::CreateAniEnum(
             env, "@ohos.display.display.DisplayState", static_cast<ani_size>(0)));
     }
-    env->Object_SetFieldByName_Int(obj, "<property>refreshRate", info->GetRefreshRate());
-    env->Object_SetFieldByName_Int(obj, "<property>rotation", static_cast<uint32_t>(info->GetRotation()));
-    ani_status setfieldRes = env->Object_SetFieldByName_Long(obj, "<property>width",
+    env->Object_SetFieldByName_Int(obj, propName("refreshRate").c_str(), info->GetRefreshRate());
+    env->Object_SetFieldByName_Int(obj, propName("rotation").c_str(), static_cast<uint32_t>(info->GetRotation()));
+    ani_status setfieldRes = env->Object_SetFieldByName_Long(obj, propName("width").c_str(),
         static_cast<uint32_t>(info->GetWidth()));
     if (ANI_OK != setfieldRes) {
         TLOGE(WmsLogTag::DMS, "[ANI] set failed: %{public}d, %{public}u", info->GetWidth(), setfieldRes);
@@ -212,29 +224,27 @@ ani_status DisplayAniUtils::CvtDisplay(sptr<Display> display, ani_env* env, ani_
 
 void DisplayAniUtils::CvtDisplayHelper(sptr<Display> display, ani_env* env, ani_object obj, sptr<DisplayInfo> info)
 {
-    env->Object_SetFieldByName_Long(obj, "<property>height", display->GetHeight());
-    env->Object_SetFieldByName_Long(obj, "<property>availableWidth", info->GetAvailableWidth());
-    env->Object_SetFieldByName_Long(obj, "<property>availableHeight", info->GetAvailableHeight());
-    env->Object_SetFieldByName_Double(obj, "<property>densityDPI", info->GetVirtualPixelRatio() * DOT_PER_INCH);
-    env->Object_SetFieldByName_Ref(obj, "<property>orientation", DisplayAniUtils::CreateAniEnum(
+    env->Object_SetFieldByName_Long(obj, propName("height").c_str(), display->GetHeight());
+    env->Object_SetFieldByName_Long(obj, propName("availableWidth").c_str(), info->GetAvailableWidth());
+    env->Object_SetFieldByName_Long(obj, propName("availableHeight").c_str(), info->GetAvailableHeight());
+    env->Object_SetFieldByName_Double(obj, propName("densityDPI").c_str(), info->GetVirtualPixelRatio() * DOT_PER_INCH);
+    env->Object_SetFieldByName_Ref(obj, propName("orientation").c_str(), DisplayAniUtils::CreateAniEnum(
         env, "@ohos.display.display.Orientation", static_cast<ani_size>(info->GetDisplayOrientation())));
-    env->Object_SetFieldByName_Double(obj, "<property>densityPixels", info->GetVirtualPixelRatio());
-    env->Object_SetFieldByName_Double(obj, "<property>scaledDensity", info->GetVirtualPixelRatio());
-    env->Object_SetFieldByName_Double(obj, "<property>xDPI", info->GetXDpi());
-    env->Object_SetFieldByName_Double(obj, "<property>yDPI", info->GetYDpi());
-    env->Object_SetFieldByName_Ref(obj, "<property>screenShape", DisplayAniUtils::CreateAniEnum(
+    env->Object_SetFieldByName_Double(obj, propName("densityPixels").c_str(), info->GetVirtualPixelRatio());
+    env->Object_SetFieldByName_Double(obj, propName("scaledDensity").c_str(), info->GetVirtualPixelRatio());
+    env->Object_SetFieldByName_Double(obj, propName("xDPI").c_str(), info->GetXDpi());
+    env->Object_SetFieldByName_Double(obj, propName("yDPI").c_str(), info->GetYDpi());
+    env->Object_SetFieldByName_Ref(obj, propName("screenShape").c_str(), DisplayAniUtils::CreateAniEnum(
         env, "@ohos.display.display.ScreenShape", static_cast<ani_size>(info->GetScreenShape())));
     if (info->GetDisplaySourceMode() == DisplaySourceMode::MAIN ||
         info->GetDisplaySourceMode() == DisplaySourceMode::EXTEND) {
-        env->Object_SetFieldByName_Ref(obj, "<property>x",
-            DisplayAniUtils::CreateOptionalInt(env, static_cast<ani_int>(info->GetX())));
-        env->Object_SetFieldByName_Ref(obj, "<property>y",
-            DisplayAniUtils::CreateOptionalInt(env, static_cast<ani_int>(info->GetY())));
+        env->Object_SetFieldByName_Long(obj, propName("x").c_str(), info->GetX());
+        env->Object_SetFieldByName_Long(obj, propName("y").c_str(), info->GetY());
     } else {
-        env->Object_SetFieldByName_Ref(obj, "<property>x", DisplayAniUtils::CreateAniUndefined(env));
-        env->Object_SetFieldByName_Ref(obj, "<property>y", DisplayAniUtils::CreateAniUndefined(env));
+        env->Object_SetFieldByName_Ref(obj, propName("x").c_str(), DisplayAniUtils::CreateAniUndefined(env));
+        env->Object_SetFieldByName_Ref(obj, propName("y").c_str(), DisplayAniUtils::CreateAniUndefined(env));
     }
-    env->Object_SetFieldByName_Ref(obj, "<property>sourceMode", DisplayAniUtils::CreateAniEnum(
+    env->Object_SetFieldByName_Ref(obj, propName("sourceMode").c_str(), DisplayAniUtils::CreateAniEnum(
         env, "@ohos.display.display.DisplaySourceMode", static_cast<ani_size>(info->GetDisplaySourceMode())));
     auto colorSpaces = info->GetColorSpaces();
     auto hdrFormats = info->GetHdrFormats();
@@ -242,17 +252,17 @@ void DisplayAniUtils::CvtDisplayHelper(sptr<Display> display, ani_env* env, ani_
     if (colorSpaces.size() != 0) {
         ani_array colorSpacesAni;
         CreateAniArrayInt(env, colorSpaces.size(), &colorSpacesAni, colorSpaces);
-        env->Object_SetFieldByName_Ref(obj, "<property>colorSpaces", static_cast<ani_ref>(colorSpacesAni));
+        env->Object_SetFieldByName_Ref(obj, propName("colorSpaces").c_str(), static_cast<ani_ref>(colorSpacesAni));
     }
     if (hdrFormats.size() != 0) {
         ani_array hdrFormatsAni;
         CreateAniArrayInt(env, hdrFormats.size(), &hdrFormatsAni, hdrFormats);
-        env->Object_SetFieldByName_Ref(obj, "<property>hdrFormats", static_cast<ani_ref>(hdrFormatsAni));
+        env->Object_SetFieldByName_Ref(obj, propName("hdrFormats").c_str(), static_cast<ani_ref>(hdrFormatsAni));
     }
     if (supportedRefreshRates.size() != 0) {
         ani_array supportedRefreshRatesAni;
         CreateAniArrayInt(env, hdrFormats.size(), &supportedRefreshRatesAni, supportedRefreshRates);
-        env->Object_SetFieldByName_Ref(obj, "<property>supportedRefreshRates",
+        env->Object_SetFieldByName_Ref(obj, propName("supportedRefreshRates").c_str(),
             static_cast<ani_ref>(supportedRefreshRatesAni));
     }
 }
@@ -439,7 +449,7 @@ ani_object DisplayAniUtils::CreateAniUndefined(ani_env* env)
 static DmErrorCode GetFocusFromAni(ani_env* env, ani_object virtualScreenObj, VirtualScreenOption& option)
 {
     ani_ref supportsFocus = nullptr;
-    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "<property>supportsFocus", &supportsFocus) != ANI_OK) {
+    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "%%property-supportsFocus", &supportsFocus) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get supportsFocus.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
@@ -466,22 +476,22 @@ DmErrorCode DisplayAniUtils::GetVirtualScreenOptionFromAni(
     ani_long height = 0;
     ani_double density = 0;
     ani_ref surfaceId = nullptr;
-    env->Object_GetPropertyByName_Ref(virtualScreenConfigObj, "<property>name", &nameAni);
+    env->Object_GetPropertyByName_Ref(virtualScreenConfigObj, Builder::BuildPropertyName("name").c_str(), &nameAni);
     if (DisplayAniUtils::GetStdString(env, static_cast<ani_string>(nameAni), option.name_) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to convert parameter to name.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
-    if (env->Object_GetPropertyByName_Long(virtualScreenConfigObj, "<property>width",
+    if (env->Object_GetPropertyByName_Long(virtualScreenConfigObj, Builder::BuildPropertyName("width").c_str(),
         &width) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to convert parameter to width.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
-    if (env->Object_GetPropertyByName_Long(virtualScreenConfigObj, "<property>height",
+    if (env->Object_GetPropertyByName_Long(virtualScreenConfigObj, Builder::BuildPropertyName("height").c_str(),
         &height) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to convert parameter to height.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
-    if (env->Object_GetPropertyByName_Double(virtualScreenConfigObj, "<property>density",
+    if (env->Object_GetPropertyByName_Double(virtualScreenConfigObj, Builder::BuildPropertyName("density").c_str(),
         &density) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to convert parameter to density.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
@@ -490,7 +500,7 @@ DmErrorCode DisplayAniUtils::GetVirtualScreenOptionFromAni(
     option.height_ = static_cast<uint32_t>(height);
     option.density_ = static_cast<float>(density);
 
-    env->Object_GetPropertyByName_Ref(virtualScreenConfigObj, "<property>surfaceId",
+    env->Object_GetPropertyByName_Ref(virtualScreenConfigObj, Builder::BuildPropertyName("surfaceId").c_str(),
         &surfaceId);
     if (!DisplayAniUtils::GetSurfaceFromAni(env, static_cast<ani_string>(surfaceId), option.surface_)) {
         TLOGE(WmsLogTag::DMS, "[ANI] Failed to convert surface.");
@@ -640,8 +650,8 @@ DmErrorCode DisplayAniUtils::GetPositionFromAni(ani_env* env, Position& globalPo
 {
     ani_long positionX;
     ani_long positionY;
-    if (ANI_OK != env->Object_GetFieldByName_Long(positionObj, "<property>x", &positionX) ||
-        ANI_OK != env->Object_GetFieldByName_Long(positionObj, "<property>y", &positionY)) {
+    if (ANI_OK != env->Object_GetFieldByName_Long(positionObj, Builder::BuildPropertyName("x").c_str(), &positionX) ||
+        ANI_OK != env->Object_GetFieldByName_Long(positionObj, Builder::BuildPropertyName("y").c_str(), &positionY)) {
         TLOGE(WmsLogTag::DMS, "[ANI] get position failed");
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
@@ -657,21 +667,24 @@ DmErrorCode DisplayAniUtils::GetPositionFromAni(ani_env* env, Position& globalPo
 
 DmErrorCode DisplayAniUtils::SetPositionObj(ani_env* env, Position& globalPosition, ani_object positionObj)
 {
-    if (ANI_OK != env->Object_SetFieldByName_Long(positionObj, "<property>x", globalPosition.x)) {
+    if (ANI_OK !=
+        env->Object_SetFieldByName_Long(positionObj, Builder::BuildPropertyName("x").c_str(), globalPosition.x)) {
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
-    if (ANI_OK != env->Object_SetFieldByName_Long(positionObj, "<property>y", globalPosition.y)) {
+    if (ANI_OK !=
+        env->Object_SetFieldByName_Long(positionObj, Builder::BuildPropertyName("y").c_str(), globalPosition.y)) {
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
     return DmErrorCode::DM_OK;
 }
 
-DmErrorCode DisplayAniUtils::GetRelativePostionFromAni(
-    ani_env* env, RelativePosition& relativePosition, ani_object relativePositionObj)
+DmErrorCode DisplayAniUtils::GetRelativePostionFromAni(ani_env* env,
+    RelativePosition& relativePosition, ani_object relativePositionObj)
 {
     ani_ref positionObj;
     ani_long displayId;
-    if (ANI_OK != env->Object_GetFieldByName_Long(relativePositionObj, "<property>displayId", &displayId)) {
+    if (ANI_OK != env->Object_GetFieldByName_Long(
+        relativePositionObj, Builder::BuildPropertyName("displayId").c_str(), &displayId)) {
         TLOGE(WmsLogTag::DMS, "[ANI] get displayId failed");
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
@@ -680,12 +693,13 @@ DmErrorCode DisplayAniUtils::GetRelativePostionFromAni(
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
     relativePosition.displayId = static_cast<DisplayId>(displayId);
-    if (ANI_OK != env->Object_GetFieldByName_Ref(relativePositionObj, "<property>position", &positionObj)) {
+    if (ANI_OK != env->Object_GetFieldByName_Ref(
+        relativePositionObj, Builder::BuildPropertyName("position").c_str(), &positionObj)) {
         TLOGE(WmsLogTag::DMS, "[ANI] get positionObj failed");
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
-    DmErrorCode errcode = DisplayAniUtils::GetPositionFromAni(
-        env, relativePosition.position, static_cast<ani_object>(positionObj));
+    DmErrorCode errcode =
+        DisplayAniUtils::GetPositionFromAni(env, relativePosition.position, static_cast<ani_object>(positionObj));
     if (errcode != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] get position from ani failed");
         return errcode;
@@ -701,17 +715,20 @@ DmErrorCode DisplayAniUtils::SetRelativePostionObj(
         TLOGE(WmsLogTag::DMS, "[ANI] Create position object failed");
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
-    if (ANI_OK != env->Object_SetFieldByName_Long(PositionObj, "<property>x", relativePosition.position.x)) {
-        return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
-    }
-    if (ANI_OK != env->Object_SetFieldByName_Long(PositionObj, "<property>y", relativePosition.position.y)) {
-        return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
-    }
-    if (ANI_OK != env->Object_SetFieldByName_Ref(relativePositionObj, "<property>position", PositionObj)) {
+    if (ANI_OK != env->Object_SetFieldByName_Long(
+        PositionObj, Builder::BuildPropertyName("x").c_str(), relativePosition.position.x)) {
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
     if (ANI_OK != env->Object_SetFieldByName_Long(
-        relativePositionObj, "<property>displayId", relativePosition.displayId)) {
+        PositionObj, Builder::BuildPropertyName("y").c_str(), relativePosition.position.y)) {
+        return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
+    }
+    if (ANI_OK != env->Object_SetFieldByName_Ref(
+        relativePositionObj, Builder::BuildPropertyName("position").c_str(), PositionObj)) {
+        return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
+    }
+    if (ANI_OK != env->Object_SetFieldByName_Long(
+        relativePositionObj, Builder::BuildPropertyName("displayId").c_str(), relativePosition.displayId)) {
         return DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     }
     return DmErrorCode::DM_OK;
@@ -727,12 +744,13 @@ void DisplayAniUtils::SetFoldCreaseRegion(ani_env* env, FoldCreaseRegion& region
         return;
     }
     if (ANI_OK != env->Object_SetFieldByName_Long(
-        foldCreaseRegionObj, "<property>displayId", (ani_long)displayId)) {
+        foldCreaseRegionObj, Builder::BuildPropertyName("diaplayId").c_str(), (ani_long)displayId)) {
         TLOGE(WmsLogTag::DMS, "[ANI] set displayId field fail");
         return;
     }
     ani_ref creaseRectsObj{};
-    if (ANI_OK != env->Object_GetFieldByName_Ref(foldCreaseRegionObj, "<property>creaseRects", &creaseRectsObj)) {
+    if (ANI_OK != env->Object_GetFieldByName_Ref(
+        foldCreaseRegionObj, Builder::BuildPropertyName("creaseRects").c_str(), &creaseRectsObj)) {
         TLOGE(WmsLogTag::DMS, "[ANI] get ani_array len fail");
     }
     ani_int length;
@@ -742,8 +760,8 @@ void DisplayAniUtils::SetFoldCreaseRegion(ani_env* env, FoldCreaseRegion& region
     TLOGI(WmsLogTag::DMS, "[ANI] set FoldCreaseRegion property begin");
     for (int i = 0; i < std::min(int(length), static_cast<int>(rects.size())); i++) {
         ani_ref currentCrease;
-        if (ANI_OK != env->Object_CallMethodByName_Ref(static_cast<ani_object>(creaseRectsObj),
-            "$_get", "i:Y", &currentCrease, (ani_int)i)) {
+        if (ANI_OK != env->Object_CallMethodByName_Ref(
+            static_cast<ani_object>(creaseRectsObj), "$_get", "i:Y", &currentCrease, (ani_int)i)) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail", (ani_int)i);
         }
         TLOGI(WmsLogTag::DMS, "current i: %{public}d", i);
@@ -776,17 +794,20 @@ void DisplayAniUtils::DisposeAniDisplayObject(DisplayId displayId)
 
 ani_status DisplayAniUtils::CvtBrightnessInfo(ani_env* env, ani_object obj, ScreenBrightnessInfo brightnessInfo)
 {
-    ani_status ret = env->Object_SetFieldByName_Double(obj, "<property>sdrNits", brightnessInfo.sdrNits);
+    ani_status ret =
+        env->Object_SetFieldByName_Double(obj, Builder::BuildPropertyName("sdrNits").c_str(), brightnessInfo.sdrNits);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI]Set sdrNits failed, ret: %{public}u", ret);
         return ret;
     }
-    ret = env->Object_SetFieldByName_Double(obj, "<property>currentHeadroom", brightnessInfo.currentHeadroom);
+    ret = env->Object_SetFieldByName_Double(
+        obj, Builder::BuildPropertyName("currentHeadroom").c_str(), brightnessInfo.currentHeadroom);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI]Set currentHeadroom failed, ret: %{public}u", ret);
         return ret;
     }
-    ret = env->Object_SetFieldByName_Double(obj, "<property>maxHeadroom", brightnessInfo.maxHeadroom);
+    ret = env->Object_SetFieldByName_Double(
+        obj, Builder::BuildPropertyName("maxHeadroom").c_str(), brightnessInfo.maxHeadroom);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI]Set maxHeadroom failed, ret: %{public}u", ret);
         return ret;

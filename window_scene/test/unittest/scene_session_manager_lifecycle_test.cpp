@@ -172,7 +172,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest, PendingSessionToBackgroundForDelegato
 {
     WSError ret;
     ret = ssm_->PendingSessionToBackgroundForDelegator(nullptr, true);
-    ASSERT_EQ(WSError::WS_ERROR_INVALID_PARAM, ret);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_PARAM, ret);
 
     SessionInfo info;
     info.abilityName_ = "BackgroundTask02";
@@ -180,7 +180,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest, PendingSessionToBackgroundForDelegato
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ssm_->sceneSessionMap_.insert({ 100, sceneSession });
     ret = ssm_->PendingSessionToBackgroundForDelegator(nullptr, true);
-    ASSERT_EQ(WSError::WS_ERROR_INVALID_PARAM, ret);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_PARAM, ret);
 }
 
 /**

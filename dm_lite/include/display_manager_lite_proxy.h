@@ -77,7 +77,7 @@ public:
     DMError GetPhysicalScreenIds(std::vector<ScreenId>& screenIds);
     DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
     DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
-    bool IsOnboardDisplay(DisplayId displayId);
+    DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
     sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId);
     bool GetKeyboardState();
     bool SynchronizePowerStatus(ScreenPowerState state);

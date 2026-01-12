@@ -80,7 +80,7 @@ public:
     virtual bool SetScreenBrightness(uint64_t screenId, uint32_t level);
     virtual uint32_t GetScreenBrightness(uint64_t screenId);
     virtual DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
-    virtual bool IsOnboardDisplay(DisplayId displayId);
+    virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
 private:
     static inline SingletonDelegator<DisplayManagerAdapterLite> delegator;
 };

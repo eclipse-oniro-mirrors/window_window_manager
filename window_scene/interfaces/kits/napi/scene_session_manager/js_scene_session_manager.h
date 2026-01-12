@@ -56,6 +56,7 @@ enum class ListenerFunctionType : uint32_t {
     VIRTUAL_DENSITY_CHANGE_CB,
     SET_SPECIFIC_SESSION_ZINDEX_CB,
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
+    MINIMIZE_ALL_CB,
 };
 
 class JsSceneSessionManager final {
@@ -412,6 +413,8 @@ private:
     static napi_value UpdateRecentMainSessionInfos(napi_env env, napi_callback_info info);
     static napi_value UpdateAppBoundSystemTrayStatus(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppBoundSystemTrayStatus(napi_env env, napi_callback_info info);
+    void RegisterMinimizeAllCallback();
+    void OnMinimizeAll(DisplayId displayId, int32_t excludeWindowId);
 
     /*
      * Window Hierarchy

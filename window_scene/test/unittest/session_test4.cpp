@@ -442,22 +442,6 @@ HWTEST_F(WindowSessionTest4, SetFocusable03, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetFocused
- * @tc.desc: GetFocused Test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest4, GetFocused, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    bool result = session_->GetFocused();
-    ASSERT_EQ(result, false);
-
-    session_->isFocused_ = true;
-    bool result2 = session_->GetFocused();
-    ASSERT_EQ(result2, true);
-}
-
-/**
  * @tc.name: UpdatePointerArea
  * @tc.desc: UpdatePointerArea Test
  * @tc.type: FUNC
@@ -468,7 +452,6 @@ HWTEST_F(WindowSessionTest4, UpdatePointerArea, TestSize.Level1)
     WSRect rect = { 0, 0, 0, 0 };
     session_->preRect_ = rect;
     session_->UpdatePointerArea(rect);
-    ASSERT_EQ(session_->GetFocused(), false);
 }
 
 /**

@@ -22,10 +22,10 @@
 
 namespace OHOS::Rosen {
 namespace {
-constexpr uint32_t SCREEN_UNKNOWN = 0;
-constexpr uint32_t SCREEN_EXPAND = 1;
-constexpr uint32_t SCREEN_FOLDED = 2;
-constexpr uint32_t SCREEN_COUNT = 3;
+constexpr int32_t SCREEN_UNKNOWN = 0;
+constexpr int32_t SCREEN_EXPAND = 1;
+constexpr int32_t SCREEN_FOLDED = 2;
+constexpr int32_t SCREEN_COUNT = 3;
 constexpr uint32_t SNAPSHOT_PORTRAIT = 0;
 constexpr uint32_t SNAPSHOT_LANDSCAPE = 1;
 constexpr uint32_t ORIENTATION_COUNT = 2;
@@ -37,7 +37,7 @@ constexpr uint32_t ROTATION_ANGLE = 360;
 constexpr uint32_t ROTATION_COUNT = 4;
 constexpr uint32_t SECONDARY_EXPAND_OFFSET = 1;
 }
-using SnapshotStatus = uint32_t;
+using SnapshotStatus = int32_t;
 constexpr SnapshotStatus defaultStatus = SCREEN_UNKNOWN;
 constexpr SnapshotStatus defaultCapacity = SCREEN_EXPAND;
 constexpr SnapshotStatus maxCapacity = SCREEN_COUNT;
@@ -45,10 +45,10 @@ constexpr SnapshotStatus maxCapacity = SCREEN_COUNT;
 class WSSnapshotHelper {
 public:
     static WSSnapshotHelper* GetInstance();
-    uint32_t GetScreenStatus();
-    static uint32_t GetScreenStatus(FoldStatus foldStatus);
+    int32_t GetScreenStatus();
+    static int32_t GetScreenStatus(FoldStatus foldStatus);
     static DisplayOrientation GetDisplayOrientation(int32_t rotation);
-    void SetWindowScreenStatus(uint32_t screenStatus);
+    void SetWindowScreenStatus(int32_t screenStatus);
     void SetWindowScreenStatus(FoldStatus foldStatus);
     void SetWindowOrientationStatus(Rotation rotation);
     uint32_t GetWindowRotation() const;

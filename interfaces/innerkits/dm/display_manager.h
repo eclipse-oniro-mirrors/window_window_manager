@@ -869,9 +869,9 @@ public:
      * @brief Determine whether the display is onboard.
      *
      * @param displayId display id.
-     * @return displayid whether onboard
+     * @return DMError represent operation result, isOnboardDisplay represent whether displayid is onboard
     */
-    bool IsOnboardDisplay(DisplayId displayId);
+    DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
 
     /**
      * @brief When casting the screen, the display not be skipped after the physical screen is turned off.

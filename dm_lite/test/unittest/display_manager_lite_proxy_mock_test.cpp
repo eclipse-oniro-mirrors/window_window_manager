@@ -95,5 +95,54 @@ HWTEST_F(DisplayManagerLiteProxyMockTest, SetResolution, TestSize.Level1)
     displayManagerLiteProxy_->SetResolution(id, width, height, vpr);
     EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
 }
+
+/**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, IsOnboardDisplay, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    DisplayId displayId = 0;
+    bool isOnboardDisplay = false;
+    MockMessageParcel::ClearAllErrorFlag();
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    displayManagerLiteProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("write interface token failed") != std::string::npos);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    displayManagerLiteProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("write displayId failed") != std::string::npos);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    displayManagerLiteProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("read result failed") != std::string::npos);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("send request failed") != std::string::npos);
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker = nullptr;
+    proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    proxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen

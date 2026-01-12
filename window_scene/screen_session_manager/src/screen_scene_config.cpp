@@ -83,6 +83,7 @@ std::map<std::string, bool> ScreenSceneConfig::enableConfig_;
 std::map<std::string, std::vector<int>> ScreenSceneConfig::intNumbersConfig_;
 std::map<std::string, std::string> ScreenSceneConfig::stringConfig_;
 std::map<std::string, std::vector<std::string>> ScreenSceneConfig::stringListConfig_;
+std::map<uint64_t, std::vector<DMRect>> ScreenSceneConfig::defaultCutoutBoundaryRectMap_;
 std::map<uint64_t, std::vector<DMRect>> ScreenSceneConfig::cutoutBoundaryRectMap_;
 std::vector<DisplayPhysicalResolution> ScreenSceneConfig::displayPhysicalResolution_;
 std::map<FoldDisplayMode, ScrollableParam> ScreenSceneConfig::scrollableParams_;
@@ -635,8 +636,23 @@ void ScreenSceneConfig::SetCutoutSvgPath(uint64_t displayId, const std::string& 
     if (svgPath.empty()) {
         return;
     }
+    defaultCutoutBoundaryRectMap_.clear();
+    defaultCutoutBoundaryRectMap_[displayId].emplace_back(CalcCutoutBoundaryRect(svgPath));
     cutoutBoundaryRectMap_.clear();
     cutoutBoundaryRectMap_[displayId].emplace_back(CalcCutoutBoundaryRect(svgPath));
+}
+
+void ScreenSceneConfig::UpdateCutoutBoundRect(uint64_t displayId, float rogRatio)
+{
+    if (defaultCutoutBoundaryRectMap_.count(displayId) == 0 || cutoutBoundaryRectMap_.count(displayId) == 0) {
+        return;
+    }
+    for (uint64_t i = 0; i < cutoutBoundaryRectMap_[displayId].size(); i++) {
+        cutoutBoundaryRectMap_[displayId][i].posX_ = defaultCutoutBoundaryRectMap_[displayId][i].posX_ * rogRatio;
+        cutoutBoundaryRectMap_[displayId][i].posY_ = defaultCutoutBoundaryRectMap_[displayId][i].posY_ * rogRatio;
+        cutoutBoundaryRectMap_[displayId][i].width_ = defaultCutoutBoundaryRectMap_[displayId][i].width_ * rogRatio;
+        cutoutBoundaryRectMap_[displayId][i].height_ = defaultCutoutBoundaryRectMap_[displayId][i].height_ * rogRatio;
+    }
 }
 
 void ScreenSceneConfig::SetSubCutoutSvgPath(const std::string& svgPath)

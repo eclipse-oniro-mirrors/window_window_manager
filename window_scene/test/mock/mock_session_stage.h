@@ -62,6 +62,7 @@ public:
     MOCK_METHOD1(NotifyWindowOcclusionState, WSError(const WindowVisibilityState state));
     MOCK_METHOD1(NotifyTransformChange, void(const Transform& transform));
     MOCK_METHOD1(NotifySingleHandTransformChange, void(const SingleHandTransform& singleHandTransform));
+    MOCK_METHOD(void, NotifyGlobalScaledRectChange, (const Rect& globalScaledRect), (override));
     MOCK_METHOD1(NotifyDialogStateChange, WSError(bool isForeground));
     MOCK_METHOD1(UpdateDisplayId, WSError(uint64_t displayId));
     MOCK_METHOD2(SetPipActionEvent, WSError(const std::string& action, int32_t status));

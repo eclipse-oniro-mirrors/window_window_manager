@@ -351,6 +351,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleRestartApp(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SEND_COMMAND_EVENT):
             return HandleSendCommonEvent(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_REMOVE_PRELAUNCH_STARTING_WINDOW):
+            return HandleRemovePrelaunchStartingWindow(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT):
             return HandleRecoverWindowEffect(data, reply);
         default:
@@ -542,6 +544,8 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         MissionInfo missionInfo = property->GetMissionInfo();
         reply.WriteParcelable(&missionInfo);
         reply.WriteBool(property->GetIsShowDecorInFreeMultiWindow());
+        reply.WriteBool(property->IsPrelaunch());
+        reply.WriteInt32(property->GetFrameNum());
     }
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
@@ -561,6 +565,17 @@ int SessionStub::HandleSnapshotUpdate(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_PATTERN, "In");
     WMError errCode = NotifySnapshotUpdate();
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleRemovePrelaunchStartingWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "In");
+    WMError errCode = NotifyRemovePrelaunchStartingWindow();
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "write errCode fail.");
         return ERR_INVALID_DATA;
@@ -913,6 +928,10 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
     abilitySessionInfo->windowCreateParams.reset(data.ReadParcelable<WindowCreateParams>());
     if (!data.ReadBool(abilitySessionInfo->isPrelaunch)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read isPrelaunch failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadInt32(abilitySessionInfo->frameNum)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read frameNum failed.");
         return ERR_INVALID_DATA;
     }
     WSError errCode = PendingSessionActivation(abilitySessionInfo);

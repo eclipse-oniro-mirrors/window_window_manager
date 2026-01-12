@@ -166,6 +166,15 @@ public:
     virtual void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) = 0;
 
     /**
+     * @brief Notify global scaled rect.
+     *
+     * Notify client when global scaled rect changed.
+     *
+     * @param globalScaledRect rect to change.
+     */
+    virtual void NotifyGlobalScaledRectChange(const Rect& globalScaledRect) {}
+
+    /**
      * @brief Set pip event to client.
      *
      * Set the pip event to client. Such as close, restore, destroy events.

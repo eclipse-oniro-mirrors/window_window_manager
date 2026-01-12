@@ -708,9 +708,9 @@ ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
     return SingletonContainer::Get<ScreenManagerAdapter>().CreateVirtualScreen(option, virtualScreenAgent_);
 }
 
-DMError ScreenManager::DestroyVirtualScreen(ScreenId screenId)
+DMError ScreenManager::DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty)
 {
-    return SingletonContainer::Get<ScreenManagerAdapter>().DestroyVirtualScreen(screenId);
+    return SingletonContainer::Get<ScreenManagerAdapter>().DestroyVirtualScreen(screenId, isCallingByThirdParty);
 }
 
 DMError ScreenManager::SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface)

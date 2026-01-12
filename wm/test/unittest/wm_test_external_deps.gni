@@ -1,0 +1,45 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+test_external_deps = [
+  "ability_base:configuration",
+  "ability_base:want",
+  "ability_runtime:ability_context_native",
+  "ability_runtime:ability_manager",
+  "ability_runtime:app_context",
+  "ability_runtime:runtime",
+  "accessibility:accessibility_common",
+  "ace_engine:ace_uicontent",
+  "ace_engine:ace_xcomponent_controller",
+  "bundle_framework:appexecfwk_base",
+  "c_utils:utils",
+  "common_event_service:cesfwk_innerkits",
+  "eventhandler:libeventhandler",
+  "ffrt:libffrt",
+  "googletest:gmock",
+  "googletest:gtest_main",
+  "graphic_2d:librender_service_base",
+  "graphic_2d:librender_service_client",
+  "graphic_2d:window_animation",
+  "hilog:libhilog",
+  "hilog:libhilog_base",
+  "image_framework:image_native",
+  "init:libbegetutil",
+  "input:libmmi-client",
+  "input:oh_input_manager",
+  "ipc:ipc_core",
+  "ipc:ipc_single",
+  "napi:ace_napi",
+  "power_manager:powermgr_client",
+  "safwk:system_ability_fwk",
+]

@@ -1090,9 +1090,9 @@ WMError WindowAdapter::SetSpecificWindowZIndex(WindowType windowType, int32_t zI
     WMError ret = static_cast<WMError>(wmsProxy->SetSpecificWindowZIndex(windowType, zIndex));
     if (updateMap && ret == WMError::WM_OK) {
         specificZIndexMap_[windowType] = zIndex;
+        SessionManager::GetInstance(userId_).NotifySetSpecificWindowZIndex();
     }
-    TLOGI(WmsLogTag::WMS_FOCUS, "windowType: %{public}d, zIndex: %{public}d",
-        windowType, zIndex);
+    TLOGI(WmsLogTag::WMS_FOCUS, "windowType: %{public}d, zIndex: %{public}d", windowType, zIndex);
     return ret;
 }
 

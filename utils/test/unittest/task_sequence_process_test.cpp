@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -47,7 +47,7 @@ namespace {
  */
 HWTEST_F(TaskSequenceProcessTest, ATC_TaskSequenceProcess01, TestSize.Level0)
 {
-    TaskSequenceProcess process = TaskSequenceProcess(0);
+    TaskSequenceProcess process = TaskSequenceProcess(0, 1000, "test1");
     EXPECT_EQ(process.maxQueueSize_, 1);
 }
 
@@ -58,18 +58,18 @@ HWTEST_F(TaskSequenceProcessTest, ATC_TaskSequenceProcess01, TestSize.Level0)
  */
 HWTEST_F(TaskSequenceProcessTest, ATC_TaskSequenceProcess02, TestSize.Level0)
 {
-    TaskSequenceProcess process = TaskSequenceProcess(10);
+    TaskSequenceProcess process = TaskSequenceProcess(10, 1000, "test2");
     EXPECT_EQ(process.maxQueueSize_, 10);
 }
 
 /**
- * @tc.name: SetTaskRunningFlagTest01
- * @tc.desc: SetTaskRunningFlagTest01
+ * @tc.name: AddTaskTest01
+ * @tc.desc: AddTaskTest01
  * @tc.type: FUNC
  */
 HWTEST_F(TaskSequenceProcessTest, ATC_AddTask01, TestSize.Level0)
 {
-    TaskSequenceProcess process = TaskSequenceProcess(1);
+    TaskSequenceProcess process = TaskSequenceProcess(1, 1000, "test3");
     bool taskCallback =  false;
     std::function<void()> task = [&taskCallback]() {
         taskCallback =true;
@@ -79,13 +79,13 @@ HWTEST_F(TaskSequenceProcessTest, ATC_AddTask01, TestSize.Level0)
 }
 
 /**
- * @tc.name: SetTaskRunningFlagTest01
- * @tc.desc: SetTaskRunningFlagTest01
+ * @tc.name: FinishTaskTest01
+ * @tc.desc: FinishTaskTest01
  * @tc.type: FUNC
  */
 HWTEST_F(TaskSequenceProcessTest, ATC_FinishTask01, TestSize.Level0)
 {
-    TaskSequenceProcess process = TaskSequenceProcess(1);
+    TaskSequenceProcess process = TaskSequenceProcess(1, 1000, "test4");
     bool taskCallback =  false;
     std::function<void()> task = [&taskCallback]() {
         taskCallback =true;

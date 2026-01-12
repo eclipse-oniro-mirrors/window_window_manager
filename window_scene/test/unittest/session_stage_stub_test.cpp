@@ -820,6 +820,24 @@ HWTEST_F(SessionStageStubTest, HandleNotifyDialogStateChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleNotifyGlobalScaledRectChange
+ * @tc.desc: test function : HandleNotifyGlobalScaledRectChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleNotifyGlobalScaledRectChange, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_GLOBAL_SCALED_RECT);
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    Rect globalScaledRect = { 0, 0, 1000, 1000 };
+    globalScaledRect.Marshalling(data);
+    EXPECT_EQ(0, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
  * @tc.name: HandleSetPipActionEvent
  * @tc.desc: test function : HandleSetPipActionEvent
  * @tc.type: FUNC

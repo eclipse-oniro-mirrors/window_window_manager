@@ -257,6 +257,20 @@ public:
     void SetOriginalPositionZ(float originalPositionZ) { originalPositionZ_ = originalPositionZ; }
     float GetOriginalPositionZ() const { return originalPositionZ_; }
 
+    /**
+     * @brief whether the window has been dragged across monitor boundaries by the user.
+     *
+     * Determines if the window movement resulted in a cross-screen drag operation by
+     * comparing the display ID where the drag started versus where it ended.
+     *
+     * @note This method should only be called in the drag-end processing flow,
+     *       after the drag operation has completed and the final display ID is known.
+     *
+     * @return true if the window was dragged to a different monitor (cross-screen),
+     *         false if the drag operation stayed within the same monitor.
+     */
+    bool IsWindowCrossScreenOnDragEnd() const { return moveDragEndDisplayId_ != moveDragStartDisplayId_; };
+
     /*
      * Monitor screen connection status
      */

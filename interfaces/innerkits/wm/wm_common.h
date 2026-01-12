@@ -1208,6 +1208,20 @@ struct Rect {
         return oss.str();
     }
 
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteInt32(posX_) && parcel.WriteInt32(posY_) &&
+               parcel.WriteUint32(width_) && parcel.WriteUint32(height_);
+    }
+
+    void Unmarshalling(Parcel& parcel)
+    {
+        posX_ = parcel.ReadInt32();
+        posY_ = parcel.ReadInt32();
+        width_ = parcel.ReadUint32();
+        height_ = parcel.ReadUint32();
+    }
+
     static const Rect EMPTY_RECT;
 
     /**

@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_SCREEN_SESSION_MANAGER_STUB_H
 #define OHOS_ROSEN_SCREEN_SESSION_MANAGER_STUB_H
 
+#include "dms_global_mutex.h"
 #include "screen_session_manager_interface.h"
 #include "iremote_stub.h"
 
@@ -47,6 +48,7 @@ private:
     void ProcGetScreenAreaOfDisplayArea(MessageParcel& data, MessageParcel& reply);
     void ProcSetPrimaryDisplaySystemDpi(MessageParcel& data, MessageParcel& reply);
     void ProcSetVirtualScreenAutoRotation(MessageParcel& data, MessageParcel& reply);
+    IPCPriority GetIPCPriority(uint32_t code);
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -158,6 +158,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleNotifyTransformChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SINGLE_HAND_TRANSFORM):
             return HandleNotifySingleHandTransformChange(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_GLOBAL_SCALED_RECT):
+            return HandleNotifyGlobalScaledRectChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DIALOG_STATE_CHANGE):
             return HandleNotifyDialogStateChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_PIP_ACTION_EVENT):
@@ -774,6 +776,15 @@ int SessionStageStub::HandleNotifySingleHandTransformChange(MessageParcel& data,
     SingleHandTransform singleHandTransform;
     singleHandTransform.Unmarshalling(data);
     NotifySingleHandTransformChange(singleHandTransform);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyGlobalScaledRectChange(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    Rect globalScaledRect;
+    globalScaledRect.Unmarshalling(data);
+    NotifyGlobalScaledRectChange(globalScaledRect);
     return ERR_NONE;
 }
 

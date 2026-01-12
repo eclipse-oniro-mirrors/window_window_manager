@@ -99,9 +99,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowChangeRegister(sptr<JsWindowLi
     sptr<IWindowChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowChangeListener(thisListener));
     }
     return ret;
 }
@@ -121,9 +121,9 @@ WmErrorCode JsWindowRegisterManager::ProcessSystemAvoidAreaChangeRegister(sptr<J
     sptr<IAvoidAreaChangedListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterAvoidAreaChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterAvoidAreaChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterAvoidAreaChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterAvoidAreaChangeListener(thisListener));
     }
     return ret;
 }
@@ -138,9 +138,9 @@ WmErrorCode JsWindowRegisterManager::ProcessAvoidAreaChangeRegister(sptr<JsWindo
     sptr<IAvoidAreaChangedListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterAvoidAreaChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterAvoidAreaChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterAvoidAreaChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterAvoidAreaChangeListener(thisListener));
     }
     return ret;
 }
@@ -155,9 +155,9 @@ WmErrorCode JsWindowRegisterManager::ProcessLifeCycleEventRegister(sptr<JsWindow
     sptr<IWindowLifeCycle> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterLifeCycleListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterLifeCycleListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterLifeCycleListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterLifeCycleListener(thisListener));
     }
     return ret;
 }
@@ -176,9 +176,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowStageLifeCycleEventRegister(co
     sptr<IWindowStageLifeCycle> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowStageLifeCycleListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowStageLifeCycleListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowStageLifeCycleListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowStageLifeCycleListener(thisListener));
     }
     return ret;
 }
@@ -193,9 +193,9 @@ WmErrorCode JsWindowRegisterManager::ProcessOccupiedAreaChangeRegister(sptr<JsWi
     sptr<IOccupiedAreaChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterOccupiedAreaChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterOccupiedAreaChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterOccupiedAreaChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterOccupiedAreaChangeListener(thisListener));
     }
     return ret;
 }
@@ -209,9 +209,9 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardWillShowRegister(sptr<JsWind
     }
     sptr<IKeyboardWillShowListener> thisListener(listener);
     if (isRegister) {
-        return WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterKeyboardWillShowListener(thisListener));
+        return MappingWmErrorCodeSafely(window->RegisterKeyboardWillShowListener(thisListener));
     } else {
-        return WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterKeyboardWillShowListener(thisListener));
+        return MappingWmErrorCodeSafely(window->UnregisterKeyboardWillShowListener(thisListener));
     }
 }
 
@@ -225,9 +225,9 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardWillHideRegister(sptr<JsWind
     sptr<IKeyboardWillHideListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterKeyboardWillHideListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterKeyboardWillHideListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterKeyboardWillHideListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterKeyboardWillHideListener(thisListener));
     }
     return ret;
 }
@@ -242,9 +242,9 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardDidShowRegister(sptr<JsWindo
     sptr<IKeyboardDidShowListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterKeyboardDidShowListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterKeyboardDidShowListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterKeyboardDidShowListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterKeyboardDidShowListener(thisListener));
     }
     return ret;
 }
@@ -259,9 +259,9 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardDidHideRegister(sptr<JsWindo
     sptr<IKeyboardDidHideListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterKeyboardDidHideListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterKeyboardDidHideListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterKeyboardDidHideListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterKeyboardDidHideListener(thisListener));
     }
     return ret;
 }
@@ -272,10 +272,10 @@ WmErrorCode JsWindowRegisterManager::ProcessSystemBarChangeRegister(sptr<JsWindo
     sptr<ISystemBarChangedListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().RegisterSystemBarChangedListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().UnregisterSystemBarChangedListener(thisListener));
     }
     return ret;
@@ -287,10 +287,10 @@ WmErrorCode JsWindowRegisterManager::ProcessGestureNavigationEnabledChangeRegist
     sptr<IGestureNavigationEnabledChangedListener> thisListener(listener);
     WmErrorCode ret;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().RegisterGestureNavigationEnabledChangedListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().UnregisterGestureNavigationEnabledChangedListener(thisListener));
     }
     return ret;
@@ -302,10 +302,10 @@ WmErrorCode JsWindowRegisterManager::ProcessWaterMarkFlagChangeRegister(sptr<JsW
     sptr<IWaterMarkFlagChangedListener> thisListener(listener);
     WmErrorCode ret;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().RegisterWaterMarkFlagChangedListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().UnregisterWaterMarkFlagChangedListener(thisListener));
     }
     return ret;
@@ -320,9 +320,9 @@ WmErrorCode JsWindowRegisterManager::ProcessTouchOutsideRegister(sptr<JsWindowLi
     sptr<ITouchOutsideListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterTouchOutsideListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterTouchOutsideListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterTouchOutsideListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterTouchOutsideListener(thisListener));
     }
     return ret;
 }
@@ -337,9 +337,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowVisibilityChangeRegister(sptr<
     sptr<IWindowVisibilityChangedListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowVisibilityChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowVisibilityChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowVisibilityChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowVisibilityChangeListener(thisListener));
     }
     return ret;
 }
@@ -398,8 +398,8 @@ WmErrorCode JsWindowRegisterManager::ProcessDisplayIdChangeRegister(const sptr<J
     }
     IDisplayIdChangeListenerSptr thisListener(listener);
     WmErrorCode ret = isRegister ?
-        WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterDisplayIdChangeListener(thisListener)) :
-        WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterDisplayIdChangeListener(thisListener));
+        MappingWmErrorCodeSafely(window->RegisterDisplayIdChangeListener(thisListener)) :
+        MappingWmErrorCodeSafely(window->UnregisterDisplayIdChangeListener(thisListener));
     return ret;
 }
 
@@ -412,8 +412,8 @@ WmErrorCode JsWindowRegisterManager::ProcessSystemDensityChangeRegister(const sp
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     return isRegister ?
-        WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterSystemDensityChangeListener(listener)) :
-        WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterSystemDensityChangeListener(listener));
+        MappingWmErrorCodeSafely(window->RegisterSystemDensityChangeListener(listener)) :
+        MappingWmErrorCodeSafely(window->UnregisterSystemDensityChangeListener(listener));
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessAcrossDisplaysChangeRegister(const sptr<JsWindowListener>& listener,
@@ -429,8 +429,8 @@ WmErrorCode JsWindowRegisterManager::ProcessAcrossDisplaysChangeRegister(const s
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     return isRegister ?
-        WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterAcrossDisplaysChangeListener(listener)) :
-        WM_JS_TO_ERROR_CODE_MAP.at(window->UnRegisterAcrossDisplaysChangeListener(listener));
+        MappingWmErrorCodeSafely(window->RegisterAcrossDisplaysChangeListener(listener)) :
+        MappingWmErrorCodeSafely(window->UnRegisterAcrossDisplaysChangeListener(listener));
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessWindowNoInteractionRegister(sptr<JsWindowListener> listener,
@@ -442,7 +442,7 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowNoInteractionRegister(sptr<JsW
     sptr<IWindowNoInteractionListener> thisListener(listener);
 
     if (!isRegister) {
-        return WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowNoInteractionListener(thisListener));
+        return MappingWmErrorCodeSafely(window->UnregisterWindowNoInteractionListener(thisListener));
     }
 
     int64_t timeout = 0;
@@ -461,7 +461,7 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowNoInteractionRegister(sptr<JsW
 
     thisListener->SetTimeout(timeout * secToMicrosecRatio);
 
-    return WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowNoInteractionListener(thisListener));
+    return MappingWmErrorCodeSafely(window->RegisterWindowNoInteractionListener(thisListener));
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessScreenshotRegister(sptr<JsWindowListener> listener,
@@ -475,9 +475,9 @@ WmErrorCode JsWindowRegisterManager::ProcessScreenshotRegister(sptr<JsWindowList
     sptr<IScreenshotListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterScreenshotListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterScreenshotListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterScreenshotListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterScreenshotListener(thisListener));
     }
     return ret;
 }
@@ -495,8 +495,8 @@ WmErrorCode JsWindowRegisterManager::ProcessScreenshotAppEventRegister(sptr<JsWi
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     return isRegister ?
-        WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterScreenshotAppEventListener(listener)) :
-        WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterScreenshotAppEventListener(listener));
+        MappingWmErrorCodeSafely(window->RegisterScreenshotAppEventListener(listener)) :
+        MappingWmErrorCodeSafely(window->UnregisterScreenshotAppEventListener(listener));
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessDialogTargetTouchRegister(sptr<JsWindowListener> listener,
@@ -508,9 +508,9 @@ WmErrorCode JsWindowRegisterManager::ProcessDialogTargetTouchRegister(sptr<JsWin
     sptr<IDialogTargetTouchListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterDialogTargetTouchListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterDialogTargetTouchListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterDialogTargetTouchListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterDialogTargetTouchListener(thisListener));
     }
     return ret;
 }
@@ -541,9 +541,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowTitleButtonRectChangeRegister(
     sptr<IWindowTitleButtonRectChangedListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowTitleButtonRectChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowTitleButtonRectChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowTitleButtonRectChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowTitleButtonRectChangeListener(thisListener));
     }
     return ret;
 }
@@ -794,9 +794,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowStatusChangeRegister(sptr<JsWi
     sptr<IWindowStatusChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowStatusChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowStatusChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowStatusChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowStatusChangeListener(thisListener));
     }
     return ret;
 }
@@ -811,9 +811,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowStatusDidChangeRegister(sptr<J
     sptr<IWindowStatusDidChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowStatusDidChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowStatusDidChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowStatusDidChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowStatusDidChangeListener(thisListener));
     }
     return ret;
 }
@@ -827,9 +827,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowRectChangeRegister(sptr<JsWind
     sptr<IWindowRectChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowRectChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowRectChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowRectChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowRectChangeListener(thisListener));
     }
     return ret;
 }
@@ -861,9 +861,9 @@ WmErrorCode JsWindowRegisterManager::ProcessExtensionSecureLimitChangeRegister(s
     sptr<IExtensionSecureLimitChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterExtensionSecureLimitChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterExtensionSecureLimitChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterExtensionSecureLimitChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterExtensionSecureLimitChangeListener(thisListener));
     }
     return ret;
 }
@@ -877,9 +877,9 @@ WmErrorCode JsWindowRegisterManager::ProcessSubWindowCloseRegister(sptr<JsWindow
     sptr<ISubWindowCloseListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterSubWindowCloseListeners(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterSubWindowCloseListeners(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterSubWindowCloseListeners(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterSubWindowCloseListeners(thisListener));
     }
     return ret;
 }
@@ -891,8 +891,8 @@ WmErrorCode JsWindowRegisterManager::ProcessMainWindowCloseRegister(const sptr<J
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     WmErrorCode ret = isRegister ?
-        WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterMainWindowCloseListeners(listener)) :
-        WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterMainWindowCloseListeners(listener));
+        MappingWmErrorCodeSafely(window->RegisterMainWindowCloseListeners(listener)) :
+        MappingWmErrorCodeSafely(window->UnregisterMainWindowCloseListeners(listener));
     return ret;
 }
 
@@ -903,8 +903,8 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowWillCloseRegister(const sptr<J
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     WmErrorCode ret = isRegister ?
-        WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowWillCloseListeners(listener)) :
-        WM_JS_TO_ERROR_CODE_MAP.at(window->UnRegisterWindowWillCloseListeners(listener));
+        MappingWmErrorCodeSafely(window->RegisterWindowWillCloseListeners(listener)) :
+        MappingWmErrorCodeSafely(window->UnRegisterWindowWillCloseListeners(listener));
     return ret;
 }
 
@@ -917,9 +917,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowHighlightChangeRegister(const 
     sptr<IWindowHighlightChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowHighlightChangeListeners(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowHighlightChangeListeners(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowHighlightChangeListeners(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowHighlightChangeListeners(thisListener));
     }
     return ret;
 }
@@ -936,9 +936,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowRotationChangeRegister(const s
         return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowRotationChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterWindowRotationChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowRotationChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterWindowRotationChangeListener(thisListener));
     }
     return ret;
 }
@@ -952,9 +952,9 @@ WmErrorCode JsWindowRegisterManager::ProcessFreeWindowModeChangeRegister(const s
     sptr<IFreeWindowModeChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterFreeWindowModeChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterFreeWindowModeChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterFreeWindowModeChangeListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterFreeWindowModeChangeListener(thisListener));
     }
     return ret;
 }

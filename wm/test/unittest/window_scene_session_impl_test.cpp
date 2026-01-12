@@ -1969,53 +1969,6 @@ HWTEST_F(WindowSceneSessionImplTest, SystemBarProperty07, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetSystemBarProperties
- * @tc.desc: SetSystemBarProperties test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest, SetSystemBarProperties, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
-    option->SetWindowName("SetSystemBarProperties");
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    window->state_ = WindowState::STATE_SHOWN;
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->property_->SetPersistentId(1);
-    window->hostSession_ = session;
-    std::map<WindowType, SystemBarProperty> properties;
-    std::map<WindowType, SystemBarPropertyFlag> propertyFlags;
-    SystemBarProperty current = window->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    SystemBarProperty property;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = property;
-    SystemBarPropertyFlag propertyFlag;
-    propertyFlag.contentColorFlag = true;
-    propertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = propertyFlag;
-    ASSERT_EQ(WMError::WM_OK, window->SetSystemBarProperties(properties, propertyFlags));
-    if (property.contentColor_ != current.contentColor_) {
-        std::map<WindowType, SystemBarProperty> currProperties;
-        ASSERT_EQ(WMError::WM_OK, window->GetSystemBarProperties(currProperties));
-        ASSERT_EQ(currProperties[WindowType::WINDOW_TYPE_STATUS_BAR].contentColor_, property.contentColor_);
-    }
-}
-
-/**
- * @tc.name: GetSystemBarProperties
- * @tc.desc: GetSystemBarProperties test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest, GetSystemBarProperties, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
-    option->SetWindowName("GetSystemBarProperties");
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    std::map<WindowType, SystemBarProperty> properties;
-    ASSERT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-}
-
-/**
  * @tc.name: SpecificBarProperty
  * @tc.desc: SpecificBarProperty01 test
  * @tc.type: FUNC
@@ -2117,6 +2070,8 @@ HWTEST_F(WindowSceneSessionImplTest, SetLayoutFullScreenByApiVersion, TestSize.L
     window->hostSession_ = session;
     ASSERT_EQ(WMError::WM_OK, window->SetLayoutFullScreenByApiVersion(false));
     ASSERT_EQ(false, window->property_->IsLayoutFullScreen());
+    ASSERT_EQ(WMError::WM_OK, window->SetLayoutFullScreenByApiVersion(true));
+    ASSERT_EQ(false, window->maximizeLayoutFullScreen_);
 }
 
 /**

@@ -62,7 +62,7 @@ constexpr int64_t STATE_DETECT_DELAYTIME = 6 * 1000;
 constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_ONECE = 1;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_TWICE = 2;
-const uint64_t PRELAUNCH_DONE_TIME = system::GetIntParameter("window.prelaunchDoneTime", 6000);
+constexpr double KILOBYTE = 1024.0;
 
 const std::map<SessionState, bool> ATTACH_MAP = {
     { SessionState::STATE_DISCONNECT, false },
@@ -209,7 +209,9 @@ std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode(bool isUpdateContextBefor
               GetPersistentId(),
               RSAdapterUtil::RSNodeToStr(surfaceNode_).c_str(),
               RSAdapterUtil::RSUIContextToStr(GetRSUIContext()).c_str());
-        RSAdapterUtil::SetRSUIContext(surfaceNode_, GetRSUIContext(), true);
+        if (surfaceNode_) {
+            RSAdapterUtil::SetRSUIContext(surfaceNode_, GetRSUIContext(), true);
+        }
     }
     return surfaceNode_;
 }
@@ -908,16 +910,6 @@ bool Session::IsFocusedOnShow() const
     return focusedOnShow_;
 }
 
-void Session::SetStartingBeforeVisible(bool isStartingBeforeVisible)
-{
-    isStartingBeforeVisible_ = isStartingBeforeVisible;
-}
-
-bool Session::GetStartingBeforeVisible() const
-{
-    return isStartingBeforeVisible_;
-}
-
 WSError Session::SetTouchable(bool touchable)
 {
     SetSystemTouchable(touchable);
@@ -993,11 +985,6 @@ WSError Session::SetRSVisible(bool isVisible)
 bool Session::GetRSVisible() const
 {
     return isRSVisible_;
-}
-
-bool Session::GetFocused() const
-{
-    return isFocused_;
 }
 
 WSError Session::SetVisibilityState(WindowVisibilityState state)
@@ -1711,7 +1698,6 @@ WSError Session::Background(bool isFromClient, const std::string& identityToken)
         isActive_ = false;
     }
     isStarting_ = false;
-    isStartingBeforeVisible_ = false;
     if (state != SessionState::STATE_INACTIVE) {
         TLOGW(WmsLogTag::WMS_LIFE, "[id: %{public}d] Background state invalid! state: %{public}u",
             GetPersistentId(), state);
@@ -1746,7 +1732,6 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken)
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] Disconnect session, state: %{public}u", GetPersistentId(), state);
     isActive_ = false;
     isStarting_ = false;
-    isStartingBeforeVisible_ = false;
     bufferAvailable_ = false;
     isNeedSyncSessionRect_ = true;
     if (mainHandler_) {
@@ -3030,7 +3015,7 @@ void Session::RenameSnapshotFromOldPersistentId(int32_t oldPersistentId)
         auto id = session->GetPersistentId();
         renameMap["SetImageForRecent_" + std::to_string(oldPersistentId)] = "SetImageForRecent_" + std::to_string(id);
         renameMap[session->GetSnapshotPersistentKey(oldPersistentId)] = session->GetSnapshotPersistentKey(id);
-        for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
+        for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
             renameMap[session->GetSnapshotPersistentKey(oldPersistentId, screenStatus)] =
                 session->GetSnapshotPersistentKey(id, screenStatus);
         }
@@ -3142,7 +3127,8 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         rotate = DisplayOrientation::PORTRAIT;
     }
     isSnapshotBlur_.store(GetNeedUseBlurSnapshot());
-    bool needCacheSnapshot = (SupportCacheLockedSessionSnapshot() && reason == LifeCycleChangeReason::SCREEN_LOCK);
+    bool needCacheSnapshot = (SupportCacheLockedSessionSnapshot() && (reason == LifeCycleChangeReason::SCREEN_LOCK ||
+        reason == LifeCycleChangeReason::EXPAND_TO_FOLD_SINGLE_POCKET));
     const char* const where = __func__;
     auto task = [weakThis = wptr(this), runInFfrt = useFfrt, requirePersist = needPersist, persistentPixelMap,
         updateSnapshot, key, rotate, needCacheSnapshot, reason, where]() {
@@ -3190,6 +3176,8 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         }
         session->scenePersistence_->SaveSnapshot(pixelMap, saveSnapshotCallback, key, rotate,
             session->freeMultiWindow_.load());
+        WindowInfoReporter::GetInstance().ReportWindowIO("PATTERN", "ASTC",
+            pixelMap->GetWidth() * pixelMap->GetHeight() / KILOBYTE);
     };
     if (!useFfrt) {
         task();
@@ -3217,15 +3205,20 @@ void Session::SetHasSnapshot(SnapshotStatus key, DisplayOrientation rotate)
         TLOGE(WmsLogTag::WMS_PATTERN, "scenePersistence is null");
         return;
     }
+    std::string snapshotPersistentKey;
     if (freeMultiWindow_.load()) {
         scenePersistence_->SetHasSnapshotFreeMultiWindow(true);
-        ScenePersistentStorage::Insert(GetSnapshotPersistentKey(persistentId_), EncodeSnapShotRecoverValue(rotate),
+        snapshotPersistentKey = GetSnapshotPersistentKey(persistentId_);
+        ScenePersistentStorage::Insert(snapshotPersistentKey, EncodeSnapShotRecoverValue(rotate),
             ScenePersistentStorageType::MAXIMIZE_STATE);
     } else {
         scenePersistence_->SetHasSnapshot(true, key);
-        ScenePersistentStorage::Insert(GetSnapshotPersistentKey(persistentId_, key),
+        snapshotPersistentKey = GetSnapshotPersistentKey(persistentId_, key);
+        ScenePersistentStorage::Insert(snapshotPersistentKey,
             EncodeSnapShotRecoverValue(rotate), ScenePersistentStorageType::MAXIMIZE_STATE);
     }
+    WindowInfoReporter::GetInstance().ReportWindowIO("PATTERN", "session_window_maximize_state",
+        snapshotPersistentKey.length() / KILOBYTE);
 }
 
 int32_t Session::EncodeSnapShotRecoverValue(DisplayOrientation rotate)
@@ -3282,7 +3275,7 @@ void Session::SetFreeMultiWindow()
 
 void Session::DeleteHasSnapshot()
 {
-    for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
+    for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
         DeleteHasSnapshot(screenStatus);
     }
     DeleteHasSnapshotFreeMultiWindow();
@@ -3349,7 +3342,7 @@ bool Session::HasSnapshot()
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "HasSnapshot[%d][%s]",
         persistentId_, sessionInfo_.bundleName_.c_str());
     bool hasSnapshot = false;
-    for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
+    for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
         hasSnapshot |= HasSnapshot(screenStatus);
     }
     return hasSnapshot || HasSnapshotFreeMultiWindow();
@@ -3383,7 +3376,7 @@ SnapshotStatus Session::GetSessionSnapshotStatus(LifeCycleChangeReason reason) c
     if (!SupportSnapshotAllSessionStatus()) {
         return defaultStatus;
     }
-    uint32_t snapshotScreen;
+    int32_t snapshotScreen;
     if (state_ == SessionState::STATE_BACKGROUND || state_ == SessionState::STATE_DISCONNECT) {
         snapshotScreen = lastSnapshotScreen_;
     } else {
@@ -3806,7 +3799,7 @@ WSError Session::UpdateHighlightStatus(const sptr<HighlightNotifyInfo>& highligh
 {
     TLOGD(WmsLogTag::WMS_FOCUS,
         "windowId: %{public}d, currHighlight: %{public}d, nextHighlight: %{public}d, needBlockNotify:%{public}d",
-        persistentId_, isHighlighted_, isHighlight, needBlockHighlightNotify);
+        persistentId_, isHighlighted_.load(), isHighlight, needBlockHighlightNotify);
     if (isHighlighted_ == isHighlight) {
         return WSError::WS_DO_NOTHING;
     }
@@ -3839,7 +3832,7 @@ WSError Session::GetIsHighlighted(bool& isHighlighted)
 {
     isHighlighted = isHighlighted_;
     TLOGD(WmsLogTag::WMS_FOCUS, "windowId: %{public}d, isHighlighted: %{public}d",
-        GetPersistentId(), isHighlighted_);
+        GetPersistentId(), isHighlighted_.load());
     return WSError::WS_OK;
 }
 
@@ -4424,7 +4417,7 @@ WSError Session::ProcessBackEvent()
     return sessionStage_->HandleBackEvent();
 }
 
-void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
+void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId)
 {
     std::lock_guard lock(g_persistentIdSetMutex);
     if (persistentId != INVALID_SESSION_ID  && !g_persistentIdSet.count(persistentId)) {
@@ -4438,8 +4431,12 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
     }
 
     g_persistentId++;
-    while (g_persistentIdSet.count(g_persistentId)) {
+    uint32_t maskedUserId = static_cast<uint32_t>(userId) & 0x000000FF; // userId use 8 bits
+    uint32_t maskedPersistentId = static_cast<uint32_t>(g_persistentId.load()) & 0x003FFFFF; // persistentId use 22 bits
+    int32_t tempPersistentId = (maskedUserId << 22) | maskedPersistentId;
+    while (g_persistentIdSet.count(tempPersistentId)) {
         g_persistentId++;
+        tempPersistentId++;
     }
     if (isExtension) {
         constexpr uint32_t pidLength = 18;
@@ -4450,9 +4447,9 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
             (static_cast<uint32_t>(g_persistentId.load()) & persistentIdMask);
         persistentId_ = assembledPersistentId | 0x40000000;
     } else {
-        persistentId_ = static_cast<uint32_t>(g_persistentId.load()) & 0x3fffffff;
+        persistentId_ = tempPersistentId;
     }
-    g_persistentIdSet.insert(g_persistentId);
+    g_persistentIdSet.insert(persistentId_);
     TLOGI(WmsLogTag::WMS_LIFE,
         "persistentId: %{public}d, persistentId_: %{public}d", persistentId, persistentId_);
 }
@@ -5507,6 +5504,7 @@ std::shared_ptr<RSUIContext> Session::GetRSUIContext(const char* caller)
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
     auto screenId = GetScreenId();
+    std::lock_guard<std::mutex> lock(rsUIContextMutex_);
     if (screenIdOfRSUIContext_ != screenId) {
         // Note: For the window corresponding to UIExtAbility, RSUIContext cannot be obtained
         // directly here because its server side is not SceneBoard. The acquisition of RSUIContext
@@ -5567,23 +5565,5 @@ WSError Session::SetIsShowDecorInFreeMultiWindow(bool isShow)
         return sessionStage_->UpdateIsShowDecorInFreeMultiWindow(isShow);
     }
     return WSError::WS_OK;
-}
-
-void Session::SetPrelaunch()
-{
-    prelaunchStart_ = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count());
-    TLOGI(WmsLogTag::WMS_LIFE, "SetPrelaunch timestamp: %{public}" PRIu64, prelaunchStart_);
-    sessionInfo_.isPrelaunch_ = true;
-}
-
-bool Session::IsPrelaunch() const
-{
-    uint64_t nowTimeStamp = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count());
-    if (sessionInfo_.isPrelaunch_) {
-        TLOGI(WmsLogTag::WMS_LIFE, "IsPrelaunch now - start: %{public}" PRIu64, nowTimeStamp - prelaunchStart_);
-    }
-    return sessionInfo_.isPrelaunch_ && nowTimeStamp - prelaunchStart_ > PRELAUNCH_DONE_TIME;
 }
 } // namespace OHOS::Rosen

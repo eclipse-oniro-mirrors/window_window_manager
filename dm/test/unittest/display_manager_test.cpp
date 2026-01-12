@@ -120,26 +120,6 @@ HWTEST_F(DisplayManagerTest, GetPrimaryDisplayId, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsOnboardDisplay
- * @tc.desc: IsOnboardDisplay fail and succeed
- * @tc.type: FUNC
- */
-HWTEST_F(DisplayManagerTest, IsOnboardDisplay, TestSize.Level1)
-{
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    DisplayId displayId = DISPLAY_ID_INVALID;
-    DisplayManager::GetInstance().IsOnboardDisplay(displayId);
-    EXPECT_TRUE(g_errLog.find("fail") != std::string::npos);
-
-    g_errLog.clear();
-    displayId = 10;
-    DisplayManager::GetInstance().IsOnboardDisplay(displayId);
-    EXPECT_TRUE(g_errLog.find("fail") == std::string::npos);
-}
-
-/**
  * @tc.name: Freeze01
  * @tc.desc: success
  * @tc.type: FUNC
@@ -3469,6 +3449,29 @@ HWTEST_F(DisplayManagerTest, UnRegisterDisplayAttributeListener02, TestSize.Leve
     sptr<DisplayManager::IDisplayAttributeListener> listener;
     auto ret = impl.UnRegisterDisplayAttributeListener(listener);
     ASSERT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, IsOnboardDisplay, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    DisplayId displayId = DISPLAY_ID_INVALID;
+    bool isOnboardDisplay = false;
+    DisplayManager::GetInstance().IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(g_errLog.find("fail") != std::string::npos);
+
+    g_errLog.clear();
+    displayId = 10;
+    isOnboardDisplay = false;
+    DisplayManager::GetInstance().IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(g_errLog.find("fail") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 } // namespace Rosen

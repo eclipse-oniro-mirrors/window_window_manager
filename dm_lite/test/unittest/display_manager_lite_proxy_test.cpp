@@ -480,6 +480,22 @@ HWTEST_F(DisplayManagerLiteProxyTest, SetSystemKeyboardStatus02, TestSize.Level1
 }
 
 /**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyTest, IsOnboardDisplay, Function | SmallTest | Level1)
+{
+    DisplayId displayId = 0;
+    bool isOnboardDisplay = false;
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    adapter.InitDMSProxy();
+    auto res = adapter.IsOnboardDisplay(displayId, isOnboardDisplay);
+
+    EXPECT_EQ(res, DMError::DM_OK);
+}
+
+/**
  * @tc.name: SetResolution
  * @tc.desc: SetResolution
  * @tc.type: FUNC

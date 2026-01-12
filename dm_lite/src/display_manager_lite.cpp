@@ -885,12 +885,12 @@ DMError DisplayManagerLite::SetSystemKeyboardStatus(bool isTpKeyboardOn)
     return SingletonContainer::Get<DisplayManagerAdapterLite>().SetSystemKeyboardStatus(isTpKeyboardOn);
 }
 
-bool DisplayManagerLite::IsOnboardDisplay(DisplayId displayId)
+DMError DisplayManagerLite::IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
 {
     if (displayId == DISPLAY_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "id invalid");
-        return false;
+        return DMError::DM_ERROR_INVALID_PARAM;
     }
-    return SingletonContainer::Get<DisplayManagerAdapterLite>().IsOnboardDisplay(displayId);
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().IsOnboardDisplay(displayId, isOnboardDisplay);
 }
 } // namespace OHOS::Rosen

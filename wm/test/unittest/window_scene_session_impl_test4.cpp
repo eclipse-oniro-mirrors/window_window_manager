@@ -676,7 +676,7 @@ HWTEST_F(WindowSceneSessionImplTest4, IsInMappingRegionForCompatibleMode, TestSi
     EXPECT_EQ(false, ret);
     EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
     ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
-    EXPECT_EQ(false, ret);
+    EXPECT_EQ(true, ret);
 }
 
 /**
@@ -842,6 +842,36 @@ HWTEST_F(WindowSceneSessionImplTest4, NotifyWindowAttachStateChange, TestSize.Le
     // case3: listener is not nullptr, then attach is false
     ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
     EXPECT_EQ(WSError::WS_OK, ret);
+    ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
+    EXPECT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: NotifyWindowAttachStateChangeSubWindow
+ * @tc.desc: NotifyWindowAttachStateChangeSubWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, NotifyWindowAttachStateChangeSubWindow, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyWindowAttachStateChangeSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    sptr<IWindowAttachStateChangeListner> listener = sptr<IWindowAttachStateChangeListner>::MakeSptr();
+    windowSceneSessionImpl->RegisterWindowAttachStateChangeListener(listener);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->state_ = WindowState::STATE_DESTROYED;
+    windowSceneSessionImpl->hostSession_ = session;
+
+    auto ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
+    EXPECT_EQ(WSError::WS_OK, ret);
+    ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(true);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(WSError::WS_OK, ret);
+
+    windowSceneSessionImpl->handler_ = nullptr;
     ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
     EXPECT_EQ(WSError::WS_OK, ret);
 }

@@ -788,13 +788,15 @@ HWTEST_F(DisplayManagerTest, IsOnboardDisplay, TestSize.Level1)
     LOG_SetCallback(MyLogCallback);
 
     DisplayId displayId = DISPLAY_ID_INVALID;
-    DisplayManagerLite::GetInstance().IsOnboardDisplay(displayId);
+    bool isOnboardDisplay = false;
+    DisplayManagerLite::GetInstance().IsOnboardDisplay(displayId, isOnboardDisplay);
     EXPECT_TRUE(g_errLog.find("id invalid") != std::string::npos);
 
     g_errLog.clear();
     displayId = 10;
-    DisplayManagerLite::GetInstance().IsOnboardDisplay(displayId);
+    DisplayManagerLite::GetInstance().IsOnboardDisplay(displayId, isOnboardDisplay);
     EXPECT_TRUE(g_errLog.find("id invalid") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 }

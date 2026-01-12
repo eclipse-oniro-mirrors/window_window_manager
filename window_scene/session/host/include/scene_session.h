@@ -162,6 +162,7 @@ using CompatibleModeChangeCallback = std::function<void(CompatibleStyleMode mode
 using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
 using GetSCBEnterRecentFunc = std::function<bool()>;
+using ForceNotifyOccupiedAreaChangeCallback = std::function<void(DisplayId displayId)>;
 using NotifyRecoverWindowEffectFunc = std::function<void(bool recoverCorner, bool recoverShadow)>;
 
 struct UIExtensionTokenInfo {
@@ -212,7 +213,7 @@ public:
         SetWindowPatternOpacityFunc setOpacityFunc_;
     };
 
-    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
+    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
     virtual ~SceneSession();
 
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
@@ -278,6 +279,7 @@ public:
     WSError UpdateClientRect(const WSRect& rect) override;
     WSError UpdateGlobalDisplayRectFromClient(const WSRect& rect, SizeChangeReason reason) override;
     void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform);
+    void NotifyGlobalScaledRectChange();
     WSRect GetSessionGlobalRectWithSingleHandScale();
     WSRect GetMoveRectForWindowDrag();
     void UpdateSessionState(SessionState state) override;
@@ -297,6 +299,7 @@ public:
     virtual void OpenKeyboardSyncTransaction() {}
     virtual void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect,
         bool isKeyboardShow, const WindowAnimationInfo& animationInfo) {}
+    virtual void ForceProcessKeyboardOccupiedAreaInfo(){};
     WSError ChangeSessionVisibilityWithStatusBar(const sptr<AAFwk::SessionInfo> info, bool visible) override;
     WSError PendingSessionActivation(const sptr<AAFwk::SessionInfo> info) override;
     WSError BatchPendingSessionsActivation(const std::vector<sptr<AAFwk::SessionInfo>>& abilitySessionInfos,
@@ -366,6 +369,7 @@ public:
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void NotifyOutsideDownEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     WSError NotifyFrameLayoutFinishFromApp(bool notifyListener, const WSRect& rect) override;
+    WMError NotifyRemovePrelaunchStartingWindow() override;
     void SetForegroundInteractiveStatus(bool interactive) override;
     WSError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
 
@@ -954,6 +958,8 @@ public:
         WSPropertyChangeAction action) { return WMError::WM_OK; }
     virtual void HandleKeyboardMoveDragEnd(const WSRect& rect, SizeChangeReason reason = SizeChangeReason::UNDEFINED,
         DisplayId displayId = DISPLAY_ID_INVALID) { return; }
+    void RegisterNotifyOccupiedAreaChangeCallback(ForceNotifyOccupiedAreaChangeCallback&& callback);
+    void ForceNotifyKeyboardOccupiedArea();
 
     /*
      * Window Focus
@@ -1630,6 +1636,11 @@ private:
      * Window Transition Animation For PC
      */
     UpdateTransitionAnimationFunc updateTransitionAnimationFunc_;
+
+     /*
+     * Keyboard
+     */
+    ForceNotifyOccupiedAreaChangeCallback forceNotifyOccupiedAreaChangeFunc_;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SCENE_SESSION_H

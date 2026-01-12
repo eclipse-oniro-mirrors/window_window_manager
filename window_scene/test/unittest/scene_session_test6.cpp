@@ -2021,6 +2021,21 @@ HWTEST_F(SceneSessionTest6, NotifySnapshotUpdate, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyRemovePrelaunchStartingWindow
+ * @tc.desc: NotifyRemovePrelaunchStartingWindow test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifyRemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WMError ret = sceneSession->NotifyRemovePrelaunchStartingWindow();
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
  * @tc.name: GetMoveRectForWindowDrag_Test
  * @tc.desc: GetMoveRectForWindowDrag_Test
  * @tc.type: FUNC

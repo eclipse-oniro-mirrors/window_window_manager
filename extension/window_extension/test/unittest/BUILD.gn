@@ -133,7 +133,6 @@ ohos_static_library("window_extension_unittest_common") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
     "${window_base_path}/window_scene/session_manager:scene_session_manager",
     "${window_base_path}/wm:libwm",
     "${window_base_path}/wm:libwm_lite",
@@ -143,12 +142,13 @@ ohos_static_library("window_extension_unittest_common") {
   deps = [
     "../..:libwindow_extension",
     "../../../../interfaces/kits/napi/window_runtime:window_native_kit",
-    "../../../../window_scene/session:scene_session",
+    "../../../../window_scene/session:scene_session_static",
     "../../../../wm:libwm",
     "../../../extension_connection:libwindow_extension_client",
   ]
 
   public_external_deps = [
+    "ability_base:want",
     "c_utils:utils",
     "googletest:gmock",
     "googletest:gtest_main",
@@ -160,7 +160,6 @@ ohos_static_library("window_extension_unittest_common") {
 
   external_deps = [
     "ability_base:configuration",
-    "ability_base:want",
     "ability_runtime:ability_context_native",
     "ability_runtime:ability_manager",
     "ability_runtime:app_context",

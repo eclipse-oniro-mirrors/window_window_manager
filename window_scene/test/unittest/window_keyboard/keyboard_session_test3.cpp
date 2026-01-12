@@ -691,6 +691,11 @@ HWTEST_F(KeyboardSessionTest3, CalculateOccupiedAreaAfterUIRefresh02, Function |
     callingSession->UpdateSizeChangeReason(SizeChangeReason::ROTATION);
     EXPECT_EQ(keyboardSession->stateChanged_, false);
     EXPECT_EQ(callingSession->GetOriPosYBeforeRaisedByKeyboard(), 200);
+
+    callingSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_END);
+    keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_ = true;
+    keyboardSession->CalculateOccupiedAreaAfterUIRefresh();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd, false);
 }
 
 /**
@@ -853,6 +858,50 @@ HWTEST_F(KeyboardSessionTest3, NotifyOccupiedAreaChanged, Function | SmallTest |
     keyboardSession->NotifyOccupiedAreaChanged(callingSession, occupiedAreaInfo, true, nullptr);
     EXPECT_TRUE(g_logMsg.find("size of avoidAreas: 5") != std::string::npos);
 }
+
+/**
+ * @tc.name: ForceProcessKeyboardOccupiedAreaInfo
+ * @tc.desc: check func ForceProcessKeyboardOccupiedAreaInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, ForceProcessKeyboardOccupiedAreaInfo, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("ProcessKeyboardOccupiedAreaInfo", "ProcessKeyboardOccupiedAreaInfo");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_ = false;
+    keyboardSession->isVisible_ = false;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_, false);
+
+    keyboardSession->isVisible_ = true;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_FLOAT;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_, false);
+
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_, true);
+}
+
+/**
+ * @tc.name: ForceNotifyKeyboardOccupiedArea
+ * @tc.desc: ForceNotifyKeyboardOccupiedArea
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, ForceNotifyKeyboardOccupiedArea, Function | SmallTest | Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "CallingSession";
+    info.bundleName_ = "CallingSession";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    sceneSession->ForceNotifyKeyboardOccupiedArea();
+    bool result = false;
+    sceneSession->RegisterNotifyOccupiedAreaChangeCallback([&](DisplayId displayId) { result = true; });
+    sceneSession->ForceNotifyKeyboardOccupiedArea();
+    EXPECT_TRUE(result);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

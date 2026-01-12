@@ -970,6 +970,20 @@ HWTEST_F(SessionStubTest, HandleNotifyFrameLayoutFinish, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleRemovePrelaunchStartingWindow
+ * @tc.desc: sessionStub HandleRemovePrelaunchStartingWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, HandleRemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    auto result = session_->HandleRemovePrelaunchStartingWindow(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleSnapshotUpdate
  * @tc.desc: sessionStub HandleSnapshotUpdate
  * @tc.type: FUNC

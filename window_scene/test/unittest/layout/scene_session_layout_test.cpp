@@ -341,6 +341,76 @@ HWTEST_F(SceneSessionLayoutTest, NotifyClientToUpdateRectTask, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NotifyGlobalScaledRectChange01
+ * @tc.desc: test NotifyGlobalScaledRectChange is called or not
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyGlobalScaledRectChange01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyGlobalScaledRectChange01";
+    info.bundleName_ = "NotifyGlobalScaledRectChange01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+
+    // Case1: session is not foreground
+    session->Session::SetSessionState(SessionState::STATE_BACKGROUND);
+    session->NotifyGlobalScaledRectChange();
+    EXPECT_CALL(*sessionStageMocker, NotifyGlobalScaledRectChange(_)).Times(0);
+
+    // Case2: session is foreground but sessionStage is null
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+    session->sessionStage_ = nullptr;
+    session->NotifyGlobalScaledRectChange();
+    EXPECT_CALL(*sessionStageMocker, NotifyGlobalScaledRectChange(_)).Times(0);
+
+    // Case3: session is foreground and sessionStage is not null
+    session->sessionStage_ = sessionStageMocker;
+    session->NotifyGlobalScaledRectChange();
+    EXPECT_CALL(*sessionStageMocker, NotifyGlobalScaledRectChange(_)).Times(1);
+}
+
+/**
+ * @tc.name: UpdateUIParam01
+ * @tc.desc: UpdateUIParam test NotifyGlobalScaledRectChange is called or not
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, UpdateUIParam01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam01";
+    info.bundleName_ = "UpdateUIParam01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    WSRect oldRect = { 0, 0, 1000, 1000 };
+    WSRect newRect = { 100, 100, 1200, 1200 };
+    float newFloat = 0.9f;
+    SessionUIParam uiParam;
+    session->SetSessionGlobalRect(oldRect);
+
+    // Case1: global rect is dirty
+    uiParam.rect_ = newRect;
+    session->UpdateUIParam(uiParam);
+    EXPECT_CALL(*sessionStageMocker, NotifyGlobalScaledRectChange(_)).Times(1);
+    session->dirtyFlags_ = 0;
+
+    // Case2: scale is dirty
+    uiParam.scaleX_ = newFloat;
+    uiParam.scaleY_ = newFloat;
+    uiParam.pivotX_ = newFloat;
+    uiParam.pivotY_ = newFloat;
+    session->UpdateUIParam(uiParam);
+    EXPECT_CALL(*sessionStageMocker, NotifyGlobalScaledRectChange(_)).Times(1);
+    session->dirtyFlags_ = 0;
+
+    // Case3: global rect and scale are not dirty
+    session->UpdateUIParam(uiParam);
+    EXPECT_CALL(*sessionStageMocker, NotifyGlobalScaledRectChange(_)).Times(0);
+}
+
+/**
  * @tc.name: HandleActionUpdateWindowLimits
  * @tc.desc: normal function
  * @tc.type: FUNC
@@ -1268,7 +1338,7 @@ HWTEST_F(SceneSessionLayoutTest, GetWindowDragMoveMountedNode01, TestSize.Level1
     info.abilityName_ = "GetWindowDragMoveMountedNode";
     info.bundleName_ = "GetWindowDragMoveMountedNode";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    auto rsNode = session->GetWindowDragMoveMountedNode(std::numeric_limits<uint32_t>::max(), 0);
+    auto rsNode = sceneSession->GetWindowDragMoveMountedNode(std::numeric_limits<uint32_t>::max(), 0);
     EXPECT_EQ(rsNode, nullptr);
     sceneSession->SetFindScenePanelRsNodeByZOrderFunc([this](uint64_t screenId, uint32_t targetZOrder) {
         return CreateRSSurfaceNode();

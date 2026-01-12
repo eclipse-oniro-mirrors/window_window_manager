@@ -32,7 +32,7 @@ bool LoadIntentionEvent(void)
         TLOGW(WmsLogTag::WMS_EVENT, "Intention event has already exists.");
         return true;
     }
-    int32_t cnt = 0;
+    uint32_t cnt = 0;
     const char* dlopenError = nullptr;
     do {
         cnt++;

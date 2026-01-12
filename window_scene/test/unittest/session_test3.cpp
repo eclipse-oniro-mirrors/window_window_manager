@@ -1174,23 +1174,6 @@ HWTEST_F(WindowSessionTest3, SetMainSessionUIStateDirty, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetStartingBeforeVisible
- * @tc.desc: test SetStartingBeforeVisible
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest3, SetStartingBeforeVisible, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetStartingBeforeVisible(true);
-    ASSERT_EQ(true, session_->isStartingBeforeVisible_);
-    ASSERT_EQ(true, session_->GetStartingBeforeVisible());
-
-    session_->SetStartingBeforeVisible(false);
-    ASSERT_EQ(false, session_->isStartingBeforeVisible_);
-    ASSERT_EQ(false, session_->GetStartingBeforeVisible());
-}
-
-/**
  * @tc.name: GetScreenId
  * @tc.desc: test func: GetScreenId
  * @tc.type: FUNC

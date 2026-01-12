@@ -16,6 +16,7 @@
 #include "ani_extension_window.h"
 
 #include "ani.h"
+#include <ani_signature_builder.h>
 #include "ani_extension_window_register_manager.h"
 #include "ani_window_utils.h"
 #include "ani_window_listener.h"
@@ -26,6 +27,7 @@
 
 namespace OHOS {
 namespace Rosen {
+using namespace arkts::ani_signature;
 namespace {
 static std::map<ani_ref, AniExtensionWindow*> localObjs;
 constexpr const char* ETS_UIEXTENSION_HOST_CLASS_DESCRIPTOR =
@@ -325,19 +327,23 @@ WmErrorCode AniExtensionWindow::OnUnRegisterRectChangeCallback(ani_env* env, ani
 static ani_status ExtWindowSetRect(ani_env* env, ani_object obj, OHOS::Rosen::Rect& rect)
 {
     ani_status ret {};
-    if ((ret = env->Object_SetFieldByName_Int(obj, "<property>left", rect.posX_)) != ANI_OK) {
+    if ((ret = env->Object_SetFieldByName_Int(obj,
+        Builder::BuildPropertyName("left").c_str(), rect.posX_)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Set left field failed, ret: %{public}u", ret);
         return ret;
     }
-    if ((ret = env->Object_SetFieldByName_Int(obj, "<property>top", rect.posY_)) != ANI_OK) {
+    if ((ret = env->Object_SetFieldByName_Int(obj,
+        Builder::BuildPropertyName("top").c_str(), rect.posY_)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Set top field failed, ret: %{public}u", ret);
         return ret;
     }
-    if ((ret = env->Object_SetFieldByName_Int(obj, "<property>width", rect.width_)) != ANI_OK) {
+    if ((ret = env->Object_SetFieldByName_Int(obj,
+        Builder::BuildPropertyName("width").c_str(), rect.width_)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Set width field failed, ret: %{public}u", ret);
         return ret;
     }
-    if ((ret = env->Object_SetFieldByName_Int(obj, "<property>height", rect.height_)) != ANI_OK) {
+    if ((ret = env->Object_SetFieldByName_Int(obj,
+        Builder::BuildPropertyName("height").c_str(), rect.height_)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Set height field failed, ret: %{public}u", ret);
         return ret;
     }
@@ -368,7 +374,8 @@ static ani_int ExtWindowGetProperties(ani_env* env, ani_object obj, ani_long nat
         return static_cast<ani_int>(retCode);
     };
     return static_cast<ani_int>(
-        ExtWindowSetRectMember(env, propertyRef, "<property>uiExtensionHostWindowProxyRect", rect));
+        ExtWindowSetRectMember(env, propertyRef,
+            Builder::BuildPropertyName("uiExtensionHostWindowProxyRect").c_str(), rect));
 }
 
 static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_long win,
@@ -382,8 +389,8 @@ static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_lon
     }
     AvoidArea avoidArea {};
     ani_status ret {};
-    ret = env->Object_SetFieldByName_Boolean(area, "<property>visible", areaType !=
-        static_cast<int32_t>(AvoidAreaType::TYPE_CUTOUT));
+    ret = env->Object_SetFieldByName_Boolean(
+        area, Builder::BuildPropertyName("visible").c_str(), areaType != (int)AvoidAreaType::TYPE_CUTOUT);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Set visible failed, ret: %{public}u", ret);
         return static_cast<ani_int>(ret);
@@ -397,21 +404,21 @@ static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_lon
     if (retCode != WMError::WM_OK) {
         return static_cast<ani_int>(AniWindowUtils::ToErrorCode(retCode));
     }
-    ret = ExtWindowSetRectMember(env, area, "<property>leftRect", avoidArea.leftRect_);
+    ret = ExtWindowSetRectMember(env, area, Builder::BuildPropertyName("leftRect").c_str(), avoidArea.leftRect_);
     if (ret != ANI_OK) {
         return static_cast<ani_int>(ret);
     }
-    ret = ExtWindowSetRectMember(env, area, "<property>rightRect", avoidArea.rightRect_);
-    if (ret != ANI_OK) {
-        return static_cast<ani_int>(ret);
+    if ((retCode = (WMError)ExtWindowSetRectMember(
+        env, area, Builder::BuildPropertyName("rightRect").c_str(), avoidArea.rightRect_)) != WMError::WM_OK) {
+        return (ani_int)retCode;
     }
-    ret = ExtWindowSetRectMember(env, area, "<property>topRect", avoidArea.topRect_);
-    if (ret != ANI_OK) {
-        return static_cast<ani_int>(ret);
+    if ((retCode = (WMError)ExtWindowSetRectMember(
+        env, area, Builder::BuildPropertyName("topRect").c_str(), avoidArea.topRect_)) != WMError::WM_OK) {
+        return (ani_int)retCode;
     }
-    ret = ExtWindowSetRectMember(env, area, "<property>bottomRect", avoidArea.bottomRect_);
-    if (ret != ANI_OK) {
-        return static_cast<ani_int>(ret);
+    if ((retCode = (WMError)ExtWindowSetRectMember(
+        env, area, Builder::BuildPropertyName("bottomRect").c_str(), avoidArea.bottomRect_)) != WMError::WM_OK) {
+        return (ani_int)retCode;
     }
     return static_cast<ani_int>(WmErrorCode::WM_OK);
 }
@@ -566,7 +573,7 @@ std::array extensionWindowNativeMethods = {
         reinterpret_cast<void *>(ExtWindowSetWaterMarkFlag)},
     ani_native_function {"hideNonSecureWindows", "lz:i", reinterpret_cast<void *>(ExtWindowHideNonSecureWindows)},
     ani_native_function {"createSubWindowWithOptions",
-        "lC{std.core.String}C{@ohos.window.window.SubWindowOptions}z:@ohos.window.window.Window",
+        "lC{std.core.String}C{@ohos.window.window.SubWindowOptions}z:C{@ohos.window.window.Window}",
         reinterpret_cast<void *>(ExtWindowCreateSubWindowWithOptions)},
     ani_native_function {"occupyEvents", "li:", reinterpret_cast<void *>(ExtWindowOccupyEvents)},
     ani_native_function {"onSync", "lC{std.core.String}C{std.core.Object}:",
@@ -579,7 +586,7 @@ std::array extensionWindowNativeMethods = {
 
 std::array extensionWindowHostNativeMethods = {
     ani_native_function {"getProperties", "lC{std.core.Object}:i", reinterpret_cast<void *>(ExtWindowGetProperties)},
-    ani_native_function {"getWindowAvoidArea", "liC{std.core.Object}:",
+    ani_native_function {"getWindowAvoidArea", "liC{std.core.Object}:i",
         reinterpret_cast<void *>(ExtWindowGetWindowAvoidArea)},
     ani_native_function {"setWaterMarkFlag", "lz:i",
         reinterpret_cast<void *>(ExtWindowSetWaterMarkFlag)},

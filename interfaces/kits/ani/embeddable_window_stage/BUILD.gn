@@ -82,6 +82,7 @@ ohos_shared_library("embeddablewindowstageani_kit") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "runtime_core:ani",
+    "runtime_core:ani_helpers",
   ]
 
   innerapi_tags = [ "platformsdk" ]

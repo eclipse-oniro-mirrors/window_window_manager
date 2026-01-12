@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class SystemSession : public SceneSession {
 public:
-    SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
+    SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
     ~SystemSession();
 
     void OnFirstStrongRef(const void* objectId) override;

@@ -2011,6 +2011,16 @@ WmErrorCode ParseShowWindowOptions(napi_env env, napi_value showWindowOptions, b
     return WmErrorCode::WM_OK;
 }
 
+WmErrorCode MappingWmErrorCodeSafely(WMError err)
+{
+    auto it = WM_JS_TO_ERROR_CODE_MAP.find(err);
+    if (it != WM_JS_TO_ERROR_CODE_MAP.end()) {
+        return it->second;
+    }
+    TLOGW(WmsLogTag::DEFAULT, "[NAPI] Unknown error: %{public}d", static_cast<int32_t>(err));
+    return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+}
+
 bool ParseKeyFramePolicy(napi_env env, napi_value jsObject, KeyFramePolicy& keyFramePolicy)
 {
     if (jsObject == nullptr) {

@@ -13,6 +13,7 @@
 
 import("//build/test.gni")
 import("//foundation/window/window_manager/windowmanager_aafwk.gni")
+import("../wm_test_external_deps.gni")
 
 module_out_path = "window_manager/window_manager/wm/rotation"
 wm_unittest_common = "../:wm_unittest_common"
@@ -33,23 +34,12 @@ ohos_unittest("wm_window_session_impl_rotation_test") {
     wm_unittest_common,
   ]
 
-  external_deps = [
-    "c_utils:utils",
-    "graphic_2d:librender_service_base",
-    "hilog:libhilog",
-    "init:libbegetutil",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_window_extension_session_impl_rotation_test") {
   module_out_path = module_out_path
   sources = [ "window_extension_session_impl_rotation_test.cpp" ]
   deps = [ wm_unittest_common ]
-  external_deps = [
-    "ability_runtime:app_context",
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "graphic_2d:librender_service_base",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }

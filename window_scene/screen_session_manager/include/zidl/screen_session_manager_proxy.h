@@ -80,7 +80,7 @@ public:
     ScreenId CreateVirtualScreen(VirtualScreenOption option,
         const sptr<IRemoteObject>& displayManagerAgent) override;
 
-    virtual DMError DestroyVirtualScreen(ScreenId screenId) override;
+    virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false) override;
 
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
 
@@ -88,17 +88,17 @@ public:
 
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
 
-    template <DisplayManagerMessage TRANS_ID_WHITELIST>
-    DMError SendVirtualScreenWhiteListRequest(ScreenId screenId, const std::vector<uint64_t>& missionIds);
+    DMError SendVirtualScreenWhiteListRequest(ScreenId screenId, const std::vector<uint64_t>& missionIds,
+        DisplayManagerMessage transId);
 
     DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds) override;
 
     DMError RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds) override;
 
-    bool IsOnboardDisplay(DisplayId displayId) override;
-
     virtual DMError SetScreenPrivacyMaskImage(ScreenId screenId,
         const std::shared_ptr<Media::PixelMap>& privacyMaskImg) override;
+
+    DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay) override;
 
     virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height) override;
 

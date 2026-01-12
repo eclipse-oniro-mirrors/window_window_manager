@@ -197,6 +197,9 @@ private:
 
     // Window Event
     int HandleSendCommonEvent(MessageParcel& data, MessageParcel& reply);
+
+    // Prelaunch Starting Window
+    int HandleRemovePrelaunchStartingWindow(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 

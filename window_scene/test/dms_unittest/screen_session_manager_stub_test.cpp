@@ -3453,6 +3453,19 @@ HWTEST_F(ScreenSessionManagerStubTest, ProcSetPrimaryDisplaySystemDpi, Function 
 }
 
 /**
+ * @tc.name: GetIPCPriority
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, GetIPCPriorityTest, TestSize.Level1)
+{
+    IPCPriority IPCPriority = stub_->GetIPCPriority(0);
+    EXPECT_EQ(IPCPriority, IPCPriority::VIP);
+    IPCPriority = stub_->GetIPCPriority(1000);
+    EXPECT_EQ(IPCPriority, IPCPriority::LOW);
+}
+
+/**
  * @tc.name: GetPhysicalScreenIds
  * @tc.desc: normal function, GetPhysicalScreenIds test
  * @tc.type: FUNC
@@ -3708,6 +3721,29 @@ HWTEST_F(ScreenSessionManagerStubTest, ProcGetDisplaySnapshotWithOption05, TestS
         int res = stub_->OnRemoteRequest(code, data, reply, option);
         EXPECT_EQ(res, 0);
     }
+}
+
+/**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, IsOnboardDisplay, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_IS_ON_BOARD_DISPLAY);
+    DisplayId displayId = 0;
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(displayId);
+    stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_TRUE(g_logMsg.find("write res failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 }

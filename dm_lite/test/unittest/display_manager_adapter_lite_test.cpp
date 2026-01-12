@@ -185,6 +185,31 @@ HWTEST_F(DisplayManagerAdapterLiteTest, SetSystemKeyboardStatus02, TestSize.Leve
 }
 
 /**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, IsOnboardDisplay, TestSize.Level1)
+{
+    DisplayId displayId = 10;
+    bool isOnboardDisplay = false;
+    auto proxyBak = SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = nullptr;
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(g_logMsg.find("fail") != std::string::npos);
+
+    g_logMsg.clear();
+    isOnboardDisplay = false;
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = proxyBak;
+    SingletonContainer::Get<DisplayManagerAdapterLite>().IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(g_logMsg.find("fail") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: SetSpecifiedScreenPowerPiling
  * @tc.desc: test piling success
  * @tc.type: FUNC

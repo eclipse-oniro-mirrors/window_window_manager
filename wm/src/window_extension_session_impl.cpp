@@ -1757,6 +1757,18 @@ WMError WindowExtensionSessionImpl::ExtensionSetBrightness(float brightness)
     return WMError::WM_OK;
 }
 
+WMError WindowExtensionSessionImpl::GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
+{
+    auto persistentId = GetPersistentId();
+    nlohmann::json winStateSnapshotJson = {
+        {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
+    };
+    winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ext winId=%{public}d, winStateSnapshot=%{public}s",
+        persistentId, winStateSnapshotJsonStr.c_str());
+    return WMError::WM_OK;
+}
+
 WMError WindowExtensionSessionImpl::SetStatusBarColorForExtension(uint32_t color)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "id=%{public}d", GetPersistentId());

@@ -398,13 +398,13 @@ ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
     return screenId;
 }
 
-DMError ScreenManagerAdapter::DestroyVirtualScreen(ScreenId screenId)
+DMError ScreenManagerAdapter::DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
 
     TLOGI(WmsLogTag::DMS, "enter");
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->DestroyVirtualScreen(screenId);
+        return screenSessionManagerServiceProxy_->DestroyVirtualScreen(screenId, isCallingByThirdParty);
     }
 
     int32_t dmError;
@@ -1629,14 +1629,14 @@ void DisplayManagerAdapter::SetVirtualScreenBlackList(ScreenId screenId, std::ve
     }
 }
 
-bool DisplayManagerAdapter::IsOnboardDisplay(DisplayId displayId)
+DMError DisplayManagerAdapter::IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
 {
-    INIT_PROXY_CHECK_RETURN(false);
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->IsOnboardDisplay(displayId);
+        return screenSessionManagerServiceProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
     }
     TLOGE(WmsLogTag::DMS, "fail");
-    return false;
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
 void DisplayManagerAdapter::SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag)

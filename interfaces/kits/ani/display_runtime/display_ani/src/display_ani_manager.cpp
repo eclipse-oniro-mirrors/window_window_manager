@@ -19,6 +19,7 @@
 #include <hitrace_meter.h>
 
 #include "ani.h"
+#include <ani_signature_builder.h>
 #include "ani_err_utils.h"
 #include "display.h"
 #include "display_ani.h"
@@ -33,6 +34,7 @@
 
 namespace OHOS {
 namespace Rosen {
+using namespace arkts::ani_signature;
 
 DisplayManagerAni::DisplayManagerAni()
 {
@@ -183,12 +185,12 @@ void DisplayManagerAni::OnGetCurrentFoldCreaseRegion(ani_env* env, ani_object ob
         return;
     }
     TLOGI(WmsLogTag::DMS, "[ANI] DisplayManager GetCurrentFoldCreaseRegion success %{public}d", (int)displayId);
-    if (ANI_OK != env->Object_SetFieldByName_Long(obj, "<property>displayId",
+    if (ANI_OK != env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("displayId").c_str(),
         (ani_long)displayId)) {
         TLOGE(WmsLogTag::DMS, "[ANI] set displayId field fail");
     }
     ani_ref creaseRectsObj{};
-    if (ANI_OK != env->Object_GetFieldByName_Ref(obj, "<property>creaseRects",
+    if (ANI_OK != env->Object_GetFieldByName_Ref(obj, Builder::BuildPropertyName("creaseRects").c_str(),
         &creaseRectsObj)) {
         TLOGE(WmsLogTag::DMS, "[ANI] get ani_array len fail");
     }
@@ -921,7 +923,7 @@ void DisplayManagerAni::OnDestroyVirtualScreen(ani_env* env, ani_long screenId)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     auto ret = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(static_cast<ScreenId>(screenId)));
+        SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(static_cast<ScreenId>(screenId), true));
     ret = (ret == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : ret;
     if (ret != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Destroy virtual screen failed.");
@@ -951,7 +953,7 @@ void DisplayManagerAni::OnSetVirtualScreenSurface(ani_env* env, ani_long screenI
     std::vector<ScreenId> screenIds;
     screenIds.emplace_back(static_cast<ScreenId>(screenId));
     sptr<Surface> surface;
-    if (!DisplayAniUtils::GetSurfaceFromAni(env, surfaceId, surface)) {
+    if (!DisplayAniUtils::GetSurfaceFromAni(env, surfaceId, surface) || surface == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] Failed to convert surface.");
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert surface.");
         return;
@@ -1074,7 +1076,7 @@ void DisplayManagerAni::OnFinalizerDisplay(ani_env* env, ani_object displayObj)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] DMS FinalizerDisplayNative begin");
     ani_long displayId;
-    if (ANI_OK != env->Object_GetFieldByName_Long(displayObj, "<property>id", &displayId)) {
+    if (ANI_OK != env->Object_GetFieldByName_Long(displayObj, Builder::BuildPropertyName("id").c_str(), &displayId)) {
         TLOGE(WmsLogTag::DMS, "[ANI] DMS FinalizerDisplayNative get displayId failed");
         return;
     }

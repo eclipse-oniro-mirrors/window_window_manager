@@ -1253,6 +1253,17 @@ public:
     virtual SystemBarProperty GetSystemBarPropertyByType(WindowType type) const { return {}; }
 
     /**
+     * @brief Get window state snapshot.
+     *
+     * @param winStateSnapshotJsonStr The state snapshot of specified window.
+     * @return WM_OK means get success, others means get failed.
+     */
+    virtual WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief judge this window is full screen.
      *
      * @return true If SetFullScreen(true) is called , return true.
@@ -5135,6 +5146,11 @@ public:
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
+
+    /**
+     * @brief Flush vsync for prelaunch.
+     */
+    virtual void FlushVsync() {}
 };
 }
 }

@@ -1519,6 +1519,39 @@ void WindowSessionImpl::FlushLayoutSize(int32_t width, int32_t height)
     }
 }
 
+void WindowSessionImpl::FlushVsync()
+{
+    if (!WindowHelper::IsMainWindow(GetType())) {
+        return;
+    }
+
+    if (!property_->IsPrelaunch()) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch is false");
+        return;
+    }
+
+    if (property_->GetFrameNum() == 0) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch frameNum is 0");
+        return;
+    }
+
+    if (hasNotifyPrelaunchStartingwindow_) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch startingwindow has notify");
+        return;
+    }
+
+    vsyncCount_++;
+    TLOGI(WmsLogTag::WMS_PATTERN, "prelaunch frameNum:%{public}d, vsyncCount:%{public}d",
+        property_->GetFrameNum(), vsyncCount_);
+
+    if (vsyncCount_ >= property_->GetFrameNum()) {
+        if (auto session = GetHostSession()) {
+            session->NotifyRemovePrelaunchStartingWindow();
+            hasNotifyPrelaunchStartingwindow_ = true;
+        }
+    }
+}
+
 WMError WindowSessionImpl::NotifySnapshotUpdate()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "NotifySnapshotUpdate, id: %u", GetWindowId());
@@ -1871,6 +1904,20 @@ float WindowSessionImpl::GetVirtualPixelRatio(const sptr<DisplayInfo>& displayIn
         return virtualPixelRatio_;
     }
     return displayInfo->GetVirtualPixelRatio();
+}
+
+void WindowSessionImpl::NotifyGlobalScaledRectChange(const Rect& globalScaledRect)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, rect:%{public}s", GetPersistentId(),
+        globalScaledRect.ToString().c_str());
+    std::lock_guard<std::mutex> lock(globalScaledRectMutex_);
+    globalScaledRect_ = globalScaledRect;
+}
+
+Rect WindowSessionImpl::GetGlobalScaledRectLocal() const
+{
+    std::lock_guard<std::mutex> lock(globalScaledRectMutex_);
+    return globalScaledRect_;
 }
 
 WMError WindowSessionImpl::GetVirtualPixelRatio(float& vpr)
@@ -5368,6 +5415,11 @@ static void RequestInputMethodCloseKeyboard(bool isNeedKeyboard, bool keepKeyboa
         auto inputMethodController = MiscServices::InputMethodController::GetInstance();
         if (inputMethodController) {
             inputMethodController->RequestHideInput(static_cast<uint32_t>(hostWindowId));
+            MiscServices::ClientType clientType = MiscServices::CLIENT_TYPE_END;
+            if (inputMethodController->GetClientType(clientType) == MiscServices::ErrorCode::NO_ERROR
+                && clientType == MiscServices::INNER_KIT_ARKUI) {
+                inputMethodController->Close();
+            }
             TLOGD(WmsLogTag::WMS_KEYBOARD, "Notify InputMethod framework close keyboard end.");
         }
 #endif
@@ -5450,7 +5502,7 @@ void WindowSessionImpl::NotifyUIContentHighlightStatus(bool isHighlighted)
     }
 }
 
-void WindowSessionImpl::NotifyBeforeDestroy(std::string windowName)
+void WindowSessionImpl::NotifyUIContentDestroy()
 {
     auto task = [this]() {
         if (auto uiContent = GetUIContentSharedPtr()) {
@@ -5471,6 +5523,13 @@ void WindowSessionImpl::NotifyBeforeDestroy(std::string windowName)
         task();
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Release uicontent successfully, id: %{public}d.", GetPersistentId());
+}
+
+void WindowSessionImpl::NotifyBeforeDestroy(const std::string& windowName)
+{
+    if (!isAttachedOnFrameNode_ || (!WindowHelper::IsSubWindow(GetType()) || property_->GetIsUIExtFirstSubWindow())) {
+        NotifyUIContentDestroy();
+    }
     if (notifyNativeFunc_) {
         notifyNativeFunc_(windowName);
     }
@@ -5784,6 +5843,7 @@ void WindowSessionImpl::NotifyDisplayMove(DisplayId from, DisplayId to)
             }
         }
     }
+    NotifyDmsDisplayMove(to);
 }
  
 void WindowSessionImpl::NotifyDmsDisplayMove(DisplayId to)

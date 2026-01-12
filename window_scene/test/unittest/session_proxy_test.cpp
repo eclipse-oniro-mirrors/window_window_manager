@@ -1243,6 +1243,25 @@ HWTEST_F(SessionProxyTest, OnDefaultDensityEnabled, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyRemovePrelaunchStartingWindow
+ * @tc.desc: NotifyRemovePrelaunchStartingWindow test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, NotifyRemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifyRemovePrelaunchStartingWindow start";
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
+
+    WMError res = sProxy->NotifyRemovePrelaunchStartingWindow();
+    ASSERT_EQ(res, WMError::WM_OK);
+    sProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    res = sProxy->NotifyRemovePrelaunchStartingWindow();
+    ASSERT_EQ(res, WMError::WM_ERROR_IPC_FAILED);
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifyRemovePrelaunchStartingWindow end";
+}
+
+/**
  * @tc.name: NotifyFrameLayoutFinishFromApp
  * @tc.desc: NotifyFrameLayoutFinishFromApp test
  * @tc.type: FUNC

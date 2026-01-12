@@ -884,6 +884,59 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetVirtualMirrorScreenCanvasRotation, Te
 }
 
 /**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsOnboardDisplay, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    DisplayId displayId = 0;
+    bool isOnboardDisplay = false;
+    MockMessageParcel::ClearAllErrorFlag();
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    screenSessionManagerProxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("write interface token failed") != std::string::npos);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    screenSessionManagerProxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("write displayId failed") != std::string::npos);
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    screenSessionManagerProxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("read result failed") != std::string::npos);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("send request failed") != std::string::npos);
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker = nullptr;
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    proxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
+    
+    LOG_SetCallback(nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: SetVirtualMirrorScreenScaleMode
  * @tc.desc: SetVirtualMirrorScreenScaleMode
  * @tc.type: FUNC

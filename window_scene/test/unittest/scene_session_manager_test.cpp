@@ -46,7 +46,7 @@ namespace {
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
-        g_logMsg = msg;
+        g_logMsg += msg;
     }
 }
 namespace {
@@ -661,12 +661,14 @@ HWTEST_F(SceneSessionManagerTest, MoveSessionsToBackground02, TestSize.Level1)
 }
 
 /**
- * @tc.name: ClearAllCollaboratorSessions
+ * @tc.name: ClearCollaboratorSessionsByType01
  * @tc.desc: SceneSesionManager clear all collaborator sessions
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest, ClearAllCollaboratorSessions, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest, ClearCollaboratorSessionsByType01, TestSize.Level1)
 {
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     std::string bundleName = "bundleName";
     std::string abilityName = "abilityName";
     int32_t persistentId = 1200;
@@ -675,70 +677,19 @@ HWTEST_F(SceneSessionManagerTest, ClearAllCollaboratorSessions, TestSize.Level1)
     info.abilityName_ = abilityName;
     info.persistentId_ = persistentId;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    sceneSession->SetCollaboratorType(CollaboratorType::DEFAULT_TYPE);
+    EXPECT_NE(sceneSession, nullptr);
+    sceneSession->SetCollaboratorType(CollaboratorType::REDIRECT_TYPE);
     sceneSession->SetTerminateSessionListenerNew(
-        [](const SessionInfo& info, bool needStartCaller, bool isFromBroker, bool isForceClean) {
-        ssm_->sceneSessionMap_.erase(info.persistentId_);
-    });
+        [](const SessionInfo &info, bool needStartCaller, bool isFromBroker, bool isForceClean) {
+            ssm_->sceneSessionMap_.erase(info.persistentId_);
+        });
     usleep(WAIT_SYNC_IN_NS);
-    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
-    ssm_->ClearAllCollaboratorSessions();
-    ASSERT_EQ(ssm_->sceneSessionMap_[persistentId], sceneSession);
-}
-
-/**
- * @tc.name: ClearAllCollaboratorSessions02
- * @tc.desc: SceneSesionManager clear all collaborator sessions
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest, ClearAllCollaboratorSessions02, TestSize.Level1)
-{
-    std::string bundleName = "bundleName";
-    std::string abilityName = "abilityName";
-    int32_t persistentId = 1201;
-    SessionInfo info;
-    info.bundleName_ = bundleName;
-    info.abilityName_ = abilityName;
-    info.persistentId_ = persistentId;
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    sceneSession->SetCollaboratorType(CollaboratorType::RESERVE_TYPE);
-    sceneSession->SetTerminateSessionListenerNew(
-        [](const SessionInfo& info, bool needStartCaller, bool isFromBroker, bool isForceClean) {
-        ssm_->sceneSessionMap_.erase(info.persistentId_);
-    });
-    usleep(WAIT_SYNC_IN_NS);
-    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
-    ssm_->ClearAllCollaboratorSessions();
-    ASSERT_EQ(ssm_->sceneSessionMap_[persistentId], nullptr);
-}
-
-/**
- * @tc.name: ClearAllCollaboratorSessions03
- * @tc.desc: SceneSesionManager clear all collaborator sessions
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest, ClearAllCollaboratorSessions03, TestSize.Level1)
-{
-    std::string bundleName = "bundleName";
-    std::string abilityName = "abilityName";
-    int32_t persistentId = 1202;
-    SessionInfo info;
-    info.bundleName_ = bundleName;
-    info.abilityName_ = abilityName;
-    info.persistentId_ = persistentId;
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    sceneSession->SetCollaboratorType(CollaboratorType::OTHERS_TYPE);
-    sceneSession->SetTerminateSessionListenerNew(
-        [](const SessionInfo& info, bool needStartCaller, bool isFromBroker, bool isForceClean) {
-        ssm_->sceneSessionMap_.erase(info.persistentId_);
-    });
-    usleep(WAIT_SYNC_IN_NS);
-    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
-    ssm_->ClearAllCollaboratorSessions();
-    ASSERT_EQ(ssm_->sceneSessionMap_[persistentId], nullptr);
+    ssm_->sceneSessionMap_.insert({persistentId, sceneSession});
+    ssm_->ClearCollaboratorSessionsByType(CollaboratorType::DEFAULT_TYPE);
+    EXPECT_FALSE(g_logMsg.find("clear session id") != std::string::npos);
+    ssm_->ClearCollaboratorSessionsByType(CollaboratorType::REDIRECT_TYPE);
+    EXPECT_TRUE(g_logMsg.find("clear session id") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**

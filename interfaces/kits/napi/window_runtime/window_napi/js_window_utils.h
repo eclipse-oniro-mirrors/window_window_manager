@@ -402,6 +402,14 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
      * @return The JS object on success, or nullptr on failure.
      */
     napi_value BuildJsPosition(napi_env env, const Position& position);
+
+    /**
+     * @brief Safely converts WMError to WmErrorCode.
+     *
+     * @param err WMError value to be converted.
+     * @return The corresponding WmErrorCode enumeration value, or WmErrorCode::WM_ERROR_STATE_ABNORMALLY if unmapped.
+     */
+    WmErrorCode MappingWmErrorCodeSafely(WMError err);
 }
 }
 #endif

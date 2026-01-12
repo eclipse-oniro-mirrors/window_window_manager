@@ -1327,7 +1327,7 @@ napi_value OnDestroyVirtualScreen(napi_env env, napi_callback_info info)
     auto asyncTask = [screenId, env, task = napiAsyncTask.get()]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayManager::OnDestroyVirtualScreen");
         auto res = DM_JS_TO_ERROR_CODE_MAP.at(
-            SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(screenId));
+            SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(screenId, true));
         res = (res == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : res;
         if (res != DmErrorCode::DM_OK) {
             task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][destroyVirtualScreen]"));

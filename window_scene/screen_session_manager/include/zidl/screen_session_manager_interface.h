@@ -51,7 +51,8 @@ public:
 
     virtual ScreenId CreateVirtualScreen(VirtualScreenOption option,
         const sptr<IRemoteObject>& displayManagerAgent) { return SCREEN_ID_INVALID; }
-    virtual DMError DestroyVirtualScreen(ScreenId screenId) { return DMError::DM_OK; }
+    virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false)
+        { return DMError::DM_OK; }
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
     {
         return DMError::DM_OK;
@@ -75,14 +76,14 @@ public:
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
-    virtual bool IsOnboardDisplay(DisplayId displayId)
-    {
-        return false;
-    }
     virtual DMError SetScreenPrivacyMaskImage(ScreenId screenId,
         const std::shared_ptr<Media::PixelMap>& privacyMaskImg)
     {
         return DMError::DM_OK;
+    }
+    virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
+    {
+        return DMError::DM_ERROR_INVALID_PARAM;
     }
     virtual DMError SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, bool autoRotate)
     {

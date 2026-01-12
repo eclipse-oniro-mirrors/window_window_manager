@@ -2399,9 +2399,9 @@ HWTEST_F(SceneSessionTest, CloneWindow, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
     sceneSession->SetSurfaceNode(surfaceNode);
-    auto shadowSurfaceNode = sceneSession->GetShadowSurfaceNode();
+    auto sfaceNode = sceneSession->GetSurfaceNode();
     sceneSession->CloneWindow(surfaceNodeId, needOffScreen);
-    EXPECT_TRUE(shadowSurfaceNode != nullptr);
+    EXPECT_TRUE(sfaceNode != nullptr);
 }
 
 /**
