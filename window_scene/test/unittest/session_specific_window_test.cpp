@@ -26,6 +26,7 @@
 #include "session/host/include/main_session.h"
 #include "window_manager_agent.h"
 #include "zidl/window_manager_agent_interface.h"
+#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

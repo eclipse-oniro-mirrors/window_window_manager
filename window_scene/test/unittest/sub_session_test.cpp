@@ -31,6 +31,7 @@
 #include "window_property.h"
 #include "window_session_property.h"
 #include "mock_sub_session.h"
+#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

@@ -30,6 +30,7 @@
 #include "session/host/include/multi_instance_manager.h"
 #include "test/mock/mock_session_stage.h"
 #include "test/mock/mock_window_event_channel.h"
+#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

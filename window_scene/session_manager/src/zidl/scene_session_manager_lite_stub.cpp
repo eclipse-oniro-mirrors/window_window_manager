@@ -17,6 +17,7 @@
 
 #include "marshalling_helper.h"
 #include "window_manager_hilog.h"
+#include "pointer_event.h"
 
 namespace OHOS::Rosen {
 namespace {

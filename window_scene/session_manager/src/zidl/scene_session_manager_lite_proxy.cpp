@@ -16,8 +16,8 @@
 #include "session_manager/include/zidl/scene_session_manager_lite_proxy.h"
 
 #include "marshalling_helper.h"
-#include "pointer_event.h"
 #include "window_manager_hilog.h"
+#include "load_mmi_client_adapter.h"
 
 namespace OHOS::Rosen {
 namespace {
@@ -2790,7 +2790,7 @@ WSError SceneSessionManagerLiteProxy::SendPointerEventForHover(const std::shared
         TLOGE(WmsLogTag::WMS_EVENT, "Write interfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!pointerEvent->WriteToParcel(data)) {
+    if (!LoadMMIClientAdapter() || !PointerEventWriteToParcel(pointerEvent, data)) {
         TLOGE(WmsLogTag::WMS_EVENT, "Write pointer event failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }

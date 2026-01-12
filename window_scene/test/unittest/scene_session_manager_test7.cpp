@@ -25,6 +25,7 @@
 #define private public
 #include "session/host/include/keyboard_session.h"
 #undef private
+#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -334,7 +335,7 @@ HWTEST_F(SceneSessionManagerTest7, FlushUIParams03, Function | SmallTest | Level
     ssm_->FlushUIParams(screenId, std::move(uiParams));
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_EQ(false, keyboardSession->stateChanged_);
-    
+
     uiParams.clear();
     uiParams.insert(std::make_pair(1, callingSessionUIParam));
     uiParams.insert(std::make_pair(3, keyboardSessionUIParam));

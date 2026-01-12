@@ -32,6 +32,7 @@
 #include "window_manager_hilog.h"
 #include "zidl/window_manager_agent_interface.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

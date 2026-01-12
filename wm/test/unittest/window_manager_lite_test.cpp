@@ -21,6 +21,7 @@
 #include "window_manager_hilog.h"
 #include "window_manager_lite.cpp"
 #include "wm_common.h"
+#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;
