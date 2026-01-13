@@ -18175,7 +18175,7 @@ std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resou
 std::pair<std::shared_ptr<uint8_t[]>, size_t> SceneSessionManager::GetSvgBufferInfo(uint32_t resourceId,
     std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo)
 {
-    std::pair<shared_ptr<uint8_t[]>, size_t> defaultResult = {nullptr, 0};
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> defaultResult = {nullptr, 0};
     auto resourceMgr = GetResourceManager(*abilityInfo.get());
     if (resourceMgr == nullptr) {
         TLOGW(WmsLogTag::WMS_PATTERN, "resource manager is null");

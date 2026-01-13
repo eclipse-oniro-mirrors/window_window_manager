@@ -3130,12 +3130,12 @@ void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMa
     std::shared_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
     pixelMap = nullptr;
     bufferInfo = {nullptr, 0};
-    if (preloadStartingWindowPixelMap != nullptr) {
+    if (preloadStartingWindowPixelMap_ != nullptr) {
         pixelMap = preloadStartingWindowPixelMap_;
         TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
         return;
     }
-    if (preloadStartingWindowSvgBufferInfo.first != nullptr) {
+    if (preloadStartingWindowSvgBufferInfo_.first != nullptr && preloadStartingWindowSvgBufferInfo_.second != 0) {
         bufferInfo = preloadStartingWindowSvgBufferInfo_;
         TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());
         return;
