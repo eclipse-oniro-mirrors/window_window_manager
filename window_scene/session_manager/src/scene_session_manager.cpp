@@ -18183,7 +18183,8 @@ std::pair<std::shared_ptr<uint8_t[]>, size_t> SceneSessionManager::GetSvgBufferI
     }
     std::unique_ptr<uint8_t[]> svgOut;
     size_t len;
-    if (resourceMgr->GetMediaDataById(resourceId, len, svgOut) != Global::Resource::RState::SUCCESS) {
+    Global::Resource::RState state = resourceMgr->GetMediaDataById(resourceId, len, svgOut);
+    if (state != Global::Resource::RState::SUCCESS) {
         TLOGE(WmsLogTag::WMS_PATTERN, "get svg buffer failed id:%{private}d state:%{public}d",
             resourceId, static_cast<int>(state));
         return defaultResult;
