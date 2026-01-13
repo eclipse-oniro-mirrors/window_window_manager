@@ -3266,7 +3266,7 @@ WSError SessionProxy::RecoverWindowEffect(bool recoverCorner, bool recoverShadow
         return WSError::WS_ERROR_IPC_FAILED;
     }
     auto sendRet = remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT),
-        data, reply, option)
+        data, reply, option);
     if (sendRet != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_PC, "SendRequest failed, code: %{public}d", sendRet);
         return WSError::WS_ERROR_IPC_FAILED;

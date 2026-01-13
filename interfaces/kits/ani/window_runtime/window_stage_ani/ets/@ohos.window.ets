@@ -3879,9 +3879,9 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.clearWindowMaskSync(this.nativeObj);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
           resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
           reject(err as BusinessError);
         });
       });

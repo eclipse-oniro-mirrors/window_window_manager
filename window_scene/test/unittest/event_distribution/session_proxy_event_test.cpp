@@ -105,32 +105,32 @@ HWTEST_F(SessionProxyEventTest, RecoverWindowEffect, TestSize.Level1)
 {
     auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
     auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    SessionEvent event = SessionEvent::EVENT_MAXIMIZE;
-    SessionEventParam param { .waterfallResidentState = 0 };
+    bool recoverCorner = true;
+    bool recoverShadow = true;
 
     // Case 1: Failed to write interface token
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->RecoverWindowEffect(event, param));
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->RecoverWindowEffect(recoverCorner, recoverShadow));
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 
     // Case 2: Failed to write recoverCorner or recoverShadow
     MockMessageParcel::SetWriteBoolErrorFlag(true);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->RecoverWindowEffect(event, param));
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->RecoverWindowEffect(recoverCorner, recoverShadow));
     MockMessageParcel::SetWriteBoolErrorFlag(false);
 
     // Case 3: remote is nullptr
     sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->RecoverWindowEffect(event, param));
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->RecoverWindowEffect(recoverCorner, recoverShadow));
 
     // Case 4: Failed to send request
     mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
     sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failProxy->RecoverWindowEffect(event, param));
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failProxy->RecoverWindowEffect(recoverCorner, recoverShadow));
 
     // Case 5: Success
     mockRemote->sendRequestResult_ = ERR_NONE;
     sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    EXPECT_EQ(WSError::WS_OK, okProxy->RecoverWindowEffect(event, param));
+    EXPECT_EQ(WSError::WS_OK, okProxy->RecoverWindowEffect(recoverCorner, recoverShadow));
 }
 } // namespace
 } // namespace Rosen

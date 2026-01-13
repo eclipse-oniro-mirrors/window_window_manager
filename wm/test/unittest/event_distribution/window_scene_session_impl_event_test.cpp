@@ -206,7 +206,7 @@ HWTEST_F(WindowSceneSessionImplEventTest, IsSeparationTouchEnabled, TestSize.Lev
  * @tc.desc: ClearWindowMask
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplEventTest, ClearWindowMask, TestSize.Level0)
+HWTEST_F(WindowSceneSessionImplEventTest, ClearWindowMask, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("ClearWindowMask");
@@ -218,30 +218,35 @@ HWTEST_F(WindowSceneSessionImplEventTest, ClearWindowMask, TestSize.Level0)
 
     window->property_->persistentId_ = 11;
     window->state_ = WindowState::STATE_SHOWN;
-    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     // 2.is not shaped window
     ret = window->ClearWindowMask();
-    EXPECT_EQ(ret, WMError::EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_OPERATION));
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_OPERATION);
     window->property_->SetIsShaped(true);
 
-    EXPECT_CALL(*session, UpdateSessionPropertyByAction(_)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(*session, UpdateSessionPropertyByAction(_, _)).WillRepeatedly(Return(WMError::WM_OK));
     // 3.recover default corner and shadow
     EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
     // 4.recover default shadow
     window->property_->SetWindowCornerRadius(10);
     EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
     // 5.recover default corner
-    ShadowsInfo shadowsInfo = property_->GetWindowShadows();
+    ShadowsInfo shadowsInfo = window->property_->GetWindowShadows();
     shadowsInfo.hasRadiusValue_ = true;
     window->property_->SetWindowShadows(shadowsInfo);
     window->property_->SetWindowCornerRadius(WINDOW_CORNER_RADIUS_INVALID);
     EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
     // 6.no need recover default value
     window->property_->SetWindowCornerRadius(10);
     EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
     // 7.update property failed
-    EXPECT_CALL(*session, UpdateSessionPropertyByAction(_)).WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
+    EXPECT_CALL(*session, UpdateSessionPropertyByAction(_, _)).WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
     EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, window->ClearWindowMask());
 }
 } // namespace

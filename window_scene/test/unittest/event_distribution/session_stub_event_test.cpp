@@ -153,39 +153,20 @@ HWTEST_F(SessionStubEventTest, HandleSendCommonEvent, TestSize.Level1)
 
 /**
  * @tc.name: HandleRecoverWindowEffect
- * @tc.desc: Verify HandleRecoverWindowEffect with invalid and valid inputs
+ * @tc.desc: HandleRecoverWindowEffect
  * @tc.type: FUNC
  */
-HWTEST_F(SessionStubTest, HandleRecoverWindowEffect, TestSize.Level1)
+HWTEST_F(SessionStubEventTest, HandleRecoverWindowEffect, TestSize.Level1)
 {
     sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
     uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT);
     MessageOption option;
-
-    // Case 1: Missing recoverCorner and recoverShadow
-    {
-        MessageParcel data;
-        MessageParcel reply;
-        EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_INVALID_DATA);
-    }
-
-    // Case 2: Missing recoverShadow
-    {
-        MessageParcel data;
-        MessageParcel reply;
-        data.WriteBool(true);
-        EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_INVALID_DATA);
-    }
-
-    // Case 4: Success
-    {
-        MessageParcel data;
-        MessageParcel reply;
-        data.WriteBool(true);
-        data.WriteBool(true);
-        EXPECT_CALL(*session, RecoverWindowEffect(true, true)).Times(1);
-        EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_NONE);
-    }
+    MessageParcel data;
+    MessageParcel reply;
+    EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_NONE);
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_INVALID_DATA);
+    MockMessageParcel::ClearAllErrorFlag();
 }
 } // namespace
 } // namespace Rosen

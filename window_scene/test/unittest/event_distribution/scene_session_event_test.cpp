@@ -260,18 +260,18 @@ HWTEST_F(SceneSessionEventTest, SetSeparationTouchEnabled, TestSize.Level1)
  * @tc.desc: RecoverWindowEffect
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionAnimationTest, RecoverWindowEffect, TestSize.Level1)
+HWTEST_F(SceneSessionEventTest, RecoverWindowEffect, TestSize.Level1)
 {
     SessionInfo info;
     info.abilityName_ = "RecoverWindowEffect";
     info.bundleName_ = "RecoverWindowEffect";
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     NotifyRecoverWindowEffectFunc func;
-    session->SetRecoverWindowEffectCallback(func);
+    session->SetRecoverWindowEffectCallback(std::move(func));
     EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
 
     func = [](bool recoverCorner, bool recoverShadow) { return; };
-    session->SetRecoverWindowEffectCallback(func);
+    session->SetRecoverWindowEffectCallback(std::move(func));
     EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
     usleep(WAIT_SYNC_IN_NS);
 }

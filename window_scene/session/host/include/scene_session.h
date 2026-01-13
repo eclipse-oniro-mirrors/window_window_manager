@@ -502,6 +502,8 @@ public:
     WMError SetSeparationTouchEnabled(const std::vector<int32_t>& parameters) override;
     WMError LockCursor(const std::vector<int32_t>& parameters) override;
     WMError UnlockCursor(const std::vector<int32_t>& parameters) override;
+    void SetRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
+    WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
 
     /*
      * Window Immersive
@@ -994,8 +996,6 @@ public:
     std::string GetAbilityColorMode() const;
     void SetSecurityLayerWhenEnterForeground();
     void RegisterSnapshotSkipChangeCallback(NotifySnapshotSkipChangeFunc&& callback);
-    void SetRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
-    WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
 
     /*
      * Window Pattern

@@ -6711,6 +6711,8 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
     surfaceNode_->SetMask(rsMask); // RS interface to set mask
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
 
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
     hostSession->SetWindowCornerRadius(0);
     ShadowsInfo shadowsInfo = property_->GetWindowShadows();
     shadowsInfo.radius_ = 0.0f;

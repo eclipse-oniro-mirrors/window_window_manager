@@ -2224,7 +2224,7 @@ int SessionStub::HandleRecoverWindowEffect(MessageParcel& data, MessageParcel& r
         TLOGE(WmsLogTag::WMS_PC, "Read recoverShadow failed.");
         return ERR_INVALID_DATA;
     }
-    TLOGD(WmsLogTag::WMS_PC, "cornerRadius: %{public}f", cornerRadius);
+    TLOGD(WmsLogTag::WMS_PC, "recoverCorner: %{public}d, recoverShadow: %{public}d", recoverCorner, recoverShadow);
     RecoverWindowEffect(recoverCorner, recoverShadow);
     return ERR_NONE;
 }

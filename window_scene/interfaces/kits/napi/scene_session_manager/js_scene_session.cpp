@@ -237,7 +237,7 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {ROTATION_LOCK_CHANGE_CB,               ListenerFuncType::ROTATION_LOCK_CHANGE_CB},
     {SNAPSHOT_SKIP_CHANGE_CB,               ListenerFuncType::SNAPSHOT_SKIP_CHANGE_CB},
     {COMPATIBLE_MODE_CHANGE_CB,             ListenerFuncType::COMPATIBLE_MODE_CHANGE_CB},
-    {RECOVER_WINDOW_EFFECT_CB,           ListenerFuncType::RECOVER_WINDOW_EFFECT_CB},
+    {RECOVER_WINDOW_EFFECT_CB,              ListenerFuncType::RECOVER_WINDOW_EFFECT_CB},
 };
 
 const std::vector<std::string> g_syncGlobalPositionPermission {
@@ -8103,14 +8103,15 @@ void JsSceneSession::ProcessRecoverWindowEffectRegister()
         return;
     }
     const char* const where = __func__;
-    session->SetRecoverWindowEffectCallback([weakThis = wptr(this), where](bool recoverCorner, bool recoverShadow) {
+    NotifyRecoverWindowEffectFunc func = [weakThis = wptr(this), where](bool recoverCorner, bool recoverShadow) {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession) {
             TLOGNE(WmsLogTag::WMS_PC, "%{public}s: jsSceneSession is null", where);
             return;
         }
         jsSceneSession->OnRecoverWindowEffect(recoverCorner, recoverShadow);
-    });
+    };
+    session->SetRecoverWindowEffectCallback(func);
     TLOGD(WmsLogTag::WMS_PC, "success");
 }
 
