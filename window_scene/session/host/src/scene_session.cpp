@@ -3298,10 +3298,13 @@ void SceneSession::CalculateWindowRectByScale(WSRect& winRect)
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
         return;
     }
+    winRect = GetSessionGlobalPosition();
     winRect.posX_ *= scaleX;
     winRect.posY_ *= scaleY;
     winRect.width_ *= scaleX;
     winRect.height_ *= scaleY;
+    TLOGI(WmsLogTag::WMS_IMMS, "win: %{public}d globalRect:%{public}s, Rect:%{public}s, [%{public}f, %{public}f]",
+        GetPersistentId(), GetSessionGlobalPosition(), winRect, scaleX, scaleY);
 }
 
 void SceneSession::CalculateAvoidAreaByScale(Rect& avoidAreaRect) const
@@ -3315,6 +3318,8 @@ void SceneSession::CalculateAvoidAreaByScale(Rect& avoidAreaRect) const
     avoidAreaRect.posY_ = std::ceil(static_cast<float>(avoidAreaRect.posY_) / scaleY);
     avoidAreaRect.width_ = std::ceil(static_cast<float>(avoidAreaRect.width_) / scaleX);
     avoidAreaRect.height_ = std::ceil(static_cast<float>(avoidAreaRect.height_) / scaleY);
+    TLOGI(WmsLogTag::WMS_IMMS, "win: %{public}d avoidArea:[%{public}d, %{public}d, %{public}d, %{public}d]",
+        GetPersistentId(), avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_);
 }
 
 AvoidArea SceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, const WSRect& rect, bool ignoreVisibility)
