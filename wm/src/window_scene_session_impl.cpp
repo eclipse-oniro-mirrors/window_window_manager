@@ -15,7 +15,6 @@
 
 #include "window_scene_session_impl.h"
 
-#include <atomic>
 #include <chrono>
 #include <limits>
 #include <ability_manager_client.h>
