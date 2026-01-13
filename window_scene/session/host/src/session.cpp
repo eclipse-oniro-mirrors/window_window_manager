@@ -3134,7 +3134,7 @@ void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMa
         pixelMap = preloadStartingWindowPixelMap_;
         TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
         return;
-    } 
+    }
     if (preloadStartingWindowSvgBufferInfo.first != nullptr) {
         bufferInfo = preloadStartingWindowSvgBufferInfo_;
         TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());

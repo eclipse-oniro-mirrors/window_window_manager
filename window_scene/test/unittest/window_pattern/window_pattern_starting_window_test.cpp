@@ -476,7 +476,7 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidPixe
     std::shared_ptr<Media::PixelMap> pixelMap;
     std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
     pixelMap = nullptr;
-    bufferInfo = {std::shared_ptr<uint8_t[]>(new uint8_t[5]), 5};
+    bufferInfo = {std::make_shared<uint8_t[]>(5), 5};
     
     sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
     EXPECT_EQ(pixelMap, validPixelMap);
@@ -500,7 +500,7 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidSvgB
     ASSERT_NE(sceneSession, nullptr);
     
     sceneSession->ResetPreloadStartingWindow();
-    std::shared_ptr<uint8_t[]> validSvgBuffer(new uint8_t[10]{1,2,3});
+    std::shared_ptr<uint8_t[]> validSvgBuffer = std::make_shared<uint8_t[]>(10);
     std::pair<std::shared_ptr<uint8_t[]>, size_t> validBufferInfo = {validSvgBuffer, 10};
     sceneSession->SetPreloadStartingWindow(validBufferInfo);
     
@@ -532,7 +532,7 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSv
     ASSERT_NE(sceneSession, nullptr);
     
     sceneSession->ResetPreloadStartingWindow();
-    std::shared_ptr<uint8_t[]> invalidSvgBuffer(new uint8_t[5]);
+    std::shared_ptr<uint8_t[]> invalidSvgBuffer = std::make_shared<uint8_t[]>(5);
     std::pair<std::shared_ptr<uint8_t[]>, size_t> invalidBufferInfo = {invalidSvgBuffer, 0};
     sceneSession->SetPreloadStartingWindow(invalidBufferInfo);
     
