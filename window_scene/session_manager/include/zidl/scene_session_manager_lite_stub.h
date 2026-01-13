@@ -88,6 +88,7 @@ private:
     int HandleRegisterCollaborator(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterCollaborator(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowStyleType(MessageParcel& data, MessageParcel& reply);
+    int HandleSetProcessWatermark(MessageParcel& data, MessageParcel& reply);
     int HandleTerminateSessionByPersistentId(MessageParcel& data, MessageParcel& reply);
     int HandleCloseTargetFloatWindow(MessageParcel& data, MessageParcel& reply);
     int HandleCloseTargetPiPWindow(MessageParcel& data, MessageParcel& reply);
