@@ -1512,6 +1512,35 @@ HWTEST_F(WindowPatternSnapshotTest, RecoverImageForRecent, TestSize.Level1)
     sceneSession->RecoverImageForRecent();
     EXPECT_EQ(sceneSession->IsPersistentImageFit(), true);
 }
+
+/**
+ * @tc.name: CropSnapshotPixelMap
+ * @tc.desc: CropSnapshotPixelMap Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, CropSnapshotPixelMap, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 1093;
+    info.abilityName_ = "CropSnapshotPixelMap";
+    info.bundleName_ = "CropSnapshotPixelMap";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
+    WSRect rect;
+    rect.width_ = 1094;
+    rect.height_ = 2416;
+
+    bool res = sceneSession->CropSnapshotPixelMap(pixelMap, rect, 0.5);
+    EXPECT_EQ(res, false);
+    pixelMap = std::make_shared<Media::PixelMap>();
+
+    res = sceneSession->CropSnapshotPixelMap(pixelMap, rect, 0.5);
+    EXPECT_EQ(res, false);
+
+    rect.width_ = 1093;
+    res = sceneSession->CropSnapshotPixelMap(pixelMap, rect, 0.5);
+    EXPECT_EQ(res, true);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

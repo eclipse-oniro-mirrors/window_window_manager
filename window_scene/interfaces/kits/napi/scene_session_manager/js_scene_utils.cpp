@@ -878,6 +878,112 @@ bool ConvertSessionRectInfoFromJs(napi_env env, napi_value jsObject, WSRect& rec
     return true;
 }
 
+bool ConvertKeyboardBaseInfoFromJs(napi_env env, napi_value jsObject, KeyboardBaseInfo& keyboardBaseInfo)
+{
+    napi_value jsCallingId = nullptr;
+    napi_get_named_property(env, jsObject, "callingId", &jsCallingId);
+    napi_value jsIsGravityChanged = nullptr;
+    napi_get_named_property(env, jsObject, "isGravityChanged", &jsIsGravityChanged);
+    napi_value jsIsKeyboardShow = nullptr;
+    napi_get_named_property(env, jsObject, "isKeyboardShow", &jsIsKeyboardShow);
+    napi_value jsKeyboardPanelRect = nullptr;
+    napi_get_named_property(env, jsObject, "keyboardPanelRect", &jsKeyboardPanelRect);
+
+    uint32_t callingId = 0;
+    if (jsCallingId == nullptr || !ConvertFromJsValue(env, jsCallingId, callingId)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to callingId");
+        return false;
+    }
+    keyboardBaseInfo.callingId = callingId;
+
+    bool isGravityChanged = false;
+    if (jsIsGravityChanged == nullptr || !ConvertFromJsValue(env, jsIsGravityChanged, isGravityChanged)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to isGravityChanged");
+        return false;
+    }
+    keyboardBaseInfo.isGravityChanged = isGravityChanged;
+
+    bool isKeyboardShow = false;
+    if (jsIsKeyboardShow == nullptr || !ConvertFromJsValue(env, jsIsKeyboardShow, isKeyboardShow)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to isKeyboardShow");
+        return false;
+    }
+    keyboardBaseInfo.isKeyboardShow = isKeyboardShow;
+
+    WSRect keyboardPanelRect;
+    if (jsKeyboardPanelRect == nullptr || !ConvertSessionRectInfoFromJs(env, jsKeyboardPanelRect, keyboardPanelRect)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to keyboardPanelRect");
+        return false;
+    }
+    keyboardBaseInfo.keyboardPanelRect = keyboardPanelRect;
+    return true;
+}
+
+bool ConvertKeyboardAnimationRectConfigFromJs(napi_env env, napi_value jsObject,
+    KeyboardAnimationRectConfig& keyboardAnimationRectConfig)
+{
+    napi_value jsBeginRect = nullptr;
+    napi_get_named_property(env, jsObject, "beginRect", &jsBeginRect);
+    napi_value jsEndRect = nullptr;
+    napi_get_named_property(env, jsObject, "endRect", &jsEndRect);
+    napi_value jsAnimated = nullptr;
+    napi_get_named_property(env, jsObject, "animated", &jsAnimated);
+
+    WSRect beginRect;
+    if (jsBeginRect == nullptr || !ConvertSessionRectInfoFromJs(env, jsBeginRect, beginRect)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to beginRect");
+        return false;
+    }
+    keyboardAnimationRectConfig.beginRect = beginRect;
+
+    WSRect endRect;
+    if (jsEndRect == nullptr || !ConvertSessionRectInfoFromJs(env, jsEndRect, endRect)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to endRect");
+        return false;
+    }
+    keyboardAnimationRectConfig.endRect = endRect;
+
+    bool animated = false;
+    if (jsAnimated == nullptr || !ConvertFromJsValue(env, jsAnimated, animated)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to animated");
+        return false;
+    }
+    keyboardAnimationRectConfig.animated = animated;
+    return true;
+}
+
+bool ConvertCallingWindowInfoDataFromJs(napi_env env, napi_value jsObject, CallingWindowInfoData& callingWindowInfoData)
+{
+    napi_value jsCallingWindowState = nullptr;
+    napi_get_named_property(env, jsObject, "callingWindowState", &jsCallingWindowState);
+    napi_value jsScaleX = nullptr;
+    napi_get_named_property(env, jsObject, "scaleX", &jsScaleX);
+    napi_value jsScaleY = nullptr;
+    napi_get_named_property(env, jsObject, "scaleY", &jsScaleY);
+
+    int32_t callingWindowState = 0;
+    if (jsCallingWindowState == nullptr || !ConvertFromJsValue(env, jsCallingWindowState, callingWindowState)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to callingWindowState");
+        return false;
+    }
+    callingWindowInfoData.callingWindowState = static_cast<CallingWindowState>(callingWindowState);
+
+    double scaleX = 0;
+    if (jsScaleX == nullptr || !ConvertFromJsValue(env, jsScaleX, scaleX)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to scaleX");
+        return false;
+    }
+    callingWindowInfoData.scaleX = scaleX;
+
+    double scaleY = 0;
+    if (jsScaleY == nullptr || !ConvertFromJsValue(env, jsScaleY, scaleY)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to scaleY");
+        return false;
+    }
+    callingWindowInfoData.scaleY = scaleY;
+    return true;
+}
+
 bool ConvertSingleHandScreenInfoFromJs(napi_env env, napi_value jsObject, SingleHandScreenInfo& singleHandScreenInfo)
 {
     napi_value jsScaleRatio = nullptr;

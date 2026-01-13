@@ -161,7 +161,7 @@ using ForceSplitFullScreenChangeCallback = std::function<void(uint32_t uid, bool
 using CompatibleModeChangeCallback = std::function<void(CompatibleStyleMode mode)>;
 using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
-using GetSCBEnterRecentFunc = std::function<bool()>;
+using GetIsRecentStateFunc = std::function<bool()>;
 using ForceNotifyOccupiedAreaChangeCallback = std::function<void(DisplayId displayId)>;
 using NotifyRecoverWindowEffectFunc = std::function<void(bool recoverCorner, bool recoverShadow)>;
 
@@ -297,8 +297,9 @@ public:
     virtual void SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool needFlush = true);
 
     virtual void OpenKeyboardSyncTransaction() {}
-    virtual void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect,
-        bool isKeyboardShow, const WindowAnimationInfo& animationInfo) {}
+    virtual void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect, bool isKeyboardShow,
+        const WindowAnimationInfo& animationInfo, const CallingWindowInfoData& callingWindowInfoData) {}
+    virtual void CallingWindowStateChange(const CallingWindowInfoData& callingWindowInfoData) {}
     virtual void ForceProcessKeyboardOccupiedAreaInfo(){};
     WSError ChangeSessionVisibilityWithStatusBar(const sptr<AAFwk::SessionInfo> info, bool visible) override;
     WSError PendingSessionActivation(const sptr<AAFwk::SessionInfo> info) override;
@@ -338,7 +339,7 @@ public:
     WSError RaiseAboveTarget(int32_t subWindowId) override;
     WSError RaiseMainWindowAboveTarget(int32_t targetId) override;
     std::shared_ptr<Rosen::RSNode> GetWindowDragMoveMountedNode(DisplayId displayId, uint32_t targetZOrder);
-    virtual void RegisterGetSCBEnterRecentFunc(GetSCBEnterRecentFunc&& callback) {};
+    virtual void RegisterGetIsRecentStateFunc(GetIsRecentStateFunc&& callback) {};
 
     /*
      * PiP Window
@@ -909,8 +910,8 @@ public:
     void CalcSubWindowRectByAnchor(const WSRect& parentRect, WSRect& subRect);
     bool IsAnyParentSessionDragMoving() const override;
     bool IsAnyParentSessionDragZooming() const override;
-    bool IsCompatibleModeDirtyDragScaleWindow() const;
-    void ResetCompatibleModeDragScaleFlags();
+    bool IsNeedNotifyDragEventOnNextVsync() const;
+    void NotifiedDragEventOnNextVsync();
     void RegisterAppHookWindowInfoFunc(GetHookWindowInfoFunc&& func);
     WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) override;
     void SetFindScenePanelRsNodeByZOrderFunc(FindScenePanelRsNodeByZOrderFunc&& func);
@@ -1257,7 +1258,7 @@ private:
     void OnMoveDragCallback(SizeChangeReason reason,
                             TargetRectUpdateMode mode = TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     bool DragResizeWhenEndFilter(SizeChangeReason reason);
-    void HandleMoveDragEvent(SizeChangeReason reason);
+    void NotifyDragEventOnNextVsync(SizeChangeReason reason);
     bool IsDragResizeScale(SizeChangeReason reason);
     void InitializeCrossMoveDrag();
     WSError InitializeMoveInputBar();
@@ -1462,6 +1463,8 @@ private:
     bool ShouldNotifyWindowStatusChange(SessionEvent event) const;
     void ExecuteWindowStatusChangeNotification(const char* where);
     WindowLimits GetWindowLimits() const;
+    bool ShouldSkipUpdateRect(const WSRect& rect);
+    bool ShouldSkipUpdateRectNotify(const WSRect& rect);
 
     /*
      * Window Decor

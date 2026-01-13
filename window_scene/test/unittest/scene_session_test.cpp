@@ -1149,7 +1149,7 @@ HWTEST_F(SceneSessionTest, NotifySessionRectChange, TestSize.Level1)
     sceneSession->systemConfig_.freeMultiWindowEnable_ = true;
     sceneSession->dragResizeTypeDuringDrag_ = DragResizeType::RESIZE_SCALE;
     sceneSession->moveDragController_->isStartDrag_ = true;
-    sceneSession->compatibleDragScaleFlags_ = true;
+    sceneSession->needNotifyDragEventOnNextVsync_ = true;
     sceneSession->NotifySessionRectChange(overlapRect, reason, 11);
     EXPECT_EQ(sceneSession->IsDragResizeScale(reason), true);
 }

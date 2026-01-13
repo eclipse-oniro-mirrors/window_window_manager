@@ -63,7 +63,7 @@ public:
      * Float Window
      */
     void SetRestoreFloatMainWindowCallback(NotifyRestoreFloatMainWindowFunc&& func) override;
-    void RegisterGetSCBEnterRecentFunc(GetSCBEnterRecentFunc&& callback) override;
+    void RegisterGetIsRecentStateFunc(GetIsRecentStateFunc&& callback) override;
     WMError RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters) override;
 protected:
     bool CheckKeyEventDispatch(const std::shared_ptr<MMI::KeyEvent>& keyEvent) const;
@@ -96,7 +96,7 @@ private:
     std::shared_ptr<AAFwk::Want> fbWant_ = nullptr;
 
     GetFbPanelWindowIdFunc getFbPanelWindowIdFunc_;
-    GetSCBEnterRecentFunc getSCBEnterRecentFunc_;
+    GetIsRecentStateFunc getIsRecentStateFunc_;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SYSTEM_SESSION_H

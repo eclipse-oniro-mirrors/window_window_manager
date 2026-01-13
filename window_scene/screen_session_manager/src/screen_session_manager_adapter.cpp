@@ -112,7 +112,11 @@ void ScreenSessionManagerAdapter::OnDisplayAttributeChange(sptr<DisplayInfo> dis
     }
  
     for (auto& agent : agents) {
-        agent->OnDisplayAttributeChange(displayInfo, attributes);
+        int32_t agentPid = dmAttributeAgentContainer_.GetAgentPid(agent);
+        if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid,
+            DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER)) {
+            agent->OnDisplayAttributeChange(displayInfo, attributes);
+        }
     }
 }
 

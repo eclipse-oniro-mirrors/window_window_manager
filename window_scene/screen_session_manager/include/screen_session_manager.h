@@ -413,6 +413,7 @@ public:
     DMError GetAvailableArea(DisplayId displayId, DMRect& area) override;
     DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area) override;
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
+    void NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId);
     void NotifyFoldToExpandCompletion(bool foldToExpand) override;
     void NotifyScreenConnectCompletion(ScreenId screenId) override;
     void RecordEventFromScb(std::string description, bool needRecordEvent) override;
@@ -979,8 +980,8 @@ private:
     std::mutex freezedPidListMutex_;
     std::set<int32_t> freezedPidList_;
 
-    std::mutex lastDisplayInfoMutex_;
-    sptr<DisplayInfo> lastDisplayInfo_ = new DisplayInfo();
+    std::mutex lastDisplayInfoMapMutex_;
+    std::map<DisplayId, sptr<DisplayInfo>> lastDisplayInfoMap_;
 
     std::atomic<PowerStateChangeReason> prePowerStateChangeReason_ =
         PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN;

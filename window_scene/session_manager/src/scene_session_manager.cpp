@@ -2786,8 +2786,8 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
         sceneSession->RegisterForceSplitFullScreenChangeCallback([this](uint32_t uid, bool isFullScreen) {
             this->NotifyIsFullScreenInForceSplitMode(uid, isFullScreen);
         });
-        sceneSession->RegisterGetSCBEnterRecentFunc([this]() {
-            return this->enterRecent_.load();
+        sceneSession->RegisterGetIsRecentStateFunc([this]() {
+            return this->scbIsRecent_.load();
         });
 
         sceneSession->RegisterNotifyOccupiedAreaChangeCallback([this](DisplayId displayId) {
@@ -16523,6 +16523,12 @@ WSError SceneSessionManager::NotifyEnterRecentTask(bool enterRecent)
     };
     taskScheduler_->PostAsyncTask(task, "UpdateGestureBackEnabledTask");
     return WSError::WS_OK;
+}
+
+void SceneSessionManager::NotifySCBRecentStateChange(bool isRecent)
+{
+    TLOGI(WmsLogTag::WMS_MAIN, "isRecent update %{public}u", isRecent);
+    scbIsRecent_.store(isRecent);
 }
 
 WMError SceneSessionManager::GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo)

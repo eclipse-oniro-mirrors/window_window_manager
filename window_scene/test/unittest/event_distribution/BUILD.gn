@@ -56,6 +56,7 @@ ohos_unittest("ws_scene_input_manager_test") {
   deps = [ ws_unittest_common ]
 
   external_deps = [
+    "ability_base:configuration",
     "ability_runtime:app_manager",
     "ability_runtime:session_handler",
     "accessibility:accessibility_common",

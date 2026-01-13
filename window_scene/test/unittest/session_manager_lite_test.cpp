@@ -324,8 +324,7 @@ HWTEST_F(SessionManagerLiteTest, InitSessionManagerServiceProxy, TestSize.Level1
     sptr<SessionManagerLite> instance = &SessionManagerLite::GetInstance(100);
     auto ret = instance->InitMockSMSProxy();
 
-    // Lite init mock is not ok at present
-    ASSERT_NE(WMError::WM_OK, ret);
+    ASSERT_EQ(WMError::WM_OK, ret);
     instance->InitSessionManagerServiceProxy();
 }
 } // namespace

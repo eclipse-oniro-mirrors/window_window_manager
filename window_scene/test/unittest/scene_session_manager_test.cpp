@@ -1579,6 +1579,21 @@ HWTEST_F(SceneSessionManagerTest, TestNotifyEnterRecentTask, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TestNotifySCBRecentStateChange(bool isRecent)
+ * @tc.desc: Test whether the isRecent_ is set correctly;
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, TestNotifySCBRecentStateChange, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionManagerTest: TestNotifySCBRecentStateChange start";
+    sptr<SceneSessionManager> sceneSessionManager = sptr<SceneSessionManager>::MakeSptr();
+    ASSERT_NE(nullptr, sceneSessionManager);
+
+    sceneSessionManager->NotifySCBRecentStateChange(true);
+    EXPECT_EQ(sceneSessionManager->scbIsRecent_.load(), true);
+}
+
+/**
  * @tc.name: TestIsEnablePiPCreate
  * @tc.desc: Test if pip window can be created;
  * @tc.type: FUNC

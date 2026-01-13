@@ -528,6 +528,69 @@ HWTEST_F(KeyboardSessionTest3, IsNeedRaiseSubWindow02, Function | SmallTest | Le
 }
 
 /**
+ * @tc.name: CalculateOccupiedArea_AiWindow
+ * @tc.desc: check func CalculateOccupiedArea_AiWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, CalculateOccupiedArea_AiWindow, Function | SmallTest | Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CalculateOccupiedArea_AiWindow",
+        "CalculateOccupiedArea_AiWindow");
+    SessionInfo info;
+    info.abilityName_ = "CallingSession";
+    info.bundleName_ = "CallingSession";
+    auto callingSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    WSRect lastSafeRect = { 0, 0, 0, 0 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    WSRect zeroRect1 = { 0, 0, 0, 0 };
+    WSRect zeroRect2 = { 0, 0, 0, 0 };
+    sptr<OccupiedAreaChangeInfo> occupiedAreaInfo = nullptr;
+
+    auto ret = keyboardSession->CalculateOccupiedArea(nullptr, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, false);
+
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, false);
+
+    lastSafeRect = { 1, 2, 3, 4 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+
+    callingSession->SetIsMidScene(true);
+    usleep(SLEEP_TIME_US);
+    EXPECT_EQ(true, callingSession->GetIsMidScene());
+    lastSafeRect = { 1, 2, 3, 4 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+
+    callingSession->SetIsMidScene(false);
+    usleep(SLEEP_TIME_US);
+    EXPECT_EQ(false, callingSession->GetIsMidScene());
+    CallingWindowInfoData callingWindowInfoData;
+    callingWindowInfoData.callingWindowState = CallingWindowState::WINDOW_IN_AI;
+    callingWindowInfoData.scaleX = 0.73;
+    callingWindowInfoData.scaleY = 0.73;
+    keyboardSession->CallingWindowStateChange(callingWindowInfoData);
+    EXPECT_EQ(CallingWindowState::WINDOW_IN_AI, keyboardSession->callingWindowInfoData_.callingWindowState);
+    callingSession->SetScale(0.0, 0.0, 0.0, 0.0);
+    lastSafeRect = { 1, 2, 3, 4 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    zeroRect1 = { 0, 0, 1, 2 };
+    zeroRect2 = { 0, 0, 1, 2 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+    callingSession->SetScale(1.0, 1.0, 1.0, 1.0);
+    lastSafeRect = { 1, 1, 1, 1 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    zeroRect1 = { 2, 2, 2, 2 };
+    zeroRect2 = { 3, 3, 3, 3 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+}
+
+/**
  * @tc.name: CalculateOccupiedArea_MIDSCENE
  * @tc.desc: check func CalculateOccupiedArea_MIDSCENE
  * @tc.type: FUNC
@@ -571,9 +634,9 @@ HWTEST_F(KeyboardSessionTest3, CalculateOccupiedArea_MIDSCENE, Function | SmallT
     callingSession->SetScale(0.0, 0.0, 0.0, 0.0);
     lastSafeRect = { 0, 0, 0, 0 };
     callingSession->SetLastSafeRect(lastSafeRect);
-    zeroRect1 = { 0, 0, 1, 2 };
-    zeroRect2 = { 0, 0, 1, 2 };
-    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    WSRect rect1 = { 0, 0, 1, 2 };
+    WSRect rect2 = { 0, 0, 1, 2 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, rect1, rect2, occupiedAreaInfo);
     EXPECT_EQ(ret, false);
 
     callingSession->SetIsMidScene(true);
@@ -582,9 +645,9 @@ HWTEST_F(KeyboardSessionTest3, CalculateOccupiedArea_MIDSCENE, Function | SmallT
     callingSession->SetScale(0.0, 0.0, 0.0, 0.0);
     lastSafeRect = { 1, 2, 3, 4 };
     callingSession->SetLastSafeRect(lastSafeRect);
-    zeroRect1 = { 0, 0, 1, 2 };
-    zeroRect2 = { 0, 0, 1, 2 };
-    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    rect1 = { 0, 0, 1, 2 };
+    rect2 = { 0, 0, 1, 2 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, rect1, rect2, occupiedAreaInfo);
     EXPECT_EQ(ret, true);
 }
 

@@ -52,6 +52,7 @@ group("unittest") {
 }
 
 test_external_deps = [
+  "ability_base:configuration",
   "c_utils:utils",
   "googletest:gmock",
   "googletest:gtest",

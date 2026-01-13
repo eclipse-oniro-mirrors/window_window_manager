@@ -36,6 +36,7 @@ constexpr uint32_t LANDSCAPE_INVERTED_ANGLE = 270;
 constexpr uint32_t ROTATION_ANGLE = 360;
 constexpr uint32_t ROTATION_COUNT = 4;
 constexpr uint32_t SECONDARY_EXPAND_OFFSET = 1;
+constexpr int32_t PIXEL_OFFSET = 1;
 }
 using SnapshotStatus = int32_t;
 constexpr SnapshotStatus defaultStatus = SCREEN_UNKNOWN;
@@ -52,6 +53,13 @@ public:
     void SetWindowScreenStatus(FoldStatus foldStatus);
     void SetWindowOrientationStatus(Rotation rotation);
     uint32_t GetWindowRotation() const;
+
+    static bool NeedCrop(int32_t value, float scale = 0.5)
+    {
+        float scaledValue = value * scale;
+        float fractional = std::ceil(scaledValue) - scaledValue;
+        return fractional > 0;
+    }
 
 private:
     WSSnapshotHelper() = default;

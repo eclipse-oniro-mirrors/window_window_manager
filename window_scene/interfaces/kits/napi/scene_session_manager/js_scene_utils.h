@@ -189,6 +189,11 @@ napi_value CreateCompatibleStyleMode(napi_env env);
 bool NapiIsCallable(napi_env env, napi_value value);
 bool ConvertRectInfoFromJs(napi_env env, napi_value jsObject, WSRect& rect);
 bool ConvertSessionRectInfoFromJs(napi_env env, napi_value jsObject, WSRect& rect);
+bool ConvertKeyboardBaseInfoFromJs(napi_env env, napi_value jsObject, KeyboardBaseInfo& keyboardBaseInfo);
+bool ConvertKeyboardAnimationRectConfigFromJs(napi_env env, napi_value jsObject,
+    KeyboardAnimationRectConfig& keyboardAnimationRectConfig);
+bool ConvertCallingWindowInfoDataFromJs(napi_env env, napi_value jsObject,
+    CallingWindowInfoData& callingWindowInfoData);
 bool ConvertSingleHandScreenInfoFromJs(napi_env env, napi_value jsObject,
     SingleHandScreenInfo& singleHandHandScreenInfo);
 bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo);
