@@ -429,8 +429,8 @@ HWTEST_F(WindowPatternStartingWindowTest, GetBundleStartingWindowInfos, TestSize
  * @tc.type: FUNC
  * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithoutAnyData, TestSize.Level1) {
- 
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithoutAnyData, TestSize.Level1)
+{
     ASSERT_NE(ssm_, nullptr);
     
     SessionInfo sessionInfo;
@@ -458,8 +458,8 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithoutAnyDat
  * @tc.type: FUNC
  * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidPixelMap, TestSize.Level1) {
- 
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidPixelMap, TestSize.Level1)
+{
     ASSERT_NE(ssm_, nullptr);
     
     SessionInfo sessionInfo;
@@ -489,9 +489,9 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidPixe
  * @tc.type: FUNC
  * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidSvgBuffer, TestSize.Level1) {
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidSvgBuffer, TestSize.Level1)
+{
     ASSERT_NE(ssm_, nullptr);
-    
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
@@ -521,9 +521,9 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidSvgB
  * @tc.type: FUNC
  * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_SizeZero, TestSize.Level1) {
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_SizeZero, TestSize.Level1)
+{
     ASSERT_NE(ssm_, nullptr);
-    
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
@@ -553,9 +553,9 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSv
  * @tc.type: FUNC
  * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_Nullptr, TestSize.Level1) {
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_Nullptr, TestSize.Level1)
+{
     ASSERT_NE(ssm_, nullptr);
-    
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
@@ -585,9 +585,9 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSv
  * @tc.type: FUNC
  * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidPixelMap_Nullptr, TestSize.Level1) {
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidPixelMap_Nullptr, TestSize.Level1)
+{
     ASSERT_NE(ssm_, nullptr);
-    
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
