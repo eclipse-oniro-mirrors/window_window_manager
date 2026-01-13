@@ -4377,6 +4377,19 @@ WMError WindowSceneSessionImpl::RemoveImageForRecent()
     return SingletonContainer::Get<WindowAdapter>().RemoveImageForRecent(persistentId);
 }
 
+void WindowSceneSessionImpl::NotifyWindowStageCreateFinished()
+{
+    WLOGFI("id: %{public}d", GetPersistentId());
+    if (IsWindowSessionInvalid()) {
+        WLOGFE("session is invalid");
+        return;
+    }
+    auto hostSession = GetHostSession();
+    if (hostSession) {
+        hostSession->OnSessionEvent(SessionEvent::EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED);
+    }
+}
+
 /** @note @window.drag */
 void WindowSceneSessionImpl::StartMove()
 {

@@ -256,6 +256,16 @@ WMError WindowScene::RequestFocus() const
     return mainWindow->RequestFocus();
 }
 
+void WindowScene::NotifyWindowStageCreateFinished() const 
+{
+    auto mainWindow = GetMainWindow();
+    if (mainWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "failed, because main window is null");
+        return;
+    }
+    mainWindow->NotifyWindowStageCreateFinished();
+}
+
 void WindowScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration)
 {
     if (auto mainWindow = GetMainWindow()) {

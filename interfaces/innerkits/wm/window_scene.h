@@ -155,6 +155,11 @@ public:
     WMError RequestFocus() const;
 
     /**
+     * Notify windowStage create finished. It is called by AMS when onWindowStageCreate finished.
+     */
+    void NotifyWindowStageCreateFinished() const;
+
+    /**
      * Update ability configuration.
      *
      * @param configuration the configuration of ability
