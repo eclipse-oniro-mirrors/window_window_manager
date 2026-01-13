@@ -829,6 +829,22 @@ HWTEST_F(WindowManagerLiteTest, NotifyWindowPropertyChange01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: check SetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, SetProcessWatermark, TestSize.Level1)
+{
+    ASSERT_NE(instance_, nullptr);
+    int32_t pid = 1000;
+    const std::string watermarkName = "SetProcessWatermarkName";
+    bool isEnabled = true;
+    WMError expectRet = WindowAdapterLite::GetInstance(userId_).SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto ret = instance_->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
  * @tc.name: GetWindowModeType
  * @tc.desc: GetWindowModeType
  * @tc.type: FUNC

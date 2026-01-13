@@ -127,6 +127,21 @@ HWTEST_F(SceneSessionManagerLiteTest, RecoverWindowPropertyChangeFlag, TestSize.
 }
 
 /**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: test function : SetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, SetProcessWatermark, TestSize.Level1)
+{
+    int32_t pid = 100;
+    const std::string watermarkName = "test";
+    bool isEnabled = true;
+    auto expectRet = SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto ret = SceneSessionManagerLite::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
  * @tc.name: IsFocusWindowParent
  * @tc.desc: test function : IsFocusWindowParent
  * @tc.type: FUNC
