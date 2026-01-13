@@ -4105,7 +4105,7 @@ void SceneSessionManager::EraseSceneSessionMapById(int32_t persistentId)
 {
     auto sceneSession = GetSceneSession(persistentId);
     if (sceneSession != nullptr) {
-        RemovePreLoadStartingWindowFromMap(sceneSession->GetSessionInfo());
+        sceneSession->ResetPreloadStartingWindow();
         sceneSession->ClearLifeCycleTask();
         sceneSession->ClearSnapshotPersistence();
     } else {
@@ -6329,33 +6329,6 @@ void SceneSessionManager::CacheStartingWindowInfo(const std::string& bundleName,
     startingWindowMap_.emplace(bundleName, infoMap);
 }
 
-std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPreLoadStartingWindow(const SessionInfo& sessionInfo)
-{
-    std::unordered_map<std::string, std::shared_ptr<Media::PixelMap>> preLoadMap;
-    {
-        std::shared_lock<std::shared_mutex> lock(preLoadstartingWindowMapMutex_);
-        preLoadMap = preLoadStartingWindowMap_;
-    }
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' + sessionInfo.abilityName_;
-    auto iter = preLoadMap.find(key);
-    if (iter == preLoadMap.end()) {
-        TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s not found", key.c_str());
-        return nullptr;
-    }
-    return iter->second;
-}
-
-void SceneSessionManager::RemovePreLoadStartingWindowFromMap(const SessionInfo& sessionInfo)
-{
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' + sessionInfo.abilityName_;
-    std::unique_lock<std::shared_mutex> lock(preLoadstartingWindowMapMutex_);
-    auto iter = preLoadStartingWindowMap_.find(key);
-    if (iter != preLoadStartingWindowMap_.end()) {
-        preLoadStartingWindowMap_.erase(iter);
-        TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s", key.c_str());
-    }
-}
-
 void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
 {
     if (!systemConfig_.supportPreloadStartingWindow_) {
@@ -6389,7 +6362,8 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
         StartingWindowInfo startingWindowInfo;
         GetStartupPage(sessionInfo, startingWindowInfo);
         uint32_t resId = 0;
-        if (!CheckAndGetPreLoadResourceId(startingWindowInfo, resId)) {
+        bool isIconSvg = false;
+        if (!CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isIconSvg)) {
             TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s check no need preLoad", where);
             return;
         }
@@ -6401,29 +6375,40 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
         }
         sceneSession->SetPreloadingStartingWindow(true);
         ScopeGuard stateGuard([&sceneSession] { sceneSession->SetPreloadingStartingWindow(false); });
-        auto pixelMap = GetPixelMap(resId, abilityInfo, true);
-        if (pixelMap == nullptr) {
-            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s pixelMap is nullptr", where);
-            return;
+        if (isIconSvg) {
+            auto svgBufferInfo = GetSvgBufferInfo(resId, abilityInfo);
+            if (svgBufferInfo.first == nullptr || svgBufferInfo.second == 0) {
+                TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s svgBuffer is invalid, buffer size %{public}zu",
+                    where, svgBufferInfo.second);
+                return;
+            }
+            sceneSession->SetPreloadStartingWindow(svgBufferInfo);
+        } else {
+            auto pixelMap = GetPixelMap(resId, abilityInfo, true);
+            if (pixelMap == nullptr) {
+                TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s pixelMap is nullptr", where);
+                return;
+            }
+            sceneSession->SetBufferNameForPixelMap(where, pixelMap);
+            sceneSession->SetPreloadStartingWindow(pixelMap);
         }
-        sceneSession->SetBufferNameForPixelMap(where, pixelMap);
-        std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' + sessionInfo.abilityName_;
-        {
-            std::unique_lock<std::shared_mutex> lock(preLoadstartingWindowMapMutex_);
-            preLoadStartingWindowMap_[key] = pixelMap;
-        }
+        TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s session %{public}d, isSvg %{public}d",
+            where, sceneSession->GetPersistentId(), isIconSvg);
         sceneSession->NotifyPreLoadStartingWindowFinished();
     };
     ffrtQueueHelper_->SubmitTask(loadTask);
 }
 
-bool SceneSessionManager::CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& resId)
+bool SceneSessionManager::CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo,
+    uint32_t& outResId, bool& outIsSvg)
 {
+    outResId = 0;
+    outIsSvg = false;
     if (startingWindowInfo.configFileEnabled_) {
         TLOGD(WmsLogTag::WMS_PATTERN, "config file enabled");
         return false;
     }
-    const auto& iconPath= startingWindowInfo.iconPathEarlyVersion_;
+    const auto& iconPath = startingWindowInfo.iconPathEarlyVersion_;
     auto pos = iconPath.find_last_of('.');
     constexpr uint32_t RESOURCE_PATH_HEAD_LENGTH = 12;
     if (pos == std::string::npos || pos <= RESOURCE_PATH_HEAD_LENGTH) {
@@ -6431,19 +6416,20 @@ bool SceneSessionManager::CheckAndGetPreLoadResourceId(const StartingWindowInfo&
         return false;
     }
     static const std::unordered_set<std::string> supportImageFormat = {
-        ".png", ".jpg", ".webp", ".astc"
+        ".png", ".jpg", ".webp", ".astc", ".svg"
     };
     const auto& extName = iconPath.substr(pos);
     if (!supportImageFormat.count(extName)) {
         TLOGI(WmsLogTag::WMS_PATTERN, "format not need preLoad: %{private}s", iconPath.c_str());
         return false;
     }
+    outIsSvg = extName == ".svg";
     const auto& resIdStr = iconPath.substr(RESOURCE_PATH_HEAD_LENGTH, pos - RESOURCE_PATH_HEAD_LENGTH);
     if (!WindowHelper::IsNumber(resIdStr)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "number format error: %{public}s", resIdStr.c_str());
         return false;
     }
-    resId = std::stoul(resIdStr);
+    outResId = std::stoul(resIdStr);
     return true;
 }
 
@@ -18184,6 +18170,26 @@ std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resou
         return nullptr;
     }
     return std::shared_ptr<Media::PixelMap>(pixelMapPtr.release());
+}
+
+std::pair<std::shared_ptr<uint8_t[]>, size_t> SceneSessionManager::GetSvgBufferInfo(uint32_t resourceId,
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo)
+{
+    std::pair<shared_ptr<uint8_t[]>, size_t> defaultResult = {nullptr, 0};
+    auto resourceMgr = GetResourceManager(*abilityInfo.get());
+    if (resourceMgr == nullptr) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "resource manager is null");
+        return defaultResult;
+    }
+    std::unique_ptr<uint8_t[]> svgOut;
+    size_t len;
+    if (resourceMgr->GetMediaDataById(resourceId, len, svgOut) != Global::Resource::RState::SUCCESS) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "get svg buffer failed id:%{private}d state:%{public}d",
+            resourceId, static_cast<int>(state));
+        return defaultResult;
+    }
+    std::shared_ptr<uint8_t[]> sharedBuffer(std::move(svgOut));
+    return {sharedBuffer, len};
 }
 
 void SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts)

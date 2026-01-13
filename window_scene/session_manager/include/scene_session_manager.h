@@ -880,12 +880,12 @@ public:
     void RemoveSnapshotFromCache(int32_t persistentId);
     void UpdateAllStartingWindowRdb();
     void GetStartupPage(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo);
-    bool CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& resId);
-    std::shared_ptr<Media::PixelMap> GetPreLoadStartingWindow(const SessionInfo& sessionInfo);
-    void RemovePreLoadStartingWindowFromMap(const SessionInfo& sessionInfo);
+    bool CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& outResId, bool& outIsSvg);
     WSError RegisterSaveSnapshotFunc(const sptr<SceneSession>& sceneSession);
     std::shared_ptr<Media::PixelMap> GetPixelMap(uint32_t resourceId,
         std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop = false);
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> GetSvgBufferInfo(uint32_t resourceId,
+        std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo);
     WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
         uint32_t color, int32_t uid) override;
     void ConfigSupportSnapshotAllSessionStatus();
@@ -1412,8 +1412,6 @@ private:
     std::shared_mutex startingWindowMapMutex_;
     const size_t MAX_CACHE_COUNT = 100;
     std::map<std::string, std::map<std::string, StartingWindowInfo>> startingWindowMap_;
-    std::shared_mutex preLoadstartingWindowMapMutex_;
-    std::unordered_map<std::string, std::shared_ptr<Media::PixelMap>> preLoadStartingWindowMap_;
     std::shared_mutex startingWindowColorFromAppMapMutex_;
     std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> startingWindowColorFromAppMap_;
     std::unordered_map<std::string, AppForceLandscapeConfig> appForceLandscapeMap_;
