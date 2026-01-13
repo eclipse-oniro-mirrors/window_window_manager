@@ -1656,7 +1656,6 @@ WMError SceneSessionManagerLiteProxy::SetProcessWatermark(int32_t pid, const std
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
-
     return static_cast<WMError>(reply.ReadInt32());
 }
 
