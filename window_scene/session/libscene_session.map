@@ -340,6 +340,7 @@
             OHOS::Rosen::SceneSession::RegisterIsAppBoundSystemTrayCallback*;
             OHOS::Rosen::SceneSession::SetIsUserRequestedExit*;
             OHOS::Rosen::SceneSession::RegisterNotifyOccupiedAreaChangeCallback*;
+            OHOS::Rosen::SceneSession::SetRecoverWindowEffectCallback*;
             OHOS::Rosen::MoveDragController::SetMoveResampleSystemConfig*;
             OHOS::Rosen::SessionStub::OnRemoteRequest*;
             OHOS::Rosen::Session::*;
