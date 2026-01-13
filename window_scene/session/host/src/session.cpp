@@ -5601,14 +5601,17 @@ std::shared_ptr<RSUIContext> Session::GetRSUIContext(const char* caller)
         // is deferred to the UIExtensionPattern::OnConnect(ui_extension_pattern.cpp) method,
         // as ArkUI knows the host window for this type of window.
         rsUIContext_ = ScreenSessionManagerClient::GetInstance().GetRSUIContext(screenId);
-        screenIdOfRSUIContext_ = screenId;
+        if (rsUIContext_ != nullptr) {
+            screenIdOfRSUIContext_ = screenId;
+            TLOGI(WmsLogTag::WMS_SCB,
+                "SetSessionRSUIContext: %{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
+                caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
+        }
     }
     if (rsUIContext_ == nullptr) {
         TLOGI(WmsLogTag::WMS_SCB, "%{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
             caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
     }
-    TLOGD(WmsLogTag::WMS_SCB, "%{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
-            caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
     return rsUIContext_;
 }
 
