@@ -252,11 +252,6 @@ uint64_t MoveDragController::GetMoveDragEndDisplayId() const
     return moveDragEndDisplayId_;
 }
 
-uint64_t MoveDragController::GetInitParentNodeId() const
-{
-    return initParentNodeId_;
-}
-
 std::set<uint64_t> MoveDragController::GetDisplayIdsDuringMoveDrag()
 {
     std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
@@ -355,7 +350,7 @@ void MoveDragController::InitMoveDragProperty()
     SyncPropertiesFromSceneSession();
 }
 
-void MoveDragController::InitCrossDisplayProperty(DisplayId displayId, uint64_t initParentNodeId)
+void MoveDragController::InitCrossDisplayProperty(DisplayId displayId)
 {
     DMError error = ScreenManager::GetInstance().RegisterScreenListener(this);
     if (error != DMError::DM_OK) {
@@ -367,7 +362,6 @@ void MoveDragController::InitCrossDisplayProperty(DisplayId displayId, uint64_t 
         std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
         displayIdSetDuringMoveDrag_.insert(displayId);
     }
-    initParentNodeId_ = initParentNodeId;
     moveDragStartDisplayId_ = displayId;
     auto offset = GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_);
     RETURN_IF_NULL(offset);
@@ -394,7 +388,6 @@ void MoveDragController::ResetCrossMoveDragProperty()
     moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
     moveInputBarStartDisplayId_ = DISPLAY_ID_INVALID;
     moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
-    initParentNodeId_ = -1;
     originalDisplayOffsetX_ = 0;
     originalDisplayOffsetY_ = 0;
     moveDragIsInterrupted_ = false;
@@ -859,11 +852,6 @@ void MoveDragController::UpdateMoveAvailableArea(DisplayId targetDisplayId)
 void MoveDragController::SetMoveInputBarStartDisplayId(DisplayId displayId)
 {
     moveInputBarStartDisplayId_ = displayId;
-}
-
-DisplayId MoveDragController::GetMoveInputBarStartDisplayId()
-{
-    return moveInputBarStartDisplayId_;
 }
 
 void MoveDragController::SetCurrentScreenProperty(DisplayId targetDisplayId)

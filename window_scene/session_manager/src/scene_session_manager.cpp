@@ -2377,7 +2377,7 @@ WMError SceneSessionManager::GetWindowLimits(int32_t windowId, WindowLimits& win
     WindowLimits userWindowLimits = sessionProperty->GetUserWindowLimits();
     bool useVPLimits = (userWindowLimits.pixelUnit_ == PixelUnit::VP);
     windowLimits = useVPLimits ? sessionProperty->GetWindowLimitsVP() : sessionProperty->GetWindowLimits();
-    bool isInitialized = !windowLimits.IsUninitialized();
+    bool isInitialized = !windowLimits.IsDefault();
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "GetWindowLimits minWidth:%{public}u, minHeight:%{public}u, "
         "maxWidth:%{public}u, maxHeight:%{public}u, vpRatio:%{public}f, pixelUnit:%{public}u, "
         "isInitialized:%{public}u", windowLimits.minWidth_, windowLimits.minHeight_, windowLimits.maxWidth_,
