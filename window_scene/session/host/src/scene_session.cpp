@@ -3343,7 +3343,6 @@ AvoidArea SceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, const WSRect
 
     AvoidArea avoidArea;
     WSRect sessionRect = rect.IsEmpty() ? GetSessionRect() : rect;
-    CalculateWindowRectByScale(sessionRect);
     switch (type) {
         case AvoidAreaType::TYPE_SYSTEM: {
             GetSystemAvoidArea(sessionRect, avoidArea, ignoreVisibility);
