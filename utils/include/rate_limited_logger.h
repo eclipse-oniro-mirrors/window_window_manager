@@ -140,8 +140,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 #define TLOGI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                          \
     do {                                                                                          \
         uintptr_t functionAddress = GET_PACKED_ADDR_LINE();                                       \
-        std::string __tag_str__(tag);                                                             \
-        if (tagWhiteList.find(__tag_str__) != tagWhiteList.end() &&                               \
+        if (tagWhiteList.find(tag) != tagWhiteList.end() &&                                       \
             RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
             timeWindowMs, maxCount)) {                                                            \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
@@ -154,8 +153,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 #define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
     do {                                                                                          \
         uintptr_t functionAddress = GET_PACKED_ADDR_LINE_WID(wid);                                \
-        std::string __tag_str__(tag);                                                             \
-        if (tagWhiteList.find(__tag_str__) != tagWhiteList.end() &&                               \
+        if (tagWhiteList.find(tag) != tagWhiteList.end() &&                                       \
             RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
             timeWindowMs, maxCount)) {                                                            \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
