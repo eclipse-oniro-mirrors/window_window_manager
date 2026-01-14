@@ -42,13 +42,9 @@ constexpr uint32_t RECORD_200_TIMES = 200;
 constexpr uint32_t BITS_PER_BYTE = 8;
 constexpr uint32_t ADDR_SHIFT_64 = 32;
 constexpr uint32_t ADDR_MASK_32 = 0xFFFF;
-constexpr uint32_t LINE_MASK_32 = 0xFFFF;
 constexpr uint32_t ADDR_MASK_32_WID = 0xFF;
-constexpr uint32_t LINE_MASK_32_WID = 0xFF;
-constexpr uint32_t WID_MASK = 0xFFFF;
 constexpr uint32_t LINE_SHIFT_16 = 16;
 constexpr uint32_t ADDR_SHIFT_32_WID = 24;
-constexpr uint32_t LINE_SHIFT_32_WID = 16;
 }
 
 class RateLimitedLogger {
@@ -116,7 +112,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE()
     
     return (sizeof(void*) == BITS_PER_BYTE)
         ? (reinterpret_cast<uintptr_t>(addr) << ADDR_SHIFT_64) | __LINE__
-        : ((reinterpret_cast<uintptr_t>(addr) & ADDR_MASK_32) << LINE_SHIFT_16) | (__LINE__ & LINE_MASK_32);
+        : ((reinterpret_cast<uintptr_t>(addr) & ADDR_MASK_32) << LINE_SHIFT_16) | (__LINE__ & ADDR_MASK_32);
 }
 
 /**
@@ -129,9 +125,9 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
     uintptr_t addr_int = reinterpret_cast<uintptr_t>(addr);
     
     return (sizeof(void*) == BITS_PER_BYTE)
-        ? (addr_int << ADDR_SHIFT_64) | ((__LINE__ & LINE_MASK_32) << LINE_SHIFT_16) | (wid & WID_MASK)
+        ? (addr_int << ADDR_SHIFT_64) | ((__LINE__ & ADDR_MASK_32) << LINE_SHIFT_16) | (wid & ADDR_MASK_32)
         : ((addr_int & ADDR_MASK_32_WID) << ADDR_SHIFT_32_WID) |
-        ((__LINE__ & LINE_MASK_32_WID) << LINE_SHIFT_32_WID) | (wid & WID_MASK);
+        ((__LINE__ & ADDR_MASK_32_WID) << LINE_SHIFT_16) | (wid & ADDR_MASK_32);
 }
 
 /**
