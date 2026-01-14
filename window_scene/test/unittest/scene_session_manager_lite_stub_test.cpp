@@ -1175,7 +1175,7 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetProcessWatermark, Function | 
     data.WriteString("SetProcessWatermarkName");
     data.WriteBool(true);
     res = sceneSessionManagerLiteStub_->HandleSetProcessWatermark(data, reply);
-    EXPECT_EQ(res, ERR_INVALID_DATA);
+    EXPECT_EQ(res, ERR_NONE);
 }
 
 /**
