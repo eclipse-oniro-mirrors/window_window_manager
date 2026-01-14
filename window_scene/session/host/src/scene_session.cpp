@@ -2758,28 +2758,37 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
 {
     auto displayId = GetSessionProperty()->GetDisplayId();
     PrintAvoidAreaInfo(displayId, type, winRect, avoidRect);
-    CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
-    lastAvoidAreaInputParamtersMap_[type] = std::make_tuple(displayId, winRect, avoidRect);
+    float scaleX = 1;
+    float scaleY = 1;
+    if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
+        WSRectF winRectF = { winRect.posX_ * scaleX, winRect.posY_ * scaleY,
+            winRect.width_ * scaleX, winRect.height_ * scaleY };
+        WSRectF avoidRectF = { avoidRect.posX_, avoidRect.posY_, avoidRect.width_, avoidRect.height_ };
+        CalculateAvoidAreaRect(winRectF, avoidRectF, avoidArea);
+    } else {
+        CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
+    }
 }
 
-void SceneSession::CalculateAvoidAreaRect(const WSRect& rect, const WSRect& avoidRect, AvoidArea& avoidArea) const
+template<typename T>
+void SceneSession::CalculateAvoidAreaRect(
+    const WSRectT<T>& rect, const WSRectT<T>& avoidRect, AvoidArea& avoidArea) const
 {
-    if (SessionHelper::IsEmptyRect(rect) || SessionHelper::IsEmptyRect(avoidRect)) {
+    if (rect.IsEmpty() || avoidRect.IsEmpty()) {
         return;
     }
-    Rect avoidAreaRect = SessionHelper::TransferToRect(
-        SessionHelper::GetOverlap(rect, avoidRect, rect.posX_, rect.posY_));
-    if (WindowHelper::IsEmptyRect(avoidAreaRect)) {
+    WSRectT<T> avoidAreaWSRect = SessionHelper::GetOverlap(rect, avoidRect, rect.posX_, rect.posY_);
+    if (avoidAreaWSRect.IsEmpty()) {
         return;
     }
 
-    uint32_t avoidAreaCenterX = static_cast<uint32_t>(avoidAreaRect.posX_) + (avoidAreaRect.width_ >> 1);
-    uint32_t avoidAreaCenterY = static_cast<uint32_t>(avoidAreaRect.posY_) + (avoidAreaRect.height_ >> 1);
+    T avoidAreaCenterX = avoidAreaWSRect.posX_ + avoidAreaWSRect.width_ / 2;
+    T avoidAreaCenterY = avoidAreaWSRect.posY_ + avoidAreaWSRect.height_ / 2;
     float res1 = float(avoidAreaCenterY) - float(rect.height_) / float(rect.width_) *
         float(avoidAreaCenterX);
     float res2 = float(avoidAreaCenterY) + float(rect.height_) / float(rect.width_) *
         float(avoidAreaCenterX) - float(rect.height_);
-    CalculateAvoidAreaByScale(avoidAreaRect);
+    Rect avoidAreaRect = CalculateAvoidAreaByScale(avoidAreaWSRect);
     if (res1 < 0) {
         if (res2 < 0) {
             avoidArea.topRect_ = avoidAreaRect;
@@ -3307,19 +3316,23 @@ void SceneSession::CalculateWindowRectByScale(WSRect& winRect)
         GetPersistentId(), GetSessionGlobalPosition(), winRect, scaleX, scaleY);
 }
 
-void SceneSession::CalculateAvoidAreaByScale(Rect& avoidAreaRect) const
+template<typename T>
+Rect SceneSession::CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const
 {
     float scaleX = 1;
     float scaleY = 1;
+    Rect avoidArea = { avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_ };
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
-        return;
+        return avoidArea;
     }
-    avoidAreaRect.posX_ = std::ceil(static_cast<float>(avoidAreaRect.posX_) / scaleX);
-    avoidAreaRect.posY_ = std::ceil(static_cast<float>(avoidAreaRect.posY_) / scaleY);
-    avoidAreaRect.width_ = std::ceil(static_cast<float>(avoidAreaRect.width_) / scaleX);
-    avoidAreaRect.height_ = std::ceil(static_cast<float>(avoidAreaRect.height_) / scaleY);
-    TLOGI(WmsLogTag::WMS_IMMS, "win: %{public}d avoidArea:[%{public}d, %{public}d, %{public}d, %{public}d]",
-        GetPersistentId(), avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_);
+    avoidArea.posX_ = std::floor(avoidAreaRect.posX_ / scaleX);
+    avoidArea.posY_ = std::floor(avoidAreaRect.posY_ / scaleY);
+    avoidArea.width_ = std::ceil(avoidAreaRect.width_ / scaleX);
+    avoidArea.height_ = std::ceil(avoidAreaRect.height_ / scaleY);
+    TLOGI(WmsLogTag::WMS_IMMS, "win: %{public}d avoidArea:[%{public}d,"
+        " %{public}d, %{public}d, %{public}d], scale[%{public}f, %{public}f]",
+        GetPersistentId(), avoidArea.posX_, avoidArea.posY_, avoidArea.width_, avoidArea.height_, scaleX, scaleY);
+    return avoidArea;
 }
 
 AvoidArea SceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, const WSRect& rect, bool ignoreVisibility)

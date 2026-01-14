@@ -29,19 +29,19 @@ namespace OHOS {
 namespace Rosen {
 class SessionHelper {
 public:
-    static WSRect GetOverlap(const WSRect& rect1, const WSRect& rect2, int offsetX, int offsetY)
+    template<typename T>
+    static WSRectT GetOverlap(const WSRectT<T>& rect1, const WSRectT<T>& rect2, T offsetX, T offsetY)
     {
-        int32_t x_begin = std::max(rect1.posX_, rect2.posX_);
-        int32_t x_end = std::min(rect1.posX_ + static_cast<int32_t>(rect1.width_),
+        T x_begin = std::max(rect1.posX_, rect2.posX_);
+        T x_end = std::min(rect1.posX_ + static_cast<int32_t>(rect1.width_),
             rect2.posX_ + static_cast<int32_t>(rect2.width_));
-        int32_t y_begin = std::max(rect1.posY_, rect2.posY_);
-        int32_t y_end = std::min(rect1.posY_ + static_cast<int32_t>(rect1.height_),
+        T y_begin = std::max(rect1.posY_, rect2.posY_);
+        T y_end = std::min(rect1.posY_ + static_cast<int32_t>(rect1.height_),
             rect2.posY_ + static_cast<int32_t>(rect2.height_));
         if (y_begin >= y_end || x_begin >= x_end) {
             return { 0, 0, 0, 0 };
         }
-        return { x_begin - offsetX, y_begin - offsetY,
-            static_cast<uint32_t>(x_end - x_begin), static_cast<uint32_t>(y_end - y_begin) };
+        return { x_begin - offsetX, y_begin - offsetY, x_end - x_begin, y_end - y_begin };
     }
 
     static inline bool IsEmptyRect(const WSRect& r)

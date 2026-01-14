@@ -1055,7 +1055,9 @@ protected:
     /*
      * Window Immersive
      */
-    void CalculateAvoidAreaRect(const WSRect& rect, const WSRect& avoidRect, AvoidArea& avoidArea) const;
+    template<typename T>
+    void CalculateAvoidAreaRect(CalculateAvoidAreaRect(
+        const WSRectT<T>& rect, const WSRectT<T>& avoidRect, AvoidArea& avoidArea) const;
     virtual void NotifyClientToUpdateAvoidArea();
     bool PipelineNeedNotifyClientToUpdateAvoidArea(uint32_t dirty) const;
     NotifyNeedAvoidFunc onNeedAvoid_;
@@ -1233,7 +1235,8 @@ private:
     AvoidArea GetAvoidAreaByRotation(Rotation rotation, const WSRect& rect,
         const std::map<WindowType, SystemBarProperty>& properties, AvoidAreaType type);
     void CalculateWindowRectByScale(WSRect& winRect);
-    void CalculateAvoidAreaByScale(Rect& avoidAreaRect) const;
+    template<typename T>
+    Rect CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const;
     WSError GetScaleInLSState(float& scaleX, float& scaleY)  const;
 
     /*
