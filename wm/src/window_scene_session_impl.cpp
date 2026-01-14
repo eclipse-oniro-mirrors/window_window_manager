@@ -6228,6 +6228,7 @@ void WindowSceneSessionImpl::PendingUpdateSupportWindowModesWhenSwitchMultiWindo
 {
     if (pendingWindowModeSupportType_ == WindowModeSupport::WINDOW_MODE_SUPPORT_ALL) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "pending data has not set, id: %{public}d", GetPersistentId());
+        maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
         return;
     }
 
@@ -6244,6 +6245,12 @@ void WindowSceneSessionImpl::PendingUpdateSupportWindowModesWhenSwitchMultiWindo
     haveSetSupportedWindowModes_ = true;
 
     // update window mode immediately when pending window support type take effect
+    maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
+}
+
+void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen()
+{
+    uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
     bool onlySupportFullScreen =
         WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
         !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);

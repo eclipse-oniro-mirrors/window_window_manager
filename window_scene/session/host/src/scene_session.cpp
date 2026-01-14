@@ -10054,7 +10054,7 @@ WSError SceneSession::SetSubWindowSource(SubWindowSource source)
         TLOGE(WmsLogTag::WMS_SUB, "only sub window and dialog is valid");
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
-    PostTask([weakThis = wptr(this), source = source, where = __func__] {
+    PostTask([weakThis = wptr(this), source, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s session is null", where);
