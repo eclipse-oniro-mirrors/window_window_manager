@@ -13314,24 +13314,26 @@ WSError SceneSessionManager::NotifyStatusBarShowStatus(int32_t persistentId, boo
 
 void SceneSessionManager::UpdateAvoidAreaForLSStateChange(int32_t curState, int32_t preState)
 {
-    if (curState == preState) {
-        return;
-    }
-    constexpr int32_t nonLSState = 0;
-    SetLSState(curState > nonLSState);
-    TLOGI(WmsLogTag::WMS_IMMS, "curState %{public}d, preState %{public}d", curState, preState);
-    std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
-    {
-        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        sceneSessionMapCopy = sceneSessionMap_;
-    }
-    for (auto& iter : sceneSessionMapCopy) {
-        auto session = iter.second;
-        if (session == nullptr || !IsSessionVisibleForeground(session)) {
-            continue;
+    taskScheduler_->PostAsyncTask([this, curState, preState]() {
+        if (curState == preState) {
+            return;
         }
-        session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END);
-    }
+        constexpr int32_t nonLSState = 0;
+        SetLSState(curState > nonLSState);
+        TLOGI(WmsLogTag::WMS_IMMS, "curState %{public}d, preState %{public}d", curState, preState);
+        std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
+        {
+            std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+            sceneSessionMapCopy = sceneSessionMap_;
+        }
+        for (auto& iter : sceneSessionMapCopy) {
+            auto session = iter.second;
+            if (session == nullptr || !IsSessionVisibleForeground(session)) {
+                continue;
+            }
+            session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END);
+        }
+    }, __func__);
 }
 
 void SceneSessionManager::NotifyStatusBarConstantlyShow(DisplayId displayId, bool isVisible)
