@@ -60,11 +60,6 @@ group("unittest") {
     "ui_extension:wm_extension_window_impl_test",
     "window_recover:wm_window_recover_manager_test",
   ]
-  if (!window_manager_use_sceneboard) {
-    deps += [
-      
-    ]
-  }
   if (window_manager_use_sceneboard) {
     deps += [
       ":wm_compatible_mode_window_session_impl_test",
