@@ -29,7 +29,7 @@
 namespace OHOS {
 namespace Rosen {
 namespace {
-inline const std::unordered_set<std::string> tagWhiteList = {"WMS_LAYOUT"};
+inline const std::unordered_set<WmsLogTag> tagWhiteList = {WmsLogTag::WMS_LAYOUT};
 constexpr uint32_t TEN_SECONDS = 10 * 1000;
 constexpr uint32_t ONE_MINUTE  = 60 * 1000;
 constexpr uint32_t ONE_HOUR    = 60 * 60 * 1000;
