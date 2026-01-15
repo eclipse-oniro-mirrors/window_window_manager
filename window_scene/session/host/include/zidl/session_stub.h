@@ -86,6 +86,7 @@ private:
     int HandleUpdateColorMode(MessageParcel& data, MessageParcel& reply);
     int HandleTitleAndDockHoverShowChange(MessageParcel& data, MessageParcel& reply);
     int HandleRestoreMainWindow(MessageParcel& data, MessageParcel& reply);
+    int HandleRestoreFloatMainWindow(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppForceLandscapeConfig(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppForceLandscapeConfigEnable(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppHookWindowInfoFromServer(MessageParcel& data, MessageParcel& reply);
@@ -129,6 +130,7 @@ private:
     int HandleSetAutoStartPiP(MessageParcel& data, MessageParcel& reply);
     int HandleUpdatePiPTemplateInfo(MessageParcel& data, MessageParcel& reply);
     int HandleSetPipParentWindowId(MessageParcel& data, MessageParcel& reply);
+    int HandleIsPiPActive(MessageParcel& data, MessageParcel& reply);
 
     // Floating Ball
     int HandleUpdateFloatingBall(MessageParcel& data, MessageParcel& reply);
@@ -194,6 +196,9 @@ private:
 
     // Window Event
     int HandleSendCommonEvent(MessageParcel& data, MessageParcel& reply);
+
+    // Prelaunch Starting Window
+    int HandleRemovePrelaunchStartingWindow(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 

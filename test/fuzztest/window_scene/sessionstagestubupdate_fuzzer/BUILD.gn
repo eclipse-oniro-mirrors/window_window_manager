@@ -42,7 +42,7 @@ ohos_fuzztest("SessionStageStubUpdateFuzzTest") {
     "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
     "${window_base_path}/window_scene/session:screen_session",
     "${window_base_path}/wm:libwm",
   ]

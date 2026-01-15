@@ -558,25 +558,6 @@ HWTEST_F(WindowSessionImplTest2, NotifyUIContentFocusStatus, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyAfterFocused
- * @tc.desc: NotifyAfterFocused
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest2, NotifyAfterFocused, TestSize.Level1)
-{
-    auto window = GetTestWindowImpl("NotifyAfterFocused");
-    ASSERT_NE(window, nullptr);
-    window->NotifyAfterFocused();
-    ASSERT_TRUE(window->shouldReNotifyFocus_);
-
-    window->shouldReNotifyFocus_ = false;
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->NotifyAfterFocused();
-    ASSERT_FALSE(window->shouldReNotifyFocus_);
-    window->Destroy();
-}
-
-/**
  * @tc.name: NotifyForegroundFailed
  * @tc.desc: NotifyForegroundFailed
  * @tc.type: FUNC

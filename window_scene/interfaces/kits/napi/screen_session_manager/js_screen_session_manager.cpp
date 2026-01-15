@@ -1476,7 +1476,7 @@ napi_value JsScreenSessionManager::OnGetScreenSnapshotWithAllWindows(napi_env en
         return NapiGetUndefined(env);
     }
     std::array<double, ARGC_TWO> scaleParam;
-    for (uint8_t i = 0; i < ARGC_TWO; i++) {
+    for (size_t i = 0; i < ARGC_TWO; i++) {
         if (!ConvertFromJsValue(env, argv[i + 1], scaleParam[i])) {
             TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to scale[%d]", i + 1);
             napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),

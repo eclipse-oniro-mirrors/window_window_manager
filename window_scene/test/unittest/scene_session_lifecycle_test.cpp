@@ -574,10 +574,32 @@ HWTEST_F(SceneSessionLifecycleTest, DisconnectTask02, TestSize.Level0)
     sceneSession->isActive_ = true;
     result = sceneSession->DisconnectTask(false, true);
     ASSERT_EQ(result, WSError::WS_OK);
-    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_EQ(result, WSError::WS_OK);
-    sceneSession->sessionInfo_.isPrelaunch_ = true;
-    result = sceneSession->DisconnectTask(false, true);
+}
+
+/**
+ * @tc.name: DisconnectTask03
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, DisconnectTask03, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "DisconnectTask03";
+    info.bundleName_ = "DisconnectTask03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    EXPECT_NE(property, nullptr);
+    property->SetPrelaunch(sceneSession->GetSessionInfo().isPrelaunch_);
+    property->SetFrameNum(sceneSession->GetSessionInfo().frameNum_);
+    sceneSession->SetSessionProperty(property);
+
+    sceneSession->EditSessionInfo().isPrelaunch_ = true;
+    sceneSession->EditSessionInfo().frameNum_ = 3;
+    auto result = sceneSession->DisconnectTask(true, true);
+    ASSERT_EQ(sceneSession->GetSessionInfo().isPrelaunch_, false);
+    ASSERT_EQ(sceneSession->GetSessionInfo().frameNum_, 0);
     ASSERT_EQ(result, WSError::WS_OK);
 }
 

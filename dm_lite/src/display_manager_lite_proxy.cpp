@@ -1066,6 +1066,46 @@ DMError DisplayManagerLiteProxy::SetSystemKeyboardStatus(bool isTpKeyboardOn)
 #endif
 }
 
+DMError DisplayManagerLiteProxy::IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "write interface token failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(displayId)) {
+        TLOGE(WmsLogTag::DMS, "write displayId failed");
+        return DMError::DM_ERROR_WRITE_DATA_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_IS_ON_BOARD_DISPLAY),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "send request failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    uint32_t res;
+    if (!reply.ReadUint32(res)) {
+        TLOGE(WmsLogTag::DMS, "read result failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (static_cast<DMError>(res) != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "server error:%{public}d", res);
+        return static_cast<DMError>(res);
+    }
+    if (!reply.ReadBool(isOnboardDisplay)) {
+        TLOGE(WmsLogTag::DMS, "read isOnboardDisplay failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    TLOGI(WmsLogTag::DMS, "res %{public}u", res);
+    return DMError::DM_OK;
+}
+
 sptr<ScreenInfo> DisplayManagerLiteProxy::GetScreenInfoById(ScreenId screenId)
 {
 #ifdef SCENE_BOARD_ENABLED

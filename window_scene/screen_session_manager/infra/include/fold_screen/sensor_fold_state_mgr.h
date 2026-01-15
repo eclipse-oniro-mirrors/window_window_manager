@@ -38,6 +38,7 @@ public:
     void HandleSensorEvent(const SensorStatus& sensorStatus);
     void RegisterApplicationStateObserver();
     bool IsTentMode();
+    void FinishTaskSequence();
 
 protected:
     SensorFoldStateMgr();

@@ -32,9 +32,7 @@
 namespace OHOS {
 namespace Rosen {
 
-ScreenManagerAni::ScreenManagerAni()
-{
-}
+ScreenManagerAni::ScreenManagerAni() {}
 
 void ScreenManagerAni::RegisterCallback(ani_env* env, ani_string type, ani_ref callback, ani_long nativeObj)
 {
@@ -85,7 +83,7 @@ void ScreenManagerAni::OnRegisterCallback(ani_env* env, ani_string type, ani_ref
         return;
     }
     TLOGI(WmsLogTag::DMS, "create listener");
-    sptr<ScreenAniListener> screenAniListener = new(std::nothrow) ScreenAniListener(env);
+    sptr<ScreenAniListener> screenAniListener = new (std::nothrow) ScreenAniListener(env);
     if (screenAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] screenListener is nullptr");
         env->GlobalReference_Delete(cbRef);
@@ -106,8 +104,9 @@ void ScreenManagerAni::OnRegisterCallback(ani_env* env, ani_string type, ani_ref
     jsCbMap_[typeString][cbRef] = screenAniListener;
 }
 
-DmErrorCode ScreenManagerAni::ProcessRegisterCallback(ani_env* env, std::string& typeStr,
-    sptr<ScreenAniListener> screenAniListener)
+DmErrorCode ScreenManagerAni::ProcessRegisterCallback(ani_env* env,
+                                                      std::string& typeStr,
+                                                      sptr<ScreenAniListener> screenAniListener)
 {
     DmErrorCode ret = DmErrorCode::DM_ERROR_INVALID_PARAM;
     if (typeStr == ANI_EVENT_CHANGE || typeStr == ANI_EVENT_CONNECT || typeStr == ANI_EVENT_DISCONNECT) {
@@ -185,8 +184,7 @@ DMError ScreenManagerAni::UnRegisterScreenListenerWithType(std::string type, ani
         if (isEquals) {
             it->second->RemoveCallback(env, type, callback);
             if (type == ANI_EVENT_CONNECT || type == ANI_EVENT_DISCONNECT || type == ANI_EVENT_CHANGE) {
-                TLOGI(WmsLogTag::DMS, "[ANI] start to unregis screen event listener! event = %{public}s",
-                    type.c_str());
+                TLOGI(WmsLogTag::DMS, "[ANI] start to unregis screen event listener! event = %{public}s", type.c_str());
                 sptr<ScreenManager::IScreenListener> thisListener(it->second);
                 ret = SingletonContainer::Get<ScreenManager>().UnregisterScreenListener(thisListener);
             }
@@ -205,8 +203,9 @@ DMError ScreenManagerAni::UnRegisterAllScreenListenerWithType(std::string type)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
-        TLOGI(WmsLogTag::DMS, "[ANI] UnregisterAllScreenListenerWithType methodName %{public}s not registered!",
-            type.c_str());
+        TLOGI(WmsLogTag::DMS,
+              "[ANI] UnregisterAllScreenListenerWithType methodName %{public}s not registered!",
+              type.c_str());
         return DMError::DM_OK;
     }
     DMError ret = DMError::DM_OK;
@@ -228,8 +227,7 @@ ani_long ScreenManagerAni::MakeMirror(ani_env* env, ani_long mainScreen, ani_obj
     TLOGI(WmsLogTag::DMS, "[ANI] length %{public}d", (ani_int)length);
     for (int32_t i = 0; i < length; i++) {
         ani_ref screenIdRef;
-        auto ret = env->Object_CallMethodByName_Ref(mirrorScreen, "$_get", "I:Lstd/core/Object;",
-            &screenIdRef, (ani_int)i);
+        auto ret = env->Object_CallMethodByName_Ref(mirrorScreen, "$_get", "i:Y", &screenIdRef, (ani_int)i);
         if (ANI_OK != ret) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail, ret: %{public}u", (ani_int)i, ret);
             AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to get screenId");
@@ -245,9 +243,8 @@ ani_long ScreenManagerAni::MakeMirror(ani_env* env, ani_long mainScreen, ani_obj
         screenIds.emplace_back(static_cast<ScreenId>(screenId));
     }
     ScreenId screenGroupId = INVALID_SCREEN_ID;
-    DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().MakeMirror(static_cast<ScreenId>(mainScreen),
-            screenIds, screenGroupId));
+    DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().MakeMirror(
+        static_cast<ScreenId>(mainScreen), screenIds, screenGroupId));
     if (ret != DmErrorCode::DM_OK) {
         AniErrUtils::ThrowBusinessError(env, ret, "JsScreenManager::OnMakeMirror failed.");
         return static_cast<ani_long>(INVALID_SCREEN_ID);
@@ -283,15 +280,16 @@ void ScreenManagerAni::GetAllScreens(ani_env* env, ani_object screensAni)
         TLOGE(WmsLogTag::DMS, "[ANI] JsScreenManager::OnGetAllScreens failed.");
         AniErrUtils::ThrowBusinessError(env, res, "JsScreenManager::OnGetAllScreens failed.");
     } else if (!screens.empty()) {
-        TLOGI(WmsLogTag::DMS, "[ANI] JsScreenManager::OnGetAllScreens succeed. size = %{public}u",
-            static_cast<uint32_t>(screens.size()));
+        TLOGI(WmsLogTag::DMS,
+              "[ANI] JsScreenManager::OnGetAllScreens succeed. size = %{public}u",
+              static_cast<uint32_t>(screens.size()));
         if (ANI_OK != ScreenAniUtils::ConvertScreens(env, screens, screensAni)) {
             TLOGE(WmsLogTag::DMS, "[ANI] ConvertScreens fail");
         }
     } else {
         TLOGE(WmsLogTag::DMS, "[ANI] JsScreenManager::OnGetAllScreens null.");
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN,
-            "JsScreenManager::OnGetAllScreens failed.");
+        AniErrUtils::ThrowBusinessError(
+            env, DmErrorCode::DM_ERROR_INVALID_SCREEN, "JsScreenManager::OnGetAllScreens failed.");
     }
 }
 
@@ -306,8 +304,7 @@ void ScreenManagerAni::CreateVirtualScreen(ani_env* env, ani_object options, ani
     env->Reference_IsUndefined(options, &undefRes);
     if (undefRes != 0) {
         TLOGE(WmsLogTag::DMS, "[ANI] options is undefined or null");
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
-            "options is undefined or null");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "options is undefined or null");
         return;
     }
 
@@ -326,7 +323,7 @@ void ScreenManagerAni::CreateVirtualScreen(ani_env* env, ani_object options, ani
         if (screenId == ERROR_ID_NOT_SYSTEM_APP) {
             ret = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
         } else if (screenId == ERROR_ID_NO_PERMISSION) {
-            ret =  DmErrorCode::DM_ERROR_NO_PERMISSION;
+            ret = DmErrorCode::DM_ERROR_NO_PERMISSION;
         }
         TLOGE(WmsLogTag::DMS, "[ANI] Get virtual screen failed");
         AniErrUtils::ThrowBusinessError(env, ret, "Get virtual screen failed");
@@ -381,8 +378,7 @@ ani_boolean ScreenManagerAni::IsScreenRotationLocked(ani_env* env)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
     bool isLocked = false;
-    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().IsScreenRotationLocked(isLocked));
+    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().IsScreenRotationLocked(isLocked));
     if (ret != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "ScreenManager::IsScreenRotationLocked failed.");
         AniErrUtils::ThrowBusinessError(env, ret, "ScreenManager::IsScreenRotationLocked failed.");
@@ -395,8 +391,7 @@ ani_boolean ScreenManagerAni::IsScreenRotationLocked(ani_env* env)
 void ScreenManagerAni::SetScreenRotationLocked(ani_env* env, ani_boolean isLocked)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
-    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().SetScreenRotationLocked(isLocked));
+    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().SetScreenRotationLocked(isLocked));
     if (ret != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "ScreenManager::SetScreenRotationLocked failed.");
         AniErrUtils::ThrowBusinessError(env, ret, "ScreenManager::SetScreenRotationLocked failed.");
@@ -405,8 +400,9 @@ void ScreenManagerAni::SetScreenRotationLocked(ani_env* env, ani_boolean isLocke
     TLOGNI(WmsLogTag::DMS, "SetScreenRotationLocked success");
 }
 
-void ScreenManagerAni::SetMultiScreenRelativePosition(ani_env* env, ani_object mainScreenOptionsAni,
-    ani_object secondaryScreenOptionsAni)
+void ScreenManagerAni::SetMultiScreenRelativePosition(ani_env* env,
+                                                      ani_object mainScreenOptionsAni,
+                                                      ani_object secondaryScreenOptionsAni)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
     if (env == nullptr) {
@@ -429,7 +425,7 @@ void ScreenManagerAni::SetMultiScreenRelativePosition(ani_env* env, ani_object m
     }
     DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
         SingletonContainer::Get<ScreenManager>().SetMultiScreenRelativePosition(mainScreenOptions, secondScreenOption));
-        res = (res == DmErrorCode::DM_ERROR_INVALID_SCREEN) ? DmErrorCode::DM_ERROR_INVALID_PARAM : res;
+    res = (res == DmErrorCode::DM_ERROR_INVALID_SCREEN) ? DmErrorCode::DM_ERROR_INVALID_PARAM : res;
     if (res != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "ScreenManager::SetMultiScreenRelativePosition failed.");
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::SetMultiScreenRelativePosition failed.");
@@ -438,8 +434,10 @@ void ScreenManagerAni::SetMultiScreenRelativePosition(ani_env* env, ani_object m
     TLOGNI(WmsLogTag::DMS, "SetScreenRotationLocked success");
 }
 
-void ScreenManagerAni::SetMultiScreenMode(ani_env* env, ani_long primaryScreenId, ani_long secondaryScreenId,
-    ani_enum_item secondaryScreenMode)
+void ScreenManagerAni::SetMultiScreenMode(ani_env* env,
+                                          ani_long primaryScreenId,
+                                          ani_long secondaryScreenId,
+                                          ani_enum_item secondaryScreenMode)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
     if (env == nullptr) {
@@ -454,9 +452,8 @@ void ScreenManagerAni::SetMultiScreenMode(ani_env* env, ani_long primaryScreenId
         return;
     }
     MultiScreenMode screenMode = static_cast<MultiScreenMode>(screenModeInt);
-    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().SetMultiScreenMode(static_cast<ScreenId>(primaryScreenId),
-            static_cast<ScreenId>(secondaryScreenId), screenMode));
+    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().SetMultiScreenMode(
+        static_cast<ScreenId>(primaryScreenId), static_cast<ScreenId>(secondaryScreenId), screenMode));
     if (res != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "ScreenManager::SetMultiScreenMode failed.");
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::SetMultiScreenMode failed.");
@@ -477,14 +474,13 @@ void ScreenManagerAni::SetScreenPrivacyMaskImage(ani_env* env, ani_long screenId
         privacyMaskImg = OHOS::Media::PixelMapTaiheAni::GetNativePixelMap(env, imageAni);
         if (privacyMaskImg == nullptr) {
             TLOGE(WmsLogTag::DMS, "[ANI] Failed to convert parameter to pixelmap.");
-            AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
-                "Failed to convert parameter to pixelmap.");
+            AniErrUtils::ThrowBusinessError(
+                env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter to pixelmap.");
             return;
         }
     }
-    auto res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().SetScreenPrivacyMaskImage(static_cast<ScreenId>(screenId),
-            privacyMaskImg));
+    auto res = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().SetScreenPrivacyMaskImage(
+        static_cast<ScreenId>(screenId), privacyMaskImg));
     if (res != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "ScreenManager::SetScreenPrivacyMaskImage failed.");
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::SetScreenPrivacyMaskImage failed.");
@@ -513,8 +509,8 @@ ani_object ScreenManagerAni::MakeUnique(ani_env* env, ani_object uniqueScreenIds
         return ScreenAniUtils::CreateAniUndefined(env);
     }
     std::vector<DisplayId> displayIds;
-    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().MakeUniqueScreen(screenIds, displayIds));
+    DmErrorCode res =
+        DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().MakeUniqueScreen(screenIds, displayIds));
     if (res != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "ScreenManager::MakeUniqueScreen failed.");
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::MakeUniqueScreen failed.");
@@ -523,8 +519,10 @@ ani_object ScreenManagerAni::MakeUnique(ani_env* env, ani_object uniqueScreenIds
     return ScreenAniUtils::CreateDisplayIdVectorAniObject(env, displayIds);
 }
 
-ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env, ani_long mainScreen, ani_object mirrorScreen,
-    ani_object mainScreenRegionAni)
+ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env,
+                                                ani_long mainScreen,
+                                                ani_object mirrorScreen,
+                                                ani_object mainScreenRegionAni)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
     if (env == nullptr) {
@@ -533,8 +531,8 @@ ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env, ani_long mainScree
     }
     if (mirrorScreen == nullptr || mainScreenRegionAni == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] mirrorScreen or mainScreenRegionAni is nullptr");
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
-            "mirrorScreen or mainScreenRegion is nullptr");
+        AniErrUtils::ThrowBusinessError(
+            env, DmErrorCode::DM_ERROR_INVALID_PARAM, "mirrorScreen or mainScreenRegion is nullptr");
         return static_cast<ani_long>(INVALID_SCREEN_ID);
     }
     std::vector<ScreenId> mirrorScreenIds;
@@ -546,14 +544,13 @@ ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env, ani_long mainScree
     }
     DMRect mainScreenRegion;
     if (ScreenAniUtils::GetRectFromAni(env, mainScreenRegionAni, mainScreenRegion) != ANI_OK) {
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
-            "Failed to convert to mainScreenRegion");
+        AniErrUtils::ThrowBusinessError(
+            env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert to mainScreenRegion");
         return static_cast<ani_long>(INVALID_SCREEN_ID);
     }
     ScreenId screenGroupId = INVALID_SCREEN_ID;
-    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().MakeMirror(static_cast<ScreenId>(mainScreen),
-            mirrorScreenIds, mainScreenRegion, screenGroupId));
+    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().MakeMirror(
+        static_cast<ScreenId>(mainScreen), mirrorScreenIds, mainScreenRegion, screenGroupId));
     if (res != DmErrorCode::DM_OK) {
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::MakeMirror failed.");
         return static_cast<ani_long>(INVALID_SCREEN_ID);
@@ -580,8 +577,7 @@ void ScreenManagerAni::StopMirror(ani_env* env, ani_object mirrorScreen)
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "get screenId array failed");
         return;
     }
-    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().StopMirror(screenIds));
+    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().StopMirror(screenIds));
     if (res != DmErrorCode::DM_OK) {
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::StopMirror failed.");
     }
@@ -605,8 +601,8 @@ ani_long ScreenManagerAni::MakeExpand(ani_env* env, ani_object expandOptionsAni)
     TLOGI(WmsLogTag::DMS, "[ANI] length %{public}d", (ani_int)length);
     for (int32_t i = 0; i < length; i++) {
         ani_ref optionRef;
-        auto ret = env->Object_CallMethodByName_Ref(expandOptionsAni, "$_get", "I:Lstd/core/Object;",
-            &optionRef, (ani_int)i);
+        auto ret =
+            env->Object_CallMethodByName_Ref(expandOptionsAni, "$_get", "i:Y", &optionRef, (ani_int)i);
         if (ret != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail, ret: %{public}u", (ani_int)i, ret);
             AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Get optionRef failed");
@@ -622,8 +618,8 @@ ani_long ScreenManagerAni::MakeExpand(ani_env* env, ani_object expandOptionsAni)
         options.emplace_back(expandOption);
     }
     ScreenId screenGroupId = INVALID_SCREEN_ID;
-    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().MakeExpand(options, screenGroupId));
+    DmErrorCode res =
+        DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().MakeExpand(options, screenGroupId));
     if (res != DmErrorCode::DM_OK) {
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::MakeExpand failed.");
         return static_cast<ani_long>(INVALID_SCREEN_ID);
@@ -650,8 +646,7 @@ void ScreenManagerAni::StopExpand(ani_env* env, ani_object expandScreensAni)
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "get screenId array failed");
         return;
     }
-    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().StopExpand(screenIds));
+    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().StopExpand(screenIds));
     if (res != DmErrorCode::DM_OK) {
         AniErrUtils::ThrowBusinessError(env, res, "ScreenManager::StopExpand failed.");
     }
@@ -660,40 +655,38 @@ void ScreenManagerAni::StopExpand(ani_env* env, ani_object expandScreensAni)
 ani_status ScreenManagerAni::NspBindNativeFunctions(ani_env* env, ani_namespace nsp)
 {
     std::array funcs = {
-        ani_native_function {"syncOn", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::RegisterCallback)},
-        ani_native_function {"syncOff", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::UnRegisterCallback)},
-        ani_native_function {"makeMirrorInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::MakeMirror)},
-        ani_native_function {"getAllScreensInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::GetAllScreens)},
-        ani_native_function {"createVirtualScreenInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::CreateVirtualScreen)},
-        ani_native_function {"setVirtualScreenSurfaceInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::SetVirtualScreenSurface)},
-        ani_native_function {"destroyVirtualScreenInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::DestroyVirtualScreen)},
-        ani_native_function {"isScreenRotationLockedInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::IsScreenRotationLocked)},
-        ani_native_function {"setScreenRotationLockedInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::SetScreenRotationLocked)},
-        ani_native_function {"setMultiScreenRelativePositionInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::SetMultiScreenRelativePosition)},
-        ani_native_function {"setMultiScreenModeInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::SetMultiScreenMode)},
-        ani_native_function {"setScreenPrivacyMaskImageInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::SetScreenPrivacyMaskImage)},
-        ani_native_function {"makeUniqueInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::MakeUnique)},
-        ani_native_function {"makeMirrorWithRegionInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::MakeMirrorWithRegion)},
-        ani_native_function {"stopMirrorInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::StopMirror)},
-        ani_native_function {"makeExpandInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::MakeExpand)},
-        ani_native_function {"stopExpandInternal", nullptr,
-            reinterpret_cast<void *>(ScreenManagerAni::StopExpand)},
+        ani_native_function{ "syncOn", nullptr, reinterpret_cast<void*>(ScreenManagerAni::RegisterCallback) },
+        ani_native_function{ "syncOff", nullptr, reinterpret_cast<void*>(ScreenManagerAni::UnRegisterCallback) },
+        ani_native_function{ "makeMirrorInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeMirror) },
+        ani_native_function{
+            "getAllScreensInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::GetAllScreens) },
+        ani_native_function{
+            "createVirtualScreenInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::CreateVirtualScreen) },
+        ani_native_function{ "setVirtualScreenSurfaceInternal",
+                             nullptr,
+                             reinterpret_cast<void*>(ScreenManagerAni::SetVirtualScreenSurface) },
+        ani_native_function{
+            "destroyVirtualScreenInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::DestroyVirtualScreen) },
+        ani_native_function{ "isScreenRotationLockedInternal",
+                             nullptr,
+                             reinterpret_cast<void*>(ScreenManagerAni::IsScreenRotationLocked) },
+        ani_native_function{ "setScreenRotationLockedInternal",
+                             nullptr,
+                             reinterpret_cast<void*>(ScreenManagerAni::SetScreenRotationLocked) },
+        ani_native_function{ "setMultiScreenRelativePositionInternal",
+                             nullptr,
+                             reinterpret_cast<void*>(ScreenManagerAni::SetMultiScreenRelativePosition) },
+        ani_native_function{
+            "setMultiScreenModeInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::SetMultiScreenMode) },
+        ani_native_function{ "setScreenPrivacyMaskImageInternal",
+                             nullptr,
+                             reinterpret_cast<void*>(ScreenManagerAni::SetScreenPrivacyMaskImage) },
+        ani_native_function{ "makeUniqueInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeUnique) },
+        ani_native_function{
+            "makeMirrorWithRegionInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeMirrorWithRegion) },
+        ani_native_function{ "stopMirrorInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::StopMirror) },
+        ani_native_function{ "makeExpandInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeExpand) },
+        ani_native_function{ "stopExpandInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::StopExpand) },
     };
     ani_status ret = env->Namespace_BindNativeFunctions(nsp, funcs.data(), funcs.size());
     if (ret != ANI_OK) {
@@ -706,12 +699,10 @@ ani_status ScreenManagerAni::NspBindNativeFunctions(ani_env* env, ani_namespace 
 ani_status ScreenManagerAni::ClassBindNativeFunctions(ani_env* env, ani_class screenCls)
 {
     std::array methods = {
-        ani_native_function {"setDensityDpiInternal", "d:",
-            reinterpret_cast<void *>(ScreenAni::SetDensityDpi)},
-        ani_native_function {"setScreenActiveModeInternal", nullptr,
-            reinterpret_cast<void *>(ScreenAni::SetScreenActiveMode)},
-        ani_native_function {"setOrientationInternal", nullptr,
-            reinterpret_cast<void *>(ScreenAni::SetOrientation)},
+        ani_native_function{ "setDensityDpiInternal", "d:", reinterpret_cast<void*>(ScreenAni::SetDensityDpi) },
+        ani_native_function{
+            "setScreenActiveModeInternal", nullptr, reinterpret_cast<void*>(ScreenAni::SetScreenActiveMode) },
+        ani_native_function{ "setOrientationInternal", nullptr, reinterpret_cast<void*>(ScreenAni::SetOrientation) },
     };
     ani_status ret = env->Class_BindNativeMethods(screenCls, methods.data(), methods.size());
     if (ret != ANI_OK) {
@@ -719,10 +710,11 @@ ani_status ScreenManagerAni::ClassBindNativeFunctions(ani_env* env, ani_class sc
         return ANI_NOT_FOUND;
     }
     std::array staticMethods = {
-        ani_native_function {"nativeTransferStatic", "C{std.interop.ESValue}C{std.core.Object}:z",
-            reinterpret_cast<void *>(ScreenAni::TransferStatic)},
-        ani_native_function {"nativeTransferDynamic", "l:C{std.interop.ESValue}",
-            reinterpret_cast<void *>(ScreenAni::TransferDynamic)},
+        ani_native_function{ "nativeTransferStatic",
+                             "C{std.interop.ESValue}C{std.core.Object}:z",
+                             reinterpret_cast<void*>(ScreenAni::TransferStatic) },
+        ani_native_function{
+            "nativeTransferDynamic", "l:C{std.interop.ESValue}", reinterpret_cast<void*>(ScreenAni::TransferDynamic) },
     };
     ret = env->Class_BindStaticNativeMethods(screenCls, staticMethods.data(), staticMethods.size());
     if (ret != ANI_OK) {
@@ -733,12 +725,12 @@ ani_status ScreenManagerAni::ClassBindNativeFunctions(ani_env* env, ani_class sc
 }
 
 extern "C" {
-ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
+ANI_EXPORT ani_status ANI_Constructor(ani_vm* vm, uint32_t* result)
 {
     using namespace OHOS::Rosen;
     TLOGI(WmsLogTag::DMS, "[ANI] start to ANI_Constructor");
     ani_status ret;
-    ani_env *env;
+    ani_env* env;
     if ((ret = vm->GetEnv(ANI_VERSION_1, &env)) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] null env");
         return ANI_NOT_FOUND;
@@ -754,7 +746,7 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
         TLOGE(WmsLogTag::DMS, "[ANI] bind namespace fail %{public}u", ret);
         return ret;
     }
-    
+
     ani_class screenCls = nullptr;
     if ((ret = env->FindClass("@ohos.screen.screen.ScreenImpl", &screenCls)) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] null env %{public}u", ret);
@@ -774,5 +766,5 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 }
 }
 
-}
-}
+} // namespace Rosen
+} // namespace OHOS

@@ -105,6 +105,15 @@ void ScreenSensorMgr::RegisterHallCallback()
 
 void ScreenSensorMgr::UnRegisterHallCallback()
 {
+    if (!ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice()) {
+        if (ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
+            SecondaryFoldSensorManager::GetInstance().UnRegisterHallCallback();
+        } else {
+            FoldScreenSensorManager::GetInstance().UnRegisterHallCallback();
+        }
+        return;
+    }
+
     int ret = UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
     if (ret == SENSOR_SUCCESS) {
         registerHall_ = false;
@@ -116,6 +125,15 @@ void ScreenSensorMgr::UnRegisterHallCallback()
 
 void ScreenSensorMgr::UnRegisterPostureCallback()
 {
+    if (!ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice()) {
+        if (ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
+            SecondaryFoldSensorManager::GetInstance().UnRegisterPostureCallback();
+        } else {
+            FoldScreenSensorManager::GetInstance().UnRegisterPostureCallback();
+        }
+        return;
+    }
+
     int ret = UnSubscribeSensorCallback(SENSOR_TYPE_ID_POSTURE);
     if (ret == SENSOR_SUCCESS) {
         registerPosture_ = false;

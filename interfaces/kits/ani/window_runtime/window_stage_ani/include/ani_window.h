@@ -143,6 +143,7 @@ public:
     static void SetRotationLocked(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean locked);
     static ani_boolean GetRotationLocked(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_boolean IsInFreeWindowMode(ani_env* env, ani_object obj, ani_long nativeObj);
+    static ani_string GetWindowStateSnapshot(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetRelativePositionToParentWindowEnabled(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_boolean enabled, ani_int anchor, ani_int offsetX, ani_int offsetY);
     static void SetWindowDelayRaiseOnDrag(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isEnabled);
@@ -160,6 +161,7 @@ public:
     static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_string name, ani_object options);
     static void Hide(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void RestoreMainWindow(ani_env* env, ani_object obj, ani_long nativeObj, ani_object wantParameters);
 
     ani_ref GetParentWindow(ani_env* env);
     void SetParentWindow(ani_env* env, ani_int windowId);
@@ -315,6 +317,7 @@ private:
     void OnSetRotationLocked(ani_env* env, ani_boolean locked);
     bool OnGetRotationLocked(ani_env* env);
     bool OnIsInFreeWindowMode(ani_env* env);
+    ani_string OnGetWindowStateSnapshot(ani_env* env);
     void OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled);
     void OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boolean enabled,
         ani_int anchor, ani_int offsetX, ani_int offsetY);
@@ -325,6 +328,7 @@ private:
     void OnSetWindowShadowEnabled(ani_env* env, ani_boolean enable);
     bool OnIsImmersiveLayout(ani_env* env);
     void OnKeepKeyboardOnFocus(ani_env* env, ani_boolean keepKeyboardFlag);
+    void OnRestoreMainWindow(ani_env* env, ani_object wantParameters);
 
     /*
      * Window Layout

@@ -13,6 +13,7 @@
 
 import("//build/test.gni")
 import("//foundation/window/window_manager/windowmanager_aafwk.gni")
+import("../wm_test_external_deps.gni")
 
 module_out_path = "window_manager/window_manager/wm/special_window"
 wm_unittest_common = "../:wm_unittest_common"
@@ -21,8 +22,5 @@ ohos_unittest("window_scene_session_impl_special_window_test") {
   module_out_path = module_out_path
   sources = [ "window_scene_session_impl_special_window_test.cpp" ]
   deps = [ wm_unittest_common ]
-  external_deps = [
-    "c_utils:utils",
-    "graphic_2d:librender_service_base",
-  ]
+  external_deps = test_external_deps
 }

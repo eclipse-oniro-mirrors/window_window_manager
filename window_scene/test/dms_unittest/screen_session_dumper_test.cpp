@@ -209,6 +209,12 @@ HWTEST_F(ScreenSessionDumperTest, ExecuteDumpCmd, TestSize.Level1)
     sptr<ScreenSessionDumper> dumper8 = new ScreenSessionDumper(fd, args);
     dumper8->ExecuteDumpCmd();
     ASSERT_EQ(dumper8->fd_, 1);
+
+    fd = 1;
+    args = {u"-ln,1"};
+    sptr<ScreenSessionDumper> dumper10 = new ScreenSessionDumper(fd, args);
+    dumper10->ExecuteDumpCmd();
+    ASSERT_EQ(dumper10->fd_, 1);
 }
 
 /**
@@ -1275,6 +1281,45 @@ HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange06, TestSize.Level1)
     ASSERT_EQ(dumper->fd_, 1);
 }
 
+
+/**
+ * @tc.name: SetSuperFoldStatusChange07
+ * @tc.desc: test function : SetSuperFoldStatusChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange07, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldStatusChange("-supertrans,4");
+    ASSERT_EQ(dumper->fd_, 1);
+
+    EXPECT_TRUE(g_errLog.find("set hall value") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSuperFoldStatusChange08
+ * @tc.desc: test function : SetSuperFoldStatusChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange08, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldStatusChange("-supertrans,5");
+    ASSERT_EQ(dumper->fd_, 1);
+    EXPECT_TRUE(g_errLog.find("set hall value") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+
 /**
  * @tc.name: SetSecondaryStatusChange01
  * @tc.desc: test function : SetSecondaryStatusChange
@@ -1493,6 +1538,60 @@ HWTEST_F(ScreenSessionDumperTest, SetFoldStatusLocked, TestSize.Level1)
     dumper->params_[0] = "-test";
     ret = dumper->SetFoldStatusLocked();
     ASSERT_EQ(ret, -1);
+}
+
+/**
+ * @tc.name: ForceSetFoldStatusAndLock
+ * @tc.desc: test function : ForceSetFoldStatusAndLock
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ForceSetFoldStatusAndLock, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u""};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    std::string emptyInput = "";
+    int ret = dumper->ForceSetFoldStatusAndLock(emptyInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string noCommaInput = "-ln1";
+    ret = dumper->ForceSetFoldStatusAndLock(noCommaInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string wrongPrefixInput = "-lx,1";
+    ret = dumper->ForceSetFoldStatusAndLock(wrongPrefixInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string invalidStatusInput = "-ln,999";
+    ret = dumper->ForceSetFoldStatusAndLock(invalidStatusInput);
+    ASSERT_EQ(ret, -1);
+
+    if (!ScreenSessionManager::GetInstance().IsFoldable()) {
+        GTEST_SKIP();
+    }
+    std::vector<std::string> validStatusValues = {
+        "1", "2", "3", "11", "21", "12", "22", "13", "23"};
+    for (const auto& status : validStatusValues) {
+        std::string validInput = "-ln," + status;
+        ret = dumper->ForceSetFoldStatusAndLock(validInput);
+        ASSERT_TRUE(ret == 0 || ret == -1);
+    }
+    dumper->RestorePhysicalFoldStatus();
+}
+
+/**
+ * @tc.name: RestorePhysicalFoldStatus
+ * @tc.desc: test function : RestorePhysicalFoldStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, RestorePhysicalFoldStatus, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u""};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int ret = dumper->RestorePhysicalFoldStatus();
+    ASSERT_TRUE(ret == 0 || ret == -1);
 }
 
 /**

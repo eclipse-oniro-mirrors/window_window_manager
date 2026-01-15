@@ -94,9 +94,9 @@ export default namespace floatingBall {
     return new Promise<FloatingBallController>((resolve: (value: FloatingBallController) => void, reject: (error: BusinessError) => void ) => {
         taskpool.execute((): FloatingBallController => {
             return createSync(nativeObj, config);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as FloatingBallController);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
     });
@@ -120,9 +120,9 @@ export default namespace floatingBall {
         return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
             taskpool.execute((): void => {
                 this.startFloatingBallNative(this.nativeObj, params);
-            }).then((ret: NullishType) :void => {
+            }).then((ret: Any) :void => {
                 resolve(undefined);
-            }).catch((err: NullishType) :void => {
+            }).catch((err: Any) :void => {
                 reject(err as BusinessError);
             });
         });
@@ -133,9 +133,9 @@ export default namespace floatingBall {
         return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
             taskpool.execute((): void => {
                 this.updateFloatingBallNative(this.nativeObj, params);
-            }).then((ret: NullishType) :void => {
+            }).then((ret: Any) :void => {
                 resolve(undefined);
-            }).catch((err: NullishType) :void => {
+            }).catch((err: Any) :void => {
                 reject(err as BusinessError);
             });
         });
@@ -146,9 +146,9 @@ export default namespace floatingBall {
         return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
             taskpool.execute((): void => {
                 this.stopFloatingBallNative(this.nativeObj);
-            }).then((ret: NullishType) :void => {
+            }).then((ret: Any) :void => {
                 resolve(undefined);
-            }).catch((err: NullishType) :void => {
+            }).catch((err: Any) :void => {
                 reject(err as BusinessError);
             });
         });
@@ -160,9 +160,9 @@ export default namespace floatingBall {
             taskpool.execute((): FloatingBallWindowInfo => {
                 let res = this.getFloatingBallWindowInfoNative(this.nativeObj) as FloatingBallWindowInfo;
                 return res;
-            }).then((ret: NullishType) :void => {
+            }).then((ret: Any) :void => {
                 resolve(ret as FloatingBallWindowInfo);
-            }).catch((err: NullishType) :void => {
+            }).catch((err: Any) :void => {
                 reject(err as BusinessError);
             });
         });
@@ -173,9 +173,9 @@ export default namespace floatingBall {
         return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
             taskpool.execute((): void => {
                 this.restoreMainWindowNative(this.nativeObj, want);
-            }).then((ret: NullishType) :void => {
+            }).then((ret: Any) :void => {
                 resolve(undefined);
-            }).catch((err: NullishType) :void => {
+            }).catch((err: Any) :void => {
                 reject(err as BusinessError);
             });
         });

@@ -279,7 +279,7 @@ public:
      * @param screenId Indicates the screen id of the virtual screen.
      * @return DM_OK means destroy success, others means destroy failed.
      */
-    DMError DestroyVirtualScreen(ScreenId screenId);
+    DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false);
 
     /**
      * @brief Set surface for the virtual screen.

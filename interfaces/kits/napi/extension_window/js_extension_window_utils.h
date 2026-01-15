@@ -38,7 +38,7 @@ namespace Rosen {
     napi_value GetRectAndConvertToJsValue(napi_env env, const Rect& rect);
     napi_value CreateJsExtensionWindowPropertiesObject(napi_env env, sptr<Window>& window);
     napi_value CreateJsExtensionWindowProperties(napi_env env, sptr<Window>& window);
-    napi_value GetStatusBarPropertyObject(napi_env env, sptr<Window>& window);
+    napi_value GetHostStatusBarPropertyObject(napi_env env, sptr<Window>& window);
     bool NapiIsCallable(napi_env env, napi_value value);
     napi_value NapiGetUndefined(napi_env env);
     napi_value NapiThrowError(napi_env env, WmErrorCode errCode);

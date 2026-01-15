@@ -16,7 +16,6 @@
 #include <functional>
 #include <gtest/gtest.h>
 
-#include "display_manager_adapter.h"
 #include "scene_board_judgement.h"
 #include "iremote_object_mocker.h"
 #include "window_manager_agent_proxy.h"

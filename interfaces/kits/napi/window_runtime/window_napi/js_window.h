@@ -139,6 +139,7 @@ public:
     static napi_value EnableDrag(napi_env env, napi_callback_info info);
     static napi_value SetExclusivelyHighlighted(napi_env env, napi_callback_info info);
     static napi_value IsWindowHighlighted(napi_env env, napi_callback_info info);
+    static napi_value RestoreMainWindow(napi_env env, napi_callback_info info);
 
     // colorspace, gamut
     static napi_value IsSupportWideGamut(napi_env env, napi_callback_info info);
@@ -245,6 +246,7 @@ public:
     static napi_value SetWindowSystemBarProperties(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarColor(napi_env env, napi_callback_info info);
     static napi_value GetStatusBarProperty(napi_env env, napi_callback_info info);
+    static napi_value GetWindowStateSnapshot(napi_env env, napi_callback_info info);
     static napi_value GetAvoidArea(napi_env env, napi_callback_info info);
     static napi_value GetWindowAvoidAreaSync(napi_env env, napi_callback_info info);
     static napi_value GetWindowAvoidAreaIgnoringVisibilitySync(napi_env env, napi_callback_info info);
@@ -342,6 +344,7 @@ private:
     napi_value OnIsMainWindowFullScreenAcrossDisplays(napi_env env, napi_callback_info info);
     napi_value OnSetExclusivelyHighlighted(napi_env env, napi_callback_info info);
     napi_value OnIsWindowHighlighted(napi_env env, napi_callback_info info);
+    napi_value OnRestoreMainWindow(napi_env env, napi_callback_info info);
 
     // colorspace, gamut
     napi_value OnIsSupportWideGamut(napi_env env, napi_callback_info info);
@@ -489,6 +492,7 @@ private:
     napi_value OnSetWindowSystemBarProperties(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarColor(napi_env env, napi_callback_info info);
     napi_value OnGetStatusBarPropertySync(napi_env env, napi_callback_info info);
+    napi_value OnGetWindowStateSnapshot(napi_env env, napi_callback_info info);
     napi_value OnGetAvoidArea(napi_env env, napi_callback_info info);
     napi_value OnGetWindowAvoidAreaSync(napi_env env, napi_callback_info info);
     napi_value OnGetWindowAvoidAreaIgnoringVisibilitySync(napi_env env, napi_callback_info info);

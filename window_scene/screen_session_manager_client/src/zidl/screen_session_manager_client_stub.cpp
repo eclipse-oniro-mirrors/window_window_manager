@@ -288,7 +288,7 @@ int ScreenSessionManagerClientStub::ReadRotationOrientationMap(MessageParcel& da
     std::map<int32_t, int32_t>& rotationOrientationMap)
 {
     uint64_t mapSize = 0;
-    if (!data.ReadUint64(mapSize)) {
+    if (!data.ReadUint64(mapSize) || mapSize > ROTATION_NUM) {
         TLOGE(WmsLogTag::DMS, "Failed to read rotationOrientationMap size");
         return ERR_INVALID_DATA;
     }

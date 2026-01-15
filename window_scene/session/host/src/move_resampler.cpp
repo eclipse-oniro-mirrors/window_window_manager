@@ -22,19 +22,12 @@ namespace OHOS {
 namespace Rosen {
 double OneEuroFilter::Filter(int64_t curTimeUs, double curValue)
 {
-    constexpr int64_t RESET_TIME_US = 50 * 1000; // 50ms
-
-    // Reset state on first input, timestamp reversal, or large time jump
-    if (!initialized || curTimeUs <= preTimeUs || (curTimeUs - preTimeUs) > RESET_TIME_US) {
-        initialized = true;
-        preValue = curValue;
-        preTimeUs = curTimeUs;
-        preDeriv = 0;
-        return curValue;
+    if (auto initValue = InitializeIfNeeded(curTimeUs, curValue)) {
+        return *initValue;
     }
 
     // Calculate time delta in seconds
-    double dt = (curTimeUs - preTimeUs) / 1e6; // us to s
+    double dt = (curTimeUs - preTimeUs_) / 1e6; // us to s
     // Protect against extremely small time deltas leading to huge noise
     constexpr double MIN_DT = 1e-4;
     if (dt < MIN_DT) {
@@ -44,21 +37,42 @@ double OneEuroFilter::Filter(int64_t curTimeUs, double curValue)
     const auto& [minCutoff, beta, dCutoff] = filterParam_;
 
     // Use previously filtered value for derivative estimation to reduce noise
-    double rawDeriv = (curValue - preValue) / dt;
+    double rawDeriv = (curValue - preValue_) / dt;
 
     // First-stage low-pass filter for derivative
-    double filteredDeriv = Lowpass(preDeriv, rawDeriv, Alpha(dCutoff, dt));
+    double filteredDeriv = Lowpass(preDeriv_, rawDeriv, Alpha(dCutoff, dt));
 
     // Adaptive cutoff adjusts smoothing intensity based on motion speed
     double adaptiveCutoff = minCutoff + beta * std::fabs(filteredDeriv);
 
     // Second-stage low-pass filter for the actual value
-    double filteredValue = Lowpass(preValue, curValue, Alpha(adaptiveCutoff, dt));
+    double filteredValue = Lowpass(preValue_, curValue, Alpha(adaptiveCutoff, dt));
 
-    preValue = filteredValue;
-    preDeriv = filteredDeriv;
-    preTimeUs = curTimeUs;
+    preValue_ = filteredValue;
+    preDeriv_ = filteredDeriv;
+    preTimeUs_ = curTimeUs;
     return filteredValue;
+}
+
+std::optional<double> OneEuroFilter::InitializeIfNeeded(int64_t curTimeUs, double curValue)
+{
+    const bool needInit = (!initialized_ || curTimeUs <= preTimeUs_);
+    if (!needInit) {
+        return std::nullopt;
+    }
+
+    // If this is the first frame (not yet initialized_) and the caller
+    // has provided an explicit initial baseline (useInitialValue_),
+    // initialize the internal state using initialValue_. This supports
+    // soft-start smoothing at drag begin.
+    // For all later resets (initialized_ == true), the filter always
+    // initializes from the incoming curValue to avoid unwanted jumps.
+    preValue_ = (!initialized_ && useInitialValue_) ? initialValue_ : curValue;
+
+    preTimeUs_ = curTimeUs;
+    preDeriv_ = 0.0;
+    initialized_ = true;
+    return preValue_;
 }
 
 double OneEuroFilter::Alpha(double cutoff, double dt) const
@@ -74,25 +88,37 @@ double OneEuroFilter::Alpha(double cutoff, double dt) const
 
 double OneEuroFilter::Lowpass(double prev, double curr, double alpha) const
 {
+    alpha = std::clamp(alpha, 0.0, 1.0);
     return alpha * curr + (1.0 - alpha) * prev;
 }
 
 void OneEuroFilter::Reset()
 {
-    initialized = false;
-    preTimeUs = 0;
-    preValue = 0;
-    preDeriv = 0;
+    initialized_ = false;
+    preTimeUs_ = 0;
+    preValue_ = 0.0;
+    preDeriv_ = 0.0;
+
+    useInitialValue_ = false;
+    initialValue_ = 0.0;
 }
 
 void MoveResampler::PushEvent(int64_t timeUs, int32_t posX, int32_t posY)
 {
-    events_.push_back({ timeUs, posX, posY });
+    // Initialize startup phase on first event, using zero initial
+    // position instead of first event position to avoid large jumps
+    BeginStartup(timeUs, 0.0, 0.0);
+
+    lastRawEvent_ = { timeUs, posX, posY };
+    events_.push_back(lastRawEvent_);
     CleanupOldEvents(timeUs);
 }
 
 MoveEvent MoveResampler::ResampleAt(int64_t targetTimeUs)
 {
+    // Apply startup smoothing if in startup phase
+    ApplyStartupSmoothing(targetTimeUs);
+
     auto [rawX, rawY] = ResampleRaw(targetTimeUs);
     auto filteredX = filterX_.Filter(targetTimeUs, rawX);
     auto filteredY = filterY_.Filter(targetTimeUs, rawY);
@@ -106,8 +132,53 @@ MoveEvent MoveResampler::ResampleAt(int64_t targetTimeUs)
 void MoveResampler::Reset()
 {
     events_.clear();
+    lastRawEvent_ = {};
     filterX_.Reset();
     filterY_.Reset();
+
+    startupInitialized_ = false;
+    startupPhase_ = false;
+    startupTimeUs_ = 0;
+}
+
+void MoveResampler::BeginStartup(int64_t startupTimeUs, double initialX, double initialY)
+{
+    if (startupInitialized_) {
+        return;
+    }
+
+    startupInitialized_ = true;
+    startupPhase_ = true;
+    startupTimeUs_ = startupTimeUs;
+    filterX_.SetInitialValue(initialX);
+    filterY_.SetInitialValue(initialY);
+}
+
+void MoveResampler::ApplyStartupSmoothing(int64_t targetTimeUs)
+{
+    if (!startupPhase_) {
+        return;
+    }
+
+    int64_t dt = targetTimeUs - startupTimeUs_;
+    if (dt < startupDurationUs_) {
+        double t = static_cast<double>(dt) / startupDurationUs_;
+
+        // Blend only the minCutoff parameter from "very smooth" → "normal smooth".
+        // beta and dCutoff remain unchanged to preserve derivative behavior.
+        FilterParam blended;
+        blended.minCutoff = startupParam_.minCutoff + (normalParam_.minCutoff - startupParam_.minCutoff) * t;
+        blended.beta = normalParam_.beta;
+        blended.dCutoff = normalParam_.dCutoff;
+
+        filterX_.SetParam(blended);
+        filterY_.SetParam(blended);
+    } else {
+        // Startup finished → use normal filter params
+        startupPhase_ = false;
+        filterX_.SetParam(normalParam_);
+        filterY_.SetParam(normalParam_);
+    }
 }
 
 std::pair<double, double> MoveResampler::ResampleRaw(int64_t targetTimeUs)
@@ -116,7 +187,7 @@ std::pair<double, double> MoveResampler::ResampleRaw(int64_t targetTimeUs)
     CleanupOldEvents(targetTimeUs);
 
     if (events_.empty()) {
-        return { 0.0, 0.0 };
+        return { static_cast<double>(lastRawEvent_.posX), static_cast<double>(lastRawEvent_.posY) };
     }
 
     // Only one event available → no sampling, direct value return;
@@ -154,7 +225,7 @@ size_t MoveResampler::FindSegmentIndex(int64_t targetTimeUs) const
 std::pair<double, double> MoveResampler::LinearFitAt(size_t startIdx, size_t endIdx, int64_t targetTimeUs) const
 {
     if (events_.empty()) {
-        return { 0.0, 0.0 };
+        return { static_cast<double>(lastRawEvent_.posX), static_cast<double>(lastRawEvent_.posY) };
     }
 
     if (startIdx > endIdx || endIdx >= events_.size()) {
@@ -215,7 +286,7 @@ std::pair<double, double> MoveResampler::LinearFitAt(size_t startIdx, size_t end
 std::pair<double, double> MoveResampler::InterpolateLinear(int64_t targetTimeUs) const
 {
     if (events_.empty()) {
-        return { 0.0, 0.0 };
+        return { static_cast<double>(lastRawEvent_.posX), static_cast<double>(lastRawEvent_.posY) };
     }
 
     if (events_.size() == 1) {
@@ -254,7 +325,7 @@ std::pair<double, double> MoveResampler::InterpolateLinear(int64_t targetTimeUs)
 std::pair<double, double> MoveResampler::ExtrapolateFit(int64_t targetTimeUs) const
 {
     if (events_.empty()) {
-        return { 0.0, 0.0 };
+        return { static_cast<double>(lastRawEvent_.posX), static_cast<double>(lastRawEvent_.posY) };
     }
     size_t nEvents = events_.size();
     size_t startIdx = (nEvents > 5) ? (nEvents - 5) : 0; // 5: using up to last 5 points

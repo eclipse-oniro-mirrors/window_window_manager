@@ -276,7 +276,7 @@ enum class RotationInfoType : uint32_t {
 };
 
 /**
- * @brief Window Orientaion
+ * @brief Window Orientation
  */
 enum class WindowOrientation : uint32_t {
     PORTRAIT = 0,

@@ -55,6 +55,10 @@ public:
     FoldCreaseRegion GetLiveCreaseRegion() const override;
     ScreenId GetCurrentScreenId() override;
     void LockDisplayStatus(bool locked) override;
+    DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus) override;
+    DMError RestorePhysicalFoldStatus() override;
+    bool GetPhysicalFoldLockFlag() const override;
+    FoldStatus GetPhysicalFoldStatus() const override;
     void SetOnBootAnimation(bool onBootAnimation) override;
     void UpdateForPhyScreenPropertyChange() override;
     void ExitCoordination() override;
@@ -73,6 +77,7 @@ public:
     void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
     void SetIsClearingBootAnimation(bool isClearingBootAnimation) override;
     nlohmann::ordered_json GetFoldCreaseRegionJson() override;
+    void NotifyRunSensorFoldStateManager() override;
 private:
     sptr<FoldScreenPolicy> GetFoldScreenPolicy(DisplayDeviceType productType);
     sptr<FoldScreenPolicy> foldScreenPolicy_;

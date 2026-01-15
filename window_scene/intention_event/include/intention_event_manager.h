@@ -60,5 +60,7 @@ private:
     wptr<Window> window_;
 };
 };
+extern "C" __attribute__((visibility("default"))) bool CreateAndEnableInputEventListener(Ace::UIContent* uiContent,
+    std::shared_ptr<AppExecFwk::EventHandler> eventHandler, wptr<Window> window);
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_INTENTION_EVENT_MANAGER_H

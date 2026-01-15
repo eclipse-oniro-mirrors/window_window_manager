@@ -162,6 +162,7 @@ public:
         TRANS_ID_ADD_SESSION_BLACK_LIST,
         TRANS_ID_REMOVE_SESSION_BLACK_LIST,
         TRANS_ID_GET_PIP_SWITCH_STATUS,
+        TRANS_ID_GET_PIP_IS_PIP_ENABLED,
         TRANS_ID_RECOVER_WINDOW_PROPERTY_CHANGE_FLAG,
         TRANS_ID_MINIMIZE_ALL_WINDOW,
         TRANS_ID_GLOBAL_COORDINATE_TO_RELATIVE_COORDINATE,
@@ -471,6 +472,7 @@ public:
     WMError RemoveSessionBlackList(const std::unordered_set<std::string>& bundleNames,
         const std::unordered_set<std::string>& privacyWindowTags) override { return WMError::WM_OK; }
     WMError GetPiPSettingSwitchStatus(bool& switchStatus) override { return WMError::WM_OK; }
+    WMError GetIsPipEnabled(bool& isPipEnabled) override { return WMError::WM_OK; }
     WMError ConvertToRelativeCoordinateExtended(
         const Rect& rect, Rect& newRect, DisplayId& newDisplayId) override
     {

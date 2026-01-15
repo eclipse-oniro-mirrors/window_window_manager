@@ -63,6 +63,14 @@ public:
         virtual void OnChange(DisplayId) = 0;
     };
 
+    class IDisplayAttributeListener : public virtual RefBase {
+    public:
+        /**
+         * @brief Notify when an attribute of a display changed.
+         */
+        virtual void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attributes) = 0;
+    };
+
     class IScreenshotListener : public virtual RefBase {
     public:
         /**
@@ -464,6 +472,23 @@ public:
     DMError UnregisterDisplayListener(sptr<IDisplayListener> listener);
 
     /**
+     * @brief Register a display attribute listener.
+     *
+     * @param listener IDisplayAttributeListener.
+     * @return DM_OK means register success, others means register failed.
+     */
+    DMError RegisterDisplayAttributeListener(std::vector<std::string>& attributes,
+        sptr<IDisplayAttributeListener> listener);
+
+    /**
+     * @brief Unregister an existed display attribute listener.
+     *
+     * @param listener IDisplayAttributeListener.
+     * @return DM_OK means unregister success, others means unregister failed.
+     */
+    DMError UnRegisterDisplayAttributeListener(sptr<IDisplayAttributeListener> listener);
+
+    /**
      * @brief Register a listener for display power events.
      *
      * @param listener IDisplayPowerEventListener.
@@ -706,7 +731,7 @@ public:
     /**
      * @brief Get the current fold status of the foldable device.
      *
-     * @return fold status of device.
+     * @return locked fold status if set; otherwise, return the current(actual) fold status.
      */
     FoldStatus GetFoldStatus();
 
@@ -774,6 +799,21 @@ public:
     DMError SetFoldStatusLockedFromJs(bool locked);
 
     /**
+     * @brief Locked fold and set to target fold status
+     *
+     * @param foldstatus specify fold status to switch to
+     * @return DM_OK means set success, others means set failed
+     */
+    DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus);
+
+    /**
+     * @brief Unlock fold status and restore display mode to actual physical fold status
+     *
+     * @return DM_OK means set success, others means set failed
+     */
+    DMError RestorePhysicalFoldStatus();
+
+    /**
      * @brief Get the fold crease region in the current display mode.
      *
      * @return fold crease region in the current display mode.
@@ -824,6 +864,14 @@ public:
      * @param muteFlag The mute flag.
     */
     void SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag);
+
+    /**
+     * @brief Determine whether the display is onboard.
+     *
+     * @param displayId display id.
+     * @return DMError represent operation result, isOnboardDisplay represent whether displayid is onboard
+    */
+    DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
 
     /**
      * @brief When casting the screen, the display not be skipped after the physical screen is turned off.
@@ -1010,6 +1058,23 @@ public:
      */
     DMError SetSupportsInput(DisplayId displayId, bool supportsInput);
 
+    /**
+     * @brief Get bundleName of display
+     *
+     * @param displayId
+     * @param bundleName
+     * @return DMError
+     */
+    DMError GetBundleName(DisplayId displayId, std::string& bundleName);
+
+    /**
+     * @brief Unregister display attribute not listening .
+     *
+     * @param attributesNotListened Attributes which not listening.
+     * @return DM_OK means unregister success, others means unregister failed.
+     */
+    DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributesNotListened);
+
 private:
     DisplayManager();
     ~DisplayManager();
@@ -1019,7 +1084,9 @@ private:
     std::mutex displayOperateMutex_;
     DisplayId GetCallingAbilityDisplayId();
     std::vector<std::pair<wptr<IRemoteObject>, DisplayId>> displayIdList_ {};
-
+    bool CheckUseGpuScreenshotWithOption(const Media::Rect &rect, const Media::Size &size);
+    std::shared_ptr<Media::PixelMap> GetScreenshotWithOptionUseGpu(const CaptureOption& captureOption,
+        const Media::Rect &rect, const Media::Size &size, int rotation, DmErrorCode* errorCode = nullptr);
     class Impl;
     std::recursive_mutex mutex_;
     sptr<Impl> pImpl_;

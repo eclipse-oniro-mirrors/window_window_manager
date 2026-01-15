@@ -18,6 +18,8 @@
 #include "display_manager.h"
 #include "input_event.h"
 #include "key_event.h"
+#include "mock/mock_accesstoken_kit.h"
+#include "mock/mock_parameters.h"
 #include "mock/mock_session_stage.h"
 #include "pointer_event.h"
 
@@ -1792,6 +1794,89 @@ HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest002, TestSize.Leve
 }
 
 /**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest003
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest003, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest003";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest003";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) anco app; 2) SupportNotifyFrameLayoutFinish; 3) not sa calling
+    session->collaboratorType_ = CollaboratorType::RESERVE_TYPE;
+    system::SetBoolParameter("prop_to_param.support.notifyFrameLayoutFinish", true);
+    MockAccesstokenKit::MockIsSACalling(false);
+
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest004
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest004, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest004";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest004";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) anco app; 2) SupportNotifyFrameLayoutFinish; 3) is sa calling
+    session->collaboratorType_ = CollaboratorType::RESERVE_TYPE;
+    system::SetBoolParameter("prop_to_param.support.notifyFrameLayoutFinish", true);
+    MockAccesstokenKit::MockIsSACalling(true);
+
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest005
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest005, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest005";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest005";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) anco app; 2) not SupportNotifyFrameLayoutFinish
+    session->collaboratorType_ = CollaboratorType::RESERVE_TYPE;
+    system::SetBoolParameter("prop_to_param.support.notifyFrameLayoutFinish", false);
+
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest006
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest006, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest006";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest006";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) not anco app
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
  * @tc.name: UpdateWaterfallModeTest
  * @tc.desc: UpdateWaterfallMode test
  * @tc.type: FUNC
@@ -2052,6 +2137,23 @@ HWTEST_F(SceneSessionTest4, SetPipParentWindowIdTest, Function | SmallTest | Lev
     sceneSession->isTerminating_ = true;
     result = sceneSession->SetPipParentWindowId(id);
     ASSERT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: IsPiPActiveTest
+ * @tc.desc: IsPiPActive function test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, IsPiPActiveTest, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsPiPActive";
+    info.bundleName_ = "IsPiPActive";
+    sptr<SceneSession> sceneSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    sceneSession->pipActiveStatus_.store(true);
+    bool status = false;
+    ASSERT_EQ(sceneSession->IsPiPActive(status), WMError::WM_OK);
+    ASSERT_EQ(status, true);
 }
 
 /**

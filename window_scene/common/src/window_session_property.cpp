@@ -289,6 +289,11 @@ void WindowSessionProperty::SetUserRequestedOrientation(Orientation orientation)
     userRequestedOrientation_ = orientation;
 }
 
+void WindowSessionProperty::SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation)
+{
+    isSpecificSessionRequestOrientation_ = isSpecificSessionRequestOrientation;
+}
+
 void WindowSessionProperty::SetPrivacyMode(bool isPrivate)
 {
     isPrivacyMode_ = isPrivate;
@@ -448,6 +453,11 @@ Orientation WindowSessionProperty::GetDefaultRequestedOrientation() const
 Orientation WindowSessionProperty::GetUserRequestedOrientation() const
 {
     return userRequestedOrientation_;
+}
+
+bool WindowSessionProperty::GetIsSpecificSessionRequestOrientation() const
+{
+    return isSpecificSessionRequestOrientation_;
 }
 
 bool WindowSessionProperty::GetPrivacyMode() const
@@ -1217,6 +1227,12 @@ bool WindowSessionProperty::MarshallingSessionInfo(Parcel& parcel) const
         !parcel.WriteBool(sessionInfo_.isKeyboardDidHideRegistered_)) {
         return false;
     }
+    if (!parcel.WriteBool(sessionInfo_.isReceiveDragEventEnabled_)) {
+        return false;
+    }
+    if (!parcel.WriteBool(sessionInfo_.isSeparationTouchEnabled_)) {
+        return false;
+    }
     return true;
 }
 
@@ -1266,6 +1282,14 @@ bool WindowSessionProperty::UnmarshallingSessionInfo(Parcel& parcel, WindowSessi
         !parcel.ReadBool(info.isKeyboardDidShowRegistered_) ||
         !parcel.ReadBool(info.isKeyboardDidHideRegistered_)) {
         TLOGE(WmsLogTag::DEFAULT, "Failed to read keyboard registered state!");
+        return false;
+    }
+    if (!parcel.ReadBool(info.isReceiveDragEventEnabled_)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to read isReceiveDragEventEnabled!");
+        return false;
+    }
+    if (!parcel.ReadBool(info.isSeparationTouchEnabled_)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to read isSeparationTouchEnabled!");
         return false;
     }
     property->SetSessionInfo(info);
@@ -1427,6 +1451,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteUint32(static_cast<uint32_t>(requestedOrientation_)) &&
         parcel.WriteBool(needRotateAnimation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(userRequestedOrientation_)) &&
+        parcel.WriteBool(isSpecificSessionRequestOrientation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(windowMode_)) &&
         parcel.WriteUint32(flags_) && parcel.WriteBool(raiseEnabled_) &&
         parcel.WriteBool(topmost_) && parcel.WriteBool(mainWindowTopmost_) &&
@@ -1472,10 +1497,11 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isShowDecorInFreeMultiWindow_) &&
         parcel.WriteBool(isMobileAppInPadLayoutFullScreen_) &&
         parcel.WriteBool(isFullScreenInForceSplitMode_) &&
-        parcel.WriteString(compatibleModePage_) &&
         parcel.WriteInt32(static_cast<int32_t>(pageCompatibleMode_)) &&
         parcel.WriteFloat(aspectRatio_) &&
-        parcel.WriteBool(isRotationLock_);
+        parcel.WriteBool(isRotationLock_) &&
+        parcel.WriteInt32(frameNum_) &&
+        parcel.WriteBool(isPrelaunch_);
 }
 
 WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
@@ -1522,6 +1548,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetMaximizeMode(static_cast<MaximizeMode>(parcel.ReadUint32()));
     property->SetRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()), parcel.ReadBool());
     property->SetUserRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()));
+    property->SetIsSpecificSessionRequestOrientation(parcel.ReadBool());
     property->SetWindowMode(static_cast<WindowMode>(parcel.ReadUint32()));
     property->SetWindowFlags(parcel.ReadUint32());
     property->SetRaiseEnabled(parcel.ReadBool());
@@ -1595,10 +1622,11 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetIsShowDecorInFreeMultiWindow(parcel.ReadBool());
     property->SetMobileAppInPadLayoutFullScreen(parcel.ReadBool());
     property->SetIsFullScreenInForceSplitMode(parcel.ReadBool());
-    property->SetCompatibleModePage(parcel.ReadString());
     property->SetPageCompatibleMode(static_cast<CompatibleStyleMode>(parcel.ReadInt32()));
     property->SetAspectRatio(parcel.ReadFloat());
     property->SetRotationLocked(parcel.ReadBool());
+    property->SetFrameNum(parcel.ReadInt32());
+    property->SetPrelaunch(parcel.ReadBool());
     return property;
 }
 
@@ -2383,11 +2411,13 @@ bool WindowSessionProperty::GetIsAbilityHook() const
 
 sptr<CompatibleModeProperty> WindowSessionProperty::GetCompatibleModeProperty() const
 {
+    std::lock_guard lock(compatibleModeMutex_);
     return compatibleModeProperty_;
 }
 
 void WindowSessionProperty::SetCompatibleModeProperty(const sptr<CompatibleModeProperty> property)
 {
+    std::lock_guard lock(compatibleModeMutex_);
     compatibleModeProperty_ = property;
 }
 
@@ -2490,16 +2520,6 @@ void WindowSessionProperty::SetIsFullScreenInForceSplitMode(bool isFullScreenInF
 bool WindowSessionProperty::IsFullScreenInForceSplitMode() const
 {
     return isFullScreenInForceSplitMode_;
-}
-
-void WindowSessionProperty::SetCompatibleModePage(const std::string& compatibleModePage)
-{
-    compatibleModePage_ = compatibleModePage;
-}
-
-std::string WindowSessionProperty::GetCompatibleModePage() const
-{
-    return compatibleModePage_;
 }
 
 void WindowSessionProperty::SetPageCompatibleMode(CompatibleStyleMode compatibleMode)
@@ -2874,6 +2894,26 @@ void WindowSessionProperty::SetStatusBarHeightInImmersive(int32_t statusBarHeigh
 int32_t WindowSessionProperty::GetStatusBarHeightInImmersive() const
 {
     return statusBarHeightInImmersive_;
+}
+
+void WindowSessionProperty::SetPrelaunch(bool isPrelaunch)
+{
+    isPrelaunch_ = isPrelaunch;
+}
+
+bool WindowSessionProperty::IsPrelaunch() const
+{
+    return isPrelaunch_;
+}
+
+void WindowSessionProperty::SetFrameNum(int32_t frameNum)
+{
+    frameNum_ = frameNum;
+}
+
+int32_t WindowSessionProperty::GetFrameNum() const
+{
+    return frameNum_;
 }
 } // namespace Rosen
 } // namespace OHOS

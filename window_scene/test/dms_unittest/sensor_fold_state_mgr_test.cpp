@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -264,6 +264,20 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest10, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find("current state: 2, next state: 1.") != std::string::npos);
 }
 
+/**
+ * @tc.name: FinishTaskSequence
+ * @tc.desc: FinishTaskSequence
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, FinishTaskSequence, TestSize.Level0)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SensorFoldStateMgr::GetInstance().FinishTaskSequence();
+    EXPECT_TRUE(g_logMsg.find("TaskSequenceProcess") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    g_logMsg.clear();
+}
 }
 }
 } // namespace Rosen

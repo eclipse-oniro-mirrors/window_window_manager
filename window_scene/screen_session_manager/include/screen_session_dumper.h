@@ -52,6 +52,8 @@ private:
     void AppendSectionLine();
     void ShowVisibleAreaDisplayInfo();
     void DumpFoldStatus();
+    void DumpForceFoldLockStatus();
+    std::string ConvertFoldStatusToString(FoldStatus foldStatus);
     void DumpTentMode();
     void DumpFoldCreaseRegion();
     void OutputDumpInfo();
@@ -79,6 +81,8 @@ private:
     bool IsValidDisplayModeCommand(std::string command);
     int32_t SetFoldDisplayMode();
     int SetFoldStatusLocked();
+    int ForceSetFoldStatusAndLock(std::string& input);
+    int RestorePhysicalFoldStatus();
     void SetHallAndPostureValue(std::string input);
     void SetHallAndPostureStatus(std::string input);
     void SetSecondaryStatusChange(const std::string &input);
@@ -92,6 +96,17 @@ private:
     bool IsDeveloperModeCommand();
     void ShowCurrentLcdStatus(ScreenId screenId);
 private:
+    const std::map<FoldStatus, std::string> statusMap_ = {
+        {FoldStatus::EXPAND, "EXPAND"},
+        {FoldStatus::FOLDED, "FOLDED"},
+        {FoldStatus::HALF_FOLD, "HALF_FOLD"},
+        {FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_EXPAND, "FOLD_STATE_EXPAND_WITH_SECOND_EXPAND"},
+        {FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED, "FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED"},
+        {FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_EXPAND, "FOLD_STATE_FOLDED_WITH_SECOND_EXPAND"},
+        {FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_HALF_FOLDED, "FOLD_STATE_FOLDED_WITH_SECOND_HALF_FOLDED"},
+        {FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND, "FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND"},
+        {FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_HALF_FOLDED, "FOLD_STATE_HALF_FOLDED_WITH_SECOND_HALF_FOLDED"}
+    };
     int fd_;
     std::vector<std::string> params_;
     std::string dumpInfo_;

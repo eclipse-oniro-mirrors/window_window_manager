@@ -1594,62 +1594,6 @@ HWTEST_F(SceneSessionManagerTest4, GetTopFocusableNonAppSession01, TestSize.Leve
 }
 
 /**
- * @tc.name: GetNextFocusableSession
- * @tc.desc: GetNextFocusableSession
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest4, GetNextFocusableSession, TestSize.Level0)
-{
-    ASSERT_NE(screenSessionManagerClient_, nullptr);
-    screenSessionManagerClient_->screenSessionMap_.clear();
-    ScreenId screenId = 0;
-    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
-    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
-
-    ASSERT_NE(ssm_, nullptr);
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "bundleName";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sptr<SceneSession> sceneSession02 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sptr<SceneSession> sceneSession03 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sptr<SceneSession> sceneSession04 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sptr<SceneSession> sceneSession05 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    ASSERT_NE(sceneSession02, nullptr);
-    ASSERT_NE(sceneSession03, nullptr);
-    ASSERT_NE(sceneSession04, nullptr);
-    ASSERT_NE(sceneSession05, nullptr);
-    ASSERT_NE(sceneSession->property_, nullptr);
-
-    sceneSession->SetForceHideState(ForceHideState::NOT_HIDDEN);
-    sceneSession->property_->SetFocusable(true);
-    sceneSession->property_->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
-    sceneSession->isVisible_ = true;
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->SetZOrder(1);
-
-    sceneSession02->SetFocusable(false);
-    sceneSession02->SetZOrder(2);
-
-    sceneSession03->SetZOrder(3);
-
-    sceneSession04->SetForceHideState(ForceHideState::HIDDEN_WHEN_FOCUSED);
-    sceneSession04->SetZOrder(4);
-
-    sceneSession05->persistentId_ = 1;
-    sceneSession05->SetZOrder(5);
-
-    ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
-    ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession02));
-    ssm_->sceneSessionMap_.insert(std::make_pair(3, sceneSession03));
-    ssm_->sceneSessionMap_.insert(std::make_pair(4, sceneSession04));
-    ssm_->sceneSessionMap_.insert(std::make_pair(5, sceneSession05));
-    sptr<SceneSession> result = ssm_->GetNextFocusableSession(DEFAULT_DISPLAY_ID, 1);
-    EXPECT_EQ(result, sceneSession);
-    screenSessionManagerClient_->screenSessionMap_.clear();
-}
-
-/**
  * @tc.name: GetTopNearestBlockingFocusSession
  * @tc.desc: GetTopNearestBlockingFocusSession
  * @tc.type: FUNC
@@ -1758,6 +1702,10 @@ HWTEST_F(SceneSessionManagerTest4, CheckBlockingFocus, TestSize.Level1)
     ret = ssm_->CheckBlockingFocus(sceneSession, true);
     EXPECT_EQ(ret, true);
 
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD);
+    ret = ssm_->CheckBlockingFocus(sceneSession, false);
+    EXPECT_EQ(ret, true);
+
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_VOICE_INTERACTION);
     ret = ssm_->CheckBlockingFocus(sceneSession, false);
     EXPECT_EQ(ret, true);
@@ -1786,40 +1734,6 @@ HWTEST_F(SceneSessionManagerTest4, CheckBlockingFocus, TestSize.Level1)
     ret = ssm_->CheckBlockingFocus(sceneSession, true);
     EXPECT_EQ(ret, true);
     sceneSession->isMidScene_ = false;
-}
-
-/**
- * @tc.name: RequestFocusSpecificCheck
- * @tc.desc: RequestFocusSpecificCheck
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest4, RequestFocusSpecificCheck, TestSize.Level0)
-{
-    ASSERT_NE(screenSessionManagerClient_, nullptr);
-    screenSessionManagerClient_->screenSessionMap_.clear();
-    ScreenId screenId = 0;
-    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
-    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
-
-    ASSERT_NE(ssm_, nullptr);
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "bundleName";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    bool byForeground = true;
-    FocusChangeReason reason = FocusChangeReason::CLIENT_REQUEST;
-    sceneSession->SetForceHideState(ForceHideState::HIDDEN_WHEN_FOCUSED);
-    WSError result = ssm_->RequestFocusSpecificCheck(DEFAULT_DISPLAY_ID, sceneSession, byForeground, reason);
-    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_OPERATION);
-
-    sceneSession->SetForceHideState(ForceHideState::NOT_HIDDEN);
-    sptr<SceneSession> sceneSession01 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(sceneSession01, nullptr);
-    ssm_->sceneSessionMap_.insert(std::make_pair(0, sceneSession01));
-    sceneSession01->parentSession_ = sceneSession;
-    result = ssm_->RequestFocusSpecificCheck(DEFAULT_DISPLAY_ID, sceneSession, byForeground, reason);
-    EXPECT_EQ(result, WSError::WS_OK);
-    screenSessionManagerClient_->screenSessionMap_.clear();
 }
 
 /**

@@ -24,22 +24,14 @@ group("unittest") {
     ":ws_screen_power_utils_test",
     ":ws_screen_property_test",
     ":ws_screen_rotation_property_test",
-    ":ws_screen_scene_config_test",
-    ":ws_screen_session_manager_client_proxy_test",
-    ":ws_screen_session_manager_client_stub_test",
     ":ws_screen_session_manager_lite_proxy_test",
     ":ws_screen_session_manager_lite_stub_test",
-    ":ws_screen_session_manager_lite_test",
     ":ws_screen_session_manager_lite_proxy_mock_test",
     ":ws_screen_session_manager_stub_test",
     ":ws_screen_session_publish_test",
-    ":ws_screen_session_test",
-    ":ws_screen_setting_helper_test",
     ":ws_screen_snapshot_picker_connection_test",
     ":ws_session_display_power_controller_test",
-    ":ws_screen_state_machine_test",
     ":ws_setting_observer_test",
-    ":ws_setting_provider_test",
   ]
 
   if (!window_manager_use_sceneboard) {
@@ -56,6 +48,15 @@ group("unittest") {
       ":ws_screen_session_manager_test_six",
       ":ws_screen_session_manager_test_seven",
       ":ws_screen_session_manager_test_eight",
+      ":ws_screen_aod_plugin_test",
+      ":ws_screen_scene_config_test",
+      ":ws_setting_provider_test",
+      ":ws_screen_session_test",
+      ":ws_screen_session_manager_client_stub_test",
+      ":ws_screen_setting_helper_test",
+      ":ws_screen_session_manager_lite_test",
+      ":ws_screen_state_machine_test",
+      ":ws_screen_session_manager_client_proxy_test",
     ]
   }
 
@@ -65,10 +66,11 @@ group("unittest") {
     deps += [ ":ws_screen_session_ability_connection_test" ]
   }
 
-  if (window_manager_fold_ability) {
+  if (window_manager_fold_ability && window_manager_use_sceneboard) {
     deps += [
       ":ws_dual_display_fold_policy_test",
       ":ws_dual_display_sensor_fold_state_manager_test",
+      ":ws_fold_crease_region_controller_test",
       ":ws_fold_screen_controller_test",
       ":ws_fold_screen_sensor_manager_test",
       ":ws_fold_screen_state_machine_test",
@@ -91,7 +93,7 @@ group("unittest") {
     ]
   }
 
-  if (window_manager_feature_multi_screen) {
+  if (window_manager_feature_multi_screen && window_manager_use_sceneboard) {
     deps += [
       ":ws_multi_screen_change_utils_test",
       ":ws_multi_screen_manager_test",
@@ -1024,6 +1026,26 @@ ohos_unittest("ws_screen_session_manager_test_eight") {
   }
 }
 
+ohos_unittest("ws_screen_aod_plugin_test") {
+  module_out_path = module_out_path
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+  sources = [ 
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "screen_aod_plugin_test.cpp" 
+  ]
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_runtime:dataobs_manager",
+    "init:libbegetutil"
+  ]
+}
+
 ohos_unittest("ws_screen_rotation_property_test") {
   module_out_path = module_out_path
 
@@ -1440,6 +1462,22 @@ if (window_manager_fold_ability) {
       defines += [ "SENSOR_ENABLE" ]
     }
   }
+
+  ohos_unittest("ws_fold_crease_region_controller_test") {
+    module_out_path = module_out_path
+ 
+    sources = [ "fold_crease_region_controller_test.cpp" ]
+ 
+    deps = [
+      ":ws_unittest_common",
+    ]
+ 
+    external_deps = test_external_deps
+    external_deps += [
+      "hisysevent:libhisysevent",
+      "init:libbegetutil",
+    ]
+  }
 }
 
 ## Build ws_unittest_common.a {{{
@@ -1505,7 +1543,7 @@ ohos_static_library("ws_unittest_common") {
     "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",
     "${window_base_path}/window_scene/screen_session_manager:screen_session_manager",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
     "${window_base_path}/window_scene/session:screen_session",
     "${window_base_path}/window_scene/session_manager:scene_session_manager",
     "${window_base_path}/window_scene/session_manager:session_manager",

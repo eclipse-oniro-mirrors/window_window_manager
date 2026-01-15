@@ -67,6 +67,7 @@ ohos_shared_library("windowstageani_kit") {
     "../../../../interfaces/kits/napi/window_runtime:windowstage_kit",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
+    "../../../../window_scene/interfaces/innerkits:libwsutils",
     "../../../../wm:libwm",
   ]
 
@@ -76,6 +77,7 @@ ohos_shared_library("windowstageani_kit") {
     "ability_runtime:abilitykit_native",
     "ability_runtime:dialog_request_info_ani_kit",
     "ability_runtime:runtime",
+    "ability_runtime:ani_common",
     "access_token:libaccesstoken_sdk",
     "ace_engine:ace_uicontent",
     "bundle_framework:appexecfwk_base",

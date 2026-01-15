@@ -127,6 +127,8 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError OnRestoreMainWindow() { return WSError::WS_OK; }
+    virtual WMError RestoreFloatMainWindow(
+        const std::shared_ptr<AAFwk::WantParams>& wantParams) { return WMError::WM_OK; }
 
     /**
      * @brief Raise the application subwindow to the top layer of the application.
@@ -294,6 +296,7 @@ public:
         return WSError::WS_OK;
     }
     virtual WMError NotifySnapshotUpdate() { return WMError::WM_OK; }
+    virtual WMError NotifyRemovePrelaunchStartingWindow() { return WMError::WM_OK; }
     virtual void NotifyExtensionDied() {}
     virtual void NotifyExtensionTimeout(int32_t errorCode) {}
     virtual void TriggerBindModalUIExtension() {}
@@ -377,6 +380,13 @@ public:
     {
         return WSError::WS_OK;
     }
+
+    /**
+     * @brief get is pip active
+     *
+     * @return WSError
+     */
+    virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
 
     virtual WSError ProcessPointDownSession(int32_t posX, int32_t posY) { return WSError::WS_OK; }
     virtual WSError SendPointEventForMoveDrag(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,

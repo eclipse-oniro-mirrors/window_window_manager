@@ -88,7 +88,7 @@ void SuperFoldSensorManager::RegisterHallCallback()
 
 void SuperFoldSensorManager::UnregisterHallCallback()
 {
-    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL);
     if (ret == SENSOR_SUCCESS) {
         TLOGI(WmsLogTag::DMS, "success.");
     } else {

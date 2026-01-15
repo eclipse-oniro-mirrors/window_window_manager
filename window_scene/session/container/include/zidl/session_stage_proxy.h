@@ -69,6 +69,7 @@ public:
     WSError UpdateTitleInTargetPos(bool isShow, int32_t height) override;
     void NotifyTransformChange(const Transform& transform) override;
     void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) override;
+    void NotifyGlobalScaledRectChange(const Rect& globalScaledRect) override;
     WSError NotifyDialogStateChange(bool isForeground) override;
     WSError SetPipActionEvent(const std::string& action, int32_t status) override;
     WSError SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -125,6 +126,8 @@ public:
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
+    WSError AddSidebarBlur() override;
+    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;

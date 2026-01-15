@@ -62,6 +62,7 @@ private:
     static napi_value CreatePendingInfosNapiValue(
         napi_env env, const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
         const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs);
+    void SetSceneSessionForPrelaunch(const SessionInfo& info, const sptr<SceneSession>& sceneSession);
     napi_env env_;
     std::map<std::string, std::shared_ptr<NativeReference>> jsCbMap_;
     mutable std::shared_mutex jsCbMapMutex_;

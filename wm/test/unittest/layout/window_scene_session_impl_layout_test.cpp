@@ -998,6 +998,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, GetGlobalScaledRect, TestSize.Level1)
     hookWindowInfo.widthHookRatio = 0.5f;
     window->SetAppHookWindowInfo(hookWindowInfo);
     Rect globalScaledRect = { 0, 0, 800, 800 };
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
     WMError res = window->GetGlobalScaledRect(globalScaledRect);
     EXPECT_EQ(res, WMError::WM_OK);
     EXPECT_NE(globalScaledRect.width_, 800);

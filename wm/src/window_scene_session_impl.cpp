@@ -18,6 +18,8 @@
 #include <chrono>
 #include <limits>
 #include <ability_manager_client.h>
+#include <modifier/rs_property.h>
+#include <modifier_ng/appearance/rs_behind_window_filter_modifier.h>
 #include <parameters.h>
 #include <sstream>
 #include <string>
@@ -151,7 +153,7 @@ constexpr uint32_t FORCE_LIMIT_MIN_FLOATING_HEIGHT = 40;
 constexpr int32_t API_VERSION_18 = 18;
 constexpr uint32_t SNAPSHOT_TIMEOUT = 2000; // MS
 constexpr uint32_t REASON_MAXIMIZE_MODE_CHANGE = 1;
-const std::string COOPERATION_DISPLAY_NAME = "Cooperation";
+constexpr int32_t SIDEBAR_BLUR_ANIMATION_DURATION = 150;
 
 bool IsValueInRange(double value, double lowerBound, double upperBound)
 {
@@ -1086,6 +1088,7 @@ void WindowSceneSessionImpl::OnWindowRecoverStateChange(bool isSpecificSession, 
     switch (state) {
         case WindowRecoverState::WINDOW_START_RECONNECT:
             UpdateStartRecoverProperty(isSpecificSession);
+            UpdateStartRecoverEventFlag();
             break;
         case WindowRecoverState::WINDOW_FINISH_RECONNECT:
             UpdateFinishRecoverProperty(isSpecificSession);
@@ -1095,6 +1098,13 @@ void WindowSceneSessionImpl::OnWindowRecoverStateChange(bool isSpecificSession, 
         default:
             break;
     }
+}
+
+void WindowSceneSessionImpl::UpdateStartRecoverEventFlag()
+{
+    std::unique_lock<std::shared_mutex> lock(windowSessionMutex_);
+    property_->EditSessionInfo().isReceiveDragEventEnabled_ = isReceiveDragEventEnabled_;
+    property_->EditSessionInfo().isSeparationTouchEnabled_ = isSeparationTouchEnabled_;
 }
 
 void WindowSceneSessionImpl::UpdateStartRecoverProperty(bool isSpecificSession)
@@ -1745,7 +1755,7 @@ void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<Display
             TLOGE(WmsLogTag::WMS_KEYBOARD, "Update prelayout failed, %{public}" PRIu64, screenId);
         } else {
             std::string dispName = info->GetName();
-            Rect newRect = (info->GetWidth() > info->GetHeight() || dispName == COOPERATION_DISPLAY_NAME) ?
+            Rect newRect = (info->GetWidth() > info->GetHeight()) ?
                             params.LandscapeKeyboardRect_ : params.PortraitKeyboardRect_;
             property_->SetRequestRect(newRect);
         }
@@ -1757,10 +1767,10 @@ void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<Display
         UpdateViewportConfig(requestRect, WindowSizeChangeReason::RESIZE, nullptr, info);
         if (auto hostSession = GetHostSession()) {
             WSRect wsRect = { requestRect.posX_, requestRect.posY_, requestRect.width_, requestRect.height_ };
-            if (type != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
-                SetNotifySizeChangeFlag(true);
-                property_->SetWindowRect(requestRect);
-            }
+            // Set a flag when the window rect and the request rect are the same for size change notify
+            // SetNotifySizeChangeFlag must be set before SetWindowRect
+            SetNotifySizeChangeFlag(true);
+            property_->SetWindowRect(requestRect);
             hostSession->UpdateClientRect(wsRect);
         } else {
             TLOGE(WmsLogTag::WMS_LAYOUT, "hostSession is null");
@@ -2164,6 +2174,27 @@ void WindowSceneSessionImpl::SetDefaultProperty()
     }
 }
 
+void WindowSceneSessionImpl::ReleaseUIContentTimeoutCheck()
+{
+    handler_->PostTask(
+        [weakThis = wptr(this), where = __func__] {
+            auto window = weakThis.promote();
+            if (!window) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s window is nullptr", where);
+                return;
+            }
+            auto uiContent = window->GetUIContentSharedPtr();
+            if (uiContent == nullptr) {
+                TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s id:%{public}d, uiContent is already destroy.",
+                    where, window->GetProperty()->GetPersistentId());
+                return;
+            }
+            TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s Destroy window timeout, id:%{public}d",
+                where, window->GetProperty()->GetPersistentId());
+            window->NotifyUIContentDestroy();
+        }, __func__, WINDOW_DETACH_TIMEOUT);
+}
+
 WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer)
 {
     WMError ret = WMError::WM_OK;
@@ -2176,7 +2207,9 @@ WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer)
             if (parentSession == nullptr || parentSession->GetHostSession() == nullptr) {
                 return WMError::WM_ERROR_NULLPTR;
             }
-            ret = SyncDestroyAndDisconnectSpecificSession(property_->GetPersistentId());
+            ret = SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSession(
+                property_->GetPersistentId());
+            ReleaseUIContentTimeoutCheck();
         } else if (property_->GetIsUIExtFirstSubWindow()) {
             ret = SyncDestroyAndDisconnectSpecificSession(property_->GetPersistentId());
         }
@@ -3179,6 +3212,9 @@ WMError WindowSceneSessionImpl::SetLayoutFullScreenByApiVersion(bool status)
     }
     isIgnoreSafeArea_ = status;
     isIgnoreSafeAreaNeedNotify_ = true;
+    if (isIgnoreSafeArea_) {
+        maximizeLayoutFullScreen_.store(false);
+    }
     // 10 ArkUI new framework support after API10
     if (version >= 10) {
         TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u status %{public}d",
@@ -3470,8 +3506,12 @@ WMError WindowSceneSessionImpl::UpdateSystemBarProperties(
 WMError WindowSceneSessionImpl::UpdateSystemBarPropertyForPage(WindowType type,
     const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag)
 {
-    std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
+    if (systemBarPropertyFlag.contentColorFlag) {
+        UpdateStatusBarColorHistory(StatusBarColorChangeReason::WINDOW_CONFIGURATION,
+            std::optional<uint32_t>(systemBarProperty.contentColor_));
+    }
     {
+        std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
         auto iter = nowsystemBarPropertyMap_.find(type);
         if (iter != nowsystemBarPropertyMap_.end()) {
             iter->second.enable_ = systemBarPropertyFlag.enableFlag ? systemBarProperty.enable_ : iter->second.enable_;
@@ -3517,27 +3557,75 @@ WMError WindowSceneSessionImpl::SetSystemBarProperty(WindowType type, const Syst
 WMError WindowSceneSessionImpl::SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
     const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags)
 {
-    SystemBarProperty current = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    auto flagIter = propertyFlags.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    auto propertyIter = properties.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    if ((flagIter != propertyFlags.end() && flagIter->second.contentColorFlag) &&
-        (propertyIter != properties.end() && current.contentColor_ != propertyIter->second.contentColor_)) {
-        current.contentColor_ = propertyIter->second.contentColor_;
-        current.settingFlag_ = static_cast<SystemBarSettingFlag>(
-            static_cast<uint32_t>(propertyIter->second.settingFlag_) |
-            static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING));
-        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u set status bar content color %{public}u",
-            GetWindowId(), current.contentColor_);
-        return SetSpecificBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, current);
+    auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
+    bool finshUpdate = false;
+    {
+        std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
+        auto iter = nowsystemBarPropertyMap_.find(type);
+        if (iter == nowsystemBarPropertyMap_.end()) {
+            nowsystemBarPropertyMap_[type] = GetSystemBarPropertyByType(type);
+        }
+        auto flagIter = propertyFlags.find(type);
+        auto propertyIter = properties.find(type);
+        if (flagIter != propertyFlags.end() && flagIter->second.contentColorFlag &&
+            propertyIter != properties.end() && propertyIter->second.contentColor_ != iter->second.contentColor_) {
+            iter->second.contentColor_ = propertyIter->second.contentColor_;
+            iter->second.settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
+            UpdateStatusBarColorHistory(StatusBarColorChangeReason::NAVIGATION_CONFIGURATION,
+                std::optional<uint32_t>(propertyIter->second.contentColor_));
+            isNavigationUseColor_ = true;
+            finshUpdate = true;
+        }
+    }
+    if (finshUpdate) {
+        SetSpecificBarProperty(type, nowsystemBarPropertyMap_[type]);
+        property_->SetSystemBarProperty(type, GetSystemBarPropertyByType(type));
     }
     return WMError::WM_OK;
 }
 
 WMError WindowSceneSessionImpl::GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties)
 {
-    auto currProperties = property_->GetSystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = currProperties[WindowType::WINDOW_TYPE_STATUS_BAR];
+    {
+        std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
+        auto iter = nowsystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
+        if (iter != nowsystemBarPropertyMap_.end()) {
+            properties[WindowType::WINDOW_TYPE_STATUS_BAR] = iter->second;
+        } else {
+            properties[WindowType::WINDOW_TYPE_STATUS_BAR] =
+                GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
+        }
+    }
     return WMError::WM_OK;
+}
+
+uint32_t WindowSceneSessionImpl::UpdateStatusBarColorHistory(
+    StatusBarColorChangeReason reason, std::optional<uint32_t> color)
+{
+    std::stack<StatusBarColorConfigPair> tmpStatusBarColorHistory;
+    while (!statusBarColorHistory_.empty()) {
+        auto top = statusBarColorHistory_.top();
+        statusBarColorHistory_.pop();
+        if (top.first == reason) {
+            break;
+        }
+        tmpStatusBarColorHistory.push(top);
+    }
+    while (!tmpStatusBarColorHistory.empty()) {
+        statusBarColorHistory_.push(tmpStatusBarColorHistory.top());
+        tmpStatusBarColorHistory.pop();
+    }
+    if (color != std::nullopt) {
+        statusBarColorHistory_.push(StatusBarColorConfigPair(reason, color.value()));
+    }
+    if (statusBarColorHistory_.empty()) {
+        auto property = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
+        auto defaultConfig = StatusBarColorConfigPair(
+            StatusBarColorChangeReason::WINDOW_CONFIGURATION, property.contentColor_);
+        auto config = color == std::nullopt ? defaultConfig : StatusBarColorConfigPair(reason, color.value());
+        statusBarColorHistory_.push(config);
+    }
+    return statusBarColorHistory_.top().second;
 }
 
 WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std::optional<SystemBarProperty> property)
@@ -3551,19 +3639,24 @@ WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std
         return WMError::WM_DO_NOTHING;
     }
     auto newProperty = GetSystemBarPropertyByType(type);
-    std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
     {
+        std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
         if (property == std::nullopt) {
             nowsystemBarPropertyMap_[type].enable_ = newProperty.enable_;
+            nowsystemBarPropertyMap_[type].enableAnimation_ = newProperty.enableAnimation_;
             auto flag = (static_cast<uint32_t>(nowsystemBarPropertyMap_[type].settingFlag_) &
                 ~static_cast<uint32_t>(SystemBarSettingFlag::ENABLE_SETTING)) |
                 static_cast<uint32_t>(newProperty.settingFlag_);
             nowsystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
         } else {
             nowsystemBarPropertyMap_[type].enable_ = property.value().enable_;
+            nowsystemBarPropertyMap_[type].enableAnimation_ = property.value().enableAnimation_;
             nowsystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::ENABLE_SETTING;
         }
         newProperty = nowsystemBarPropertyMap_[type];
+        TLOGI(WmsLogTag::WMS_IMMS, "option:%{public}d, enable:%{public}d, enableAnimation:%{public}d",
+            property == std::nullopt ? 0 : property.value().enable_, nowsystemBarPropertyMap_[type].enable_,
+            nowsystemBarPropertyMap_[type].enableAnimation_);
     }
     return updateSystemBarproperty(type, newProperty);
 }
@@ -3572,23 +3665,29 @@ WMError WindowSceneSessionImpl::SetStatusBarColorForPage(const std::optional<uin
 {
     auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
     auto newProperty = GetSystemBarPropertyByType(type);
-    std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
     {
+        std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
+        if (color == std::nullopt && !isAtomicServiceUseColor_) {
+            return WMError::WM_DO_NOTHING;
+        }
         if (color == std::nullopt) {
-            nowsystemBarPropertyMap_[type].contentColor_ = newProperty.contentColor_;
-            auto flag = (static_cast<uint32_t>(nowsystemBarPropertyMap_[type].settingFlag_) &
-                ~static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING)) |
-                static_cast<uint32_t>(newProperty.settingFlag_);
-            nowsystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
+            if (!isNavigationUseColor_) {
+                auto flag = (static_cast<uint32_t>(nowsystemBarPropertyMap_[type].settingFlag_) &
+                    ~static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING)) |
+                    static_cast<uint32_t>(newProperty.settingFlag_);
+                nowsystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
+            }
             isAtomicServiceUseColor_ = false;
         } else {
-            nowsystemBarPropertyMap_[type].contentColor_ = color.value();
             nowsystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
             isAtomicServiceUseColor_ = true;
         }
-        newProperty = nowsystemBarPropertyMap_[type];
+        nowsystemBarPropertyMap_[type].contentColor_ =
+            UpdateStatusBarColorHistory(StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION, color);
+        TLOGI(WmsLogTag::WMS_IMMS, "option:%{public}d, color:%{public}x",
+            color == std::nullopt ? 0 : color.value(), nowsystemBarPropertyMap_[type].contentColor_);
     }
-    return updateSystemBarproperty(type, newProperty);
+    return updateSystemBarproperty(type, nowsystemBarPropertyMap_[type]);
 }
 
 WMError WindowSceneSessionImpl::updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty)
@@ -3704,15 +3803,6 @@ WMError WindowSceneSessionImpl::SetWindowTitle(const std::string& title)
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_DECOR, "Session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    if (property_->GetPcAppInpadCompatibleMode() && !IsDecorEnable()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "This is PcAppInPad, not supported");
-        return WMError::WM_OK;
-    }
-    if (!(windowSystemConfig_.IsPcWindow() || windowSystemConfig_.IsPadWindow() ||
-          windowSystemConfig_.IsPhoneWindow() || IsDeviceFeatureCapableForFreeMultiWindow())) {
-        TLOGE(WmsLogTag::WMS_DECOR, "device not support");
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     if (!IsDecorEnable()) {
         TLOGE(WmsLogTag::WMS_DECOR, "DecorEnable is false");
@@ -3889,6 +3979,8 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
     hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
     hostSession->OnTitleAndDockHoverShowChange(titleHoverShowEnabled_, dockHoverShowEnabled_);
     SetLayoutFullScreenByApiVersion(enableImmersiveMode_);
+    maximizeLayoutFullScreen_.store(presentation == MaximizePresentation::ENTER_IMMERSIVE ||
+        presentation == MaximizePresentation::ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER);
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "present: %{public}d, enableImmersiveMode_:%{public}d!",
         presentation, enableImmersiveMode_.load());
     SessionEventParam param;
@@ -4096,16 +4188,6 @@ WMError WindowSceneSessionImpl::SetWindowRectAutoSave(bool enabled, bool isSaveB
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
 
-    if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
-        TLOGE(WmsLogTag::WMS_MAIN, "This is PcAppInPad, not supported");
-        return WMError::WM_OK;
-    }
-
-    if (!IsPcOrPadFreeMultiWindowMode()) {
-        TLOGE(WmsLogTag::WMS_MAIN, "This is not PC mode or free multi window mode, not supported");
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
     if (!WindowHelper::IsMainWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_MAIN, "This is not main window, not supported");
         return WMError::WM_ERROR_INVALID_CALLING;
@@ -4122,16 +4204,6 @@ WMError WindowSceneSessionImpl::IsWindowRectAutoSave(bool& enabled)
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_MAIN, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-
-    if (property_->GetPcAppInpadCompatibleMode()) {
-        TLOGE(WmsLogTag::WMS_MAIN, "This is PcAppInPad, not supported");
-        return WMError::WM_OK;
-    }
-
-    if (!windowSystemConfig_.IsPcWindow()) {
-        TLOGE(WmsLogTag::WMS_MAIN, "This is not PC, not supported");
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
     if (!WindowHelper::IsMainWindow(GetType())) {
@@ -4839,6 +4911,7 @@ WMError WindowSceneSessionImpl::UpdateColorMode(const std::shared_ptr<AppExecFwk
         return WMError::WM_DO_NOTHING;
     }
     colorMode_ = colorMode;
+    UpdateSidebarBlurStyleWhenColorModeChange();
     bool hasDarkRes = false;
     appContext->AppHasDarkRes(hasDarkRes);
     hasDarkRes_ = hasDarkRes;
@@ -6184,6 +6257,7 @@ void WindowSceneSessionImpl::PendingUpdateSupportWindowModesWhenSwitchMultiWindo
 void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable)
 {
     if (freeMultiWindowEnable && enableImmersiveMode_) {
+        maximizeLayoutFullScreen_.store(false);
         cacheEnableImmersiveMode_.store(true);
         enableImmersiveMode_.store(false);
         property_->SetIsLayoutFullScreen(enableImmersiveMode_);
@@ -6193,14 +6267,21 @@ void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEna
             TLOGE(WmsLogTag::WMS_LAYOUT, "host session is nullptr, id: %{public}d", GetPersistentId());
         }
     }
-    if (!freeMultiWindowEnable && cacheEnableImmersiveMode_) {
-        enableImmersiveMode_.store(true);
-        cacheEnableImmersiveMode_.store(false);
-        property_->SetIsLayoutFullScreen(enableImmersiveMode_);
-        if (auto hostSession = GetHostSession()) {
-            hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
-        } else {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "host session is nullptr, id: %{public}d", GetPersistentId());
+    if (!freeMultiWindowEnable) {
+        if (maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_) {
+            SetLayoutFullScreenByApiVersion(false);
+            maximizeLayoutFullScreen_.store(false);
+        }
+        if (cacheEnableImmersiveMode_) {
+            enableImmersiveMode_.store(true);
+            cacheEnableImmersiveMode_.store(false);
+            property_->SetIsLayoutFullScreen(enableImmersiveMode_);
+            SetLayoutFullScreenByApiVersion(enableImmersiveMode_);
+            if (auto hostSession = GetHostSession()) {
+                hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
+            } else {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "host session is nullptr, id: %{public}d", GetPersistentId());
+            }
         }
     }
 }
@@ -6764,7 +6845,22 @@ WMError WindowSceneSessionImpl::UnregisterWindowAttachStateChangeListener()
 
 WSError WindowSceneSessionImpl::NotifyWindowAttachStateChange(bool isAttach)
 {
-    TLOGI(WmsLogTag::WMS_SUB, "id: %{public}d", GetPersistentId());
+    TLOGI(WmsLogTag::WMS_SUB, "id: %{public}d, isAttach:%{public}u.", GetPersistentId(), isAttach);
+    if (handler_) {
+        handler_->PostTask(
+            [weakThis = wptr(this), isAttach] {
+                auto window = weakThis.promote();
+                if (!window) {
+                    return;
+                }
+                window->isAttachedOnFrameNode_ = isAttach;
+                if (window->state_ == WindowState::STATE_DESTROYED && !isAttach &&
+                    WindowHelper::IsSubWindow(window->GetType()) &&
+                    !window->property_->GetIsUIExtFirstSubWindow()) {
+                    window->NotifyUIContentDestroy();
+                }
+            }, __func__);
+    }
     if (lifecycleCallback_) {
         TLOGI(WmsLogTag::WMS_SUB, "notifyAttachState id: %{public}d", GetPersistentId());
         lifecycleCallback_->OnNotifyAttachState(isAttach);
@@ -6814,7 +6910,6 @@ WSError WindowSceneSessionImpl::UpdateDisplayId(DisplayId displayId)
     if (displayIdChanged) {
         TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid: %{public}d, displayId: %{public}" PRIu64, GetPersistentId(), displayId);
         NotifyDisplayIdChange(displayId);
-        NotifyDmsDisplayMove(displayId);
     }
     return WSError::WS_OK;
 }
@@ -6900,7 +6995,6 @@ bool WindowSceneSessionImpl::IsLandscape(uint64_t displayId)
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
-    isLandscape = isLandscape || (dispName == COOPERATION_DISPLAY_NAME);
     TLOGI(WmsLogTag::WMS_KEYBOARD, "c-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d, %{public}s",
         displayId, displayWidth, displayHeight, isLandscape, dispName.c_str());
     return isLandscape;
@@ -7156,8 +7250,12 @@ void WindowSceneSessionImpl::ConvertPointForCompatibleMode(const std::shared_ptr
 
 bool WindowSceneSessionImpl::IsInMappingRegionForCompatibleMode(int32_t displayX, int32_t displayY)
 {
-    const auto& windowRect = GetRect();
     Rect pointerRect = { displayX, displayY, 0, 0 };
+    Rect globalRect {};
+    if (WMError::WM_OK == GetGlobalScaledRect(globalRect)) {
+        return !pointerRect.IsInsideOf(globalRect);
+    }
+    const auto& windowRect = GetRect();
     return !pointerRect.IsInsideOf(windowRect);
 }
 
@@ -7644,6 +7742,18 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
     return WMError::WM_OK;
 }
 
+WMError WindowSceneSessionImpl::GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
+{
+    auto persistentId = GetPersistentId();
+    nlohmann::json winStateSnapshotJson = {
+        {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
+    };
+    winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
+        persistentId, winStateSnapshotJsonStr.c_str());
+    return WMError::WM_OK;
+}
+
 WMError WindowSceneSessionImpl::SetRotationLocked(bool locked)
 {
     if (IsWindowSessionInvalid()) {
@@ -7811,6 +7921,40 @@ WMError WindowSceneSessionImpl::SetSubWindowSource(SubWindowSource source)
     return ret != WSError::WS_OK ? WMError::WM_ERROR_SYSTEM_ABNORMALLY : WMError::WM_OK;
 }
 
+WMError WindowSceneSessionImpl::RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "restore float main window id: %{public}d", GetPersistentId());
+    if (GetType() != WindowType::WINDOW_TYPE_FLOAT) {
+        TLOGE(WmsLogTag::WMS_LIFE, "only TYPE_FLOAT can use interface, type:%{public}u", GetType());
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
+    auto parentWindow = FindWindowById(property_->GetParentPersistentId());
+    if (parentWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "parentWindow is invalid");
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (state_ != WindowState::STATE_SHOWN) {
+        TLOGE(WmsLogTag::WMS_LIFE, "window is not foreground showing");
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
+    
+    auto hostSession = GetHostSession();
+    if (!hostSession) {
+        TLOGI(WmsLogTag::WMS_LIFE, "session is nullptr");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    WMError ret = hostSession->RestoreFloatMainWindow(wantParams);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "RestoreFloatMainWindow result is: %{public}d", static_cast<int32_t>(ret));
+        return ret;
+    }
+    return WMError::WM_OK;
+}
+
 WSError WindowSceneSessionImpl::CloseSpecificScene()
 {
     if (!property_->IsDecorEnable()) {
@@ -7876,14 +8020,14 @@ WMError WindowSceneSessionImpl::SetReceiveDragEventEnabled(bool enabled)
     auto result = hostSession->SendCommonEvent(static_cast<int32_t>(CommonEventCommand::SET_RECEIVE_DRAG_EVENT),
         parameters);
     if (result == WMError::WM_OK) {
-        isReceiveDragEventEnable_ = enabled;
+        isReceiveDragEventEnabled_ = enabled;
     }
     return result;
 }
 
 bool WindowSceneSessionImpl::IsReceiveDragEventEnabled()
 {
-    return isReceiveDragEventEnable_;
+    return isReceiveDragEventEnabled_;
 }
 
 WMError WindowSceneSessionImpl::SetSeparationTouchEnabled(bool enabled)
@@ -7925,8 +8069,8 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
     MMI::PointerEvent::PointerItem pointerItem;
     bool isValidPointItem = pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
     
-    int32_t width = windowRect.width_;
-    int32_t height = windowRect.height_;
+    int32_t width = static_cast<int32_t>(windowRect.width_);
+    int32_t height = static_cast<int32_t>(windowRect.height_);
     int32_t posX = windowRect.posX_;
     int32_t posY = windowRect.posY_;
     float vpr = WindowSessionImpl::GetVirtualPixelRatio();
@@ -7961,6 +8105,150 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
         return true;
     }
     return false;
+}
+
+WSError WindowSceneSessionImpl::AddSidebarBlur()
+{
+    TLOGI(WmsLogTag::WMS_PC, "in, persistentId=%{public}d", GetPersistentId());
+    if (handler_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PC, "handler is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    handler_->PostTask(
+        [weakThis = wptr(this), where = __func__] {
+            auto window = weakThis.promote();
+            if (!window) {
+                TLOGNE(WmsLogTag::WMS_PC, "%{public}s: window is nullptr", where);
+                return;
+            }
+            if (!window->surfaceNode_) {
+                TLOGNE(WmsLogTag::WMS_PC, "%{public}s: surfaceNode is null", where);
+                return;
+            }
+            auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+            if (rsNodeTemp) {
+                bool isDark = (window->colorMode_ == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
+                window->AddRSNodeModifier(isDark, rsNodeTemp);
+            }
+        }, __func__);
+    return WSError::WS_OK;
+}
+
+void WindowSceneSessionImpl::AddRSNodeModifier(bool isDark, const std::shared_ptr<RSBaseNode>& rsNode)
+{
+    TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark=%{public}d", GetPersistentId(), isDark);
+    if (blurRadiusValue_ && blurSaturationValue_ && blurBrightnessValue_ && blurMaskColorValue_) {
+        TLOGE(WmsLogTag::WMS_PC, "RSAnimatableProperty has value");
+        return;
+    }
+    if (!rsNode) {
+        TLOGE(WmsLogTag::WMS_PC, "rsNode is nullptr");
+        return;
+    }
+    blurRadiusValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
+        isDark ? SIDEBAR_DEFAULT_RADIUS_DARK : SIDEBAR_DEFAULT_RADIUS_LIGHT);
+    blurSaturationValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
+        isDark ? SIDEBAR_DEFAULT_SATURATION_DARK : SIDEBAR_DEFAULT_SATURATION_LIGHT);
+    blurBrightnessValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
+        isDark ? SIDEBAR_DEFAULT_BRIGHTNESS_DARK : SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT);
+    blurMaskColorValue_ = std::make_shared<RSAnimatableProperty<Rosen::RSColor>>(
+        Rosen::RSColor::FromArgbInt(isDark ? SIDEBAR_DEFAULT_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT));
+    auto modifier = std::make_shared<Rosen::ModifierNG::RSBehindWindowFilterModifier>();
+    modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_RADIUS, blurRadiusValue_);
+    modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_SATURATION, blurSaturationValue_);
+    modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_BRIGHTNESS, blurBrightnessValue_);
+    modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_MASK_COLOR, blurMaskColorValue_);
+    rsNode->AddModifier(modifier);
+}
+
+WSError WindowSceneSessionImpl::SetSidebarBlurStyleWithType(SidebarBlurType type)
+{
+    TLOGI(WmsLogTag::WMS_PC, "in, persistentId=%{public}d, type: %{public}u", GetPersistentId(),
+        static_cast<uint32_t>(type));
+    if (handler_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PC, "handler is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    handler_->PostTask(
+        [weakThis = wptr(this), type, where = __func__] {
+            auto window = weakThis.promote();
+            if (!window) {
+                TLOGNE(WmsLogTag::WMS_PC, "%{public}s: window is nullptr", where);
+                return;
+            }
+            if (!window->blurRadiusValue_ || !window->blurSaturationValue_ || !window->blurBrightnessValue_ ||
+                !window->blurMaskColorValue_) {
+                TLOGNW(WmsLogTag::WMS_PC, "%{public}s: RSAnimatableProperty is null", where);
+                return;
+            }
+            bool isDark = (window->colorMode_ == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
+            window->ModifySidebarBlurProperty(isDark, type);
+        }, __func__);
+    return WSError::WS_OK;
+}
+
+void WindowSceneSessionImpl::UpdateSidebarBlurStyleWhenColorModeChange()
+{
+    TLOGI(WmsLogTag::WMS_PC, "in, persistentId=%{public}d", GetPersistentId());
+    if (!blurRadiusValue_ || !blurSaturationValue_ || !blurBrightnessValue_ || !blurMaskColorValue_) {
+        TLOGW(WmsLogTag::WMS_PC, "RSAnimatableProperty is null");
+        return;
+    }
+    bool isDark = (colorMode_ == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
+    SidebarBlurType type = (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) ?
+        SidebarBlurType::DEFAULT_MAXIMIZE : SidebarBlurType::DEFAULT_FLOAT;
+    ModifySidebarBlurProperty(isDark, type);
+}
+
+void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurType type)
+{
+    TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(),
+        isDark, static_cast<uint32_t>(type));
+    auto rsUIContext = GetRSUIContext();
+    if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
+        Rosen::RSAnimationTimingProtocol timingProtocol;
+        timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
+        timingProtocol.SetDirection(true);
+        timingProtocol.SetFillMode(Rosen::FillMode::FORWARDS);
+        timingProtocol.SetFinishCallbackType(Rosen::FinishCallbackType::LOGICALLY);
+        RSNode::OpenImplicitAnimation(rsUIContext, timingProtocol, Rosen::RSAnimationTimingCurve::LINEAR, nullptr);
+    }
+    switch (type) {
+        case SidebarBlurType::NONE:
+            blurRadiusValue_->Set(SIDEBAR_BLUR_NUMBER_ZERO);
+            blurSaturationValue_->Set(SIDEBAR_BLUR_NUMBER_ZERO);
+            blurBrightnessValue_->Set(SIDEBAR_BLUR_NUMBER_ZERO);
+            blurMaskColorValue_->Set(Rosen::RSColor::FromArgbInt(
+                isDark ? SIDEBAR_SNAPSHOT_MASKCOLOR_DARK : SIDEBAR_SNAPSHOT_MASKCOLOR_LIGHT));
+            break;
+        case SidebarBlurType::INITIAL:
+        case SidebarBlurType::DEFAULT_FLOAT: {
+            blurRadiusValue_->Set(isDark ? SIDEBAR_DEFAULT_RADIUS_DARK : SIDEBAR_DEFAULT_RADIUS_LIGHT);
+            blurSaturationValue_->Set(isDark ? SIDEBAR_DEFAULT_SATURATION_DARK : SIDEBAR_DEFAULT_SATURATION_LIGHT);
+            blurBrightnessValue_->Set(isDark ? SIDEBAR_DEFAULT_BRIGHTNESS_DARK : SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT);
+            blurMaskColorValue_->Set(Rosen::RSColor::FromArgbInt(
+                isDark ? SIDEBAR_DEFAULT_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT));
+            break;
+        }
+        case SidebarBlurType::DEFAULT_MAXIMIZE: {
+            blurRadiusValue_->Set(isDark ? SIDEBAR_MAXIMIZE_RADIUS_DARK : SIDEBAR_MAXIMIZE_RADIUS_LIGHT);
+            blurSaturationValue_->Set(isDark ? SIDEBAR_MAXIMIZE_SATURATION_DARK : SIDEBAR_MAXIMIZE_SATURATION_LIGHT);
+            blurBrightnessValue_->Set(isDark ? SIDEBAR_MAXIMIZE_BRIGHTNESS_DARK : SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT);
+            blurMaskColorValue_->Set(Rosen::RSColor::FromArgbInt(
+                isDark ? SIDEBAR_MAXIMIZE_MASKCOLOR_DARK : SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT));
+            break;
+        }
+        default:
+            break;
+    }
+    if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
+        RSNode::CloseImplicitAnimation(rsUIContext);
+    }
+}
+
+bool WindowSceneSessionImpl::IsInFreeWindowMode() const
+{
+    return IsPcOrPadFreeMultiWindowMode();
 }
 } // namespace Rosen
 } // namespace OHOS

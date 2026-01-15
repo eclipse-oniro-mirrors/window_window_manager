@@ -67,6 +67,7 @@ public:
     void SetRequestedOrientation(Orientation orientation, bool needAnimation = true);
     void SetDefaultRequestedOrientation(Orientation orientation);
     void SetUserRequestedOrientation(Orientation orientation);
+    void SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation);
     void SetPrivacyMode(bool isPrivate);
     void SetSystemPrivacyMode(bool isSystemPrivate);
     void SetSnapshotSkip(bool isSkip);
@@ -145,6 +146,7 @@ public:
     bool GetRequestedAnimation() const;
     Orientation GetDefaultRequestedOrientation() const;
     Orientation GetUserRequestedOrientation() const;
+    bool GetIsSpecificSessionRequestOrientation() const;
     bool GetPrivacyMode() const;
     bool GetSystemPrivacyMode() const;
     bool GetSnapshotSkip() const;
@@ -354,8 +356,6 @@ public:
     void SetIsFullScreenInForceSplitMode(bool isFullScreenInForceSplitMode);
     bool IsFullScreenInForceSplitMode() const;
     RealTimeSwitchInfo GetRealTimeSwitchInfo() const;
-    void SetCompatibleModePage(const std::string& compatibleModePage);
-    std::string GetCompatibleModePage() const;
     void SetPageCompatibleMode(CompatibleStyleMode compatibleMode);
     CompatibleStyleMode GetPageCompatibleMode() const;
 
@@ -385,6 +385,14 @@ public:
      */
     void SetAspectRatio(float ratio);
     float GetAspectRatio() const;
+
+    /*
+     * Prelaunch Starting Window
+     */
+    void SetPrelaunch(bool isPrelaunch);
+    bool IsPrelaunch() const;
+    void SetFrameNum(int32_t frameNum);
+    int32_t GetFrameNum() const;
 
 private:
     void setTouchHotAreasInner(const std::vector<Rect>& rects, std::vector<Rect>& touchHotAreas);
@@ -486,6 +494,7 @@ private:
     bool needRotateAnimation_ = true;
     Orientation defaultRequestedOrientation_ = Orientation::UNSPECIFIED; // only accessed on SSM thread
     Orientation userRequestedOrientation_ = Orientation::UNSPECIFIED;
+    bool isSpecificSessionRequestOrientation_ = false;
     bool isPrivacyMode_ { false };
     bool isSystemPrivacyMode_ { false };
     bool isSnapshotSkip_ { false };
@@ -549,7 +558,6 @@ private:
     bool isPcAppInLargeScreenDevice_ = false;
     mutable std::mutex compatibleModeMutex_;
     bool isFullScreenInForceSplitMode_ = false;
-    std::string compatibleModePage_ = "";
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
     uint8_t backgroundAlpha_ = 0xff; // default alpha is opaque.
     mutable std::mutex atomicServiceMutex_;
@@ -658,6 +666,12 @@ private:
      * Window Layout
      */
     float aspectRatio_ { 0.0f };
+
+    /*
+     * Prelaunch Starting Window
+     */
+    bool isPrelaunch_ = false;
+    int32_t frameNum_ = 0;
 };
 
 class CompatibleModeProperty : public Parcelable {

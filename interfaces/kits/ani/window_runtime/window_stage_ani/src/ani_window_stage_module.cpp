@@ -68,10 +68,10 @@ extern "C" {
 ANI_EXPORT ani_status ExtensionWindowConfig_ANI_Constructor(ani_vm *vm, uint32_t *result);
 std::array g_methods = {
     ani_native_function {"loadContentSync",
-        "JLstd/core/String;Larkui/stateManagement/storage/localStorage/LocalStorage;:V",
+        "lC{std.core.String}C{arkui.stateManagement.storage.localStorage.LocalStorage}:",
         reinterpret_cast<void *>(AniWindowStage::LoadContent)},
     ani_native_function {"loadContentByNameSync",
-        "JLstd/core/String;Larkui/stateManagement/storage/localStorage/LocalStorage;:V",
+        "lC{std.core.String}C{arkui.stateManagement.storage.localStorage.LocalStorage}:",
         reinterpret_cast<void *>(AniWindowStage::LoadContentByName)},
     ani_native_function {"disableWindowDecorSync", nullptr,
         reinterpret_cast<void *>(AniWindowStage::DisableWindowDecor)},
@@ -83,11 +83,11 @@ std::array g_methods = {
         nullptr, reinterpret_cast<void *>(AniWindowStage::SetShowOnLockScreen)},
     ani_native_function {"setWindowModal", "lz:",
         reinterpret_cast<void *>(AniWindowStage::SetWindowModal)},
-    ani_native_function {"getMainWindowSync", "J:L@ohos/window/window/Window;",
+    ani_native_function {"getMainWindowSync", "l:C{@ohos.window.window.Window}",
         reinterpret_cast<void *>(WindowGetMainWindow)},
     ani_native_function {"createSubWindowSync", "lC{std.core.String}:C{@ohos.window.window.Window}",
         reinterpret_cast<void *>(CreateSubWindow)},
-    ani_native_function {"getSubWindowSync", "l:C{escompat.Array}",
+    ani_native_function {"getSubWindowSync", "l:C{std.core.Array}",
         reinterpret_cast<void *>(AniWindowStage::GetSubWindow)},
     ani_native_function {"createSubWindowWithOptionsSync",
         "lC{std.core.String}C{@ohos.window.window.SubWindowOptions}:C{@ohos.window.window.Window}",
@@ -96,10 +96,6 @@ std::array g_methods = {
         reinterpret_cast<void *>(AniWindowStage::RegisterWindowCallback)},
     ani_native_function {"offSync", nullptr,
         reinterpret_cast<void *>(AniWindowStage::UnregisterWindowCallback)},
-    ani_native_function {"nativeTransferStatic", "Lstd/interop/ESValue;:Lstd/core/Object;",
-        reinterpret_cast<void *>(AniWindowStage::NativeTransferStatic)},
-    ani_native_function {"nativeTransferDynamic", "J:Lstd/interop/ESValue;",
-        reinterpret_cast<void *>(AniWindowStage::NativeTransferDynamic)},
     ani_native_function {"setImageForRecentSync", "lX{C{std.core.Long}C{@ohos.multimedia.image.image.PixelMap}}i:",
         reinterpret_cast<void *>(AniWindowStage::SetImageForRecent)},
     ani_native_function {"removeImageForRecentSync", "l:",
@@ -110,31 +106,37 @@ std::array g_methods = {
         reinterpret_cast<void *>(AniWindowStage::SetDefaultDensityEnabled)},
     ani_native_function {"removeStartingWindowSync", "l:",
         reinterpret_cast<void *>(AniWindowStage::RemoveStartingWindow)},
-    ani_native_function {"setSupportedWindowModes", "lC{escompat.Array}:",
+    ani_native_function {"setSupportedWindowModes", "lC{std.core.Array}:",
         reinterpret_cast<void *>(AniWindowStage::SetSupportedWindowModes)},
-    ani_native_function {"setSupportedWindowModes", "lC{escompat.Array}z:",
+    ani_native_function {"setSupportedWindowModes", "lC{std.core.Array}z:",
         reinterpret_cast<void *>(AniWindowStage::SetSupportedWindowModesWithGrayOutMaximizeButton)},
 };
 
+std::array s_methods = {
+    ani_native_function {"nativeTransferStatic", "C{std.interop.ESValue}:C{std.core.Object}",
+        reinterpret_cast<void *>(AniWindowStage::NativeTransferStatic)},
+    ani_native_function {"nativeTransferDynamic", "l:C{std.interop.ESValue}",
+        reinterpret_cast<void *>(AniWindowStage::NativeTransferDynamic)},
+};
 std::array g_functions = {
-    ani_native_function {"CreateWindowStage", "J:L@ohos/window/window/WindowStageInternal;",
+    ani_native_function {"CreateWindowStage", "l:C{@ohos.window.window.WindowStageInternal}",
         reinterpret_cast<void *>(WindowStageCreate)},
     ani_native_function {"getLastWindowSync", nullptr, reinterpret_cast<void *>(AniWindowManager::GetLastWindow)},
-    ani_native_function {"shiftAppWindowFocusSync", "JII:V",
+    ani_native_function {"shiftAppWindowFocusSync", "lii:",
         reinterpret_cast<void *>(AniWindowManager::ShiftAppWindowFocus)},
-    ani_native_function {"getAllMainWindowInfo", "J:Lescompat/Array;",
+    ani_native_function {"getAllMainWindowInfo", "l:C{std.core.Array}",
         reinterpret_cast<void *>(AniWindowManager::GetAllMainWindowInfo)},
     ani_native_function {"getMainWindowSnapshot",
-        "JLescompat/Array;L@ohos/window/window/WindowSnapshotConfiguration;:Lescompat/Array;",
+        "lC{std.core.Array}C{@ohos.window.window.WindowSnapshotConfiguration}:C{std.core.Array}",
         reinterpret_cast<void *>(AniWindowManager::GetMainWindowSnapshot)},
     ani_native_function {"createWindowSync",
         "lC{@ohos.window.window.Configuration}:C{@ohos.window.window.Window}",
         reinterpret_cast<void *>(AniWindowManager::CreateWindow)},
     ani_native_function {"findWindowSync",
-        "JLstd/core/String;:L@ohos/window/window/Window;",
+        "lC{std.core.String}:C{@ohos.window.window.Window}",
         reinterpret_cast<void *>(AniWindowManager::FindWindow)},
-    ani_native_function {"minimizeAllSync", "JJ:V", reinterpret_cast<void *>(AniWindowManager::MinimizeAll)},
-    ani_native_function {"minimizeAllWithExclusionSync", "JJI:V",
+    ani_native_function {"minimizeAllSync", "ll:", reinterpret_cast<void *>(AniWindowManager::MinimizeAll)},
+    ani_native_function {"minimizeAllWithExclusionSync", "lli:",
         reinterpret_cast<void *>(AniWindowManager::MinimizeAllWithExclusion)},
     ani_native_function {"destroyAniExtConfig", nullptr, reinterpret_cast<void *>(AniExtensionWindowConfig::Finalizer)},
 };
@@ -149,7 +151,7 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     }
 
     ani_class cls = nullptr;
-    if ((ret = env->FindClass("L@ohos/window/window/WindowStageInternal;", &cls)) != ANI_OK) {
+    if ((ret = env->FindClass("@ohos.window.window.WindowStageInternal", &cls)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] can't find class %{public}u", ret);
         return ANI_NOT_FOUND;
     }
@@ -160,11 +162,18 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
             return ANI_NOT_FOUND;
         }
     }
+    for (auto method : s_methods) {
+        if ((ret = env->Class_BindStaticNativeMethods(cls, &method, 1u)) != ANI_OK) {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] bind window static method fail %{public}u, %{public}s, %{public}s",
+                ret, method.name, method.signature);
+            return ANI_NOT_FOUND;
+        }
+    }
     *result = ANI_VERSION_1;
 
     // just for test
     ani_namespace ns;
-    if ((ret = env->FindNamespace("L@ohos/window/window;", &ns)) != ANI_OK) {
+    if ((ret = env->FindNamespace("@ohos.window.window", &ns)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] find ns %{public}u", ret);
         return ANI_NOT_FOUND;
     }

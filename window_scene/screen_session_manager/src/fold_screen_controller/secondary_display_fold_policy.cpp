@@ -61,6 +61,17 @@ const char* STATUS_MAIN = "version:3+main";
 const char* STATUS_GLOBAL_FULL = "version:3+whole";
 const char* STATUS_FULL = "version:3+minor";
 #endif
+static const std::unordered_set<FoldStatus> SUPPORTED_FOLD_STATUS_FOR_SECONDARY = {
+    FoldStatus::EXPAND,
+    FoldStatus::FOLDED,
+    FoldStatus::HALF_FOLD,
+    FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_EXPAND,
+    FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED,
+    FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_EXPAND,
+    FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_HALF_FOLDED,
+    FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND,
+    FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_HALF_FOLDED
+};
 } // namespace
 
 SecondaryDisplayFoldPolicy::SecondaryDisplayFoldPolicy(std::recursive_mutex& displayInfoMutex,
@@ -233,11 +244,11 @@ void SecondaryDisplayFoldPolicy::GetStatusGlobalFullFoldCreaseRect(bool isVertic
 
 void SecondaryDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason)
 {
-    SetLastCacheDisplayMode(displayMode);
-    if (GetModeChangeRunningStatus()) {
-        TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
+    if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
+        TLOGI(WmsLogTag::DMS, "Fold status is locked, can't change to display mode: %{public}d", displayMode);
         return;
     }
+    SetLastCacheDisplayMode(displayMode);
     sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
     if (screenSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "default screenSession is null");
@@ -269,6 +280,8 @@ void SecondaryDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode display
             std::to_string(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN)));
     }
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
+    TLOGD(WmsLogTag::DMS, "End change display mode: %{public}d, reason: %{public}d", displayMode, reason);
+    return;
 }
 
 void SecondaryDisplayFoldPolicy::SendSensorResult(FoldStatus foldStatus)
@@ -334,6 +347,11 @@ void SecondaryDisplayFoldPolicy::AddOrRemoveDisplayNodeToTree(ScreenId screenId,
     displayNode = nullptr;
     TLOGI(WmsLogTag::DMS, "add or remove displayNode");
     RSTransactionAdapter::FlushImplicitTransaction(screenSession->GetRSUIContext());
+}
+
+const std::unordered_set<FoldStatus>& SecondaryDisplayFoldPolicy::GetSupportedFoldStatus() const
+{
+    return SUPPORTED_FOLD_STATUS_FOR_SECONDARY;
 }
 
 void SecondaryDisplayFoldPolicy::UpdateDisplayNodeBasedOnScreenId(ScreenId screenId,
@@ -423,8 +441,13 @@ void SecondaryDisplayFoldPolicy::RecoverWhenBootAnimationExit()
 
 FoldDisplayMode SecondaryDisplayFoldPolicy::GetModeMatchStatus()
 {
+    return GetModeMatchStatus(currentFoldStatus_);
+}
+
+FoldDisplayMode SecondaryDisplayFoldPolicy::GetModeMatchStatus(FoldStatus targetFoldStatus)
+{
     FoldDisplayMode displayMode = FoldDisplayMode::MAIN;
-    switch (currentFoldStatus_) {
+    switch (targetFoldStatus) {
         case FoldStatus::EXPAND: {
             displayMode = FoldDisplayMode::FULL;
             break;
@@ -506,6 +529,7 @@ void SecondaryDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> sc
 {
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
+    screenSession->SetPhyScreenId(screenId);
     bool isNeedNotifyFoldProperty = true;
     bool isNeedToSetSwitch = true;
     switch (displayMode) {

@@ -540,6 +540,37 @@ void DisplayManagerAgentProxy::NotifyBrightnessInfoChanged(ScreenId screenId, co
     }
 }
 
+void DisplayManagerAgentProxy::OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo,
+    const std::vector<std::string>& attributes)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteParcelable(displayInfo.GetRefPtr())) {
+        TLOGE(WmsLogTag::DMS, "Write displayInfo failed");
+        return;
+    }
+    if (!data.WriteStringVector(attributes)) {
+        TLOGE(WmsLogTag::DMS, "Write attributes failed");
+        return;
+    }
+
+    if (remote->SendRequest(TRANS_ID_ON_DISPLAY_ATTRIBUTE_CHANGED, data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+    }
+}
+
 void DisplayManagerAgentProxy::NotifyAvailableAreaChanged(DMRect area, DisplayId displayId)
 {
     sptr<IRemoteObject> remote = Remote();

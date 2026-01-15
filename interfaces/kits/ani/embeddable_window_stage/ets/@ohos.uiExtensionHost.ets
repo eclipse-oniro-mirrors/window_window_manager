@@ -164,9 +164,9 @@ namespace uiExtensionHost {
           if (ret !== WmErrorCode.WM_OK) {
             hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `setWaterMarkFlag failed, ret: ${ret}`);
           }
-        }).then((ret: NullishType) :void => {
+        }).then((ret: Any) :void => {
           resolve(undefined);
-        }).catch((err: NullishType) :void => {
+        }).catch((err: Any) :void => {
           reject(err as BusinessError);
         });
       });
@@ -179,9 +179,9 @@ namespace uiExtensionHost {
           if (ret !== WmErrorCode.WM_OK) {
             hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `hidePrivacyContentForHost failed, ret: ${ret}`);
           }
-        }).then((ret: NullishType) :void => {
+        }).then((ret: Any) :void => {
           resolve(undefined);
-        }).catch((err: NullishType) :void => {
+        }).catch((err: Any) :void => {
           reject(err as BusinessError);
         });
       });
@@ -194,9 +194,9 @@ namespace uiExtensionHost {
           if (ret !== WmErrorCode.WM_OK) {
             hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `hideNonSecureWindows failed, ret: ${ret}`);
           }
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
           resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
           reject(err as BusinessError);
         });
       });
@@ -206,9 +206,9 @@ namespace uiExtensionHost {
       return new Promise<window.Window>((resolve: (value: window.Window) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): window.Window => {
           return this.createSubWindowWithOptions(this.nativeObj, name, subWindowOptions, false);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as window.Window);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
       });
@@ -219,9 +219,9 @@ namespace uiExtensionHost {
       return new Promise<window.Window>((resolve: (value: window.Window) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): window.Window => {
           return this.createSubWindowWithOptions(this.nativeObj, name, subWindowConfig, followCreatorLifecycle);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as window.Window);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
       });

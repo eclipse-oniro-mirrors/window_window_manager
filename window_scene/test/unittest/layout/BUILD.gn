@@ -20,7 +20,10 @@ ws_unittest_common = "../:ws_unittest_common"
 ohos_unittest("ws_layout_test") {
   module_out_path = module_out_path
 
-  include_dirs = [ "${window_base_path}/window_scene/test/mock" ]
+  include_dirs = [
+    "${window_base_path}/window_scene/test/mock",
+    "${window_base_path}/wm/test/mock",
+  ]
 
   cflags_cc = [ "-Wno-thread-safety" ]
 

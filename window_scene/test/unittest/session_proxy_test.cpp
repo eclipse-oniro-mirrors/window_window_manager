@@ -162,6 +162,42 @@ HWTEST_F(SessionProxyTest, OnRestoreMainWindow, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RestoreFloatMainWindow
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, RestoreFloatMainWindow, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionProxyTest: RestoreFloatMainWindow start";
+    auto iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(iRemoteObjectMocker, nullptr);
+    auto sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(sProxy, nullptr);
+    std::shared_ptr<AAFwk::WantParams> wantParams = std::shared_ptr<AAFwk::WantParams>();
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_EQ(sProxy->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    ASSERT_EQ(sProxy->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+
+    auto remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMocker->sendRequestResult_ = 1;
+    sptr<SessionProxy> failProxy_ = sptr<SessionProxy>::MakeSptr(remoteMocker);
+    ASSERT_EQ(failProxy_->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_IPC_FAILED);
+
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
+    ASSERT_EQ(sProxy->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadUint32ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(sProxy->RestoreFloatMainWindow(wantParams), WMError::WM_OK);
+
+    GTEST_LOG_(INFO) << "SessionProxyTest: RestoreFloatMainWindow end";
+}
+
+/**
  * @tc.name: RaiseToAppTop
  * @tc.desc: normal function
  * @tc.type: FUNC
@@ -570,6 +606,41 @@ HWTEST_F(SessionProxyTest, SetPipParentWindowId, Function | SmallTest | Level2)
     mockRemote->sendRequestResult_ = ERR_NONE;
     sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
     EXPECT_EQ(WSError::WS_OK, okProxy->SetPipParentWindowId(windowId));
+}
+
+/**
+ * @tc.name: IsPiPActive
+ * @tc.desc: sessionStub sessionStubTest
+ * @tc.type: FUNC
+ * @tc.require: #I6JLSI
+ */
+HWTEST_F(SessionProxyTest, IsPiPActive, Function | SmallTest | Level2)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+
+    bool status = false;
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(sessionProxy->IsPiPActive(status), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(nullProxy->IsPiPActive(status), WMError::WM_ERROR_IPC_FAILED);
+
+    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    EXPECT_EQ(failProxy->IsPiPActive(status), WMError::WM_ERROR_IPC_FAILED);
+
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    EXPECT_EQ(okProxy->IsPiPActive(status), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    EXPECT_EQ(okProxy->IsPiPActive(status), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+    EXPECT_EQ(okProxy->IsPiPActive(status), WMError::WM_OK);
 }
 
 /**
@@ -1169,6 +1240,25 @@ HWTEST_F(SessionProxyTest, OnDefaultDensityEnabled, TestSize.Level1)
     res = sProxy->OnDefaultDensityEnabled(isDefaultDensityEnabled);
     ASSERT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
     GTEST_LOG_(INFO) << "SessionProxyTest: OnDefaultDensityEnabled end";
+}
+
+/**
+ * @tc.name: NotifyRemovePrelaunchStartingWindow
+ * @tc.desc: NotifyRemovePrelaunchStartingWindow test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, NotifyRemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifyRemovePrelaunchStartingWindow start";
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
+
+    WMError res = sProxy->NotifyRemovePrelaunchStartingWindow();
+    ASSERT_EQ(res, WMError::WM_OK);
+    sProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    res = sProxy->NotifyRemovePrelaunchStartingWindow();
+    ASSERT_EQ(res, WMError::WM_ERROR_IPC_FAILED);
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifyRemovePrelaunchStartingWindow end";
 }
 
 /**

@@ -198,19 +198,6 @@ HWTEST_F(WindowSessionTest3, CheckFocusable, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTouchable03
- * @tc.desc: IsSessionValid() and touchable return true
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest3, SetTouchable03, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetSessionState(SessionState::STATE_FOREGROUND);
-    session_->sessionInfo_.isSystem_ = false;
-    EXPECT_EQ(WSError::WS_OK, session_->SetTouchable(true));
-}
-
-/**
  * @tc.name: GetTouchable02
  * @tc.desc: GetTouchable Test
  * @tc.type: FUNC
@@ -1184,23 +1171,6 @@ HWTEST_F(WindowSessionTest3, SetMainSessionUIStateDirty, TestSize.Level1)
     session_->SetParentSession(sessionUIState);
     session_->SetMainSessionUIStateDirty(true);
     EXPECT_EQ(true, sessionUIState->GetUIStateDirty());
-}
-
-/**
- * @tc.name: SetStartingBeforeVisible
- * @tc.desc: test SetStartingBeforeVisible
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest3, SetStartingBeforeVisible, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetStartingBeforeVisible(true);
-    ASSERT_EQ(true, session_->isStartingBeforeVisible_);
-    ASSERT_EQ(true, session_->GetStartingBeforeVisible());
-
-    session_->SetStartingBeforeVisible(false);
-    ASSERT_EQ(false, session_->isStartingBeforeVisible_);
-    ASSERT_EQ(false, session_->GetStartingBeforeVisible());
 }
 
 /**

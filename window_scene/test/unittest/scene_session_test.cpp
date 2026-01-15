@@ -381,6 +381,25 @@ HWTEST_F(SceneSessionTest, GetRequestedOrientation, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetKeepScreenOn01
+ * @tc.desc: SetKeepScreenOn true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetKeepScreenOn01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetKeepScreenOn01";
+    info.bundleName_ = "SetKeepScreenOn01";
+    info.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    EXPECT_EQ(sceneSession->SetKeepScreenOn(true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsKeepScreenOn(), true);
+    EXPECT_EQ(sceneSession->SetKeepScreenOn(false), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsKeepScreenOn(), false);
+}
+
+/**
  * @tc.name: IsKeepScreenOn01
  * @tc.desc: IsKeepScreenOn true
  * @tc.type: FUNC
@@ -410,6 +429,25 @@ HWTEST_F(SceneSessionTest, IsKeepScreenOn02, TestSize.Level1)
     ASSERT_NE(sceneSession, nullptr);
     ASSERT_EQ(WSError::WS_OK, sceneSession->SetKeepScreenOn(false));
     ASSERT_EQ(false, sceneSession->IsKeepScreenOn());
+}
+
+/**
+ * @tc.name: SetViewKeepScreenOn01
+ * @tc.desc: SetViewKeepScreenOn true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetViewKeepScreenOn01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetViewKeepScreenOn01";
+    info.bundleName_ = "SetViewKeepScreenOn01";
+    info.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    EXPECT_EQ(sceneSession->SetViewKeepScreenOn(true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsViewKeepScreenOn(), true);
+    EXPECT_EQ(sceneSession->SetViewKeepScreenOn(false), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsViewKeepScreenOn(), false);
 }
 
 /**
@@ -1111,7 +1149,7 @@ HWTEST_F(SceneSessionTest, NotifySessionRectChange, TestSize.Level1)
     sceneSession->systemConfig_.freeMultiWindowEnable_ = true;
     sceneSession->dragResizeTypeDuringDrag_ = DragResizeType::RESIZE_SCALE;
     sceneSession->moveDragController_->isStartDrag_ = true;
-    sceneSession->compatibleDragScaleFlags_ = true;
+    sceneSession->needNotifyDragEventOnNextVsync_ = true;
     sceneSession->NotifySessionRectChange(overlapRect, reason, 11);
     EXPECT_EQ(sceneSession->IsDragResizeScale(reason), true);
 }
@@ -2361,9 +2399,9 @@ HWTEST_F(SceneSessionTest, CloneWindow, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
     sceneSession->SetSurfaceNode(surfaceNode);
-    auto shadowSurfaceNode = sceneSession->GetShadowSurfaceNode();
+    auto sfaceNode = sceneSession->GetSurfaceNode();
     sceneSession->CloneWindow(surfaceNodeId, needOffScreen);
-    EXPECT_TRUE(shadowSurfaceNode != nullptr);
+    EXPECT_TRUE(sfaceNode != nullptr);
 }
 
 /**

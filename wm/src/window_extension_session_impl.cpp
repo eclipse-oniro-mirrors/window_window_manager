@@ -894,7 +894,8 @@ WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& content
         uiContent->SetHostParams(extensionConfig_);
         if (initByName) {
             if (envType == EnvironmentType::ANI) {
-                uiContent->InitializeByNameWithAniStorage(this, contentInfo, static_cast<ani_object>(storage));
+                uiContent->InitializeByNameWithAniStorage(this, contentInfo, static_cast<ani_object>(storage),
+                    property_->GetParentId());
             } else {
                 uiContent->InitializeByName(this, contentInfo, static_cast<napi_value>(storage),
                     property_->GetParentId());
@@ -1261,6 +1262,7 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfigInner(const Sessi
         TLOGW(WmsLogTag::WMS_UIEXT, "uiContent is null!");
         return WSError::WS_ERROR_NULLPTR;
     }
+    virtualPixelRatio_ = config.density_;
     uiContent->UpdateViewportConfig(viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, lastAvoidAreaMap_);
     return WSError::WS_OK;
 }
@@ -1752,6 +1754,18 @@ WMError WindowExtensionSessionImpl::ExtensionSetBrightness(float brightness)
         TLOGE(WmsLogTag::WMS_UIEXT, "send failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
+{
+    auto persistentId = GetPersistentId();
+    nlohmann::json winStateSnapshotJson = {
+        {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
+    };
+    winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ext winId=%{public}d, winStateSnapshot=%{public}s",
+        persistentId, winStateSnapshotJsonStr.c_str());
     return WMError::WM_OK;
 }
 

@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_DMS_PRODUCT_CONFIG_H
 #define OHOS_ROSEN_DMS_PRODUCT_CONFIG_H
 
+#include <mutex>
 #include "wm_single_instance.h"
 
 namespace OHOS {
@@ -29,10 +30,17 @@ public:
     virtual bool IsSingleDisplayPocketFoldDevice();
     virtual bool IsSingleDisplaySuperFoldDevice();
     virtual bool IsSecondaryDisplayFoldDevice();
+    std::vector<uint64_t> GetBoardList();
 
 private:
     ProductConfig() = default;
     virtual ~ProductConfig() = default;
+    std::vector<std::string> StringSplit(const std::string& str, char delim);
+    std::vector<uint64_t> ConvertToUint64Vector(const std::string& inputStr);
+    bool IsValidBoardList(const std::string& boardListStr);
+
+    std::vector<uint64_t> boardList_;
+    std::mutex boardListMutex_;
 };
 
 }  // namespace DMS

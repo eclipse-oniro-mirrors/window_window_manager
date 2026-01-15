@@ -83,6 +83,7 @@ std::map<std::string, bool> ScreenSceneConfig::enableConfig_;
 std::map<std::string, std::vector<int>> ScreenSceneConfig::intNumbersConfig_;
 std::map<std::string, std::string> ScreenSceneConfig::stringConfig_;
 std::map<std::string, std::vector<std::string>> ScreenSceneConfig::stringListConfig_;
+std::map<uint64_t, std::vector<DMRect>> ScreenSceneConfig::defaultCutoutBoundaryRectMap_;
 std::map<uint64_t, std::vector<DMRect>> ScreenSceneConfig::cutoutBoundaryRectMap_;
 std::vector<DisplayPhysicalResolution> ScreenSceneConfig::displayPhysicalResolution_;
 std::map<FoldDisplayMode, ScrollableParam> ScreenSceneConfig::scrollableParams_;
@@ -267,11 +268,18 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
 
 uint64_t ScreenSceneConfig::ParseStrToUll(const std::string& contentStr)
 {
-    uint64_t num = 0;
-    if (!contentStr.empty() && std::all_of(contentStr.begin(), contentStr.end(), ::isdigit)) {
-        num = std::stoull(contentStr);
-    } else {
+    if (contentStr.empty()) {
         TLOGE(WmsLogTag::DMS, "Invalid value: %{public}s", contentStr.c_str());
+        return 0;
+    }
+    uint64_t num;
+    auto result = std::from_chars(contentStr.data(), contentStr.data() + contentStr.size(), num);
+    if (result.ec == std::errc::invalid_argument) {
+        TLOGE(WmsLogTag::DMS, "Invalid value: %{public}s", contentStr.c_str());
+        return 0;
+    } else if (result.ec == std::errc::result_out_of_range) {
+        TLOGE(WmsLogTag::DMS, "Value out of range: %{public}s", contentStr.c_str());
+        return 0;
     }
     return num;
 }
@@ -291,7 +299,12 @@ void ScreenSceneConfig::ParseDisplaysConfig(const xmlNodePtr& currNode)
             }
             std::string nodeName = reinterpret_cast<const char*>(fileNode->name);
             xmlChar* content = xmlNodeGetContent(fileNode);
-            std::string contentStr = reinterpret_cast<const char*>(content);
+            std::string contentStr;
+            if (content) {
+                contentStr = reinterpret_cast<const char*>(content);
+                xmlFree(content);
+                content = nullptr;
+            }
             if (nodeName == "physicalId") {
                 config.physicalId = static_cast<ScreenId>(ParseStrToUll(contentStr));
             } else if (nodeName == "logicalId") {
@@ -302,10 +315,6 @@ void ScreenSceneConfig::ParseDisplaysConfig(const xmlNodePtr& currNode)
                 config.dpi = atoi(contentStr.c_str());
             } else if (nodeName == "flags") {
                 config.hasFlag = ParseFlagsConfig(fileNode, config.flag);
-            }
-            if (content) {
-                xmlFree(content);
-                content = nullptr;
             }
         }
         displaysConfigs_.push_back(config);
@@ -627,8 +636,23 @@ void ScreenSceneConfig::SetCutoutSvgPath(uint64_t displayId, const std::string& 
     if (svgPath.empty()) {
         return;
     }
+    defaultCutoutBoundaryRectMap_.clear();
+    defaultCutoutBoundaryRectMap_[displayId].emplace_back(CalcCutoutBoundaryRect(svgPath));
     cutoutBoundaryRectMap_.clear();
     cutoutBoundaryRectMap_[displayId].emplace_back(CalcCutoutBoundaryRect(svgPath));
+}
+
+void ScreenSceneConfig::UpdateCutoutBoundRect(uint64_t displayId, float rogRatio)
+{
+    if (defaultCutoutBoundaryRectMap_.count(displayId) == 0 || cutoutBoundaryRectMap_.count(displayId) == 0) {
+        return;
+    }
+    for (uint64_t i = 0; i < cutoutBoundaryRectMap_[displayId].size(); i++) {
+        cutoutBoundaryRectMap_[displayId][i].posX_ = defaultCutoutBoundaryRectMap_[displayId][i].posX_ * rogRatio;
+        cutoutBoundaryRectMap_[displayId][i].posY_ = defaultCutoutBoundaryRectMap_[displayId][i].posY_ * rogRatio;
+        cutoutBoundaryRectMap_[displayId][i].width_ = defaultCutoutBoundaryRectMap_[displayId][i].width_ * rogRatio;
+        cutoutBoundaryRectMap_[displayId][i].height_ = defaultCutoutBoundaryRectMap_[displayId][i].height_ * rogRatio;
+    }
 }
 
 void ScreenSceneConfig::SetSubCutoutSvgPath(const std::string& svgPath)

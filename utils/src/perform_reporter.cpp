@@ -16,13 +16,20 @@
 #include "perform_reporter.h"
 
 #include <hisysevent.h>
+#include <iomanip>
 
+#include "parameters.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_DISPLAY, "PerformReporter"};
+
+const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {
+    {KeyboardLifeCycleException::ANIM_SYNC_EXCEPTION, "ANIM_SYNC_EXCEPTION"},
+    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"}
+};
 }
 WM_IMPLEMENT_SINGLE_INSTANCE(WindowInfoReporter)
 
@@ -30,6 +37,7 @@ constexpr char EVENT_KEY_BUNDLE_NAME[] = "BUNDLE_NAME";
 constexpr char EVENT_KEY_WINDOW_NAME[] = "WINDOW_NAME";
 constexpr char EVENT_KEY_MISSION_ID[] = "MISSION_ID";
 constexpr char EVENT_KEY_TIMESTAMP[] = "TIMESTAMP";
+static const std::string REAL_TIME_ENABLED = OHOS::system::GetParameter("persist.window.realTimeIoDataOutput", "0");
 
 /**
  * @brief Construct a new Perform Reporter:: Perform Reporter object
@@ -394,6 +402,81 @@ int32_t WindowInfoReporter::ReportSpecWindowLifeCycleChange(WindowLifeCycleRepor
         TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);
     }
     return ret;
+}
+
+void WindowInfoReporter::ReportWindowIO(const std::string& subScene, double sizeKB)
+{
+    bool sameDay = true;
+    {
+        std::lock_guard<std::mutex> lock(reportWindowIOMutex_);
+        if (!firstIOTimeInitialized_) {
+            firstIODayTime_ = std::chrono::floor<days>(std::chrono::system_clock::now());
+            firstIOSecondTime_ = std::chrono::system_clock::now();
+            firstIOTimeInitialized_ = true;
+        }
+        // record event
+        ioRecordMap_["TOTAL_WRITE_DATA"] += sizeKB;
+        ioRecordMap_[subScene] += sizeKB;
+        const auto currentDayTime = std::chrono::floor<days>(std::chrono::system_clock::now());
+        sameDay = (firstIODayTime_ == currentDayTime);
+    }
+    TLOGD(WmsLogTag::DEFAULT, "subScene: %{public}s, sizeKB: %{public}f, "
+        "sameDay: %{public}d, REAL_TIME_ENABLED: %{public}s",
+        subScene.c_str(), sizeKB, sameDay, REAL_TIME_ENABLED.c_str());
+    // real time output for verification
+    if (REAL_TIME_ENABLED == "1") {
+        sameDay = false;
+    }
+    if (sameDay) {
+        return;
+    }
+    ReportWindowIOPerDay();
+}
+
+void WindowInfoReporter::ReportWindowIOPerDay()
+{
+    // write event
+    std::unordered_map<std::string, double> ioRecordMapCopy;
+    int64_t writeDate;
+    {
+        std::lock_guard<std::mutex> lock(reportWindowIOMutex_);
+        ioRecordMapCopy = ioRecordMap_;
+        writeDate = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::seconds>(
+            firstIOSecondTime_.time_since_epoch()).count());
+        firstIOTimeInitialized_ = false;
+        ioRecordMap_.clear();
+    }
+
+    std::ostringstream oss;
+    for (const auto& elem : ioRecordMapCopy) {
+        if (elem.first == "TOTAL_WRITE_DATA") {
+            continue;
+        }
+        // Set 2 precision, and output in kilobyte.
+        oss << elem.first << ": " << std::fixed << std::setprecision(2) << elem.second << "KB, ";
+    }
+    std::string msg = oss.str();
+    // Remove 2 redundant characters
+    size_t redundantSize = 2;
+    if (msg.length() > redundantSize) {
+        msg.erase(msg.length() - redundantSize);
+    }
+
+    const double KILOBYTE = 1024.0;
+    double totalWriteData = ioRecordMapCopy["TOTAL_WRITE_DATA"] / KILOBYTE;
+    TLOGI(WmsLogTag::DEFAULT, "total: %{public}f, msg: %{public}s", totalWriteData, msg.c_str());
+    std::string eventName = "SCENEBOARD_IO_DFX";
+    static constexpr char WINDOW_IO_DOMAIN[] = "SCENE_BOARD_APP";
+    int32_t ret = HiSysEventWrite(
+        WINDOW_IO_DOMAIN, eventName,
+        OHOS::HiviewDFX::HiSysEvent::EventType::STATISTIC,
+        "PART_NAME", "Window",
+        "WRITE_DATE", writeDate,
+        "TOTAL_WRITE_DATA", totalWriteData, // size MB
+        "MSG", msg);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);
+    }
 }
 } // namespace Rosen
 }

@@ -136,9 +136,14 @@ HWTEST_F(GetSnapshotCallbackTest, HandleOnReceived01, TestSize.Level1)
     data.WriteInt32(1);
     getStub->HandleOnReceived(data, reply);
     EXPECT_TRUE(logMsg.find("read nullptrLen failed") != std::string::npos);
+    logMsg.clear();
     data.WriteInt32(0);
     data.WriteInt32(2);
+    data.WriteInt32(1);
+    getStub->HandleOnReceived(data, reply);
+    EXPECT_TRUE(logMsg.find("read nullptrLen failed") == std::string::npos);
     EXPECT_TRUE(logMsg.find("pixelMaps size") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 } // namespace Rosen

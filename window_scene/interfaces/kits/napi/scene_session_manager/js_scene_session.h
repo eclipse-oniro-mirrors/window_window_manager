@@ -83,6 +83,7 @@ enum class ListenerFuncType : uint32_t {
     NEXT_FRAME_LAYOUT_FINISH_CB,
     PRIVACY_MODE_CHANGE_CB,
     RESTORE_MAIN_WINDOW_CB,
+    RESTORE_FLOAT_MAIN_WINDOW_CB,
     MAIN_WINDOW_TOP_MOST_CHANGE_CB,
     TITLE_DOCK_HOVER_SHOW_CB,
     SET_WINDOW_RECT_AUTO_SAVE_CB,
@@ -199,6 +200,7 @@ private:
     static napi_value OpenKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value CloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value NotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
+    static napi_value CallingWindowStateChange(napi_env env, napi_callback_info info);
     static napi_value SetScale(napi_env env, napi_callback_info info);
     static napi_value SetWindowLastSafeRect(napi_env env, napi_callback_info info);
     static napi_value SetMovable(napi_env env, napi_callback_info info);
@@ -265,6 +267,7 @@ private:
     static napi_value SetSidebarBlurMaximize(napi_env env, napi_callback_info info);
     static napi_value RequestSpecificSessionClose(napi_env env, napi_callback_info info);
     static napi_value SendFbActionEvent(napi_env env, napi_callback_info info);
+    static napi_value GetUid(napi_env env, napi_callback_info info);
     static napi_value CreateSessionInfosNapiValue(
         napi_env env, const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos);
     static napi_value CreatePendingInfosNapiValue(napi_env env,
@@ -304,6 +307,7 @@ private:
     napi_value OnUpdateSizeChangeReason(napi_env env, napi_callback_info info);
     napi_value OnOpenKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     napi_value OnCloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
+    napi_value OnCallingWindowStateChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
     napi_value OnSetScale(napi_env env, napi_callback_info info);
     napi_value OnSetWindowLastSafeRect(napi_env env, napi_callback_info info);
@@ -371,6 +375,7 @@ private:
     napi_value OnSetPcAppInpadSpecificSystemBarInvisible(napi_env env, napi_callback_info info);
     napi_value OnSetPcAppInpadOrientationLandscape(napi_env env, napi_callback_info info);
     napi_value OnUpdateSceneAnimationConfig(napi_env env, napi_callback_info info);
+    napi_value OnGetUid(napi_env env, napi_callback_info info);
     napi_value OnSetMobileAppInPadLayoutFullScreen(napi_env env, napi_callback_info info);
 
     /*
@@ -429,6 +434,7 @@ private:
     void ProcessWindowShadowEnableChangeRegister();
     void ProcessTitleAndDockHoverShowChangeRegister();
     void ProcessRestoreMainWindowRegister();
+    void ProcessRestoreFloatMainWindowRegister();
     void ProcessFrameLayoutFinishRegister();
     void ProcessRegisterCallback(ListenerFuncType listenerFuncType);
     void ProcessSetWindowRectAutoSaveRegister();
@@ -523,6 +529,7 @@ private:
     void OnWindowShadowEnableChange(bool isEnabled);
     void OnTitleAndDockHoverShowChange(bool isTitleHoverShown = true, bool isDockHoverShown = true);
     void RestoreMainWindow(bool isAppSupportPhoneInPc, int32_t callingPid, uint32_t callingToken);
+    void RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters);
     void NotifyFrameLayoutFinish();
     void ProcessPrivacyModeChangeRegister();
     void NotifyPrivacyModeChange(bool isPrivacyMode);
@@ -569,10 +576,12 @@ private:
     void ProcessCompatibleModeChangeRegister();
     void OnCompatibleModeChange(CompatibleStyleMode mode);
 
-    bool HandleCloseKeyboardSyncTransactionWSRectParams(napi_env env,
-        napi_value argv[], int index, WSRect& rect);
-    bool HandleCloseKeyboardSyncTransactionBoolParams(napi_env env,
-        napi_value argv[], int index, bool& result);
+    bool HandleCloseKeyboardSyncTransactionKeyboardBaseInfo(napi_env env,
+        napi_value argv[], int index, KeyboardBaseInfo& keyboardBaseInfo);
+    bool HandleCloseKeyboardSyncTransactionKeyboardAnimationRectConfig(napi_env env,
+        napi_value argv[], int index, KeyboardAnimationRectConfig& keyboardAnimationRectConfig);
+    bool HandleCallingWindowInfoData(napi_env env,
+        napi_value argv[], int index, CallingWindowInfoData& callingWindowInfoData);
 
     static void Finalizer(napi_env env, void* data, void* hint);
 

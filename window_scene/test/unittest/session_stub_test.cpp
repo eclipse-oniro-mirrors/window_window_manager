@@ -731,6 +731,23 @@ HWTEST_F(SessionStubTest, HandleSetPipParentWindowId, Function | SmallTest | Lev
 }
 
 /**
+ * @tc.name: HandleIsPiPActive
+ * @tc.desc: sessionStub HandleIsPiPActive
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, HandleIsPiPActive, Function | SmallTest | Level2)
+{
+    ASSERT_NE(session_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_IS_PIP_ACTIVE);
+    data.WriteInterfaceToken(SessionStub::GetDescriptor());
+    ASSERT_EQ(session_->OnRemoteRequest(code, data, reply, option), ERR_NONE);
+}
+
+/**
  * @tc.name: HandleSetWindowTransitionAnimation
  * @tc.desc: sessionStub sessionStubTest
  * @tc.type: FUNC
@@ -953,6 +970,20 @@ HWTEST_F(SessionStubTest, HandleNotifyFrameLayoutFinish, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleRemovePrelaunchStartingWindow
+ * @tc.desc: sessionStub HandleRemovePrelaunchStartingWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, HandleRemovePrelaunchStartingWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    auto result = session_->HandleRemovePrelaunchStartingWindow(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleSnapshotUpdate
  * @tc.desc: sessionStub HandleSnapshotUpdate
  * @tc.type: FUNC
@@ -978,6 +1009,29 @@ HWTEST_F(SessionStubTest, HandleSyncSessionEvent, TestSize.Level1)
 
     auto result = session_->HandleSyncSessionEvent(data, reply);
     ASSERT_EQ(result, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleRestoreFloatMainWindow
+ * @tc.desc: sessionStub HandleRestoreFloatMainWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, HandleRestoreFloatMainWindow, TestSize.Level1)
+{
+    sptr<SessionStub> sessionStub = sptr<SessionStubMocker>::MakeSptr();
+    ASSERT_NE(nullptr, sessionStub);
+    {
+        MessageParcel data1;
+        MessageParcel reply1;
+        EXPECT_EQ(sessionStub->HandleRestoreFloatMainWindow(data1, reply1), ERR_INVALID_VALUE);
+    }
+    {
+        MessageParcel data2;
+        MessageParcel reply2;
+        std::shared_ptr<AAFwk::WantParams> wantParams = std::make_shared<AAFwk::WantParams>();
+        data2.WriteParcelable(wantParams.get());
+        EXPECT_EQ(sessionStub->HandleRestoreFloatMainWindow(data2, reply2), ERR_NONE);
+    }
 }
 
 /**

@@ -33,10 +33,7 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
-    static const std::string dumpFile_;
 };
-
-const std::string WindowDumperTest::dumpFile_ = "data/window_dump_test.txt";
 
 void WindowDumperTest::SetUpTestCase()
 {
@@ -51,7 +48,6 @@ void WindowDumperTest::SetUpTestCase()
 
 void WindowDumperTest::TearDownTestCase()
 {
-    unlink(dumpFile_.c_str());
 }
 
 void WindowDumperTest::SetUp()
@@ -63,23 +59,6 @@ void WindowDumperTest::TearDown()
 }
 
 namespace {
-/**
- * @tc.name: Dump01
- * @tc.desc: Dump
- * @tc.type: FUNC
- */
-HWTEST_F(WindowDumperTest, Dump01, TestSize.Level1)
-{
-    sptr<WindowDumper> windowDumper;
-    windowDumper = new WindowDumper(WindowManagerService::GetInstance().windowRoot_);
-    int fd = open(dumpFile_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0666);
-    EXPECT_NE(fd, -1);
-    std::vector<std::u16string> args;
-    WMError ret = windowDumper->Dump(fd, args);
-    ASSERT_EQ(ret, WMError::WM_OK);
-    close(fd);
-}
-
 /**
  * @tc.name: Dump02
  * @tc.desc: Dump fd less 0

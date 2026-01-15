@@ -32,7 +32,8 @@ class JsDisplayListener : public DisplayManager::IDisplayListener,
                           public DisplayManager::ICaptureStatusListener,
                           public DisplayManager::IDisplayModeListener,
                           public DisplayManager::IAvailableAreaListener,
-                          public DisplayManager::IBrightnessInfoListener {
+                          public DisplayManager::IBrightnessInfoListener,
+                          public DisplayManager::IDisplayAttributeListener {
 public:
     explicit JsDisplayListener(napi_env env);
     ~JsDisplayListener() override;
@@ -49,9 +50,13 @@ public:
     void OnDisplayModeChanged(FoldDisplayMode displayMode) override;
     void OnAvailableAreaChanged(DMRect area) override;
     void OnBrightnessInfoChanged(DisplayId id, const ScreenBrightnessInfo& info) override;
+    void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attribuutes) override;
 
 private:
     void CallJsMethod(const std::string& methodName, napi_value const * argv = nullptr, size_t argc = 0);
+    void ProcessAttributeCallbacks(napi_env env, const std::vector<std::string>& attributes, DisplayId displayId,
+        sptr<JsDisplayListener> thisListener);
+    void RemoveDuplicateMethods(std::vector<napi_value>& methods);
     napi_env env_ = nullptr;
     std::mutex mtx_;
     wptr<JsDisplayListener> weakRef_  = nullptr;

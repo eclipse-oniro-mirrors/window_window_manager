@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class MainSession : public SceneSession {
 public:
-    MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
+    MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
     ~MainSession();
 
     void OnFirstStrongRef(const void* objectId) override;
@@ -94,6 +94,13 @@ public:
     void RecoverSnapshotPersistence(const SessionInfo& info) override;
     void ClearSnapshotPersistence() override;
 
+    /*
+     * Prelaunch check
+     */
+    void RemovePrelaunchStartingWindow() override;
+    void SetPrelaunch() override;
+    bool IsPrelaunch() const override;
+
 protected:
     void UpdatePointerArea(const WSRect& rect) override;
     bool CheckPointerEventDispatch(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const override;
@@ -125,6 +132,12 @@ private:
     std::atomic_bool isFullScreenInForceSplit_ { false };
     CompatibleModeChangeCallback compatibleModeChangeCallback_;
     NotifyForceSplitEnableFunc forceSplitEnableFunc_;
+
+    /*
+     * Prelaunch check
+     */
+    int64_t prelaunchStart_ = 0;
+    bool prelaunchEnable_ = false;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_MAIN_SESSION_H

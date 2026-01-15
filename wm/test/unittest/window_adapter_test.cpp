@@ -1404,6 +1404,22 @@ HWTEST_F(WindowAdapterTest, GetPiPSettingSwitchStatus, TestSize.Level1)
 }
 
 /**
+ *@tc.name: GetIsPipEnabled
+ *@tc.desc: WindowAdapter/GetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(WindowAdapterTest, GetIsPipEnabled, TestSize.Level1)
+{
+    WindowAdapter windowAdapter;
+    bool isPipEnabled = false;
+    auto err = windowAdapter.GetIsPipEnabled(isPipEnabled);
+    ASSERT_EQ(WMError::WM_OK, err);
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    ASSERT_EQ(WMError::WM_DO_NOTHING, windowAdapter.UseImplicitAnimation(0, true));
+}
+
+/**
  * @tc.name: UseImplicitAnimation
  * @tc.desc: WindowAdapter/UseImplicitAnimation
  * @tc.type: FUNC

@@ -1068,11 +1068,11 @@ HWTEST_F(ScreenSessionManagerTest, OnFoldPropertyChange, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetConfigForInputmethod
- * @tc.desc: SetConfigForInputmethod
+ * @tc.name: SetOptionConfig
+ * @tc.desc: SetOptionConfig
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerTest, SetConfigForInputmethod, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerTest, SetOptionConfig, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
@@ -1082,14 +1082,14 @@ HWTEST_F(ScreenSessionManagerTest, SetConfigForInputmethod, TestSize.Level1)
     VirtualScreenOption option;
     option.supportsFocus_ = false;
     option.supportsInput_ = false;
-    ssm_->SetConfigForInputmethod(screenId, option);
+    ssm_->SetOptionConfig(screenId, option);
     sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
     EXPECT_EQ(screenSession->GetSupportsFocus(), false);
     EXPECT_EQ(screenSession->GetSupportsInput(), false);
 
     option.supportsFocus_ = true;
     option.supportsInput_ = true;
-    ssm_->SetConfigForInputmethod(screenId, option);
+    ssm_->SetOptionConfig(screenId, option);
     screenSession = ssm_->GetScreenSession(screenId);
     EXPECT_EQ(screenSession->GetSupportsFocus(), true);
     EXPECT_EQ(screenSession->GetSupportsInput(), true);
@@ -1097,7 +1097,7 @@ HWTEST_F(ScreenSessionManagerTest, SetConfigForInputmethod, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     screenId++;
-    ssm_->SetConfigForInputmethod(screenId, option);
+    ssm_->SetOptionConfig(screenId, option);
     EXPECT_TRUE(g_logMsg.find("screenSession is nullptr") != std::string::npos);
     LOG_SetCallback(nullptr);
 }

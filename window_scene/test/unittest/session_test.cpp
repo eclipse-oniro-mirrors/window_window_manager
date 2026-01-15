@@ -1028,32 +1028,6 @@ HWTEST_F(WindowSessionTest, SetFocusedOnShow, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTouchable01
- * @tc.desc: IsSessionValid() return false
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest, SetTouchable01, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->state_ = SessionState::STATE_DISCONNECT;
-    session_->sessionInfo_.isSystem_ = true;
-    ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, session_->SetTouchable(false));
-}
-
-/**
- * @tc.name: SetTouchable02
- * @tc.desc: IsSessionValid() return true
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest, SetTouchable02, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->state_ = SessionState::STATE_FOREGROUND;
-    session_->sessionInfo_.isSystem_ = false;
-    ASSERT_EQ(WSError::WS_OK, session_->SetTouchable(false));
-}
-
-/**
  * @tc.name: SetSessionInfoLockedState01
  * @tc.desc: IsSessionValid() return false
  * @tc.type: FUNC

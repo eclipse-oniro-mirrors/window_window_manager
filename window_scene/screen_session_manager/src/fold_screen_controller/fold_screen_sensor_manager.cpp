@@ -87,6 +87,17 @@ void FoldScreenSensorManager::RegisterHallCallback()
     }
 }
 
+void FoldScreenSensorManager::UnRegisterHallCallback()
+{
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
+    if (ret == SENSOR_SUCCESS) {
+        registerHall_ = false;
+        TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "failed with ret: %{public}d", ret);
+    }
+}
+
 void FoldScreenSensorManager::RegisterPostureCallback()
 {
     int ret = DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
@@ -97,6 +108,17 @@ void FoldScreenSensorManager::RegisterPostureCallback()
     } else {
         registerPosture_ = false;
         TLOGE(WmsLogTag::DMS, "RegisterPostureCallback failed.");
+    }
+}
+
+void FoldScreenSensorManager::UnRegisterPostureCallback()
+{
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_POSTURE);
+    if (ret == SENSOR_SUCCESS) {
+        registerPosture_ = false;
+        TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "failed with ret: %{public}d", ret);
     }
 }
 

@@ -47,7 +47,8 @@ namespace uiExtension {
 
   function avoidAreaChangeCallback(cb: object, area: object, type: int): void {
     const func = cb as (data: AvoidAreaInfo) => void;
-    func({type: type as window.AvoidAreaType, area: area as window.AvoidArea});
+    let v: AvoidAreaInfo = {type: type as window.AvoidAreaType, area: area as window.AvoidArea}
+    func(v);
   }
 
   class UIEProperties implements WindowProxyProperties {
@@ -167,9 +168,9 @@ namespace uiExtension {
           if (ret !== WmErrorCode.WM_OK) {
             hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `setWaterMarkFlag failed, ret: ${ret}`);
           }
-        }).then((ret: NullishType) :void => {
+        }).then((ret: Any) :void => {
           resolve(undefined);
-        }).catch((err: NullishType) :void => {
+        }).catch((err: Any) :void => {
           reject(err as BusinessError);
         });
       });
@@ -182,9 +183,9 @@ namespace uiExtension {
           if (ret !== WmErrorCode.WM_OK) {
             hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `hideNonSecureWindows failed, ret: ${ret}`);
           }
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
           resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
           reject(err as BusinessError);
         });
       });
@@ -194,9 +195,9 @@ namespace uiExtension {
       return new Promise<window.Window>((resolve: (value: window.Window) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): window.Window => {
           return this.createSubWindowWithOptions(this.nativeObj, name, subWindowOptions, false);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as window.Window);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
       });
@@ -207,9 +208,9 @@ namespace uiExtension {
       return new Promise<window.Window>((resolve: (value: window.Window) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute((): window.Window => {
           return this.createSubWindowWithOptions(this.nativeObj, name, subWindowConfig, followCreatorLifecycle);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
             resolve(ret as window.Window);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
             reject(err as BusinessError);
         });
       });
@@ -219,9 +220,9 @@ namespace uiExtension {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.occupyEvents(this.nativeObj, eventFlags);
-        }).then((ret: NullishType) => {
+        }).then((ret: Any) => {
           resolve(undefined);
-        }).catch((err: NullishType) => {
+        }).catch((err: Any) => {
           reject(err as BusinessError);
         });
       });

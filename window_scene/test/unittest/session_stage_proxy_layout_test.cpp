@@ -26,6 +26,17 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type,
+                       const LogLevel level,
+                       const unsigned int domain,
+                       const char* tag,
+                       const char* msg)
+    {
+        g_logMsg += msg;
+    }
+}
 class SessionStageProxyLayoutTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -128,6 +139,54 @@ HWTEST_F(SessionStageProxyLayoutTest, UpdateWindowModeForUITest01, TestSize.Leve
 
     MockMessageParcel::ClearAllErrorFlag();
     TLOGI(WmsLogTag::WMS_LAYOUT, "SessionStageProxyLayoutTest: UpdateWindowModeForUITest01 end");
+}
+
+/**
+ * @tc.name: NotifyGlobalScaledRectChange
+ * @tc.desc: test function : NotifyGlobalScaledRectChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, NotifyGlobalScaledRectChange, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    GTEST_LOG_(INFO) << "SessionStageProxyLayoutTest: NotifyGlobalScaledRectChange start";
+    auto remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto sessionStageProxy = sptr<SessionStageProxy>::MakeSptr(remoteMocker);
+    auto sessionStageProxyNull = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    Rect globalScaledRect = { 0, 0, 1000, 1000 };
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    sessionStageProxy->NotifyGlobalScaledRectChange(globalScaledRect);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    g_logMsg.clear();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    sessionStageProxy->NotifyGlobalScaledRectChange(globalScaledRect);
+    EXPECT_TRUE(g_logMsg.find("write globalScaledRect failed") != std::string::npos);
+    g_logMsg.clear();
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    sessionStageProxyNull->NotifyGlobalScaledRectChange(globalScaledRect);
+    EXPECT_TRUE(g_logMsg.find("remote is null") != std::string::npos);
+    g_logMsg.clear();
+
+    remoteMocker->SetRequestResult(1);
+    sessionStageProxy->NotifyGlobalScaledRectChange(globalScaledRect);
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") != std::string::npos);
+    g_logMsg.clear();
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    sessionStageProxy->NotifyGlobalScaledRectChange(globalScaledRect);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") == std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("write globalScaledRect failed") == std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("remote is null") == std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") == std::string::npos);
+
+    g_logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    GTEST_LOG_(INFO) << "SessionStageProxyLayoutTest: NotifyGlobalScaledRectChange end";
 }
 
 /**

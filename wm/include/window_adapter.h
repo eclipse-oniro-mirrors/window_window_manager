@@ -238,6 +238,7 @@ public:
      * PiP Window
      */
     WMError GetPiPSettingSwitchStatus(bool& switchStatus);
+    WMError GetIsPipEnabled(bool& isPipEnabled);
 
     /*
      * Window outline

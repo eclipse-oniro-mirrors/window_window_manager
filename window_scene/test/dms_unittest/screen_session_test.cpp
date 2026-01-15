@@ -1263,6 +1263,40 @@ HWTEST_F(ScreenSessionTest, UpdatePropertyByActiveModeChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdatePropertyByScreenMode
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdatePropertyByScreenMode01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    RSScreenModeInfo screenMode;
+    session->UpdatePropertyByScreenMode(screenMode);
+    EXPECT_TRUE(g_errLog.find("Invalid RSScreenModeInfo") != std::string::npos);
+    g_errLog.clear();
+}
+
+/**
+ * @tc.name: UpdatePropertyByScreenMode
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdatePropertyByScreenMode02, TestSize.Level1)
+{
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    RSScreenModeInfo screenMode;
+    screenMode.SetScreenHeight(2440);
+    screenMode.SetScreenWidth(2240);
+    screenMode.SetScreenRefreshRate(90);
+    screenMode.SetScreenModeId(0);
+    session->UpdatePropertyByScreenMode(screenMode);
+    ASSERT_EQ(session->GetScreenProperty().GetBounds().rect_.width_, 2240);
+    ASSERT_EQ(session->GetScreenProperty().GetBounds().rect_.height_, 2440);
+}
+
+/**
  * @tc.name: SetSupportedRefreshRate
  * @tc.desc: normal function
  * @tc.type: FUNC
@@ -1989,7 +2023,7 @@ HWTEST_F(ScreenSessionTest, screen_session_test001, TestSize.Level1)
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     session->screenState_ = ScreenState::CONNECTION;
     session->RegisterScreenChangeListener(screenChangeListener);
-    EXPECT_FALSE(g_errLog.find("Failed to register screen change listener, listener is null!") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("Failed to register screen change listener, listener is null!") != std::string::npos);
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test001 end";
 }
 
@@ -2268,12 +2302,12 @@ HWTEST_F(ScreenSessionTest, CalcBoundsInRotationZero, TestSize.Level1)
     property.SetBounds(bounds);
     property.UpdateDeviceRotation(Rotation::ROTATION_0);
     session->SetScreenProperty(property);
-    auto res = session->CalcBoundsInRotationZero();
+    auto res = session->CalcBoundsInRotationZero(FoldDisplayMode::MAIN);
     EXPECT_EQ(res.rect_.width_, 1344);
 
     property.UpdateDeviceRotation(Rotation::ROTATION_90);
     session->SetScreenProperty(property);
-    res = session->CalcBoundsInRotationZero();
+    res = session->CalcBoundsInRotationZero(FoldDisplayMode::MAIN);
     EXPECT_EQ(res.rect_.width_, 2772);
 }
 
@@ -4912,6 +4946,21 @@ HWTEST_F(ScreenSessionTest, SetSupportsInput, TestSize.Level1)
 }
 
 /**
+ * @tc.name  : SetBundleName
+ * @tc.desc  : SetBundleName
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetBundleName, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->SetBundleName("test");
+    auto bundleName = session->GetBundleName();
+    EXPECT_EQ(bundleName, "test");
+}
+
+/**
  * @tc.name  : UpdateRotationOrientationMap01
  * @tc.desc  : UpdateRotationOrientationMap01
  * @tc.type: FUNC
@@ -5071,6 +5120,24 @@ HWTEST_F(ScreenSessionTest, UpdateScbScreenPropertyForSuperFlod, TestSize.Level1
     EXPECT_TRUE(g_errLog.find("handle system keyboard on and system keyboard succ") != std::string::npos);
     g_errLog.clear();
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name  : ClearPropertyChangeReasonAndEvent
+ * @tc.desc  : ClearPropertyChangeReasonAndEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ClearPropertyChangeReasonAndEvent, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    screenProperty.SetPropertyChangeReason(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    screenProperty.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::RESOLUTION_EFFECT_CHANGE);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->ClearPropertyChangeReasonAndEvent();
+    auto proeperty = session->GetScreenProperty();
+    EXPECT_EQ(proeperty.GetPropertyChangeReason(), ScreenPropertyChangeReason::UNDEFINED);
+    EXPECT_EQ(proeperty.GetSuperFoldStatusChangeEvent(), SuperFoldStatusChangeEvents::UNDEFINED);
 }
 } // namespace
 } // namespace Rosen

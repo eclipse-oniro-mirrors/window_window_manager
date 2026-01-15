@@ -99,10 +99,13 @@ public:
     virtual void SetDisplayScale(ScreenId screenId, float scaleX, float scaleY, float pivotX, float pivotY);
     virtual void SetFoldStatusLocked(bool locked);
     virtual DMError SetFoldStatusLockedFromJs(bool locked);
+    virtual DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus);
+    virtual DMError RestorePhysicalFoldStatus();
     virtual sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
     virtual DMError GetLiveCreaseRegion(FoldCreaseRegion& region);
     virtual void SetVirtualScreenBlackList(ScreenId screenId, std::vector<uint64_t>& windowIdList,
         std::vector<uint64_t> surfaceIdList = {}, std::vector<uint8_t> typeBlackList = {});
+    virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
     virtual void SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag);
     virtual void DisablePowerOffRenderControl(ScreenId screenId);
     virtual DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy);
@@ -127,6 +130,11 @@ public:
     virtual DMError SetSupportsInput(DisplayId displayId, bool supportsInput);
     virtual DMError GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner, DisplayId displayId,
         int32_t width, int32_t height);
+    virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName);
+    virtual DMError RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent> displayManagerAgent);
+    virtual DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent> displayManagerAgent);
     
 private:
     static inline SingletonDelegator<DisplayManagerAdapter> delegator;
@@ -137,7 +145,7 @@ WM_DECLARE_SINGLE_INSTANCE(ScreenManagerAdapter);
 public:
     virtual ScreenId CreateVirtualScreen(VirtualScreenOption option,
         const sptr<IDisplayManagerAgent>& displayManagerAgent);
-    virtual DMError DestroyVirtualScreen(ScreenId screenId);
+    virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
     virtual DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds);
     virtual DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds);

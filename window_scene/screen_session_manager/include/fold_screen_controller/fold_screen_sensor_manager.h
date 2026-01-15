@@ -39,6 +39,10 @@ public:
 
     void RegisterApplicationStateObserver();
 
+    void UnRegisterPostureCallback();
+
+    void UnRegisterHallCallback();
+
     void RegisterHallCallback();
 
     void SetFoldScreenPolicy(sptr<FoldScreenPolicy> foldScreenPolicy);

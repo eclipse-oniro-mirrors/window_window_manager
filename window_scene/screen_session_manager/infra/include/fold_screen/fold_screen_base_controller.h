@@ -44,6 +44,10 @@ public:
     virtual FoldCreaseRegion GetLiveCreaseRegion() const;
     virtual ScreenId GetCurrentScreenId();
     virtual void LockDisplayStatus(bool locked);
+    virtual DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus);
+    virtual DMError RestorePhysicalFoldStatus();
+    virtual bool GetPhysicalFoldLockFlag() const;
+    virtual FoldStatus GetPhysicalFoldStatus() const;
     virtual void SetOnBootAnimation(bool onBootAnimation);
     virtual void UpdateForPhyScreenPropertyChange();
     virtual void ExitCoordination();
@@ -62,6 +66,7 @@ public:
     virtual FoldDisplayMode GetLastCacheDisplayMode();
     virtual void SetIsClearingBootAnimation(bool isClearingBootAnimation);
     virtual nlohmann::ordered_json GetFoldCreaseRegionJson();
+    virtual void NotifyRunSensorFoldStateManager();
 private:
     std::vector<FoldCreaseRegionItem> foldCreaseRegionItems_;
 };

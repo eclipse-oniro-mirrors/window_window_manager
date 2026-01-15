@@ -64,11 +64,6 @@ struct WindowProfileSum {
     int32_t minimizeWindowCount = -1;
 };
 
-const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {
-    {KeyboardLifeCycleException::ANIM_SYNC_EXCEPTION, "ANIM_SYNC_EXCEPTION"},
-    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"}
-};
-
 struct WindowLifeCycleReportInfo {
     std::string bundleName;
     int32_t windowId;
@@ -110,6 +105,8 @@ private:
 using FullInfoMap = std::map<std::string, std::map<std::string, uint32_t>>;
 // the map form : <bundleName, count>
 using BundleNameMap = std::map<std::string, uint32_t>;
+// This defines a duration whose period is one day, using long long as the underlying representation.
+using days = std::chrono::duration<long long, std::ratio<86400>>; // 86400 represents the number of seconds in a day
 class WindowInfoReporter {
 WM_DECLARE_SINGLE_INSTANCE(WindowInfoReporter);
 
@@ -137,6 +134,9 @@ public:
         const std::string& msg);
     int32_t ReportSpecWindowLifeCycleChange(WindowLifeCycleReportInfo reportInfo);
 
+    // IO record
+    void ReportWindowIO(const std::string& subScene, double sizeKB);
+
 private:
     void UpdateReportInfo(FullInfoMap& infoMap, const std::string& bundleName,
         const std::string& packageName);
@@ -147,6 +147,9 @@ private:
     void Report(const std::string& reportTag, const std::string& msg);
     void ClearRecordedInfos();
 
+    // IO record
+    void ReportWindowIOPerDay();
+
     BundleNameMap windowCreateReportInfos_;
     BundleNameMap windowShowReportInfos_;
     BundleNameMap windowHideReportInfos_;
@@ -155,6 +158,13 @@ private:
     FullInfoMap windowNavigationBarReportInfos_;
 
     std::mutex mtx_;
+
+    // IO record
+    std::mutex reportWindowIOMutex_;
+    std::unordered_map<std::string, double> ioRecordMap_;
+    bool firstIOTimeInitialized_ = false;
+    std::chrono::time_point<std::chrono::system_clock, days> firstIODayTime_;
+    std::chrono::time_point<std::chrono::system_clock> firstIOSecondTime_;
 };
 }
 }

@@ -149,7 +149,17 @@ void FoldScreenController::SetDisplayMode(const FoldDisplayMode displayMode)
         TLOGW(WmsLogTag::DMS, "foldScreenPolicy_ is null");
         return;
     }
-    foldScreenPolicy_->ChangeScreenDisplayMode(displayMode);
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        foldScreenPolicy_->ChangeScreenDisplayMode(displayMode, DisplayModeChangeReason::SETMODE);
+    } else {
+        foldScreenPolicy_->ChangeScreenDisplayMode(displayMode);
+    }
+}
+
+void FoldScreenController::NotifyRunSensorFoldStateManager()
+{
+    TLOGI(WmsLogTag::DMS, "TaskSequenceProcess FoldScreenController::NotifyRunSensorFoldStateManager");
+    sensorFoldStateManager_->FinishTaskSequence();
 }
 
 void FoldScreenController::RecoverDisplayMode()
@@ -174,6 +184,42 @@ void FoldScreenController::RecoverDisplayMode()
     }
     TLOGI(WmsLogTag::DMS, "%{public}d -> %{public}d", currentDisplayMode, displayMode);
     foldScreenPolicy_->ChangeScreenDisplayMode(displayMode, DisplayModeChangeReason::RECOVER);
+}
+
+DMError FoldScreenController::ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus)
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return foldScreenPolicy_->SetFoldStatusAndLockControl(true, targetFoldStatus);
+}
+
+DMError FoldScreenController::RestorePhysicalFoldStatus()
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return foldScreenPolicy_->SetFoldStatusAndLockControl(false, FoldStatus::UNKNOWN);
+}
+
+bool FoldScreenController::GetPhysicalFoldLockFlag() const
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return false;
+    }
+    return foldScreenPolicy_->GetPhysicalFoldLockFlag();
+}
+
+FoldStatus FoldScreenController::GetPhysicalFoldStatus() const
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return FoldStatus::UNKNOWN;
+    }
+    return foldScreenPolicy_->GetPhysicalFoldStatus();
 }
 
 void FoldScreenController::LockDisplayStatus(bool locked)

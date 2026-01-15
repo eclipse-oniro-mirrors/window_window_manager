@@ -820,6 +820,24 @@ HWTEST_F(SessionStageStubTest, HandleNotifyDialogStateChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleNotifyGlobalScaledRectChange
+ * @tc.desc: test function : HandleNotifyGlobalScaledRectChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleNotifyGlobalScaledRectChange, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_GLOBAL_SCALED_RECT);
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    Rect globalScaledRect = { 0, 0, 1000, 1000 };
+    globalScaledRect.Marshalling(data);
+    EXPECT_EQ(0, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
  * @tc.name: HandleSetPipActionEvent
  * @tc.desc: test function : HandleSetPipActionEvent
  * @tc.type: FUNC
@@ -1571,6 +1589,72 @@ HWTEST_F(SessionStageStubTest, HandleUpdateBrightness, TestSize.Level1)
     data.WriteFloat(1.0f);
     ASSERT_TRUE(sessionStageStub_ != nullptr);
     EXPECT_EQ(ERR_NONE, sessionStageStub_->HandleUpdateBrightness(data, reply));
+}
+
+/**
+ * @tc.name: HandleAddSidebarBlur
+ * @tc.desc: test function : HandleAddSidebarBlur
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleAddSidebarBlur, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_ADD_SIDEBAR_BLUR);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
+ * @tc.name: HandleSetSidebarBlurStyleWithType01
+ * @tc.desc: test function : HandleSetSidebarBlurStyleWithType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetSidebarBlurStyleWithType01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteUint32(0);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_SIDEBAR_BLUR_STYLE);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
+ * @tc.name: HandleSetSidebarBlurStyleWithType02
+ * @tc.desc: test function : HandleSetSidebarBlurStyleWithType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetSidebarBlurStyleWithType02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_SIDEBAR_BLUR_STYLE);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
+ * @tc.name: HandleSetSidebarBlurStyleWithType03
+ * @tc.desc: test function : HandleSetSidebarBlurStyleWithType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetSidebarBlurStyleWithType03, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(SidebarBlurType::END));
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_SIDEBAR_BLUR_STYLE);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
 }
 } // namespace
 } // namespace Rosen

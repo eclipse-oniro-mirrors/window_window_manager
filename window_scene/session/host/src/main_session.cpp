@@ -28,10 +28,11 @@ namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "MainSession" };
 constexpr int32_t MAX_LABEL_SIZE = 1024;
+const uint64_t PRELAUNCH_DONE_TIME = system::GetIntParameter<int>("window.prelaunchDoneTime", 6000);
 } // namespace
 
-MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
-    : SceneSession(info, specificCallback)
+MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId)
+    : SceneSession(info, specificCallback, userId)
 {
     scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, GetPersistentId(), capacity_);
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
@@ -261,7 +262,7 @@ void MainSession::ClearSnapshotPersistence()
     auto task = [weakThis = wptr(this), where = __func__]() {
         auto session = weakThis.promote();
         if (session == nullptr) {
-            TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s, session %{public}d nullptr", where, session->GetPersistentId());
+            TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s, session is nullptr", where);
             return;
         }
         TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s, %{public}d", where, session->GetPersistentId());
@@ -707,5 +708,36 @@ WSError MainSession::NotifyAppForceLandscapeConfigEnableUpdated()
 void MainSession::RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func)
 {
     forceSplitEnableFunc_ = std::move(func);
+}
+
+void MainSession::RemovePrelaunchStartingWindow()
+{
+    auto lifecycleListeners = GetListeners<ILifecycleListener>();
+    for (auto& listener : lifecycleListeners) {
+        if (auto listenerPtr = listener.lock()) {
+            listenerPtr->OnRemovePrelaunchStartingWindow();
+        }
+    }
+}
+
+void MainSession::SetPrelaunch()
+{
+    prelaunchStart_ = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    TLOGI(WmsLogTag::WMS_LIFE, "SetPrelaunch timestamp: %{public}" PRIu64, prelaunchStart_);
+    sessionInfo_.isPrelaunch_ = true;
+}
+
+bool MainSession::IsPrelaunch() const
+{
+    int64_t nowTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+
+    if (sessionInfo_.isPrelaunch_) {
+        TLOGI(WmsLogTag::WMS_LIFE, "IsPrelaunch now - start: %{public}" PRIu64, nowTimeStamp - prelaunchStart_);
+    }
+
+    int64_t timeDiff = nowTimeStamp - prelaunchStart_;
+    return sessionInfo_.isPrelaunch_ && timeDiff > 0 && timeDiff > PRELAUNCH_DONE_TIME;
 }
 } // namespace OHOS::Rosen

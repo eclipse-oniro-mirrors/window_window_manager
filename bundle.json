@@ -92,7 +92,8 @@
           "runtime_core",
           "zlib",
           "screenlock_mgr",
-          "os_account"
+          "os_account",
+          "time_service"
         ],
         "third_party": [
         ]

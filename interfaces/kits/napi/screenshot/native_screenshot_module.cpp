@@ -737,7 +737,7 @@ void SetDmErrorCodeObjectProperty(napi_env env, napi_value dmErrorCode)
 
 napi_value ScreenshotModuleInit(napi_env env, napi_value exports)
 {
-    TLOGI(WmsLogTag::DMS, "called");
+    TLOGI_LIMITN_HOUR(WmsLogTag::DMS, TEN_TIMES, "called");
 
     napi_value errorCode = nullptr;
     napi_value dmErrorCode = nullptr;

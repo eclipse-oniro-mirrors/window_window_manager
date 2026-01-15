@@ -398,13 +398,13 @@ ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
     return screenId;
 }
 
-DMError ScreenManagerAdapter::DestroyVirtualScreen(ScreenId screenId)
+DMError ScreenManagerAdapter::DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
 
     TLOGI(WmsLogTag::DMS, "enter");
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->DestroyVirtualScreen(screenId);
+        return screenSessionManagerServiceProxy_->DestroyVirtualScreen(screenId, isCallingByThirdParty);
     }
 
     int32_t dmError;
@@ -648,6 +648,30 @@ DMError BaseAdapter::UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAge
     ErrCode errCode = displayManagerServiceProxy_->UnregisterDisplayManagerAgent(displayManagerAgent,
         static_cast<uint32_t>(type), dmError);
     return ConvertToDMError(errCode, dmError);
+}
+
+DMError DisplayManagerAdapter::RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent> displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RegisterDisplayAttributeAgent(attributes, displayManagerAgent);
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent> displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->UnRegisterDisplayAttribute(attributes, displayManagerAgent);
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
 bool DisplayManagerAdapter::WakeUpBegin(PowerStateChangeReason reason)
@@ -1286,6 +1310,28 @@ DMError DisplayManagerAdapter::SetFoldStatusLockedFromJs(bool locked)
     return DMError::DM_OK;
 }
 
+DMError DisplayManagerAdapter::ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->ForceSetFoldStatusAndLock(targetFoldStatus);
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::RestorePhysicalFoldStatus()
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RestorePhysicalFoldStatus();
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 sptr<FoldCreaseRegion> DisplayManagerAdapter::GetCurrentFoldCreaseRegion()
 {
     INIT_PROXY_CHECK_RETURN(nullptr);
@@ -1583,6 +1629,16 @@ void DisplayManagerAdapter::SetVirtualScreenBlackList(ScreenId screenId, std::ve
     }
 }
 
+DMError DisplayManagerAdapter::IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
+    }
+    TLOGE(WmsLogTag::DMS, "fail");
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 void DisplayManagerAdapter::SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag)
 {
     INIT_PROXY_CHECK_RETURN();
@@ -1772,6 +1828,15 @@ DMError DisplayManagerAdapter::SetSupportsInput(DisplayId displayId, bool suppor
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->SetSupportsInput(displayId, supportsInput);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::GetBundleName(DisplayId displayId, std::string& bundleName)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->GetBundleName(displayId, bundleName);
     }
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }

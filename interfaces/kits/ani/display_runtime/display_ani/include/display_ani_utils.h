@@ -100,6 +100,8 @@ static void DisposeAniDisplayObject(DisplayId displayId);
 static ani_status CvtBrightnessInfo(ani_env* env, ani_object obj, ScreenBrightnessInfo brightnessInfo);
 
 static ani_object CreateBrightnessInfoObject(ani_env* env);
+
+static ani_status GetStdStringVector(ani_env* env, ani_object arryObj, std::vector<std::string>& result);
 };
 }
 }

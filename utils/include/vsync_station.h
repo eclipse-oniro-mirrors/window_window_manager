@@ -18,6 +18,7 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 #include <unordered_set>
 
 #include <event_handler.h>
@@ -38,12 +39,64 @@ class VsyncStation : public std::enable_shared_from_this<VsyncStation> {
 public:
     explicit VsyncStation(NodeId nodeId,
         const std::shared_ptr<AppExecFwk::EventHandler>& vsyncHandler = nullptr);
-    ~VsyncStation();
+    virtual ~VsyncStation();
 
     bool HasRequestedVsync() const { return hasRequestedVsync_; }
     bool IsVsyncReceiverCreated();
-    void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback);
-    int64_t GetVSyncPeriod();
+
+    /**
+     * @brief Request a one-shot vsync for the given callback.
+     *
+     * Registers the callback and triggers a vsync request if none is currently
+     * pending. Multiple callbacks may be coalesced into a single vsync request.
+     *
+     * @param vsyncCallback Callback to be invoked on the next vsync.
+     */
+    virtual void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback);
+
+    /**
+     * @brief Run a callback once on the next vsync.
+     *
+     * Schedules the given callback to be executed exactly once when the next
+     * vsync occurs. This is a convenience wrapper that internally creates a
+     * VsyncCallback and requests a one-shot vsync.
+     *
+     * @param callback Callback to be executed on the next vsync.
+     */
+    void RunOnceOnNextVsync(OnCallback&& callback);
+
+    /**
+     * @brief Run a callback once after a specified number of vsyncs.
+     *
+     * Schedules the given callback to be executed exactly once after the specified
+     * number of upcoming vsyncs have occurred, relative to the time this method
+     * is called.
+     *
+     * For example, a delayVsyncCount of 1 is equivalent to executing the callback
+     * on the next vsync.
+     *
+     * @param delayVsyncCount Number of vsyncs to wait before executing the callback.
+     * @param callback        Callback to be executed after the specified vsync delay.
+     */
+    void RunOnceAfterNVsyncs(uint32_t delayVsyncCount, OnCallback&& callback);
+
+    /**
+     * @brief Get the vsync period.
+     *
+     * @return Vsync period in nanoseconds (ns), or 0 if unavailable.
+     */
+    virtual int64_t GetVSyncPeriod();
+
+    /**
+     * @brief Get the current display refresh rate in FPS.
+     *
+     * The FPS is derived from the vsync period. Returns std::nullopt
+     * if vsync timing information is unavailable.
+     *
+     * @return Optional FPS value.
+     */
+    virtual std::optional<uint32_t> GetFps();
+
     void RemoveCallback();
     void Destroy();
 

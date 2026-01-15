@@ -892,7 +892,7 @@ napi_value CreateJsRoundedCorner(napi_env env, const std::vector<RoundedCorner>&
 {
     TLOGD(WmsLogTag::DMS, "called");
     napi_value arrayValue = nullptr;
-    napi_create_object(env, &arrayValue);
+    napi_create_array_with_length(env, roundedCorner.size(), &arrayValue);
     if (arrayValue == nullptr) {
         TLOGE(WmsLogTag::DMS, "Failed to create object");
         return NapiGetUndefined(env);

@@ -175,6 +175,7 @@ using ConvertSystemConfigFunc = std::function<void(const std::string& configItem
 using NotifyVirtualPixelChangeFunc = std::function<void(float density, DisplayId displayId)>;
 using NotifySetSpecificWindowZIndexFunc = std::function<void(WindowType windowType, int32_t zIndex,
     SetSpecificZIndexReason reason)>;
+using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 class AppAnrListener : public IRemoteStub<AppExecFwk::IAppDebugListener> {
 public:
     void OnAppDebugStarted(const std::vector<AppExecFwk::AppDebugInfo>& debugInfos) override;
@@ -470,7 +471,7 @@ public:
     WSError RegisterIAbilityManagerCollaborator(int32_t type,
         const sptr<AAFwk::IAbilityManagerCollaborator>& impl) override;
     WSError UnregisterIAbilityManagerCollaborator(int32_t type) override;
-    void ClearAllCollaboratorSessions();
+    void ClearCollaboratorSessionsByType(int32_t type);
 
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override;
     void GetSceneSessionPrivacyModeBundles(DisplayId displayId,
@@ -507,6 +508,7 @@ public:
     void UpdateRootSceneAvoidArea();
     bool GetImmersiveState(ScreenId screenId);
     WSError NotifyStatusBarShowStatus(int32_t persistentId, bool isVisible);
+    void UpdateAvoidAreaForLSStateChange(int32_t curState, int32_t preState);
     void NotifyStatusBarConstantlyShow(DisplayId displayId, bool isVisible);
     void GetStatusBarConstantlyShow(DisplayId displayId, bool& isVisible) const;
     WSError NotifyAINavigationBarShowStatus(bool isVisible, WSRect barArea, uint64_t displayId);
@@ -596,6 +598,7 @@ public:
 
     const SystemSessionConfig& GetSystemSessionConfig() const;
     WSError NotifyEnterRecentTask(bool enterRecent);
+    void NotifySCBRecentStateChange(bool isRecent);
     WMError UpdateDisplayHookInfo(int32_t uid, uint32_t width, uint32_t height, float_t density, bool enable);
     WMError UpdateAppHookDisplayInfo(int32_t uid, const HookInfo& hookInfo, bool enable);
     WMError NotifyHookOrientationChange(int32_t persistentId);
@@ -709,7 +712,9 @@ public:
     WMError CloseTargetPiPWindow(const std::string& bundleName);
     WMError GetCurrentPiPWindowInfo(std::string& bundleName);
     WMError GetPiPSettingSwitchStatus(bool& switchStatus) override;
+    WMError GetIsPipEnabled(bool& isPipEnabled) override;
     void SetPiPSettingSwitchStatus(bool switchStatus);
+    void SetIsPipEnabled(bool isPipEnabled);
     void SetStartPiPFailedListener(NotifyStartPiPFailedFunc&& func);
     bool GetPipDeviceCollaborationPolicy(int32_t screenId);
     WMError SetPipEnableByScreenId(int32_t screenId, bool enabled);
@@ -862,6 +867,7 @@ public:
     bool IsAppBoundSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey);
     void UpdateAppBoundSystemTrayStatus(const std::string &key, int32_t pid, bool enabled);
     void RegisterIsAppBoundSystemTrayFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterMinimizeAllCallback(MinimizeAllFunc&& func);
 
     /*
      * Window Pattern
@@ -887,6 +893,7 @@ public:
     void ConfigSupportPreloadStartingWindow();
     void PreLoadStartingWindow(sptr<SceneSession> sceneSession);
     bool IsSyncLoadStartingWindow() { return syncLoadStartingWindow_; };
+    bool IsDmaReclaimEnabled() { return enableDmaReclaim_; };
 
     /*
      * Window Animation
@@ -907,6 +914,7 @@ protected:
 
 private:
     std::atomic<bool> enterRecent_ { false };
+    std::atomic<bool> scbIsRecent_ { false };
     bool isKeyboardPanelEnabled_ = false;
     bool isTrayAppForeground_ = false;
     std::unordered_map<std::string, ConvertSystemConfigFunc> convertConfigMap_;
@@ -939,6 +947,7 @@ private:
     void ConfigStartingWindowAnimation(const WindowSceneConfig::ConfigItem& startingWindowConfig);
     bool ConfigWindowLayout(const WindowSceneConfig::ConfigItem& windowLayoutConfig);
     bool ConfigMoveDrag(const WindowSceneConfig::ConfigItem& moveDragConfig);
+    bool ConfigMoveResample(const WindowSceneConfig::ConfigItem& moveResampleConfig);
     void ConfigWindowSizeLimits();
     void ConfigMainWindowSizeLimits(const WindowSceneConfig::ConfigItem& mainWindowSizeConifg);
     void ConfigSubWindowSizeLimits(const WindowSceneConfig::ConfigItem& subWindowSizeConifg);
@@ -1021,6 +1030,7 @@ private:
         const std::vector<int32_t>& windowIds, const sptr<IRemoteObject>& callback);
     void RegisterWindowStateErrorCallbackToMMI();
     std::unordered_map<std::string, std::unordered_set<int32_t>> appsWithBoundSystemTrayMap_;
+    MinimizeAllFunc minimizeAllFunc_;
 
     /*
      * Window Focus
@@ -1463,9 +1473,10 @@ private:
     const int32_t BROKER_UID = 5557;
     const int32_t BROKER_RESERVE_UID = 5005;
     std::shared_mutex collaboratorMapLock_;
+    std::shared_mutex collaboratorDeathRecipientMapLock_;
     std::unordered_map<int32_t, sptr<AAFwk::IAbilityManagerCollaborator>> collaboratorMap_;
+    std::unordered_map<int32_t, sptr<AgentDeathRecipient>> collaboratorDeathRecipientMap_;
     std::atomic<int64_t> containerStartAbilityTime_ { 0 };
-    sptr<AgentDeathRecipient> collaboratorDeathRecipient_;
     BrokerStates NotifyStartAbility(
         int32_t collaboratorType, const SessionInfo& sessionInfo, int32_t persistentId = 0);
     void NotifySessionCreate(const sptr<SceneSession> sceneSession, const SessionInfo& sessionInfo);
@@ -1479,6 +1490,7 @@ private:
     void NotifyCollaboratorAfterStart(sptr<SceneSession>& sceneSession, sptr<AAFwk::SessionInfo>& sceneSessionInfo);
     void UpdateCollaboratorSessionWant(sptr<SceneSession>& session, int32_t persistentId = 0);
     sptr<AAFwk::IAbilityManagerCollaborator> GetCollaboratorByType(int32_t collaboratorType);
+    sptr<AgentDeathRecipient> GetCollaboratorDeathRecipient(int32_t collaboratorType);
     void GetCollaboratorAbilityInfos(const std::vector<AppExecFwk::BundleInfo>& bundleInfos,
         std::vector<SCBAbilityInfo>& scbAbilityInfos, int32_t userId);
 
@@ -1491,6 +1503,7 @@ private:
     std::mutex pipSettingSwitchMutex_;
     uint64_t pipWindowSurfaceId_ = 0;
     bool pipSwitchStatus_ = true;
+    bool pipIsPipEnabled_ = false;
     std::shared_mutex screenPipEnabledMapLock_;
     std::unordered_map<int32_t, bool> screenPipEnabledMap_;
     std::shared_mutex pipChgListenerMapMutex_;
@@ -1605,7 +1618,7 @@ private:
     std::shared_mutex appHookWindowInfoMapMutex_;
     std::unordered_map<std::string, HookWindowInfo> appHookWindowInfoMap_;
     void InitVsyncStation();
-    void RegisterRequestVsyncFunc(const sptr<SceneSession>& sceneSession);
+    void BindVsyncStation(const sptr<SceneSession>& sceneSession);
     bool GetDisplaySizeById(DisplayId displayId, int32_t& displayWidth, int32_t& displayHeight);
     void UpdateSessionWithFoldStateChange(DisplayId displayId, SuperFoldStatus status, SuperFoldStatus prevStatus);
     void ConfigSingleHandCompatibleMode(const WindowSceneConfig::ConfigItem& configItem);
@@ -1672,6 +1685,9 @@ private:
     std::unordered_map<DisplayId, bool> statusBarConstantlyShowMap_;
     std::mutex lastSystemBarPropertyMapMutex_;
     std::unordered_map<WindowType, SystemBarProperty> lastSystemBarPropertyMap_;
+    bool GetLSState() const { return isLSState_; }
+    void SetLSState(bool isLSState) { isLSState_ = isLSState; }
+    bool isLSState_ = false;
 
     struct SessionInfoList {
         int32_t uid_;
@@ -1821,8 +1837,10 @@ private:
     std::unordered_set<std::string> emptyStartupResource_;
     std::atomic<bool> delayRemoveSnapshot_ = false;
     bool syncLoadStartingWindow_ = false;
+    bool enableDmaReclaim_ = false;
     void InitWindowPattern();
     void InitStartingWindow();
+    void InitDmaReclaimParam();
     void InitStartingWindowRdb(const std::string& rdbPath);
     bool GetStartingWindowInfoFromCache(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo,
         bool isDark);

@@ -413,6 +413,21 @@ HWTEST_F(IntentionEventManagerTest, IsKeyboardEvent, TestSize.Level1)
     EXPECT_EQ(true, inputEventListener_->IsKeyboardEvent(keyEvent));
     usleep(WAIT_SYNC_IN_NS);
 }
+
+/**
+ * @tc.name: CreateAndEnableInputEventListener
+ * @tc.desc: CreateAndEnableInputEventListener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(IntentionEventManagerTest, CreateAndEnableInputEventListener, TestSize.Level1)
+{
+    bool enable = CreateAndEnableInputEventListener(nullptr, nullptr, nullptr);
+    EXPECT_EQ(false, enable);
+    enable = CreateAndEnableInputEventListener(uIContent_.get(), nullptr, nullptr);
+    EXPECT_EQ(false, enable);
+    enable = CreateAndEnableInputEventListener(uIContent_.get(), eventHandler_, nullptr);
+    EXPECT_EQ(true, enable);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

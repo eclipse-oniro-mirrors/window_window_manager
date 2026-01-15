@@ -76,6 +76,179 @@ void WindowSessionImplTest5::TearDown()
 }
 
 namespace {
+sptr<WindowSessionImpl> GetTestWindowImpl(const std::string& name)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    if (option == nullptr) {
+        return nullptr;
+    }
+    option->SetWindowName(name);
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    if (window == nullptr) {
+        return nullptr;
+    }
+
+    SessionInfo sessionInfo = { name, name, name };
+    sptr<SessionMocker> session = new (std::nothrow) SessionMocker(sessionInfo);
+    if (session == nullptr) {
+        return nullptr;
+    }
+
+    window->hostSession_ = session;
+    auto runner = AppExecFwk::EventRunner::Create("WindowSessionImpl");
+    std::shared_ptr<AppExecFwk::EventHandler> handler = std::make_shared<AppExecFwk::EventHandler>(runner);
+    window->handler_ = handler;
+    return window;
+}
+
+/**
+ * @tc.name: NotifyAfterFocused
+ * @tc.desc: NotifyAfterFocused
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, NotifyAfterFocused, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("NotifyAfterFocused");
+    ASSERT_NE(window, nullptr);
+    window->NotifyAfterFocused();
+    ASSERT_TRUE(window->shouldReNotifyFocus_);
+
+    window->shouldReNotifyFocus_ = false;
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->NotifyAfterFocused();
+    ASSERT_FALSE(window->shouldReNotifyFocus_);
+    window->Destroy();
+}
+
+/**
+ * @tc.name: NotifyBeforeDestroy
+ * @tc.desc: NotifyBeforeDestroy
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, NotifyBeforeDestroy, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("NotifyBeforeDestroy");
+    ASSERT_NE(window, nullptr);
+    window->isAttachedOnFrameNode_ = false;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->NotifyBeforeDestroy(window->GetWindowName());
+    EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
+
+    window->isAttachedOnFrameNode_ = false;
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->SetIsUIExtFirstSubWindow(false);
+    window->NotifyBeforeDestroy(window->GetWindowName());
+    EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
+
+    window->isAttachedOnFrameNode_ = false;
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->SetIsUIExtFirstSubWindow(true);
+    window->NotifyBeforeDestroy(window->GetWindowName());
+    EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
+}
+
+/**
+ * @tc.name: GetFocusabletest01
+ * @tc.desc: GetFocusable
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetFocusable, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: GetFocusableTest01 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetFocusable");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    bool ret = window->GetFocusable();
+    ASSERT_EQ(ret, true);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: GetFocusableTest01 end";
+}
+
+/**
+ * @tc.name: SetTopmost
+ * @tc.desc: SetTopmost
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, SetTopmost, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetTopmost");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    WMError res = window->SetTopmost(true);
+    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, res);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    res = window->SetTopmost(true);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, res);
+
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = new (std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, session);
+    window->hostSession_ = session;
+    window->state_ = WindowState::STATE_CREATED;
+    res = window->SetTopmost(true);
+    ASSERT_EQ(WMError::WM_OK, res);
+}
+
+/**
+ * @tc.name: IsTopmost
+ * @tc.desc: IsTopmost
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, IsTopmost, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsTopmost");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    bool res = window->IsTopmost();
+    ASSERT_FALSE(res);
+}
+
+/**
+ * @tc.name: SetMainWindowTopmost
+ * @tc.desc: SetMainWindowTopmost
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, SetMainWindowTopmost, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetMainWindowTopmost");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    WMError res = window->SetMainWindowTopmost(false);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    res = window->SetMainWindowTopmost(true);
+    EXPECT_EQ(res, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    res = window->SetMainWindowTopmost(true);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    res = window->SetMainWindowTopmost(true);
+    EXPECT_EQ(res, WMError::WM_OK);
+    res = window->SetMainWindowTopmost(false);
+    EXPECT_EQ(res, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: IsMainWindowTopmost
+ * @tc.desc: IsMainWindowTopmost
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, IsMainWindowTopmost, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsMainWindowTopmost");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    bool res = window->IsMainWindowTopmost();
+    ASSERT_FALSE(res);
+}
+
 /**
  * @tc.name: GetSubWindows
  * @tc.desc: GetSubWindows
@@ -2236,6 +2409,26 @@ HWTEST_F(WindowSessionImplTest5, SwitchSubWindow, Function | SmallTest | Level1)
 }
 
 /**
+ * @tc.name: IsPiPActive
+ * @tc.desc: IsPiPActive
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, IsPiPActive, Function | SmallTest | Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    bool status = false;
+    EXPECT_EQ(window->IsPiPActive(status), WMError::WM_ERROR_PIP_INTERNAL_ERROR);
+
+    SessionInfo sessionInfo = {"IsPiPActive", "IsPiPActive", "IsPiPActive"};
+    auto hostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = hostSession;
+
+    EXPECT_EQ(window->IsPiPActive(status), WMError::WM_OK);
+}
+
+/**
  * @tc.name: NotifySizeChangeFlag
  * @tc.desc: NotifySizeChangeFlag
  * @tc.type: FUNC
@@ -2260,10 +2453,11 @@ HWTEST_F(WindowSessionImplTest5, NotifySizeChangeFlag, Function | SmallTest | Le
     window->SetNotifySizeChangeFlag(true);
     ASSERT_EQ(window->notifySizeChangeFlag_, false);
 
+    window->property_->SetWindowRect(windowRect);
     window->SetNotifySizeChangeFlag(false);
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     window->SetNotifySizeChangeFlag(true);
-    ASSERT_EQ(window->notifySizeChangeFlag_, false);
+    ASSERT_EQ(window->notifySizeChangeFlag_, true);
 }
 
 /**

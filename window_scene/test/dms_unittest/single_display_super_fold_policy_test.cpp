@@ -14,8 +14,10 @@
  */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "screen_session_manager/include/fold_screen_controller/single_display_super_fold_policy.h"
+#include "screen_session_manager/include/screen_session_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -121,6 +123,24 @@ HWTEST_F(SingleDisplaySuperFoldPolicyTest, GetCurrentFoldCreaseRegion, TestSize.
 }
 
 /**
+ * @tc.name: GetSupportedFoldStatus
+ * @tc.desc: GetSupportedFoldStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplaySuperFoldPolicyTest, GetSupportedFoldStatus, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplaySuperFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    EXPECT_THAT(policy.GetSupportedFoldStatus(),
+        UnorderedElementsAre(
+            FoldStatus::EXPAND,
+            FoldStatus::FOLDED,
+            FoldStatus::HALF_FOLD));
+}
+
+/**
  * @tc.name: LockDisplayStatus
  * @tc.desc: test function : LockDisplayStatus
  * @tc.type: FUNC
@@ -218,11 +238,11 @@ HWTEST_F(SingleDisplaySuperFoldPolicyTest, UpdateForPhyScreenPropertyChange, Tes
 }
 
 /**
- * @tc.name: GetModeMatchStatus
+ * @tc.name: GetModeMatchStatus01
  * @tc.desc: test function : GetModeMatchStatus
  * @tc.type: FUNC
  */
-HWTEST_F(SingleDisplaySuperFoldPolicyTest, GetModeMatchStatus, TestSize.Level1)
+HWTEST_F(SingleDisplaySuperFoldPolicyTest, GetModeMatchStatus01, TestSize.Level1)
 {
     std::recursive_mutex displayInfoMutex;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
@@ -244,6 +264,38 @@ HWTEST_F(SingleDisplaySuperFoldPolicyTest, GetModeMatchStatus, TestSize.Level1)
     policy.currentFoldStatus_ = FoldStatus::UNKNOWN;
     displayMode = policy.GetModeMatchStatus();
     EXPECT_EQ(FoldDisplayMode::UNKNOWN, displayMode);
+}
+
+/**
+ * @tc.name: GetModeMatchStatus02
+ * @tc.desc: test function : GetModeMatchStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplaySuperFoldPolicyTest, GetModeMatchStatus02, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplaySuperFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    FoldStatus targetFoldStatus = FoldStatus::EXPAND;
+    FoldDisplayMode ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::FULL, ret);
+
+    targetFoldStatus = FoldStatus::FOLDED;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::MAIN, ret);
+
+    targetFoldStatus = FoldStatus::HALF_FOLD;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::FULL, ret);
+
+    targetFoldStatus = FoldStatus::UNKNOWN;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::UNKNOWN, ret);
+
+    targetFoldStatus = FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_EXPAND;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::UNKNOWN, ret);
 }
 
 /**
@@ -483,6 +535,32 @@ HWTEST_F(SingleDisplaySuperFoldPolicyTest, ChangeScreenDisplayModeInner, TestSiz
     displayMode = FoldDisplayMode::SUB;
     policy.ChangeScreenDisplayModeInner(displayMode, reason);
     EXPECT_FALSE(policy.onBootAnimation_);
+}
+
+/**
+ * @tc.name: ChangeScreenDisplayModeInner
+ * @tc.desc: test fold exit coordination
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplaySuperFoldPolicyTest, ChangeScreenDisplayModeInnerTest_foldExitCoordination, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplaySuperFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    policy.currentFoldStatus_ = FoldStatus::FOLDED;
+    policy.currentDisplayMode_ = FoldDisplayMode::COORDINATION;
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenSessionManager::GetInstance().screenSessionMap_.insert({screenid, screenSession});
+    FoldDisplayMode displayMode = FoldDisplayMode::FULL;
+    DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT;
+    policy.ChangeScreenDisplayModeInner(displayMode, reason);
+    EXPECT_EQ(policy.currentDisplayMode_, FoldDisplayMode::FULL);
+
+    policy.currentFoldStatus_ = FoldStatus::EXPAND;
+    policy.ChangeScreenDisplayModeInner(displayMode, reason);
+    EXPECT_EQ(policy.currentDisplayMode_, FoldDisplayMode::FULL);
 }
 
 /**

@@ -31,7 +31,7 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t* result)
     }
 
     ani_class cls = nullptr;
-    if ((ret = env->FindClass("L@ohos/window/window/WindowStage;", &cls)) != ANI_OK) {
+    if ((ret = env->FindClass("@ohos.window.window.WindowStage", &cls)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] null env %{public}u", ret);
         return ANI_NOT_FOUND;
     }

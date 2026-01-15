@@ -60,6 +60,7 @@ using NotifySessionDisplayIdChangeFunc = std::function<void(uint64_t displayId)>
 using NotifyUpdateFloatingBallFunc = std::function<void(const FloatingBallTemplateInfo& fbTemplateInfo)>;
 using NotifyStopFloatingBallFunc = std::function<void()>;
 using NotifyRestoreFloatingBallMainWindowFunc = std::function<void(const std::shared_ptr<AAFwk::Want>& want)>;
+using NotifyRestoreFloatMainWindowFunc = std::function<void(const std::shared_ptr<AAFwk::WantParams>& wantParameters)>;
 using NotifyPendingSessionActivationFunc = std::function<void(SessionInfo& info)>;
 using NotifyBatchPendingSessionsActivationFunc = std::function<void(std::vector<std::shared_ptr<SessionInfo>>& info,
     const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs)>;
@@ -144,6 +145,7 @@ public:
     virtual void OnUpdateSnapshotWindow() {}
     virtual void OnPreLoadStartingWindowFinished() {}
     virtual void OnRestart() {}
+    virtual void OnRemovePrelaunchStartingWindow() {}
 };
 
 enum class LifeCycleTaskType : uint32_t {
@@ -289,6 +291,7 @@ public:
      * Window Scene Snapshot
      */
     std::shared_ptr<Media::PixelMap> GetSnapshot() const;
+    std::shared_ptr<Media::PixelMap> GetPreloadSnapshot() const;
     std::shared_ptr<Media::PixelMap> Snapshot(
         bool runInFfrt = false, float scaleParam = 0.0f, bool useCurWindow = false) const;
     void ResetSnapshot();
@@ -296,6 +299,8 @@ public:
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
         std::shared_ptr<Media::PixelMap> persistentPixelMap = nullptr, bool updateSnapshot = false,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+    bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
+        float scaleValue) const;
     bool CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode) const;
     bool GetNeedUseBlurSnapshot() const;
     void UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo);
@@ -352,6 +357,10 @@ public:
     int32_t GetSessionInfoCursorDragCount();
     void SetSessionInfoCursorDragFlag(bool value);
     bool GetSessionInfoCursorDragFlag();
+    void SetSessionInfoSeparationTouchEnabled(bool value);
+    bool GetSessionInfoSeparationTouchEnabled();
+    void SetSessionInfoReceiveDragEventEnabled(bool value);
+    bool GetSessionInfoReceiveDragEventEnabled();
     void SetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition, bool value);
     bool GetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition);
     void SetSessionInfoWindowMode(int32_t windowMode);
@@ -525,10 +534,7 @@ public:
     virtual void SetSystemFocusable(bool systemFocusable); // Used by SCB
     bool GetSystemFocusable() const;
     bool CheckFocusable() const;
-    void SetStartingBeforeVisible(bool isStartingBeforeVisible);
-    bool GetStartingBeforeVisible() const;
     bool IsFocused() const;
-    bool GetFocused() const;
     bool IsNeedRequestToTop() const;
     void NotifyClickIfNeed();
     virtual WSError UpdateFocus(bool isFocused);
@@ -754,6 +760,9 @@ public:
     WSError NotifyAppHookWindowInfoUpdated();
     void NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason reason);
     void SetGetRsCmdBlockingCountFunc(const GetRsCmdBlockingCountFunc& func);
+    WSError UpdateClientRectInfo(const WSRect& rect, SizeChangeReason reason,
+                                 const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
+                                 const std::shared_ptr<RSTransaction>& rsTransaction);
 
     /*
      * Screen Lock
@@ -819,7 +828,9 @@ public:
     void SetFreeMultiWindow();
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);
-    bool GetPreloadingStartingWindow();
+    bool GetPreloadingStartingWindow() const;
+    void PreloadSnapshot();
+    void ResetPreloadSnapshot();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
@@ -845,8 +856,9 @@ public:
     /*
      * Prelaunch check
      */
-    void SetPrelaunch();
-    bool IsPrelaunch() const;
+    virtual void RemovePrelaunchStartingWindow() {};
+    virtual void SetPrelaunch() {};
+    virtual bool IsPrelaunch() const { return false; }
 
 protected:
     class SessionLifeCycleTask : public virtual RefBase {
@@ -859,7 +871,7 @@ protected:
         std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
         bool running = false;
     };
-    void GeneratePersistentId(bool isExtension, int32_t persistentId);
+    void GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId = 0);
     virtual void UpdateSessionState(SessionState state);
     void NotifySessionStateChange(const SessionState& state);
     void UpdateSessionTouchable(bool touchable);
@@ -917,6 +929,8 @@ protected:
     mutable std::mutex surfaceNodeMutex_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::shared_ptr<RSSurfaceNode> shadowSurfaceNode_;
+    mutable std::mutex preloadSnapshotMutex_;
+    std::shared_ptr<Media::PixelMap> preloadSnapshot_;
     mutable std::mutex snapshotMutex_;
     std::shared_ptr<Media::PixelMap> snapshot_;
     std::atomic<bool> snapshotNeedCancel_ = false;
@@ -994,7 +1008,13 @@ protected:
      * Window Layout
      */
     static bool isBackgroundUpdateRectNotifyEnabled_;
-    RequestVsyncFunc requestNextVsyncFunc_;
+
+    /**
+     * @brief Vsync service entry used to schedule callbacks on vsync and
+     *        query display vsync information (e.g. VSync period or FPS).
+     */
+    std::shared_ptr<VsyncStation> vsyncStation_ = nullptr;
+
     WSRect lastLayoutRect_; // rect saved when go background
     WSRect layoutRect_;     // rect of root view
     NotifySessionRectChangeFunc sessionRectChangeFunc_;
@@ -1004,6 +1024,7 @@ protected:
     NotifyStopFloatingBallFunc stopFloatingBallFunc_;
     NotifyRestoreFloatingBallMainWindowFunc restoreFloatingBallMainWindowFunc_;
     GetRsCmdBlockingCountFunc getRsCmdBlockingCountFunc_;
+    NotifyRestoreFloatMainWindowFunc restoreFloatMainWindowFunc_;
     sptr<LayoutController> layoutController_ = nullptr;
     void SetClientScale(float scaleX, float scaleY, float pivotX, float pivotY);
     std::atomic<uint32_t> crossPlaneState_ = 0;
@@ -1033,9 +1054,9 @@ protected:
     /*
      * Window Focus
      */
-    bool isFocused_ = false;
-    bool blockingFocus_ { false };
-    bool isHighlighted_ { false };
+    std::atomic_bool isFocused_ = false;
+    std::atomic_bool blockingFocus_ = false;
+    std::atomic_bool isHighlighted_ = false;
 
     uint32_t uiNodeId_ = 0;
     std::map<MMI::WindowArea, WSRectF> windowAreas_;
@@ -1064,7 +1085,7 @@ protected:
      */
     std::atomic<bool> isAttach_ { false };
     std::atomic<bool> needNotifyAttachState_ = { false };
-    uint32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
+    int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
     SnapshotStatus capacity_ = defaultCapacity;
 
     /*
@@ -1079,7 +1100,7 @@ protected:
     /*
      *CompatibleMode Window scale
      */
-    uint32_t compatibleDragScaleFlags_ = 0;
+    uint32_t needNotifyDragEventOnNextVsync_ = 0;
 
     /*
      * Keyboard Window
@@ -1091,6 +1112,21 @@ protected:
      * Window Property
      */
     uint32_t propertyDirtyFlags_ = 0;
+
+    template<typename T1, typename T2, typename Ret>
+    using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
+    template<typename T>
+    inline EnableIfSame<T, ILifecycleListener, std::vector<std::weak_ptr<ILifecycleListener>>> GetListeners()
+    {
+        std::vector<std::weak_ptr<ILifecycleListener>> lifecycleListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(lifecycleListenersMutex_);
+            for (auto& listener : lifecycleListeners_) {
+                lifecycleListeners.push_back(listener);
+            }
+        }
+        return lifecycleListeners;
+    }
 
 private:
     void HandleDialogForeground();
@@ -1123,21 +1159,6 @@ private:
 
     void UpdateGravityWhenUpdateWindowMode(WindowMode mode);
 
-    template<typename T1, typename T2, typename Ret>
-    using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
-    template<typename T>
-    inline EnableIfSame<T, ILifecycleListener, std::vector<std::weak_ptr<ILifecycleListener>>> GetListeners()
-    {
-        std::vector<std::weak_ptr<ILifecycleListener>> lifecycleListeners;
-        {
-            std::lock_guard<std::recursive_mutex> lock(lifecycleListenersMutex_);
-            for (auto& listener : lifecycleListeners_) {
-                lifecycleListeners.push_back(listener);
-            }
-        }
-        return lifecycleListeners;
-    }
-
     std::recursive_mutex lifecycleListenersMutex_;
     std::vector<std::shared_ptr<ILifecycleListener>> lifecycleListeners_;
     std::shared_ptr<AppExecFwk::EventHandler> handler_;
@@ -1154,7 +1175,6 @@ private:
     bool focusedOnShow_ = true;
     std::atomic_bool systemFocusable_ = true;
     bool focusableOnShow_ = true; // if false, ignore request focus when session onAttach
-    bool isStartingBeforeVisible_ = false;
 
     bool showRecent_ = false;
     bool bufferAvailable_ = false;
@@ -1254,6 +1274,8 @@ private:
      */
     uint64_t screenIdOfRSUIContext_ = SCREEN_ID_INVALID;
     std::shared_ptr<RSUIContext> rsUIContext_;
+    // Above guarded by rsUIContextMutex_
+    std::mutex rsUIContextMutex_;
 
     /*
      * Window highligt outline

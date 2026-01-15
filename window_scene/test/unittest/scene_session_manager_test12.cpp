@@ -1692,18 +1692,6 @@ HWTEST_F(SceneSessionManagerTest12, HasFloatingWindowForeground01, TestSize.Leve
 }
 
 /**
- * @tc.name: ConfigSupportFollowRelativePositionToParent
- * @tc.desc: test ConfigSupportFollowRelativePositionToParent
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest12, ConfigSupportFollowRelativePositionToParent01, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    ssm_->ConfigSupportFollowRelativePositionToParent();
-    EXPECT_EQ(ssm_->systemConfig_.supportFollowRelativePositionToParent_, false);
-}
-
-/**
  * @tc.name: HasFloatingWindowForeground02
  * @tc.desc: test HasFloatingWindowForeground with not existed abilityToken
  * @tc.type: FUNC
@@ -3050,6 +3038,37 @@ HWTEST_F(SceneSessionManagerTest12, GetPiPSettingSwitchStatus, Function | SmallT
 }
 
 /**
+ *@tc.name: SetIsPipEnabled
+ *@tc.desc: test function : SetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(SceneSessionManagerTest12, SetIsPipEnabled, Function | SmallTest | Level2)
+{
+    ssm_->SetIsPipEnabled(true);
+    EXPECT_EQ(ssm_->pipIsPipEnabled_, true);
+    ssm_->SetIsPipEnabled(false);
+    EXPECT_EQ(ssm_->pipIsPipEnabled_, false);
+}
+/**
+ *@tc.name: GetIsPipEnabled
+ *@tc.desc: test function : GetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(SceneSessionManagerTest12, GetIsPipEnabled, Function | SmallTest | Level2)
+{
+    bool isPipEnabled = false;
+    ssm_->SetIsPipEnabled(true);
+    WMError ret = ssm_->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(isPipEnabled, true);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    ssm_->SetIsPipEnabled(false);
+    ret = ssm_->GetIsPipEnabled(isPipEnabled);
+    EXPECT_NE(isPipEnabled, true);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
  * @tc.name: UpdateScreenLockState
  * @tc.desc: test function : UpdateScreenLockState
  * @tc.type: FUNC
@@ -3322,6 +3341,78 @@ HWTEST_F(SceneSessionManagerTest12, ReportWindowProfileInfosTest, TestSize.Level
         ssm_->sceneSessionMap_.insert({ id, sceneSession });
     }
     ssm_->ReportWindowProfileInfos();
+}
+
+
+/**
+ * @tc.name: NotifyWindowPropertyChange01
+ * @tc.desc: NotifyWindowPropertyChange01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, NotifyWindowPropertyChange01, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ScreenId screenId = 0;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "NotifyWindowPropertyChange01";
+    sessionInfo.abilityName_ = "NotifyWindowPropertyChange01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetScreenId(99);
+    sceneSession->SetPropertyDirtyFlags(1);
+    auto result = ssm_->sceneSessionMap_.insert({1001, sceneSession});
+    ssm_->NotifyWindowPropertyChange(screenId);
+    EXPECT_EQ(sceneSession->GetPropertyDirtyFlags(), 1);
+}
+
+/**
+ * @tc.name: NotifyWindowPropertyChange02
+ * @tc.desc: NotifyWindowPropertyChange02
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, NotifyWindowPropertyChange02, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ScreenId screenId = 0;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "NotifyWindowPropertyChange02";
+    sessionInfo.abilityName_ = "NotifyWindowPropertyChange02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetScreenId(screenId);
+    sceneSession->SetPropertyDirtyFlags(2);
+    ssm_->observedFlags_ = 1;
+    auto result = ssm_->sceneSessionMap_.insert({1002, sceneSession});
+    ssm_->NotifyWindowPropertyChange(screenId);
+    EXPECT_EQ(sceneSession->GetPropertyDirtyFlags(), 2);
+}
+
+/**
+ * @tc.name: NotifyWindowPropertyChange03
+ * @tc.desc: NotifyWindowPropertyChange03
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, NotifyWindowPropertyChange03, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ScreenId screenId = 0;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "NotifyWindowPropertyChange03";
+    sessionInfo.abilityName_ = "NotifyWindowPropertyChange03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetScreenId(screenId);
+    sceneSession->SetPropertyDirtyFlags(1);
+    ssm_->observedFlags_ = 1;
+    auto result = ssm_->sceneSessionMap_.insert({1003, sceneSession});
+    ssm_->NotifyWindowPropertyChange(screenId);
+    EXPECT_EQ(sceneSession->GetPropertyDirtyFlags(), 0);
 }
 
 /**

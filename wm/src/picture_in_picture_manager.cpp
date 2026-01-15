@@ -17,9 +17,9 @@
 
 #include "parameters.h"
 #include "picture_in_picture_controller.h"
+#include "window_adapter.h"
 #include "window_manager_hilog.h"
 #include "window_scene_session_impl.h"
-#include "scene_board_judgement.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -65,7 +65,9 @@ PictureInPictureManager::~PictureInPictureManager()
 
 bool PictureInPictureManager::IsSupportPiP()
 {
-    return SceneBoardJudgement::IsSceneBoardEnabled();
+    bool isSupportPiPFlag = false;
+    SingletonContainer::Get<WindowAdapter>().GetIsPipEnabled(isSupportPiPFlag);
+    return isSupportPiPFlag;
 }
 
 bool PictureInPictureManager::ShouldAbortPipStart()
@@ -353,7 +355,9 @@ void PictureInPictureManager::DoActiveStatusChangeEvent(bool status)
 
 bool PictureInPictureManager::GetPipEnabled()
 {
-    return true;
+    bool isPipEnabled = false;
+    SingletonContainer::Get<WindowAdapter>().GetIsPipEnabled(isPipEnabled);
+    return isPipEnabled;
 }
 
 }

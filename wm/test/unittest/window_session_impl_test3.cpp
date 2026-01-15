@@ -408,13 +408,8 @@ HWTEST_F(WindowSessionImplTest3, RegisterMainWindowCloseListeners, TestSize.Leve
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ret = window_->RegisterMainWindowCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_OK);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->RegisterMainWindowCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: RegisterMainWindowCloseListeners end";
 }
 
@@ -436,7 +431,6 @@ HWTEST_F(WindowSessionImplTest3, UnregisterMainWindowCloseListeners, TestSize.Le
 
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
     window_->property_->SetPersistentId(1);
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window_->state_ = WindowState::STATE_CREATED;
     ret = window_->UnregisterMainWindowCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
@@ -444,10 +438,6 @@ HWTEST_F(WindowSessionImplTest3, UnregisterMainWindowCloseListeners, TestSize.Le
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     ret = window_->UnregisterMainWindowCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_OK);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->UnregisterMainWindowCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: UnregisterMainWindowCloseListeners end";
 }
 
@@ -468,11 +458,6 @@ HWTEST_F(WindowSessionImplTest3, RegisterWindowWillCloseListeners, TestSize.Leve
 
     window_->property_->SetPersistentId(1);
     window_->state_ = WindowState::STATE_CREATED;
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->RegisterWindowWillCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     ret = window_->RegisterWindowWillCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
@@ -500,11 +485,6 @@ HWTEST_F(WindowSessionImplTest3, UnRegisterWindowWillCloseListeners, TestSize.Le
 
     window_->property_->SetPersistentId(1);
     window_->state_ = WindowState::STATE_CREATED;
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = window_->UnRegisterWindowWillCloseListeners(listener);
-    ASSERT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
-
-    window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     ret = window_->UnRegisterWindowWillCloseListeners(listener);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
@@ -694,11 +674,24 @@ HWTEST_F(WindowSessionImplTest3, UpdateRectForOtherReasonTask, TestSize.Level1)
     window_->UpdateRectForOtherReasonTask(wmRect, preRect, wmReason, rsTransaction);
     ASSERT_EQ(window_->postTaskDone_, true);
     WindowType windowType = window_->GetType();
+    Rect requestRect = { 0, 0, 50, 50 };
+    Rect windowRect = { 0, 0, 0, 0 };
     window_->postTaskDone_ = true;
+    window_->property_->SetWindowRect(windowRect);
+    window_->property_->SetRequestRect(requestRect);
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION);
     window_->SetNotifySizeChangeFlag(true);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, true);
     window_->UpdateRectForOtherReasonTask(wmRect, preRect, wmReason, rsTransaction);
-    ASSERT_EQ(window_->postTaskDone_, true);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, false);
+    window_->postTaskDone_ = true;
+    window_->property_->SetWindowRect(windowRect);
+    window_->property_->SetRequestRect(requestRect);
+    window_->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    window_->SetNotifySizeChangeFlag(true);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, true);
+    window_->UpdateRectForOtherReasonTask(wmRect, preRect, wmReason, rsTransaction);
+    ASSERT_EQ(window_->notifySizeChangeFlag_, false);
     window_->property_->SetWindowType(windowType);
     window_->handler_ = nullptr;
     window_->UpdateRectForOtherReason(wmRect, preRect, wmReason, rsTransaction);

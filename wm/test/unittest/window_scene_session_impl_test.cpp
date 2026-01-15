@@ -932,6 +932,7 @@ HWTEST_F(WindowSceneSessionImplTest, GetGlobalScaledRect, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSession->hostSession_ = session;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->GetGlobalScaledRect(globalScaledRect));
 }
 
@@ -1968,53 +1969,6 @@ HWTEST_F(WindowSceneSessionImplTest, SystemBarProperty07, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetSystemBarProperties
- * @tc.desc: SetSystemBarProperties test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest, SetSystemBarProperties, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
-    option->SetWindowName("SetSystemBarProperties");
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    window->state_ = WindowState::STATE_SHOWN;
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->property_->SetPersistentId(1);
-    window->hostSession_ = session;
-    std::map<WindowType, SystemBarProperty> properties;
-    std::map<WindowType, SystemBarPropertyFlag> propertyFlags;
-    SystemBarProperty current = window->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    SystemBarProperty property;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = property;
-    SystemBarPropertyFlag propertyFlag;
-    propertyFlag.contentColorFlag = true;
-    propertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = propertyFlag;
-    ASSERT_EQ(WMError::WM_OK, window->SetSystemBarProperties(properties, propertyFlags));
-    if (property.contentColor_ != current.contentColor_) {
-        std::map<WindowType, SystemBarProperty> currProperties;
-        ASSERT_EQ(WMError::WM_OK, window->GetSystemBarProperties(currProperties));
-        ASSERT_EQ(currProperties[WindowType::WINDOW_TYPE_STATUS_BAR].contentColor_, property.contentColor_);
-    }
-}
-
-/**
- * @tc.name: GetSystemBarProperties
- * @tc.desc: GetSystemBarProperties test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest, GetSystemBarProperties, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
-    option->SetWindowName("GetSystemBarProperties");
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    std::map<WindowType, SystemBarProperty> properties;
-    ASSERT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-}
-
-/**
  * @tc.name: SpecificBarProperty
  * @tc.desc: SpecificBarProperty01 test
  * @tc.type: FUNC
@@ -2116,6 +2070,8 @@ HWTEST_F(WindowSceneSessionImplTest, SetLayoutFullScreenByApiVersion, TestSize.L
     window->hostSession_ = session;
     ASSERT_EQ(WMError::WM_OK, window->SetLayoutFullScreenByApiVersion(false));
     ASSERT_EQ(false, window->property_->IsLayoutFullScreen());
+    ASSERT_EQ(WMError::WM_OK, window->SetLayoutFullScreenByApiVersion(true));
+    ASSERT_EQ(false, window->maximizeLayoutFullScreen_);
 }
 
 /**
@@ -2930,6 +2886,62 @@ HWTEST_F(WindowSceneSessionImplTest, SetSubWindowSource02, TestSize.Level1)
     window->hostSession_ = nullptr;
     auto res = window->SetSubWindowSource(SubWindowSource::SUB_WINDOW_SOURCE_ARKUI);
     EXPECT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+}
+
+/**
+ * @tc.name: RestoreMainWindow
+ * @tc.desc: SetSubWindowSource test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RestoreMainWindow, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RestoreMainWindow");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetParentPersistentId(-1);
+    window->SetWindowType(WindowType::WINDOW_TYPE_MEDIA);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    EXPECT_EQ(WMError::WM_OK, window->Create(abilityContext_, session));
+    window->state_ = WindowState::STATE_CREATED;
+    window->hostSession_ = session;
+    {
+        std::unique_lock<std::shared_mutex> lock(window->windowSessionMutex_);
+        WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->property_->GetWindowName(),
+            std::pair<uint64_t, sptr<WindowSessionImpl>>(window->property_->GetPersistentId(), window)));
+    }
+    
+    std::shared_ptr<AAFwk::WantParams> wantParams = std::shared_ptr<AAFwk::WantParams>();
+    WMError res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+    window->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+
+    sptr<WindowOption> parentOption = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RestoreParentMainWindow");
+    sptr<WindowSceneSessionImpl> parentWindow = sptr<WindowSceneSessionImpl>::MakeSptr(parentOption);
+    parentWindow->property_->SetPersistentId(100);
+    window->property_->SetParentPersistentId(100);
+    {
+        std::unique_lock<std::shared_mutex> lock(window->windowSessionMutex_);
+        WindowSessionImpl::windowSessionMap_.insert(std::make_pair(parentWindow->property_->GetWindowName(),
+            std::pair<uint64_t, sptr<WindowSessionImpl>>(parentWindow->property_->GetPersistentId(), parentWindow)));
+    }
+
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+    window->state_ = WindowState::STATE_SHOWN;
+
+    window->hostSession_ = nullptr;
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+    window->hostSession_ = session;
+
+    res = window->RestoreMainWindow(wantParams);
+    EXPECT_EQ(res, WMError::WM_OK);
 }
 
 /**

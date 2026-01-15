@@ -26,6 +26,12 @@ using namespace testing;
 using namespace testing::ext;
 
 namespace OHOS::Rosen {
+std::string g_errLog;
+void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+    const char* msg)
+{
+    g_errLog = msg;
+}
 class DisplayManagerAdapterTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -756,6 +762,34 @@ HWTEST_F(DisplayManagerAdapterTest, GetAllDisplayPhysicalResolution, TestSize.Le
 }
 
 /**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, IsOnboardDisplay, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    DisplayId displayId = 10;
+    bool isOnboardDisplay = false;
+
+    sptr<IScreenSessionManager> screenSessionManagerServiceProxyTmp =
+        SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+
+    SingletonContainer::Get<DisplayManagerAdapter>().IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(g_errLog.find("fail") != std::string::npos);
+
+    g_errLog.clear();
+    isOnboardDisplay = false;
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxyTmp;
+    SingletonContainer::Get<DisplayManagerAdapter>().IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(g_errLog.find("fail") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: SetDisplayScale
  * @tc.desc: SetDisplayScale test
  * @tc.type: FUNC
@@ -774,14 +808,19 @@ HWTEST_F(DisplayManagerAdapterTest, SetDisplayScale, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetPrimaryDisplayInfo
- * @tc.desc: GetPrimaryDisplayInfo test
+ * @tc.name: ForceSetFoldStatusAndLock
+ * @tc.desc: ForceSetFoldStatusAndLock test
  * @tc.type: FUNC
  */
-HWTEST_F(DisplayManagerAdapterTest, GetPrimaryDisplayInfo, TestSize.Level1)
+HWTEST_F(DisplayManagerAdapterTest, ForceSetFoldStatusAndLock, TestSize.Level1)
 {
-    sptr<DisplayInfo> displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetPrimaryDisplayInfo();
-    ASSERT_NE(displayInfo, nullptr);
+    sptr<IScreenSessionManager> screenSessionManagerServiceProxyTmp =
+        SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError ret = SingletonContainer::Get<DisplayManagerAdapter>().ForceSetFoldStatusAndLock(FoldStatus::FOLDED);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxyTmp;
 }
 
 /**
@@ -1120,6 +1159,35 @@ HWTEST_F(DisplayManagerAdapterTest, SetSupportsInput02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetBundleName
+ * @tc.desc: test success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetBundleName, TestSize.Level1)
+{
+    std::string bundleName = "";
+    DMError err = SingletonContainer::Get<DisplayManagerAdapter>().GetBundleName(0, bundleName);
+    EXPECT_EQ(err, DMError::DM_OK);
+}
+
+/**
+ * @tc.name:GetBundleName02
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetBundleNamee02, TestSize.Level1)
+{
+    std::string bundleName = "";
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<DisplayManagerAdapter>().GetBundleName(0, bundleName);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
  * @tc.name: RegisterDisplayManagerAgent
  * @tc.desc: test success
  * @tc.type: FUNC
@@ -1155,5 +1223,72 @@ HWTEST_F(DisplayManagerAdapterTest, UnregisterDisplayManagerAgent, TestSize.Leve
         screenSessionManagerServiceProxy;
 }
 
+/**
+ * @tc.name: AddVirtualScreenWhiteList_proxyIsNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, AddVirtualScreenWhiteList_proxyIsNull, TestSize.Level1)
+{
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: AddVirtualScreenWhiteList_proxyNotNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is not nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, AddVirtualScreenWhiteList_proxyNotNull, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_TRUE(g_errLog.find("Device not support") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenWhiteList_proxyIsNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, RemoveVirtualScreenWhiteList_proxyIsNull, TestSize.Level1)
+{
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenWhiteList_proxyNotNull
+ * @tc.desc: test screenSessionManagerServiceProxy_ is not nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, RemoveVirtualScreenWhiteList_proxyNotNull, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1;
+    std::vector<uint64_t> missionIds = {5, 10};
+    SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenWhiteList(screenId, missionIds);
+    EXPECT_TRUE(g_errLog.find("Device not support") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen

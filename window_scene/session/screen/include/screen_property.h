@@ -38,6 +38,9 @@ enum class ScreenPropertyChangeReason : uint32_t {
     ACCESS_INFO_CHANGE,
     FOLD_SCREEN_EXPAND_SWITCH_USER,
     FOLD_SCREEN_FOLDING_SWITCH_USER,
+    SCREEN_MODE_CHANGE,
+    ACTIVE_MODE_CHANGE,
+    RESOLUTION_EFFECT_CHANGE,
 };
 class ScreenProperty {
 public:
@@ -101,8 +104,8 @@ public:
     void SetRsId(ScreenId rsId);
     ScreenId GetRsId() const;
 
-    void SetPropertyChangeReason(std::string propertyChangeReason);
-    std::string GetPropertyChangeReason() const;
+    void SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason);
+    ScreenPropertyChangeReason GetPropertyChangeReason() const;
 
     void SetDefaultDeviceRotationOffset(uint32_t defaultRotationOffset);
     uint32_t GetDefaultDeviceRotationOffset() const;
@@ -336,7 +339,7 @@ private:
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
 
-    std::string propertyChangeReason_ { "" };
+    ScreenPropertyChangeReason propertyChangeReason_;
 
     float virtualPixelRatio_ { 1.0f };
     float defaultDensity_ { 1.0f };

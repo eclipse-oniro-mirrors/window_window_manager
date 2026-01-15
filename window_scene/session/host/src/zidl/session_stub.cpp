@@ -175,6 +175,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleBatchPendingSessionsActivation(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RESTORE_MAIN_WINDOW):
             return HandleRestoreMainWindow(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RESTORE_FLOAT_MAIN_WINDOW):
+            return HandleRestoreFloatMainWindow(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_TERMINATE):
             return HandleTerminateSession(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_EXCEPTION):
@@ -227,6 +229,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdatePiPTemplateInfo(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_PIP_PARENT_WINDOWID):
             return HandleSetPipParentWindowId(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_IS_PIP_ACTIVE):
+            return HandleIsPiPActive(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_FLOATING_BALL):
             return HandleUpdateFloatingBall(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_FLOATING_BALL_PREPARE_CLOSE):
@@ -347,6 +351,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleRestartApp(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SEND_COMMAND_EVENT):
             return HandleSendCommonEvent(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_REMOVE_PRELAUNCH_STARTING_WINDOW):
+            return HandleRemovePrelaunchStartingWindow(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -536,7 +542,8 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         MissionInfo missionInfo = property->GetMissionInfo();
         reply.WriteParcelable(&missionInfo);
         reply.WriteBool(property->GetIsShowDecorInFreeMultiWindow());
-        reply.WriteString(property->GetCompatibleModePage());
+        reply.WriteBool(property->IsPrelaunch());
+        reply.WriteInt32(property->GetFrameNum());
     }
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
@@ -556,6 +563,17 @@ int SessionStub::HandleSnapshotUpdate(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_PATTERN, "In");
     WMError errCode = NotifySnapshotUpdate();
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleRemovePrelaunchStartingWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "In");
+    WMError errCode = NotifyRemovePrelaunchStartingWindow();
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "write errCode fail.");
         return ERR_INVALID_DATA;
@@ -696,6 +714,22 @@ int SessionStub::HandleRestoreMainWindow(MessageParcel& data, MessageParcel& rep
     TLOGD(WmsLogTag::WMS_MAIN, "Handle restore main window readResult: %{public}u", errCode);
     if (!reply.WriteUint32(errCode)) {
         TLOGE(WmsLogTag::WMS_MAIN, "write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleRestoreFloatMainWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "HandleRestoreFloatMainWindow In");
+    std::shared_ptr<AAFwk::WantParams> wantParams(data.ReadParcelable<AAFwk::WantParams>());
+    if (wantParams == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "wantParams is nullptr");
+        return ERR_INVALID_VALUE;
+    }
+    WMError ret = RestoreFloatMainWindow(wantParams);
+    if (!reply.WriteUint32(static_cast<uint32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_LIFE, "write errCode fail.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -894,6 +928,10 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
         TLOGE(WmsLogTag::WMS_LIFE, "Read isPrelaunch failed.");
         return ERR_INVALID_DATA;
     }
+    if (!data.ReadInt32(abilitySessionInfo->frameNum)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read frameNum failed.");
+        return ERR_INVALID_DATA;
+    }
     WSError errCode = PendingSessionActivation(abilitySessionInfo);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
@@ -1020,7 +1058,7 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
     uint32_t width = 0;
     uint32_t height = 0;
     if (!data.ReadInt32(posX) || !data.ReadInt32(posY) || !data.ReadUint32(width) || !data.ReadUint32(height)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read rect failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read rect");
         return ERR_INVALID_DATA;
     }
     WSRect rect = {posX, posY, width, height};
@@ -1028,28 +1066,28 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
         width, height);
     uint32_t changeReason = 0;
     if (!data.ReadUint32(changeReason)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read changeReason failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read changeReason");
         return ERR_INVALID_DATA;
     }
     if (changeReason < static_cast<uint32_t>(SizeChangeReason::UNDEFINED) ||
         changeReason > static_cast<uint32_t>(SizeChangeReason::END)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Unknown reason");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "unknown reason");
         return ERR_INVALID_DATA;
     }
     SizeChangeReason reason = static_cast<SizeChangeReason>(changeReason);
     bool isGlobal = false;
     if (!data.ReadBool(isGlobal)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read isGlobal failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read isGlobal");
         return ERR_INVALID_DATA;
     }
     auto isFromMoveToGlobal = false;
     if (!data.ReadBool(isFromMoveToGlobal)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read isFromMoveToGlobal failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read isFromMoveToGlobal");
         return ERR_INVALID_DATA;
     }
     uint64_t displayId = DISPLAY_ID_INVALID;
     if (!data.ReadUint64(displayId)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read displayId failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read displayId");
         return ERR_INVALID_DATA;
     }
     MoveConfiguration moveConfiguration;
@@ -1059,7 +1097,7 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
         if (!data.ReadUint32(rectAnimationConfig.duration) || !data.ReadFloat(rectAnimationConfig.x1) ||
             !data.ReadFloat(rectAnimationConfig.y1) || !data.ReadFloat(rectAnimationConfig.x2) ||
             !data.ReadFloat(rectAnimationConfig.y2)) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "read animation config failed");
+            TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read animation config");
             return ERR_INVALID_DATA;
         }
         if (reason == SizeChangeReason::MOVE_WITH_ANIMATION) {
@@ -1694,6 +1732,22 @@ int SessionStub::HandleSetPipParentWindowId(MessageParcel& data, MessageParcel& 
     WSError errCode = SetPipParentWindowId(pipParentWindowId);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PIP, "write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleIsPiPActive(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_PIP, "in");
+    bool status = false;
+    WMError errCode = IsPiPActive(status);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteBool(status)) {
+        TLOGE(WmsLogTag::WMS_PIP, "write status fail.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

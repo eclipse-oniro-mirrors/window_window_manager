@@ -1213,6 +1213,66 @@ HWTEST_F(ScreenSceneConfigTest, ParseNodeConfig07, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ParseStrToUll
+ * @tc.desc: Test ParseStrToUll
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSceneConfigTest, ParseStrToUll, TestSize.Level1)
+{
+    std::string input = "12345";
+    uint64_t result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 12345u);
+
+    input = "abc123";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = "123abc";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = "";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = "18446744073709551615";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 18446744073709551615ULL);
+
+    input = "18446744073709551616";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = " 123 ";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+}
+
+/**
+ * @tc.name: ParseDisplaysConfig03
+ * @tc.desc: ParseDisplaysConfig03
+ @tc.type: FUNC
+ */
+HWTEST_F(ScreenSceneConfigTest, ParseDisplaysConfig03, TestSize.Level1)
+{
+    ScreenSceneConfig::displaysConfigs_.clear();
+    xmlNodePtr displaysNode = xmlNewNode(nullptr, BAD_CAST("displays"));
+    xmlNodePtr displayNode = xmlNewChild(displaysNode, nullptr, BAD_CAST("display"), nullptr);
+    xmlNewChild(displayNode, nullptr, BAD_CAST("physicalId"), BAD_CAST("101"));
+    xmlNewChild(displayNode, nullptr, BAD_CAST("logicalId"), BAD_CAST("201"));
+    xmlNodePtr emptyNameNode = xmlNewChild(displayNode, nullptr, BAD_CAST("name"), BAD_CAST(""));
+    xmlNewChild(displayNode, nullptr, BAD_CAST("dpi"), BAD_CAST("300"));
+    ScreenSceneConfig::ParseDisplaysConfig(displaysNode);
+    ASSERT_EQ(ScreenSceneConfig::GetDisplaysConfigs().size(), 1u);
+    const auto& config = ScreenSceneConfig::GetDisplaysConfigs()[0];
+    EXPECT_EQ(config.physicalId, 101u);
+    EXPECT_EQ(config.logicalId, 201u);
+    EXPECT_EQ(config.dpi, 300);
+    EXPECT_TRUE(config.name.empty());
+    xmlFree(displaysNode);
+}
+
+/**
  * @tc.name: GetOffScreenPPIThreshold01
  * @tc.desc: Test GetOffScreenPPIThreshold when the array is not empty.
  * @tc.type: FUNC

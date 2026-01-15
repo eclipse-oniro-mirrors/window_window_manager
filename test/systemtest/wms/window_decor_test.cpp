@@ -258,11 +258,6 @@ HWTEST_F(WindowDecorTest, TitleButtonVisible01, TestSize.Level1)
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
 
     window->windowSystemConfig_.isSystemDecorEnable_ = false;
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetTitleButtonVisible(false, false, false, true));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetTitleButtonVisible(false, false, false, true));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetTitleButtonVisible(false, false, false, true));
     window->windowSystemConfig_.isSystemDecorEnable_ = true;
     ASSERT_EQ(WMError::WM_OK, window->SetTitleButtonVisible(false, false, false, true));

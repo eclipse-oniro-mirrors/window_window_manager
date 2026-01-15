@@ -1417,6 +1417,29 @@ HWTEST_F(PictureInPictureControllerTest, GetPiPSettingSwitchStatus, TestSize.Lev
 }
 
 /**
+ * @tc.name: IsPiPActive
+ * @tc.desc: IsPiPActive
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, IsPiPActive, TestSize.Level1)
+{
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto pipOption = sptr<PipOption>::MakeSptr();
+    ASSERT_NE(nullptr, pipOption);
+    auto pipControl = sptr<PictureInPictureController>::MakeSptr(pipOption, mw, 1, nullptr);
+    pipControl->curState_ = PiPWindowState::STATE_STARTING;
+    bool status = false;
+    EXPECT_EQ(pipControl->IsPiPActive(status), WMError::WM_OK);
+    pipControl->curState_ = PiPWindowState::STATE_STARTED;
+    EXPECT_EQ(pipControl->IsPiPActive(status), WMError::WM_ERROR_PIP_INTERNAL_ERROR);
+
+    auto window = sptr<MockWindow>::MakeSptr();
+    pipControl->window_ = window;
+    EXPECT_EQ(pipControl->IsPiPActive(status), WMError::WM_OK);
+}
+
+/**
  * @tc.name: DeletePIPMode
  * @tc.desc: DeletePIPMode
  * @tc.type: FUNC

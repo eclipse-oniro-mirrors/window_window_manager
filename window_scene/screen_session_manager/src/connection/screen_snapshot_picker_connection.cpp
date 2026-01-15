@@ -71,15 +71,6 @@ int32_t ScreenSnapshotPickerConnection::GetScreenSnapshotInfo(Media::Rect &rect,
         return RES_FAILURE;
     }
 
-    if (!data.WriteInterfaceToken(GetScreenSessionAbilityConnectionStub()->GetDescriptor())) {
-        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
-        return RES_FAILURE;
-    }
-
-    if (!data.WriteRemoteObject(abilityConnection_->GetScreenSessionAbilityConnectionStub()->AsObject())) {
-        TLOGE(WmsLogTag::DMS, "WriteRemoteObject failed");
-        return RES_FAILURE;
-    }
     int32_t ret = abilityConnection_->SendMessageBlock(TRANS_CMD_SEND_SNAPSHOT_RECT, data, reply);
     if (ret != ERR_OK) {
         TLOGE(WmsLogTag::DMS, "send message failed");

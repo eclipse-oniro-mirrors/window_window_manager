@@ -280,12 +280,12 @@ ScreenId ScreenProperty::GetRsId() const
     return rsId_;
 }
 
-void ScreenProperty::SetPropertyChangeReason(std::string propertyChangeReason)
+void ScreenProperty::SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason)
 {
     propertyChangeReason_ = propertyChangeReason;
 }
 
-std::string ScreenProperty::GetPropertyChangeReason() const
+ScreenPropertyChangeReason ScreenProperty::GetPropertyChangeReason() const
 {
     return propertyChangeReason_;
 }

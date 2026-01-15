@@ -514,6 +514,9 @@ HWTEST_F(SceneSessionManagerTest6, RecoverWatermarkImageForApp, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     std::string watermarkName = "watermark#1";
     EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(watermarkName), WMError::WM_OK);
+    EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(""), WMError::WM_OK);
+    EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(watermarkName), WMError::WM_OK);
+    ssm_->appWatermarkPidMap_.clear();
 }
 
 /**
@@ -1850,6 +1853,29 @@ HWTEST_F(SceneSessionManagerTest6, GetCollaboratorByType, TestSize.Level1)
     ssm_->collaboratorMap_.insert(std::make_pair(1, collaborator));
     ret = ssm_->GetCollaboratorByType(1);
     EXPECT_EQ(nullptr, ret);
+}
+
+/**
+ * @tc.name: GetCollaboratorDeathRecipient
+ * @tc.desc: GetCollaboratorDeathRecipient
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetCollaboratorDeathRecipient, TestSize.Level1)
+{
+    EXPECT_NE(nullptr, ssm_);
+    ssm_->collaboratorDeathRecipientMap_.clear();
+    auto ret = ssm_->GetCollaboratorDeathRecipient(0);
+    EXPECT_EQ(nullptr, ret);
+    sptr<AgentDeathRecipient> collaboratorDeathRecipient = nullptr;
+    EXPECT_NE(nullptr, ssm_);
+    ssm_->collaboratorDeathRecipientMap_.insert(std::make_pair(1, collaboratorDeathRecipient));
+    ret = ssm_->GetCollaboratorDeathRecipient(1);
+    EXPECT_EQ(nullptr, ret);
+    collaboratorDeathRecipient = sptr<AgentDeathRecipient>::MakeSptr(
+        [](const sptr<IRemoteObject>& remoteObject) { ssm_->ClearCollaboratorSessionsByType(2); });
+    ssm_->collaboratorDeathRecipientMap_.insert(std::make_pair(2, collaboratorDeathRecipient));
+    ret = ssm_->GetCollaboratorDeathRecipient(2);
+    EXPECT_NE(nullptr, ret);
 }
 
 /**

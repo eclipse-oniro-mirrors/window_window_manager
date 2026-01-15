@@ -18,6 +18,7 @@
 #include "screen_session_manager/include/screen_session_manager_lite.h"
 #include "window_manager_hilog.h"
 #include "display_manager_agent_default.h"
+#include "flod_screen_state_internel.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -107,8 +108,14 @@ HWTEST_F(ScreenSessionManagerLiteTest, GetFoldDisplayMode, TestSize.Level1)
     if (!isFoldable) {
         GTEST_SKIP();
     }
-    FoldDisplayMode ret = screenSessionManagerLite.GetFoldDisplayMode();
-    ASSERT_NE(ret, FoldDisplayMode::UNKNOWN);
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice())
+    {
+        FoldDisplayMode ret = screenSessionManagerLite.GetFoldDisplayMode();
+        ASSERT_EQ(ret, FoldDisplayMode::UNKNOWN);
+    } else {
+        FoldDisplayMode ret = screenSessionManagerLite.GetFoldDisplayMode();
+        ASSERT_NE(ret, FoldDisplayMode::UNKNOWN);
+    }
 }
 
 /**

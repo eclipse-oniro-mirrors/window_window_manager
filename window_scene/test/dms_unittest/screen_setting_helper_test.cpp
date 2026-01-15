@@ -977,6 +977,50 @@ namespace {
     }
 
     /**
+     * @tc.name: RegisterSettingBorderingAreaPercentObserver
+     * @tc.desc: RegisterSettingBorderingAreaPercentObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingBorderingAreaPercentObserver, TestSize.Level1)
+    {
+        bool flag = false;
+        auto func = [&flag] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+            flag = true;
+        };
+        ScreenSettingHelper::RegisterSettingBorderingAreaPercentObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::borderingAreaPercentObserver_, nullptr);
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        bool flag1 = false;
+        auto func1 = [&flag1] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+            flag1 = true;
+        };
+        ScreenSettingHelper::RegisterSettingBorderingAreaPercentObserver(func1);
+        EXPECT_FALSE(g_errLog.find("setting bordering area percent observer is registered") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
+     * @tc.name: UnregisterSettingBorderingAreaPercentObserver
+     * @tc.desc: UnregisterSettingBorderingAreaPercentObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnregisterSettingBorderingAreaPercentObserver, TestSize.Level1)
+    {
+        ScreenSettingHelper::UnregisterSettingBorderingAreaPercentObserver();
+        ASSERT_EQ(ScreenSettingHelper::duringCallStateObserver_, nullptr);
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        ScreenSettingHelper::UnregisterSettingBorderingAreaPercentObserver();
+        EXPECT_TRUE(g_errLog.find("setting observer is nullptr") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
      * @tc.name: GetSettingDuringCallStateTest
      * @tc.desc: Test GetSettingDuringCallState func
      * @tc.type: FUNC

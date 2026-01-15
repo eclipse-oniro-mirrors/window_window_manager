@@ -129,16 +129,7 @@ enum class WSErrorCode : int32_t {
     WS_ERROR_EDM_CONTROLLED = 16000013, // enterprise limit
 };
 
-const std::map<WSError, WSErrorCode> WS_JS_TO_ERROR_CODE_MAP {
-    { WSError::WS_OK,                    WSErrorCode::WS_OK },
-    { WSError::WS_DO_NOTHING,            WSErrorCode::WS_ERROR_STATE_ABNORMALLY },
-    { WSError::WS_ERROR_INVALID_SESSION, WSErrorCode::WS_ERROR_STATE_ABNORMALLY },
-    { WSError::WS_ERROR_INVALID_PARAM, WSErrorCode::WS_ERROR_STATE_ABNORMALLY },
-    { WSError::WS_ERROR_IPC_FAILED,      WSErrorCode::WS_ERROR_SYSTEM_ABNORMALLY },
-    { WSError::WS_ERROR_NULLPTR,         WSErrorCode::WS_ERROR_STATE_ABNORMALLY },
-    { WSError::WS_ERROR_EDM_CONTROLLED,  WSErrorCode::WS_ERROR_EDM_CONTROLLED },
-    { WSError::WS_ERROR_INVALID_WINDOW,  WSErrorCode::WS_ERROR_STATE_ABNORMALLY },
-};
+extern const std::map<WSError, WSErrorCode> WS_JS_TO_ERROR_CODE_MAP;
 
 enum class SessionState : uint32_t {
     STATE_DISCONNECT = 0,
@@ -445,12 +436,15 @@ struct SessionInfo {
     int32_t collaboratorType_ = CollaboratorType::DEFAULT_TYPE;
     SessionState sessionState_ = SessionState::STATE_DISCONNECT;
     uint32_t requestOrientation_ = 0;
+    int32_t specificSessionRequestOrientation_ = -1;
     bool isRotable_ = false;
     bool isSetPointerAreas_ = false;
     bool isCastSession_ = false;
     uint32_t windowInputType_ = 0;
     uint32_t expandInputFlag_ = 0;
     std::bitset<ADVANCED_FEATURE_BIT_MAX> advancedFeatureFlag_ = 0;
+    bool isReceiveDragEventEnabled_ = true;
+    bool isSeparationTouchEnabled_ = true;
     bool cursorDragFlag_ = false;
     int32_t cursorDragCount_ = 0;
     std::string continueSessionId_ = "";
@@ -478,6 +472,7 @@ struct SessionInfo {
     bool isAncoApplication_ = false;
     int32_t scenarios = 0;
     bool isPrelaunch_ = false;
+    int32_t frameNum_ = 0;
 
     /*
      * Keyboard
@@ -523,7 +518,7 @@ struct SessionInfo {
     /*
      * Compatible Mode
      */
-    std::string compatibleModePage = "";
+    std::string pageConfig = "";
 
     AAFwk::Want GetWantSafely() const
     {
@@ -601,6 +596,7 @@ enum class SizeChangeReason : uint32_t {
     SCREEN_RELATIVE_POSITION_CHANGE,
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
+    LS_STATE_CHANGE,
     END,
 };
 
@@ -768,6 +764,17 @@ struct WSRectT {
     }
 
     /**
+     * @brief Compare if size is equal, check only width and height
+     *
+     * @param other The other rectangle to intersect with.
+     * @return bool Whether the size is equal
+     */
+    bool IsSizeEqual(const WSRectT<T>& other) const
+    {
+        return width_ == other.width_ && height_ == other.height_;
+    }
+
+    /**
      * @brief Returns a string in the format: [posX posY width height]
      *
      * @note Optimized for performance:
@@ -890,6 +897,33 @@ struct WindowAnimationInfo {
     bool animated { false };
     uint32_t callingId { 0 };
     bool isGravityChanged { false };
+};
+
+/**
+ * @brief Calling Window State
+ */
+enum class CallingWindowState : int32_t {
+    WINDOW_IN_NORMAL = 0,
+    WINDOW_IN_AI = 1
+};
+
+struct KeyboardBaseInfo {
+    uint32_t callingId { 0 };
+    bool isGravityChanged { false };
+    bool isKeyboardShow { false };
+    WSRect keyboardPanelRect { 0, 0, 0, 0 };
+};
+
+struct KeyboardAnimationRectConfig {
+    WSRect beginRect { 0, 0, 0, 0 };
+    WSRect endRect { 0, 0, 0, 0 };
+    bool animated { false };
+};
+
+struct CallingWindowInfoData {
+    CallingWindowState callingWindowState = CallingWindowState::WINDOW_IN_NORMAL;
+    double scaleX = 1;
+    double scaleY = 1;
 };
 
 struct WindowShadowConfig {
@@ -1111,6 +1145,8 @@ struct SessionEventParam {
     uint32_t gravity = 0;
     uint32_t waterfallResidentState = 0;
     uint32_t compatibleStyleMode = 0;
+    int32_t windowGlobalPosX_ = 0;
+    int32_t windowGlobalPosY_ = 0;
 };
 
 struct BackgroundParams {
@@ -1273,14 +1309,14 @@ enum class LifeCycleChangeReason {
 
     SCREEN_LOCK,
 
-    SCREEN_ROTATION,
-
     LAST_SCENE_TRANSFER,
 
     /*
      * Drive batch of windows go background quickly
      */
     QUICK_BATCH_BACKGROUND,
+
+    SCREEN_ROTATION,
 
     REASON_END,
 };
@@ -1341,6 +1377,17 @@ enum class CrossPlaneState : uint32_t {
 enum class SendTouchAction : uint32_t {
     ACTION_NORMAL = 0,
     ACTION_NOT_RECEIVE_PULL_CANCEL = 1,
+};
+
+/**
+ * @brief Sidebar blur type
+ */
+enum class SidebarBlurType : uint32_t {
+    NONE = 0,
+    INITIAL,
+    DEFAULT_FLOAT,
+    DEFAULT_MAXIMIZE,
+    END,
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_WS_COMMON_H

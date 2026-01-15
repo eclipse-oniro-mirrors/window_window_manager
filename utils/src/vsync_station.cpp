@@ -162,6 +162,45 @@ __attribute__((no_sanitize("cfi"))) void VsyncStation::RequestVsync(
     });
 }
 
+void VsyncStation::RunOnceOnNextVsync(OnCallback&& callback)
+{
+    auto vsyncCallback = std::make_shared<VsyncCallback>();
+    vsyncCallback->onCallback = std::move(callback);
+    RequestVsync(vsyncCallback);
+}
+
+void VsyncStation::RunOnceAfterNVsyncs(uint32_t delayVsyncCount, OnCallback&& callback)
+{
+    if (delayVsyncCount == 0) { // 0: invalid delay (must delay at least 1 vsync)
+        TLOGE(WmsLogTag::DEFAULT, "delayVsyncCount must be >= 1");
+        return;
+    }
+    if (delayVsyncCount == 1) { // 1: just run on next vsync
+        RunOnceOnNextVsync(std::move(callback));
+        return;
+    }
+
+    auto vsyncCallback = std::make_shared<VsyncCallback>();
+    std::weak_ptr<VsyncCallback> weakVsyncCallback = vsyncCallback;
+    auto remaining = std::make_shared<uint32_t>(delayVsyncCount);
+    vsyncCallback->onCallback = [weakThis = weak_from_this(),
+                                 callback = std::move(callback),
+                                 weakVsyncCallback,
+                                 remaining](int64_t timestamp, int64_t frameCount) mutable {
+        if (--(*remaining) == 0) {
+            callback(timestamp, frameCount);
+            return;
+        }
+        // Re-register the callback for the next vsync
+        auto vsyncStation = weakThis.lock();
+        auto vsyncCallback = weakVsyncCallback.lock();
+        if (vsyncStation && vsyncCallback) {
+            vsyncStation->RequestVsync(vsyncCallback);
+        }
+    };
+    RequestVsync(vsyncCallback);
+}
+
 int64_t VsyncStation::GetVSyncPeriod()
 {
     int64_t period = 0;
@@ -169,6 +208,17 @@ int64_t VsyncStation::GetVSyncPeriod()
         receiver->GetVSyncPeriod(period);
     }
     return period;
+}
+
+std::optional<uint32_t> VsyncStation::GetFps()
+{
+    int64_t periodNs = GetVSyncPeriod();
+    if (periodNs <= 0) {
+        return std::nullopt;
+    }
+
+    constexpr int64_t NS_PER_SEC = 1'000'000'000;
+    return static_cast<uint32_t>((NS_PER_SEC + periodNs / 2) / periodNs); // 2: round to nearest FPS.
 }
 
 void VsyncStation::RemoveCallback()

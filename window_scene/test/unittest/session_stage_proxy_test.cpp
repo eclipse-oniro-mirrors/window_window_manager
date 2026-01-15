@@ -1311,6 +1311,70 @@ HWTEST_F(SessionStageProxyTest, UpdateBrightness, TestSize.Level1)
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->UpdateBrightness(brightness));
     MockMessageParcel::ClearAllErrorFlag();
 }
+
+/**
+ * @tc.name: AddSidebarBlur
+ * @tc.desc: Test AddSidebarBlur
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, AddSidebarBlur, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->AddSidebarBlur());
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->AddSidebarBlur());
+
+    // Case 3: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->AddSidebarBlur());
+
+    // Case 4: Success
+    remoteMock->sendRequestResult_ = ERR_NONE;
+    sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_OK, successProxy->AddSidebarBlur());
+}
+
+/**
+ * @tc.name: SetSidebarBlurStyleWithType
+ * @tc.desc: Test SetSidebarBlurStyleWithType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SetSidebarBlurStyleWithType, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    SidebarBlurType type = SidebarBlurType::NONE;
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetSidebarBlurStyleWithType(type));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: Failed to write type
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetSidebarBlurStyleWithType(type));
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+
+    // Case 3: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SetSidebarBlurStyleWithType(type));
+
+    // Case 4: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetSidebarBlurStyleWithType(type));
+
+    // Case 5: Success
+    remoteMock->sendRequestResult_ = ERR_NONE;
+    sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_OK, successProxy->SetSidebarBlurStyleWithType(type));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

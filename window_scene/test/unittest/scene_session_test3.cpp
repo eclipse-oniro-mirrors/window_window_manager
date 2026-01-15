@@ -855,6 +855,28 @@ HWTEST_F(SceneSessionTest3, UpdateFullScreenWaterfallMode, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnWaterfallButtonChange
+ * @tc.desc: OnWaterfallButtonChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, OnWaterfallButtonChange, TestSize.Level1)
+{
+    bool isShow = true;
+    SessionInfo info;
+    info.abilityName_ = "OnWaterfallButtonChange";
+    info.bundleName_ = "OnWaterfallButtonChange";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(sceneSession),
+        sceneSession->GetPersistentId());
+    sceneSession->OnWaterfallButtonChange(isShow);
+    EXPECT_NE(sceneSession, nullptr);
+
+    sceneSession->pcFoldScreenController_ = nullptr;
+    sceneSession->OnWaterfallButtonChange(isShow);
+    EXPECT_EQ(sceneSession->pcFoldScreenController_, nullptr);
+}
+
+/**
  * @tc.name: RegisterFullScreenWaterfallModeChangeCallback
  * @tc.desc: RegisterFullScreenWaterfallModeChangeCallback
  * @tc.type: FUNC
@@ -981,6 +1003,10 @@ HWTEST_F(SceneSessionTest3, SendContainerModalEvent, TestSize.Level1)
 
     auto res = sceneSession->SendContainerModalEvent(eventName, eventValue);
     EXPECT_EQ(res, sceneSession->sessionStage_->SendContainerModalEvent(eventName, eventValue));
+
+    eventName = "win_change_water_fall_button";
+    eventValue = "win_water_fall_button_show";
+    EXPECT_EQ(WSError::WS_OK, sceneSession->SendContainerModalEvent(eventName, eventValue));
 }
 
 /**

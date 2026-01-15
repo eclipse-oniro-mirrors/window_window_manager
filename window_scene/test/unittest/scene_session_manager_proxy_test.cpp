@@ -1998,6 +1998,50 @@ HWTEST_F(sceneSessionManagerProxyTest, GetPiPSettingSwitchStatus, TestSize.Level
     EXPECT_EQ(ret, WMError::WM_OK);
 }
 
+HWTEST_F(sceneSessionManagerProxyTest, GetIsPipEnabled, TestSize.Level1)
+{
+    auto tempProxy = sptr<SceneSessionManagerProxy>::MakeSptr(nullptr);
+    bool isPipEnabled = false;
+    
+    // remote == nullptr
+    auto ret = tempProxy->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    
+    // WriteInterfaceToken failed
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    ret = proxy->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ret);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    
+    // SendRequest failed
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    
+    // ReadBool failed
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    ret = proxy->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+    
+    // ReadInt32 failed
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    ret = proxy->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+    
+    // interface success
+    ret = proxy->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
 /**
  * @tc.name: SetScreenPrivacyWindowTagSwitch01
  * @tc.desc: SetScreenPrivacyWindowTagSwitch

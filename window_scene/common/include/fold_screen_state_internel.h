@@ -89,7 +89,7 @@ public:
         if (IsDualDisplayFoldDevice()) {
             return foldDisplayMode == FoldDisplayMode::SUB;
         }
-        if (IsSingleDisplayFoldDevice() || IsSingleDisplayPocketFoldDevice()) {
+        if (IsSingleDisplayFoldDevice() || IsSingleDisplayPocketFoldDevice() || IsSingleDisplaySuperFoldDevice()) {
             return foldDisplayMode == FoldDisplayMode::MAIN;
         }
         return false;

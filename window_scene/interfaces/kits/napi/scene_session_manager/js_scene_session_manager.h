@@ -56,6 +56,7 @@ enum class ListenerFunctionType : uint32_t {
     VIRTUAL_DENSITY_CHANGE_CB,
     SET_SPECIFIC_SESSION_ZINDEX_CB,
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
+    MINIMIZE_ALL_CB,
 };
 
 class JsSceneSessionManager final {
@@ -110,6 +111,7 @@ public:
     static napi_value SetAppDragResizeType(napi_env env, napi_callback_info info);
     static napi_value GetCustomDecorHeight(napi_env env, napi_callback_info info);
     static napi_value NotifyEnterRecentTask(napi_env env, napi_callback_info info);
+    static napi_value NotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     static napi_value UpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookWindowInfo(napi_env env, napi_callback_info info);
@@ -167,6 +169,7 @@ public:
     static napi_value SetMaximizeFullScreen(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarDefaultVisibilityPerDisplay(napi_env env, napi_callback_info info);
     static napi_value NotifyStatusBarShowStatus(napi_env env, napi_callback_info info);
+    static napi_value NotifyLSStateChange(napi_env env, napi_callback_info info);
     static napi_value NotifyStatusBarConstantlyShowStatus(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarAvoidHeight(napi_env env, napi_callback_info info);
 
@@ -188,6 +191,7 @@ public:
      * PiP Window
      */
     static napi_value SetPiPSettingSwitchStatus(napi_env env, napi_callback_info info);
+    static napi_value SetIsPipEnabled(napi_env env, napi_callback_info info);
     static napi_value GetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
 
 private:
@@ -247,6 +251,7 @@ private:
     napi_value OnSwitchFreeMultiWindow(napi_env env, napi_callback_info info);
     napi_value OnGetFreeMultiWindowConfig(napi_env env, napi_callback_info info);
     napi_value OnNotifyEnterRecentTask(napi_env env, napi_callback_info info);
+    napi_value OnNotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     napi_value OnUpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookWindowInfo(napi_env env, napi_callback_info info);
@@ -302,6 +307,7 @@ private:
     napi_value OnSetMaximizeFullScreen(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarDefaultVisibilityPerDisplay(napi_env env, napi_callback_info info);
     napi_value OnNotifyStatusBarShowStatus(napi_env env, napi_callback_info info);
+    napi_value OnNotifyLSStateChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyStatusBarConstantlyShowStatus(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarAvoidHeight(napi_env env, napi_callback_info info);
 
@@ -364,6 +370,7 @@ private:
     void OnStartPiPFailed(DisplayId displayId);
     void ProcessStartPiPFailedRegister();
     napi_value OnSetPiPSettingSwitchStatus(napi_env env, napi_callback_info info);
+    napi_value OnSetIsPipEnabled(napi_env env, napi_callback_info info);
     napi_value OnGetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
 
     /*
@@ -408,6 +415,8 @@ private:
     static napi_value UpdateRecentMainSessionInfos(napi_env env, napi_callback_info info);
     static napi_value UpdateAppBoundSystemTrayStatus(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppBoundSystemTrayStatus(napi_env env, napi_callback_info info);
+    void RegisterMinimizeAllCallback();
+    void OnMinimizeAll(DisplayId displayId, int32_t excludeWindowId);
 
     /*
      * Window Hierarchy

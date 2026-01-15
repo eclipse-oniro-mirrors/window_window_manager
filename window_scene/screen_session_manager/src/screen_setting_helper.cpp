@@ -35,11 +35,14 @@ sptr<SettingObserver> ScreenSettingHelper::extendScreenDpiObserver_;
 sptr<SettingObserver> ScreenSettingHelper::duringCallStateObserver_;
 sptr<SettingObserver> ScreenSettingHelper::resolutionEffectObserver_;
 sptr<SettingObserver> ScreenSettingHelper::correctionExemptionListObserver_;
+sptr<SettingObserver> ScreenSettingHelper::borderingAreaPercentObserver_;
 constexpr int32_t PARAM_NUM_TEN = 10;
 constexpr uint32_t EXPECT_ACTIVE_MODE_SIZE = 4;
 constexpr uint32_t EXPECT_SCREEN_MODE_SIZE = 2;
+constexpr uint32_t EXPECT_PERCENT_SIZE = 1;
 constexpr uint32_t EXPECT_RELATIVE_POSITION_SIZE = 3;
 constexpr uint32_t VALID_MULTI_SCREEN_INFO_SIZE = 5;
+constexpr uint32_t VALID_PERCENT_SIZE = 2;
 constexpr uint32_t INDEX_SCREEN_INFO = 0;
 constexpr uint32_t INDEX_SCREEN_MODE = 1;
 constexpr uint32_t INDEX_FIRST_RELATIVE_POSITION = 2;
@@ -406,6 +409,62 @@ std::map<std::string, MultiScreenInfo> ScreenSettingHelper::GetMultiScreenInfo(c
     return multiScreenInfoMap;
 }
 
+std::map<std::string, uint32_t> ScreenSettingHelper::GetBorderingAreaPercent(const std::string& key)
+{
+    std::map<std::string, uint32_t> borderingAreaPercentMap = {};
+    std::string value = "";
+    SettingProvider& settingProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = settingProvider.GetStringValueMultiUser(key, value);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        return borderingAreaPercentMap;
+    }
+    std::string validString = RemoveInvalidChar(value);
+    std::vector<std::string> restoredScreen = {};
+    bool split = SplitString(restoredScreen, validString, ',');
+    if (!split) {
+        TLOGE(WmsLogTag::DMS, "split screen failed");
+        return borderingAreaPercentMap;
+    }
+    for (auto infoString : restoredScreen) {
+        std::vector<std::string> infoVector = {};
+        split = SplitString(infoVector, infoString, ';');
+        if (!split || infoVector.size() != VALID_PERCENT_SIZE) {
+            TLOGE(WmsLogTag::DMS, "split info failed");
+            continue;
+        }
+        uint32_t borderingAreaPercent = {};
+        if (!GetAreaPercent(borderingAreaPercent, infoVector[INDEX_SCREEN_MODE])) {
+            continue;
+        }
+        borderingAreaPercentMap[infoVector[INDEX_SCREEN_INFO]] = borderingAreaPercent;
+    }
+    return borderingAreaPercentMap;
+}
+
+bool ScreenSettingHelper::GetAreaPercent(uint32_t& borderingAreaPercent, const std::string& inputString)
+{
+    std::vector<std::string> modeStr = {};
+    bool split = SplitString(modeStr, inputString, ' ');
+    uint32_t dataSize = modeStr.size();
+    if (!split || dataSize != EXPECT_PERCENT_SIZE) {
+        TLOGE(WmsLogTag::DMS, "split failed, data size: %{public}d", dataSize);
+        return false;
+    }
+
+    uint32_t tmpBorderingAreaPercent = 50;
+    if (!IsNumber(modeStr[DATA_INDEX_ZERO])) {
+        TLOGE(WmsLogTag::DMS, "not number");
+        return false;
+    } else {
+        tmpBorderingAreaPercent =
+            static_cast<uint32_t>(strtoll(modeStr[DATA_INDEX_ZERO].c_str(), nullptr, PARAM_NUM_TEN));
+    }
+    borderingAreaPercent = tmpBorderingAreaPercent;
+    TLOGI(WmsLogTag::DMS, "borderingAreaPercent: %{public}d", borderingAreaPercent);
+    return true;
+}
+
 std::map<std::string, SupportedScreenModes> ScreenSettingHelper::GetResolutionMode(const std::string& key)
 {
     std::map<std::string, SupportedScreenModes> resolutionMap = {};
@@ -638,6 +697,40 @@ void ScreenSettingHelper::UnregisterSettingWireCastObserver()
     wireCastObserver_ = nullptr;
 }
 // LCOV_EXCL_STOP
+
+void ScreenSettingHelper::RegisterSettingBorderingAreaPercentObserver(SettingObserver::UpdateFunc func)
+{
+    if (borderingAreaPercentObserver_ != nullptr) {
+        TLOGD(WmsLogTag::DMS, "setting bordering area percent observer is registered");
+        return;
+    }
+    SettingProvider& borderingAreaPercentProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    borderingAreaPercentObserver_ =
+        borderingAreaPercentProvider.CreateObserver(SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY, func);
+    if (borderingAreaPercentObserver_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "create observer failed");
+        return;
+    }
+    ErrCode ret = borderingAreaPercentProvider.RegisterObserver(borderingAreaPercentObserver_);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        borderingAreaPercentObserver_ = nullptr;
+    }
+}
+
+void ScreenSettingHelper::UnregisterSettingBorderingAreaPercentObserver()
+{
+    if (borderingAreaPercentObserver_ == nullptr) {
+        TLOGD(WmsLogTag::DMS, "setting observer is nullptr");
+        return;
+    }
+    SettingProvider& borderingAreaPercentProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = borderingAreaPercentProvider.UnregisterObserver(borderingAreaPercentObserver_);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+    }
+    borderingAreaPercentObserver_ = nullptr;
+}
 
 void ScreenSettingHelper::RegisterSettingExtendScreenDpiObserver(SettingObserver::UpdateFunc func)
 {

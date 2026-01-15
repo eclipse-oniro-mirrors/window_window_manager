@@ -65,24 +65,6 @@ union ColorParam {
     uint32_t value;
 };
 
-const std::map<OHOS::AppExecFwk::DisplayOrientation, Orientation> ABILITY_TO_WMS_ORIENTATION_MAP {
-    {OHOS::AppExecFwk::DisplayOrientation::UNSPECIFIED, Orientation::UNSPECIFIED},
-    {OHOS::AppExecFwk::DisplayOrientation::LANDSCAPE, Orientation::HORIZONTAL},
-    {OHOS::AppExecFwk::DisplayOrientation::PORTRAIT, Orientation::VERTICAL},
-    {OHOS::AppExecFwk::DisplayOrientation::FOLLOWRECENT, Orientation::LOCKED},
-    {OHOS::AppExecFwk::DisplayOrientation::LANDSCAPE_INVERTED, Orientation::REVERSE_HORIZONTAL},
-    {OHOS::AppExecFwk::DisplayOrientation::PORTRAIT_INVERTED, Orientation::REVERSE_VERTICAL},
-    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION, Orientation::SENSOR},
-    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_LANDSCAPE, Orientation::SENSOR_HORIZONTAL},
-    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_PORTRAIT, Orientation::SENSOR_VERTICAL},
-    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_RESTRICTED, Orientation::AUTO_ROTATION_RESTRICTED},
-    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED,
-        Orientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED},
-    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_PORTRAIT_RESTRICTED,
-        Orientation::AUTO_ROTATION_PORTRAIT_RESTRICTED},
-    {OHOS::AppExecFwk::DisplayOrientation::LOCKED, Orientation::LOCKED},
-};
-
 class WindowImpl : public Window, AAFwk::PrepareTerminateCallbackStub {
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners) \
     do {                                                      \
@@ -422,8 +404,8 @@ private:
 
     void NotifyAfterForeground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
     void NotifyAfterBackground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
-    void NotifyAfterDidForeground(uint32_t reason);
-    void NotifyAfterDidBackground(uint32_t reason);
+    void NotifyAfterDidForeground(uint32_t reason, bool forceNotify = false);
+    void NotifyAfterDidBackground(uint32_t reason, bool forceNotify = false);
     void NotifyAfterFocused();
     void NotifyAfterUnfocused(bool needNotifyUiContent = true);
     void NotifyAfterResumed();
@@ -577,13 +559,6 @@ private:
     bool isIgnoreSafeArea_ = false;
     bool needDefaultAnimation_ = true;
     bool postTaskDone_ = false;
-    const std::map<DragType, uint32_t> STYLEID_MAP = {
-        {DragType::DRAG_UNDEFINED, MMI::MOUSE_ICON::DEFAULT},
-        {DragType::DRAG_BOTTOM_OR_TOP, MMI::MOUSE_ICON::NORTH_SOUTH},
-        {DragType::DRAG_LEFT_OR_RIGHT, MMI::MOUSE_ICON::WEST_EAST},
-        {DragType::DRAG_LEFT_TOP_CORNER, MMI::MOUSE_ICON::NORTH_WEST_SOUTH_EAST},
-        {DragType::DRAG_RIGHT_TOP_CORNER, MMI::MOUSE_ICON::NORTH_EAST_SOUTH_WEST}
-    };
     static float ConvertRadiusToSigma(float radius)
     {
         constexpr float BlurSigmaScale = 0.57735f;

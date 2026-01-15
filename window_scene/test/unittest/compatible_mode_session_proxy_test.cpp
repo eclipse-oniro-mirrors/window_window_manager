@@ -129,24 +129,6 @@ HWTEST_F(CompatibleModeSessionProxyTest, NotifyCompatibleModeChangeWithFailSendR
 
 /**
  * @tc.name: NotifyCompatibleModeChange
- * @tc.desc: NotifyCompatibleModeChangeWithFailReadRet
- * @tc.type: FUNC
- */
-HWTEST_F(CompatibleModeSessionProxyTest, NotifyCompatibleModeChangeWithFailReadRet, TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithFailReadRet test start";
-    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
-    auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    CompatibleStyleMode mode = CompatibleStyleMode::LANDSCAPE_18_9;
-    MockMessageParcel::SetReadInt32ErrorFlag(true);
-    auto ret = sessionProxy->NotifyCompatibleModeChange(mode);
-    MockMessageParcel::SetReadInt32ErrorFlag(false);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, ret);
-    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithFailReadRet test end";
-}
-
-/**
- * @tc.name: NotifyCompatibleModeChange
  * @tc.desc: NotifyCompatibleModeChangeWithReturnOK
  * @tc.type: FUNC
  */

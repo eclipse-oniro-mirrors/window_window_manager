@@ -109,7 +109,7 @@ void ScreenSessionManagerExt::GetAndMergeEdidInfo(sptr<ScreenSession> screenSess
     }
 }
 
-void ScreenSessionManagerExt::ScreenConnectionChanged(sptr<ScreenSession> screenSession,
+void ScreenSessionManagerExt::ScreenConnectionChanged(sptr<ScreenSession>& screenSession,
     ScreenId screenId, ScreenEvent screenEvent, bool phyMirrorEnable)
 {
     auto clientProxy = GetClientProxy();

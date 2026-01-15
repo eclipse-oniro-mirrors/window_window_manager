@@ -109,7 +109,8 @@ private:
         const MMI::WindowInfo& hostWindowinfo, const sptr<SceneSession>& sceneSession,
         const Matrix3f hostTransform) const;
     MMI::WindowInfo GetHostComponentWindowInfo(const SecSurfaceInfo& secSurfaceInfo,
-        const MMI::WindowInfo& hostWindowinfo, const Matrix3f hostTransform) const;
+        const MMI::WindowInfo& hostWindowinfo, const sptr<SceneSession>& sceneSession,
+        const Matrix3f hostTransform) const;
     MMI::WindowInfo MakeWindowInfoFormHostWindow(const MMI::WindowInfo& hostWindowinfo) const;
     void ResetFlushWindowInfoTask();
     void CheckIfUpdatePointAreas(WindowType windowType, const sptr<SceneSession>& sceneSession,

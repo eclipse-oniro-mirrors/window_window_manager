@@ -176,7 +176,6 @@ private:
     void RemoveFromRsTreeWhenRemoveWindowNode(sptr<WindowNode>& node, bool fromAnimation);
     void UpdateSizeChangeReason(sptr<WindowNode>& node, WindowMode srcMode, WindowMode dstMode);
     void UpdatePrivateWindowCount();
-    uint32_t GetAppWindowNum();
     void ResetMainFloatingWindowPriorityIfNeeded(sptr<WindowNode>& node);
     void ResetWindowZOrderPriorityWhenSetMode(sptr<WindowNode>& node,
         const WindowMode& dstMode, const WindowMode& srcMode);

@@ -683,6 +683,16 @@ void ScreenSession::SetDefaultDeviceRotationOffset(uint32_t defaultRotationOffse
     property_.SetDefaultDeviceRotationOffset(defaultRotationOffset);
 }
 
+void ScreenSession::SetBorderingAreaPercent(uint32_t borderingAreaPercent)
+{
+    borderingAreaPercent_ = borderingAreaPercent;
+}
+
+uint32_t ScreenSession::GetBorderingAreaPercent() const
+{
+    return borderingAreaPercent_;
+}
+
 void ScreenSession::UpdatePropertyByActiveModeChange()
 {
     sptr<SupportedScreenModes> mode = GetActiveScreenMode();
@@ -724,6 +734,18 @@ void ScreenSession::UpdatePropertyByActiveMode()
         screeBounds.rect_.height_ = mode->height_;
         property_.SetBounds(screeBounds);
     }
+}
+
+void ScreenSession::UpdatePropertyByScreenMode(RSScreenModeInfo screenMode)
+{
+    if (screenMode.GetScreenWidth() == -1 && screenMode.GetScreenHeight() == -1 && screenMode.GetScreenModeId() == -1) {
+        TLOGE(WmsLogTag::DMS, "Invalid RSScreenModeInfo, cannot update property");
+        return;
+    }
+    auto screeBounds = property_.GetBounds();
+    screeBounds.rect_.width_ = screenMode.GetScreenWidth();
+    screeBounds.rect_.height_ = screenMode.GetScreenHeight();
+    property_.SetBounds(screeBounds);
 }
 
 ScreenProperty ScreenSession::UpdatePropertyByFoldControl(const ScreenProperty& updatedProperty,
@@ -1276,6 +1298,18 @@ void ScreenSession::SetScreenComponentRotation(int rotation)
     TLOGI(WmsLogTag::DMS, "screenComponentRotation :%{public}f ", property_.GetScreenComponentRotation());
 }
 
+void ScreenSession::ConvertBScreenHeight(uint32_t& height)
+{
+    if (isBScreenHalf_) {
+        DMRect creaseRect = property_.GetCreaseRect();
+        if (creaseRect.posY_ > 0) {
+            height = static_cast<uint32_t>(creaseRect.posY_);
+        } else {
+            height = property_.GetBounds().rect_.GetHeight() / HALF_SCREEN_PARAM;
+        }
+    }
+}
+
 void ScreenSession::UpdatePropertyAfterRotation(RRect bounds, int rotation, FoldDisplayMode foldDisplayMode)
 {
     Rotation targetRotation = ConvertIntToRotation(rotation);
@@ -1600,20 +1634,15 @@ Rotation ScreenSession::CalcRotationSystemInner(Orientation orientation, FoldDis
  
 Rotation ScreenSession::CalcRotation(Orientation orientation, FoldDisplayMode foldDisplayMode)
 {
-    Rotation deviceRotation = property_.GetDeviceRotation();
-    auto bounds = property_.GetBounds();
-    if (!IsVertical(deviceRotation)) {
-        uint32_t width = bounds.rect_.GetWidth();
-        bounds.rect_.width_ = bounds.rect_.GetHeight();
-        bounds.rect_.height_ = width;
-    }
+    RRect boundsInRotationZero = CalcBoundsInRotationZero(foldDisplayMode);
     DisplayOrientation displayOrientation = CalcOrientationToDisplayOrientation(orientation);
-    return CalcRotationByDeviceOrientation(displayOrientation, foldDisplayMode, bounds);
+    return CalcRotationByDeviceOrientation(displayOrientation, foldDisplayMode, boundsInRotationZero);
 }
 
-RRect ScreenSession::CalcBoundsInRotationZero()
+RRect ScreenSession::CalcBoundsInRotationZero(FoldDisplayMode foldDisplayMode)
 {
     Rotation deviceRotation = property_.GetDeviceRotation();
+    RemoveRotationCorrection(deviceRotation, foldDisplayMode);
     RRect bounds = property_.GetBounds();
     if (!IsVertical(deviceRotation)) {
         uint32_t width = bounds.rect_.GetWidth();
@@ -1681,7 +1710,7 @@ Rotation ScreenSession::CalcRotationByDeviceOrientation(DisplayOrientation displ
     } else if (foldDisplayMode == FoldDisplayMode::UNKNOWN) {
         displayRotation =
             GetTargetOrientationWithBounds(displayRotation, boundsInRotationZero, static_cast<uint32_t>(ROTATION_90));
-    } else if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() && foldDisplayMode == FoldDisplayMode::FULL) {
+    } else if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         displayRotation =
             GetTargetOrientationWithBounds(displayRotation, boundsInRotationZero, static_cast<uint32_t>(ROTATION_270));
     }
@@ -1810,8 +1839,7 @@ DisplayOrientation ScreenSession::CalcDeviceOrientationWithBounds(Rotation rotat
         rotation = static_cast<Rotation>(temp);
     } else if (foldDisplayMode == FoldDisplayMode::UNKNOWN) {
         rotation = GetTargetRotationWithBounds(rotation, bounds, static_cast<uint32_t>(ROTATION_90));
-    } else if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() &&
-        foldDisplayMode == FoldDisplayMode::FULL) {
+    } else if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         rotation = GetTargetRotationWithBounds(rotation, bounds, static_cast<uint32_t>(ROTATION_270));
     }
     DisplayOrientation displayRotation = DisplayOrientation::UNKNOWN;
@@ -3259,6 +3287,8 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
         return;
     }
 
+    screenProperty.SetPhyWidth(eventPara.GetPhyWidth());
+    screenProperty.SetPhyHeight(eventPara.GetPhyHeight());
     screenProperty.SetDpiPhyBounds(eventPara.GetPhyWidth(), eventPara.GetPhyHeight());
     screenProperty.SetPhyBounds(eventPara.GetPhyBounds());
     screenProperty.SetBounds(eventPara.GetBounds());
@@ -3380,6 +3410,16 @@ void ScreenSession::SetSupportsInput(bool input)
     supportsInput_.store(input);
 }
 
+const std::string& ScreenSession::GetBundleName() const
+{
+    return bundleName_;
+}
+
+void ScreenSession::SetBundleName(const std::string& bundleName)
+{
+    bundleName_ = bundleName;
+}
+
 bool ScreenSession::GetUniqueRotationLock() const
 {
     return isUniqueRotationLocked_;
@@ -3400,8 +3440,9 @@ void ScreenSession::SetUniqueRotation(int32_t rotation)
     uniqueRotation_ = rotation;
 }
 
-const std::map<int32_t, int32_t>& ScreenSession::GetUniqueRotationOrientationMap() const
+const std::map<int32_t, int32_t> ScreenSession::GetUniqueRotationOrientationMap() const
 {
+    std::shared_lock<std::shared_mutex> lock(rotationMapMutex_);
     return uniqueRotationOrientationMap_;
 }
 
@@ -3426,6 +3467,7 @@ bool ScreenSession::UpdateRotationOrientationMap(UniqueScreenRotationOptions& ro
 
 void ScreenSession::SetUniqueRotationOrientationMap(const std::map<int32_t, int32_t>& rotationOrientationMap)
 {
+    std::unique_lock<std::shared_mutex> lock(rotationMapMutex_);
     uniqueRotationOrientationMap_ = rotationOrientationMap;
 }
 
@@ -3447,5 +3489,11 @@ void ScreenSession::SetCurrentRotationCorrection(Rotation currentRotationCorrect
 Rotation ScreenSession::GetCurrentRotationCorrection() const
 {
     return currentRotationCorrection_.load();
+}
+
+void ScreenSession::ClearPropertyChangeReasonAndEvent()
+{
+    property_.SetPropertyChangeReason(ScreenPropertyChangeReason::UNDEFINED);
+    property_.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::UNDEFINED);
 }
 } // namespace OHOS::Rosen

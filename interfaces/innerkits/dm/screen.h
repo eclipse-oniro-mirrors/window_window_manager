@@ -42,6 +42,8 @@ struct VirtualScreenOption {
     VirtualScreenFlag virtualScreenFlag_ {VirtualScreenFlag::DEFAULT};
     bool supportsFocus_ {true};
     bool supportsInput_ {true};
+    std::string bundleName_;
+    std::string serialNumber_;
 };
 
 class Screen : public RefBase {

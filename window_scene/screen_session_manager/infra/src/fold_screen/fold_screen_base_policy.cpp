@@ -47,6 +47,11 @@ namespace {
     const std::string MAIN_TP_OFF = "1,1";
     const std::string FULL_TP_OFF = "0,1";
 #endif
+    const std::unordered_set<FoldStatus> SUPPORTED_FOLD_STATUS = {
+        FoldStatus::EXPAND,
+        FoldStatus::FOLDED,
+        FoldStatus::HALF_FOLD
+    };
     static const std::map<FoldDisplayMode, DMDeviceStatus> DISPLAYMODE_DEVICESTATUS_MAPPING = {
         {FoldDisplayMode::MAIN, DMDeviceStatus::STATUS_FOLDED},
         {FoldDisplayMode::FULL, DMDeviceStatus::STATUS_EXPAND},
@@ -85,7 +90,10 @@ void FoldScreenBasePolicy::LockDisplayStatus(bool locked)
 
 FoldStatus FoldScreenBasePolicy::GetFoldStatus()
 {
-    return lastFoldStatus_;
+    if (!GetPhysicalFoldLockFlag()) {
+        return lastFoldStatus_;
+    }
+    return GetForceFoldStatus();
 }
 
 void FoldScreenBasePolicy::SetFoldStatus(FoldStatus foldStatus)
@@ -199,7 +207,7 @@ void FoldScreenBasePolicy::ChangeOffTentMode()
         return;
     }
     TLOGI(WmsLogTag::DMS, "change displaymode to coordination current mode=%{public}d", currentDisplayMode_);
-    
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(true);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::CONNECTED);
 
@@ -225,6 +233,7 @@ void FoldScreenBasePolicy::CloseCoordinationScreen()
         return;
     }
     TLOGI(WmsLogTag::DMS, "Close Coordination Screen current mode=%{public}d", currentDisplayMode_);
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
     // on main screen
     auto taskScreenOnMainOFF = [=] {
         TLOGNI(WmsLogTag::DMS, "CloseCoordinationScreen: screenIdMain OFF.");
@@ -248,6 +257,7 @@ void FoldScreenBasePolicy::ExitCoordination()
         TLOGW(WmsLogTag::DMS, "ExitCoordination skipped, current coordination flag is false");
         return;
     }
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
     ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);
@@ -410,12 +420,17 @@ void FoldScreenBasePolicy::SetIsClearingBootAnimation(bool isClearingBootAnimati
 /**
   * fold or expand start
   */
-bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce)
+bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce,
+    DisplayModeChangeReason reason)
 {
     if (isForce) {
         TLOGI(WmsLogTag::DMS, "force change displayMode");
         SetLastCacheDisplayMode(displayMode);
         return true;
+    }
+    if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
+        TLOGI(WmsLogTag::DMS, "Fold status is locked, can't change to display mode: %{public}d", displayMode);
+        return false;
     }
     if (isClearingBootAnimation_) {
         TLOGI(WmsLogTag::DMS, "clearing bootAnimation not change displayMode");
@@ -442,13 +457,15 @@ bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, b
 
 void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason)
 {
-    if (!CheckDisplayModeChange(displayMode, false)) {
+    if (!CheckDisplayModeChange(displayMode, false, reason)) {
         return;
     }
+    TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, reason: %{public}d", displayMode, reason);
     ChangeScreenDisplayModeInner(displayMode, reason);
     UpdateDeviceStatus(displayMode);
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
     ScreenSessionManager::GetInstance().SwitchScrollParam(displayMode);
+    return;
 }
 
 void FoldScreenBasePolicy::UpdateDeviceStatus(FoldDisplayMode displayMode)
@@ -492,15 +509,17 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayM
             if (currentDisplayMode_ == FoldDisplayMode::COORDINATION) {
                 CloseCoordinationScreen();
             }
-            SetdisplayModeChangeStatus(true);
             ChangeScreenDisplayModeToMain(screenSession);
             break;
         }
         case FoldDisplayMode::FULL: {
             if (currentDisplayMode_ == FoldDisplayMode::COORDINATION) {
                 CloseCoordinationScreen();
+                if (GetModeMatchStatus() != displayMode) {
+                    TLOGI(WmsLogTag::DMS, "Exit coordination and recover full");
+                    ChangeScreenDisplayModeToFull(screenSession, reason);
+                }
             } else {
-                SetdisplayModeChangeStatus(true);
                 ChangeScreenDisplayModeToFull(screenSession, reason);
             }
             break;
@@ -582,6 +601,7 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeToMainWhenFoldScreenOff(sptr<S
 void FoldScreenBasePolicy::ChangeScreenDisplayModeToMain(sptr<ScreenSession> screenSession,
     DisplayModeChangeReason reason)
 {
+    SetdisplayModeChangeStatus(true);
     if (onBootAnimation_) {
         SetdisplayModeChangeStatus(true, true);
         ChangeScreenDisplayModeToMainOnBootAnimation(screenSession);
@@ -655,6 +675,7 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeToFullWhenFoldScreenOff(sptr<S
 void FoldScreenBasePolicy::ChangeScreenDisplayModeToFull(sptr<ScreenSession> screenSession,
     DisplayModeChangeReason reason)
 {
+    SetdisplayModeChangeStatus(true);
     if (onBootAnimation_) {
         SetdisplayModeChangeStatus(true, true);
         ChangeScreenDisplayModeToFullOnBootAnimation(screenSession);
@@ -686,6 +707,7 @@ void FoldScreenBasePolicy::SendPropertyChangeResult(sptr<ScreenSession> screenSe
     ScreenPropertyChangeReason reason)
 {
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
+    screenSession->SetPhyScreenId(screenId);
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
         screenSession->UpdatePropertyByFoldControl(screenProperty_);
 
@@ -743,8 +765,13 @@ void FoldScreenBasePolicy::GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>&
 
 FoldDisplayMode FoldScreenBasePolicy::GetModeMatchStatus()
 {
+    return GetModeMatchStatus(currentFoldStatus_);
+}
+
+FoldDisplayMode FoldScreenBasePolicy::GetModeMatchStatus(FoldStatus targetFoldStatus)
+{
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
-    switch (currentFoldStatus_) {
+    switch (targetFoldStatus) {
         case FoldStatus::EXPAND: {
             displayMode = FoldDisplayMode::FULL;
             break;
@@ -762,6 +789,68 @@ FoldDisplayMode FoldScreenBasePolicy::GetModeMatchStatus()
         }
     }
     return displayMode;
+}
+
+void FoldScreenBasePolicy::SetFoldLockFlagAndFoldStatus(bool physicalFoldLockFlag, FoldStatus targetFoldStatus)
+{
+    TLOGI(WmsLogTag::DMS, "Set physicalFoldLockFlag as %{public}d, forceFoldStatus as %{public}d",
+        physicalFoldLockFlag, targetFoldStatus);
+    physicalFoldLockFlag_.store(physicalFoldLockFlag, std::memory_order_relaxed);
+    forceFoldStatus_.store(targetFoldStatus, std::memory_order_relaxed);
+}
+
+const std::unordered_set<FoldStatus>& FoldScreenBasePolicy::GetSupportedFoldStatus() const
+{
+    return SUPPORTED_FOLD_STATUS;
+}
+
+bool FoldScreenBasePolicy::GetPhysicalFoldLockFlag() const
+{
+    return physicalFoldLockFlag_.load(std::memory_order_relaxed);
+}
+
+FoldStatus FoldScreenBasePolicy::GetForceFoldStatus() const
+{
+    return forceFoldStatus_.load(std::memory_order_relaxed);
+}
+
+
+bool FoldScreenBasePolicy::IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
+    FoldStatus targetFoldStatus) const
+{
+    return supportedFoldStatus.find(targetFoldStatus) != supportedFoldStatus.end();
+}
+
+DMError FoldScreenBasePolicy::SetFoldStatusAndLockControl(bool isLocked, FoldStatus targetFoldStatus)
+{
+    if (GetModeChangeRunningStatus()) {
+        TLOGW(WmsLogTag::DMS, "last process not complete!");
+        return DMError::DM_ERROR_DISPLAY_MODE_SWITCH_PENDING;
+    }
+    if (isLocked && IsFoldStatusSupported(GetSupportedFoldStatus(), targetFoldStatus)) {
+        TLOGE(WmsLogTag::DMS, "Current device does not support this fold status: %{public}d", targetFoldStatus);
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    FoldStatus currentFoldStatus = GetFoldStatus();
+    FoldStatus changeFoldStatus = isLocked ? targetFoldStatus : GetPhysicalFoldStatus();
+    SetFoldLockFlagAndFoldStatus(isLocked, targetFoldStatus);
+    if (currentFoldStatus == changeFoldStatus) {
+        TLOGW(WmsLogTag::DMS,
+            "current fold status: %{public}d equal to change fold status, no need to change", currentFoldStatus);
+        return DMError::DM_OK;
+    }
+    TLOGI(WmsLogTag::DMS, "Change fold status from %{public}d to %{public}d", currentFoldStatus, changeFoldStatus);
+    ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(changeFoldStatus);
+    FoldDisplayMode targetDisplayMode = GetModeMatchStatus(changeFoldStatus);
+    TLOGI(WmsLogTag::DMS,
+        "Get fold status: %{public}d, display mode: %{public}d", changeFoldStatus, targetDisplayMode);
+    ChangeScreenDisplayMode(targetDisplayMode, DisplayModeChangeReason::FORCE_SET);
+    return DMError::DM_OK;
+}
+
+FoldStatus FoldScreenBasePolicy::GetPhysicalFoldStatus()
+{
+    return lastFoldStatus_;
 }
 
 bool FoldScreenBasePolicy::GetLockDisplayStatus() const

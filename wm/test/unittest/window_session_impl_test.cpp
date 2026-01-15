@@ -853,43 +853,6 @@ HWTEST_F(WindowSessionImplTest, SetFocusable, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTouchable
- * @tc.desc: SetTouchable
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest, SetTouchable, TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "WindowSessionImplTest: SetTouchable start";
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetTouchable");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = new (std::nothrow) SessionMocker(sessionInfo);
-    ASSERT_NE(nullptr, session);
-    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
-    ASSERT_NE(window->property_, nullptr);
-    window->hostSession_ = session;
-    window->property_->SetPersistentId(1);
-    ASSERT_FALSE(window->IsWindowSessionInvalid());
-    WMError res = window->SetTouchable(true);
-    ASSERT_EQ(res, WMError::WM_OK);
-    ASSERT_NE(window->property_, nullptr);
-    ASSERT_TRUE(window->property_->touchable_);
-    ASSERT_EQ(WMError::WM_OK, window->Destroy());
-
-    // session is null
-    window = sptr<WindowSessionImpl>::MakeSptr(option);
-    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext_, nullptr));
-    res = window->SetTouchable(true);
-    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    res = window->SetTouchable(false);
-    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
-    GTEST_LOG_(INFO) << "WindowSessionImplTest: SetTouchable end";
-}
-
-/**
  * @tc.name: SetBrightness01
  * @tc.desc: SetBrightness
  * @tc.type: FUNC

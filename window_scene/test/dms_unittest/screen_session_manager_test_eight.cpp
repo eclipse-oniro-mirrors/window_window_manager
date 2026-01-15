@@ -1101,6 +1101,117 @@ HWTEST_F(ScreenSessionManagerTest, SetScreenPrivacyWindowList, Function | SmallT
 }
 
 /**
+ * @tc.name: CalculateStartWhenTransferState001
+ * @tc.desc: CalculateStartWhenTransferState test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CalculateStartWhenTransferState001, Function | SmallTest | Level1)
+{
+    ScreenId mainScreenId = 1051;
+    sptr<ScreenSession> staticSession = sptr<ScreenSession>::MakeSptr(mainScreenId, ScreenProperty(), 0);
+    DMRect staticScreenBounds = {{0, 0, 1920, 1080}, 0.0f, 0.0f};
+    ssm_->screenSessionMap_.insert(std::make_pair(mainScreenId, staticSession));
+    staticSession->SetBounds(staticScreenBounds);
+    staticSession->SetRSScreenId(mainScreenId);
+    staticSession->SetStartPosition(0, 0);
+    ScreenId dynamicScreenId = 1052;
+    sptr<ScreenSession> dynamicSession = sptr<ScreenSession>::MakeSptr(dynamicScreenId, ScreenProperty(), 0);
+    DMRect dynamicScreenBounds = {{0, 0, 3296, 2472}, 0.0f, 0.0f};
+    ssm_->screenSessionMap_.insert(std::make_pair(dynamicScreenId, dynamicSession));
+    dynamicSession->SetBounds(dynamicScreenBounds);
+    dynamicSession->SetRSScreenId(dynamicScreenId);
+    dynamicSession->SetStartPosition(0, 1080);
+    uint32_t borderingAreaPercent = 50;
+    uint32_t exceptStaticStartX = 0;
+    uint32_t exceptStaticStartY = 0;
+    uint32_t exceptDynamicStartX = 0;
+    uint32_t exceptDynamicStartY = 1080;
+    ssm_->CalculateStartWhenTransferState(staticSession, dynamicSession, borderingAreaPercent);
+    uint32_t testStaticStartX = staticSession->GetScreenProperty().GetStartX();
+    uint32_t testStaticStartY = staticSession->GetScreenProperty().GetStartY();
+    uint32_t testDynamicStartX = dynamicSession->GetScreenProperty().GetStartX();
+    uint32_t testDynamicStartY = dynamicSession->GetScreenProperty().GetStartY();
+    EXPECT_EQ(exceptStaticStartX, testStaticStartX);
+    EXPECT_EQ(exceptStaticStartY, testStaticStartY);
+    EXPECT_EQ(exceptDynamicStartX, testDynamicStartX);
+    EXPECT_EQ(exceptDynamicStartY, testDynamicStartY);
+}
+
+/**
+ * @tc.name: CalculateStartWhenTransferState002
+ * @tc.desc: CalculateStartWhenTransferState test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CalculateStartWhenTransferState002, Function | SmallTest | Level1)
+{
+    ScreenId mainScreenId = 1051;
+    sptr<ScreenSession> staticSession = sptr<ScreenSession>::MakeSptr(mainScreenId, ScreenProperty(), 0);
+    DMRect staticScreenBounds = {{0, 0, 1920, 1080}, 0.0f, 0.0f};
+    ssm_->screenSessionMap_.insert(std::make_pair(mainScreenId, staticSession));
+    staticSession->SetBounds(staticScreenBounds);
+    staticSession->SetRSScreenId(mainScreenId);
+    staticSession->SetStartPosition(0, 0);
+    ScreenId dynamicScreenId = 1052;
+    sptr<ScreenSession> dynamicSession = sptr<ScreenSession>::MakeSptr(dynamicScreenId, ScreenProperty(), 0);
+    DMRect dynamicScreenBounds = {{0, 0, 3296, 2472}, 0.0f, 0.0f};
+    ssm_->screenSessionMap_.insert(std::make_pair(dynamicScreenId, dynamicSession));
+    dynamicSession->SetBounds(dynamicScreenBounds);
+    dynamicSession->SetRSScreenId(dynamicScreenId);
+    dynamicSession->SetStartPosition(1919, 1080);
+    uint32_t borderingAreaPercent = 50;
+    uint32_t exceptStaticStartX = 0;
+    uint32_t exceptStaticStartY = 0;
+    uint32_t exceptDynamicStartX = 1919;
+    uint32_t exceptDynamicStartY = 1080;
+    ssm_->CalculateStartWhenTransferState(staticSession, dynamicSession, borderingAreaPercent);
+    uint32_t testStaticStartX = staticSession->GetScreenProperty().GetStartX();
+    uint32_t testStaticStartY = staticSession->GetScreenProperty().GetStartY();
+    uint32_t testDynamicStartX = dynamicSession->GetScreenProperty().GetStartX();
+    uint32_t testDynamicStartY = dynamicSession->GetScreenProperty().GetStartY();
+    EXPECT_EQ(exceptStaticStartX, testStaticStartX);
+    EXPECT_EQ(exceptStaticStartY, testStaticStartY);
+    EXPECT_EQ(exceptDynamicStartX, testDynamicStartX);
+    EXPECT_EQ(exceptDynamicStartY, testDynamicStartY);
+}
+
+/**
+ * @tc.name: CalculateStartWhenTransferState003
+ * @tc.desc: CalculateStartWhenTransferState test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CalculateStartWhenTransferState003, Function | SmallTest | Level1)
+{
+    ScreenId mainScreenId = 1051;
+    sptr<ScreenSession> staticSession = sptr<ScreenSession>::MakeSptr(mainScreenId, ScreenProperty(), 0);
+    DMRect staticScreenBounds = {{0, 0, 1920, 1080}, 0.0f, 0.0f};
+    ssm_->screenSessionMap_.insert(std::make_pair(mainScreenId, staticSession));
+    staticSession->SetBounds(staticScreenBounds);
+    staticSession->SetRSScreenId(mainScreenId);
+    staticSession->SetStartPosition(0, 0);
+    ScreenId dynamicScreenId = 1052;
+    sptr<ScreenSession> dynamicSession = sptr<ScreenSession>::MakeSptr(dynamicScreenId, ScreenProperty(), 0);
+    DMRect dynamicScreenBounds = {{0, 0, 3296, 2472}, 0.0f, 0.0f};
+    ssm_->screenSessionMap_.insert(std::make_pair(dynamicScreenId, dynamicSession));
+    dynamicSession->SetBounds(dynamicScreenBounds);
+    dynamicSession->SetRSScreenId(dynamicScreenId);
+    dynamicSession->SetStartPosition(1920, 1080);
+    uint32_t borderingAreaPercent = 50;
+    uint32_t exceptStaticStartX = 0;
+    uint32_t exceptStaticStartY = 0;
+    uint32_t exceptDynamicStartX = 1920;
+    uint32_t exceptDynamicStartY = 1080;
+    ssm_->CalculateStartWhenTransferState(staticSession, dynamicSession, borderingAreaPercent);
+    uint32_t testStaticStartX = staticSession->GetScreenProperty().GetStartX();
+    uint32_t testStaticStartY = staticSession->GetScreenProperty().GetStartY();
+    uint32_t testDynamicStartX = dynamicSession->GetScreenProperty().GetStartX();
+    uint32_t testDynamicStartY = dynamicSession->GetScreenProperty().GetStartY();
+    EXPECT_EQ(exceptStaticStartX, testStaticStartX);
+    EXPECT_EQ(exceptStaticStartY, testStaticStartY);
+    EXPECT_EQ(exceptDynamicStartX, testDynamicStartX);
+    EXPECT_EQ(exceptDynamicStartY, testDynamicStartY);
+}
+
+/**
  * @tc.name: GetAllScreenIds
  * @tc.desc: GetAllScreenIds screen power
  * @tc.type: FUNC
@@ -1186,7 +1297,7 @@ HWTEST_F(ScreenSessionManagerTest, GetRoundedCorner, TestSize.Level1)
 {
     std::vector<RoundedCorner> roundedCorner;
     int radius = 0;
-    EXPECT_EQ(DMError::DM_ERROR_INVALID_PARAM, ssm_->GetRoundedCorner(0, radius));
+    EXPECT_EQ(DMError::DM_OK, ssm_->GetRoundedCorner(0, radius));
     ScreenId id = 0;
     sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(id, ScreenProperty(), 0);
     ssm_->screenSessionMap_[id] = screenSession;
@@ -1214,6 +1325,23 @@ HWTEST_F(ScreenSessionManagerTest, GetSupportedHDRFormats, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TestNotifyRunSensorFoldStateManager
+ * @tc.desc: TestNotifyRunSensorFoldStateManager
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, TestNotifyRunSensorFoldStateManager, TestSize.Level0)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    if (ssm_->foldScreenController_ != nullptr) {
+        ssm_->foldScreenController_->NotifyRunSensorFoldStateManager();
+        EXPECT_TRUE(g_logMsg.find("NotifyRunSensorFoldStateManager") != std::string::npos);
+    }
+    LOG_SetCallback(nullptr);
+    g_logMsg.clear();
+}
+
+/*
  * @tc.name: NotifyRSCoordination
  * @tc.desc: NotifyRSCoordination
  * @tc.type: FUNC

@@ -1090,9 +1090,9 @@ WMError WindowAdapter::SetSpecificWindowZIndex(WindowType windowType, int32_t zI
     WMError ret = static_cast<WMError>(wmsProxy->SetSpecificWindowZIndex(windowType, zIndex));
     if (updateMap && ret == WMError::WM_OK) {
         specificZIndexMap_[windowType] = zIndex;
+        SessionManager::GetInstance(userId_).NotifySetSpecificWindowZIndex();
     }
-    TLOGI(WmsLogTag::WMS_FOCUS, "windowType: %{public}d, zIndex: %{public}d",
-        windowType, zIndex);
+    TLOGI(WmsLogTag::WMS_FOCUS, "windowType: %{public}d, zIndex: %{public}d", windowType, zIndex);
     return ret;
 }
 
@@ -1552,6 +1552,14 @@ WMError WindowAdapter::GetPiPSettingSwitchStatus(bool& switchStatus)
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->GetPiPSettingSwitchStatus(switchStatus);
+}
+
+WMError WindowAdapter::GetIsPipEnabled(bool& isPipEnabled)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->GetIsPipEnabled(isPipEnabled);
 }
 
 WMError WindowAdapter::AddSessionBlackList(

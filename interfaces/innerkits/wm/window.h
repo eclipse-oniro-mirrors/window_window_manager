@@ -925,6 +925,21 @@ public:
     virtual void OnFreeWindowModeChange(bool isInFreeWindowMode) {}
 };
 
+/**
+ * @class IUIContentCreateListener
+ *
+ * @brief IUIContentCreateListener is used to observe the ui content create.
+ */
+class IUIContentCreateListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when ui content create.
+     *
+     * @param uiContent created UIContent object.
+     */
+    virtual void OnUIContentCreate(std::weak_ptr<Ace::UIContent> uiContent) {}
+};
+
 static WMError DefaultCreateErrCode = WMError::WM_OK;
 class Window : virtual public RefBase {
 public:
@@ -1236,6 +1251,17 @@ public:
      * @return Property of system bar.
      */
     virtual SystemBarProperty GetSystemBarPropertyByType(WindowType type) const { return {}; }
+
+    /**
+     * @brief Get window state snapshot.
+     *
+     * @param winStateSnapshotJsonStr The state snapshot of specified window.
+     * @return WM_OK means get success, others means get failed.
+     */
+    virtual WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief judge this window is full screen.
@@ -2713,6 +2739,18 @@ public:
      * @return WMError
      */
     virtual WMError Restore() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Restores the main window of current window to foreground.
+     * Only TYPE_FLOAT can use this interface, when the main window in the background
+     * need to be moved to foreground after the TYPE_FLOAT window is clicked
+     *
+     * @return WMError
+     */
+    virtual WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief close the window. It is called by ACE when close button is clicked.
@@ -4822,12 +4860,27 @@ public:
     virtual WMError GetPiPSettingSwitchStatus(bool& switchStatus) const { return WMError::WM_OK; }
 
     /**
+     * @brief Get picture-in-picture isPipEnabled of system setting.
+     *
+     * @param isPipEnabled  picture-in-picture isPipEnabled value.
+     * @return WM_OK means get success.
+     */
+    virtual WMError GetIsPipEnabled(bool& isPipEnabled) const { return WMError::WM_OK; }
+
+    /**
      * @brief Set parent windowId of picture-in-picture window.
      *
      * @param windowId parent windowId of picture-in-picture window.
      * @return WMError::WM_OK means set success, otherwise failed.
      */
     virtual WMError SetPipParentWindowId(uint32_t windowId) const { return WMError::WM_OK; }
+
+    /**
+     * @brief get is pip active
+     *
+     * @return WMError
+     */
+    virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
 
     /**
      * @brief return true if current window is anco, otherwise return false
@@ -4851,6 +4904,39 @@ public:
      * @param shouldFullScreen true means full screen, false means force split.
      */
     virtual void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) {}
+
+    /**
+     * @brief Register a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError UnregisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Update compatible style mode of the window.
+     *
+     * @param mode CompatibleStyleMode.
+     * @return WM_OK means update mode success, others means failed.
+     */
+    virtual WMError UpdateCompatibleStyleMode(CompatibleStyleMode mode)
+    {
+        return WMError::WM_OK;
+    }
 
     /**
      * @brief register a listener to listen whether the window title bar is show or hide.
@@ -4877,7 +4963,7 @@ public:
     /**
      * @brief Set whether the window receive drag event.
      *
-     * @param enalbed - whether the window receive drag event.
+     * @param enabled - whether the window receive drag event.
      *        True: - means default state, the window can receive drag event.
      *        False: - means the window can't receive drag event.
      * @return Returns the status code of the execution.
@@ -4905,10 +4991,10 @@ public:
      *        If the first finger does not touch the window,
      *        the system will discard the events when subsequent fingers touch the window.
      *
-     * @param enalbed - Whether the window supports event separation capability.
+     * @param enabled - Whether the window supports event separation capability.
      *        True: - means default state, the event will be sent to the window that the finger taps.
      *        False: - means the window doesn't support event separation capability.
-     * @return - Promise that returns no value.
+     * @return - Returns the status code of the execution.
      */
     virtual WMError SetSeparationTouchEnabled(bool enabled)
     {
@@ -5050,6 +5136,11 @@ public:
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
+
+    /**
+     * @brief Flush vsync for prelaunch.
+     */
+    virtual void FlushVsync() {}
 };
 }
 }

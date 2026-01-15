@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class SystemSession : public SceneSession {
 public:
-    SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
+    SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
     ~SystemSession();
 
     void OnFirstStrongRef(const void* objectId) override;
@@ -59,6 +59,12 @@ public:
     void SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloatingBallMainWindowFunc&& func) override;
     void RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& func) override;
 
+    /*
+     * Float Window
+     */
+    void SetRestoreFloatMainWindowCallback(NotifyRestoreFloatMainWindowFunc&& func) override;
+    void RegisterGetIsRecentStateFunc(GetIsRecentStateFunc&& callback) override;
+    WMError RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters) override;
 protected:
     bool CheckKeyEventDispatch(const std::shared_ptr<MMI::KeyEvent>& keyEvent) const;
     void UpdatePointerArea(const WSRect& rect) override;
@@ -71,6 +77,10 @@ protected:
     void NotifyStopFloatingBall() override;
     void NotifyRestoreFloatingBallMainWindow(const std::shared_ptr<AAFwk::Want>& want) override;
 
+    /*
+     * Float Window
+     */
+    void NotifyRestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters);
 private:
     void UpdateCameraWindowStatus(bool isShowing);
     bool NeedSystemPermission(WindowType type);
@@ -86,6 +96,7 @@ private:
     std::shared_ptr<AAFwk::Want> fbWant_ = nullptr;
 
     GetFbPanelWindowIdFunc getFbPanelWindowIdFunc_;
+    GetIsRecentStateFunc getIsRecentStateFunc_;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SYSTEM_SESSION_H

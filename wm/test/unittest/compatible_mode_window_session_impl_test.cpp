@@ -71,173 +71,106 @@ void CompatibleModeWindowSessionImplTest::TearDown()
 namespace {
 
 /**
- * @tc.name: RegisterNavigateCallbackForPageCompatibleModeIfNeed
- * @tc.desc: RegisterNavigateCallbackForPageCompatibleModeIfNeedWithNullUiContent
+ * @tc.name: RegisterUIContentCreateListener
+ * @tc.desc: RegisterUIContentCreateListenerWithNullListener
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModeWindowSessionImplTest, RegisterNavigateCallbackForPageCompatibleModeIfNeedWithNullUiContent,
+HWTEST_F(CompatibleModeWindowSessionImplTest, RegisterUIContentCreateListenerWithNullListener,
     TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "RegisterNavigateCallbackForPageCompatibleModeIfNeedWithNullUiContent test start";
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
+    GTEST_LOG_(INFO) << "RegisterUIContentCreateListenerWithNullListener test start";
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->RegisterNavigateCallbackForPageCompatibleModeIfNeed();
-    EXPECT_TRUE(g_errLog.find("content is nullptr or page is empty") != std::string::npos);
-    LOG_SetCallback(nullptr);
-    GTEST_LOG_(INFO) << "RegisterNavigateCallbackForPageCompatibleModeIfNeedWithNullUiContent test end";
+    sptr<IUIContentCreateListener> listener = nullptr;
+    auto ret = window->RegisterUIContentCreateListener(listener);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    GTEST_LOG_(INFO) << "RegisterUIContentCreateListenerWithNullListener test end";
 }
 
 /**
- * @tc.name: RegisterNavigateCallbackForPageCompatibleModeIfNeed
- * @tc.desc: RegisterNavigateCallbackForPageCompatibleModeIfNeedWithEmptyCompatibleModePage
+ * @tc.name: RegisterUIContentCreateListener
+ * @tc.desc: RegisterUIContentCreateListenerWithNotNullListener
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModeWindowSessionImplTest,
-    RegisterNavigateCallbackForPageCompatibleModeIfNeedWithEmptyCompatibleModePage, TestSize.Level1)
+HWTEST_F(CompatibleModeWindowSessionImplTest, RegisterUIContentCreateListenerWithNotNullListener,
+    TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "RegisterNavigateCallbackForPageCompatibleModeIfNeedWithEmptyCompatibleModePage test start";
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
+    GTEST_LOG_(INFO) << "RegisterUIContentCreateListenerWithNotNullListener test start";
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->RegisterNavigateCallbackForPageCompatibleModeIfNeed();
-    EXPECT_TRUE(g_errLog.find("content is nullptr or page is empty") != std::string::npos);
-    LOG_SetCallback(nullptr);
-    GTEST_LOG_(INFO) << "RegisterNavigateCallbackForPageCompatibleModeIfNeedWithEmptyCompatibleModePage test end";
+    sptr<IUIContentCreateListener> listener = sptr<IUIContentCreateListener>::MakeSptr();
+    auto ret = window->RegisterUIContentCreateListener(listener);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "RegisterUIContentCreateListenerWithNotNullListener test end";
 }
 
 /**
- * @tc.name: RegisterNavigateCallbackForPageCompatibleModeIfNeed
- * @tc.desc: RegisterNavigateCallbackForPageCompatibleModeIfNeedWithSuccess
+ * @tc.name: UnregisterUIContentCreateListener
+ * @tc.desc: UnregisterUIContentCreateListenerWithNullListener
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModeWindowSessionImplTest, RegisterNavigateCallbackForPageCompatibleModeIfNeedWithSuccess,
+HWTEST_F(CompatibleModeWindowSessionImplTest, UnregisterUIContentCreateListenerWithNullListener,
     TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "RegisterNavigateCallbackForPageCompatibleModeIfNeedWithSuccess test start";
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
+    GTEST_LOG_(INFO) << "UnregisterUIContentCreateListenerWithNullListener test start";
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->property_->SetCompatibleModePage("page");
-    window->RegisterNavigateCallbackForPageCompatibleModeIfNeed();
-    EXPECT_TRUE(g_errLog.find("content is nullptr or page is empty") == std::string::npos);
-    LOG_SetCallback(nullptr);
-    GTEST_LOG_(INFO) << "RegisterNavigateCallbackForPageCompatibleModeIfNeedWithSuccess test end";
+    sptr<IUIContentCreateListener> listener = nullptr;
+    auto ret = window->UnregisterUIContentCreateListener(listener);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    GTEST_LOG_(INFO) << "UnregisterUIContentCreateListenerWithNullListener test end";
 }
 
 /**
- * @tc.name: HandleNavigateCallbackForPageCompatibleMode
- * @tc.desc: HandleNavigateCallbackForPageCompatibleModeWithSameTargetPage
+ * @tc.name: UnregisterUIContentCreateListener
+ * @tc.desc: UnregisterUIContentCreateListenerWithNotNullListener
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModeWindowSessionImplTest, HandleNavigateCallbackForPageCompatibleModeWithSameTargetPage,
+HWTEST_F(CompatibleModeWindowSessionImplTest, UnregisterUIContentCreateListenerWithNotNullListener,
     TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithSameTargetPage test start";
-    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string targetPage = "targetPage";
+    GTEST_LOG_(INFO) << "UnregisterUIContentCreateListenerWithNotNullListener test start";
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->hostSession_ = session;
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->property_->SetCompatibleModePage(targetPage);
-    window->HandleNavigateCallbackForPageCompatibleMode(targetPage, targetPage);
-    EXPECT_EQ(window->property_->GetPageCompatibleMode(), CompatibleStyleMode::INVALID_VALUE);
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithSameTargetPage test end";
+    sptr<IUIContentCreateListener> listener = sptr<IUIContentCreateListener>::MakeSptr();
+    auto ret = window->UnregisterUIContentCreateListener(listener);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "UnregisterUIContentCreateListenerWithNotNullListener test end";
 }
 
 /**
- * @tc.name: HandleNavigateCallbackForPageCompatibleMode
- * @tc.desc: HandleNavigateCallbackForPageCompatibleModeWithSameEmptyPage
+ * @tc.name: UpdateCompatibleStyleMode
+ * @tc.desc: UpdateCompatibleStyleModeWithNullSession
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModeWindowSessionImplTest, HandleNavigateCallbackForPageCompatibleModeWithSameEmptyPage,
+HWTEST_F(CompatibleModeWindowSessionImplTest, UpdateCompatibleStyleModeWithNullSession,
     TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithSameEmptyPage test start";
-    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string targetPage = "targetPage";
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeWithNullSession test start";
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->hostSession_ = session;
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->property_->SetCompatibleModePage(targetPage);
-    window->HandleNavigateCallbackForPageCompatibleMode("", "");
-    EXPECT_EQ(window->property_->GetPageCompatibleMode(), CompatibleStyleMode::INVALID_VALUE);
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithSameEmptyPage test end";
+    auto ret = window->UpdateCompatibleStyleMode(CompatibleStyleMode::LANDSCAPE_18_9);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeWithNullSession test end";
 }
 
 /**
- * @tc.name: HandleNavigateCallbackForPageCompatibleMode
- * @tc.desc: HandleNavigateCallbackForPageCompatibleModeWithTargetFromPage
+ * @tc.name: UpdateCompatibleStyleMode
+ * @tc.desc: UpdateCompatibleStyleMode
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModeWindowSessionImplTest, HandleNavigateCallbackForPageCompatibleModeWithTargetFromPage,
-    TestSize.Level1)
+HWTEST_F(CompatibleModeWindowSessionImplTest, UpdateCompatibleStyleMode, TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithTargetFromPage test start";
-    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string targetPage = "targetPage";
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->hostSession_ = session;
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->property_->SetCompatibleModePage(targetPage);
-    window->HandleNavigateCallbackForPageCompatibleMode(targetPage, "");
-    EXPECT_EQ(window->property_->GetPageCompatibleMode(), CompatibleStyleMode::INVALID_VALUE);
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithTargetFromPage test end";
-}
-
-/**
- * @tc.name: HandleNavigateCallbackForPageCompatibleMode
- * @tc.desc: HandleNavigateCallbackForPageCompatibleModeWithTargetToPage
- * @tc.type: FUNC
- */
-HWTEST_F(CompatibleModeWindowSessionImplTest, HandleNavigateCallbackForPageCompatibleModeWithTargetToPage,
-    TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithTargetToPage test start";
-    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string targetPage = "targetPage";
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->hostSession_ = session;
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->property_->SetCompatibleModePage(targetPage);
-    window->HandleNavigateCallbackForPageCompatibleMode("", targetPage);
-    EXPECT_EQ(window->property_->GetPageCompatibleMode(), CompatibleStyleMode::LANDSCAPE_18_9);
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithTargetToPage test end";
-}
-
-/**
- * @tc.name: HandleNavigateCallbackForPageCompatibleMode
- * @tc.desc: HandleNavigateCallbackForPageCompatibleModeWithNullSession
- * @tc.type: FUNC
- */
-HWTEST_F(CompatibleModeWindowSessionImplTest, HandleNavigateCallbackForPageCompatibleModeWithNullSession,
-    TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithNullSession test start";
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    std::string targetPage = "targetPage";
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeWithNullSession test start";
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->property_->SetCompatibleModePage(targetPage);
-    window->HandleNavigateCallbackForPageCompatibleMode("", targetPage);
-    EXPECT_TRUE(g_errLog.find("hostSession is null") != std::string::npos);
-    LOG_SetCallback(nullptr);
-    GTEST_LOG_(INFO) << "HandleNavigateCallbackForPageCompatibleModeWithNullSession test end";
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    auto ret = window->UpdateCompatibleStyleMode(CompatibleStyleMode::LANDSCAPE_18_9);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeWithNullSession test end";
 }
 } // namespace
 } // namespace Rosen

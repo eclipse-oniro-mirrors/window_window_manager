@@ -16,12 +16,10 @@ import("../../../../windowmanager_aafwk.gni")
 
 group("unittest") {
   testonly = true
-  deps = [
-    ":extension_data_handler_test",
-    ":ws_extension_session_manager_test",
-  ]
   if(window_manager_use_sceneboard) {
-    deps += [
+    deps = [
+      ":extension_data_handler_test",
+      ":ws_extension_session_manager_test",
       ":ws_extension_session_test",
       ":ws_scene_session_manager_extension_test",
     ]
@@ -69,6 +67,7 @@ ohos_unittest("extension_data_handler_test") {
     "googletest:gmock",
     "googletest:gtest",
     "googletest:gtest_main",
+    "hilog:libhilog",
   ]
 }
 

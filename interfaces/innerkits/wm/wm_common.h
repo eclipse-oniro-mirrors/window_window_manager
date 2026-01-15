@@ -615,6 +615,7 @@ enum class WindowSizeChangeReason : uint32_t {
     ROOT_SCENE_CHANGE,
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
+    LS_STATE_CHANGE,
     FULL_SCREEN_IN_FORCE_SPLIT,
     END,
 };
@@ -1158,6 +1159,17 @@ struct SystemBarPropertyFlag {
     bool enableAnimationFlag = false;
 };
 
+/*
+ * @enum StatusBarColorChangeReason
+ *
+ * @brief Configuration of statusBarColor
+ */
+enum class StatusBarColorChangeReason {
+    WINDOW_CONFIGURATION,
+    NAVIGATION_CONFIGURATION,
+    ATOMICSERVICE_CONFIGURATION,
+};
+
 /**
  * @struct Rect
  *
@@ -1205,6 +1217,20 @@ struct Rect {
         std::ostringstream oss;
         oss << "[" << posX_ << " " << posY_ << " " << width_ << " " << height_ << "]";
         return oss.str();
+    }
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteInt32(posX_) && parcel.WriteInt32(posY_) &&
+               parcel.WriteUint32(width_) && parcel.WriteUint32(height_);
+    }
+
+    void Unmarshalling(Parcel& parcel)
+    {
+        posX_ = parcel.ReadInt32();
+        posY_ = parcel.ReadInt32();
+        width_ = parcel.ReadUint32();
+        height_ = parcel.ReadUint32();
     }
 
     static const Rect EMPTY_RECT;

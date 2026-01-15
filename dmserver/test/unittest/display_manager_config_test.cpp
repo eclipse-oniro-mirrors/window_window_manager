@@ -197,7 +197,7 @@ HWTEST_F(DisplayManagerConfigTest, ReadStringConfigInfo, TestSize.Level1)
     if (rootPtr == nullptr || rootPtr->name == nullptr ||
         xmlStrcmp(rootPtr->name, reinterpret_cast<const xmlChar*>("Configs"))) {
         xmlFreeDoc(docPtr);
-        return;
+        GTEST_SKIP();
     }
     uint32_t readCount = 0;
     for (xmlNodePtr curNodePtr = rootPtr->xmlChildrenNode; curNodePtr != nullptr; curNodePtr = curNodePtr->next) {

@@ -53,7 +53,7 @@ public:
         IsLastFrameLayoutFinishedCallback isLastFrameLayoutFinished;
     };
     KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-        const sptr<KeyboardSessionCallback>& keyboardCallback);
+        const sptr<KeyboardSessionCallback>& keyboardCallback, int32_t userId = 0);
     ~KeyboardSession();
 
     WSError Show(sptr<WindowSessionProperty> property) override;
@@ -67,7 +67,8 @@ public:
     SessionGravity GetKeyboardGravity() const override;
     void OpenKeyboardSyncTransaction() override;
     void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect, bool isKeyboardShow,
-        const WindowAnimationInfo& animationInfo) override;
+        const WindowAnimationInfo& animationInfo, const CallingWindowInfoData& callingWindowInfoData) override;
+    void CallingWindowStateChange(const CallingWindowInfoData& callingWindowInfoData) override;
     bool IsVisibleForeground() const override;
     bool IsVisibleNotBackground() const override;
     uint32_t GetCallingSessionId() override;
@@ -78,6 +79,7 @@ public:
     WSError UpdateSizeChangeReason(SizeChangeReason reason) override;
     bool GetIsKeyboardSyncTransactionOpen() const { return isKeyboardSyncTransactionOpen_; }
     void SetSkipEventOnCastPlus(bool isSkip) override;
+    void ForceProcessKeyboardOccupiedAreaInfo() override;
 
 protected:
     void EnableCallingSessionAvoidArea() override;
@@ -117,15 +119,19 @@ private:
     bool isNeedProcessKeyboardOccupiedAreaInfo(
         const KeyboardLayoutParams& lastParams, const KeyboardLayoutParams& params);
     void CalculateOccupiedAreaAfterUIRefresh() override;
-    WSRect CalculateScaledRect(WSRect sessionRect, float scaleX, float scaleY);
+    WSRect CalculateCenterScaledRect(const WSRect& sessionRect, float scaleX, float scaleY);
+    WSRect CalculateLeftTopScaledRect(const WSRect& sessionRect, float scaleX, float scaleY);
+    WSRect CalculateSafeRectForAIWindow(const WSRect& callingSessionRect, const WSRect& keyboardPanelRect);
     WMError HandleActionUpdateKeyboardTouchHotArea(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
     
     sptr<KeyboardSessionCallback> keyboardCallback_ = nullptr;
     bool isKeyboardSyncTransactionOpen_ = false;
     NotifyKeyboarEffectOptionChangeFunc changeKeyboardEffectOptionFunc_;
+    bool isCalculateOccupiedAreaWaitUntilDragEnd_ = false;
     WMError IsLandscape(uint64_t screenId, bool& isLandscape);
     void PrintRectsInfo(const std::vector<Rect>& rects, const std::string& infoTag);
+    CallingWindowInfoData callingWindowInfoData_;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_KEYBOARD_SESSION_H

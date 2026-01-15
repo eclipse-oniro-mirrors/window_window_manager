@@ -39,6 +39,7 @@ ohos_shared_library("libintention_event") {
   ]
 
   external_deps = [
+    "ability_base:configuration",
     "ability_runtime:app_manager",
     "accessibility:accessibility_common",
     "ace_engine:ace_uicontent",

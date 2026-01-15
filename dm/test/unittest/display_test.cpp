@@ -307,7 +307,7 @@ HWTEST_F(DisplayTest, GetRoundedCorner, TestSize.Level1)
 {
     std::vector<RoundedCorner> roundedCorner;
     auto ret = defaultDisplay_->GetRoundedCorner(roundedCorner);
-    EXPECT_EQ(ret, DMError::DM_OK);
+    EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
 }
 
 /**

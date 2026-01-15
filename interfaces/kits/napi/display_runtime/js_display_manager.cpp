@@ -33,6 +33,13 @@
 
 namespace OHOS {
 namespace Rosen {
+namespace {
+const std::map<DmErrorCode, std::string> brightnessInfoErrCodeMap = {
+    {DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT, "Capability not supported."},
+    {DmErrorCode::DM_ERROR_SYSTEM_INNORMAL, "This display manager service works abnormally."},
+    {DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "Parameter error. Possible cause: 1. Invalid parameter range."}
+};
+}
 using namespace AbilityRuntime;
 constexpr size_t ARGC_ONE = 1;
 constexpr size_t ARGC_TWO = 2;
@@ -208,8 +215,15 @@ static napi_value ConvertGlobalCoordinateToRelative(napi_env env, napi_callback_
     return (me != nullptr) ? me->OnConvertGlobalCoordinateToRelative(env, info) : nullptr;
 }
 
+static napi_value RegisterDisplayAttributeChangeCallback(napi_env env, napi_callback_info info)
+{
+    JsDisplayManager* me = CheckParamsAndGetThis<JsDisplayManager>(env, info);
+    return (me != nullptr) ? me->OnRegisterDisplayAttributeChangeCallback(env, info) : nullptr;
+}
+
 private:
 std::map<std::string, std::map<std::unique_ptr<NativeReference>, sptr<JsDisplayListener>>> jsCbMap_;
+std::map<std::string, std::map<std::unique_ptr<NativeReference>, sptr<JsDisplayListener>>> jsAttributeCbMap_;
 std::mutex mtx_;
 
 napi_value OnGetDefaultDisplay(napi_env env, napi_callback_info info)
@@ -241,7 +255,7 @@ napi_value OnGetDefaultDisplay(napi_env env, napi_callback_info info)
         sptr<Display> display = SingletonContainer::Get<DisplayManager>().GetDefaultDisplay();
         if (display != nullptr) {
             task->Resolve(env, CreateJsDisplayObject(env, display));
-            TLOGNI(WmsLogTag::DMS, "OnGetDefaultDisplay success");
+            TLOGD(WmsLogTag::DMS, "OnGetDefaultDisplay success");
         } else {
             task->Reject(env, CreateJsError(env,
                 static_cast<int32_t>(DMError::DM_ERROR_NULLPTR), "JsDisplayManager::OnGetDefaultDisplay failed."));
@@ -578,6 +592,80 @@ DMError RegisterDisplayListenerWithType(napi_env env, const std::string& type, n
     return DMError::DM_OK;
 }
 
+DMError RegisterDisplayAttributeListener(napi_env env, std::vector<std::string>& attributes, napi_value value)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    FilterRegisteredCallback(env, attributes, value);
+    if (attributes.empty()) {
+        TLOGI(WmsLogTag::DMS, "All attributes callback have been already registered!");
+        return DMError::DM_OK;
+    }
+    sptr<JsDisplayListener> displayListener = new(std::nothrow) JsDisplayListener(env);
+    DMError ret = DMError::DM_OK;
+    if (displayListener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "displayListener is nullptr");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    std::vector<std::string> attributesToServer;
+    FilterRegisteredAttribute(env, attributes, attributesToServer);
+    ret = SingletonContainer::Get<DisplayManager>().RegisterDisplayAttributeListener(attributesToServer,
+        displayListener);
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "Register display attribute listener failed, ret: %{public}u", ret);
+        return ret;
+    }
+    for (auto attribute: attributes) {
+        std::unique_ptr<NativeReference> callbackRef;
+        napi_ref result = nullptr;
+        napi_create_reference(env, value, 1, &result);
+        callbackRef.reset(reinterpret_cast<NativeReference*>(result));
+        displayListener->AddCallback(attribute, value);
+        jsAttributeCbMap_[attribute][std::move(callbackRef)] = displayListener;
+    }
+    return DMError::DM_OK;
+}
+ 
+void FilterRegisteredAttribute(napi_env env, std::vector<std::string>& attributes,
+    std::vector<std::string>& attributesToServer)
+{
+    for (auto attribute : attributes) {
+        auto it = jsAttributeCbMap_.find(attribute);
+        if (it == jsAttributeCbMap_.end()) {
+            attributesToServer.push_back(attribute);
+        }
+    }
+}
+ 
+void FilterRegisteredCallback(napi_env env, std::vector<std::string>& attributes, napi_value value)
+{
+    for (auto it = attributes.begin(); it != attributes.end();) {
+        if (IsAttributeCallbackRegistered(env, *it, value)) {
+            TLOGW(WmsLogTag::DMS, "Attribute: %{public}s current callback already registered!", it->c_str());
+            it = attributes.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+ 
+bool IsAttributeCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject)
+{
+    if (jsAttributeCbMap_.empty() || jsAttributeCbMap_.find(type) == jsAttributeCbMap_.end()) {
+        TLOGI(WmsLogTag::DMS, "%{public}s not registered!", type.c_str());
+        return false;
+    }
+ 
+    for (auto& iter : jsAttributeCbMap_[type]) {
+        bool isEquals = false;
+        napi_strict_equals(env, jsListenerObject, iter.first->GetNapiValue(), &isEquals);
+        if (isEquals) {
+            TLOGE(WmsLogTag::DMS, "callback already registered!");
+            return true;
+        }
+    }
+    return false;
+}
+
 bool IfCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject)
 {
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
@@ -596,8 +684,24 @@ bool IfCallbackRegistered(napi_env env, const std::string& type, napi_value jsLi
     return false;
 }
 
+void UnRegisterAllAttributeListener()
+{
+    for (auto itAttribute = jsAttributeCbMap_.begin(); itAttribute != jsAttributeCbMap_.end();) {
+        for (auto it = itAttribute->second.begin(); it != itAttribute->second.end();) {
+            sptr<DisplayManager::IDisplayAttributeListener> thisListener(it->second);
+            auto ret = SingletonContainer::Get<DisplayManager>().UnRegisterDisplayAttributeListener(thisListener);
+            itAttribute->second.erase(it++);
+            TLOGI(WmsLogTag::DMS, "attribute %{public}s  ret: %{public}u", itAttribute->first.c_str(), ret);
+        }
+        jsAttributeCbMap_.erase(itAttribute++);
+    }
+}
+
 DMError UnregisterAllDisplayListenerWithType(const std::string& type)
 {
+    if (type == EVENT_CHANGE) {
+        UnRegisterAllAttributeListener();
+    }
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
         TLOGI(WmsLogTag::DMS, "%{public}s not registered!", type.c_str());
         return DMError::DM_OK;
@@ -648,8 +752,39 @@ DMError UnregBrightnessInfoListener(sptr<DisplayManager::IBrightnessInfoListener
     return ret;
 }
 
+void UnRegisterAttributeListener(napi_env env, napi_value callback)
+{
+    std::vector<std::string> attributesNotListened;
+    for (auto itAttribute = jsAttributeCbMap_.begin(); itAttribute != jsAttributeCbMap_.end();) {
+        for (auto it = itAttribute->second.begin(); it != itAttribute->second.end();) {
+            bool isEquals = false;
+            napi_strict_equals(env, callback, it->first->GetNapiValue(), &isEquals);
+            if (isEquals) {
+                it->second->RemoveCallback(env, itAttribute->first, callback);
+                sptr<DisplayManager::IDisplayAttributeListener> thisListener(it->second);
+                SingletonContainer::Get<DisplayManager>().UnRegisterDisplayAttributeListener(thisListener);
+                it = itAttribute->second.erase(it);
+                continue;
+            }
+            it++;
+        }
+        if (itAttribute->second.empty()) {
+            attributesNotListened.push_back(itAttribute->first);
+            itAttribute = jsAttributeCbMap_.erase(itAttribute);
+            continue;
+        }
+        itAttribute++;
+    }
+    if (!attributesNotListened.empty()) {
+        SingletonContainer::Get<DisplayManager>().UnRegisterDisplayAttribute(attributesNotListened);
+    }
+}
+
 DMError UnRegisterDisplayListenerWithType(napi_env env, const std::string& type, napi_value value)
 {
+    if (type == EVENT_CHANGE) {
+        UnRegisterAttributeListener(env, value);
+    }
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
         TLOGI(WmsLogTag::DMS, "%{public}s not registered!", type.c_str());
         return DMError::DM_OK;
@@ -1192,7 +1327,7 @@ napi_value OnDestroyVirtualScreen(napi_env env, napi_callback_info info)
     auto asyncTask = [screenId, env, task = napiAsyncTask.get()]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayManager::OnDestroyVirtualScreen");
         auto res = DM_JS_TO_ERROR_CODE_MAP.at(
-            SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(screenId));
+            SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(screenId, true));
         res = (res == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : res;
         if (res != DmErrorCode::DM_OK) {
             task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][destroyVirtualScreen]"));
@@ -1591,6 +1726,97 @@ bool GetSurfaceFromJs(napi_env env, napi_value surfaceIdNapiValue, sptr<Surface>
     surface = SurfaceUtils::GetInstance()->GetSurface(surfaceId);
     if (surface == nullptr) {
         TLOGI(WmsLogTag::DMS, "GetSurfaceFromJs failed, surfaceId:%{public}" PRIu64"", surfaceId);
+    }
+    return true;
+}
+
+napi_value OnRegisterDisplayAttributeChangeCallback(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    size_t argc = ARGC_TWO;
+    napi_value argv[ARGC_TWO] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_TWO) {
+        TLOGE(WmsLogTag::DMS, "Invalid arg count: %{public}zu, need two args", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM),
+            "Invalid args count, need two args"));
+        return NapiGetUndefined(env);
+    }
+    std::vector<std::string> attributes;
+    if (!GetAttributesFromJs(env, argv[0], attributes)) {
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM),
+            "Failed to convert parameter to attributes"));
+        TLOGE(WmsLogTag::DMS, "Failed to convert parameter to attributes");
+        return NapiGetUndefined(env);
+    }
+    FilterValidAttributes(attributes);
+ 
+    napi_value value = argv[INDEX_ONE];
+    if (value == nullptr) {
+        TLOGE(WmsLogTag::DMS, "info->argv[1] is nullptr");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM),
+            "OnRegisterDisplayAttributeChangeCallback: callback is nullptr"));
+        return NapiGetUndefined(env);
+    }
+    if (!NapiIsCallable(env, value)) {
+        TLOGE(WmsLogTag::DMS, "info->argv[1] is not callable");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM),
+            "OnRegisterDisplayAttributeChangeCallback: callback is not callable"));
+        return NapiGetUndefined(env);
+    }
+    DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(RegisterDisplayAttributeListener(env, attributes, value));
+    if (ret != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "Failed to register display attribute listener");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(ret), "Failed to register display attribute listener"));
+        return NapiGetUndefined(env);
+    }
+    return NapiGetUndefined(env);
+}
+
+void FilterValidAttributes(std::vector<std::string>& attributes)
+{
+    static const std::set<std::string> validAttributes = {
+        "id", "name", "alive", "state", "refreshRate",
+        "rotation", "width", "height",
+        "densityDPI", "densityPixels", "scaledDensity",
+        "orientation", "xDPI", "yDPI", "colorSpaces",
+        "hdrFormats", "availableWidth", "availableHeight",
+        "x", "y", "screenShape", "sourceMode", "supportedRefreshRates"
+    };
+    
+    attributes.erase(std::remove_if(attributes.begin(), attributes.end(),
+        [](const std::string& attr) {
+            bool invalid = validAttributes.find(attr) == validAttributes.end();
+            if (invalid) {
+                TLOGW(WmsLogTag::DMS, "Invalid attribute name: %{public}s", attr.c_str());
+            }
+            return invalid;
+        }),
+        attributes.end()
+    );
+}
+ 
+bool GetAttributesFromJs(napi_env env, napi_value attributeArray, std::vector<std::string>& attributes)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    if (attributeArray == nullptr || GetType(env, attributeArray) != napi_object) {
+        TLOGE(WmsLogTag::DMS, "Failed to convert parameter to attribute, invalid params.");
+        return false;
+    }
+    uint32_t size = 0;
+    if (napi_get_array_length(env, attributeArray, &size) == napi_invalid_arg) {
+        TLOGE(WmsLogTag::DMS, "Failed to get attribute array length.");
+        return false;
+    }
+    for (uint32_t i = 0; i < size; i++) {
+        std::string attribute;
+        napi_value element = nullptr;
+        napi_get_element(env, attributeArray, i, &element);
+        if (!ConvertFromJsValue(env, element, attribute)) {
+            TLOGE(WmsLogTag::DMS, "Failed to convert parameter to attribute");
+            return false;
+        }
+        attributes.push_back(attribute);
     }
     return true;
 }
@@ -2001,6 +2227,8 @@ napi_value JsDisplayManagerInit(napi_env env, napi_value exportObj)
         JsDisplayManager::AddVirtualScreenBlockList);
     BindNativeFunction(env, exportObj, "removeVirtualScreenBlocklist", moduleName,
         JsDisplayManager::RemoveVirtualScreenBlockList);
+    BindNativeFunction(env, exportObj, "onChangeWithAttribute", moduleName,
+        JsDisplayManager::RegisterDisplayAttributeChangeCallback);
     BindCoordinateConvertNativeFunction(env, exportObj, moduleName);
     return NapiGetUndefined(env);
 }

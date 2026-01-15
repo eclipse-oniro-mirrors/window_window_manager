@@ -18,6 +18,7 @@
 #include <hitrace_meter.h>
 
 #include "ani.h"
+#include <ani_signature_builder.h>
 #include "ani_err_utils.h"
 #include "display.h"
 #include "display_ani_manager.h"
@@ -36,6 +37,7 @@
 
 namespace OHOS {
 namespace Rosen {
+using namespace arkts::ani_signature;
 
 // construct, set registerManager.
 DisplayAni::DisplayAni(const sptr<Display>& display) : display_(display)
@@ -58,7 +60,7 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
     // bounding rects
     ani_ref boundingRects = nullptr;
     ani_status status = env->Object_GetFieldByName_Ref(cutoutInfoObj,
-        "<property>boundingRects", &boundingRects);
+        Builder::BuildPropertyName("boundingRects").c_str(), &boundingRects);
     if (ANI_OK != status) {
         TLOGE(WmsLogTag::DMS, "[ANI] get field bounding rects fail, ani_status = %{public}d", status);
     }
@@ -69,7 +71,7 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
     for (int i = 0; i < std::min(int(length), static_cast<int>(rects.size())); i++) {
         ani_ref currentCutoutInfo;
         if (ANI_OK != env->Object_CallMethodByName_Ref(static_cast<ani_object>(boundingRects), "$_get",
-            "I:Lstd/core/Object;", &currentCutoutInfo, (ani_int)i)) {
+            "i:Y", &currentCutoutInfo, (ani_int)i)) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail", (ani_int)i);
         }
         TLOGI(WmsLogTag::DMS, "current i: %{public}d", i);
@@ -77,7 +79,7 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
     }
     // waterfall area
     ani_ref waterfallObj = nullptr;
-    env->Object_GetFieldByName_Ref(cutoutInfoObj, "<property>waterfallDisplayAreaRects",
+    env->Object_GetFieldByName_Ref(cutoutInfoObj, Builder::BuildPropertyName("waterfallDisplayAreaRects").c_str(),
         &waterfallObj);
     auto waterfallDisplayAreaRects = cutoutInfo->GetWaterfallDisplayAreaRects();
     DisplayAniUtils::ConvertWaterArea(waterfallDisplayAreaRects, static_cast<ani_object>(waterfallObj), env);
@@ -139,7 +141,7 @@ void DisplayAni::GetAvailableArea(ani_env* env, ani_object obj, ani_object avail
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_long id;
-    env->Object_GetFieldByName_Long(obj, "<property>id", &id);
+    env->Object_GetFieldByName_Long(obj, Builder::BuildPropertyName("id").c_str(), &id);
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(id);
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] can not find display.");
@@ -165,7 +167,7 @@ void DisplayAni::GetLiveCreaseRegion(ani_env* env, ani_object obj, ani_object fo
         return;
     }
     ani_long id;
-    env->Object_GetFieldByName_Long(obj, "<property>id", &id);
+    env->Object_GetFieldByName_Long(obj, Builder::BuildPropertyName("id").c_str(), &id);
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(id);
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] can not find display.");
@@ -189,7 +191,7 @@ ani_boolean DisplayAni::HasImmersiveWindow(ani_env* env, ani_object obj)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_long id;
-    env->Object_GetFieldByName_Long(obj, "<property>id", &id);
+    env->Object_GetFieldByName_Long(obj, Builder::BuildPropertyName("id").c_str(), &id);
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(id);
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI]can not find display.");
@@ -261,7 +263,7 @@ void DisplayAni::OnRegisterCallback(ani_env* env, ani_object obj, ani_string typ
         TLOGI(WmsLogTag::DMS, "Callback has already been registered!");
         return;
     }
-    
+
     sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env);
     if (displayAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI]displayListener is nullptr");
@@ -437,7 +439,7 @@ ani_boolean DisplayAni::TransferStatic(ani_env* env, ani_object obj, ani_object 
         TLOGE(WmsLogTag::DMS, "[ANI] jsDisplay is nullptr");
         return false;
     }
-    
+
     sptr<Display> display = jsDisplay->GetDisplay();
     if (DisplayAniUtils::CvtDisplay(display, env, displayAniObj) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] convert display failed");
@@ -446,7 +448,7 @@ ani_boolean DisplayAni::TransferStatic(ani_env* env, ani_object obj, ani_object 
     DisplayAni::CreateDisplayAni(display, displayAniObj, env);
     return true;
 }
- 
+
 ani_object DisplayAni::TransferDynamic(ani_env* env, ani_object obj, ani_long nativeObj)
 {
     TLOGI(WmsLogTag::DMS, "begin");
@@ -460,7 +462,7 @@ ani_object DisplayAni::TransferDynamic(ani_env* env, ani_object obj, ani_long na
         TLOGE(WmsLogTag::DMS, "arkts_napi_scope_open failed");
         return nullptr;
     }
-    
+
     sptr<OHOS::Rosen::Display> display = aniDisplay->GetDisplay();
     napi_value jsDisplay = CreateJsDisplayObject(napiEnv, display);
     hybridgref ref = nullptr;
@@ -505,7 +507,7 @@ ani_status DisplayAni::NspBindNativeFunctions(ani_env* env, ani_namespace nsp)
             reinterpret_cast<void *>(DisplayManagerAni::GetDefaultDisplaySyncAni)},
         ani_native_function {"getBrightnessInfoNative", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::GetBrightnessInfoAni)},
-        ani_native_function {"getAllDisplaysSyncNative", "C{escompat.Array}:",
+        ani_native_function {"getAllDisplaysSyncNative", "C{std.core.Array}:",
             reinterpret_cast<void *>(DisplayManagerAni::GetAllDisplaysAni)},
         ani_native_function {"syncOn", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::RegisterCallback)},
@@ -534,6 +536,8 @@ ani_status DisplayAni::NspBindNativeFunctions(ani_env* env, ani_namespace nsp)
         ani_native_function {"isCaptured", nullptr, reinterpret_cast<void *>(DisplayManagerAni::IsCaptured)},
         ani_native_function {"finalizerDisplayNative", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::FinalizerDisplay)},
+        ani_native_function {"onChangeWithAttributeNative", nullptr,
+            reinterpret_cast<void *>(DisplayManagerAni::RegisterDisplayAttributeListener)},
     };
     auto ret = env->Namespace_BindNativeFunctions(nsp, funcs.data(), funcs.size());
     if (ret != ANI_OK) {

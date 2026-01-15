@@ -2015,7 +2015,6 @@ HWTEST_F(WindowSceneSessionImplTest3, SetWindowRectAutoSave, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSessionImpl->property_->SetPersistentId(1);
     windowSceneSessionImpl->hostSession_ = session;
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
     EXPECT_EQ(WMError::WM_OK, ret);
     ret = windowSceneSessionImpl->SetWindowRectAutoSave(false, false);
@@ -2023,17 +2022,6 @@ HWTEST_F(WindowSceneSessionImplTest3, SetWindowRectAutoSave, TestSize.Level1)
     windowSceneSessionImpl->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
-    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
-    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    windowSceneSessionImpl->windowSystemConfig_.freeMultiWindowEnable_ = false;
-    windowSceneSessionImpl->property_->SetPcAppInpadCompatibleMode(true);
-    ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
-    EXPECT_EQ(WMError::WM_OK, ret);
     GTEST_LOG_(INFO) << "WindowSceneSessionImplTest3: SetWindowRectAutoSave end";
 }
 

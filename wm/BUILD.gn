@@ -65,6 +65,7 @@ ohos_static_library("libwm_static") {
     "src/floating_ball_option.cpp",
     "src/future_callback.cpp",
     "src/lifecycle_future_callback.cpp",
+    "src/load_intention_event.cpp",
     "src/gtx_input_event_sender.cpp",
     "src/input_transfer_station.cpp",
     "src/native_pip_window_listener.cpp",
@@ -120,8 +121,6 @@ ohos_static_library("libwm_static") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/intention_event:libintention_event",
-    "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
     "${window_base_path}/window_scene/session:scene_session",
@@ -220,6 +219,7 @@ ohos_shared_library("libwm") {
     "src/floating_ball_option.cpp",
     "src/future_callback.cpp",
     "src/lifecycle_future_callback.cpp",
+    "src/load_intention_event.cpp",
     "src/gtx_input_event_sender.cpp",
     "src/input_transfer_station.cpp",
     "src/native_pip_window_listener.cpp",
@@ -274,8 +274,6 @@ ohos_shared_library("libwm") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/intention_event:libintention_event",
-    "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
     "${window_base_path}/window_scene/session:scene_session",
@@ -348,10 +346,10 @@ ohos_shared_library("libwm") {
   }
 
   if (is_ohos && is_clang && target_cpu == "arm64") {
-    ldflags = [ 
-      "-Wl,--emit-relocs", 
-      "-Wl,--no-relax", 
-      "-mno-fix-cortex-a53-843419" 
+    ldflags = [
+      "-Wl,--emit-relocs",
+      "-Wl,--no-relax",
+      "-mno-fix-cortex-a53-843419"
     ]
   }
   part_name = "window_manager"

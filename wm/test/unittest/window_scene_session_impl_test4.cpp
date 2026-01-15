@@ -666,12 +666,17 @@ HWTEST_F(WindowSceneSessionImplTest4, IsInMappingRegionForCompatibleMode, TestSi
     windowSceneSessionImpl->property_->SetWindowRect({ 880, 0, 800, 1600 });
     int32_t displayX = 400;
     int32_t displayY = 400;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     bool ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(true, ret);
     displayX = 1000;
     displayY = 1000;
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(false, ret);
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
+    ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
+    EXPECT_EQ(true, ret);
 }
 
 /**
@@ -837,6 +842,36 @@ HWTEST_F(WindowSceneSessionImplTest4, NotifyWindowAttachStateChange, TestSize.Le
     // case3: listener is not nullptr, then attach is false
     ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
     EXPECT_EQ(WSError::WS_OK, ret);
+    ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
+    EXPECT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: NotifyWindowAttachStateChangeSubWindow
+ * @tc.desc: NotifyWindowAttachStateChangeSubWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, NotifyWindowAttachStateChangeSubWindow, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyWindowAttachStateChangeSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    sptr<IWindowAttachStateChangeListner> listener = sptr<IWindowAttachStateChangeListner>::MakeSptr();
+    windowSceneSessionImpl->RegisterWindowAttachStateChangeListener(listener);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->state_ = WindowState::STATE_DESTROYED;
+    windowSceneSessionImpl->hostSession_ = session;
+
+    auto ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
+    EXPECT_EQ(WSError::WS_OK, ret);
+    ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(true);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(WSError::WS_OK, ret);
+
+    windowSceneSessionImpl->handler_ = nullptr;
     ret = windowSceneSessionImpl->NotifyWindowAttachStateChange(false);
     EXPECT_EQ(WSError::WS_OK, ret);
 }
@@ -1469,11 +1504,10 @@ HWTEST_F(WindowSceneSessionImplTest4, PreLayoutOnShow01, TestSize.Level1)
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_APP_SUB_WINDOW, displayInfo);
     window->hostSession_ = session;
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_APP_SUB_WINDOW, displayInfo);
-    Rect originRect = window->GetRect();
     Rect testRect = {10, 20, 100, 200};
     window->GetProperty()->SetRequestRect(testRect);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_EQ(window->GetRect(), originRect);
+    ASSERT_EQ(window->GetRect(), testRect);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_APP_SUB_WINDOW, displayInfo);
     ASSERT_EQ(window->GetRect(), testRect);
 }
@@ -1496,22 +1530,27 @@ HWTEST_F(WindowSceneSessionImplTest4, PreLayoutOnShow02, TestSize.Level1)
 
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
     sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
-    displayInfo->name_ = "Cooperation"; // 白名单
 
     KeyboardLayoutParams tmpParams;
-    const Rect expected = {1, 2, 3, 4};
-    tmpParams.LandscapeKeyboardRect_ = expected;
+    const Rect landscapeKeyboardRect = {1, 1, 4, 3};
+    tmpParams.LandscapeKeyboardRect_ = landscapeKeyboardRect;
+    const Rect portraitKeyboardRect = {1, 1, 3, 4};
+    tmpParams.PortraitKeyboardRect_ = portraitKeyboardRect;
 
+    displayInfo->width_ = 10;
+    displayInfo->height_ = 8;
     window->property_->SetRequestRect({0, 0, 0, 0});
     window->property_->SetKeyboardLayoutParams(tmpParams);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_NE(window->property_->requestRect_, expected);
+    ASSERT_NE(window->property_->requestRect_, landscapeKeyboardRect);
 
     tmpParams.displayId_ = 0;
     displayInfo->screenId_ = 0;
+    displayInfo->width_ = 8;
+    displayInfo->height_ = 10;
     window->property_->AddKeyboardLayoutParams(0, tmpParams);
     window->PreLayoutOnShow(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayInfo);
-    ASSERT_EQ(window->property_->requestRect_, expected);
+    ASSERT_EQ(window->property_->requestRect_, portraitKeyboardRect);
 }
 
 /**

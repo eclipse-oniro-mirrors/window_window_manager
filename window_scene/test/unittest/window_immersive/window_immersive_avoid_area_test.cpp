@@ -52,6 +52,8 @@ void WindowImmersiveAvoidAreaTest::SetUpTestCase()
 {
     ssm_ = new SceneSessionManager();
     ssm_->Init();
+    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
+    ssm_->rootSceneSession_->property_ = sptr<WindowSessionProperty>::MakeSptr();
 }
 
 void WindowImmersiveAvoidAreaTest::TearDownTestCase()
@@ -118,6 +120,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateRootSceneAvoidArea, TestSize.Level1
     ssm_->UpdateRootSceneAvoidArea();
     auto res = ssm_->rootSceneSession_->GetPersistentId();
     EXPECT_NE(res, 0);
+    sleep(1);
 }
 
 /**
@@ -129,10 +132,10 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateRootSceneSessionAvoidArea, TestSize
 {
     ASSERT_NE(nullptr, ssm_);
     int32_t persistentId = 1;
-    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
     ASSERT_NE(nullptr, ssm_->rootSceneSession_);
     bool needUpdate = false;
     ssm_->UpdateRootSceneSessionAvoidArea(persistentId, needUpdate);
+    sleep(1);
 }
 
 /**
@@ -158,6 +161,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidSessionAvoidArea, TestSize.Lev
     sceneSession->isVisible_ = true;
     ssm_->UpdateAvoidSessionAvoidArea(type);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, ssm_->HandleSecureSessionShouldHide(nullptr));
+    sleep(1);
 }
 
 /**
@@ -216,6 +220,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_01, TestSize
     ssm_->avoidAreaListenerSessionSet_.insert(1);
     ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, ssm_->HandleSecureSessionShouldHide(nullptr));
+    sleep(1);
 }
 
 /**
@@ -240,6 +245,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_02, TestSize
     ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
     sceneSession->isVisible_ = false;
     ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
+    sleep(1);
 }
 
 /**
@@ -265,6 +271,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_03, TestSize
     ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
     sceneSession = nullptr;
     ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
+    sleep(1);
 }
 
 /**
@@ -289,6 +296,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_04, TestSize
     ssm_->avoidAreaListenerSessionSet_.clear();
     ssm_->avoidAreaListenerSessionSet_.insert(persistentId);
     ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
+    sleep(1);
 }
 
 /**
@@ -301,7 +309,6 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_01, TestSize.Level1)
     int32_t persistentId = 0;
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.clear();
-    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
     ssm_->UpdateAvoidArea(persistentId);
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest7";
@@ -312,6 +319,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_01, TestSize.Level1)
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
     ssm_->sceneSessionMap_.insert(std::make_pair(persistentId, sceneSession));
     ssm_->UpdateAvoidArea(persistentId);
+    sleep(1);
 }
 
 /**
@@ -324,7 +332,6 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_02, TestSize.Level1)
     int32_t persistentId = 0;
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.clear();
-    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
     ssm_->UpdateAvoidArea(persistentId);
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest7";
@@ -335,6 +342,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_02, TestSize.Level1)
     sceneSession->property_->SetWindowType(WindowType::APP_WINDOW_BASE);
     ssm_->sceneSessionMap_.insert(std::make_pair(persistentId, sceneSession));
     ssm_->UpdateAvoidArea(persistentId);
+    sleep(1);
 }
 
 /**
@@ -347,8 +355,8 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_03, TestSize.Level1)
     int32_t persistentId = 0;
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.clear();
-    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
     ssm_->UpdateAvoidArea(persistentId);
+    sleep(1);
 }
 
 /**
@@ -402,6 +410,75 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, NotifyNextAvoidRectInfo_02, TestSize.Leve
     ASSERT_EQ(nextSystemBarAvoidAreaRectInfo.first, portraitRect);
     ASSERT_EQ(nextSystemBarAvoidAreaRectInfo.second, landspaceRect);
     ssm_->sceneSessionMap_.clear();
+}
+
+/*
+ * @tc.name: GetScaleInLSState
+ * @tc.desc: SceneSesion test GetScaleInLSState
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowImmersiveAvoidAreaTest, GetScaleInLSState, TestSize.Level0)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "testbundleName";
+    sessionInfo.abilityName_ = "testabilityName";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    float scaleX = 1;
+    float scaleY = 1;
+    WSRect winRect = { 0, 0, 0, 0 };
+    Rect avoidAreaRect = { 0, 0, 0, 0 };
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->layoutController_ = sptr<LayoutController>::MakeSptr(property);
+    sceneSession->Session::SetScale(-1, -1, -1, -1);
+    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
+    sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
+    sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
+    sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
+    sceneSession->Session::SetScale(1, -1, -1, -1);
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
+    sceneSession->CalculateWindowRectByScale(winRect);
+    sceneSession->CalculateAvoidAreaByScale(avoidAreaRect);
+    sceneSession->Session::SetScale(1, 1, -1, -1);
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_OK);
+    sceneSession->CalculateWindowRectByScale(winRect);
+    sceneSession->CalculateAvoidAreaByScale(avoidAreaRect);
+}
+
+/**
+ * @tc.name: UpdateAvoidAreaForLSStateChange
+ * @tc.desc: SceneSesionManager test UpdateAvoidAreaForLSStateChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidAreaForLSStateChange, TestSize.Level0)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UpdateAvoidAreaForLSStateChange(1, 1);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->UpdateAvoidAreaForLSStateChange(1, 2);
+    SessionInfo sessionInfo1;
+    SessionInfo sessionInfo2;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    sceneSession->isScbCoreEnabled_ = true;
+    sceneSession->isVisible_ = true;
+    sceneSession->state_ = SessionState::STATE_FOREGROUND;
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo2, nullptr);
+    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession2->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession2->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+    ssm_->sceneSessionMap_.insert({ 2, nullptr });
+    ssm_->sceneSessionMap_.insert({ 2, sceneSession2 });
+    ssm_->UpdateAvoidAreaForLSStateChange(1, 2);
+    sleep(1);
 }
 }
 }

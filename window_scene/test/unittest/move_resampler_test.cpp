@@ -23,7 +23,13 @@ namespace OHOS {
 namespace Rosen {
 class MoveResamplerTest : public testing::Test {
 public:
-    void SetUp() override {}
+    void SetUp() override
+    {
+        // Disable startup smoothing for test by default
+        moveResampler_.startupInitialized_ = true;
+        moveResampler_.startupPhase_ = false;
+    }
+
     void TearDown() override
     {
         filter_.Reset();
@@ -34,6 +40,18 @@ private:
     OneEuroFilter filter_;
     MoveResampler moveResampler_;
 };
+
+/**
+ * @tc.name: TestOneEuroFilterInitialValueUsed
+ * @tc.desc: Verify OneEuroFilter uses explicit initial value when set
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveResamplerTest, TestOneEuroFilterInitialValueUsed, TestSize.Level1)
+{
+    filter_.SetInitialValue(100.0);   // useInitialValue_ = true
+    double v = filter_.Filter(1000, 10.0);
+    EXPECT_DOUBLE_EQ(v, 100.0);
+}
 
 /**
  * @tc.name: TestOneEuroFilterInitialBehavior
@@ -49,10 +67,6 @@ HWTEST_F(MoveResamplerTest, TestOneEuroFilterInitialBehavior, TestSize.Level1)
     // Case 2: Time goes backwards => reset and return raw value
     double v2 = filter_.Filter(900, 20.0);
     EXPECT_DOUBLE_EQ(v2, 20.0);
-
-    // Case 3: Large jump (>50ms) => reset
-    double v3 = filter_.Filter(200000, 30.0);
-    EXPECT_DOUBLE_EQ(v3, 30.0);
 }
 
 /**
@@ -79,6 +93,50 @@ HWTEST_F(MoveResamplerTest, TestOneEuroFilterAlpha, TestSize.Level1)
 {
     double a4 = filter_.Alpha(1.0, 0.01);
     EXPECT_NEAR(a4, 0.059, 1e-3);
+}
+
+/**
+ * @tc.name: TestBeginStartupOnlyOnce
+ * @tc.desc: Verify BeginStartup only initializes once
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveResamplerTest, TestBeginStartupOnlyOnce, TestSize.Level1)
+{
+    moveResampler_.startupInitialized_ = false;
+    moveResampler_.BeginStartup(1000, 0, 0);
+    moveResampler_.BeginStartup(2000, 100, 100);
+
+    EXPECT_TRUE(moveResampler_.startupInitialized_);
+    EXPECT_TRUE(moveResampler_.startupPhase_);
+    EXPECT_EQ(moveResampler_.startupTimeUs_, 1000);
+}
+
+/**
+ * @tc.name: TestStartupSmoothingBlending
+ * @tc.desc: Verify ApplyStartupSmoothing blends filter params during startup
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveResamplerTest, TestStartupSmoothingBlending, TestSize.Level1)
+{
+    moveResampler_.startupInitialized_ = false;
+    moveResampler_.BeginStartup(1000, 0, 0);
+    moveResampler_.ApplyStartupSmoothing(1000 + moveResampler_.startupDurationUs_ / 2);
+
+    EXPECT_TRUE(moveResampler_.startupPhase_);
+}
+
+/**
+ * @tc.name: TestStartupSmoothingFinish
+ * @tc.desc: Verify ApplyStartupSmoothing ends startup phase after duration
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveResamplerTest, TestStartupSmoothingFinish, TestSize.Level1)
+{
+    moveResampler_.startupInitialized_ = false;
+    moveResampler_.BeginStartup(1000, 0, 0);
+    moveResampler_.ApplyStartupSmoothing(1000 + moveResampler_.startupDurationUs_);
+
+    EXPECT_FALSE(moveResampler_.startupPhase_);
 }
 
 /**
@@ -330,8 +388,8 @@ HWTEST_F(MoveResamplerTest, TestMoveResamplerTriggersOneEuroFilter, TestSize.Lev
     moveResampler_.PushEvent(1000, 0, 0);
     moveResampler_.PushEvent(2000, 100, 100);
 
-    MoveEvent e1 = moveResampler_.ResampleAt(1500); // interpolation mid
-    MoveEvent e2 = moveResampler_.ResampleAt(1501); // next sample triggers filter
+    MoveEvent e1 = moveResampler_.ResampleAt(1100); // interpolation mid
+    MoveEvent e2 = moveResampler_.ResampleAt(1900); // next sample triggers filter
 
     // filtered should not equal the raw interpolation exactly
     EXPECT_NE(e1.posX, e2.posX);

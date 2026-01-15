@@ -32,6 +32,14 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg += msg;
+    }
+}
+namespace {
 const std::string EMPTY_DEVICE_ID = "";
 using ConfigItem = WindowSceneConfig::ConfigItem;
 } // namespace
@@ -350,6 +358,66 @@ HWTEST_F(SceneSessionManagerTest7, RegisterIAbilityManagerCollaborator, TestSize
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     auto ret = ssm_->RegisterIAbilityManagerCollaborator(type, impl);
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: RegisterIAbilityManagerCollaborator01
+ * @tc.desc: RegisterIAbilityManagerCollaborator01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest7, RegisterIAbilityManagerCollaborator01, TestSize.Level1)
+{
+    int32_t type = 1;
+    ssm_->collaboratorMap_.clear();
+    ssm_->collaboratorDeathRecipientMap_.clear();
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<AAFwk::IAbilityManagerCollaborator> collaborator =
+        iface_cast<AAFwk::IAbilityManagerCollaborator>(iRemoteObjectMocker);
+
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    MockAccesstokenKit::VerifyCallingPermission(true);
+    auto ret = ssm_->RegisterIAbilityManagerCollaborator(type, nullptr);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+
+    ret = ssm_->RegisterIAbilityManagerCollaborator(type, collaborator);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_TRUE(ssm_->collaboratorMap_.size() == 0);
+    EXPECT_TRUE(ssm_->collaboratorDeathRecipientMap_.size() == 0);
+}
+
+/**
+ * @tc.name: UnregisterIAbilityManagerCollaborator01
+ * @tc.desc: UnregisterIAbilityManagerCollaborator01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest7, UnregisterIAbilityManagerCollaborator01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(nullptr, ssm_);
+    int32_t type = 1;
+    ssm_->collaboratorMap_.clear();
+    ssm_->collaboratorDeathRecipientMap_.clear();
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<AAFwk::IAbilityManagerCollaborator> collaborator =
+        iface_cast<AAFwk::IAbilityManagerCollaborator>(iRemoteObjectMocker);
+
+    ssm_->collaboratorMap_.insert(std::make_pair(type, collaborator));
+
+    sptr<AgentDeathRecipient> collaboratorDeathRecipient = sptr<AgentDeathRecipient>::MakeSptr(
+        [type](const sptr<IRemoteObject>& remoteObject) { ssm_->ClearCollaboratorSessionsByType(type); });
+    ssm_->collaboratorDeathRecipientMap_.insert(std::make_pair(type, collaboratorDeathRecipient));
+
+    MockAccesstokenKit::MockIsSACalling(true);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    MockAccesstokenKit::VerifyCallingPermission(true);
+    auto ret = ssm_->UnregisterIAbilityManagerCollaborator(type);
+    EXPECT_TRUE(ssm_->collaboratorMap_.size() == 0);
+    EXPECT_TRUE(ssm_->collaboratorDeathRecipientMap_.size() == 0);
+    EXPECT_TRUE(g_logMsg.find("Remove collaborator death recipient") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**

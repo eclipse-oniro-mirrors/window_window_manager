@@ -108,6 +108,7 @@ public:
     bool isWeb_ = false;
     void SetStateChangeReason(PiPStateChangeReason reason);
     PiPStateChangeReason GetStateChangeReason() const;
+    WMError IsPiPActive(bool& status);
 
     // diffrent between normal and web
     virtual WMError StartPictureInPicture(StartPipType startType) = 0;

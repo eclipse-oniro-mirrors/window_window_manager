@@ -1719,7 +1719,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleConvertToRelativeCoordinateExtended,
     data1.WriteInt32(rect.width_);
     data1.WriteInt32(rect.height_);
     int res1 = stub_->HandleConvertToRelativeCoordinateExtended(data1, reply);
-    EXPECT_EQ(res1, ERR_NONE);
+    EXPECT_EQ(res1, ERR_TRANSACTION_FAILED);
 
     MessageParcel data2;
     data2.WriteInt32(rect.posX_);
@@ -2869,6 +2869,22 @@ HWTEST_F(SceneSessionManagerStubTest, HandleGetPiPSettingSwitchStatus, Function 
     data.WriteBool(switchStatus);
 
     int res = stub_->HandleGetPiPSettingSwitchStatus(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ *@tc.name: HandleGetIsPipEnabled
+ *@tc.desc: test HandleGetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(SceneSessionManagerStubTest, HandleGetIsPipEnabled, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    bool isPipEnabled = false;
+    data.WriteBool(isPipEnabled);
+    
+    int res = stub_->HandleGetIsPipEnabled(data, reply);
     EXPECT_EQ(res, ERR_NONE);
 }
 

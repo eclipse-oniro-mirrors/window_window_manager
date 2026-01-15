@@ -34,6 +34,7 @@
 #include "screen_group_info.h"
 #include "event_handler.h"
 #include "screen_session_manager/include/screen_rotation_property.h"
+#include "screen_manager/rs_screen_mode_info.h"
 
 namespace OHOS::Rosen {
 using SetScreenSceneDpiFunc = std::function<void(float density)>;
@@ -157,6 +158,7 @@ public:
     void SetFakeScreenSession(sptr<ScreenSession> screenSession);
     sptr<ScreenSession> GetFakeScreenSession() const;
     void UpdatePropertyByActiveMode();
+    void UpdatePropertyByScreenMode(RSScreenModeInfo screenMode);
     void UpdatePropertyByActiveModeChange();
     std::shared_ptr<RSDisplayNode> GetDisplayNode() const;
     void ReleaseDisplayNode();
@@ -170,7 +172,7 @@ public:
     DisplayOrientation CalcDeviceOrientation(Rotation rotation, FoldDisplayMode foldDisplayMode);
     DisplayOrientation CalcDeviceOrientationWithBounds(Rotation rotation,
         FoldDisplayMode foldDisplayMode, const RRect& bounds);
-    RRect CalcBoundsInRotationZero();
+    RRect CalcBoundsInRotationZero(FoldDisplayMode foldDisplayMode);
     RRect CalcBoundsByRotation(Rotation rotation);
     DisplayOrientation GetTargetOrientationWithBounds(
         DisplayOrientation displayRotation, const RRect& boundsInRotationZero, uint32_t rotationOffset);
@@ -178,6 +180,7 @@ public:
     void SetDisplayNodeSecurity();
     void InitRSDisplayNode(RSDisplayNodeConfig& config, Point& startPoint, bool isExtend = false,
         float positionX = 0, float positionY = 0);
+    void ConvertBScreenHeight(uint32_t& height);
 
     DMError GetScreenSupportedColorGamuts(std::vector<ScreenColorGamut>& colorGamuts);
     DMError GetScreenColorGamut(ScreenColorGamut& colorGamut);
@@ -235,6 +238,8 @@ public:
     void SetSupportedRefreshRate(std::vector<uint32_t>&& supportedRefreshRate);
     std::vector<uint32_t> GetSupportedRefreshRate() const;
     void SetForceCloseHdr(bool isForceCloseHdr);
+    void SetBorderingAreaPercent(uint32_t borderingAreaPercent);
+    uint32_t GetBorderingAreaPercent() const;
 
     VirtualScreenFlag GetVirtualScreenFlag();
     void SetVirtualScreenFlag(VirtualScreenFlag screenFlag);
@@ -296,6 +301,7 @@ public:
     NodeId nodeId_ {};
 
     int32_t activeIdx_ { 0 };
+    uint32_t borderingAreaPercent_ { 0 };
     std::vector<sptr<SupportedScreenModes>> modes_ = {};
 
     bool isScreenGroup_ { false };
@@ -433,12 +439,14 @@ public:
     void SetSupportsFocus(bool focus);
     bool GetSupportsInput() const;
     void SetSupportsInput(bool input);
+    const std::string& GetBundleName() const;
+    void SetBundleName(const std::string& bundleName);
 
     bool GetUniqueRotationLock() const;
     void SetUniqueRotationLock(bool isRotationLocked);
     int32_t GetUniqueRotation() const;
     void SetUniqueRotation(int32_t rotation);
-    const std::map<int32_t, int32_t>& GetUniqueRotationOrientationMap() const;
+    const std::map<int32_t, int32_t> GetUniqueRotationOrientationMap() const;
     bool UpdateRotationOrientationMap(UniqueScreenRotationOptions& rotationOptions, int32_t rotation,
                                             int32_t orientation);
     void SetUniqueRotationOrientationMap(const std::map<int32_t, int32_t>& rotationOrientationMap);
@@ -446,6 +454,7 @@ public:
     void SetVprScaleRatio(float vprScaleRatio);
     float GetVprScaleRatio() const;
     void AddRotationCorrection(Rotation& rotation, FoldDisplayMode displayMode);
+    void ClearPropertyChangeReasonAndEvent();
 
 private:
     bool IsVertical(Rotation rotation) const;
@@ -514,8 +523,9 @@ private:
     /*
      * Create Unique Screen Locked Rotation Parameters
      */
-    bool isUniqueRotationLocked_;
-    int32_t uniqueRotation_;
+    bool isUniqueRotationLocked_ { false };
+    int32_t uniqueRotation_ { 0 };
+    mutable std::shared_mutex rotationMapMutex_;
     std::map<int32_t, int32_t> uniqueRotationOrientationMap_;
 
     /*
@@ -526,6 +536,7 @@ private:
     inline static std::atomic<uint64_t> sessionIdGenerator_ { 0 };
     std::atomic<bool> supportsFocus_ { true };
     std::atomic<bool> supportsInput_ { true };
+    std::string bundleName_ = "";
 };
 
 class ScreenSessionGroup : public ScreenSession {

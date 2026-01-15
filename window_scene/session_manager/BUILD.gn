@@ -53,6 +53,167 @@ config("session_manager_public_config") {
   ]
 }
 
+## Build libscene_session_manager_static.a
+ohos_static_library("scene_session_manager_static") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+  sources = [
+    "../../wm/src/zidl/window_manager_agent_proxy.cpp",
+    "src/anomaly_detection.cpp",
+    "src/extension_session_manager.cpp",
+    "src/hidump_controller.cpp",
+    "src/publish/scb_dump_subscriber.cpp",
+    "src/rdb/starting_window_rdb_manager.cpp",
+    "src/rdb/wms_rdb_open_callback.cpp",
+    "src/scb_session_handler.cpp",
+    "src/scene_input_manager.cpp",
+    "src/scene_screen_change_listener.cpp",
+    "src/scene_session_converter.cpp",
+    "src/scene_session_dirty_manager.cpp",
+    "src/scene_session_manager.cpp",
+    "src/scene_session_manager_lite.cpp",
+    "src/scene_system_ability_listener.cpp",
+    "src/session_listener_controller.cpp",
+    "src/session_manager_agent_controller.cpp",
+    "src/ui_effect_manager.cpp",
+    "src/user_switch_reporter.cpp",
+    "src/window_focus_controller.cpp",
+    "src/window_manager_lru.cpp",
+    "src/window_scene_config.cpp",
+    "src/zidl/pip_change_listener_proxy.cpp",
+    "src/zidl/pip_change_listener_stub.cpp",
+    "src/zidl/scene_session_manager_lite_stub.cpp",
+    "src/zidl/scene_session_manager_stub.cpp",
+    "src/zidl/session_lifecycle_listener_stub.cpp",
+    "src/zidl/session_router_stack_listener_proxy.cpp",
+    "src/zidl/session_router_stack_listener_stub.cpp",
+  ]
+
+  public_configs = [ ":session_manager_public_config" ]
+
+  deps = [
+    "${window_base_path}/dm:libdm",
+    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_base",
+    "${window_base_path}/window_scene/common:window_scene_common",
+    "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",
+    "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
+    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:screen_session",
+    "${window_base_path}/window_scene/session:ui_effect_controller",
+  ]
+
+  external_deps = [
+    "ability_base:session_info",
+    "ability_base:want",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:ability_deps_wrapper",
+    "ability_runtime:ability_manager",
+    "ability_runtime:ability_start_setting",
+    "ability_runtime:app_context",
+    "ability_runtime:app_manager",
+    "ability_runtime:mission_info",
+    "ability_runtime:session_handler",
+    "ability_runtime:session_handler",
+    "accessibility:accessibility_common",
+    "ace_engine:ace_uicontent",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+    "bundle_framework:libappexecfwk_common",
+    "c_utils:utils",
+    "config_policy:configpolicy_util",
+    "eventhandler:libeventhandler",
+    "ffrt:libffrt",
+    "graphic_2d:librender_service_base",
+    "graphic_2d:librender_service_client",
+    "graphic_2d:librender_service_client",
+    "graphic_2d:window_animation",
+    "hicollie:libhicollie",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
+    "hitrace:libhitracechain",
+    "image_framework:image_native",
+    "init:libbegetutil",
+    "input:libmmi-client",
+    "input:libmmi-client",
+    "input:libmmi-napi",
+    "ipc:ipc_single",
+    "libxml2:libxml2",
+    "napi:ace_napi",
+    "preferences:native_preferences",
+    "resource_management:global_resmgr",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  defines = []
+  if (window_manager_feature_support_dmsfwk) {
+    sources +=[ "src/distributed_client.cpp" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.resourceschedule_memmgr_override)) {
+    external_deps += [ "memmgr:memmgrclient" ]
+    defines += [ "MEMMGR_WINDOW_ENABLE" ]
+  }
+
+  if (window_manager_feature_support_dsoftbus) {
+    external_deps += [ "dsoftbus:softbus_client" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DSOFTBUS" ]
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.powermgr_power_manager)) {
+    external_deps += [ "power_manager:powermgr_client" ]
+    defines += [ "POWER_MANAGER_ENABLE" ]
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.powermgr_display_manager)) {
+    external_deps += [ "display_manager:displaymgr" ]
+    defines += [ "POWERMGR_DISPLAY_MANAGER_ENABLE" ]
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.resourceschedule_soc_perf)) {
+    external_deps += [ "resource_schedule_service:ressched_client" ]
+    defines += [ "RES_SCHED_ENABLE" ]
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.security_security_component_manager)) {
+    external_deps += [ "security_component_manager:libsecurity_component_sdk" ]
+    defines += [ "SECURITY_COMPONENT_MANAGER_ENABLE" ]
+  }
+
+  if (!defined(global_parts_info) ||
+      defined(global_parts_info.inputmethod_imf)) {
+    imf_enable = true
+  } else {
+    imf_enable = false
+  }
+  print("imf_enable: ", imf_enable)
+  if (imf_enable == true) {
+    external_deps += [ "imf:inputmethod_client" ]
+    defines += [ "IMF_ENABLE" ]
+  }
+
+  part_name = "window_manager"
+  subsystem_name = "window"
+
+  if (build_variant == "user") {
+    defines += [ "IS_RELEASE_VERSION" ]
+  }
+}
+
+## Build libscene_session_manager.z.so
 ohos_shared_library("scene_session_manager") {
   branch_protector_ret = "pac_ret"
   sanitize = {
@@ -151,6 +312,8 @@ ohos_shared_library("scene_session_manager") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
+
+  version_script = "libscene_session_manager.map"
 
   defines = []
   if (window_manager_feature_support_dmsfwk) {
