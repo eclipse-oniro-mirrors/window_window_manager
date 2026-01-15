@@ -120,14 +120,20 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     }
     SetDefaultDisplayIdIfNeed();
     // Since here is init of this window, no other threads will rw it.
-    hostSession_ = iSession;
+    {
+        std::lock_guard<std::mutex> lock(hostSessionMutex_);
+        hostSession_ = iSession;
+    }
 
     dataHandler_->SetEventHandler(handler_);
     dataHandler_->SetRemoteProxyObject(iSession->AsObject());
 
-    context_ = context;
-    if (context_) {
-        abilityToken_ = context_->GetToken();
+    {
+        std::unique_lock<std::shared_mutex> lock(contextMutex_);
+        context_ = context;
+        if (context_) {
+            abilityToken_ = context_->GetToken();
+        }
     }
     // XTS log, please do not modify
     TLOGI(WmsLogTag::WMS_UIEXT, "IsConstrainedModal: %{public}d", property_->IsConstrainedModal());
@@ -2157,7 +2163,10 @@ WMError WindowExtensionSessionImpl::HandleRegisterHostWindowRectChangeListener(u
     if (ret != WMError::WM_OK) {
         return ret;
     }
-    rectChangeUIExtListenerIds_.emplace(persistentId);
+    {
+        std::lock_guard<std::mutex> lockListener(hostWindowRectChangeListenerMutex_);
+        rectChangeUIExtListenerIds_.emplace(persistentId);
+    }
     return WMError::WM_OK;
 }
 
@@ -2167,9 +2176,9 @@ WMError WindowExtensionSessionImpl::HandleUnregisterHostWindowRectChangeListener
     TLOGD(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
     bool isHostWindowRectChangeListenerEmpty = false;
     size_t hostWindowRectChangeListenerSize = 0;
-    rectChangeUIExtListenerIds_.erase(persistentId);
     {
         std::lock_guard<std::mutex> lockListener(hostWindowRectChangeListenerMutex_);
+        rectChangeUIExtListenerIds_.erase(persistentId);
         isHostWindowRectChangeListenerEmpty = hostWindowRectChangeListener_.empty();
         hostWindowRectChangeListenerSize = hostWindowRectChangeListener_.size();
     }
@@ -2190,7 +2199,10 @@ WMError WindowExtensionSessionImpl::HandleRegisterHostRectChangeInGlobalDisplayL
     if (ret != WMError::WM_OK) {
         return ret;
     }
-    rectChangeInGlobalDisplayUIExtListenerIds_.emplace(persistentId);
+    {
+        std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
+        rectChangeInGlobalDisplayUIExtListenerIds_.emplace(persistentId);
+    }
     return WMError::WM_OK;
 }
 
@@ -2199,9 +2211,9 @@ WMError WindowExtensionSessionImpl::HandleUnregisterHostRectChangeInGlobalDispla
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
     bool needNotifyHost = false;
-    rectChangeInGlobalDisplayUIExtListenerIds_.erase(persistentId);
     {
         std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
+        rectChangeInGlobalDisplayUIExtListenerIds_.erase(persistentId);
         needNotifyHost = hostRectChangeInGlobalDisplayListenerList_.empty() &&
             rectChangeInGlobalDisplayUIExtListenerIds_.empty();
     }
@@ -2373,12 +2385,10 @@ WMError WindowExtensionSessionImpl::OnHostRectChangeInGlobalDisplay(AAFwk::Want&
     Rect rect {rectX, rectY, rectWidth, rectHeight};
     TLOGI(WmsLogTag::WMS_UIEXT, "Host rect change in global display: %{public}s, reason: %{public}u",
         rect.ToString().c_str(), reason);
-    {
-        std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
-        for (const auto& listener : hostRectChangeInGlobalDisplayListenerList_) {
-            if (listener != nullptr) {
-                listener->OnRectChangeInGlobalDisplay(rect, reason);
-            }
+    std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
+    for (const auto& listener : hostRectChangeInGlobalDisplayListenerList_) {
+        if (listener != nullptr) {
+            listener->OnRectChangeInGlobalDisplay(rect, reason);
         }
     }
     auto uiContent = GetUIContentSharedPtr();
@@ -2539,10 +2549,13 @@ WMError WindowExtensionSessionImpl::SetCompatInfo(const AAFwk::WantParams& confi
     }
     compatibleModeProperty->SetIsAdaptToSimulationScale(isAdaptToSimulationScale);
     compatibleModeProperty->SetIsAdaptToProportionalScale(isAdaptToProportionalScale);
-    compatScaleX_ = GetFloatParam(Extension::COMPAT_SCALE_X_FIELD, configParam);
-    compatScaleY_ = GetFloatParam(Extension::COMPAT_SCALE_Y_FIELD, configParam);
-    TLOGI(WmsLogTag::WMS_COMPAT, "id:%{public}d compatScaleX:%{public}f compatScaleY:%{public}f",
-        GetPersistentId(), compatScaleX_, compatScaleY_);
+    {
+        std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
+        compatScaleX_ = GetFloatParam(Extension::COMPAT_SCALE_X_FIELD, configParam);
+        compatScaleY_ = GetFloatParam(Extension::COMPAT_SCALE_Y_FIELD, configParam);
+        TLOGI(WmsLogTag::WMS_COMPAT, "id:%{public}d compatScaleX:%{public}f compatScaleY:%{public}f",
+            GetPersistentId(), compatScaleX_, compatScaleY_);
+    }
     return WMError::WM_OK;
 }
 
@@ -2562,10 +2575,13 @@ WMError WindowExtensionSessionImpl::OnHostWindowCompatInfoChange(AAFwk::Want&& d
     }
     compatibleModeProperty->SetIsAdaptToSimulationScale(isAdaptToSimulationScale);
     compatibleModeProperty->SetIsAdaptToProportionalScale(isAdaptToProportionalScale);
-    compatScaleX_ = data.GetFloatParam(Extension::COMPAT_SCALE_X_FIELD, 1.0f);
-    compatScaleY_ = data.GetFloatParam(Extension::COMPAT_SCALE_Y_FIELD, 1.0f);
-    TLOGI(WmsLogTag::WMS_COMPAT, "id:%{public}d compatScaleX:%{public}f compatScaleY:%{public}f",
-        GetPersistentId(), compatScaleX_, compatScaleY_);
+    {
+        std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
+        compatScaleX_ = data.GetFloatParam(Extension::COMPAT_SCALE_X_FIELD, 1.0f);
+        compatScaleY_ = data.GetFloatParam(Extension::COMPAT_SCALE_Y_FIELD, 1.0f);
+        TLOGI(WmsLogTag::WMS_COMPAT, "id:%{public}d compatScaleX:%{public}f compatScaleY:%{public}f",
+            GetPersistentId(), compatScaleX_, compatScaleY_);
+    }
     if (auto uiContent = GetUIContentSharedPtr()) {
         TLOGD(WmsLogTag::WMS_COMPAT, "send uiext winId: %{public}u", GetWindowId());
         uiContent->SendUIExtProprty(static_cast<uint32_t>(Extension::Businesscode::SYNC_COMPAT_INFO),

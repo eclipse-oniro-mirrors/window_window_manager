@@ -426,6 +426,7 @@ bool WindowSessionImpl::IsInCompatScaleMode() const
 
 bool WindowSessionImpl::IsInCompatScaleStatus() const
 {
+    std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
     return IsInCompatScaleMode() && (!NearEqual(compatScaleX_, 1.0f) || !NearEqual(compatScaleY_, 1.0f));
 }
 
@@ -809,8 +810,11 @@ WMError WindowSessionImpl::GetWindowScaleCoordinate(uint32_t windowId, CursorInf
     if (WindowHelper::IsUIExtensionWindow(windowType)) {
         windowRect = window->GetHostWindowRect(windowId);
     }
-    float scaleX = window->compatScaleX_;
-    float scaleY = window->compatScaleY_;
+    {
+        std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
+        float scaleX = window->compatScaleX_;
+        float scaleY = window->compatScaleY_;
+    }
     int32_t cursorX = cursorInfo.left - windowRect.posX_;
     int32_t cursorY = cursorInfo.top - windowRect.posY_;
     // 2: x scale computational formula
@@ -5970,6 +5974,7 @@ void WindowSessionImpl::NotifyUIExtHostRectChangeInGlobalDisplayListeners(const 
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
     CHECK_UI_CONTENT_RETURN_IF_NULL(uiContent);
     bool isUIExtensionWindow = WindowHelper::IsUIExtensionWindow(GetType());
+    std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
     if (!isUIExtensionWindow && !rectChangeInGlobalDisplayUIExtListenerIds_.empty()) {
         TLOGI(WmsLogTag::WMS_UIEXT, "rectChangeInGlobalDisplayUIExtListenerIds_ size: %{public}zu",
             rectChangeInGlobalDisplayUIExtListenerIds_.size());
@@ -8518,13 +8523,16 @@ WMError WindowSessionImpl::UpdateCompatScaleInfo(const Transform& transform)
         TLOGD(WmsLogTag::WMS_COMPAT, "id:%{public}d not scale mode", GetPersistentId());
         return WMError::WM_DO_NOTHING;
     }
-    compatScaleX_ = transform.scaleX_;
-    compatScaleY_ = transform.scaleY_;
-    AAFwk::Want want;
-    want.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, IsAdaptToSimulationScale());
-    want.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, IsAdaptToProportionalScale());
-    want.SetParam(Extension::COMPAT_SCALE_X_FIELD, compatScaleX_);
-    want.SetParam(Extension::COMPAT_SCALE_Y_FIELD, compatScaleY_);
+    {
+        std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
+        compatScaleX_ = transform.scaleX_;
+        compatScaleY_ = transform.scaleY_;
+        AAFwk::Want want;
+        want.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, IsAdaptToSimulationScale());
+        want.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, IsAdaptToProportionalScale());
+        want.SetParam(Extension::COMPAT_SCALE_X_FIELD, compatScaleX_);
+        want.SetParam(Extension::COMPAT_SCALE_Y_FIELD, compatScaleY_);
+    }
     NotifyTitleChange(true, 0);
     if (auto uiContent = GetUIContentSharedPtr()) {
         uiContent->SendUIExtProprty(static_cast<uint32_t>(Extension::Businesscode::SYNC_COMPAT_INFO),
@@ -8584,6 +8592,7 @@ void WindowSessionImpl::SetCompatInfoInExtensionConfig(AAFwk::WantParams& want) 
         AAFwk::Integer::Box(static_cast<int32_t>(IsAdaptToSimulationScale())));
     want.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD,
         AAFwk::Integer::Box(static_cast<int32_t>(IsAdaptToProportionalScale())));
+    std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
     want.SetParam(Extension::COMPAT_SCALE_X_FIELD, AAFwk::Float::Box(compatScaleX_));
     want.SetParam(Extension::COMPAT_SCALE_Y_FIELD, AAFwk::Float::Box(compatScaleY_));
 }
@@ -8671,6 +8680,7 @@ WMError WindowSessionImpl::HandleRegisterHostWindowRectChangeListener(uint32_t c
     const AAFwk::Want& data)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    std::lock_guard<std::mutex> lockListener(hostWindowRectChangeListenerMutex_);
     rectChangeUIExtListenerIds_.emplace(persistentId);
     TLOGI(WmsLogTag::WMS_UIEXT, "persistentId: %{public}d register rect change listener", persistentId);
     return WMError::WM_OK;
@@ -8680,6 +8690,7 @@ WMError WindowSessionImpl::HandleUnregisterHostWindowRectChangeListener(uint32_t
     const AAFwk::Want& data)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    std::lock_guard<std::mutex> lockListener(hostWindowRectChangeListenerMutex_);
     rectChangeUIExtListenerIds_.erase(persistentId);
     TLOGI(WmsLogTag::WMS_UIEXT, "persistentId: %{public}d unregister rect change listener", persistentId);
     return WMError::WM_OK;
@@ -8689,6 +8700,7 @@ WMError WindowSessionImpl::HandleRegisterHostRectChangeInGlobalDisplayListener(u
     const AAFwk::Want& data)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
     rectChangeInGlobalDisplayUIExtListenerIds_.emplace(persistentId);
     TLOGI(WmsLogTag::WMS_UIEXT, "persistentId: %{public}d register rect change in global display", persistentId);
     return WMError::WM_OK;
@@ -8698,6 +8710,7 @@ WMError WindowSessionImpl::HandleUnregisterHostRectChangeInGlobalDisplayListener
     const AAFwk::Want& data)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
     rectChangeInGlobalDisplayUIExtListenerIds_.erase(persistentId);
     TLOGI(WmsLogTag::WMS_UIEXT, "persistentId: %{public}d unregister rect change in global display", persistentId);
     return WMError::WM_OK;
@@ -8706,6 +8719,7 @@ WMError WindowSessionImpl::HandleUnregisterHostRectChangeInGlobalDisplayListener
 WMError WindowSessionImpl::HandleUIExtRegisterKeyboardDidShowListener(uint32_t code, int32_t persistentId,
     const AAFwk::Want& data)
 {
+    std::lock_guard<std::recursive_mutex> lockListener(keyboardDidShowListenerMutex_);
     if (keyboardDidShowUIExtListeners_.find(persistentId) == keyboardDidShowUIExtListeners_.end()) {
         sptr<IKeyboardDidShowListener> listener = sptr<IKeyboardDidShowListener>::MakeSptr();
         keyboardDidShowUIExtListeners_[persistentId] = listener;
@@ -8718,6 +8732,7 @@ WMError WindowSessionImpl::HandleUIExtRegisterKeyboardDidShowListener(uint32_t c
 WMError WindowSessionImpl::HandleUIExtUnregisterKeyboardDidShowListener(uint32_t code, int32_t persistentId,
     const AAFwk::Want& data)
 {
+    std::lock_guard<std::recursive_mutex> lockListener(keyboardDidShowListenerMutex_);
     if (keyboardDidShowUIExtListeners_.find(persistentId) != keyboardDidShowUIExtListeners_.end()) {
         sptr<IKeyboardDidShowListener> listener = keyboardDidShowUIExtListeners_[persistentId];
         keyboardDidShowUIExtListeners_.erase(persistentId);
@@ -8730,6 +8745,7 @@ WMError WindowSessionImpl::HandleUIExtUnregisterKeyboardDidShowListener(uint32_t
 WMError WindowSessionImpl::HandleUIExtRegisterKeyboardDidHideListener(uint32_t code, int32_t persistentId,
     const AAFwk::Want& data)
 {
+    std::lock_guard<std::recursive_mutex> lockListener(keyboardDidHideListenerMutex_);
     if (keyboardDidHideUIExtListeners_.find(persistentId) == keyboardDidHideUIExtListeners_.end()) {
         sptr<IKeyboardDidHideListener> listener = sptr<IKeyboardDidHideListener>::MakeSptr();
         keyboardDidHideUIExtListeners_[persistentId] = listener;
@@ -8742,6 +8758,7 @@ WMError WindowSessionImpl::HandleUIExtRegisterKeyboardDidHideListener(uint32_t c
 WMError WindowSessionImpl::HandleUIExtUnregisterKeyboardDidHideListener(uint32_t code, int32_t persistentId,
     const AAFwk::Want& data)
 {
+    std::lock_guard<std::recursive_mutex> lockListener(keyboardDidHideListenerMutex_);
     if (keyboardDidHideUIExtListeners_.find(persistentId) != keyboardDidHideUIExtListeners_.end()) {
         sptr<IKeyboardDidHideListener> listener = keyboardDidHideUIExtListeners_[persistentId];
         keyboardDidHideUIExtListeners_.erase(persistentId);
