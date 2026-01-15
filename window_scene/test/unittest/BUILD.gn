@@ -138,11 +138,11 @@ group("unittest") {
       "multi_user:unittest",
       "window_pattern:window_pattern_snapshot_test",
       "window_pattern:window_pattern_starting_window_test",
+      ":ws_session_manager_ut_test",
     ]
   } else {
     deps += [
       ":ws_session_manager_lite_ut_test",
-      ":ws_session_manager_ut_test",
     ]
   }
 }
