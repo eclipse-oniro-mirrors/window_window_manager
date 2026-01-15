@@ -570,7 +570,7 @@ WMError WindowSceneSessionImpl::RecoverAndReconnectSceneSession()
     auto context = GetContext();
     auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(context);
     if (context && context->GetHapModuleInfo() && abilityContext && abilityContext->GetAbilityInfo()) {
-        if (!abilityContext->IsHook() || (abilityContext->IsHook() && abilityContext->GetHookOff())) {
+        if (!abilityContext->IsHook() || abilityContext->GetHookOff()) {
             property_->EditSessionInfo().abilityName_ = abilityContext->GetAbilityInfo()->name;
             property_->EditSessionInfo().moduleName_ = context->GetHapModuleInfo()->moduleName;
         }
