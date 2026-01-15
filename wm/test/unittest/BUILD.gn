@@ -877,7 +877,6 @@ ohos_static_library("wm_unittest_common") {
     "c_utils:utils",
     "graphic_2d:librender_service_client",
     "graphic_2d:window_animation",
-    "hilog:libhilog_base",
     "image_framework:image_native",
     "input:libmmi-client",
     "input:libmmi-napi",
