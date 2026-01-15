@@ -140,6 +140,7 @@ group("unittest") {
       "rotation:ws_session_stage_stub_rotation_test",
       "window_pattern:window_pattern_snapshot_test",
       "window_pattern:window_pattern_starting_window_test",
+      "window_recover:ws_window_recover_session_test",
       ":ws_session_manager_ut_test",
     ]
   } else {
