@@ -1072,6 +1072,14 @@ WMError WindowAdapter::UpdateSessionOcclusionStateListener(int32_t persistentId,
     return wmsProxy->UpdateSessionOcclusionStateListener(persistentId, haveListener);
 }
 
+WMError WindowAdapter::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
+    return wmsProxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+}
+
 WMError WindowAdapter::ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
