@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,7 +23,7 @@ namespace OHOS {
 namespace Rosen {
 class WindowManagerAgent : public WindowManagerAgentStub {
 public:
-    WindowManagerAgent() = default;
+    explicit WindowManagerAgent(const int32_t userId = INVALID_USER_ID);
     ~WindowManagerAgent() = default;
 
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) override;
@@ -47,6 +47,10 @@ public:
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground) override {}
     void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) override;
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo) override;
+
+private:
+    // Adapt to multi user and multi screen.
+    int32_t userId_;
 };
 } // namespace Rosen
 } // namespace OHOS
