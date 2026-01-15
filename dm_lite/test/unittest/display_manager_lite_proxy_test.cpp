@@ -502,17 +502,14 @@ HWTEST_F(DisplayManagerLiteProxyTest, IsOnboardDisplay, Function | SmallTest | L
  */
 HWTEST_F(DisplayManagerLiteProxyTest, IsOnboardDisplay_InvalidParam, Function | SmallTest | Level1)
 {
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
     DisplayId displayId = -1;
     bool isOnboardDisplay = false;
 
     auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
     adapter.InitDMSProxy();
     auto res = adapter.IsOnboardDisplay(displayId, isOnboardDisplay);
-    EXPECT_TRUE(g_logMsg.find("server error") != std::string::npos);
     EXPECT_EQ(res, DMError::DM_ERROR_INVALID_PARAM);
-    LOG_SetCallback(nullptr);
+    EXPECT_EQ(isOnboardDisplay, false);
 }
 
 /**
