@@ -283,12 +283,9 @@ private:
     AAFwk::WantParams extensionConfig_ {};
     atomic bool hostGestureBackEnabled_ { true };
     atomic bool immersiveModeEnabled_ { false };
-    std::mutex hostWindowRectChangeListenerMutex_;
     std::mutex keyboardDidShowListenerMutex_;
     std::mutex keyboardDidHideListenerMutex_;
     std::mutex occupiedAreaChangeListenerMutex_;
-    std::mutex hostRectChangeInGlobalDisplayListenerMutex_;
-    std::mutex compatScaleListenerMutex_;
     std::vector<sptr<IWindowRectChangeListener>> hostWindowRectChangeListener_;
     std::vector<sptr<IKeyboardDidShowListener>> keyboardDidShowListenerList_;
     std::vector<sptr<IKeyboardDidHideListener>> keyboardDidHideListenerList_;

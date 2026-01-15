@@ -9146,7 +9146,7 @@ std::unordered_set<int32_t> SceneSession::GetFingerPointerDownStatusList() const
 
 void SceneSession::UpdateAllModalUIExtensions(const WSRect& globalRect)
 {
-    {   
+    {
         std::unique_lock<std::shared_mutex> lock(modalUIExtensionInfoListMutex_);
         if (modalUIExtensionInfoList_.empty()) {
             return;

@@ -120,20 +120,14 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     }
     SetDefaultDisplayIdIfNeed();
     // Since here is init of this window, no other threads will rw it.
-    {
-        std::lock_guard<std::mutex> lock(hostSessionMutex_);
-        hostSession_ = iSession;
-    }
+    hostSession_ = iSession;
 
     dataHandler_->SetEventHandler(handler_);
     dataHandler_->SetRemoteProxyObject(iSession->AsObject());
 
-    {
-        std::unique_lock<std::shared_mutex> lock(contextMutex_);
-        context_ = context;
-        if (context_) {
-            abilityToken_ = context_->GetToken();
-        }
+    context_ = context;
+    if (context_) {
+        abilityToken_ = context_->GetToken();
     }
     // XTS log, please do not modify
     TLOGI(WmsLogTag::WMS_UIEXT, "IsConstrainedModal: %{public}d", property_->IsConstrainedModal());
