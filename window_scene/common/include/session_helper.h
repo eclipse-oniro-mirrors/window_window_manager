@@ -30,7 +30,7 @@ namespace Rosen {
 class SessionHelper {
 public:
     template<typename T>
-    static WSRectT GetOverlap(const WSRectT<T>& rect1, const WSRectT<T>& rect2, T offsetX, T offsetY)
+    static WSRectT<T> GetOverlap(const WSRectT<T>& rect1, const WSRectT<T>& rect2, T offsetX, T offsetY)
     {
         T x_begin = std::max(rect1.posX_, rect2.posX_);
         T x_end = std::min(rect1.posX_ + static_cast<int32_t>(rect1.width_),

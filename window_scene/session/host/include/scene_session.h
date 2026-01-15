@@ -1056,7 +1056,7 @@ protected:
      * Window Immersive
      */
     template<typename T>
-    void CalculateAvoidAreaRect(CalculateAvoidAreaRect(
+    void CalculateAvoidAreaRect(
         const WSRectT<T>& rect, const WSRectT<T>& avoidRect, AvoidArea& avoidArea) const;
     virtual void NotifyClientToUpdateAvoidArea();
     bool PipelineNeedNotifyClientToUpdateAvoidArea(uint32_t dirty) const;

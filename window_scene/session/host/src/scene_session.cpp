@@ -3273,7 +3273,7 @@ bool SceneSession::IsInLSState() const
     if (WindowHelper::IsMainWindow(windowType)) {
         if (GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN || GetIsMidScene() ||
             !specificCallback_ || !specificCallback_->onGetLSState_ || !specificCallback_->onGetLSState_()) {
-            return WSError::WS_DO_NOTHING;
+            return false;
         }
     } else if  (WindowHelper::IsSubWindow(windowType) || WindowHelper::IsSystemWindow(windowType)) {
         if (auto parentSession = GetParentSession()) {
@@ -3307,13 +3307,10 @@ void SceneSession::CalculateWindowRectByScale(WSRect& winRect)
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
         return;
     }
-    winRect = GetSessionGlobalPosition();
     winRect.posX_ *= scaleX;
     winRect.posY_ *= scaleY;
     winRect.width_ *= scaleX;
     winRect.height_ *= scaleY;
-    TLOGI(WmsLogTag::WMS_IMMS, "win: %{public}d globalRect:%{public}s, Rect:%{public}s, [%{public}f, %{public}f]",
-        GetPersistentId(), GetSessionGlobalPosition(), winRect, scaleX, scaleY);
 }
 
 template<typename T>
