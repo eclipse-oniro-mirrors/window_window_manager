@@ -24,7 +24,6 @@ group("systemtest") {
     ":wms_window_gesture_navigation_enabled_test",
     ":wms_window_multi_ability_test",
     ":wms_window_nointeraction_listener_test",
-    ":wms_window_status_change_test",
     ":wms_window_systemsubwindow_test",
   ]
   if (!window_manager_use_sceneboard) {
@@ -62,6 +61,7 @@ group("systemtest") {
       ":wms_window_specialwindow_test",
       ":wms_window_recover_test",
       ":wms_window_layout_test",
+      ":wms_window_status_change_test",
     ]
   }
 }
