@@ -1200,10 +1200,11 @@ WSError SceneSessionManagerProxy::PendingSessionToBackgroundForDelegator(const s
         TLOGE(WmsLogTag::WMS_LIFE, "remote is null");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (remote->SendRequest(static_cast<uint32_t>(
+    int32_t ret = remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_PENDING_SESSION_TO_BACKGROUND_FOR_DELEGATOR),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed");
+        data, reply, option);
+    if (ret != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed, ret:%{public}d", ret);
         return WSError::WS_ERROR_IPC_FAILED;
     }
     return static_cast<WSError>(reply.ReadInt32());
@@ -1490,9 +1491,11 @@ WSError SceneSessionManagerProxy::TerminateSessionNew(const sptr<AAFwk::SessionI
         WLOGFE("remote is null");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_TERMINATE_SESSION_NEW),
-        data, reply, option) != ERR_NONE) {
-        WLOGFE("SendRequest failed");
+    int32_t ret = remote->SendRequest(static_cast<uint32_t>(
+        SceneSessionManagerMessage::TRANS_ID_TERMINATE_SESSION_NEW),
+        data, reply, option);
+    if (ret != ERR_NONE) {
+        WLOGFE("SendRequest failed, ret:%{public}d", ret);
         return WSError::WS_ERROR_IPC_FAILED;
     }
     return static_cast<WSError>(reply.ReadInt32());
