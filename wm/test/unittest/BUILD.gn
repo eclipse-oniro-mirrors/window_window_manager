@@ -23,7 +23,6 @@ group("unittest") {
     ":wm_floating_ball_manager_new_test",
     ":wm_floating_ball_manager_test",
     ":wm_gtx_input_event_sender_test",
-    ":wm_input_transfer_station_new_test",
     ":wm_load_intention_event_test",
     ":wm_picture_in_picture_option_test",
     ":wm_screen_scene_test",
