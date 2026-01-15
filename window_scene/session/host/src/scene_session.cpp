@@ -2761,8 +2761,9 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
     float scaleX = 1;
     float scaleY = 1;
     if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
-        WSRectF winRectF = { winRect.posX_ * scaleX, winRect.posY_ * scaleY,
-            winRect.width_ * scaleX, winRect.height_ * scaleY };
+        auto globalRect = GetSessionGlobalRect();
+        WSRectF winRectF = { globalRect.posX_ * scaleX, globalRect.posY_ * scaleY,
+            globalRect.width_ * scaleX, globalRect.height_ * scaleY };
         WSRectF avoidRectF = { avoidRect.posX_, avoidRect.posY_, avoidRect.width_, avoidRect.height_ };
         CalculateAvoidAreaRect(winRectF, avoidRectF, avoidArea);
     } else {

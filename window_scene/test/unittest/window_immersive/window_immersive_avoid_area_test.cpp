@@ -426,8 +426,6 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, GetScaleInLSState, TestSize.Level0)
     ASSERT_NE(sceneSession, nullptr);
     float scaleX = 1;
     float scaleY = 1;
-    WSRect winRect = { 0, 0, 0, 0 };
-    Rect avoidAreaRect = { 0, 0, 0, 0 };
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     sceneSession->layoutController_ = sptr<LayoutController>::MakeSptr(property);
     sceneSession->Session::SetScale(-1, -1, -1, -1);
@@ -444,12 +442,14 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, GetScaleInLSState, TestSize.Level0)
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
     sceneSession->Session::SetScale(1, -1, -1, -1);
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
+    WSRect winRect = { 0, 0, 0, 0 };
     sceneSession->CalculateWindowRectByScale(winRect);
-    sceneSession->CalculateAvoidAreaByScale(avoidAreaRect);
+    sceneSession->CalculateAvoidAreaByScale(winRect);
     sceneSession->Session::SetScale(1, 1, -1, -1);
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_OK);
     sceneSession->CalculateWindowRectByScale(winRect);
-    sceneSession->CalculateAvoidAreaByScale(avoidAreaRect);
+    AvoidArea area;
+    sceneSession->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, winRect, area);
 }
 
 /**
