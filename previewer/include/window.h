@@ -443,6 +443,7 @@ public:
         std::shared_ptr<Media::PixelMap>& pixelMap) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap>& pixelMap) = 0;
     virtual WMError NotifyMemoryLevel(int32_t level) = 0;
+    virtual void NotifyWindowStageCreateFinished() {}
     virtual bool IsAllowHaveSystemSubWindow() = 0;
     virtual WMError SetAspectRatio(float ratio) = 0;
 

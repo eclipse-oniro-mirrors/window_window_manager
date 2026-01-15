@@ -256,7 +256,7 @@ WMError WindowScene::RequestFocus() const
     return mainWindow->RequestFocus();
 }
 
-void WindowScene::NotifyWindowStageCreateFinished() const 
+void WindowScene::NotifyWindowStageCreateFinished() const
 {
     auto mainWindow = GetMainWindow();
     if (mainWindow == nullptr) {
