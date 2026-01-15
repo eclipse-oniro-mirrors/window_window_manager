@@ -631,11 +631,6 @@ public:
 
     virtual void SetTouchHotAreas(const std::vector<Rect>& touchHotAreas);
 
-    void SetVpr(float vpr)
-    {
-        vpr_ = vpr;
-    }
-
     bool operator==(const Session* session) const
     {
         if (session == nullptr) {
