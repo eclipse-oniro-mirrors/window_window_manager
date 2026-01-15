@@ -6739,23 +6739,22 @@ WMError WindowSceneSessionImpl::ClearWindowMask()
 
     float cornerRadius = property_->GetWindowCornerRadius();
     bool recoverDefaultCorner = cornerRadius == WINDOW_CORNER_RADIUS_INVALID;
-    hostSession->SetWindowCornerRadius(cornerRadius);
+    if (!recoverDefaultCorner) {
+        hostSession->SetWindowCornerRadius(cornerRadius);
+    }
 
     ShadowsInfo shadowsInfo = property_->GetWindowShadows();
     bool recoverDefaultShadow = !shadowsInfo.hasRadiusValue_;
-    if (recoverDefaultShadow) {
-        shadowsInfo.radius_ = WINDOW_SHADOW_RADIUS_INVALID;
+    if (!recoverDefaultShadow) {
+        hostSession->SetWindowShadows(shadowsInfo);
     }
-    hostSession->SetWindowShadows(shadowsInfo);
 
     if (recoverDefaultCorner || recoverDefaultShadow) {
         hostSession->RecoverWindowEffect(recoverDefaultCorner, recoverDefaultShadow);
     }
-
     surfaceNode_->SetCornerRadius(rsCornerRadius_);
     surfaceNode_->SetMask(nullptr);
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
-
     property_->SetIsShaped(false);
     WMError ret = UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_MASK);
     if (ret != WMError::WM_OK) {
