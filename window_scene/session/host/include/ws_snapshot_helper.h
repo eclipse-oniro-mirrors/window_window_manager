@@ -49,7 +49,7 @@ public:
     int32_t GetScreenStatus();
     static int32_t GetScreenStatus(FoldStatus foldStatus);
     static DisplayOrientation GetDisplayOrientation(int32_t rotation);
-    static bool IsSnapshotNeedCorrect(SnapshotStatus key);
+    bool IsSnapshotNeedCorrect(SnapshotStatus key) const;
     void SetWindowScreenStatus(int32_t screenStatus);
     void SetWindowScreenStatus(FoldStatus foldStatus);
     void SetWindowOrientationStatus(Rotation rotation);

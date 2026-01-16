@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#include "session/host/include/ws_snapshot_helper.h"
 #include "fold_screen_state_internel.h"
 #include "parameters.h"
+#include "session/host/include/ws_snapshot_helper.h"
 
 namespace OHOS::Rosen {
 namespace {
@@ -92,9 +92,10 @@ uint32_t WSSnapshotHelper::GetWindowRotation() const
     return rotation;
 }
 
-bool WSSnapshotHelper::IsSnapshotNeedCorrect(SnapshotStatus key)
+bool WSSnapshotHelper::IsSnapshotNeedCorrect(SnapshotStatus key) const
 {
-    return CORRECTION_ENABLE && (key == 0 || (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() && key == 1));
+    return CORRECTION_ENABLE && (key == SCREEN_UNKNOWN ||
+        (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() && key == SCREEN_EXPAND));
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen
