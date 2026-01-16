@@ -6190,10 +6190,20 @@ void SceneSessionManager::GetStartupPage(const SessionInfo& sessionInfo, Startin
     AAFwk::Want want;
     want.SetElementName("", sessionInfo.bundleName_, sessionInfo.abilityName_, sessionInfo.moduleName_);
     AppExecFwk::AbilityInfo abilityInfo;
-    if (!bundleMgr_->QueryAbilityInfo(
-        want, AppExecFwk::GET_ABILITY_INFO_DEFAULT, AppExecFwk::Constants::ANY_USERID, abilityInfo)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Get ability info from BMS failed!");
-        return;
+    if (sessionInfo.isTargetPlugin) {
+        int32_t pluginRet = bundleMgr_->GetPluginAbilityInfo(sessionInfo.hostBundleName,
+            sessionInfo.bundleName_, sessionInfo.moduleName_, sessionInfo.abilityName_,
+            currentUserId_, abilityInfo);
+        if (pluginRet != ERR_OK) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "GetPluginAbilityInfo failed, errCode: %{public}d", pluginRet);
+            return;
+        }
+    } else {
+        if (!bundleMgr_->QueryAbilityInfo(
+            want, AppExecFwk::GET_ABILITY_INFO_DEFAULT, AppExecFwk::Constants::ANY_USERID, abilityInfo)) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "Get ability info from BMS failed!");
+            return;
+        }
     }
     auto appColorMode = isAppDark ? Global::Resource::ColorMode::DARK : Global::Resource::ColorMode::LIGHT;
     if (GetStartupPageFromResource(abilityInfo, startingWindowInfo, Global::Resource::ColorMode::COLOR_MODE_NOT_SET,
@@ -6550,7 +6560,8 @@ void SceneSessionManager::FillSessionInfo(sptr<SceneSession>& sceneSession)
         return;
     }
     auto abilityInfo = QueryAbilityInfoFromBMS(currentUserId_, sessionInfo.bundleName_, sessionInfo.abilityName_,
-        sessionInfo.moduleName_, IsAtomicServiceFreeInstall(sessionInfo));
+        sessionInfo.moduleName_, IsAtomicServiceFreeInstall(sessionInfo), sessionInfo.isTargetPlugin,
+        sessionInfo.hostBundleName);
     if (abilityInfo == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "Null");
         return;
@@ -6610,7 +6621,7 @@ void SceneSessionManager::RegisterGetStartWindowConfigCallback(const sptr<SceneS
 
 std::shared_ptr<AppExecFwk::AbilityInfo> SceneSessionManager::QueryAbilityInfoFromBMS(const int32_t uId,
     const std::string& bundleName, const std::string& abilityName, const std::string& moduleName,
-    bool isAtomicServiceFreeInstall)
+    bool isAtomicServiceFreeInstall, bool isTargetPlugin, const std::string& hostBundleName)
 {
     if (!bundleMgr_) {
         TLOGE(WmsLogTag::DEFAULT, "bundleMgr_ is nullptr");
@@ -6623,25 +6634,7 @@ std::shared_ptr<AppExecFwk::AbilityInfo> SceneSessionManager::QueryAbilityInfoFr
         return abilityInfoMap_[list];
     }
     if (isAtomicServiceFreeInstall && abilityName.empty() && moduleName.empty()) {
-        AppExecFwk::BundleInfo bundleInfo;
-        auto flag = static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_ABILITY) |
-            static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_HAP_MODULE);
-        bool ret = bundleMgr_->GetBundleInfoV9(bundleName, flag, bundleInfo, currentUserId_);
-        if (ret) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Get bundle:%{public}s info from BMS failed!", bundleName.c_str());
-            return nullptr;
-        }
-        for (const auto& hapModuleInfo : bundleInfo.hapModuleInfos) {
-            if (!hapModuleInfo.abilityInfos.empty()) {
-                TLOGI(WmsLogTag::WMS_LIFE, "Get abilityInfo success in AtomicFreeInstall, bundle:%{public}s.",
-                    bundleName.c_str());
-
-                // Atomic services only have one ability.
-                return std::make_shared<AppExecFwk::AbilityInfo>(hapModuleInfo.abilityInfos[0]);
-            }
-        }
-        TLOGE(WmsLogTag::WMS_LIFE, "Get abilityInfo failed, bundleName:%{public}s.", bundleName.c_str());
-        return nullptr;
+        return GetFreeInstalledAtomicServiceAbilityInfo(bundleName);
     }
 
     AAFwk::Want want;
@@ -6654,13 +6647,48 @@ std::shared_ptr<AppExecFwk::AbilityInfo> SceneSessionManager::QueryAbilityInfoFr
     auto abilityInfoFlag = (AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_APPLICATION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_PERMISSION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_METADATA);
-    bool ret = bundleMgr_->QueryAbilityInfo(want, abilityInfoFlag, uId, *abilityInfo);
-    if (!ret) {
-        TLOGE(WmsLogTag::DEFAULT, "Failed");
-        return nullptr;
+    if (isTargetPlugin) {
+        int32_t pluginRet = bundleMgr_->GetPluginAbilityInfo(hostBundleName, bundleName, moduleName,
+            abilityName, uId, *abilityInfo);
+        if (pluginRet != ERR_OK) {
+            TLOGE(WmsLogTag::DEFAULT, "GetPluginAbilityInfo failed, errCode: %{public}d", pluginRet);
+            return nullptr;
+        }
+    } else {
+        bool ret = bundleMgr_->QueryAbilityInfo(want, abilityInfoFlag, uId, *abilityInfo);
+        if (!ret) {
+            TLOGE(WmsLogTag::DEFAULT, "Failed");
+            return nullptr;
+        }
     }
     abilityInfoMap_[list] = abilityInfo;
     return abilityInfo;
+}
+
+std::shared_ptr<AppExecFwk::AbilityInfo> SceneSessionManager::GetFreeInstalledAtomicServiceAbilityInfo(
+    const std::string& bundleName)
+{
+    if (!bundleMgr_) {
+        TLOGE(WmsLogTag::WMS_LIFE, "bundleMgr_ is nullptr");
+        return nullptr;
+    }
+    AppExecFwk::BundleInfo bundleInfo;
+    auto flag = static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_ABILITY) |
+        static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_HAP_MODULE);
+    if (bundleMgr_->GetBundleInfoV9(bundleName, flag, bundleInfo, currentUserId_)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Get bundle:%{public}s info from BMS failed!", bundleName.c_str());
+        return nullptr;
+    }
+    for (const auto& hapModuleInfo : bundleInfo.hapModuleInfos) {
+        if (!hapModuleInfo.abilityInfos.empty()) {
+            TLOGI(WmsLogTag::WMS_LIFE, "Get abilityInfo success in AtomicFreeInstall, bundle:%{public}s.",
+                bundleName.c_str());
+            // Atomic services only have one ability.
+            return std::make_shared<AppExecFwk::AbilityInfo>(hapModuleInfo.abilityInfos[0]);
+        }
+    }
+    TLOGE(WmsLogTag::WMS_LIFE, "Get abilityInfo failed, bundleName:%{public}s.", bundleName.c_str());
+    return nullptr;
 }
 
 static void GetTopWindowByTraverseSessionTree(const sptr<SceneSession>& session,
@@ -14026,7 +14054,8 @@ bool SceneSessionManager::CheckCollaboratorType(int32_t type)
 BrokerStates SceneSessionManager::CheckIfReuseSession(SessionInfo& sessionInfo)
 {
     auto abilityInfo = QueryAbilityInfoFromBMS(currentUserId_, sessionInfo.bundleName_, sessionInfo.abilityName_,
-        sessionInfo.moduleName_);
+        sessionInfo.moduleName_, IsAtomicServiceFreeInstall(sessionInfo), sessionInfo.isTargetPlugin,
+        sessionInfo.hostBundleName);
     if (abilityInfo == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "abilityInfo is nullptr!");
         return BrokerStates::BROKER_UNKOWN;
