@@ -1359,6 +1359,46 @@ HWTEST_F(ScreenSessionManagerTest, NotifyRSCoordination, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
+
+/*
+ * @tc.name: TestCalcRectsWithRotation001
+ * @tc.desc: TestCalcRectsWithRotation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, TestCalcRectsWithRotation001, TestSize.Level1)
+{
+    DisplayId displayId = 0;
+    DMRect rect = { 0, 0, 800, 600 };
+    DMRect res = ssm_->CalcRectsWithRotation(displayId, rect);
+    ASSERT_NE(res, DMRect::NONE());
+}
+
+/*
+ * @tc.name: TestCalcRectsWithRotation002
+ * @tc.desc: TestCalcRectsWithRotation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, TestCalcRectsWithRotation002, TestSize.Level1)
+{
+    DisplayId displayId = DISPLAY_ID_FAKE;
+    DMRect rect = { 0, 0, 800, 600 };
+    DMRect res = ssm_->CalcRectsWithRotation(displayId, rect);
+    EXPECT_EQ(res, DMRect::NONE());
+}
+
+/*
+ * @tc.name: TestCalcRectsWithRotation003
+ * @tc.desc: TestCalcRectsWithRotation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, TestCalcRectsWithRotation003, TestSize.Level1)
+{
+    DisplayId displayId = 0;
+    DMRect rect = { 0, 0, 800, 600 };
+    system::SetParameter("const.window.phyrotation.offset", "0");
+    DMRect res = ssm_->CalcRectsWithRotation(displayId, rect);
+    ASSERT_NE(res, DMRect::NONE());
+}
 }
 } // namespace Rosen
 } // namespace OHOS

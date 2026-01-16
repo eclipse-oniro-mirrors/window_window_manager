@@ -2811,10 +2811,16 @@ std::shared_ptr<Media::PixelMap> DisplayManager::GetScreenshotWithOption(const C
         TLOGE(WmsLogTag::DMS, "size invalid! w %{public}d, h %{public}d", size.width, size.height);
         return nullptr;
     }
+    std::shared_ptr<Media::PixelMap> screenShot = nullptr;
     if (CheckUseGpuScreenshotWithOption(rect, size)) {
-        return GetScreenshotWithOptionUseGpu(captureOption, rect, size, rotation, errorCode);
+        screenShot = GetScreenshotWithOptionUseGpu(captureOption, rect, size, rotation, errorCode);
+        if (screenShot != nullptr) {
+            TLOGI(WmsLogTag::DMS, "set snapshot with option by gpu success!");
+            return screenShot;
+        }
+        TLOGI(WmsLogTag::DMS, "set snapshot with option by gpu failed, try to use cpu!");
     }
-    std::shared_ptr<Media::PixelMap> screenShot = GetScreenshotWithOption(captureOption, errorCode);
+    screenShot = GetScreenshotWithOption(captureOption, errorCode);
     if (screenShot == nullptr) {
         TLOGE(WmsLogTag::DMS, "set snapshot with option failed!");
         return nullptr;
