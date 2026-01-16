@@ -166,7 +166,7 @@ HWTEST_F(RateLimitedLoggerTest, ShouldHandleSpecialCharactersInFunctionAddress, 
 HWTEST_F(RateLimitedLoggerTest, ShouldHandleEmptyFunctionAddress, TestSize.Level1)
 {
     // Given - Empty function name
-    uintptr_t functionAddress = nullptr;
+    uintptr_t functionAddress = 0;
     uint32_t timeWindowMs = 1000;
     uint32_t maxCount = 2;
     
@@ -229,7 +229,7 @@ HWTEST_F(RateLimitedLoggerTest, ShouldHandleRapidConsecutiveCalls, TestSize.Leve
     EXPECT_TRUE(results[2]);
     EXPECT_FALSE(results[3]);
     EXPECT_FALSE(results[4]);
-    EXPECT_EQ(RateLimitedLogger::getInstance().getCurrentCount(functionName), 3);
+    EXPECT_EQ(RateLimitedLogger::getInstance().getCurrentCount(functionAddress), 3);
 }
 
 /**
@@ -258,9 +258,9 @@ HWTEST_F(RateLimitedLoggerTest, ShouldResetAfterClear, TestSize.Level1)
     RateLimitedLogger::getInstance().clear();
     
     // Then - Should be able to log again
-    bool result4 = RateLimitedLogger::getInstance().logFunction(functionName, timeWindowMs, maxCount);
+    bool result4 = RateLimitedLogger::getInstance().logFunction(functionAddress, timeWindowMs, maxCount);
     EXPECT_TRUE(result4);
-    EXPECT_EQ(RateLimitedLogger::getInstance().getCurrentCount(functionName), 1);
+    EXPECT_EQ(RateLimitedLogger::getInstance().getCurrentCount(functionAddress), 1);
 }
 
 /**
@@ -293,11 +293,11 @@ HWTEST_F(RateLimitedLoggerTest, ShouldHandleMultipleFunctionsWithRapidCalls, Tes
 }
 
 /**
- * @tc.name: ShouldHandleLongFunctionNames
+ * @tc.name: ShouldHandleLongfunctionAddress
  * @tc.desc: Should handle very long function names
  * @tc.type: FUNC
  */
-HWTEST_F(RateLimitedLoggerTest, ShouldHandleLongFunctionNames, TestSize.Level1)
+HWTEST_F(RateLimitedLoggerTest, ShouldHandleLongfunctionAddress, TestSize.Level1)
 {
     // Given - Very long function name
     std::uintptr_t functionAddress = 1234567890123456789012345678901234567890123456789012345678901234UL;
