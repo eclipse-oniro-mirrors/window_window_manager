@@ -11124,10 +11124,12 @@ void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, D
     if (area.width_ != lastDisplayInfo->GetAvailableWidth()) {
         TLOGD(WmsLogTag::DMS, "AvailableWidth changed");
         attributes.push_back("availableWidth");
+        lastDisplayInfo->SetAvailableWidth(area.width_);
     }
     if (area.height_ != lastDisplayInfo->GetAvailableHeight()) {
         TLOGD(WmsLogTag::DMS, "AvailableHeight changed");
         attributes.push_back("availableHeight");
+        lastDisplayInfo->SetAvailableHeight(area.height_);
     }
     
     if (attributes.empty()) {
@@ -11391,11 +11393,49 @@ DMError ScreenSessionManager::ProxyForFreeze(const std::set<int32_t>& pidList, b
     return DMError::DM_OK;
 }
 
+void ScreenSessionManager::NotifyUnfreezedAttributeAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
+    const sptr<ScreenSession>& screenSession)
+{
+    auto attributeAgentsMap = ScreenSessionManagerAdapter::GetInstance().dmAttributeAgentContainer_.GetAttributeAgentsMap();
+    for (auto& it : attributeAgentsMap) {
+        auto agent = it.second.first;
+        int32_t agentPid = ScreenSessionManagerAdapter::GetInstance().dmAttributeAgentContainer_.GetAgentPid(agent);
+        if (agent == nullptr|| agentPid != pid || unfreezedPidList.count(pid) == 0) {
+            continue;
+        }
+        auto displayInfo = screenSession->ConvertToDisplayInfo();
+        if (displayInfo == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "DisplayInfo is nullptr");
+            continue;
+        }
+        std::vector<std::string> attributes;
+        DisplayId displayId = displayInfo->GetDisplayId();
+        sptr<DisplayInfo> lastDisplayInfo = new DisplayInfo();
+        if (lastDisplayInfo == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "LastDisplayInfo of displayId: %{public}" PRIu64 "is nullptr", displayId);
+            continue;
+        }
+        GetChangedListenableAttribute(lastDisplayInfo, displayInfo, attributes);
+        if (attributes.empty()) {
+            TLOGNFW(WmsLogTag::DMS, "No attribute changed");
+            continue;
+        }
+        agent->OnDisplayAttributeChange(displayInfo, attributes);
+        std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
+        lastDisplayInfoMap_[displayId] = displayInfo;
+    }
+    pidAgentTypeMap_[pid].erase(DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER);
+}
+
 void ScreenSessionManager::NotifyUnfreezedAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
     const std::set<DisplayManagerAgentType>& pidAgentTypes, const sptr<ScreenSession>& screenSession)
 {
     bool isAgentTypeNotify = false;
     for (auto agentType : pidAgentTypes) {
+        if (agentType == DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER) {
+            NotifyUnfreezedAttributeAgents(pid, unfreezedPidList, screenSession);
+            continue;
+        }
         auto agents = ScreenSessionManagerAdapter::GetInstance().dmAgentContainer_.GetAgentsByType(agentType);
         for (auto agent : agents) {
             int32_t agentPid = ScreenSessionManagerAdapter::GetInstance().dmAgentContainer_.GetAgentPid(agent);
