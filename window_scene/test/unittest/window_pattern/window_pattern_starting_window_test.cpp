@@ -476,8 +476,7 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidPixe
     std::shared_ptr<Media::PixelMap> pixelMap;
     std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
     pixelMap = nullptr;
-    bufferInfo = {std::make_shared<uint8_t[]>(5), 5};
-    
+    bufferInfo = {nullptr, 5};
     sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
     EXPECT_EQ(pixelMap, validPixelMap);
     EXPECT_EQ(bufferInfo.second, 0);
