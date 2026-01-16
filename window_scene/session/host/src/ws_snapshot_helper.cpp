@@ -14,6 +14,7 @@
  */
 
 #include "session/host/include/ws_snapshot_helper.h"
+#include "fold_screen_state_internel.h"
 #include "parameters.h"
 
 namespace OHOS::Rosen {
@@ -85,10 +86,15 @@ uint32_t WSSnapshotHelper::GetWindowRotation() const
         std::lock_guard lock(rotationMutex_);
         rotation = static_cast<uint32_t>(GetInstance()->screenRotation_);
     }
-    if (CORRECTION_ENABLE && GetInstance()->GetScreenStatus() == 0) {
+    if (IsSnapshotNeedCorrect(GetInstance()->GetScreenStatus())) {
         return (rotation + SECONDARY_EXPAND_OFFSET) % ROTATION_COUNT;
     }
     return rotation;
+}
+
+bool WSSnapshotHelper::IsSnapshotNeedCorrect(SnapshotStatus key)
+{
+    return CORRECTION_ENABLE && (key == 0 || (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() && key == 1));
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen
