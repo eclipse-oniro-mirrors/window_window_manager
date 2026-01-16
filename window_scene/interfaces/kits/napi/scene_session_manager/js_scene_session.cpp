@@ -7807,15 +7807,14 @@ napi_value JsSceneSession::OnNotifyRotationProperty(napi_env env, napi_callback_
         TLOGE(WmsLogTag::WMS_ROTATION, "[NAPI]Failed to convert height from js object");
         return NapiGetUndefined(env);
     }
-    auto session = weakSession_.promote();
-    if (session == nullptr) {
-        TLOGNE(WmsLogTag::WMS_ROTATION, "session is nullptr, id:%{public}d", persistentId_);
-        return NapiGetUndefined(env);
-    }
     TLOGNI(WmsLogTag::WMS_ROTATION,
         "call NotifyRotationProperty rotation:%{public}d, width=%{public}d, height=%{pubilc}d",
         rotation, width, height);
-    session->NotifyRotationProperty(rotation, width, height);
+    WMError ret = SceneSessionManager::GetInstance().NotifyRotationProperty(persistentId_,
+        rotation, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    if (ret != WMError::WM_OK) {
+        TLOGNE(WmsLogTag::WMS_ROTATION, "NotifyRotationProperty failed, ret:%{public}d", ret);
+    }
     return NapiGetUndefined(env);
 }
 
