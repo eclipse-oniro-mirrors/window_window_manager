@@ -2862,7 +2862,6 @@ export class WindowInternal implements Window {
     private static native nativeTransferStatic(input: ESValue): Object;
     private static native nativeTransferDynamic(nativeObj: long): ESValue;
 
-    private native throwIfWindowInvalid(nativeObj: long): void;
     private native setWindowTopmost(nativeObj: long, isWindowTopmost: boolean): void;
     private native resize(nativeObj: long, width: int, height: int): void;
     private native moveWindowTo(nativeObj: long, x: int, y: int): void;
@@ -4779,7 +4778,6 @@ export class WindowInternal implements Window {
     }
 
     public startMoving(): Promise<void> {
-      this.throwIfWindowInvalid(this.nativeObj);
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute((): void => {
           this.startMoving(this.nativeObj);
