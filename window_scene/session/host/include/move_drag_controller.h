@@ -130,36 +130,6 @@ public:
     WSRect GetTargetRectByDisplayId(DisplayId displayId) const;
 
     /**
-     * @brief Map a rectangle from the start display's coordinate space
-     *        into the coordinate space of the target display.
-     *
-     * The input rect (relativeStartRect) is expressed relative to the top-left
-     * corner of the display where dragging started. This function converts it
-     * into the coordinate system of targetDisplayId by applying the offset
-     * difference between the two displays in the legacy global coordinate system.
-     *
-     * @param relativeStartRect The rect defined in the start display's coordinate space.
-     * @param targetDisplayId   The display to which the rect should be mapped.
-     * @return WSRect           The mapped rect in the target display's coordinate space.
-     */
-    WSRect MapRectFromStartToTarget(const WSRect& relativeStartRect, DisplayId targetDisplayId) const;
-
-    /**
-     * @brief Map a rectangle from the target display's coordinate space
-     *        back into the coordinate space of the start display.
-     *
-     * The input rect (relativeTargetRect) is expressed relative to the top-left
-     * corner of targetDisplayId. This function converts it into the coordinate
-     * system of the start display using the display offset difference derived
-     * from the legacy global coordinate system.
-     *
-     * @param relativeTargetRect The rect defined in the target display's coordinate space.
-     * @param targetDisplayId    The display where the rect is currently defined.
-     * @return WSRect            The mapped rect in the start display's coordinate space.
-     */
-    WSRect MapRectFromTargetToStart(const WSRect& relativeTargetRect, DisplayId targetDisplayId) const;
-
-    /**
      * @brief Resample the moving position for the given vsync timestamp and update
      *        the target rectangle.
      *
@@ -173,9 +143,6 @@ public:
     std::pair<TargetRectUpdateMode, WSRect> ResampleTargetRectOnVsync(int64_t vsyncTimeUs);
 
     void InitMoveDragProperty();
-    void SetOriginalMoveDragPos(int32_t pointerId, int32_t pointerType, int32_t pointerPosX,
-                                int32_t pointerPosY, int32_t pointerWindowX, int32_t pointerWindowY,
-                                const WSRect& winRect);
 
     /**
      * @brief Handles pointer events related to window movement.
@@ -197,7 +164,6 @@ public:
      */
     bool ConsumeDragEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 
-    void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void CalcFirstMoveTargetRect(const WSRect& windowRect, bool useWindowRect);
     WSRect GetFullScreenToFloatingRect(const WSRect& originalRect, const WSRect& windowRect);
     int32_t GetOriginalPointerPosX();
@@ -221,14 +187,6 @@ public:
     Gravity GetGravity() const;
 
     /**
-     * @brief Get the Gravity based on the AreaType.
-     *
-     * @param type The AreaType indicating the hot area.
-     * @return The corresponding Gravity value.
-     */
-    Gravity GetGravity(AreaType type) const;
-
-    /**
      * @brief Restore the gravity of the surfaceNode to the pre-drag state.
      *
      * @param surfaceNode The RSSurfaceNode of the window.
@@ -241,19 +199,12 @@ public:
      */
     uint64_t GetMoveDragStartDisplayId() const;
     uint64_t GetMoveDragEndDisplayId() const;
-    uint64_t GetInitParentNodeId() const;
     std::set<uint64_t> GetDisplayIdsDuringMoveDrag();
     std::set<uint64_t> GetNewAddedDisplayIdsDuringMoveDrag();
-    void InitCrossDisplayProperty(DisplayId displayId, uint64_t parentNodeId);
-    WSRect GetScreenRectById(DisplayId displayId);
-    DisplayId GetMoveInputBarStartDisplayId();
+    void InitCrossDisplayProperty(DisplayId displayId);
     void ResetCrossMoveDragProperty();
-    void MoveDragInterrupted(bool resetPosition = true);
     void SetMoveAvailableArea(const DMRect& area);
-    void UpdateMoveAvailableArea(DisplayId targetDisplayId);
-    void SetCurrentScreenProperty(DisplayId targetDisplayId);
     void SetMoveInputBarStartDisplayId(DisplayId displayId);
-    void SetInputBarCrossAttr(MoveDirection moveDirection, DisplayId targetDisplayId);
     void SetOriginalPositionZ(float originalPositionZ) { originalPositionZ_ = originalPositionZ; }
     float GetOriginalPositionZ() const { return originalPositionZ_; }
 
@@ -291,7 +242,6 @@ public:
     };
     void HandleStartMovingWithCoordinate(const MoveCoordinateProperty& property, bool isMovable = true);
     void SetSpecifyMoveStartDisplay(DisplayId displayId);
-    void ClearSpecifyMoveStartDisplay();
     void StopMoving();
     void SetLastDragEndRect(const WSRect& rect) { lastDragEndRect_ = rect; }
     WSRect GetLastDragEndRect() const { return lastDragEndRect_; }
@@ -699,6 +649,55 @@ private:
      */
     void UpdateResampleActivationByFps();
 
+    /**
+     * @brief Map a rectangle from the start display's coordinate space
+     *        into the coordinate space of the target display.
+     *
+     * The input rect (relativeStartRect) is expressed relative to the top-left
+     * corner of the display where dragging started. This function converts it
+     * into the coordinate system of targetDisplayId by applying the offset
+     * difference between the two displays in the legacy global coordinate system.
+     *
+     * @param relativeStartRect The rect defined in the start display's coordinate space.
+     * @param targetDisplayId   The display to which the rect should be mapped.
+     * @return WSRect           The mapped rect in the target display's coordinate space.
+     */
+    WSRect MapRectFromStartToTarget(const WSRect& relativeStartRect, DisplayId targetDisplayId) const;
+
+    /**
+     * @brief Map a rectangle from the target display's coordinate space
+     *        back into the coordinate space of the start display.
+     *
+     * The input rect (relativeTargetRect) is expressed relative to the top-left
+     * corner of targetDisplayId. This function converts it into the coordinate
+     * system of the start display using the display offset difference derived
+     * from the legacy global coordinate system.
+     *
+     * @param relativeTargetRect The rect defined in the target display's coordinate space.
+     * @param targetDisplayId    The display where the rect is currently defined.
+     * @return WSRect            The mapped rect in the start display's coordinate space.
+     */
+    WSRect MapRectFromTargetToStart(const WSRect& relativeTargetRect, DisplayId targetDisplayId) const;
+
+    /**
+     * @brief Get the Gravity based on the AreaType.
+     *
+     * @param type The AreaType indicating the hot area.
+     * @return The corresponding Gravity value.
+     */
+    Gravity GetGravity(AreaType type) const;
+
+    void SetOriginalMoveDragPos(int32_t pointerId, int32_t pointerType, int32_t pointerPosX,
+                                int32_t pointerPosY, int32_t pointerWindowX, int32_t pointerWindowY,
+                                const WSRect& winRect);
+    void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    WSRect GetScreenRectById(DisplayId displayId);
+    void MoveDragInterrupted(bool resetPosition = true);
+    void UpdateMoveAvailableArea(DisplayId targetDisplayId);
+    void SetCurrentScreenProperty(DisplayId targetDisplayId);
+    void SetInputBarCrossAttr(MoveDirection moveDirection, DisplayId targetDisplayId);
+    void ClearSpecifyMoveStartDisplay();
+
     // Weak reference to the owning SceneSession.
     wptr<SceneSession> sceneSession_ = nullptr;
 
@@ -753,7 +752,6 @@ private:
     bool moveDragIsInterrupted_ = false;
     DisplayId moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
     DisplayId moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
-    uint64_t initParentNodeId_ = -1ULL;
     DisplayId hotAreaDisplayId_ = 0;
     int32_t originalDisplayOffsetX_ = 0;
     int32_t originalDisplayOffsetY_ = 0;

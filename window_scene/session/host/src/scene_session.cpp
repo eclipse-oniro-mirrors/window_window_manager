@@ -4071,7 +4071,7 @@ void SceneSession::InitializeCrossMoveDrag()
     }
     auto originalPositionZ = movedSurfaceNode->GetStagingProperties().GetPositionZ();
     moveDragController_->SetOriginalPositionZ(originalPositionZ);
-    moveDragController_->InitCrossDisplayProperty(property->GetDisplayId(), parentNode->GetId());
+    moveDragController_->InitCrossDisplayProperty(property->GetDisplayId());
 }
 
 /** @note @window.drag */
@@ -8559,7 +8559,7 @@ WSError SceneSession::SetFollowParentWindowLayoutEnabled(bool isFollow)
         TLOGI(WmsLogTag::WMS_SUB, "not support device");
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
-    PostTask([weakThis = wptr(this), isFollow = isFollow,  where = __func__] {
+    PostTask([weakThis = wptr(this), isFollow,  where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s session is null", where);
