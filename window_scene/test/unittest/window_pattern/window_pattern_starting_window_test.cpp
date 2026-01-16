@@ -511,8 +511,8 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidSvgB
     
     sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
     EXPECT_EQ(pixelMap, nullptr);
-    EXPECT_EQ(bufferInfo.first, nullptr);
-    EXPECT_EQ(bufferInfo.second, 0);
+    EXPECT_EQ(bufferInfo.first, validBufferInfo.first);
+    EXPECT_EQ(bufferInfo.second, validBufferInfo.second);
 }
  
 /**
