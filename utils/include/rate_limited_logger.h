@@ -107,8 +107,7 @@ public:
  */
 static inline uintptr_t GET_PACKED_ADDR_LINE()
 {
-    void* addr;
-    __asm__("1:\n mov $1b, %0" : "=r"(addr));
+    void* addr = __builtin_return_address(0);
     
     return (sizeof(void*) == BITS_PER_BYTE)
         ? (reinterpret_cast<uintptr_t>(addr) << ADDR_SHIFT_64) | __LINE__
