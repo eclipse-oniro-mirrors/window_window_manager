@@ -160,6 +160,19 @@ bool ScreenSettingHelper::GetSettingValue(uint32_t& value, const std::string& ke
     return true;
 }
 
+bool ScreenSettingHelper::GetSettingValue(uint32_t& value, const bool& key)
+{
+    SettingProvider& settingData = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    bool getValue;
+    ErrCode ret = settingData.GetBoolValue(key, getValue);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        return false;
+    }
+    value = getValue;
+    return true;
+}
+
 // LCOV_EXCL_START
 bool ScreenSettingHelper::GetSettingValue(const std::string& key, std::string& value)
 {

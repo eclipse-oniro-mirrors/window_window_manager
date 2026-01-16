@@ -40,6 +40,7 @@ public:
     static bool SetSettingValue(const std::string& key, uint32_t value);
     static bool GetSettingValue(const std::string& key, std::string& value);
     static bool SetSettingValue(const std::string& key, const std::string& value);
+    static bool GetSettingValue(const std::string& key, bool& value);
     static void RegisterSettingCastObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingCastObserver();
     static bool GetSettingCast(bool& enable, const std::string& key = SETTING_CAST_KEY);
