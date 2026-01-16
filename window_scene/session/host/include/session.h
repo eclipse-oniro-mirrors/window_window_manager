@@ -939,7 +939,7 @@ protected:
     float offsetX_ = 0.0f;
     float offsetY_ = 0.0f;
     std::atomic_bool isExitSplitOnBackground_ = false;
-    std::atomic_bool isVisible_ = false;
+    bool isVisible_ = false;
     int32_t currentRotation_ = 0;
     std::string label_;
 
