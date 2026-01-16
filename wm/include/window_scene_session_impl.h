@@ -420,6 +420,7 @@ private:
     void FillWindowLimits(WindowLimits& windowLimits, PixelUnit pixelUnit);
     void UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     void PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+    void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         MMI::PointerEvent::PointerItem& pointerItem, bool isHitTargetDraggable = false);
     void HandleEventForCompatibleMode(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
