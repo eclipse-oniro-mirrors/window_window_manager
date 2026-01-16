@@ -5499,6 +5499,7 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         }
         that.RegisterSettingRotationObserver();
         that.RegisterSettingResolutionEffectObserver();
+        that.RegisterSettingBrightnessObserver();
         if (that.defaultDpi) {
             uint32_t initDefaultDpi;
             auto ret = ScreenSettingHelper::GetSettingValue(initDefaultDpi, SET_SETTING_DPI_KEY);
@@ -5555,6 +5556,20 @@ void ScreenSessionManager::SetRotateLockedFromSettingData()
         TLOGNFI(WmsLogTag::DMS, "get islocked success");
         SetScreenRotationLockedFromJs(islocked);
     }
+}
+
+void ScreenSessionManager::RegisterSettingDualDisplayReadyObserver()
+{
+    TLOGI(WmsLogTag::DMS, "Register setting dualDisplayReady observer");
+    SettingObserver::UpdateFunc updateFunc = [this](const std::string& key) { SetIsDualDisplayReadyFromSettingData(); };
+    ScreenSettingHelper::RegisterSettingDualDisplayReadyObserver(DmUtils::wrap_callback(updateFunc));
+}
+
+void ScreenSessionManager::SetIsDualDisplayReadyFromSettingData()
+{
+    bool isDualDisplayReady;
+    ScreenSettingHelper::GetSettingBrightnessMode(isDualDisplayReady);
+    TLOGI(WmsLogTag::DMS, "isDualDisplayReady: %{public}d", isDualDisplayReady);
 }
 
 void ScreenSessionManager::RegisterSettingResolutionEffectObserver()

@@ -27,7 +27,7 @@
 
 namespace OHOS {
 namespace Rosen {
-sptr<SettingObserver> ScreenSettingHelper::dpiObserver_;
+sptr<SettingObserver> ScreenSettingHelper::dpiObserver_;  
 sptr<SettingObserver> ScreenSettingHelper::castObserver_;
 sptr<SettingObserver> ScreenSettingHelper::rotationObserver_;
 sptr<SettingObserver> ScreenSettingHelper::wireCastObserver_;
@@ -36,6 +36,7 @@ sptr<SettingObserver> ScreenSettingHelper::duringCallStateObserver_;
 sptr<SettingObserver> ScreenSettingHelper::resolutionEffectObserver_;
 sptr<SettingObserver> ScreenSettingHelper::correctionExemptionListObserver_;
 sptr<SettingObserver> ScreenSettingHelper::borderingAreaPercentObserver_;
+sptr<SettingObserver> ScreenSettingHelper::dualDisplayReadyObserver_;
 constexpr int32_t PARAM_NUM_TEN = 10;
 constexpr uint32_t EXPECT_ACTIVE_MODE_SIZE = 4;
 constexpr uint32_t EXPECT_SCREEN_MODE_SIZE = 2;
@@ -104,6 +105,46 @@ void ScreenSettingHelper::UnregisterSettingDpiObserver()
 bool ScreenSettingHelper::GetSettingDpi(uint32_t& dpi, const std::string& key)
 {
     return GetSettingValue(dpi, key);
+}
+
+void ScreenSettingHelper::RegisterSettingDualDisplayReadyObserver(SettingObserver::UpdateFunc func)
+{
+    if (dualDisplayReadyObserver_) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "setting Brightness observer is registered");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(WINDOW_MANAGER_SERVICE_ID);
+    dualDisplayReadyObserver_ = provider.CreateObserver(SETTING_DUAL_DISPLAY_READY_KEY, func);
+    if (dualDisplayReadyObserver_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "create observer failed");
+        return;
+    }
+    ErrCode ret = provider.RegisterObserver(dualDisplayReadyObserver_);
+
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret=%{public}d", ret);
+        dualDisplayReadyObserver_ = nullptr;
+    }
+}
+ 
+void ScreenSettingHelper::UnregisterSettingDualDisplayReadyObserver()
+{
+    if (dualDisplayReadyObserver_ == nullptr) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dualDisplayReadyObserver_ is nullptr");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(WINDOW_MANAGER_SERVICE_ID);
+    ErrCode ret = provider.UnregisterObserver(dualDisplayReadyObserver_);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret=%{public}d", ret);
+        return;
+    }
+    dualDisplayReadyObserver_ = nullptr;
+}
+
+bool ScreenSettingHelper::GetSettingBrightnessMode(std::bool& isDualDisplayReady, const std::string& key)
+{
+    return GetSettingValue(key, isDualDisplayReady);
 }
 
 bool ScreenSettingHelper::GetSettingValue(uint32_t& value, const std::string& key)

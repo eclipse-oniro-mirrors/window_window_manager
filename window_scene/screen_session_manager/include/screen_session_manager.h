@@ -1062,6 +1062,8 @@ private:
     void HandleScreenRotationAndBoundsWhenSetClient(sptr<ScreenSession>& screenSession);
     void HandleFoldDeviceScreenConnect(ScreenId screenId, const sptr<ScreenSession>& screenSession,
         bool phyMirrorEnable, ScreenEvent screenEvent);
+    void RegisterSettingDualDisplayReadyObserver();
+    void SetIsDualDisplayReadyFromSettingData();
 
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;

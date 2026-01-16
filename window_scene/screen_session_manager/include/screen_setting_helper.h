@@ -86,6 +86,9 @@ public:
         const std::string& key = SETTING_COMPATIBLE_APP_STRATEGY_KEY);
     static void GetCorrectionExemptionListFromJson(const std::string& exemptionListJsonStr,
         std::vector<std::string>& exemptionApps);
+    static void RegisterSettingDualDisplayReadyObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingDualDisplayReadyObserver();
+    static bool GetSettingBrightnessMode(std::bool& isDualDisplayReady, const std::string& key);
     template<typename T>
     static bool GetJsonValue(const nlohmann::json& payload, const std::string& key, T& result)
     {
@@ -122,6 +125,7 @@ private:
     static const constexpr char* SETTING_COMPATIBLE_APP_STRATEGY_KEY {"COMPATIBLE_APP_STRATEGY"};
     static const constexpr char* SETTING_SCREEN_RESOLUTION_MODE_KEY {"user_set_resolution_mode"};
     static const constexpr char* SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY {"bordering_area_percent"};
+    static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"setting.display.dual_display_ready"};
     static const constexpr uint32_t BASE_TEN = 10;
     static sptr<SettingObserver> dpiObserver_;
     static sptr<SettingObserver> castObserver_;
@@ -132,6 +136,7 @@ private:
     static sptr<SettingObserver> resolutionEffectObserver_;
     static sptr<SettingObserver> correctionExemptionListObserver_;
     static sptr<SettingObserver> borderingAreaPercentObserver_;
+    static sptr<SettingObserver> dualDisplayReadyObserver_;
 };
 } // namespace Rosen
 } // namespace OHOS
