@@ -3143,7 +3143,7 @@ HWTEST_F(WindowExtensionSessionImplTest, SendExtensionMessageToHost, TestSize.Le
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SendExtensionMessageToHost");
-    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);[Bug]: OnHostWindowDelayRaiseStateChange
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo;
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->property_->SetPersistentId(1);
