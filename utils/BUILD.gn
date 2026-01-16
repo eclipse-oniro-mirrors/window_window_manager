@@ -55,7 +55,7 @@ ohos_source_set("ui_effect_controller_common") {
   public_deps = [
     ":libwmutil_base",
   ]
-  
+
   public_external_deps = [
     "c_utils:utils",
     "graphic_2d:librender_service_client",
@@ -172,6 +172,9 @@ ohos_shared_library("libwmutil_base") {
     "src/cutout_info.cpp",
     "src/display_change_info.cpp",
     "src/display_info.cpp",
+    "src/dm_common.cpp",
+    "src/dms_global_mutex.cpp",
+    "src/load_mmi_client_adapter.cpp",
     "src/rate_limited_logger.cpp",
     "src/screen_group_info.cpp",
     "src/screen_info.cpp",
@@ -184,11 +187,9 @@ ohos_shared_library("libwmutil_base") {
     "src/window_pid_visibility_info.cpp",
     "src/window_visibility_info.cpp",
     "src/wm_common.cpp",
-    "src/dm_common.cpp",
     "src/wm_math.cpp",
     "src/wm_occlusion_region.cpp",
     "src/xml_config_base.cpp",
-    "src/dms_global_mutex.cpp",
   ]
 
   configs = [ ":libwmutil_private_config" ]
@@ -279,10 +280,10 @@ ohos_shared_library("libwmutil") {
   part_name = "window_manager"
   subsystem_name = "window"
   if (is_ohos && is_clang && target_cpu == "arm64") {
-    ldflags = [ 
-        "-Wl,--emit-relocs", 
-        "-Wl,--no-relax", 
-        "-mno-fix-cortex-a53-843419" 
+    ldflags = [
+        "-Wl,--emit-relocs",
+        "-Wl,--no-relax",
+        "-mno-fix-cortex-a53-843419"
     ]
   }
 

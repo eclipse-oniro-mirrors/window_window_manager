@@ -12,19 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #include "iremote_object_mocker.h"
-#include "ws_common.h"
-#include "mock_message_parcel.h"
 #include "mock/mock_session.h"
 #include "mock/mock_session_stage.h"
+#include "mock_message_parcel.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_interface.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_proxy.h"
 #include "session_manager/include/zidl/session_router_stack_listener_stub.h"
-#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "window_manager_agent.h"
- 
+#include "ws_common.h"
+
 using namespace testing;
 using namespace testing::ext;
 namespace OHOS {
@@ -41,15 +42,15 @@ private:
     sptr<MockIRemoteObject> iRemoteObjectMocker_ {nullptr};
     sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy_ {nullptr};
 };
- 
+
 void sceneSessionManagerLiteProxyTest::SetUpTestCase()
 {
 }
- 
+
 void sceneSessionManagerLiteProxyTest::TearDownTestCase()
 {
 }
- 
+
 void sceneSessionManagerLiteProxyTest::SetUp()
 {
     iRemoteObjectMocker_ = sptr<MockIRemoteObject>::MakeSptr();
@@ -57,14 +58,14 @@ void sceneSessionManagerLiteProxyTest::SetUp()
     sceneSessionManagerLiteProxy_ = sptr<SceneSessionManagerLiteProxy>::MakeSptr(iRemoteObjectMocker_);
     ASSERT_NE(sceneSessionManagerLiteProxy_, nullptr);
 }
- 
+
 void sceneSessionManagerLiteProxyTest::TearDown()
 {
     iRemoteObjectMocker_ = nullptr;
     sceneSessionManagerLiteProxy_ = nullptr;
     MockMessageParcel::ClearAllErrorFlag();
 }
- 
+
 namespace {
 /**
  * @tc.name: PendingSessionToBackground
@@ -420,32 +421,32 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, PendingSessionToBackgroundByPersisten
     WSError errCode =
         sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_OK);
- 
+
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
- 
+
     MockMessageParcel::SetWriteInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInt32ErrorFlag(false);
- 
+
     MockMessageParcel::SetWriteBoolErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteBoolErrorFlag(false);
- 
+
     sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy2 =
         sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
     errCode = sceneSessionManagerLiteProxy2->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
- 
+
     iRemoteObjectMocker->SetRequestResult(1);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
     iRemoteObjectMocker->SetRequestResult(0);
- 
+
     MockMessageParcel::SetReadInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     MockMessageParcel::SetReadInt32ErrorFlag(false);
@@ -468,27 +469,27 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateWindowModeByIdForUITest01, Test
     WMError errCode =
         sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_OK);
- 
+
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
- 
+
     MockMessageParcel::SetWriteInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInt32ErrorFlag(false);
- 
+
     sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy2 =
         sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
     errCode = sceneSessionManagerLiteProxy2->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_NULLPTR);
- 
+
     iRemoteObjectMocker->SetRequestResult(1);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_IPC_FAILED);
     iRemoteObjectMocker->SetRequestResult(0);
- 
+
     MockMessageParcel::SetReadInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     MockMessageParcel::SetReadInt32ErrorFlag(false);

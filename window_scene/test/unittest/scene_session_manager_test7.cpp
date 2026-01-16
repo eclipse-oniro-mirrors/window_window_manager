@@ -18,6 +18,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
@@ -334,7 +335,7 @@ HWTEST_F(SceneSessionManagerTest7, FlushUIParams03, Function | SmallTest | Level
     ssm_->FlushUIParams(screenId, std::move(uiParams));
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_EQ(false, keyboardSession->stateChanged_);
-    
+
     uiParams.clear();
     uiParams.insert(std::make_pair(1, callingSessionUIParam));
     uiParams.insert(std::make_pair(3, keyboardSessionUIParam));

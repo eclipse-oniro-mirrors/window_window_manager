@@ -17,9 +17,10 @@
 #include <ipc_types.h>
 
 #include "iremote_object_mocker.h"
+#include "pointer_event.h"
+#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_stub.h"
 #include "session_manager/include/zidl/session_router_stack_listener_stub.h"
-#include "session_manager/include/zidl/pip_change_listener_stub.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -503,7 +504,7 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetAppKeyFramePolicy, TestSize.L
     MessageParcel reply;
     int res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetAppKeyFramePolicy(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
     const std::string bundleName = "test";
     KeyFramePolicy keyFramePolicy;
     data.WriteString(bundleName);
@@ -1489,12 +1490,12 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandlePendingSessionToBackgroundByPers
     auto res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(data, reply);
     EXPECT_EQ(ERR_INVALID_DATA, res);
-    
+
     data.WriteInt32(1);
     res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(data, reply);
     EXPECT_EQ(ERR_INVALID_DATA, res);
- 
+
     MessageParcel data2;
     data2.WriteInt32(1);
     data2.WriteBool(true);

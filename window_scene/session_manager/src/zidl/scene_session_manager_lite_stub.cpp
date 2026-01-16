@@ -16,6 +16,7 @@
 #include "session_manager/include/zidl/scene_session_manager_lite_stub.h"
 
 #include "marshalling_helper.h"
+#include "pointer_event.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {

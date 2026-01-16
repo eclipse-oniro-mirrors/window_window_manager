@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 #include "common/include/window_session_property.h"
 #include "mock_window_adapter_lite.h"
+#include "pointer_event.h"
 #include "session/host/include/scene_session.h"
 #include "singleton_mocker.h"
 #include "window_manager_hilog.h"

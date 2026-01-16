@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cinttypes>
 
+#include "load_mmi_client_adapter.h"
 #include "marshalling_helper.h"
 #include "window_adapter_lite.h"
 #include "window_manager_agent_lite.h"
@@ -1580,8 +1581,7 @@ WMError WindowManagerLite::SendPointerEventForHover(const std::shared_ptr<MMI::P
     if (pointerEvent == nullptr) {
         return WMError::WM_ERROR_NULLPTR;
     }
-    bool isHoverDown = pointerEvent->GetPointerAction() == MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER &&
-        pointerEvent->GetSourceType() ==  MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
+    bool isHoverDown = LoadMMIClientAdapter() && IsHoverDown(pointerEvent);
     if (!isHoverDown) {
         TLOGE(WmsLogTag::WMS_EVENT, "pointer event is not hover down");
         return WMError::WM_ERROR_INVALID_PARAM;

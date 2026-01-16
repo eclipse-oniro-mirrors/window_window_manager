@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/scene_session_manager_lite.h"
 #include "session_manager/include/zidl/pip_change_listener_stub.h"
