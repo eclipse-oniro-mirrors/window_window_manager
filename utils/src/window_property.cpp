@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-#include "window_property.h"
-#include "window_helper.h"
-#include "wm_common.h"
 #include "pointer_event.h"
+#include "window_helper.h"
+#include "window_property.h"
+#include "wm_common.h"
 
 namespace OHOS {
 namespace Rosen {

@@ -17,9 +17,10 @@
 #define LOAD_MMI_CLIENT_ADAPTER_H
 
 #include <dlfcn.h>
-#include <unistd.h>
-#include <string>
 #include <memory>
+#include <string>
+#include <unistd.h>
+
 #include "marshalling_helper.h"
 #include "window_manager_hilog.h"
 

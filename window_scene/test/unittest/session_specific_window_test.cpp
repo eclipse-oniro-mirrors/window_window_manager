@@ -19,14 +19,14 @@
 #include "iremote_object_mocker.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
+#include "pointer_event.h"
+#include "session/host/include/main_session.h"
+#include "session/host/include/scene_session.h"
 #include "session_info.h"
 #include "session_manager.h"
 #include "session_manager/include/scene_session_manager.h"
-#include "session/host/include/scene_session.h"
-#include "session/host/include/main_session.h"
 #include "window_manager_agent.h"
 #include "zidl/window_manager_agent_interface.h"
-#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

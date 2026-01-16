@@ -17,12 +17,14 @@
 #include <bundlemgr/launcher_service.h>
 #include <gtest/gtest.h>
 #include <regex>
+
 #include "context.h"
 #include "interfaces/include/ws_common.h"
 #include "mock/mock_accesstoken_kit.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
 #include "mock/mock_ibundle_mgr.h"
+#include "pointer_event.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/main_session.h"
 #include "session_info.h"
@@ -32,7 +34,6 @@
 #include "window_manager_hilog.h"
 #include "zidl/window_manager_agent_interface.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
-#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

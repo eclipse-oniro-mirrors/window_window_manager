@@ -18,12 +18,12 @@
 #include <algorithm>
 #include <cinttypes>
 
+#include "load_mmi_client_adapter.h"
 #include "marshalling_helper.h"
 #include "window_adapter_lite.h"
 #include "window_manager_agent_lite.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
-#include "load_mmi_client_adapter.h"
 
 namespace OHOS {
 namespace Rosen {

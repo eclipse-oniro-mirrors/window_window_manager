@@ -19,19 +19,19 @@
 #include "common/include/session_permission.h"
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
+#include "mock_sub_session.h"
+#include "pointer_event.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
-#include "session/host/include/session.h"
 #include "session/host/include/main_session.h"
+#include "session/host/include/session.h"
 #include "session/host/include/system_session.h"
 #include "session/screen/include/screen_session.h"
-#include <ui/rs_surface_node.h>
 #include "window_event_channel_base.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "window_property.h"
 #include "window_session_property.h"
-#include "mock_sub_session.h"
-#include "pointer_event.h"
+#include <ui/rs_surface_node.h>
 
 using namespace testing;
 using namespace testing::ext;

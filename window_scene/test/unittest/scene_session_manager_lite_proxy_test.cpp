@@ -14,17 +14,17 @@
  */
 
 #include "iremote_object_mocker.h"
-#include "ws_common.h"
-#include "mock_message_parcel.h"
 #include "mock/mock_session.h"
 #include "mock/mock_session_stage.h"
+#include "mock_message_parcel.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_interface.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_proxy.h"
 #include "session_manager/include/zidl/session_router_stack_listener_stub.h"
-#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "window_manager_agent.h"
-#include "pointer_event.h"
+#include "ws_common.h"
 
 using namespace testing;
 using namespace testing::ext;

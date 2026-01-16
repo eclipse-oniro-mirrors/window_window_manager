@@ -17,10 +17,10 @@
 #include <ipc_types.h>
 
 #include "iremote_object_mocker.h"
+#include "pointer_event.h"
+#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_stub.h"
 #include "session_manager/include/zidl/session_router_stack_listener_stub.h"
-#include "session_manager/include/zidl/pip_change_listener_stub.h"
-#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

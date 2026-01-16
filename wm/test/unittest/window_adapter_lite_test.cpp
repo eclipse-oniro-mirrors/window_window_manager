@@ -15,10 +15,10 @@
 
 #include <gtest/gtest.h>
 #include "iremote_object_mocker.h"
+#include "pointer_event.h"
 #include "window_adapter_lite.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
-#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;

@@ -15,9 +15,9 @@
 
 #include "session_manager/include/zidl/scene_session_manager_lite_proxy.h"
 
+#include "load_mmi_client_adapter.h"
 #include "marshalling_helper.h"
 #include "window_manager_hilog.h"
-#include "load_mmi_client_adapter.h"
 
 namespace OHOS::Rosen {
 namespace {

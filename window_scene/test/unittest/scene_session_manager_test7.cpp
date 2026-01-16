@@ -18,6 +18,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
@@ -25,7 +26,6 @@
 #define private public
 #include "session/host/include/keyboard_session.h"
 #undef private
-#include "pointer_event.h"
 
 using namespace testing;
 using namespace testing::ext;
