@@ -126,7 +126,7 @@ void SceneSessionStubFuzzer01(MessageParcel& parcel)
         SceneSessionManagerMessage::TRANS_ID_SET_PROCESS_WATERMARK), parcel, reply, option);
     parcel.RewindRead(0);
     SceneSessionManager::GetInstance().OnRemoteRequest(static_cast<uint32_t>(ISceneSessionManager::
-        SceneSessionManagerMessage::TRANS_ID_SET_SCREEN_PRIVACY_WINDOW_TAG_SWITCH), parcel, reply, option);    
+        SceneSessionManagerMessage::TRANS_ID_SET_SCREEN_PRIVACY_WINDOW_TAG_SWITCH), parcel, reply, option);
 }
 
 void SceneSessionStubFuzzer02(MessageParcel& parcel)
