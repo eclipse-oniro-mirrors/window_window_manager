@@ -706,6 +706,7 @@ public:
     void SetGetAllAppUseControlMapFunc(GetAllAppUseControlMapFunc&& callback);
     void UpdateLifecyclePausedInner();
     void CalculatedStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
+    bool isRemoving_ = false;
 
     void SendPointerEventToUI(std::shared_ptr<MMI::PointerEvent> pointerEvent);
     bool SendKeyEventToUI(std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent = false);

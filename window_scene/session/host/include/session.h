@@ -176,6 +176,16 @@ class Session : public SessionStub {
 public:
     friend class HidumpController;
     using Task = std::function<void()>;
+    class SessionLifeCycleTask : public virtual RefBase {
+    public:
+        SessionLifeCycleTask(const Task& task, const std::string& name, const LifeCycleTaskType& type)
+            : task(task), name(name), type(type) {}
+        Task task;
+        const std::string name;
+        LifeCycleTaskType type;
+        std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
+        bool running = false;
+    };
     explicit Session(const SessionInfo& info);
     virtual ~Session();
     bool isKeyboardPanelEnabled_ = false;
@@ -618,6 +628,7 @@ public:
     void RemoveLifeCycleTask(const LifeCycleTaskType& taskType);
     void ClearLifeCycleTask();
     void PostLifeCycleTask(Task &&task, const std::string& name, const LifeCycleTaskType& taskType);
+    sptr<SessionLifeCycleTask> GetLastLifeCycleTask() const;
     WSError UpdateMaximizeMode(bool isMaximize);
     void NotifySessionForeground(uint32_t reason, bool withAnimation);
     void NotifySessionBackground(uint32_t reason, bool withAnimation, bool isFromInnerkits);
@@ -861,16 +872,6 @@ public:
     virtual bool IsPrelaunch() const { return false; }
 
 protected:
-    class SessionLifeCycleTask : public virtual RefBase {
-    public:
-        SessionLifeCycleTask(const Task& task, const std::string& name, const LifeCycleTaskType& type)
-            : task(task), name(name), type(type) {}
-        Task task;
-        const std::string name;
-        LifeCycleTaskType type;
-        std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
-        bool running = false;
-    };
     void GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId = 0);
     virtual void UpdateSessionState(SessionState state);
     void NotifySessionStateChange(const SessionState& state);
@@ -935,7 +936,7 @@ protected:
     std::shared_ptr<Media::PixelMap> snapshot_;
     std::atomic<bool> snapshotNeedCancel_ = false;
     sptr<ISessionStage> sessionStage_;
-    std::mutex lifeCycleTaskQueueMutex_;
+    mutable std::mutex lifeCycleTaskQueueMutex_;
     std::list<sptr<SessionLifeCycleTask>> lifeCycleTaskQueue_;
     bool isActive_ = false;
     bool isSystemActive_ = false;
