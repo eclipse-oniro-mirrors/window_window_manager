@@ -88,7 +88,8 @@ public:
         std::vector<std::string>& exemptionApps);
     static void RegisterSettingDualDisplayReadyObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingDualDisplayReadyObserver();
-    static bool GetSettingIsDualDisplayReady(bool& isDualDisplayReady, const std::string& key);
+    static bool GetSettingIsDualDisplayReady(bool& isDualDisplayReady,
+        const std::string& key = SETTING_DUAL_DISPLAY_READY_KEY);
     template<typename T>
     static bool GetJsonValue(const nlohmann::json& payload, const std::string& key, T& result)
     {
