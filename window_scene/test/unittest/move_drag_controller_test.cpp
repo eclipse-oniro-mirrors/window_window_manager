@@ -446,6 +446,36 @@ HWTEST_F(MoveDragControllerTest, EventDownInit01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: EventDownInit02
+ * @tc.desc: test function : EventDownInit
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, EventDownInit02, TestSize.Level1)
+{
+    moveDragController->InitMoveDragProperty();
+    moveDragController->winType_ = WindowType::WINDOW_TYPE_FLOAT;
+    moveDragController->moveDragProperty_.scaleX_ = 1.0;
+    moveDragController->moveDragProperty_.scaleY_ = 1.0;
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(1);
+    pointerItem.SetOriginPointerId(1);
+    pointerItem.SetWindowX(1);
+    pointerItem.SetWindowY(1);
+    pointerEvent->SetPointerId(1);
+    pointerEvent->AddPointerItem(pointerItem);
+    pointerEvent->SetButtonId(MMI::PointerEvent::MOUSE_BUTTON_LEFT);
+    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    WSRect originalRect = { 100, 100, 1000, 1000 };
+    moveDragController->parentRect_ = { 100, 100, 1000, 1000 };
+    session_->SetSessionRect(originalRect);
+    session_->SetSessionGlobalRect(originalRect);
+    auto res = moveDragController->EventDownInit(pointerEvent);
+    EXPECT_EQ(true, res);
+    EXPECT_EQ(originalRect, moveDragController->moveDragProperty_.originalRect_);
+}
+
+/**
  * @tc.name: CalcFreeformTargetRect
  * @tc.desc: test function : CalcFreeformTargetRect
  * @tc.type: FUNC
@@ -1128,6 +1158,26 @@ HWTEST_F(MoveDragControllerTest, CalcFirstMoveTargetRect002, TestSize.Level1)
     WSRect targetRect =
         moveDragController->GetTargetRect(MoveDragController::TargetRectCoordinate::RELATED_TO_START_DISPLAY);
     EXPECT_EQ(targetRect.posX_, 0);
+}
+
+/**
+ * @tc.name: CalcFirstMoveTargetRect003
+ * @tc.desc: test function : CalcFirstMoveTargetRect003
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, CalcFirstMoveTargetRect003, TestSize.Level1)
+{
+    WSRect windowRect = { 1, 2, 3, 4 };
+    moveDragController->InitMoveDragProperty();
+    moveDragController->parentRect_ = { 100, 100, 1000, 1000 };
+    moveDragController->moveDragProperty_.scaleX_ = 1.0f;
+    moveDragController->moveDragProperty_.scaleY_ = 1.0f;
+    moveDragController->winType_ = WindowType::WINDOW_TYPE_FLOAT;
+    moveDragController->moveTempProperty_ = { 1, 1, 1, 1, 1, 1, 1, 1 };
+    moveDragController->isStartMove_ = true;
+    moveDragController->isSpecifyMoveStart_ = false;
+    moveDragController->CalcFirstMoveTargetRect(windowRect, false);
+    EXPECT_EQ(windowRect, moveDragController->moveDragProperty_.originalRect_);
 }
 
 /**

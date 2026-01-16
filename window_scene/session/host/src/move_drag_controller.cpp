@@ -1292,12 +1292,27 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
     if (MathHelper::NearZero(aspectRatio_)) {
         CalcFreeformTranslateLimits(type_);
     }
-    moveDragProperty_.originalRect_.posX_ = (originalRect.posX_ - parentRect_.posX_) / moveDragProperty_.scaleX_;
-    moveDragProperty_.originalRect_.posY_ = (originalRect.posY_ - parentRect_.posY_) / moveDragProperty_.scaleY_;
+    originalRect = CalcFirstOriginalRectPos(originalRect);
+    moveDragProperty_.originalRect_.posX_ = originalRect.posX_;
+    moveDragProperty_.originalRect_.posY_ = originalRect.posY_;
     mainMoveAxis_ = AxisType::UNDEFINED;
     SetStartDragFlag(true);
     NotifyWindowInputPidChange(isStartDrag_);
     return true;
+}
+
+/** @note @window.drag */
+WSRect MoveDragController::CalcFirstOriginalRectPos(WSRect windowRect)
+{
+    WSRect originalRect;
+    if (winType_ != WindowType::WINDOW_TYPE_FLOAT) {
+        originalRect.posX_ = (windowRect.posX_ - parentRect_.posX_) / moveDragProperty_.scaleX_;
+        originalRect.posY_ = (windowRect.posY_ - parentRect_.posY_) / moveDragProperty_.scaleY_;
+    } else {
+        originalRect.posX_ = windowRect.posX_ / moveDragProperty_.scaleX_;
+        originalRect.posY_ = windowRect.posY_ / moveDragProperty_.scaleY_;
+    }
+    return originalRect;
 }
 
 /** @note @window.drag */
@@ -1615,12 +1630,9 @@ void MoveDragController::CalcFirstMoveTargetRect(const WSRect& windowRect, bool 
         return;
     }
 
-    WSRect originalRect = {
-        (windowRect.posX_ - parentRect_.posX_) / moveDragProperty_.scaleX_,
-        (windowRect.posY_ - parentRect_.posY_) / moveDragProperty_.scaleY_,
-        windowRect.width_,
-        windowRect.height_
-    };
+    WSRect originalRect = CalcFirstOriginalRectPos(windowRect);
+    originalRect.width_ = windowRect.width_;
+    originalRect.height_ = windowRect.height_;
     if (useWindowRect) {
         originalRect.posX_ = windowRect.posX_;
         originalRect.posY_ = windowRect.posY_;

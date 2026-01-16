@@ -199,6 +199,7 @@ public:
 
     void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void CalcFirstMoveTargetRect(const WSRect& windowRect, bool useWindowRect);
+    WSRect CalcFirstOriginalRectPos(WSRect windowRect);
     WSRect GetFullScreenToFloatingRect(const WSRect& originalRect, const WSRect& windowRect);
     int32_t GetOriginalPointerPosX();
     int32_t GetOriginalPointerPosY();
