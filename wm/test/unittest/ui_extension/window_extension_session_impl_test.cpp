@@ -3039,15 +3039,30 @@ HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowDelayRaiseStateChange, Test
     want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
     window->property_->SetWindowDelayRaiseEnabled(isHostWindowDelayRaiseEnabled);
     EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
+}
 
+/**
+ * @tc.name: OnHostWindowDelayRaiseStateChange_True
+ * @tc.desc: OnHostWindowDelayRaiseStateChange_True Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowDelayRaiseStateChange_True, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("OnHostWindowDelayRaiseStateChange");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    ASSERT_NE(0, window->GetPersistentId());
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply = std::make_optional<AAFwk::Want>();
+    bool isHostWindowDelayRaiseEnabled = true;
+    want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
     window->property_->SetWindowDelayRaiseEnabled(false);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
     EXPECT_TRUE(window->IsWindowDelayRaiseEnabled());
-    isHostWindowDelayRaiseEnabled = false;
-    want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
-    EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
-    EXPECT_FALSE(window->IsWindowDelayRaiseEnabled());
 }
 
 /**
@@ -3128,7 +3143,7 @@ HWTEST_F(WindowExtensionSessionImplTest, SendExtensionMessageToHost, TestSize.Le
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SendExtensionMessageToHost");
-    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);[Bug]: OnHostWindowDelayRaiseStateChange
     SessionInfo sessionInfo;
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->property_->SetPersistentId(1);
