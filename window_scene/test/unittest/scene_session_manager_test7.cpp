@@ -1436,6 +1436,23 @@ HWTEST_F(SceneSessionManagerTest7, SetSessionWatermarkForAppProcess, TestSize.Le
 }
 
 /**
+ * @tc.name: SetSessionWatermarkForAppProcess01
+ * @tc.desc: test the consistency of the pid in map and sceneSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest7, SetSessionWatermarkForAppProcess01, TestSize.Level0)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(info, nullptr);
+    sceneSession->SetCallingPid(-1);
+    ssm_->processWatermarkPidMap_.insert({ 1, "test" });
+    ASSERT_FALSE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
+    sceneSession->SetCallingPid(1);
+    ASSERT_TRUE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
+    ssm_->processWatermarkPidMap_.erase(1);
+}
+
+/**
  * @tc.name: CloseTargetFloatWindow
  * @tc.desc: SceneSesionManager CloseTargetFloatWindow
  * @tc.type: FUNC
