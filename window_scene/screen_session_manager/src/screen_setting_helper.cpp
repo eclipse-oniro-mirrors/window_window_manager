@@ -142,7 +142,7 @@ void ScreenSettingHelper::UnregisterSettingDualDisplayReadyObserver()
     dualDisplayReadyObserver_ = nullptr;
 }
 
-bool ScreenSettingHelper::GetSettingBrightnessMode(std::bool& isDualDisplayReady, const std::string& key)
+bool ScreenSettingHelper::GetSettingIsDualDisplayReady(bool& isDualDisplayReady, const std::string& key)
 {
     return GetSettingValue(key, isDualDisplayReady);
 }
