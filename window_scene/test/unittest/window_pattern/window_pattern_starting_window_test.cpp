@@ -611,6 +611,28 @@ HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidPi
 }
 
 /**
+ * @tc.name: EraseSceneSessionMapById
+ * @tc.desc: release preload starting window when EraseSceneSessionMapById
+ * @tc.type: FUNC
+ */
+HETEST_F(WindowPatternStartingWindowTest, EraseSceneSessionMapById, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' + sessionInfo.abilityName_;
+    ssm_->EraseSceneSessionMapById(0);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.insert({sceneSession->GetPersistentId(), sceneSession});
+    ASSERT_NE(nullptr, ssm_->GetSceneSession(sceneSession->GetPersistentId()));
+    ssm_->EraseSceneSessionMapById(sceneSession->GetPersistentId());
+    ASSERT_EQ(nullptr, ssm_->GetSceneSession(sceneSession->GetPersistentId()));
+}
+
+/**
  * @tc.name: CheckAndGetPreLoadResourceId
  * @tc.desc: CheckAndGetPreLoadResourceId
  * @tc.type: FUNC
