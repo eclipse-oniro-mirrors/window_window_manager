@@ -4071,7 +4071,7 @@ void SceneSession::InitializeCrossMoveDrag()
     }
     auto originalPositionZ = movedSurfaceNode->GetStagingProperties().GetPositionZ();
     moveDragController_->SetOriginalPositionZ(originalPositionZ);
-    moveDragController_->InitCrossDisplayProperty(property->GetDisplayId(), parentNode->GetId());
+    moveDragController_->InitCrossDisplayProperty(property->GetDisplayId());
 }
 
 /** @note @window.drag */
@@ -6012,6 +6012,10 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
     info.isFoundationCall_ = isFoundationCall;
     info.specifiedFlag_ = abilitySessionInfo->specifiedFlag;
     info.reuseDelegatorWindow = abilitySessionInfo->reuseDelegatorWindow;
+    info.isTargetPlugin = abilitySessionInfo->isTargetPlugin;
+    info.hostBundleName = abilitySessionInfo->hostBundleName;
+    info.hostAppIndex = session->GetSessionInfo().appIndex_;
+    info.hostAppInstanceKey = session->GetAppInstanceKey();
     if (session->IsPcOrPadEnableActivation()) {
         info.startWindowOption = abilitySessionInfo->startWindowOption;
         int32_t maxWindowWidth = abilitySessionInfo->want.GetIntParam(AAFwk::Want::PARAM_RESV_MAX_WINDOW_WIDTH, 0);
@@ -6059,14 +6063,16 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         "needClearInNotShowRecent:%{public}u, appInstanceKey: %{public}s,"
         "supportedWindowModes.size:%{public}zu, requestId:%{public}d,"
         "maxWindowWidth:%{public}d, minWindowWidth:%{public}d, maxWindowHeight:%{public}d, minWindowHeight:%{public}d,"
-        "reuseDelegatorWindow:%{public}d, startWindowType:%{public}d, isPrelaunch:%{public}d, frameNum:%{public}d",
+        "reuseDelegatorWindow:%{public}d, startWindowType:%{public}d, isPrelaunch:%{public}d, frameNum:%{public}d,"
+        "isTargetPlugin:%{public}d, hostBundleName:%{public}s",
         info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(), info.appIndex_,
         info.sessionAffinity.c_str(), info.callState_, info.persistentId_, info.uiAbilityId_, info.windowMode,
         info.callerPersistentId_, info.needClearInNotShowRecent_, info.appInstanceKey_.c_str(),
         info.supportedWindowModes.size(), info.requestId,
         info.windowSizeLimits.maxWindowWidth, info.windowSizeLimits.minWindowWidth,
         info.windowSizeLimits.maxWindowHeight, info.windowSizeLimits.minWindowHeight,
-        info.reuseDelegatorWindow, info.startWindowType_, info.isPrelaunch_, info.frameNum_);
+        info.reuseDelegatorWindow, info.startWindowType_, info.isPrelaunch_, info.frameNum_,
+        info.isTargetPlugin, info.hostBundleName.c_str());
     return info;
 }
 
@@ -8559,7 +8565,7 @@ WSError SceneSession::SetFollowParentWindowLayoutEnabled(bool isFollow)
         TLOGI(WmsLogTag::WMS_SUB, "not support device");
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
-    PostTask([weakThis = wptr(this), isFollow = isFollow,  where = __func__] {
+    PostTask([weakThis = wptr(this), isFollow,  where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s session is null", where);
@@ -9218,8 +9224,11 @@ std::unordered_set<int32_t> SceneSession::GetFingerPointerDownStatusList() const
 
 void SceneSession::UpdateAllModalUIExtensions(const WSRect& globalRect)
 {
-    if (modalUIExtensionInfoList_.empty()) {
-        return;
+    {
+        std::unique_lock<std::shared_mutex> lock(modalUIExtensionInfoListMutex_);
+        if (modalUIExtensionInfoList_.empty()) {
+            return;
+        }
     }
     PostTask([weakThis = wptr(this), where = __func__, globalRect] {
         auto session = weakThis.promote();
@@ -10054,7 +10063,7 @@ WSError SceneSession::SetSubWindowSource(SubWindowSource source)
         TLOGE(WmsLogTag::WMS_SUB, "only sub window and dialog is valid");
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
-    PostTask([weakThis = wptr(this), source = source, where = __func__] {
+    PostTask([weakThis = wptr(this), source, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s session is null", where);

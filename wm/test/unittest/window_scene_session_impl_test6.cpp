@@ -949,6 +949,30 @@ HWTEST_F(WindowSceneSessionImplTest6, ModifySidebarBlurProperty10, TestSize.Leve
     EXPECT_NEAR(SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
     EXPECT_EQ(SIDEBAR_DEFAULT_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
 }
+
+/**
+ * @tc.name: maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen
+ * @tc.desc: maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = {"CreateTestBundle", "CreateTestModule", "CreateTestAbility"};
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowName("maximizeTest");
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetWindowModeSupportType(1);
+    window->state_ = WindowState::STATE_SHOWN;
+    maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
+    EXPECT_EQ(window->IsLayoutFullScreen(), true);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

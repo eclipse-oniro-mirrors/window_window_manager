@@ -5999,7 +5999,7 @@ void ScreenSessionManager::CheckAttributeChange(sptr<DisplayInfo> displayInfo)
         TLOGNFW(WmsLogTag::DMS, "No attribute changed");
         return;
     }
-    TLOGNFI(WmsLogTag::DMS, "has %{public}d attributes changed", (int32_t)attributes.size());
+    TLOGD(WmsLogTag::DMS, "has %{public}d attributes changed", (int32_t)attributes.size());
 
     std::ostringstream oss;
     oss << "current changed attributes:[";
@@ -6882,7 +6882,6 @@ DMError ScreenSessionManager::DestroyVirtualScreen(ScreenId screenId, bool isCal
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:DestroyVirtualScreen(%" PRIu64")", screenId);
     auto screen = GetScreenSession(screenId);
     if (rsScreenId != SCREEN_ID_INVALID && screen != nullptr) {
-        NotifyDisplayDestroy(screenId);
         {
             std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
             auto screenGroup = RemoveFromGroupLocked(screen);
@@ -6892,6 +6891,7 @@ DMError ScreenSessionManager::DestroyVirtualScreen(ScreenId screenId, bool isCal
             screenSessionMap_.erase(screenId);
         }
         RemoveScreenCastInfo(screenId);
+        NotifyDisplayDestroy(screenId);
         NotifyScreenDisconnected(screenId);
         if (auto clientProxy = GetClientProxy()) {
             clientProxy->OnVirtualScreenDisconnected(rsScreenId);
@@ -8160,7 +8160,7 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetScreenSnapshot(Display
         }
         realDisplayId = 0;
     }
-    TLOGNW(WmsLogTag::DMS, "dma=%{public}d, displayId:%{public}" PRIu64, isUseDma, realDisplayId);
+    TLOGNFW(WmsLogTag::DMS, "dma=%{public}d, displayId:%{public}" PRIu64, isUseDma, realDisplayId);
     std::shared_ptr<RSDisplayNode> displayNode = GetDisplayNodeByDisplayId(realDisplayId);
     if (displayNode == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "displayNode is null!");
@@ -8368,7 +8368,7 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshotWithOpt
             if (SessionPermission::IsBetaVersion()) {
                 CheckAndSendHiSysEvent("GET_DISPLAY_SNAPSHOT", "hmos.screenshot");
             }
-            TLOGNI(WmsLogTag::DMS, "isNeedNotify_:%{public}d", option.isNeedNotify_);
+            TLOGNFI(WmsLogTag::DMS, "isNeedNotify_:%{public}d", option.isNeedNotify_);
             if (option.isNeedNotify_) {
                 isScreenShot_ = true;
                 NotifyScreenshot(option.displayId_);
@@ -11124,10 +11124,12 @@ void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, D
     if (area.width_ != lastDisplayInfo->GetAvailableWidth()) {
         TLOGD(WmsLogTag::DMS, "AvailableWidth changed");
         attributes.push_back("availableWidth");
+        lastDisplayInfo->SetAvailableWidth(area.width_);
     }
     if (area.height_ != lastDisplayInfo->GetAvailableHeight()) {
         TLOGD(WmsLogTag::DMS, "AvailableHeight changed");
         attributes.push_back("availableHeight");
+        lastDisplayInfo->SetAvailableHeight(area.height_);
     }
     
     if (attributes.empty()) {
@@ -11391,11 +11393,49 @@ DMError ScreenSessionManager::ProxyForFreeze(const std::set<int32_t>& pidList, b
     return DMError::DM_OK;
 }
 
+void ScreenSessionManager::NotifyUnfreezedAttributeAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
+    const sptr<ScreenSession>& screenSession)
+{
+    auto attributeAgentsMap = ScreenSessionManagerAdapter::GetInstance().dmAttributeAgentContainer_.GetAttributeAgentsMap();
+    for (auto& it : attributeAgentsMap) {
+        auto agent = it.second.first;
+        int32_t agentPid = ScreenSessionManagerAdapter::GetInstance().dmAttributeAgentContainer_.GetAgentPid(agent);
+        if (agent == nullptr|| agentPid != pid || unfreezedPidList.count(pid) == 0) {
+            continue;
+        }
+        auto displayInfo = screenSession->ConvertToDisplayInfo();
+        if (displayInfo == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "DisplayInfo is nullptr");
+            continue;
+        }
+        std::vector<std::string> attributes;
+        DisplayId displayId = displayInfo->GetDisplayId();
+        sptr<DisplayInfo> lastDisplayInfo = new DisplayInfo();
+        if (lastDisplayInfo == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "LastDisplayInfo of displayId: %{public}" PRIu64 "is nullptr", displayId);
+            continue;
+        }
+        GetChangedListenableAttribute(lastDisplayInfo, displayInfo, attributes);
+        if (attributes.empty()) {
+            TLOGNFW(WmsLogTag::DMS, "No attribute changed");
+            continue;
+        }
+        agent->OnDisplayAttributeChange(displayInfo, attributes);
+        std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
+        lastDisplayInfoMap_[displayId] = displayInfo;
+    }
+    pidAgentTypeMap_[pid].erase(DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER);
+}
+
 void ScreenSessionManager::NotifyUnfreezedAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
     const std::set<DisplayManagerAgentType>& pidAgentTypes, const sptr<ScreenSession>& screenSession)
 {
     bool isAgentTypeNotify = false;
     for (auto agentType : pidAgentTypes) {
+        if (agentType == DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER) {
+            NotifyUnfreezedAttributeAgents(pid, unfreezedPidList, screenSession);
+            continue;
+        }
         auto agents = ScreenSessionManagerAdapter::GetInstance().dmAgentContainer_.GetAgentsByType(agentType);
         for (auto agent : agents) {
             int32_t agentPid = ScreenSessionManagerAdapter::GetInstance().dmAgentContainer_.GetAgentPid(agent);
@@ -11684,6 +11724,7 @@ DMError ScreenSessionManager::GetDisplayCapability(std::string& capabilitInfo)
     nlohmann::ordered_json capabilityInfo = GetCapabilityJson(FoldStatus::UNKNOWN, FoldDisplayMode::UNKNOWN,
         ROTATION_DEFAULT, orientation);
     jsonDisplayCapabilityList["capability"].push_back(std::move(capabilityInfo));
+    jsonDisplayCapabilityList["foldScreenType"] = g_foldScreenType;
 
     capabilitInfo = jsonDisplayCapabilityList.dump();
     return DMError::DM_OK;
@@ -11710,6 +11751,7 @@ DMError ScreenSessionManager::GetSecondaryDisplayCapability(std::string& capabil
     nlohmann::ordered_json gCapability = GetCapabilityJson(FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_EXPAND,
         FoldDisplayMode::FULL, ROTATION_DEFAULT, orientation);
     jsonDisplayCapabilityList["capability"].push_back(std::move(gCapability));
+    jsonDisplayCapabilityList["foldScreenType"] = g_foldScreenType;
 #ifdef FOLD_ABILITY_ENABLE
     if (foldScreenController_) {
         nlohmann::ordered_json foldCreaseRegion = foldScreenController_->GetFoldCreaseRegionJson();
@@ -11743,6 +11785,7 @@ DMError ScreenSessionManager::GetFoldableDeviceCapability(std::string& capabilit
     nlohmann::ordered_json foldCapabilityInfo = GetCapabilityJson(foldStatus, foldDisplayMode,
         ROTATION_DEFAULT, ORIENTATION_DEFAULT);
     jsonDisplayCapabilityList["capability"].push_back(std::move(foldCapabilityInfo));
+    jsonDisplayCapabilityList["foldScreenType"] = g_foldScreenType;
 #ifdef FOLD_ABILITY_ENABLE
     if (foldScreenController_) {
         nlohmann::ordered_json foldCreaseRegion = foldScreenController_->GetFoldCreaseRegionJson();
@@ -11768,6 +11811,7 @@ DMError ScreenSessionManager::GetSuperFoldCapability(std::string& capabilitInfo)
     nlohmann::ordered_json halfFoldCapabilityInfo = GetCapabilityJson(FoldStatus::HALF_FOLD, FoldDisplayMode::UNKNOWN,
         ROTATION_DEFAULT, ORIENTATION_DEFAULT);
     jsonDisplayCapabilityList["capability"].push_back(std::move(halfFoldCapabilityInfo));
+    jsonDisplayCapabilityList["foldScreenType"] = g_foldScreenType;
 #ifdef FOLD_ABILITY_ENABLE
     nlohmann::ordered_json foldCreaseRegion = SuperFoldStateManager::GetInstance().GetFoldCreaseRegionJson();
     jsonDisplayCapabilityList["allCreaseRegion"] = foldCreaseRegion;

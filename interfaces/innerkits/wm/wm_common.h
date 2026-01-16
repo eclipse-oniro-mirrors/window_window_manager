@@ -2013,7 +2013,7 @@ struct WindowLimits {
         };
     }
 
-    bool IsUninitialized() const
+    bool IsDefault() const
     {
         return (maxWidth_ == static_cast<uint32_t>(INT32_MAX) &&
                 maxHeight_ == static_cast<uint32_t>(INT32_MAX) &&

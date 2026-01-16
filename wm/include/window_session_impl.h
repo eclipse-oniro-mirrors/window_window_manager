@@ -725,6 +725,8 @@ protected:
         isHiddenFollowingUIExtension_ = isHiddenFollowingUIExtension;
     }
     bool IsHiddenFollowingUIExtension() { return isHiddenFollowingUIExtension_; }
+    std::mutex hostWindowRectChangeListenerMutex_;
+    std::mutex hostRectChangeInGlobalDisplayListenerMutex_;
 
     /*
      * Sub Window
@@ -793,6 +795,7 @@ protected:
      */
     float compatScaleX_ = 1.0f;
     float compatScaleY_ = 1.0f;
+    mutable std::mutex compatScaleListenerMutex_;
     std::atomic_bool isFullScreenInForceSplit_ { false };
     std::vector<sptr<IUIContentCreateListener>> uiContentCreateListeners_;
 

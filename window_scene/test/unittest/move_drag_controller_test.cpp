@@ -152,17 +152,6 @@ HWTEST_F(MoveDragControllerTest, GetMoveDragEndDisplayId, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetInitParentNodeId
- * @tc.desc: test function : GetInitParentNodeId
- * @tc.type: FUNC
- */
-HWTEST_F(MoveDragControllerTest, GetInitParentNodeId, TestSize.Level1)
-{
-    uint64_t res = moveDragController->GetInitParentNodeId();
-    EXPECT_EQ(-1ULL, res);
-}
-
-/**
  * @tc.name: GetDisplayIdsDuringMoveDrag
  * @tc.desc: test function : GetDisplayIdsDuringMoveDrag
  * @tc.type: FUNC
@@ -203,9 +192,8 @@ HWTEST_F(MoveDragControllerTest, GetTargetRect, TestSize.Level1)
  */
 HWTEST_F(MoveDragControllerTest, InitCrossDisplayProperty, TestSize.Level0)
 {
-    moveDragController->InitCrossDisplayProperty(1, 2);
+    moveDragController->InitCrossDisplayProperty(1);
     ASSERT_EQ(1, moveDragController->GetMoveDragStartDisplayId());
-    ASSERT_EQ(2, moveDragController->GetInitParentNodeId());
     ASSERT_EQ(true,
               moveDragController->GetDisplayIdsDuringMoveDrag().find(1) !=
                   moveDragController->GetDisplayIdsDuringMoveDrag().end());
@@ -214,9 +202,8 @@ HWTEST_F(MoveDragControllerTest, InitCrossDisplayProperty, TestSize.Level0)
     sptr<ScreenSession> screenSession =
         sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
-    moveDragController->InitCrossDisplayProperty(1, 2);
+    moveDragController->InitCrossDisplayProperty(1);
     ASSERT_EQ(1, moveDragController->GetMoveDragStartDisplayId());
-    ASSERT_EQ(2, moveDragController->GetInitParentNodeId());
     ASSERT_EQ(true,
               moveDragController->GetDisplayIdsDuringMoveDrag().find(1) !=
                   moveDragController->GetDisplayIdsDuringMoveDrag().end());
@@ -1590,17 +1577,6 @@ HWTEST_F(MoveDragControllerTest, UpdateMoveAvailableArea, TestSize.Level1)
     ScreenSessionManagerClient::GetInstance().OnScreenConnectionChanged(option, screenEvent);
     moveDragController->UpdateMoveAvailableArea(0);
     EXPECT_EQ(moveDragController->moveAvailableArea_.posX_, 0);
-}
-
-/**
- * @tc.name: GetMoveInputBarStartDisplayId
- * @tc.desc: test function : GetMoveInputBarStartDisplayId
- * @tc.type: FUNC
- */
-HWTEST_F(MoveDragControllerTest, GetMoveInputBarStartDisplayId, TestSize.Level1)
-{
-    auto ret = moveDragController->GetMoveInputBarStartDisplayId();
-    EXPECT_EQ(moveDragController->moveInputBarStartDisplayId_, ret);
 }
 
 /**

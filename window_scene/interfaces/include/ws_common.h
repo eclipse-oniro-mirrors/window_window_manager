@@ -473,6 +473,10 @@ struct SessionInfo {
     int32_t scenarios = 0;
     bool isPrelaunch_ = false;
     int32_t frameNum_ = 0;
+    bool isTargetPlugin = false;
+    std::string hostBundleName = "";
+    int32_t hostAppIndex = 0;
+    std::string hostAppInstanceKey = "";
 
     /*
      * Keyboard

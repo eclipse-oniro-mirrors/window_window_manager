@@ -663,20 +663,15 @@ HWTEST_F(WindowSceneSessionImplTest4, IsInMappingRegionForCompatibleMode, TestSi
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSessionImpl->property_->SetPersistentId(1);
     windowSceneSessionImpl->hostSession_ = session;
-    windowSceneSessionImpl->property_->SetWindowRect({ 880, 0, 800, 1600 });
+    windowSceneSessionImpl->globalScaledRect_ = { 880, 0, 800, 1600 };
     int32_t displayX = 400;
     int32_t displayY = 400;
-    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     bool ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(true, ret);
     displayX = 1000;
     displayY = 1000;
-    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(false, ret);
-    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
-    ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
-    EXPECT_EQ(true, ret);
 }
 
 /**

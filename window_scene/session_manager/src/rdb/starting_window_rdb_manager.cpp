@@ -183,7 +183,7 @@ bool StartingWindowRdbManager::InsertData(const StartingWindowRdbItemKey& key, c
     auto valuesBucket = BuildValuesBucket(key, value);
     auto ret = rdbStore->InsertWithConflictResolution(
         rowId, wmsRdbConfig_.tableName, valuesBucket, NativeRdb::ConflictResolution::ON_CONFLICT_REPLACE);
-    WindowInfoReporter::GetInstance().ReportWindowIO("PATTERN", "starting_window_config.db",
+    WindowInfoReporter::GetInstance().ReportWindowIO("starting_window_config.db",
         sizeof(valuesBucket) / KILOBYTE);
     return CheckRdbResult(ret);
 }
@@ -202,7 +202,7 @@ bool StartingWindowRdbManager::BatchInsert(int64_t& outInsertNum,
         valuesBuckets.emplace_back(valuesBucket);
     }
     auto ret = rdbStore->BatchInsert(outInsertNum, wmsRdbConfig_.tableName, valuesBuckets);
-    WindowInfoReporter::GetInstance().ReportWindowIO("PATTERN", "starting_window_config.db",
+    WindowInfoReporter::GetInstance().ReportWindowIO("starting_window_config.db",
         sizeof(valuesBuckets) / KILOBYTE);
     return CheckRdbResult(ret);
 }

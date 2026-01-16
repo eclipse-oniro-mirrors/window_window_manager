@@ -184,7 +184,7 @@ bool ScreenSessionManagerAdapter::NotifyDisplayPowerEvent(DisplayPowerEvent even
         TLOGE(WmsLogTag::DMS, "agent is null");
         return false;
     }
-    TLOGI(WmsLogTag::DMS, "Received Display Power Event: %{public}d", static_cast<int>(event));
+    TLOGNFI(WmsLogTag::DMS, "Received Display Power Event: %{public}d", static_cast<int>(event));
     for (auto& agent : agents) {
         agent->NotifyDisplayPowerEvent(event, status);
     }
@@ -199,7 +199,7 @@ bool ScreenSessionManagerAdapter::NotifyDisplayStateChanged(DisplayId id, Displa
         TLOGE(WmsLogTag::DMS, "agent is null");
         return false;
     }
-    TLOGI(WmsLogTag::DMS,
+    TLOGNFI(WmsLogTag::DMS,
         "Display State Changed: ID=%{public}d State=%{public}d",
         static_cast<uint32_t>(id), static_cast<uint32_t>(state));
     for (auto& agent : agents) {
@@ -216,7 +216,7 @@ void ScreenSessionManagerAdapter::OnDisplayCreate(sptr<DisplayInfo> displayInfo)
         return;
     }
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_EVENT_LISTENER);
-    TLOGI(WmsLogTag::DMS, "start, agent size: %{public}u", static_cast<uint32_t>(agents.size()));
+    TLOGNFI(WmsLogTag::DMS, "start, agent size: %{public}u", static_cast<uint32_t>(agents.size()));
     if (agents.empty()) {
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
@@ -233,7 +233,7 @@ void ScreenSessionManagerAdapter::OnDisplayDestroy(DisplayId displayId)
 {
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_EVENT_LISTENER);
-    TLOGI(WmsLogTag::DMS, "agent size: %{public}u", static_cast<uint32_t>(agents.size()));
+    TLOGNFI(WmsLogTag::DMS, "agent size: %{public}u", static_cast<uint32_t>(agents.size()));
     if (agents.empty()) {
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
@@ -255,7 +255,7 @@ void ScreenSessionManagerAdapter::NotifyPrivateWindowStateChanged(bool hasPrivat
         return;
     }
 
-    TLOGI(WmsLogTag::DMS, "Private Window Status: %s", hasPrivate ? "Active" : "Inactive");
+    TLOGNFI(WmsLogTag::DMS, "Private Window Status: %s", hasPrivate ? "Active" : "Inactive");
     for (auto& agent : agents) {
         agent->NotifyPrivateWindowStateChanged(hasPrivate);
     }
@@ -308,7 +308,7 @@ void ScreenSessionManagerAdapter::OnScreenConnect(const sptr<ScreenInfo> screenI
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
-    TLOGI(WmsLogTag::DMS, "start");
+    TLOGNFI(WmsLogTag::DMS, "start");
     for (auto& agent : agents) {
         agent->OnScreenConnect(screenInfo);
     }
@@ -322,7 +322,7 @@ void ScreenSessionManagerAdapter::OnScreenDisconnect(ScreenId screenId)
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
-    TLOGI(WmsLogTag::DMS, "start");
+    TLOGNFI(WmsLogTag::DMS, "start");
     for (auto& agent : agents) {
         agent->OnScreenDisconnect(screenId);
     }
@@ -402,8 +402,8 @@ void ScreenSessionManagerAdapter::NotifyDisplayModeChanged(FoldDisplayMode displ
 {
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_MODE_CHANGED_LISTENER);
-    TLOGI(WmsLogTag::DMS,
-          "DisplayMode:%{public}d, agent size: %{public}u", displayMode, static_cast<uint32_t>(agents.size()));
+    TLOGNFI(WmsLogTag::DMS,
+        "DisplayMode:%{public}d, agent size: %{public}u", displayMode, static_cast<uint32_t>(agents.size()));
     if (agents.empty()) {
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
@@ -429,7 +429,7 @@ void ScreenSessionManagerAdapter::OnScreenshot(sptr<ScreenshotInfo> info)
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
-    TLOGI(WmsLogTag::DMS, "start");
+    TLOGNFI(WmsLogTag::DMS, "start");
     for (auto& agent : agents) {
         agent->OnScreenshot(info);
     }
@@ -439,8 +439,8 @@ void ScreenSessionManagerAdapter::NotifyFoldStatusChanged(FoldStatus foldStatus)
 {
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::FOLD_STATUS_CHANGED_LISTENER);
-    TLOGI(WmsLogTag::DMS,
-          "foldStatus:%{public}d, agent size: %{public}u", foldStatus, static_cast<uint32_t>(agents.size()));
+    TLOGNFI(WmsLogTag::DMS,
+        "foldStatus:%{public}d, agent size: %{public}u", foldStatus, static_cast<uint32_t>(agents.size()));
     if (agents.empty()) {
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
@@ -457,7 +457,7 @@ void ScreenSessionManagerAdapter::NotifyFoldStatusChanged(FoldStatus foldStatus)
 void ScreenSessionManagerAdapter::NotifyScreenMagneticStateChanged(bool isMagneticState)
 {
     INIT_PROXY_CHECK_RETURN();
-    TLOGI(WmsLogTag::DMS, "IsScreenMagneticState:%{public}u", static_cast<uint32_t>(isMagneticState));
+    TLOGNFI(WmsLogTag::DMS, "IsScreenMagneticState:%{public}u", static_cast<uint32_t>(isMagneticState));
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::SCREEN_MAGNETIC_STATE_CHANGED_LISTENER);
     if (agents.empty()) {
         TLOGE(WmsLogTag::DMS, "NotifyScreenMagneticStateChanged agent is null");
@@ -476,12 +476,12 @@ void ScreenSessionManagerAdapter::NotifyAvailableAreaChanged(DMRect area, Displa
 {
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::AVAILABLE_AREA_CHANGED_LISTENER);
-    TLOGI(WmsLogTag::DMS, "entry, agent size: %{public}u", static_cast<uint32_t>(agents.size()));
+    TLOGNFI(WmsLogTag::DMS, "entry, agent size: %{public}u", static_cast<uint32_t>(agents.size()));
     if (agents.empty()) {
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
-    TLOGI(WmsLogTag::DMS,
+    TLOGNFI(WmsLogTag::DMS,
           "displayId: %{public}" PRIu64 ", AvailableArea: [%{public}d, %{public}d, %{public}u, %{public}u]",
           static_cast<DisplayId>(displayId), area.posX_, area.posY_, area.width_, area.height_);
     for (auto& agent : agents) {

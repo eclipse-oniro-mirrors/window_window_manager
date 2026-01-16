@@ -105,6 +105,8 @@ private:
 using FullInfoMap = std::map<std::string, std::map<std::string, uint32_t>>;
 // the map form : <bundleName, count>
 using BundleNameMap = std::map<std::string, uint32_t>;
+// This defines a duration whose period is one day, using long long as the underlying representation.
+using days = std::chrono::duration<long long, std::ratio<86400>>; // 86400 represents the number of seconds in a day
 class WindowInfoReporter {
 WM_DECLARE_SINGLE_INSTANCE(WindowInfoReporter);
 
@@ -133,7 +135,7 @@ public:
     int32_t ReportSpecWindowLifeCycleChange(WindowLifeCycleReportInfo reportInfo);
 
     // IO record
-    void ReportWindowIO(const std::string& scenes, const std::string& subScene, double sizeKB);
+    void ReportWindowIO(const std::string& subScene, double sizeKB);
 
 private:
     void UpdateReportInfo(FullInfoMap& infoMap, const std::string& bundleName,
@@ -159,9 +161,10 @@ private:
 
     // IO record
     std::mutex reportWindowIOMutex_;
-    std::unordered_map<std::string, std::unordered_map<std::string, double>> ioRecordMap_;
+    std::unordered_map<std::string, double> ioRecordMap_;
     bool firstIOTimeInitialized_ = false;
-    std::chrono::steady_clock::time_point firstIOTime_;
+    std::chrono::time_point<std::chrono::system_clock, days> firstIODayTime_;
+    std::chrono::time_point<std::chrono::system_clock> firstIOSecondTime_;
 };
 }
 }
