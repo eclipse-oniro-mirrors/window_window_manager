@@ -794,7 +794,7 @@ protected:
      */
     float compatScaleX_ = 1.0f;
     float compatScaleY_ = 1.0f;
-    std::mutex compatScaleListenerMutex_;
+    mutable std::mutex compatScaleListenerMutex_;
     std::atomic_bool isFullScreenInForceSplit_ { false };
     std::vector<sptr<IUIContentCreateListener>> uiContentCreateListeners_;
 

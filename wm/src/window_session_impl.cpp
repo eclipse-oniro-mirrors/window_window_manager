@@ -810,11 +810,9 @@ WMError WindowSessionImpl::GetWindowScaleCoordinate(uint32_t windowId, CursorInf
     if (WindowHelper::IsUIExtensionWindow(windowType)) {
         windowRect = window->GetHostWindowRect(windowId);
     }
-    {
-        std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
-        float scaleX = window->compatScaleX_;
-        float scaleY = window->compatScaleY_;
-    }
+    std::lock_guard<std::mutex> lockListener(window->compatScaleListenerMutex_);
+    float scaleX = window->compatScaleX_;
+    float scaleY = window->compatScaleY_;
     int32_t cursorX = cursorInfo.left - windowRect.posX_;
     int32_t cursorY = cursorInfo.top - windowRect.posY_;
     // 2: x scale computational formula
@@ -8523,16 +8521,14 @@ WMError WindowSessionImpl::UpdateCompatScaleInfo(const Transform& transform)
         TLOGD(WmsLogTag::WMS_COMPAT, "id:%{public}d not scale mode", GetPersistentId());
         return WMError::WM_DO_NOTHING;
     }
-    {
-        std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
-        compatScaleX_ = transform.scaleX_;
-        compatScaleY_ = transform.scaleY_;
-        AAFwk::Want want;
-        want.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, IsAdaptToSimulationScale());
-        want.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, IsAdaptToProportionalScale());
-        want.SetParam(Extension::COMPAT_SCALE_X_FIELD, compatScaleX_);
-        want.SetParam(Extension::COMPAT_SCALE_Y_FIELD, compatScaleY_);
-    }
+    std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
+    compatScaleX_ = transform.scaleX_;
+    compatScaleY_ = transform.scaleY_;
+    AAFwk::Want want;
+    want.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, IsAdaptToSimulationScale());
+    want.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, IsAdaptToProportionalScale());
+    want.SetParam(Extension::COMPAT_SCALE_X_FIELD, compatScaleX_);
+    want.SetParam(Extension::COMPAT_SCALE_Y_FIELD, compatScaleY_);
     NotifyTitleChange(true, 0);
     if (auto uiContent = GetUIContentSharedPtr()) {
         uiContent->SendUIExtProprty(static_cast<uint32_t>(Extension::Businesscode::SYNC_COMPAT_INFO),
