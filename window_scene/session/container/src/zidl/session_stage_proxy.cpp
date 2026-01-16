@@ -2220,7 +2220,7 @@ RotationChangeResult SessionStageProxy::NotifyRotationChange(const RotationChang
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option(MessageOption::TF_SYNC);
+    MessageOption option(MessageOption::TF_ASYNC);
     RotationChangeResult rotationChangeResult = { RectType::RELATIVE_TO_SCREEN, { 0, 0, 0, 0, } };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
