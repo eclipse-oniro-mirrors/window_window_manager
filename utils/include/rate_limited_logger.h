@@ -108,10 +108,11 @@ public:
 static inline uintptr_t GET_PACKED_ADDR_LINE()
 {
     void* addr = __builtin_return_address(0);
+    uintptr_t addr_int = reinterpret_cast<uintptr_t>(addr);
     
     return (sizeof(void*) == BITS_PER_BYTE)
-        ? (reinterpret_cast<uintptr_t>(addr) << ADDR_SHIFT_64) | __LINE__
-        : ((reinterpret_cast<uintptr_t>(addr) & ADDR_MASK_32) << LINE_SHIFT_16) | (__LINE__ & ADDR_MASK_32);
+        ? (addr_int << ADDR_SHIFT_64) | (__LINE__ & ADDR_MASK_32)
+        : ((addr_int & ADDR_MASK_32) << LINE_SHIFT_16) | (__LINE__ & ADDR_MASK_32);
 }
 
 /**
