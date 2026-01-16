@@ -300,7 +300,7 @@ HWTEST_F(RateLimitedLoggerTest, ShouldHandleMultipleFunctionsWithRapidCalls, Tes
 HWTEST_F(RateLimitedLoggerTest, ShouldHandleLongfunctionAddress, TestSize.Level1)
 {
     // Given - Very long function name
-    std::uintptr_t functionAddress = 0xFFFFFFFFFFFFFFFFULL;
+    std::uintptr_t functionAddress = 0xFFFFFFFFUL;
     uint32_t timeWindowMs = 1000;
     uint32_t maxCount = 2;
     
