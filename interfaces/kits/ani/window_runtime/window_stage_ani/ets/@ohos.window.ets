@@ -39,7 +39,6 @@ export type WindowWillCloseCallback<T, V = void> = (data: T) => V;
 const DOMAIN = 0x4200;
 const TAG = '[ANI]';
 const WM_ERROR_INVALID_PARAM = 401;
-const WM_ERROR_ILLEGAL_PARAM = 1300016;
 declare type WindowAnimationCurveParam = Array<number>;
 
 namespace window {
@@ -3449,10 +3448,6 @@ export class WindowInternal implements Window {
     }
 
     public setDragKeyFramePolicy(keyFramePolicy: KeyFramePolicy): Promise<KeyFramePolicy> {
-      if ((keyFramePolicy.interval ?? 1) <= 0 || (keyFramePolicy.distance ?? 1) < 0 ||
-          (keyFramePolicy.animationDelay ?? 1) < 0 || (keyFramePolicy.animationDuration ?? 1) < 0) {
-        throw new BusinessError(WM_ERROR_ILLEGAL_PARAM, new Error('Static invalid param!'));
-      }
       return new Promise<KeyFramePolicy>((resolve: (value: KeyFramePolicy) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute(() => {
           return this.setDragKeyFramePolicy(this.nativeObj, keyFramePolicy);
