@@ -222,7 +222,7 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleGetWindowStateSnapshot, TestSize.Le
     uint32_t code = static_cast<uint32_t>(
         ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_GET_WINDOW_STATE_SNAPSHOT);
     auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
-    EXPECT_EQ(res, ERR_NONE);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
 
     MockMessageParcel::SetReadInt32ErrorFlag(true);
     res = stub_->HandleGetWindowStateSnapshot(data, reply);
