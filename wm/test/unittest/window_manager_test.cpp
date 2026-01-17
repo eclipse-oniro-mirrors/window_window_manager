@@ -2210,7 +2210,7 @@ HWTEST_F(WindowManagerTest, NotifySystemBarChanged, TestSize.Level1)
     instance_->pImpl_->systemBarChangedListeners_.push_back(listener);
     
     SystemBarRegionTints tints;
-    instance_.pImpl_->NotifySystemBarChanged(0, tints);
+    instance_->pImpl_->NotifySystemBarChanged(0, tints);
     EXPECT_EQ(1, listener->count_);
     instance_->pImpl_->systemBarChangedListeners_.clear();
 }
