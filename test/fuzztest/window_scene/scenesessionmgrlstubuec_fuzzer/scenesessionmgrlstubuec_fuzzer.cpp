@@ -139,7 +139,8 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     parcel.WriteBuffer(data, size);
 
     SceneSessionMgrLsUecTestCode(parcel);
-
+    SceneSessionMgrLsStubFuzzer01(parcel);
+    SceneSessionMgrLsStubFuzzer01(parcel);
     return true;
 }
 } // namespace OHOS
