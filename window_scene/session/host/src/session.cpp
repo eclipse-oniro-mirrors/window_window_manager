@@ -3093,6 +3093,57 @@ bool Session::GetPreloadingStartingWindow() const
     return preloadingStartingWindow_.load();
 }
 
+void Session::SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap)
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    if (pixelMap == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "pixelMap is nullptr");
+        return;
+    }
+    preloadStartingWindowPixelMap_ = pixelMap;
+    preloadStartingWindowSvgBufferInfo_ = {nullptr, 0};
+    TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
+}
+
+void Session::SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo)
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    if (bufferInfo.first == nullptr || bufferInfo.second == 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "bufferInfo is invalid, size %{public}zu", bufferInfo.second);
+        return;
+    }
+    preloadStartingWindowSvgBufferInfo_ = bufferInfo;
+    preloadStartingWindowPixelMap_.reset();
+    TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());
+}
+
+void Session::ResetPreloadStartingWindow()
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    preloadStartingWindowPixelMap_.reset();
+    preloadStartingWindowSvgBufferInfo_ = {nullptr, 0};
+    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d", GetPersistentId());
+}
+
+void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
+    std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo)
+{
+    std::shared_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    if (preloadStartingWindowPixelMap_ != nullptr) {
+        pixelMap = preloadStartingWindowPixelMap_;
+        TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
+        return;
+    }
+    if (preloadStartingWindowSvgBufferInfo_.first != nullptr && preloadStartingWindowSvgBufferInfo_.second > 0) {
+        bufferInfo = preloadStartingWindowSvgBufferInfo_;
+        TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());
+        return;
+    }
+    return;
+}
+
 void Session::PreloadSnapshot()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "PreloadSnapshot[%d]", persistentId_);

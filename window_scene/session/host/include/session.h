@@ -840,6 +840,11 @@ public:
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);
     bool GetPreloadingStartingWindow() const;
+    void SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap);
+    void SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo);
+    void GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
+        std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo);
+    void ResetPreloadStartingWindow();
     void PreloadSnapshot();
     void ResetPreloadSnapshot();
     std::atomic<bool> freeMultiWindow_ { false };
@@ -1262,6 +1267,9 @@ private:
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
     std::atomic<bool> preloadingStartingWindow_ { false };
+    std::shared_mutex preloadStartingWindowMutex_;
+    std::shared_ptr<Media::PixelMap> preloadStartingWindowPixelMap_;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> preloadStartingWindowSvgBufferInfo_;
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
 
