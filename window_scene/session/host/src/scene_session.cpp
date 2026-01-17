@@ -3282,7 +3282,7 @@ bool SceneSession::IsInLSState() const
             !specificCallback_ || !specificCallback_->onGetLSState_ || !specificCallback_->onGetLSState_()) {
             return false;
         }
-    } else if  (WindowHelper::IsSubWindow(windowType) || WindowHelper::IsSystemWindow(windowType)) {
+    } else if (WindowHelper::IsSubWindow(windowType) || WindowHelper::IsSystemWindow(windowType)) {
         if (auto parentSession = GetParentSession()) {
             return parentSession->IsInLSState();
         }
