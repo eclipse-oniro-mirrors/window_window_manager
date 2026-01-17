@@ -222,6 +222,7 @@
             OHOS::Rosen::SceneSession::RegisterThrowSlipAnimationStateChangeCallback*;
             OHOS::Rosen::SceneSession::SetSessionChangeByActionNotifyManagerListener*;
             OHOS::Rosen::SceneSession::SetSessionGetTargetOrientationConfigInfoCallback*;
+            OHOS::Rosen::SceneSession::HasExtensionTokenInfoWithTokenID*;
             OHOS::Rosen::SceneSession::AnimateTo*;
             OHOS::Rosen::SceneSession::SceneSession*;
             OHOS::Rosen::SessionUtils::SetMoveResampleEnabled*;
