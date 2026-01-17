@@ -226,7 +226,8 @@ const std::string DEVICE_TYPE = system::GetParameter("const.product.devicetype",
 const std::vector<std::string> CAPTURE_DEVICE = {"phone", "2in1", "tablet"};
 constexpr uint32_t FLOATING_BALL_TYPE = 2145;
 
-constexpr int32_t COLD_SWITCH_ANIMATE_TIMEOUT_MILLISECONDS = 3000;
+constexpr int32_t COLD_SWITCH_ANIMATE_TIMEOUT_MILLISECONDS = 18000;
+constexpr int32_t COLD_SWITCH_ANIMATE_MODECHANGE_TIMEOUT_MILLISECONDS = 1000;
 constexpr int32_t HOT_SWITCH_ANIMATE_TIMEOUT_MILLISECONDS = 0;
 
 constexpr float POSITION_Z_DEFAULT = 2.0f;
