@@ -2195,6 +2195,19 @@ HWTEST_F(WindowManagerTest, UnregisterWindowSystemBarPropertyChangedListener, Fu
 }
 
 /**
+ * @tc.name: NotifySystemBarChanged
+ * @tc.desc: check NotifySystemBarChanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, NotifySystemBarChanged, TestSize.Level1)
+{
+    sptr<SystemBarRegionTints> tints = sptr<SystemBarRegionTints>::MakeSptr();
+    ASSERT_NE(tints, nullptr);
+
+    WindowManager::GetInstance().pImpl_->NotifySystemBarChanged(0, tints);
+}
+
+/**
  * @tc.name: NotifyWindowSystemBarPropertyChange
  * @tc.desc: check NotifyWindowSystemBarPropertyChange
  * @tc.type: FUNC
