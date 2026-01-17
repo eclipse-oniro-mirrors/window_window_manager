@@ -208,6 +208,55 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleUpdateSessionOcclusionStateListener
 }
 
 /**
+ * @tc.name: HandleGetWindowStateSnapshot
+ * @tc.desc: test HandleGetWindowStateSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetWindowStateSnapshot, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInt32(1);
+    data.WriteString("");
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_GET_WINDOW_STATE_SNAPSHOT);
+    auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    res = stub_->HandleGetWindowStateSnapshot(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInt32(2);
+    MockMessageParcel::SetReadStringErrorFlag(true);
+    res = stub_->HandleGetWindowStateSnapshot(data2, reply2);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetReadStringErrorFlag(false);
+
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInt32(3);
+    data3.WriteString("{}");
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    res = stub_->HandleGetWindowStateSnapshot(data3, reply3);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+
+    MessageParcel data4;
+    MessageParcel reply4;
+    data4.WriteInt32(4);
+    data4.WriteString("{}");
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    res = stub_->HandleGetWindowStateSnapshot(data4, reply4);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+}
+
+/**
  * @tc.name: HandleGetRootUIContentRemoteObj01
  * @tc.desc: test HandleGetRootUIContentRemoteObj
  * @tc.type: FUNC

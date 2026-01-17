@@ -1644,6 +1644,23 @@ HWTEST_F(SceneSessionManagerTest6, UpdateSessionOcclusionStateListener, TestSize
 }
 
 /**
+ * @tc.name: GetWindowStateSnapshot
+ * @tc.desc: get window state snapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetWindowStateSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    int32_t persistentId = 1;
+    std::string winStateSnapshotJsonStr;
+    auto result = ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(result, WMError::WM_OK);
+    winStateSnapshotJsonStr = "{";
+    result = ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(result, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+}
+
+/**
  * @tc.name: SendTouchEvent
  * @tc.desc: SendTouchEvent
  * @tc.type: FUNC

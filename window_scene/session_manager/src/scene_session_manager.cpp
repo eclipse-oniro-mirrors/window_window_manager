@@ -13537,6 +13537,9 @@ WMError SceneSessionManager::UpdateSessionOcclusionStateListener(int32_t persist
 
 WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
 {
+    if (winStateSnapshotJsonStr.empty()) {
+        winStateSnapshotJsonStr = "{}";
+    }
     nlohmann::json winStateSnapshotJson = nlohmann::json::parse(winStateSnapshotJsonStr, nullptr, false);
     if (winStateSnapshotJson.is_discarded()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "parse json error: winId=%{public}d, winStateSnapshot=%{public}s",
