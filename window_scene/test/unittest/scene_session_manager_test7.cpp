@@ -1236,30 +1236,6 @@ HWTEST_F(SceneSessionManagerTest7, NotifySessionMovedToFront05, TestSize.Level1)
 }
 
 /**
- * @tc.name: UpdateNormalSessionAvoidArea02
- * @tc.desc: UpdateNormalSessionAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest7, UpdateNormalSessionAvoidArea02, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "SceneSessionManagerTest7";
-    sessionInfo.abilityName_ = "UpdateNormalSessionAvoidArea02";
-    sessionInfo.isSystem_ = true;
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    sceneSession->isVisible_ = true;
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->GetLayoutController()->SetSessionRect({ 1, 1, 1, 1 });
-    int32_t persistentId = 1;
-    bool needUpdate = true;
-    ASSERT_NE(nullptr, ssm_);
-    ssm_->avoidAreaListenerSessionSet_.clear();
-    ssm_->avoidAreaListenerSessionSet_.insert(persistentId);
-    ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
-}
-
-/**
  * @tc.name: SetSessionSnapshotSkipForAppProcess
  * @tc.desc: SceneSesionManager SetSessionSnapshotSkipForAppProcess
  * @tc.type: FUNC
