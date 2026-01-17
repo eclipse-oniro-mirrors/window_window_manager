@@ -3037,7 +3037,7 @@ HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowDelayRaiseStateChange_False
     std::optional<AAFwk::Want> reply = std::make_optional<AAFwk::Want>();
 
     window->property_->SetWindowDelayRaiseEnabled(true);
-    isHostWindowDelayRaiseEnabled = false;
+    bool isHostWindowDelayRaiseEnabled = false;
     want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
     EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
     EXPECT_FALSE(window->IsWindowDelayRaiseEnabled());
