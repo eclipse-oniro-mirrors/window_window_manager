@@ -13,9 +13,10 @@
  * limitations under the License.
  */
 
+#include "session/host/include/ws_snapshot_helper.h"
+
 #include "fold_screen_state_internel.h"
 #include "parameters.h"
-#include "session/host/include/ws_snapshot_helper.h"
 
 namespace OHOS::Rosen {
 namespace {
