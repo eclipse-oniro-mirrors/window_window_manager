@@ -264,6 +264,8 @@ void SingleDisplaySuperFoldPolicy::ChangeScreenDisplayModeToCoordination()
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::CONNECTED);
 
+    ScreenSessionManager::GetInstance().WaitForDualDisplayReady();
+
     // on main screen
     auto taskScreenOnMainOn = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToCoordination: screenIdMain ON.");

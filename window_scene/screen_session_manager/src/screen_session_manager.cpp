@@ -192,6 +192,7 @@ const std::string FAULT_SUGGESTION = "542003014";
 constexpr uint32_t COMMON_EVENT_SERVICE_ID = 3299;
 const long GET_HDR_PIXELMAP_TIMEOUT = 2000;
 const int32_t CV_WAIT_UPDATE_AVAILABLE_MS = 300;
+const int32_t CV_WAIT_DUAL_DISPLAY_READY_MAX_MS = 2000;
 
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
 static const uint32_t SDR_PIXMAP = 0;
@@ -5570,6 +5571,24 @@ void ScreenSessionManager::SetIsDualDisplayReadyFromSettingData()
     bool isDualDisplayReady;
     ScreenSettingHelper::GetSettingBrightnessMode(isDualDisplayReady);
     TLOGI(WmsLogTag::DMS, "isDualDisplayReady: %{public}d", isDualDisplayReady);
+    if (isDualDisplayReady == isDualDisplayReady_) {
+        return;
+    }
+    isDualDisplayReady_ = isDualDisplayReady;
+    dualDisplayReadyCV_.notify_all();
+}
+
+void ScreenSessionManager::WaitForDualDisplayReady()
+{
+    std::unique_lock<std::mutex> lock(dualDisplayReadyMutex_);
+    TLOGI(WmsLogTag::DMS, "begin wait dual display ready. need wait: %{public}d", isDualDisplayReady_);
+    if (!isDualDisplayReady_) {
+        TLOGI(WmsLogTag::DMS, "need wait dual display ready");
+        if (DmUtils::safe_wait_for(dualDisplayReadyCV_, lock, std::chrono::milliseconds(CV_WAIT_DUAL_DISPLAY_READY_MAX_MS)) ==
+            std::cv_status::timeout) {
+            TLOGE(WmsLogTag::DMS, "wait dual display ready timeout");
+        }
+    }
 }
 
 void ScreenSessionManager::RegisterSettingResolutionEffectObserver()

@@ -1064,6 +1064,7 @@ private:
         bool phyMirrorEnable, ScreenEvent screenEvent);
     void RegisterSettingDualDisplayReadyObserver();
     void SetIsDualDisplayReadyFromSettingData();
+    void WaitForDualDisplayReady();
 
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;
@@ -1072,6 +1073,9 @@ private:
     std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
     std::shared_mutex rotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
+    std::atomic<bool> isDualDisplayReady_ = false;
+    std::mutex dualDisplayReadyMutex_;
+    std::condition_variable dualDisplayReadyCV_;
 
     // Fold Screen duringcall
     bool duringCallState_ = false;
