@@ -710,6 +710,21 @@ void MainSession::RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& 
     forceSplitEnableFunc_ = std::move(func);
 }
 
+void MainSession::RegisterLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc&& func)
+{
+    getLogicalDeviceConfig_ = std::move(func);
+}
+
+std::string MainSession::GetLogicalDeviceConfigCallback(const std::string& bundleName)
+{
+    if (getLogicalDeviceConfig_) {
+        return getLogicalDeviceConfig_(bundleName);
+    } else {
+        TLOGE(WmsLogTag::WMS_COMPAT, "getLogicalDeviceConfig_ is not registered!");
+        return "";
+    }
+}
+
 void MainSession::RemovePrelaunchStartingWindow()
 {
     auto lifecycleListeners = GetListeners<ILifecycleListener>();

@@ -56,7 +56,15 @@ enum class ListenerFunctionType : uint32_t {
     VIRTUAL_DENSITY_CHANGE_CB,
     SET_SPECIFIC_SESSION_ZINDEX_CB,
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
+    LOGICAL_DEVICE_CONFIG_CB,
     MINIMIZE_ALL_CB,
+};
+
+struct TaskResult {
+    std::string retStr;
+    bool isFinish = false;
+    std::mutex mtx;
+    std::condition_variable cv;
 };
 
 class JsSceneSessionManager final {
@@ -390,6 +398,12 @@ private:
     void OnWatchGestureConsumeResult(int32_t keyCode, bool isConsumed);
     void RegisterWatchFocusActiveChangeCallback();
     void OnWatchFocusActiveChange(bool isActive);
+
+    /*
+     * Window Compatible Mode
+     */
+    void RegisterLogicalDeviceConfigCallback();
+    std::string OnGetLogicalDeviceConfig(const std::string& bundleName);
 
     /*
      * Window Lifecycle

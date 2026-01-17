@@ -138,6 +138,7 @@
             OHOS::Rosen::SceneSessionManager::SetAppDragResizeTypeInner*;
             OHOS::Rosen::SceneSessionManager::SetAppForceLandscapeConfig*;
             OHOS::Rosen::SceneSessionManager::SetAppForceLandscapeConfigEnable*;
+            OHOS::Rosen::SceneSessionManager::SetQueryLogicalDeviceConfigCallback*;
             OHOS::Rosen::SceneSessionManager::SetBehindWindowFilterEnabled*;
             OHOS::Rosen::SceneSessionManager::SetCloseTargetFloatWindowFunc*;
             OHOS::Rosen::SceneSessionManager::SetCreateKeyboardSessionListener*;

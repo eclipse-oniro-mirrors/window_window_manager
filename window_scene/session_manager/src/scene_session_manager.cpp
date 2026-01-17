@@ -2808,6 +2808,7 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
                 return this->GetAppForceLandscapeConfigEnable(bundleName);
             });
         }
+        sceneSession->RegisterLogicalDeviceConfigCallback(std::move(this->getLogicalDeviceConfig_));
         DragResizeType dragResizeType = DragResizeType::RESIZE_TYPE_UNDEFINED;
         GetAppDragResizeType(sessionInfo.bundleName_, dragResizeType);
         sceneSession->SetAppDragResizeType(dragResizeType);
@@ -19601,6 +19602,21 @@ void SceneSessionManager::NotifyIsFullScreenInForceSplitMode(uint32_t uid, bool 
         fullScreenInForceSplitUidSet_.erase(uid);
     }
     ScreenSessionManagerClient::GetInstance().NotifyIsFullScreenInForceSplitMode(uid, isFullScreen);
+}
+
+void SceneSessionManager::SetQueryLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc&& func)
+{
+    getLogicalDeviceConfig_ = std::move(func);
+}
+
+std::string SceneSessionManager::GetLogicalDeviceConfigCallback(const std::string& bundleName)
+{
+    if (getLogicalDeviceConfig_) {
+        return getLogicalDeviceConfig_(bundleName);
+    } else {
+        TLOGE(WmsLogTag::WMS_COMPAT, "getLogicalDeviceConfig_ is not registered!");
+        return "";
+    }
 }
 
 void SceneSessionManager::RegisterVirtualPixelChangeCallback(NotifyVirtualPixelChangeFunc&& func)

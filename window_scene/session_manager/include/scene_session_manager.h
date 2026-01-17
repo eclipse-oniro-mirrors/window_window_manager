@@ -175,6 +175,7 @@ using ConvertSystemConfigFunc = std::function<void(const std::string& configItem
 using NotifyVirtualPixelChangeFunc = std::function<void(float density, DisplayId displayId)>;
 using NotifySetSpecificWindowZIndexFunc = std::function<void(WindowType windowType, int32_t zIndex,
     SetSpecificZIndexReason reason)>;
+using QueryLogicalDeviceConfigFunc = std::function<std::string(const std::string& bundleName)>;
 using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 class AppAnrListener : public IRemoteStub<AppExecFwk::IAppDebugListener> {
 public:
@@ -292,6 +293,12 @@ public:
     void SendCancelEventBeforeEraseSession(const sptr<SceneSession>& sceneSession);
     void BuildCancelPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, int32_t fingerId,
                                  int32_t action, int32_t wid);
+    
+    /*
+     * Window Compatible Mode
+     */
+    void SetQueryLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc&& func);
+    std::string GetLogicalDeviceConfigCallback(const std::string& bundleName);
 
     /*
      * Window Rotate Animation
@@ -1900,6 +1907,7 @@ private:
     void NotifyIsFullScreenInForceSplitMode(uint32_t uid, bool isFullScreen);
     std::unordered_set<uint32_t> fullScreenInForceSplitUidSet_;
     void RegisterForceSplitEnableListenerIfMainWindow(const sptr<SceneSession>& sceneSession);
+    QueryLogicalDeviceConfigFunc getLogicalDeviceConfig_;
 };
 } // namespace OHOS::Rosen
 

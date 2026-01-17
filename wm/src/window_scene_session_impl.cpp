@@ -216,6 +216,7 @@ void UpdateLimitIfInRange(uint32_t& currentLimit, uint32_t newLimit, uint32_t mi
 std::mutex WindowSceneSessionImpl::keyboardPanelInfoChangeListenerMutex_;
 using WindowSessionImplMap = std::map<std::string, std::pair<int32_t, sptr<WindowSessionImpl>>>;
 std::mutex WindowSceneSessionImpl::windowAttachStateChangeListenerMutex_;
+std::atomic<bool> WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
 
 WindowSceneSessionImpl::WindowSceneSessionImpl(const sptr<WindowOption>& option,
     const std::shared_ptr<RSUIContext>& rsUIContext) : WindowSessionImpl(option, rsUIContext)
@@ -725,6 +726,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
         SetDefaultDisplayIdIfNeed();
         SetTargetAPIVersion(SysCapUtil::GetApiCompatibleVersion());
         ret = Connect();
+        SendLogicalDeviceConfigToArkUI();
         TLOGD(WmsLogTag::WMS_PC, "targeAPItVersion: %{public}d", GetTargetAPIVersion());
     } else { // system or sub window
         TLOGI(WmsLogTag::WMS_LIFE, "Create system or sub window with type=%{public}d", GetType());
@@ -7875,6 +7877,19 @@ void WindowSceneSessionImpl::SetForceSplitConfigEnable(bool enableForceSplit)
     TLOGI(WmsLogTag::WMS_COMPAT, "SetForceSplitEnable, enableForceSplit: %{public}u",
         enableForceSplit);
     uiContent->SetForceSplitEnable(enableForceSplit);
+}
+
+void WindowSceneSessionImpl::SendLogicalDeviceConfigToArkUI()
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "bundleName: %{public}s, logicalDeviceConfig: %{public}s",
+        property_->GetSessionInfo().bundleName_.c_str(), property_->GetLogicalDeviceConfig().c_str());
+    if (WindowSceneSessionImpl::hasSentLogicalDeviceConfig_) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Logical device config has already sent");
+        return;
+    }
+    // Ace::UIContent::SetXComponentCompensationAngle(property_->GetLogicalDeviceConfig());
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = true;
+    TLOGI(WmsLogTag::WMS_COMPAT, "Send logical device config to arkui successfully!");
 }
 
 WMError WindowSceneSessionImpl::GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo)

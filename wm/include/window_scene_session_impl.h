@@ -241,6 +241,7 @@ public:
     WSError PcAppInPadNormalClose() override;
     void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     void SetForceSplitConfigEnable(bool enableForceSplit) override;
+    void SendLogicalDeviceConfigToArkUI();
 
     /*
      * Free Multi Window
@@ -602,6 +603,11 @@ private:
      * Window Input Event
      */
     int32_t superFoldOffsetY_ = -1; // calculate the total height of the display_B area and crease area.
+
+    /*
+     * Window Compatible Mode
+     */
+    static std::atomic<bool> hasSentLogicalDeviceConfig_;
 
     /*
      * Window Scene

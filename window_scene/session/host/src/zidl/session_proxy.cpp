@@ -348,6 +348,7 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
         }
         property->SetMissionInfo(*missionInfo);
         property->SetIsShowDecorInFreeMultiWindow(reply.ReadBool());
+        property->SetLogicalDeviceConfig(reply.ReadString());
         property->SetPrelaunch(reply.ReadBool());
         property->SetFrameNum(reply.ReadInt32());
     }
