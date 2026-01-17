@@ -906,7 +906,7 @@ std::string JsSceneSessionManager::OnGetLogicalDeviceConfig(const std::string& b
         taskResult->isFinish = true;
         taskResult->cv.notify_one();
     };
-    taskScheduler_->PostMainThreadTask([task = std::move(task), cb = std:move(callback)]() {
+    taskScheduler_->PostMainThreadTask([task = std::move(task), cb = std::move(callback)]() {
         std::string taskRet = task();
         cb(taskRet);
     }, where);
@@ -1806,7 +1806,7 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
             ProcessSupportRotationRegister();
             break;
         case ListenerFunctionType::LOGICAL_DEVICE_CONFIG_CB:
-            ProcessLogicalDeviceConfigCallback();
+            RegisterLogicalDeviceConfigCallback();
             break;
         case ListenerFunctionType::MINIMIZE_ALL_CB:
             RegisterMinimizeAllCallback();
