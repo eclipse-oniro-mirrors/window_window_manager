@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 #include <parcel.h>
 
@@ -498,6 +499,37 @@ enum class FoldDisplayMode: uint32_t {
     SUB = 3,
     COORDINATION = 4,
     GLOBAL_FULL = 5,
+};
+
+const std::unordered_map<std::string, FoldDisplayMode> STRING_TO_FOLD_DISPLAY_MODE = {
+    {"0", FoldDisplayMode::UNKNOWN},
+    {"1", FoldDisplayMode::FULL},
+    {"2", FoldDisplayMode::MAIN},
+    {"3", FoldDisplayMode::SUB},
+    {"4", FoldDisplayMode::COORDINATION},
+    {"5", FoldDisplayMode::GLOBAL_FULL}
+};
+
+struct RotationCorrectionWhiteConfig {
+    std::string appName;
+    std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
+    std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
+
+    int32_t GetUseLogicCamera(FoldDisplayMode key, int32_t defaultValue = 0) const {
+        auto it = useLogicCamera.find(key);
+        if (it != useLogicCamera.end()) {
+            return it->second;
+        }
+        return defaultValue;
+    }
+
+    int32_t GetCustomLogicDirection(FoldDisplayMode key, int32_t defaultValue = -1) const {
+        auto it = customLogicDirection.find(key);
+        if (it != customLogicDirection.end()) {
+            return it->second;
+        }
+        return defaultValue;
+    }
 };
 
 /**

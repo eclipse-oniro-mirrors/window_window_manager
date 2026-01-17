@@ -2329,21 +2329,27 @@ void ScreenSessionManager::HandleRotationCorrectionExemption(sptr<DisplayInfo>& 
         std::shared_lock<std::shared_mutex> lock(rotationCorrectionExemptionMutex_);
         if (rotationCorrectionExemptionList_.empty()) {
             TLOGD(WmsLogTag::DMS, "rotationCorrectionExemptionList empty, return");
-            return;
         }
         rotationCorrectionExemptionList = rotationCorrectionExemptionList_;
+    }
+    FoldDisplayMode foldDisplayMode = GetFoldDisplayMode();
+    FoldDisplayMode foldDisplayModeAfterRotation = GetFoldDisplayModeAfterRotation();
+    if (foldDisplayModeAfterRotation != FoldDisplayMode::UNKNOWN) {
+        foldDisplayMode = foldDisplayModeAfterRotation;
     }
     std::string bundleName = SysCapUtil::GetBundleName();
     if (std::find(rotationCorrectionExemptionList.begin(), rotationCorrectionExemptionList.end(), bundleName) !=
         rotationCorrectionExemptionList.end()) {
-        FoldDisplayMode foldDisplayMode = GetFoldDisplayMode();
-        FoldDisplayMode foldDisplayModeAfterRotation = GetFoldDisplayModeAfterRotation();
-        if (foldDisplayModeAfterRotation != FoldDisplayMode::UNKNOWN) {
-            foldDisplayMode = foldDisplayModeAfterRotation;
-        }
         Rotation rotation = RemoveRotationCorrection(displayInfo->GetRotation(), foldDisplayMode);
         displayInfo->SetRotation(rotation);
         TLOGNFI(WmsLogTag::DMS, "rotation: %{public}d, bundleName: %{public}s", rotation, bundleName.c_str());
+    }
+    RotationCorrectionWhiteConfig config;
+    if (GetRotationCorrectionWhiteConfigByBundleName(bundleName, config)) {
+        Rotation rotation = CorrectionRotationByWhiteConfig(config, displayInfo->GetRotation(), foldDisplayMode);
+        displayInfo->SetRotation(rotation);
+        TLOGI(WmsLogTag::DMS, "correct by white config, rotation: %{public}d, bundleName: %{public}s",
+            rotation, bundleName.c_str());
     }
 }
  
@@ -2383,6 +2389,64 @@ void ScreenSessionManager::RegisterRotationCorrectionExemptionListObserver()
     TLOGNFI(WmsLogTag::DMS, "register start");
     SettingObserver::UpdateFunc updateFunc = [&](const std::string& key) { GetRotationCorrectionExemptionListFromDatabase(true); };
     ScreenSettingHelper::RegisterRotationCorrectionExemptionListObserver(updateFunc);
+}
+
+bool ScreenSessionManager::GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
+                                                                        RotationCorrectionWhiteConfig& config)
+{
+    std::shared_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
+    if (rotationCorrectionWhiteList_.empty()) {
+        TLOGD(WmsLogTag::DMS, "rotationCorrectionWhiteList empty, return");
+        return false;
+    }
+    for (const auto& whiteConfig : rotationCorrectionWhiteList_) {
+        if (whiteConfig.appName == bundleName) {
+            config = whiteConfig;
+            return true;
+        }
+    }
+    TLOGD(WmsLogTag::DMS, "app is not in rotationCorrectionWhiteList, name:%{public}s", bundleName.c_str());
+    return false;
+}
+
+void ScreenSessionManager::GetRotationCorrectionWhiteListFromDatabase(bool isForce)
+{
+    {
+        std::shared_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
+        if (!isForce && !(rotationCorrectionWhiteList_.empty() && needReLoadWhiteList_.load())) {
+            TLOGD(WmsLogTag::DMS, "no need query databese. needReinstall: %{public}d, whiteListIsempty: %{public}d",
+                rotationCorrectionWhiteList_.empty(), needReLoadWhiteList_.load());
+            return;
+        }
+    }
+    std::vector<RotationCorrectionWhiteConfig> rotationCorrectionWhiteList;
+    bool ret = ScreenSettingHelper::GetRotationCorrectionWhiteList(rotationCorrectionWhiteList);
+    if (!ret) {
+        TLOGNFE(WmsLogTag::DMS, "get correction White list failed");
+        needReLoadWhiteList_.store(true);
+        return;
+    }
+    if (rotationCorrectionWhiteList.size() == 0) {
+        TLOGNFE(WmsLogTag::DMS, "rotationCorrectionWhiteList is empty");
+        needReLoadWhiteList_.store(false);
+        return;
+    }
+    {
+        std::unique_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
+        rotationCorrectionWhiteList_ = std::move(rotationCorrectionWhiteList);
+    }
+    TLOGNFI(WmsLogTag::DMS, "success");
+}
+
+void ScreenSessionManager::RegisterRotationCorrectionWhiteListObserver()
+{
+    if (!CORRECTION_ENABLE) {
+        TLOGD(WmsLogTag::DMS, "no need register");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS, "register start");
+    SettingObserver::UpdateFunc updateFunc = [this](const std::string& key) { GetRotationCorrectionWhiteListFromDatabase(); };
+    ScreenSettingHelper::RegisterRotationCorrectionWhiteListObserver(updateFunc);
 }
 
 sptr<DisplayInfo> ScreenSessionManager::GetVisibleAreaDisplayInfoById(DisplayId displayId)
@@ -5504,6 +5568,7 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         that.RegisterSettingDpiObserver();
         that.RegisterSettingExtendScreenDpiObserver();
         that.RegisterRotationCorrectionExemptionListObserver();
+        that.RegisterRotationCorrectionWhiteListObserver();
         that.RegisterSettingBorderingAreaPercentObserver();
         if (FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
             that.RegisterSettingDuringCallStateObserver();
@@ -14098,6 +14163,34 @@ Rotation ScreenSessionManager::RemoveRotationCorrection(Rotation rotation, FoldD
     auto correctionRotation = GetConfigCorrectionByDisplayMode(foldDisplayMode);
     return static_cast<Rotation>((static_cast<uint32_t>(rotation) -
         static_cast<uint32_t>(correctionRotation) + ROTATION_MOD) % ROTATION_MOD);
+}
+
+Rotation ScreenSessionManager::CorrectionRotationByWhiteConfig(const RotationCorrectionWhiteConfig& config,
+                                                               Rotation rotation,
+                                                               FoldDisplayMode foldDisplayMode)
+{
+    auto correctionRotation = GetCorrectionInWhiteConfigByDisplayMode(config, foldDisplayMode);
+    return static_cast<Rotation>((static_cast<uint32_t>(rotation) +
+        static_cast<uint32_t>(correctionRotation)) % ROTATION_MOD);
+}
+
+Rotation ScreenSessionManager::GetCorrectionInWhiteConfigByDisplayMode(const RotationCorrectionWhiteConfig& config,
+                                                                       FoldDisplayMode displayMode)
+{
+    if (!CORRECTION_ENABLE) {
+        return Rotation::ROTATION_0;
+    }
+    int32_t useLogicCamera = config.GetUseLogicCamera(displayMode);
+    if (useLogicCamera == 0) {
+        return Rotation::ROTATION_0;
+    }
+    int32_t customLogicDirection = config.GetCustomLogicDirection(displayMode);
+    if (customLogicDirection < static_cast<int32_t>(Rotation::ROTATION_0) ||
+        customLogicDirection > static_cast<int32_t>(Rotation::ROTATION_270)) {
+        return Rotation::ROTATION_0;
+    }
+    TLOGI(WmsLogTag::DMS, "offset:%{public}d", customLogicDirection);
+    return static_cast<Rotation>(customLogicDirection);
 }
 
 FoldDisplayMode ScreenSessionManager::GetFoldDisplayModeAfterRotation() const
