@@ -1836,6 +1836,7 @@ private:
      * Window Pattern
      */
     std::shared_mutex startingWindowFollowAppMapMutex_;
+    std::mutex emptyStartupResourceMutex_;
     std::unordered_map<std::string, std::unordered_set<std::string>> startingWindowFollowAppMap_;
     std::unordered_set<std::string> emptyStartupResource_;
     std::atomic<bool> delayRemoveSnapshot_ = false;

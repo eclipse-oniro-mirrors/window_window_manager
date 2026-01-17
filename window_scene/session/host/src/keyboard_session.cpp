@@ -871,12 +871,12 @@ std::string KeyboardSession::GetSessionScreenName()
 
 bool KeyboardSession::IsVisibleForeground() const
 {
-    return isVisible_;
+    return isVisible_.load();
 }
 
 bool KeyboardSession::IsVisibleNotBackground() const
 {
-    return isVisible_;
+    return isVisible_.load();
 }
 
 void KeyboardSession::RecalculatePanelRectForAvoidArea(WSRect& panelRect)
