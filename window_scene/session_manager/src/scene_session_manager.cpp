@@ -6011,6 +6011,7 @@ bool SceneSessionManager::GetStartupPageFromResource(const AppExecFwk::AbilityIn
             startingWindowInfo.backgroundColorEarlyVersion_) != Global::Resource::RState::SUCCESS ||
         !GetPathInfoFromResource(resourceMgr, hapPathEmpty,
             abilityInfo.startWindowIconId, startingWindowInfo.iconPathEarlyVersion_)) {
+        std::lock_guard lock(emptyStartupResourceMutex_);
         if (!emptyStartupResource_.count(abilityInfo.bundleName)) {
             emptyStartupResource_.insert(abilityInfo.bundleName);
             TLOGE(WmsLogTag::WMS_PATTERN, "failed:%{public}s.", abilityInfo.bundleName.c_str());
