@@ -3139,7 +3139,7 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
     }
     auto key = GetSessionSnapshotStatus(reason);
     auto rotation = currentRotation_;
-    if (CORRECTION_ENABLE && key == 0) {
+    if (WSSnapshotHelper::GetInstance()->IsSnapshotNeedCorrect(key)) {
         rotation = (rotation + ROTATION_90) % ROTATION_360;
     }
     auto rotate = WSSnapshotHelper::GetDisplayOrientation(rotation);
@@ -3422,7 +3422,7 @@ uint32_t Session::GetLastOrientation() const
     if (!SupportSnapshotAllSessionStatus()) {
         return SNAPSHOT_PORTRAIT;
     }
-    if (CORRECTION_ENABLE && WSSnapshotHelper::GetInstance()->GetScreenStatus() == 0) {
+    if (WSSnapshotHelper::GetInstance()->IsSnapshotNeedCorrect(WSSnapshotHelper::GetInstance()->GetScreenStatus())) {
         return static_cast<uint32_t>(
             WSSnapshotHelper::GetDisplayOrientation((currentRotation_ + ROTATION_90) % ROTATION_360));
     }
