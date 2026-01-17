@@ -506,7 +506,6 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea, TestSize.Level1)
     ssm_->UpdateAvoidArea(persistentId);
 }
 
-
 /**
  * @tc.name: UpdateNormalSessionAvoidArea02
  * @tc.desc: UpdateNormalSessionAvoidArea
