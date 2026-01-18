@@ -265,6 +265,10 @@ void SingleDisplaySuperFoldPolicy::ChangeScreenDisplayModeToCoordination()
     ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::CONNECTED);
 
     ScreenSessionManager::GetInstance().WaitForDualDisplayReady();
+    if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
+        TLOGW(WmsLogTag::DMS, "ExitCoordination skipped, current coordination flag is false");
+        return;
+    }
 
     // on main screen
     auto taskScreenOnMainOn = [=] {

@@ -5500,7 +5500,7 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         }
         that.RegisterSettingRotationObserver();
         that.RegisterSettingResolutionEffectObserver();
-        that.RegisterSettingBrightnessObserver();
+        that.RegisterSettingDualDisplayReadyObserver();
         if (that.defaultDpi) {
             uint32_t initDefaultDpi;
             auto ret = ScreenSettingHelper::GetSettingValue(initDefaultDpi, SET_SETTING_DPI_KEY);
@@ -5569,7 +5569,7 @@ void ScreenSessionManager::RegisterSettingDualDisplayReadyObserver()
 void ScreenSessionManager::SetIsDualDisplayReadyFromSettingData()
 {
     bool isDualDisplayReady;
-    ScreenSettingHelper::GetSettingBrightnessMode(isDualDisplayReady);
+    ScreenSettingHelper::GetSettingIsDualDisplayReady(isDualDisplayReady);
     TLOGI(WmsLogTag::DMS, "isDualDisplayReady: %{public}d", isDualDisplayReady);
     if (isDualDisplayReady == isDualDisplayReady_) {
         return;
@@ -5581,8 +5581,9 @@ void ScreenSessionManager::SetIsDualDisplayReadyFromSettingData()
 void ScreenSessionManager::WaitForDualDisplayReady()
 {
     std::unique_lock<std::mutex> lock(dualDisplayReadyMutex_);
-    TLOGI(WmsLogTag::DMS, "begin wait dual display ready. need wait: %{public}d", isDualDisplayReady_);
-    if (!isDualDisplayReady_) {
+    bool isDualDisplayReady = isDualDisplayReady_;
+    TLOGI(WmsLogTag::DMS, "begin wait dual display ready. need wait: %{public}d", isDualDisplayReady);
+    if (!isDualDisplayReady) {
         TLOGI(WmsLogTag::DMS, "need wait dual display ready");
         if (DmUtils::safe_wait_for(dualDisplayReadyCV_, lock, std::chrono::milliseconds(CV_WAIT_DUAL_DISPLAY_READY_MAX_MS)) ==
             std::cv_status::timeout) {
