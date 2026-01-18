@@ -32,7 +32,7 @@ namespace Rosen {
 namespace {
 } // namespace
 
-class SceneSessionManagerImmersiveTest : public testing::Test {
+class SceneSessionImmersiveTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -45,9 +45,9 @@ private:
     void CreateSession(SessionInfo sessionInfo, int32_t persistentId);
 };
 
-sptr<SceneSessionManager> SceneSessionManagerImmersiveTest::ssm_ = nullptr;
+sptr<SceneSessionManager> SceneSessionImmersiveTest::ssm_ = nullptr;
 
-void SceneSessionManagerImmersiveTest::SetUpTestCase()
+void SceneSessionImmersiveTest::SetUpTestCase()
 {
     ssm_ = new SceneSessionManager();
     ssm_->Init();
@@ -55,20 +55,20 @@ void SceneSessionManagerImmersiveTest::SetUpTestCase()
     ssm_->rootSceneSession_->property_ = sptr<WindowSessionProperty>::MakeSptr();
 }
 
-void SceneSessionManagerImmersiveTest::TearDownTestCase()
+void SceneSessionImmersiveTest::TearDownTestCase()
 {
     ssm_ = nullptr;
 }
 
-void SceneSessionManagerImmersiveTest::SetUp()
+void SceneSessionImmersiveTest::SetUp()
 {
 }
 
-void SceneSessionManagerImmersiveTest::TearDown()
+void SceneSessionImmersiveTest::TearDown()
 {
 }
 
-void SceneSessionManagerImmersiveTest::CreateSession(SessionInfo sessionInfo, int32_t persistentId)
+void SceneSessionImmersiveTest::CreateSession(SessionInfo sessionInfo, int32_t persistentId)
 {
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(sceneSession, nullptr);
@@ -78,52 +78,12 @@ void SceneSessionManagerImmersiveTest::CreateSession(SessionInfo sessionInfo, in
 
 namespace {
 
-/*
- * @tc.name: GetScaleInLSState
- * @tc.desc: SceneSesion test GetScaleInLSState
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerImmersiveTest, GetScaleInLSState, TestSize.Level0)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "testbundleName";
-    sessionInfo.abilityName_ = "testabilityName";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    float scaleX = 1;
-    float scaleY = 1;
-    WSRect winRect = { 0, 0, 0, 0 };
-    Rect avoidAreaRect = { 0, 0, 0, 0 };
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    sceneSession->layoutController_ = sptr<LayoutController>::MakeSptr(property);
-    sceneSession->Session::SetScale(-1, -1, -1, -1);
-    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
-    sceneSession->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
-    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
-    sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
-    sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
-    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
-    sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
-    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
-    sceneSession->Session::SetScale(1, -1, -1, -1);
-    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
-    sceneSession->CalculateWindowRectByScale(winRect);
-    sceneSession->CalculateAvoidAreaByScale(avoidAreaRect);
-    sceneSession->Session::SetScale(1, 1, -1, -1);
-    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_OK);
-    sceneSession->CalculateWindowRectByScale(winRect);
-    sceneSession->CalculateAvoidAreaByScale(avoidAreaRect);
-}
-
 /**
  * @tc.name: NotifyNextAvoidRectInfo_statusBar_01
  * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_statusBar_01
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_statusBar_01, TestSize.Level0)
+HWTEST_F(SceneSessionImmersiveTest, NotifyNextAvoidRectInfo_statusBar_01, TestSize.Level0)
 {
     ASSERT_NE(ssm_, nullptr);
     WSRect portraitRect = { 0, 0, 1260, 123 };
@@ -165,7 +125,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_statusBar_01,
  * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_keyboard
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_keyboard, TestSize.Level0)
+HWTEST_F(SceneSessionImmersiveTest, NotifyNextAvoidRectInfo_keyboard, TestSize.Level0)
 {
     SessionInfo info;
     info.abilityName_ = "NotifyNextAvoidRectInfo_keyboard";
@@ -191,7 +151,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_keyboard, Tes
  * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_keyboard_01
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_keyboard_01, TestSize.Level0)
+HWTEST_F(SceneSessionImmersiveTest, NotifyNextAvoidRectInfo_keyboard_01, TestSize.Level0)
 {
     SessionInfo info;
     info.abilityName_ = "NotifyNextAvoidRectInfo_keyboard_01";
@@ -239,7 +199,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_keyboard_01, 
  * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_AIBar
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_AIBar, TestSize.Level0)
+HWTEST_F(SceneSessionImmersiveTest, NotifyNextAvoidRectInfo_AIBar, TestSize.Level0)
 {
     ASSERT_NE(ssm_, nullptr);
     WSRect portraitRect = { 409, 2629, 442, 91 };
@@ -290,7 +250,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_AIBar, TestSi
  * @tc.desc: GetKeyboardAvoidArea
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, GetKeyboardAvoidArea, TestSize.Level1)
+HWTEST_F(SceneSessionImmersiveTest, GetKeyboardAvoidArea, TestSize.Level1)
 {
     SessionInfo info;
     info.abilityName_ = "Background01";
@@ -324,7 +284,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetKeyboardAvoidArea, TestSize.Level1
  * @tc.desc: GetCutoutAvoidArea
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, GetCutoutAvoidArea, TestSize.Level1)
+HWTEST_F(SceneSessionImmersiveTest, GetCutoutAvoidArea, TestSize.Level1)
 {
     SessionInfo info;
     info.abilityName_ = "Background01";
@@ -347,7 +307,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetCutoutAvoidArea, TestSize.Level1)
  * @tc.desc: GetAvoidAreaByType
  * @tc.type: FUNC ok
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, GetAvoidAreaByType, TestSize.Level1)
+HWTEST_F(SceneSessionImmersiveTest, GetAvoidAreaByType, TestSize.Level1)
 {
     SessionInfo info;
     info.abilityName_ = "Background01";
@@ -388,7 +348,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetAvoidAreaByType, TestSize.Level1)
  * @tc.desc: GetAvoidAreaByTypeIgnoringVisibility
  * @tc.type: FUNC ok
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, GetAvoidAreaByTypeIgnoringVisibility, TestSize.Level1)
+HWTEST_F(SceneSessionImmersiveTest, GetAvoidAreaByTypeIgnoringVisibility, TestSize.Level1)
 {
     SessionInfo info;
     info.abilityName_ = "Background01";
@@ -430,7 +390,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetAvoidAreaByTypeIgnoringVisibility,
  * @tc.desc: CalculateAvoidAreaRect
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerImmersiveTest, CalculateAvoidAreaRect, TestSize.Level1)
+HWTEST_F(SceneSessionImmersiveTest, CalculateAvoidAreaRect, TestSize.Level1)
 {
     SessionInfo info;
     info.abilityName_ = "Background01";

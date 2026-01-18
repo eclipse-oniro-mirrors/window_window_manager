@@ -21,6 +21,7 @@ wm_unittest_common = "../:wm_unittest_common"
 ohos_unittest("wm_immersive_test") {
   module_out_path = module_out_path
 
+  include_dirs = [ "${window_base_path}/wm/src" ]
   sources = [
     "window_manager_immersive_test.cpp",
     "window_scene_session_impl_immersive_test.cpp",

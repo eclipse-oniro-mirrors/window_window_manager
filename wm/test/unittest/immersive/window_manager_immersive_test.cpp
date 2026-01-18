@@ -65,6 +65,7 @@ public:
     }
 };
 
+namespace {
 class TestWindowSystemBarPropertyChangedListener : public IWindowSystemBarPropertyChangedListener {
 public:
     int32_t count_ = 0;

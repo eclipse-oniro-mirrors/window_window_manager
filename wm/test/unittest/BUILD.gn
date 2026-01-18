@@ -827,6 +827,7 @@ ohos_static_library("wm_unittest_common") {
     ":*",
     "animation:*",
     "event_distribution:*",
+    "immersive:*",
     "layout:*",
     "rotation:*",
     "special_window:*",
