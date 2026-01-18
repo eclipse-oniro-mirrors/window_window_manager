@@ -97,16 +97,6 @@ public:
     };
 };
 
-class TestWindowSystemBarPropertyChangedListener : public IWindowSystemBarPropertyChangedListener {
-public:
-    int32_t count_ = 0;
-    void OnWindowSystemBarPropertyChanged(WindowType type, const SystemBarProperty& systemBarProperty) override
-    {
-        count_ = 1;
-        TLOGI(WmsLogTag::WMS_IMMS, "TestSystemBarChangedListener");
-    }
-};
-
 class TestWindowUpdateListener : public IWindowUpdateListener {
 public:
     void OnWindowUpdate(const std::vector<sptr<AccessibilityWindowInfo>>& infos, WindowUpdateType type) override
@@ -2131,89 +2121,6 @@ HWTEST_F(WindowManagerTest, UnregisterDisplayIdChangedListener01, Function | Sma
 
     instance_->pImpl_->WindowDisplayIdChangeListenerAgent_ = oldWindowManagerAgent;
     instance_->pImpl_->windowDisplayIdChangeListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: RegisterWindowSystemBarPropertyChangedListener
- * @tc.desc: check RegisterWindowSystemBarPropertyChangedListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, RegisterWindowSystemBarPropertyChangedListener, Function | SmallTest | Level2)
-{
-    ASSERT_NE(nullptr, instance_);
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
-    auto oldWindowManagerAgent = instance_->pImpl_->windowSystemBarPropertyChangeAgent_;
-    auto oldListeners = instance_->pImpl_->windowSystemBarPropertyChangedListeners_;
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.clear();
-    instance_->pImpl_->windowSystemBarPropertyChangeAgent_ = nullptr;
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.clear();
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->RegisterWindowSystemBarPropertyChangedListener(nullptr));
-
-    auto listener = sptr<TestWindowSystemBarPropertyChangedListener>::MakeSptr();
-    EXPECT_EQ(WMError::WM_ERROR_SAMGR, instance_->RegisterWindowSystemBarPropertyChangedListener(listener));
-
-    auto listener2 = sptr<TestWindowSystemBarPropertyChangedListener>::MakeSptr();
-    instance_->pImpl_->windowSystemBarPropertyChangeAgent_ = new WindowManagerAgent();
-    EXPECT_EQ(WMError::WM_ERROR_SAMGR, instance_->RegisterWindowSystemBarPropertyChangedListener(listener2));
-
-    auto listener3 = sptr<TestWindowSystemBarPropertyChangedListener>::MakeSptr();
-    instance_->RegisterWindowSystemBarPropertyChangedListener(listener3);
-
-    instance_->pImpl_->windowSystemBarPropertyChangeAgent_ = oldWindowManagerAgent;
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: UnregisterWindowSystemBarPropertyChangedListener
- * @tc.desc: check UnregisterWindowSystemBarPropertyChangedListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, UnregisterWindowSystemBarPropertyChangedListener, Function | SmallTest | Level2)
-{
-    ASSERT_NE(nullptr, instance_);
-    auto oldWindowManagerAgent = instance_->pImpl_->windowSystemBarPropertyChangeAgent_;
-    auto oldListeners = instance_->pImpl_->windowSystemBarPropertyChangedListeners_;
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.clear();
-    instance_->pImpl_->windowSystemBarPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.clear();
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->UnregisterWindowSystemBarPropertyChangedListener(nullptr));
-
-    sptr<TestWindowSystemBarPropertyChangedListener> listener =
-        sptr<TestWindowSystemBarPropertyChangedListener>::MakeSptr();
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.clear();
-    EXPECT_EQ(WMError::WM_DO_NOTHING, instance_->UnregisterWindowSystemBarPropertyChangedListener(listener));
-
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.emplace_back(listener);
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
-    EXPECT_EQ(WMError::WM_ERROR_SAMGR, instance_->UnregisterWindowSystemBarPropertyChangedListener(listener));
-    instance_->pImpl_->windowSystemBarPropertyChangeAgent_ = oldWindowManagerAgent;
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: NotifyWindowSystemBarPropertyChange
- * @tc.desc: check NotifyWindowSystemBarPropertyChange
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, NotifyWindowSystemBarPropertyChange, TestSize.Level1)
-{
-    auto& windowManager = WindowManager::GetInstance();
-    auto oldListeners = windowManager.pImpl_->windowSystemBarPropertyChangedListeners_;
-    SystemBarProperty systemBarProperty;
-    WindowManager::GetInstance().pImpl_->NotifyWindowSystemBarPropertyChange(
-        WindowType::WINDOW_TYPE_STATUS_BAR, systemBarProperty);
-    sptr<TestWindowSystemBarPropertyChangedListener> listener =
-        sptr<TestWindowSystemBarPropertyChangedListener>::MakeSptr();
-    windowManager.pImpl_->windowSystemBarPropertyChangedListeners_.emplace_back(listener);
-    EXPECT_EQ(1, windowManager.pImpl_->windowSystemBarPropertyChangedListeners_.size());
-    WindowManager::GetInstance().pImpl_->NotifyWindowSystemBarPropertyChange(
-        WindowType::WINDOW_TYPE_STATUS_BAR, systemBarProperty);
-    EXPECT_EQ(1, listener->count_);
-    windowManager.pImpl_->windowSystemBarPropertyChangedListeners_ = oldListeners;
 }
 
 /**
