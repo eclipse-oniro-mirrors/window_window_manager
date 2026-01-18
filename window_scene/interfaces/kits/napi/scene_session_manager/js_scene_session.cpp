@@ -7813,7 +7813,7 @@ napi_value JsSceneSession::OnNotifyRotationProperty(napi_env env, napi_callback_
     WMError ret = SceneSessionManager::GetInstance().NotifyRotationProperty(persistentId_,
         rotation, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     if (ret != WMError::WM_OK) {
-        TLOGNE(WmsLogTag::WMS_ROTATION, "NotifyRotationProperty failed, ret:%{public}d", ret);
+        TLOGE(WmsLogTag::WMS_ROTATION, "notify failed");
     }
     return NapiGetUndefined(env);
 }

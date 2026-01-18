@@ -8093,7 +8093,7 @@ void WindowSessionImpl::NotifyPreferredOrientationChange(Orientation orientation
 
 void WindowSessionImpl::NotifyClientOrientationChange()
 {
-    TLOGD(WmsLogTag::WMS_ROTATION, "in");
+    TLOGI(WmsLogTag::WMS_ROTATION, "in");
     sptr<IWindowOrientationChangeListener> windowOrientationChangeListener;
     {
         std::lock_guard<std::mutex> lockListener(windowOrientationChangeListenerMutex_);
@@ -8817,7 +8817,7 @@ void WindowSessionImpl::NotifyClientWindowSize()
 
 WSError WindowSessionImpl::NotifyPageRotationIsIgnored()
 {
-    TLOGD(WmsLogTag::WMS_ROTATION, "in");
+    TLOGI(WmsLogTag::WMS_ROTATION, "in");
     NotifyClientOrientationChange();
     return WSError::WS_OK;
 }

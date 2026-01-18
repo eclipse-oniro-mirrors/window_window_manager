@@ -25,6 +25,7 @@
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/main_session.h"
+#include "session/screen/include/screen_session.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
 #include "session_manager.h"
@@ -139,6 +140,70 @@ HWTEST_F(SceneSessionManagerTest, SetBrightness, TestSize.Level1)
     WSError result = ssm_->SetBrightness(sceneSession, brightness);
     EXPECT_EQ(result, WSError::WS_OK);
     EXPECT_NE(brightness, ssm_->GetDisplayBrightness());
+}
+
+/**
+ * @tc.name: NotifyRotationProperty
+ * @tc.desc: SceneSessionManager NotifyRotationProperty
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, NotifyRotationProperty, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRotationProperty";
+    info.bundleName_ = "NotifyRotationProperty";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, sceneSession->sessionStage_);
+    sceneSession->GetSessionProperty()->SetDisplayId(1001);
+
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.emplace(1001, screenSession);
+
+    int32_t persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.emplace(persistentId, sceneSession);
+
+    WMError ret = ssm_->NotifyRotationProperty(persistentId, 0, 1, 1);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    WMError ret2 = ssm_->NotifyRotationProperty(persistentId + 1, 0, 1, 1);
+    EXPECT_EQ(ret2, WMError::WM_ERROR_NULLPTR);
+
+    // Test width = 0
+    WMError ret3 = ssm_->NotifyRotationProperty(persistentId, 0, 0, 1);
+    EXPECT_EQ(ret3, WMError::WM_OK);
+
+    // Test height = 0
+    WMError ret4 = ssm_->NotifyRotationProperty(persistentId, 0, 1, 0);
+    EXPECT_EQ(ret4, WMError::WM_OK);
+
+    // Test sessionStage_ = nullptr
+    sceneSession->sessionStage_ = nullptr;
+    WMError ret5 = ssm_->NotifyRotationProperty(persistentId, 0, 1, 1);
+    EXPECT_EQ(ret5, WMError::WM_OK);
+
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->GetSessionProperty()->SetDisplayId(9999);
+    WMError ret6 = ssm_->NotifyRotationProperty(persistentId, 0, 1, 1);
+    EXPECT_EQ(ret6, WMError::WM_OK);
+
+    SessionInfo info2;
+    info2.abilityName_ = "NotifyRotationProperty2";
+    info2.bundleName_ = "NotifyRotationProperty2";
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
+    ASSERT_NE(nullptr, sceneSession2);
+    int32_t persistentId2 = sceneSession2->GetPersistentId();
+    ssm_->sceneSessionMap_.emplace(persistentId2, sceneSession2);
+    WMError ret7 = ssm_->NotifyRotationProperty(persistentId2, 0, 1, 1);
+    EXPECT_EQ(ret7, WMError::WM_OK);
+    ssm_->sceneSessionMap_.erase(persistentId2);
+    sceneSession2 = nullptr;
+
+    // Cleanup
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.erase(1001);
+    usleep(WAIT_SYNC_IN_NS);
 }
 
 /**

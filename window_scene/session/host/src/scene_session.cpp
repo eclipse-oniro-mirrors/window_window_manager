@@ -9569,6 +9569,8 @@ WSError SceneSession::ConvertWindowOrientationToDisplayRotation(const int32_t va
 
 WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, uint32_t height)
 {
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation:%{public}u, width:%{public}u, height:%{public}u",
+        rotation, width, height);
     if (width == 0 || height == 0) {
         return WSError::WS_ERROR_INVALID_PARAM;
     }
