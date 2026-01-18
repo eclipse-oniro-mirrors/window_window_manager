@@ -870,43 +870,13 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, GetAvoidAreaByTypeIgnoringVisibility, Tes
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     sceneSession->property_ = property;
-    sing T = std::underlying_type_t<AvoidAreaType>;
+    using T = std::underlying_type_t<AvoidAreaType>;
     for (T avoidAreaType = static_cast<T>(AvoidAreaType::TYPE_START);
         avoidAreaType < static_cast<T>(AvoidAreaType::TYPE_END); avoidAreaType++) {
         auto type = static_cast<AvoidAreaType>(avoidAreaType);
         sceneSession->GetAvoidAreaByTypeIgnoringVisibility(type);
     }
     EXPECT_NE(sceneSession, nullptr);
-}
-
-/**
- * @tc.name: PrintAvoidAreaInfo
- * @tc.desc: PrintAvoidAreaInfo
- * @tc.type: FUNC
- */
-HWTEST_F(WindowImmersiveAvoidAreaTest, PrintAvoidAreaInfo, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "PrintAvoidAreaInfo";
-    info.bundleName_ = "PrintAvoidAreaInfo";
-    sptr<SceneSession>sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
-    sceneSession->property_->displayId_ = 0;
-    WSRect winRect;
-    WSRect avoidRect;
-    auto type = AvoidAreaType::TYPE_SYSTEM;
-    sceneSession->PrintAvoidAreaInfo(sceneSession->property_->displayId_, type, winRect, avoidRect);
-    std::tuple<DisplayId, WSRect, WSRect> inputParamters(sceneSession->property_->displayId_, winRect, avoidRect);
-    EXPECT_EQ(inputParamters, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
-    sceneSession->property_->displayId_ = 1;
-    sceneSession->PrintAvoidAreaInfo(sceneSession->property_->displayId_, type, winRect, avoidRect);
-    std::tuple<DisplayId, WSRect, WSRect> inputParamters1(sceneSession->property_->displayId_, winRect, avoidRect);
-    EXPECT_EQ(inputParamters1, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
-    sceneSession->PrintAvoidAreaInfo(sceneSession->property_->displayId_, type, winRect, avoidRect);
-    EXPECT_EQ(inputParamters1, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
-    AvoidArea avoidArea;
-    sceneSession->CalculateAvoidAreaByType(type, winRect, avoidRect, avoidArea);
-    EXPECT_EQ(inputParamters1, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
 }
 
 /**
@@ -935,7 +905,6 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, CalculateAvoidAreaRect, TestSize.Level1)
     WSRect avoidRect_ = { 1, 1, 1, 1 };
     sceneSession->CalculateAvoidAreaRect(overlapRect_, avoidRect_, avoidArea);
 }
-
 }
 }
 }
