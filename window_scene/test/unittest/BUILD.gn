@@ -131,6 +131,8 @@ group("unittest") {
       "animation:ws_session_proxy_animation_test",
       "animation:ws_ui_effect_controller_proxy_test",
       "animation:ws_ui_effect_controller_test",
+      "attribute:ws_scene_session_manager_attribute_test",
+      "attribute:ws_scene_session_attribute_test",
       "event_distribution:ws_scene_session_dirty_manager_test",
       "event_distribution:ws_session_proxy_event_test",
       "event_distribution:ws_session_stub_event_test",
@@ -1491,6 +1493,7 @@ ohos_static_library("ws_unittest_common") {
   visibility = [
     ":*",
     "animation:*",
+    "attribute:*",
     "event_distribution:*",
     "layout:*",
     "multi_user:*",
