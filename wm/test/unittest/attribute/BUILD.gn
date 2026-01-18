@@ -47,7 +47,7 @@ ohos_unittest("wm_window_manager_attribute_test") {
   sources = [ "window_manager_attribute_test.cpp" ]
 
   deps = [
-    ":wm_unittest_common",
+    wm_unittest_common,
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 
