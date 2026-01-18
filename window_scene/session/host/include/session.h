@@ -642,11 +642,6 @@ public:
 
     virtual void SetTouchHotAreas(const std::vector<Rect>& touchHotAreas);
 
-    void SetVpr(float vpr)
-    {
-        vpr_ = vpr;
-    }
-
     bool operator==(const Session* session) const
     {
         if (session == nullptr) {
@@ -840,6 +835,11 @@ public:
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);
     bool GetPreloadingStartingWindow() const;
+    void SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap);
+    void SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo);
+    void GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
+        std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo);
+    void ResetPreloadStartingWindow();
     void PreloadSnapshot();
     void ResetPreloadSnapshot();
     std::atomic<bool> freeMultiWindow_ { false };
@@ -945,7 +945,7 @@ protected:
     float offsetX_ = 0.0f;
     float offsetY_ = 0.0f;
     std::atomic_bool isExitSplitOnBackground_ = false;
-    bool isVisible_ = false;
+    std::atomic_bool isVisible_ = false;
     int32_t currentRotation_ = 0;
     std::string label_;
 
@@ -1262,6 +1262,9 @@ private:
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
     std::atomic<bool> preloadingStartingWindow_ { false };
+    std::shared_mutex preloadStartingWindowMutex_;
+    std::shared_ptr<Media::PixelMap> preloadStartingWindowPixelMap_;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> preloadStartingWindowSvgBufferInfo_;
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
 

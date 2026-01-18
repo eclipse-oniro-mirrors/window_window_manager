@@ -5216,8 +5216,8 @@ void SceneSession::UpdateNativeVisibility(bool visible)
             .logTag_ = WmsLogTag::WMS_ATTRIBUTE,
         };
         SessionChangeRecorder::GetInstance().RecordSceneSessionChange(RecordType::VISIBLE_RECORD, changeInfo);
-        bool oldVisibleState = session->isVisible_;
-        session->isVisible_ = visible;
+        bool oldVisibleState = session->isVisible_.load();
+        session->isVisible_.store(visible);
         if (session->visibilityChangedDetectFunc_) {
             session->visibilityChangedDetectFunc_(session->GetCallingPid(), oldVisibleState, visible);
         }
@@ -8720,15 +8720,15 @@ uint32_t SceneSession::UpdateUIParam()
 
 bool SceneSession::UpdateVisibilityInner(bool visibility)
 {
-    if (isVisible_ == visibility) {
+    if (isVisible_.load() == visibility) {
         return false;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d, visibility: %{public}u -> %{public}u",
-        GetPersistentId(), isVisible_, visibility);
+    TLOGI(WmsLogTag::WMS_PIPELINE, "id: %{public}d, visibility: %{public}u -> %{public}u",
+        GetPersistentId(), isVisible_.load(), visibility);
     if (visibilityChangedDetectFunc_) {
-        visibilityChangedDetectFunc_(GetCallingPid(), isVisible_, visibility);
+        visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), visibility);
     }
-    isVisible_ = visibility;
+    isVisible_.store(visibility);
     if (updatePrivateStateAndNotifyFunc_ != nullptr) {
         updatePrivateStateAndNotifyFunc_(GetPersistentId());
     }
@@ -8868,7 +8868,7 @@ void SceneSession::PostProcessNotifyAvoidArea()
 bool SceneSession::PipelineNeedNotifyClientToUpdateAvoidArea(uint32_t dirty) const
 {
     return ((dirty & static_cast<uint32_t>(SessionUIDirtyFlag::VISIBLE)) && IsImmersiveType()) ||
-        ((dirty & static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA)) && isVisible_);
+        ((dirty & static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA)) && isVisible_.load());
 }
 
 void SceneSession::NotifyClientToUpdateAvoidArea()
