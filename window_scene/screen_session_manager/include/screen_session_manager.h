@@ -481,6 +481,7 @@ public:
     void OnFoldStatusChange(bool isSwitching);
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag(void);
+    void WaitForDualDisplayReady();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
     void OnScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent) override;
@@ -1064,7 +1065,6 @@ private:
         bool phyMirrorEnable, ScreenEvent screenEvent);
     void RegisterSettingDualDisplayReadyObserver();
     void SetIsDualDisplayReadyFromSettingData();
-    void WaitForDualDisplayReady();
 
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;
