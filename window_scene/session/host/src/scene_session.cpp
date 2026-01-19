@@ -3307,19 +3307,6 @@ WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
     return WSError::WS_OK;
 }
 
-void SceneSession::CalculateWindowRectByScale(WSRect& winRect)
-{
-    float scaleX = 1;
-    float scaleY = 1;
-    if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
-        return;
-    }
-    winRect.posX_ *= scaleX;
-    winRect.posY_ *= scaleY;
-    winRect.width_ *= scaleX;
-    winRect.height_ *= scaleY;
-}
-
 template<typename T>
 Rect SceneSession::CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const
 {

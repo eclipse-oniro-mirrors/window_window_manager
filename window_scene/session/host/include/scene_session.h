@@ -1234,7 +1234,6 @@ private:
     void GetKeyboardAvoidAreaByRotation(Rotation rotation, const WSRect& rect, AvoidArea& avoidArea);
     AvoidArea GetAvoidAreaByRotation(Rotation rotation, const WSRect& rect,
         const std::map<WindowType, SystemBarProperty>& properties, AvoidAreaType type);
-    void CalculateWindowRectByScale(WSRect& winRect);
     template<typename T>
     Rect CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const;
     WSError GetScaleInLSState(float& scaleX, float& scaleY)  const;
