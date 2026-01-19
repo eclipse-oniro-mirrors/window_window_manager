@@ -43,6 +43,7 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "miniHeight",                                   WindowSceneConfig::ValueType::INTS },
     { "showInLandscapeMode",                          WindowSceneConfig::ValueType::INTS },
     { "singleHandCompatibleMode",                     WindowSceneConfig::ValueType::MAP },
+    { "singleHandModeEnable",                         WindowSceneConfig::ValueType::STRING },
     { "mainWindowSizeLimits",                         WindowSceneConfig::ValueType::MAP },
     { "subWindowSizeLimits",                          WindowSceneConfig::ValueType::MAP },
     { "dialogWindowSizeLimits",                       WindowSceneConfig::ValueType::MAP },
