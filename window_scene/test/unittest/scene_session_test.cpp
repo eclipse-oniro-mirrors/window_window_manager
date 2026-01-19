@@ -512,6 +512,26 @@ HWTEST_F(SceneSessionTest, HandleActionUpdateWindowShadowEnabled01, TestSize.Lev
 }
 
 /**
+ * @tc.name: SetWindowShadowEnabled01
+ * @tc.desc: SetWindowShadowEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetWindowShadowEnabled01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetWindowShadowEnabled";
+    info.bundleName_ = "SetWindowShadowEnabled";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    bool isEnabled = true;
+    EXPECT_EQ(WSError::WS_OK, sceneSession->SetWindowShadowEnabled(isEnabled));
+    EXPECT_EQ(isEnabled, sceneSession->GetWindowShadowEnabled());
+    isEnabled = false;
+    EXPECT_EQ(WSError::WS_OK, sceneSession->SetWindowShadowEnabled(isEnabled));
+    EXPECT_EQ(isEnabled, sceneSession->GetWindowShadowEnabled());
+}
+
+/**
  * @tc.name: GetWindowName
  * @tc.desc: GetWindowName
  * @tc.type: FUNC
