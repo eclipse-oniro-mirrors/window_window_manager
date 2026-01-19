@@ -320,23 +320,35 @@ bool SceneSession::IsShowOnLockScreen(uint32_t lockScreenZOrder)
 
 void SceneSession::AddExtensionTokenInfo(const UIExtensionTokenInfo& tokenInfo)
 {
-    extensionTokenInfos_.push_back(tokenInfo);
+    {
+        std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
+        extensionTokenInfos_.push_back(tokenInfo);
+    }
     TLOGD(WmsLogTag::WMS_UIEXT, "can show:%{public}u, id: %{public}d",
         tokenInfo.canShowOnLockScreen, GetPersistentId());
 }
 
 void SceneSession::RemoveExtensionTokenInfo(const sptr<IRemoteObject>& abilityToken)
 {
+    std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
     auto persistentId = GetPersistentId();
     auto itr = std::remove_if(
         extensionTokenInfos_.begin(), extensionTokenInfos_.end(),
-        [&abilityToken, persistentId, where = __func__](const auto& tokenInfo) {
-            TLOGND(WmsLogTag::WMS_UIEXT,
-                "%{public}s UIExtOnLock: need remove, token: %{public}u, persistentId: %{public}d",
-                where, tokenInfo.callingTokenId, persistentId);
+        [&abilityToken, persistentId](const auto& tokenInfo) {
             return tokenInfo.abilityToken == abilityToken;
         });
     extensionTokenInfos_.erase(itr, extensionTokenInfos_.end());
+}
+
+bool SceneSession::HasExtensionTokenInfoWithTokenID(uint32_t callingTokenId)
+{
+    std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
+    for (const auto& tokenInfo : extensionTokenInfos_) {
+        if (tokenInfo.callingTokenId == callingTokenId) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void SceneSession::OnNotifyAboveLockScreen()
@@ -359,11 +371,14 @@ void SceneSession::CheckExtensionOnLockScreenToClose()
 
     // 2. check self permission
     std::vector<UIExtensionTokenInfo> tokenInfosToClose;
-    for (auto& tokenInfo : extensionTokenInfos_) {
-        if (tokenInfo.canShowOnLockScreen) {
-            continue;
+    {
+        std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
+        for (auto& tokenInfo : extensionTokenInfos_) {
+            if (tokenInfo.canShowOnLockScreen) {
+                continue;
+            }
+            tokenInfosToClose.push_back(tokenInfo);
         }
-        tokenInfosToClose.push_back(tokenInfo);
     }
 
     // 3. close ui extension without lock screen permisson

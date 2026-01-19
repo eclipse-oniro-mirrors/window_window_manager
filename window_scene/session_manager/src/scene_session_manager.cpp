@@ -15942,8 +15942,13 @@ WSError SceneSessionManager::GetHostWindowRect(int32_t hostWindowId, Rect& rect)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "hostWindowId:%{public}d", hostWindowId);
     if (!SessionPermission::IsSystemCalling()) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "permission denied!");
-        return WSError::WS_ERROR_NOT_SYSTEM_APP;
+        auto callingTokenId = IPCSkeleton::GetCallingTokenID();
+        auto session = GetSceneSession(hostWindowId);
+        if (session == nullptr || !session->HasExtensionTokenInfoWithTokenID(callingTokenId)) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "permission denied!");
+            return WSError::WS_ERROR_NOT_SYSTEM_APP;
+        }
+        TLOGI(WmsLogTag::WMS_UIEXT, "The UEA is going to get HostWindowRect!");
     }
     auto task = [this, hostWindowId, &rect]() {
         auto sceneSession = GetSceneSession(hostWindowId);

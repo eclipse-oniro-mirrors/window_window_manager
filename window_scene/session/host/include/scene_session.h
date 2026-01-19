@@ -764,6 +764,7 @@ public:
     bool IsShowOnLockScreen(uint32_t lockScreenZOrder);
     void AddExtensionTokenInfo(const UIExtensionTokenInfo& tokenInfo);
     void RemoveExtensionTokenInfo(const sptr<IRemoteObject>& abilityToken);
+    bool HasExtensionTokenInfoWithTokenID(uint32_t callingTokenId);
     void CheckExtensionOnLockScreenToClose();
     void CloseExtensionSync(const UIExtensionTokenInfo& tokenInfo);
     void OnNotifyAboveLockScreen();
@@ -1444,6 +1445,7 @@ private:
     ExtensionWindowFlags combinedExtWindowFlags_ { 0 };
     std::map<int32_t, ExtensionWindowFlags> extWindowFlagsMap_;
     std::vector<UIExtensionTokenInfo> extensionTokenInfos_;
+    std::mutex extensionTokenInfosMutex_;
 
     /*
      * Window Layout
