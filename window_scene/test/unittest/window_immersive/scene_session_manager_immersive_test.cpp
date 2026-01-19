@@ -527,6 +527,29 @@ HWTEST_F(SceneSessionManagerImmersiveTest, UpdateNormalSessionAvoidArea02, TestS
     ssm_->avoidAreaListenerSessionSet_.insert(persistentId);
     ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
 }
+
+/**
+ * @tc.name: UpdateNormalSessionAvoidArea02
+ * @tc.desc: UpdateNormalSessionAvoidArea
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, CalculateAvoidAreaByType, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CalculateAvoidAreaByType";
+    sessionInfo.abilityName_ = "CalculateAvoidAreaByType";
+    sessionInfo.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
+    ASSERT_NE(sceneSession->specificCallback_->onGetLSState_, nullptr);
+    WSRect winRect;
+    winRect avoidAreaRect;
+    AvoidArea area;
+    sceneSession->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, avoidAreaRect, area);
+    sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
+    sceneSession->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, avoidAreaRect, area);
+}
 }
 }
 }
