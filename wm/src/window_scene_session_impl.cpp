@@ -3564,6 +3564,7 @@ WMError WindowSceneSessionImpl::SetSystemBarProperties(const std::map<WindowType
         auto iter = nowsystemBarPropertyMap_.find(type);
         if (iter == nowsystemBarPropertyMap_.end()) {
             nowsystemBarPropertyMap_[type] = GetSystemBarPropertyByType(type);
+            iter = nowsystemBarPropertyMap_.find(type);
         }
         auto flagIter = propertyFlags.find(type);
         auto propertyIter = properties.find(type);
