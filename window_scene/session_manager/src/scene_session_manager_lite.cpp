@@ -301,6 +301,11 @@ WMError SceneSessionManagerLite::GetWindowStyleType(WindowStyleType& windowStyle
     return SceneSessionManager::GetInstance().GetWindowStyleType(windowStyletype);
 }
 
+WMError SceneSessionManagerLite::SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+{
+    return SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+}
+
 WMError SceneSessionManagerLite::TerminateSessionByPersistentId(int32_t persistentId)
 {
     return SceneSessionManager::GetInstance().TerminateSessionByPersistentId(persistentId);
