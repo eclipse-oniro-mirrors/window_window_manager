@@ -262,7 +262,7 @@ ani_status AniWindowUtils::GetOptionalIntProperty(
     }
 
     ani_int intValue = 0;
-    ret = env->Object_CallMethodByName_Int(static_cast<ani_object>(propRef), "intValue", nullptr, &intValue);
+    ret = env->Object_CallMethodByName_Int(static_cast<ani_object>(propRef), "toInt", nullptr, &intValue);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT,
               "[ANI] Failed to get intValue for %{public}s, ret: %{public}d",
@@ -297,7 +297,7 @@ ani_status AniWindowUtils::GetPropertyIntObject(ani_env* env, const char* proper
     }
 
     ani_int int_value;
-    ret = env->Object_CallMethodByName_Int(static_cast<ani_object>(int_ref), "intValue", nullptr, &int_value);
+    ret = env->Object_CallMethodByName_Int(static_cast<ani_object>(int_ref), "toInt", nullptr, &int_value);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_GetPropertyByName_Ref %{public}s Failed", propertyName);
         return ret;
@@ -331,7 +331,7 @@ ani_status AniWindowUtils::GetPropertyDoubleObject(ani_env* env, const char* pro
 
     ani_double double_value;
     ret = env->Object_CallMethodByName_Double(static_cast<ani_object>(double_ref),
-        "doubleValue", nullptr, &double_value);
+        "toDouble", nullptr, &double_value);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_GetPropertyByName_Ref %{public}s Failed", propertyName);
         return ret;
@@ -489,7 +489,7 @@ bool AniWindowUtils::GetPropertyUIntObject(ani_env* env, const char* propertyNam
 
     ani_int int_value;
     if (ANI_OK != env->Object_CallMethodByName_Int(static_cast<ani_object>(uint_ref),
-        "intValue", nullptr, &int_value)) {
+        "toInt", nullptr, &int_value)) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_GetPropertyByName_Ref %{public}s Failed", propertyName);
         return false;
     }
@@ -535,7 +535,7 @@ ani_status AniWindowUtils::GetDoubleObject(ani_env* env, ani_object double_objec
     }
 
     ani_double double_value;
-    ani_status ret = env->Object_CallMethodByName_Double(double_object, "doubleValue", nullptr, &double_value);
+    ani_status ret = env->Object_CallMethodByName_Double(double_object, "toDouble", nullptr, &double_value);
     if (ANI_OK != ret) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_CallMethodByName_Double Failed!");
         return ret;
