@@ -60,13 +60,6 @@ enum class ListenerFunctionType : uint32_t {
     MINIMIZE_ALL_CB,
 };
 
-struct TaskResult {
-    std::string retStr;
-    bool isFinish = false;
-    std::mutex mtx;
-    std::condition_variable cv;
-};
-
 class JsSceneSessionManager final {
 public:
     explicit JsSceneSessionManager(napi_env env);

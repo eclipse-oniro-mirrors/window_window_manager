@@ -293,7 +293,7 @@ public:
     void SendCancelEventBeforeEraseSession(const sptr<SceneSession>& sceneSession);
     void BuildCancelPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, int32_t fingerId,
                                  int32_t action, int32_t wid);
-    
+
     /*
      * Window Compatible Mode
      */

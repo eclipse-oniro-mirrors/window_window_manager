@@ -7889,7 +7889,13 @@ void WindowSceneSessionImpl::SendLogicalDeviceConfigToArkUI()
     }
     // Ace::UIContent::SetXComponentCompensationAngle(property_->GetLogicalDeviceConfig());
     WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = true;
-    TLOGI(WmsLogTag::WMS_COMPAT, "Send logical device config to arkui successfully!");
+    if (property_->GetLogicalDeviceConfig() == "") {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send default logical device config to arkui");
+    } else if (property_->GetLogicalDeviceConfig() == "{}") {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send null logical device config to arkui");
+    } else {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send logical device config to arkui successfully!");
+    }
 }
 
 WMError WindowSceneSessionImpl::GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo)

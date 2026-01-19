@@ -63,6 +63,7 @@ constexpr int ARG_INDEX_TWO = 2;
 constexpr int ARG_INDEX_THREE = 3;
 constexpr int ARG_INDEX_FOUR = 4;
 constexpr int32_t RESTYPE_RECLAIM = 100001;
+constexpr long long WAIT_TIMEOUT_MILLISECONDS = 1000LL;
 const std::string RES_PARAM_RECLAIM_TAG = "reclaimTag";
 const std::string CREATE_SYSTEM_SESSION_CB = "createSpecificSession";
 const std::string SET_SPECIFIC_SESSION_ZINDEX_CB = "setSpecificWindowZIndex";
@@ -878,7 +879,6 @@ std::string JsSceneSessionManager::OnGetLogicalDeviceConfig(const std::string& b
 {
     TLOGI(WmsLogTag::WMS_COMPAT, "bundleName: %{public}s", bundleName.c_str());
     const char* const where = __func__;
-    auto taskResult = std::make_shared<TaskResult>();
     auto task = [this, bundleName, where, jsCallback = GetJSCallback(LOGICAL_DEVICE_CONFIG_CB), env = env_]
         () -> std::string {
         if (jsCallback == nullptr) {
@@ -900,21 +900,22 @@ std::string JsSceneSessionManager::OnGetLogicalDeviceConfig(const std::string& b
         }
         return config;
     };
-    std::function<void(std::string)> callback = [taskResult](std::string ret) {
-        std::lock_guard<std::mutex> lock(taskResult->mtx);
-        taskResult->retStr = std::move(ret);
-        taskResult->isFinish = true;
-        taskResult->cv.notify_one();
+    auto strPromisePtr = std::make_shared<std::promise<std::string>>();
+    std::future<std::string> strFuture = strPromisePtr->get_future();
+    std::string result = "";
+    auto newTask = [task = std::move(task), promisePtr = strPromisePtr]() mutable {
+        promisePtr->set_value(task());
     };
-    taskScheduler_->PostMainThreadTask([task = std::move(task), cb = std::move(callback)]() {
-        std::string taskRet = task();
-        cb(taskRet);
-    }, where);
-    std::unique_lock<std::mutex> lock(taskResult->mtx);
-    taskResult->cv.wait(lock, [taskResult]() {
-        return taskResult->isFinish;
-    });
-    return std::move(taskResult->retStr);
+    taskScheduler_->PostMainThreadTask(std::move(newTask), where);
+    auto waitStatus = strFuture.wait_for(std::chrono::milliseconds(WAIT_TIMEOUT_MILLISECONDS));
+    if (waitStatus == std::future_status::ready) {
+        result = strFuture.get();
+    } else if (waitStatus == std::future_status::timeout) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Task execution timeout!");
+    } else {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Task has been cancelled!");
+    }
+    return result;
 }
 
 napi_value JsSceneSessionManager::SetBehindWindowFilterEnabled(napi_env env, napi_callback_info info)
