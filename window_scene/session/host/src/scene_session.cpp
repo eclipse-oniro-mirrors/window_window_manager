@@ -1719,7 +1719,7 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
             session->GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_);
         session->SetWinRectWhenUpdateRect(rect);
         // check whether to notify the client rect update
-        if (session->ShouldSkipUpdateRectNotify(rect)) {
+        if (!session->ShouldSkipUpdateRectNotify(rect)) {
             session->NotifyClientToUpdateRect(updateReason, rsTransaction);
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
