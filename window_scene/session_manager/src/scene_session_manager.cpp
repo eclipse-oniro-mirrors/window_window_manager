@@ -18213,6 +18213,9 @@ WMError SceneSessionManager::RemoveImageForRecent(int32_t persistentId)
         TLOGE(WmsLogTag::WMS_PATTERN, "%{public}d is not a systemApp", persistentId);
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
+    if (sceneSession->IsSessionForeground()) {
+        sceneSession->NotifyRemoveSnapshot();
+    }
     sceneSession->ResetSnapshot();
     sceneSession->DeletePersistentImageFit();
     return WMError::WM_OK;

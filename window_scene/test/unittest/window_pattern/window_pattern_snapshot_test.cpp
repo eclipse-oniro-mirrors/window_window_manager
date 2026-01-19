@@ -1317,6 +1317,11 @@ HWTEST_F(WindowPatternSnapshotTest, RemoveImageForRecent, TestSize.Level1)
     int32_t persistentId = sceneSession->GetPersistentId();
     sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
     sceneSession->scenePersistence_ = scenePersistence;
+    sceneSession->state_ = SessionState::STATE_ACTIVE;
+    ret = ssm_->RemoveImageForRecent(sceneSession->GetPersistentId());
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
     ret = ssm_->RemoveImageForRecent(sceneSession->GetPersistentId());
     EXPECT_EQ(ret, WMError::WM_OK);
     ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());
