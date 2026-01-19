@@ -174,6 +174,7 @@ ScreenCache<int32_t, std::string> g_uidVersionMap(MAP_SIZE, NO_EXIST_BUNDLE_MANE
 
 const int32_t SCREEN_SCAN_TYPE = system::GetIntParameter<int32_t>("const.window.screen.scan_type", 0);
 constexpr int32_t SCAN_TYPE_VERTICAL = 1;
+constexpr int32_t ROTATION_270_INT = 270;
 constexpr uint32_t ROTATION_MOD = 4;
 
 #ifdef WM_MULTI_SCREEN_ENABLE
@@ -8171,12 +8172,13 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetScreenSnapshot(Display
     RSSurfaceCaptureConfig config;
     config.isHdrCapture = false;
     config.useDma = isUseDma;
+#ifdef FOLD_ABILITY_ENABLE
     config.scaleX = scaleInfo.scaleX;
     config.scaleY = scaleInfo.scaleY;
     config.mainScreenRect = scaleInfo.rect;
-#ifdef FOLD_ABILITY_ENABLE
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
-        SuperFoldPolicy::GetInstance().IsNeedSetSnapshotRect(displayId)) {
+        SuperFoldPolicy::GetInstance().IsNeedSetSnapshotRect(displayId) &&
+        (config.mainScreenRect.right_ == 0 || config.mainScreenRect.bottom_ == 0)) {
         config.mainScreenRect = SuperFoldPolicy::GetInstance().GetSnapshotRect(displayId, isCaptureFullOfScreen);
     }
 #endif
@@ -8359,9 +8361,10 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshotWithOpt
     if ((Permission::IsSystemCalling() && (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
         Permission::CheckCallingPermission(CUSTOM_SCREEN_RECORDING_PERMISSION))) || SessionPermission::IsShellCall()) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetDisplaySnapshot(%" PRIu64")", option.displayId_);
-        Drawing::Rect rect = { static_cast<float>(option.rect.posX_), static_cast<float>(option.rect.posY_),
-            static_cast<float>(option.rect.posX_ + option.rect.width_),
-            static_cast<float>(option.rect.posY_ + option.rect.height_) };
+        DMRect orgRect = CalcRectsWithRotation(option.displayId_, option.rect);
+        Drawing::Rect rect = { static_cast<float>(orgRect.posX_), static_cast<float>(orgRect.posY_),
+            static_cast<float>(orgRect.posX_ + orgRect.width_),
+            static_cast<float>(orgRect.posY_ + orgRect.height_) };
         SnapshotScaleInfo scaleInfo = {option.scaleX_, option.scaleY_, rect};
         auto res = GetScreenSnapshot(option.displayId_, true, option.isCaptureFullOfScreen_, option.surfaceNodesList_,
             scaleInfo);
@@ -8381,6 +8384,71 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshotWithOpt
         *errorCode = DmErrorCode::DM_ERROR_NO_PERMISSION;
     }
     return nullptr;
+}
+
+// RS need to use the actual origin on the screen,
+// while DMS needs to convert the logical origin to the physical origin.
+DMRect ScreenSessionManager::CalcRectsWithRotation(DisplayId displayId, const DMRect &rect)
+{
+    auto displayInfo = GetDisplayInfoById(displayId);
+    if (displayInfo == nullptr) {
+        TLOGE(WmsLogTag::DMS, "can not get display!");
+        return DMRect::NONE();
+    }
+    std::vector<std::string> phyOffsets = FoldScreenStateInternel::GetPhyRotationOffset();
+    int32_t rotationOffset = 0;
+    int32_t boundaryOffset = 0;
+    FoldDisplayMode displayMode = GetFoldDisplayMode();
+    if (phyOffsets.size() > 0) {
+        if (!ScreenSettingHelper::ConvertStrToInt32(phyOffsets[0], rotationOffset)) {
+            TLOGNFE(WmsLogTag::DMS, "CalcRectsWithRotation transfer PhyRotationOffset[0] failed: %{public}s",
+                phyOffsets[0].c_str());
+        }
+    }
+    if (g_foldScreenFlag) {
+        if (phyOffsets.size() > 1 && displayMode == FoldDisplayMode::FULL) {
+            if (!ScreenSettingHelper::ConvertStrToInt32(phyOffsets[1], rotationOffset)) {
+                TLOGNFE(WmsLogTag::DMS, "CalcRectsWithRotation transfer PhyRotationOffset[1] failed: %{public}s",
+                    phyOffsets[1].c_str());
+            }
+        }
+        if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+            rotationOffset = ROTATION_270_INT;
+            if (displayMode == FoldDisplayMode::FULL) {
+                boundaryOffset = static_cast<int32_t>(screenParams_[FULL_STATUS_OFFSET_X]);
+            }
+        }
+    }
+    Rotation rotation = RemoveRotationCorrection(displayInfo->GetRotation(), displayMode);
+    rotation = static_cast<Rotation>(
+        (static_cast<uint32_t>(rotation) + static_cast<uint32_t>(rotationOffset) / 90) %
+        ROTATION_MOD);
+    int32_t screenWidth = displayInfo->GetWidth();
+    int32_t screenHeigth = displayInfo->GetHeight();
+    DMRect calRect = rect;
+    switch (rotation) {
+        case Rotation::ROTATION_0:
+            calRect = DMRect{ rect.posX_, rect.posY_ + boundaryOffset, rect.width_, rect.height_ };
+            break;
+        case Rotation::ROTATION_90:
+            calRect = DMRect{
+                rect.posY_, screenWidth - rect.posX_ - rect.width_ + boundaryOffset, rect.height_, rect.width_
+            };
+            break;
+        case Rotation::ROTATION_180:
+            calRect = DMRect{ screenWidth - rect.posX_ - rect.width_,
+                              screenHeigth - rect.posY_ - rect.height_ + boundaryOffset,
+                              rect.width_, rect.height_ };
+            break;
+        case Rotation::ROTATION_270:
+            calRect = DMRect{
+                screenHeigth - rect.posY_ - rect.height_, rect.posX_ + boundaryOffset, rect.height_, rect.width_
+            };
+            break;
+        default:
+            break;
+    }
+    return calRect;
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManager::GetDisplayHDRSnapshotWithOption(

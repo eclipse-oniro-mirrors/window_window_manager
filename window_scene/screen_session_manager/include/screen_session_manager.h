@@ -819,6 +819,7 @@ private:
         float virtualPixelRatio);
     void SwitchUserResetDisplayNodeScreenId();
     void AodLibInit();
+    DMRect CalcRectsWithRotation(DisplayId displayId, const DMRect &rect);
     std::shared_mutex rotationCorrectionExemptionMutex_;
     std::vector<std::string> rotationCorrectionExemptionList_;
     bool needReinstallExemptionList_ = true;
