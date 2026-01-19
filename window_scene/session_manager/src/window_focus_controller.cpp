@@ -50,16 +50,22 @@ DisplayId WindowFocusController::GetDisplayGroupId(DisplayId displayId)
     if (displayId == DEFAULT_DISPLAY_ID) {
         return DEFAULT_DISPLAY_ID;
     }
-    auto iter = displayId2GroupIdMap_.find(displayId);
-    if (iter != displayId2GroupIdMap_.end()) {
-        TLOGD(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64", displayGroupId: %{public}" PRIu64,
-              displayId, iter->second);
-        return iter->second;
+    {
+        std::lock_guard<std::mutex> lock(displayId2GroupIdMapMutex_);
+        auto iter = displayId2GroupIdMap_.find(displayId);
+        if (iter != displayId2GroupIdMap_.end()) {
+            TLOGD(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64", displayGroupId: %{public}" PRIu64,
+                displayId, iter->second);
+            return iter->second;
+        }
     }
-    if (deletedDisplayId2GroupIdMap_.find(displayId) != deletedDisplayId2GroupIdMap_.end()) {
-        return DISPLAY_ID_INVALID;
-    } else {
-        return DEFAULT_DISPLAY_ID;
+    {
+        std::lock_guard<std::mutex> lock(deletedDisplayId2GroupIdMapMutex_);
+        if (deletedDisplayId2GroupIdMap_.find(displayId) != deletedDisplayId2GroupIdMap_.end()) {
+            return DISPLAY_ID_INVALID;
+        } else {
+            return DEFAULT_DISPLAY_ID;
+        }
     }
 }
 
@@ -73,7 +79,10 @@ WSError WindowFocusController::AddFocusGroup(DisplayGroupId displayGroupId, Disp
         TLOGE(WmsLogTag::WMS_FOCUS, "displayId invalid");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
-    displayId2GroupIdMap_[displayId] = displayGroupId;
+    {
+        std::lock_guard<std::mutex> lock(displayId2GroupIdMapMutex_);
+        displayId2GroupIdMap_[displayId] = displayGroupId;
+    }
     {
         std::lock_guard<std::mutex> lock(focusGroupMapMutex_);
         auto iter = focusGroupMap_.find(displayGroupId);
@@ -86,8 +95,11 @@ WSError WindowFocusController::AddFocusGroup(DisplayGroupId displayGroupId, Disp
         }
     }
     LogDisplayIds();
-    if (deletedDisplayId2GroupIdMap_.find(displayId) != deletedDisplayId2GroupIdMap_.end()) {
-        deletedDisplayId2GroupIdMap_.erase(displayId);
+    {
+        std::lock_guard<std::mutex> lock(deletedDisplayId2GroupIdMapMutex_);
+        if (deletedDisplayId2GroupIdMap_.find(displayId) != deletedDisplayId2GroupIdMap_.end()) {
+            deletedDisplayId2GroupIdMap_.erase(displayId);
+        }
     }
     SessionManagerAgentController::GetInstance().UpdateDisplayGroupInfo(displayGroupId, displayId, true);
     return WSError::WS_OK;
@@ -117,8 +129,14 @@ WSError WindowFocusController::RemoveFocusGroup(DisplayGroupId displayGroupId, D
             TLOGE(WmsLogTag::WMS_FOCUS, "displayGroupId invalid, displayGroupId: %{public}" PRIu64, displayGroupId);
         }
     }
-    displayId2GroupIdMap_.erase(displayId);
-    deletedDisplayId2GroupIdMap_[displayId] = displayGroupId;
+    {
+        std::lock_guard<std::mutex> lock(displayId2GroupIdMapMutex_);
+        displayId2GroupIdMap_.erase(displayId);
+    }
+    {
+        std::lock_guard<std::mutex> lock(deletedDisplayId2GroupIdMapMutex_);
+        deletedDisplayId2GroupIdMap_[displayId] = displayGroupId;
+    }
     LogDisplayIds();
     SessionManagerAgentController::GetInstance().UpdateDisplayGroupInfo(displayGroupId, displayId, false);
     return WSError::WS_OK;
@@ -241,10 +259,13 @@ void WindowFocusController::LogDisplayIds()
                 }
             }
         }
-        for (auto it = displayId2GroupIdMap_.begin(); it != displayId2GroupIdMap_.end(); it++) {
-            oss << "displayId2GroupIdMap:" << it->first << "-" << it->second;
-            if (std::next(it) != displayId2GroupIdMap_.end()) {
-                oss << ", ";
+        {
+            std::lock_guard<std::mutex> lock(displayId2GroupIdMapMutex_);
+            for (auto it = displayId2GroupIdMap_.begin(); it != displayId2GroupIdMap_.end(); it++) {
+                oss << "displayId2GroupIdMap:" << it->first << "-" << it->second;
+                if (std::next(it) != displayId2GroupIdMap_.end()) {
+                    oss << ", ";
+                }
             }
         }
     }
