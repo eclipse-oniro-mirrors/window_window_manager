@@ -417,7 +417,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_02, TestSize.
  * @tc.desc: SceneSesion test GetScaleInLSState
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, GetScaleInLSState, TestSize.Level0)
+HWTEST_F(SceneSessionManagerImmersiveTest, GetScaleInLSState, TestSize.Level0)
 {
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "testbundleName";
