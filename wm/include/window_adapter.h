@@ -122,6 +122,7 @@ public:
     virtual WMError NotifyWindowExtensionVisibilityChange(int32_t pid, int32_t uid, bool visible);
     virtual WMError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener);
     virtual WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener);
+    virtual WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr);
     virtual WMError RaiseWindowToTop(int32_t persistentId);
     virtual WMError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId);
     virtual WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex, bool updateMap = true);

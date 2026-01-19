@@ -1312,6 +1312,20 @@ HWTEST_F(WindowAdapterTest, UnregisterWindowPropertyChangeAgent01, Function | Sm
 }
 
 /**
+ * @tc.name: GetWindowStateSnapshot01
+ * @tc.desc: WindowAdapter/GetWindowStateSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, GetWindowStateSnapshot01, Function | SmallTest | Level2)
+{
+    ASSERT_NE(instance_, nullptr);
+    int32_t persistentId = 1;
+    std::string winStateSnapshotJsonStr = "{}";
+    auto err = instance_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_NE(err, WMError::WM_ERROR_INVALID_CALLING);
+}
+
+/**
  * @tc.name: CreateUIEffectController
  * @tc.desc: WindowAdapter/CreateUIEffectController
  * @tc.type: FUNC

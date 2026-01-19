@@ -13558,6 +13558,24 @@ WMError SceneSessionManager::UpdateSessionOcclusionStateListener(int32_t persist
     }, where);
 }
 
+WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
+{
+    if (winStateSnapshotJsonStr.empty()) {
+        winStateSnapshotJsonStr = "{}";
+    }
+    nlohmann::json winStateSnapshotJson = nlohmann::json::parse(winStateSnapshotJsonStr, nullptr, false);
+    if (winStateSnapshotJson.is_discarded()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "parse json error: winId=%{public}d, winStateSnapshot=%{public}s",
+            persistentId, winStateSnapshotJsonStr.c_str());
+        return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+    }
+    winStateSnapshotJson["showInLandscapeMode"] = appWindowSceneConfig_.systemUIStatusBarConfig_.showInLandscapeMode_;
+    winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
+        persistentId, winStateSnapshotJsonStr.c_str());
+    return WMError::WM_OK;
+}
+
 void SceneSessionManager::UpdateDarkColorModeToRS()
 {
     std::shared_ptr<AbilityRuntime::ApplicationContext> appContext = AbilityRuntime::Context::GetApplicationContext();

@@ -7752,6 +7752,13 @@ WMError WindowSceneSessionImpl::GetWindowStateSnapshot(std::string& winStateSnap
         {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
     };
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+    auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(persistentId,
+        winStateSnapshotJsonStr);
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
+            persistentId, static_cast<int32_t>(errCode));
+        return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+    }
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
         persistentId, winStateSnapshotJsonStr.c_str());
     return WMError::WM_OK;

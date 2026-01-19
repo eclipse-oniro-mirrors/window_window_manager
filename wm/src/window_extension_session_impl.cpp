@@ -1764,8 +1764,16 @@ WMError WindowExtensionSessionImpl::GetWindowStateSnapshot(std::string& winState
         {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
     };
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ext winId=%{public}d, winStateSnapshot=%{public}s",
-        persistentId, winStateSnapshotJsonStr.c_str());
+    auto hostWinId = property_->GetParentId();
+    auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(hostWinId,
+        winStateSnapshotJsonStr);
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, hostWinId=%{public}d, retCode=%{public}d",
+            persistentId, hostWinId, static_cast<int32_t>(errCode));
+        return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ext winId=%{public}d, hostWinId=%{public}d, winStateSnapshot=%{public}s",
+        persistentId, hostWinId, winStateSnapshotJsonStr.c_str());
     return WMError::WM_OK;
 }
 
