@@ -7750,7 +7750,7 @@ WMError WindowSceneSessionImpl::GetWindowStateSnapshot(std::string& winStateSnap
     auto persistentId = GetPersistentId();
     nlohmann::json winStateSnapshotJson = {
         {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
-        {"freeMultiWindowSupport", windowSystemConfig_.freeMultiWindowSupport_ || windowSystemConfig_.IsPcWindow()},
+        {"isSupportFreeWindowMode", windowSystemConfig_.freeMultiWindowSupport_ || windowSystemConfig_.IsPcWindow()},
     };
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
