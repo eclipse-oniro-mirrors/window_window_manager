@@ -2765,12 +2765,10 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
         WSRectF winRectF = { globalRect.posX_, globalRect.posY_,
             globalRect.width_ * scaleX, globalRect.height_ * scaleY };
         WSRectF avoidRectF = { avoidRect.posX_, avoidRect.posY_, avoidRect.width_, avoidRect.height_ };
-
-        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d dispaly %{public}" PRIu64 ""
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d display %{public}" PRIu64 ""
             "type %{public}d globalRect %{public}s bar %{public}s, [%{public}f, %{public}f]",
             GetPersistentId(), displayId, type, winRectF.ToString().c_str(),
             avoidRect.ToString().c_str(), scaleX, scaleY);
-
         CalculateAvoidAreaRect(winRectF, avoidRectF, avoidArea);
     } else {
         CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
