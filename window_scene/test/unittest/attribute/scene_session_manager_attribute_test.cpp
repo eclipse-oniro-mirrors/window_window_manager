@@ -50,7 +50,7 @@ public:
     static sptr<SceneSessionManager> ssm_;
 
 private:
-    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
+    static constexpr uint32_t waitSyncInNs = 200000;
 };
 
 sptr<SceneSessionManager> SceneSessionManagerAttributeTest::ssm_ = nullptr;
@@ -73,7 +73,7 @@ void SceneSessionManagerAttributeTest::SetUp()
 void SceneSessionManagerAttributeTest::TearDown()
 {
     MockAccesstokenKit::ChangeMockStateToInit();
-    usleep(WAIT_SYNC_IN_NS);
+    usleep(waitSyncInNs);
     ssm_->sceneSessionMap_.clear();
 }
 
