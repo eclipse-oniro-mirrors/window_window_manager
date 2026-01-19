@@ -1018,8 +1018,8 @@ void Session::SetCallingPid(int32_t id)
 {
     TLOGI(WmsLogTag::WMS_EVENT, "id:%{public}d, %{public}d", persistentId_, id);
     callingPid_ = id;
-    if (visibilityChangedDetectFunc_ && isVisible_) {
-        visibilityChangedDetectFunc_(callingPid_, false, isVisible_);
+    if (visibilityChangedDetectFunc_ && isVisible_.load()) {
+        visibilityChangedDetectFunc_(callingPid_, false, isVisible_.load());
     }
 }
 
@@ -1745,7 +1745,7 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken)
     lastSnapshotScreen_ = WSSnapshotHelper::GetInstance()->GetScreenStatus();
     NotifyDisconnect();
     if (visibilityChangedDetectFunc_) {
-        visibilityChangedDetectFunc_(GetCallingPid(), isVisible_, false);
+        visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), false);
     }
     // If session is disconnect, clear it's outline if need.
     OutlineStyleParams defaultParams;
@@ -2991,7 +2991,7 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
         SaveSnapshot(true, true, nullptr, true);
         return;
     }
-    if (IsSessionForeground() || isVisible_) {
+    if (IsSessionForeground() || isVisible_.load()) {
         NotifyRemoveSnapshot();
         return;
     }
@@ -3091,6 +3091,57 @@ void Session::SetPreloadingStartingWindow(bool preloading)
 bool Session::GetPreloadingStartingWindow() const
 {
     return preloadingStartingWindow_.load();
+}
+
+void Session::SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap)
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    if (pixelMap == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "pixelMap is nullptr");
+        return;
+    }
+    preloadStartingWindowPixelMap_ = pixelMap;
+    preloadStartingWindowSvgBufferInfo_ = {nullptr, 0};
+    TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
+}
+
+void Session::SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo)
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    if (bufferInfo.first == nullptr || bufferInfo.second == 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "bufferInfo is invalid, size %{public}zu", bufferInfo.second);
+        return;
+    }
+    preloadStartingWindowSvgBufferInfo_ = bufferInfo;
+    preloadStartingWindowPixelMap_.reset();
+    TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());
+}
+
+void Session::ResetPreloadStartingWindow()
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    preloadStartingWindowPixelMap_.reset();
+    preloadStartingWindowSvgBufferInfo_ = {nullptr, 0};
+    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d", GetPersistentId());
+}
+
+void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
+    std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo)
+{
+    std::shared_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    if (preloadStartingWindowPixelMap_ != nullptr) {
+        pixelMap = preloadStartingWindowPixelMap_;
+        TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
+        return;
+    }
+    if (preloadStartingWindowSvgBufferInfo_.first != nullptr && preloadStartingWindowSvgBufferInfo_.second > 0) {
+        bufferInfo = preloadStartingWindowSvgBufferInfo_;
+        TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());
+        return;
+    }
+    return;
 }
 
 void Session::PreloadSnapshot()
@@ -4138,7 +4189,7 @@ void Session::RectSizeCheckProcess(uint32_t curWidth, uint32_t curHeight, uint32
 /** @note @window.layout */
 void Session::RectCheckProcess()
 {
-    if (!(IsSessionForeground() || isVisible_)) {
+    if (!(IsSessionForeground() || isVisible_.load())) {
         return;
     }
     auto displayId = GetSessionProperty()->GetDisplayId();
@@ -5158,12 +5209,12 @@ std::shared_ptr<Media::PixelMap> Session::GetSnapshotPixelMap(const float oriSca
 
 bool Session::IsVisibleForeground() const
 {
-    return isVisible_ && IsSessionForeground();
+    return isVisible_.load() && IsSessionForeground();
 }
 
 bool Session::IsVisibleNotBackground() const
 {
-    return isVisible_ && IsSessionNotBackground();
+    return isVisible_.load() && IsSessionNotBackground();
 }
 
 void Session::SetIsStarting(bool isStarting)
@@ -5173,7 +5224,7 @@ void Session::SetIsStarting(bool isStarting)
 
 void Session::ResetDirtyFlags()
 {
-    if (!isVisible_) {
+    if (!isVisible_.load()) {
         dirtyFlags_ &= static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA);
     } else {
         dirtyFlags_ = 0;
@@ -5221,7 +5272,7 @@ void Session::SetBackgroundUpdateRectNotifyEnabled(const bool enabled)
 
 bool Session::IsVisible() const
 {
-    return isVisible_;
+    return isVisible_.load();
 }
 
 std::shared_ptr<AppExecFwk::EventHandler> Session::GetEventHandler() const

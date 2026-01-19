@@ -490,7 +490,7 @@ void SessionListenerController::NotifySessionTransferToTargetScreenEvent(const S
                 return;
             }
             TLOGNI(WmsLogTag::WMS_LIFE,
-                "start notify listeners, bundleName:%{public}s, persistentId:%{public}d, event:%{public}d"
+                "start notify listeners, bundleName:%{public}s, persistentId:%{public}d, event:%{public}d, "
                 "reason: %{public}u",
                 bundleName.c_str(), persistentId, event, payload.lifeCycleChangeReason_);
             controller->NotifyListeners(controller->listenerMapById_, persistentId, event, payload);

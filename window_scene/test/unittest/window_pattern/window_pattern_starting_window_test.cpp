@@ -424,46 +424,191 @@ HWTEST_F(WindowPatternStartingWindowTest, GetBundleStartingWindowInfos, TestSize
 }
 
 /**
- * @tc.name: GetPreLoadStartingWindow
- * @tc.desc: GetPreLoadStartingWindow
+ * @tc.name: GetPreloadStartingWindow_WithoutAnyData
+ * @tc.desc: Test GetPreloadStartingWindow when neither PixelMap nor SVG buffer is set
  * @tc.type: FUNC
+ * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreLoadStartingWindow, TestSize.Level1)
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithoutAnyData, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    ssm_->preLoadStartingWindowMap_.clear();
+    
     SessionInfo sessionInfo;
-    ASSERT_EQ(nullptr, ssm_->GetPreLoadStartingWindow(sessionInfo));
+ 
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
     sessionInfo.abilityName_ = "abilityName_";
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +sessionInfo.abilityName_;
-    ssm_->preLoadStartingWindowMap_[key] = std::make_shared<Media::PixelMap>();
-    ASSERT_NE(nullptr, ssm_->GetPreLoadStartingWindow(sessionInfo));
-    ssm_->preLoadStartingWindowMap_.clear();
-    EXPECT_EQ(true, ssm_->preLoadStartingWindowMap_.empty());
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
 }
-
+ 
 /**
- * @tc.name: RemovePreLoadStartingWindowFromMap
- * @tc.desc: RemovePreLoadStartingWindowFromMap
+ * @tc.name: GetPreloadStartingWindow_WithValidPixelMap
+ * @tc.desc: Test GetPreloadStartingWindow when valid PixelMap is set (SVG buffer remains unchanged)
  * @tc.type: FUNC
+ * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, RemovePreLoadStartingWindowFromMap, TestSize.Level1)
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidPixelMap, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    ssm_->preLoadStartingWindowMap_.clear();
+    
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
     sessionInfo.abilityName_ = "abilityName_";
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +sessionInfo.abilityName_;
-    ssm_->preLoadStartingWindowMap_[key] = std::make_shared<Media::PixelMap>();
-    SessionInfo anotherSessionInfo;
-    ssm_->RemovePreLoadStartingWindowFromMap(anotherSessionInfo);
-    EXPECT_EQ(false, ssm_->preLoadStartingWindowMap_.empty());
-    ssm_->RemovePreLoadStartingWindowFromMap(sessionInfo);
-    EXPECT_EQ(true, ssm_->preLoadStartingWindowMap_.empty());
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    auto validPixelMap = std::make_shared<Media::PixelMap>();
+    sceneSession->SetPreloadStartingWindow(validPixelMap);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 5};
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, validPixelMap);
+    EXPECT_EQ(bufferInfo.second, 0);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithValidSvgBuffer
+ * @tc.desc: Test GetPreloadStartingWindow when valid SVG buffer is set (PixelMap remains null)
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidSvgBuffer, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    auto svgBufferVec = std::make_shared<std::vector<uint8_t>>(10);
+    std::shared_ptr<uint8_t[]> validSvgBuffer(svgBufferVec->data(), [](uint8_t*) {});
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> validBufferInfo = {validSvgBuffer, 10};
+    sceneSession->SetPreloadStartingWindow(validBufferInfo);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, validBufferInfo.first);
+    EXPECT_EQ(bufferInfo.second, validBufferInfo.second);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithInvalidSvgBuffer_SizeZero
+ * @tc.desc: Test GetPreloadStartingWindow when invalid SVG buffer (size 0) is set
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_SizeZero, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    auto svgBufferVec = std::make_shared<std::vector<uint8_t>>(10);
+    std::shared_ptr<uint8_t[]> invalidSvgBuffer(svgBufferVec->data(), [](uint8_t*) {});
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> invalidBufferInfo = {invalidSvgBuffer, 0};
+    sceneSession->SetPreloadStartingWindow(invalidBufferInfo);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithInvalidSvgBuffer_Nullptr
+ * @tc.desc: Test GetPreloadStartingWindow when invalid SVG buffer is nullptr
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_Nullptr, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    std::shared_ptr<uint8_t[]> invalidSvgBuffer = nullptr;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> invalidBufferInfo = {invalidSvgBuffer, 5};
+    sceneSession->SetPreloadStartingWindow(invalidBufferInfo);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithInvalidPixelMap_Nullptr
+ * @tc.desc: Test GetPreloadStartingWindow when invalid PixelMap (nullptr) is set
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidPixelMap_Nullptr, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    std::shared_ptr<Media::PixelMap> invalidPixelMap = nullptr;
+    sceneSession->SetPreloadStartingWindow(invalidPixelMap);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
 }
 
 /**
@@ -471,26 +616,21 @@ HWTEST_F(WindowPatternStartingWindowTest, RemovePreLoadStartingWindowFromMap, Te
  * @tc.desc: release preload starting window when EraseSceneSessionMapById
  * @tc.type: FUNC
  */
-HWTEST_F(WindowPatternStartingWindowTest, EraseSceneSessionMapById, TestSize.Level1)
+HETEST_F(WindowPatternStartingWindowTest, EraseSceneSessionMapById, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    ssm_->preLoadStartingWindowMap_.clear();
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
     sessionInfo.abilityName_ = "abilityName_";
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +sessionInfo.abilityName_;
-    ssm_->preLoadStartingWindowMap_[key] = std::make_shared<Media::PixelMap>();
-    EXPECT_EQ(false, ssm_->preLoadStartingWindowMap_.empty());
+    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' + sessionInfo.abilityName_;
     ssm_->EraseSceneSessionMapById(0);
-    EXPECT_EQ(false, ssm_->preLoadStartingWindowMap_.empty());
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     ssm_->sceneSessionMap_.insert({sceneSession->GetPersistentId(), sceneSession});
     ASSERT_NE(nullptr, ssm_->GetSceneSession(sceneSession->GetPersistentId()));
     ssm_->EraseSceneSessionMapById(sceneSession->GetPersistentId());
     ASSERT_EQ(nullptr, ssm_->GetSceneSession(sceneSession->GetPersistentId()));
-    EXPECT_EQ(true, ssm_->preLoadStartingWindowMap_.empty());
 }
 
 /**
@@ -503,22 +643,30 @@ HWTEST_F(WindowPatternStartingWindowTest, CheckAndGetPreLoadResourceId, TestSize
     ASSERT_NE(ssm_, nullptr);
     StartingWindowInfo startingWindowInfo;
     uint32_t resId = 0;
+    bool isSvg = false;
     startingWindowInfo.configFileEnabled_ = true;
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.configFileEnabled_ = false;
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.svg";
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(true, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///abc12345678.jpg";
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.png";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.jpg";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.webp";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.astc";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
 }
 
 /**
