@@ -277,12 +277,12 @@ struct WindowCreateParams : public Parcelable {
             return nullptr;
         }
         if (hasNeedAnimation) {
-            bool needAnimation = false;
-            if (!parcel.ReadBool(needAnimation)) {
+            bool needAnimationValue = false;
+            if (!parcel.ReadBool(needAnimationValue)) {
                 delete windowCreateParams;
                 return nullptr;
             }
-            windowCreateParams->needAnimation = std::make_shared<bool>(needAnimation);
+            windowCreateParams->needAnimation = std::make_shared<bool>(needAnimationValue);
         } else {
             windowCreateParams->needAnimation = nullptr;
         }
