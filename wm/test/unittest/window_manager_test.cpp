@@ -1436,6 +1436,23 @@ HWTEST_F(WindowManagerTest, UnregisterFocusChangedListener01, TestSize.Level1)
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
 }
 
+/** 
+  * @tc.name: SetProcessWatermark 
+  * @tc.desc: check SetProcessWatermark 
+  * @tc.type: FUNC 
+  */ 
+ HWTEST_F(WindowManagerTest, SetProcessWatermark, TestSize.Level1) 
+ { 
+     ASSERT_NE(nullptr, windowAdapter); 
+     windowAdapter->isProxyValid_ = true; 
+     windowAdapter->windowManagerServiceProxy_ = nullptr; 
+     int32_t pid = 1000; 
+     const std::string watermarkName = "SetProcessWatermarkName"; 
+     bool isEnabled = true; 
+     auto ret = instance_->SetProcessWatermark(pid, watermarkName, isEnabled); 
+     ASSERT_EQ(WMError::WM_ERROR_SAMGR, ret); 
+ }
+
 /**
  * @tc.name: NotifyDisplayInfoChange01
  * @tc.desc: check NotifyDisplayInfoChange, Token is nullptr

@@ -39,17 +39,3 @@ ohos_unittest("wm_window_scene_session_impl_attribute_test") {
 
   external_deps = test_external_deps
 }
-
-ohos_unittest("wm_window_manager_attribute_test") {
-  module_out_path = module_out_path
-
-  include_dirs = [ "${window_base_path}/wm/src" ]
-  sources = [ "window_manager_attribute_test.cpp" ]
-
-  deps = [
-    wm_unittest_common,
-    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-  ]
-
-  external_deps = test_external_deps
-}
