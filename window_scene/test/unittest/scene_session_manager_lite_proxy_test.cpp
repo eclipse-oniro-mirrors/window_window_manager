@@ -133,6 +133,55 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, PendingSessionToBackground, TestSize.
 }
 
 /**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: set watermark for process
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, SetProcessWatermark, TestSize.Level1)
+{
+    int32_t pid = 1000;
+    const std::string watermarkName = "SetProcessWatermarkName";
+    bool isEnabled = false;
+    auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    auto ret = tempProxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: UpdateAnimationSpeedWithPid
  * @tc.desc: normal function
  * @tc.type: FUNC

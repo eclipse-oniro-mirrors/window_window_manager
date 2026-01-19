@@ -1292,6 +1292,15 @@ WindowStyleType WindowManagerLite::GetWindowStyleType()
     return styleType;
 }
 
+WMError WindowManagerLite::SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+{
+    WMError ret = WindowAdapterLite::GetInstance(userId_).SetProcessWatermark(pid, watermarkName, isEnabled);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+        "lite pid:%{public}d, watermarkName:%{public}s, isEnabled:%{public}u, ret:%{public}d",
+        pid, watermarkName.c_str(), isEnabled, static_cast<int32_t>(ret));
+    return ret;
+}
+
 WMError WindowManagerLite::TerminateSessionByPersistentId(int32_t persistentId)
 {
     if (persistentId == INVALID_SESSION_ID) {

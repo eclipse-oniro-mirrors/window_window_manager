@@ -586,25 +586,6 @@ HWTEST_F(WindowSessionImplTest2, NotifyTransferComponentDataSync, TestSize.Level
 }
 
 /**
- * @tc.name: UpdateAvoidArea
- * @tc.desc: UpdateAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest2, UpdateAvoidArea, TestSize.Level1)
-{
-    auto window = GetTestWindowImpl("UpdateAvoidArea");
-    ASSERT_NE(window, nullptr);
-    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
-    avoidArea->topRect_ = { 1, 0, 0, 0 };
-    avoidArea->leftRect_ = { 0, 1, 0, 0 };
-    avoidArea->rightRect_ = { 0, 0, 1, 0 };
-    avoidArea->bottomRect_ = { 0, 0, 0, 1 };
-    AvoidAreaType type = AvoidAreaType::TYPE_SYSTEM;
-    ASSERT_EQ(WSError::WS_OK, window->UpdateAvoidArea(avoidArea, type));
-    window->Destroy();
-}
-
-/**
  * @tc.name: HandleEscKeyEvent001
  * @tc.desc: HandleEscKeyEvent test
  * @tc.type: FUNC

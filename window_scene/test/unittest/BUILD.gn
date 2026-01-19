@@ -61,7 +61,7 @@ group("unittest") {
     "rotation:ws_window_session_property_rotation_test",
     "ui_extension:unittest",
     "window_focus:unittest",
-    "window_immersive:window_immersive_avoid_area_test",
+    "window_immersive:window_scene_immersive_test",
     "window_pattern:window_pattern_starting_window_rdb_test",
   ]
 

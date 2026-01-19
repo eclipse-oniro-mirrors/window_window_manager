@@ -2705,31 +2705,6 @@ HWTEST_F(SceneSessionManagerTest6, QueryAbilityInfoFromBMSTest, TestSize.Level1)
 }
 
 /**
- * @tc.name: UpdateAvoidArea
- * @tc.desc: UpdateAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest6, UpdateAvoidArea, TestSize.Level1)
-{
-    int32_t persistentId = 0;
-    ASSERT_NE(nullptr, ssm_);
-    ssm_->sceneSessionMap_.clear();
-    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
-    ssm_->UpdateAvoidArea(persistentId);
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "SceneSessionManagerTest6";
-    sessionInfo.abilityName_ = "UpdateAvoidArea";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    ssm_->sceneSessionMap_.insert(std::make_pair(persistentId, sceneSession));
-    ASSERT_NE(nullptr, sceneSession->property_);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    ssm_->UpdateAvoidArea(persistentId);
-    sceneSession->property_->SetWindowType(WindowType::APP_WINDOW_BASE);
-    ssm_->UpdateAvoidArea(persistentId);
-}
-
-/**
  * @tc.name: UpdateMaximizeMode
  * @tc.desc: UpdateMaximizeMode
  * @tc.type: FUNC
