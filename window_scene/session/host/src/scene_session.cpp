@@ -2796,28 +2796,42 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
 {
     auto displayId = GetSessionProperty()->GetDisplayId();
     PrintAvoidAreaInfo(displayId, type, winRect, avoidRect);
-    CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
-    lastAvoidAreaInputParamtersMap_[type] = std::make_tuple(displayId, winRect, avoidRect);
+    float scaleX = 1;
+    float scaleY = 1;
+    if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
+        auto globalRect = GetSessionGlobalRect();
+        WSRectF winRectF = { globalRect.posX_, globalRect.posY_,
+            globalRect.width_ * scaleX, globalRect.height_ * scaleY };
+        WSRectF avoidRectF = { avoidRect.posX_, avoidRect.posY_, avoidRect.width_, avoidRect.height_ };
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d display %{public}" PRIu64 ""
+            "type %{public}d globalRect %{public}s bar %{public}s, [%{public}f, %{public}f]",
+            GetPersistentId(), displayId, type, winRectF.ToString().c_str(),
+            avoidRect.ToString().c_str(), scaleX, scaleY);
+        CalculateAvoidAreaRect(winRectF, avoidRectF, avoidArea);
+    } else {
+        CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
+    }
 }
 
-void SceneSession::CalculateAvoidAreaRect(const WSRect& rect, const WSRect& avoidRect, AvoidArea& avoidArea) const
+template<typename T>
+void SceneSession::CalculateAvoidAreaRect(
+    const WSRectT<T>& rect, const WSRectT<T>& avoidRect, AvoidArea& avoidArea) const
 {
-    if (SessionHelper::IsEmptyRect(rect) || SessionHelper::IsEmptyRect(avoidRect)) {
+    if (rect.IsEmpty() || avoidRect.IsEmpty()) {
         return;
     }
-    Rect avoidAreaRect = SessionHelper::TransferToRect(
-        SessionHelper::GetOverlap(rect, avoidRect, rect.posX_, rect.posY_));
-    if (WindowHelper::IsEmptyRect(avoidAreaRect)) {
+    WSRectT<T> avoidAreaWSRect = SessionHelper::GetOverlap(rect, avoidRect, rect.posX_, rect.posY_);
+    if (avoidAreaWSRect.IsEmpty()) {
         return;
     }
 
-    uint32_t avoidAreaCenterX = static_cast<uint32_t>(avoidAreaRect.posX_) + (avoidAreaRect.width_ >> 1);
-    uint32_t avoidAreaCenterY = static_cast<uint32_t>(avoidAreaRect.posY_) + (avoidAreaRect.height_ >> 1);
+    T avoidAreaCenterX = avoidAreaWSRect.posX_ + avoidAreaWSRect.width_ / 2;
+    T avoidAreaCenterY = avoidAreaWSRect.posY_ + avoidAreaWSRect.height_ / 2;
     float res1 = float(avoidAreaCenterY) - float(rect.height_) / float(rect.width_) *
         float(avoidAreaCenterX);
     float res2 = float(avoidAreaCenterY) + float(rect.height_) / float(rect.width_) *
         float(avoidAreaCenterX) - float(rect.height_);
-    CalculateAvoidAreaByScale(avoidAreaRect);
+    Rect avoidAreaRect = CalculateAvoidAreaByScale(avoidAreaWSRect);
     if (res1 < 0) {
         if (res2 < 0) {
             avoidArea.topRect_ = avoidAreaRect;
@@ -3296,10 +3310,26 @@ int32_t SceneSession::GetUIExtPersistentIdBySurfaceNodeId(uint64_t surfaceNodeId
     return ret->second;
 }
 
+bool SceneSession::IsInLSState() const
+{
+    auto windowType = GetWindowType();
+    if (WindowHelper::IsMainWindow(windowType)) {
+        if (GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN || GetIsMidScene() ||
+            !specificCallback_ || !specificCallback_->onGetLSState_ || !specificCallback_->onGetLSState_()) {
+            return false;
+        }
+    } else if (WindowHelper::IsSubWindow(windowType) || WindowHelper::IsSystemWindow(windowType)) {
+        if (auto parentSession = GetParentSession()) {
+            return parentSession->IsInLSState();
+        }
+        return false;
+    }
+    return true;
+}
+
 WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
 {
-    if (GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN || GetIsMidScene() ||
-        !specificCallback_ || !specificCallback_->onGetLSState_ || !specificCallback_->onGetLSState_()) {
+    if (!IsInLSState()) {
         TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, not in LS state", GetPersistentId());
         return WSError::WS_DO_NOTHING;
     }
@@ -3313,28 +3343,23 @@ WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
     return WSError::WS_OK;
 }
 
-void SceneSession::CalculateWindowRectByScale(WSRect& winRect)
+template<typename T>
+Rect SceneSession::CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const
 {
     float scaleX = 1;
     float scaleY = 1;
+    Rect avoidArea = { avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_ };
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
-        return;
+        return avoidArea;
     }
-    winRect.width_ *= scaleX;
-    winRect.height_ *= scaleY;
-}
-
-void SceneSession::CalculateAvoidAreaByScale(Rect& avoidAreaRect) const
-{
-    float scaleX = 1;
-    float scaleY = 1;
-    if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
-        return;
-    }
-    avoidAreaRect.posX_ = std::ceil(avoidAreaRect.posX_ / scaleX);
-    avoidAreaRect.posY_ = std::ceil(avoidAreaRect.posY_ / scaleY);
-    avoidAreaRect.width_ = std::ceil(avoidAreaRect.width_ / scaleX);
-    avoidAreaRect.height_ = std::ceil(avoidAreaRect.height_ / scaleY);
+    avoidArea.posX_ = std::floor(avoidAreaRect.posX_ / scaleX);
+    avoidArea.posY_ = std::floor(avoidAreaRect.posY_ / scaleY);
+    avoidArea.width_ = std::ceil(avoidAreaRect.width_ / scaleX);
+    avoidArea.height_ = std::ceil(avoidAreaRect.height_ / scaleY);
+    TLOGI(WmsLogTag::WMS_IMMS, "win: %{public}d avoidArea:[%{public}d,"
+        " %{public}d, %{public}d, %{public}d], scale[%{public}f, %{public}f]",
+        GetPersistentId(), avoidArea.posX_, avoidArea.posY_, avoidArea.width_, avoidArea.height_, scaleX, scaleY);
+    return avoidArea;
 }
 
 AvoidArea SceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, const WSRect& rect, bool ignoreVisibility)
@@ -3345,7 +3370,6 @@ AvoidArea SceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, const WSRect
 
     AvoidArea avoidArea;
     WSRect sessionRect = rect.IsEmpty() ? GetSessionRect() : rect;
-    CalculateWindowRectByScale(sessionRect);
     switch (type) {
         case AvoidAreaType::TYPE_SYSTEM: {
             GetSystemAvoidArea(sessionRect, avoidArea, ignoreVisibility);

@@ -506,6 +506,7 @@ public:
     /*
      * Window Immersive
      */
+    bool IsInLSState() const override;
     WSError OnNeedAvoid(bool status) override;
     AvoidArea GetAvoidAreaByType(AvoidAreaType type, const WSRect& rect = WSRect::EMPTY_RECT,
         int32_t apiVersion = API_VERSION_INVALID) override;
@@ -1058,7 +1059,9 @@ protected:
     /*
      * Window Immersive
      */
-    void CalculateAvoidAreaRect(const WSRect& rect, const WSRect& avoidRect, AvoidArea& avoidArea) const;
+    template<typename T>
+    void CalculateAvoidAreaRect(
+        const WSRectT<T>& rect, const WSRectT<T>& avoidRect, AvoidArea& avoidArea) const;
     virtual void NotifyClientToUpdateAvoidArea();
     bool PipelineNeedNotifyClientToUpdateAvoidArea(uint32_t dirty) const;
     NotifyNeedAvoidFunc onNeedAvoid_;
@@ -1235,8 +1238,8 @@ private:
     void GetKeyboardAvoidAreaByRotation(Rotation rotation, const WSRect& rect, AvoidArea& avoidArea);
     AvoidArea GetAvoidAreaByRotation(Rotation rotation, const WSRect& rect,
         const std::map<WindowType, SystemBarProperty>& properties, AvoidAreaType type);
-    void CalculateWindowRectByScale(WSRect& winRect);
-    void CalculateAvoidAreaByScale(Rect& avoidAreaRect) const;
+    template<typename T>
+    Rect CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const;
     WSError GetScaleInLSState(float& scaleX, float& scaleY)  const;
 
     /*
