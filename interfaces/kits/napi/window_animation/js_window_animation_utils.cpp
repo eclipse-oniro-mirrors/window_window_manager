@@ -328,6 +328,22 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
             windowCreateParams.animationSystemParams = nullptr;
         }
     }
+    bool hasNeedAnimation = false;
+    napi_has_named_property(env, jsObject, "needAnimation", &hasNeedAnimation);
+    if (hasNeedAnimation) {
+        napi_value jsNeedAnimation = nullptr;
+        napi_get_named_property(env, jsObject, "needAnimation", &jsNeedAnimation);
+        napi_valuetype type = napi_undefined;
+        napi_typeof(env, jsNeedAnimation, &type);
+        if (type == napi_boolean) {
+            bool tempVal = false;
+            if (napi_get_value_bool(env, jsNeedAnimation, &tempVal) == napi_ok) {
+                windowCreateParams.needAnimation = std::make_shared<bool>(tempVal);
+            }
+        }
+    } else {
+        windowCreateParams.needAnimation = nullptr;
+    }
     return true;
 }
 

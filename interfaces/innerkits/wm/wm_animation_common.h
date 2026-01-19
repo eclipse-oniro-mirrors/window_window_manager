@@ -240,6 +240,7 @@ struct StartAnimationSystemOptions : public Parcelable {
 struct WindowCreateParams : public Parcelable {
     std::shared_ptr<StartAnimationOptions> animationParams = nullptr;
     std::shared_ptr<StartAnimationSystemOptions> animationSystemParams = nullptr;
+    std::shared_ptr<bool> needAnimation = nullptr;
 
     // LCOV_EXCL_START
     bool Marshalling(Parcel& parcel) const override
@@ -249,6 +250,15 @@ struct WindowCreateParams : public Parcelable {
         }
         if (!parcel.WriteParcelable(animationSystemParams.get())) {
             return false;
+        }
+        bool hasNeedAnimation = (needAnimation != nullptr);
+        if (!parcel.WriteBool(hasNeedAnimation)) {
+            return false;
+        }
+        if (hasNeedAnimation) {
+            if (!parcel.WriteBool(*needAnimation)) {
+                return false;
+            }
         }
         return true;
     }
@@ -261,6 +271,21 @@ struct WindowCreateParams : public Parcelable {
             std::shared_ptr<StartAnimationOptions>(parcel.ReadParcelable<StartAnimationOptions>());
         windowCreateParams->animationSystemParams =
             std::shared_ptr<StartAnimationSystemOptions>(parcel.ReadParcelable<StartAnimationSystemOptions>());
+        bool hasNeedAnimation = false;
+        if (!parcel.ReadBool(hasNeedAnimation)) {
+            delete windowCreateParams;
+            return nullptr;
+        }
+        if (hasNeedAnimation) {
+            bool needAnimationValue = false;
+            if (!parcel.ReadBool(needAnimationValue)) {
+                delete windowCreateParams;
+                return nullptr;
+            }
+            windowCreateParams->needAnimation = std::make_shared<bool>(needAnimationValue);
+        } else {
+            windowCreateParams->needAnimation = nullptr;
+        }
         return windowCreateParams;
     }
 };

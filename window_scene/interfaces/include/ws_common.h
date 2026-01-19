@@ -545,6 +545,7 @@ struct SessionInfo {
 
     std::shared_ptr<StartAnimationOptions> startAnimationOptions = nullptr;
     std::shared_ptr<StartAnimationSystemOptions> startAnimationSystemOptions = nullptr;
+    std::shared_ptr<WindowCreateParams> windowCreateParams = nullptr;
 };
 
 struct RequestTaskInfo {
