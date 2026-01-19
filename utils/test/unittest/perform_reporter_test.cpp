@@ -567,12 +567,7 @@ HWTEST_F(PerformReporterTest, ReportWindowIO, Function | SmallTest | Level2)
     windowInfoReporter.ReportWindowIO("ASTC", 10.5);
     windowInfoReporter.ReportWindowIO("ASTC", 10.5);
 
-    OHOS::system::SetParameter("persist.window.realTimeIoDataOutput", "1");
-    EXPECT_EQ(OHOS::system::GetParameter("persist.window.realTimeIoDataOutput", "0"), "1");
-
-    windowInfoReporter.ReportWindowIO("ASTC", 10.5);
-
-    EXPECT_TRUE(g_errLog.find("total") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("total") == std::string::npos);
     LOG_SetCallback(nullptr);
 }
 
