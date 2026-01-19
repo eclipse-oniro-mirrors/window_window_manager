@@ -1003,6 +1003,8 @@ void WindowSceneSessionImpl::UpdateDefaultStatusBarColor()
         static_cast<uint32_t>(SystemBarSettingFlag::FOLLOW_SETTING));
     SystemBarPropertyFlag systemBarPropertyFlag = { false, false, true, false };
     property_->SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, statusBarProp);
+    UpdateStatusBarColorHistory(StatusBarColorChangeReason::WINDOW_CONFIGURATION,
+        std::optional<uint32_t>(statusBarProp.contentColor_));
     if (!isAtomicServiceUseColor_) {
         UpdateSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, statusBarProp, systemBarPropertyFlag);
     }
