@@ -32,7 +32,6 @@ test_external_deps = [
   "graphic_2d:librender_service_client",
   "graphic_2d:window_animation",
   "hilog:libhilog",
-  "hilog:libhilog_base",
   "image_framework:image_native",
   "init:libbegetutil",
   "input:libmmi-client",

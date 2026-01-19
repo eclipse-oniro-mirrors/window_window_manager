@@ -230,7 +230,7 @@ public:
         const std::map<int32_t, sptr<SceneSession>>& sessionMap);
     void PostFlushWindowInfoTask(FlushWindowInfoTask&& task, const std::string& taskName, const int delayTime);
 
-    sptr<SceneSession> GetSceneSessionByIdentityInfo(const SessionIdentityInfo& info);
+    sptr<SceneSession> GetSceneSessionByIdentityInfo(const SessionIdentityInfo& info, bool needFilterRemoving = true);
     sptr<SceneSession> GetSceneSessionByType(WindowType type);
     std::vector<sptr<SceneSession>> GetSceneSessionByBundleName(const std::string& bundleName);
 
@@ -598,6 +598,7 @@ public:
 
     const SystemSessionConfig& GetSystemSessionConfig() const;
     WSError NotifyEnterRecentTask(bool enterRecent);
+    void NotifySCBRecentStateChange(bool isRecent);
     WMError UpdateDisplayHookInfo(int32_t uid, uint32_t width, uint32_t height, float_t density, bool enable);
     WMError UpdateAppHookDisplayInfo(int32_t uid, const HookInfo& hookInfo, bool enable);
     WMError NotifyHookOrientationChange(int32_t persistentId);
@@ -879,12 +880,12 @@ public:
     void RemoveSnapshotFromCache(int32_t persistentId);
     void UpdateAllStartingWindowRdb();
     void GetStartupPage(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo);
-    bool CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& resId);
-    std::shared_ptr<Media::PixelMap> GetPreLoadStartingWindow(const SessionInfo& sessionInfo);
-    void RemovePreLoadStartingWindowFromMap(const SessionInfo& sessionInfo);
+    bool CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& outResId, bool& outIsSvg);
     WSError RegisterSaveSnapshotFunc(const sptr<SceneSession>& sceneSession);
     std::shared_ptr<Media::PixelMap> GetPixelMap(uint32_t resourceId,
         std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop = false);
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> GetSvgBufferInfo(uint32_t resourceId,
+        std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo);
     WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
         uint32_t color, int32_t uid) override;
     void ConfigSupportSnapshotAllSessionStatus();
@@ -913,6 +914,7 @@ protected:
 
 private:
     std::atomic<bool> enterRecent_ { false };
+    std::atomic<bool> scbIsRecent_ { false };
     bool isKeyboardPanelEnabled_ = false;
     bool isTrayAppForeground_ = false;
     std::unordered_map<std::string, ConvertSystemConfigFunc> convertConfigMap_;
@@ -961,7 +963,9 @@ private:
     sptr<KeyboardSession::KeyboardSessionCallback> CreateKeyboardSessionCallback();
     void FillSessionInfo(sptr<SceneSession>& sceneSession);
     std::shared_ptr<AppExecFwk::AbilityInfo> QueryAbilityInfoFromBMS(const int32_t uId, const std::string& bundleName,
-        const std::string& abilityName, const std::string& moduleName, bool isAtomicServiceFreeInstall = false);
+        const std::string& abilityName, const std::string& moduleName, bool isAtomicServiceFreeInstall = false,
+        bool isTargetPlugin = false, const std::string& hostBundleName = "");
+    std::shared_ptr<AppExecFwk::AbilityInfo> GetFreeInstalledAtomicServiceAbilityInfo(const std::string& bundleName);
     std::vector<sptr<SceneSession>> GetSubSceneSession(int32_t parentWindowId);
     void RemoveDuplicateSubSession(const std::vector<std::pair<uint64_t, WindowVisibilityState>>& visibilityChangeInfo,
         std::vector<sptr<SceneSession>>& subSessions);
@@ -1027,6 +1031,7 @@ private:
     WMError CheckWindowIds(
         const std::vector<int32_t>& windowIds, const sptr<IRemoteObject>& callback);
     void RegisterWindowStateErrorCallbackToMMI();
+    void MoveStartLifeCycleTask(const sptr<SceneSession>& sceneSession);
     std::unordered_map<std::string, std::unordered_set<int32_t>> appsWithBoundSystemTrayMap_;
     MinimizeAllFunc minimizeAllFunc_;
 
@@ -1410,8 +1415,6 @@ private:
     std::shared_mutex startingWindowMapMutex_;
     const size_t MAX_CACHE_COUNT = 100;
     std::map<std::string, std::map<std::string, StartingWindowInfo>> startingWindowMap_;
-    std::shared_mutex preLoadstartingWindowMapMutex_;
-    std::unordered_map<std::string, std::shared_ptr<Media::PixelMap>> preLoadStartingWindowMap_;
     std::shared_mutex startingWindowColorFromAppMapMutex_;
     std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> startingWindowColorFromAppMap_;
     std::unordered_map<std::string, AppForceLandscapeConfig> appForceLandscapeMap_;
@@ -1831,6 +1834,7 @@ private:
      * Window Pattern
      */
     std::shared_mutex startingWindowFollowAppMapMutex_;
+    std::mutex emptyStartupResourceMutex_;
     std::unordered_map<std::string, std::unordered_set<std::string>> startingWindowFollowAppMap_;
     std::unordered_set<std::string> emptyStartupResource_;
     std::atomic<bool> delayRemoveSnapshot_ = false;

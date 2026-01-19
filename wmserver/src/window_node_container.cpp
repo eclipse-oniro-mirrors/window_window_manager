@@ -299,7 +299,6 @@ WMError WindowNodeContainer::AddWindowNode(sptr<WindowNode>& node, sptr<WindowNo
         DisplayManagerServiceInner::GetInstance().SetGravitySensorSubscriptionEnabled();
     }
     WLOGI("AddWindowNode Id: %{public}u end", node->GetWindowId());
-    RSInterfaces::GetInstance().SetAppWindowNum(GetAppWindowNum());
     // update private window count and notify dms private status changed
     if (node->GetWindowProperty()->GetPrivacyMode()) {
         UpdatePrivateStateAndNotify();
@@ -444,7 +443,6 @@ WMError WindowNodeContainer::RemoveWindowNode(sptr<WindowNode>& node, bool fromA
         SetBelowScreenlockVisible(node, true);
     }
     WLOGI("Remove Id: %{public}u end", node->GetWindowId());
-    RSInterfaces::GetInstance().SetAppWindowNum(GetAppWindowNum());
 
     // update private window count and notify dms private status changed
     if (node->GetWindowProperty()->GetPrivacyMode()) {
@@ -525,17 +523,6 @@ void WindowNodeContainer::UpdatePrivateWindowCount()
     }
     privateWindowCount_ = count;
     WLOGFD("after update : privateWindow count: %{public}u", privateWindowCount_);
-}
-
-uint32_t WindowNodeContainer::GetAppWindowNum()
-{
-    uint32_t num = 0;
-    for (auto& child : appWindowNode_->children_) {
-        if (WindowHelper::IsAppWindow(child->GetWindowType())) {
-            num++;
-        }
-    }
-    return num;
 }
 
 void WindowNodeContainer::SetConfigMainFloatingWindowAbove(bool isAbove)

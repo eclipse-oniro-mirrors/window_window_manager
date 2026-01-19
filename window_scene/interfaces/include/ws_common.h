@@ -473,6 +473,10 @@ struct SessionInfo {
     int32_t scenarios = 0;
     bool isPrelaunch_ = false;
     int32_t frameNum_ = 0;
+    bool isTargetPlugin = false;
+    std::string hostBundleName = "";
+    int32_t hostAppIndex = 0;
+    std::string hostAppInstanceKey = "";
 
     /*
      * Keyboard
@@ -764,6 +768,17 @@ struct WSRectT {
     }
 
     /**
+     * @brief Compare if size is equal, check only width and height
+     *
+     * @param other The other rectangle to intersect with.
+     * @return bool Whether the size is equal
+     */
+    bool IsSizeEqual(const WSRectT<T>& other) const
+    {
+        return width_ == other.width_ && height_ == other.height_;
+    }
+
+    /**
      * @brief Returns a string in the format: [posX posY width height]
      *
      * @note Optimized for performance:
@@ -886,6 +901,33 @@ struct WindowAnimationInfo {
     bool animated { false };
     uint32_t callingId { 0 };
     bool isGravityChanged { false };
+};
+
+/**
+ * @brief Calling Window State
+ */
+enum class CallingWindowState : int32_t {
+    WINDOW_IN_NORMAL = 0,
+    WINDOW_IN_AI = 1
+};
+
+struct KeyboardBaseInfo {
+    uint32_t callingId { 0 };
+    bool isGravityChanged { false };
+    bool isKeyboardShow { false };
+    WSRect keyboardPanelRect { 0, 0, 0, 0 };
+};
+
+struct KeyboardAnimationRectConfig {
+    WSRect beginRect { 0, 0, 0, 0 };
+    WSRect endRect { 0, 0, 0, 0 };
+    bool animated { false };
+};
+
+struct CallingWindowInfoData {
+    CallingWindowState callingWindowState = CallingWindowState::WINDOW_IN_NORMAL;
+    double scaleX = 1;
+    double scaleY = 1;
 };
 
 struct WindowShadowConfig {

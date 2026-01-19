@@ -33,7 +33,7 @@ namespace Rosen {
 namespace {
 } // namespace
 
-class WindowImmersiveAvoidAreaTest : public testing::Test {
+class SceneSessionManagerImmersiveTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -46,9 +46,9 @@ private:
     void CreateSession(SessionInfo sessionInfo, int32_t persistentId);
 };
 
-sptr<SceneSessionManager> WindowImmersiveAvoidAreaTest::ssm_ = nullptr;
+sptr<SceneSessionManager> SceneSessionManagerImmersiveTest::ssm_ = nullptr;
 
-void WindowImmersiveAvoidAreaTest::SetUpTestCase()
+void SceneSessionManagerImmersiveTest::SetUpTestCase()
 {
     ssm_ = new SceneSessionManager();
     ssm_->Init();
@@ -56,20 +56,20 @@ void WindowImmersiveAvoidAreaTest::SetUpTestCase()
     ssm_->rootSceneSession_->property_ = sptr<WindowSessionProperty>::MakeSptr();
 }
 
-void WindowImmersiveAvoidAreaTest::TearDownTestCase()
+void SceneSessionManagerImmersiveTest::TearDownTestCase()
 {
     ssm_ = nullptr;
 }
 
-void WindowImmersiveAvoidAreaTest::SetUp()
+void SceneSessionManagerImmersiveTest::SetUp()
 {
 }
 
-void WindowImmersiveAvoidAreaTest::TearDown()
+void SceneSessionManagerImmersiveTest::TearDown()
 {
 }
 
-void WindowImmersiveAvoidAreaTest::CreateSession(SessionInfo sessionInfo, int32_t persistentId)
+void SceneSessionManagerImmersiveTest::CreateSession(SessionInfo sessionInfo, int32_t persistentId)
 {
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(sceneSession, nullptr);
@@ -84,7 +84,7 @@ namespace {
  * @tc.desc: Test if pip window can be created;
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateSessionAvoidAreaListener, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateSessionAvoidAreaListener, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     {
@@ -108,7 +108,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateSessionAvoidAreaListener, TestSize.
  * @tc.desc: call UpdateRootSceneAvoidArea
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateRootSceneAvoidArea, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateRootSceneAvoidArea, TestSize.Level1)
 {
     EXPECT_NE(ssm_, nullptr);
     SessionInfo sessionInfo;
@@ -128,7 +128,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateRootSceneAvoidArea, TestSize.Level1
  * @tc.desc: UpdateRootSceneSessionAvoidArea
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateRootSceneSessionAvoidArea, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateRootSceneSessionAvoidArea, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     int32_t persistentId = 1;
@@ -143,7 +143,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateRootSceneSessionAvoidArea, TestSize
  * @tc.desc: UpdateAvoidSessionAvoidArea
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidSessionAvoidArea, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidSessionAvoidArea, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     ssm_->avoidAreaListenerSessionSet_.insert(0);
@@ -169,7 +169,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidSessionAvoidArea, TestSize.Lev
  * @tc.desc: PreloadInLakeApp、UpdateSessionAvoidAreaListener
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, PreloadInLakeApp, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, PreloadInLakeApp, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     SessionInfo info;
@@ -192,7 +192,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, PreloadInLakeApp, TestSize.Level1)
  * @tc.desc: UpdateNormalSessionAvoidArea_01
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_01, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateNormalSessionAvoidArea_01, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     int32_t persistentId = 1;
@@ -228,7 +228,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_01, TestSize
  * @tc.desc: UpdateNormalSessionAvoidArea_02
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_02, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateNormalSessionAvoidArea_02, TestSize.Level1)
 {
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "WindowImmersiveAvoidAreaTest";
@@ -253,7 +253,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_02, TestSize
  * @tc.desc: UpdateNormalSessionAvoidArea_03
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_03, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateNormalSessionAvoidArea_03, TestSize.Level1)
 {
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest7";
@@ -279,7 +279,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_03, TestSize
  * @tc.desc: UpdateNormalSessionAvoidArea_04
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_04, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateNormalSessionAvoidArea_04, TestSize.Level1)
 {
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest7";
@@ -304,7 +304,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateNormalSessionAvoidArea_04, TestSize
  * @tc.desc: UpdateAvoidArea_01
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_01, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidArea_01, TestSize.Level1)
 {
     int32_t persistentId = 0;
     ASSERT_NE(nullptr, ssm_);
@@ -327,7 +327,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_01, TestSize.Level1)
  * @tc.desc: UpdateAvoidArea_02
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_02, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidArea_02, TestSize.Level1)
 {
     int32_t persistentId = 0;
     ASSERT_NE(nullptr, ssm_);
@@ -350,7 +350,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_02, TestSize.Level1)
  * @tc.desc: UpdateAvoidArea_03
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_03, TestSize.Level1)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidArea_03, TestSize.Level1)
 {
     int32_t persistentId = 0;
     ASSERT_NE(nullptr, ssm_);
@@ -364,7 +364,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidArea_03, TestSize.Level1)
  * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_01
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, NotifyNextAvoidRectInfo_01, TestSize.Level0)
+HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_01, TestSize.Level0)
 {
     ASSERT_NE(ssm_, nullptr);
     WSRect portraitRect = { 0, 0, 1260, 123 };
@@ -383,7 +383,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, NotifyNextAvoidRectInfo_01, TestSize.Leve
  * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_02
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, NotifyNextAvoidRectInfo_02, TestSize.Level0)
+HWTEST_F(SceneSessionManagerImmersiveTest, NotifyNextAvoidRectInfo_02, TestSize.Level0)
 {
     ASSERT_NE(ssm_, nullptr);
     WSRect portraitRect = { 0, 0, 1260, 123 };
@@ -455,7 +455,7 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, GetScaleInLSState, TestSize.Level0)
  * @tc.desc: SceneSesionManager test UpdateAvoidAreaForLSStateChange
  * @tc.type: FUNC
  */
-HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidAreaForLSStateChange, TestSize.Level0)
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidAreaForLSStateChange, TestSize.Level0)
 {
     ASSERT_NE(ssm_, nullptr);
     ssm_->UpdateAvoidAreaForLSStateChange(1, 1);
@@ -477,6 +477,55 @@ HWTEST_F(WindowImmersiveAvoidAreaTest, UpdateAvoidAreaForLSStateChange, TestSize
     ssm_->sceneSessionMap_.insert({ 2, sceneSession2 });
     ssm_->UpdateAvoidAreaForLSStateChange(1, 2);
     sleep(1);
+}
+
+/**
+ * @tc.name: UpdateAvoidArea
+ * @tc.desc: UpdateAvoidArea
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidArea, TestSize.Level1)
+{
+    int32_t persistentId = 0;
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
+    ssm_->UpdateAvoidArea(persistentId);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "WindowImmersiveAvoidAreaTest";
+    sessionInfo.abilityName_ = "UpdateAvoidArea";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    ssm_->sceneSessionMap_.insert(std::make_pair(persistentId, sceneSession));
+    ASSERT_NE(nullptr, sceneSession->property_);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
+    ssm_->UpdateAvoidArea(persistentId);
+    sceneSession->property_->SetWindowType(WindowType::APP_WINDOW_BASE);
+    ssm_->UpdateAvoidArea(persistentId);
+}
+
+/**
+ * @tc.name: UpdateNormalSessionAvoidArea02
+ * @tc.desc: UpdateNormalSessionAvoidArea
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateNormalSessionAvoidArea02, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "WindowImmersiveAvoidAreaTest";
+    sessionInfo.abilityName_ = "UpdateNormalSessionAvoidArea02";
+    sessionInfo.isSystem_ = true;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->isVisible_ = true;
+    sceneSession->state_ = SessionState::STATE_FOREGROUND;
+    sceneSession->GetLayoutController()->SetSessionRect({ 1, 1, 1, 1 });
+    int32_t persistentId = 1;
+    bool needUpdate = true;
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->avoidAreaListenerSessionSet_.clear();
+    ssm_->avoidAreaListenerSessionSet_.insert(persistentId);
+    ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
 }
 }
 }

@@ -85,6 +85,7 @@
             OHOS::Rosen::SceneSessionManager::NotifyAmsPendingSessionWhenFail*;
             OHOS::Rosen::SceneSessionManager::NotifyCompleteFirstFrameDrawing*;
             OHOS::Rosen::SceneSessionManager::NotifyEnterRecentTask*;
+            OHOS::Rosen::SceneSessionManager::NotifySCBRecentStateChange*;
             OHOS::Rosen::SceneSessionManager::NotifyForegroundInteractiveStatus*;
             OHOS::Rosen::SceneSessionManager::NotifyHookOrientationChange*;
             OHOS::Rosen::SceneSessionManager::NotifyNextAvoidRectInfo*;

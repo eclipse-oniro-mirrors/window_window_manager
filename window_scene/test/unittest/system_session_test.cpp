@@ -1159,11 +1159,11 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
     systemSession->state_.store(SessionState::STATE_ACTIVE);
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
-    systemSession->RegisterGetSCBEnterRecentFunc([]() {
+    systemSession->RegisterGetIsRecentStateFunc([]() {
         return true;
     });
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_START_ABILITY_FAILED);
-    systemSession->RegisterGetSCBEnterRecentFunc([]() {
+    systemSession->RegisterGetIsRecentStateFunc([]() {
         return false;
     });
 
@@ -1186,13 +1186,13 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindowGetIsAtRecent, TestSize.Level1
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
     ASSERT_NE(systemSession, nullptr);
 
-    EXPECT_EQ(systemSession->getSCBEnterRecentFunc_, nullptr);
+    EXPECT_EQ(systemSession->getIsRecentStateFunc_, nullptr);
 
     auto func = []() {
         return true;
     };
-    systemSession->RegisterGetSCBEnterRecentFunc(func);
-    EXPECT_EQ(systemSession->getSCBEnterRecentFunc_(), true);
+    systemSession->RegisterGetIsRecentStateFunc(func);
+    EXPECT_EQ(systemSession->getIsRecentStateFunc_(), true);
 }
 } // namespace
 } // namespace Rosen

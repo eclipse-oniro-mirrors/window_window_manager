@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cinttypes>
 
+#include "load_mmi_client_adapter.h"
 #include "marshalling_helper.h"
 #include "window_adapter_lite.h"
 #include "window_manager_agent_lite.h"
@@ -1291,6 +1292,15 @@ WindowStyleType WindowManagerLite::GetWindowStyleType()
     return styleType;
 }
 
+WMError WindowManagerLite::SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+{
+    WMError ret = WindowAdapterLite::GetInstance(userId_).SetProcessWatermark(pid, watermarkName, isEnabled);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+        "lite pid:%{public}d, watermarkName:%{public}s, isEnabled:%{public}u, ret:%{public}d",
+        pid, watermarkName.c_str(), isEnabled, static_cast<int32_t>(ret));
+    return ret;
+}
+
 WMError WindowManagerLite::TerminateSessionByPersistentId(int32_t persistentId)
 {
     if (persistentId == INVALID_SESSION_ID) {
@@ -1580,8 +1590,7 @@ WMError WindowManagerLite::SendPointerEventForHover(const std::shared_ptr<MMI::P
     if (pointerEvent == nullptr) {
         return WMError::WM_ERROR_NULLPTR;
     }
-    bool isHoverDown = pointerEvent->GetPointerAction() == MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER &&
-        pointerEvent->GetSourceType() ==  MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
+    bool isHoverDown = LoadMMIClientAdapter() && IsHoverDown(pointerEvent);
     if (!isHoverDown) {
         TLOGE(WmsLogTag::WMS_EVENT, "pointer event is not hover down");
         return WMError::WM_ERROR_INVALID_PARAM;

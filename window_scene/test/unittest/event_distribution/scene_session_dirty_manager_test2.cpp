@@ -71,8 +71,6 @@ void SceneSessionDirtyManagerTest2::TearDown()
 }
 
 namespace {
-constexpr uint32_t MMI_FLAG_BIT_LOCK_CURSOR_NOT_FOLLOW_MOVEMENT = 0x08;
-constexpr uint32_t MMI_FLAG_BIT_LOCK_CURSOR_FOLLOW_MOVEMENT = 0x10;
 void InitSessionInfo(MMI::DisplayInfo& displayedInfo, MMI::WindowInfo& windowInfo)
 {
     displayedInfo = { .id = 42, .x = 0, .y = 0, .width = 1270, .height = 2240 };
@@ -820,13 +818,13 @@ HWTEST_F(SceneSessionDirtyManagerTest2, UpdateWindowFlagsForLockCursor, TestSize
     session->SetSessionInfoAdvancedFeatureFlag(ADVANCED_FEATURE_BIT_LOCK_CURSOR, true);
     session->SetSessionInfoAdvancedFeatureFlag(ADVANCED_FEATURE_BIT_CURSOR_FOLLOW_MOVEMENT, false);
     manager_->UpdateWindowFlagsForLockCursor(session, windowInfo);
-    EXPECT_EQ(windowInfo.flags, MMI_FLAG_BIT_LOCK_CURSOR_NOT_FOLLOW_MOVEMENT);
+    EXPECT_EQ(windowInfo.flags, MMI::WindowInputPolicy::FLAG_POINTER_LOCKED);
 
     windowInfo.flags = 0;
     session->SetSessionInfoAdvancedFeatureFlag(ADVANCED_FEATURE_BIT_LOCK_CURSOR, true);
     session->SetSessionInfoAdvancedFeatureFlag(ADVANCED_FEATURE_BIT_CURSOR_FOLLOW_MOVEMENT, true);
     manager_->UpdateWindowFlagsForLockCursor(session, windowInfo);
-    EXPECT_EQ(windowInfo.flags, MMI_FLAG_BIT_LOCK_CURSOR_FOLLOW_MOVEMENT);
+    EXPECT_EQ(windowInfo.flags, MMI::WindowInputPolicy::FLAG_POINTER_CONFINED);
 }
 
 /**

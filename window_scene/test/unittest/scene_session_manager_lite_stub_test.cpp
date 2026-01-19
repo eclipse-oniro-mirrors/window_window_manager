@@ -17,9 +17,10 @@
 #include <ipc_types.h>
 
 #include "iremote_object_mocker.h"
+#include "pointer_event.h"
+#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_stub.h"
 #include "session_manager/include/zidl/session_router_stack_listener_stub.h"
-#include "session_manager/include/zidl/pip_change_listener_stub.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -503,7 +504,7 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetAppKeyFramePolicy, TestSize.L
     MessageParcel reply;
     int res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetAppKeyFramePolicy(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
     const std::string bundleName = "test";
     KeyFramePolicy keyFramePolicy;
     data.WriteString(bundleName);
@@ -1154,6 +1155,31 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleRegisterWindowPropertyChangeAgen
 }
 
 /**
+ * @tc.name: HandleSetProcessWatermark
+ * @tc.desc: test HandleSetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetProcessWatermark, Function | SmallTest | Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    ASSERT_NE(sceneSessionManagerLiteStub_, nullptr);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_SET_PROCESS_WATERMARK);
+    auto res = sceneSessionManagerLiteStub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    data.WriteInt32(123);
+    data.WriteString("SetProcessWatermarkName");
+    data.WriteBool(true);
+    res = sceneSessionManagerLiteStub_->HandleSetProcessWatermark(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleGetVisibilityWindowInfo
  * @tc.desc: test function : HandleGetVisibilityWindowInfo
  * @tc.type: FUNC
@@ -1489,12 +1515,12 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandlePendingSessionToBackgroundByPers
     auto res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(data, reply);
     EXPECT_EQ(ERR_INVALID_DATA, res);
-    
+
     data.WriteInt32(1);
     res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(data, reply);
     EXPECT_EQ(ERR_INVALID_DATA, res);
- 
+
     MessageParcel data2;
     data2.WriteInt32(1);
     data2.WriteBool(true);

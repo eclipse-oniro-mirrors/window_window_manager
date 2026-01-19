@@ -115,6 +115,10 @@ bool PcFoldScreenController::IsSupportEnterWaterfallMode(SuperFoldStatus status,
 void PcFoldScreenController::FoldStatusChangeForSupportEnterWaterfallMode(
     DisplayId displayId, SuperFoldStatus status, SuperFoldStatus prevStatus)
 {
+    if (!PcFoldScreenManager::GetInstance().IsPcFoldScreen(GetDisplayId())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "only main screen support water fall mode.");
+        return;
+    }
     lastSupportEnterWaterfallMode_ = supportEnterWaterfallMode_;
     supportEnterWaterfallMode_ = IsSupportEnterWaterfallMode(status,
         PcFoldScreenManager::GetInstance().HasSystemKeyboard());
@@ -127,6 +131,19 @@ void PcFoldScreenController::FoldStatusChangeForSupportEnterWaterfallMode(
         return;
     }
     UpdateSupportEnterWaterfallMode();
+}
+
+void PcFoldScreenController::UpdateSupportEnterWaterfallMode(bool isSupportEnterWaterfallMode)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "isSupportEnterWaterfallMode: %{public}d", isSupportEnterWaterfallMode);
+    auto sceneSession = weakSceneSession_.promote();
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session unavailable, id: %{public}d", GetPersistentId());
+        return;
+    }
+    lastSupportEnterWaterfallMode_ = isSupportEnterWaterfallMode;
+    supportEnterWaterfallMode_ = isSupportEnterWaterfallMode;
+    sceneSession->SetSupportEnterWaterfallMode(isSupportEnterWaterfallMode);
 }
 
 void PcFoldScreenController::SystemKeyboardStatusChangeForSupportEnterWaterfallMode(

@@ -225,12 +225,12 @@ void SCBSystemSession::SetSkipEventOnCastPlus(bool isSkip)
 
 bool SCBSystemSession::IsVisibleForeground() const
 {
-    return isVisible_;
+    return isVisible_.load();
 }
 
 bool SCBSystemSession::IsVisibleNotBackground() const
 {
-    return isVisible_;
+    return isVisible_.load();
 }
 
 void SCBSystemSession::NotifyClientToUpdateAvoidArea()

@@ -404,31 +404,30 @@ int32_t WindowInfoReporter::ReportSpecWindowLifeCycleChange(WindowLifeCycleRepor
     return ret;
 }
 
-void WindowInfoReporter::ReportWindowIO(const std::string& scenes, const std::string& subScene, double sizeKB)
+void WindowInfoReporter::ReportWindowIO(const std::string& subScene, double sizeKB)
 {
-    int32_t intervalMinutes;
+    bool sameDay = true;
     {
         std::lock_guard<std::mutex> lock(reportWindowIOMutex_);
         if (!firstIOTimeInitialized_) {
-            firstIOTime_ = std::chrono::steady_clock::now();
+            firstIODayTime_ = std::chrono::floor<days>(std::chrono::system_clock::now());
+            firstIOSecondTime_ = std::chrono::system_clock::now();
             firstIOTimeInitialized_ = true;
         }
         // record event
-        const auto currentTime = std::chrono::steady_clock::now();
-        intervalMinutes = std::chrono::duration_cast<std::chrono::minutes>(currentTime - firstIOTime_).count();
-        ioRecordMap_[scenes]["TOTAL_WRITE_DATA"] += sizeKB;
-        ioRecordMap_[scenes][subScene] += sizeKB;
+        ioRecordMap_["TOTAL_WRITE_DATA"] += sizeKB;
+        ioRecordMap_[subScene] += sizeKB;
+        const auto currentDayTime = std::chrono::floor<days>(std::chrono::system_clock::now());
+        sameDay = (firstIODayTime_ == currentDayTime);
     }
-    TLOGD(WmsLogTag::DEFAULT, "scenes: %{public}s, subScene: %{public}s, sizeKB: %{public}f, "
-        "intervalMinutes: %{public}d, REAL_TIME_ENABLED: %{public}s",
-        scenes.c_str(), subScene.c_str(), sizeKB, intervalMinutes, REAL_TIME_ENABLED.c_str());
-    // 1 day = 1440 minutes
-    int32_t perDay = 1440;
-    // real time output per minute
+    TLOGD(WmsLogTag::DEFAULT, "subScene: %{public}s, sizeKB: %{public}f, "
+        "sameDay: %{public}d, REAL_TIME_ENABLED: %{public}s",
+        subScene.c_str(), sizeKB, sameDay, REAL_TIME_ENABLED.c_str());
+    // real time output for verification
     if (REAL_TIME_ENABLED == "1") {
-        perDay = 1;
+        sameDay = false;
     }
-    if (intervalMinutes < perDay) {
+    if (sameDay) {
         return;
     }
     ReportWindowIOPerDay();
@@ -437,44 +436,46 @@ void WindowInfoReporter::ReportWindowIO(const std::string& scenes, const std::st
 void WindowInfoReporter::ReportWindowIOPerDay()
 {
     // write event
-    std::unordered_map<std::string, std::unordered_map<std::string, double>> ioRecordMapCopy;
+    std::unordered_map<std::string, double> ioRecordMapCopy;
+    int64_t writeDate;
     {
         std::lock_guard<std::mutex> lock(reportWindowIOMutex_);
         ioRecordMapCopy = ioRecordMap_;
+        writeDate = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::seconds>(
+            firstIOSecondTime_.time_since_epoch()).count());
         firstIOTimeInitialized_ = false;
         ioRecordMap_.clear();
     }
 
-    std::string eventName = "SCENEBOARD_IO_DFX";
+    std::ostringstream oss;
     for (const auto& elem : ioRecordMapCopy) {
-        std::string scene = elem.first;
-        std::ostringstream oss;
-        for (const auto& subSceneElem : elem.second) {
-            if (subSceneElem.first == "TOTAL_WRITE_DATA") {
-                continue;
-            }
-            // Set 2 precision, and output in kilobyte.
-            oss << subSceneElem.first << ": " << std::fixed << std::setprecision(2) << subSceneElem.second << "KB, ";
+        if (elem.first == "TOTAL_WRITE_DATA") {
+            continue;
         }
-        std::string msg = oss.str();
-        // Remove 2 redundant characters
-        size_t redundantSize = 2;
-        if (msg.length() > redundantSize) {
-            msg.erase(msg.length() - redundantSize);
-        }
-        const double KILOBYTE = 1024.0;
-        double totalWriteData = ioRecordMapCopy[scene]["TOTAL_WRITE_DATA"] / KILOBYTE;
-        TLOGI(WmsLogTag::DEFAULT, "total: %{public}f, msg: %{public}s", totalWriteData, msg.c_str());
-        static constexpr char WINDOW_IO_UE[] = "WINDOW_IO_UE";
-        int32_t ret = HiSysEventWrite(
-            WINDOW_IO_UE, eventName,
-            OHOS::HiviewDFX::HiSysEvent::EventType::STATISTIC,
-            "SCENES", scene,
-            "TOTAL_WRITE_DATA", std::to_string(totalWriteData), // size MB
-            "MSG", msg);
-        if (ret != 0) {
-            TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);
-        }
+        // Set 2 precision, and output in kilobyte.
+        oss << elem.first << ": " << std::fixed << std::setprecision(2) << elem.second << "KB, ";
+    }
+    std::string msg = oss.str();
+    // Remove 2 redundant characters
+    size_t redundantSize = 2;
+    if (msg.length() > redundantSize) {
+        msg.erase(msg.length() - redundantSize);
+    }
+
+    const double KILOBYTE = 1024.0;
+    double totalWriteData = ioRecordMapCopy["TOTAL_WRITE_DATA"] / KILOBYTE;
+    TLOGI(WmsLogTag::DEFAULT, "total: %{public}f, msg: %{public}s", totalWriteData, msg.c_str());
+    std::string eventName = "SCENEBOARD_IO_DFX";
+    static constexpr char WINDOW_IO_DOMAIN[] = "SCENE_BOARD_APP";
+    int32_t ret = HiSysEventWrite(
+        WINDOW_IO_DOMAIN, eventName,
+        OHOS::HiviewDFX::HiSysEvent::EventType::STATISTIC,
+        "PART_NAME", "Window",
+        "WRITE_DATE", writeDate,
+        "TOTAL_WRITE_DATA", totalWriteData, // size MB
+        "MSG", msg);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);
     }
 }
 } // namespace Rosen

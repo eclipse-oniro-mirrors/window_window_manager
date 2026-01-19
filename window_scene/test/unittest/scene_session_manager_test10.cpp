@@ -230,6 +230,37 @@ HWTEST_F(SceneSessionManagerTest10, TestRequestSceneSessionDestructionInner_01, 
 }
 
 /**
+ * @tc.name: TestRequestSceneSessionDestructionInner_02
+ * @tc.desc: Test RequestSceneSessionDestructionInner with session is dropping
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, TestRequestSceneSessionDestructionInner_02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback = nullptr;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback);
+
+    auto task1 = []() {};
+    sceneSession->PostLifeCycleTask(task1, "task1", LifeCycleTaskType::START);
+    sptr<AAFwk::SessionInfo> sceneSessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    bool needRemoveSession = false;
+    bool isForceClean = false;
+
+    SessionInfo sessionInfo;
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+    auto res =
+        ssm_->RequestSceneSessionDestructionInner(sceneSession, sceneSessionInfo, needRemoveSession, isForceClean);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    sceneSession->ClearLifeCycleTask();
+    res = ssm_->RequestSceneSessionDestructionInner(sceneSession, sceneSessionInfo,
+        needRemoveSession, isForceClean);
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
  * @tc.name: TestRegisterWindowManagerAgent_01
  * @tc.desc: Test RegisterWindowManagerAgent with WindowManagerAgentType WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR
  * @tc.type: FUNC
@@ -1604,215 +1635,6 @@ HWTEST_F(SceneSessionManagerTest10, FilterForListWindowInfo08, TestSize.Level1)
         }
     }
     ASSERT_EQ(filterNum, 5);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_statusBar
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_statusBar
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_statusBar, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 0, 0, 1260, 123 };
-    WSRect landspaceRect = { 0, 0, 2720, 123 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_SYSTEM, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_statusBar";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_statusBar";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onGetNextAvoidAreaRectInfo_ =
-        [](DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
-            return ssm_->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    std::map<WindowType, SystemBarProperty> properties;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR].settingFlag_ = SystemBarSettingFlag::ENABLE_SETTING;
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR] = SystemBarProperty();
-    std::map<AvoidAreaType, AvoidArea> avoidAreas;
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, properties, avoidAreas);
-    Rect rect = { 0, 0, 1260, 123 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_SYSTEM].topRect_, rect);
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR].enable_ = false;
-    rect = { 0, 0, 0, 0 };
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 123 }, properties, avoidAreas);
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_SYSTEM].topRect_, rect);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_statusBar_01
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_statusBar_01
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_statusBar_01, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 0, 0, 1260, 123 };
-    WSRect landspaceRect = { 0, 0, 2720, 123 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_SYSTEM, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_statusBar_01";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_statusBar_01";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onGetNextAvoidAreaRectInfo_ =
-        [](DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
-            return ssm_->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    std::map<WindowType, SystemBarProperty> properties;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR].settingFlag_ = SystemBarSettingFlag::ENABLE_SETTING;
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR] = SystemBarProperty();
-    std::map<AvoidAreaType, AvoidArea> avoidAreas;
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    Rect rect = { 0, 0, 2720, 123 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_SYSTEM].topRect_, rect);
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].enable_ = false;
-    rect = { 0, 0, 0, 0 };
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_keyboard
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_keyboard
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_keyboard, TestSize.Level0)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_keyboard";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_keyboard";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onKeyboardRotationChange_ =
-        [](int32_t persistentId, Rotation rotation, std::vector<std::pair<bool, WSRect>>& avoidAreas) {
-            ssm_->GetKeyboardOccupiedAreaWithRotation(persistentId, rotation, avoidAreas);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    AvoidArea avoidArea;
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, avoidArea);
-    Rect rect = { 0, 0, 0, 0 };
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_keyboard_01
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_keyboard_01
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_keyboard_01, TestSize.Level0)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_keyboard_01";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_keyboard_01";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onKeyboardRotationChange_ =
-        [](int32_t persistentId, Rotation rotation, std::vector<std::pair<bool, WSRect>>& avoidAreas) {
-            ssm_->GetKeyboardOccupiedAreaWithRotation(persistentId, rotation, avoidAreas);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    SessionInfo keyboardSessionInfo;
-    keyboardSessionInfo.abilityName_ = "keyboard";
-    keyboardSessionInfo.bundleName_ = "keyboard";
-    keyboardSessionInfo.screenId_ = 0;
-    sptr<SceneSession> keyboardSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    keyboardSession->state_ = SessionState::STATE_FOREGROUND;
-    keyboardSession->property_->type_ = WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT;
-    keyboardSession->property_->keyboardLayoutParams_.PortraitPanelRect_ = { 0, 1700, 1260, 1020 };
-    keyboardSession->property_->keyboardLayoutParams_.LandscapePanelRect_ = { 0, 538, 2720, 722 };
-    keyboardSession->property_->SetPersistentId(2);
-    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
-    ssm_->sceneSessionMap_.insert({ keyboardSession->GetPersistentId(), keyboardSession });
-    auto uiType = ssm_->systemConfig_.windowUIType_;
-    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    AvoidArea avoidArea;
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, avoidArea);
-    Rect rect = { 0, 1700, 1260, 1020 };
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, avoidArea);
-    rect = { 0, 538, 2720, 722 };
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    keyboardSession->state_ = SessionState::STATE_BACKGROUND;
-    rect = { 0, 0, 0, 0 };
-    avoidArea.bottomRect_ = rect;
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_180, { 0, 0, 1260, 2720 }, avoidArea);
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    ssm_->systemConfig_.windowUIType_ = uiType;
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_AIBar
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_AIBar
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_AIBar, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 409, 2629, 442, 91 };
-    WSRect landspaceRect = { 884, 1169, 952, 91 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_NAVIGATION_INDICATOR, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_AIBar";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_AIBar";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onGetNextAvoidAreaRectInfo_ =
-        [](DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
-            return ssm_->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    std::map<WindowType, SystemBarProperty> properties;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].settingFlag_ = SystemBarSettingFlag::ENABLE_SETTING;
-    std::map<AvoidAreaType, AvoidArea> avoidAreas;
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, properties, avoidAreas);
-    Rect rect = { 409, 2629, 442, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    rect = { 884, 1169, 952, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_180, { 0, 0, 1260, 2720 }, properties, avoidAreas);
-    rect = { 409, 2629, 442, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_270, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    rect = { 884, 1169, 952, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].enable_ = false;
-    rect = { 0, 0, 0, 0 };
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].topRect_, rect);
     ssm_->sceneSessionMap_.clear();
 }
 

@@ -1180,11 +1180,19 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 
     controlInfo.isNeedControl = false;
+    sceneSession->isVisible_ = true;
     sceneSession->isSnapshotBlur_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
     sceneSession->state_ = SessionState::STATE_BACKGROUND;
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+
+    sceneSession->isVisible_ = false;
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+
     sceneSession->property_->SetPrivacyMode(true);
     sceneSession->snapshotPrivacyMode_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
@@ -1511,6 +1519,35 @@ HWTEST_F(WindowPatternSnapshotTest, RecoverImageForRecent, TestSize.Level1)
     ScenePersistentStorage::Insert("SetImageForRecent_2223", 0, ScenePersistentStorageType::MAXIMIZE_STATE);
     sceneSession->RecoverImageForRecent();
     EXPECT_EQ(sceneSession->IsPersistentImageFit(), true);
+}
+
+/**
+ * @tc.name: CropSnapshotPixelMap
+ * @tc.desc: CropSnapshotPixelMap Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, CropSnapshotPixelMap, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 1093;
+    info.abilityName_ = "CropSnapshotPixelMap";
+    info.bundleName_ = "CropSnapshotPixelMap";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
+    WSRect rect;
+    rect.width_ = 1094;
+    rect.height_ = 2416;
+
+    bool res = sceneSession->CropSnapshotPixelMap(pixelMap, rect, 0.5);
+    EXPECT_EQ(res, false);
+    pixelMap = std::make_shared<Media::PixelMap>();
+
+    res = sceneSession->CropSnapshotPixelMap(pixelMap, rect, 0.5);
+    EXPECT_EQ(res, false);
+
+    rect.width_ = 1093;
+    res = sceneSession->CropSnapshotPixelMap(pixelMap, rect, 0.5);
+    EXPECT_EQ(res, true);
 }
 } // namespace
 } // namespace Rosen

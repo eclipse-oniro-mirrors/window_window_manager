@@ -176,6 +176,16 @@ class Session : public SessionStub {
 public:
     friend class HidumpController;
     using Task = std::function<void()>;
+    class SessionLifeCycleTask : public virtual RefBase {
+    public:
+        SessionLifeCycleTask(const Task& task, const std::string& name, const LifeCycleTaskType& type)
+            : task(task), name(name), type(type) {}
+        Task task;
+        const std::string name;
+        LifeCycleTaskType type;
+        std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
+        bool running = false;
+    };
     explicit Session(const SessionInfo& info);
     virtual ~Session();
     bool isKeyboardPanelEnabled_ = false;
@@ -300,6 +310,8 @@ public:
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
         std::shared_ptr<Media::PixelMap> persistentPixelMap = nullptr, bool updateSnapshot = false,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+    bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
+        float scaleValue) const;
     bool CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode) const;
     bool GetNeedUseBlurSnapshot() const;
     void UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo);
@@ -617,6 +629,7 @@ public:
     void RemoveLifeCycleTask(const LifeCycleTaskType& taskType);
     void ClearLifeCycleTask();
     void PostLifeCycleTask(Task &&task, const std::string& name, const LifeCycleTaskType& taskType);
+    sptr<SessionLifeCycleTask> GetLastLifeCycleTask() const;
     WSError UpdateMaximizeMode(bool isMaximize);
     void NotifySessionForeground(uint32_t reason, bool withAnimation);
     void NotifySessionBackground(uint32_t reason, bool withAnimation, bool isFromInnerkits);
@@ -629,11 +642,6 @@ public:
     }
 
     virtual void SetTouchHotAreas(const std::vector<Rect>& touchHotAreas);
-
-    void SetVpr(float vpr)
-    {
-        vpr_ = vpr;
-    }
 
     bool operator==(const Session* session) const
     {
@@ -759,6 +767,9 @@ public:
     WSError NotifyAppHookWindowInfoUpdated();
     void NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason reason);
     void SetGetRsCmdBlockingCountFunc(const GetRsCmdBlockingCountFunc& func);
+    WSError UpdateClientRectInfo(const WSRect& rect, SizeChangeReason reason,
+                                 const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
+                                 const std::shared_ptr<RSTransaction>& rsTransaction);
 
     /*
      * Screen Lock
@@ -825,6 +836,11 @@ public:
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);
     bool GetPreloadingStartingWindow() const;
+    void SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap);
+    void SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo);
+    void GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
+        std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo);
+    void ResetPreloadStartingWindow();
     void PreloadSnapshot();
     void ResetPreloadSnapshot();
     std::atomic<bool> freeMultiWindow_ { false };
@@ -857,16 +873,6 @@ public:
     virtual bool IsPrelaunch() const { return false; }
 
 protected:
-    class SessionLifeCycleTask : public virtual RefBase {
-    public:
-        SessionLifeCycleTask(const Task& task, const std::string& name, const LifeCycleTaskType& type)
-            : task(task), name(name), type(type) {}
-        Task task;
-        const std::string name;
-        LifeCycleTaskType type;
-        std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
-        bool running = false;
-    };
     void GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId = 0);
     virtual void UpdateSessionState(SessionState state);
     void NotifySessionStateChange(const SessionState& state);
@@ -931,7 +937,7 @@ protected:
     std::shared_ptr<Media::PixelMap> snapshot_;
     std::atomic<bool> snapshotNeedCancel_ = false;
     sptr<ISessionStage> sessionStage_;
-    std::mutex lifeCycleTaskQueueMutex_;
+    mutable std::mutex lifeCycleTaskQueueMutex_;
     std::list<sptr<SessionLifeCycleTask>> lifeCycleTaskQueue_;
     bool isActive_ = false;
     bool isSystemActive_ = false;
@@ -940,7 +946,7 @@ protected:
     float offsetX_ = 0.0f;
     float offsetY_ = 0.0f;
     std::atomic_bool isExitSplitOnBackground_ = false;
-    bool isVisible_ = false;
+    std::atomic_bool isVisible_ = false;
     int32_t currentRotation_ = 0;
     std::string label_;
 
@@ -1096,7 +1102,7 @@ protected:
     /*
      *CompatibleMode Window scale
      */
-    uint32_t compatibleDragScaleFlags_ = 0;
+    uint32_t needNotifyDragEventOnNextVsync_ = 0;
 
     /*
      * Keyboard Window
@@ -1257,6 +1263,9 @@ private:
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
     std::atomic<bool> preloadingStartingWindow_ { false };
+    std::shared_mutex preloadStartingWindowMutex_;
+    std::shared_ptr<Media::PixelMap> preloadStartingWindowPixelMap_;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> preloadStartingWindowSvgBufferInfo_;
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
 

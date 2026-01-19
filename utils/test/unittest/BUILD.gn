@@ -49,10 +49,16 @@ group("unittest") {
       ":utils_surface_draw_test",
     ]
   }
+  if (window_manager_use_sceneboard) {
+    deps += [
+      ":utils_load_mmi_client_adapter_test",
+    ]
+  }
 }
 
 test_external_deps = [
   "ability_base:configuration",
+  "ability_runtime:wantagent_innerkits",
   "c_utils:utils",
   "googletest:gmock",
   "googletest:gtest",
@@ -60,10 +66,10 @@ test_external_deps = [
   "graphic_2d:librender_service_base",
   "graphic_2d:librender_service_client",
   "hilog:libhilog",
-  "preferences:native_preferences",
   "init:libbegetutil",
+  "input:libmmi-client",
+  "preferences:native_preferences",
   "time_service:time_client",
-  "ability_runtime:wantagent_innerkits",
 ]
 
 ohos_unittest("utils_task_sequence_process_test") {
@@ -353,6 +359,16 @@ ohos_unittest("utils_dms_global_mutex_test") {
   module_out_path = module_out_path
 
   sources = [ "dms_global_mutex_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("utils_load_mmi_client_adapter_test") {
+  module_out_path = module_out_path
+
+  sources = [ "load_mmi_client_adapter_test.cpp" ]
 
   deps = [ ":utils_unittest_common" ]
 

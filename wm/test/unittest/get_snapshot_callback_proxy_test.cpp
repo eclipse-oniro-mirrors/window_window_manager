@@ -94,6 +94,7 @@ HWTEST_F(GetSnapshotCallbackProxyTest, OnReceived, TestSize.Level1)
     EXPECT_TRUE(logMsg.find("Write interface token failed") != std::string::npos);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
     sProxy->OnReceived(errCode, pixelMaps_);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -120,6 +121,7 @@ HWTEST_F(GetSnapshotCallbackProxyTest, OnReceived01, TestSize.Level1)
     EXPECT_TRUE(logMsg.find("write error code failed") != std::string::npos);
     logMsg.clear();
     MockMessageParcel::ClearAllErrorFlag();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -140,6 +142,7 @@ HWTEST_F(GetSnapshotCallbackProxyTest, WritePixelMapData, TestSize.Level1)
     EXPECT_TRUE(logMsg.find("write pixelMap failed") == std::string::npos);
     logMsg.clear();
     MockMessageParcel::ClearAllErrorFlag();
+    LOG_SetCallback(nullptr);
 }
 }
 } // namespace Rosen

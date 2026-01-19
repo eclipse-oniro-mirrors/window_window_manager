@@ -110,6 +110,7 @@ bool ClientAgentContainer<T1, T2>::RegisterAttributeAgent(uintptr_t key, const s
     } else {
         std::set<std::string> attrSet(attributes.begin(), attributes.end());
         attributeAgentMap_[key] = {agent, attrSet};
+        agentPidMap_[agent] = IPCSkeleton::GetCallingPid();
     }
  
     auto iter = attributeAgentMap_.find(key);
@@ -138,6 +139,12 @@ bool ClientAgentContainer<T1, T2>::UnRegisterAllAttributeAgent(uintptr_t key, co
     if (attributeAgentMap_.count(key) == 0) {
         WLOGFD("repeat unregister agent");
         return true;
+    }
+    auto agentPidIt = agentPidMap_.find(agent);
+    if (agentPidIt != agentPidMap_.end()) {
+        int32_t agentPid = agentPidMap_[agent];
+        agentPidMap_.erase(agentPidIt);
+        WLOGFD("agent pid: %{public}d unregistered", agentPid);
     }
     attributeAgentMap_.erase(key);
     agent->AsObject()->RemoveDeathRecipient(deathRecipient_);

@@ -129,7 +129,8 @@
             "//foundation/window/window_manager/utils:libwmutil_base",
             "//foundation/window/window_manager/window_scene/common:window_scene_common",
             "//foundation/window/window_manager/wm:libpip_web",
-            "//foundation/window/window_manager/wm:libpip_ndk"
+            "//foundation/window/window_manager/wm:libpip_ndk",
+            "//foundation/window/window_manager/wm:libmmi_client_adapter"
           ],
           "service_group": [
             "//foundation/window/window_manager/sa_profile:wms_sa_profile",

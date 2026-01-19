@@ -1094,11 +1094,16 @@ DMError DisplayManagerLiteProxy::IsOnboardDisplay(DisplayId displayId, bool& isO
         TLOGE(WmsLogTag::DMS, "read result failed");
         return DMError::DM_ERROR_IPC_FAILED;
     }
+    if (static_cast<DMError>(res) != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "server error:%{public}d", res);
+        return static_cast<DMError>(res);
+    }
     if (!reply.ReadBool(isOnboardDisplay)) {
         TLOGE(WmsLogTag::DMS, "read isOnboardDisplay failed");
         return DMError::DM_ERROR_IPC_FAILED;
     }
-    return static_cast<DMError>(res);
+    TLOGI(WmsLogTag::DMS, "res %{public}u", res);
+    return DMError::DM_OK;
 }
 
 sptr<ScreenInfo> DisplayManagerLiteProxy::GetScreenInfoById(ScreenId screenId)

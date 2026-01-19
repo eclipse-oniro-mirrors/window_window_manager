@@ -272,6 +272,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::SetIsDockAutoHide);
     BindNativeFunction(env, exportObj, "notifyEnterRecentTask", moduleName,
         JsSceneSessionManager::NotifyEnterRecentTask);
+    BindNativeFunction(env, exportObj, "notifySCBRecentStateChange", moduleName,
+        JsSceneSessionManager::NotifySCBRecentStateChange);
     BindNativeFunction(env, exportObj, "updateDisplayHookInfo", moduleName,
         JsSceneSessionManager::UpdateDisplayHookInfo);
     BindNativeFunction(env, exportObj, "initScheduleUtils", moduleName,
@@ -1374,6 +1376,13 @@ napi_value JsSceneSessionManager::NotifyEnterRecentTask(napi_env env, napi_callb
     TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnNotifyEnterRecentTask(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::NotifySCBRecentStateChange(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnNotifySCBRecentStateChange(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::UpdateDisplayHookInfo(napi_env env, napi_callback_info info)
@@ -4317,6 +4326,30 @@ napi_value JsSceneSessionManager::OnNotifyEnterRecentTask(napi_env env, napi_cal
     }
 
     SceneSessionManager::GetInstance().NotifyEnterRecentTask(enterRecent);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::OnNotifySCBRecentStateChange(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    bool isScbRecent = false;
+    if (!ConvertFromJsValue(env, argv[0], isScbRecent)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Failed to convert parameter to isScbRecent");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    SceneSessionManager::GetInstance().NotifySCBRecentStateChange(isScbRecent);
     return NapiGetUndefined(env);
 }
 

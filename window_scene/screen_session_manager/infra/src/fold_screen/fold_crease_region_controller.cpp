@@ -25,126 +25,256 @@
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen::DMS {
-namespace {
-const ScreenId SCREEN_ID_FULL = 0;
-const ScreenId SCREEN_ID_MAIN = 5;
-constexpr int32_t FOLD_CREASE_RECT_SIZE = 4; //numbers of parameter on the current device is 4
-const std::string g_FoldScreenRect = system::GetParameter("const.display.foldscreen.crease_region", "");
-const std::string FOLD_CREASE_DELIMITER = ",;";
-
-const int32_t RECT_POS_X_INDEX = 0;
-const int32_t RECT_POS_Y_INDEX = 1;
-const int32_t RECT_POS_WIDTH_INDEX = 2;
-const int32_t RECT_POS_HEIGHT_INDEX = 3;
-} // namespace
 
 WM_IMPLEMENT_SINGLE_INSTANCE(FoldCreaseRegionController)
 
 FoldCreaseRegionController::FoldCreaseRegionController()
 {
-    TLOGI(WmsLogTag::DMS, "FoldCreaseRegionController created");
-    currentFoldCreaseRegion_ = sptr<FoldCreaseRegion>::MakeSptr(SCREEN_ID_FULL, GetFoldCreaseRegionRect(true));
-}
-
-FoldCreaseRegion FoldCreaseRegionController::GetFoldCreaseRegion(bool isVertical) const
-{
-    std::vector<DMRect> foldCreaseRect = GetFoldCreaseRegionRect(isVertical);
-    return FoldCreaseRegion(SCREEN_ID_FULL, foldCreaseRect);
-}
-
-std::vector<DMRect> FoldCreaseRegionController::GetFoldCreaseRegionRect(bool isVertical) const
-{
-    std::vector<DMRect> foldCreaseRect = {};
-    std::vector<int32_t> foldRect = FoldScreenStateInternel::StringFoldRectSplitToInt(g_FoldScreenRect,
-        FOLD_CREASE_DELIMITER);
-    if (foldRect.size() != FOLD_CREASE_RECT_SIZE) {
-        TLOGE(WmsLogTag::DMS, "foldRect is invalid");
-        return foldCreaseRect;
-    }
-    GetFoldCreaseRect(isVertical, foldRect, foldCreaseRect);
-    return foldCreaseRect;
-}
-
-void FoldCreaseRegionController::GetFoldCreaseRect(bool isVertical,
-    const std::vector<int32_t>& foldRect, std::vector<DMRect>& foldCreaseRect) const
-{
-    int32_t liveCreaseRegionPosX;
-    int32_t liveCreaseRegionPosY;
-    uint32_t liveCreaseRegionPosWidth;
-    uint32_t liveCreaseRegionPosHeight;
-    if (isVertical) {
-        TLOGI(WmsLogTag::DMS, "the current FoldCreaseRect is vertical");
-        liveCreaseRegionPosX = foldRect[RECT_POS_X_INDEX];
-        liveCreaseRegionPosY = foldRect[RECT_POS_Y_INDEX];
-        liveCreaseRegionPosWidth = static_cast<uint32_t>(foldRect[RECT_POS_WIDTH_INDEX]);
-        liveCreaseRegionPosHeight = static_cast<uint32_t>(foldRect[RECT_POS_HEIGHT_INDEX]);
-    } else {
-        TLOGI(WmsLogTag::DMS, "the current FoldCreaseRect is horizontal");
-        liveCreaseRegionPosX = foldRect[RECT_POS_Y_INDEX];
-        liveCreaseRegionPosY = foldRect[RECT_POS_X_INDEX];
-        liveCreaseRegionPosWidth = static_cast<uint32_t>(foldRect[RECT_POS_HEIGHT_INDEX]);
-        liveCreaseRegionPosHeight = static_cast<uint32_t>(foldRect[RECT_POS_WIDTH_INDEX]);
-    }
-    foldCreaseRect = {
-        {
-            liveCreaseRegionPosX, liveCreaseRegionPosY,
-            liveCreaseRegionPosWidth, liveCreaseRegionPosHeight
-        }
-    };
-    return;
+    InitModeCreaseRegion();
 }
 
 sptr<FoldCreaseRegion> FoldCreaseRegionController::GetCurrentFoldCreaseRegion()
 {
     TLOGI(WmsLogTag::DMS, "GetCurrentFoldCreaseRegion");
+    if (!isInitModeCreaseRegion_.load()) {
+        InitModeCreaseRegion();
+    }
+    if (currentFoldCreaseRegion_ == nullptr) {
+        FoldDisplayMode displayMode = FoldDisplayMode::FULL;
+        sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
+        if (screenSession == nullptr) {
+            TLOGE(WmsLogTag::DMS, "screenSession is null");
+            return currentFoldCreaseRegion_;
+        }
+        Rotation targetRotation = Rotation::ROTATION_90;
+        screenSession->AddRotationCorrection(targetRotation, displayMode);
+        std::vector<DMRect> rects = GetCreaseRegionRects(SCREEN_ID_FULL, displayMode, targetRotation);
+        currentFoldCreaseRegion_ = new FoldCreaseRegion(SCREEN_ID_FULL, rects);
+    }
     return currentFoldCreaseRegion_;
 }
 
 FoldCreaseRegion FoldCreaseRegionController::GetLiveCreaseRegion()
 {
     TLOGI(WmsLogTag::DMS, "enter");
-    std::lock_guard<std::mutex> lock_mode(liveCreaseRegionMutex_);
     FoldDisplayMode displayMode = ScreenSessionManager::GetInstance().GetFoldDisplayMode();
     if (displayMode == FoldDisplayMode::UNKNOWN || displayMode == FoldDisplayMode::MAIN) {
         return FoldCreaseRegion(0, {});
     }
+    if (!isInitModeCreaseRegion_.load()) {
+        InitModeCreaseRegion();
+    }
     sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
     if (screenSession == nullptr) {
-        TLOGE(WmsLogTag::DMS, "default screenSession is null");
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
         return FoldCreaseRegion(0, {});
     }
-    DisplayOrientation displayOrientation = screenSession->GetScreenProperty().GetDisplayOrientation();
-    if (displayMode == FoldDisplayMode::FULL) {
-        switch (displayOrientation) {
-            case DisplayOrientation::PORTRAIT:
-            case DisplayOrientation::PORTRAIT_INVERTED: {
-                liveCreaseRegion_ = GetFoldCreaseRegion(true);
-                break;
-            }
-            case DisplayOrientation::LANDSCAPE:
-            case DisplayOrientation::LANDSCAPE_INVERTED: {
-                liveCreaseRegion_ = GetFoldCreaseRegion(false);
-                break;
-            }
-            default: {
-                TLOGE(WmsLogTag::DMS, "displayOrientation is invalid");
-                return FoldCreaseRegion(0, {});
-            }
-        }
-    }
-    return liveCreaseRegion_;
+    Rotation deviceRotation = screenSession->GetScreenProperty().GetDeviceRotation();
+    std::vector<DMRect> curRects = GetCreaseRegionRects(SCREEN_ID_FULL, displayMode, deviceRotation);
+    return FoldCreaseRegion(0, curRects);
 }
 
-void FoldCreaseRegionController::GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const
+std::vector<DMRect> FoldCreaseRegionController::GetCreaseRegionRects(ScreenId screenId,
+    FoldDisplayMode displayMode, Rotation targetRotation)
 {
-    FoldCreaseRegionItem MCreaseItem{DisplayOrientation::LANDSCAPE, FoldDisplayMode::MAIN,
-        FoldCreaseRegion(0, {})};
-    FoldCreaseRegionItem FPorCreaseItem{DisplayOrientation::PORTRAIT, FoldDisplayMode::FULL,
-        GetFoldCreaseRegion(true)};
-    FoldCreaseRegionItem FLandCreaseItem{DisplayOrientation::LANDSCAPE, FoldDisplayMode::FULL,
-        GetFoldCreaseRegion(false)};
-    foldCreaseRegionItems.push_back(MCreaseItem);
-    foldCreaseRegionItems.push_back(FPorCreaseItem);
-    foldCreaseRegionItems.push_back(FLandCreaseItem);
+    sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return {};
+    }
+    targetRotation = ScreenSessionManager::GetInstance().RemoveRotationCorrection(targetRotation);
+    RRect bounds = screenSession->CalcBoundsInRotationZero(displayMode);
+    std::shared_lock<std::shared_mutex> lock(creaseRegionMutex_);
+    return RotateRectArray(displayModeRects_[displayMode], bounds.rect_.width_, bounds.rect_.height_, targetRotation);
+}
+ 
+void FoldCreaseRegionController::GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems)
+{
+    if (!isInitModeCreaseRegion_.load()) {
+        InitModeCreaseRegion();
+    }
+    GetAllCreaseRegionByDisplayMode(FoldDisplayMode::MAIN, SCREEN_ID_FULL, foldCreaseRegionItems);
+    GetAllCreaseRegionByDisplayMode(FoldDisplayMode::FULL, SCREEN_ID_FULL, foldCreaseRegionItems);
+}
+ 
+void FoldCreaseRegionController::GetAllCreaseRegionByDisplayMode(FoldDisplayMode displayMode, ScreenId screenId,
+    std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems)
+{
+    sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    GetCreaseRegionByOrientation(screenSession, displayMode, DisplayOrientation::PORTRAIT, foldCreaseRegionItems);
+    GetCreaseRegionByOrientation(screenSession, displayMode, DisplayOrientation::LANDSCAPE, foldCreaseRegionItems);
+    GetCreaseRegionByOrientation(screenSession, displayMode,
+        DisplayOrientation::PORTRAIT_INVERTED, foldCreaseRegionItems);
+    GetCreaseRegionByOrientation(screenSession, displayMode,
+        DisplayOrientation::LANDSCAPE_INVERTED, foldCreaseRegionItems);
+}
+ 
+void FoldCreaseRegionController::GetCreaseRegionByOrientation(const sptr<ScreenSession>& screenSession,
+    FoldDisplayMode displayMode, DisplayOrientation orientation,
+    std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems)
+{
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    RRect boundsInRotationZero = screenSession->CalcBoundsInRotationZero(displayMode);
+    Rotation rotation = screenSession->CalcRotationByDeviceOrientation(
+        orientation, displayMode, boundsInRotationZero);
+    std::vector<DMRect> curRects = GetCreaseRegionRects(screenSession->GetScreenId(), displayMode, rotation);
+    FoldCreaseRegionItem creaseItem{orientation, displayMode,
+        FoldCreaseRegion(screenSession->GetDisplayId(), curRects)};
+    foldCreaseRegionItems.push_back(creaseItem);
+}
+
+void FoldCreaseRegionController::InitModeCreaseRegion()
+{
+    std::unique_lock<std::shared_mutex> lock(creaseRegionMutex_);
+    auto curFoldScreenRect = system::GetParameter("const.display.foldscreen.crease_region", "");
+    std::vector<int32_t> foldRect = FoldScreenStateInternel::StringFoldRectSplitToInt(curFoldScreenRect,
+        FOLD_CREASE_DELIMITER);
+    TLOGI(WmsLogTag::DMS, "FoldScreenRect:%{public}s, ", curFoldScreenRect.c_str());
+    if (foldRect.size() != FOLD_CREASE_RECT_SIZE) {
+        TLOGE(WmsLogTag::DMS, "foldRect is invalid");
+        return;
+    }
+    std::vector<DMRect> allRect = ConvertToRectList(foldRect);
+    GetDisplayModeRectMap(allRect);
+    isInitModeCreaseRegion_.store(true);
+}
+ 
+void FoldCreaseRegionController::GetDisplayModeRectMap(const std::vector<DMRect>& allRect)
+{
+    if (allRect.empty()) {
+        TLOGE(WmsLogTag::DMS, "allRect is empty");
+        return;
+    }
+    std::vector<DMRect> fullRects;
+    DMRect fullModeRect = allRect[0];
+    fullRects.emplace_back(fullModeRect);
+    displayModeRects_[FoldDisplayMode::FULL] = fullRects;
+    displayModeRects_[FoldDisplayMode::COORDINATION] = fullRects;
+    std::vector<DMRect> mainRects;
+    displayModeRects_[FoldDisplayMode::MAIN] = mainRects;
+}
+ 
+std::vector<DMRect> FoldCreaseRegionController::ConvertToRectList(const std::vector<int32_t>& input)
+{
+    std::vector<DMRect> result;
+    if (input.size() % FOLD_CREASE_RECT_SIZE != 0) {
+        TLOGE(WmsLogTag::DMS, "error rect size");
+        return result;
+    }
+    for (size_t i = 0; i < input.size(); i += FOLD_CREASE_RECT_SIZE) {
+        DMRect rect;
+        rect.posX_ = input[i + RECT_POS_X_INDEX];
+        rect.posY_ = input[i + RECT_POS_Y_INDEX];
+        if (input[i + RECT_POS_WIDTH_INDEX] < 0 || input[i + RECT_POS_HEIGHT_INDEX] < 0) {
+            TLOGE(WmsLogTag::DMS, "error format num");
+            return result;
+        }
+        rect.width_ = static_cast<uint32_t>(input[i + RECT_POS_WIDTH_INDEX]);
+        rect.height_ = static_cast<uint32_t>(input[i + RECT_POS_HEIGHT_INDEX]);
+        result.emplace_back(rect);
+    }
+ 
+    return result;
+}
+
+/**
+ * @brief Rotates a single rectangle (based on the display orientation, the coordinate system
+ * is reset according to the orientation)
+ * @param originalRect The original rectangle (in PORTRAIT orientation, i.e., the parameters at 0 degree)
+ * @param portraitWidth The width of the parent container when the original screen
+ * is in portrait mode (the width of the parent container at 0 degree)
+ * @param portraitHeight The height of the parent container when the original screen
+ * is in portrait mode (the height of the parent container at 0 degree)
+ * @param targetOrientation The target display orientation (the direction to rotate to)
+ * @return The rectangle in the target orientation (based on the 0,0 coordinate system of the top-left
+ * corner of the target orientation)
+ */
+DMRect FoldCreaseRegionController::RotateSingleRect(const DMRect& originalRect,
+    uint32_t portraitWidth, uint32_t portraitHeight, Rotation targetRotation)
+{
+    if (portraitWidth == 0 || portraitHeight == 0) {
+        TLOGW(WmsLogTag::DMS, "[RotateRect Error] Portrait width or height cannot be zero.");
+        return {};
+    }
+    if (originalRect.width_ == 0 || originalRect.height_ == 0) {
+        TLOGW(WmsLogTag::DMS, "[RotateRect Error] Original rect width or height cannot be zero.");
+        return {};
+    }
+ 
+    const int32_t originalPosX = originalRect.posX_;
+    const int32_t originalPosY = originalRect.posY_;
+    const uint32_t originalWidth = originalRect.width_;
+    const uint32_t originalHeight = originalRect.height_;
+    const uint32_t portraitParentWidth = portraitWidth;
+    const uint32_t portraitParentHeight = portraitHeight;
+ 
+    int32_t newPosX = 0;
+    int32_t newPosY = 0;
+    uint32_t newWidth = 0;
+    uint32_t newHeight = 0;
+ 
+    switch (targetRotation) {
+        case Rotation::ROTATION_0:
+            newPosX = originalPosX;
+            newPosY = originalPosY;
+            newWidth = originalWidth;
+            newHeight = originalHeight;
+            break;
+ 
+        case Rotation::ROTATION_90:
+            newPosX = static_cast<int32_t>(portraitParentHeight - originalPosY - originalHeight);
+            newPosY = originalPosX;
+            newWidth = originalHeight;
+            newHeight = originalWidth;
+            break;
+ 
+        case Rotation::ROTATION_180:
+            newPosX = static_cast<int32_t>(portraitParentWidth - originalPosX - originalWidth);
+            newPosY = static_cast<int32_t>(portraitParentHeight - originalPosY - originalHeight);
+            newWidth = originalWidth;
+            newHeight = originalHeight;
+            break;
+ 
+        case Rotation::ROTATION_270:
+            newPosX = originalPosY;
+            newPosY = static_cast<int32_t>(portraitParentWidth - originalPosX - originalWidth);
+            newWidth = originalHeight;
+            newHeight = originalWidth;
+            break;
+ 
+        default:
+            TLOGW(WmsLogTag::DMS, "[RotateRect Error] Invalid target orientation.");
+            return {};
+    }
+    return {newPosX, newPosY, newWidth, newHeight};
+}
+ 
+/**
+ * @brief Batch rotation of rectangular arrays (based on display orientation)
+ * @param originalRects Array of original rectangles (in Portrait orientation)
+ * @param portraitWidth Width of the original portrait-shaped parent container
+ * @param portraitHeight Height of the original portrait-shaped parent container
+ * @param targetOrientation Target display orientation
+ * @return Array of rectangles in the target orientation:
+ * Rectangles that fail will be empty rectangles (with width_ = 0 and height_ = 0)
+ */
+std::vector<DMRect> FoldCreaseRegionController::RotateRectArray(const std::vector<DMRect>& originalRects,
+    uint32_t portraitWidth, uint32_t portraitHeight, Rotation targetRotation)
+{
+    std::vector<DMRect> rotatedRects;
+    rotatedRects.reserve(originalRects.size());
+ 
+    for (const auto& currentRect : originalRects) {
+        rotatedRects.emplace_back(RotateSingleRect(currentRect, portraitWidth, portraitHeight, targetRotation));
+    }
+ 
+    return rotatedRects;
 }
 } // namespace OHOS::Rosen

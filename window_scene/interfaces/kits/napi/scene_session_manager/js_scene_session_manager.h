@@ -111,6 +111,7 @@ public:
     static napi_value SetAppDragResizeType(napi_env env, napi_callback_info info);
     static napi_value GetCustomDecorHeight(napi_env env, napi_callback_info info);
     static napi_value NotifyEnterRecentTask(napi_env env, napi_callback_info info);
+    static napi_value NotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     static napi_value UpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookWindowInfo(napi_env env, napi_callback_info info);
@@ -250,6 +251,7 @@ private:
     napi_value OnSwitchFreeMultiWindow(napi_env env, napi_callback_info info);
     napi_value OnGetFreeMultiWindowConfig(napi_env env, napi_callback_info info);
     napi_value OnNotifyEnterRecentTask(napi_env env, napi_callback_info info);
+    napi_value OnNotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     napi_value OnUpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookWindowInfo(napi_env env, napi_callback_info info);

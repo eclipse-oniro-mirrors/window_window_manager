@@ -1087,9 +1087,9 @@ HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory, TestSize.Leve
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("UpdateStatusBarColorHistory");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    auto reason = WindowSceneSessionImpl::StatusBarColorChangeReason::WINDOW_CONFIGURATION;
+    auto reason = StatusBarColorChangeReason::WINDOW_CONFIGURATION;
     EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
-    reason = WindowSceneSessionImpl::StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
+    reason = StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
     std::optional<uint32_t> op;
     EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, op), 1);
     EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
@@ -1153,13 +1153,13 @@ HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForPage, Function | Small
     window->isAtomicServiceUseColor_ = true;
     window->isNavigationUseColor_ = true;
     window->statusBarColorHistory_.push(
-        std::pair<WindowSceneSessionImpl::StatusBarColorChangeReason,
-        uint32_t>(WindowSceneSessionImpl::StatusBarColorChangeReason::NAVIGATION_CONFIGURATION, 1));
+        std::pair<StatusBarColorChangeReason,
+        uint32_t>(StatusBarColorChangeReason::NAVIGATION_CONFIGURATION, 1));
     EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
     window->isAtomicServiceUseColor_ = true;
     window->statusBarColorHistory_.push(
-        std::pair<WindowSceneSessionImpl::StatusBarColorChangeReason,
-        uint32_t>(WindowSceneSessionImpl::StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION, 1));
+        std::pair<StatusBarColorChangeReason,
+        uint32_t>(StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION, 1));
     EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
     EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(std::optional<uint32_t>(0x00FFFFFF)));
 }

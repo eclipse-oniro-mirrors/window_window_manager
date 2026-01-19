@@ -26,6 +26,7 @@ namespace OHOS {
 namespace Rosen {
 using NotifyWindowRecoverStateChangeFunc = std::function<void(bool isSpecificSession,
     const WindowRecoverState& state)>;
+using StatusBarColorConfigPair = std::pair<StatusBarColorChangeReason, uint32_t>;
 
 class WindowSceneSessionImpl : public WindowSessionImpl {
 public:
@@ -419,6 +420,7 @@ private:
     void FillWindowLimits(WindowLimits& windowLimits, PixelUnit pixelUnit);
     void UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     void PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+    void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         MMI::PointerEvent::PointerItem& pointerItem, bool isHitTargetDraggable = false);
     void HandleEventForCompatibleMode(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
@@ -496,14 +498,14 @@ private:
      * Window Immersive
      */
     void UpdateDefaultStatusBarColor() override;
-    bool userLimitsSet_ = false;
-    bool forceLimits_ = false;
+    std::atomic<bool> userLimitsSet_ = false;
+    std::atomic<bool> forceLimits_ = false;
     uint32_t setSameSystembarPropertyCnt_ = 0;
     std::atomic<uint32_t> getAvoidAreaCnt_ = 0;
     std::atomic<bool> enableImmersiveMode_ = false;
     std::atomic<bool> cacheEnableImmersiveMode_ = false;
     std::atomic<bool> maximizeLayoutFullScreen_ = false;
-    bool titleHoverShowEnabled_ = true;
+    std::atomic<bool> titleHoverShowEnabled_ = true;
     bool dockHoverShowEnabled_ = true;
     void PreLayoutOnShow(WindowType type, const sptr<DisplayInfo>& info = nullptr);
     void MobileAppInPadLayoutFullScreenChange(bool statusBarEnable, bool navigationEnable);
@@ -514,12 +516,7 @@ private:
     std::unordered_map<WindowType, SystemBarProperty> nowsystemBarPropertyMap_;
     bool isAtomicServiceUseColor_ = false;
     bool isNavigationUseColor_ = false;
-    enum class StatusBarColorChangeReason {
-        WINDOW_CONFIGURATION,
-        NAVIGATION_CONFIGURATION,
-        ATOMICSERVICE_CONFIGURATION,
-    };
-    std::stack<std::pair<StatusBarColorChangeReason, uint32_t>> statusBarColorHistory_;
+    std::stack<StatusBarColorConfigPair> statusBarColorHistory_;
     uint32_t UpdateStatusBarColorHistory(StatusBarColorChangeReason reason, std::optional<uint32_t> color);
 
     /*

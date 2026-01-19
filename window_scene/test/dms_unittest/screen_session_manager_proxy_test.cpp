@@ -911,19 +911,19 @@ HWTEST_F(ScreenSessionManagerProxyTest, IsOnboardDisplay, TestSize.Level1)
 
     logMsg.clear();
     MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::SetReadBoolErrorFlag(true);
-    screenSessionManagerProxy->IsOnboardDisplay(displayId, isOnboardDisplay);
-    EXPECT_TRUE(logMsg.find("read result failed") != std::string::npos);
-    MockMessageParcel::SetReadBoolErrorFlag(false);
-
-    logMsg.clear();
-    MockMessageParcel::ClearAllErrorFlag();
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
     auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
     proxy->IsOnboardDisplay(displayId, isOnboardDisplay);
     EXPECT_TRUE(logMsg.find("send request failed") != std::string::npos);
     remoteMocker->SetRequestResult(ERR_NONE);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    screenSessionManagerProxy->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("read result failed") != std::string::npos);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
 
     logMsg.clear();
     MockMessageParcel::ClearAllErrorFlag();

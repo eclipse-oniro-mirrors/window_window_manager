@@ -1347,6 +1347,92 @@ HWTEST_F(SceneSessionLayoutTest, GetWindowDragMoveMountedNode01, TestSize.Level1
     EXPECT_NE(rsNode, nullptr);
 }
 
+/**
+ * @tc.name: ShouldSkipUpdateRect
+ * @tc.desc: ShouldSkipUpdateRect function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldSkipUpdateRect, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldSkipUpdateRect";
+    info.bundleName_ = "ShouldSkipUpdateRect";
+    info.isSystem_ = false;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
+    auto property = session->GetSessionProperty();
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session->SetSessionRect({ 0, 0, 800, 800});
+    WSRect rect = { 0, 0, 800, 800 };
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = mockSessionStage;
+
+    session->UpdateSizeChangeReason(SizeChangeReason::DRAG);
+    EXPECT_EQ(true, session->ShouldSkipUpdateRect(rect));
+
+    session->UpdateSizeChangeReason(SizeChangeReason::DRAG_END);
+    EXPECT_EQ(false, session->ShouldSkipUpdateRect(rect));
+
+    property->SetWindowType(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
+    EXPECT_EQ(false, session->ShouldSkipUpdateRect(rect));
+
+    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    EXPECT_EQ(false, session->ShouldSkipUpdateRect(rect));
+
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session->UpdateSizeChangeReason(SizeChangeReason::MOVE);
+    session->SetClientRect({ 0, 0, 800, 800 });
+    session->sessionStage_ = nullptr;
+    EXPECT_EQ(true, session->ShouldSkipUpdateRect(rect));
+    session->sessionStage_ = mockSessionStage;
+    EXPECT_EQ(true, session->ShouldSkipUpdateRect(rect));
+    session->SetClientRect({ 0, 0, 1000, 1000 });
+    EXPECT_EQ(false, session->ShouldSkipUpdateRect(rect));
+
+    session->SetSessionRect({ 0, 0, 1200, 1200 });
+    session->sessionStage_ = nullptr;
+    EXPECT_EQ(false, session->ShouldSkipUpdateRect(rect));
+    session->sessionStage_ = mockSessionStage;
+    EXPECT_EQ(false, session->ShouldSkipUpdateRect(rect));
+}
+ 
+/**
+ * @tc.name: ShouldSkipUpdateRectNotify
+ * @tc.desc: ShouldSkipUpdateRectNotify function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldSkipUpdateRectNotify, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldSkipUpdateRectNotify";
+    info.bundleName_ = "ShouldSkipUpdateRectNotify";
+    info.isSystem_ = false;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
+    session->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session->SetSessionRect({ 0, 0, 800, 800});
+    WSRect rect = { 0, 0, 800, 800 };
+
+    session->rectChangeListenerRegistered_ = false;
+    EXPECT_EQ(true, session->ShouldSkipUpdateRectNotify(rect));
+    session->rectChangeListenerRegistered_ = true;
+    EXPECT_EQ(true, session->ShouldSkipUpdateRectNotify(rect));
+
+    session->UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE);
+    session->rectChangeListenerRegistered_ = false;
+    EXPECT_EQ(true, session->ShouldSkipUpdateRectNotify(rect));
+    session->rectChangeListenerRegistered_ = true;
+    EXPECT_EQ(false, session->ShouldSkipUpdateRectNotify(rect));
+
+    session->UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
+    session->SetSessionRect({ 0, 0, 1000, 800});
+    EXPECT_EQ(false, session->ShouldSkipUpdateRectNotify(rect));
+    session->SetSessionRect({ 0, 0, 800, 1000});
+    EXPECT_EQ(false, session->ShouldSkipUpdateRectNotify(rect));
+    session->SetSessionRect({ 0, 0, 800, 800});
+    EXPECT_EQ(true, session->ShouldSkipUpdateRectNotify(rect));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

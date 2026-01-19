@@ -200,6 +200,7 @@ private:
     static napi_value OpenKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value CloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value NotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
+    static napi_value CallingWindowStateChange(napi_env env, napi_callback_info info);
     static napi_value SetScale(napi_env env, napi_callback_info info);
     static napi_value SetWindowLastSafeRect(napi_env env, napi_callback_info info);
     static napi_value SetMovable(napi_env env, napi_callback_info info);
@@ -306,6 +307,7 @@ private:
     napi_value OnUpdateSizeChangeReason(napi_env env, napi_callback_info info);
     napi_value OnOpenKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     napi_value OnCloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
+    napi_value OnCallingWindowStateChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
     napi_value OnSetScale(napi_env env, napi_callback_info info);
     napi_value OnSetWindowLastSafeRect(napi_env env, napi_callback_info info);
@@ -574,10 +576,12 @@ private:
     void ProcessCompatibleModeChangeRegister();
     void OnCompatibleModeChange(CompatibleStyleMode mode);
 
-    bool HandleCloseKeyboardSyncTransactionWSRectParams(napi_env env,
-        napi_value argv[], int index, WSRect& rect);
-    bool HandleCloseKeyboardSyncTransactionBoolParams(napi_env env,
-        napi_value argv[], int index, bool& result);
+    bool HandleCloseKeyboardSyncTransactionKeyboardBaseInfo(napi_env env,
+        napi_value argv[], int index, KeyboardBaseInfo& keyboardBaseInfo);
+    bool HandleCloseKeyboardSyncTransactionKeyboardAnimationRectConfig(napi_env env,
+        napi_value argv[], int index, KeyboardAnimationRectConfig& keyboardAnimationRectConfig);
+    bool HandleCallingWindowInfoData(napi_env env,
+        napi_value argv[], int index, CallingWindowInfoData& callingWindowInfoData);
 
     static void Finalizer(napi_env env, void* data, void* hint);
 

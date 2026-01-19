@@ -56,6 +56,10 @@ public:
         std::vector<int32_t>& clearFailedIds) = 0;
     virtual WSError RaiseWindowToTop(int32_t persistentId) { return WSError::WS_OK; }
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType) = 0;
+    virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError TerminateSessionByPersistentId(int32_t persistentId) = 0;
     virtual WMError CloseTargetFloatWindow(const std::string& bundleName) = 0;
     virtual WMError CloseTargetPiPWindow(const std::string& bundleName) = 0;

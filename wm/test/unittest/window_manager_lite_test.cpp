@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 #include "common/include/window_session_property.h"
 #include "mock_window_adapter_lite.h"
+#include "pointer_event.h"
 #include "session/host/include/scene_session.h"
 #include "singleton_mocker.h"
 #include "window_manager_hilog.h"
@@ -826,6 +827,22 @@ HWTEST_F(WindowManagerLiteTest, NotifyWindowPropertyChange01, TestSize.Level1)
 
     instance_->pImpl_->midSceneStatusChangeListeners_ = oldListeners;
     instance_->interestInfoMap_ = oldInfoKeyMap;
+}
+
+/**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: check SetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, SetProcessWatermark, TestSize.Level1)
+{
+    ASSERT_NE(instance_, nullptr);
+    int32_t pid = 1000;
+    const std::string watermarkName = "SetProcessWatermarkName";
+    bool isEnabled = true;
+    WMError expectRet = WindowAdapterLite::GetInstance(userId_).SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto ret = instance_->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, expectRet);
 }
 
 /**

@@ -932,6 +932,14 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
         TLOGE(WmsLogTag::WMS_LIFE, "Read frameNum failed.");
         return ERR_INVALID_DATA;
     }
+    if (!data.ReadBool(abilitySessionInfo->isTargetPlugin)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isTargetPlugin failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadString(abilitySessionInfo->hostBundleName)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read hostBundleName failed.");
+        return ERR_INVALID_DATA;
+    }
     WSError errCode = PendingSessionActivation(abilitySessionInfo);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
@@ -1058,7 +1066,7 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
     uint32_t width = 0;
     uint32_t height = 0;
     if (!data.ReadInt32(posX) || !data.ReadInt32(posY) || !data.ReadUint32(width) || !data.ReadUint32(height)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read rect failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read rect");
         return ERR_INVALID_DATA;
     }
     WSRect rect = {posX, posY, width, height};
@@ -1066,28 +1074,28 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
         width, height);
     uint32_t changeReason = 0;
     if (!data.ReadUint32(changeReason)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read changeReason failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read changeReason");
         return ERR_INVALID_DATA;
     }
     if (changeReason < static_cast<uint32_t>(SizeChangeReason::UNDEFINED) ||
         changeReason > static_cast<uint32_t>(SizeChangeReason::END)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Unknown reason");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "unknown reason");
         return ERR_INVALID_DATA;
     }
     SizeChangeReason reason = static_cast<SizeChangeReason>(changeReason);
     bool isGlobal = false;
     if (!data.ReadBool(isGlobal)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read isGlobal failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read isGlobal");
         return ERR_INVALID_DATA;
     }
     auto isFromMoveToGlobal = false;
     if (!data.ReadBool(isFromMoveToGlobal)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read isFromMoveToGlobal failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read isFromMoveToGlobal");
         return ERR_INVALID_DATA;
     }
     uint64_t displayId = DISPLAY_ID_INVALID;
     if (!data.ReadUint64(displayId)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "read displayId failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read displayId");
         return ERR_INVALID_DATA;
     }
     MoveConfiguration moveConfiguration;
@@ -1097,7 +1105,7 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
         if (!data.ReadUint32(rectAnimationConfig.duration) || !data.ReadFloat(rectAnimationConfig.x1) ||
             !data.ReadFloat(rectAnimationConfig.y1) || !data.ReadFloat(rectAnimationConfig.x2) ||
             !data.ReadFloat(rectAnimationConfig.y2)) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "read animation config failed");
+            TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read animation config");
             return ERR_INVALID_DATA;
         }
         if (reason == SizeChangeReason::MOVE_WITH_ANIMATION) {

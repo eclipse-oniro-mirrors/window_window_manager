@@ -1018,8 +1018,8 @@ void Session::SetCallingPid(int32_t id)
 {
     TLOGI(WmsLogTag::WMS_EVENT, "id:%{public}d, %{public}d", persistentId_, id);
     callingPid_ = id;
-    if (visibilityChangedDetectFunc_ && isVisible_) {
-        visibilityChangedDetectFunc_(callingPid_, false, isVisible_);
+    if (visibilityChangedDetectFunc_ && isVisible_.load()) {
+        visibilityChangedDetectFunc_(callingPid_, false, isVisible_.load());
     }
 }
 
@@ -1357,15 +1357,15 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
+    const auto persistentId = GetPersistentId();
     TLOGD(WmsLogTag::WMS_LAYOUT, "session update rect: id: %{public}d, rect:%{public}s, "
-        "reason:%{public}u %{public}s", GetPersistentId(), rect.ToString().c_str(), reason, updateReason.c_str());
+        "reason:%{public}u %{public}s", persistentId, rect.ToString().c_str(), reason, updateReason.c_str());
+    GetLayoutController()->SetSessionRect(rect);
     if (!IsSessionValid()) {
-        GetLayoutController()->SetSessionRect(rect);
-        TLOGD(WmsLogTag::WMS_MAIN, "Session is invalid, id: %{public}d state: %{public}u",
-            GetPersistentId(), GetSessionState());
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Session is invalid, id: %{public}d state: %{public}u",
+            persistentId, GetSessionState());
         return WSError::WS_ERROR_INVALID_SESSION;
     }
-    GetLayoutController()->SetSessionRect(rect);
     WSRect updateRect = IsNeedConvertToRelativeRect(reason) ?
         GetLayoutController()->ConvertGlobalRectToRelative(rect, GetDisplayId()) : rect;
 
@@ -1377,16 +1377,8 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
         return WSError::WS_DO_NOTHING;
     }
     if (sessionStage_ != nullptr) {
-        int32_t rotateAnimationDuration = GetRotateAnimationDuration();
-        SceneAnimationConfig config;
-        config.rsTransaction_ = rsTransaction;
-        config.animationDuration_ = rotateAnimationDuration;
-        if (reason == SizeChangeReason::SCENE_WITH_ANIMATION) {
-            TLOGI(WmsLogTag::WMS_LAYOUT_PC, "UpdateRectWithLayoutInfo %{public}d", reason);
-            config = sceneAnimationConfig_;
-        }
         UpdateClientRectPosYAndDisplayId(updateRect);
-        sessionStage_->UpdateRect(updateRect, reason, config, avoidAreas);
+        UpdateClientRectInfo(updateRect, reason, avoidAreas, rsTransaction);
         SetClientRect(rect);
         NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(reason);
         RectCheckProcess();
@@ -1753,7 +1745,7 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken)
     lastSnapshotScreen_ = WSSnapshotHelper::GetInstance()->GetScreenStatus();
     NotifyDisconnect();
     if (visibilityChangedDetectFunc_) {
-        visibilityChangedDetectFunc_(GetCallingPid(), isVisible_, false);
+        visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), false);
     }
     // If session is disconnect, clear it's outline if need.
     OutlineStyleParams defaultParams;
@@ -2096,6 +2088,15 @@ void Session::ClearLifeCycleTask()
     TLOGI(WmsLogTag::WMS_LIFE, "Clear LifeCycleTask, PersistentId=%{public}d", persistentId_);
     std::lock_guard<std::mutex> lock(lifeCycleTaskQueueMutex_);
     lifeCycleTaskQueue_.clear();
+}
+
+sptr<Session::SessionLifeCycleTask> Session::GetLastLifeCycleTask() const
+{
+    std::lock_guard<std::mutex> lock(lifeCycleTaskQueueMutex_);
+    if (lifeCycleTaskQueue_.empty()) {
+        return nullptr;
+    }
+    return lifeCycleTaskQueue_.back();
 }
 
 void Session::PostLifeCycleTask(Task&& task, const std::string& name, const LifeCycleTaskType& taskType)
@@ -2907,8 +2908,10 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
     constexpr int32_t FFRT_SNAPSHOT_TIMEOUT_MS = 5000;
     auto pixelMap = callback->GetResult(runInFfrt ? FFRT_SNAPSHOT_TIMEOUT_MS : SNAPSHOT_TIMEOUT_MS);
     if (pixelMap != nullptr) {
-        TLOGI(WmsLogTag::WMS_MAIN, "Save snapshot WxH=%{public}dx%{public}d, id: %{public}d, uniqueId: %{public}d",
-            pixelMap->GetWidth(), pixelMap->GetHeight(), persistentId_, pixelMap->GetUniqueId());
+        bool isCropped = CropSnapshotPixelMap(pixelMap, lastLayoutRect_, scaleValue);
+        TLOGI(WmsLogTag::WMS_MAIN, "Save snapshot WxH=%{public}dx%{public}d, "
+            "id: %{public}d, uniqueId: %{public}d, isCropped: %{public}d",
+            pixelMap->GetWidth(), pixelMap->GetHeight(), persistentId_, pixelMap->GetUniqueId(), isCropped);
         if (notifySessionSnapshotFunc_) {
             notifySessionSnapshotFunc_(persistentId_);
         }
@@ -2916,6 +2919,24 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
     }
     TLOGE(WmsLogTag::WMS_MAIN, "Save snapshot failed, id: %{public}d", persistentId_);
     return nullptr;
+}
+
+bool Session::CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
+    float scaleValue) const
+{
+    if (pixelMap == nullptr) {
+        return false;
+    }
+    bool needCropWidth = WSSnapshotHelper::NeedCrop(rect.width_, scaleValue);
+    bool needCropHeight = WSSnapshotHelper::NeedCrop(rect.height_, scaleValue);
+    auto width = needCropWidth ? pixelMap->GetWidth() - PIXEL_OFFSET : pixelMap->GetWidth();
+    auto height = needCropHeight ? pixelMap->GetHeight() - PIXEL_OFFSET : pixelMap->GetHeight();
+    bool needCrop = needCropWidth || needCropHeight;
+    if (needCrop) {
+        pixelMap->crop({ 0, 0, width, height });
+        return true;
+    }
+    return false;
 }
 
 bool Session::GetNeedUseBlurSnapshot() const
@@ -2970,7 +2991,7 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
         SaveSnapshot(true, true, nullptr, true);
         return;
     }
-    if (IsSessionForeground()) {
+    if (IsSessionForeground() || isVisible_.load()) {
         NotifyRemoveSnapshot();
         return;
     }
@@ -3072,6 +3093,57 @@ bool Session::GetPreloadingStartingWindow() const
     return preloadingStartingWindow_.load();
 }
 
+void Session::SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap)
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    if (pixelMap == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "pixelMap is nullptr");
+        return;
+    }
+    preloadStartingWindowPixelMap_ = pixelMap;
+    preloadStartingWindowSvgBufferInfo_ = {nullptr, 0};
+    TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
+}
+
+void Session::SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo)
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    if (bufferInfo.first == nullptr || bufferInfo.second == 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "bufferInfo is invalid, size %{public}zu", bufferInfo.second);
+        return;
+    }
+    preloadStartingWindowSvgBufferInfo_ = bufferInfo;
+    preloadStartingWindowPixelMap_.reset();
+    TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());
+}
+
+void Session::ResetPreloadStartingWindow()
+{
+    std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    preloadStartingWindowPixelMap_.reset();
+    preloadStartingWindowSvgBufferInfo_ = {nullptr, 0};
+    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d", GetPersistentId());
+}
+
+void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
+    std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo)
+{
+    std::shared_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    if (preloadStartingWindowPixelMap_ != nullptr) {
+        pixelMap = preloadStartingWindowPixelMap_;
+        TLOGI(WmsLogTag::WMS_PATTERN, "pixelMap %{public}d", GetPersistentId());
+        return;
+    }
+    if (preloadStartingWindowSvgBufferInfo_.first != nullptr && preloadStartingWindowSvgBufferInfo_.second > 0) {
+        bufferInfo = preloadStartingWindowSvgBufferInfo_;
+        TLOGI(WmsLogTag::WMS_PATTERN, "svgBufferInfo %{public}d", GetPersistentId());
+        return;
+    }
+    return;
+}
+
 void Session::PreloadSnapshot()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "PreloadSnapshot[%d]", persistentId_);
@@ -3118,7 +3190,7 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
     }
     auto key = GetSessionSnapshotStatus(reason);
     auto rotation = currentRotation_;
-    if (CORRECTION_ENABLE && key == 0) {
+    if (WSSnapshotHelper::GetInstance()->IsSnapshotNeedCorrect(key)) {
         rotation = (rotation + ROTATION_90) % ROTATION_360;
     }
     auto rotate = WSSnapshotHelper::GetDisplayOrientation(rotation);
@@ -3176,7 +3248,7 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         }
         session->scenePersistence_->SaveSnapshot(pixelMap, saveSnapshotCallback, key, rotate,
             session->freeMultiWindow_.load());
-        WindowInfoReporter::GetInstance().ReportWindowIO("PATTERN", "ASTC",
+        WindowInfoReporter::GetInstance().ReportWindowIO("ASTC",
             pixelMap->GetWidth() * pixelMap->GetHeight() / KILOBYTE);
     };
     if (!useFfrt) {
@@ -3217,7 +3289,7 @@ void Session::SetHasSnapshot(SnapshotStatus key, DisplayOrientation rotate)
         ScenePersistentStorage::Insert(snapshotPersistentKey,
             EncodeSnapShotRecoverValue(rotate), ScenePersistentStorageType::MAXIMIZE_STATE);
     }
-    WindowInfoReporter::GetInstance().ReportWindowIO("PATTERN", "session_window_maximize_state",
+    WindowInfoReporter::GetInstance().ReportWindowIO("session_window_maximize_state",
         snapshotPersistentKey.length() / KILOBYTE);
 }
 
@@ -3401,7 +3473,7 @@ uint32_t Session::GetLastOrientation() const
     if (!SupportSnapshotAllSessionStatus()) {
         return SNAPSHOT_PORTRAIT;
     }
-    if (CORRECTION_ENABLE && WSSnapshotHelper::GetInstance()->GetScreenStatus() == 0) {
+    if (WSSnapshotHelper::GetInstance()->IsSnapshotNeedCorrect(WSSnapshotHelper::GetInstance()->GetScreenStatus())) {
         return static_cast<uint32_t>(
             WSSnapshotHelper::GetDisplayOrientation((currentRotation_ + ROTATION_90) % ROTATION_360));
     }
@@ -4117,7 +4189,7 @@ void Session::RectSizeCheckProcess(uint32_t curWidth, uint32_t curHeight, uint32
 /** @note @window.layout */
 void Session::RectCheckProcess()
 {
-    if (!(IsSessionForeground() || isVisible_)) {
+    if (!(IsSessionForeground() || isVisible_.load())) {
         return;
     }
     auto displayId = GetSessionProperty()->GetDisplayId();
@@ -5137,12 +5209,12 @@ std::shared_ptr<Media::PixelMap> Session::GetSnapshotPixelMap(const float oriSca
 
 bool Session::IsVisibleForeground() const
 {
-    return isVisible_ && IsSessionForeground();
+    return isVisible_.load() && IsSessionForeground();
 }
 
 bool Session::IsVisibleNotBackground() const
 {
-    return isVisible_ && IsSessionNotBackground();
+    return isVisible_.load() && IsSessionNotBackground();
 }
 
 void Session::SetIsStarting(bool isStarting)
@@ -5152,7 +5224,7 @@ void Session::SetIsStarting(bool isStarting)
 
 void Session::ResetDirtyFlags()
 {
-    if (!isVisible_) {
+    if (!isVisible_.load()) {
         dirtyFlags_ &= static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA);
     } else {
         dirtyFlags_ = 0;
@@ -5200,7 +5272,7 @@ void Session::SetBackgroundUpdateRectNotifyEnabled(const bool enabled)
 
 bool Session::IsVisible() const
 {
-    return isVisible_;
+    return isVisible_.load();
 }
 
 std::shared_ptr<AppExecFwk::EventHandler> Session::GetEventHandler() const
@@ -5455,6 +5527,24 @@ WSError Session::UpdateGlobalDisplayRect(const WSRect& rect, SizeChangeReason re
     globalDisplayRectSizeChangeReason_ = reason;
     NotifyClientToUpdateGlobalDisplayRect(rect, reason);
     return WSError::WS_OK;
+}
+
+WSError Session::UpdateClientRectInfo(const WSRect& rect, SizeChangeReason reason,
+                                      const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
+                                      const std::shared_ptr<RSTransaction>& rsTransaction)
+{
+    if (!sessionStage_) {
+        return WSError::WS_DO_NOTHING;
+    }
+
+    SceneAnimationConfig config;
+    if (reason == SizeChangeReason::SCENE_WITH_ANIMATION) {
+        config = sceneAnimationConfig_;
+    } else {
+        config.rsTransaction_ = rsTransaction;
+        config.animationDuration_ = GetRotateAnimationDuration();
+    }
+    return sessionStage_->UpdateRect(rect, reason, config, avoidAreas);
 }
 
 WSError Session::NotifyClientToUpdateGlobalDisplayRect(const WSRect& rect, SizeChangeReason reason)

@@ -15,8 +15,8 @@
 
 #include "session_manager/include/zidl/scene_session_manager_lite_proxy.h"
 
+#include "load_mmi_client_adapter.h"
 #include "marshalling_helper.h"
-#include "pointer_event.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -1630,6 +1630,40 @@ WMError SceneSessionManagerLiteProxy::GetWindowStyleType(WindowStyleType& window
     return static_cast<WMError>(reply.ReadInt32());
 }
 
+WMError SceneSessionManagerLiteProxy::SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "WriteInterfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(pid)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write pid failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString(watermarkName)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write watermarkName failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(isEnabled)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write isEnabled failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_SET_PROCESS_WATERMARK),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return static_cast<WMError>(reply.ReadInt32());
+}
+
 WMError SceneSessionManagerLiteProxy::TerminateSessionByPersistentId(int32_t persistentId)
 {
     MessageParcel data;
@@ -2790,7 +2824,7 @@ WSError SceneSessionManagerLiteProxy::SendPointerEventForHover(const std::shared
         TLOGE(WmsLogTag::WMS_EVENT, "Write interfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!pointerEvent->WriteToParcel(data)) {
+    if (!LoadMMIClientAdapter() || !PointerEventWriteToParcel(pointerEvent, data)) {
         TLOGE(WmsLogTag::WMS_EVENT, "Write pointer event failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }

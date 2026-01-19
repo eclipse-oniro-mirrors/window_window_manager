@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/scene_session_manager_lite.h"
 #include "session_manager/include/zidl/pip_change_listener_stub.h"
@@ -123,6 +124,21 @@ HWTEST_F(SceneSessionManagerLiteTest, RecoverWindowPropertyChangeFlag, TestSize.
 {
     auto expectRet = SceneSessionManager::GetInstance().RecoverWindowPropertyChangeFlag(0, 0);
     auto ret = SceneSessionManagerLite::GetInstance().RecoverWindowPropertyChangeFlag(0, 0);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: test function : SetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, SetProcessWatermark, TestSize.Level1)
+{
+    int32_t pid = 100;
+    const std::string watermarkName = "test";
+    bool isEnabled = true;
+    auto expectRet = SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto ret = SceneSessionManagerLite::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
     EXPECT_EQ(ret, expectRet);
 }
 

@@ -18,6 +18,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
@@ -334,7 +335,7 @@ HWTEST_F(SceneSessionManagerTest7, FlushUIParams03, Function | SmallTest | Level
     ssm_->FlushUIParams(screenId, std::move(uiParams));
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_EQ(false, keyboardSession->stateChanged_);
-    
+
     uiParams.clear();
     uiParams.insert(std::make_pair(1, callingSessionUIParam));
     uiParams.insert(std::make_pair(3, keyboardSessionUIParam));
@@ -1235,30 +1236,6 @@ HWTEST_F(SceneSessionManagerTest7, NotifySessionMovedToFront05, TestSize.Level1)
 }
 
 /**
- * @tc.name: UpdateNormalSessionAvoidArea02
- * @tc.desc: UpdateNormalSessionAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest7, UpdateNormalSessionAvoidArea02, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "SceneSessionManagerTest7";
-    sessionInfo.abilityName_ = "UpdateNormalSessionAvoidArea02";
-    sessionInfo.isSystem_ = true;
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    sceneSession->isVisible_ = true;
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->GetLayoutController()->SetSessionRect({ 1, 1, 1, 1 });
-    int32_t persistentId = 1;
-    bool needUpdate = true;
-    ASSERT_NE(nullptr, ssm_);
-    ssm_->avoidAreaListenerSessionSet_.clear();
-    ssm_->avoidAreaListenerSessionSet_.insert(persistentId);
-    ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
-}
-
-/**
  * @tc.name: SetSessionSnapshotSkipForAppProcess
  * @tc.desc: SceneSesionManager SetSessionSnapshotSkipForAppProcess
  * @tc.type: FUNC
@@ -1431,6 +1408,23 @@ HWTEST_F(SceneSessionManagerTest7, SetSessionWatermarkForAppProcess, TestSize.Le
     sceneSession->SetCallingPid(1);
     ASSERT_FALSE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
     ssm_->processWatermarkPidMap_.insert({ 1, "test" });
+    ASSERT_TRUE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
+    ssm_->processWatermarkPidMap_.erase(1);
+}
+
+/**
+ * @tc.name: SetSessionWatermarkForAppProcess01
+ * @tc.desc: test the consistency of the pid in map and sceneSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest7, SetSessionWatermarkForAppProcess01, TestSize.Level0)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(info, nullptr);
+    sceneSession->SetCallingPid(-1);
+    ssm_->processWatermarkPidMap_.insert({ 1, "test" });
+    ASSERT_FALSE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
+    sceneSession->SetCallingPid(1);
     ASSERT_TRUE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
     ssm_->processWatermarkPidMap_.erase(1);
 }

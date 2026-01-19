@@ -397,7 +397,6 @@ ohos_shared_library("libwm_lite") {
     "hilog:libhilog",
     "image_framework:image_native",
     "init:libbegetutil",
-    "input:libmmi-client",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -650,4 +649,34 @@ ohos_shared_library("libpip_ndk") {
 
   part_name = "window_manager"
   subsystem_name = "window"
+}
+
+## Build libmmi_client_adapter.z.so
+ohos_shared_library("libmmi_client_adapter") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+
+  include_dirs = [
+    "${window_base_path}/wm/include",
+    "../utils/include",
+  ]
+  sources = [
+    "src/mmi_client_adapter.cpp",
+  ]
+  deps = [
+    "${window_base_path}/utils:libwmutil_base",
+  ]
+  external_deps = [
+    "input:libmmi-client",
+    "ipc:ipc_single",
+    "hilog:libhilog",
+  ]
+
+    part_name = "window_manager"
+    subsystem_name = "window"
 }

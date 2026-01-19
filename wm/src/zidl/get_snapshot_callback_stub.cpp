@@ -21,6 +21,7 @@
 #include "pixel_map.h"
  
 namespace OHOS::Rosen {
+const int32_t MAX_SESSION_LIMIT_ALL_APP = 512;
  
 int GetSnapshotCallbackStub::OnRemoteRequest(
     uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option)
@@ -62,14 +63,14 @@ int GetSnapshotCallbackStub::HandleOnReceived(MessageParcel& data, MessageParcel
     if (!data.ReadInt32(nullptrLen)) {
         TLOGE(WmsLogTag::WMS_LIFE, "read nullptrLen failed");
     }
-    if (nullptrLen > 0) {
+    if (nullptrLen > 0 && nullptrLen <= MAX_SESSION_LIMIT_ALL_APP) {
         int32_t index = 0;
         for (size_t i = 0; i < static_cast<size_t>(nullptrLen); i++) {
             if (!data.ReadInt32(index)) {
                 OnReceived(static_cast<WMError>(errCode), pixelMaps);
                 return ERR_NONE;
             }
-            if (index > static_cast<int32_t>(pixelMaps.size())) {
+            if (index > static_cast<int32_t>(pixelMaps.size()) || index < 0) {
                 OnReceived(static_cast<WMError>(errCode), pixelMaps);
                 return ERR_NONE;
             }

@@ -88,6 +88,8 @@ constexpr size_t SECONDARY_FOLD_STATUS_INDEX_F = 1;
 constexpr size_t SECONDARY_FOLD_STATUS_INDEX_G = 2;
 constexpr size_t SECONDARY_FOLD_STATUS_COMMAND_NUM = 2;
 constexpr uint16_t HALL_EXT_DATA_FLAG = 26;
+constexpr uint16_t HALL_HAVE_KEYBOARD_THRESHOLD = 0B0100;
+constexpr uint16_t HALL_REMOVE_KEYBOARD_THRESHOLD = 0B0000;
 #endif
 }
 
@@ -1124,8 +1126,23 @@ void ScreenSessionDumper::SetSuperFoldStatusChange(std::string input)
             TLOGE(WmsLogTag::DMS, "params is invalid: %{public}d", value);
             return;
         }
-        SuperFoldStateManager::GetInstance().
-            HandleSuperFoldStatusChange(static_cast<SuperFoldStatusChangeEvents>(value));
+        auto superFoldStatus = static_cast<SuperFoldStatusChangeEvents>(value);
+        if (superFoldStatus == SuperFoldStatusChangeEvents::KEYBOARD_ON ||
+            superFoldStatus == SuperFoldStatusChangeEvents::KEYBOARD_OFF) {
+            int halVal = (superFoldStatus == SuperFoldStatusChangeEvents::KEYBOARD_ON)?
+                HALL_HAVE_KEYBOARD_THRESHOLD: HALL_REMOVE_KEYBOARD_THRESHOLD;
+            HallData hallData{
+                .status = halVal,
+            };
+            SensorEvent hallEvent = {
+                .data = reinterpret_cast<uint8_t*>(&hallData),
+                .dataLen = sizeof(HallData),
+            };
+            SuperFoldSensorManager::GetInstance().HandleHallData(&hallEvent);
+            TLOGW(WmsLogTag::DMS, "set hall value: %{public}d ", superFoldStatus);
+            return;
+        }
+        SuperFoldStateManager::GetInstance().HandleSuperFoldStatusChange(superFoldStatus);
         TLOGI(WmsLogTag::DMS, "state: %{public}d, event: %{public}d",
             SuperFoldStateManager::GetInstance().GetCurrentStatus(), value);
     }

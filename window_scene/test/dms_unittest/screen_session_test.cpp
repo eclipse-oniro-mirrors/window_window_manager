@@ -2023,7 +2023,7 @@ HWTEST_F(ScreenSessionTest, screen_session_test001, TestSize.Level1)
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     session->screenState_ = ScreenState::CONNECTION;
     session->RegisterScreenChangeListener(screenChangeListener);
-    EXPECT_FALSE(g_errLog.find("Failed to register screen change listener, listener is null!") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("Failed to register screen change listener, listener is null!") != std::string::npos);
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test001 end";
 }
 

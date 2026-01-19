@@ -1281,6 +1281,45 @@ HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange06, TestSize.Level1)
     ASSERT_EQ(dumper->fd_, 1);
 }
 
+
+/**
+ * @tc.name: SetSuperFoldStatusChange07
+ * @tc.desc: test function : SetSuperFoldStatusChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange07, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldStatusChange("-supertrans,4");
+    ASSERT_EQ(dumper->fd_, 1);
+
+    EXPECT_TRUE(g_errLog.find("set hall value") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSuperFoldStatusChange08
+ * @tc.desc: test function : SetSuperFoldStatusChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange08, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldStatusChange("-supertrans,5");
+    ASSERT_EQ(dumper->fd_, 1);
+    EXPECT_TRUE(g_errLog.find("set hall value") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+
 /**
  * @tc.name: SetSecondaryStatusChange01
  * @tc.desc: test function : SetSecondaryStatusChange

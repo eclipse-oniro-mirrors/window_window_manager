@@ -125,7 +125,7 @@ void MainSession::NotifyForegroundInteractiveStatus(bool interactive)
         return;
     }
     const auto& state = GetSessionState();
-    if (isVisible_ || state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND) {
+    if (isVisible_.load() || state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND) {
         WLOGFI("NotifyForegroundInteractiveStatus %{public}d", interactive);
         sessionStage_->NotifyForegroundInteractiveStatus(interactive);
     }

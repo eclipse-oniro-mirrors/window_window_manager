@@ -122,18 +122,27 @@ HWTEST_F(DisplayManagerLiteProxyMockTest, IsOnboardDisplay, TestSize.Level1)
 
     logMsg.clear();
     MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::SetReadBoolErrorFlag(true);
-    displayManagerLiteProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
-    EXPECT_TRUE(logMsg.find("read result failed") != std::string::npos);
-
-    logMsg.clear();
-    MockMessageParcel::ClearAllErrorFlag();
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
     auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
     proxy->IsOnboardDisplay(displayId, isOnboardDisplay);
     EXPECT_TRUE(logMsg.find("send request failed") != std::string::npos);
     remoteMocker->SetRequestResult(ERR_NONE);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    displayManagerLiteProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_TRUE(logMsg.find("read result failed") != std::string::npos);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    DMError ret = displayManagerLiteProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
 
     logMsg.clear();
     MockMessageParcel::ClearAllErrorFlag();
