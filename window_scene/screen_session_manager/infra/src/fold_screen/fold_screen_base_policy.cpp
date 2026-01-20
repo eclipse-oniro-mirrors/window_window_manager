@@ -248,6 +248,7 @@ void FoldScreenBasePolicy::CloseCoordinationScreen()
     if (ScreenSessionManager::GetInstance().GetWaitingForDualDisplayReady()) {
         ScreenSessionManager::GetInstance().NotifyDualDisplayReadyCV();
         ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+        return;
     }
 
     // on main screen
