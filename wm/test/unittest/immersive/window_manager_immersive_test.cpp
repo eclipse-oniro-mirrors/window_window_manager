@@ -59,7 +59,7 @@ public:
         return WMError::WM_OK;
     }
 
-    WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex)
+    WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex, bool updateMap)
     {
         return WMError::WM_OK;
     }

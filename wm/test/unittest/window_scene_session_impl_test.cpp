@@ -1729,7 +1729,7 @@ HWTEST_F(WindowSceneSessionImplTest, GetTopwindowWithId, TestSize.Level1)
  * @tc.desc: GetAvoidAreaByType test
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplImmersiveTest, GetAvoidAreaByType, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, GetAvoidAreaByType, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowMode(WindowMode::WINDOW_MODE_PIP);

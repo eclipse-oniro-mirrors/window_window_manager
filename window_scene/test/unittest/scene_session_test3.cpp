@@ -327,38 +327,6 @@ HWTEST_F(SceneSessionTest3, GetBufferAvailableCallbackEnable, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyClientToUpdateAvoidArea
- * @tc.desc: check func NotifyClientToUpdateAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest3, NotifyClientToUpdateAvoidArea, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifyClientToUpdateAvoidArea";
-    info.bundleName_ = "NotifyClientToUpdateAvoidArea";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(nullptr, sceneSession);
-
-    sceneSession->NotifyClientToUpdateAvoidArea();
-    EXPECT_EQ(nullptr, sceneSession->specificCallback_);
-
-    sptr<SceneSession::SpecificSessionCallback> callback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    sceneSession = sptr<SceneSession>::MakeSptr(info, callback);
-    EXPECT_NE(nullptr, sceneSession);
-    sceneSession->persistentId_ = 6;
-    callback->onUpdateAvoidArea_ = nullptr;
-    sceneSession->NotifyClientToUpdateAvoidArea();
-
-    UpdateAvoidAreaCallback callbackFun = [&sceneSession](int32_t persistentId) {
-        sceneSession->RemoveToastSession(persistentId);
-        return;
-    };
-    callback->onUpdateAvoidArea_ = callbackFun;
-    sceneSession->NotifyClientToUpdateAvoidArea();
-    EXPECT_EQ(6, sceneSession->GetPersistentId());
-}
-
-/**
  * @tc.name: UpdateScaleInner
  * @tc.desc: check func UpdateScaleInner
  * @tc.type: FUNC
