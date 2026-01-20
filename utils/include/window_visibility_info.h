@@ -127,7 +127,7 @@ public:
 
     int32_t GetCollaboratorType() const { return collaboratorType_; }
 
-    void SetCollaboratorType(int32_t collaboratorType_) { collaboratorType_ = collaboratorType; }
+    void SetCollaboratorType(int32_t collaboratorType) { collaboratorType_ = collaboratorType; }
 
     uint32_t windowId_ { INVALID_WINDOW_ID };
     int32_t pid_ { 0 };
