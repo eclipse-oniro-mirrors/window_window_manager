@@ -5576,7 +5576,7 @@ void ScreenSessionManager::UpdateDualDisplayReadyFromSettingData()
     }
     isDualDisplayReady_ = isDualDisplayReady;
     if (isDualDisplayReady_) {
-        NotifyDualDisplayReadyCV;
+        NotifyDualDisplayReadyCV();
     }
 }
 
