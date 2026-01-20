@@ -482,6 +482,11 @@ public:
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag(void);
     void WaitForDualDisplayReady();
+    void SetWaitingForDualDisplayReady(bool isWaitingForDualDisplayReady) {
+        isWaitingForDualDisplayReady_ = isWaitingForDualDisplayReady;
+    };
+    bool GetWaitingForDualDisplayReady() { return isWaitingForDualDisplayReady_; }
+    void NotifyDualDisplayReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
     void OnScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent) override;
@@ -1064,7 +1069,7 @@ private:
     void HandleFoldDeviceScreenConnect(ScreenId screenId, const sptr<ScreenSession>& screenSession,
         bool phyMirrorEnable, ScreenEvent screenEvent);
     void RegisterSettingDualDisplayReadyObserver();
-    void SetIsDualDisplayReadyFromSettingData();
+    void UpdateDualDisplayReadyFromSettingData();
 
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;
@@ -1076,6 +1081,8 @@ private:
     std::atomic<bool> isDualDisplayReady_ = false;
     std::mutex dualDisplayReadyMutex_;
     std::condition_variable dualDisplayReadyCV_;
+    std::atomic<bool> isWaitingForDualDisplayReady_ = false;
+
 
     // Fold Screen duringcall
     bool duringCallState_ = false;

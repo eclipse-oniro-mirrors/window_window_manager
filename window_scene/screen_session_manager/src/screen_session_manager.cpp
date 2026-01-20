@@ -5562,11 +5562,11 @@ void ScreenSessionManager::SetRotateLockedFromSettingData()
 void ScreenSessionManager::RegisterSettingDualDisplayReadyObserver()
 {
     TLOGI(WmsLogTag::DMS, "Register setting dualDisplayReady observer");
-    SettingObserver::UpdateFunc updateFunc = [this](const std::string& key) { SetIsDualDisplayReadyFromSettingData(); };
+    SettingObserver::UpdateFunc updateFunc = [this](const std::string& key) { UpdateDualDisplayReadyFromSettingData(); };
     ScreenSettingHelper::RegisterSettingDualDisplayReadyObserver(DmUtils::wrap_callback(updateFunc));
 }
 
-void ScreenSessionManager::SetIsDualDisplayReadyFromSettingData()
+void ScreenSessionManager::UpdateDualDisplayReadyFromSettingData()
 {
     bool isDualDisplayReady;
     ScreenSettingHelper::GetSettingIsDualDisplayReady(isDualDisplayReady);
@@ -5575,21 +5575,29 @@ void ScreenSessionManager::SetIsDualDisplayReadyFromSettingData()
         return;
     }
     isDualDisplayReady_ = isDualDisplayReady;
-    dualDisplayReadyCV_.notify_all();
+    if (isDualDisplayReady_) {
+        NotifyDualDisplayReadyCV;
+    }
 }
 
 void ScreenSessionManager::WaitForDualDisplayReady()
 {
     std::unique_lock<std::mutex> lock(dualDisplayReadyMutex_);
+    SetWaitingForDualDisplayReady(true);
     bool isDualDisplayReady = isDualDisplayReady_;
     TLOGI(WmsLogTag::DMS, "begin wait dual display ready. need wait: %{public}d", isDualDisplayReady);
     if (!isDualDisplayReady) {
-        TLOGI(WmsLogTag::DMS, "need wait dual display ready");
-        if (DmUtils::safe_wait_for(dualDisplayReadyCV_, lock, std::chrono::milliseconds(CV_WAIT_DUAL_DISPLAY_READY_MAX_MS)) ==
-            std::cv_status::timeout) {
+        if (DmUtils::safe_wait_for(dualDisplayReadyCV_, lock,
+            std::chrono::milliseconds(CV_WAIT_DUAL_DISPLAY_READY_MAX_MS)) == std::cv_status::timeout) {
             TLOGE(WmsLogTag::DMS, "wait dual display ready timeout");
         }
     }
+    SetWaitingForDualDisplayReady(false);
+}
+
+void ScreenSessionManager::NotifyDualDisplayReadyCV()
+{
+    dualDisplayReadyCV_.notify_all();
 }
 
 void ScreenSessionManager::RegisterSettingResolutionEffectObserver()
