@@ -3134,6 +3134,30 @@ HWTEST_F(SceneSessionManagerTest12, NotifyIsFullScreenInForceSplitMode, TestSize
 }
 
 /**
+ * @tc.name: SetQueryLogicalDeviceConfigCallback
+ * @tc.desc: SetQueryLogicalDeviceConfigCallback test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, SetQueryLogicalDeviceConfigCallback, TestSize.Level3)
+{
+    std::string bundleName = "testBundleName1";
+    std::string config = ssm_->GetLogicalDeviceConfigCallback(bundleName);
+    EXPECT_EQ(config, "");
+
+    bool callbackCalled = false;
+    std::string callbackResult = "{}";
+    ssm_->SetQueryLogicalDeviceConfigCallback(
+        [&callbackCalled, callbackResult](const std::string& bundleName) {
+            callbackCalled = true;
+            return callbackResult;
+        });
+
+    config = ssm_->GetLogicalDeviceConfigCallback(bundleName);
+    EXPECT_EQ(config, "{}");
+    EXPECT_TRUE(callbackCalled);
+}
+
+/**
  * @tc.name: NeedOutline
  * @tc.desc: test function : NeedOutline
  * @tc.type: FUNC

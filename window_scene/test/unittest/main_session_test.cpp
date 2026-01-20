@@ -1236,6 +1236,35 @@ HWTEST_F(MainSessionTest, RegisterForceSplitEnableListener, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RegisterLogicalDeviceConfigCallback
+ * @tc.desc: Test RegisterLogicalDeviceConfigCallback
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, RegisterLogicalDeviceConfigCallback, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testMainSessionAbility1";
+    info.moduleName_ = "testMainSessionModule1";
+    info.bundleName_ = "testMainSessionBundle1";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    std::string config = session->GetLogicalDeviceConfigCallback(session->GetSessionInfo().bundleName_);
+    EXPECT_EQ(config, "");
+    bool callbackCalled = false;
+    std::string callbackResult = "{}";
+    session->RegisterLogicalDeviceConfigCallback(
+        [&callbackCalled, callbackResult](const std::string& bundleName) {
+            callbackCalled = true;
+            return callbackResult;
+        });
+
+    config = session->GetLogicalDeviceConfigCallback(session->GetSessionInfo().bundleName_);
+    EXPECT_EQ(config, "{}");
+    EXPECT_TRUE(callbackCalled);
+}
+
+/**
  * @tc.name: Prelaunch
  * @tc.desc: Test Prelaunch
  * @tc.type: FUNC
