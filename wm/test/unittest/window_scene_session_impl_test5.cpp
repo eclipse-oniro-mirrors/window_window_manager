@@ -1182,6 +1182,8 @@ HWTEST_F(WindowSceneSessionImplTest5, SetSystemBarProperties, TestSize.Level1)
     propertyFlags[type].contentColorFlag = true;
     EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
     properties[type] = SystemBarProperty();
+    window->nowsystemBarPropertyMap_.clear();
+    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
     window->nowsystemBarPropertyMap_[type] = SystemBarProperty();
     EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
     window->nowsystemBarPropertyMap_[type].contentColor_ = 0;
