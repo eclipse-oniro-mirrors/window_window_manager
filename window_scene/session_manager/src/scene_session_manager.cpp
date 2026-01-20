@@ -12465,7 +12465,7 @@ void SceneSessionManager::SetSessionVisibilityInfo(const sptr<SceneSession>& ses
         windowVisibilityInfo->SetCallingPid(callerSession->GetCallingPid());
     }
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "callingWindowId %{public}d, callingPid %{public}d",	 
-         callingWindowId, windowVisibilityInfo->GetCallingPid());
+        callingWindowId, windowVisibilityInfo->GetCallingPid());
 
     windowVisibilityInfos.emplace_back(windowVisibilityInfo);
 
