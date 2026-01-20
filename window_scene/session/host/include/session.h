@@ -1176,7 +1176,7 @@ private:
     std::atomic_bool systemFocusable_ = true;
     bool focusableOnShow_ = true; // if false, ignore request focus when session onAttach
 
-    bool showRecent_ = false;
+    std::atomic<bool> showRecent_ = false;
     bool bufferAvailable_ = false;
 
     /*
