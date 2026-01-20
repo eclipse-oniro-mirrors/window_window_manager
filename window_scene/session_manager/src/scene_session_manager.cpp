@@ -3679,15 +3679,13 @@ void SceneSessionManager::AddRequestTaskInfo(sptr<SceneSession> sceneSession, in
     }
     AAFwk::Want wantTmp = sessionInfo.GetWantSafely();
     size_t requestIdToWantMapSize = 0;
-    {
-        std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
-        if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
-            requestTaskInfoMap.emplace(persistentId, std::make_shared<RequestTaskInfo>());
-        }
-        auto& requestIdToWantMap = requestTaskInfoMap[persistentId]->requestIdToWantMap;
-        requestIdToWantMap[requestId] = wantTmp;
-        requestIdToWantMapSize = requestIdToWantMap.size();
+    std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
+    if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
+        requestTaskInfoMap.emplace(persistentId, std::make_shared<RequestTaskInfo>());
     }
+    auto& requestIdToWantMap = requestTaskInfoMap[persistentId]->requestIdToWantMap;
+    requestIdToWantMap[requestId] = wantTmp;
+    requestIdToWantMapSize = requestIdToWantMap.size();
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d, "
         "infoMap size:%{public}u, wantMap size:%{public}u",
         persistentId, requestId, requestTaskInfoMap.size(), requestIdToWantMapSize);
@@ -3697,13 +3695,11 @@ void SceneSessionManager::RemoveRequestTaskInfo(int32_t persistentId, int32_t re
     if (requestId < MIN_REQUEST_ID_FROM_ABILITY || persistentId == INVALID_SESSION_ID) {
         return;
     }
-    {
-        std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
-        if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
-            return;
-        }
-        requestTaskInfoMap[persistentId]->requestIdToWantMap.erase(requestId);
+    std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
+    if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
+        return;
     }
+    requestTaskInfoMap[persistentId]->requestIdToWantMap.erase(requestId);
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d, "
         "infoMap size:%{public}u, wantMap size:%{public}u",
         persistentId, requestId, requestTaskInfoMap.size(),
