@@ -2782,6 +2782,10 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
             std::unordered_map<std::string, std::unordered_map<ControlAppType, ControlInfo>>& {
             return allAppUseControlMap_;
         });
+        sceneSession->RegisterGetAppUseControlDisplayMapFunc([this]() ->
+            std::unordered_map<DisplayId, bool>& {
+            return appUseControlDisplayMap_;
+        });
         sceneSession->RegisterGetFbPanelWindowIdFunc([this](uint32_t& windowId) {
             return this->GetFbPanelWindowId(windowId);
         });
@@ -3829,6 +3833,19 @@ void SceneSessionManager::RemoveSnapshotFromCache(int32_t persistentId)
     if (auto sceneSession = GetSceneSession(persistentId)) {
         sceneSession->ResetSnapshot();
     }
+}
+
+WSError SceneSessionManager::NotifyAppUseControlDisplay(DisplayId displayId, bool useControl)
+{
+    TLOGI(WmsLogTag::WMS_PATTERN, "displayId: %{public}" PRIu64 ", useControl: %{public}d", displayId, useControl);
+    if (!SessionPermission::IsSACalling()) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "The caller is not system-app, can not use system-api");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    taskScheduler_->PostAsyncTask([this, displayId, useControl] {
+        appUseControlDisplayMap_[displayId] = useControl;
+    }, __func__);
+    return WSError::WS_OK;
 }
 
 WSError SceneSessionManager::RegisterSaveSnapshotFunc(const sptr<SceneSession>& sceneSession)
@@ -14401,6 +14418,7 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
         sceneSession->GetPersistentId(), screenId, fromScreenId);
     NotifySessionUpdate(sceneSession->GetSessionInfo(), ActionType::MOVE_DISPLAY, fromScreenId);
     sceneSession->NotifyDisplayMove(fromScreenId, screenId);
+    sceneSession->NotifyRemoveApplockSnapshot();
     sceneSession->UpdateDensity();
     if (fromScreenId != screenId) {
         sceneSession->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));

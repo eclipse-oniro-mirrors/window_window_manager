@@ -2979,6 +2979,9 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (type != ControlAppType::APP_LOCK) {
         return;
     }
+    if (!IsSupportAppLockSnapshot()) {
+        return;
+    }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
     isAppLockControl_.store(isAppUseControl);
@@ -2998,6 +3001,24 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (!GetIsPrivacyMode() && !GetSnapshotPrivacyMode()) {
         SaveSnapshot(true, true, nullptr, true);
     }
+}
+
+bool Session::IsSupportAppLockSnapshot() const
+{
+    if (!onGetAppUseControlDisplayMapFunc_) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d not support", persistentId_);
+        return false;
+    }
+    auto& appUseControlDisplayMap = onGetAppUseControlDisplayMapFunc_();
+    auto displayId = GetSessionProperty()->GetDisplayId();
+    if (appUseControlDisplayMap.find(displayId) == appUseControlDisplayMap.end()) {
+        return true;
+    }
+    if (appUseControlDisplayMap[displayId]) {
+        return true;
+    }
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, displayId: %{public}" PRIu64, persistentId_, displayId);
+    return false;
 }
 
 bool Session::GetSnapshotPrivacyMode() const

@@ -1373,6 +1373,33 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetRootMainWindowId, TestSize.Le
 }
 
 /**
+ * @tc.name: HandleNotifyAppUseControlDisplay
+ * @tc.desc: test function : HandleNotifyAppUseControlDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyAppUseControlDisplay, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    auto res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleNotifyAppUseControlDisplay(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
+
+    DisplayId displayId = 1000;
+    data.WriteUint64(displayId);
+    res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleNotifyAppUseControlDisplay(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
+
+    data.WriteUint64(displayId);
+    bool useControl = false;
+    data.WriteBool(useControl);
+    res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleNotifyAppUseControlDisplay(data, reply);
+    EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
  * @tc.name: HandleNotifyAppUseControlList
  * @tc.desc: test function : HandleNotifyAppUseControlList
  * @tc.type: FUNC

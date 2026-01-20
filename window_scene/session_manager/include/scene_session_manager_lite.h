@@ -126,6 +126,7 @@ public:
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
     WMError SetPipEnableByScreenId(int32_t screenId, bool enabled) override;
     WMError UnsetPipEnableByScreenId(int32_t screenId) override;
+    WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl) override;
 
     WMError RegisterPipChgListenerByScreenId(int32_t screenId, const sptr<IPipChangeListener>& listener) override;
     WMError UnregisterPipChgListenerByScreenId(int32_t screenId) override;

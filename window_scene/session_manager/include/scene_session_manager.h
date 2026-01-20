@@ -896,6 +896,7 @@ public:
     void PreLoadStartingWindow(sptr<SceneSession> sceneSession);
     bool IsSyncLoadStartingWindow() { return syncLoadStartingWindow_; };
     bool IsDmaReclaimEnabled() { return enableDmaReclaim_; };
+    WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl);
 
     /*
      * Window Animation
@@ -1843,6 +1844,7 @@ private:
     std::atomic<bool> delayRemoveSnapshot_ = false;
     bool syncLoadStartingWindow_ = false;
     bool enableDmaReclaim_ = false;
+    std::unordered_map<DisplayId, bool> appUseControlDisplayMap_;
     void InitWindowPattern();
     void InitStartingWindow();
     void InitDmaReclaimParam();

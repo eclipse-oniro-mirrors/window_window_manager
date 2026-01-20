@@ -618,6 +618,22 @@ WSError SceneSession::BackgroundTask(const bool isSaveSnapshot, LifeCycleChangeR
     return WSError::WS_OK;
 }
 
+void SceneSession::RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func)
+{
+    onGetAppUseControlDisplayMapFunc_ = std::move(func);
+}
+
+void SceneSession::NotifyRemoveApplockSnapshot()
+{
+    if (IsSupportAppLockSnapshot()) {
+        return;
+    }
+    SetAppLockControl(false);
+    if (IsSessionForeground()) {
+        NotifyRemoveSnapshot();
+    }
+}
+
 WMError SceneSession::NotifySnapshotUpdate()
 {
     PostTask([weakThis = wptr(this), where = __func__] {

@@ -1003,6 +1003,8 @@ public:
      * Window Pattern
     */
     void NotifyWindowAttachStateListenerRegistered(bool registered) override;
+    void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) override;
+    void NotifyRemoveApplockSnapshot();
     WMError NotifySnapshotUpdate() override;
     bool GetIsPrivacyMode() const override
     {

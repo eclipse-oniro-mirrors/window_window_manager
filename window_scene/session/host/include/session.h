@@ -124,6 +124,7 @@ using OutlineParamsChangeCallbackFunc = std::function<void(bool enabled, const O
 using NotifyRestartAppFunc = std::function<void(const SessionInfo& info, int32_t callingPid)>;
 using ProcessCallingSessionIdChangeFunc = std::function<void(uint32_t callingSessionId)>;
 using GetRsCmdBlockingCountFunc = std::function<int32_t()>;
+using GetAppUseControlDisplayMapFunc = std::function<std::unordered_map<DisplayId, bool>&()>;
 class ILifecycleListener {
 public:
     virtual void OnActivation() {}
@@ -327,6 +328,7 @@ public:
         return false;
     };
     bool GetAppLockControl() const { return isAppLockControl_.load(); };
+    void SetAppLockControl(bool control) { isAppLockControl_.store(control); };
     void SetSaveSnapshotCallback(Task&& task)
     {
         if (task) {
@@ -826,6 +828,7 @@ public:
     bool HasSnapshot();
     virtual void RecoverSnapshotPersistence(const SessionInfo& info) {};
     virtual void ClearSnapshotPersistence() {};
+    virtual void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) {};
     void SetHasSnapshot(SnapshotStatus key, DisplayOrientation rotate);
     std::string GetSnapshotPersistentKey(int32_t id);
     std::string GetSnapshotPersistentKey(int32_t id, SnapshotStatus key);
@@ -1085,6 +1088,8 @@ protected:
     /*
      * Window Pattern
      */
+    bool IsSupportAppLockSnapshot() const;
+    GetAppUseControlDisplayMapFunc onGetAppUseControlDisplayMapFunc_;
     std::atomic<bool> isAttach_ { false };
     std::atomic<bool> needNotifyAttachState_ = { false };
     int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
