@@ -558,6 +558,36 @@ HWTEST_F(WindowSceneTest, RequestFocus02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyWindowStageCreateFinished01
+ * @tc.desc: NotifyWindowStageCreateFinished without mainWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneTest, NotifyWindowStageCreateFinished01, TestSize.Level1)
+{
+    sptr<WindowScene> scene = new WindowScene();
+    scene->NotifyWindowStageCreateFinished();
+    ASSERT_NE(nullptr, scene);
+}
+
+/**
+ * @tc.name: NotifyWindowStageCreateFinished02
+ * @tc.desc: NotifyWindowStageCreateFinished
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneTest, NotifyWindowStageCreateFinished02, TestSize.Level1)
+{
+    DisplayId displayId = 0;
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    sptr<IWindowLifeCycle> listener = nullptr;
+    sptr<WindowScene> scene = new WindowScene();
+    sptr<WindowOption> option = new WindowOption();
+    EXPECT_CALL(m->Mock(), CreateWindow(_, _, _)).Times(1).WillOnce(Return(new WindowImpl(option)));
+    ASSERT_EQ(WMError::WM_OK, scene->Init(displayId, abilityContext_, listener));
+    scene->NotifyWindowStageCreateFinished();
+    ASSERT_NE(nullptr, scene);
+}
+
+/**
  * @tc.name: NotifyMemoryLevel01
  * @tc.desc: NotifyMemoryLevel without mainWindow
  * @tc.type: FUNC
