@@ -7753,6 +7753,7 @@ WMError WindowSceneSessionImpl::GetWindowStateSnapshot(std::string& winStateSnap
     auto persistentId = GetPersistentId();
     nlohmann::json winStateSnapshotJson = {
         {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
+        {"isSupportFreeWindowMode", windowSystemConfig_.freeMultiWindowSupport_ || windowSystemConfig_.IsPcWindow()},
     };
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
     auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(persistentId,
