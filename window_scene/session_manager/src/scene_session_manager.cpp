@@ -18988,12 +18988,13 @@ WSError SceneSessionManager::RegisterSessionPropertyChangeNotifyManagerFunc(cons
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     sceneSession->SetSessionPropertyChangeNotifyManagerListener(
         [this](int32_t persistentId, WindowInfoKey windowInfoKey) {
         NotifySessionPropertyChangeFromSession(persistentId, windowInfoKey);
     });
+    return WSError::WS_OK;
 }
 
 WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey)
@@ -19003,9 +19004,10 @@ WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t pers
     sptr<SceneSession> sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "sceneSession nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     NotifyWindowPropertyChangeByWindowInfoKey(sceneSession, windowInfoKey);
+    return WSError::WS_OK;
 }
 
 void SceneSessionManager::ConfigSupportZLevel()
