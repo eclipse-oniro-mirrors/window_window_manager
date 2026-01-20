@@ -501,7 +501,7 @@ bool WindowAdapter::InitWMSProxy()
             return false;
         }
 
-        wmsDeath_ = new WMSDeathRecipient();
+        wmsDeath_ = sptr<WMSDeathRecipient>::MakeSptr(userId_);
         if (!wmsDeath_) {
             WLOGFE("Failed to create death Recipient ptr WMSDeathRecipient");
             return false;

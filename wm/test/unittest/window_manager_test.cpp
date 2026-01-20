@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 #include "iremote_object_mocker.h"
 #include "scene_board_judgement.h"
-#include "singleton_mocker.h"
 #include "window_manager.cpp"
 #include "window_manager.h"
 #include "window_manager_hilog.h"
@@ -26,45 +25,6 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
-
-// Mock the functions in WindowAdapter.
-class MockWindowAdapter : public WindowAdapter {
-public:
-    explicit MockWindowAdapter(const int32_t userId) : WindowAdapter(userId) {}
-    ~MockWindowAdapter() = default;
-
-    WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
-                                       const sptr<IWindowManagerAgent>& windowManagerAgent) override
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-                                              uint32_t interestInfo,
-                                              const sptr<IWindowManagerAgent>& windowManagerAgent) override
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
-                                         const sptr<IWindowManagerAgent>& windowManagerAgent) override
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-                                                uint32_t interestInfo,
-                                                const sptr<IWindowManagerAgent>& windowManagerAgent)
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex)
-    {
-        return WMError::WM_OK;
-    }
-};
-
 namespace {
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
@@ -72,6 +32,42 @@ namespace {
     {
         g_errLog = msg;
     }
+
+// Mock the functions in WindowAdapter to return ok.
+class MockWindowAdapter : public WindowAdapter {
+public:
+    explicit MockWindowAdapter(const int32_t userId) : WindowAdapter(userId) {}
+    ~MockWindowAdapter() = default;
+
+    WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+        uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override
+    {
+        return WMError::WM_OK;
+    }
+};
 
 class TestCameraFloatWindowChangedListener : public ICameraFloatWindowChangedListener {
 public:
@@ -1754,7 +1750,7 @@ HWTEST_F(WindowManagerTest, GetAllWindowLayoutInfo, TestSize.Level1)
     DisplayId displayId = 1;
     std::vector<sptr<WindowLayoutInfo>> infos;
     auto ret = WindowManager::GetInstance().GetAllWindowLayoutInfo(displayId, infos);
-    ASSERT_EQ(SingletonContainer::Get<WindowAdapter>().GetAllWindowLayoutInfo(displayId, infos), ret);
+    ASSERT_EQ(WindowAdapter::GetInstance().GetAllWindowLayoutInfo(displayId, infos), ret);
 }
 
 /**
