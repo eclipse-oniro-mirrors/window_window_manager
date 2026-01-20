@@ -68,6 +68,8 @@ enum class ScreenPowerEvent {
     WAKEUP_BEGIN,
     SUSPEND_BEGIN,
     WAKEUP_BEGIN_ADVANCED,
+    SET_SCREEN_POWER_FOR_ALL_DOZE,
+    SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND,
     SCREEN_POWER_EVENT_MAX,
     SYNC_POWER_ON, //Special scenario, PMS force synchronization ON state
 };

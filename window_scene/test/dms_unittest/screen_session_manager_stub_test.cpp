@@ -3745,6 +3745,43 @@ HWTEST_F(ScreenSessionManagerStubTest, IsOnboardDisplay, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find("write res failed") == std::string::npos);
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: SetPowerStateForAodAbnormalTest
+ * @tc.desc: SetPowerStateForAodAbnormalTest test abnormal input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, SetPowerStateForAodAbnormalTest, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_POWER_STATE_AOD);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, -1);
+}
+
+/**
+ * @tc.name: SetPowerStateForAodNnormalTest
+ * @tc.desc: SetPowerStateForAodNnormalTest test normal input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, SetPowerStateForAodNnormalTest, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    ScreenPowerState state = ScreenPowerState::POWER_DOZE;
+    data.WriteUint32(static_cast<uint32_t>(state));
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_POWER_STATE_AOD);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
 }
 }
 }

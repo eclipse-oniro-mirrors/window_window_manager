@@ -14227,6 +14227,36 @@ void ScreenSessionManager::NotifyAodOpCompletion(AodOP operation, int32_t result
     }
 }
 
+void ScreenSessionManager::SetPowerStateForAod(ScreenPowerState state)
+{
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGNFE(WmsLogTag::DMS, "permission denied!");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS, "[UL_POWER]state: %{public}u", state);
+    ScreenPowerInfoType curType;
+    ScreenPowerEvent event;
+    if (state == ScreenPowerState::POWER_DOZE) {
+        event = ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE;
+        curType = std::make_pair(state, PowerStateChangeReason::STATE_CHANGE_REASON_AOD_SET_DOZE);
+    } else if (state == ScreenPowerState::POWER_DOZE_SUSPEND) {
+        event = ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND;
+        curType = std::make_pair(state, PowerStateChangeReason::STATE_CHANGE_REASON_AOD_SET_DOZE_SUSPEND);
+    } else if (state == ScreenPowerState::POWER_OFF) {
+        event = ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_POWER_OFF;
+        curType = std::make_pair(state, PowerStateChangeReason::STATE_CHANGE_REASON_AOD_SET_OFF);
+    } else {
+        TLOGNFE(WmsLogTag::DMS, "[UL_POWER]invalid state: %{public}u", state);
+        return;
+    }
+    bool isSuccess = ScreenStateMachine::GetInstance().HandlePowerStateChange(event, curType);
+    if (!isSuccess) {
+        TLOGNFE(WmsLogTag::DMS, "[UL_POWER]set false, state: %{public}u", state);
+        return;
+    }
+    TLOGD(WmsLogTag::DMS, "[UL_POWER]set state success: %{public}u", state);
+}
+
 #ifdef FOLD_ABILITY_ENABLE
 bool ScreenSessionManager::WaitAodOpNotify()
 {
