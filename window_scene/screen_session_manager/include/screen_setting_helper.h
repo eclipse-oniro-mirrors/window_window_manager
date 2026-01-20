@@ -127,7 +127,7 @@ private:
     static const constexpr char* SETTING_COMPATIBLE_APP_STRATEGY_KEY {"COMPATIBLE_APP_STRATEGY"};
     static const constexpr char* SETTING_SCREEN_RESOLUTION_MODE_KEY {"user_set_resolution_mode"};
     static const constexpr char* SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY {"bordering_area_percent"};
-    static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"setting.display.dual_display_ready"};
+    static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"settings.display.dual_display_ready"};
     static const constexpr uint32_t BASE_TEN = 10;
     static sptr<SettingObserver> dpiObserver_;
     static sptr<SettingObserver> castObserver_;
