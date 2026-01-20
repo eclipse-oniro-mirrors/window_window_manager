@@ -203,6 +203,79 @@ HWTEST_F(WindowManagerImmersiveTest, NotifyWindowSystemBarPropertyChange, TestSi
     EXPECT_EQ(1, listener->count_);
     windowManager.pImpl_->windowSystemBarPropertyChangedListeners_ = oldListeners;
 }
+
+/**
+ * @tc.name: RegisterSystemBarChangedListener01
+ * @tc.desc: check RegisterSystemBarChangedListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerImmersiveTest, RegisterSystemBarChangedListener01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, instance_);
+    auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
+    auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
+    instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
+    instance_->pImpl_->systemBarChangedListeners_.clear();
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, instance_->RegisterSystemBarChangedListener(nullptr));
+
+    auto oldAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
+
+    instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
+    instance_->pImpl_->systemBarChangedListeners_.clear();
+    WMError ret = instance_->RegisterSystemBarChangedListener(nullptr);
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+
+    sptr<ISystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
+    ASSERT_NE(nullptr, windowAdapter);
+    windowAdapter->isProxyValid_ = true;
+    windowAdapter->windowManagerServiceProxy_ = nullptr;
+
+    ASSERT_EQ(WMError::WM_ERROR_SAMGR, instance_->RegisterSystemBarChangedListener(listener));
+    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
+
+    // to check that the same listner can not be registered twice
+
+    instance_->pImpl_->systemBarChangedListenerAgent_ = oldAgent;
+    instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
+}
+
+/**
+ * @tc.name: UnregisterSystemBarChangedListener01
+ * @tc.desc: check UnregisterSystemBarChangedListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerImmersiveTest, UnregisterSystemBarChangedListener01, TestSize.Level1)
+{
+    ASSERT_NE(instance_, nullptr);
+    auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
+    auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
+    instance_->pImpl_->systemBarChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+    instance_->pImpl_->systemBarChangedListeners_.clear();
+    // check nullpter
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, instance_->UnregisterSystemBarChangedListener(nullptr));
+
+    sptr<TestSystemBarChangedListener> listener1 = sptr<TestSystemBarChangedListener>::MakeSptr();
+    sptr<TestSystemBarChangedListener> listener2 = sptr<TestSystemBarChangedListener>::MakeSptr();
+    ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
+    ASSERT_NE(nullptr, windowAdapter);
+    windowAdapter->isProxyValid_ = true;
+    windowAdapter->windowManagerServiceProxy_ = nullptr;
+    instance_->RegisterSystemBarChangedListener(listener1);
+    instance_->RegisterSystemBarChangedListener(listener2);
+    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
+
+    instance_->UnregisterSystemBarChangedListener(listener1);
+    instance_->UnregisterSystemBarChangedListener(listener2);
+    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
+    ASSERT_EQ(nullptr, instance_->pImpl_->systemBarChangedListenerAgent_);
+
+    instance_->pImpl_->systemBarChangedListeners_.push_back(listener1);
+    ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
+    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
+
+    instance_->pImpl_->systemBarChangedListenerAgent_ = oldWindowManagerAgent;
+    instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
+}
 }
 } // namespace
 } // namespace Rosen
