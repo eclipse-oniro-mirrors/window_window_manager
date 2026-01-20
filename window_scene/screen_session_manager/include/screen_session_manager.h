@@ -558,6 +558,7 @@ public:
     bool GetCancelSuspendStatus() const;
     void RemoveScreenCastInfo(ScreenId screenId);
     Rotation GetConfigCorrectionByDisplayMode(FoldDisplayMode displayMode);
+    Rotation GetCurrentConfigCorrection();
     Rotation RemoveRotationCorrection(Rotation rotation);
     Rotation RemoveRotationCorrection(Rotation rotation, FoldDisplayMode foldDisplayMode);
     FoldDisplayMode GetFoldDisplayModeAfterRotation() const;
