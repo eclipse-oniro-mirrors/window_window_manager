@@ -12457,14 +12457,15 @@ void SceneSessionManager::SetSessionVisibilityInfo(const sptr<SceneSession>& ses
     windowVisibilityInfo->SetAbilityName(session->GetSessionInfo().abilityName_);
     windowVisibilityInfo->SetIsSystem(session->GetSessionInfo().isSystem_);
     windowVisibilityInfo->SetZOrder(session->GetZOrder());
+    windowVisibilityInfo->SetCollaboratorType(session->GetCollaboratorType());
 
     int32_t callingWindowId = session->GetSessionInfo().callerPersistentId_;
     sptr<SceneSession> callerSession = GetSceneSession(callingWindowId);
     if (callerSession) {
         windowVisibilityInfo->SetCallingPid(callerSession->GetCallingPid());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "callingWindowId %{public}d, callingPid %{public}d",
-        callingWindowId, windowVisibilityInfo->GetCallingPid());
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "yuhao callingWindowId %{public}d, callingPid %{public}d, IsAnco: %{public}d",
+        callingWindowId, windowVisibilityInfo->GetCallingPid(), session->GetCollaboratorType());
 
     windowVisibilityInfos.emplace_back(windowVisibilityInfo);
 
