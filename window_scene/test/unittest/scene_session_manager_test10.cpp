@@ -19,11 +19,13 @@
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "session_manager/include/session_manager_agent_controller.h"
 #include "session_info.h"
 #include "session/host/include/root_scene_session.h"
 #include "session/host/include/scene_session.h"
 #include "session_manager.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "window_manager_agent.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -37,6 +39,20 @@ namespace {
     {
         g_errLog = msg;
     }
+
+    class WindowPropertyChangeAgentTest : public WindowManagerAgent {
+    public:
+        WindowPropertyChangeAgentTest() : WindowManagerAgent(INVALID_USER_ID) {}
+
+        void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) override
+        {
+            propertyDirtyFlags_ = propertyDirtyFlags;
+            windowInfoListSize_ = windowInfoList.size();
+        }
+
+        uint32_t propertyDirtyFlags_ = 0;
+        size_t windowInfoListSize_ = 0;
+    };
 }
 class SceneSessionManagerTest10 : public testing::Test {
 public:
@@ -918,6 +934,45 @@ HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFu
     ASSERT_NE(nullptr, sceneSession);
     ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession);
     EXPECT_NE(nullptr, sceneSession->sessionPropertyChangeNotifyManagerFunc_);
+}
+
+/**
+ * @tc.name: RegisterSessionPropertyChangeNotifyManagerFunc02
+ * @tc.desc: test RegisterSessionPropertyChangeNotifyManagerFunc notify path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFunc02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<WindowPropertyChangeAgentTest> windowManagerAgent = sptr<WindowPropertyChangeAgentTest>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t pid = 65535;
+    ASSERT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+
+    SessionInfo info;
+    info.persistentId_ = 100;
+    info.bundleName_ = "RegisterSessionPropertyChangeNotifyManagerFunc02";
+    info.abilityName_ = "RegisterSessionPropertyChangeNotifyManagerFunc02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+
+    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession);
+    windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(0xFFFFFFFFu, windowManagerAgent->propertyDirtyFlags_);
+
+    ssm_->sceneSessionMap_.emplace(sceneSession->GetPersistentId(), sceneSession);
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+
+    EXPECT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+    ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());
 }
 
 /**
