@@ -544,7 +544,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, CalculateAvoidAreaByType, TestSize.Le
     sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
     ASSERT_NE(sceneSession->specificCallback_->onGetLSState_, nullptr);
     WSRect winRect;
-    winRect avoidAreaRect;
+    WSRect avoidAreaRect;
     AvoidArea area;
     sceneSession->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, avoidAreaRect, area);
     sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
