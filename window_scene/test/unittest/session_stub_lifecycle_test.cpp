@@ -194,8 +194,11 @@ HWTEST_F(SessionStubLifecycleTest, HandlePendingSessionActivation03, TestSize.Le
     EXPECT_EQ(data.WriteBool(false), true);
     EXPECT_EQ(data.WriteInt32(9), true);
     EXPECT_EQ(data.WriteBool(false), true);
+    EXPECT_EQ(data.WriteParcelable(nullptr), true);
     EXPECT_EQ(data.WriteBool(false), true);
     EXPECT_EQ(data.WriteInt32(0), true);
+    EXPECT_EQ(data.WriteBool(false), true);
+    EXPECT_EQ(data.WriteString("hostBundleName"), true);
     auto res = session_->HandlePendingSessionActivation(data, reply);
     EXPECT_EQ(0, res);
 }
