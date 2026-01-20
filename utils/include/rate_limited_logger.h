@@ -29,7 +29,7 @@
 namespace OHOS {
 namespace Rosen {
 namespace {
-inline const std::unordered_set<WmsLogTag> tagWhiteList = {WmsLogTag::WMS_LAYOUT};
+const std::unordered_set<WmsLogTag> tagWhiteList = {WmsLogTag::WMS_LAYOUT};
 constexpr uint32_t TEN_SECONDS = 10 * 1000;
 constexpr uint32_t ONE_MINUTE  = 60 * 1000;
 constexpr uint32_t ONE_HOUR    = 60 * 60 * 1000;
@@ -39,12 +39,12 @@ constexpr uint32_t RECORD_10_TIMES  = 10;
 constexpr uint32_t RECORD_100_TIMES = 100;
 constexpr uint32_t RECORD_200_TIMES = 200;
 
+constexpr uint32_t ADDR_MASK = 0xFFFF;
+constexpr uint32_t ADDR_MASK_WID = 0xFF;
+constexpr uint32_t ADDR_SHIFT_24 = 24;
+constexpr uint32_t ADDR_SHIFT_32 = 32;
 constexpr uint32_t BITS_PER_BYTE = 8;
-constexpr uint32_t ADDR_SHIFT_64 = 32;
-constexpr uint32_t ADDR_MASK_32 = 0xFFFF;
-constexpr uint32_t ADDR_MASK_32_WID = 0xFF;
 constexpr uint32_t LINE_SHIFT_16 = 16;
-constexpr uint32_t ADDR_SHIFT_32_WID = 24;
 }
 
 class RateLimitedLogger {
@@ -110,9 +110,9 @@ static inline uintptr_t GET_PACKED_ADDR_LINE()
     void* addr = __builtin_return_address(0);
     uintptr_t addr_int = reinterpret_cast<uintptr_t>(addr);
     
-    return (sizeof(void*) == BITS_PER_BYTE)
-        ? (addr_int << ADDR_SHIFT_64) | (__LINE__ & ADDR_MASK_32)
-        : ((addr_int & ADDR_MASK_32) << LINE_SHIFT_16) | (__LINE__ & ADDR_MASK_32);
+    return (sizeof(void*) == BITS_PER_BYTE) ?
+        (addr_int << ADDR_SHIFT_32) | (__LINE__ & ADDR_MASK) :
+        ((addr_int & ADDR_MASK) << LINE_SHIFT_16) | (__LINE__ & ADDR_MASK);
 }
 
 /**
@@ -124,15 +124,16 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
     void* addr = __builtin_return_address(0);
     uintptr_t addr_int = reinterpret_cast<uintptr_t>(addr);
     
-    return (sizeof(void*) == BITS_PER_BYTE)
-        ? (addr_int << ADDR_SHIFT_64) | ((__LINE__ & ADDR_MASK_32) << LINE_SHIFT_16) | (wid & ADDR_MASK_32)
-        : ((addr_int & ADDR_MASK_32_WID) << ADDR_SHIFT_32_WID) |
-        ((__LINE__ & ADDR_MASK_32_WID) << LINE_SHIFT_16) | (wid & ADDR_MASK_32);
+    return (sizeof(void*) == BITS_PER_BYTE) ?
+        (addr_int << ADDR_SHIFT_32) | ((__LINE__ & ADDR_MASK) << LINE_SHIFT_16) | (wid & ADDR_MASK) :
+        ((addr_int & ADDR_MASK_WID) << ADDR_SHIFT_24) |
+        ((__LINE__ & ADDR_MASK_WID) << LINE_SHIFT_16) |
+        (wid & ADDR_MASK);
 }
 
 /**
-* usually use for client-side which not need to distinguish
-*/
+ * usually use for client-side which not need to distinguish
+ */
 #define TLOGI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                          \
     do {                                                                                          \
         uintptr_t functionAddress = GET_PACKED_ADDR_LINE();                                       \
@@ -144,8 +145,8 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
     } while (0)
 
 /**
-* usually use for server-side to distinguish between different screens
-*/
+ * usually use for server-side to distinguish between different screens
+ */
 #define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
     do {                                                                                          \
         uintptr_t functionAddress = GET_PACKED_ADDR_LINE_WID(wid);                                \
