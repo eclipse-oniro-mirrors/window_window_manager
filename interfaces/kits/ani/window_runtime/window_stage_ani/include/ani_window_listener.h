@@ -140,7 +140,7 @@ private:
     WindowState state_ {WindowState::STATE_INITIAL};
     int64_t noInteractionTimeout_ = 0;
     void LifeCycleCallback(LifeCycleEventType eventType);
-    void WindowStageLifecycleCallback(WindowStageLifeCycleEventType eventType);
+    void WindowStageLifecycleCallback(WindowStageLifecycleEventType eventType);
     ani_env* env_ = nullptr;
     ani_vm* vm_ = nullptr;
     ani_ref aniCallback_;
