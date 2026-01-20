@@ -826,10 +826,10 @@ export enum WindowEventType {
 }
 
 export enum WindowStageLifeCycleEventType {
-    FOREGROUND = 1,
+    SHOWN = 1,
     RESUMED = 2,
     PAUSED = 3,
-    BACKGROUND = 4,
+    HIDDEN = 4,
 }
 
 export enum WindowMode {
@@ -2804,6 +2804,14 @@ export class WindowStageInternal implements WindowStage {
     public offWindowStageEvent(callback?: Callback<WindowStageEventType>): void {
       this.offSync(this.nativeObj, 'windowStageEvent', callback);
     }
+
+    public onWindowStageLifecycleEvent(callback: Callback<WindowStageLifeCycleEventType>): void {
+      this.onSync(this.nativeObj, 'windowStageLifecycleEvent', callback);
+    }
+
+    public offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifeCycleEventType>): void {
+      this.offSync(this.nativeObj, 'windowStageLifecycleEvent', callback);
+    }
 }
 
 export interface WindowStage {
@@ -2843,6 +2851,8 @@ export interface WindowStage {
     off<T>(eventType: string, callback?: Callback<T>): void;
     onWindowStageEvent(callback: Callback<WindowStageEventType>): void;
     offWindowStageEvent(callback?: Callback<WindowStageEventType>): void;
+    onWindowStageLifecycleEvent(callback: Callback<WindowStageLifeCycleEventType>): void;
+    offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifeCycleEventType>): void;
 }
 
 export class WindowInternal implements Window {

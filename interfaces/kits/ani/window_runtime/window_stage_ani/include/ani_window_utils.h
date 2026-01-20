@@ -48,6 +48,13 @@ namespace OHOS {
 namespace Rosen {
 constexpr Rect g_emptyRect = {0, 0, 0, 0};
 
+enum class WindowStageLifecycleEventType : uint32_t {
+    FOREGROUND = 1,
+    RESUMED,
+    PAUSED,
+    BACKGROUND,
+};
+
 class AniWindowUtils {
 public:
     static ani_status InitAniCreator(ani_env* env,
