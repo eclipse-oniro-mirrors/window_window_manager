@@ -707,7 +707,6 @@ WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantP
             TLOGE(WmsLogTag::WMS_SYSTEM, "cannot get recent func");
             return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
         }
-        auto parentSessionState = parentSession->GetSessionState();
         if ((parentSession->IsSessionForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
             session->getIsRecentStateFunc_()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "parent window is at foreground but not interactive");
