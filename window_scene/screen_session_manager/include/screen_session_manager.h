@@ -821,6 +821,7 @@ private:
     void SwitchUserResetDisplayNodeScreenId();
     void AodLibInit();
     DMRect CalcRectsWithRotation(DisplayId displayId, const DMRect &rect);
+    Rotation CalcPhysicalRotation(Rotation orgRotation, FoldDisplayMode displayMode);
     std::shared_mutex rotationCorrectionExemptionMutex_;
     std::vector<std::string> rotationCorrectionExemptionList_;
     bool needReinstallExemptionList_ = true;
