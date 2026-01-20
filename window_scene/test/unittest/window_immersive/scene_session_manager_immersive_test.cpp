@@ -480,6 +480,35 @@ HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidAreaForLSStateChange, Test
 }
 
 /**
+ * @tc.name: UpdateAvoidAreaForLSStateChange
+ * @tc.desc: SceneSesionManager test UpdateAvoidAreaForLSStateChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidAreaForLSStateChange, TestSize.Level0)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UpdateAvoidAreaForLSStateChange(1, 1);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->UpdateAvoidAreaForLSStateChange(1, 2);
+    SessionInfo sessionInfo1;
+    SessionInfo sessionInfo2;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    sceneSession->isScbCoreEnabled_ = true;
+    sceneSession->isVisible_ = true;
+    sceneSession->state_ = SessionState::STATE_FOREGROUND;
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo2, nullptr);
+    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession2->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession2->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+    ssm_->sceneSessionMap_.insert({ 2, nullptr });
+    ssm_->sceneSessionMap_.insert({ 2, sceneSession2 });
+    ssm_->UpdateAvoidAreaForLSStateChange(1, 2);
+    sleep(1);
+}
+
+/**
  * @tc.name: UpdateAvoidArea
  * @tc.desc: UpdateAvoidArea
  * @tc.type: FUNC
@@ -529,8 +558,8 @@ HWTEST_F(SceneSessionManagerImmersiveTest, UpdateNormalSessionAvoidArea02, TestS
 }
 
 /**
- * @tc.name: UpdateNormalSessionAvoidArea02
- * @tc.desc: UpdateNormalSessionAvoidArea
+ * @tc.name: CalculateAvoidAreaByType
+ * @tc.desc: CalculateAvoidAreaByType
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerImmersiveTest, CalculateAvoidAreaByType, TestSize.Level1)
