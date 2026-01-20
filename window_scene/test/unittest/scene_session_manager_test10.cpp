@@ -926,13 +926,13 @@ HWTEST_F(SceneSessionManagerTest10, TestIsInDefaultScreen_02, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFunc01, TestSize.Level1)
 {
-    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(nullptr));
     SessionInfo info;
     info.abilityName_ = "RegisterRequestVsyncFunc01";
     info.bundleName_ = "RegisterRequestVsyncFunc01";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(nullptr, sceneSession);
-    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession);
+    EXPECT_EQ(WSError::WS_OK, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession));
     EXPECT_NE(nullptr, sceneSession->sessionPropertyChangeNotifyManagerFunc_);
 }
 
@@ -958,7 +958,7 @@ HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFu
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(nullptr, sceneSession);
 
-    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession);
+    EXPECT_EQ(WSError::WS_OK, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession));
     windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
     EXPECT_EQ(0xFFFFFFFFu, windowManagerAgent->propertyDirtyFlags_);
@@ -993,7 +993,8 @@ HWTEST_F(SceneSessionManagerTest10, NotifySessionPropertyChangeFromSession01, Te
     const int32_t persistentId = 200;
     windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
     windowManagerAgent->windowInfoListSize_ = 0;
-    ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR,
+        ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE));
     EXPECT_EQ(0xFFFFFFFFu, windowManagerAgent->propertyDirtyFlags_);
     EXPECT_EQ(static_cast<size_t>(0), windowManagerAgent->windowInfoListSize_);
 
@@ -1007,7 +1008,7 @@ HWTEST_F(SceneSessionManagerTest10, NotifySessionPropertyChangeFromSession01, Te
 
     windowManagerAgent->propertyDirtyFlags_ = 0;
     windowManagerAgent->windowInfoListSize_ = 0;
-    ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(WSError::WS_OK, ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE));
     EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
     EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
 
