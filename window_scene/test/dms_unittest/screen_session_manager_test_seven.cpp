@@ -1145,6 +1145,39 @@ HWTEST_F(ScreenSessionManagerTest, GetIsCurrentInUseById01, Function | SmallTest
     auto res = ssm->GetIsCurrentInUseById(screenId);
     ASSERT_EQ(false, res);
 }
+
+/**
+ * @tc.name: SetPowerStateForAodPermission
+ * @tc.desc: SetPowerStateForAodPermission test no permission
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetPowerStateForAodPermission, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    ssm_->SetPowerStateForAod(ScreenPowerState::POWER_DOZE);
+    EXPECT_TRUE(g_logMsg.find("permission denied!") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetPowerStateForAodInvalidState
+ * @tc.desc: SetPowerStateForAodInvalidState test invalid state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetPowerStateForAodInvalidState, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    MockAccesstokenKit::MockIsSACalling(true);
+    ssm_->SetPowerStateForAod(ScreenPowerState::POWER_DOZE);
+    ssm_->SetPowerStateForAod(ScreenPowerState::INVALID_STATE);
+    EXPECT_TRUE(g_logMsg.find("[UL_POWER]invalid state:") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

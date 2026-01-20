@@ -93,6 +93,7 @@ public:
     void NotifyFoldToExpandCompletion(bool foldToExpand);
     void NotifyScreenConnectCompletion(ScreenId screenId);
     void NotifyAodOpCompletion(AodOP operation, int32_t result);
+    void SetPowerStateForAod(ScreenPowerState state);
     void RecordEventFromScb(std::string description, bool needRecordEvent);
     FoldStatus GetFoldStatus();
     SuperFoldStatus GetSuperFoldStatus();

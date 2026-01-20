@@ -184,6 +184,24 @@ napi_value JsScreenUtils::CreateJsScreenPropertyChangeType(napi_env env)
     return objValue;
 }
 
+napi_value JsScreenUtils::CreateJsScreenPowerState(napi_env env)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to create object!");
+        return NapiGetUndefined(env);
+    }
+
+    napi_set_named_property(env, objValue, "POWER_OFF", CreateJsValue(env,
+        static_cast<int32_t>(ScbScreenPowerState::POWER_OFF)));
+    napi_set_named_property(env, objValue, "POWER_DOZE", CreateJsValue(env,
+        static_cast<int32_t>(ScbScreenPowerState::POWER_DOZE)));
+    napi_set_named_property(env, objValue, "POWER_DOZE_SUSPEND", CreateJsValue(env,
+        static_cast<int32_t>(ScbScreenPowerState::POWER_DOZE_SUSPEND)));
+    return objValue;
+}
+
 napi_value JsScreenUtils::CreateJsSuperFoldStatus(napi_env env)
 {
     napi_value objValue = nullptr;

@@ -574,6 +574,7 @@ public:
     bool IsFreezed(const int32_t& agentPid, const DisplayManagerAgentType& agentType);
     bool isScreenShot_ = false;
     void NotifyAodOpCompletion(AodOP operation, int32_t result) override;
+    void SetPowerStateForAod(ScreenPowerState state) override;
     void DoAodExitAndSetPower(ScreenId screenId, ScreenPowerStatus status);
     void DoAodExitAndSetPowerAllOff();
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
