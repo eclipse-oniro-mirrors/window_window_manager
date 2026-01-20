@@ -938,7 +938,7 @@ protected:
     std::mutex lifeCycleTaskQueueMutex_;
     std::list<sptr<SessionLifeCycleTask>> lifeCycleTaskQueue_;
     bool isActive_ = false;
-    bool isSystemActive_ = false;
+    std::atomic<bool> isSystemActive_ = false;
     WSRectF bounds_;
     Rotation rotation_ { Rotation::ROTATION_0 };
     float offsetX_ = 0.0f;
