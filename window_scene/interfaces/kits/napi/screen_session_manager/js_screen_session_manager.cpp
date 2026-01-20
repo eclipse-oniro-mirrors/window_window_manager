@@ -1177,7 +1177,7 @@ napi_value JsScreenSessionManager::OnSetPowerStateForAod(napi_env env, const nap
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    ScreenSessionManagerClient::GetInstance().SetPowerStateForAod(op, result);
+    ScreenSessionManagerClient::GetInstance().SetPowerStateForAod(screenState);
     return NapiGetUndefined(env);
 }
 

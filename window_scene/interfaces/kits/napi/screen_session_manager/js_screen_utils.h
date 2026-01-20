@@ -36,7 +36,7 @@ public:
     static napi_value CreateJsScreenPropertyChangeReason(napi_env env);
     static napi_value CreateJsFoldStatus(napi_env env);
     static napi_value CreateJsScreenPropertyChangeType(napi_env env);
-    static napi_value CreateJsScreenPowerState(napi_env env)
+    static napi_value CreateJsScreenPowerState(napi_env env);
     static napi_value CreateJsSuperFoldStatus(napi_env env);
     static napi_value CreateJsExtendScreenConnectStatus(napi_env env);
     static napi_value CreateJsScreenModeChangeEvent(napi_env env);
