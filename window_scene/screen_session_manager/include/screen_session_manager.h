@@ -481,12 +481,12 @@ public:
     void OnFoldStatusChange(bool isSwitching);
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag(void);
-    void WaitForDualDisplayReady();
-    void SetWaitingForDualDisplayReady(bool isWaitingForDualDisplayReady) {
-        isWaitingForDualDisplayReady_ = isWaitingForDualDisplayReady;
+    void WaitForCoordinationReady();
+    void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady) {
+        isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
     };
-    bool GetWaitingForDualDisplayReady() { return isWaitingForDualDisplayReady_; }
-    void NotifyDualDisplayReadyCV();
+    bool GetWaitingForCoordinationReady() { return isWaitingForCoordinationReady_; }
+    void NotifyCoordinationReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
     void OnScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent) override;
@@ -1068,8 +1068,8 @@ private:
     void HandleScreenRotationAndBoundsWhenSetClient(sptr<ScreenSession>& screenSession);
     void HandleFoldDeviceScreenConnect(ScreenId screenId, const sptr<ScreenSession>& screenSession,
         bool phyMirrorEnable, ScreenEvent screenEvent);
-    void RegisterSettingDualDisplayReadyObserver();
-    void UpdateDualDisplayReadyFromSettingData();
+    void RegisterSettingCoordinationReadyObserver();
+    void UpdateCoordinationReadyFromSettingData();
 
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;
@@ -1078,10 +1078,10 @@ private:
     std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
     std::shared_mutex rotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
-    std::atomic<bool> isDualDisplayReady_ = false;
-    std::mutex dualDisplayReadyMutex_;
-    std::condition_variable dualDisplayReadyCV_;
-    std::atomic<bool> isWaitingForDualDisplayReady_ = false;
+    std::atomic<bool> isCoordinationReady_ = false;
+    std::mutex CoordinationReadyMutex_;
+    std::condition_variable CoordinationReadyCV_;
+    std::atomic<bool> isWaitingForCoordinationReady_ = false;
 
 
     // Fold Screen duringcall

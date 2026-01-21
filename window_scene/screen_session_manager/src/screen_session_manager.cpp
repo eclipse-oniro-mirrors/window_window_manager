@@ -5500,7 +5500,7 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         }
         that.RegisterSettingRotationObserver();
         that.RegisterSettingResolutionEffectObserver();
-        that.RegisterSettingDualDisplayReadyObserver();
+        that.RegisterSettingCoordinationReadyObserver();
         if (that.defaultDpi) {
             uint32_t initDefaultDpi;
             auto ret = ScreenSettingHelper::GetSettingValue(initDefaultDpi, SET_SETTING_DPI_KEY);
@@ -5559,45 +5559,45 @@ void ScreenSessionManager::SetRotateLockedFromSettingData()
     }
 }
 
-void ScreenSessionManager::RegisterSettingDualDisplayReadyObserver()
+void ScreenSessionManager::RegisterSettingCoordinationReadyObserver()
 {
-    TLOGI(WmsLogTag::DMS, "Register setting dualDisplayReady observer");
-    SettingObserver::UpdateFunc updateFunc = [this](const std::string& key) { UpdateDualDisplayReadyFromSettingData(); };
-    ScreenSettingHelper::RegisterSettingDualDisplayReadyObserver(DmUtils::wrap_callback(updateFunc));
+    TLOGI(WmsLogTag::DMS, "Register setting coordination ready observer");
+    SettingObserver::UpdateFunc updateFunc = [this](const std::string& key) { UpdateCoordinationReadyFromSettingData(); };
+    ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(DmUtils::wrap_callback(updateFunc));
 }
 
-void ScreenSessionManager::UpdateDualDisplayReadyFromSettingData()
+void ScreenSessionManager::UpdateCoordinationReadyFromSettingData()
 {
-    bool isDualDisplayReady;
-    ScreenSettingHelper::GetSettingIsDualDisplayReady(isDualDisplayReady);
-    TLOGI(WmsLogTag::DMS, "isDualDisplayReady: %{public}d", isDualDisplayReady);
-    if (isDualDisplayReady == isDualDisplayReady_) {
+    bool isCoordinationReady;
+    ScreenSettingHelper::GetSettingIsCoordinationReady(isCoordinationReady);
+    TLOGI(WmsLogTag::DMS, "isCoordinationReady: %{public}d", isCoordinationReady);
+    if (isCoordinationReady == isCoordinationReady_) {
         return;
     }
-    isDualDisplayReady_ = isDualDisplayReady;
-    if (isDualDisplayReady_) {
-        NotifyDualDisplayReadyCV();
+    isCoordinationReady_ = isCoordinationReady;
+    if (isCoordinationReady_) {
+        NotifyCoordinationReadyCV();
     }
 }
 
-void ScreenSessionManager::WaitForDualDisplayReady()
+void ScreenSessionManager::WaitForCoordinationReady()
 {
-    std::unique_lock<std::mutex> lock(dualDisplayReadyMutex_);
-    SetWaitingForDualDisplayReady(true);
-    bool isDualDisplayReady = isDualDisplayReady_;
-    TLOGI(WmsLogTag::DMS, "begin wait dual display ready. need wait: %{public}d", isDualDisplayReady);
-    if (!isDualDisplayReady) {
-        if (DmUtils::safe_wait_for(dualDisplayReadyCV_, lock,
+    std::unique_lock<std::mutex> lock(CoordinationReadyMutex_);
+    SetWaitingForCoordinationReady(true);
+    bool isCoordinationReady = isCoordinationReady_;
+    TLOGI(WmsLogTag::DMS, "begin wait coordination ready. need wait: %{public}d", isCoordinationReady);
+    if (!isCoordinationReady) {
+        if (DmUtils::safe_wait_for(coordinationReadyCV_, lock,
             std::chrono::milliseconds(CV_WAIT_DUAL_DISPLAY_READY_MAX_MS)) == std::cv_status::timeout) {
             TLOGE(WmsLogTag::DMS, "wait dual display ready timeout");
         }
     }
-    SetWaitingForDualDisplayReady(false);
+    SetWaitingForCoordinationReady(false);
 }
 
-void ScreenSessionManager::NotifyDualDisplayReadyCV()
+void ScreenSessionManager::NotifyCoordinationReadyCV()
 {
-    dualDisplayReadyCV_.notify_all();
+    coordinationReadyCV_.notify_all();
 }
 
 void ScreenSessionManager::RegisterSettingResolutionEffectObserver()

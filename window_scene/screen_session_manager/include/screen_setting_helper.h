@@ -87,9 +87,9 @@ public:
         const std::string& key = SETTING_COMPATIBLE_APP_STRATEGY_KEY);
     static void GetCorrectionExemptionListFromJson(const std::string& exemptionListJsonStr,
         std::vector<std::string>& exemptionApps);
-    static void RegisterSettingDualDisplayReadyObserver(SettingObserver::UpdateFunc func);
-    static void UnregisterSettingDualDisplayReadyObserver();
-    static bool GetSettingIsDualDisplayReady(bool& isDualDisplayReady,
+    static void RegisterSettingCoordinationReadyObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingCoordinationReadyObserver();
+    static bool GetSettingIsCoordinationReady(bool& isCoordinationReady,
         const std::string& key = SETTING_DUAL_DISPLAY_READY_KEY);
     template<typename T>
     static bool GetJsonValue(const nlohmann::json& payload, const std::string& key, T& result)
@@ -138,7 +138,7 @@ private:
     static sptr<SettingObserver> resolutionEffectObserver_;
     static sptr<SettingObserver> correctionExemptionListObserver_;
     static sptr<SettingObserver> borderingAreaPercentObserver_;
-    static sptr<SettingObserver> dualDisplayReadyObserver_;
+    static sptr<SettingObserver> coordinationReadyObserver_;
 };
 } // namespace Rosen
 } // namespace OHOS

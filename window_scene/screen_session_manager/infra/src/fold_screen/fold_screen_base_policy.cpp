@@ -210,14 +210,16 @@ void FoldScreenBasePolicy::ChangeOffTentMode()
     ScreenSessionManager::GetInstance().NotifyRSCoordination(true);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
 
-    // wait for dual display ready
-    ScreenSessionManager::GetInstance().SetWaitingForDualDisplayReady(true);
-    ScreenSessionManager::GetInstance().WaitForDualDisplayReady();
-    if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
-        TLOGW(WmsLogTag::DMS, "ExitCoordination skipped, current coordination flag is false");
+    // wait for coordination ready
+    if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
+        TLOGI(WmsLogTag::DMS, "EnterCoordination skipped, is waiting for coordination ready");
         return;
     }
-    ScreenSessionManager::GetInstance().SetWaitingForDualDisplayReady(false);
+    ScreenSessionManager::GetInstance().WaitForCoordinationReady();
+    if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
+        TLOGW(WmsLogTag::DMS, "EnterCoordination skipped, current coordination flag is false");
+        return;
+    }
  
     ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::CONNECTED);
 
@@ -245,9 +247,9 @@ void FoldScreenBasePolicy::CloseCoordinationScreen()
     TLOGI(WmsLogTag::DMS, "Close Coordination Screen current mode=%{public}d", currentDisplayMode_);
     ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
 
-    if (ScreenSessionManager::GetInstance().GetWaitingForDualDisplayReady()) {
-        ScreenSessionManager::GetInstance().NotifyDualDisplayReadyCV();
+    if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
         ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+        ScreenSessionManager::GetInstance().NotifyCoordinationReadyCV();
         return;
     }
 
@@ -275,18 +277,18 @@ void FoldScreenBasePolicy::ExitCoordination()
         return;
     }
     ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
-    if (ScreenSessionManager::GetInstance().GetWaitingForDualDisplayReady()) {
-        ScreenSessionManager::GetInstance().NotifyDualDisplayReadyCV();
+    if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
         ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
-    } else {
-        ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
-        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
-            ScreenPowerStatus::POWER_STATUS_OFF);
-        AddOrRemoveDisplayNodeToTree(SCREEN_ID_MAIN, REMOVE_DISPLAY_NODE);
-        ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::DISCONNECTED);
-        ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
-        NotifyRefreshRateEvent(false);
+        ScreenSessionManager::GetInstance().NotifyCoordinationReadyCV();
+        return;
     }
+    ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
+    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
+        ScreenPowerStatus::POWER_STATUS_OFF);
+    AddOrRemoveDisplayNodeToTree(SCREEN_ID_MAIN, REMOVE_DISPLAY_NODE);
+    ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::DISCONNECTED);
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+    NotifyRefreshRateEvent(false);
     FoldDisplayMode displayMode = GetModeMatchStatus();
     {
             std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
