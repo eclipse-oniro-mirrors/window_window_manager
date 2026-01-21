@@ -39,6 +39,9 @@ namespace OHOS {
 namespace Rosen {
 using namespace arkts::ani_signature;
 
+namespace {
+    static std::map<DisplayId, sptr<DisplayInfo>> localObjs;
+}
 // construct, set registerManager.
 DisplayAni::DisplayAni(const sptr<Display>& display) : display_(display)
 {
@@ -48,11 +51,16 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
 {
     auto display = SingletonContainer::Get<DisplayManager>().GetDefaultDisplay();
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    ani_long displayInfoRef = 0;
+    if (ANI_OK != env->Object_GetFieldByName_Long(obj, "displayInfoRef", &displayInfoRef)) {
+        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo failed");
+    }
+    DisplayInfo* displayInfo = reinterpret_cast<DisplayInfo*>(displayInfoRef);
     if (display == nullptr) {
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN, "");
         return;
     }
-    sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo();
+    sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo(displayInfo);
     if (cutoutInfo == nullptr) {
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN, "");
     }
@@ -112,6 +120,33 @@ void DisplayAni::GetRoundedCorner(ani_env* env, ani_object obj, ani_object round
     }
 }
 
+void DisplayAni::GetDisplayInfoRef(ani_env* env, ani_object displayObj)
+{
+    ani_long displayRef = 0;
+    if (env->Object_GetFieldByName_Long(displayObj, "displayRef", &displayRef)) {
+        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo begin");
+    }
+    DisplayAni* displayAni = reinterpret_cast<DisplayAni*>(displayRef);
+    if (displayAni != nullptr) {
+        ani_status ret = ANI_OK;
+        sptr<DisplayInfo> displayInfo = displayAni->GetDisplay()->GetDisplayInfo();
+        ani_class displayCls = nullptr;
+        if ((ret = env->FindClass("@ohos.display.display.DisplayImpl", &displayCls)) != ANI_OK) {
+            TLOGE(WmsLogTag::DMS, "[ANI] null env %{public}u", ret);
+            return;
+        }
+        ani_method setDisplayInfoRefFunc = nullptr;
+        if ((ret = env->Class_FindMethod(displayCls, "setDisplayInfoRef", "l:", &setDisplayInfoRefFunc)) != ANI_OK) {
+            TLOGE(WmsLogTag::DMS, "[ANI] call setDisplayInfoRef fail %{public}u", ret);
+            return;
+        }
+        env->Object_CallMethod_Void(displayObj, setDisplayInfoRefFunc,
+            reinterpret_cast<ani_long>(displayInfo.GetRefPtr()));
+        localObjs[displayInfo->GetDisplayId()] = displayInfo;
+    } else {
+        TLOGE(WmsLogTag::DMS, "[ANI] displayAni not found");
+    }
+}
 ani_string DisplayAni::GetDisplayCapability(ani_env* env)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] Start");
@@ -419,6 +454,7 @@ void DisplayAni::CreateDisplayAni(sptr<Display> display, ani_object displayObj, 
         "displayRef", reinterpret_cast<ani_long>(displayAni.get()))) {
         TLOGE(WmsLogTag::DMS, "[ANI] set displayAni ref fail");
     }
+    display->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::ANI);
 }
 
 ani_boolean DisplayAni::TransferStatic(ani_env* env, ani_object obj, ani_object input, ani_object displayAniObj)
@@ -484,6 +520,20 @@ ani_object DisplayAni::TransferDynamic(ani_env* env, ani_object obj, ani_long na
     return result;
 }
 
+void DisplayAni::CleanDisplayInfoMap(ani_env* env, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] CleanDisplayInfoMap Start");
+    DisplayInfo* displayInfo = reinterpret_cast<DisplayInfo*>(nativeObj);
+    if (displayInfo != nullptr) {
+        auto obj = localObjs.find(displayInfo->GetDisplayId());
+        if (obj != localObjs.end()) {
+            localObjs.erase(obj);
+        }
+    } else {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] displayInfo is nullptr");
+    }
+}
+
 ani_status DisplayAni::NspBindNativeFunctions(ani_env* env, ani_namespace nsp)
 {
     std::array funcs = {
@@ -538,6 +588,9 @@ ani_status DisplayAni::NspBindNativeFunctions(ani_env* env, ani_namespace nsp)
             reinterpret_cast<void *>(DisplayManagerAni::FinalizerDisplay)},
         ani_native_function {"onChangeWithAttributeNative", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::RegisterDisplayAttributeListener)},
+        ani_native_function {"displayInfoFinalizerCallback", nullptr,
+            reinterpret_cast<void *>(DisplayAni::CleanDisplayInfoMap)},
+        
     };
     auto ret = env->Namespace_BindNativeFunctions(nsp, funcs.data(), funcs.size());
     if (ret != ANI_OK) {
@@ -566,6 +619,8 @@ ani_status DisplayAni::ClassBindNativeFunctions(ani_env* env, ani_class displayC
             reinterpret_cast<void *>(DisplayAni::UnRegisterCallback)},
         ani_native_function {"getRoundedCornerInternal", nullptr,
             reinterpret_cast<void *>(DisplayAni::GetRoundedCorner)},
+        ani_native_function {"getDisplayInfoRefInternal", nullptr,
+            reinterpret_cast<void *>(DisplayAni::GetDisplayInfoRef)},
     };
     auto ret = env->Class_BindNativeMethods(displayCls, methods.data(), methods.size());
     if (ret != ANI_OK) {
