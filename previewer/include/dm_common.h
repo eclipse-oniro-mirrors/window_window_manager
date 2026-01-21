@@ -40,6 +40,8 @@ const static std::string DEFAULT_SCREEN_NAME = "buildIn";
 constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr uint32_t BASELINE_DENSITY = 160;
+constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
+constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
 
 /**
@@ -359,20 +361,20 @@ struct RotationCorrectionWhiteConfig {
     std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
     std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
 
-    int32_t GetUseLogicCamera(FoldDisplayMode key, int32_t defaultValue = 0) const {
+    int32_t GetUseLogicCamera(FoldDisplayMode key) const {
         auto it = useLogicCamera.find(key);
         if (it != useLogicCamera.end()) {
             return it->second;
         }
-        return defaultValue;
+        return DEFAULT_USE_LOGIC_CAMERA;
     }
 
-    int32_t GetCustomLogicDirection(FoldDisplayMode key, int32_t defaultValue = -1) const {
+    int32_t GetCustomLogicDirection(FoldDisplayMode key) const {
         auto it = customLogicDirection.find(key);
         if (it != customLogicDirection.end()) {
             return it->second;
         }
-        return defaultValue;
+        return DEFAULT_CUSTOM_LOGIC_DIRECTION;
     }
 };
 

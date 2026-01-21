@@ -819,13 +819,13 @@ private:
     bool ActiveUser(int32_t newUserId, int32_t& oldUserId, int32_t newScbPid);
     DisplayId GetUserDisplayId(int32_t targetUserId) const;
 
-    void GetRotationCorrectionWhiteListFromDatabase(bool isForce = false);
+    void GetRotationCorrectionWhiteListFromDatabase();
     bool GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
                                                       RotationCorrectionWhiteConfig& config);
     void RegisterRotationCorrectionWhiteListObserver();
-    std::shared_mutex rotationCorrectionWhiteMutex_;
+    mutable std::shared_mutex rotationCorrectionWhiteMutex_;
     std::vector<RotationCorrectionWhiteConfig> rotationCorrectionWhiteList_;
-    std::atomic<bool> needReLoadWhiteList_ = true;
+    bool IsRotationCorrectionWhiteListEmpty() const;
 
     void HandleSuperFoldDisplayInfoWhenKeyboardOn(const sptr<ScreenSession>& screenSession,
         sptr<DisplayInfo>& displayInfo);

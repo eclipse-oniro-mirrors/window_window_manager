@@ -70,6 +70,8 @@ const std::string ENABLE_RESOLUTION_EFFECT = "1";
 constexpr int32_t EXPECT_SCREEN_RESOLUTION_EFFECT_SIZE = 2;
 constexpr int32_t INDEX_SCREEN_RESOLUTION_EFFECT_SN = 0;
 constexpr int32_t INDEX_SCREEN_RESOLUTION_EFFECT_EN = 1;
+const std::string USE_LOGIC_CAMERA_STRING = "useLogicCamera";
+const std::string CUSTOM_LOGIC_DIRECTION_STRING = "customLogicDirection";
 
 void ScreenSettingHelper::RegisterSettingDpiObserver(SettingObserver::UpdateFunc func)
 {
@@ -1120,21 +1122,20 @@ void ScreenSettingHelper::GetCorrectionWhiteListFromJson(const std::string& whit
     }
 }
 
-bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& j, RotationCorrectionWhiteConfig& config)
+bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json, RotationCorrectionWhiteConfig& config)
 {
-    if (j.is_null() || !j.is_object()) {
+    if (json.is_null() || !json.is_object()) {
         TLOGW(WmsLogTag::DMS, "invalid json object");
         return false;
     }
 
     // get name field
-    if (!j.contains("name") || !j["name"].is_string()) {
+    if (!json.contains("name") || !json["name"].is_string()) {
         TLOGW(WmsLogTag::DMS, "failed to parse app name");
         return false;
     }
 
-    std::string nameStr;
-    nameStr = j["name"].get<std::string>();
+    std::string nameStr = json["name"].get<std::string>();
 
     if (nameStr.empty()) {
         TLOGW(WmsLogTag::DMS, "app name is empty");
@@ -1142,16 +1143,18 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& j, Rotati
     }
     config.appName = std::move(nameStr);
 
-    if (j.contains("useLogicCamera")) {
-        if (!ParseJsonObjectToEnumMap(j["useLogicCamera"], config.useLogicCamera)) {
-            TLOGW(WmsLogTag::DMS, "failed to parse useLogicCamera, app:%{public}s", config.appName.c_str());
+    if (json.contains(USE_LOGIC_CAMERA_STRING)) {
+        if (!ParseJsonObjectToEnumMap(json[USE_LOGIC_CAMERA_STRING], config.useLogicCamera)) {
+            TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
+                USE_LOGIC_CAMERA_STRING.c_str(), config.appName.c_str());
             return false;
         }
     }
 
-    if (j.contains("customLogicDirection")) {
-        if (!ParseJsonObjectToEnumMap(j["customLogicDirection"], config.customLogicDirection)) {
-            TLOGW(WmsLogTag::DMS, "failed to parse customLogicDirection, app:%{public}s", config.appName.c_str());
+    if (json.contains(CUSTOM_LOGIC_DIRECTION_STRING)) {
+        if (!ParseJsonObjectToEnumMap(json[CUSTOM_LOGIC_DIRECTION_STRING], config.customLogicDirection)) {
+            TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
+                CUSTOM_LOGIC_DIRECTION_STRING.c_str(), config.appName.c_str());
             return false;
         }
     }
@@ -1159,21 +1162,20 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& j, Rotati
     return true;
 }
 
-bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& j,
+bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& json,
                                                    std::unordered_map<FoldDisplayMode, int32_t>& resultMap)
 {
     resultMap.clear();
 
-    if (j.is_null() || !j.is_object()) {
+    if (json.is_null() || !json.is_object()) {
         return false;
     }
 
     bool success = true;
 
-    for (auto it = j.begin(); it != j.end(); ++it) {
+    for (auto it = json.begin(); it != json.end(); ++it) {
         const std::string& strKey = it.key();
         const nlohmann::json& value = it.value();
-
         FoldDisplayMode enumKey = ConvertStringToFoldDisplayModeSafely(strKey);
 
         if (!value.is_number_integer()) {
@@ -1182,15 +1184,7 @@ bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& j,
             continue;
         }
 
-        int32_t intValue = 0;
-        if (value.is_number()) {
-            intValue = value.get<int32_t>();
-        } else {
-            TLOGW(WmsLogTag::DMS, "failed to parse %{public}s: value is not integer", strKey.c_str());
-            success = false;
-            continue;
-        }
-
+        int32_t intValue = value.get<int32_t>();
         resultMap[enumKey] = intValue;
     }
 
