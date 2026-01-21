@@ -84,6 +84,7 @@ public:
         std::vector<uint32_t>());
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(bool, SupportsFocus, supportsFocus, true);
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(bool, SupportsInput, supportsInput, true);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(std::string, BundleName, bundleName, "");
 };
 } // namespace OHOS::Rosen
 #endif // FOUNDATION_DMSERVER_DISPLAY_INFO_H

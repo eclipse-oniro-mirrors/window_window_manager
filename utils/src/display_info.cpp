@@ -47,7 +47,8 @@ bool DisplayInfo::Marshalling(Parcel &parcel) const
         parcel.WriteUint32(static_cast<uint32_t>(displaySourceMode_)) &&
         parcel.WriteUInt32Vector(supportedRefreshRate_) &&
         parcel.WriteBool(supportsFocus_) &&
-        parcel.WriteBool(supportsInput_);
+        parcel.WriteBool(supportsInput_) &&
+        parcel.WriteString(bundleName_);
 }
 
 DisplayInfo *DisplayInfo::Unmarshalling(Parcel &parcel)
@@ -85,8 +86,8 @@ DisplayInfo *DisplayInfo::Unmarshalling(Parcel &parcel)
         parcel.ReadUint32(originRotation) && parcel.ReadInt32(displayInfo->x_) &&
         parcel.ReadInt32(displayInfo->y_) && parcel.ReadUint32(displaySourceMode) &&
         parcel.ReadUInt32Vector(&(displayInfo->supportedRefreshRate_)) &&
-        parcel.ReadBool(displayInfo->supportsFocus_) &&
-        parcel.ReadBool(displayInfo->supportsInput_);
+        parcel.ReadBool(displayInfo->supportsFocus_) && parcel.ReadBool(displayInfo->supportsInput_) &&
+        parcel.ReadString(displayInfo->bundleName_);
     if (!res) {
         delete displayInfo;
         return nullptr;

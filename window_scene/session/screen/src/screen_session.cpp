@@ -394,6 +394,7 @@ sptr<DisplayInfo> ScreenSession::ConvertToDisplayInfo()
     displayInfo->SetSupportedRefreshRate(GetSupportedRefreshRate());
     displayInfo->SetSupportsFocus(GetSupportsFocus());
     displayInfo->SetSupportsInput(GetSupportsInput());
+    displayInfo->SetBundleName(GetBundleName());
     return displayInfo;
 }
 
