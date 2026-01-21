@@ -13374,13 +13374,13 @@ WSError SceneSessionManager::NotifyStatusBarShowStatus(int32_t persistentId, boo
 
 void SceneSessionManager::UpdateAvoidAreaForLSStateChange(int32_t curState, int32_t preState)
 {
-    taskScheduler_->PostAsyncTask([this, curState, preState]() {
+    taskScheduler_->PostAsyncTask([this, curState, preState, where = __func__]() {
         if (curState == preState) {
             return;
         }
         constexpr int32_t nonLSState = 0;
         SetLSState(curState > nonLSState);
-        TLOGI(WmsLogTag::WMS_IMMS, "curState %{public}d, preState %{public}d", curState, preState);
+        TLOGI(WmsLogTag::WMS_IMMS, "%{public}s,curState %{public}d, preState %{public}d", where, curState, preState);
         std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
         {
             std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
@@ -13455,7 +13455,7 @@ WSError SceneSessionManager::NotifyNextAvoidRectInfo(AvoidAreaType type,
     const WSRect& portraitRect, const WSRect& landspaceRect, DisplayId displayId)
 {
     TLOGD(WmsLogTag::WMS_IMMS, "type %{public}d "
-        "portraitRect %{public}s, portraitRect %{public}s, displayId %{public}" PRIu64,
+        "portraitRect %{public}s, landspaceRect %{public}s, displayId %{public}" PRIu64,
         type, portraitRect.ToString().c_str(), landspaceRect.ToString().c_str(), displayId);
     std::lock_guard<std::mutex> lock(nextAvoidRectInfoMapMutex_);
     nextAvoidRectInfoMap_[type][displayId] = { portraitRect, landspaceRect };

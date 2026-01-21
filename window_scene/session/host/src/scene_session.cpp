@@ -100,6 +100,7 @@ const std::string DLP_INDEX = "ohos.dlp.params.index";
 const std::string ERROR_REASON_LOW_MEMORY_KILL = "LowMemoryKill";
 constexpr const char* APP_CLONE_INDEX = "ohos.extra.param.key.appCloneIndex";
 constexpr float MINI_FLOAT_SCALE = 0.3f;
+constexpr float DEFAULT_SCALE = 1;
 constexpr float MOVE_DRAG_POSITION_Z = 100.5f;
 constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
 constexpr WSRectF VELOCITY_RELOCATION_TO_TOP = {0.0f, -10.0f, 0.0f, 0.0f};
@@ -2794,10 +2795,8 @@ void SceneSession::PrintAvoidAreaInfo(DisplayId displayId,
 void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
     const WSRect& winRect, const WSRect& avoidRect, AvoidArea& avoidArea)
 {
-    auto displayId = GetSessionProperty()->GetDisplayId();
-    PrintAvoidAreaInfo(displayId, type, winRect, avoidRect);
-    float scaleX = 1;
-    float scaleY = 1;
+    float scaleX = DEFAULT_SCALE;
+    float scaleY = DEFAULT_SCALE;
     if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
         auto globalRect = GetSessionGlobalRect();
         WSRectF winRectF = { globalRect.posX_, globalRect.posY_,
@@ -2809,7 +2808,10 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
             avoidRect.ToString().c_str(), scaleX, scaleY);
         CalculateAvoidAreaRect(winRectF, avoidRectF, avoidArea);
     } else {
+        auto displayId = GetSessionProperty()->GetDisplayId();
+        PrintAvoidAreaInfo(displayId, type, winRect, avoidRect);
         CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
+        lastAvoidAreaInputParamtersMap_[type] = std::make_tuple(displayId, winRect, avoidRect);
     }
 }
 
@@ -3346,8 +3348,8 @@ WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
 template<typename T>
 Rect SceneSession::CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const
 {
-    float scaleX = 1;
-    float scaleY = 1;
+    float scaleX = DEFAULT_SCALE;
+    float scaleY = DEFAULT_SCALE;
     Rect avoidArea = { avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_ };
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
         return avoidArea;
@@ -3528,7 +3530,7 @@ void SceneSession::GetSystemBarAvoidAreaByRotation(Rotation rotation, AvoidAreaT
     }
     WSRect avoidRect = (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180) ?
         nextSystemBarAvoidAreaRectInfo.first : nextSystemBarAvoidAreaRectInfo.second;
-    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d tyep %{public}d rect %{public}s bar %{public}s",
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d type %{public}d rect %{public}s bar %{public}s",
         GetPersistentId(), type, rect.ToString().c_str(), avoidRect.ToString().c_str());
     CalculateAvoidAreaRect(rect, avoidRect, avoidArea);
 }
@@ -3552,8 +3554,8 @@ void SceneSession::GetCutoutAvoidAreaByRotation(Rotation rotation, const WSRect&
             cutoutArea.width_,
             cutoutArea.height_
         };
-        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}s cutout %{public}s",
-              rect.ToString().c_str(), cutoutAreaRect.ToString().c_str());
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d rect %{public}s cutout %{public}s",
+            GetPersistentId(), rect.ToString().c_str(), cutoutAreaRect.ToString().c_str());
         CalculateAvoidAreaRect(rect, cutoutAreaRect, avoidArea);
     }
 }
@@ -3567,9 +3569,9 @@ void SceneSession::GetKeyboardAvoidAreaByRotation(Rotation rotation, const WSRec
             TLOGI(WmsLogTag::WMS_IMMS, "keyboard avoid area is empty id: %{public}d", GetPersistentId());
             continue;
         }
-        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}s keyboard %{public}s",
-            rect.ToString().c_str(), avoidInfo.second.ToString().c_str());
-            CalculateAvoidAreaRect(rect, avoidInfo.second, avoidArea);
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d rect %{public}s keyboard %{public}s",
+            GetPersistentId(), rect.ToString().c_str(), avoidInfo.second.ToString().c_str());
+        CalculateAvoidAreaRect(rect, avoidInfo.second, avoidArea);
     }
 }
 
