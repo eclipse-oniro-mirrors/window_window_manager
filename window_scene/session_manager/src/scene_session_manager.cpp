@@ -13795,6 +13795,17 @@ void SceneSessionManager::OnScreenshot(DisplayId displayId)
                 continue;
             }
             auto state = sceneSession->GetSessionState();
+            bool useParentState = false;
+            if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
+                auto parentSession = GetSceneSession(sceneSession->GetParentPersistentId());
+                if (parentSession != nullptr) {
+                    state = parentSession->GetSessionState();
+                    useParentState = true;
+                }
+            }
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE,
+                "%{public}s: win=[%{public}d, %{public}s], state=%{public}u, fromParent=%{public}d",
+                where, sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), state, useParentState);
             if (state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE) {
                 sceneSession->NotifyScreenshot();
             }
@@ -13817,8 +13828,17 @@ WMError SceneSessionManager::NotifyScreenshotEvent(ScreenshotEventType type)
                 continue;
             }
             auto state = sceneSession->GetSessionState();
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s win: %{public}d, state: %{public}u, event: %{public}d",
-                where, sceneSession->GetPersistentId(), state, type);
+            bool useParentState = false;
+            if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
+                auto parentSession = GetSceneSession(sceneSession->GetParentPersistentId());
+                if (parentSession != nullptr) {
+                    state = parentSession->GetSessionState();
+                    useParentState = true;
+                }
+            }
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE,
+                "%{public}s: win=[%{public}d, %{public}s], state=%{public}u, fromParent=%{public}d, event=%{public}d",
+                where, persistentId, sceneSession->GetWindowName().c_str(), state, useParentState, type);
             if (state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE) {
                 sceneSession->NotifyScreenshotAppEvent(type);
             }
