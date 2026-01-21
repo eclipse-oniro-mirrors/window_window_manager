@@ -5294,7 +5294,7 @@ ani_object AniWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_string name
     std::string windowName;
     AniWindowUtils::GetStdString(env, name, windowName);
     sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
-    if (!AniWindowUtils::ParseSubWindowOption(env, options, windowOption)) {
+    if (!AniWindowUtils::ParseSubWindowOptions(env, options, windowOption)) {
         TLOGE(WmsLogTag::WMS_SUB, "Failed to convert parameter to options");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return AniWindowUtils::CreateAniUndefined(env);
