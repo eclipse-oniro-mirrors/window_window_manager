@@ -482,9 +482,10 @@ public:
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag(void);
     void WaitForCoordinationReady();
-    void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady) {
+    void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady)
+    {
         isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
-    };
+    }
     bool GetWaitingForCoordinationReady() { return isWaitingForCoordinationReady_; }
     void NotifyCoordinationReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
@@ -1082,7 +1083,6 @@ private:
     std::mutex coordinationReadyMutex_;
     std::condition_variable coordinationReadyCV_;
     std::atomic<bool> isWaitingForCoordinationReady_ = false;
-
 
     // Fold Screen duringcall
     bool duringCallState_ = false;

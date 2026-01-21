@@ -27,7 +27,7 @@
 
 namespace OHOS {
 namespace Rosen {
-sptr<SettingObserver> ScreenSettingHelper::dpiObserver_;  
+sptr<SettingObserver> ScreenSettingHelper::dpiObserver_;
 sptr<SettingObserver> ScreenSettingHelper::castObserver_;
 sptr<SettingObserver> ScreenSettingHelper::rotationObserver_;
 sptr<SettingObserver> ScreenSettingHelper::wireCastObserver_;
@@ -120,7 +120,6 @@ void ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(SettingObserv
         return;
     }
     ErrCode ret = provider.RegisterObserver(coordinationReadyObserver_);
-
     if (ret != ERR_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret=%{public}d", ret);
         coordinationReadyObserver_ = nullptr;

@@ -75,7 +75,7 @@ enum XmlNodeElement {
     HALF_FOLDED_BUFFER,
     LARGER_BOUNDARY_FOR_THRESHOLD,
     POSTURE_SIZE,
-    HALL_SIZE
+    HALL_SIZE  
 };
 }
 
