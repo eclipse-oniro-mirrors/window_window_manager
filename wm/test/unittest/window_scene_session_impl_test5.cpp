@@ -1165,29 +1165,28 @@ HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForPage, Function | Small
 }
 
 /**
- * @tc.name: SetSystemBarProperties
- * @tc.desc: SetSystemBarProperties test
+ * @tc.name: SetStatusBarColorForNavigation
+ * @tc.desc: SetStatusBarColorForNavigation test
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest5, SetSystemBarProperties, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForNavigation, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    std::map<WindowType, SystemBarProperty> properties;
-    std::map<WindowType, SystemBarPropertyFlag> propertyFlags;
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetPersistentId(1);
+    window->property_ = property;
+    window->state_ = WindowState::STATE_SHOWN;
+    std::optional<uint32_t> color;
+    EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
     auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
-    propertyFlags[type] = SystemBarPropertyFlag();
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
-    propertyFlags[type].contentColorFlag = true;
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
-    properties[type] = SystemBarProperty();
-    window->nowsystemBarPropertyMap_.clear();
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
-    window->nowsystemBarPropertyMap_[type] = SystemBarProperty();
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
-    window->nowsystemBarPropertyMap_[type].contentColor_ = 0;
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    EXPECT_EQ(window->SetStatusBarColorForNavigation(std::optional<uint32_t>(1)), WMError::WM_OK);
+    EXPECT_EQ(window->nowsystemBarPropertyMap_[type].contentColor_), 1);
+    EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
+    EXPECT_EQ(window->isNavigationUseColor_, false);
 }
 
 /**

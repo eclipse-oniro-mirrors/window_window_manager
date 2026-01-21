@@ -3424,14 +3424,12 @@ public:
     }
 
     /**
-     * @brief Set System Bar(include status bar and nav bar) Properties
+     * @brief Set Status Bar Color For Navigation
      *
-     * @param properties system bar properties
-     * @param propertyFlags flags of system bar property
+     * @param color status bar color
      * @return WMError
      */
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags)
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color)
     {
         return WMError::WM_OK;
     }

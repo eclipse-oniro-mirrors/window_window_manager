@@ -89,8 +89,7 @@ public:
     virtual WMError SetWindowFlags(uint32_t flags) override;
     virtual WMError SetSystemBarProperty(WindowType type, const SystemBarProperty& property) override;
     virtual WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) override;
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) override;
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) override;
     WMError UpdateSystemBarPropertyForPage(WindowType type,
         const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag) override;
     virtual WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) override;

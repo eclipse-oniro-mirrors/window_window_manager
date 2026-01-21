@@ -241,8 +241,7 @@ public:
     }
     virtual WMError SetSystemBarProperty(WindowType type, const SystemBarProperty& property) = 0;
     virtual WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) = 0;
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) = 0;
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) = 0;
     virtual WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) = 0;
     virtual WMError SetFullScreen(bool status) = 0;
     virtual WMError SetLayoutFullScreen(bool status) = 0;
