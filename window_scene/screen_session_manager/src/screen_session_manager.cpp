@@ -12788,6 +12788,7 @@ sptr<DisplayInfo> ScreenSessionManager::GetPrimaryDisplayInfo()
             TLOGNFI(WmsLogTag::DMS, "convert display error.");
             return nullptr;
         }
+        HandleRotationCorrectionExemption(displayInfo);
         displayInfo = HookDisplayInfoByUid(displayInfo, screenSession);
         return displayInfo;
     } else {
