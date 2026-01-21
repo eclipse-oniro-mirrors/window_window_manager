@@ -350,7 +350,8 @@ WMError RootScene::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea, 
         return WMError::WM_DO_NOTHING;
     }
     avoidArea = getSessionAvoidAreaByTypeCallback_(type, false);
-    TLOGI(WmsLogTag::WMS_IMMS, "root scene type %{public}u area %{public}s", type, avoidArea.ToString().c_str());
+    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetWindowId(), WmsLogTag::WMS_IMMS,
+        "root scene type %{public}u area %{public}s", type, avoidArea.ToString().c_str());
     return WMError::WM_OK;
 }
 

@@ -3155,8 +3155,9 @@ WMError WindowSceneSessionImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea
     };
     avoidArea = hostSession->GetAvoidAreaByType(type, sessionRect, apiVersion);
     getAvoidAreaCnt_++;
-    TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}d times %{public}u area %{public}s",
-          GetWindowId(), GetWindowName().c_str(), type, getAvoidAreaCnt_.load(), avoidArea.ToString().c_str());
+    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetWindowId(), WmsLogTag::WMS_IMMS,
+        "win %{public}u type %{public}d times %{public}u area %{public}s",
+        GetWindowId(), GetWindowName().c_str(), type, getAvoidAreaCnt_.load(), avoidArea.ToString().c_str());
     return WMError::WM_OK;
 }
 
