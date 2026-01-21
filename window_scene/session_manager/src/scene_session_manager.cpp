@@ -34,6 +34,7 @@
 #include "publish/scb_dump_subscriber.h"
 #include "resource_manager.h"
 #include "session/host/include/pc_fold_screen_manager.h"
+#include "uea_list_config.h"
 #include "wm_common.h"
 
 #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
@@ -277,48 +278,19 @@ bool IsUIExtCanShowOnLockScreen(const AppExecFwk::ElementName& element, uint32_t
     static const std::unordered_set<AppExecFwk::ExtensionAbilityType> extensionAbilityTypeWhitelist = {
         AppExecFwk::ExtensionAbilityType::LIVEVIEW_LOCKSCREEN
     };
-    static const std::vector<std::tuple<std::string, std::string, std::string>> elementNameWhitelist = {
-        std::make_tuple("com.huawei.hmos.settings", "AccessibilityReConfirmDialog", "phone_settings"),
-        std::make_tuple("com.huawei.hmos.settings", "AccessibilityShortKeyDialog", "phone_settings"),
-        std::make_tuple("com.huawei.hmos.settings", "DefaultIntentUiExtensionAbility", "phone_settings"),
-        std::make_tuple("com.ohos.sceneboard", "ScbIntentUIExtensionAbility", "phone_sceneboard"),
-        std::make_tuple("com.ohos.sceneboard", "PoweroffAbility", "phone_sceneboard"),
-        std::make_tuple("com.ohos.sceneboard", "com.ohos.sceneboard.MetaBallsAbility", "metaBallsTurbo"),
-        std::make_tuple("com.huawei.hmos.motiongesture", "IntentUIExtensionAbility", "entry"),
-        std::make_tuple("com.ohos.useriam.authwidget", "userauthuiextensionability", "entry"),
-        std::make_tuple("com.ohos.sceneboard", "AodStyleAbility", "phone_sceneboard"),
-        std::make_tuple("com.ohos.sceneboard", "HomeThemeComponentExtAbility", "themecomponent"),
-        std::make_tuple("com.ohos.sceneboard", "ThemePersonalizedResourceAbility", "engineservice"),
-        std::make_tuple("com.ohos.sceneboard", "ThemePersonalizedEditingAbility", "engineservice"),
-        std::make_tuple("com.ohos.sceneboard", "CoverExtensionAbility", "coverthemecomponent"),
-        std::make_tuple("com.huawei.hmos.findservice", "SystemDialogAbility", "entry"),
-        std::make_tuple("com.huawei.hmos.mediacontroller", "UIExtAbility", "phone_deviceswitch"),
-        std::make_tuple("com.huawei.hmos.mediacontroller", "AnahsDialogAbility", "phone_deviceswitch"),
-        std::make_tuple("com.huawei.hmos.security.privacycenter", "SuperPrivacyProtectedAbility", "superprivacy"),
-        std::make_tuple("com.huawei.hmos.security.privacycenter", "PermDisabledReminderAbility", "superprivacy"),
-        std::make_tuple("com.huawei.hmos.audioaccessorymanager", "NearbyAbility", "phone"),
-        std::make_tuple("com.huawei.hmos.wallet", "WalletDialogUIExtensionAbility", "entry"),
-        std::make_tuple("com.huawei.hmos.settings", "WifiWindowSettingsAbility", "pc_settings"),
-        std::make_tuple("com.ohos.mms", "DeskDialogExtensionAbility", "entry"),
-        std::make_tuple("com.ohos.sceneboard", "ThemeChargingAbility", "engineservice"),
-        std::make_tuple("com.ohos.commondialog", "FoldStatusAbility", "phone_commondialog"),
-        std::make_tuple("com.ohos.commondialog", "SecondaryReflexionAbility", "phone_commondialog"),
-        std::make_tuple("com.huawei.hmos.clock", "ScreenLockCoverExtensionAbility", "entry"),
-        std::make_tuple("com.huawei.hmos.clock", "ClockScreenLockExtensionAbility", "entry"),
-        std::make_tuple("com.huawei.hmos.penglaimodeassistant", "ExpandedDialogUIExtAbility", "entry"),
-        std::make_tuple("com.huawei.hmos.penglaimodeassistant", "CameraDialogAbility", "entry"),
-    };
 
     if (extensionAbilityTypeWhitelist.find(extensionAbilityType) != extensionAbilityTypeWhitelist.end()) {
         TLOGI(WmsLogTag::WMS_UIEXT, "ability in white list");
         return true;
     }
 
-    auto it = std::find_if(elementNameWhitelist.begin(), elementNameWhitelist.end(), [&element](const auto& item) {
+    // check uea list config from ccm
+    static const std::vector<std::tuple<std::string, std::string, std::string>> ueaListConfigFromCcm = UeaListConfig::GetUeaConfigFromCcm();
+    auto foundIt = std::find_if(ueaListConfigFromCcm.begin(), ueaListConfigFromCcm.end(), [&element](const auto& item) {
         auto& [bundleName, abilityName, _] = item;
         return (element.GetBundleName() == bundleName && element.GetAbilityName() == abilityName);
     });
-    if (it != elementNameWhitelist.end()) {
+    if (foundIt != ueaListConfigFromCcm.end()) {
         return true;
     }
 
