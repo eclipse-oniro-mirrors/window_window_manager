@@ -825,7 +825,7 @@ export enum WindowEventType {
     WINDOW_DESTROYED = 7
 }
 
-export enum WindowStageLifeCycleEventType {
+export enum WindowStageLifecycleEventType {
     SHOWN = 1,
     RESUMED = 2,
     PAUSED = 3,
@@ -2805,11 +2805,11 @@ export class WindowStageInternal implements WindowStage {
       this.offSync(this.nativeObj, 'windowStageEvent', callback);
     }
 
-    public onWindowStageLifecycleEvent(callback: Callback<WindowStageLifeCycleEventType>): void {
+    public onWindowStageLifecycleEvent(callback: Callback<WindowStageLifecycleEventType>): void {
       this.onSync(this.nativeObj, 'windowStageLifecycleEvent', callback);
     }
 
-    public offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifeCycleEventType>): void {
+    public offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifecycleEventType>): void {
       this.offSync(this.nativeObj, 'windowStageLifecycleEvent', callback);
     }
 }
@@ -2851,8 +2851,8 @@ export interface WindowStage {
     off<T>(eventType: string, callback?: Callback<T>): void;
     onWindowStageEvent(callback: Callback<WindowStageEventType>): void;
     offWindowStageEvent(callback?: Callback<WindowStageEventType>): void;
-    onWindowStageLifecycleEvent(callback: Callback<WindowStageLifeCycleEventType>): void;
-    offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifeCycleEventType>): void;
+    onWindowStageLifecycleEvent(callback: Callback<WindowStageLifecycleEventType>): void;
+    offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifecycleEventType>): void;
 }
 
 export class WindowInternal implements Window {
@@ -5874,8 +5874,8 @@ function runAvoidAreaChangeCallback(cb: object, area: object, type: int): void {
 }
 
 function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
-    const func = cb as (cbArg: WindowStageLifeCycleEventType) => void;
-    func(cbArg as WindowStageLifeCycleEventType);
+    const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
+    func(cbArg as WindowStageLifecycleEventType);
 }
 
 function runWindowEventCallback(cb: object, cbArg: int): void {
