@@ -192,7 +192,7 @@ const std::string FAULT_SUGGESTION = "542003014";
 constexpr uint32_t COMMON_EVENT_SERVICE_ID = 3299;
 const long GET_HDR_PIXELMAP_TIMEOUT = 2000;
 const int32_t CV_WAIT_UPDATE_AVAILABLE_MS = 300;
-const int32_t CV_WAIT_DUAL_DISPLAY_READY_MAX_MS = 2000;
+const int32_t CV_WAIT_DUAL_DISPLAY_READY_MAX_MS = 1500;
 
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
 static const uint32_t SDR_PIXMAP = 0;
@@ -5582,7 +5582,7 @@ void ScreenSessionManager::UpdateCoordinationReadyFromSettingData()
 
 void ScreenSessionManager::WaitForCoordinationReady()
 {
-    std::unique_lock<std::mutex> lock(CoordinationReadyMutex_);
+    std::unique_lock<std::mutex> lock(coordinationReadyMutex_);
     SetWaitingForCoordinationReady(true);
     bool isCoordinationReady = isCoordinationReady_;
     TLOGI(WmsLogTag::DMS, "begin wait coordination ready. need wait: %{public}d", isCoordinationReady);

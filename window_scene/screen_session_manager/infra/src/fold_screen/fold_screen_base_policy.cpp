@@ -250,6 +250,7 @@ void FoldScreenBasePolicy::CloseCoordinationScreen()
     if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
         ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
         ScreenSessionManager::GetInstance().NotifyCoordinationReadyCV();
+        TLOGI(WmsLogTag::DMS, "CloseCoordinationScreen skipped, is waiting for coordination ready");
         return;
     }
 
@@ -280,6 +281,7 @@ void FoldScreenBasePolicy::ExitCoordination()
     if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
         ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
         ScreenSessionManager::GetInstance().NotifyCoordinationReadyCV();
+        TLOGI(WmsLogTag::DMS, "ExitCoordination skipped, is waiting for coordination ready");
         return;
     }
     ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);

@@ -1079,8 +1079,8 @@ private:
     std::shared_mutex rotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
     std::atomic<bool> isCoordinationReady_ = false;
-    std::mutex CoordinationReadyMutex_;
-    std::condition_variable CoordinationReadyCV_;
+    std::mutex coordinationReadyMutex_;
+    std::condition_variable coordinationReadyCV_;
     std::atomic<bool> isWaitingForCoordinationReady_ = false;
 
 
