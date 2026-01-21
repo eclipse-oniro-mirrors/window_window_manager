@@ -357,7 +357,6 @@ const std::unordered_map<std::string, FoldDisplayMode> STRING_TO_FOLD_DISPLAY_MO
 };
 
 struct RotationCorrectionWhiteConfig {
-    std::string appName;
     std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
     std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
 

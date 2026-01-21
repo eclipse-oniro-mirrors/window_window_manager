@@ -2399,18 +2399,17 @@ bool ScreenSessionManager::IsRotationCorrectionWhiteListEmpty() const
 }
 
 bool ScreenSessionManager::GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
-                                                                        RotationCorrectionWhiteConfig& config)
+    RotationCorrectionWhiteConfig& config)
 {
     std::shared_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
     if (rotationCorrectionWhiteList_.empty()) {
         TLOGD(WmsLogTag::DMS, "rotationCorrectionWhiteList empty, return");
         return false;
     }
-    for (const auto& whiteConfig : rotationCorrectionWhiteList_) {
-        if (whiteConfig.appName == bundleName) {
-            config = whiteConfig;
-            return true;
-        }
+    auto it = rotationCorrectionWhiteList_.find(bundleName);
+    if (it != rotationCorrectionWhiteList_.end()) {
+        config = it->second;
+        return true;
     }
     TLOGD(WmsLogTag::DMS, "app is not in rotationCorrectionWhiteList, name:%{public}s", bundleName.c_str());
     return false;
@@ -2418,21 +2417,17 @@ bool ScreenSessionManager::GetRotationCorrectionWhiteConfigByBundleName(const st
 
 void ScreenSessionManager::GetRotationCorrectionWhiteListFromDatabase()
 {
-    std::vector<RotationCorrectionWhiteConfig> rotationCorrectionWhiteList;
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> rotationCorrectionWhiteList;
     bool ret = ScreenSettingHelper::GetRotationCorrectionWhiteList(rotationCorrectionWhiteList);
     if (!ret) {
         TLOGE(WmsLogTag::DMS, "get correction White list failed");
         return;
     }
-    if (rotationCorrectionWhiteList.size() == 0) {
-        TLOGD(WmsLogTag::DMS, "rotationCorrectionWhiteList is empty");
-        return;
-    }
+    TLOGI(WmsLogTag::DMS, "success, list size:%{public}zu", rotationCorrectionWhiteList.size());
     {
         std::unique_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
         rotationCorrectionWhiteList_ = std::move(rotationCorrectionWhiteList);
     }
-    TLOGI(WmsLogTag::DMS, "success");
 }
 
 void ScreenSessionManager::RegisterRotationCorrectionWhiteListObserver()
@@ -14164,8 +14159,7 @@ Rotation ScreenSessionManager::RemoveRotationCorrection(Rotation rotation, FoldD
 }
 
 Rotation ScreenSessionManager::CorrectionRotationByWhiteConfig(const RotationCorrectionWhiteConfig& config,
-                                                               Rotation rotation,
-                                                               FoldDisplayMode foldDisplayMode)
+    Rotation rotation, FoldDisplayMode foldDisplayMode)
 {
     auto correctionRotation = GetCorrectionInWhiteConfigByDisplayMode(config, foldDisplayMode);
     return static_cast<Rotation>((static_cast<uint32_t>(rotation) +
@@ -14173,7 +14167,7 @@ Rotation ScreenSessionManager::CorrectionRotationByWhiteConfig(const RotationCor
 }
 
 Rotation ScreenSessionManager::GetCorrectionInWhiteConfigByDisplayMode(const RotationCorrectionWhiteConfig& config,
-                                                                       FoldDisplayMode displayMode)
+    FoldDisplayMode displayMode)
 {
     if (!CORRECTION_ENABLE) {
         return Rotation::ROTATION_0;

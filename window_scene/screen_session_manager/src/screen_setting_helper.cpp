@@ -1090,7 +1090,8 @@ void ScreenSettingHelper::UnregisterRotationCorrectionWhiteListObserver()
     correctionWhiteListObserver_ = nullptr;
 }
 
-bool ScreenSettingHelper::GetRotationCorrectionWhiteList(std::vector<RotationCorrectionWhiteConfig>& appConfigs,
+bool ScreenSettingHelper::GetRotationCorrectionWhiteList(
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs,
     const std::string& key)
 {
     appConfigs.clear();
@@ -1106,7 +1107,7 @@ bool ScreenSettingHelper::GetRotationCorrectionWhiteList(std::vector<RotationCor
 }
 
 void ScreenSettingHelper::GetCorrectionWhiteListFromJson(const std::string& whiteListJsonStr,
-    std::vector<RotationCorrectionWhiteConfig>& appConfigs)
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs)
 {
     nlohmann::json whiteListJson = nlohmann::json::parse(whiteListJsonStr, nullptr, false);
     if (whiteListJson.is_discarded()) {
@@ -1116,13 +1117,15 @@ void ScreenSettingHelper::GetCorrectionWhiteListFromJson(const std::string& whit
     for (auto it = whiteListJson.begin(); it != whiteListJson.end(); ++it) {
         const nlohmann::json& value = it.value();
         RotationCorrectionWhiteConfig appConfig;
-        if (GetWhiteConfigFromJson(value, appConfig)) {
-            appConfigs.emplace_back(appConfig);
+        std::string appName;
+        if (GetWhiteConfigFromJson(value, appConfig, appName)) {
+            appConfigs.insert(std::make_pair(appName, appConfig));
         }
     }
 }
 
-bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json, RotationCorrectionWhiteConfig& config)
+bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json,
+    RotationCorrectionWhiteConfig& config, std::string& appName)
 {
     if (json.is_null() || !json.is_object()) {
         TLOGW(WmsLogTag::DMS, "invalid json object");
@@ -1135,18 +1138,17 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json, Rot
         return false;
     }
 
-    std::string nameStr = json["name"].get<std::string>();
+    appName = json["name"].get<std::string>();
 
-    if (nameStr.empty()) {
+    if (appName.empty()) {
         TLOGW(WmsLogTag::DMS, "app name is empty");
         return false;
     }
-    config.appName = std::move(nameStr);
 
     if (json.contains(USE_LOGIC_CAMERA_STRING)) {
         if (!ParseJsonObjectToEnumMap(json[USE_LOGIC_CAMERA_STRING], config.useLogicCamera)) {
             TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
-                USE_LOGIC_CAMERA_STRING.c_str(), config.appName.c_str());
+                USE_LOGIC_CAMERA_STRING.c_str(), appName.c_str());
             return false;
         }
     }
@@ -1154,7 +1156,7 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json, Rot
     if (json.contains(CUSTOM_LOGIC_DIRECTION_STRING)) {
         if (!ParseJsonObjectToEnumMap(json[CUSTOM_LOGIC_DIRECTION_STRING], config.customLogicDirection)) {
             TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
-                CUSTOM_LOGIC_DIRECTION_STRING.c_str(), config.appName.c_str());
+                CUSTOM_LOGIC_DIRECTION_STRING.c_str(), appName.c_str());
             return false;
         }
     }
@@ -1163,7 +1165,7 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json, Rot
 }
 
 bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& json,
-                                                   std::unordered_map<FoldDisplayMode, int32_t>& resultMap)
+    std::unordered_map<FoldDisplayMode, int32_t>& resultMap)
 {
     resultMap.clear();
 

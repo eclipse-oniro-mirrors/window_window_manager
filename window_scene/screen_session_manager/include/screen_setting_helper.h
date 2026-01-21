@@ -91,13 +91,15 @@ public:
     static void UnregisterRotationCorrectionWhiteListObserver();
     static bool GetSettingIsCoordinationReady(bool& isCoordinationReady,
         const std::string& key = SETTING_DUAL_DISPLAY_READY_KEY);
-    static bool GetRotationCorrectionWhiteList(std::vector<RotationCorrectionWhiteConfig>& appConfigs,
+    static bool GetRotationCorrectionWhiteList(
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs,
         const std::string& key = SETTING_ROTATION_CORRECT_KEY);
     static void GetCorrectionWhiteListFromJson(const std::string& whiteListJsonStr,
-        std::vector<RotationCorrectionWhiteConfig>& appConfigs);
-    static bool GetWhiteConfigFromJson(const nlohmann::json& j, RotationCorrectionWhiteConfig& config);
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs);
+    static bool GetWhiteConfigFromJson(const nlohmann::json& j,
+        RotationCorrectionWhiteConfig& config, std::string& appName);
     static bool ParseJsonObjectToEnumMap(const nlohmann::json& j,
-                                         std::unordered_map<FoldDisplayMode, int32_t>& resultMap);
+        std::unordered_map<FoldDisplayMode, int32_t>& resultMap);
     static FoldDisplayMode ConvertStringToFoldDisplayModeSafely(const std::string& str);
     template<typename T>
     static bool GetJsonValue(const nlohmann::json& payload, const std::string& key, T& result)

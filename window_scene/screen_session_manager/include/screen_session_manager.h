@@ -566,10 +566,9 @@ public:
     Rotation RemoveRotationCorrection(Rotation rotation);
     Rotation RemoveRotationCorrection(Rotation rotation, FoldDisplayMode foldDisplayMode);
     Rotation CorrectionRotationByWhiteConfig(const RotationCorrectionWhiteConfig& config,
-                                             Rotation rotation,
-                                             FoldDisplayMode foldDisplayMode);
+        Rotation rotation, FoldDisplayMode foldDisplayMode);
     Rotation GetCorrectionInWhiteConfigByDisplayMode(const RotationCorrectionWhiteConfig& config,
-                                                     FoldDisplayMode displayMode);
+        FoldDisplayMode displayMode);
     FoldDisplayMode GetFoldDisplayModeAfterRotation() const;
     void SetFoldDisplayModeAfterRotation(FoldDisplayMode foldDisplayMode);
     void NotifySwitchUserAnimationFinish() override;
@@ -821,10 +820,10 @@ private:
 
     void GetRotationCorrectionWhiteListFromDatabase();
     bool GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
-                                                      RotationCorrectionWhiteConfig& config);
+        RotationCorrectionWhiteConfig& config);
     void RegisterRotationCorrectionWhiteListObserver();
     mutable std::shared_mutex rotationCorrectionWhiteMutex_;
-    std::vector<RotationCorrectionWhiteConfig> rotationCorrectionWhiteList_;
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> rotationCorrectionWhiteList_;
     bool IsRotationCorrectionWhiteListEmpty() const;
 
     void HandleSuperFoldDisplayInfoWhenKeyboardOn(const sptr<ScreenSession>& screenSession,
