@@ -16,11 +16,7 @@
 #ifndef OHOS_JS_PIP_MANAGER_H
 #define OHOS_JS_PIP_MANAGER_H
 
-#include <set>
-
-#include "js_pip_window_listener.h"
 #include "js_runtime_utils.h"
-#include "wm_common.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -38,16 +34,7 @@ public:
     static napi_value UnregisterCallback(napi_env env, napi_callback_info info);
     static napi_value SetTypeNodeEnabled(napi_env env, napi_callback_info info);
     static napi_value SetPipNodeType(napi_env env, napi_callback_info info);
-    bool IfCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject);
-    WmErrorCode RegisterListener(const std::string &type, const sptr <JsPiPWindowListener> &pipWindowListener);
-    WmErrorCode RegisterListenerWithType(napi_env env, const std::string& type, napi_value value);
-    WmErrorCode UnRegisterListener(const std::string &type, const sptr <JsPiPWindowListener> &pipWindowListener);
-    WmErrorCode UnRegisterListenerWithType(napi_env env, const std::string& type, napi_value value);
 private:
-    enum class ListenerType : uint32_t {
-        STATE_CHANGE_CB,
-        UPDATE_TYPE_CB,
-    };
     napi_value OnInitXComponentController(napi_env env, napi_callback_info info);
     napi_value OnInitWebXComponentController(napi_env env, napi_callback_info info);
     napi_value OnGetCustomUIController(napi_env env, napi_callback_info info);
@@ -56,8 +43,6 @@ private:
     napi_value OnUnregisterCallback(napi_env env, napi_callback_info info);
     napi_value OnSetTypeNodeEnabled(napi_env env, napi_callback_info info);
     napi_value OnSetPipNodeType(napi_env env, napi_callback_info info);
-    std::map<std::string, ListenerType> listenerCodeMap_;
-    std::unordered_map<std::string, std::set<sptr<JsPiPWindowListener>>> jsCbMap_;
 };
 } // namespace Rosen
 } // namespace OHOS

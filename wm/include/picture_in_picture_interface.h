@@ -16,7 +16,6 @@
 #ifndef OHOS_PICTURE_IN_PICTURE_INTERFACE_H
 #define OHOS_PICTURE_IN_PICTURE_INTERFACE_H
 
-#include "napi/native_api.h"
 #include "wm_common.h"
 
 namespace OHOS {
@@ -80,16 +79,6 @@ public:
     virtual void OnPipSizeChange(uint32_t controllerId, const PiPWindowSize& size) {}
 };
 
-/**
- * @class IPiPTypeNodeObserver
- *
- * @brief Pip typeNode observer.
- */
-class IPiPTypeNodeObserver : virtual public RefBase {
-public:
-    virtual void OnPipTypeNodeChange(const napi_ref nodeRef) {}
-};
-
 class IPiPStartObserver : virtual public RefBase {
 public:
     // native callback
@@ -98,7 +87,7 @@ public:
 
 class IPiPActiveStatusObserver : virtual public RefBase {
 public:
-    virtual void OnActiveStatusChange(bool status) {}
+    virtual void OnActiveStatusChange(const bool& status) {}
 };
 } // namespace Rosen
 } // namespace OHOS
