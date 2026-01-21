@@ -76,6 +76,16 @@ public:
     }
 };
 
+class TestSystemBarChangedListener : public ISystemBarChangedListener {
+public:
+    int32_t count_ = 0;
+    void OnSystemBarPropertyChange(DisplayId displayId, const SystemBarRegionTints& tints) override
+    {
+        count_++;
+        WLOGI("TestSystemBarChangedListener");
+    };
+};
+
 class WindowManagerImmersiveTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -275,6 +285,25 @@ HWTEST_F(WindowManagerImmersiveTest, UnregisterSystemBarChangedListener01, TestS
 
     instance_->pImpl_->systemBarChangedListenerAgent_ = oldWindowManagerAgent;
     instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
+}
+
+/**
+ * @tc.name: NotifySystemBarChanged
+ * @tc.desc: check NotifySystemBarChanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerImmersiveTest, NotifySystemBarChanged, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, instance_);
+    ASSERT_NE(nullptr, instance_->pImpl_);
+    sptr<TestSystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
+    ASSERT_NE(nullptr, listener);
+    instance_->pImpl_->systemBarChangedListeners_.push_back(listener);
+    
+    SystemBarRegionTints tints;
+    instance_->pImpl_->NotifySystemBarChanged(0, tints);
+    EXPECT_EQ(1, listener->count_);
+    instance_->pImpl_->systemBarChangedListeners_.clear();
 }
 }
 } // namespace
