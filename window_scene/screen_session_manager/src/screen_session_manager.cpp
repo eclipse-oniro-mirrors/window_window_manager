@@ -87,6 +87,7 @@
 #include "zidl/idisplay_manager_agent.h"
 #include "wm_common.h"
 #include "screen_sensor_mgr.h"
+#include "sensor_fold_state_mgr.h"
 #include "fold_screen_base_controller.h"
 
 namespace OHOS::Rosen {
@@ -398,8 +399,10 @@ void ScreenSessionManager::HandleFoldScreenPowerInit()
     TLOGNFI(WmsLogTag::DMS, "Enter");
     if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         foldScreenController_ = new (std::nothrow) DMS::FoldScreenBaseController();
+        DMS::SensorFoldStateMgr::GetInstance().SetTaskScheduler(taskScheduler_)
     } else {
-        foldScreenController_ = new (std::nothrow) FoldScreenController(displayInfoMutex_, screenPowerTaskScheduler_);
+        foldScreenController_ = new (std::nothrow) FoldScreenController(displayInfoMutex_,
+            screenPowerTaskScheduler_, taskScheduler_);
     }
     
     if (!foldScreenController_) {
@@ -11387,7 +11390,6 @@ void ScreenSessionManager::NotifyFoldToExpandCompletion(bool foldToExpand)
     /* Avoid fold to expand process queues */
     if (foldScreenController_ != nullptr) {
         foldScreenController_->SetdisplayModeChangeStatus(false);
-        RunFinishTask();
     }
     sptr<ScreenSession> screenSession = GetDefaultScreenSession();
     if (screenSession == nullptr) {

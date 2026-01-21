@@ -2138,7 +2138,7 @@ HWTEST_F(ScreenSessionManagerTest, LockLandExtendIfScreenInfoNull01, TestSize.Le
 HWTEST_F(ScreenSessionManagerTest, GetOldDisplayModeRotation, TestSize.Level1)
 {
     auto foldController = sptr<FoldScreenController>::MakeSptr(ssm_->displayInfoMutex_,
-        ssm_->screenPowerTaskScheduler_);
+        ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     ASSERT_NE(foldController, nullptr);
     DisplayPhysicalResolution physicalSize_full;
     physicalSize_full.foldDisplayMode_ = FoldDisplayMode::FULL;
@@ -2207,7 +2207,7 @@ HWTEST_F(ScreenSessionManagerTest, SwapScreenWeightAndHeight, TestSize.Level1)
 HWTEST_F(ScreenSessionManagerTest, HandleScreenRotationAndBoundsWhenSetClient, TestSize.Level1)
 {
     auto foldController = sptr<FoldScreenController>::MakeSptr(ssm_->displayInfoMutex_,
-        ssm_->screenPowerTaskScheduler_);
+        ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     ASSERT_NE(foldController, nullptr);
     auto foldPolicy = foldController->GetFoldScreenPolicy(DisplayDeviceType::SINGLE_DISPLAY_DEVICE);
     ASSERT_NE(foldPolicy, nullptr);

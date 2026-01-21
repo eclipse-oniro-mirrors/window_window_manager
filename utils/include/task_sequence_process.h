@@ -16,9 +16,15 @@
 #ifndef TASK_SEQUENCE_PROCESS_H
 #define TASK_SEQUENCE_PROCESS_H
 #include <mutex>
+#include <map>
 #include <queue>
 #include <atomic>
-#include "window_system_timer.h"
+#include <chrono>
+#include <cstdint>
+
+#include "ffrt.h"
+#include "ffrt_timer.h"
+#include "task_scheduler.h"
 
 namespace OHOS::Rosen {
 
@@ -30,33 +36,32 @@ struct TaskInfo {
 
 class TaskSequenceProcess {
 public:
-    explicit TaskSequenceProcess(uint32_t maxQueueSize, uint64_t maxTimeInterval, std::string timerName);
-    explicit TaskSequenceProcess(uint32_t maxQueueSize, uint32_t maxQueueNumber, uint64_t maxTimeInterval,
-        std::string timerName);
+    explicit TaskSequenceProcess(uint32_t maxQueueSize, uint64_t maxTimeInterval);
+    explicit TaskSequenceProcess(uint32_t maxQueueSize, uint32_t maxQueueNumber, uint64_t maxTimeInterval);
     ~TaskSequenceProcess();
     void AddTask(const std::function<void()>& task);
     void AddTask(uint64_t id, const std::function<void()>& task);
     void FinishTask();
+    void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
 
 private:
     bool FindMinSnTaskQueueId(uint64_t& minSnTaskQueueId);
     std::function<void()> PopFromQueue();
     void PushToQueue(uint64_t sn, const TaskInfo& taskInfo);
-    void ExecTask();
-    bool CreateSysTimer();
-    void DestroySysTimer();
     bool StartSysTimer();
-    void StopSysTimer();
+    void ExecTask();
+    void OnTimerTask();
     uint32_t maxQueueSize_ {1};
     uint32_t maxQueueNumber_ {1};
     uint64_t maxTimeInterval_ {1000};
     uint64_t taskTimerId_ {0};
-    std::string timerName_;
     std::map<uint64_t, std::queue<TaskInfo>> taskQueueMap_;
     std::mutex taskQueueMapMutex_;
     std::mutex timerMutex_;
     std::atomic<bool> taskRunningFlag_ {false};
     std::atomic<uint64_t> sn_{0};
-    WindowSysTimer TaskTimer;
+    uint64_t currentTimeMs_ {0};
+    std::unique_ptr<FfrtTimer> cacheTimer_ = nullptr;
+    std::shared_ptr<TaskScheduler> taskScheduler_ = nullptr;
 };
 } //namespace OHOS::Rosen

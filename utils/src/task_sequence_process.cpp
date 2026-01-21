@@ -13,6 +13,7 @@
 * limitations under the License.
 */
 
+#include "ffrt_timer.h"
 #include "task_sequence_process.h"
 #include "window_manager_hilog.h"
 
@@ -26,30 +27,20 @@ constexpr uint32_t DEFAULT_QUEUE_SIZE = 1;
 constexpr uint32_t DEFAULT_QUEUE_NUMBER = 1;
 
 TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize, uint64_t maxTimeInterval, std::string timerName)
-    : maxQueueSize_(maxQueueSize), maxTimeInterval_(maxTimeInterval), timerName_(timerName)
+    : maxQueueSize_(maxQueueSize), maxTimeInterval_(maxTimeInterval)
 {
     maxQueueSize_ = std::max(DEFAULT_QUEUE_SIZE, maxQueueSize);
-    if (!CreateSysTimer()) {
-        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess created fail, maxQueueSize: %{public}u", maxQueueSize_);
-    }
 }
 
 TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize, uint32_t maxQueueNumber, uint64_t maxTimeInterval,
     std::string timerName)
-    : maxQueueSize_(maxQueueSize), maxQueueNumber_(maxQueueNumber), maxTimeInterval_(maxTimeInterval),
-    timerName_(timerName)
+    : maxQueueSize_(maxQueueSize), maxQueueNumber_(maxQueueNumber), maxTimeInterval_(maxTimeInterval)
 {
     maxQueueSize_ = std::max(DEFAULT_QUEUE_SIZE, maxQueueSize);
     maxQueueNumber_ = std::max(DEFAULT_QUEUE_NUMBER, maxQueueNumber);
-    if (!CreateSysTimer()) {
-        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess created fail, maxQueueSize: %{public}u", maxQueueSize_);
-    }
 }
 
-TaskSequenceProcess::~TaskSequenceProcess()
-{
-    DestroySysTimer();
-};
+TaskSequenceProcess::~TaskSequenceProcess() = default;
 
 bool TaskSequenceProcess::FindMinSnTaskQueueId(uint64_t& minSnTaskQueueId)
 {
@@ -74,22 +65,26 @@ bool TaskSequenceProcess::FindMinSnTaskQueueId(uint64_t& minSnTaskQueueId)
 
 std::function<void()> TaskSequenceProcess::PopFromQueue()
 {
+    auto now = std::chrono::system_clock::now();
+    uint64_t startTimeMs = std::chrono::time_point_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     std::lock_guard<std::mutex> lock(taskQueueMapMutex_);
+    if (taskRunningFlag_.load() && startTimeMs > currentTimeMs_ + maxTimeInterval_) {
+        taskRunningFlag_.store(false);
+        if (cacheTimer_ != nullptr) {
+            cacheTimer_->StopTimer();
+        }
+        TLOGI(WmsLogTag::DMS, "task time out");
+    }
+    if (taskRunningFlag_.load()) {
+        TLOGI(WmsLogTag::DMS, "task flag is true");
+        return nullptr;
+    }
     uint64_t queueId = DEFAULT_QUEUE_ID;
     if (!FindMinSnTaskQueueId(queueId)) {
         TLOGE(WmsLogTag::DMS, "TaskSequenceProcess is empty");
         return nullptr;
     }
-    if (taskRunningFlag_.load()) {
-        TLOGI(WmsLogTag::DMS, "TaskSequenceProcess do not pop");
-        return nullptr;
-    }
     std::function<void()> task = taskQueueMap_[queueId].front().task;
-    taskRunningFlag_.store(true);
-    if (!StartSysTimer()) {
-        taskRunningFlag_.store(false);
-        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess do not StartSysTimer succ");
-    }
     taskQueueMap_[queueId].pop();
     return task;
 }
@@ -112,15 +107,7 @@ void TaskSequenceProcess::PushToQueue(uint64_t id, const TaskInfo& taskInfo)
     taskQueueMap_[id].push(taskInfo);
 }
 
-void TaskSequenceProcess::ExecTask()
-{
-    std::function<void()> task = PopFromQueue();
-    if (!task) {
-        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess do not execute");
-        return;
-    }
-    task();
-}
+
 
 void TaskSequenceProcess::AddTask(const std::function<void()>& task)
 {
@@ -139,58 +126,62 @@ void TaskSequenceProcess::AddTask(uint64_t id, const std::function<void()>& task
 void TaskSequenceProcess::FinishTask()
 {
     taskRunningFlag_.store(false);
-    StopSysTimer();
+    if (cacheTimer_ != nullptr) {
+        cacheTimer_->StopTimer();
+    }
+    TLOGW(WmsLogTag::DMS, "finish task");
     ExecTask();
 }
 
-bool TaskSequenceProcess::CreateSysTimer()
+void TaskSequenceProcess::ExecTask()
 {
-    TLOGI(WmsLogTag::DMS, "TaskSequenceProcess CreatSysTimer");
-
-    std::lock_guard<std::mutex> lock(timerMutex_);
-    if (taskTimerId_ != 0) {
-        TLOGW(WmsLogTag::DMS, "TaskTimerId is not zero");
-        return false;
+    std::function<void()> task = PopFromQueue();
+    auto now = std::chrono::system_clock::now();
+    uint64_t currentTimeMs_ = std::chrono::time_point_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    if (!task) {
+        TLOGE(WmsLogTag::DMS, "task do not execute");
+        return;
     }
-    std::shared_ptr<WindowSysTimer> taskSysTimer = std::make_unique<WindowSysTimer>(false, maxTimeInterval_, false);
-    std::function<void()> callback = [this]() {
-        taskRunningFlag_.store(false);
-        ExecTask();
-    };
-    taskSysTimer->SetCallbackInfo(callback);
-    taskSysTimer->SetName(timerName_);
-    taskTimerId_ = MiscServices::TimeServiceClient::GetInstance()->CreateTimer(taskSysTimer);
-
-    return taskTimerId_ ? true : false;
-}
-
-void TaskSequenceProcess::DestroySysTimer()
-{
-    std::lock_guard<std::mutex> lock(timerMutex_);
-    MiscServices::TimeServiceClient::GetInstance()->DestroyTimer(taskTimerId_);
-    taskTimerId_ = 0;
+    taskRunningFlag_.store(true);
+    StartSysTimer();
+    TLOGD(WmsLogTag::DMS, "execute task");
+    task();
 }
 
 bool TaskSequenceProcess::StartSysTimer()
 {
-    std::lock_guard<std::mutex> lock(timerMutex_);
-    if (taskTimerId_ == 0) {
-        TLOGW(WmsLogTag::DMS, "TaskTimerId is zero");
+    if (taskScheduler_ == nullptr) {
+        TLOGW(WmsLogTag::DMS, "taskScheduler is nullptr");
         return false;
     }
-    auto currentTime = MiscServices::TimeServiceClient::GetInstance()->GetBootTimeMs();
-    uint64_t triggerTime = currentTime + maxTimeInterval_;
-    bool result = MiscServices::TimeServiceClient::GetInstance()->StartTimer(taskTimerId_, triggerTime);
-    return result;
+    std::lock_guard<std::mutex> lock(timerMutex_);
+    cacheTimer_ = std::make_unique<FfrtTimer>();
+    cacheTimer_->StartOneShotTimer(maxTimeInterval_, this, [](void *taskSequencePtr) -> void {
+        if (taskSequencePtr != nullptr) {
+            TaskSequenceProcess *taskSequenceProcess = reinterpret_cast<TaskSequenceProcess*>(&taskSequenceProcess);
+            taskSequenceProcess->OnTimerTask();
+            TLOGW(WmsLogTag::DMS, "startTimer time out");
+        } else {
+            TLOGW(WmsLogTag::DMS, "startTimer failed");
+        }
+    });
 }
 
-void TaskSequenceProcess::StopSysTimer()
+void TaskSequenceProcess::OnTimerTask()
 {
-    std::lock_guard<std::mutex> lock(timerMutex_);
-    if (taskTimerId_ == 0) {
-        TLOGW(WmsLogTag::DMS, "TaskSequenceProcess TaskTimerId is zero");
+    auto task = [=] {
+        taskRunningFlag_.store(false);
+        ExecTask();
+    };
+    taskScheduler_->PostAsyncTask(task, "OnTimerTask");
+}
+
+void TaskSequenceProcess::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
+{
+    if (scheduler == nullptr) {
+        TLOGW(WmsLogTag::DMS, "invalid scheduler pointer");
         return;
     }
-    MiscServices::TimeServiceClient::GetInstance()->StopTimer(taskTimerId_);
+    taskScheduler_ = scheduler;
 }
 } // namespace OHOS::Rosen

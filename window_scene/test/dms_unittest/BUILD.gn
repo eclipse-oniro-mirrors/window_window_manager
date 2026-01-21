@@ -188,6 +188,12 @@ ohos_unittest("ws_screen_session_manager_lite_test") {
 
   sources = [ "screen_session_manager_lite_test.cpp" ]
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
   deps = [
     ":ws_unittest_common",
     "${window_base_path}/dm_lite:libdm_lite",
@@ -269,6 +275,12 @@ ohos_unittest("ws_screen_session_test") {
   include_dirs = [ "${window_base_path}/window_scene/session/screen/include" ]
   sources = [ "screen_session_test.cpp" ]
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
   deps = [
     ":ws_unittest_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
@@ -321,6 +333,12 @@ ohos_unittest("ws_screen_session_ability_connection_test") {
 
   include_dirs = [ "${window_base_path}/window_scene/session/screen/include" ]
   sources = [ "screen_session_ability_connection_test.cpp" ]
+  
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
 
   deps = [
     ":ws_unittest_common",
@@ -427,6 +445,12 @@ ohos_unittest("ws_screen_session_manager_client_proxy_test") {
     "screen_session_manager_client_proxy_test.cpp"
   ]
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
   include_dirs = [ "../mock" ]
 
   deps = [ ":ws_unittest_common" ]
@@ -449,6 +473,12 @@ ohos_unittest("ws_screen_session_manager_client_test") {
 
   sources = [ "screen_session_manager_client_test.cpp" ]
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
   deps = [
     ":ws_unittest_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
@@ -466,6 +496,12 @@ ohos_unittest("ws_screen_session_manager_lite_proxy_mock_test") {
     "screen_session_manager_lite_proxy_mock_test.cpp",
     "${window_base_path}/window_scene/screen_session_manager/src/zidl/screen_session_manager_lite_proxy.cpp",
   ]
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
 
   include_dirs = [ "../mock" ]
 
@@ -521,6 +557,12 @@ ohos_unittest("ws_screen_session_manager_proxy_test") {
     "../mock/mock_message_parcel.cpp",
     "screen_session_manager_proxy_test.cpp",
   ]
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
 
   include_dirs = [ "../mock" ]
 
@@ -620,6 +662,11 @@ ohos_unittest("ws_screen_session_manager_test_two") {
     "screen_session_manager_test_two.cpp" 
   ]
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
 
   deps = [ ":ws_unittest_common" ]
 
@@ -1127,6 +1174,12 @@ if (window_manager_fold_ability) {
 
     sources = [ "single_display_fold_policy_test.cpp" ]
 
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+
     deps = [ ":ws_unittest_common" ]
 
     external_deps = test_external_deps
@@ -1243,6 +1296,12 @@ if (window_manager_fold_ability) {
     module_out_path = module_out_path
 
     sources = [ "fold_screen_state_machine_test.cpp" ]
+
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
 
     deps = [ ":ws_unittest_common" ]
 
@@ -1372,6 +1431,12 @@ if (window_manager_fold_ability) {
 
     sources = [ "screen_sensor_mgr_test.cpp" ]
 
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+
     deps = [
       ":ws_unittest_common",
     ]
@@ -1420,6 +1485,12 @@ if (window_manager_fold_ability) {
 
     sources = [ "fold_screen_base_policy_test.cpp" ]
 
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+
     deps = [
       ":ws_unittest_common",
     ]
@@ -1444,6 +1515,12 @@ if (window_manager_fold_ability) {
 
     sources = [ "fold_screen_base_controller_test.cpp" ]
 
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+    
     deps = [
       ":ws_unittest_common",
     ]
