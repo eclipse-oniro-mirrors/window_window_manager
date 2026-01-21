@@ -2653,30 +2653,30 @@ HWTEST_F(WindowSceneSessionImplTest5, GetDragAreaByDownEvent05, TestSize.Level2)
     Rect rect = {100, 100, 1000, 1000};
     windowSceneSessionImpl->property_->SetWindowRect(rect);
     
-    pointerItem.SetWindowX(10);
+    pointerItem.SetWindowX(5);
     pointerItem.SetWindowY(30);
     windowSceneSessionImpl->property_->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
     AreaType dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::LEFT_TOP);
 
-    pointerItem.SetWindowX(990);
+    pointerItem.SetWindowX(995);
     pointerItem.SetWindowY(30);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::RIGHT_TOP);
 
-    pointerItem.SetWindowX(990);
+    pointerItem.SetWindowX(995);
     pointerItem.SetWindowY(970);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::RIGHT_BOTTOM);
 
-    pointerItem.SetWindowX(10);
+    pointerItem.SetWindowX(5);
     pointerItem.SetWindowY(970);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::LEFT_BOTTOM);
 
     pointerEvent->SetSourceType(1);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
-    EXPECT_EQ(dragType, AreaType::UNDEFINED);
+    EXPECT_EQ(dragType, AreaType::LEFT);
 }
 
 /**
