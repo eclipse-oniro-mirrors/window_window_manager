@@ -31,6 +31,7 @@
 #include "extension/extension_business_info.h"
 #include "fold_screen_state_internel.h"
 #include "input_transfer_station.h"
+#include "rate_limited_logger.h"
 #include "rs_adapter.h"
 #include "screen_session_manager_client.h"
 #include "singleton.h"
@@ -350,7 +351,7 @@ WMError RootScene::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea, 
         return WMError::WM_DO_NOTHING;
     }
     avoidArea = getSessionAvoidAreaByTypeCallback_(type, false);
-    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetWindowId(), WmsLogTag::WMS_IMMS,
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
         "root scene type %{public}u area %{public}s", type, avoidArea.ToString().c_str());
     return WMError::WM_OK;
 }

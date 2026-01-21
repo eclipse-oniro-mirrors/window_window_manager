@@ -3155,9 +3155,9 @@ WMError WindowSceneSessionImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea
     };
     avoidArea = hostSession->GetAvoidAreaByType(type, sessionRect, apiVersion);
     getAvoidAreaCnt_++;
-    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetWindowId(), WmsLogTag::WMS_IMMS,
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
         "win %{public}u type %{public}d times %{public}u area %{public}s",
-        GetWindowId(), GetWindowName().c_str(), type, getAvoidAreaCnt_.load(), avoidArea.ToString().c_str());
+        GetWindowId(), type, getAvoidAreaCnt_.load(), avoidArea.ToString().c_str());
     return WMError::WM_OK;
 }
 
@@ -3385,8 +3385,8 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
-        TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetWindowId(), WmsLogTag::WMS_IMMS,
-            "update prop to win %{public}u statusBar: %{public}u %{public}x %{public}x %{public}u %{public}u",
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
+            "win %{public}u statusBar: %{public}u %{public}x %{public}x %{public}u %{public}u",
             GetWindowId(), property.enable_, property.backgroundColor_, property.contentColor_,
             property.enableAnimation_, property.settingFlag_);
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_STATUS_PROPS);
@@ -3404,8 +3404,7 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_PROPS);
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {
-        TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetWindowId(), WmsLogTag::WMS_IMMS,
-            "update prop to win %{public}u aiBar: %{public}u %{public}u",
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "win %{public}u aiBar: %{public}u %{public}u",
             GetWindowId(),property.enable_, property.enableAnimation_);
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_INDICATOR_PROPS);
     }
@@ -3655,7 +3654,8 @@ WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std
             nowsystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::ENABLE_SETTING;
         }
         newProperty = nowsystemBarPropertyMap_[type];
-        TLOGI(WmsLogTag::WMS_IMMS, "option:%{public}d, enable:%{public}d, enableAnimation:%{public}d",
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
+            "option:%{public}d, enable:%{public}d, enableAnimation:%{public}d",
             property == std::nullopt, nowsystemBarPropertyMap_[type].enable_,
             nowsystemBarPropertyMap_[type].enableAnimation_);
     }

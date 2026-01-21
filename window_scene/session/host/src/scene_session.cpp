@@ -2795,6 +2795,7 @@ void SceneSession::PrintAvoidAreaInfo(DisplayId displayId,
 void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
     const WSRect& winRect, const WSRect& avoidRect, AvoidArea& avoidArea)
 {
+    auto displayId = GetSessionProperty()->GetDisplayId();
     float scaleX = DEFAULT_SCALE;
     float scaleY = DEFAULT_SCALE;
     if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
@@ -2808,7 +2809,6 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
             avoidRect.ToString().c_str(), scaleX, scaleY);
         CalculateAvoidAreaRect(winRectF, avoidRectF, avoidArea);
     } else {
-        auto displayId = GetSessionProperty()->GetDisplayId();
         PrintAvoidAreaInfo(displayId, type, winRect, avoidRect);
         CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
         lastAvoidAreaInputParamtersMap_[type] = std::make_tuple(displayId, winRect, avoidRect);
