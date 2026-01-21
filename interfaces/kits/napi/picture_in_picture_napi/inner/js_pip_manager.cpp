@@ -354,7 +354,7 @@ WmErrorCode JsPipManager::RegisterListenerWithType(napi_env env, const std::stri
     }
     WmErrorCode ret = RegisterListener(type, pipWindowListener);
     if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_PIP, "Register type %{public}s failed", type.c_str());
+        TLOGE(WmsLogTag::WMS_PIP, "register type %{public}s failed", type.c_str());
         return ret;
     }
     TLOGI(WmsLogTag::WMS_PIP, "Register type %{public}s success! callback map size: %{public}zu",
@@ -363,7 +363,7 @@ WmErrorCode JsPipManager::RegisterListenerWithType(napi_env env, const std::stri
 }
 
 WmErrorCode JsPipManager::RegisterListener(const std::string& type,
-                                           const sptr<JsPiPWindowListener>& pipWindowListener)
+                                           const sptr <JsPiPWindowListener>& pipWindowListener)
 {
     sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
     if (pipWindow == nullptr) {
@@ -379,12 +379,12 @@ WmErrorCode JsPipManager::RegisterListener(const std::string& type,
     jsCbMap_[type].insert(pipWindowListener);
     switch (listenerCodeMap_[type]) {
         case ListenerType::STATE_CHANGE_CB: {
-            sptr<IPiPLifeCycle> lifeCycleListener(pipWindowListener);
+            sptr <IPiPLifeCycle> lifeCycleListener(pipWindowListener);
             pipController->RegisterPiPLifecycle(lifeCycleListener);
             break;
         }
         case ListenerType::UPDATE_TYPE_CB: {
-            sptr<IPiPTypeNodeObserver> typeNodeChangeObserver(pipWindowListener);
+            sptr <IPiPTypeNodeObserver> typeNodeChangeObserver(pipWindowListener);
             pipController->RegisterPiPTypeNodeChange(typeNodeChangeObserver);
             break;
         }
@@ -496,7 +496,7 @@ WmErrorCode JsPipManager::UnRegisterListener(const std::string& type,
     }
     switch (listenerCodeMap_[type]) {
         case ListenerType::STATE_CHANGE_CB: {
-            sptr<IPiPLifeCycle> lifeCycleListener(pipWindowListener);
+            sptr <IPiPLifeCycle> lifeCycleListener(pipWindowListener);
             pipController->UnregisterPiPLifecycle(lifeCycleListener);
             break;
         }

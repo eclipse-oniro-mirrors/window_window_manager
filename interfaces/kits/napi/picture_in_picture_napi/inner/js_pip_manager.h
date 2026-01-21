@@ -39,9 +39,9 @@ public:
     static napi_value SetTypeNodeEnabled(napi_env env, napi_callback_info info);
     static napi_value SetPipNodeType(napi_env env, napi_callback_info info);
     bool IfCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject);
-    WmErrorCode RegisterListener(const std::string &type, const sptr<JsPiPWindowListener> &pipWindowListener);
+    WmErrorCode RegisterListener(const std::string &type, const sptr <JsPiPWindowListener> &pipWindowListener);
     WmErrorCode RegisterListenerWithType(napi_env env, const std::string& type, napi_value value);
-    WmErrorCode UnRegisterListener(const std::string &type, const sptr<JsPiPWindowListener> &pipWindowListener);
+    WmErrorCode UnRegisterListener(const std::string &type, const sptr <JsPiPWindowListener> &pipWindowListener);
     WmErrorCode UnRegisterListenerWithType(napi_env env, const std::string& type, napi_value value);
 private:
     enum class ListenerType : uint32_t {
