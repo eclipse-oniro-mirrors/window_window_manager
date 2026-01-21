@@ -1614,7 +1614,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     }
 
     UpdateSessionState(SessionState::STATE_FOREGROUND);
-    if (!isActive_ || (isActive_ && GetSessionInfo().reuseDelegatorWindow)) {
+    if (!isActive_ || GetSessionInfo().reuseDelegatorWindow) {
         SetActive(true);
     }
     isStarting_ = false;
