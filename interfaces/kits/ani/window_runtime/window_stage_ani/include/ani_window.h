@@ -47,7 +47,6 @@ public:
 
     /* window obj stored in ANI */
     static AniWindow* GetWindowObjectFromEnv(ani_env* env, ani_object obj);
-    static void ThrowIfWindowInvalid(ani_env* env, ani_object obj, ani_long nativeObj);
 
     static void SetWindowColorSpace(ani_env* env, ani_object obj, ani_long nativeObj, ani_int colorSpace);
     static void SetPreferredOrientation(ani_env* env, ani_object obj, ani_long nativeObj, ani_int orientation);
