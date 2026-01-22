@@ -13788,7 +13788,7 @@ void DisplayChangeListener::OnScreenshot(DisplayId displayId)
 
 void SceneSessionManager::OnScreenshot(DisplayId displayId)
 {
-    taskScheduler_->PostAsyncTask([this, displayId]() {
+    taskScheduler_->PostAsyncTask([this, displayId, where = __func__]() {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (const auto& [_, sceneSession] : sceneSessionMap_) {
             if (sceneSession == nullptr) {
@@ -13803,9 +13803,9 @@ void SceneSessionManager::OnScreenshot(DisplayId displayId)
                     useParentState = true;
                 }
             }
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE,
-                "%{public}s: win=[%{public}d, %{public}s], state=%{public}u, fromParent=%{public}d",
-                where, sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), state, useParentState);
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], displayId=%{public}" PRIu64
+                ", state=%{public}u, useParentState=%{public}d", where, sceneSession->GetWindowId(),
+                sceneSession->GetWindowName().c_str(), displayId, state, useParentState);
             if (state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE) {
                 sceneSession->NotifyScreenshot();
             }
