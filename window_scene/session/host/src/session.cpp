@@ -64,7 +64,7 @@ constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_ONECE = 1;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_TWICE = 2;
 constexpr double KILOBYTE = 1024.0;
 constexpr float DEFAULT_BLUR_RADIUS = 80.0f;
-constexpr std::string DEFAULT_BLUR_BACKGROUND_COLOR = "#34000000";
+const std::string DEFAULT_BLUR_BACKGROUND_COLOR = "#34000000";
 
 const std::map<SessionState, bool> ATTACH_MAP = {
     { SessionState::STATE_DISCONNECT, false },
