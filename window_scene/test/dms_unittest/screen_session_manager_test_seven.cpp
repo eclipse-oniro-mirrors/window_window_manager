@@ -1135,21 +1135,6 @@ HWTEST_F(ScreenSessionManagerTest, PhyMirrorConnectWakeupScreen, TestSize.Level1
 }
 
 /**
- * @tc.name: GetIsCurrentInUseById01
- * @tc.desc: GetIsCurrentInUseById01
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, GetIsCurrentInUseById01, Function | SmallTest | Level3)
-{
-    ScreenSessionManager* ssm = new ScreenSessionManager();
-    ASSERT_NE(ssm, nullptr);
-    
-    ScreenId screenId = 50;
-    auto res = ssm->GetIsCurrentInUseById(screenId);
-    ASSERT_EQ(false, res);
-}
-
-/**
  * @tc.name: ConfigureScreenScene
  * @tc.desc: ConfigureScreenScene test
  * @tc.type: FUNC
@@ -1235,6 +1220,21 @@ HWTEST_F(ScreenSessionManagerTest, NotifyCoordinationReadyCV, TestSize.Level1)
     ssm_->NotifyCoordinationReadyCV();
     waitThread.join();
     EXPECT_FALSE(ssm_->GetWaitingForCoordinationReady());
+}
+
+/**
+ * @tc.name: GetIsCurrentInUseById01
+ * @tc.desc: GetIsCurrentInUseById01
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetIsCurrentInUseById01, Function | SmallTest | Level3)
+{
+    ScreenSessionManager* ssm = new ScreenSessionManager();
+    ASSERT_NE(ssm, nullptr);
+    
+    ScreenId screenId = 50;
+    auto res = ssm->GetIsCurrentInUseById(screenId);
+    ASSERT_EQ(false, res);
 }
 }
 } // namespace Rosen
