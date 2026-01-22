@@ -18981,28 +18981,30 @@ void SceneSessionManager::RegisterSceneSessionDestructNotifyManagerFunc(const sp
     });
 }
 
-void SceneSessionManager::RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
+WSError SceneSessionManager::RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     sceneSession->SetSessionPropertyChangeNotifyManagerListener(
         [this](int32_t persistentId, WindowInfoKey windowInfoKey) {
         NotifySessionPropertyChangeFromSession(persistentId, windowInfoKey);
     });
+    return WSError::WS_OK;
 }
 
-void SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey)
+WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "persistentId: %{public}d, windowInfoKey: %{public}u",
         persistentId, static_cast<uint32_t>(windowInfoKey));
     sptr<SceneSession> sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "sceneSession nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     NotifyWindowPropertyChangeByWindowInfoKey(sceneSession, windowInfoKey);
+    return WSError::WS_OK;
 }
 
 void SceneSessionManager::ConfigSupportZLevel()
