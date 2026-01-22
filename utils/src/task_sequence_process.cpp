@@ -26,14 +26,13 @@ constexpr uint64_t DEFAULT_TASK_SN = 0;
 constexpr uint32_t DEFAULT_QUEUE_SIZE = 1;
 constexpr uint32_t DEFAULT_QUEUE_NUMBER = 1;
 
-TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize, uint64_t maxTimeInterval, std::string timerName)
+TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize, uint64_t maxTimeInterval)
     : maxQueueSize_(maxQueueSize), maxTimeInterval_(maxTimeInterval)
 {
     maxQueueSize_ = std::max(DEFAULT_QUEUE_SIZE, maxQueueSize);
 }
 
-TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize, uint32_t maxQueueNumber, uint64_t maxTimeInterval,
-    std::string timerName)
+TaskSequenceProcess::TaskSequenceProcess(uint32_t maxQueueSize, uint32_t maxQueueNumber, uint64_t maxTimeInterval)
     : maxQueueSize_(maxQueueSize), maxQueueNumber_(maxQueueNumber), maxTimeInterval_(maxTimeInterval)
 {
     maxQueueSize_ = std::max(DEFAULT_QUEUE_SIZE, maxQueueSize);
@@ -66,7 +65,7 @@ bool TaskSequenceProcess::FindMinSnTaskQueueId(uint64_t& minSnTaskQueueId)
 std::function<void()> TaskSequenceProcess::PopFromQueue()
 {
     auto now = std::chrono::system_clock::now();
-    uint64_t startTimeMs = std::chrono::time_point_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    uint64_t startTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     std::lock_guard<std::mutex> lock(taskQueueMapMutex_);
     if (taskRunningFlag_.load() && startTimeMs > currentTimeMs_ + maxTimeInterval_) {
         taskRunningFlag_.store(false);
@@ -137,7 +136,7 @@ void TaskSequenceProcess::ExecTask()
 {
     std::function<void()> task = PopFromQueue();
     auto now = std::chrono::system_clock::now();
-    uint64_t currentTimeMs_ = std::chrono::time_point_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    uint64_t currentTimeMs_ = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     if (!task) {
         TLOGE(WmsLogTag::DMS, "task do not execute");
         return;

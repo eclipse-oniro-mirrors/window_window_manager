@@ -49,7 +49,7 @@ public:
 
     void StartOneShotTimer(uint64_t interval, void *data, void (*taskFun)(void *))
     {
-        StopPro();
+        StopTimer();
         timer_ = ffrt_timer_start(ffrt_qos_default, interval, data, taskFun, false);
     }
 
