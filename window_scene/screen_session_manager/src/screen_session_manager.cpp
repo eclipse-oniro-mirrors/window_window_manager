@@ -1843,6 +1843,7 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
     HandlePCScreenDisconnect(screenSession);
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorDisconnect(screenSession, screenId, phyMirrorEnable);
+    HandleMapWhenScreenDisconnect(screenId);
     if (IsConcurrentUser()) {
         DisplayId displayId = screenSession->GetDisplayId();
         std::map<DisplayId, std::map<int32_t, UserInfo>> tempMap;
@@ -1882,7 +1883,6 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
     SetIsPhysicalExtendScreenConnected(false);
     SetExpandAndHorizontalLocked(false);
 #endif
-    HandleMapWhenScreenDisconnect(screenId);
     if (g_isPcDevice) {
         ScreenCombination screenCombination = screenSession->GetScreenCombination();
         ReportHandleScreenEvent(ScreenEvent::DISCONNECTED, screenCombination);
