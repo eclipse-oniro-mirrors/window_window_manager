@@ -7887,7 +7887,7 @@ void WindowSceneSessionImpl::SendLogicalDeviceConfigToArkUI()
         TLOGI(WmsLogTag::WMS_COMPAT, "Logical device config has already sent");
         return;
     }
-    // Ace::UIContent::SetXComponentCompensationAngle(property_->GetLogicalDeviceConfig());
+    Ace::UIContent::SetXComponentCompensationAngle(property_->GetLogicalDeviceConfig());
     WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = true;
     if (property_->GetLogicalDeviceConfig() == "") {
         TLOGI(WmsLogTag::WMS_COMPAT, "Send default logical device config to arkui");
