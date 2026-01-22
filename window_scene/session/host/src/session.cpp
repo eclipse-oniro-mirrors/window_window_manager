@@ -1618,7 +1618,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
         std::string info = oss.str();
         int32_t ret = HiSysEventWrite(
             OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
-            "WINDOW_LIFECYCLE_CONTROL_ERROR",
+            "WINDOW_LIFE_CYCLE_EXCEPTION",
             OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
             "PID", getpid(),
             "UID", getuid(),
