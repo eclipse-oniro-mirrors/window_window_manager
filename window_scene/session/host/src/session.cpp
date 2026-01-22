@@ -2958,7 +2958,7 @@ float Session::GetBlurRadiusFromParam(std::string snapshotMaskParam) const
     }
     std::string blurRadiusStr = snapshotMaskParam.substr(bar + 1);
     float BlurRadius = std::stof(blurRadiusStr);
-    return BlurRadius >= 0 ? BlurRadius : MAX_BLUR_RADIUS;
+    return BlurRadius >= 0 ? BlurRadius : DEFAULT_BLUR_RADIUS;
 }
 
 uint32_t Session::GetBlurBackgroundColorFromParam(std::string snapshotMaskParam) const
