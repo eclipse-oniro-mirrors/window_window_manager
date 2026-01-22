@@ -2981,7 +2981,7 @@ uint32_t Session::GetBlurBackgroundColorFromParam(std::string snapshotMaskParam)
            (blurBackgroundColorStr[i] >= 'A' && blurBackgroundColorStr[i] <= 'F')) {
                 TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurBackgroundColorStr: %{public}s",
                     blurBackgroundColorStr.c_str());
-                return DEFAULT_BLUR_BACKGROUND_COLOR;
+                return DEFAULT_BLUR_BACKGROUND_COLOR;  
            }
     }
     uint32_t blurBackgroundColor = static_cast<uint32_t>(std::stoul(blurBackgroundColorStr, nullptr, 16));
