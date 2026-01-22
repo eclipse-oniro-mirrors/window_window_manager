@@ -145,11 +145,11 @@ void TaskSequenceProcess::ExecTask()
     task();
 }
 
-bool TaskSequenceProcess::StartSysTimer()
+void TaskSequenceProcess::StartSysTimer()
 {
     if (taskScheduler_ == nullptr) {
         TLOGW(WmsLogTag::DMS, "taskScheduler is nullptr");
-        return false;
+        return;
     }
     std::lock_guard<std::mutex> lock(timerMutex_);
     cacheTimer_ = std::make_unique<FfrtTimer>();

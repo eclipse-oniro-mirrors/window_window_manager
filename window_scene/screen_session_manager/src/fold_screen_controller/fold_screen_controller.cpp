@@ -67,11 +67,11 @@ FoldScreenController::FoldScreenController(std::recursive_mutex& displayInfoMute
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
         SecondaryFoldSensorManager::GetInstance().SetFoldScreenPolicy(foldScreenPolicy_);
         SecondaryFoldSensorManager::GetInstance().SetSensorFoldStateManager(sensorFoldStateManager_);
-        SecondaryFoldSensorManager::GetInstance().SetSensorFoldStateManager(taskScheduler_);
+        SecondaryFoldSensorManager::GetInstance().SetTaskScheduler(taskScheduler_);
     } else {
         FoldScreenSensorManager::GetInstance().SetFoldScreenPolicy(foldScreenPolicy_);
         FoldScreenSensorManager::GetInstance().SetSensorFoldStateManager(sensorFoldStateManager_);
-        FoldScreenSensorManager::GetInstance().SetSensorFoldStateManager(taskScheduler_);
+        FoldScreenSensorManager::GetInstance().SetTaskScheduler(taskScheduler_);
     }
 #endif
 }

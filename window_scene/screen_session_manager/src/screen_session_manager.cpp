@@ -399,7 +399,7 @@ void ScreenSessionManager::HandleFoldScreenPowerInit()
     TLOGNFI(WmsLogTag::DMS, "Enter");
     if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         foldScreenController_ = new (std::nothrow) DMS::FoldScreenBaseController();
-        DMS::SensorFoldStateMgr::GetInstance().SetTaskScheduler(taskScheduler_)
+        DMS::SensorFoldStateMgr::GetInstance().SetTaskScheduler(taskScheduler_);
     } else {
         foldScreenController_ = new (std::nothrow) FoldScreenController(displayInfoMutex_,
             screenPowerTaskScheduler_, taskScheduler_);

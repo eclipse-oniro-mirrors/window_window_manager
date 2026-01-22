@@ -103,7 +103,7 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, float angl
             FinishTaskSequence();
         }
     };
-    taskProcess_.AddTask(task);
+    taskProcess_->AddTask(task);
 }
 
 void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, const std::vector<float> &angles,
@@ -174,13 +174,13 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, const std:
             taskScheduler->PostAsyncTask(task, "secondaryFoldStatusChange");
         }
     };
-    taskProcess_.AddTask(event);
+    taskProcess_->AddTask(event);
 }
 
 void SensorFoldStateManager::FinishTaskSequence()
 {
     TLOGI(WmsLogTag::DMS, "TaskSequenceProcess SensorFoldStateManager::FinishTaskSequence");
-    taskProcess_.FinishTask();
+    taskProcess_->FinishTask();
 }
 
 void SensorFoldStateManager::ProcessNotifyFoldStatusChange(FoldStatus currentStatus, FoldStatus nextStatus,

@@ -233,13 +233,13 @@ void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
             FinishTaskSequence();
         }
     };
-    taskProcess_.AddTask(task);
+    taskProcess_->AddTask(task);
 }
 
 void SensorFoldStateMgr::FinishTaskSequence()
 {
     TLOGI(WmsLogTag::DMS, "TaskSequenceProcess SensorFoldStateMgr::FinishTaskSequence");
-    taskProcess_.FinishTask();
+    taskProcess_->FinishTask();
 }
 
 void SensorFoldStateMgr::UpdateFoldAlgorithmStrategy(const std::vector<ScreenAxis>& axis)
