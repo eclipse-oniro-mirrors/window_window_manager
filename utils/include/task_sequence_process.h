@@ -65,3 +65,4 @@ private:
     std::shared_ptr<TaskScheduler> taskScheduler_ = nullptr;
 };
 } //namespace OHOS::Rosen
+#endif

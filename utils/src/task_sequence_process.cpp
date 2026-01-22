@@ -106,8 +106,6 @@ void TaskSequenceProcess::PushToQueue(uint64_t id, const TaskInfo& taskInfo)
     taskQueueMap_[id].push(taskInfo);
 }
 
-
-
 void TaskSequenceProcess::AddTask(const std::function<void()>& task)
 {
     PushToQueue(DEFAULT_QUEUE_ID, {DEFAULT_TASK_SN, task});
