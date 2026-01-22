@@ -2667,7 +2667,7 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
 bool WindowSessionImpl::NeedShowDecorInOtherDisplay(bool decorVisible)
 {
     DisplayId displayId = property_->GetDisplayId();
-    auto display = SingletonContainer::Get().GetDisplayById(displayId);
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(displayId);
     if (display != nullptr && (display->GetName() == "HiCar" || display->GetName() == "SuperLauncher" ||
         display->GetName() == "PadWithCar")) {
         return false;
