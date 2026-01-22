@@ -1967,12 +1967,12 @@ HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsPhoneOrNot, 
     window->property_->SetDragEnabled(true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+    EXPECT_EQ(window->property_->GetDragEnabled(), false);
 
     window->property_->SetDragEnabled(true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), true);
+    EXPECT_EQ(window->property_->GetDragEnabled(), true);
 }
 
 /**
@@ -1993,12 +1993,12 @@ HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsPcOrNot, Tes
     window->property_->SetDragEnabled(true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+    EXPECT_EQ(window->property_->GetDragEnabled(), false);
 
     window->property_->SetDragEnabled(true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), true);
+    EXPECT_EQ(window->property_->GetDragEnabled(), true);
 }
 
 /**
@@ -2019,12 +2019,12 @@ HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsPadOrNot, Te
     window->property_->SetDragEnabled(true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+    EXPECT_EQ(window->property_->GetDragEnabled(), false);
 
     window->property_->SetDragEnabled(true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), true);
+    EXPECT_EQ(window->property_->GetDragEnabled(), true);
 }
 
 /**
