@@ -2621,6 +2621,7 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
         if (mode == WindowMode::WINDOW_MODE_FULLSCREEN && property_->IsDecorFullscreenDisabled()) {
             decorVisible = false;
         }
+        decorVisible = NeedShowDecorInOtherDisplay(decorVisible);
         uiContent->UpdateDecorVisible(decorVisible, isDecorEnable);
         return;
     }
@@ -2654,6 +2655,7 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
             if (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN && property_->IsDecorFullscreenDisabled()) {
                 decorVisible = false;
             }
+            decorVisible = NeedShowDecorInOtherDisplay(decorVisible);
             TLOGI(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d, id: %{public}d", decorVisible, GetPersistentId());
             uiContent->UpdateDecorVisible(decorVisible, IsDecorEnable());
             uiContent->NotifyWindowMode(mode);
@@ -2662,7 +2664,16 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
     }
 }
 
-bool Need
+bool WindowSessionImpl::NeedShowDecorInOtherDisplay(bool decorVisible)
+{
+    DisplayId displayId = property_->GetDisplayId();
+    auto display = SingletonContainer::Get().GetDisplayById(displayId);
+    if (display != nullptr && (display->GetName() == "HiCar" || display->GetName() == "SuperLauncher" ||
+        display->GetName() == "PadWithCar")) {
+        return false;
+    }
+    return decorVisible;
+}
 
 /** @note @window.layout */
 void WindowSessionImpl::NotifyModeChange(WindowMode mode, bool hasDeco)

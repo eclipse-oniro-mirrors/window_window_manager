@@ -1637,7 +1637,40 @@ HWTEST_F(WindowSessionImplTest3, UpdateSubWindowStateWithOptions, Function | Sma
     ASSERT_EQ(subwindow3->state_, WindowState::STATE_SHOWN);
 }
 
-//
+/**
+ * @tc.name: NeedShowDecorInOtherDisplay
+ * @tc.desc: NeedShowDecorInOtherDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, NeedShowDecorInOtherDisplay, Function | SmallTest | Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NeedShowDecorInOtherDisplay");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(PERSISTENT_ID_ONE);
+    ASSERT_NE(window, nullptr);
+    window->UpdateDisplayId(0);
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(window->property_->GetDisplayId());
+    ASSERT_NE(display, nullptr);
+    sptr<DisplayInfo> displayInfo = display->GetDisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+
+    displayInfo->name_ = "HiCar";
+    bool decorVisible = true;
+    decorVisible = window->NeedShowDecorInOtherDisplay(decorVisible);
+    EXPECT_FALSE(decorVisible);
+ 
+    displayInfo->name_ = "SuperLauncher";
+    decorVisible = true;
+    decorVisible = window->NeedShowDecorInOtherDisplay(decorVisible);
+    EXPECT_FALSE(decorVisible);
+ 
+    displayInfo->name_ = "PadWithCar";
+    decorVisible = true;
+    decorVisible = window->NeedShowDecorInOtherDisplay(decorVisible);
+    EXPECT_FALSE(decorVisible);
+    window->Destroy();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
