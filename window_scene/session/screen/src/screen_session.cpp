@@ -1334,9 +1334,11 @@ void ScreenSession::UpdatePropertyAfterRotation(RRect bounds, int rotation, Fold
         }
     }
     {
+        Rotation deviceRotation = property_.GetDeviceRotation();
+        RemoveRotationCorrection(deviceRotation, foldDisplayMode);
         AutoRSTransaction trans(GetRSUIContext());
         std::shared_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
-        displayNode_->SetScreenRotation(static_cast<uint32_t>(property_.GetDeviceRotation()));
+        displayNode_->SetScreenRotation(static_cast<uint32_t>(deviceRotation));
     }
     TLOGI(WmsLogTag::DMS, "bounds:[%{public}f %{public}f %{public}f %{public}f],rotation:%{public}d,\
         displayOrientation:%{public}u, foldDisplayMode:%{public}u",
