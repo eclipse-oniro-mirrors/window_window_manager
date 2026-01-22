@@ -480,7 +480,7 @@ public:
     void OnFoldScreenChange(sptr<ScreenSession>& screenSession);
     void OnFoldStatusChange(bool isSwitching);
     void SetCoordinationFlag(bool isCoordinationFlag);
-    bool GetCoordinationFlag(void);
+    bool GetCoordinationFlag();
     void WaitForCoordinationReady();
     void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady)
     {
