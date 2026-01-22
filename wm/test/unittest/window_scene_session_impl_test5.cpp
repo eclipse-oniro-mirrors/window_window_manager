@@ -1097,6 +1097,25 @@ HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory, TestSize.Leve
 }
 
 /**
+ * @tc.name: UpdateStatusBarColorHistory_2
+ * @tc.desc: UpdateStatusBarColorHistory_2 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory_2, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateStatusBarColorHistory");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto reason = StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+    reason = StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION;
+    std::optional<uint32_t> op;
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, op), 1);
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+}
+
+/**
  * @tc.name: SetSystemBarPropertyForPage
  * @tc.desc: SetSystemBarPropertyForPage
  * @tc.type: FUNC
