@@ -512,7 +512,7 @@ private:
         const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag) override;
     WMError updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty);
     std::mutex nowsystemBarPropertyMapMutex_;
-    std::unordered_map<WindowType, SystemBarProperty> nowsystemBarPropertyMap_;
+    std::unordered_map<WindowType, SystemBarProperty> nowSystemBarPropertyMap_;
     bool isAtomicServiceUseColor_ = false;
     bool isNavigationUseColor_ = false;
     std::stack<StatusBarColorConfigPair> statusBarColorHistory_;

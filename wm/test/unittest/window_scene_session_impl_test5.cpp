@@ -1065,7 +1065,7 @@ HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarPropertyForPage, TestSize.L
         window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
     window->state_ = WindowState::STATE_SHOWN;
     EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    window->nowsystemBarPropertyMap_[type] = systemBarProperty;
+    window->nowSystemBarPropertyMap_[type] = systemBarProperty;
     EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
     systemBarPropertyFlag = { true, false, false, false };
     EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
@@ -1184,7 +1184,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForNavigation, TestSize.L
     EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
     auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
     EXPECT_EQ(window->SetStatusBarColorForNavigation(std::optional<uint32_t>(1)), WMError::WM_OK);
-    EXPECT_EQ(window->nowsystemBarPropertyMap_[type].contentColor_), 1);
+    EXPECT_EQ(window->nowSystemBarPropertyMap_[type].contentColor_), 1);
     EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
     EXPECT_EQ(window->isNavigationUseColor_, false);
 }
@@ -1200,7 +1200,7 @@ HWTEST_F(WindowSceneSessionImplTest5, GetSystemBarProperties, TestSize.Level1)
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     std::map<WindowType, SystemBarProperty> properties;
     EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-    window->nowsystemBarPropertyMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
+    window->nowSystemBarPropertyMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
     EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
 }
 
