@@ -1950,6 +1950,84 @@ HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsSubOrNot, Te
 }
 
 /**
+ * @tc.name: InitSystemSessionDragEnable_IsPhoneOrNot
+ * @tc.desc: InitSystemSessionDragEnable Test, is phone window or not
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsPhoneOrNot, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("InitSystemSessionDragEnable_IsPhoneOrNot");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    window->property_->SetDragEnabled(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    window->InitSystemSessionDragEnable();
+    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+
+    window->property_->SetDragEnabled(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->InitSystemSessionDragEnable();
+    ASSERT_EQ(window->property_->GetDragEnabled(), true);
+}
+
+/**
+ * @tc.name: InitSystemSessionDragEnable_IsPcOrNot
+ * @tc.desc: InitSystemSessionDragEnable Test, is PC window or not
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsPcOrNot, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("InitSystemSessionDragEnable_IsPcOrNot");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    window->property_->SetDragEnabled(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    window->InitSystemSessionDragEnable();
+    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+
+    window->property_->SetDragEnabled(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->InitSystemSessionDragEnable();
+    ASSERT_EQ(window->property_->GetDragEnabled(), true);
+}
+
+/**
+ * @tc.name: InitSystemSessionDragEnable_IsPadOrNot
+ * @tc.desc: InitSystemSessionDragEnable Test, is Pad window or not
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsPadOrNot, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("InitSystemSessionDragEnable_IsPhoneOrNot");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    window->property_->SetDragEnabled(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    window->InitSystemSessionDragEnable();
+    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+
+    window->property_->SetDragEnabled(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->InitSystemSessionDragEnable();
+    ASSERT_EQ(window->property_->GetDragEnabled(), true);
+}
+
+/**
  * @tc.name: InitSystemSessionDragEnable_IsDialogOrNot
  * @tc.desc: InitSystemSessionDragEnable Test, is dialog window or not
  * @tc.type: FUNC
