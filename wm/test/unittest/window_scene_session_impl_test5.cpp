@@ -1184,7 +1184,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForNavigation, TestSize.L
     EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
     auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
     EXPECT_EQ(window->SetStatusBarColorForNavigation(std::optional<uint32_t>(1)), WMError::WM_OK);
-    EXPECT_EQ(window->nowSystemBarPropertyMap_[type].contentColor_), 1);
+    EXPECT_EQ(window->nowSystemBarPropertyMap_[type].contentColor_, 1);
     EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
     EXPECT_EQ(window->isNavigationUseColor_, false);
 }
