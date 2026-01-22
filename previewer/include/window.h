@@ -20,6 +20,7 @@
 #include <refbase.h>
 #include <pixel_map.h>
 #include <iremote_object.h>
+#include <optional>
 
 #include "wm_common.h"
 #include "window_option.h"

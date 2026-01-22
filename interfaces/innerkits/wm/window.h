@@ -19,6 +19,7 @@
 #include <refbase.h>
 #include <parcel.h>
 #include <iremote_object.h>
+#include <optional>
 
 #include "dm_common.h"
 #include "wm_common.h"
