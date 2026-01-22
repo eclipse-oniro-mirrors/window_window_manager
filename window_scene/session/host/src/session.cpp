@@ -1607,6 +1607,26 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] state:%{public}u, isTerminating:%{public}d",
         GetPersistentId(), static_cast<uint32_t>(state), isTerminating_);
+    if ((state == SessionState::STATE_DISCONNECT || state == SessionState::STATE_END) &&
+        SessionHelper::IsMainWindow(GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
+        std::ostringstream oss;
+        oss << "[Event]lifecycle to:" << static_cast<uint32_t>(SessionState::STATE_FOREGROUND)
+            << ", id:" << GetWindowId()
+            << ", name:" << GetWindowName().c_str()
+            << "[Msg]foreground from client error, when server closed.";
+        std::string info = oss.str();
+        int32_t ret = HiSysEventWrite(
+            OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
+            "WINDOW_LIFECYCLE_CONTROL_ERROR",
+            OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+            "PID", getpid(),
+            "UID", getuid(),
+            "MSG", info);
+        if (ret != 0) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
+        }
+    }
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
