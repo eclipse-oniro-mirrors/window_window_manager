@@ -797,9 +797,8 @@ void ScreenSessionManager::ConfigureScreenScene()
     }
 
     if (numbersConfig.count("waitCoordinationReadyMaxTime") != 0) {
-        uint32_t waitCoordinationReadyMaxTime = static_cast<uint32_t>(numbersConfig["waitCoordinationReadyMaxTime"]);
-        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}u",
-            static_cast<uint32_t>(waitCoordinationReadyMaxTime));
+        waitCoordinationReadyMaxTime_ = static_cast<uint32_t>(numbersConfig["waitCoordinationReadyMaxTime"]);
+        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}u", waitCoordinationReadyMaxTime_);
     }
 }
 
