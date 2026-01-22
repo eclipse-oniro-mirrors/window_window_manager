@@ -797,7 +797,7 @@ void ScreenSessionManager::ConfigureScreenScene()
 
     if (numbersConfig.count("waitCoordinationReadyMaxTime") != 0) {
         waitCoordinationReadyMaxTime_ = static_cast<int32_t>(numbersConfig["waitCoordinationReadyMaxTime"][0]);
-        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}d", waitCoordinationReadyMaxTime_);
+        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}d", waitCoordinationReadyMaxTime_.load());
     }
 }
 
@@ -5592,7 +5592,7 @@ void ScreenSessionManager::WaitForCoordinationReady()
     TLOGI(WmsLogTag::DMS, "begin wait coordination ready. need wait: %{public}d", isCoordinationReady);
     if (!isCoordinationReady) {
         if (DmUtils::safe_wait_for(coordinationReadyCV_, lock,
-            std::chrono::milliseconds(waitCoordinationReadyMaxTime_)) == std::cv_status::timeout) {
+            std::chrono::milliseconds(waitCoordinationReadyMaxTime_.load())) == std::cv_status::timeout) {
             TLOGE(WmsLogTag::DMS, "wait dual display ready timeout");
         }
     }
