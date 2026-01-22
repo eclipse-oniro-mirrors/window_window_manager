@@ -516,7 +516,8 @@ struct RotationCorrectionWhiteConfig {
     std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
     std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
 
-    int32_t GetUseLogicCamera(FoldDisplayMode key) const {
+    int32_t GetUseLogicCamera(FoldDisplayMode key) const
+    {
         auto it = useLogicCamera.find(key);
         if (it != useLogicCamera.end()) {
             return it->second;
@@ -524,7 +525,8 @@ struct RotationCorrectionWhiteConfig {
         return DEFAULT_USE_LOGIC_CAMERA;
     }
 
-    int32_t GetCustomLogicDirection(FoldDisplayMode key) const {
+    int32_t GetCustomLogicDirection(FoldDisplayMode key) const
+    {
         auto it = customLogicDirection.find(key);
         if (it != customLogicDirection.end()) {
             return it->second;

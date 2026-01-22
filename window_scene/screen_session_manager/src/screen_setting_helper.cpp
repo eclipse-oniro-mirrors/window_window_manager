@@ -1137,14 +1137,11 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json,
         TLOGW(WmsLogTag::DMS, "failed to parse app name");
         return false;
     }
-
     appName = json["name"].get<std::string>();
-
     if (appName.empty()) {
         TLOGW(WmsLogTag::DMS, "app name is empty");
         return false;
     }
-
     if (json.contains(USE_LOGIC_CAMERA_STRING)) {
         if (!ParseJsonObjectToEnumMap(json[USE_LOGIC_CAMERA_STRING], config.useLogicCamera)) {
             TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
@@ -1152,7 +1149,6 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json,
             return false;
         }
     }
-
     if (json.contains(CUSTOM_LOGIC_DIRECTION_STRING)) {
         if (!ParseJsonObjectToEnumMap(json[CUSTOM_LOGIC_DIRECTION_STRING], config.customLogicDirection)) {
             TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
@@ -1160,7 +1156,6 @@ bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json,
             return false;
         }
     }
-
     return true;
 }
 
@@ -1168,13 +1163,11 @@ bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& json,
     std::unordered_map<FoldDisplayMode, int32_t>& resultMap)
 {
     resultMap.clear();
-
     if (json.is_null() || !json.is_object()) {
         return false;
     }
 
     bool success = true;
-
     for (auto it = json.begin(); it != json.end(); ++it) {
         const std::string& strKey = it.key();
         const nlohmann::json& value = it.value();
@@ -1185,11 +1178,9 @@ bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& json,
             success = false;
             continue;
         }
-
         int32_t intValue = value.get<int32_t>();
         resultMap[enumKey] = intValue;
     }
-
     return success;
 }
 
