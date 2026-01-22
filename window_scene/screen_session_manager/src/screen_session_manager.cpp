@@ -192,7 +192,6 @@ const std::string FAULT_SUGGESTION = "542003014";
 constexpr uint32_t COMMON_EVENT_SERVICE_ID = 3299;
 const long GET_HDR_PIXELMAP_TIMEOUT = 2000;
 const int32_t CV_WAIT_UPDATE_AVAILABLE_MS = 300;
-const int32_t CV_WAIT_DUAL_DISPLAY_READY_MAX_MS = 1500;
 
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
 static const uint32_t SDR_PIXMAP = 0;
@@ -797,8 +796,8 @@ void ScreenSessionManager::ConfigureScreenScene()
     }
 
     if (numbersConfig.count("waitCoordinationReadyMaxTime") != 0) {
-        waitCoordinationReadyMaxTime_ = static_cast<uint32_t>(numbersConfig["waitCoordinationReadyMaxTime"]);
-        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}u", waitCoordinationReadyMaxTime_);
+        waitCoordinationReadyMaxTime_ = static_cast<int32_t>(numbersConfig["waitCoordinationReadyMaxTime"]);
+        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}d", waitCoordinationReadyMaxTime_);
     }
 }
 
