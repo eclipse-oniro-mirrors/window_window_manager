@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 #include <hisysevent.h>
 #include <parameters.h>
-#include "gmock/gmock.h"那
+#include "gmock/gmock.h"
 #include <functional>
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
