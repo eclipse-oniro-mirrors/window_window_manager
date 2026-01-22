@@ -315,6 +315,34 @@ namespace {
     }
 
     /**
+     * @tc.name: GetSettingValueString
+     * @tc.desc: GetSettingValueString
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetSettingValueString, TestSize.Level1)
+    {
+        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+        std::string value;
+        std::string key = "test";
+        bool ret = screenSettingHelper.GetSettingValue(key, value);
+        ASSERT_FALSE(ret);
+    }
+
+    /**
+     * @tc.name: GetSettingValueBool
+     * @tc.desc: GetSettingValueBool
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetSettingValueBool, TestSize.Level1)
+    {
+        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+        bool value = false;
+        std::string key = "test";
+        bool ret = screenSettingHelper.GetSettingValue(key, value);
+        ASSERT_FALSE(ret);
+    }
+
+    /**
      * @tc.name: RemoveInvalidChar01
      * @tc.desc: RemoveInvalidChar Test01
      * @tc.type: FUNC
@@ -1092,6 +1120,62 @@ namespace {
         ScreenSettingHelper::resolutionEffectObserver_ = nullptr;
         ScreenSettingHelper::UnregisterSettingResolutionEffectObserver();
         ASSERT_EQ(ScreenSettingHelper::resolutionEffectObserver_, nullptr);
+    }
+
+    /**
+     * @tc.name: RegisterSettingCoordinationReadyObserver01
+     * @tc.desc: RegisterSettingCoordinationReadyObserver01
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingCoordinationReadyObserver01, TestSize.Level1)
+    {
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(func);
+        ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
+        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, nullptr);
+    }
+
+    /**
+     * @tc.name: RegisterSettingCoordinationReadyObserver02
+     * @tc.desc: RegisterSettingCoordinationReadyObserver02
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingCoordinationReadyObserver02, TestSize.Level1)
+    {
+        sptr<SettingObserver> observer = new SettingObserver();
+        ScreenSettingHelper::coordinationReadyObserver_ = observer;
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, observer);
+        ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
+    }
+
+    /**
+     * @tc.name: UnregisterSettingCoordinationReadyObserver01
+     * @tc.desc: UnregisterSettingCoordinationReadyObserver01
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnregisterSettingCoordinationReadyObserver01, TestSize.Level1)
+    {
+        ScreenSettingHelper::coordinationReadyObserver_ = new SettingObserver();
+        ScreenSettingHelper::UnregisterSettingCoordinationReadyObserver();
+        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, nullptr);
+    }
+
+    /**
+     * @tc.name: UnregisterSettingCoordinationReadyObserver02
+     * @tc.desc: UnregisterSettingCoordinationReadyObserver02
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnregisterSettingCoordinationReadyObserver02, TestSize.Level1)
+    {
+        ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
+        ScreenSettingHelper::UnregisterSettingCoordinationReadyObserver();
+        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, nullptr);
     }
 
     /**
