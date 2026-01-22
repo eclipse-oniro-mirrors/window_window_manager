@@ -64,7 +64,7 @@ constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_ONECE = 1;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_TWICE = 2;
 constexpr double KILOBYTE = 1024.0;
 constexpr float DEFAULT_BLUR_RADIUS = 80.0f;
-constexpr uint32_t DEFAULT_BLUR_BACKGROUND_COLOR = "#34000000";
+constexpr uint32_t DEFAULT_BLUR_BACKGROUND_COLOR = 0x34000000;
 
 const std::map<SessionState, bool> ATTACH_MAP = {
     { SessionState::STATE_DISCONNECT, false },
@@ -2968,7 +2968,7 @@ uint32_t Session::GetBlurBackgroundColorFromParam(std::string snapshotMaskParam)
         return DEFAULT_BLUR_BACKGROUND_COLOR;
     }
 
-    size_t bar = input.find('|');
+    size_t bar = snapshotMaskParam.find('|');
     if (bar == std::string::npos) {
         TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
         return DEFAULT_BLUR_BACKGROUND_COLOR;
