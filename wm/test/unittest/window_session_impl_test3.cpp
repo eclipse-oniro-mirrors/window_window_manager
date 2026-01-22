@@ -1636,6 +1636,8 @@ HWTEST_F(WindowSessionImplTest3, UpdateSubWindowStateWithOptions, Function | Sma
     window_->UpdateSubWindowStateWithOptions(option);
     ASSERT_EQ(subwindow3->state_, WindowState::STATE_SHOWN);
 }
+
+//
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

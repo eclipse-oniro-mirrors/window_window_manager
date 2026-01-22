@@ -660,6 +660,7 @@ protected:
     void ClearVsyncStation();
     WMError WindowSessionCreateCheck();
     void UpdateDecorEnableToAce(bool isDecorEnable);
+    bool Need
     void NotifyModeChange(WindowMode mode, bool hasDeco = true);
     void NotifyFreeWindowModeChange(bool isInFreeWindowMode);
     WMError UpdateProperty(WSPropertyChangeAction action);

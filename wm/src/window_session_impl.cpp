@@ -2662,6 +2662,8 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
     }
 }
 
+bool Need
+
 /** @note @window.layout */
 void WindowSessionImpl::NotifyModeChange(WindowMode mode, bool hasDeco)
 {
