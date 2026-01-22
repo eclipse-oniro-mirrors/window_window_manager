@@ -2807,8 +2807,8 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
             sceneSession->RegisterForceSplitEnableListener([this](const std::string& bundleName) {
                 return this->GetAppForceLandscapeConfigEnable(bundleName);
             });
+            sceneSession->RegisterLogicalDeviceConfigCallback(this->getLogicalDeviceConfig_);
         }
-        sceneSession->RegisterLogicalDeviceConfigCallback(std::move(this->getLogicalDeviceConfig_));
         DragResizeType dragResizeType = DragResizeType::RESIZE_TYPE_UNDEFINED;
         GetAppDragResizeType(sessionInfo.bundleName_, dragResizeType);
         sceneSession->SetAppDragResizeType(dragResizeType);

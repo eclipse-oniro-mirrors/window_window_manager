@@ -710,9 +710,9 @@ void MainSession::RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& 
     forceSplitEnableFunc_ = std::move(func);
 }
 
-void MainSession::RegisterLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc&& func)
+void MainSession::RegisterLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc& func)
 {
-    getLogicalDeviceConfig_ = std::move(func);
+    getLogicalDeviceConfig_ = func;
 }
 
 std::string MainSession::GetLogicalDeviceConfigCallback(const std::string& bundleName)
