@@ -795,6 +795,12 @@ void ScreenSessionManager::ConfigureScreenScene()
         std::lock_guard<std::mutex> lock(allDisplayPhysicalResolutionMutex_);
         allDisplayPhysicalResolution_ = ScreenSceneConfig::GetAllDisplayPhysicalConfig();
     }
+
+    if (numbersConfig.count("waitCoordinationReadyMaxTime") != 0) {
+        uint32_t waitCoordinationReadyMaxTime = static_cast<uint32_t>(numbersConfig["waitCoordinationReadyMaxTime"]);
+        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}u",
+            static_cast<uint32_t>(waitCoordinationReadyMaxTime));
+    }
 }
 
 void ScreenSessionManager::ConfigureDpi()
