@@ -1260,8 +1260,8 @@ private:
     /*
      * Window Pattern
      */
-    float GetBlurRadiusFromParam(std::string snapshotMaskParam);
-    std::string GetBlurBackgroundColorFromParam(std::string snapshotMaskParam);
+    float GetBlurRadiusFromParam(std::string snapshotMaskParam) const;
+    uint32_t GetBlurBackgroundColorFromParam(std::string snapshotMaskParam) const;
 
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
