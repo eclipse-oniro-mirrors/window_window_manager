@@ -486,7 +486,7 @@ public:
     {
         isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
     }
-    bool GetWaitingForCoordinationReady() { return isWaitingForCoordinationReady_; }
+    bool GetWaitingForCoordinationReady() { return isWaitingForCoordinationReady_.load(); }
     void NotifyCoordinationReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;

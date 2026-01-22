@@ -5575,11 +5575,11 @@ void ScreenSessionManager::UpdateCoordinationReadyFromSettingData()
     bool isCoordinationReady;
     ScreenSettingHelper::GetSettingIsCoordinationReady(isCoordinationReady);
     TLOGI(WmsLogTag::DMS, "isCoordinationReady: %{public}d", isCoordinationReady);
-    if (isCoordinationReady == isCoordinationReady_) {
+    if (isCoordinationReady == isCoordinationReady_.load()) {
         return;
     }
     isCoordinationReady_ = isCoordinationReady;
-    if (isCoordinationReady_) {
+    if (isCoordinationReady_.load()) {
         NotifyCoordinationReadyCV();
     }
 }
@@ -5588,12 +5588,12 @@ void ScreenSessionManager::WaitForCoordinationReady()
 {
     std::unique_lock<std::mutex> lock(coordinationReadyMutex_);
     SetWaitingForCoordinationReady(true);
-    bool isCoordinationReady = isCoordinationReady_;
+    bool isCoordinationReady = isCoordinationReady_.load();
     TLOGI(WmsLogTag::DMS, "begin wait coordination ready. need wait: %{public}d", isCoordinationReady);
     if (!isCoordinationReady) {
         if (DmUtils::safe_wait_for(coordinationReadyCV_, lock,
             std::chrono::milliseconds(waitCoordinationReadyMaxTime_.load())) == std::cv_status::timeout) {
-            TLOGE(WmsLogTag::DMS, "wait dual display ready timeout");
+            TLOGW(WmsLogTag::DMS, "Wait dual display ready timeout, still enter coordination mode.");
         }
     }
     SetWaitingForCoordinationReady(false);
