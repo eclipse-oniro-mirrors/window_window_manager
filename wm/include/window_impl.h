@@ -339,8 +339,7 @@ public:
     void PendingClose();
 
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) override;
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) override;
     virtual WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) override;
     virtual WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) override;
 
@@ -557,6 +556,7 @@ private:
     uint32_t mouseStyleID_ = 0;
     bool isIgnoreSafeAreaNeedNotify_ = false;
     bool isIgnoreSafeArea_ = false;
+    uint32_t windowStatusBarColor_ = 0;
     bool needDefaultAnimation_ = true;
     bool postTaskDone_ = false;
     static float ConvertRadiusToSigma(float radius)
