@@ -449,8 +449,8 @@ public:
     virtual bool IsFullScreenInForceSplit() { return false; }
     virtual void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) {}
     virtual void RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func) {}
-    virtual void RegisterLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc& func) {}
-    virtual std::string GetLogicalDeviceConfigCallback(const std::string& bundleName) { return ""; }
+    virtual void RegisterLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc&& func) {}
+    virtual std::string GetLogicalDeviceConfigCallback(const std::string& bundleName) const { return ""; }
 
     /*
      * PC Window
