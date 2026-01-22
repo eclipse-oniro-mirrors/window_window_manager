@@ -4324,7 +4324,7 @@ DMError ScreenSessionManager::GetSupportsInput(DisplayId displayId, bool& suppor
     TLOGNFI(WmsLogTag::DMS, "start");
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
-        return DMError::DM_ERROR_INVALID_PERMISSION;
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (screenSession == nullptr) {
@@ -4340,7 +4340,7 @@ DMError ScreenSessionManager::SetSupportsInput(DisplayId displayId, bool support
     TLOGNFI(WmsLogTag::DMS, "start");
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
-        return DMError::DM_ERROR_INVALID_PERMISSION;
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (screenSession == nullptr) {
@@ -4354,9 +4354,9 @@ DMError ScreenSessionManager::SetSupportsInput(DisplayId displayId, bool support
 DMError ScreenSessionManager::GetBundleName(DisplayId displayId, std::string& bundleName)
 {
     TLOGNFI(WmsLogTag::DMS, "start");
-    if (!SessionPermission::IsSystemCalling()) {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
-        return DMError::DM_ERROR_INVALID_PERMISSION;
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (screenSession == nullptr) {
