@@ -1170,7 +1170,7 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
-            TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s set image for recent failed, ret=%{public}d,type=%{public}d", where, ret, pixelMap ? "pixelMap" : "resId");
+            TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s set image for recent failed, ret=%{public}d, type=%{public}s",where, ret, pixelMap ? "pixelMap" : "resId");
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "set image for recent failed."));
         }
     };
