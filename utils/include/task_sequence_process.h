@@ -48,7 +48,7 @@ private:
     bool FindMinSnTaskQueueId(uint64_t& minSnTaskQueueId);
     std::function<void()> PopFromQueue();
     void PushToQueue(uint64_t sn, const TaskInfo& taskInfo);
-    bool StartSysTimer();
+    void StartSysTimer();
     void ExecTask();
     void OnTimerTask();
     uint32_t maxQueueSize_ {1};
