@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 #include <hisysevent.h>
 #include <parameters.h>
-#include "gmock/gmock.h"
+#include "gmock/gmock.h"那
 #include <functional>
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
@@ -134,6 +134,26 @@ HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeToCoordinationTest, Te
 }
 
 /**
+ * @tc.name: ChangeScreenDisplayModeToCoordinationTest_wait
+ * @tc.desc: test function : ChangeScreenDisplayModeToCoordination waiting path
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeToCoordinationTest_wait, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(true);
+    FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayModeToCoordination();
+    EXPECT_TRUE(g_logMsg.find("EnterCoordination skipped, is waiting for coordination ready") != std::string::npos);
+    EXPECT_TRUE(ScreenSessionManager::GetInstance().GetCoordinationFlag());
+
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(false);
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+}
+
+/**
  * @tc.name: CloseCoordinationScreenTest
  * @tc.desc: test function : CloseCoordinationScreen
  * @tc.type: FUNC
@@ -151,6 +171,50 @@ HWTEST_F(FoldScreenBasePolicyTest, CloseCoordinationScreenTest, TestSize.Level1)
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     FoldScreenBasePolicy::GetInstance().CloseCoordinationScreen();
     EXPECT_TRUE(!ScreenSessionManager::GetInstance().GetCoordinationFlag());
+}
+
+/**
+ * @tc.name: CloseCoordinationScreenTest_wait
+ * @tc.desc: test function : CloseCoordinationScreen waiting path
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, CloseCoordinationScreenTest_wait, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(true);
+    FoldScreenBasePolicy::GetInstance().CloseCoordinationScreen();
+    EXPECT_TRUE(g_logMsg.find("CloseCoordinationScreen skipped, is waiting for coordination ready") !=
+                std::string::npos);
+    EXPECT_TRUE(!ScreenSessionManager::GetInstance().GetCoordinationFlag());
+
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(false);
+}
+
+/**
+ * @tc.name: ExitCoordinationTest
+ * @tc.desc: test function : ExitCoordination
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, ExitCoordinationTest, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+    FoldScreenBasePolicy::GetInstance().ExitCoordination();
+    EXPECT_TRUE(g_logMsg.find("ExitCoordination skipped, current coordination flag is false") != std::string::npos);
+
+    g_logMsg.clear();
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(true);
+    FoldScreenBasePolicy::GetInstance().ExitCoordination();
+    EXPECT_TRUE(g_logMsg.find("ExitCoordination skipped, is waiting for coordination ready") != std::string::npos);
+    EXPECT_TRUE(!ScreenSessionManager::GetInstance().GetCoordinationFlag());
+
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(false);
 }
 
 /**
