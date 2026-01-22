@@ -1656,7 +1656,7 @@ bool SceneSession::ShouldSkipUpdateRect(const WSRect& rect)
 {
     const auto persistentId = GetPersistentId();
     if (rect.IsInvalid()) {
-        TLOGNE(WmsLogTag::WMS_LAYOUT, "id:%{public}d rect:%{public}s is invalid", persistentId,
+        TLOGE(WmsLogTag::WMS_LAYOUT, "id:%{public}d rect:%{public}s is invalid", persistentId,
             rect.ToString().c_str());
         return true;
     }
@@ -1717,9 +1717,12 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
 
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::UpdateRect %d [%d, %d, %u, %u]",
             session->GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_);
-        session->SetWinRectWhenUpdateRect(rect);
         // check whether to notify the client rect update
-        if (!session->ShouldSkipUpdateRectNotify(rect)) {
+        // SetWinRectWhenUpdateRect needs to be set after determining whether to skip
+        if (session->ShouldSkipUpdateRectNotify(rect)) {
+            session->SetWinRectWhenUpdateRect(rect);
+        } else {
+            session->SetWinRectWhenUpdateRect(rect);
             session->NotifyClientToUpdateRect(updateReason, rsTransaction);
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);

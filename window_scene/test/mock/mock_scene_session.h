@@ -31,6 +31,7 @@ public:
     MOCK_METHOD(void, UpdateCrossAxis, (), (override));
     MOCK_METHOD(WSError, UpdateGlobalDisplayRect, (const WSRect& rect, SizeChangeReason reason), (override));
     MOCK_METHOD(void, SetSurfaceBounds, (const WSRect& rect, bool isGlobal, bool needFlush), (override));
+    MOCK_METHOD(WSError, NotifyClientToUpdateRect, (const std::string&, std::shared_ptr<RSTransaction>), (override));
 };
 }
 }
