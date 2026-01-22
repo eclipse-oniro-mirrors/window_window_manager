@@ -1970,15 +1970,18 @@ HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsPhonePadOrPc
     window->InitSystemSessionDragEnable();
     EXPECT_EQ(window->property_->GetDragEnabled(), false);
 
+    window->property_->SetDragEnabled(true);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     window->InitSystemSessionDragEnable();
     EXPECT_EQ(window->property_->GetDragEnabled(), false);
 
+    window->property_->SetDragEnabled(true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
     window->InitSystemSessionDragEnable();
     EXPECT_EQ(window->property_->GetDragEnabled(), false);
 
+    window->property_->SetDragEnabled(true);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     window->InitSystemSessionDragEnable();
     EXPECT_EQ(window->property_->GetDragEnabled(), true);
