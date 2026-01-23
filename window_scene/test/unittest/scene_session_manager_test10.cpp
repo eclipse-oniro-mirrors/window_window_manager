@@ -32,15 +32,15 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
+    constexpr float DEFAULT_BLUR_RADIUS = 34.0f;
+    constexpr uint32_t DEFAULT_BLUR_BACKGROUND_COLOR = 0x33000000;
+
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
         g_errLog = msg;
     }
-
-    constexpr float DEFAULT_BLUR_RADIUS = 34.0f;
-    constexpr uint32_t DEFAULT_BLUR_BACKGROUND_COLOR = 0x33000000;
 }
 class SceneSessionManagerTest10 : public testing::Test {
 public:
