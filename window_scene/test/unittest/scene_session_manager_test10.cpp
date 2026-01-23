@@ -32,8 +32,7 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
-    constexpr float DEFAULT_BLUR_RADIUS = 34.0f;
-    constexpr uint32_t DEFAULT_BLUR_BACKGROUND_COLOR = 0x33000000;
+    constexpr float DEFAULT_BLUR_RADIUS = 200.0f;
 
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
@@ -894,7 +893,8 @@ HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
 HWTEST_F(SceneSessionManagerTest10, GetBlurBackgroundColorFromParam, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    EXPECT_EQ(DEFAULT_BLUR_BACKGROUND_COLOR, ssm_->GetBlurBackgroundColorFromParam("33000000"));
+    std::string color = std::to_string(std::numeric_limits<uint32_t>::max());
+    EXPECT_EQ(std::numeric_limits<uint32_t>::max(), ssm_->GetBlurBackgroundColorFromParam(color));
 }
 
 /**

@@ -256,6 +256,28 @@ public:
         }
         return value * std::pow(DECIMAL_BASE, shift);
     }
+
+    static bool IsHexChar(char c)
+    {
+        if (c >= '0' && c <= '9') {
+            return true;
+        } else if (c >= 'A' && c <= 'F') {
+            return true;
+        } else if (c >= 'a' && c <= 'f') {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    static bool IsDecChar(char c)
+    {
+        if (c >= '0' && c <= '9') {
+            return true;
+        } else {
+            return false;
+        }
+    }
 };
 } // Rosen
 } // OHOS

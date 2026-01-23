@@ -1880,8 +1880,8 @@ private:
     WMError RemoveImageForRecent(int32_t persistentId) override;
     void GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts);
     void InitSnapshotBlurConfig();
-    float GetBlurRadiusFromParam(std::string blurBackgroundColorStr) const;
-    uint32_t GetBlurBackgroundColorFromParam(std::string blurBackgroundColorStr) const;
+    float GetBlurRadiusFromParam(const std::string& blurRadiusColorStr) const;
+    uint32_t GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const;
 
     RecoverState recoverState_ = RecoverState::RECOVER_END;
     OutlineParams recoverOutlineParams_;
@@ -1900,7 +1900,7 @@ private:
     void SetBufferAvailable(sptr<SceneSession>& sceneSession);
 
     float blurRadius_ = 0.0f;
-    uint32_t blurBackgroundColor_ = 0;
+    uint32_t blurBackgroundColor_ = 0x00000000;
 
     /*
      * Compatible Mode

@@ -1274,7 +1274,7 @@ private:
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
     float blurRadius_ = 0.0f;
-    uint32_t blurBackgroundColor_ = 0;
+    uint32_t blurBackgroundColor_ = 0x00000000;
 
     /*
      * Specific Window
