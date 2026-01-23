@@ -45,7 +45,7 @@ constexpr int32_t CAST_WIRED_PROJECTION_START = 1005;
 constexpr int32_t CAST_WIRED_PROJECTION_STOP = 1007;
 bool g_isPcDevice = ScreenSceneConfig::GetExternalScreenDefaultMode() == "none";
 const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
-bool SUPPORT_COMPATIBLE_MODE = system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 7) == 4;
+const bool SUPPORT_COMPATIBLE_MODE = system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 7) == 4;
 std::string g_logMsg;
 void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
     const char *msg)
