@@ -351,11 +351,11 @@ HWTEST_F(ScreenSessionManagerTest, GetVirtualScreenFlag, TestSize.Level1)
 }
 
 /**
- * @tc.name: ResizeVirtualScreen
+ * @tc.name: ResizeVirtualScreen01
  * @tc.desc: ResizeVirtualScreen test
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen01, TestSize.Level1)
 {
     sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
     VirtualScreenOption virtualOption;
@@ -368,6 +368,80 @@ HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen, TestSize.Level1)
     sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
     if (screenSession->GetDisplayNode() != nullptr) {
         EXPECT_EQ(DMError::DM_OK, ssm_->ResizeVirtualScreen(screenId, width, height));
+    }
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen02
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen02, TestSize.Level1)
+{
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(INVALID_SCREEN_ID);
+    EXPECT_EQ(nullptr, screenSession);
+    uint32_t width {100};
+    uint32_t height {100};
+    EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(INVALID_SCREEN_ID, width, height));
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen03
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen03, TestSize.Level1)
+{
+    ScreenId screenId = ssm_->GetDefaultScreenId();
+    uint32_t width {100};
+    uint32_t height {100};
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_NE(screenSession, nullptr);
+    EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(screenId, width, height));
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen04
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen04, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    virtualOption.width_ = 100;
+    virtualOption.height_ = 100;
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_TRUE(screenId != INVALID_SCREEN_ID);
+    uint32_t width {100};
+    uint32_t height {100};
+    sptr<ScreenSession> ScreenSession = ssm_->GetScreenSession(screenId);
+    if (screenSession->GetDisplayNode() != nullptr) {
+        EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(screenId, width, height));
+    }
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen05
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen05, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_TRUE(screenId != INVALID_SCREEN_ID);
+    ssm_->screenIdManager_.sms2RsScreenIdMap_.erase(screenId);
+    uint32_t width {100};
+    uint32_t height {100};
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screeenId);
+    if (screenSession->GetDisplayNode() != nullptr) {
+        EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(screenId, width, height));
     }
     ssm_->DestroyVirtualScreen(screenId);
 }
