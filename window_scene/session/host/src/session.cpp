@@ -63,8 +63,6 @@ constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_ONECE = 1;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_TWICE = 2;
 constexpr double KILOBYTE = 1024.0;
-constexpr float DEFAULT_BLUR_RADIUS = 80.0f;
-constexpr uint32_t DEFAULT_BLUR_BACKGROUND_COLOR = 0x34000000;
 
 const std::map<SessionState, bool> ATTACH_MAP = {
     { SessionState::STATE_DISCONNECT, false },
@@ -2898,11 +2896,8 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
     };
     bool ret = false;
     if (needBlurSnapshot) {
-        const std::string snapshotMaskParam =
-            system::GetParameter("const.window.appusecontrol.snapshot_mask_param", "");
-        float blurRadius = GetBlurRadiusFromParam(snapshotMaskParam);
-        config.backGroundColor = GetBlurBackgroundColorFromParam(snapshotMaskParam);
-        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius);
+        config.backGroundColor = blurBackgroundColor_;
+        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius_);
     } else {
         ret = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode, callback, config);
     }
@@ -2942,50 +2937,6 @@ bool Session::CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixel
         return true;
     }
     return false;
-}
-
-float Session::GetBlurRadiusFromParam(std::string snapshotMaskParam) const
-{
-    if (snapshotMaskParam.size() < 1 || snapshotMaskParam.front() != '#') {
-        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
-        return DEFAULT_BLUR_RADIUS;
-    }
-
-    size_t bar = snapshotMaskParam.find('|');
-    if (bar == std::string::npos) {
-        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
-        return DEFAULT_BLUR_RADIUS;
-    }
-    std::string blurRadiusStr = snapshotMaskParam.substr(bar + 1);
-    float blurRadius = std::stof(blurRadiusStr);
-    return blurRadius >= 0 ? blurRadius : DEFAULT_BLUR_RADIUS;
-}
-
-uint32_t Session::GetBlurBackgroundColorFromParam(std::string snapshotMaskParam) const
-{
-    if (snapshotMaskParam.size() < 1 || snapshotMaskParam.front() != '#') {
-        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
-        return DEFAULT_BLUR_BACKGROUND_COLOR;
-    }
-
-    size_t bar = snapshotMaskParam.find('|');
-    if (bar == std::string::npos) {
-        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
-        return DEFAULT_BLUR_BACKGROUND_COLOR;
-    }
-
-    std::string blurBackgroundColorStr = snapshotMaskParam.substr(1, bar - 1);
-    for (size_t i = 0; i <= 8; ++i) {
-        if ((blurBackgroundColorStr[i] >= '0' && blurBackgroundColorStr[i] <= '9') ||
-           (blurBackgroundColorStr[i] >= 'a' && blurBackgroundColorStr[i] <= 'f') ||
-           (blurBackgroundColorStr[i] >= 'A' && blurBackgroundColorStr[i] <= 'F')) {
-            TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurBackgroundColorStr: %{public}s",
-                blurBackgroundColorStr.c_str());
-            return DEFAULT_BLUR_BACKGROUND_COLOR;  
-        }
-    }
-    uint32_t blurBackgroundColor = static_cast<uint32_t>(std::stoul(blurBackgroundColorStr, nullptr, 16));
-    return blurBackgroundColor;
 }
 
 bool Session::GetNeedUseBlurSnapshot() const
