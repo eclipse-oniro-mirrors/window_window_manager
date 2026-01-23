@@ -6706,7 +6706,9 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
 
     auto rsMask = RSMask::CreatePixelMapMask(mask);
     surfaceNode_->SetCornerRadius(0.0f);
-    surfaceNode_->SetShadowRadius(0.0f);
+    if (property_->GetWindowShadows().hasRadiusValue_) {
+        surfaceNode_->SetShadowRadius(0.0f);
+    }
     surfaceNode_->SetAbilityBGAlpha(0);
     surfaceNode_->SetMask(rsMask); // RS interface to set mask
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
@@ -6714,8 +6716,8 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
     hostSession->SetWindowCornerRadius(0);
-    ShadowsInfo shadowsInfo = property_->GetWindowShadows();
-    shadowsInfo.radius_ = 0.0f;
+    ShadowsInfo shadowsInfo;
+    shadowsInfo.hasRadiusValue_ = true;
     hostSession->SetWindowShadows(shadowsInfo);
 
     property_->SetWindowMask(mask);
@@ -6737,20 +6739,20 @@ WMError WindowSceneSessionImpl::ClearWindowMask()
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
 
-    float cornerRadius = property_->GetWindowCornerRadius();
-    bool recoverDefaultCorner = cornerRadius == WINDOW_CORNER_RADIUS_INVALID;
-    if (!recoverDefaultCorner) {
-        hostSession->SetWindowCornerRadius(cornerRadius);
+    bool hasCornerRadius = property_->GetWindowCornerRadius() != WINDOW_CORNER_RADIUS_INVALID;
+    if (hasCornerRadius) {
+        hostSession->SetWindowCornerRadius(property_->GetWindowCornerRadius());
     }
 
     ShadowsInfo shadowsInfo = property_->GetWindowShadows();
-    bool recoverDefaultShadow = !shadowsInfo.hasRadiusValue_;
-    if (!recoverDefaultShadow) {
+    bool hasShadowRadius = shadowsInfo.hasRadiusValue_;
+    if (hasShadowRadius) {
         hostSession->SetWindowShadows(shadowsInfo);
+        surfaceNode_->SetShadowRadius(ConvertRadiusToSigma(shadowsInfo.radius_));
     }
 
-    if (recoverDefaultCorner || recoverDefaultShadow) {
-        hostSession->RecoverWindowEffect(recoverDefaultCorner, recoverDefaultShadow);
+    if (!(hasCornerRadius && hasShadowRadius)) {
+        hostSession->RecoverWindowEffect(!hasCornerRadius, !hasShadowRadius);
     }
     surfaceNode_->SetCornerRadius(rsCornerRadius_);
     surfaceNode_->SetMask(nullptr);
