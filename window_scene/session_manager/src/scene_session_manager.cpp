@@ -19811,7 +19811,7 @@ float SceneSessionManager::GetBlurRadiusFromParam(const std::string& blurRadiusS
     for (size_t i = 0; i <= (blurRadiusStr.size() - 1); ++i) {
         if (!SessionHelper::IsDecChar(blurRadiusStr[i])) {
             TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurRadiusStr: %{public}s",
-                blurBackgroundColorStr.c_str());
+                blurRadiusStr.c_str());
             return std::numeric_limits<uint32_t>::max();  
         }
     }
