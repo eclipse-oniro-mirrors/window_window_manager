@@ -68,7 +68,6 @@ public:
     ScreenId DEFAULT_SCREEN_ID {0};
     ScreenId VIRTUAL_SCREEN_ID {2};
     ScreenId VIRTUAL_SCREEN_RS_ID {100};
-    const int32_t INVALID_USER_ID {1000};
     void SetAceessTokenPermission(const std::string processName);
     sptr<ScreenSession> InitTestScreenSession(std::string name, ScreenId &screenId);
     DMHookInfo CreateDefaultHookInfo();
