@@ -14,18 +14,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <parameters.h>
-
-#include "ability_context_impl.h"
-#include "display_info.h"
-#include "mock_session.h"
-#include "mock_uicontent.h"
-#include "mock_window_adapter.h"
-#include "scene_board_judgement.h"
-#include "session/host/include/scene_session.h"
-#include "singleton_mocker.h"
-#include "window_scene_session_impl.h"
-#include "window_session_impl.h"
 
 using namespace testing;
 using namespace testing::ext;
