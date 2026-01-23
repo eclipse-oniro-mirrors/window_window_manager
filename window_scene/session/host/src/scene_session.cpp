@@ -2942,6 +2942,9 @@ void SceneSession::GetKeyboardAvoidArea(WSRect& rect, AvoidArea& avoidArea)
             WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     }
     for (auto& inputMethod : inputMethodVector) {
+        if (!inputMethod) {
+            continue;
+        }
         if (inputMethod->GetSessionState() != SessionState::STATE_FOREGROUND &&
             inputMethod->GetSessionState() != SessionState::STATE_ACTIVE) {
             continue;
@@ -7357,7 +7360,7 @@ WSRect SceneSession::GetLastSafeRect() const
     return lastSafeRect;
 }
 
-void SceneSession::SetLastSafeRect(WSRect rect)
+void SceneSession::SetLastSafeRect(const WSRect& rect)
 {
     lastSafeRect.posX_ = rect.posX_;
     lastSafeRect.posY_ = rect.posY_;
