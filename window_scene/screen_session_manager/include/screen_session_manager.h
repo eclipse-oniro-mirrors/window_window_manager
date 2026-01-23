@@ -43,7 +43,7 @@
 
 namespace OHOS::Rosen {
 class RSInterfaces;
-
+class TaskSequence;
 struct ScaleProperty {
     float scaleX;
     float scaleY;
@@ -857,7 +857,8 @@ private:
     std::shared_ptr<TaskScheduler> taskScheduler_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
     std::shared_ptr<FfrtQueueHelper> ffrtQueueHelper_ = nullptr;
-
+    int32_t screenConnectTaskStage_ = -1;
+    std::shared_ptr<TaskSequence> screenConnectTaskGroup_;
     /*
      * multi user
      */
