@@ -1,17 +1,17 @@
 /*
-*Copyright (c) 2026 Huawei Device Co.,Ltd.
-*Licensed under the Apache License, Version 2.0 (the "License");
-*you may not use this file except in compliance with the License.
-*You may obtain a copy of the License at
+* Copyright (c) 2026 Huawei Device Co.,Ltd.
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
 *
 *
-*http://www.apache.org/licenses/LICENSE-2.0
+* http://www.apache.org/licenses/LICENSE-2.0
 *
-*Unless required by applicable law or agreed to in writing,software
-*distributed under the License is distributed on an "AS IS" BASIS,
-*WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,either express or implied.
-*See the License for the specific language governing permissions and
-*limitations under the License.
+* Unless required by applicable law or agreed to in writing,software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
 */
 
 #include <gtest/gtest.h>
@@ -22,10 +22,10 @@
 using namespace testing;
 using namespace testing::ext;
 
-namespace{
+namespace {
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain,
-    const char *tag, const char *msg)
+        const char *tag, const char *msg)
     {
         g_errLog += msg;
     }
@@ -36,7 +36,7 @@ namespace OHOS {
             constexpr uint32_t SLEEP_TIME_US = 100000;
 }
 
-class MockFoldScreenPolicy : public FoldScreenPolicy{
+class MockFoldScreenPolicy : public FoldScreenPolicy {
 public:
     MOCK_METHOD(FoldStatus, GetFoldStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetPhysicalFoldStatus, (), (override));
@@ -53,7 +53,7 @@ public:
     FoldStatus targetFoldStatus), (override, const));
 };
 
-class FoldScreenPolicyTest : public testing::Test{
+class FoldScreenPolicyTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -181,5 +181,5 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl04, TestSize.Level1)
     g_errLog.clear();
 }
 }
-}// namespace Rosen
-}// namespace OHOS
+} // namespace Rosen
+} // namespace OHOS
