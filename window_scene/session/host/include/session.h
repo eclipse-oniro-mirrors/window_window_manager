@@ -318,6 +318,11 @@ public:
     virtual bool GetIsPrivacyMode() const { return false; };
     void SetSnapshotPrivacyMode(bool privacyMode) { snapshotPrivacyMode_.store(privacyMode); };
     bool GetSnapshotPrivacyMode() const;
+    void SetBlurRadius(const float blurRadius);
+    float GetBlurRadius() const;
+    void SetBlurBackgroundColor(const float blurBackgroundColor);
+    float GetBlurBackgroundColor() const;
+
     std::atomic<bool> snapshotPrivacyMode_ { false };
 
     virtual void SetAppControlInfo(ControlAppType type, ControlInfo controlInfo) {};
@@ -1271,6 +1276,8 @@ private:
     std::pair<std::shared_ptr<uint8_t[]>, size_t> preloadStartingWindowSvgBufferInfo_;
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
+    float blurRadius_ = 0.0f;
+    uint32_t blurBackgroundColor_ = 0;
 
     /*
      * Specific Window
