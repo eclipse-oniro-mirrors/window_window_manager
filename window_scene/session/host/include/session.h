@@ -321,7 +321,7 @@ public:
     void SetBlurRadius(const float blurRadius);
     float GetBlurRadius() const;
     void SetBlurBackgroundColor(const float blurBackgroundColor);
-    float GetBlurBackgroundColor() const;
+    uint32_t GetBlurBackgroundColor() const;
 
     std::atomic<bool> snapshotPrivacyMode_ { false };
 
@@ -1265,9 +1265,6 @@ private:
     /*
      * Window Pattern
      */
-    float GetBlurRadiusFromParam(std::string snapshotMaskParam) const;
-    uint32_t GetBlurBackgroundColorFromParam(std::string snapshotMaskParam) const;
-
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
     std::atomic<bool> preloadingStartingWindow_ { false };
