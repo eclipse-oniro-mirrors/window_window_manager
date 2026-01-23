@@ -5584,6 +5584,16 @@ void ScreenSessionManager::UpdateCoordinationReadyFromSettingData()
     }
 }
 
+void ScreenSessionManager::SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady)
+    {
+        isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
+    }
+
+bool ScreenSessionManager::GetWaitingForCoordinationReady() const
+{
+    return isWaitingForCoordinationReady_.load();
+}
+
 void ScreenSessionManager::WaitForCoordinationReady()
 {
     std::unique_lock<std::mutex> lock(coordinationReadyMutex_);

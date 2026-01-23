@@ -483,10 +483,7 @@ public:
     bool GetCoordinationFlag();
     void WaitForCoordinationReady();
     void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady)
-    {
-        isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
-    }
-    bool GetWaitingForCoordinationReady() { return isWaitingForCoordinationReady_.load(); }
+    bool GetWaitingForCoordinationReady() const;
     void NotifyCoordinationReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
