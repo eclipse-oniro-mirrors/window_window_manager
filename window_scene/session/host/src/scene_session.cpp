@@ -4897,6 +4897,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     }
     bool isStartScreenMainOrExtend = isMainOrExtendScreenMode(startScreenSession->GetSourceMode());
     if (reason == SizeChangeReason::DRAG || reason == SizeChangeReason::DRAG_MOVE) {
+        WSRect globalRect = moveDragController_->GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
         for (const auto displayId : moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag()) {
             if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
                 continue;
@@ -4920,6 +4921,14 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
             }
             {
                 AutoRSTransaction trans(movedSurfaceNode->GetRSUIContext());
+                // In cross-display drag scenarios, SetIsCrossNode(true) creates a clone node.
+                // The clone node uses global position, so GlobalPosition must be enabled, and
+                // Bounds / Frame must be updated synchronously. Otherwise, if deferred to a
+                // vsync callback, the clone node will be rendered at an incorrect position in
+                // its first frame.
+                movedSurfaceNode->SetGlobalPositionEnabled(true);
+                movedSurfaceNode->SetBounds(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
+                movedSurfaceNode->SetFrame(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
                 movedSurfaceNode->SetPositionZ(MOVE_DRAG_POSITION_Z);
                 movedSurfaceNode->SetIsCrossNode(true);
             }
