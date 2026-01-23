@@ -13786,7 +13786,7 @@ void DisplayChangeListener::OnScreenshot(DisplayId displayId)
     SceneSessionManager::GetInstance().OnScreenshot(displayId);
 }
 
-bool SceneSessionManager::IsNeedNotifyScreenshotEvent(const sptr<SceneSession>& sceneSession) const
+bool SceneSessionManager::IsNeedNotifyScreenshotEvent(const sptr<SceneSession>& sceneSession)
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is null");
