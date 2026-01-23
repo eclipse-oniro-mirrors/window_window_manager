@@ -495,6 +495,7 @@ public:
     void HotSwitch(int32_t newUserId, int32_t newScbPid);
     void AddScbClientDeathRecipient(const sptr<IScreenSessionManagerClient>& scbClient, int32_t scbPid);
     void ScbClientDeathCallback(int32_t deathScbPid);
+    FoldDisplayMode FindPidInDisplayModeMap(int32_t newScbPid);
     void ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid);
     void RecoverMultiScreenModeWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid);
     int32_t GetCurrentUserId();
@@ -883,7 +884,8 @@ private:
     mutable std::mutex displayConcurrentUserMapMutex_;
     std::vector<int32_t> deathPidVector_ {};
     std::map<int32_t, sptr<IScreenSessionManagerClient>> clientProxyMap_;
-    FoldDisplayMode oldScbDisplayMode_ = FoldDisplayMode::UNKNOWN;
+    std::map<int32_t, FoldDisplayMode> oldScbDisplayModeMap_;
+    mutable std::mutex oldScbDisplayModeMapMutex_;
 
     sptr<IScreenSessionManagerClient> clientProxy_;
     std::mutex clientProxyMutex_; // above guarded by clientProxyMutex_
