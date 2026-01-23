@@ -19814,10 +19814,10 @@ float SceneSessionManager::GetBlurRadiusFromParam(std::string blurRadiusStr) con
 
 uint32_t SceneSessionManager::GetBlurBackgroundColorFromParam(std::string blurBackgroundColorStr) const
 {
-    for (size_t i = 0; i <= 8; ++i) {
-        if ((blurBackgroundColorStr[i] >= '0' && blurBackgroundColorStr[i] <= '9') ||
-        (blurBackgroundColorStr[i] >= 'a' && blurBackgroundColorStr[i] <= 'f') ||
-        (blurBackgroundColorStr[i] >= 'A' && blurBackgroundColorStr[i] <= 'F')) {
+    for (size_t i = 0; i <= (blurBackgroundColorStr.size() -1); ++i) {
+        if (!((blurBackgroundColorStr[i] >= '0' && blurBackgroundColorStr[i] <= '9') ||
+            (blurBackgroundColorStr[i] >= 'a' && blurBackgroundColorStr[i] <= 'f') ||
+            (blurBackgroundColorStr[i] >= 'A' && blurBackgroundColorStr[i] <= 'F'))) {
             TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurBackgroundColorStr: %{public}s",
                 blurBackgroundColorStr.c_str());
             return DEFAULT_BLUR_BACKGROUND_COLOR;  
