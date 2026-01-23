@@ -47,20 +47,22 @@ namespace Rosen {
 namespace DMS {
 constexpr uint32_t SLEEP_TIME_US = 100000;
 
-class MockFoldScreenBasePolicy:public: MockFoldScreenBasePolicy{
+class MockFoldScreenBasePolicy : public : MockFoldScreenBasePolicy{
 public:
-    MOCK_METHOD(bool, GetModeChangeRunningStatus, (),(override));
+    MOCK_METHOD(bool, GetModeChangeRunningStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetFoldStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetPhysicalFoldStatus, (), (override));
-    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode, DisplayModeChangeReason reason), (override));
-    MOCK_METHOD(bool, GetPhysicalFoldLockFlag, (),(override, const));
+    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode,
+    DisplayModeChangeReason reason), (override));
+    MOCK_METHOD(bool, GetPhysicalFoldLockFlag, (), (override, const));
 
     MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (FoldStatus status), (override));
     MOCK_METHOD(FoldStatus, GetForcedFoldStatus, (), (override, const));
 
     MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (), (override));
     MOCK_METHOD(const std::unordered_set<FoldStatus>&, GetSupportedFoldStates, (override, const));
-    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>& supportedFoldStates, FoldStatus targetFoldStatus), (override, const));
+    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>& supportedFoldStates,
+    FoldStatus targetFoldStatus), (override, const));
 };
 
 class FoldScreenBasePolicyTest : public testing::Test {
@@ -431,7 +433,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl04, TestSize.Level
 
 HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl05, TestSize.Level1)
 {
-    if(FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()){
+    if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()){
 
     LOG_SetCallback(MyLogCallback);
     FoldScreenBasePolicy* policy = mockBasePolicy.get();
