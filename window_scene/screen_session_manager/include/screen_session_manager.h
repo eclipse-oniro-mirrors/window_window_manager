@@ -1080,7 +1080,7 @@ private:
     std::mutex coordinationReadyMutex_;
     std::condition_variable coordinationReadyCV_;
     std::atomic<bool> isWaitingForCoordinationReady_ = false;
-    std::atomic<int32_t> waitCoordinationReadyMaxTime_ = 1500;
+    std::atomic<int32_t> waitCoordinationReadyMaxTime_ = 1500; // ms
 
     // Fold Screen duringcall
     bool duringCallState_ = false;

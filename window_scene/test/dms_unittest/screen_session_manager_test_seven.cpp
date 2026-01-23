@@ -1192,7 +1192,7 @@ HWTEST_F(ScreenSessionManagerTest, WaitForCoordinationReady, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     ssm_->isCoordinationReady_ = true;
-    ssm_->waitCoordinationReadyMaxTime_ = 0;
+    ssm_->waitCoordinationReadyMaxTime_ = 0; //ms
     ssm_->WaitForCoordinationReady();
     EXPECT_FALSE(ssm_->GetWaitingForCoordinationReady());
 }
@@ -1206,7 +1206,7 @@ HWTEST_F(ScreenSessionManagerTest, NotifyCoordinationReadyCV, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     ssm_->isCoordinationReady_ = false;
-    ssm_->waitCoordinationReadyMaxTime_ = 1000;
+    ssm_->waitCoordinationReadyMaxTime_ = 1000; //ms
     auto ssm = ssm_;
     std::thread waitThread([ssm]() { ssm->WaitForCoordinationReady(); });
     for (int i = 0; i < 50; ++i) {
