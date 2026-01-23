@@ -1960,6 +1960,8 @@ void ScreenSessionManager::HandleMapWhenScreenDisconnect(ScreenId screenId)
         std::lock_guard<std::recursive_mutex> lock(physicalScreenSessionMapMutex_);
         physicalScreenSessionMap_.erase(screenId);
     }
+
+    ClearScreenPowerStatus(screenId);
 }
 
 void ScreenSessionManager::HandlePCScreenDisconnect(sptr<ScreenSession>& screenSession)
@@ -13404,7 +13406,7 @@ bool ScreenSessionManager::SetRSScreenPowerStatusExt(ScreenId screenId, ScreenPo
             rsScreenId = screenId;
        }
     }
-	rsInterface_.SetScreenPowerStatus(rsScreenId, status);
+	DoSetScreenPowerStatus(rsScreenId, status);
     if (status == ScreenPowerStatus::POWER_STATUS_ON) {
 #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
         uint32_t ret = DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().NotifyBrightnessManagerScreenPowerStatus(
@@ -13431,8 +13433,8 @@ void ScreenSessionManager::CheckAnotherScreenStatus(ScreenId screenId, ScreenPow
         if (secondScreenStatus == PanelPowerStatus::PANEL_POWER_STATUS_ON) {
             TLOGNFI(WmsLogTag::DMS, "Another screen is on while set screen: %{public}" PRIu64 " on, do on and off",
                 screenId);
-            rsInterface_.SetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_ON);
-            rsInterface_.SetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_OFF);
+            DoSetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_ON);
+            DoSetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_OFF);
         } else {
             TLOGNFI(WmsLogTag::DMS, "Another screen status is not on while set screen: %{public}" PRIu64 " on,"
                 " set screen power status directly", screenId);
@@ -14497,6 +14499,40 @@ bool ScreenSessionManager::GetScreenLcdStatus(ScreenId screenId, PanelPowerStatu
 std::shared_ptr<TaskScheduler> ScreenSessionManager::GetScreenPowerTaskScheduler()
 {
     return screenPowerTaskScheduler_;
+}
+
+void ScreenSessionManager::DoSetScreenPowerStatus(ScreenId rsScreenId, ScreenPowerStatus status)
+{
+    bool setAdvancedOffFlag = false;
+    {
+        std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
+        auto it = screenPowerStatusMap_.find(rsScreenId);
+        if (it != screenPowerStatusMap_.end() && it->second == ScreenPowerStatus::POWER_STATUS_ON_ADVANCED &&
+            status == ScreenPowerStatus::POWER_STATUS_OFF) {
+            setAdvancedOffFlag = true;
+        }
+    }
+
+    // when the power status is ON_ADVANCED and need to be set to OFF，first set the status to OFF_ADVANCED.
+    if (setAdvancedOffFlag) {
+        TLOGNFW(WmsLogTag::DMS,
+        "set the power status to OFF_ADVANCED first, screenId: %{public}" PRIu64 ", status: %{public}d.", rsScreenId,
+        status);
+        rsInterface_.SetScreenPowerStatus(rsScreenId, ScreenPowerStatus::POWER_STATUS_OFF_ADVANCED);
+        return;
+    }
+
+    rsInterface_.SetScreenPowerStatus(rsScreenId, status);
+    {
+        std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
+        screenPowerStatusMap_[rsScreenId] = status;
+    }
+}
+
+void ScreenSessionManager::ClearScreenPowerStatus(ScreenId rsScreenId)
+{
+    std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
+    screenPowerStatusMap_.erase(rsScreenId);
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen

@@ -1132,6 +1132,11 @@ private:
     std::atomic<bool> curResolutionEffectEnable_ = false;
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     void SetOptionConfig(ScreenId screenId, VirtualScreenOption option);
+    void DoSetScreenPowerStatus(ScreenId rsScreenId, ScreenPowerStatus status);
+    void ClearScreenPowerStatus(ScreenId rsScreenId);
+
+    std::map<ScreenId, ScreenPowerStatus> screenPowerStatusMap_;
+    std::mutex screenPowerStatusMapMutex_;
     std::function<void(sptr<ScreenSession>& screenSession,
         SuperFoldStatusChangeEvents changeEvent)> propertyChangedCallback_;
     std::mutex callbackMutex_;

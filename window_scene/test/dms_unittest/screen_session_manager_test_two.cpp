@@ -3593,6 +3593,24 @@ HWTEST_F(ScreenSessionManagerTest, IsOnboardDisplay_systemCall, Function | Small
     MockAccesstokenKit::MockIsSACalling(true);
     MockAccesstokenKit::MockIsSystemApp(true);
 }
+
+/**
+@tc.name: DoSetScreenPowerStatusTest
+@tc.desc: when the power status is ON_ADVANCED and need to be set to OFF，first set the status to OFF_ADVANCED
+@tc.type: FUNC
+*/
+HWTEST_F(ScreenSessionManagerTest, DoSetScreenPowerStatusTest, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_ON_ADVANCED,
+        ScreenPowerOnReason::SAME_DISPLAY_TO_SINGLE_DISPLAY);
+
+    ssm_->SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF,
+        ScreenPowerOnReason::SAME_DISPLAY_TO_SINGLE_DISPLAY);
+    EXPECT_TRUE(g_errLog.find("set the power status to OFF_ADVANCED first") != std::string::npos);
+}
 }
 }
 }
