@@ -19800,7 +19800,7 @@ void SceneSessionManager::InitSnapshotBlurConfig()
     blurRadius_ = GetBlurRadiusFromParam(blurRadiusStr);
 
     std::string blurBackgroundColorStr = snapshotMaskParam.substr(1, bar - 1);
-    blurBackgroundColor_ = GetBlurBackgroundColorFromParam(snapshotMaskParam);
+    blurBackgroundColor_ = GetBlurBackgroundColorFromParam(blurBackgroundColorStr);
 
     TLOGI(WmsLogTag::WMS_PATTERN, "blurRadius_: %{public}f, blurBackgroundColor_: %{public}u",
         blurRadius_, blurBackgroundColor_);
