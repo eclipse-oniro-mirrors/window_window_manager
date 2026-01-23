@@ -824,7 +824,12 @@ private:
     void RegisterRotationCorrectionWhiteListObserver();
     mutable std::shared_mutex rotationCorrectionWhiteMutex_;
     std::unordered_map<std::string, RotationCorrectionWhiteConfig> rotationCorrectionWhiteList_;
+    mutable std::shared_mutex rotationCorrectionWhiteModeMutex_;
+    std::unordered_set<FoldDisplayMode> rotationCorrectionWhiteMode_;
     bool IsRotationCorrectionWhiteListEmpty() const;
+    bool IsSupportRotationCorrectionByWhiteList(FoldDisplayMode mode) const;
+    void InitRotationCorrectionWhiteModeByWhiteList(
+        const std::unordered_map<std::string, RotationCorrectionWhiteConfig>& whiteList);
 
     void HandleSuperFoldDisplayInfoWhenKeyboardOn(const sptr<ScreenSession>& screenSession,
         sptr<DisplayInfo>& displayInfo);

@@ -2321,8 +2321,22 @@ sptr<DisplayInfo> ScreenSessionManager::GetDisplayInfoById(DisplayId displayId)
 
 void ScreenSessionManager::HandleRotationCorrectionExemption(sptr<DisplayInfo>& displayInfo)
 {
-    if (!CORRECTION_ENABLE) {
+    if (!CORRECTION_ENABLE || SessionPermission::IsSACalling()) {
         return;
+    }
+    FoldDisplayMode foldDisplayMode = GetFoldDisplayMode();
+    FoldDisplayMode foldDisplayModeAfterRotation = GetFoldDisplayModeAfterRotation();
+    if (foldDisplayModeAfterRotation != FoldDisplayMode::UNKNOWN) {
+        foldDisplayMode = foldDisplayModeAfterRotation;
+    }
+    {
+        std::shared_lock<std::shared_mutex> lock(rotationCorrectionMutex_);
+        auto it = rotationCorrectionMap_.find(foldDisplayMode);
+        if (it != rotationCorrectionMap_.end() && it->second == 0 &&
+            !IsSupportRotationCorrectionByWhiteList(foldDisplayMode)) {
+            TLOGD(WmsLogTag::DMS, "Not supported in mode:%{public}u", foldDisplayMode);
+            return;
+        }
     }
     std::vector<std::string> rotationCorrectionExemptionList;
     {
@@ -2332,11 +2346,6 @@ void ScreenSessionManager::HandleRotationCorrectionExemption(sptr<DisplayInfo>& 
             return;
         }
         rotationCorrectionExemptionList = rotationCorrectionExemptionList_;
-    }
-    FoldDisplayMode foldDisplayMode = GetFoldDisplayMode();
-    FoldDisplayMode foldDisplayModeAfterRotation = GetFoldDisplayModeAfterRotation();
-    if (foldDisplayModeAfterRotation != FoldDisplayMode::UNKNOWN) {
-        foldDisplayMode = foldDisplayModeAfterRotation;
     }
     std::string bundleName = SysCapUtil::GetBundleName();
     if (std::find(rotationCorrectionExemptionList.begin(), rotationCorrectionExemptionList.end(), bundleName) !=
@@ -2392,6 +2401,27 @@ void ScreenSessionManager::RegisterRotationCorrectionExemptionListObserver()
     ScreenSettingHelper::RegisterRotationCorrectionExemptionListObserver(updateFunc);
 }
 
+bool ScreenSessionManager::IsSupportRotationCorrectionByWhiteList(FoldDisplayMode mode) const
+{
+    std::shared_lock<std::shared_mutex> lock(rotationCorrectionWhiteModeMutex_);
+    return rotationCorrectionWhiteMode_.find(mode) != rotationCorrectionWhiteMode_.end();
+}
+
+void ScreenSessionManager::InitRotationCorrectionWhiteModeByWhiteList(
+    const std::unordered_map<std::string, RotationCorrectionWhiteConfig>& whiteList)
+{
+    std::unique_lock<std::shared_mutex> lock(rotationCorrectionWhiteModeMutex_);
+    rotationCorrectionWhiteMode_.clear();
+    for (const auto& [key, config] : whiteList) {
+        for (const auto& [mode, useLogicCamera] : config.useLogicCamera) {
+            if (useLogicCamera) {
+                TLOGI(WmsLogTag::DMS, "add mode:%{public}u", mode);
+                rotationCorrectionWhiteMode_.insert(mode);
+            }
+        }
+    }
+}
+
 bool ScreenSessionManager::IsRotationCorrectionWhiteListEmpty() const
 {
     std::shared_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
@@ -2426,6 +2456,7 @@ void ScreenSessionManager::GetRotationCorrectionWhiteListFromDatabase()
     TLOGI(WmsLogTag::DMS, "success, list size:%{public}zu", rotationCorrectionWhiteList.size());
     {
         std::unique_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
+        InitRotationCorrectionWhiteModeByWhiteList(rotationCorrectionWhiteList);
         rotationCorrectionWhiteList_ = std::move(rotationCorrectionWhiteList);
     }
 }
@@ -14162,8 +14193,8 @@ Rotation ScreenSessionManager::CorrectionRotationByWhiteConfig(const RotationCor
     Rotation rotation, FoldDisplayMode foldDisplayMode)
 {
     auto correctionRotation = GetCorrectionInWhiteConfigByDisplayMode(config, foldDisplayMode);
-    return static_cast<Rotation>((static_cast<uint32_t>(rotation) +
-        static_cast<uint32_t>(correctionRotation)) % ROTATION_MOD);
+    return static_cast<Rotation>((static_cast<uint32_t>(rotation) -
+        static_cast<uint32_t>(correctionRotation) + ROTATION_MOD) % ROTATION_MOD);
 }
 
 Rotation ScreenSessionManager::GetCorrectionInWhiteConfigByDisplayMode(const RotationCorrectionWhiteConfig& config,

@@ -87,20 +87,10 @@ public:
         const std::string& key = SETTING_COMPATIBLE_APP_STRATEGY_KEY);
     static void GetCorrectionExemptionListFromJson(const std::string& exemptionListJsonStr,
         std::vector<std::string>& exemptionApps);
-    static void RegisterRotationCorrectionWhiteListObserver(SettingObserver::UpdateFunc func);
-    static void UnregisterRotationCorrectionWhiteListObserver();
+    static void RegisterSettingCoordinationReadyObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingCoordinationReadyObserver();
     static bool GetSettingIsCoordinationReady(bool& isCoordinationReady,
         const std::string& key = SETTING_DUAL_DISPLAY_READY_KEY);
-    static bool GetRotationCorrectionWhiteList(
-        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs,
-        const std::string& key = SETTING_ROTATION_CORRECT_KEY);
-    static void GetCorrectionWhiteListFromJson(const std::string& whiteListJsonStr,
-        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs);
-    static bool GetWhiteConfigFromJson(const nlohmann::json& j,
-        RotationCorrectionWhiteConfig& config, std::string& appName);
-    static bool ParseJsonObjectToEnumMap(const nlohmann::json& j,
-        std::unordered_map<FoldDisplayMode, int32_t>& resultMap);
-    static FoldDisplayMode ConvertStringToFoldDisplayModeSafely(const std::string& str);
     template<typename T>
     static bool GetJsonValue(const nlohmann::json& payload, const std::string& key, T& result)
     {
@@ -125,6 +115,18 @@ public:
         }
         return false;
     }
+    static void RegisterRotationCorrectionWhiteListObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterRotationCorrectionWhiteListObserver();
+    static bool GetRotationCorrectionWhiteList(
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs,
+        const std::string& key = SETTING_ROTATION_CORRECT_KEY);
+    static void GetCorrectionWhiteListFromJson(const std::string& whiteListJsonStr,
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs);
+    static bool GetWhiteConfigFromJson(const nlohmann::json& j,
+        RotationCorrectionWhiteConfig& config, std::string& appName);
+    static bool ParseJsonObjectToEnumMap(const nlohmann::json& j,
+        std::unordered_map<FoldDisplayMode, int32_t>& resultMap);
+    static FoldDisplayMode ConvertStringToFoldDisplayModeSafely(const std::string& str);
 private:
     static const constexpr char* SETTING_DPI_KEY {"user_set_dpi_value"};
     static const constexpr char* SETTING_CAST_KEY {"huaweicast.data.privacy_projection_state"};
