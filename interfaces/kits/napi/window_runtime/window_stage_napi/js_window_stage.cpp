@@ -1137,11 +1137,11 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
         return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
     }
     if (pixelMap != nullptr) {
-        TLOGI (WmsLogTag::WMS_PATTERN, 
+        TLOGI (WmsLogTag::WMS_PATTERN,
             "SetImageForRecent parse ok type=pixelMap imageFit=%{public}d size=%{public}d*%{public}d",
             imageFit, pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
-        TLOGI (WmsLogTag::WMS_PATTERN, 
+        TLOGI (WmsLogTag::WMS_PATTERN,
             "SetImageForRecent parse ok type=resId imageFit=%{public}d id=%{public}d", imageFit, imgResourceId);
     }
 
