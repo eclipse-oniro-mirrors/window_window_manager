@@ -6489,7 +6489,7 @@ napi_value JsSceneSession::OnNotifyDisplayStatusBarTemporarily(napi_env env, nap
     }
     session->SetIsDisplayStatusBarTemporarily(isTempDisplay);
 
-    TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] isTempDisplay %{public}u",
+    TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] isTempDisplay %{public}u",
         session->GetPersistentId(), session->GetWindowName().c_str(), isTempDisplay);
     return NapiGetUndefined(env);
 }
