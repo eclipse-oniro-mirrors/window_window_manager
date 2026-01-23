@@ -19808,7 +19808,7 @@ void SceneSessionManager::InitSnapshotBlurConfig()
 
 float SceneSessionManager::GetBlurRadiusFromParam(const std::string& blurRadiusStr) const
 {
-    for (size_t i = 0; i <= (blurRadiusStr.size() -1); ++i) {
+    for (size_t i = 0; i <= (blurRadiusStr.size() - 1); ++i) {
         if (!SessionHelper::IsDecChar(blurRadiusStr[i])) {
             TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurRadiusStr: %{public}s",
                 blurBackgroundColorStr.c_str());
@@ -19821,7 +19821,7 @@ float SceneSessionManager::GetBlurRadiusFromParam(const std::string& blurRadiusS
 
 uint32_t SceneSessionManager::GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const
 {
-    for (size_t i = 0; i <= (blurBackgroundColorStr.size() -1); ++i) {
+    for (size_t i = 0; i <= (blurBackgroundColorStr.size() - 1); ++i) {
         if (!SessionHelper::IsHexChar(blurBackgroundColorStr[i])) {
             TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurBackgroundColorStr: %{public}s",
                 blurBackgroundColorStr.c_str());
