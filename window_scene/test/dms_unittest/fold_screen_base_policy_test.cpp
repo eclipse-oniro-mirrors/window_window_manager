@@ -47,7 +47,7 @@ namespace Rosen {
 namespace DMS {
 constexpr uint32_t SLEEP_TIME_US = 100000;
 
-class MockFoldScreenBasePolicy : public : MockFoldScreenBasePolicy{
+class MockFoldScreenBasePolicy : public : MockFoldScreenBasePolicy {
 public:
     MOCK_METHOD(bool, GetModeChangeRunningStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetFoldStatus, (), (override));
@@ -433,7 +433,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl04, TestSize.Level
 
 HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl05, TestSize.Level1)
 {
-    if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()){
+    if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
 
     LOG_SetCallback(MyLogCallback);
     FoldScreenBasePolicy* policy = mockBasePolicy.get();
