@@ -1171,11 +1171,11 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
 
     sceneSession->state_ = SessionState::STATE_ACTIVE;
     controlInfo.isNeedControl = true;
-    session_->isPersistentImageFit_ = true;
+    sceneSession->isPersistentImageFit_ = true;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 
-    session_->isPersistentImageFit_ = false;
+    sceneSession->isPersistentImageFit_ = false;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 

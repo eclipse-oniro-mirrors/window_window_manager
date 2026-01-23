@@ -1297,6 +1297,15 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             NotifyAodOpCompletion(static_cast<AodOP>(op), result);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_POWER_STATE_AOD: {
+            uint32_t state;
+            if (!data.ReadUint32(state)) {
+                TLOGE(WmsLogTag::DMS, "Read state failed");
+                return ERR_INVALID_DATA;
+            }
+            SetPowerStateForAod(static_cast<ScreenPowerState>(state));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_GET_VIRTUAL_SCREEN_FLAG: {
             ProcGetVirtualScreenFlag(data, reply);
             break;

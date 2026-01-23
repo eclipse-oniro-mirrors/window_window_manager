@@ -1150,6 +1150,13 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     systemSession->SetSessionProperty(property);
 
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
+    SessionInfo info1;
+    info1.abilityName_ = "floatWindowParentWindow";
+    info1.bundleName_ = "floatWindowParentWindow";
+    sptr<Session> parentSession = sptr<Session>::MakeSptr(info1);
+    systemSession->SetParentSession(parentSession);
+
     LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid() + 1));
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
     LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
@@ -1159,6 +1166,7 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
     systemSession->state_.store(SessionState::STATE_ACTIVE);
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+
     systemSession->RegisterGetIsRecentStateFunc([]() {
         return true;
     });
@@ -1166,6 +1174,12 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level
     systemSession->RegisterGetIsRecentStateFunc([]() {
         return false;
     });
+    parentSession->SetForegroundInteractiveStatus(false);
+    parentSession->state_.store(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_START_ABILITY_FAILED);
+    parentSession->state_.store(SessionState::STATE_ACTIVE);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_START_ABILITY_FAILED);
+    parentSession->SetForegroundInteractiveStatus(true);
 
     systemSession->floatWindowDownEventCnt_ = 0;
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);

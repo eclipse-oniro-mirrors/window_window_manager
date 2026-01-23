@@ -1215,8 +1215,8 @@ private:
     void UpdateSessionDisplayIdBySessionInfo(sptr<SceneSession> sceneSession, const SessionInfo& sessionInfo);
     void CheckFloatWindowIsAnco(pid_t pid, const sptr<SceneSession>& newSession);
     bool IsNeedUpdateBrightness(int32_t persistentId, float brightness);
-    void RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession);
-    void NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey);
+    WSError RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession);
+    WSError NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey);
     WMError GetRootUIContentRemoteObjInner(DisplayId displayId, sptr<IRemoteObject>& uiContentRemoteObj);
 
     /*

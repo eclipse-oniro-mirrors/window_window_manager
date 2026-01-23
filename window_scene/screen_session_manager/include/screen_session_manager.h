@@ -445,7 +445,7 @@ public:
     DMError VirtualScreenUniqueSwitch(const std::vector<ScreenId>& screenIds,
         const UniqueScreenRotationOptions& rotationOptions);
     int32_t GetDeviceOrientationAPI14(sptr<ScreenSession> screenSession, Rotation rotation);
-    void FixPowerStatus();
+    void FixPowerStatus(bool isSync = false);
     void FoldScreenPowerInit();
     DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy) override;
     DMError ResetAllFreezeStatus() override;
@@ -558,6 +558,7 @@ public:
     bool GetCancelSuspendStatus() const;
     void RemoveScreenCastInfo(ScreenId screenId);
     Rotation GetConfigCorrectionByDisplayMode(FoldDisplayMode displayMode);
+    Rotation GetCurrentConfigCorrection();
     Rotation RemoveRotationCorrection(Rotation rotation);
     Rotation RemoveRotationCorrection(Rotation rotation, FoldDisplayMode foldDisplayMode);
     FoldDisplayMode GetFoldDisplayModeAfterRotation() const;
@@ -573,6 +574,7 @@ public:
     bool IsFreezed(const int32_t& agentPid, const DisplayManagerAgentType& agentType);
     bool isScreenShot_ = false;
     void NotifyAodOpCompletion(AodOP operation, int32_t result) override;
+    void SetPowerStateForAod(ScreenPowerState state) override;
     void DoAodExitAndSetPower(ScreenId screenId, ScreenPowerStatus status);
     void DoAodExitAndSetPowerAllOff();
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;

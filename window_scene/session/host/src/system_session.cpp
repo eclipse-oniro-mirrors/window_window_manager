@@ -684,17 +684,22 @@ WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantP
         TLOGNE(WmsLogTag::WMS_SYSTEM, "Check window type failed");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-    return PostSyncTask([weakThis = wptr(this), callingPid, wantParameters, where = __func__, state = state_.load()]() {
+    return PostSyncTask([weakThis = wptr(this), callingPid, wantParameters, where = __func__]() {
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s session is null", where);
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
+        auto parentSession = session->GetParentSession();
+        if (parentSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "cannot find parent session");
+            return WMError::WM_ERROR_INVALID_CALLING;
+        }
         if (callingPid != session->GetCallingPid()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s permission denied, not call by the same process", where);
             return WMError::WM_ERROR_INVALID_CALLING;
         }
-        if (state != SessionState::STATE_FOREGROUND && state != SessionState::STATE_ACTIVE) {
+        if (!session->IsSessionForeground()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s window state is not at foreground or active", where);
             return WMError::WM_ERROR_INVALID_CALLING;
         }
@@ -702,8 +707,9 @@ WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantP
             TLOGE(WmsLogTag::WMS_SYSTEM, "cannot get recent func");
             return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
         }
-        if (session->getIsRecentStateFunc_()) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "current window is at recent state");
+        if ((parentSession->IsSessionForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
+            session->getIsRecentStateFunc_()) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "parent window is at foreground but not interactive");
             return WMError::WM_ERROR_START_ABILITY_FAILED;
         }
         {

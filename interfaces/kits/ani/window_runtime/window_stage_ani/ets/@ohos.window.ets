@@ -39,7 +39,6 @@ export type WindowWillCloseCallback<T, V = void> = (data: T) => V;
 const DOMAIN = 0x4200;
 const TAG = '[ANI]';
 const WM_ERROR_INVALID_PARAM = 401;
-const WM_ERROR_ILLEGAL_PARAM = 1300016;
 declare type WindowAnimationCurveParam = Array<number>;
 
 namespace window {
@@ -2862,7 +2861,6 @@ export class WindowInternal implements Window {
     private static native nativeTransferStatic(input: ESValue): Object;
     private static native nativeTransferDynamic(nativeObj: long): ESValue;
 
-    private native throwIfWindowInvalid(nativeObj: long): void;
     private native setWindowTopmost(nativeObj: long, isWindowTopmost: boolean): void;
     private native resize(nativeObj: long, width: int, height: int): void;
     private native moveWindowTo(nativeObj: long, x: int, y: int): void;
@@ -3450,10 +3448,6 @@ export class WindowInternal implements Window {
     }
 
     public setDragKeyFramePolicy(keyFramePolicy: KeyFramePolicy): Promise<KeyFramePolicy> {
-      if ((keyFramePolicy.interval ?? 1) <= 0 || (keyFramePolicy.distance ?? 1) < 0 ||
-          (keyFramePolicy.animationDelay ?? 1) < 0 || (keyFramePolicy.animationDuration ?? 1) < 0) {
-        throw new BusinessError(WM_ERROR_ILLEGAL_PARAM, new Error('Static invalid param!'));
-      }
       return new Promise<KeyFramePolicy>((resolve: (value: KeyFramePolicy) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute(() => {
           return this.setDragKeyFramePolicy(this.nativeObj, keyFramePolicy);
@@ -4779,7 +4773,6 @@ export class WindowInternal implements Window {
     }
 
     public startMoving(): Promise<void> {
-      this.throwIfWindowInvalid(this.nativeObj);
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute((): void => {
           this.startMoving(this.nativeObj);

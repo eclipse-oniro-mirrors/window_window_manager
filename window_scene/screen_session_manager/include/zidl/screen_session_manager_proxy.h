@@ -221,6 +221,7 @@ public:
     void NotifyFoldToExpandCompletion(bool foldToExpand) override;
     void NotifyScreenConnectCompletion(ScreenId screenId) override;
     void NotifyAodOpCompletion(AodOP op, int32_t result) override;
+    void SetPowerStateForAod(ScreenPowerState state) override;
     void RecordEventFromScb(std::string description, bool needRecordEvent) override;
     void SwitchUser() override;
 

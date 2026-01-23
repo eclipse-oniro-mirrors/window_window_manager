@@ -1657,7 +1657,7 @@ bool SceneSession::ShouldSkipUpdateRect(const WSRect& rect)
 {
     const auto persistentId = GetPersistentId();
     if (rect.IsInvalid()) {
-        TLOGNE(WmsLogTag::WMS_LAYOUT, "id:%{public}d rect:%{public}s is invalid", persistentId,
+        TLOGE(WmsLogTag::WMS_LAYOUT, "id:%{public}d rect:%{public}s is invalid", persistentId,
             rect.ToString().c_str());
         return true;
     }
@@ -1718,9 +1718,12 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
 
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::UpdateRect %d [%d, %d, %u, %u]",
             session->GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_);
-        session->SetWinRectWhenUpdateRect(rect);
         // check whether to notify the client rect update
+        // SetWinRectWhenUpdateRect needs to be set after determining whether to skip
         if (session->ShouldSkipUpdateRectNotify(rect)) {
+            session->SetWinRectWhenUpdateRect(rect);
+        } else {
+            session->SetWinRectWhenUpdateRect(rect);
             session->NotifyClientToUpdateRect(updateReason, rsTransaction);
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
@@ -4896,6 +4899,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     }
     bool isStartScreenMainOrExtend = isMainOrExtendScreenMode(startScreenSession->GetSourceMode());
     if (reason == SizeChangeReason::DRAG || reason == SizeChangeReason::DRAG_MOVE) {
+        WSRect globalRect = moveDragController_->GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
         for (const auto displayId : moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag()) {
             if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
                 continue;
@@ -4919,6 +4923,14 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
             }
             {
                 AutoRSTransaction trans(movedSurfaceNode->GetRSUIContext());
+                // In cross-display drag scenarios, SetIsCrossNode(true) creates a clone node.
+                // The clone node uses global position, so GlobalPosition must be enabled, and
+                // Bounds / Frame must be updated synchronously. Otherwise, if deferred to a
+                // vsync callback, the clone node will be rendered at an incorrect position in
+                // its first frame.
+                movedSurfaceNode->SetGlobalPositionEnabled(true);
+                movedSurfaceNode->SetBounds(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
+                movedSurfaceNode->SetFrame(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
                 movedSurfaceNode->SetPositionZ(MOVE_DRAG_POSITION_Z);
                 movedSurfaceNode->SetIsCrossNode(true);
             }

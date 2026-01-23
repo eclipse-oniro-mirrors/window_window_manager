@@ -3688,15 +3688,13 @@ void SceneSessionManager::AddRequestTaskInfo(sptr<SceneSession> sceneSession, in
     }
     AAFwk::Want wantTmp = sessionInfo.GetWantSafely();
     size_t requestIdToWantMapSize = 0;
-    {
-        std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
-        if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
-            requestTaskInfoMap.emplace(persistentId, std::make_shared<RequestTaskInfo>());
-        }
-        auto& requestIdToWantMap = requestTaskInfoMap[persistentId]->requestIdToWantMap;
-        requestIdToWantMap[requestId] = wantTmp;
-        requestIdToWantMapSize = requestIdToWantMap.size();
+    std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
+    if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
+        requestTaskInfoMap.emplace(persistentId, std::make_shared<RequestTaskInfo>());
     }
+    auto& requestIdToWantMap = requestTaskInfoMap[persistentId]->requestIdToWantMap;
+    requestIdToWantMap[requestId] = wantTmp;
+    requestIdToWantMapSize = requestIdToWantMap.size();
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d, "
         "infoMap size:%{public}u, wantMap size:%{public}u",
         persistentId, requestId, requestTaskInfoMap.size(), requestIdToWantMapSize);
@@ -3706,13 +3704,11 @@ void SceneSessionManager::RemoveRequestTaskInfo(int32_t persistentId, int32_t re
     if (requestId < MIN_REQUEST_ID_FROM_ABILITY || persistentId == INVALID_SESSION_ID) {
         return;
     }
-    {
-        std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
-        if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
-            return;
-        }
-        requestTaskInfoMap[persistentId]->requestIdToWantMap.erase(requestId);
+    std::lock_guard<std::mutex> lock(requestTaskInfoMapMutex_);
+    if (requestTaskInfoMap.find(persistentId) == requestTaskInfoMap.end()) {
+        return;
     }
+    requestTaskInfoMap[persistentId]->requestIdToWantMap.erase(requestId);
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d, "
         "infoMap size:%{public}u, wantMap size:%{public}u",
         persistentId, requestId, requestTaskInfoMap.size(),
@@ -12457,6 +12453,7 @@ void SceneSessionManager::SetSessionVisibilityInfo(const sptr<SceneSession>& ses
     windowVisibilityInfo->SetAbilityName(session->GetSessionInfo().abilityName_);
     windowVisibilityInfo->SetIsSystem(session->GetSessionInfo().isSystem_);
     windowVisibilityInfo->SetZOrder(session->GetZOrder());
+    windowVisibilityInfo->SetCollaboratorType(session->GetCollaboratorType());
 
     int32_t callingWindowId = session->GetSessionInfo().callerPersistentId_;
     sptr<SceneSession> callerSession = GetSceneSession(callingWindowId);
@@ -18984,28 +18981,30 @@ void SceneSessionManager::RegisterSceneSessionDestructNotifyManagerFunc(const sp
     });
 }
 
-void SceneSessionManager::RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
+WSError SceneSessionManager::RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     sceneSession->SetSessionPropertyChangeNotifyManagerListener(
         [this](int32_t persistentId, WindowInfoKey windowInfoKey) {
         NotifySessionPropertyChangeFromSession(persistentId, windowInfoKey);
     });
+    return WSError::WS_OK;
 }
 
-void SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey)
+WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "persistentId: %{public}d, windowInfoKey: %{public}u",
         persistentId, static_cast<uint32_t>(windowInfoKey));
     sptr<SceneSession> sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "sceneSession nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     NotifyWindowPropertyChangeByWindowInfoKey(sceneSession, windowInfoKey);
+    return WSError::WS_OK;
 }
 
 void SceneSessionManager::ConfigSupportZLevel()

@@ -917,7 +917,7 @@ HWTEST_F(ScreenSessionManagerTest, NotifyFoldStatusChanged02, TestSize.Level1)
     }
     if (!(ssm_->IsFoldable())) {
         ssm_->foldScreenController_ = new FoldScreenController(
-            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_);
+            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     }
     ASSERT_NE(ssm_->foldScreenController_, nullptr);
     statusParam = "-y";
@@ -1053,7 +1053,7 @@ HWTEST_F(ScreenSessionManagerTest, GetCurrentScreenPhyBounds01, TestSize.Level1)
     }
     if (!(ssm_->IsFoldable())) {
         ssm_->foldScreenController_ = new FoldScreenController(
-            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_);
+            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     }
 
     ASSERT_NE(ssm_->foldScreenController_, nullptr);
@@ -1076,7 +1076,7 @@ HWTEST_F(ScreenSessionManagerTest, GetCurrentScreenPhyBounds02, TestSize.Level1)
     ScreenId screenId = 0;
     ssm_->GetCurrentScreenPhyBounds(phyWidth, phyHeight, isReset, screenId);
     auto foldController = sptr<FoldScreenController>::MakeSptr(ssm_->displayInfoMutex_,
-        ssm_->screenPowerTaskScheduler_);
+        ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     ASSERT_NE(foldController, nullptr);
     DisplayPhysicalResolution physicalSize_full;
     physicalSize_full.foldDisplayMode_ = FoldDisplayMode::FULL;
@@ -1144,6 +1144,39 @@ HWTEST_F(ScreenSessionManagerTest, GetIsCurrentInUseById01, Function | SmallTest
     ScreenId screenId = 50;
     auto res = ssm->GetIsCurrentInUseById(screenId);
     ASSERT_EQ(false, res);
+}
+
+/**
+ * @tc.name: SetPowerStateForAodPermission
+ * @tc.desc: SetPowerStateForAodPermission test no permission
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetPowerStateForAodPermission, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    ssm_->SetPowerStateForAod(ScreenPowerState::POWER_DOZE);
+    EXPECT_TRUE(g_logMsg.find("permission denied!") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetPowerStateForAodInvalidState
+ * @tc.desc: SetPowerStateForAodInvalidState test invalid state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetPowerStateForAodInvalidState, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    MockAccesstokenKit::MockIsSACalling(true);
+    ssm_->SetPowerStateForAod(ScreenPowerState::POWER_DOZE);
+    ssm_->SetPowerStateForAod(ScreenPowerState::INVALID_STATE);
+    EXPECT_TRUE(g_logMsg.find("[UL_POWER]invalid state:") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 } // namespace Rosen

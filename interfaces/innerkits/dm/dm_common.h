@@ -119,6 +119,9 @@ enum class PowerStateChangeReason : uint32_t {
     STATE_CHANGE_REASON_END_DREAM = 50,
     STATE_CHANGE_REASON_SYNCHRONIZE_POWER_STATE = 51,
     STATE_CHANGE_REASON_APPCAST = 52,
+    STATE_CHANGE_REASON_AOD_SET_DOZE = 53,
+    STATE_CHANGE_REASON_AOD_SET_DOZE_SUSPEND = 54,
+    STATE_CHANGE_REASON_AOD_SET_OFF = 55,
     STATE_CHANGE_REASON_REMOTE = 100,
     STATE_CHANGE_REASON_UNKNOWN = 1000,
 };
@@ -133,6 +136,15 @@ enum class ScreenPowerState : uint32_t {
     POWER_OFF,
     POWER_BUTT,
     INVALID_STATE,
+    POWER_DOZE,
+    POWER_DOZE_SUSPEND,
+};
+
+/**
+ * @brief Enumerates the state of the screen power by SceneBoard.
+ */
+enum class ScbScreenPowerState : uint32_t {
+    POWER_OFF,
     POWER_DOZE,
     POWER_DOZE_SUSPEND,
 };

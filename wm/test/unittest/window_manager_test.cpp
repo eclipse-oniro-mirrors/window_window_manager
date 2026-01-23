@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 #include "iremote_object_mocker.h"
 #include "scene_board_judgement.h"
-#include "singleton_mocker.h"
 #include "window_manager.cpp"
 #include "window_manager.h"
 #include "window_manager_hilog.h"
@@ -26,45 +25,6 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
-
-// Mock the functions in WindowAdapter.
-class MockWindowAdapter : public WindowAdapter {
-public:
-    explicit MockWindowAdapter(const int32_t userId) : WindowAdapter(userId) {}
-    ~MockWindowAdapter() = default;
-
-    WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
-                                       const sptr<IWindowManagerAgent>& windowManagerAgent) override
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-                                              uint32_t interestInfo,
-                                              const sptr<IWindowManagerAgent>& windowManagerAgent) override
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
-                                         const sptr<IWindowManagerAgent>& windowManagerAgent) override
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-                                                uint32_t interestInfo,
-                                                const sptr<IWindowManagerAgent>& windowManagerAgent)
-    {
-        return WMError::WM_OK;
-    }
-
-    WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex)
-    {
-        return WMError::WM_OK;
-    }
-};
-
 namespace {
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
@@ -72,6 +32,42 @@ namespace {
     {
         g_errLog = msg;
     }
+
+// Mock the functions in WindowAdapter to return ok.
+class MockWindowAdapter : public WindowAdapter {
+public:
+    explicit MockWindowAdapter(const int32_t userId) : WindowAdapter(userId) {}
+    ~MockWindowAdapter() = default;
+
+    WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+        uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override
+    {
+        return WMError::WM_OK;
+    }
+
+    WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override
+    {
+        return WMError::WM_OK;
+    }
+};
 
 class TestCameraFloatWindowChangedListener : public ICameraFloatWindowChangedListener {
 public:
@@ -86,16 +82,6 @@ public:
     void OnWindowVisibilityChanged(const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfo) override
     {
         WLOGI("TestVisibilityChangedListener");
-    };
-};
-
-class TestSystemBarChangedListener : public ISystemBarChangedListener {
-public:
-    int32_t count_ = 0;
-    void OnSystemBarPropertyChange(DisplayId displayId, const SystemBarRegionTints& tints) override
-    {
-        count_++;
-        WLOGI("TestSystemBarChangedListener");
     };
 };
 
@@ -659,79 +645,6 @@ HWTEST_F(WindowManagerTest, UnregisterWindowModeChangedListener01, TestSize.Leve
 
     instance_->pImpl_->windowModeListenerAgent_ = oldWindowManagerAgent;
     instance_->pImpl_->windowModeListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: RegisterSystemBarChangedListener01
- * @tc.desc: check RegisterSystemBarChangedListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, RegisterSystemBarChangedListener01, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, instance_);
-    auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
-    auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
-    instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
-    instance_->pImpl_->systemBarChangedListeners_.clear();
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, instance_->RegisterSystemBarChangedListener(nullptr));
-
-    auto oldAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
-
-    instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
-    instance_->pImpl_->systemBarChangedListeners_.clear();
-    WMError ret = instance_->RegisterSystemBarChangedListener(nullptr);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
-
-    sptr<ISystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
-
-    ASSERT_EQ(WMError::WM_ERROR_SAMGR, instance_->RegisterSystemBarChangedListener(listener));
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-
-    // to check that the same listner can not be registered twice
-
-    instance_->pImpl_->systemBarChangedListenerAgent_ = oldAgent;
-    instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: UnregisterSystemBarChangedListener01
- * @tc.desc: check UnregisterSystemBarChangedListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, UnregisterSystemBarChangedListener01, TestSize.Level1)
-{
-    ASSERT_NE(instance_, nullptr);
-    auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
-    auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
-    instance_->pImpl_->systemBarChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
-    instance_->pImpl_->systemBarChangedListeners_.clear();
-    // check nullpter
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, instance_->UnregisterSystemBarChangedListener(nullptr));
-
-    sptr<TestSystemBarChangedListener> listener1 = sptr<TestSystemBarChangedListener>::MakeSptr();
-    sptr<TestSystemBarChangedListener> listener2 = sptr<TestSystemBarChangedListener>::MakeSptr();
-    ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
-    instance_->RegisterSystemBarChangedListener(listener1);
-    instance_->RegisterSystemBarChangedListener(listener2);
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-
-    instance_->UnregisterSystemBarChangedListener(listener1);
-    instance_->UnregisterSystemBarChangedListener(listener2);
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-    ASSERT_EQ(nullptr, instance_->pImpl_->systemBarChangedListenerAgent_);
-
-    instance_->pImpl_->systemBarChangedListeners_.push_back(listener1);
-    ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-
-    instance_->pImpl_->systemBarChangedListenerAgent_ = oldWindowManagerAgent;
-    instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
 }
 
 /**
@@ -1754,7 +1667,7 @@ HWTEST_F(WindowManagerTest, GetAllWindowLayoutInfo, TestSize.Level1)
     DisplayId displayId = 1;
     std::vector<sptr<WindowLayoutInfo>> infos;
     auto ret = WindowManager::GetInstance().GetAllWindowLayoutInfo(displayId, infos);
-    ASSERT_EQ(SingletonContainer::Get<WindowAdapter>().GetAllWindowLayoutInfo(displayId, infos), ret);
+    ASSERT_EQ(WindowAdapter::GetInstance().GetAllWindowLayoutInfo(displayId, infos), ret);
 }
 
 /**
@@ -2106,25 +2019,6 @@ HWTEST_F(WindowManagerTest, UnregisterDisplayIdChangedListener01, Function | Sma
 
     instance_->pImpl_->WindowDisplayIdChangeListenerAgent_ = oldWindowManagerAgent;
     instance_->pImpl_->windowDisplayIdChangeListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: NotifySystemBarChanged
- * @tc.desc: check NotifySystemBarChanged
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, NotifySystemBarChanged, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, instance_);
-    ASSERT_NE(nullptr, instance_->pImpl_);
-    sptr<TestSystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
-    ASSERT_NE(nullptr, listener);
-    instance_->pImpl_->systemBarChangedListeners_.push_back(listener);
-    
-    SystemBarRegionTints tints;
-    instance_->pImpl_->NotifySystemBarChanged(0, tints);
-    EXPECT_EQ(1, listener->count_);
-    instance_->pImpl_->systemBarChangedListeners_.clear();
 }
 
 /**

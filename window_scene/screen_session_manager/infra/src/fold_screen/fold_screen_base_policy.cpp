@@ -736,6 +736,7 @@ void FoldScreenBasePolicy::SetdisplayModeChangeStatus(bool status, bool isOnBoot
             return;
         }
         displayModeChangeRunning_ = false;
+        ScreenSessionManager::GetInstance().RunFinishTask();
         endTimePoint_ = std::chrono::steady_clock::now();
         if (lastCachedisplayMode_.load() != GetScreenDisplayMode()) {
             ScreenSessionManager::GetInstance().TriggerDisplayModeUpdate(lastCachedisplayMode_.load());

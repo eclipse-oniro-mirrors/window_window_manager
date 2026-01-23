@@ -87,6 +87,7 @@
 #include "zidl/idisplay_manager_agent.h"
 #include "wm_common.h"
 #include "screen_sensor_mgr.h"
+#include "sensor_fold_state_mgr.h"
 #include "fold_screen_base_controller.h"
 
 namespace OHOS::Rosen {
@@ -398,8 +399,10 @@ void ScreenSessionManager::HandleFoldScreenPowerInit()
     TLOGNFI(WmsLogTag::DMS, "Enter");
     if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         foldScreenController_ = new (std::nothrow) DMS::FoldScreenBaseController();
+        DMS::SensorFoldStateMgr::GetInstance().SetTaskScheduler(taskScheduler_);
     } else {
-        foldScreenController_ = new (std::nothrow) FoldScreenController(displayInfoMutex_, screenPowerTaskScheduler_);
+        foldScreenController_ = new (std::nothrow) FoldScreenController(displayInfoMutex_,
+            screenPowerTaskScheduler_, taskScheduler_);
     }
     
     if (!foldScreenController_) {
@@ -474,7 +477,7 @@ void ScreenSessionManager::FoldScreenPowerInit()
             TLOGNFI(WmsLogTag::DMS, "ScreenSessionManager Fold Screen Power Init, invalid active screen id");
         }
         ScreenStateMachine::GetInstance().IncScreenStateInitRef();
-        FixPowerStatus();
+        FixPowerStatus(true);
         foldScreenController_->SetIsClearingBootAnimation(false);
         foldScreenController_->SetOnBootAnimation(false);
         RegisterApplicationStateObserver();
@@ -482,10 +485,14 @@ void ScreenSessionManager::FoldScreenPowerInit()
 #endif
 }
 
-void ScreenSessionManager::FixPowerStatus()
+void ScreenSessionManager::FixPowerStatus(bool isSync)
 {
     if (!PowerMgr::PowerMgrClient::GetInstance().IsScreenOn()) {
-        PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
+        if (isSync) {
+            PowerMgr::PowerMgrClient::GetInstance().WakeupDevice();
+        } else {
+            PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
+        }
         TLOGNFI(WmsLogTag::DMS, "Fix Screen Power State");
     }
 }
@@ -1084,7 +1091,7 @@ void ScreenSessionManager::SetScreenCorrection()
         int32_t phyOffset = static_cast<int32_t>(std::stoi(phyOffsets[0]));
         screenRotation = ConvertOffsetToCorrectRotation(phyOffset);
     }
-    auto rotationOffset = GetConfigCorrectionByDisplayMode(GetFoldDisplayMode());
+    auto rotationOffset = GetCurrentConfigCorrection();
     auto rotation = (static_cast<int32_t>(screenRotation) + static_cast<int32_t>(rotationOffset)) % ROTATION_MOD;
     auto ret = rsInterface_.SetScreenCorrection(screenId, static_cast<ScreenRotation>(rotation));
     oss << "screenRotation: " << static_cast<int32_t>(screenRotation) << " ret value: " << ret;
@@ -3958,7 +3965,7 @@ void ScreenSessionManager::InitScreenProperty(ScreenId screenId, RSScreenModeInf
     property.SetPhyBounds(screenBounds);
     property.SetBounds(screenBounds);
     property.SetAvailableArea({0, 0, screenMode.GetScreenWidth(), screenMode.GetScreenHeight()});
-    property.SetPhysicalTouchBounds(GetConfigCorrectionByDisplayMode(GetFoldDisplayMode()));
+    property.SetPhysicalTouchBounds(GetCurrentConfigCorrection());
     property.SetCurrentOffScreenRendering(false);
     property.SetScreenRealWidth(property.GetBounds().rect_.GetWidth());
     property.SetScreenRealHeight(property.GetBounds().rect_.GetHeight());
@@ -4320,7 +4327,7 @@ DMError ScreenSessionManager::GetSupportsInput(DisplayId displayId, bool& suppor
     TLOGNFI(WmsLogTag::DMS, "start");
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
-        return DMError::DM_ERROR_INVALID_PERMISSION;
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (screenSession == nullptr) {
@@ -4336,7 +4343,7 @@ DMError ScreenSessionManager::SetSupportsInput(DisplayId displayId, bool support
     TLOGNFI(WmsLogTag::DMS, "start");
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
-        return DMError::DM_ERROR_INVALID_PERMISSION;
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (screenSession == nullptr) {
@@ -4350,9 +4357,9 @@ DMError ScreenSessionManager::SetSupportsInput(DisplayId displayId, bool support
 DMError ScreenSessionManager::GetBundleName(DisplayId displayId, std::string& bundleName)
 {
     TLOGNFI(WmsLogTag::DMS, "start");
-    if (!SessionPermission::IsSystemCalling()) {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
-        return DMError::DM_ERROR_INVALID_PERMISSION;
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (screenSession == nullptr) {
@@ -10408,7 +10415,7 @@ Rotation ScreenSessionManager::GetOldDisplayModeRotation(FoldDisplayMode oldDisp
         return rotation;
     }
     auto oldRotationoffset = GetConfigCorrectionByDisplayMode(oldDisplayMode);
-    auto rotationoffset = GetConfigCorrectionByDisplayMode(GetFoldDisplayMode());
+    auto rotationoffset = GetCurrentConfigCorrection();
     return static_cast<Rotation>(
         (static_cast<uint32_t>(rotation) - static_cast<uint32_t>(rotationoffset) +
         static_cast<uint32_t>(oldRotationoffset) + ROTATION_MOD) % ROTATION_MOD);
@@ -10443,7 +10450,7 @@ void ScreenSessionManager::OnVerticalChangeBoundsWhenSwitchUser(sptr<ScreenSessi
     auto oldRotation = GetOldDisplayModeRotation(oldScbDisplayMode_, screenSession->GetRotation());
     screenSession->SetRotation(oldRotation);
     screenSession->SetBounds(bounds);
-    auto correctionRotation = GetConfigCorrectionByDisplayMode(GetFoldDisplayMode());
+    auto correctionRotation = GetCurrentConfigCorrection();
     float rotationValue = (static_cast<uint32_t>(rotation) - static_cast<uint32_t>(correctionRotation) +
         ROTATION_MOD) % ROTATION_MOD * SECONDARY_ROTATION_90;
     if (std::fabs(rotationValue - SECONDARY_ROTATION_90) < FLT_EPSILON ||
@@ -11383,7 +11390,6 @@ void ScreenSessionManager::NotifyFoldToExpandCompletion(bool foldToExpand)
     /* Avoid fold to expand process queues */
     if (foldScreenController_ != nullptr) {
         foldScreenController_->SetdisplayModeChangeStatus(false);
-        RunFinishTask();
     }
     sptr<ScreenSession> screenSession = GetDefaultScreenSession();
     if (screenSession == nullptr) {
@@ -13506,7 +13512,7 @@ void ScreenSessionManager::CalculateRotatedDisplay(Rotation rotation, const DMRe
         }
     }
     Rotation phyOffsetRotation = ConvertIntToRotation(phyOffset);
-    auto rotaionOffset = GetConfigCorrectionByDisplayMode(GetFoldDisplayMode());
+    auto rotaionOffset = GetCurrentConfigCorrection();
     uint32_t correctedRotation = (static_cast<uint32_t>(rotation) + static_cast<uint32_t>(phyOffsetRotation)
         - static_cast<uint32_t>(rotaionOffset)) % ROTATION_MOD;
     DMRect displayRegionCopy = displayRegion;
@@ -14042,7 +14048,15 @@ void ScreenSessionManager::SetFoldDisplayModeAfterRotation(FoldDisplayMode foldD
     foldDisplayModeAfterRotation_.store(foldDisplayMode);
     TLOGNFI(WmsLogTag::DMS, "foldDisplayModeAfterRotation: %{public}d", foldDisplayMode);
 }
- 
+
+Rotation ScreenSessionManager::GetCurrentConfigCorrection()
+{
+    if (!CORRECTION_ENABLE) {
+        return Rotation::ROTATION_0;
+    }
+    return GetConfigCorrectionByDisplayMode(GetFoldDisplayMode());
+}
+
 Rotation ScreenSessionManager::GetConfigCorrectionByDisplayMode(FoldDisplayMode displayMode)
 {
     if (!CORRECTION_ENABLE) {
@@ -14225,6 +14239,36 @@ void ScreenSessionManager::NotifyAodOpCompletion(AodOP operation, int32_t result
         isInAodOperation_ = false;
         aodOpCompleteCV_.notify_all();
     }
+}
+
+void ScreenSessionManager::SetPowerStateForAod(ScreenPowerState state)
+{
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGNFE(WmsLogTag::DMS, "permission denied!");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS, "[UL_POWER]state: %{public}u", state);
+    ScreenPowerInfoType curType;
+    ScreenPowerEvent event;
+    if (state == ScreenPowerState::POWER_DOZE) {
+        event = ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE;
+        curType = std::make_pair(state, PowerStateChangeReason::STATE_CHANGE_REASON_AOD_SET_DOZE);
+    } else if (state == ScreenPowerState::POWER_DOZE_SUSPEND) {
+        event = ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND;
+        curType = std::make_pair(state, PowerStateChangeReason::STATE_CHANGE_REASON_AOD_SET_DOZE_SUSPEND);
+    } else if (state == ScreenPowerState::POWER_OFF) {
+        event = ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_POWER_OFF;
+        curType = std::make_pair(state, PowerStateChangeReason::STATE_CHANGE_REASON_AOD_SET_OFF);
+    } else {
+        TLOGNFE(WmsLogTag::DMS, "[UL_POWER]invalid state: %{public}u", state);
+        return;
+    }
+    bool isSuccess = ScreenStateMachine::GetInstance().HandlePowerStateChange(event, curType);
+    if (!isSuccess) {
+        TLOGNFE(WmsLogTag::DMS, "[UL_POWER]set false, state: %{public}u", state);
+        return;
+    }
+    TLOGD(WmsLogTag::DMS, "[UL_POWER]set state success: %{public}u", state);
 }
 
 #ifdef FOLD_ABILITY_ENABLE

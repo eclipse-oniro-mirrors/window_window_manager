@@ -1065,7 +1065,7 @@ HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarPropertyForPage, TestSize.L
         window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
     window->state_ = WindowState::STATE_SHOWN;
     EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    window->nowsystemBarPropertyMap_[type] = systemBarProperty;
+    window->nowSystemBarPropertyMap_[type] = systemBarProperty;
     EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
     systemBarPropertyFlag = { true, false, false, false };
     EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
@@ -1090,6 +1090,25 @@ HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory, TestSize.Leve
     auto reason = StatusBarColorChangeReason::WINDOW_CONFIGURATION;
     EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
     reason = StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
+    std::optional<uint32_t> op;
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, op), 1);
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+}
+
+/**
+ * @tc.name: UpdateStatusBarColorHistory_2
+ * @tc.desc: UpdateStatusBarColorHistory_2 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory_2, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateStatusBarColorHistory");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto reason = StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
+    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
+    reason = StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION;
     std::optional<uint32_t> op;
     EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, op), 1);
     EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
@@ -1165,27 +1184,28 @@ HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForPage, Function | Small
 }
 
 /**
- * @tc.name: SetSystemBarProperties
- * @tc.desc: SetSystemBarProperties test
+ * @tc.name: SetStatusBarColorForNavigation
+ * @tc.desc: SetStatusBarColorForNavigation test
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest5, SetSystemBarProperties, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForNavigation, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    std::map<WindowType, SystemBarProperty> properties;
-    std::map<WindowType, SystemBarPropertyFlag> propertyFlags;
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetPersistentId(1);
+    window->property_ = property;
+    window->state_ = WindowState::STATE_SHOWN;
+    std::optional<uint32_t> color;
+    EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
     auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
-    propertyFlags[type] = SystemBarPropertyFlag();
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
-    propertyFlags[type].contentColorFlag = true;
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
-    properties[type] = SystemBarProperty();
-    window->nowsystemBarPropertyMap_[type] = SystemBarProperty();
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
-    window->nowsystemBarPropertyMap_[type].contentColor_ = 0;
-    EXPECT_EQ(window->SetSystemBarProperties(properties, propertyFlags), WMError::WM_OK);
+    EXPECT_EQ(window->SetStatusBarColorForNavigation(std::optional<uint32_t>(1)), WMError::WM_OK);
+    EXPECT_EQ(window->nowSystemBarPropertyMap_[type].contentColor_, 1);
+    EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
+    EXPECT_EQ(window->isNavigationUseColor_, false);
 }
 
 /**
@@ -1199,7 +1219,7 @@ HWTEST_F(WindowSceneSessionImplTest5, GetSystemBarProperties, TestSize.Level1)
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     std::map<WindowType, SystemBarProperty> properties;
     EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-    window->nowsystemBarPropertyMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
+    window->nowSystemBarPropertyMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
     EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
 }
 
@@ -2651,30 +2671,30 @@ HWTEST_F(WindowSceneSessionImplTest5, GetDragAreaByDownEvent05, TestSize.Level2)
     Rect rect = {100, 100, 1000, 1000};
     windowSceneSessionImpl->property_->SetWindowRect(rect);
     
-    pointerItem.SetWindowX(10);
+    pointerItem.SetWindowX(5);
     pointerItem.SetWindowY(30);
     windowSceneSessionImpl->property_->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
     AreaType dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::LEFT_TOP);
 
-    pointerItem.SetWindowX(990);
+    pointerItem.SetWindowX(995);
     pointerItem.SetWindowY(30);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::RIGHT_TOP);
 
-    pointerItem.SetWindowX(990);
+    pointerItem.SetWindowX(995);
     pointerItem.SetWindowY(970);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::RIGHT_BOTTOM);
 
-    pointerItem.SetWindowX(10);
+    pointerItem.SetWindowX(5);
     pointerItem.SetWindowY(970);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::LEFT_BOTTOM);
 
     pointerEvent->SetSourceType(1);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
-    EXPECT_EQ(dragType, AreaType::UNDEFINED);
+    EXPECT_EQ(dragType, AreaType::LEFT);
 }
 
 /**

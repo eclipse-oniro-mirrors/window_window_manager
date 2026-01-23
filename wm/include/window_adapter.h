@@ -30,7 +30,7 @@ namespace OHOS {
 namespace Rosen {
 class WMSDeathRecipient : public IRemoteObject::DeathRecipient {
 public:
-    WMSDeathRecipient(const int32_t userId = INVALID_USER_ID);
+    explicit WMSDeathRecipient(const int32_t userId = INVALID_USER_ID);
     virtual void OnRemoteDied(const wptr<IRemoteObject>& wptrDeath) override;
 
 private:

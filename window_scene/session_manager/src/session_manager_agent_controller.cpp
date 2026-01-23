@@ -36,20 +36,16 @@ WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWi
                 smAgentContainer_.UnregisterAgent(typeAgentIter->second, type);
                 windowManagerAgentPairMap_.erase((typeAgentIter->second)->AsObject());
             }
-            typeAgentMap.insert(std::map<WindowManagerAgentType,
-                sptr<IWindowManagerAgent>>::value_type(type, windowManagerAgent));
+            typeAgentMap.emplace(type, windowManagerAgent);
         } else {
             std::map<WindowManagerAgentType, sptr<IWindowManagerAgent>> typeAgentMap;
-            typeAgentMap.insert(std::map<WindowManagerAgentType,
-                sptr<IWindowManagerAgent>>::value_type(type, windowManagerAgent));
+            typeAgentMap.emplace(type, windowManagerAgent);
             TLOGI(WmsLogTag::WMS_MAIN, "insert pid: %{public}d, type: %{public}u",
                 pid, static_cast<uint32_t>(type));
-            windowManagerPidAgentMap_.insert(std::map<int32_t,
-                std::map<WindowManagerAgentType, sptr<IWindowManagerAgent>>>::value_type(pid, typeAgentMap));
+            windowManagerPidAgentMap_.emplace(pid, typeAgentMap);
         }
         std::pair<int32_t, WindowManagerAgentType> pidPair = {pid, type};
-        windowManagerAgentPairMap_.insert(std::map<sptr<IRemoteObject>,
-            std::pair<int32_t, WindowManagerAgentType>>::value_type(windowManagerAgent->AsObject(), pidPair));
+        windowManagerAgentPairMap_.emplace(windowManagerAgent->AsObject(), pidPair);
         if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE &&
             windowManagementMode_ != WindowManagementMode::UNDEFINED) {
             NotifyWindowStyleChange(windowManagementMode_ == WindowManagementMode::FREEFORM ?
