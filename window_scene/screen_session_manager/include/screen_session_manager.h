@@ -369,6 +369,13 @@ public:
     void NotifyScreenMagneticStateChanged(bool isMagneticState);
     void OnTentModeChanged(int tentType, int32_t hall = -1);
     void RegisterSettingDpiObserver();
+    void RegisterOffScreenRenderingSettingSwitchObserver();
+    void SetExtendScreenDpiFromSettingData();
+    float CalDefaultExtendScreenDensity(ScreenProperty& property);
+    float GetOptionalDpi(const float dpi);
+    void GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
+        ScreenProperty& property, float& extendDensity);
+    void InitExtendScreenDpiOptions();
     void RegisterSettingRotationObserver();
     void NotifyBrightnessInfoChanged(ScreenId screenId, const BrightnessInfo& info);
 
@@ -938,7 +945,7 @@ private:
     float pcModeDpi_ { 1.0f };
 
     uint32_t defaultDpi {0};
-    uint32_t extendDefaultDpi_ {0};
+    float extendDefaultDensity_ {1.0f};
     uint32_t defaultDeviceRotationOffset_ { 0 };
     std::atomic<ExtendScreenConnectStatus> extendScreenConnectStatus_ = ExtendScreenConnectStatus::UNKNOWN;
     bool isExtendScreenConnected_ = false;
@@ -1047,7 +1054,9 @@ private:
         bool isCallingByThirdParty);
     bool IsSupportCoordination();
     void RegisterSettingExtendScreenDpiObserver();
+    void RegisterSettingExtendScreenIndepDpiObserver();
     void SetExtendScreenDpi();
+    void SetExtendScreenIndepDpi();
     void RegisterSettingBorderingAreaPercentObserver();
     void SetBorderingAreaPercent();
     bool HandleSwitchPcMode();

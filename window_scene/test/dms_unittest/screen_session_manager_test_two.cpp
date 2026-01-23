@@ -44,6 +44,7 @@ constexpr ScreenId SCREEN_ID_FULL = 0;
 constexpr ScreenId SCREEN_ID_MAIN = 5;
 const bool CORRECTION_ENABLE = system::GetIntParameter<int32_t>("const.system.sensor_correction_enable", 0) == 1;
 const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
+bool SUPPORT_COMPATIBLE_MODE = system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 7) == 4;
 bool g_isPcDevice = ScreenSceneConfig::GetExternalScreenDefaultMode() == "none";
 }
 namespace {
@@ -92,6 +93,82 @@ void ScreenSessionManagerTest::TearDown()
 }
 
 namespace {
+/**
+ * @tc.name: ScreenSessionManager
+ * @tc.desc: ScreenSessionManager test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ScreenSessionManager, TestSize.Level1)
+{
+    auto ssm = new ScreenSessionManager();
+    ASSERT_NE(ssm, nullptr);
+}
+
+/**
+ * @tc.name: CalDefaultExtendScreenDensity
+ * @tc.desc: CalDefaultExtendScreenDensity test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CalDefaultExtendScreenDensity, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenProperty property = ScreenProperty();
+    property.screenRealPPI_ = 160.0f;
+    EXPECT_EQ(ssm_->CalDefaultExtendScreenDensity(property), 160.0f);
+}
+ 
+/**
+ * @tc.name: GetOptionalDpi
+ * @tc.desc: GetOptionalDpi test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetOptionalDpi, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    float dpi = 160.0f;
+    EXPECT_EQ(ssm_->GetOptionalDpi(dpi), 160.0f);
+    dpi = 184.0f;
+    EXPECT_EQ(ssm_->GetOptionalDpi(dpi), 184.0f);
+}
+ 
+/**
+ * @tc.name: GetOrCalExtendScreenDefaultDensity
+ * @tc.desc: GetOrCalExtendScreenDefaultDensity test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetOrCalExtendScreenDefaultDensity, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(0, ScreenProperty(), 0);
+    auto property = screenSession->GetScreenProperty();
+    ssm_->GetOrCalExtendScreenDefaultDensity(screenSession, property, 0);
+    SUPPORT_COMPATIBLE_MODE = false;
+    ssm_->GetOrCalExtendScreenDefaultDensity(screenSession, property, 0);
+}
+ 
+/**
+ * @tc.name: SetExtendScreenDpiFromSettingData
+ * @tc.desc: SetExtendScreenDpiFromSettingData test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetExtendScreenDpiFromSettingData, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SetExtendScreenDpiFromSettingData();
+    EXPECT_TRUE(g_errLog.find("screen session is null") != std::string::npos);
+}
+ 
+/**
+ * @tc.name: SetExtendScreenIndepDpi
+ * @tc.desc: SetExtendScreenIndepDpi test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetExtendScreenIndepDpi, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SetExtendScreenIndepDpi();
+    EXPECT_TRUE(g_errLog.find("screen session is null") != std::string::npos);
+}
 
 /**
  * @tc.name: SetScreenPowerForFold01
