@@ -73,7 +73,8 @@ public:
     static void UnregisterSettingBorderingAreaPercentObserver();
     static void RegisterSettingExtendScreenDpiObserver(SettingObserver::UpdateFunc func);
     static void UnRegisterSettingExtendScreenDpiObserver();
-    
+    static void RegisterSettingExtendScreenIndepDpiObserver(SettingObserver::UpdateFunc func);
+    static void UnRegisterSettingExtendScreenIndepDpiObserver();
     static void RegisterSettingDuringCallStateObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingDuringCallStateObserver();
     static bool GetSettingDuringCallState(bool& enable, const std::string& key = SETTING_DURING_CALL_KEY);
