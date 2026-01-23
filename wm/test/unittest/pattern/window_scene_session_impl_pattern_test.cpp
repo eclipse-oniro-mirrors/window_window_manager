@@ -32,49 +32,24 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
-namespace {
-    std::string g_logMsg;
-    void LogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
-        const char* msg)
-    {
-        g_logMsg += msg;
-    }
-}
-using Mocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
-
-class MockWindowChangeListener : public IWindowChangeListener {
-public:
-    MOCK_METHOD3(OnSizeChange,
-                 void(Rect rect, WindowSizeChangeReason reason, const std::shared_ptr<RSTransaction>& rsTransaction));
-};
-
-class WindowSceneSessionImplTest : public testing::Test {
+ 
+class WindowSceneSessionImplPatternTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
-
-private:
-
-    static constexpr uint32_t waitSyncInNs = 200000;
 };
 
-void WindowSceneSessionImplTest::SetUpTestCase() {}
+void WindowSceneSessionImplPatternTest::SetUpTestCase() {}
 
-void WindowSceneSessionImplTest::TearDownTestCase() {}
-
-void WindowSceneSessionImplTest::SetUp()
+void WindowSceneSessionImplPatternTest::TearDownTestCase()
 {
-    abilityContext_ = std::make_shared<AbilityRuntime::AbilityContextImpl>();
 }
 
-void WindowSceneSessionImplTest::TearDown()
-{
-    usleep(waitSyncInNs);
-    abilityContext_ = nullptr;
-}
+void WindowSceneSessionImplPatternTest::SetUp() {}
 
+void WindowSceneSessionImplPatternTest::TearDown() {}
 
 namespace {
 
