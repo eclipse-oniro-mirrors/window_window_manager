@@ -43,7 +43,7 @@
 
 namespace OHOS::Rosen {
 class RSInterfaces;
-class TaskSequence;
+class TaskSequenceProcess;
 struct ScaleProperty {
     float scaleX;
     float scaleY;
@@ -476,6 +476,8 @@ public:
     void SwitchScrollParam(FoldDisplayMode displayMode);
     void OnScreenChange(ScreenId screenId, ScreenEvent screenEvent,
         ScreenChangeReason reason = ScreenChangeReason::DEFAULT);
+    void OnScreenChangeInner(ScreenId screenId, ScreenEvent screenEvent,
+        ScreenChangeReason reason = ScreenChangeReason::DEFAULT);
     virtual void OnScreenChangeDefault(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason);
     void OnFoldScreenChange(sptr<ScreenSession>& screenSession);
     void OnFoldStatusChange(bool isSwitching);
@@ -858,7 +860,8 @@ private:
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
     std::shared_ptr<FfrtQueueHelper> ffrtQueueHelper_ = nullptr;
     int32_t screenConnectTaskStage_ = -1;
-    std::shared_ptr<TaskSequence> screenConnectTaskGroup_;
+    std::shared_ptr<TaskSequenceProcess> screenConnectTaskGroup_;
+
     /*
      * multi user
      */
