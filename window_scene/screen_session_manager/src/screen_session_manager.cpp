@@ -4033,10 +4033,9 @@ void ScreenSessionManager::InitExtendScreenProperty(ScreenId screenId, sptr<Scre
         TLOGNFW(WmsLogTag::DMS, "not PC device");
         return;
     }
-    bool isSupportOffScreenRendering = ScreenSceneConfig::IsSupportOffScreenRendering() &&
-        SUPPORT_COMPATIBLE_MODE && g_offScreenRenderValue;
-    if (!isSupportOffScreenRendering) {
-        TLOGNFW(WmsLogTag::DMS, "isSupportOffScreenRendering setting is fasle");
+    bool isSupportOffScreenRendering = ScreenSceneConfig::IsSupportOffScreenRendering();
+    if (!isSupportOffScreenRendering || !(SUPPORT_COMPATIBLE_MODE && g_offScreenRenderValue)) {
+        TLOGNFW(WmsLogTag::DMS, "xml or setting isSupportOffScreenRendering is fasle");
         return;
     }
     GetInternalWidth();
