@@ -36,6 +36,7 @@ sptr<SettingObserver> ScreenSettingHelper::duringCallStateObserver_;
 sptr<SettingObserver> ScreenSettingHelper::resolutionEffectObserver_;
 sptr<SettingObserver> ScreenSettingHelper::correctionExemptionListObserver_;
 sptr<SettingObserver> ScreenSettingHelper::borderingAreaPercentObserver_;
+sptr<SettingObserver> ScreenSettingHelper::coordinationReadyObserver_;
 constexpr int32_t PARAM_NUM_TEN = 10;
 constexpr uint32_t EXPECT_ACTIVE_MODE_SIZE = 4;
 constexpr uint32_t EXPECT_SCREEN_MODE_SIZE = 2;
@@ -106,6 +107,45 @@ bool ScreenSettingHelper::GetSettingDpi(uint32_t& dpi, const std::string& key)
     return GetSettingValue(dpi, key);
 }
 
+void ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(SettingObserver::UpdateFunc func)
+{
+    if (coordinationReadyObserver_) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "setting Brightness observer is registered");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(WINDOW_MANAGER_SERVICE_ID);
+    coordinationReadyObserver_ = provider.CreateObserver(SETTING_DUAL_DISPLAY_READY_KEY, func);
+    if (coordinationReadyObserver_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "create observer failed");
+        return;
+    }
+    ErrCode ret = provider.RegisterObserver(coordinationReadyObserver_);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret=%{public}d", ret);
+        coordinationReadyObserver_ = nullptr;
+    }
+}
+ 
+void ScreenSettingHelper::UnregisterSettingCoordinationReadyObserver()
+{
+    if (coordinationReadyObserver_ == nullptr) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "coordinationReadyObserver_ is nullptr");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(WINDOW_MANAGER_SERVICE_ID);
+    ErrCode ret = provider.UnregisterObserver(coordinationReadyObserver_);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret=%{public}d", ret);
+        return;
+    }
+    coordinationReadyObserver_ = nullptr;
+}
+
+bool ScreenSettingHelper::GetSettingIsCoordinationReady(bool& isCoordinationReady, const std::string& key)
+{
+    return GetSettingValue(key, isCoordinationReady);
+}
+
 bool ScreenSettingHelper::GetSettingValue(uint32_t& value, const std::string& key)
 {
     SettingProvider& settingData = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
@@ -116,6 +156,19 @@ bool ScreenSettingHelper::GetSettingValue(uint32_t& value, const std::string& ke
         return false;
     }
     value = static_cast<uint32_t>(getValue);
+    return true;
+}
+
+bool ScreenSettingHelper::GetSettingValue(const std::string& key, bool& value)
+{
+    SettingProvider& settingData = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    bool getValue;
+    ErrCode ret = settingData.GetBoolValue(key, getValue);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        return false;
+    }
+    value = getValue;
     return true;
 }
 

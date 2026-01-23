@@ -158,8 +158,7 @@ public:
     void NotifySessionBackground(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError NotifyPrepareClosePiPWindow() override;
     void UpdateSubWindowState(const WindowType& type);
-    WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) override;
+    WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) override;
     WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) override;
     WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) override;
     WMError SetSystemBarPropertyForPage(WindowType type, std::optional<SystemBarProperty> property) override;
@@ -513,7 +512,7 @@ private:
         const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag) override;
     WMError updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty);
     std::mutex nowsystemBarPropertyMapMutex_;
-    std::unordered_map<WindowType, SystemBarProperty> nowsystemBarPropertyMap_;
+    std::unordered_map<WindowType, SystemBarProperty> nowSystemBarPropertyMap_;
     bool isAtomicServiceUseColor_ = false;
     bool isNavigationUseColor_ = false;
     std::stack<StatusBarColorConfigPair> statusBarColorHistory_;

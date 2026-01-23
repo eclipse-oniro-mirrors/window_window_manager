@@ -6394,7 +6394,7 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s session is nullptr", where);
             return;
         }
-        auto sessionInfo = sceneSession->GetSessionInfo();
+        const auto& sessionInfo = sceneSession->GetSessionInfo();
         if (!SessionHelper::IsMainWindow(static_cast<WindowType>(sessionInfo.windowType_))) {
             TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s id: %{public}d is not main window",
                 where, sceneSession->GetPersistentId());
@@ -13371,13 +13371,13 @@ WSError SceneSessionManager::NotifyStatusBarShowStatus(int32_t persistentId, boo
 
 void SceneSessionManager::UpdateAvoidAreaForLSStateChange(int32_t curState, int32_t preState)
 {
-    taskScheduler_->PostAsyncTask([this, curState, preState]() {
+    taskScheduler_->PostAsyncTask([this, curState, preState, where = __func__]() {
         if (curState == preState) {
             return;
         }
         constexpr int32_t nonLSState = 0;
         SetLSState(curState > nonLSState);
-        TLOGI(WmsLogTag::WMS_IMMS, "curState %{public}d, preState %{public}d", curState, preState);
+        TLOGI(WmsLogTag::WMS_IMMS, "%{public}s,curState %{public}d, preState %{public}d", where, curState, preState);
         std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
         {
             std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
@@ -13452,7 +13452,7 @@ WSError SceneSessionManager::NotifyNextAvoidRectInfo(AvoidAreaType type,
     const WSRect& portraitRect, const WSRect& landspaceRect, DisplayId displayId)
 {
     TLOGD(WmsLogTag::WMS_IMMS, "type %{public}d "
-        "portraitRect %{public}s, portraitRect %{public}s, displayId %{public}" PRIu64,
+        "portraitRect %{public}s, landspaceRect %{public}s, displayId %{public}" PRIu64,
         type, portraitRect.ToString().c_str(), landspaceRect.ToString().c_str(), displayId);
     std::lock_guard<std::mutex> lock(nextAvoidRectInfoMapMutex_);
     nextAvoidRectInfoMap_[type][displayId] = { portraitRect, landspaceRect };
@@ -19001,28 +19001,30 @@ void SceneSessionManager::RegisterSceneSessionDestructNotifyManagerFunc(const sp
     });
 }
 
-void SceneSessionManager::RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
+WSError SceneSessionManager::RegisterSessionPropertyChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     sceneSession->SetSessionPropertyChangeNotifyManagerListener(
         [this](int32_t persistentId, WindowInfoKey windowInfoKey) {
         NotifySessionPropertyChangeFromSession(persistentId, windowInfoKey);
     });
+    return WSError::WS_OK;
 }
 
-void SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey)
+WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t persistentId, WindowInfoKey windowInfoKey)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "persistentId: %{public}d, windowInfoKey: %{public}u",
         persistentId, static_cast<uint32_t>(windowInfoKey));
     sptr<SceneSession> sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "sceneSession nullptr");
-        return;
+        return WSError::WS_ERROR_NULLPTR;
     }
     NotifyWindowPropertyChangeByWindowInfoKey(sceneSession, windowInfoKey);
+    return WSError::WS_OK;
 }
 
 void SceneSessionManager::ConfigSupportZLevel()

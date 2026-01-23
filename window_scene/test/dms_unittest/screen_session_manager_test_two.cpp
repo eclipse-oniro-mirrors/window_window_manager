@@ -2138,7 +2138,7 @@ HWTEST_F(ScreenSessionManagerTest, LockLandExtendIfScreenInfoNull01, TestSize.Le
 HWTEST_F(ScreenSessionManagerTest, GetOldDisplayModeRotation, TestSize.Level1)
 {
     auto foldController = sptr<FoldScreenController>::MakeSptr(ssm_->displayInfoMutex_,
-        ssm_->screenPowerTaskScheduler_);
+        ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     ASSERT_NE(foldController, nullptr);
     DisplayPhysicalResolution physicalSize_full;
     physicalSize_full.foldDisplayMode_ = FoldDisplayMode::FULL;
@@ -2207,7 +2207,7 @@ HWTEST_F(ScreenSessionManagerTest, SwapScreenWeightAndHeight, TestSize.Level1)
 HWTEST_F(ScreenSessionManagerTest, HandleScreenRotationAndBoundsWhenSetClient, TestSize.Level1)
 {
     auto foldController = sptr<FoldScreenController>::MakeSptr(ssm_->displayInfoMutex_,
-        ssm_->screenPowerTaskScheduler_);
+        ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     ASSERT_NE(foldController, nullptr);
     auto foldPolicy = foldController->GetFoldScreenPolicy(DisplayDeviceType::SINGLE_DISPLAY_DEVICE);
     ASSERT_NE(foldPolicy, nullptr);
@@ -3592,6 +3592,24 @@ HWTEST_F(ScreenSessionManagerTest, IsOnboardDisplay_systemCall, Function | Small
     LOG_SetCallback(nullptr);
     MockAccesstokenKit::MockIsSACalling(true);
     MockAccesstokenKit::MockIsSystemApp(true);
+}
+
+/**
+@tc.name: DoSetScreenPowerStatusTest
+@tc.desc: when the power status is ON_ADVANCED and need to be set to OFF，first set the status to OFF_ADVANCED
+@tc.type: FUNC
+*/
+HWTEST_F(ScreenSessionManagerTest, DoSetScreenPowerStatusTest, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_ON_ADVANCED,
+        ScreenPowerOnReason::SAME_DISPLAY_TO_SINGLE_DISPLAY);
+
+    ssm_->SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF,
+        ScreenPowerOnReason::SAME_DISPLAY_TO_SINGLE_DISPLAY);
+    EXPECT_TRUE(g_errLog.find("set the power status to OFF_ADVANCED first") != std::string::npos);
 }
 }
 }

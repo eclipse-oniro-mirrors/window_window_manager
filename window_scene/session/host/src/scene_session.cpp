@@ -100,6 +100,7 @@ const std::string DLP_INDEX = "ohos.dlp.params.index";
 const std::string ERROR_REASON_LOW_MEMORY_KILL = "LowMemoryKill";
 constexpr const char* APP_CLONE_INDEX = "ohos.extra.param.key.appCloneIndex";
 constexpr float MINI_FLOAT_SCALE = 0.3f;
+constexpr float DEFAULT_SCALE = 1;
 constexpr float MOVE_DRAG_POSITION_Z = 100.5f;
 constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
 constexpr WSRectF VELOCITY_RELOCATION_TO_TOP = {0.0f, -10.0f, 0.0f, 0.0f};
@@ -1656,7 +1657,7 @@ bool SceneSession::ShouldSkipUpdateRect(const WSRect& rect)
 {
     const auto persistentId = GetPersistentId();
     if (rect.IsInvalid()) {
-        TLOGNE(WmsLogTag::WMS_LAYOUT, "id:%{public}d rect:%{public}s is invalid", persistentId,
+        TLOGE(WmsLogTag::WMS_LAYOUT, "id:%{public}d rect:%{public}s is invalid", persistentId,
             rect.ToString().c_str());
         return true;
     }
@@ -1717,9 +1718,12 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
 
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::UpdateRect %d [%d, %d, %u, %u]",
             session->GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_);
-        session->SetWinRectWhenUpdateRect(rect);
         // check whether to notify the client rect update
-        if (!session->ShouldSkipUpdateRectNotify(rect)) {
+        // SetWinRectWhenUpdateRect needs to be set after determining whether to skip
+        if (session->ShouldSkipUpdateRectNotify(rect)) {
+            session->SetWinRectWhenUpdateRect(rect);
+        } else {
+            session->SetWinRectWhenUpdateRect(rect);
             session->NotifyClientToUpdateRect(updateReason, rsTransaction);
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
@@ -2795,9 +2799,8 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
     const WSRect& winRect, const WSRect& avoidRect, AvoidArea& avoidArea)
 {
     auto displayId = GetSessionProperty()->GetDisplayId();
-    PrintAvoidAreaInfo(displayId, type, winRect, avoidRect);
-    float scaleX = 1;
-    float scaleY = 1;
+    float scaleX = DEFAULT_SCALE;
+    float scaleY = DEFAULT_SCALE;
     if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
         auto globalRect = GetSessionGlobalRect();
         WSRectF winRectF = { globalRect.posX_, globalRect.posY_,
@@ -2809,7 +2812,9 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
             avoidRect.ToString().c_str(), scaleX, scaleY);
         CalculateAvoidAreaRect(winRectF, avoidRectF, avoidArea);
     } else {
+        PrintAvoidAreaInfo(displayId, type, winRect, avoidRect);
         CalculateAvoidAreaRect(winRect, avoidRect, avoidArea);
+        lastAvoidAreaInputParamtersMap_[type] = std::make_tuple(displayId, winRect, avoidRect);
     }
 }
 
@@ -3346,8 +3351,8 @@ WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
 template<typename T>
 Rect SceneSession::CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const
 {
-    float scaleX = 1;
-    float scaleY = 1;
+    float scaleX = DEFAULT_SCALE;
+    float scaleY = DEFAULT_SCALE;
     Rect avoidArea = { avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_ };
     if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
         return avoidArea;
@@ -3528,7 +3533,7 @@ void SceneSession::GetSystemBarAvoidAreaByRotation(Rotation rotation, AvoidAreaT
     }
     WSRect avoidRect = (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180) ?
         nextSystemBarAvoidAreaRectInfo.first : nextSystemBarAvoidAreaRectInfo.second;
-    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d tyep %{public}d rect %{public}s bar %{public}s",
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d type %{public}d rect %{public}s bar %{public}s",
         GetPersistentId(), type, rect.ToString().c_str(), avoidRect.ToString().c_str());
     CalculateAvoidAreaRect(rect, avoidRect, avoidArea);
 }
@@ -3552,8 +3557,8 @@ void SceneSession::GetCutoutAvoidAreaByRotation(Rotation rotation, const WSRect&
             cutoutArea.width_,
             cutoutArea.height_
         };
-        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}s cutout %{public}s",
-              rect.ToString().c_str(), cutoutAreaRect.ToString().c_str());
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d rect %{public}s cutout %{public}s",
+            GetPersistentId(), rect.ToString().c_str(), cutoutAreaRect.ToString().c_str());
         CalculateAvoidAreaRect(rect, cutoutAreaRect, avoidArea);
     }
 }
@@ -3567,9 +3572,9 @@ void SceneSession::GetKeyboardAvoidAreaByRotation(Rotation rotation, const WSRec
             TLOGI(WmsLogTag::WMS_IMMS, "keyboard avoid area is empty id: %{public}d", GetPersistentId());
             continue;
         }
-        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}s keyboard %{public}s",
-            rect.ToString().c_str(), avoidInfo.second.ToString().c_str());
-            CalculateAvoidAreaRect(rect, avoidInfo.second, avoidArea);
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d rect %{public}s keyboard %{public}s",
+            GetPersistentId(), rect.ToString().c_str(), avoidInfo.second.ToString().c_str());
+        CalculateAvoidAreaRect(rect, avoidInfo.second, avoidArea);
     }
 }
 
@@ -4894,6 +4899,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     }
     bool isStartScreenMainOrExtend = isMainOrExtendScreenMode(startScreenSession->GetSourceMode());
     if (reason == SizeChangeReason::DRAG || reason == SizeChangeReason::DRAG_MOVE) {
+        WSRect globalRect = moveDragController_->GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
         for (const auto displayId : moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag()) {
             if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
                 continue;
@@ -4917,6 +4923,14 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
             }
             {
                 AutoRSTransaction trans(movedSurfaceNode->GetRSUIContext());
+                // In cross-display drag scenarios, SetIsCrossNode(true) creates a clone node.
+                // The clone node uses global position, so GlobalPosition must be enabled, and
+                // Bounds / Frame must be updated synchronously. Otherwise, if deferred to a
+                // vsync callback, the clone node will be rendered at an incorrect position in
+                // its first frame.
+                movedSurfaceNode->SetGlobalPositionEnabled(true);
+                movedSurfaceNode->SetBounds(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
+                movedSurfaceNode->SetFrame(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
                 movedSurfaceNode->SetPositionZ(MOVE_DRAG_POSITION_Z);
                 movedSurfaceNode->SetIsCrossNode(true);
             }
