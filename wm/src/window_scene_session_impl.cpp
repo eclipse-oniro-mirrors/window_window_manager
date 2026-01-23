@@ -1021,7 +1021,7 @@ void WindowSceneSessionImpl::InitSubSessionDragEnable()
 
 void WindowSceneSessionImpl::InitSystemSessionDragEnable()
 {
-    if (WindowHelper::IsDialogWindow(GetType()) && windowSystemConfig_.IsPhonePadOrPcWindow()) {
+    if (WindowHelper::IsDialogWindow(GetType()) && IsPhonePadOrPcWindow()) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "dialogWindow default draggable, should not init false, id: %{public}d",
             GetPersistentId());
         return;
