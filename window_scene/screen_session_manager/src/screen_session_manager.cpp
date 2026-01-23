@@ -319,7 +319,7 @@ ScreenSessionManager::ScreenSessionManager()
     ffrtQueueHelper_ = std::make_shared<FfrtQueueHelper>();
     screenConnectTaskGroup_ = std::make_shared<TaskSequenceProcess>(MAX_SCREEN_CONNECT_TASK_QUEUE_SIZE,
         MAX_SCREEN_CONNECT_TASK_GROUP_SIZE, SCREEN_CONNECT_TASK_TIME_OUT);
-    screenConnectTaskGroup_->SetTaskScheduler_(taskScheduler_);
+    screenConnectTaskGroup_->SetTaskScheduler(taskScheduler_);
     screenCutoutController_ = new (std::nothrow) ScreenCutoutController();
     if (!screenCutoutController_) {
         TLOGNFE(WmsLogTag::DMS, "screenCutoutController_ is nullptr");
@@ -1152,10 +1152,10 @@ ScreenId ScreenSessionManager::GenerateSmsScreenId(ScreenId rsScreenId)
  	    OnScreenChangeInner(screenId, screenEvent, reason);
         if (screenConnectTaskStage_ == SCREEN_CONNECT_STAGE_DEFAULT) {
             TLOGNFW(WmsLogTag::DMS, "Screen connect task is interrupted");
-            screenConnectTaskGroup_.FinishTask();
+            screenConnectTaskGroup_->FinishTask();
         }
     };
- 	screenConnectTaskGroup_.AddTask(task);
+ 	screenConnectTaskGroup_->AddTask(task);
 }
 
 void ScreenSessionManager::OnScreenChangeInner(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason)
@@ -1484,6 +1484,7 @@ bool ScreenSessionManager::RecoverRestoredMultiScreenMode(sptr<ScreenSession> sc
     }
     auto info = multiScreenInfoMap[serialNumber];
     if (info.outerOnly) {
+        screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_TWO;
         SetIsOuterOnlyMode(true);
         RecoverScreenActiveMode(info.secondaryScreenOption.screenId_);
         MultiScreenModeChange(SCREEN_ID_OUTER_ONLY, SCREEN_ID_OUTER_ONLY, "off");
@@ -1506,6 +1507,7 @@ bool ScreenSessionManager::RecoverRestoredMultiScreenMode(sptr<ScreenSession> sc
         RecoverScreenActiveMode(info.secondaryScreenOption.screenId_);
     }
     if (info.multiScreenMode == MultiScreenMode::SCREEN_MIRROR) {
+        screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_TWO;
         SetMultiScreenMode(info.mainScreenOption.screenId_, info.secondaryScreenOption.screenId_, info.multiScreenMode);
         TLOGNFW(WmsLogTag::DMS, "mirror, return befor OnScreenConnectionChanged");
         ReportHandleScreenEvent(ScreenEvent::CONNECTED, ScreenCombination::SCREEN_MIRROR);
@@ -13241,7 +13243,7 @@ void ScreenSessionManager::NotifyExtendScreenCreateFinish()
 {
     screenConnectTaskStage_ --;
     if (screenConnectTaskStage_ == SCREEN_CONNECT_FINISH) {
-        screenConnectTaskGroup_.FinishTask();
+        screenConnectTaskGroup_->FinishTask();
     }
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
@@ -13341,7 +13343,7 @@ void ScreenSessionManager::NotifyExtendScreenDestroyFinish()
 {
     screenConnectTaskStage_ --;
     if (screenConnectTaskStage_ == SCREEN_CONNECT_FINISH) {
-        screenConnectTaskGroup_.FinishTask();
+        screenConnectTaskGroup_->FinishTask();
     }
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
