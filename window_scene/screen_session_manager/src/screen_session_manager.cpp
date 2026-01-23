@@ -5672,6 +5672,7 @@ void ScreenSessionManager::RegisterOffScreenRenderingSettingSwitchObserver()
  
 void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
 {
+#ifdef WM_MULTI_SCREEN_ENABLE
     OnScreenModeChange(ScreenModeChangeEvent::BEGIN);
     {
         std::unique_lock<std::mutex> lock(screenMaskMutex_);
@@ -5697,7 +5698,7 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
         InitExtendScreenProperty(phyScreenSession->GetScreenId(), phyScreenSession,
             phyScreenSession->GetScreenProperty());
         InitExtendScreenProperty(externalSession->GetScreenId(), externalSession, externalScreenProperty);
-    } else {             
+    } else {            
         auto externalphyBounds = externalScreenProperty.GetPhyBounds();
         externalSession->SetExtendProperty(externalphyBounds, g_offScreenRenderValue);
         phyScreenSession->SetExtendProperty(externalphyBounds, g_offScreenRenderValue);
@@ -5713,6 +5714,7 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
     externalSession->SetScreenOffScreenRendering();
     CheckAndNotifyChangeMode(previousScreenBounds, externalSession);
     OnScreenModeChange(ScreenModeChangeEvent::END);
+#endif
 }
 
 void ScreenSessionManager::SetDpiFromSettingData()
