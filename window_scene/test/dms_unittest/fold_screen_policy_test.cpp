@@ -1,5 +1,5 @@
 /*
-*Copyright (c) 2025 Huawei Device Co.,Ltd.
+*Copyright (c) 2026 Huawei Device Co.,Ltd.
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
 *You may obtain a copy of the License at
@@ -24,22 +24,24 @@ using namespace testing::ext;
 
 namespace{
     std::string g_errLog;
-    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag, const char *msg)
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain,
+    const char *tag, const char *msg)
     {
         g_errLog += msg;
     }
 }
-namespace OHOS{
-namespace Rosen{
-namespace{
-constexpr uint32_t SLEEP_TIME_US = 100000;
+namespace OHOS {
+    namespace Rosen {
+        namespace {
+            constexpr uint32_t SLEEP_TIME_US = 100000;
 }
 
-class MockFoldScreenPolicy: public FoldScreenPolicy{
+class MockFoldScreenPolicy : public FoldScreenPolicy{
 public:
     MOCK_METHOD(FoldStatus, GetFoldStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetPhysicalFoldStatus, (), (override));
-    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode, DisplayModeChangeReason reason), (override));
+    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode,
+    DisplayModeChangeReason reason), (override));
     MOCK_METHOD(bool, GetPhysicalFoldLockFlag, (), (override, const));
     MOCK_METHOD(FoldStatus, GetForcedFoldStatus, (), (override, const));
 
@@ -47,11 +49,11 @@ public:
 
     MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (FoldStatus status), (override));
     MOCK_METHOD(const std::unordered_set<FoldStatus>&, GetSupportedFoldStates, (), (override, const));
-    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>& supportedFoldStates, FoldStatus targetFoldStatus), (override, const));
-
+    MOCK_METHOD(bool, IsFoldStatusSupported, (const std::unordered_set<FoldStatus>& supportedFoldStates,
+    FoldStatus targetFoldStatus), (override, const));
 };
 
-class FoldScreenPolicyTest: public testing::Test{
+class FoldScreenPolicyTest : public testing::Test{
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -88,7 +90,7 @@ const std::unordered_set<FoldStatus> FoldScreenPolicyTest::supportedFoldStatusFo
     FoldStatus::HALF_FOLD
 };
 
-namespace{
+namespace {
 
 /**
 *@tc.name: SetFoldStatusAndLockControl01
@@ -179,5 +181,5 @@ HWTEST_F(FoldScreenPolicyTest, SetFoldStatusAndLockControl04, TestSize.Level1)
     g_errLog.clear();
 }
 }
-}//namespace Rosen
-}//namespace OHOS
+}// namespace Rosen
+}// namespace OHOS
