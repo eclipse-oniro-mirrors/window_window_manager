@@ -87,8 +87,6 @@ public:
     void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
     void RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func) override;
-    void RegisterLogicalDeviceConfigCallback(QueryLogicalDeviceConfigFunc&& func) override;
-    std::string GetLogicalDeviceConfigCallback(const std::string& bundleName) const override;
 
     /*
      * Window Pattern
@@ -134,7 +132,6 @@ private:
     std::atomic_bool isFullScreenInForceSplit_ { false };
     CompatibleModeChangeCallback compatibleModeChangeCallback_;
     NotifyForceSplitEnableFunc forceSplitEnableFunc_;
-    QueryLogicalDeviceConfigFunc getLogicalDeviceConfig_;
 
     /*
      * Prelaunch check

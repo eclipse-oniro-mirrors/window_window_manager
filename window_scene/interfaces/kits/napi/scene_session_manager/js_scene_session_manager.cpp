@@ -63,7 +63,6 @@ constexpr int ARG_INDEX_TWO = 2;
 constexpr int ARG_INDEX_THREE = 3;
 constexpr int ARG_INDEX_FOUR = 4;
 constexpr int32_t RESTYPE_RECLAIM = 100001;
-constexpr long long WAIT_TIMEOUT_MILLISECONDS = 1000LL;
 const std::string RES_PARAM_RECLAIM_TAG = "reclaimTag";
 const std::string CREATE_SYSTEM_SESSION_CB = "createSpecificSession";
 const std::string SET_SPECIFIC_SESSION_ZINDEX_CB = "setSpecificWindowZIndex";
@@ -88,7 +87,6 @@ const std::string SCENE_SESSION_TRANSFER_TO_TARGET_SCREEN_CB = "sceneSessionTran
 const std::string UPDATE_KIOSK_APP_LIST_CB = "updateKioskAppList";
 const std::string KIOSK_MODE_CHANGE_CB = "kioskModeChange";
 const std::string NOTIFY_SUPPORT_ROTATION_REGISTERED_CB = "notifySupportRotationRegistered";
-const std::string LOGICAL_DEVICE_CONFIG_CB = "logicalDeviceConfig";
 const std::string UI_EFFECT_SET_PARAMS_CB = "uiEffectSetParams";
 const std::string UI_EFFECT_ANIMATE_TO_CB = "uiEffectAnimateTo";
 const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
@@ -117,7 +115,6 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {UPDATE_KIOSK_APP_LIST_CB,     ListenerFunctionType::UPDATE_KIOSK_APP_LIST_CB},
     {KIOSK_MODE_CHANGE_CB,         ListenerFunctionType::KIOSK_MODE_CHANGE_CB},
     {NOTIFY_SUPPORT_ROTATION_REGISTERED_CB, ListenerFunctionType::NOTIFY_SUPPORT_ROTATION_REGISTERED_CB},
-    {LOGICAL_DEVICE_CONFIG_CB, ListenerFunctionType::LOGICAL_DEVICE_CONFIG_CB},
     {UI_EFFECT_SET_PARAMS_CB,       ListenerFunctionType::UI_EFFECT_SET_PARAMS_CB},
     {UI_EFFECT_ANIMATE_TO_CB,      ListenerFunctionType::UI_EFFECT_ANIMATE_TO_CB},
     {VIRTUAL_DENSITY_CHANGE_CB,   ListenerFunctionType::VIRTUAL_DENSITY_CHANGE_CB},
@@ -864,58 +861,6 @@ void JsSceneSessionManager::ProcessSupportRotationRegister()
         TLOGNI(WmsLogTag::WMS_ROTATION, "NotifySupportRotationRegisteredFunc");
         this->OnSupportRotationRegistered();
     });
-}
-
-void JsSceneSessionManager::RegisterLogicalDeviceConfigCallback()
-{
-    QueryLogicalDeviceConfigFunc func = [this](const std::string& bundleName) -> std::string {
-        TLOGNI(WmsLogTag::WMS_COMPAT, "Query logical device config, bundleName: %{public}s", bundleName.c_str());
-        return this->OnGetLogicalDeviceConfig(bundleName);
-    };
-    SceneSessionManager::GetInstance().SetQueryLogicalDeviceConfigCallback(std::move(func));
-}
-
-std::string JsSceneSessionManager::OnGetLogicalDeviceConfig(const std::string& bundleName)
-{
-    TLOGI(WmsLogTag::WMS_COMPAT, "bundleName: %{public}s", bundleName.c_str());
-    const char* const where = __func__;
-    auto task = [this, bundleName, where, jsCallback = GetJSCallback(LOGICAL_DEVICE_CONFIG_CB), env = env_]
-        () -> std::string {
-        if (jsCallback == nullptr) {
-            TLOGNE(WmsLogTag::WMS_COMPAT, "jsCallback is nullptr!");
-            return std::string("");
-        }
-        napi_value result = nullptr;
-        std::string config = "";
-        napi_value argv[] = { CreateJsValue(env, bundleName) };
-        napi_status ret = napi_call_function(
-            env, NapiGetUndefined(env), jsCallback->GetNapiValue(), ArraySize(argv), argv, &result);
-        if (ret != napi_ok) {
-            TLOGNE(WmsLogTag::WMS_COMPAT, "%{public}s:napi call function exception, ret: %{public}d", where, ret);
-            return std::string("");
-        }
-        if (!ConvertFromJsValue(env, result, config)) {
-            TLOGNE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to config!");
-            return std::string("");
-        }
-        return config;
-    };
-    auto strPromisePtr = std::make_shared<std::promise<std::string>>();
-    std::future<std::string> strFuture = strPromisePtr->get_future();
-    std::string result = "";
-    auto newTask = [task = std::move(task), promisePtr = strPromisePtr]() mutable {
-        promisePtr->set_value(task());
-    };
-    taskScheduler_->PostMainThreadTask(std::move(newTask), where);
-    auto waitStatus = strFuture.wait_for(std::chrono::milliseconds(WAIT_TIMEOUT_MILLISECONDS));
-    if (waitStatus == std::future_status::ready) {
-        result = strFuture.get();
-    } else if (waitStatus == std::future_status::timeout) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "Task execution timeout!");
-    } else {
-        TLOGE(WmsLogTag::WMS_COMPAT, "Task has been cancelled!");
-    }
-    return result;
 }
 
 napi_value JsSceneSessionManager::SetBehindWindowFilterEnabled(napi_env env, napi_callback_info info)
@@ -1805,9 +1750,6 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
             break;
         case ListenerFunctionType::NOTIFY_SUPPORT_ROTATION_REGISTERED_CB:
             ProcessSupportRotationRegister();
-            break;
-        case ListenerFunctionType::LOGICAL_DEVICE_CONFIG_CB:
-            RegisterLogicalDeviceConfigCallback();
             break;
         case ListenerFunctionType::MINIMIZE_ALL_CB:
             RegisterMinimizeAllCallback();

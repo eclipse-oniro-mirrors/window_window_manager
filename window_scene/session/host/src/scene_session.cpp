@@ -191,8 +191,7 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
             property->SetAppInstanceKey(session->GetAppInstanceKey());
             property->SetUseControlState(session->isAppUseControl_);
             property->SetAncoRealBundleName(session->IsAnco() ? session->GetSessionInfo().bundleName_ : "");
-            property->SetLogicalDeviceConfig(session->GetLogicalDeviceConfigCallback(
-                session->GetSessionInfo().bundleName_));
+            property->SetLogicalDeviceConfig(session->GetSessionInfo().logicalDeviceConfig);
             if (session->GetSessionInfo().processOptions != nullptr) {
                 MissionInfo missionInfo;
                 missionInfo.startupInvisibility_ = session->GetSessionInfo().processOptions->startupVisibility ==

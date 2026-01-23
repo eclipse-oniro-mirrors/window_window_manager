@@ -806,6 +806,9 @@ bool ConvertSessionInfoState(napi_env env, napi_value jsObject, SessionInfo& ses
     if (!ConvertFromJsValueProperty(env, jsObject, "pageConfig", sessionInfo.pageConfig)) {
         return false;
     }
+    if (!ConvertFromJsValueProperty(env, jsObject, "logicalDeviceConfig", sessionInfo.logicalDeviceConfig)) {
+        return false;
+    }
     return true;
 }
 
@@ -1955,6 +1958,8 @@ napi_value CreateJsSessionRecoverInfo(
         CreateSupportWindowModes(env, sessionInfo.supportedWindowModes));
     napi_set_named_property(env, objValue,
         "pageCompatibleMode", CreateJsValue(env, property->GetPageCompatibleMode()));
+    napi_set_named_property(env, objValue,
+        "logicalDeviceConfig", CreateJsValue(env, property->GetLogicalDeviceConfig()));
 
     napi_value jsTransitionAnimationMapValue = nullptr;
     napi_create_object(env, &jsTransitionAnimationMapValue);
