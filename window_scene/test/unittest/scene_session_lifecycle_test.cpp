@@ -908,8 +908,8 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner02, TestSize.Level0)
 }
 
 /**
- * @tc.name: ConnectInner02
- * @tc.desc: ConnectInner02
+ * @tc.name: ConnectInner03
+ * @tc.desc: ConnectInner03
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
@@ -935,6 +935,51 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
     sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
     auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
     ASSERT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: ConnectInner04
+ * @tc.desc: ConnectInner04
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
+{
+    SessionInfo info;
+    info.bundleName_ = "ConnectInner04";
+    info.abilityName_ = "ConnectInner04";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    SystemSessionConfig systemConfig;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    WindowType windowType = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    property->SetWindowType(windowType);
+    EXPECT_EQ(property->GetWindowType(), windowType);
+
+    sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
+    ASSERT_NE(eventChannel, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    windowType = WindowType::WINDOW_TYPE_APP_SUB_WINDOW;
+    property->SetWindowType(windowType);
+    EXPECT_EQ(property->GetWindowType(), windowType);
+
+    eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
+    ASSERT_NE(eventChannel, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
