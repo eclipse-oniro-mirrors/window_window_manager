@@ -13786,27 +13786,34 @@ void DisplayChangeListener::OnScreenshot(DisplayId displayId)
     SceneSessionManager::GetInstance().OnScreenshot(displayId);
 }
 
+bool SceneSessionManager::IsNeedNotifyScreenshotEvent(const sptr<SceneSession>& sceneSession) const
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is null");
+        return false;
+    }
+    auto state = sceneSession->GetSessionState();
+    int32_t parentWinId = INVALID_SESSION_ID;
+    if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
+        auto parentSession = GetSceneSession(sceneSession->GetParentPersistentId());
+        if (parentSession != nullptr) {
+            state = parentSession->GetSessionState();
+            parentWinId = parentSession->GetWindowId();
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], state=%{public}u, parentWinId=%{public}d",
+        sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), state, parentWinId);
+    return state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE;
+}
+
 void SceneSessionManager::OnScreenshot(DisplayId displayId)
 {
     taskScheduler_->PostAsyncTask([this, displayId, where = __func__]() {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (const auto& [_, sceneSession] : sceneSessionMap_) {
-            if (sceneSession == nullptr) {
-                continue;
-            }
-            auto state = sceneSession->GetSessionState();
-            bool useParentState = false;
-            if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
-                auto parentSession = GetSceneSession(sceneSession->GetParentPersistentId());
-                if (parentSession != nullptr) {
-                    state = parentSession->GetSessionState();
-                    useParentState = true;
-                }
-            }
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], displayId=%{public}" PRIu64
-                ", state=%{public}u, useParentState=%{public}d", where, sceneSession->GetWindowId(),
-                sceneSession->GetWindowName().c_str(), displayId, state, useParentState);
-            if (state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE) {
+            if (IsNeedNotifyScreenshotEvent(sceneSession)) {
+                TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], display=%{public}" PRIu64,
+                    where, sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), displayId);
                 sceneSession->NotifyScreenshot();
             }
         }
@@ -13823,23 +13830,9 @@ WMError SceneSessionManager::NotifyScreenshotEvent(ScreenshotEventType type)
     taskScheduler_->PostAsyncTask([this, type, where = __func__] {
         for (auto persistentId : screenshotAppEventListenerSessionSet_) {
             auto sceneSession = GetSceneSession(persistentId);
-            if (sceneSession == nullptr) {
-                TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s win: %{public}d session is null", where, persistentId);
-                continue;
-            }
-            auto state = sceneSession->GetSessionState();
-            bool useParentState = false;
-            if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
-                auto parentSession = GetSceneSession(sceneSession->GetParentPersistentId());
-                if (parentSession != nullptr) {
-                    state = parentSession->GetSessionState();
-                    useParentState = true;
-                }
-            }
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE,
-                "%{public}s: win=[%{public}d, %{public}s], state=%{public}u, fromParent=%{public}d, event=%{public}d",
-                where, persistentId, sceneSession->GetWindowName().c_str(), state, useParentState, type);
-            if (state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE) {
+            if (IsNeedNotifyScreenshotEvent(sceneSession)) {
+                TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], event=%{public}d",
+                    where, persistentId, sceneSession->GetWindowName().c_str(), type);
                 sceneSession->NotifyScreenshotAppEvent(type);
             }
         }
