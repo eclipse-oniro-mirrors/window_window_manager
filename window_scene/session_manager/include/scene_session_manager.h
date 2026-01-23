@@ -632,6 +632,7 @@ public:
     void RegisterSingleHandContainerNode(const std::string& stringId);
     const SingleHandCompatibleModeConfig& GetSingleHandCompatibleModeConfig() const;
     bool GetSingleHandModeEnable() const;
+    const SingleHandBackgroundLayoutConfig& GetSingleHandBackgroundLayoutConfig() const;
     void ConfigSupportFollowParentWindowLayout();
     void ConfigSupportFollowRelativePositionToParent();
     void SetHasRootSceneRequestedVsyncFunc(HasRootSceneRequestedVsyncFunc&& func);
@@ -1618,6 +1619,7 @@ private:
     SetTopWindowBoundaryByIDFunc setTopWindowBoundaryByIDFunc_;
     SingleHandCompatibleModeConfig singleHandCompatibleModeConfig_;
     bool singleHandModeEnable_ = true;
+    SingleHandBackgroundLayoutConfig singleHandBackgroundLayoutConfig_;
     std::unordered_set<std::string> appsWithDeduplicatedWindowStatus_;
     std::shared_mutex appHookWindowInfoMapMutex_;
     std::unordered_map<std::string, HookWindowInfo> appHookWindowInfoMap_;
@@ -1626,6 +1628,9 @@ private:
     bool GetDisplaySizeById(DisplayId displayId, int32_t& displayWidth, int32_t& displayHeight);
     void UpdateSessionWithFoldStateChange(DisplayId displayId, SuperFoldStatus status, SuperFoldStatus prevStatus);
     void ConfigSingleHandCompatibleMode(const WindowSceneConfig::ConfigItem& configItem);
+    void ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
+        SingleHandBackgroundTextConfig& textConfig);
+    void ConfigSingleHandBackgroundLayout(const WindowSceneConfig::ConfigItem& configItem);
     void ConfigAppsWithDeduplicatedWindowStatus();
     void SetWindowStatusDeduplicationBySystemConfig(const SessionInfo& sessionInfo, SystemSessionConfig& systemConfig);
     HasRootSceneRequestedVsyncFunc hasRootSceneRequestedVsyncFunc_;

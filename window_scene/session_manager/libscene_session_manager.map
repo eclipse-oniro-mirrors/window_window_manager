@@ -70,6 +70,7 @@
             OHOS::Rosen::SceneSessionManager::GetSessionSnapshotPixelMap*;
             OHOS::Rosen::SceneSessionManager::GetSingleHandCompatibleModeConfig*;
             OHOS::Rosen::SceneSessionManager::GetSingleHandModeEnable*;
+            OHOS::Rosen::SceneSessionManager::GetSingleHandBackgroundLayoutConfig*;
             OHOS::Rosen::SceneSessionManager::GetStartupPage*;
             OHOS::Rosen::SceneSessionManager::GetSystemSessionConfig*;
             OHOS::Rosen::SceneSessionManager::GetWindowLimits*;
