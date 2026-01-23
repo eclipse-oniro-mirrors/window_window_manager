@@ -875,6 +875,53 @@ HWTEST_F(SceneSessionManagerTest10, NotifyVisibleChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: InitSnapshotBlurConfig
+ * @tc.desc: test InitSnapshotBlurConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, InitSnapshotBlurConfig, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    const std::string key = "const.window.appusecontrol.snapshot_mask_param";
+    const std::string oldValue = system::GetParameter(key, "");
+
+    system::SetParameter(key, "invalid");
+    ssm_->InitSnapshotBlurConfig();
+    EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->blurRadius_);
+    EXPECT_EQ(DEFAULT_BLUR_BACKGROUND_COLOR, ssm_->blurBackgroundColor_);
+
+    system::SetParameter(key, "#33000000|12.5");
+    ssm_->InitSnapshotBlurConfig();
+    EXPECT_FLOAT_EQ(12.5f, ssm_->blurRadius_);
+    EXPECT_EQ(DEFAULT_BLUR_BACKGROUND_COLOR, ssm_->blurBackgroundColor_);
+
+    system::SetParameter(key, oldValue);
+}
+
+/**
+ * @tc.name: GetBlurRadiusFromParam
+ * @tc.desc: test GetBlurRadiusFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    EXPECT_FLOAT_EQ(12.5f, ssm_->GetBlurRadiusFromParam("12.5"));
+    EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->GetBlurRadiusFromParam("-1"));
+}
+
+/**
+ * @tc.name: GetBlurBackgroundColorFromParam
+ * @tc.desc: test GetBlurBackgroundColorFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurBackgroundColorFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    EXPECT_EQ(DEFAULT_BLUR_BACKGROUND_COLOR, ssm_->GetBlurBackgroundColorFromParam("33000000"));
+}
+
+/**
  * @tc.name: TestIsInDefaultScreen_01
  * @tc.desc: Test IsInDefaultScreen with not DefaultScreen id
  * @tc.type: FUNC
@@ -922,53 +969,6 @@ HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFu
     ASSERT_NE(nullptr, sceneSession);
     ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession);
     EXPECT_NE(nullptr, sceneSession->sessionPropertyChangeNotifyManagerFunc_);
-}
-
-/**
- * @tc.name: InitSnapshotBlurConfig
- * @tc.desc: test InitSnapshotBlurConfig
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, InitSnapshotBlurConfig, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    const std::string key = "const.window.appusecontrol.snapshot_mask_param";
-    const std::string oldValue = system::GetParameter(key, "");
-
-    system::SetParameter(key, "invalid");
-    ssm_->InitSnapshotBlurConfig();
-    EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->blurRadius_);
-    EXPECT_EQ(DEFAULT_BLUR_BACKGROUND_COLOR, ssm_->blurBackgroundColor_);
-
-    system::SetParameter(key, "#33000000|12.5");
-    ssm_->InitSnapshotBlurConfig();
-    EXPECT_FLOAT_EQ(12.5f, ssm_->blurRadius_);
-    EXPECT_EQ(DEFAULT_BLUR_BACKGROUND_COLOR, ssm_->blurBackgroundColor_);
-
-    system::SetParameter(key, oldValue);
-}
-
-/**
- * @tc.name: GetBlurRadiusFromParam
- * @tc.desc: test GetBlurRadiusFromParam
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    EXPECT_FLOAT_EQ(12.5f, ssm_->GetBlurRadiusFromParam("12.5"));
-    EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->GetBlurRadiusFromParam("-1"));
-}
-
-/**
- * @tc.name: GetBlurBackgroundColorFromParam
- * @tc.desc: test GetBlurBackgroundColorFromParam
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, GetBlurBackgroundColorFromParam, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    EXPECT_EQ(DEFAULT_BLUR_BACKGROUND_COLOR, ssm_->GetBlurBackgroundColorFromParam("33000000"));
 }
 
 /**
