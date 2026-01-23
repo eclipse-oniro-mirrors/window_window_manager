@@ -1096,10 +1096,11 @@ void ScreenSessionManager::SetScreenCorrection()
         int32_t phyOffset = static_cast<int32_t>(std::stoi(phyOffsets[0]));
         screenRotation = ConvertOffsetToCorrectRotation(phyOffset);
     }
-    auto rotationOffset = GetCurrentConfigCorrection();
-    auto rotation = (static_cast<int32_t>(screenRotation) + static_cast<int32_t>(rotationOffset)) % ROTATION_MOD;
-    auto ret = rsInterface_.SetScreenCorrection(screenId, static_cast<ScreenRotation>(rotation));
+    auto correctionRet = rsInterface_.SetLogicalCameraRotationCorrection(screenId,
+        static_cast<ScreenRotation>(GetConfigCorrectionByDisplayMode(GetFoldDisplayMode())));
+    auto ret = rsInterface_.SetScreenCorrection(screenId, screenRotation);
     oss << "screenRotation: " << static_cast<int32_t>(screenRotation) << " ret value: " << ret;
+    oss << "correctionRet:" << correctionRet;
     TLOGNFW(WmsLogTag::DMS, "%{public}s", oss.str().c_str());
     screenEventTracker_.RecordEvent(oss.str());
 }
@@ -10013,7 +10014,9 @@ void ScreenSessionManager::RefreshMirrorScreenRegion(ScreenId screenId)
 void ScreenSessionManager::NotifyDisplayModeChanged(FoldDisplayMode displayMode)
 {
     NotifyClientProxyUpdateFoldDisplayMode(displayMode);
-    SetScreenCorrection();
+    if (CORRECTION_ENABLE) {
+        SetScreenCorrection();
+    }
     ScreenSessionManagerAdapter::GetInstance().NotifyDisplayModeChanged(displayMode);
 #ifdef FOLD_ABILITY_ENABLE
     if (foldScreenController_ != nullptr && FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
