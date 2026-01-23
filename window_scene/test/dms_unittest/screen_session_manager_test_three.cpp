@@ -819,6 +819,8 @@ HWTEST_F(ScreenSessionManagerTest, NotifyCreatedScreen, TestSize.Level1)
     }
     ssm_->NotifyCreatedScreen(screenSession);
     EXPECT_TRUE(g_logMsg.find("super fold device, change by rotation.") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1065,6 +1067,8 @@ HWTEST_F(ScreenSessionManagerTest, OnFoldPropertyChange, TestSize.Level1)
 
     ssm_->clientProxy_ = sptr<ScreenSessionManagerClientTest>::MakeSptr();
     ssm_->OnFoldPropertyChange(screenId, screenProperty, reason, displayMode);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1099,6 +1103,7 @@ HWTEST_F(ScreenSessionManagerTest, SetOptionConfig, TestSize.Level1)
     screenId++;
     ssm_->SetOptionConfig(screenId, option);
     EXPECT_TRUE(g_logMsg.find("screenSession is nullptr") != std::string::npos);
+    g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
 }
