@@ -2980,6 +2980,7 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
         return;
     }
     if (!IsSupportAppLockSnapshot()) {
+        SaveSnapshot(true, true, nullptr);
         return;
     }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;

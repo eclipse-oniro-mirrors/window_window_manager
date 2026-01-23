@@ -1269,9 +1269,14 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveApplockSnapshot, TestSize.Level1
     info.abilityName_ = "NotifyRemoveApplockSnapshot";
     info.bundleName_ = "NotifyRemoveApplockSnapshot";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    
+
     sceneSession->SetAppLockControl(true);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->NotifyRemoveApplockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), true);
+
     sceneSession->state_ = SessionState::STATE_ACTIVE;
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sceneSession->NotifyRemoveApplockSnapshot();
     EXPECT_EQ(sceneSession->GetAppLockControl(), false);
 

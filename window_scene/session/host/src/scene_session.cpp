@@ -625,6 +625,9 @@ void SceneSession::RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDispla
 
 void SceneSession::NotifyRemoveApplockSnapshot()
 {
+    if (!WindowHelper::IsMainWindow(GetWindowType())) {
+        return;
+    }
     if (IsSupportAppLockSnapshot()) {
         ControlInfo controlInfo;
         bool isAppControl = GetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
