@@ -1165,14 +1165,17 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
 
     type = ControlAppType::APP_LOCK;
-    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
-    EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
-
     std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    appLockDisplayMap[1000] = false;
+    sceneSession->GetSessionProperty()->SetDisplayId(1000);
     sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
         std::unordered_map<DisplayId, bool>& {
         return appLockDisplayMap;
     });
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
+
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
     sceneSession->isSnapshotBlur_.store(false);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
@@ -1234,9 +1237,9 @@ HWTEST_F(WindowPatternSnapshotTest, IsSupportAppLockSnapshot, TestSize.Level1)
     info.abilityName_ = "IsSupportAppLockSnapshot";
     info.bundleName_ = "IsSupportAppLockSnapshot";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    
+
     bool res = sceneSession->IsSupportAppLockSnapshot();
-    EXPECT_EQ(res, false);
+    EXPECT_EQ(res, true);
 
     std::unordered_map<DisplayId, bool> appLockDisplayMap;
     sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
@@ -1258,30 +1261,30 @@ HWTEST_F(WindowPatternSnapshotTest, IsSupportAppLockSnapshot, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyRemoveApplockSnapshot
- * @tc.desc: NotifyRemoveApplockSnapshot Test
+ * @tc.name: NotifyRemoveAppLockSnapshot
+ * @tc.desc: NotifyRemoveAppLockSnapshot Test
  * @tc.type: FUNC
  */
-HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveApplockSnapshot, TestSize.Level1)
+HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveAppLockSnapshot, TestSize.Level1)
 {
     SessionInfo info;
     info.persistentId_ = 1211;
-    info.abilityName_ = "NotifyRemoveApplockSnapshot";
-    info.bundleName_ = "NotifyRemoveApplockSnapshot";
+    info.abilityName_ = "NotifyRemoveAppLockSnapshot";
+    info.bundleName_ = "NotifyRemoveAppLockSnapshot";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
 
     sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-    sceneSession->NotifyRemoveApplockSnapshot();
+    sceneSession->NotifyRemoveAppLockSnapshot();
     EXPECT_EQ(sceneSession->GetAppLockControl(), true);
 
     sceneSession->state_ = SessionState::STATE_ACTIVE;
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->NotifyRemoveApplockSnapshot();
+    sceneSession->NotifyRemoveAppLockSnapshot();
     EXPECT_EQ(sceneSession->GetAppLockControl(), false);
 
     sceneSession->state_ = SessionState::STATE_BACKGROUND;
-    sceneSession->NotifyRemoveApplockSnapshot();
+    sceneSession->NotifyRemoveAppLockSnapshot();
     EXPECT_EQ(sceneSession->GetAppLockControl(), false);
 
     sceneSession->SetAppLockControl(true);
@@ -1290,8 +1293,8 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveApplockSnapshot, TestSize.Level1
         std::unordered_map<DisplayId, bool>& {
         return appLockDisplayMap;
     });
-    sceneSession->NotifyRemoveApplockSnapshot();
-    EXPECT_EQ(sceneSession->GetAppLockControl(), true);
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), false);
 }
 
 /**

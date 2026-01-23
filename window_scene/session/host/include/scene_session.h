@@ -1004,7 +1004,7 @@ public:
     */
     void NotifyWindowAttachStateListenerRegistered(bool registered) override;
     void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) override;
-    void NotifyRemoveApplockSnapshot();
+    void NotifyRemoveAppLockSnapshot();
     WMError NotifySnapshotUpdate() override;
     bool GetIsPrivacyMode() const override
     {

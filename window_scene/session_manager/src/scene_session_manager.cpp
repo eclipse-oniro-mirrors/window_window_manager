@@ -2783,8 +2783,7 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
             return allAppUseControlMap_;
         });
         sceneSession->RegisterGetAppUseControlDisplayMapFunc([this]() ->
-            std::unordered_map<DisplayId, bool>& {
-            return appUseControlDisplayMap_;
+            std::unordered_map<DisplayId, bool>& { return appUseControlDisplayMap_;
         });
         sceneSession->RegisterGetFbPanelWindowIdFunc([this](uint32_t& windowId) {
             return this->GetFbPanelWindowId(windowId);
@@ -14418,7 +14417,7 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
         sceneSession->GetPersistentId(), screenId, fromScreenId);
     NotifySessionUpdate(sceneSession->GetSessionInfo(), ActionType::MOVE_DISPLAY, fromScreenId);
     sceneSession->NotifyDisplayMove(fromScreenId, screenId);
-    sceneSession->NotifyRemoveApplockSnapshot();
+    sceneSession->NotifyRemoveAppLockSnapshot();
     sceneSession->UpdateDensity();
     if (fromScreenId != screenId) {
         sceneSession->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));

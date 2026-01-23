@@ -3007,19 +3007,18 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
 bool Session::IsSupportAppLockSnapshot() const
 {
     if (!onGetAppUseControlDisplayMapFunc_) {
-        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d not support", persistentId_);
-        return false;
+        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d GetAppUseControlDisplayMap failed", persistentId_);
+        return true;
     }
     auto& appUseControlDisplayMap = onGetAppUseControlDisplayMapFunc_();
     auto displayId = GetSessionProperty()->GetDisplayId();
     if (appUseControlDisplayMap.find(displayId) == appUseControlDisplayMap.end()) {
         return true;
     }
-    if (appUseControlDisplayMap[displayId]) {
-        return true;
-    }
-    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, displayId: %{public}" PRIu64, persistentId_, displayId);
-    return false;
+    bool support = appUseControlDisplayMap[displayId];
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, displayId: %{public}" PRIu64 ", support: %{public}d",
+        persistentId_, displayId, support);
+    return support;
 }
 
 bool Session::GetSnapshotPrivacyMode() const

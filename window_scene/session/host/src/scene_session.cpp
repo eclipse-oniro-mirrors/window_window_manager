@@ -623,7 +623,7 @@ void SceneSession::RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDispla
     onGetAppUseControlDisplayMapFunc_ = std::move(func);
 }
 
-void SceneSession::NotifyRemoveApplockSnapshot()
+void SceneSession::NotifyRemoveAppLockSnapshot()
 {
     if (!WindowHelper::IsMainWindow(GetWindowType())) {
         return;
