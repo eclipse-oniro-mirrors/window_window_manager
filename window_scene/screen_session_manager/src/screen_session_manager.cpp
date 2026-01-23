@@ -803,6 +803,11 @@ void ScreenSessionManager::ConfigureScreenScene()
         std::lock_guard<std::mutex> lock(allDisplayPhysicalResolutionMutex_);
         allDisplayPhysicalResolution_ = ScreenSceneConfig::GetAllDisplayPhysicalConfig();
     }
+
+    if (numbersConfig.count("waitCoordinationReadyMaxTime") != 0) {
+        waitCoordinationReadyMaxTime_ = static_cast<int32_t>(numbersConfig["waitCoordinationReadyMaxTime"][0]);
+        TLOGD(WmsLogTag::DMS, "waitCoordinationReadyMaxTime=%{public}d", waitCoordinationReadyMaxTime_.load());
+    }
 }
 
 void ScreenSessionManager::ConfigureDpi()
@@ -5508,6 +5513,7 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         }
         that.RegisterSettingRotationObserver();
         that.RegisterSettingResolutionEffectObserver();
+        that.RegisterSettingCoordinationReadyObserver();
         if (that.defaultDpi) {
             uint32_t initDefaultDpi;
             auto ret = ScreenSettingHelper::GetSettingValue(initDefaultDpi, SET_SETTING_DPI_KEY);
@@ -5564,6 +5570,57 @@ void ScreenSessionManager::SetRotateLockedFromSettingData()
         TLOGNFI(WmsLogTag::DMS, "get islocked success");
         SetScreenRotationLockedFromJs(islocked);
     }
+}
+
+void ScreenSessionManager::RegisterSettingCoordinationReadyObserver()
+{
+    TLOGI(WmsLogTag::DMS, "Register setting coordination ready observer");
+    SettingObserver::UpdateFunc updateFunc = [this](const std::string& key) { UpdateCoordinationReadyFromSettingData(); };
+    ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(DmUtils::wrap_callback(updateFunc));
+}
+
+void ScreenSessionManager::UpdateCoordinationReadyFromSettingData()
+{
+    bool isCoordinationReady;
+    ScreenSettingHelper::GetSettingIsCoordinationReady(isCoordinationReady);
+    TLOGI(WmsLogTag::DMS, "isCoordinationReady: %{public}d", isCoordinationReady);
+    if (isCoordinationReady == isCoordinationReady_.load()) {
+        return;
+    }
+    isCoordinationReady_ = isCoordinationReady;
+    if (isCoordinationReady_.load()) {
+        NotifyCoordinationReadyCV();
+    }
+}
+
+void ScreenSessionManager::SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady)
+{
+    isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
+}
+
+bool ScreenSessionManager::GetWaitingForCoordinationReady() const
+{
+    return isWaitingForCoordinationReady_.load();
+}
+
+void ScreenSessionManager::WaitForCoordinationReady()
+{
+    std::unique_lock<std::mutex> lock(coordinationReadyMutex_);
+    SetWaitingForCoordinationReady(true);
+    bool isCoordinationReady = isCoordinationReady_.load();
+    TLOGI(WmsLogTag::DMS, "begin wait coordination ready. need wait: %{public}d", isCoordinationReady);
+    if (!isCoordinationReady) {
+        if (DmUtils::safe_wait_for(coordinationReadyCV_, lock,
+            std::chrono::milliseconds(waitCoordinationReadyMaxTime_.load())) == std::cv_status::timeout) {
+            TLOGW(WmsLogTag::DMS, "Wait dual display ready timeout, still enter coordination mode.");
+        }
+    }
+    SetWaitingForCoordinationReady(false);
+}
+
+void ScreenSessionManager::NotifyCoordinationReadyCV()
+{
+    coordinationReadyCV_.notify_all();
 }
 
 void ScreenSessionManager::RegisterSettingResolutionEffectObserver()

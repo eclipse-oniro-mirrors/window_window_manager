@@ -209,6 +209,18 @@ void FoldScreenBasePolicy::ChangeOffTentMode()
     TLOGI(WmsLogTag::DMS, "change displaymode to coordination current mode=%{public}d", currentDisplayMode_);
     ScreenSessionManager::GetInstance().NotifyRSCoordination(true);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
+
+    // wait for coordination ready
+    if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
+        TLOGI(WmsLogTag::DMS, "EnterCoordination skipped, is waiting for coordination ready");
+        return;
+    }
+    ScreenSessionManager::GetInstance().WaitForCoordinationReady();
+    if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
+        TLOGW(WmsLogTag::DMS, "EnterCoordination skipped, current coordination flag is false");
+        return;
+    }
+ 
     ScreenSessionManager::GetInstance().OnScreenChange(SCREEN_ID_MAIN, ScreenEvent::CONNECTED);
 
     // on main screen
@@ -234,6 +246,14 @@ void FoldScreenBasePolicy::CloseCoordinationScreen()
     }
     TLOGI(WmsLogTag::DMS, "Close Coordination Screen current mode=%{public}d", currentDisplayMode_);
     ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
+
+    if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
+        ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+        ScreenSessionManager::GetInstance().NotifyCoordinationReadyCV();
+        TLOGI(WmsLogTag::DMS, "CloseCoordinationScreen skipped, is waiting for coordination ready");
+        return;
+    }
+
     // on main screen
     auto taskScreenOnMainOFF = [=] {
         TLOGNI(WmsLogTag::DMS, "CloseCoordinationScreen: screenIdMain OFF.");
@@ -258,6 +278,12 @@ void FoldScreenBasePolicy::ExitCoordination()
         return;
     }
     ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
+    if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
+        ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+        ScreenSessionManager::GetInstance().NotifyCoordinationReadyCV();
+        TLOGI(WmsLogTag::DMS, "ExitCoordination skipped, is waiting for coordination ready");
+        return;
+    }
     ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);

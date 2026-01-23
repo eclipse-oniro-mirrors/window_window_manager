@@ -134,6 +134,23 @@ HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeToCoordinationTest, Te
 }
 
 /**
+ * @tc.name: ChangeScreenDisplayModeToCoordinationTest_wait
+ * @tc.desc: test function : ChangeScreenDisplayModeToCoordination waiting path
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeToCoordinationTest_wait, TestSize.Level1)
+{
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(true);
+    FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayModeToCoordination();
+    EXPECT_TRUE(ScreenSessionManager::GetInstance().GetCoordinationFlag());
+    EXPECT_TRUE(ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady());
+
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(false);
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+}
+
+/**
  * @tc.name: CloseCoordinationScreenTest
  * @tc.desc: test function : CloseCoordinationScreen
  * @tc.type: FUNC
@@ -151,6 +168,42 @@ HWTEST_F(FoldScreenBasePolicyTest, CloseCoordinationScreenTest, TestSize.Level1)
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     FoldScreenBasePolicy::GetInstance().CloseCoordinationScreen();
     EXPECT_TRUE(!ScreenSessionManager::GetInstance().GetCoordinationFlag());
+}
+
+/**
+ * @tc.name: CloseCoordinationScreenTest_wait
+ * @tc.desc: test function : CloseCoordinationScreen waiting path
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, CloseCoordinationScreenTest_wait, TestSize.Level1)
+{
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(true);
+    FoldScreenBasePolicy::GetInstance().CloseCoordinationScreen();
+    EXPECT_TRUE(!ScreenSessionManager::GetInstance().GetCoordinationFlag());
+    EXPECT_TRUE(ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady());
+
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(false);
+}
+
+/**
+ * @tc.name: ExitCoordinationTest
+ * @tc.desc: test function : ExitCoordination
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, ExitCoordinationTest, TestSize.Level1)
+{
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+    FoldScreenBasePolicy::GetInstance().ExitCoordination();
+    EXPECT_FALSE(ScreenSessionManager::GetInstance().GetCoordinationFlag());
+
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(true);
+    FoldScreenBasePolicy::GetInstance().ExitCoordination();
+    EXPECT_TRUE(!ScreenSessionManager::GetInstance().GetCoordinationFlag());
+    EXPECT_TRUE(ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady());
+
+    ScreenSessionManager::GetInstance().SetWaitingForCoordinationReady(false);
 }
 
 /**
