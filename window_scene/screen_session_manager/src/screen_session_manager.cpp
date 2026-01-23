@@ -79,6 +79,7 @@
 #include "fold_screen_controller/secondary_fold_sensor_manager.h"
 #include "fold_screen_controller/super_fold_policy.h"
 #endif
+#include "task_sequence_process.h"
 #include "screen_aod_plugin.h"
 #include "wm_single_instance.h"
 #include "dms_global_mutex.h"
@@ -88,7 +89,6 @@
 #include "wm_common.h"
 #include "screen_sensor_mgr.h"
 #include "fold_screen_base_controller.h"
-#include "task_sequence_process.h"
 
 namespace OHOS::Rosen {
 namespace {
@@ -1134,8 +1134,6 @@ ScreenId ScreenSessionManager::GenerateSmsScreenId(ScreenId rsScreenId)
     screenIdManager_.UpdateScreenId(rsScreenId, rsScreenId);
     return rsScreenId;
 }
-
-
  void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason)
 {
  	if (screenEvent == ScreenEvent::DISCONNECTED) {
@@ -1153,7 +1151,7 @@ ScreenId ScreenSessionManager::GenerateSmsScreenId(ScreenId rsScreenId)
  	    screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_DEFAULT;
  	    OnScreenChangeInner(screenId, screenEvent, reason);
         if (screenConnectTaskStage_ == SCREEN_CONNECT_STAGE_DEFAULT) {
-            TLOGNFW(WmsLogTag::DMS, "Screen connect task ");
+            TLOGNFW(WmsLogTag::DMS, "Screen connect task is interrupted");
             screenConnectTaskGroup_.FinishTask();
         }
     };
