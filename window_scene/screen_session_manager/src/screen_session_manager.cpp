@@ -5585,9 +5585,9 @@ void ScreenSessionManager::UpdateCoordinationReadyFromSettingData()
 }
 
 void ScreenSessionManager::SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady)
-    {
-        isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
-    }
+{
+    isWaitingForCoordinationReady_ = isWaitingForCoordinationReady;
+}
 
 bool ScreenSessionManager::GetWaitingForCoordinationReady() const
 {
