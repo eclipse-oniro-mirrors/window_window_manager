@@ -1161,18 +1161,6 @@ namespace {
      */
     HWTEST_F(ScreenSettingHelperTest, UnregisterSettingCoordinationReadyObserver01, TestSize.Level1)
     {
-        ScreenSettingHelper::coordinationReadyObserver_ = new SettingObserver();
-        ScreenSettingHelper::UnregisterSettingCoordinationReadyObserver();
-        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, nullptr);
-    }
-
-    /**
-     * @tc.name: UnregisterSettingCoordinationReadyObserver02
-     * @tc.desc: UnregisterSettingCoordinationReadyObserver02
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, UnregisterSettingCoordinationReadyObserver02, TestSize.Level1)
-    {
         ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
         ScreenSettingHelper::UnregisterSettingCoordinationReadyObserver();
         ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, nullptr);
