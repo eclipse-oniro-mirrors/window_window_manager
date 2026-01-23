@@ -482,7 +482,7 @@ public:
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag();
     void WaitForCoordinationReady();
-    void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady)
+    void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady);
     bool GetWaitingForCoordinationReady() const;
     void NotifyCoordinationReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
