@@ -917,7 +917,7 @@ HWTEST_F(ScreenSessionManagerTest, NotifyFoldStatusChanged02, TestSize.Level1)
     }
     if (!(ssm_->IsFoldable())) {
         ssm_->foldScreenController_ = new FoldScreenController(
-            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_);
+            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     }
     ASSERT_NE(ssm_->foldScreenController_, nullptr);
     statusParam = "-y";
@@ -1053,7 +1053,7 @@ HWTEST_F(ScreenSessionManagerTest, GetCurrentScreenPhyBounds01, TestSize.Level1)
     }
     if (!(ssm_->IsFoldable())) {
         ssm_->foldScreenController_ = new FoldScreenController(
-            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_);
+            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     }
 
     ASSERT_NE(ssm_->foldScreenController_, nullptr);
@@ -1076,7 +1076,7 @@ HWTEST_F(ScreenSessionManagerTest, GetCurrentScreenPhyBounds02, TestSize.Level1)
     ScreenId screenId = 0;
     ssm_->GetCurrentScreenPhyBounds(phyWidth, phyHeight, isReset, screenId);
     auto foldController = sptr<FoldScreenController>::MakeSptr(ssm_->displayInfoMutex_,
-        ssm_->screenPowerTaskScheduler_);
+        ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     ASSERT_NE(foldController, nullptr);
     DisplayPhysicalResolution physicalSize_full;
     physicalSize_full.foldDisplayMode_ = FoldDisplayMode::FULL;

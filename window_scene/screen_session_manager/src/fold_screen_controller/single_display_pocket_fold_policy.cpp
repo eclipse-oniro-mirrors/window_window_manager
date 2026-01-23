@@ -133,6 +133,7 @@ void SingleDisplayPocketFoldPolicy::SetdisplayModeChangeStatus(bool status, bool
             return;
         }
         displayModeChangeRunning_ = false;
+        ScreenSessionManager::GetInstance().RunFinishTask();
         endTimePoint_ = std::chrono::steady_clock::now();
         TLOGI(WmsLogTag::DMS, "displaymodechange finished, current displaymode: %{public}ud,"
             "target displaymode: %{public}ud", GetScreenDisplayMode(), lastCachedisplayMode_.load());
