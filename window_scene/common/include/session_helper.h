@@ -259,24 +259,12 @@ public:
 
     static bool IsHexChar(char c)
     {
-        if (c >= '0' && c <= '9') {
-            return true;
-        } else if (c >= 'A' && c <= 'F') {
-            return true;
-        } else if (c >= 'a' && c <= 'f') {
-            return true;
-        } else {
-            return false;
-        }
+        return std::isxdigit(static_cast<unsigned char>(c)) != 0;
     }
 
     static bool IsDecChar(char c)
     {
-        if (c >= '0' && c <= '9') {
-            return true;
-        } else {
-            return false;
-        }
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
     }
 };
 } // Rosen
