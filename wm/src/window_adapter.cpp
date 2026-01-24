@@ -1408,7 +1408,8 @@ WMError WindowAdapter::SetImageForRecent(uint32_t imgResourceId, ImageFit imageF
 WMError WindowAdapter::SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap,
     ImageFit imageFit, int32_t persistentId)
 {
-    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s enter, persistentId=%{public}d", __func__, persistentId);
+    TLOGI(WmsLogTag::WMS_PATTERN,
+        "%{public}s enter, persistentId=%{public}d", __func__, persistentId);
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
@@ -1417,7 +1418,8 @@ WMError WindowAdapter::SetImageForRecentPixelMap(const std::shared_ptr<Media::Pi
 
 WMError WindowAdapter::RemoveImageForRecent(int32_t persistentId)
 {
-    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s enter, persistentId=%{public}d", __func__, persistentId);
+    TLOGI(WmsLogTag::WMS_PATTERN,
+        "%{public}s enter, persistentId=%{public}d", __func__, persistentId);
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);

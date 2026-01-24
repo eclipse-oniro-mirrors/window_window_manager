@@ -1138,11 +1138,12 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
     }
     if (pixelMap != nullptr) {
         TLOGI (WmsLogTag::WMS_PATTERN,
-            "SetImageForRecent parse ok type=pixelMap imageFit=%{public}d size=%{public}d*%{public}d",
+            "SetImageForRecent pixelMap imageFit=%{public}d,size=%{public}d*%{public}d",
             imageFit, pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
         TLOGI (WmsLogTag::WMS_PATTERN,
-            "SetImageForRecent parse ok type=resId imageFit=%{public}d id=%{public}d", imageFit, imgResourceId);
+            "SetImageForRecent resId imageFit=%{public}d id=%{public}d",
+            imageFit, imgResourceId);
     }
 
     napi_value result = nullptr;
@@ -1172,7 +1173,7 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGE(WmsLogTag::WMS_PATTERN,
-                "%{public}s set image for recent failed, ret=%{public}d, type=%{public}s",
+                "%{public}s set imageForRecent failed, ret=%{public}d, type=%{public}s",
                 where, ret, pixelMap ? "pixelMap" : "resId");
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "set image for recent failed."));
         }
