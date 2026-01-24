@@ -4132,7 +4132,7 @@ void ScreenSessionManager::InitExtendScreenProperty(ScreenId screenId, sptr<Scre
         return;
     }
     bool isSupportOffScreenRendering = ScreenSceneConfig::IsSupportOffScreenRendering();
-    if (!isSupportOffScreenRendering || ! g_offScreenRenderValue) {
+    if (!isSupportOffScreenRendering || !g_offScreenRenderValue) {
         TLOGNFW(WmsLogTag::DMS, "current is not OffScreenRendering");
         return;
     }

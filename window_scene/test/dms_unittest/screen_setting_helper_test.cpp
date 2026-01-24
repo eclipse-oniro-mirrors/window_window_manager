@@ -158,12 +158,12 @@ namespace {
      */
     HWTEST_F(ScreenSettingHelperTest, GetSettingOffScreenRenderValue, TestSize.Level1)
     {
-        bool offerRenderValue_ = false;
+        bool offerRenderValue = false;
         std::string key = "test";
-        bool ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue_, key);
+        bool ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue, key);
         ASSERT_FALSE(ret);
         key = "off_screen_rendering_switch";
-        ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue_, key);
+        ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue, key);
     }
 
     /**
