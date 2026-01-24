@@ -22,8 +22,6 @@
 #include "window_manager.h"
 #include "window_manager_hilog.h"
 
-
-
 using namespace testing;
 using namespace testing::ext;
 
@@ -44,7 +42,6 @@ void WindowManagerPatternTest::TearDownTestCase() {}
 void WindowManagerPatternTest::SetUp() {}
 
 void WindowManagerPatternTest::TearDown() {}
-
 
 namespace {
 
