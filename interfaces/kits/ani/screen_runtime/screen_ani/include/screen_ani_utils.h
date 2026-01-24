@@ -65,6 +65,12 @@ static ani_status GetScreenIdArrayFromAni(ani_env* env, ani_object mirrorScreen,
 
 static ani_status GetExpandOptionFromAni(ani_env* env, ani_object optionAniObj, ExpandOption& expandOption);
 };
+
+template <typename T>
+static DmErrorCode GetOptionalFieldFromAni(ani_env* env, ani_object obj, T& value, const char* field);
+
+template <typename T>
+static void CastDefinedFieldToValue(ani_env* env, ani_object obj, T& value);
 }
 }
 #endif

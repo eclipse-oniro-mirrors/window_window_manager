@@ -333,6 +333,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             bool supportsInput = data.ReadBool();
             std::string bundleName = data.ReadString();
             std::string serialNumber = data.ReadString();
+            int32_t userId = data.ReadInt32();
             bool isSurfaceValid = data.ReadBool();
             sptr<Surface> surface = nullptr;
             if (isSurfaceValid) {
@@ -356,7 +357,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .supportsFocus_ = supportsFocus,
                 .supportsInput_ = supportsInput,
                 .bundleName_ = bundleName,
-                .serialNumber_ = serialNumber
+                .serialNumber_ = serialNumber,
+                .userId_ = userId
             };
             ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
             static_cast<void>(reply.WriteUint64(static_cast<uint64_t>(screenId)));

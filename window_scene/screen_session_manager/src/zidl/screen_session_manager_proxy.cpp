@@ -1190,7 +1190,7 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
         data.WriteBool(virtualOption.supportsFocus_) &&
         data.WriteBool(virtualOption.supportsInput_) &&
         data.WriteString(virtualOption.bundleName_) &&
-        data.WriteString(virtualOption.serialNumber_);
+        data.WriteString(virtualOption.serialNumber_) && data.WriteInt32(virtualOption.userId_);
     if (virtualOption.surface_ != nullptr && virtualOption.surface_->GetProducer() != nullptr) {
         res = res &&
             data.WriteBool(true) &&
