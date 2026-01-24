@@ -1167,6 +1167,7 @@ struct SessionEventParam {
     int32_t sessionHeight_ = 0;
     uint32_t dragResizeType = 0;
     uint32_t gravity = 0;
+    uint32_t dragGravity = 0;
     uint32_t waterfallResidentState = 0;
     uint32_t compatibleStyleMode = 0;
     int32_t windowGlobalPosX_ = 0;

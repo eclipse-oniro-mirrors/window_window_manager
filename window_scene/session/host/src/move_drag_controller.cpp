@@ -79,6 +79,17 @@ const std::map<AreaType, Gravity> GRAVITY_MAP = {
     {AreaType::LEFT_BOTTOM,   Gravity::TOP_RIGHT}
 };
 
+const std::map<AreaType, Gravity> DRAG_GRAVITY_MAP = {
+    {AreaType::LEFT, Gravity::LEFT},
+    {AreaType::TOP, Gravity::TOP},
+    {AreaType::RIGHT, Gravity::RIGHT},
+    {AreaType::BOTTOM, Gravity::BOTTOM},
+    {AreaType::LEFT_TOP, Gravity::TOP_LEFT},
+    {AreaType::RIGHT_TOP, Gravity::TOP_RIGHT},
+    {AreaType::RIGHT_BOTTOM, Gravity::BOTTOM_RIGHT},
+    {AreaType::LEFT_BOTTOM, Gravity::BOTTOM_LEFT}
+};
+
 /**
  * @brief Get the display's offset in the legacy global coordinate system
  *        (also known as the unified coordinate system).
@@ -636,6 +647,16 @@ TargetRectUpdateMode MoveDragController::UpdateTargetRectOnDragEvent(
 Gravity MoveDragController::GetGravity() const
 {
     return GetGravity(dragAreaType_);
+}
+
+Gravity MoveDragController::GetDragGravity() const
+{
+    auto iter = DRAG_GRAVITY_MAP.find(type_);
+    if (iter == DRAG_GRAVITY_MAP.end()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "No corresponding gravity found, type %{public}u", static_cast<uint32_t>(type_));
+        return Gravity::TOP_LEFT;
+    }
+    return iter->second;
 }
 
 Gravity MoveDragController::GetGravity(AreaType type) const
