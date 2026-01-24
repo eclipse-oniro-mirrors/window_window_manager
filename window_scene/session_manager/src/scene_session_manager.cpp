@@ -16467,16 +16467,23 @@ WindowStatus SceneSessionManager::GetWindowStatus(WindowMode mode, SessionState 
     if (property == nullptr) {
         return windowStatus;
     }
-    if (mode == WindowMode::WINDOW_MODE_FLOATING) {
-        windowStatus = WindowStatus::WINDOW_STATUS_FLOATING;
-        if (property->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR) { // maximize floating
-            windowStatus = WindowStatus::WINDOW_STATUS_MAXIMIZE;
+    static const std::unordered_map<WindowMode, WindowStatus> modeToStatusMap = {
+        {WindowMode::WINDOW_MODE_FLOATING,     WindowStatus::WINDOW_STATUS_FLOATING},
+        {WindowMode::WINDOW_MODE_SPLIT_PRIMARY,  WindowStatus::WINDOW_STATUS_SPLITSCREEN},
+        {WindowMode::WINDOW_MODE_SPLIT_SECONDARY, WindowStatus::WINDOW_STATUS_SPLITSCREEN},
+        {WindowMode::WINDOW_MODE_FULLSCREEN,   WindowStatus::WINDOW_STATUS_FULLSCREEN},
+    };
+    auto it = modeToStatusMap.find(mode);
+    if(it != modeToStatusMap.end()) {
+        WindowStatus status = it -> second;
+        if (mode == WindowMode::WINDOW_MODE_FLOATING) {
+            windowStatus = WindowStatus::WINDOW_STATUS_FLOATING;
+            if (property->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR) {
+                windowStatus = WindowStatus::WINDOW_STATUS_MAXIMIZE;
+            }
         }
-    } else if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
-        windowStatus = WindowStatus::WINDOW_STATUS_SPLITSCREEN;
-    } else if (mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
-        windowStatus = WindowStatus::WINDOW_STATUS_FULLSCREEN;
-    } else if (sessionState != SessionState::STATE_FOREGROUND && sessionState != SessionState::STATE_ACTIVE) {
+    }
+    if (sessionState != SessionState::STATE_FOREGROUND && sessionState != SessionState::STATE_ACTIVE) {
         windowStatus = WindowStatus::WINDOW_STATUS_MINIMIZE;
     }
     return windowStatus;

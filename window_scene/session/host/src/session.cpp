@@ -1373,6 +1373,11 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     auto globalDisplayRect = SessionCoordinateHelper::RelativeToGlobalDisplayRect(GetScreenId(), updateRect);
     UpdateGlobalDisplayRect(globalDisplayRect, reason);
 
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "Session::UpdateRectWithLayoutInfo id:%d updateRect[%d, %d, %u, %u] globalDisplayRect[%d, %d, %u, %u]",
+        GetPersistentId(),updateRect.posX_, updateRect.posY_, updateRect.width_, updateRect.height_,
+        globalDisplayRect.posX_, globalDisplayRect.posY_, globalDisplayRect.width_, globalDisplayRect.height_);
+
     if (!Session::IsBackgroundUpdateRectNotifyEnabled() && !IsSessionForeground()) {
         return WSError::WS_DO_NOTHING;
     }
