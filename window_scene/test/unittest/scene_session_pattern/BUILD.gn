@@ -21,7 +21,7 @@ ohos_unittest("scene_session_pattern_test") {
   module_out_path = module_out_path
   sources = [ "scene_session_pattern_test.cpp" ]
   deps = [
-    wm_unittest_common,
+    ws_unittest_common,
   ]
   external_deps = test_external_deps
 }
