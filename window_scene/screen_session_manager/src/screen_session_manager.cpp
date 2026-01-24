@@ -79,6 +79,7 @@
 #include "fold_screen_controller/secondary_fold_sensor_manager.h"
 #include "fold_screen_controller/super_fold_policy.h"
 #endif
+#include "task_sequence_process.h"
 #include "screen_aod_plugin.h"
 #include "wm_single_instance.h"
 #include "dms_global_mutex.h"
@@ -186,6 +187,13 @@ const std::string MULTI_SCREEN_EXIT_STR = "exit";
 const std::string MULTI_SCREEN_ENTER_STR = "enter";
 const int32_t CV_WAIT_SCREEN_MASK_MS = 500;
 #endif
+constexpr uint32_t MAX_SCREEN_CONNECT_TASK_QUEUE_SIZE = 3;
+constexpr uint32_t MAX_SCREEN_CONNECT_TASK_GROUP_SIZE = 10;
+constexpr uint64_t SCREEN_CONNECT_TASK_TIME_OUT = 2500;
+constexpr int32_t SCREEN_CONNECT_STAGE_DEFAULT = -1;
+constexpr int32_t SCREEN_CONNECT_STAGE_ONE = 1;
+constexpr int32_t SCREEN_CONNECT_STAGE_TWO = 2;
+constexpr int32_t SCREEN_CONNECT_FINISH = 0;
 const bool IS_COORDINATION_SUPPORT =
     OHOS::system::GetBoolParameter("const.window.foldabledevice.is_coordination_support", false);
 
@@ -310,6 +318,9 @@ ScreenSessionManager::ScreenSessionManager()
     taskScheduler_ = std::make_shared<SafeTaskScheduler>(SCREEN_SESSION_MANAGER_THREAD);
     screenPowerTaskScheduler_ = std::make_shared<SafeTaskScheduler>(SCREEN_SESSION_MANAGER_SCREEN_POWER_THREAD);
     ffrtQueueHelper_ = std::make_shared<FfrtQueueHelper>();
+    screenConnectTaskGroup_ = std::make_shared<TaskSequenceProcess>(MAX_SCREEN_CONNECT_TASK_QUEUE_SIZE,
+        MAX_SCREEN_CONNECT_TASK_GROUP_SIZE, SCREEN_CONNECT_TASK_TIME_OUT);
+    screenConnectTaskGroup_->SetTaskScheduler(taskScheduler_);
     screenCutoutController_ = new (std::nothrow) ScreenCutoutController();
     if (!screenCutoutController_) {
         TLOGNFE(WmsLogTag::DMS, "screenCutoutController_ is nullptr");
@@ -1132,8 +1143,31 @@ ScreenId ScreenSessionManager::GenerateSmsScreenId(ScreenId rsScreenId)
     screenIdManager_.UpdateScreenId(rsScreenId, rsScreenId);
     return rsScreenId;
 }
+ void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason)
+{
+ 	if (screenEvent == ScreenEvent::DISCONNECTED) {
+ 	    auto screenSession = GetScreenSessionByRsId(screenId);
+ 	    if (screenSession != nullptr && screenSession->GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
+ 	        OnScreenChangeInner(screenId, screenEvent, reason);
+ 	        return;
+ 	    }
+ 	}
+ 	if (!IsDefaultMirrorMode(screenId)) {
+ 	    OnScreenChangeInner(screenId, screenEvent, reason);
+ 	    return;
+ 	}
+ 	auto task = [=] {
+ 	    screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_DEFAULT;
+ 	    OnScreenChangeInner(screenId, screenEvent, reason);
+        if (screenConnectTaskStage_ == SCREEN_CONNECT_STAGE_DEFAULT) {
+            TLOGNFW(WmsLogTag::DMS, "Screen connect task is interrupted");
+            screenConnectTaskGroup_->FinishTask();
+        }
+    };
+ 	screenConnectTaskGroup_->AddTask(task);
+}
 
-void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason)
+void ScreenSessionManager::OnScreenChangeInner(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason)
 {
     if (reason == ScreenChangeReason::HWCDEAD && screenEvent == ScreenEvent::DISCONNECTED) {
         TLOGNFW(WmsLogTag::DMS, "composer dead, ignore");
@@ -1459,6 +1493,7 @@ bool ScreenSessionManager::RecoverRestoredMultiScreenMode(sptr<ScreenSession> sc
     }
     auto info = multiScreenInfoMap[serialNumber];
     if (info.outerOnly) {
+        screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_TWO;
         SetIsOuterOnlyMode(true);
         RecoverScreenActiveMode(info.secondaryScreenOption.screenId_);
         MultiScreenModeChange(SCREEN_ID_OUTER_ONLY, SCREEN_ID_OUTER_ONLY, "off");
@@ -1481,6 +1516,7 @@ bool ScreenSessionManager::RecoverRestoredMultiScreenMode(sptr<ScreenSession> sc
         RecoverScreenActiveMode(info.secondaryScreenOption.screenId_);
     }
     if (info.multiScreenMode == MultiScreenMode::SCREEN_MIRROR) {
+        screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_TWO;
         SetMultiScreenMode(info.mainScreenOption.screenId_, info.secondaryScreenOption.screenId_, info.multiScreenMode);
         TLOGNFW(WmsLogTag::DMS, "mirror, return befor OnScreenConnectionChanged");
         ReportHandleScreenEvent(ScreenEvent::CONNECTED, ScreenCombination::SCREEN_MIRROR);
@@ -1746,6 +1782,7 @@ void ScreenSessionManager::NotifyUserClientProxy(sptr<ScreenSession> screenSessi
 void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSession,
     ScreenId screenId, ScreenEvent screenEvent)
 {
+    screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_ONE;
     InitRotationCorrectionMap(DISPLAYMODE_CORRECTION);
     screenSession->SetRotationCorrectionMap(rotationCorrectionMap_);
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
@@ -1876,6 +1913,7 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
             }
             if (clientProxy) {
                 TLOGNFI(WmsLogTag::DMS, "disconnect screen: %{public}" PRIu64 "userId: %{public}d", displayId, it.first);
+                screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_ONE;
                 clientProxy->OnScreenConnectionChanged(GetSessionOption(screenSession, displayId),
                     ScreenEvent::DISCONNECTED);
             }
@@ -1883,6 +1921,7 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
     } else {
         auto clientProxy = GetClientProxy();
         if (clientProxy) {
+            screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_ONE;
             clientProxy->OnScreenConnectionChanged(GetSessionOption(screenSession, screenId),
                 ScreenEvent::DISCONNECTED);
         }
@@ -13360,6 +13399,10 @@ sptr<ScreenSession> ScreenSessionManager::GetPhysicalScreenSession(ScreenId scre
 
 void ScreenSessionManager::NotifyExtendScreenCreateFinish()
 {
+    screenConnectTaskStage_ --;
+    if (screenConnectTaskStage_ == SCREEN_CONNECT_FINISH) {
+        screenConnectTaskGroup_->FinishTask();
+    }
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
         return;
@@ -13456,6 +13499,10 @@ void ScreenSessionManager::NotifyCreatedScreen(sptr<ScreenSession> screenSession
 
 void ScreenSessionManager::NotifyExtendScreenDestroyFinish()
 {
+    screenConnectTaskStage_ --;
+    if (screenConnectTaskStage_ == SCREEN_CONNECT_FINISH) {
+        screenConnectTaskGroup_->FinishTask();
+    }
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
         return;
