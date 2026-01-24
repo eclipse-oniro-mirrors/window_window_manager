@@ -1961,6 +1961,39 @@ HWTEST_F(WindowManagerTest, UnregisterVisibilityStateChangedListener, Function |
 }
 
 /**
+ * @tc.name: NotifyWindowVisibilityStateChanged
+ * @tc.desc: NotifyWindowVisibilityStateChanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, NotifyWindowVisibilityStateChanged, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, instance_);
+    instance_->pImpl_->windowVisibilityStateListeners_.clear();
+
+    auto listener = sptr<TestInterestWindowIdsListener>::MakeSptr();
+    ASSERT_NE(nullptr, listener);
+    listener->AddInterestInfo(WindowInfoKey::WINDOW_ID);
+    listener->AddInterestInfo(WindowInfoKey::VISIBILITY_STATE);
+    instance_->pImpl_->windowVisibilityStateListeners_.push_back(listener);
+
+    std::vector<sptr<WindowVisibilityInfo>> windowVisibilityInfos;
+    sptr<WindowVisibilityInfo> info = sptr<WindowVisibilityInfo>::MakeSptr();
+    info->windowId_ = 10;
+    info->visibilityState_ = WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION;
+    windowVisibilityInfos.push_back(info);
+
+    instance_->pImpl_->NotifyWindowVisibilityStateChanged(windowVisibilityInfos);
+
+    ASSERT_EQ(static_cast<size_t>(1), listener->received_.size());
+    const auto& windowChangeInfo = listener->received_.front();
+    EXPECT_EQ(static_cast<size_t>(1), windowChangeInfo.count(WindowInfoKey::WINDOW_ID));
+    EXPECT_EQ(static_cast<uint32_t>(10), std::get<uint32_t>(windowChangeInfo.at(WindowInfoKey::WINDOW_ID)));
+    EXPECT_EQ(static_cast<size_t>(1), windowChangeInfo.count(WindowInfoKey::VISIBILITY_STATE));
+    EXPECT_EQ(WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION,
+        std::get<WindowVisibilityState>(windowChangeInfo.at(WindowInfoKey::VISIBILITY_STATE)));
+}
+
+/**
  * @tc.name: RegisterDisplayIdChangedListener
  * @tc.desc: check RegisterDisplayIdChangedListener
  * @tc.type: FUNC
