@@ -317,6 +317,7 @@ void SensorFoldStateMgr::HandleTentChange(const SensorStatus& sensorStatus)
     SetTentMode(tentSensor.tentType_);
     if (tentSensor.tentType_ == TENT_MODE_ON) {
         ReportTentStatusChange(ReportTentModeStatus::NORMAL_ENTER_TENT_MODE);
+        currentFoldStatus_ = {FoldStatus::FOLDED};
         HandleSensorChange(FoldStatus::FOLDED);
         FoldScreenBasePolicy::GetInstance().ChangeOnTentMode(FoldStatus::FOLDED);
         SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
