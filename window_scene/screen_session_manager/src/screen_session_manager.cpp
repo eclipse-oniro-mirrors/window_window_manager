@@ -1143,7 +1143,7 @@ ScreenId ScreenSessionManager::GenerateSmsScreenId(ScreenId rsScreenId)
  	        return;
  	    }
  	}
- 	if (IsDefaultMirrorMode(screenId)) {
+ 	if (!IsDefaultMirrorMode(screenId)) {
  	    OnScreenChangeInner(screenId, screenEvent, reason);
  	    return;
  	}
