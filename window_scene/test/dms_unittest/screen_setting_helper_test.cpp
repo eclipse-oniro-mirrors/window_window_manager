@@ -113,8 +113,10 @@ namespace {
         auto func = [] (const std::string&) {
             TLOGI(WmsLogTag::DMS, "UT test");
         };
+        ScreenSettingHelper::offScreenRenderObserver_ = new SettingObserver();
         ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
         ScreenSettingHelper::offScreenRenderObserver_ = nullptr;
+        ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
         ASSERT_EQ(ScreenSettingHelper::offScreenRenderObserver_, nullptr);
     }
  
@@ -128,8 +130,10 @@ namespace {
         auto func = [] (const std::string&) {
             TLOGI(WmsLogTag::DMS, "UT test");
         };
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
         ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
         ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
+        ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
         ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
     }
  
@@ -140,9 +144,10 @@ namespace {
      */
     HWTEST_F(ScreenSettingHelperTest, UnRegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
     {
-        ScreenSettingHelper::dpiObserver_ = new SettingObserver;
         ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
-        ASSERT_EQ(ScreenSettingHelper::dpiObserver_, nullptr);
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
+        ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
+        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
         ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
     }
 
@@ -153,10 +158,12 @@ namespace {
      */
     HWTEST_F(ScreenSettingHelperTest, GetSettingOffScreenRenderValue, TestSize.Level1)
     {
-        bool offerRenderValue = false;
+        bool offerRenderValue_ = false;
         std::string key = "test";
-        bool ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue, key);
+        bool ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue_, key);
         ASSERT_FALSE(ret);
+        key = "off_screen_rendering_switch";
+        ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue_, key);
     }
 
     /**
