@@ -173,6 +173,7 @@ constexpr float EXTEND_SCREEN_DPI_INCREASE_STEP { 24.0f };
 constexpr float EXTEND_SCREEN_DPI_BASELINE { 160.0f };
 const bool SUPPORT_COMPATIBLE_MODE =
     (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
+static bool offScreenRenderValue_ = true;
 const std::string SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY = "off_screen_rendering_switch";
 constexpr float PHYSICAL_MASS = 1.6f;
 const std::vector<std::string> ROTATION_DEFAULT = {"0", "1", "2", "3"};
@@ -4034,8 +4035,8 @@ void ScreenSessionManager::InitExtendScreenProperty(ScreenId screenId, sptr<Scre
         return;
     }
     bool isSupportOffScreenRendering = ScreenSceneConfig::IsSupportOffScreenRendering();
-    if (!isSupportOffScreenRendering || !(SUPPORT_COMPATIBLE_MODE && g_offScreenRenderValue)) {
-        TLOGNFW(WmsLogTag::DMS, "xml or setting isSupportOffScreenRendering is fasle");
+    if (!isSupportOffScreenRendering || ! g_offScreenRenderValue) {
+        TLOGNFW(WmsLogTag::DMS, "current is not OffScreenRendering");
         return;
     }
     GetInternalWidth();
@@ -4192,7 +4193,7 @@ float ScreenSessionManager::GetOptionalDpi(const float dpi) {
 void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
     ScreenProperty& property, float& extendDensity)
 {
-    if (!SUPPORT_COMPATIBLE_MODE || g_offScreenRenderValue) {
+    if (g_offScreenRenderValue) {
         return;
     }
     std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
@@ -5566,7 +5567,7 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
             that.RegisterOffScreenRenderingSettingSwitchObserver();
             that.RegisterSettingExtendScreenIndepDpiObserver();
         }
-        if (!SUPPORT_COMPATIBLE_MODE || g_offScreenRenderValue) {
+        if (g_offScreenRenderValue) {
             that.SetExtendScreenDpi();
         } else {
             that.SetExtendScreenIndepDpi();
@@ -5693,7 +5694,7 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
     RRect previousScreenBounds = externalSession->GetScreenProperty().GetBounds();
     sptr<ScreenSession> phyScreenSession = GetPhysicalScreenSession(externalSession->GetRSScreenId());
     auto externalScreenProperty = externalSession->GetScreenProperty();
-    if (!SUPPORT_COMPATIBLE_MODE || g_offScreenRenderValue) {
+    if (g_offScreenRenderValue) {
         SetExtendScreenDpi();
         InitExtendScreenProperty(phyScreenSession->GetScreenId(), phyScreenSession,
             phyScreenSession->GetScreenProperty());
@@ -5740,7 +5741,7 @@ void ScreenSessionManager::SetDpiFromSettingData()
                 }
             }
             SetVirtualPixelRatio(defaultScreenId, dpi);
-            if (SUPPORT_COMPATIBLE_MODE && g_offScreenRenderValue) {
+            if (g_isPcDevice && g_offScreenRenderValue) {
                 SetExtendPixelRatio(dpi * g_extendScreenDpiCoef);
             }
         } else {

@@ -143,6 +143,7 @@ namespace {
         ScreenSettingHelper::dpiObserver_ = new SettingObserver;
         ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
         ASSERT_EQ(ScreenSettingHelper::dpiObserver_, nullptr);
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
     }
 
     /**

@@ -92,16 +92,6 @@ void ScreenSessionManagerTest::TearDown()
 }
 
 namespace {
-/**
- * @tc.name: ScreenSessionManager
- * @tc.desc: ScreenSessionManager test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, ScreenSessionManager, TestSize.Level1)
-{
-    auto ssm = new ScreenSessionManager();
-    ASSERT_NE(ssm, nullptr);
-}
 
 /**
  * @tc.name: CalDefaultExtendScreenDensity
@@ -110,10 +100,12 @@ HWTEST_F(ScreenSessionManagerTest, ScreenSessionManager, TestSize.Level1)
  */
 HWTEST_F(ScreenSessionManagerTest, CalDefaultExtendScreenDensity, TestSize.Level1)
 {
-    ASSERT_NE(ssm_, nullptr);
+    auto ssm = new ScreenSessionManager();
+ 	ASSERT_NE(ssm, nullptr);
+    ssm->InitExtendScreenDpiOptions();
     ScreenProperty property = ScreenProperty();
     property.screenRealPPI_ = 160.0f;
-    EXPECT_EQ(ssm_->CalDefaultExtendScreenDensity(property), 160.0f);
+    EXPECT_EQ(ssm->CalDefaultExtendScreenDensity(property), 160.0f);
 }
  
 /**
@@ -151,6 +143,8 @@ HWTEST_F(ScreenSessionManagerTest, GetOrCalExtendScreenDefaultDensity, TestSize.
  */
 HWTEST_F(ScreenSessionManagerTest, SetExtendScreenDpiFromSettingData, TestSize.Level1)
 {
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
     ASSERT_NE(ssm_, nullptr);
     ssm_->SetExtendScreenDpiFromSettingData();
     EXPECT_TRUE(g_errLog.find("screen session is null") != std::string::npos);
@@ -163,6 +157,8 @@ HWTEST_F(ScreenSessionManagerTest, SetExtendScreenDpiFromSettingData, TestSize.L
  */
 HWTEST_F(ScreenSessionManagerTest, SetExtendScreenIndepDpi, TestSize.Level1)
 {
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
     ASSERT_NE(ssm_, nullptr);
     ssm_->SetExtendScreenIndepDpi();
     EXPECT_TRUE(g_errLog.find("screen session is null") != std::string::npos);

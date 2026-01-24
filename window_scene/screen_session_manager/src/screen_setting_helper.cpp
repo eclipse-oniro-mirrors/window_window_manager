@@ -861,8 +861,9 @@ void ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver()
     ErrCode ret = extendScreenProvider.UnregisterObserver(extendScreenIndepDpiObserver_);
     if (ret != ERR_OK) {
         TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+    } else {
+        extendScreenIndepDpiObserver_ = nullptr;
     }
-    extendScreenIndepDpiObserver_ = nullptr;
 }
 
 bool ScreenSettingHelper::GetSettingExtendScreenDpi(float& coef, const std::string& key)
