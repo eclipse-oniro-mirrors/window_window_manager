@@ -874,6 +874,10 @@ void SceneSessionManager::ConfigWindowSceneXml(const WindowSceneConfig::ConfigIt
     if (item.IsBool()) {
         singleHandModeEnable_ = item.boolValue_;
     }
+    item = config["singleHandBackgroundLayout"];
+    if (item.IsMap()) {
+        ConfigSingleHandBackgroundLayout(item);
+    }
 }
 
 void SceneSessionManager::ConfigWindowImmersive(const WindowSceneConfig::ConfigItem& immersiveConfig)
@@ -1565,6 +1569,76 @@ void SceneSessionManager::ConfigSingleHandCompatibleMode(const WindowSceneConfig
     if (item.IsFloats() && item.floatsValue_->size() == 1) {
         config.widthChangeRatio = (*item.floatsValue_)[0];
     }
+}
+
+void SceneSessionManager::ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
+    SingleHandBackgroundTextConfig& textConfig)
+{
+    if (configItem.IsMap()) {
+        auto item = configItem["posX"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.posX = (*item.intsValue_)[0];
+        }
+        item = configItem["posY"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.posY = (*item.intsValue_)[0];
+        }
+        item = configItem["width"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.width = (*item.intsValue_)[0];
+        }
+        item = configItem["height"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.height = (*item.intsValue_)[0];
+        }
+        item = configItem["fontSize"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.fontSize = (*item.intsValue_)[0];
+        }
+        item = configItem["minFontSize"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.minFontSize = (*item.intsValue_)[0];
+        }
+        item = configItem["maxLines"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.maxLines = (*item.intsValue_)[0];
+        }
+        item = configItem["maxFontScale"];
+        if (item.IsString()) {
+            textConfig.maxFontScale = item.stringValue_;
+        }
+    }
+}
+
+void SceneSessionManager::ConfigSingleHandBackgroundLayout(const WindowSceneConfig::ConfigItem& configItem)
+{
+    auto& config = singleHandBackgroundLayoutConfig_;
+    auto item = configItem.GetProp("enable");
+    if (item.IsBool()) {
+        config.isCustomLayout = item.boolValue_;
+    }
+    item = configItem["singleHandBackgroundSettingButton"];
+    if (item.IsMap()) {
+        auto itemPosX = item["posX"];
+        if (itemPosX.IsInts() && itemPosX.intsValue_->size() == 1) {
+            config.settingButtonRect.posX_ = (*itemPosX.intsValue_)[0];
+        }
+        auto itemPosY = item["posY"];
+        if (itemPosY.IsInts() && itemPosY.intsValue_->size() == 1) {
+            config.settingButtonRect.posY_ = (*itemPosY.intsValue_)[0];
+        }
+        auto itemWidth = item["width"];
+        if (itemWidth.IsInts() && itemWidth.intsValue_->size() == 1) {
+            config.settingButtonRect.width_ = (*itemWidth.intsValue_)[0];
+        }
+        auto itemHeight = item["height"];
+        if (itemHeight.IsInts() && itemHeight.intsValue_->size() == 1) {
+            config.settingButtonRect.height_ = (*itemHeight.intsValue_)[0];
+        }
+    }
+    ConfigSingleHandBackgroundText(configItem["singleHandBackgroundTitle"], config.title);
+    ConfigSingleHandBackgroundText(configItem["singleHandBackgroundContent"], config.content);
+    ConfigSingleHandBackgroundText(configItem["singleHandBackgroundIssueText"], config.issueText);
 }
 
 void SceneSessionManager::ConfigAppsWithDeduplicatedWindowStatus()
@@ -9380,6 +9454,11 @@ const SingleHandCompatibleModeConfig& SceneSessionManager::GetSingleHandCompatib
 bool SceneSessionManager::GetSingleHandModeEnable() const
 {
     return singleHandModeEnable_;
+}
+
+const SingleHandBackgroundLayoutConfig& SceneSessionManager::GetSingleHandBackgroundLayoutConfig() const
+{
+    return singleHandBackgroundLayoutConfig_;
 }
 
 #ifdef SECURITY_COMPONENT_MANAGER_ENABLE
