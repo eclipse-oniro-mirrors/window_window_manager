@@ -8930,7 +8930,8 @@ void SceneSession::NotifyClientToUpdateAvoidArea()
         return;
     }
     // flush avoid areas on (avoid area dirty && (normal session rect NOT dirty || avoid session))
-    if (specificCallback_->onUpdateAvoidArea_) {
+    // DirtyWindow already updated avoid area in OnBoundsChanged
+    if ((IsImmersiveType() || !IsDirtyWindow()) && specificCallback_->onUpdateAvoidArea_) {
         specificCallback_->onUpdateAvoidArea_(GetPersistentId());
     }
 }
