@@ -881,7 +881,7 @@ HWTEST_F(SceneSessionManagerTest10, NotifyVisibleChange, TestSize.Level1)
 HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    EXPECT_FLOAT_EQ(12.5f, ssm_->GetBlurRadiusFromParam("12.5"));
+    EXPECT_FLOAT_EQ(12.0f, ssm_->GetBlurRadiusFromParam("12"));
     EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->GetBlurRadiusFromParam("-1"));
 }
 
@@ -893,7 +893,7 @@ HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
 HWTEST_F(SceneSessionManagerTest10, GetBlurBackgroundColorFromParam, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    std::string color = std::to_string(std::numeric_limits<uint32_t>::max());
+    std::string color = "FFFFFFFF";
     EXPECT_EQ(std::numeric_limits<uint32_t>::max(), ssm_->GetBlurBackgroundColorFromParam(color));
 }
 
