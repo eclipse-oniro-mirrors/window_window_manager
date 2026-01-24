@@ -104,6 +104,86 @@ namespace {
     }
 
     /**
+     * @tc.name: RegisterSettingOffScreenRenderObserver
+     * @tc.desc: RegisterSettingOffScreenRenderObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingOffScreenRenderObserver, TestSize.Level1)
+    {
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::offScreenRenderObserver_ = new SettingObserver();
+        ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
+        ScreenSettingHelper::offScreenRenderObserver_ = nullptr;
+        ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::offScreenRenderObserver_, nullptr);
+    }
+ 
+    /**
+     * @tc.name: RegisterSettingExtendScreenIndepDpiObserver
+     * @tc.desc: RegisterSettingExtendScreenIndepDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
+    {
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
+        ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
+        ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
+    }
+ 
+    /**
+     * @tc.name: UnRegisterSettingExtendScreenIndepDpiObserver
+     * @tc.desc: UnRegisterSettingExtendScreenIndepDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnRegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
+    {
+        ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
+        ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
+        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
+    }
+
+    /**
+     * @tc.name: GetSettingOffScreenRenderValue
+     * @tc.desc: GetSettingOffScreenRenderValue
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetSettingOffScreenRenderValue, TestSize.Level1)
+    {
+        bool offerRenderValue = false;
+        std::string key = "test";
+        bool ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue, key);
+        ASSERT_FALSE(ret);
+        key = "off_screen_rendering_switch";
+        ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue, key);
+    }
+
+    /**
+     * @tc.name: GetDpiMode
+     * @tc.desc: Test GetDpiMode
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetDpiModeTest, Function | SmallTest | Level3)
+    {
+        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+        std::string value = "";
+        std::string key = "user_set_indep_dpi_extend";
+        bool ret = screenSettingHelper.SetSettingValue(key, value);
+        ASSERT_FALSE(ret);
+ 
+        std::map<std::string, std::string> dpiMap = screenSettingHelper.GetDpiMode(key);
+        ASSERT_TRUE(dpiMap.empty());
+    }
+
+    /**
      * @tc.name: GetSettingDpi01
      * @tc.desc: GetSettingDpi01
      * @tc.type: FUNC
