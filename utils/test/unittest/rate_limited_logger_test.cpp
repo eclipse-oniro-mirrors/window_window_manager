@@ -126,11 +126,11 @@ HWTEST_F(RateLimitedLoggerTest, ShouldHandleLargeMaxCount, TestSize.Level1)
 }
 
 /**
- * @tc.name: ShouldHandleSpecialCharactersInFunctionAddress
+ * @tc.name: ShouldHandleDifferentFunctionAddresses
  * @tc.desc: Should handle function addresses with different line
  * @tc.type: FUNC
  */
-HWTEST_F(RateLimitedLoggerTest, ShouldHandleSpecialCharactersInFunctionAddress, TestSize.Level1)
+HWTEST_F(RateLimitedLoggerTest, ShouldHandleDifferentFunctionAddresses, TestSize.Level1)
 {
     // Given - Function addresses with different line
     std::uintptr_t functionAddress1 = 1234567890UL;
