@@ -225,6 +225,8 @@
             OHOS::Rosen::SceneSession::HasExtensionTokenInfoWithTokenID*;
             OHOS::Rosen::SceneSession::AnimateTo*;
             OHOS::Rosen::SceneSession::SceneSession*;
+            OHOS::Rosen::SceneSession::RegisterGetAppUseControlDisplayMapFunc*;
+            OHOS::Rosen::SceneSession::NotifyRemoveAppLockSnapshot*;
             OHOS::Rosen::SessionUtils::SetMoveResampleEnabled*;
             OHOS::Rosen::SystemSession::SystemSession*;
             OHOS::Rosen::KeyboardSession::KeyboardSession*;
