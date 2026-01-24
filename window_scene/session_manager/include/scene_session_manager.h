@@ -669,6 +669,7 @@ public:
         uint64_t screenId, const std::vector<std::string>& privacyWindowTags, bool enable) override;
     WMError NotifyBrightnessModeChange(const std::string& brightnessMode);
     void NotifyOnAttachToFrameNode(const sptr<Session>& session);
+    bool IsNeedNotifyScreenshotEvent(const sptr<SceneSession>& sceneSession);
     WMError NotifyScreenshotEvent(ScreenshotEventType type) override;
     WMError UpdateSessionScreenshotAppEventListener(int32_t persistentId, bool haveListener);
     WMError AddSessionBlackList(const std::unordered_set<std::string>& bundleNames,
