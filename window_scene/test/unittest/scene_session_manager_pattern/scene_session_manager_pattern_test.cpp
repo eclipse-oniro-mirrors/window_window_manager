@@ -39,9 +39,8 @@ public:
 
     static sptr<SceneSessionManager> ssm_;
 
-
 private:
-    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
+    static constexpr uint32_t waitSyncInNs = 200000;
 };
 
 sptr<SceneSessionManager> SceneSessionManagerPatternTest::ssm_ = nullptr;
@@ -60,13 +59,12 @@ void SceneSessionManagerPatternTest::TearDownTestCase()
 void SceneSessionManagerPatternTest::SetUp()
 {
     ssm_->sceneSessionMap_.clear();
-
 }
 
 void SceneSessionManagerPatternTest::TearDown()
 {
     ssm_->sceneSessionMap_.clear();
-    usleep(WAIT_SYNC_IN_NS);
+    usleep(waitSyncInNs);
 }
 
 namespace {
