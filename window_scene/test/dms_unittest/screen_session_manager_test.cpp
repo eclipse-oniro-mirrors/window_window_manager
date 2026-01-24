@@ -752,7 +752,7 @@ HWTEST_F(ScreenSessionManagerTest, ScreenChange, TestSize.Level1)
     screenEvent = ScreenEvent::DISCONNECTED;
     ssm_->OnVirtualScreenChange(DEFAULT_SCREEN_ID, screenEvent);
     ssm_->OnVirtualScreenChange(VIRTUAL_SCREEN_ID, screenEvent);
-    ssm_->OnScreenChangeInner(VIRTUAL_SCREEN_ID, screenEvent);
+    ssm_->OnScreenChangeInner(DEFAULT_SCREEN_ID, screenEvent);
     ssm_->OnScreenChangeInner(VIRTUAL_SCREEN_ID, screenEvent);
     EXPECT_TRUE(1);
 }
