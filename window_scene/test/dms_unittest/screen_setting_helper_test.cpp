@@ -1066,6 +1066,302 @@ namespace {
         ASSERT_TRUE(value);
     }
 
+/**
+ * @tc.name: ConvertStringToFoldDisplayModeSafely
+ * @tc.desc: Test ConvertStringToFoldDisplayModeSafely func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, ConvertStringToFoldDisplayModeSafely, TestSize.Level1)
+{
+    const std::string str0 = "0";
+    const std::string str1 = "1";
+    const std::string str2 = "2";
+    const std::string str3 = "3";
+    const std::string str4 = "4";
+    const std::string str5 = "5";
+    const std::string str8 = "8";
+
+    auto foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str0);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::UNKNOWN);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str1);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::FULL);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str2);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::MAIN);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str3);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::SUB);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str4);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::COORDINATION);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str5);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::GLOBAL_FULL);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str8);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::UNKNOWN);
+}
+
+/**
+ * @tc.name: RegisterRotationCorrectionWhiteListObserver
+ * @tc.desc: Test RegisterRotationCorrectionWhiteListObserver func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, RegisterRotationCorrectionWhiteListObserver, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto func = [] (const std::string&) {
+        TLOGI(WmsLogTag::DMS, "UT test");
+    };
+    ScreenSettingHelper::correctionWhiteListObserver_ = nullptr;
+    ScreenSettingHelper::RegisterRotationCorrectionWhiteListObserver(func);
+    EXPECT_FALSE(g_errLog.find("observer is registered") != std::string::npos);
+
+    auto func1 = [] (const std::string&) {
+        TLOGI(WmsLogTag::DMS, "UT test");
+    };
+    ScreenSettingHelper::correctionWhiteListObserver_ = sptr<SettingObserver>::MakeSptr();
+    ScreenSettingHelper::RegisterRotationCorrectionWhiteListObserver(func1);
+    EXPECT_TRUE(g_errLog.find("observer is registered") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    ScreenSettingHelper::correctionWhiteListObserver_ = nullptr;
+}
+
+/**
+ * @tc.name: UnregisterRotationCorrectionWhiteListObserver
+ * @tc.desc: UnregisterRotationCorrectionWhiteListObserver
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, UnregisterRotationCorrectionWhiteListObserver, TestSize.Level1)
+{
+    ScreenSettingHelper::correctionWhiteListObserver_ = sptr<SettingObserver>::MakeSptr();
+    ScreenSettingHelper::UnregisterRotationCorrectionWhiteListObserver();
+    ASSERT_EQ(ScreenSettingHelper::correctionWhiteListObserver_, nullptr);
+
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenSettingHelper::correctionWhiteListObserver_ = nullptr;
+    ScreenSettingHelper::UnregisterRotationCorrectionWhiteListObserver();
+    EXPECT_TRUE(g_errLog.find("observer is nullptr") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetRotationCorrectionWhiteList
+ * @tc.desc: Test GetRotationCorrectionWhiteList func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetRotationCorrectionWhiteList, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> appConfigs;
+    auto ret = screenSettingHelper.GetRotationCorrectionWhiteList(appConfigs);
+    EXPECT_TRUE(g_errLog.find("failed") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    ret = screenSettingHelper.GetRotationCorrectionWhiteList(appConfigs, "testKey");
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: GetCorrectionWhiteListFromJson01
+ * @tc.desc: Test json is not array
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetCorrectionWhiteListFromJson01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+    std::string json_str = "aa";
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> appConfigs;
+    screenSettingHelper.GetCorrectionWhiteListFromJson(json_str, appConfigs);
+    EXPECT_TRUE(g_errLog.find("parse json failed") != std::string::npos);
+    g_errLog.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetCorrectionWhiteListFromJson02
+ * @tc.desc: Test json is array
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetCorrectionWhiteListFromJson02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetCorrectionWhiteListFromJson2 start";
+    ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+    std::string json_str = R"({
+        "com.test.app1": {
+            "name": "teststr",
+            "useLogicCamera": {
+                "1": 1,
+                "2": 0
+            },
+            "customLogicDirection": {
+                "1": 1,
+                "2": 2
+            }
+        },
+        "com.test.app2": {
+            "name": "",
+            "useLogicCamera": {
+                "1": 1,
+                "2": 0
+            },
+            "customLogicDirection": {
+                "1": 1,
+                "2": 2
+            }
+        }
+    })";
+
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> appConfigs;
+    screenSettingHelper.GetCorrectionWhiteListFromJson(json_str, appConfigs);
+    EXPECT_EQ(1, appConfigs.size());
+    GTEST_LOG_(INFO) << "GetCorrectionWhiteListFromJson2 end";
+}
+
+/**
+ * @tc.name: GetWhiteConfigFromJson
+ * @tc.desc: Test GetWhiteConfigFromJson
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetWhiteConfigFromJson, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetWhiteConfigFromJson start";
+    RotationCorrectionWhiteConfig appConfigs;
+    std::string appName;
+    using JSON = nlohmann::json;
+
+    // Case1: json is not object or null
+    const std::string json_null_str = "";
+    const std::string json_not_object_str = "aa";
+    JSON nullStrJson = JSON::parse(json_null_str, nullptr, false);
+    JSON notObjectStrJson = JSON::parse(json_not_object_str, nullptr, false);
+    bool ret = ScreenSettingHelper::GetWhiteConfigFromJson(nullStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(notObjectStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case2: json not contain name fileds
+    const std::string json_no_name_str = R"({
+        "useLogicCamera": {
+            "1": 1
+        }
+    })";
+    JSON noNameStrJson = JSON::parse(json_no_name_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(noNameStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case3: name fileds is not string
+    const std::string json_name_is_not_string_str = R"({
+        "name": true,
+        "useLogicCamera": {
+            "1": 1
+        }
+    })";
+    JSON nameIsNotStringStrJson = JSON::parse(json_name_is_not_string_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(nameIsNotStringStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case4: name is empty
+    const std::string json_name_is_empty_str = R"({
+        "name": "",
+        "useLogicCamera": {
+            "1": 1
+        }
+    })";
+    JSON nameIsEmptyStrJson = JSON::parse(json_name_is_empty_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(nameIsEmptyStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case5: not contain useLogicCamera and customLogicDirection
+    const std::string json_only_name_str = R"({
+        "name": "app1"
+    })";
+    JSON onlyNameStrJson = JSON::parse(json_only_name_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(onlyNameStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, true);
+
+    // Case6: contains useLogicCamera and customLogicDirection
+    std::string json_str = R"({
+        "name": "app1",
+        "useLogicCamera": {
+            "1": 1
+        },
+        "customLogicDirection": {
+            "1": 1
+        }
+    })";
+    JSON strJson = JSON::parse(json_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(strJson, appConfigs, appName);
+    EXPECT_EQ(ret, true);
+
+    // Case7: useLogicCamera is not object
+    std::string json_not_object_2_str = R"({
+        "name": "app1",
+        "useLogicCamera": 1,
+        "customLogicDirection": {
+            "1": 1
+        }
+    })";
+    JSON notObject2StrJson = JSON::parse(json_not_object_2_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(notObject2StrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case8: customLogicDirection is not object
+    std::string json_not_object_3_str = R"({
+        "name": "app1",
+        "useLogicCamera": {
+            "1": 1
+        },
+        "customLogicDirection": 1
+    })";
+    JSON notObject3StrJson = JSON::parse(json_not_object_3_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(notObject3StrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+    GTEST_LOG_(INFO) << "GetWhiteConfigFromJson end";
+}
+
+/**
+ * @tc.name: ParseJsonObjectToEnumMap
+ * @tc.desc: Test ParseJsonObjectToEnumMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest | Level3)
+{
+    GTEST_LOG_(INFO) << "ParseJsonObjectToEnumMap start";
+    std::unordered_map<FoldDisplayMode, int32_t> resultMap;
+    std::string appName;
+    using JSON = nlohmann::json;
+
+    // Case1: json is not object or null
+    const std::string json_null_str = "";
+    const std::string json_not_object_str = "aa";
+    JSON nullStrJson = JSON::parse(json_null_str, nullptr, false);
+    JSON notObjectStrJson = JSON::parse(json_not_object_str, nullptr, false);
+    bool ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(nullStrJson, resultMap);
+    EXPECT_EQ(ret, false);
+    ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(notObjectStrJson, resultMap);
+    EXPECT_EQ(ret, false);
+
+    // Case2: value is not integer
+    std::string json_value_isNot_int_str = R"({
+        "1": 1,
+        "2": "test"
+    })";
+    JSON valueIsNotIntStrJson = JSON::parse(json_value_isNot_int_str, nullptr, false);
+    ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(valueIsNotIntStrJson, resultMap);
+    EXPECT_EQ(ret, false);
+
+    // Case3: value is integer
+    std::string json_value_is_int_str = R"({
+        "1": 1,
+        "2": 2
+    })";
+    JSON valueIsIntStrJson = JSON::parse(json_value_is_int_str, nullptr, false);
+    ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(valueIsIntStrJson, resultMap);
+    EXPECT_EQ(ret, true);
+    GTEST_LOG_(INFO) << "ParseJsonObjectToEnumMap end";
+}
+
     /**
      * @tc.name: RegisterSettingResolutionEffectObserver
      * @tc.desc: RegisterSettingResolutionEffectObserver

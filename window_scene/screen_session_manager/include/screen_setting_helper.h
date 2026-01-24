@@ -115,6 +115,18 @@ public:
         }
         return false;
     }
+    static void RegisterRotationCorrectionWhiteListObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterRotationCorrectionWhiteListObserver();
+    static bool GetRotationCorrectionWhiteList(
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs,
+        const std::string& key = SETTING_ROTATION_CORRECT_KEY);
+    static void GetCorrectionWhiteListFromJson(const std::string& whiteListJsonStr,
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs);
+    static bool GetWhiteConfigFromJson(const nlohmann::json& j,
+        RotationCorrectionWhiteConfig& config, std::string& appName);
+    static bool ParseJsonObjectToEnumMap(const nlohmann::json& j,
+        std::unordered_map<FoldDisplayMode, int32_t>& resultMap);
+    static FoldDisplayMode ConvertStringToFoldDisplayModeSafely(const std::string& str);
 private:
     static const constexpr char* SETTING_DPI_KEY {"user_set_dpi_value"};
     static const constexpr char* SETTING_CAST_KEY {"huaweicast.data.privacy_projection_state"};
@@ -125,6 +137,7 @@ private:
     static const constexpr char* SETTING_DURING_CALL_KEY {"during_call_state"};
     static const constexpr char* SETTING_RESOLUTION_EFFECT_KEY {"user_set_resolution_effect_select"};
     static const constexpr char* SETTING_COMPATIBLE_APP_STRATEGY_KEY {"COMPATIBLE_APP_STRATEGY"};
+    static const constexpr char* SETTING_ROTATION_CORRECT_KEY {"APP_LOGICAL_DEVICE_CONFIGURATION"};
     static const constexpr char* SETTING_SCREEN_RESOLUTION_MODE_KEY {"user_set_resolution_mode"};
     static const constexpr char* SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY {"bordering_area_percent"};
     static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"settings.display.dual_display_ready"};
@@ -137,6 +150,7 @@ private:
     static sptr<SettingObserver> duringCallStateObserver_;
     static sptr<SettingObserver> resolutionEffectObserver_;
     static sptr<SettingObserver> correctionExemptionListObserver_;
+    static sptr<SettingObserver> correctionWhiteListObserver_;
     static sptr<SettingObserver> borderingAreaPercentObserver_;
     static sptr<SettingObserver> coordinationReadyObserver_;
 };

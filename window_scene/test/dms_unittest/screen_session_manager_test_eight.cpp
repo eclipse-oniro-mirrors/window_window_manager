@@ -36,6 +36,7 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
+const bool CORRECTION_ENABLE = system::GetIntParameter<int32_t>("const.system.sensor_correction_enable", 0) == 1;
 const int32_t CV_WAIT_SCREENOFF_MS = 1500;
 const int32_t CV_WAIT_SCREENON_MS = 300;
 const int32_t CV_WAIT_SCREENOFF_MS_MAX = 3500;
@@ -1304,6 +1305,116 @@ HWTEST_F(ScreenSessionManagerTest, GetRoundedCorner, TestSize.Level1)
     ASSERT_NE(nullptr, screenSession);
     auto ret = ssm_->GetRoundedCorner(0, radius);
     EXPECT_EQ(DMError::DM_OK, ret);
+}
+
+/**
+ * @tc.name: HandleRotationCorrectionExemption
+ * @tc.desc: HandleRotationCorrectionExemption test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleRotationCorrectionExemption, TestSize.Level1)
+{
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    const Rotation& initalRotation = Rotation::ROTATION_0;
+    displayInfo->SetRotation(initalRotation);
+
+    if (CORRECTION_ENABLE) {
+        ssm_->rotationCorrectionExemptionList_.clear();
+        ssm_->rotationCorrectionWhiteList_.clear();
+        ssm_->HandleRotationCorrectionExemption(displayInfo);
+        EXPECT_EQ(displayInfo->GetRotation(), initalRotation);
+
+        ssm_->SetFoldDisplayModeAfterRotation(FoldDisplayMode::MAIN);
+        RotationCorrectionWhiteConfig config;
+        ssm_->rotationCorrectionWhiteList_.insert(std::make_pair("test", config));
+        displayInfo->SetRotation(initalRotation);
+        ssm_->HandleRotationCorrectionExemption(displayInfo);
+        EXPECT_EQ(displayInfo->GetRotation(), initalRotation);
+
+        ssm_->SetFoldDisplayModeAfterRotation(FoldDisplayMode::UNKNOWN);
+        displayInfo->SetRotation(initalRotation);
+        ssm_->HandleRotationCorrectionExemption(displayInfo);
+        EXPECT_EQ(displayInfo->GetRotation(), initalRotation);
+    } else {
+        ssm_->HandleRotationCorrectionExemption(displayInfo);
+        EXPECT_EQ(displayInfo->GetRotation(), initalRotation);
+    }
+}
+
+/**
+ * @tc.name: GetRotationCorrectionWhiteConfigByBundleName
+ * @tc.desc: GetRotationCorrectionWhiteConfigByBundleName test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetRotationCorrectionWhiteConfigByBundleName, TestSize.Level1)
+{
+    RotationCorrectionWhiteConfig config;
+    config.useLogicCamera.insert(std::make_pair(FoldDisplayMode::MAIN, 1));
+    config.customLogicDirection.insert(std::make_pair(FoldDisplayMode::MAIN, 1));
+    const std::string& bundleName = "test_GetRotationCorrectionWhiteConfigByBundleName";
+
+    // Case1: white list is empty
+    ssm_->rotationCorrectionWhiteList_.clear();
+    RotationCorrectionWhiteConfig configTest1;
+    EXPECT_EQ(ssm_->GetRotationCorrectionWhiteConfigByBundleName(bundleName, configTest1), false);
+    EXPECT_TRUE(configTest1.useLogicCamera.empty());
+    EXPECT_TRUE(configTest1.customLogicDirection.empty());
+
+    // Case2: bundleName is not in white list
+    ssm_->rotationCorrectionWhiteList_.insert(std::make_pair(bundleName, config));
+    RotationCorrectionWhiteConfig configTest2;
+    EXPECT_EQ(ssm_->GetRotationCorrectionWhiteConfigByBundleName("testNotInWhiteList", configTest2), false);
+    EXPECT_TRUE(configTest2.useLogicCamera.empty());
+    EXPECT_TRUE(configTest2.customLogicDirection.empty());
+
+    // Case3: bundleName is in white list
+    RotationCorrectionWhiteConfig configTest3;
+    EXPECT_EQ(ssm_->GetRotationCorrectionWhiteConfigByBundleName(bundleName, configTest3), true);
+    EXPECT_FALSE(configTest3.useLogicCamera.empty());
+    EXPECT_FALSE(configTest3.customLogicDirection.empty());
+}
+
+/**
+ * @tc.name: GetCorrectionInWhiteConfigByDisplayMode
+ * @tc.desc: GetCorrectionInWhiteConfigByDisplayMode test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetCorrectionInWhiteConfigByDisplayMode, TestSize.Level1)
+{
+    RotationCorrectionWhiteConfig config;
+    config.useLogicCamera.insert(std::make_pair(FoldDisplayMode::MAIN, 1));
+    config.customLogicDirection.insert(
+        std::make_pair(FoldDisplayMode::MAIN, static_cast<int32_t>(Rotation::ROTATION_180)));
+
+    if (CORRECTION_ENABLE) {
+        // Case1: useLogicCamera is 0
+        config.useLogicCamera.insert(std::make_pair(FoldDisplayMode::FULL, 0));
+        config.customLogicDirection.insert(
+            std::make_pair(FoldDisplayMode::FULL, static_cast<int32_t>(Rotation::ROTATION_180)));
+        auto rotation = ssm_->GetCorrectionInWhiteConfigByDisplayMode(config, FoldDisplayMode::FULL);
+        EXPECT_EQ(rotation, Rotation::ROTATION_0);
+
+        // Case2: customLogicDirection is lower than Rotation::ROTATION_0
+        config.useLogicCamera.insert(std::make_pair(FoldDisplayMode::GLOBAL_FULL, 1));
+        config.customLogicDirection.insert(
+            std::make_pair(FoldDisplayMode::GLOBAL_FULL, static_cast<int32_t>(Rotation::ROTATION_0) - 1));
+        rotation = ssm_->GetCorrectionInWhiteConfigByDisplayMode(config, FoldDisplayMode::GLOBAL_FULL);
+        EXPECT_EQ(rotation, Rotation::ROTATION_0);
+
+        // Case3: customLogicDirection is bigger than Rotation::ROTATION_270
+        config.useLogicCamera.insert(std::make_pair(FoldDisplayMode::COORDINATION, 1));
+        config.customLogicDirection.insert(
+            std::make_pair(FoldDisplayMode::COORDINATION, static_cast<int32_t>(Rotation::ROTATION_270) + 1));
+        rotation = ssm_->GetCorrectionInWhiteConfigByDisplayMode(config, FoldDisplayMode::COORDINATION);
+        EXPECT_EQ(rotation, Rotation::ROTATION_0);
+
+        // Case4: Rotation::ROTATION_0 <= customLogicDirection <= Rotation::ROTATION_270
+        rotation = ssm_->GetCorrectionInWhiteConfigByDisplayMode(config, FoldDisplayMode::MAIN);
+        EXPECT_EQ(rotation, Rotation::ROTATION_180);
+    } else {
+        // Case5: CORRECTION_ENABLE is false
+        EXPECT_EQ(ssm_->GetCorrectionInWhiteConfigByDisplayMode(config, FoldDisplayMode::MAIN), Rotation::ROTATION_0);
+    }
 }
 
 /**
