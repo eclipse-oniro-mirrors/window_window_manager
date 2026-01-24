@@ -8143,7 +8143,8 @@ void JsSceneSession::ProcessRecoverWindowEffectRegister()
         return;
     }
     const char* const where = __func__;
-    session->SetRecoverWindowEffectCallback([weakThis = wptr(this), where](bool recoverCorner, bool recoverShadow) {
+    session->RegisterRecoverWindowEffectCallback([weakThis = wptr(this), where](bool recoverCorner,
+        bool recoverShadow) {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession) {
             TLOGNE(WmsLogTag::WMS_PC, "%{public}s: jsSceneSession is null", where);

@@ -3249,7 +3249,7 @@ WSError SessionProxy::RecoverWindowEffect(bool recoverCorner, bool recoverShadow
     MessageParcel reply;
     MessageOption option(MessageOption::TF_ASYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "WriteInterfaceToken failed");
+        TLOGE(WmsLogTag::WMS_PC, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (!data.WriteBool(recoverCorner)) {

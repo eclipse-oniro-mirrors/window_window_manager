@@ -503,7 +503,7 @@ public:
     WMError SetSeparationTouchEnabled(const std::vector<int32_t>& parameters) override;
     WMError LockCursor(const std::vector<int32_t>& parameters) override;
     WMError UnlockCursor(const std::vector<int32_t>& parameters) override;
-    void SetRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
+    void RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
     WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
 
     /*

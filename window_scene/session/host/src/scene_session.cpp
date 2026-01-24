@@ -10326,7 +10326,7 @@ WMError SceneSession::SetSeparationTouchEnabled(const std::vector<int32_t>& para
     return WMError::WM_OK;
 }
 
-void SceneSession::SetRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func)
+void SceneSession::RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func)
 {
     const char* const where = __func__;
     PostTask([weakThis = wptr(this), where, func = std::move(func)] {
@@ -10336,7 +10336,6 @@ void SceneSession::SetRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&
             return;
         }
         session->onRecoverWindowEffectFunc_ = std::move(func);
-        auto property = session->GetSessionProperty();
         TLOGNI(WmsLogTag::WMS_PC, "%{public}s id: %{public}d,", where, session->GetPersistentId());
     }, __func__);
 }

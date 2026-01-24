@@ -267,11 +267,11 @@ HWTEST_F(SceneSessionEventTest, RecoverWindowEffect, TestSize.Level1)
     info.bundleName_ = "RecoverWindowEffect";
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     NotifyRecoverWindowEffectFunc func;
-    session->SetRecoverWindowEffectCallback(std::move(func));
+    session->RegisterRecoverWindowEffectCallback(std::move(func));
     EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
 
     func = [](bool recoverCorner, bool recoverShadow) { return; };
-    session->SetRecoverWindowEffectCallback(std::move(func));
+    session->RegisterRecoverWindowEffectCallback(std::move(func));
     EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
     usleep(WAIT_SYNC_IN_NS);
 }
