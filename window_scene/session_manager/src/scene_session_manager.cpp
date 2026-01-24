@@ -134,6 +134,7 @@ const std::string STARTWINDOW_TYPE = "startWindowType";
 const std::string STARTWINDOW_COLOR_MODE_TYPE = "startWindowColorModeType";
 const int32_t MAX_NUMBER_OF_DISTRIBUTED_SESSIONS = 20;
 const int32_t MAX_SESSION_LIMIT_ALL_APP = 512;
+constexpr int HEX_BASE = 16;
 
 constexpr int WINDOW_NAME_MAX_WIDTH = 21;
 constexpr int DISPLAY_NAME_MAX_WIDTH = 10;
@@ -172,6 +173,7 @@ constexpr int32_t NAV_FORCE_SPLIT_MODE = 6;
 const std::string FB_PANEL_NAME = "Fb_panel";
 constexpr std::size_t MAX_APP_BOUND_TRAY_MAP_SIZE = 50;
 constexpr int32_t RS_CMD_BLOCKING_TIMEOUT_MS = 50;
+constexpr float DEFAULT_BLUR_RADIUS = 200.0f;
 
 constexpr int32_t FLUSH_WINDOW_INFO_MAX_COUNT = 3;
 constexpr int32_t FLUSH_WINDOW_INFO_DELAY_INTERVAL = 2000;
@@ -447,6 +449,7 @@ void SceneSessionManager::Init()
     LoadWindowSceneXml();
     LoadWindowParameter();
     InitPrepareTerminateConfig();
+    InitSnapshotBlurConfig();
 
     ScreenSessionManagerClient::GetInstance().RegisterDisplayChangeListener(sptr<DisplayChangeListener>::MakeSptr());
     ScreenSessionManagerClient::GetInstance().RegisterScreenConnectionChangeListener(
@@ -3279,6 +3282,8 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     sceneSession->SetSystemConfig(systemConfig);
     sceneSession->InitSnapshotCapacity();
     sceneSession->SetSnapshotScale(snapshotScale_);
+    sceneSession->SetBlurRadius(blurRadius_);
+    sceneSession->SetBlurBackgroundColor(blurBackgroundColor_);
     UpdateParentSessionForDialog(sceneSession, property);
     std::string key = sessionInfo.bundleName_ + "_" + sessionInfo.moduleName_ + "_" + sessionInfo.abilityName_ + "_" +
         std::to_string(sessionInfo.appIndex_);
@@ -19880,6 +19885,62 @@ WMError SceneSessionManager::GetJsonProfile(AppExecFwk::ProfileType profileType,
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     return WMError::WM_OK;
+}
+
+void SceneSessionManager::InitSnapshotBlurConfig()
+{
+    const std::string snapshotMaskParam =
+             system::GetParameter("const.window.appusecontrol.snapshot_mask_param", "");
+    
+    if (snapshotMaskParam.size() < 11 || snapshotMaskParam.front() != '#') {
+        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
+        blurRadius_ = DEFAULT_BLUR_RADIUS;
+        blurBackgroundColor_ = std::numeric_limits<uint32_t>::max();
+        return;
+    }
+
+    size_t bar = snapshotMaskParam.find('|');
+    if (bar == std::string::npos) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
+        blurRadius_ = DEFAULT_BLUR_RADIUS;
+        blurBackgroundColor_ = std::numeric_limits<uint32_t>::max();
+        return;
+    }
+
+    std::string blurRadiusStr = snapshotMaskParam.substr(bar + 1);
+    blurRadius_ = GetBlurRadiusFromParam(blurRadiusStr);
+
+    std::string blurBackgroundColorStr = snapshotMaskParam.substr(1, bar - 1);
+    blurBackgroundColor_ = GetBlurBackgroundColorFromParam(blurBackgroundColorStr);
+
+    TLOGI(WmsLogTag::WMS_PATTERN, "blurRadius_: %{public}f, blurBackgroundColor_: %{public}u",
+        blurRadius_, blurBackgroundColor_);
+}
+
+float SceneSessionManager::GetBlurRadiusFromParam(const std::string& blurRadiusStr) const
+{
+    for (size_t i = 0; i <= (blurRadiusStr.size() - 1); ++i) {
+        if (!SessionHelper::IsDecChar(blurRadiusStr[i])) {
+            TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurRadiusStr: %{public}s",
+                blurRadiusStr.c_str());
+            return DEFAULT_BLUR_RADIUS;  
+        }
+    }
+    float blurRadius = std::stof(blurRadiusStr);
+    return blurRadius >= 0 ? blurRadius : DEFAULT_BLUR_RADIUS;
+}
+
+uint32_t SceneSessionManager::GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const
+{
+    for (size_t i = 0; i <= (blurBackgroundColorStr.size() - 1); ++i) {
+        if (!SessionHelper::IsHexChar(blurBackgroundColorStr[i])) {
+            TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurBackgroundColorStr: %{public}s",
+                blurBackgroundColorStr.c_str());
+            return std::numeric_limits<uint32_t>::max();  
+        }
+    }
+    uint32_t blurBackgroundColor = static_cast<uint32_t>(std::stoul(blurBackgroundColorStr, nullptr, HEX_BASE));
+    return blurBackgroundColor;
 }
 
 void SceneSessionManager::RegisterMinimizeAllCallback(MinimizeAllFunc&& func){

@@ -18,6 +18,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include <parameters.h>
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/session_manager_agent_controller.h"
 #include "session_info.h"
@@ -33,6 +34,8 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
+    constexpr float DEFAULT_BLUR_RADIUS = 200.0f;
+
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
@@ -884,6 +887,30 @@ HWTEST_F(SceneSessionManagerTest10, NotifyVisibleChange, TestSize.Level1)
     ASSERT_TRUE(ssm_->NotifyVisibleChange(sceneSession->GetPersistentId()));
 
     ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());
+}
+
+/**
+ * @tc.name: GetBlurRadiusFromParam
+ * @tc.desc: test GetBlurRadiusFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    EXPECT_FLOAT_EQ(12.0f, ssm_->GetBlurRadiusFromParam("12"));
+    EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->GetBlurRadiusFromParam("-1"));
+}
+
+/**
+ * @tc.name: GetBlurBackgroundColorFromParam
+ * @tc.desc: test GetBlurBackgroundColorFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurBackgroundColorFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    std::string color = "FFFFFFFF";
+    EXPECT_EQ(std::numeric_limits<uint32_t>::max(), ssm_->GetBlurBackgroundColorFromParam(color));
 }
 
 /**

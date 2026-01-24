@@ -1887,6 +1887,9 @@ private:
         int32_t persistentId) override;
     WMError RemoveImageForRecent(int32_t persistentId) override;
     void GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts);
+    void InitSnapshotBlurConfig();
+    float GetBlurRadiusFromParam(const std::string& blurRadiusColorStr) const;
+    uint32_t GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const;
 
     RecoverState recoverState_ = RecoverState::RECOVER_END;
     OutlineParams recoverOutlineParams_;
@@ -1903,6 +1906,9 @@ private:
     std::string GetCallerSessionColorMode(const SessionInfo& sessionInfo);
     void NotifySessionScreenLockedChange(bool isScreenLocked);
     void SetBufferAvailable(sptr<SceneSession>& sceneSession);
+
+    float blurRadius_ = 0.0f;
+    uint32_t blurBackgroundColor_ = 0x00000000;
 
     /*
      * Compatible Mode
