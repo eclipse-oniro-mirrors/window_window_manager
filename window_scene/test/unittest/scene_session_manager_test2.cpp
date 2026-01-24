@@ -1790,6 +1790,196 @@ HWTEST_F(SceneSessionManagerTest2, LoadFreeMultiWindowConfigTest, TestSize.Level
 }
 
 /**
+ * @tc.name: ConfigSingleHandBackgroundLayout01
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>"
+                    "<posX>423</posX>"
+                    "<posY>35</posY>"
+                    "<width>20</width>"
+                    "<height>20</height>"
+                "</singleHandBackgroundSettingButton>"
+                "<singleHandBackgroundTitle>"
+                    "<posX>0</posX>"
+                    "<posY>29</posY>"
+                    "<width>200</width>"
+                    "<height>30</height>"
+                    "<fontSize>16</fontSize>"
+                    "<minFontSize>12</minFontSize>"
+                    "<maxLines>1</maxLines>"
+                    "<maxFontScale>default:1.15,fr:1.0</maxFontScale>"
+                "</singleHandBackgroundTitle>"
+                "<singleHandBackgroundContent>"
+                    "<posX>0</posX>"
+                    "<posY>39</posY>"
+                    "<width>300</width>"
+                    "<height>30</height>"
+                    "<fontSize>16</fontSize>"
+                    "<minFontSize>12</minFontSize>"
+                    "<maxLines>2</maxLines>"
+                    "<maxFontScale>default:1.15,es:1.0</maxFontScale>"
+                "</singleHandBackgroundContent>"
+                "<singleHandBackgroundIssueText>"
+                    "<posX>0</posX>"
+                    "<posY>31</posY>"
+                    "<width>335</width>"
+                    "<height>30</height>"
+                    "<fontSize>16</fontSize>"
+                    "<minFontSize>12</minFontSize>"
+                    "<maxLines>1</maxLines>"
+                    "<maxFontScale>default:1.0,zh-Hans:1.45</maxFontScale>"
+                "</singleHandBackgroundIssueText>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posX_, 423);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posY_, 35);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.width_, 20);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.height_, 20);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.posX, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.posY, 29);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.width, 200);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.height, 30);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.fontSize, 16);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.minFontSize, 12);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.maxLines, 1);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.maxFontScale, "default:1.15,fr:1.0");
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.posX, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.posY, 39);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.width, 300);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.height, 30);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.fontSize, 16);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.minFontSize, 12);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.maxLines, 2);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.maxFontScale, "default:1.15,es:1.0");
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.posX, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.posY, 31);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.width, 335);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.height, 30);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.fontSize, 16);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.minFontSize, 12);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxLines, 1);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxFontScale, "default:1.0,zh-Hans:1.45");
+}
+
+/**
+ * @tc.name: ConfigSingleHandBackgroundLayout02
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout02, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>"
+                    "<posX>423.1</posX>"
+                    "<posY>35.1</posY>"
+                    "<width>20.1</width>"
+                    "<height>20.1</height>"
+                "</singleHandBackgroundSettingButton>"
+                "<singleHandBackgroundTitle>20</singleHandBackgroundTitle>"
+                "<singleHandBackgroundContent>"
+                    "<posX>1.2</posX>"
+                    "<posY>39.9</posY>"
+                    "<width>300.2</width>"
+                    "<height>30.5</height>"
+                    "<fontSize>16.5</fontSize>"
+                    "<minFontSize>12.3</minFontSize>"
+                    "<maxLines>2.6</maxLines>"
+                "</singleHandBackgroundContent>"
+                "<singleHandBackgroundIssueText>"
+                    "<posX>5 5</posX>"
+                    "<posY>35 35</posY>"
+                    "<width>340 340</width>"
+                    "<height>35 35</height>"
+                    "<fontSize>20 20</fontSize>"
+                    "<minFontSize>15 15</minFontSize>"
+                    "<maxLines>3 3</maxLines>"
+                    "<maxFontScale>default:1.0,zh-Hans:1.45</maxFontScale>"
+                "</singleHandBackgroundIssueText>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posX_, 423.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posY_, 35.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.width_, 20.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.height_, 20.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.posX, 1.2);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.posY, 39.9);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.width, 300.2);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.height, 30.5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.fontSize, 16.5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.minFontSize, 12.3);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.maxLines, 2.6);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.maxFontScale, "1");
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.posX, 5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.posY, 35);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.width, 340);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.height, 35);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.fontSize, 20);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.minFontSize, 15);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxLines, 3);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxFontScale, "default:1.0,zh-Hans:1.45");
+}
+
+/**
+ * @tc.name: ConfigSingleHandBackgroundLayout03
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout03, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>"
+                    "<posX>450 450</posX>"
+                    "<posY>60 60</posY>"
+                    "<width>22 22</width>"
+                    "<height>23 23</height>"
+                "</singleHandBackgroundSettingButton>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posX_, 450);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posY_, 60);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.width_, 22);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.height_, 23);
+}
+
+/**
+ * @tc.name: ConfigSingleHandBackgroundLayout04
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout04, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>20</singleHandBackgroundSettingButton>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ssm_->GetSingleHandBackgroundLayoutConfig();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+}
+
+/**
  * @tc.name: Init
  * @tc.desc: SceneSessionManager init
  * @tc.type: FUNC

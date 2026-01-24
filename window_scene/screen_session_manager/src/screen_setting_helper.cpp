@@ -37,7 +37,9 @@ sptr<SettingObserver> ScreenSettingHelper::extendScreenIndepDpiObserver_;
 sptr<SettingObserver> ScreenSettingHelper::duringCallStateObserver_;
 sptr<SettingObserver> ScreenSettingHelper::resolutionEffectObserver_;
 sptr<SettingObserver> ScreenSettingHelper::correctionExemptionListObserver_;
+sptr<SettingObserver> ScreenSettingHelper::correctionWhiteListObserver_;
 sptr<SettingObserver> ScreenSettingHelper::borderingAreaPercentObserver_;
+sptr<SettingObserver> ScreenSettingHelper::coordinationReadyObserver_;
 constexpr int32_t PARAM_NUM_TEN = 10;
 constexpr uint32_t EXPECT_ACTIVE_MODE_SIZE = 4;
 constexpr uint32_t EXPECT_SCREEN_MODE_SIZE = 2;
@@ -73,6 +75,8 @@ constexpr int32_t EXPECT_SCREEN_RESOLUTION_EFFECT_SIZE = 2;
 constexpr int32_t INDEX_SCREEN_RESOLUTION_EFFECT_SN = 0;
 constexpr int32_t INDEX_SCREEN_RESOLUTION_EFFECT_EN = 1;
 const std::string SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY = "off_screen_rendering_switch";
+const std::string USE_LOGIC_CAMERA_STRING = "useLogicCamera";
+const std::string CUSTOM_LOGIC_DIRECTION_STRING = "customLogicDirection";
 
 void ScreenSettingHelper::RegisterSettingDpiObserver(SettingObserver::UpdateFunc func)
 {
@@ -143,6 +147,45 @@ bool ScreenSettingHelper::GetSettingDpi(uint32_t& dpi, const std::string& key)
     return GetSettingValue(dpi, key);
 }
 
+void ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(SettingObserver::UpdateFunc func)
+{
+    if (coordinationReadyObserver_) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "setting Brightness observer is registered");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(WINDOW_MANAGER_SERVICE_ID);
+    coordinationReadyObserver_ = provider.CreateObserver(SETTING_DUAL_DISPLAY_READY_KEY, func);
+    if (coordinationReadyObserver_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "create observer failed");
+        return;
+    }
+    ErrCode ret = provider.RegisterObserver(coordinationReadyObserver_);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret=%{public}d", ret);
+        coordinationReadyObserver_ = nullptr;
+    }
+}
+ 
+void ScreenSettingHelper::UnregisterSettingCoordinationReadyObserver()
+{
+    if (coordinationReadyObserver_ == nullptr) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "coordinationReadyObserver_ is nullptr");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(WINDOW_MANAGER_SERVICE_ID);
+    ErrCode ret = provider.UnregisterObserver(coordinationReadyObserver_);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret=%{public}d", ret);
+        return;
+    }
+    coordinationReadyObserver_ = nullptr;
+}
+
+bool ScreenSettingHelper::GetSettingIsCoordinationReady(bool& isCoordinationReady, const std::string& key)
+{
+    return GetSettingValue(key, isCoordinationReady);
+}
+
 bool ScreenSettingHelper::GetSettingValue(uint32_t& value, const std::string& key)
 {
     SettingProvider& settingData = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
@@ -153,6 +196,19 @@ bool ScreenSettingHelper::GetSettingValue(uint32_t& value, const std::string& ke
         return false;
     }
     value = static_cast<uint32_t>(getValue);
+    return true;
+}
+
+bool ScreenSettingHelper::GetSettingValue(const std::string& key, bool& value)
+{
+    SettingProvider& settingData = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    bool getValue;
+    ErrCode ret = settingData.GetBoolValue(key, getValue);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        return false;
+    }
+    value = getValue;
     return true;
 }
 
@@ -1100,6 +1156,143 @@ void ScreenSettingHelper::GetCorrectionExemptionListFromJson(const std::string& 
             exemptionApps.emplace_back(name);
         }
     }
+}
+
+void ScreenSettingHelper::RegisterRotationCorrectionWhiteListObserver(SettingObserver::UpdateFunc func)
+{
+    if (correctionWhiteListObserver_ != nullptr) {
+        TLOGI(WmsLogTag::DMS, "observer is registered");
+        return;
+    }
+    SettingProvider& settingProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    correctionWhiteListObserver_ = settingProvider.CreateObserver(SETTING_ROTATION_CORRECT_KEY, func);
+    if (correctionWhiteListObserver_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "create observer failed");
+        return;
+    }
+    ErrCode ret = settingProvider.RegisterObserver(correctionWhiteListObserver_);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::DMS, "failed, ret:%{public}d", ret);
+        correctionWhiteListObserver_ = nullptr;
+    }
+}
+
+void ScreenSettingHelper::UnregisterRotationCorrectionWhiteListObserver()
+{
+    if (correctionWhiteListObserver_ == nullptr) {
+        TLOGI(WmsLogTag::DMS, "observer is nullptr");
+        return;
+    }
+    SettingProvider& settingProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = settingProvider.UnregisterObserver(correctionWhiteListObserver_);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::DMS, "failed, ret:%{public}d", ret);
+    }
+    correctionWhiteListObserver_ = nullptr;
+}
+
+bool ScreenSettingHelper::GetRotationCorrectionWhiteList(
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs,
+    const std::string& key)
+{
+    appConfigs.clear();
+    std::string value = "";
+    SettingProvider& settingProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = settingProvider.GetStringValue(key, value);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        return false;
+    }
+    GetCorrectionWhiteListFromJson(value, appConfigs);
+    return true;
+}
+
+void ScreenSettingHelper::GetCorrectionWhiteListFromJson(const std::string& whiteListJsonStr,
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs)
+{
+    nlohmann::json whiteListJson = nlohmann::json::parse(whiteListJsonStr, nullptr, false);
+    if (whiteListJson.is_discarded()) {
+        TLOGE(WmsLogTag::DMS, "parse json failed");
+        return;
+    }
+    for (auto it = whiteListJson.begin(); it != whiteListJson.end(); ++it) {
+        const nlohmann::json& value = it.value();
+        RotationCorrectionWhiteConfig appConfig;
+        std::string appName;
+        if (GetWhiteConfigFromJson(value, appConfig, appName)) {
+            appConfigs.insert(std::make_pair(appName, appConfig));
+        }
+    }
+}
+
+bool ScreenSettingHelper::GetWhiteConfigFromJson(const nlohmann::json& json,
+    RotationCorrectionWhiteConfig& config, std::string& appName)
+{
+    if (json.is_null() || !json.is_object()) {
+        TLOGW(WmsLogTag::DMS, "invalid json object");
+        return false;
+    }
+
+    // get name field
+    if (!json.contains("name") || !json["name"].is_string()) {
+        TLOGW(WmsLogTag::DMS, "failed to parse app name");
+        return false;
+    }
+    appName = json["name"].get<std::string>();
+    if (appName.empty()) {
+        TLOGW(WmsLogTag::DMS, "app name is empty");
+        return false;
+    }
+    if (json.contains(USE_LOGIC_CAMERA_STRING)) {
+        if (!ParseJsonObjectToEnumMap(json[USE_LOGIC_CAMERA_STRING], config.useLogicCamera)) {
+            TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
+                USE_LOGIC_CAMERA_STRING.c_str(), appName.c_str());
+            return false;
+        }
+    }
+    if (json.contains(CUSTOM_LOGIC_DIRECTION_STRING)) {
+        if (!ParseJsonObjectToEnumMap(json[CUSTOM_LOGIC_DIRECTION_STRING], config.customLogicDirection)) {
+            TLOGW(WmsLogTag::DMS, "failed to parse %{public}s, app:%{public}s",
+                CUSTOM_LOGIC_DIRECTION_STRING.c_str(), appName.c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& json,
+    std::unordered_map<FoldDisplayMode, int32_t>& resultMap)
+{
+    resultMap.clear();
+    if (json.is_null() || !json.is_object()) {
+        return false;
+    }
+
+    bool success = true;
+    for (auto it = json.begin(); it != json.end(); ++it) {
+        const std::string& strKey = it.key();
+        const nlohmann::json& value = it.value();
+        FoldDisplayMode enumKey = ConvertStringToFoldDisplayModeSafely(strKey);
+
+        if (!value.is_number_integer()) {
+            TLOGW(WmsLogTag::DMS, "failed to parse %{public}s: value is not integer", strKey.c_str());
+            success = false;
+            continue;
+        }
+        int32_t intValue = value.get<int32_t>();
+        resultMap[enumKey] = intValue;
+    }
+    return success;
+}
+
+FoldDisplayMode ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(const std::string& str)
+{
+    auto it = STRING_TO_FOLD_DISPLAY_MODE.find(str);
+    if (it != STRING_TO_FOLD_DISPLAY_MODE.end()) {
+        return it->second;
+    }
+    TLOGW(WmsLogTag::DEFAULT, "[DMS] Unknown str: %{public}s", str.c_str());
+    return FoldDisplayMode::UNKNOWN;
 }
 // LCOV_EXCL_STOP
 } // namespace Rosen

@@ -1878,6 +1878,38 @@ WSError SceneSessionManagerLiteProxy::NotifyAppUseControlList(
     return static_cast<WSError>(reply.ReadInt32());
 }
 
+WSError SceneSessionManagerLiteProxy::NotifyAppUseControlDisplay(DisplayId displayId, bool useControl)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "in");
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    if (!data.WriteUint64(displayId)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write displayId failed");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    if (!data.WriteBool(useControl)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write useControl failed");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(
+        SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return static_cast<WSError>(reply.ReadInt32());
+}
+
 WMError SceneSessionManagerLiteProxy::MinimizeMainSession(
     const std::string& bundleName, int32_t appIndex, int32_t userId)
 {

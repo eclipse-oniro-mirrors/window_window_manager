@@ -310,6 +310,19 @@ export function makeUnique(uniqueScreen: Array<long>): Promise<Array<long>> {
     });
 }
 
+export function resizeVirtualScreen(screenId: long, width: long, height: long):
+    Promise<void> {
+    return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+        taskpool.execute((): void => {
+            resizeVirtualScreenInternal(screenId, width, height);
+        }).then(() => {
+            resolve(undefined);
+        }).catch((err: Any) => {
+            reject(err as BusinessError);
+        });
+    })
+}
+
 export function makeMirrorWithRegion(mainScreen: long, mirrorScreen: Array<long>, mainScreenRegion: Rect):
     Promise<long> {
     return new Promise<long>((resolve: (value: long) => void, reject: (error: BusinessError) => void) => {
@@ -401,6 +414,7 @@ export native function setMultiScreenModeInternal(primaryScreenId: long, seconda
     secondaryScreenMode: MultiScreenMode): void;
 export native function setScreenPrivacyMaskImageInternal(screenId: long, image?: image.PixelMap): void;
 export native function makeUniqueInternal(uniqueScreen: Array<long>): Array<long>;
+export native function resizeVirtualScreenInternal(screenId: long, width: long, height: long): void;
 export native function makeMirrorWithRegionInternal(mainScreen: long, mirrorScreen: Array<long>,
     mainScreenRegion: Rect): long;
 export native function stopMirrorInternal(mirrorScreen: Array<long>): void;

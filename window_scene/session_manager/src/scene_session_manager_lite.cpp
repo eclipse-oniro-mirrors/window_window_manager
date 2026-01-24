@@ -525,4 +525,10 @@ WMError SceneSessionManagerLite::GetParentMainWindowId(int32_t windowId, int32_t
     TLOGI(WmsLogTag::WMS_LIFE, "in");
     return SceneSessionManager::GetInstance().GetParentMainWindowId(windowId, mainWindowId);
 }
+
+WSError SceneSessionManagerLite::NotifyAppUseControlDisplay(DisplayId displayId, bool useControl)
+{
+    TLOGI(WmsLogTag::WMS_PATTERN, "in");
+    return SceneSessionManager::GetInstance().NotifyAppUseControlDisplay(displayId, useControl);
+}
 } // namespace OHOS::Rosen

@@ -487,7 +487,11 @@ public:
     void OnFoldScreenChange(sptr<ScreenSession>& screenSession);
     void OnFoldStatusChange(bool isSwitching);
     void SetCoordinationFlag(bool isCoordinationFlag);
-    bool GetCoordinationFlag(void);
+    bool GetCoordinationFlag();
+    void WaitForCoordinationReady();
+    void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady);
+    bool GetWaitingForCoordinationReady() const;
+    void NotifyCoordinationReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
     void OnScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent) override;
@@ -568,6 +572,10 @@ public:
     Rotation GetCurrentConfigCorrection();
     Rotation RemoveRotationCorrection(Rotation rotation);
     Rotation RemoveRotationCorrection(Rotation rotation, FoldDisplayMode foldDisplayMode);
+    Rotation CorrectionRotationByWhiteConfig(const RotationCorrectionWhiteConfig& config,
+        Rotation rotation, FoldDisplayMode foldDisplayMode);
+    Rotation GetCorrectionInWhiteConfigByDisplayMode(const RotationCorrectionWhiteConfig& config,
+        FoldDisplayMode displayMode);
     FoldDisplayMode GetFoldDisplayModeAfterRotation() const;
     void SetFoldDisplayModeAfterRotation(FoldDisplayMode foldDisplayMode);
     void NotifySwitchUserAnimationFinish() override;
@@ -816,6 +824,19 @@ private:
      */
     bool ActiveUser(int32_t newUserId, int32_t& oldUserId, int32_t newScbPid);
     DisplayId GetUserDisplayId(int32_t targetUserId) const;
+
+    void GetRotationCorrectionWhiteListFromDatabase();
+    bool GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
+        RotationCorrectionWhiteConfig& config);
+    void RegisterRotationCorrectionWhiteListObserver();
+    mutable std::shared_mutex rotationCorrectionWhiteMutex_;
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> rotationCorrectionWhiteList_;
+    mutable std::shared_mutex rotationCorrectionWhiteModeMutex_;
+    std::unordered_set<FoldDisplayMode> rotationCorrectionWhiteMode_;
+    bool IsRotationCorrectionWhiteListEmpty() const;
+    bool IsSupportRotationCorrectionByWhiteList(FoldDisplayMode mode) const;
+    void InitRotationCorrectionWhiteModeByWhiteList(
+        const std::unordered_map<std::string, RotationCorrectionWhiteConfig>& whiteList);
 
     void HandleSuperFoldDisplayInfoWhenKeyboardOn(const sptr<ScreenSession>& screenSession,
         sptr<DisplayInfo>& displayInfo);
@@ -1076,6 +1097,8 @@ private:
     void HandleScreenRotationAndBoundsWhenSetClient(sptr<ScreenSession>& screenSession);
     void HandleFoldDeviceScreenConnect(ScreenId screenId, const sptr<ScreenSession>& screenSession,
         bool phyMirrorEnable, ScreenEvent screenEvent);
+    void RegisterSettingCoordinationReadyObserver();
+    void UpdateCoordinationReadyFromSettingData();
 
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;
@@ -1084,6 +1107,11 @@ private:
     std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
     std::shared_mutex rotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
+    std::atomic<bool> isCoordinationReady_ = false;
+    std::mutex coordinationReadyMutex_;
+    std::condition_variable coordinationReadyCV_;
+    std::atomic<bool> isWaitingForCoordinationReady_ = false;
+    std::atomic<int32_t> waitCoordinationReadyMaxTime_ = 1500; // ms
 
     // Fold Screen duringcall
     bool duringCallState_ = false;
@@ -1130,6 +1158,11 @@ private:
     std::atomic<bool> curResolutionEffectEnable_ = false;
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     void SetOptionConfig(ScreenId screenId, VirtualScreenOption option);
+    void DoSetScreenPowerStatus(ScreenId rsScreenId, ScreenPowerStatus status);
+    void ClearScreenPowerStatus(ScreenId rsScreenId);
+
+    std::map<ScreenId, ScreenPowerStatus> screenPowerStatusMap_;
+    std::mutex screenPowerStatusMapMutex_;
     std::function<void(sptr<ScreenSession>& screenSession,
         SuperFoldStatusChangeEvents changeEvent)> propertyChangedCallback_;
     std::mutex callbackMutex_;

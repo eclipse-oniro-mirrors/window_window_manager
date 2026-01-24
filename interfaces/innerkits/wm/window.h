@@ -3881,6 +3881,16 @@ public:
     }
 
     /**
+     * @brief Clear the window mask of window.
+     *
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError ClearWindowMask()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Register keyboard panel info change listener.
      *
      * @param listener IKeyboardPanelInfoChangeListener.

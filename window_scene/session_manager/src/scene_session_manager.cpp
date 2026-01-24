@@ -134,6 +134,7 @@ const std::string STARTWINDOW_TYPE = "startWindowType";
 const std::string STARTWINDOW_COLOR_MODE_TYPE = "startWindowColorModeType";
 const int32_t MAX_NUMBER_OF_DISTRIBUTED_SESSIONS = 20;
 const int32_t MAX_SESSION_LIMIT_ALL_APP = 512;
+constexpr int HEX_BASE = 16;
 
 constexpr int WINDOW_NAME_MAX_WIDTH = 21;
 constexpr int DISPLAY_NAME_MAX_WIDTH = 10;
@@ -172,6 +173,7 @@ constexpr int32_t NAV_FORCE_SPLIT_MODE = 6;
 const std::string FB_PANEL_NAME = "Fb_panel";
 constexpr std::size_t MAX_APP_BOUND_TRAY_MAP_SIZE = 50;
 constexpr int32_t RS_CMD_BLOCKING_TIMEOUT_MS = 50;
+constexpr float DEFAULT_BLUR_RADIUS = 200.0f;
 
 constexpr int32_t FLUSH_WINDOW_INFO_MAX_COUNT = 3;
 constexpr int32_t FLUSH_WINDOW_INFO_DELAY_INTERVAL = 2000;
@@ -447,6 +449,7 @@ void SceneSessionManager::Init()
     LoadWindowSceneXml();
     LoadWindowParameter();
     InitPrepareTerminateConfig();
+    InitSnapshotBlurConfig();
 
     ScreenSessionManagerClient::GetInstance().RegisterDisplayChangeListener(sptr<DisplayChangeListener>::MakeSptr());
     ScreenSessionManagerClient::GetInstance().RegisterScreenConnectionChangeListener(
@@ -873,6 +876,10 @@ void SceneSessionManager::ConfigWindowSceneXml(const WindowSceneConfig::ConfigIt
     item = config["singleHandModeEnable"].GetProp("enable");
     if (item.IsBool()) {
         singleHandModeEnable_ = item.boolValue_;
+    }
+    item = config["singleHandBackgroundLayout"];
+    if (item.IsMap()) {
+        ConfigSingleHandBackgroundLayout(item);
     }
 }
 
@@ -1565,6 +1572,76 @@ void SceneSessionManager::ConfigSingleHandCompatibleMode(const WindowSceneConfig
     if (item.IsFloats() && item.floatsValue_->size() == 1) {
         config.widthChangeRatio = (*item.floatsValue_)[0];
     }
+}
+
+void SceneSessionManager::ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
+    SingleHandBackgroundTextConfig& textConfig)
+{
+    if (configItem.IsMap()) {
+        auto item = configItem["posX"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.posX = (*item.intsValue_)[0];
+        }
+        item = configItem["posY"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.posY = (*item.intsValue_)[0];
+        }
+        item = configItem["width"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.width = (*item.intsValue_)[0];
+        }
+        item = configItem["height"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.height = (*item.intsValue_)[0];
+        }
+        item = configItem["fontSize"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.fontSize = (*item.intsValue_)[0];
+        }
+        item = configItem["minFontSize"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.minFontSize = (*item.intsValue_)[0];
+        }
+        item = configItem["maxLines"];
+        if (item.IsInts() && item.intsValue_->size() == 1) {
+            textConfig.maxLines = (*item.intsValue_)[0];
+        }
+        item = configItem["maxFontScale"];
+        if (item.IsString()) {
+            textConfig.maxFontScale = item.stringValue_;
+        }
+    }
+}
+
+void SceneSessionManager::ConfigSingleHandBackgroundLayout(const WindowSceneConfig::ConfigItem& configItem)
+{
+    auto& config = singleHandBackgroundLayoutConfig_;
+    auto item = configItem.GetProp("enable");
+    if (item.IsBool()) {
+        config.isCustomLayout = item.boolValue_;
+    }
+    item = configItem["singleHandBackgroundSettingButton"];
+    if (item.IsMap()) {
+        auto itemPosX = item["posX"];
+        if (itemPosX.IsInts() && itemPosX.intsValue_->size() == 1) {
+            config.settingButtonRect.posX_ = (*itemPosX.intsValue_)[0];
+        }
+        auto itemPosY = item["posY"];
+        if (itemPosY.IsInts() && itemPosY.intsValue_->size() == 1) {
+            config.settingButtonRect.posY_ = (*itemPosY.intsValue_)[0];
+        }
+        auto itemWidth = item["width"];
+        if (itemWidth.IsInts() && itemWidth.intsValue_->size() == 1) {
+            config.settingButtonRect.width_ = (*itemWidth.intsValue_)[0];
+        }
+        auto itemHeight = item["height"];
+        if (itemHeight.IsInts() && itemHeight.intsValue_->size() == 1) {
+            config.settingButtonRect.height_ = (*itemHeight.intsValue_)[0];
+        }
+    }
+    ConfigSingleHandBackgroundText(configItem["singleHandBackgroundTitle"], config.title);
+    ConfigSingleHandBackgroundText(configItem["singleHandBackgroundContent"], config.content);
+    ConfigSingleHandBackgroundText(configItem["singleHandBackgroundIssueText"], config.issueText);
 }
 
 void SceneSessionManager::ConfigAppsWithDeduplicatedWindowStatus()
@@ -2782,6 +2859,9 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
             std::unordered_map<std::string, std::unordered_map<ControlAppType, ControlInfo>>& {
             return allAppUseControlMap_;
         });
+        sceneSession->RegisterGetAppUseControlDisplayMapFunc([this]() ->
+            std::unordered_map<DisplayId, bool>& { return appUseControlDisplayMap_;
+        });
         sceneSession->RegisterGetFbPanelWindowIdFunc([this](uint32_t& windowId) {
             return this->GetFbPanelWindowId(windowId);
         });
@@ -3202,6 +3282,8 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     sceneSession->SetSystemConfig(systemConfig);
     sceneSession->InitSnapshotCapacity();
     sceneSession->SetSnapshotScale(snapshotScale_);
+    sceneSession->SetBlurRadius(blurRadius_);
+    sceneSession->SetBlurBackgroundColor(blurBackgroundColor_);
     UpdateParentSessionForDialog(sceneSession, property);
     std::string key = sessionInfo.bundleName_ + "_" + sessionInfo.moduleName_ + "_" + sessionInfo.abilityName_ + "_" +
         std::to_string(sessionInfo.appIndex_);
@@ -3825,6 +3907,19 @@ void SceneSessionManager::RemoveSnapshotFromCache(int32_t persistentId)
     if (auto sceneSession = GetSceneSession(persistentId)) {
         sceneSession->ResetSnapshot();
     }
+}
+
+WSError SceneSessionManager::NotifyAppUseControlDisplay(DisplayId displayId, bool useControl)
+{
+    TLOGI(WmsLogTag::WMS_PATTERN, "displayId: %{public}" PRIu64 ", useControl: %{public}d", displayId, useControl);
+    if (!SessionPermission::IsSACalling()) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "The caller is not system-app, can not use system-api");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    taskScheduler_->PostAsyncTask([this, displayId, useControl] {
+        appUseControlDisplayMap_[displayId] = useControl;
+    }, __func__);
+    return WSError::WS_OK;
 }
 
 WSError SceneSessionManager::RegisterSaveSnapshotFunc(const sptr<SceneSession>& sceneSession)
@@ -6394,7 +6489,7 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s session is nullptr", where);
             return;
         }
-        auto sessionInfo = sceneSession->GetSessionInfo();
+        const auto& sessionInfo = sceneSession->GetSessionInfo();
         if (!SessionHelper::IsMainWindow(static_cast<WindowType>(sessionInfo.windowType_))) {
             TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s id: %{public}d is not main window",
                 where, sceneSession->GetPersistentId());
@@ -9364,6 +9459,11 @@ const SingleHandCompatibleModeConfig& SceneSessionManager::GetSingleHandCompatib
 bool SceneSessionManager::GetSingleHandModeEnable() const
 {
     return singleHandModeEnable_;
+}
+
+const SingleHandBackgroundLayoutConfig& SceneSessionManager::GetSingleHandBackgroundLayoutConfig() const
+{
+    return singleHandBackgroundLayoutConfig_;
 }
 
 #ifdef SECURITY_COMPONENT_MANAGER_ENABLE
@@ -13371,13 +13471,13 @@ WSError SceneSessionManager::NotifyStatusBarShowStatus(int32_t persistentId, boo
 
 void SceneSessionManager::UpdateAvoidAreaForLSStateChange(int32_t curState, int32_t preState)
 {
-    taskScheduler_->PostAsyncTask([this, curState, preState]() {
+    taskScheduler_->PostAsyncTask([this, curState, preState, where = __func__]() {
         if (curState == preState) {
             return;
         }
         constexpr int32_t nonLSState = 0;
         SetLSState(curState > nonLSState);
-        TLOGI(WmsLogTag::WMS_IMMS, "curState %{public}d, preState %{public}d", curState, preState);
+        TLOGI(WmsLogTag::WMS_IMMS, "%{public}s,curState %{public}d, preState %{public}d", where, curState, preState);
         std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
         {
             std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
@@ -13452,7 +13552,7 @@ WSError SceneSessionManager::NotifyNextAvoidRectInfo(AvoidAreaType type,
     const WSRect& portraitRect, const WSRect& landspaceRect, DisplayId displayId)
 {
     TLOGD(WmsLogTag::WMS_IMMS, "type %{public}d "
-        "portraitRect %{public}s, portraitRect %{public}s, displayId %{public}" PRIu64,
+        "portraitRect %{public}s, landspaceRect %{public}s, displayId %{public}" PRIu64,
         type, portraitRect.ToString().c_str(), landspaceRect.ToString().c_str(), displayId);
     std::lock_guard<std::mutex> lock(nextAvoidRectInfoMapMutex_);
     nextAvoidRectInfoMap_[type][displayId] = { portraitRect, landspaceRect };
@@ -13786,16 +13886,34 @@ void DisplayChangeListener::OnScreenshot(DisplayId displayId)
     SceneSessionManager::GetInstance().OnScreenshot(displayId);
 }
 
+bool SceneSessionManager::IsNeedNotifyScreenshotEvent(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is null");
+        return false;
+    }
+    auto state = sceneSession->GetSessionState();
+    if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
+        int32_t mainWinId = INVALID_SESSION_ID;
+        auto mainSession = sceneSession->GetMainSession();
+        if (mainSession != nullptr) {
+            state = mainSession->GetSessionState();
+            mainWinId = mainSession->GetWindowId();
+        }
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], state=%{public}u, mainWinId=%{public}d",
+            sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), state, mainWinId);
+    }
+    return state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE;
+}
+
 void SceneSessionManager::OnScreenshot(DisplayId displayId)
 {
-    taskScheduler_->PostAsyncTask([this, displayId]() {
+    taskScheduler_->PostAsyncTask([this, displayId, where = __func__]() {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (const auto& [_, sceneSession] : sceneSessionMap_) {
-            if (sceneSession == nullptr) {
-                continue;
-            }
-            auto state = sceneSession->GetSessionState();
-            if (state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE) {
+            if (IsNeedNotifyScreenshotEvent(sceneSession)) {
+                TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], display=%{public}" PRIu64,
+                    where, sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), displayId);
                 sceneSession->NotifyScreenshot();
             }
         }
@@ -13812,14 +13930,9 @@ WMError SceneSessionManager::NotifyScreenshotEvent(ScreenshotEventType type)
     taskScheduler_->PostAsyncTask([this, type, where = __func__] {
         for (auto persistentId : screenshotAppEventListenerSessionSet_) {
             auto sceneSession = GetSceneSession(persistentId);
-            if (sceneSession == nullptr) {
-                TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s win: %{public}d session is null", where, persistentId);
-                continue;
-            }
-            auto state = sceneSession->GetSessionState();
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s win: %{public}d, state: %{public}u, event: %{public}d",
-                where, sceneSession->GetPersistentId(), state, type);
-            if (state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE) {
+            if (IsNeedNotifyScreenshotEvent(sceneSession)) {
+                TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], event=%{public}d",
+                    where, persistentId, sceneSession->GetWindowName().c_str(), type);
                 sceneSession->NotifyScreenshotAppEvent(type);
             }
         }
@@ -14398,6 +14511,7 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
         sceneSession->GetPersistentId(), screenId, fromScreenId);
     NotifySessionUpdate(sceneSession->GetSessionInfo(), ActionType::MOVE_DISPLAY, fromScreenId);
     sceneSession->NotifyDisplayMove(fromScreenId, screenId);
+    sceneSession->NotifyRemoveAppLockSnapshot();
     sceneSession->UpdateDensity();
     if (fromScreenId != screenId) {
         sceneSession->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));
@@ -19771,6 +19885,62 @@ WMError SceneSessionManager::GetJsonProfile(AppExecFwk::ProfileType profileType,
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     return WMError::WM_OK;
+}
+
+void SceneSessionManager::InitSnapshotBlurConfig()
+{
+    const std::string snapshotMaskParam =
+             system::GetParameter("const.window.appusecontrol.snapshot_mask_param", "");
+    
+    if (snapshotMaskParam.size() < 11 || snapshotMaskParam.front() != '#') {
+        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
+        blurRadius_ = DEFAULT_BLUR_RADIUS;
+        blurBackgroundColor_ = std::numeric_limits<uint32_t>::max();
+        return;
+    }
+
+    size_t bar = snapshotMaskParam.find('|');
+    if (bar == std::string::npos) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "Invalid snapshotMaskParam: %{public}s", snapshotMaskParam.c_str());
+        blurRadius_ = DEFAULT_BLUR_RADIUS;
+        blurBackgroundColor_ = std::numeric_limits<uint32_t>::max();
+        return;
+    }
+
+    std::string blurRadiusStr = snapshotMaskParam.substr(bar + 1);
+    blurRadius_ = GetBlurRadiusFromParam(blurRadiusStr);
+
+    std::string blurBackgroundColorStr = snapshotMaskParam.substr(1, bar - 1);
+    blurBackgroundColor_ = GetBlurBackgroundColorFromParam(blurBackgroundColorStr);
+
+    TLOGI(WmsLogTag::WMS_PATTERN, "blurRadius_: %{public}f, blurBackgroundColor_: %{public}u",
+        blurRadius_, blurBackgroundColor_);
+}
+
+float SceneSessionManager::GetBlurRadiusFromParam(const std::string& blurRadiusStr) const
+{
+    for (size_t i = 0; i <= (blurRadiusStr.size() - 1); ++i) {
+        if (!SessionHelper::IsDecChar(blurRadiusStr[i])) {
+            TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurRadiusStr: %{public}s",
+                blurRadiusStr.c_str());
+            return DEFAULT_BLUR_RADIUS;  
+        }
+    }
+    float blurRadius = std::stof(blurRadiusStr);
+    return blurRadius >= 0 ? blurRadius : DEFAULT_BLUR_RADIUS;
+}
+
+uint32_t SceneSessionManager::GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const
+{
+    for (size_t i = 0; i <= (blurBackgroundColorStr.size() - 1); ++i) {
+        if (!SessionHelper::IsHexChar(blurBackgroundColorStr[i])) {
+            TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurBackgroundColorStr: %{public}s",
+                blurBackgroundColorStr.c_str());
+            return std::numeric_limits<uint32_t>::max();  
+        }
+    }
+    uint32_t blurBackgroundColor = static_cast<uint32_t>(std::stoul(blurBackgroundColorStr, nullptr, HEX_BASE));
+    return blurBackgroundColor;
 }
 
 void SceneSessionManager::RegisterMinimizeAllCallback(MinimizeAllFunc&& func){

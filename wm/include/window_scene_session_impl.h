@@ -197,6 +197,7 @@ public:
      * PC Window
      */
     WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask) override;
+    WMError ClearWindowMask() override;
     WMError SetFollowParentMultiScreenPolicy(bool enabled) override;
     WMError UseImplicitAnimation(bool useImplicit) override;
     bool IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
@@ -550,6 +551,7 @@ private:
     float GetMainWindowCustomDensity();
     float customDensity_ = UNDEFINED_DENSITY;
     bool isEnableDefaultDensityWhenCreate_ = false;
+    float rsCornerRadius_;
     WMError SetPcAppInpadSpecificSystemBarInvisible();
     WMError SetPcAppInpadOrientationLandscape();
 

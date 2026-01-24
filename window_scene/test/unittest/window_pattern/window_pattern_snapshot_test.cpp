@@ -1165,6 +1165,17 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
 
     type = ControlAppType::APP_LOCK;
+    std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    appLockDisplayMap[1000] = false;
+    sceneSession->GetSessionProperty()->SetDisplayId(1000);
+    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
+        std::unordered_map<DisplayId, bool>& {
+        return appLockDisplayMap;
+    });
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
+
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
     sceneSession->isSnapshotBlur_.store(false);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
@@ -1212,6 +1223,88 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
     sceneSession->snapshotPrivacyMode_.store(false);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+}
+
+/**
+ * @tc.name: IsSupportAppLockSnapshot
+ * @tc.desc: IsSupportAppLockSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, IsSupportAppLockSnapshot, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 121;
+    info.abilityName_ = "IsSupportAppLockSnapshot";
+    info.bundleName_ = "IsSupportAppLockSnapshot";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    bool res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, true);
+
+    std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
+        std::unordered_map<DisplayId, bool>& {
+        return appLockDisplayMap;
+    });
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, true);
+
+    appLockDisplayMap[0] = true;
+    res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, true);
+
+    appLockDisplayMap[1000] = false;
+    sceneSession->GetSessionProperty()->SetDisplayId(1000);
+    res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, false);
+}
+
+/**
+ * @tc.name: NotifyRemoveAppLockSnapshot
+ * @tc.desc: NotifyRemoveAppLockSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveAppLockSnapshot, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 1211;
+    info.abilityName_ = "NotifyRemoveAppLockSnapshot";
+    info.bundleName_ = "NotifyRemoveAppLockSnapshot";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    sceneSession->SetAppLockControl(true);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), true);
+
+    sceneSession->state_ = SessionState::STATE_ACTIVE;
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), false);
+
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), false);
+
+    sceneSession->SetAppLockControl(true);
+    std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
+        std::unordered_map<DisplayId, bool>& {
+        return appLockDisplayMap;
+    });
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), false);
+}
+
+/**
+ * @tc.name: NotifyAppUseControlDisplay
+ * @tc.desc: NotifyAppUseControlDisplay Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, NotifyAppUseControlDisplay, TestSize.Level1)
+{
+    ASSERT_EQ(ssm_->NotifyAppUseControlDisplay(0, true), WSError::WS_ERROR_INVALID_PERMISSION);
 }
 
 /**

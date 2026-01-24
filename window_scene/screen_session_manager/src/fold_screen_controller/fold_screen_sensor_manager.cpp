@@ -74,6 +74,15 @@ void FoldScreenSensorManager::SetSensorFoldStateManager(sptr<SensorFoldStateMana
     sensorFoldStateManager_ = sensorFoldStateManager;
 }
 
+void FoldScreenSensorManager::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
+{
+    if (scheduler == nullptr) {
+        TLOGE(WmsLogTag::DMS, "scheduler is nullptr.");
+        return;
+    }
+    sensorFoldStateManager_->SetTaskScheduler(scheduler);
+}
+
 void FoldScreenSensorManager::RegisterHallCallback()
 {
     int ret = DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(

@@ -1607,6 +1607,26 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] state:%{public}u, isTerminating:%{public}d",
         GetPersistentId(), static_cast<uint32_t>(state), isTerminating_);
+    if ((state == SessionState::STATE_DISCONNECT || state == SessionState::STATE_END) &&
+        SessionHelper::IsMainWindow(GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
+        std::ostringstream oss;
+        oss << "[Event]lifecycle to:" << static_cast<uint32_t>(SessionState::STATE_FOREGROUND)
+            << ", id:" << GetWindowId()
+            << ", name:" << GetWindowName().c_str()
+            << "[Msg]foreground from client error, when server closed.";
+        std::string info = oss.str();
+        int32_t ret = HiSysEventWrite(
+            OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
+            "WINDOW_LIFE_CYCLE_EXCEPTION",
+            OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+            "PID", getpid(),
+            "UID", getuid(),
+            "MSG", info);
+        if (ret != 0) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
+        }
+    }
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
@@ -2896,8 +2916,9 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
     };
     bool ret = false;
     if (needBlurSnapshot) {
-        float blurRadius = 200.0f;
-        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius);
+        config.backGroundColor = blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ?
+            GetBackgroundColor() : blurBackgroundColor_;
+        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius_);
     } else {
         ret = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode, callback, config);
     }
@@ -2979,6 +3000,10 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (type != ControlAppType::APP_LOCK) {
         return;
     }
+    if (!IsSupportAppLockSnapshot()) {
+        SaveSnapshot(true, true, nullptr);
+        return;
+    }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
     isAppLockControl_.store(isAppUseControl);
@@ -2998,6 +3023,23 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (!GetIsPrivacyMode() && !GetSnapshotPrivacyMode()) {
         SaveSnapshot(true, true, nullptr, true);
     }
+}
+
+bool Session::IsSupportAppLockSnapshot() const
+{
+    if (!onGetAppUseControlDisplayMapFunc_) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d GetAppUseControlDisplayMap failed", persistentId_);
+        return true;
+    }
+    auto& appUseControlDisplayMap = onGetAppUseControlDisplayMapFunc_();
+    auto displayId = GetSessionProperty()->GetDisplayId();
+    if (appUseControlDisplayMap.find(displayId) == appUseControlDisplayMap.end()) {
+        return true;
+    }
+    bool support = appUseControlDisplayMap[displayId];
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, displayId: %{public}" PRIu64 ", support: %{public}d",
+        persistentId_, displayId, support);
+    return support;
 }
 
 bool Session::GetSnapshotPrivacyMode() const
@@ -4461,6 +4503,26 @@ void Session::SetSystemConfig(const SystemSessionConfig& systemConfig)
 SystemSessionConfig Session::GetSystemConfig() const
 {
     return systemConfig_;
+}
+
+void Session::SetBlurRadius(const float blurRadius)
+{
+    blurRadius_ = blurRadius;
+}
+
+float Session::GetBlurRadius() const
+{
+    return blurRadius_;
+}
+
+void Session::SetBlurBackgroundColor(const float blurBackgroundColor)
+{
+    blurBackgroundColor_ = blurBackgroundColor;
+}
+
+uint32_t Session::GetBlurBackgroundColor() const
+{
+    return blurBackgroundColor_;
 }
 
 void Session::SetSnapshotScale(const float snapshotScale)

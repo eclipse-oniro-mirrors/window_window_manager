@@ -215,6 +215,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleSetSessionIconForThirdParty(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_MAIN_WINDOW_INFO_BY_TOKEN):
             return HandleGetMainWindowInfoByToken(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY):
+            return HandleNotifyAppUseControlDisplay(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1446,6 +1448,27 @@ int SceneSessionManagerLiteStub::HandleNotifyAppUseControlList(MessageParcel& da
 
     WSError ret = NotifyAppUseControlList(type, userId, controlList);
     reply.WriteInt32(static_cast<int32_t>(ret));
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleNotifyAppUseControlDisplay(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "In!");
+    uint64_t displayId = 0;
+    if (!data.ReadUint64(displayId)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Failed to read displayId");
+        return ERR_INVALID_DATA;
+    }
+    bool useControl = true;
+    if (!data.ReadBool(useControl)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Failed to read useControl");
+        return ERR_INVALID_DATA;
+    }
+    WSError ret = NotifyAppUseControlDisplay(displayId, useControl);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write ret fail.");
+        return ERR_INVALID_DATA;
+    }
     return ERR_NONE;
 }
 

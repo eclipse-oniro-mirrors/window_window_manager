@@ -78,6 +78,15 @@ void SecondaryFoldSensorManager::SetSensorFoldStateManager(sptr<SensorFoldStateM
     sensorFoldStateManager_ = sensorFoldStateManager;
 }
 
+void SecondaryFoldSensorManager::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
+{
+    if (scheduler == nullptr) {
+        TLOGE(WmsLogTag::DMS, "scheduler is nullptr.");
+        return;
+    }
+    sensorFoldStateManager_->SetTaskScheduler(scheduler);
+}
+
 void SecondaryFoldSensorManager::RegisterPostureCallback()
 {
     int32_t ret = DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(

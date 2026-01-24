@@ -114,6 +114,7 @@ private:
     int HandleSendPointerEventForHover(MessageParcel& data, MessageParcel& reply);
     int HandleSetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply);
     int HandleUnsetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyAppUseControlDisplay(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleUnRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetDisplayIdByWindowId(MessageParcel& data, MessageParcel& reply);

@@ -217,6 +217,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::GetSingleHandCompatibleModeConfig);
     BindNativeFunction(env, exportObj, "getSingleHandModeEnable", moduleName,
         JsSceneSessionManager::GetSingleHandModeEnable);
+    BindNativeFunction(env, exportObj, "getSingleHandBackgroundLayoutConfig", moduleName,
+        JsSceneSessionManager::GetSingleHandBackgroundLayoutConfig);
     BindNativeFunction(env, exportObj, "getRootSceneUIContext", moduleName,
         JsSceneSessionManager::GetRootSceneUIContext);
     BindNativeFunction(env, exportObj, "sendTouchEvent", moduleName, JsSceneSessionManager::SendTouchEvent);
@@ -1140,6 +1142,13 @@ napi_value JsSceneSessionManager::GetSingleHandModeEnable(napi_env env, napi_cal
     TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnGetSingleHandModeEnable(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::GetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnGetSingleHandBackgroundLayoutConfig(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::AddWindowDragHotArea(napi_env env, napi_callback_info info)
@@ -3075,6 +3084,22 @@ napi_value JsSceneSessionManager::OnGetSingleHandModeEnable(napi_env env, napi_c
         return NapiGetUndefined(env);
     }
     return jsSingleHandModeEnableObj;
+}
+
+napi_value JsSceneSessionManager::OnGetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    const auto& singleHandBackgroundLayoutConfig =
+        SceneSessionManager::GetInstance().GetSingleHandBackgroundLayoutConfig();
+    napi_value jsSingleHandBackgroundLayoutConfigObj =
+        JsWindowSceneConfig::CreateSingleHandBackgroundLayoutConfig(env, singleHandBackgroundLayoutConfig);
+    if (jsSingleHandBackgroundLayoutConfigObj == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "jsSingleHandBackgroundLayoutConfigObj is nullptr");
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY), "System is abnormal"));
+        return NapiGetUndefined(env);
+    }
+    return jsSingleHandBackgroundLayoutConfigObj;
 }
 
 napi_value JsSceneSessionManager::OnAddWindowDragHotArea(napi_env env, napi_callback_info info)
