@@ -3250,6 +3250,38 @@ WSError SessionProxy::SetWindowShadows(const ShadowsInfo& shadowsInfo)
     return WSError::WS_OK;
 }
 
+WSError SessionProxy::RecoverWindowEffect(bool recoverCorner, bool recoverShadow)
+{
+    TLOGD(WmsLogTag::WMS_PC, "recoverCorner: %{public}d, recoverShadow: %{public}d", recoverCorner, recoverShadow);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_PC, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(recoverCorner)) {
+        TLOGE(WmsLogTag::WMS_PC, "Write recoverCorner failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(recoverShadow)) {
+        TLOGE(WmsLogTag::WMS_PC, "Write recoverShadow failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_PC, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    auto sendRet = remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT),
+        data, reply, option);
+    if (sendRet != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_PC, "SendRequest failed, code: %{public}d", sendRet);
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return WSError::WS_OK;
+}
+
 WSError SessionProxy::SetFollowParentWindowLayoutEnabled(bool isFollow)
 {
     TLOGD(WmsLogTag::WMS_SUB, "isFollow: %{public}d", isFollow);

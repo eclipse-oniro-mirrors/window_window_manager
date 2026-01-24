@@ -163,6 +163,7 @@ using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
 using GetIsRecentStateFunc = std::function<bool()>;
 using ForceNotifyOccupiedAreaChangeCallback = std::function<void(DisplayId displayId)>;
+using NotifyRecoverWindowEffectFunc = std::function<void(bool recoverCorner, bool recoverShadow)>;
 
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
@@ -502,6 +503,8 @@ public:
     WMError SetSeparationTouchEnabled(const std::vector<int32_t>& parameters) override;
     WMError LockCursor(const std::vector<int32_t>& parameters) override;
     WMError UnlockCursor(const std::vector<int32_t>& parameters) override;
+    void RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
+    WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
 
     /*
      * Window Immersive
@@ -1633,6 +1636,7 @@ private:
     NotifySetWindowShadowsFunc onSetWindowShadowsFunc_;
     UpdateScreenshotAppEventRegisteredFunc updateScreenshotAppEventRegisteredFunc_;
     NotifySnapshotSkipChangeFunc onSnapshotSkipChangeFunc_;
+    NotifyRecoverWindowEffectFunc onRecoverWindowEffectFunc_;
 
    /*
     * Window Lifecycle

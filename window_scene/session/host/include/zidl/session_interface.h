@@ -514,6 +514,15 @@ public:
     virtual WSError SetWindowShadows(const ShadowsInfo& shadowsInfo) { return WSError::WS_OK; }
 
     /**
+     * @brief Callback for recover window effect.
+     *
+     * @param recoverCorner true means need to recover corner radius.
+     * @param recoverShadow true means need to recover shaodow.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) { return WSError::WS_OK; }
+
+    /**
      *  Gesture Back
      */
     virtual WMError SetGestureBackEnabled(bool isEnabled) { return WMError::WM_OK; }
