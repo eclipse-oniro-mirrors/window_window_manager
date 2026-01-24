@@ -19812,7 +19812,7 @@ float SceneSessionManager::GetBlurRadiusFromParam(const std::string& blurRadiusS
         if (!SessionHelper::IsDecChar(blurRadiusStr[i])) {
             TLOGW(WmsLogTag::WMS_PATTERN, "Invalid blurRadiusStr: %{public}s",
                 blurRadiusStr.c_str());
-            return std::numeric_limits<uint32_t>::max();  
+            return DEFAULT_BLUR_RADIUS;  
         }
     }
     float blurRadius = std::stof(blurRadiusStr);
