@@ -8735,13 +8735,13 @@ uint32_t SceneSession::UpdateUIParam(const SessionUIParam& uiParam)
         return dirtyFlags_;
     }
     dirtyFlags_ |= UpdateVisibilityInner(true) ? static_cast<uint32_t>(SessionUIDirtyFlag::VISIBLE) : 0;
+    dirtyFlags_ |= UpdateScaleInner(uiParam.scaleX_, uiParam.scaleY_, uiParam.pivotX_, uiParam.pivotY_) ?
+        static_cast<uint32_t>(SessionUIDirtyFlag::SCALE) : 0;
     bool isUpdateRectDirty = UpdateRectInner(uiParam, GetSizeChangeReason());
     if (isUpdateRectDirty) {
         dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
     }
-    dirtyFlags_ |= UpdateScaleInner(uiParam.scaleX_, uiParam.scaleY_, uiParam.pivotX_, uiParam.pivotY_) ?
-        static_cast<uint32_t>(SessionUIDirtyFlag::SCALE) : 0;
     if (dirtyFlags_ & static_cast<uint32_t>(SessionUIDirtyFlag::GLOBAL_RECT) ||
         dirtyFlags_ & static_cast<uint32_t>(SessionUIDirtyFlag::SCALE)) {
         NotifyGlobalScaledRectChange();
