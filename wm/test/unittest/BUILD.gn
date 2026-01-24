@@ -38,6 +38,7 @@ group("unittest") {
     "rotation:wm_window_extension_session_impl_rotation_test",
     "rotation:wm_window_session_impl_rotation_test",
     "window_recover:wm_window_recover_manager_test",
+    "wm_pattern:window_manager_pattern_test",
   ]
   if (window_manager_use_sceneboard) {
     deps += [
@@ -844,6 +845,7 @@ ohos_static_library("wm_unittest_common") {
     "special_window:*",
     "ui_extension:*",
     "window_recover:*",
+    "wm_pattern:*",
   ]
 
   testonly = true
