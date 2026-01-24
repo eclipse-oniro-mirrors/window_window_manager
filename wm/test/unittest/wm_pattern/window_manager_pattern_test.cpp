@@ -16,11 +16,6 @@
 #include <gtest/gtest.h>
 
 #include "window_adapter.h"
-#include "iremote_object_mocker.h"
-#include "scene_board_judgement.h"
-#include "window_manager.cpp"
-#include "window_manager.h"
-#include "window_manager_hilog.h"
 
 using namespace testing;
 using namespace testing::ext;
