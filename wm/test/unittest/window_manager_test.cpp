@@ -1981,25 +1981,6 @@ HWTEST_F(WindowManagerTest, UnregisterVisibilityStateChangedListener, Function |
 }
 
 /**
- * @tc.name: SetStartWindowBackgroundColor
- * @tc.desc: SetStartWindowBackgroundColor
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, SetStartWindowBackgroundColor, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, mockInstance_);
-    const std::string moduleName = "testModule";
-    const std::string abilityName = "testAbility";
-    const uint32_t color = 0x12345678;
-
-    WMError ret = mockInstance_->SetStartWindowBackgroundColor(moduleName, abilityName, color);
-    EXPECT_EQ(WMError::WM_OK, ret);
-    EXPECT_EQ(moduleName, MockWindowAdapter::lastModuleName_);
-    EXPECT_EQ(abilityName, MockWindowAdapter::lastAbilityName_);
-    EXPECT_EQ(color, MockWindowAdapter::lastColor_);
-}
-
-/**
  * @tc.name: RegisterDisplayIdChangedListener
  * @tc.desc: check RegisterDisplayIdChangedListener
  * @tc.type: FUNC
@@ -2470,6 +2451,25 @@ HWTEST_F(WindowManagerTest, UnregisterGlobalRectChangedListener, Function | Smal
     mockInstance_->pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
     ret = mockInstance_->UnregisterFloatingScaleChangedListener(listener);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetStartWindowBackgroundColor
+ * @tc.desc: SetStartWindowBackgroundColor
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, SetStartWindowBackgroundColor, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, mockInstance_);
+    const std::string moduleName = "testModule";
+    const std::string abilityName = "testAbility";
+    const uint32_t color = 0x12345678;
+
+    WMError ret = mockInstance_->SetStartWindowBackgroundColor(moduleName, abilityName, color);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(moduleName, MockWindowAdapter::lastModuleName_);
+    EXPECT_EQ(abilityName, MockWindowAdapter::lastAbilityName_);
+    EXPECT_EQ(color, MockWindowAdapter::lastColor_);
 }
 
 /**
