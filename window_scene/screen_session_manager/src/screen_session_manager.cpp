@@ -173,7 +173,6 @@ constexpr float EXTEND_SCREEN_DPI_INCREASE_STEP { 24.0f };
 constexpr float EXTEND_SCREEN_DPI_BASELINE { 160.0f };
 const bool SUPPORT_COMPATIBLE_MODE =
     (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
-static bool offScreenRenderValue_ = true;
 const std::string SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY = "off_screen_rendering_switch";
 constexpr float PHYSICAL_MASS = 1.6f;
 const std::vector<std::string> ROTATION_DEFAULT = {"0", "1", "2", "3"};

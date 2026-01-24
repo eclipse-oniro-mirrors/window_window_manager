@@ -376,7 +376,6 @@ public:
     void GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
         ScreenProperty& property, float& extendDensity);
     void InitExtendScreenDpiOptions();
-    bool IsCurrentOffScreenRendering();
     void RegisterSettingRotationObserver();
     void NotifyBrightnessInfoChanged(ScreenId screenId, const BrightnessInfo& info);
 
