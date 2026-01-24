@@ -1136,9 +1136,6 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
         TLOGE(WmsLogTag::WMS_PATTERN, "imageFit invalid: %{public}d", imageFit);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
     }
-    TLOGE(WmsLogTag::WMS_PATTERN,
-        "SetImageForRecent type=%{public}s, imageFit=%{public}d",
-        (pixelMap != nullptr) ? "pixelMap" : "resId", imageFit);
 
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
