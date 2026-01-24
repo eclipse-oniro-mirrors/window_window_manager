@@ -913,7 +913,7 @@ std::pair<int32_t, int32_t> MoveDragController::ComputeOffsetFromStart(
     int32_t deltaY = curUnifiedY - originUnifiedY;
 
     // NOTE: Intrusive modification, should be optimized.
-    if (isAdaptToProportionalScale_) {
+    if (isAdaptToProportionalScale_ || isAdaptToDragScale_) {
         return std::make_pair(deltaX, deltaY);
     }
 
