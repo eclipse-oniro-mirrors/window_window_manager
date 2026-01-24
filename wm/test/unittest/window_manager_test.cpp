@@ -67,7 +67,27 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid) override
+    {
+        lastModuleName_ = moduleName;
+        lastAbilityName_ = abilityName;
+        lastColor_ = color;
+        lastUid_ = uid;
+        return WMError::WM_OK;
+    }
+
+    static std::string lastModuleName_;
+    static std::string lastAbilityName_;
+    static uint32_t lastColor_;
+    static int32_t lastUid_;
 };
+
+std::string MockWindowAdapter::lastModuleName_;
+std::string MockWindowAdapter::lastAbilityName_;
+uint32_t MockWindowAdapter::lastColor_ = 0;
+int32_t MockWindowAdapter::lastUid_ = 0;
 
 class TestCameraFloatWindowChangedListener : public ICameraFloatWindowChangedListener {
 public:
