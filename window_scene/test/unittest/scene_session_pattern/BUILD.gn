@@ -23,7 +23,7 @@ ohos_unittest("scene_session_pattern_test") {
   include_dirs = [ "${window_base_path}/window_scene/session/host/include" ]
   sources = [ "scene_session_pattern_test.cpp" ]
   deps = [
-    "../:ws_unittest_common",
+    ws_unittest_common,
     "${window_base_path}/test/common/utils:libtestutil",
     ]
   external_deps = [
@@ -46,4 +46,5 @@ ohos_unittest("scene_session_pattern_test") {
     "input:libmmi-napi",
     "relational_store:native_rdb",
   ]
+
 }
