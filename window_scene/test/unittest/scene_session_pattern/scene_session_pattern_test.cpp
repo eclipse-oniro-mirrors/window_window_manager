@@ -8,7 +8,7 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
  
-class scene_session_pattern_test : public testing::Test {
+class SceneSessionPatternTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -16,15 +16,15 @@ public:
     void TearDown() override;
 };
 
-void scene_session_pattern_test::SetUpTestCase() {}
+void SceneSessionPatternTest::SetUpTestCase() {}
 
-void scene_session_pattern_test::TearDownTestCase()
+void SceneSessionPatternTest::TearDownTestCase()
 {
 }
 
-void scene_session_pattern_test::SetUp() {}
+void SceneSessionPatternTest::SetUp() {}
 
-void scene_session_pattern_test::TearDown() {}
+void SceneSessionPatternTest::TearDown() {}
 
 namespace {
 
@@ -33,7 +33,7 @@ namespace {
  * @tc.desc: NotifySnapshotUpdate
  * @tc.type: FUNC
  */
-HWTEST_F(scene_session_pattern_test, NotifySnapshotUpdate, TestSize.Level1)
+HWTEST_F(SceneSessionPatternTest, NotifySnapshotUpdate, TestSize.Level1)
 {
     SessionInfo info;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
