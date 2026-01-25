@@ -274,6 +274,7 @@ public:
     void SetSerialNumber(std::string serialNumber);
     std::string GetSerialNumber() const;
     ScreenShape GetScreenShape() const;
+    void SetPhyWidthAndHeight(uint32_t phyWidth, uint32_t phyHeight);
     void SetValidHeight(uint32_t validHeight);
     void SetValidWidth(uint32_t validWidth);
     uint32_t GetValidHeight() const;

@@ -2181,27 +2181,6 @@ HWTEST_F(ScreenSessionManagerTest, SetDuringCallState, TestSize.Level1)
 }
 
 /**
- * @tc.name: LockLandExtendIfScreenInfoNullNull
- * @tc.desc: LockLandExtendIfScreenInfoNullNull
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, LockLandExtendIfScreenInfoNull01, TestSize.Level1) {
-    ASSERT_NE(ssm_, nullptr);
-#define FOLD_ABILITY_ENABLE
-    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        sptr<ScreenSession> session = ssm_->GetOrCreateScreenSession(SCREENID);
-        ScreenProperty property;
-        ssm_->CreateScreenProperty(SCREENID, property);
-        ssm_->phyScreenPropMap_[SCREENID] = property;
-        EXPECT_EQ(session, nullptr);
-        ssm_->SetClient(nullptr);
-        ASSERT_EQ(ssm_->GetClientProxy(), nullptr);
-        ssm_->LockLandExtendIfScreenInfoNull(session);
-    }
-#undef FOLD_ABILITY_ENABLE
-}
-
-/**
  * @tc.name: GetOldDisplayModeRotation
  * @tc.desc: GetOldDisplayModeRotation
  * @tc.type: FUNC

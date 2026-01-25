@@ -541,6 +541,13 @@ void ScreenSession::SetIsFakeSession(bool isFakeSession)
     isFakeSession_ = isFakeSession;
 }
 
+void ScreenSession::SetPhyWidthAndHeight(uint32_t phyWidth, uint32_t phyHeight)
+{
+    property_.SetPhyWidth(phyWidth);
+    property_.SetPhyHeight(phyHeight);
+    property_.CalculateXYDpi(phyWidth, phyHeight);
+}
+
 void ScreenSession::SetValidHeight(uint32_t validHeight)
 {
     property_.SetValidHeight(validHeight);

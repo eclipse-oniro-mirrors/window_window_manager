@@ -44,6 +44,8 @@ struct VirtualScreenOption {
     bool supportsInput_ {true};
     std::string bundleName_;
     std::string serialNumber_;
+    uint32_t phyWidth_ { 0 };
+    uint32_t phyHeight_ { 0 };
 };
 
 class Screen : public RefBase {

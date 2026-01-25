@@ -1479,20 +1479,6 @@ std::string ScreenSessionManager::ConvertEdidToString(const struct BaseEdid edid
     return oss.str();
 }
 
-void ScreenSessionManager::LockLandExtendIfScreenInfoNull(sptr<ScreenSession>& screenSession)
-{
-#ifdef FOLD_ABILITY_ENABLE
-   if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        TLOGNFI(WmsLogTag::DMS, "not superFoldDisplayDevice");
-        return;
-   }
-   if (GetIsPhysicalExtendScreenConnected()) {
-        SetIsExtendModelocked(true);
-        SetExpandAndHorizontalLocked(true);
-   }
-#endif
-}
-
 bool ScreenSessionManager::RecoverRestoredMultiScreenMode(sptr<ScreenSession> screenSession)
 {
 #ifdef WM_MULTI_SCREEN_ENABLE
@@ -1508,7 +1494,6 @@ bool ScreenSessionManager::RecoverRestoredMultiScreenMode(sptr<ScreenSession> sc
                     screenSession->GetRSScreenId());
                 RecoverScreenActiveMode(screenSession->GetRSScreenId());
         }
-        LockLandExtendIfScreenInfoNull(screenSession);
         return false;
     }
     auto info = multiScreenInfoMap[serialNumber];
@@ -1546,6 +1531,9 @@ bool ScreenSessionManager::RecoverRestoredMultiScreenMode(sptr<ScreenSession> sc
     auto ret = SetMultiScreenRelativePosition(info.mainScreenOption, info.secondaryScreenOption);
     if (ret != DMError::DM_OK) {
         SetMultiScreenDefaultRelativePosition();
+    }
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GetStaticAndDynamicSession();
     }
     ReportHandleScreenEvent(ScreenEvent::CONNECTED, ScreenCombination::SCREEN_EXTEND);
     return true;
@@ -2853,7 +2841,9 @@ void ScreenSessionManager::GetStaticAndDynamicSession()
             TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
             continue;
         }
-        if (tempScreenSession->GetIsExtendVirtual()) {
+        if (tempScreenSession->GetIsExtendVirtual() ||
+            (tempScreenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL
+            && tempScreenSession->GetIsExtend())) {
             secondarySession = tempScreenSession;
             break;
         }
@@ -3927,12 +3917,6 @@ sptr<ScreenSession> ScreenSessionManager::CreatePhysicalMirrorSessionInner(Scree
         return nullptr;
     }
     MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_ENTER_STR);
-    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        TLOGNFI(WmsLogTag::DMS, "set ExtendConnect flag = true");
-        SetIsPhysicalExtendScreenConnected(true);
-        extendScreenConnectStatus_.store(ExtendScreenConnectStatus::CONNECT);
-        OnExtendScreenConnectStatusChange(screenId, ExtendScreenConnectStatus::CONNECT);
-    }
     if (g_isPcDevice) {
         // pc is none, pad&&phone is mirror
         InitExtendScreenProperty(screenId, screenSession, property);
@@ -5616,6 +5600,9 @@ void ScreenSessionManager::RecoverMultiScreenRelativePosition(ScreenId screenId)
     auto ret = SetMultiScreenRelativePosition(info.mainScreenOption, info.secondaryScreenOption);
     if (ret != DMError::DM_OK) {
         SetMultiScreenDefaultRelativePosition();
+    }
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GetStaticAndDynamicSession();
     }
 }
 
@@ -7945,6 +7932,8 @@ sptr<ScreenSession> ScreenSessionManager::InitVirtualScreen(ScreenId smsScreenId
     screenSession->SetIsPcUse(g_isPcDevice ? true : false);
     screenSession->SetDisplayBoundary(RectF(0, 0, option.width_, option.height_), 0);
     screenSession->RegisterScreenChangeListener(this);
+    screenSession->SetSerialNumber(option.serialNumber_);
+    screenSession->SetPhyWidthAndHeight(option.phyWidth_, option.phyHeight_);
     screenSession->SetValidWidth(option.width_);
     screenSession->SetValidHeight(option.height_);
     screenSession->SetRealWidth(option.width_);
@@ -10822,11 +10811,7 @@ void ScreenSessionManager::RecoverMultiScreenModeWhenSwitchUser(std::vector<int3
         }
     }
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        if (extendScreenConnected) {
-            OnExtendScreenConnectStatusChange(extendScreenId, ExtendScreenConnectStatus::CONNECT);
-        } else {
-            OnExtendScreenConnectStatusChange(extendScreenId, ExtendScreenConnectStatus::DISCONNECT);
-        }
+        GetStaticAndDynamicSession();
     }
 }
 
@@ -11312,6 +11297,9 @@ void ScreenSessionManager::HandleDefaultMultiScreenMode(sptr<ScreenSession> inte
         TLOGNFI(WmsLogTag::DMS, "default mode extend");
         SetMultiScreenMode(innerRsId, externalRsId, MultiScreenMode::SCREEN_EXTEND);
         SetMultiScreenDefaultRelativePosition();
+        if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+            GetStaticAndDynamicSession();
+        }
         ReportHandleScreenEvent(ScreenEvent::CONNECTED, ScreenCombination::SCREEN_EXTEND);
     }
 }
@@ -12366,14 +12354,6 @@ DMError ScreenSessionManager::SetMultiScreenMode(ScreenId mainScreenId, ScreenId
     }
     SetMultiScreenModeInner(mainScreenId, secondaryScreenId, screenMode);
     sptr<ScreenSession> secondaryScreenSession = GetScreenSessionByRsId(secondaryScreenId);
-    if (secondaryScreenSession != nullptr && secondaryScreenSession->GetIsExtendVirtual() == false) {
-        if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-            SetIsExtendModelocked(screenMode == MultiScreenMode::SCREEN_EXTEND);
-        }
-        if (screenMode == MultiScreenMode::SCREEN_EXTEND) {
-            SetExpandAndHorizontalLocked(true);
-        }
-    }
     auto combination = screenMode == MultiScreenMode::SCREEN_MIRROR ?
         ScreenCombination::SCREEN_MIRROR : ScreenCombination::SCREEN_EXPAND;
     SetScreenCastInfo(secondaryScreenId, mainScreenId, combination);
@@ -12409,6 +12389,9 @@ void ScreenSessionManager::SetMultiScreenModeInner(ScreenId mainScreenId, Screen
         }
     } else {
         TLOGNFE(WmsLogTag::DMS, "operate mode error");
+    }
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GetStaticAndDynamicSession();
     }
 }
 
@@ -14591,6 +14574,9 @@ DMError ScreenSessionManager::SyncScreenPropertyChangedToServer(ScreenId screenI
     if (FoldScreenStateInternel::IsSingleDisplayPocketFoldDevice() ||
         FoldScreenStateInternel::IsSingleDisplayFoldDevice()) {
         NotifyDisplayChanged(serverScreenSession->ConvertToDisplayInfo(), DisplayChangeEvent::DISPLAY_SIZE_CHANGED);
+    }
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GetStaticAndDynamicSession();
     }
     return DMError::DM_OK;
 }

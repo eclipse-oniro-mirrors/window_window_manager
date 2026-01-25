@@ -915,10 +915,6 @@ DMError SuperFoldStateManager::RefreshMirrorRegionInner(
 
 DMError SuperFoldStateManager::RefreshExternalRegion()
 {
-    if (!ScreenSessionManager::GetInstance().GetIsPhysicalExtendScreenConnected()) {
-        TLOGW(WmsLogTag::DMS, "extend screen not connect");
-        return DMError::DM_OK;
-    }
     sptr<ScreenSession> mainScreenSession = ScreenSessionManager::GetInstance().GetScreenSessionByRsId(SCREEN_ID_FULL);
     if (mainScreenSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "GetScreenSession null");
