@@ -1704,11 +1704,13 @@ HWTEST_F(MoveDragControllerTest, TestGetGravity, TestSize.Level1)
 HWTEST_F(MoveDragControllerTest, TestGetDragGravity, TestSize.Level1)
 {
     // Case 1: type in DRAG_GRAVITY_MAP
-    auto gravity = moveDragController->GetDragGravity(AreaType::TOP);
+    moveDragController->type_ = AreaType::TOP;
+    auto gravity = moveDragController->GetDragGravity();
     EXPECT_EQ(gravity, Gravity::TOP);
 
     // Case 2: type not in DRAG_GRAVITY_MAP
-    gravity = moveDragController->GetDragGravity(static_cast(999));
+    moveDragController->type_  = AreaType::UNDEFINED;
+    gravity = moveDragController->GetDragGravity();
     EXPECT_EQ(gravity, Gravity::TOP_LEFT);
 }
 
