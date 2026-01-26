@@ -68,6 +68,7 @@ public:
     void OpenKeyboardSyncTransaction() override;
     void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect, bool isKeyboardShow,
         const WindowAnimationInfo& animationInfo, const CallingWindowInfoData& callingWindowInfoData) override;
+    void NotifyKeyboardAnimationWillBegin(bool isKeyboardShow, const WindowAnimationInfo& animationInfo) override;
     void CallingWindowStateChange(const CallingWindowInfoData& callingWindowInfoData) override;
     bool IsVisibleForeground() const override;
     bool IsVisibleNotBackground() const override;

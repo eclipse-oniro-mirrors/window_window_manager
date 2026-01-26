@@ -617,6 +617,8 @@ void JsSceneSession::BindNativeMethodForKeyboard(napi_env env, napi_value objVal
         JsSceneSession::CloseKeyboardSyncTransaction);
     BindNativeFunction(env, objValue, "notifyKeyboardAnimationCompleted", moduleName,
         JsSceneSession::NotifyKeyboardAnimationCompleted);
+    BindNativeFunction(env, objValue, "notifyKeyboardAnimationWillBegin", moduleName,
+        JsSceneSession::NotifyKeyboardAnimationWillBegin);
     BindNativeFunction(env, objValue, "callingWindowStateChange", moduleName,
         JsSceneSession::CallingWindowStateChange);
 }
@@ -2580,6 +2582,13 @@ napi_value JsSceneSession::NotifyKeyboardAnimationCompleted(napi_env env, napi_c
     return (me != nullptr) ? me->OnNotifyKeyboardAnimationCompleted(env, info) : nullptr;
 }
 
+napi_value JsSceneSession::NotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_KEYBOARD, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnNotifyKeyboardAnimationWillBegin(env, info) : nullptr;
+}
+
 napi_value JsSceneSession::CallingWindowStateChange(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_KEYBOARD, "[NAPI]");
@@ -3826,7 +3835,7 @@ napi_value JsSceneSession::OnCloseKeyboardSyncTransaction(napi_env env, napi_cal
     }
 
     KeyboardAnimationRectConfig keyboardAnimationRectConfig;
-    if (!HandleCloseKeyboardSyncTransactionKeyboardAnimationRectConfig(env, argv, ARG_INDEX_1,
+    if (!HandleKeyboardAnimationRectConfig(env, argv, ARG_INDEX_1,
         keyboardAnimationRectConfig)) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to keyboardAnimationRectConfig");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
@@ -3872,7 +3881,7 @@ bool JsSceneSession::HandleCloseKeyboardSyncTransactionKeyboardBaseInfo(napi_env
     return true;
 }
 
-bool JsSceneSession::HandleCloseKeyboardSyncTransactionKeyboardAnimationRectConfig(napi_env env,
+bool JsSceneSession::HandleKeyboardAnimationRectConfig(napi_env env,
     napi_value argv[], int index, KeyboardAnimationRectConfig& keyboardAnimationRectConfig)
 {
     napi_value nativeObj = argv[index];
@@ -3981,6 +3990,58 @@ napi_value JsSceneSession::OnNotifyKeyboardAnimationCompleted(napi_env env, napi
         return NapiGetUndefined(env);
     }
     callingSession->NotifyKeyboardAnimationCompleted(isShowAnimation, beginRect, endRect);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnNotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARG_COUNT_3;
+    napi_value argv[ARG_COUNT_3] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARG_COUNT_3) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "[keyboard][willBegin]msg:Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    uint32_t callingId = 0;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_0], callingId)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to callingId");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "[keyboard][willBegin]msg:Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    bool isKeyboardShow = false;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_1], isKeyboardShow)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to isKeyboardShow");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "[keyboard][willBegin]msg:Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    KeyboardAnimationRectConfig keyboardAnimationRectConfig;
+    if (!HandleKeyboardAnimationRectConfig(env, argv, ARG_INDEX_2,
+        keyboardAnimationRectConfig)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to convert parameter to keyboardAnimationRectConfig");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "[keyboard][willBegin]msg:Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+
+    WindowAnimationInfo animationInfo;
+    animationInfo.beginRect = keyboardAnimationRectConfig.beginRect;
+    animationInfo.endRect = keyboardAnimationRectConfig.endRect;
+    animationInfo.animated = keyboardAnimationRectConfig.animated;
+    animationInfo.callingId = callingId;
+
+    session->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
     return NapiGetUndefined(env);
 }
 
@@ -7948,15 +8009,22 @@ void JsSceneSession::OnKeyboardStateChange(SessionState state, const KeyboardEff
             napi_close_handle_scope(env, scope);
             return;
         }
+        napi_value return_val;
         auto ret = napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv),
-            argv, nullptr);
+            argv, &return_val);
         napi_close_handle_scope(env, scope);
         if (ret != napi_ok) {
             TLOGNE(WmsLogTag::WMS_KEYBOARD, "%{public}s: napi_call_function result is error", where);
             return;
         }
-        TLOGNI(WmsLogTag::WMS_KEYBOARD, "%{public}s: id: %{public}d, state: %{public}d, callingSessionId: %{public}u",
-            where, persistentId, state, callingSessionId);
+        int32_t result;
+        ret = napi_get_value_int32(env, return_val, &result);
+        if (ret != napi_ok) {
+            TLOGNE(WmsLogTag::WMS_KEYBOARD, "%{public}s: napi_get_value_int32 result is error", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_KEYBOARD, "%{public}s: id: %{public}d, state: %{public}d, callingSessionId: %{public}u,"
+            " result: %{public}d", where, persistentId, state, callingSessionId, result);
     };
     taskScheduler_->PostMainThreadTask(task, "OnKeyboardStateChange, state:" +
         std::to_string(static_cast<uint32_t>(state)));
