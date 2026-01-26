@@ -3567,6 +3567,10 @@ WMError WindowSceneSessionImpl::SetStatusBarColorForNavigation(const std::option
         TLOGI(WmsLogTag::WMS_IMMS, "color:%{public}x", color.value());
     } else {
         prop.flag_.contentColorFlag = false;
+        if (!prop.flag_.enableFlag && !prop.flag_.enableAnimationFlag) {
+            // no more navigation configurations, remove from list
+            RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ARKUI_NAVIGATION);
+        }
         TLOGI(WmsLogTag::WMS_IMMS, "clear");
     }
     return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
@@ -3601,6 +3605,10 @@ WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std
     } else {
         prop.flag_.enableFlag = false;
         prop.flag_.enableAnimationFlag = false;
+        if (!prop.flag_.contentColorFlag) {
+            // no more navigation configurations, remove from list
+            RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ARKUI_NAVIGATION);
+        }
         TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "clear");
     }
     return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
