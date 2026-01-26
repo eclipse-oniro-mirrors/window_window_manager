@@ -130,6 +130,7 @@ public:
         TRANS_ID_GET_PARENT_WINDOW_ID,
         TRANS_ID_SET_SESSION_ICON_FOR_THIRD_PARTY,
         TRANS_ID_GET_MAIN_WINDOW_INFO_BY_TOKEN,
+        TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY,
     };
 
     /*
@@ -448,6 +449,7 @@ public:
         return WMError::WM_OK;
     }
     virtual WMError UnregisterPipChgListenerByScreenId(int32_t screenId) { return WMError::WM_OK; }
+    virtual WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl) { return WSError::WS_OK; };
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_INTERFACE_H

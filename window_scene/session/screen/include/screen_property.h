@@ -303,6 +303,7 @@ public:
     uint32_t GetScreenAreaWidth() const { return screenAreaWidth_; }
     void SetScreenAreaHeight(uint32_t screenAreaHeight) { screenAreaHeight_ = screenAreaHeight; }
     uint32_t GetScreenAreaHeight() const { return screenAreaHeight_; }
+    void CalculateXYDpi(uint32_t phyWidth, uint32_t phyHeight);
 
 private:
     SuperFoldStatusChangeEvents changeEvent_ {SuperFoldStatusChangeEvents::UNDEFINED};
@@ -381,7 +382,6 @@ private:
 
     void UpdateXDpi();
     void UpdateYDpi();
-    void CalculateXYDpi(uint32_t phyWidth, uint32_t phyHeight);
     DMRect availableArea_;  // can be used for all devices
     DMRect expandAvailableArea_;  // only used for 2in1 device
     DMRect creaseRect_;

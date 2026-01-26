@@ -43,7 +43,7 @@
 
 namespace OHOS::Rosen {
 class RSInterfaces;
-
+class TaskSequenceProcess;
 struct ScaleProperty {
     float scaleX;
     float scaleY;
@@ -370,6 +370,13 @@ public:
     void NotifyScreenMagneticStateChanged(bool isMagneticState);
     void OnTentModeChanged(int tentType, int32_t hall = -1);
     void RegisterSettingDpiObserver();
+    void RegisterOffScreenRenderingSettingSwitchObserver();
+    void SetExtendScreenDpiFromSettingData();
+    float CalDefaultExtendScreenDensity(ScreenProperty& property);
+    float GetOptionalDpi(const float dpi);
+    void GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
+        ScreenProperty& property, float& extendDensity);
+    void InitExtendScreenDpiOptions();
     void RegisterSettingRotationObserver();
     void NotifyBrightnessInfoChanged(ScreenId screenId, const BrightnessInfo& info);
 
@@ -479,6 +486,8 @@ public:
     void SwitchScrollParam(FoldDisplayMode displayMode);
     void OnScreenChange(ScreenId screenId, ScreenEvent screenEvent,
         ScreenChangeReason reason = ScreenChangeReason::DEFAULT);
+    void OnScreenChangeInner(ScreenId screenId, ScreenEvent screenEvent,
+        ScreenChangeReason reason = ScreenChangeReason::DEFAULT);
     virtual void OnScreenChangeDefault(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason);
     void OnFoldScreenChange(sptr<ScreenSession>& screenSession);
     void OnFoldStatusChange(bool isSwitching);
@@ -502,6 +511,7 @@ public:
     void HotSwitch(int32_t newUserId, int32_t newScbPid);
     void AddScbClientDeathRecipient(const sptr<IScreenSessionManagerClient>& scbClient, int32_t scbPid);
     void ScbClientDeathCallback(int32_t deathScbPid);
+    FoldDisplayMode FindPidInDisplayModeMap(int32_t newScbPid);
     void ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid);
     void RecoverMultiScreenModeWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid);
     int32_t GetCurrentUserId();
@@ -568,6 +578,10 @@ public:
     Rotation GetCurrentConfigCorrection();
     Rotation RemoveRotationCorrection(Rotation rotation);
     Rotation RemoveRotationCorrection(Rotation rotation, FoldDisplayMode foldDisplayMode);
+    Rotation CorrectionRotationByWhiteConfig(const RotationCorrectionWhiteConfig& config,
+        Rotation rotation, FoldDisplayMode foldDisplayMode);
+    Rotation GetCorrectionInWhiteConfigByDisplayMode(const RotationCorrectionWhiteConfig& config,
+        FoldDisplayMode displayMode);
     FoldDisplayMode GetFoldDisplayModeAfterRotation() const;
     void SetFoldDisplayModeAfterRotation(FoldDisplayMode foldDisplayMode);
     void NotifySwitchUserAnimationFinish() override;
@@ -789,7 +803,6 @@ private:
     void SetDisplayRegionAndAreaFixed(Rotation rotation, DMRect& displayRegion, DMRect& displayAreaFixed);
     void CalculateRotatedDisplay(Rotation rotation, const DMRect& screenRegion, DMRect& displayRegion, DMRect& displayArea);
     void CalculateScreenArea(const DMRect& displayRegion, const DMRect& displayArea, const DMRect& screenRegion, DMRect& screenArea);
-    void LockLandExtendIfScreenInfoNull(sptr<ScreenSession>& screenSession);
 #ifdef DEVICE_STATUS_ENABLE
     void SetDragWindowScreenId(ScreenId screenId, ScreenId displayNodeScreenId);
 #endif // DEVICE_STATUS_ENABLE
@@ -819,6 +832,19 @@ private:
     bool ActiveUser(int32_t newUserId, int32_t& oldUserId, int32_t newScbPid);
     DisplayId GetUserDisplayId(int32_t targetUserId) const;
 
+    void GetRotationCorrectionWhiteListFromDatabase();
+    bool GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
+        RotationCorrectionWhiteConfig& config);
+    void RegisterRotationCorrectionWhiteListObserver();
+    mutable std::shared_mutex rotationCorrectionWhiteMutex_;
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> rotationCorrectionWhiteList_;
+    mutable std::shared_mutex rotationCorrectionWhiteModeMutex_;
+    std::unordered_set<FoldDisplayMode> rotationCorrectionWhiteMode_;
+    bool IsRotationCorrectionWhiteListEmpty() const;
+    bool IsSupportRotationCorrectionByWhiteList(FoldDisplayMode mode) const;
+    void InitRotationCorrectionWhiteModeByWhiteList(
+        const std::unordered_map<std::string, RotationCorrectionWhiteConfig>& whiteList);
+
     void HandleSuperFoldDisplayInfoWhenKeyboardOn(const sptr<ScreenSession>& screenSession,
         sptr<DisplayInfo>& displayInfo);
     void HandleRotationCorrectionExemption(sptr<DisplayInfo>& displayInfo);
@@ -831,6 +857,7 @@ private:
     void SwitchUserResetDisplayNodeScreenId();
     void AodLibInit();
     DMRect CalcRectsWithRotation(DisplayId displayId, const DMRect &rect);
+    Rotation CalcPhysicalRotation(Rotation orgRotation, FoldDisplayMode displayMode);
     std::shared_mutex rotationCorrectionExemptionMutex_;
     std::vector<std::string> rotationCorrectionExemptionList_;
     bool needReinstallExemptionList_ = true;
@@ -866,6 +893,8 @@ private:
     std::shared_ptr<TaskScheduler> taskScheduler_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
     std::shared_ptr<FfrtQueueHelper> ffrtQueueHelper_ = nullptr;
+    int32_t screenConnectTaskStage_ = -1;
+    std::shared_ptr<TaskSequenceProcess> screenConnectTaskGroup_;
 
     /*
      * multi user
@@ -892,7 +921,8 @@ private:
     mutable std::mutex displayConcurrentUserMapMutex_;
     std::vector<int32_t> deathPidVector_ {};
     std::map<int32_t, sptr<IScreenSessionManagerClient>> clientProxyMap_;
-    FoldDisplayMode oldScbDisplayMode_ = FoldDisplayMode::UNKNOWN;
+    std::map<int32_t, FoldDisplayMode> oldScbDisplayModeMap_;
+    mutable std::mutex oldScbDisplayModeMapMutex_;
 
     sptr<IScreenSessionManagerClient> clientProxy_;
     std::mutex clientProxyMutex_; // above guarded by clientProxyMutex_
@@ -947,7 +977,7 @@ private:
     float pcModeDpi_ { 1.0f };
 
     uint32_t defaultDpi {0};
-    uint32_t extendDefaultDpi_ {0};
+    float extendDefaultDensity_ {1.0f};
     uint32_t defaultDeviceRotationOffset_ { 0 };
     std::atomic<ExtendScreenConnectStatus> extendScreenConnectStatus_ = ExtendScreenConnectStatus::UNKNOWN;
     bool isExtendScreenConnected_ = false;
@@ -1056,7 +1086,9 @@ private:
         bool isCallingByThirdParty);
     bool IsSupportCoordination();
     void RegisterSettingExtendScreenDpiObserver();
+    void RegisterSettingExtendScreenIndepDpiObserver();
     void SetExtendScreenDpi();
+    void SetExtendScreenIndepDpi();
     void RegisterSettingBorderingAreaPercentObserver();
     void SetBorderingAreaPercent();
     bool HandleSwitchPcMode();

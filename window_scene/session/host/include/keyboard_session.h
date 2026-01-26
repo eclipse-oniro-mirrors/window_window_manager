@@ -53,7 +53,7 @@ public:
         IsLastFrameLayoutFinishedCallback isLastFrameLayoutFinished;
     };
     KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-        const sptr<KeyboardSessionCallback>& keyboardCallback, int32_t userId = 0);
+        const sptr<KeyboardSessionCallback>& keyboardCallback);
     ~KeyboardSession();
 
     WSError Show(sptr<WindowSessionProperty> property) override;
@@ -68,6 +68,7 @@ public:
     void OpenKeyboardSyncTransaction() override;
     void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect, bool isKeyboardShow,
         const WindowAnimationInfo& animationInfo, const CallingWindowInfoData& callingWindowInfoData) override;
+    void NotifyKeyboardAnimationWillBegin(bool isKeyboardShow, const WindowAnimationInfo& animationInfo) override;
     void CallingWindowStateChange(const CallingWindowInfoData& callingWindowInfoData) override;
     bool IsVisibleForeground() const override;
     bool IsVisibleNotBackground() const override;

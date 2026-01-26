@@ -148,10 +148,10 @@ std::map<uint64_t, std::map<uint32_t, WSRect>> SceneSession::windowDragHotAreaMa
 static bool g_enableForceUIFirst = system::GetParameter("window.forceUIFirst.enabled", "1") == "1";
 GetConstrainedModalExtWindowInfoFunc SceneSession::onGetConstrainedModalExtWindowInfoFunc_;
 
-SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId)
+SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
     : Session(info)
 {
-    GeneratePersistentId(false, info.persistentId_, userId);
+    GeneratePersistentId(false, info.persistentId_);
     specificCallback_ = specificCallback;
     SetCollaboratorType(info.collaboratorType_);
     TLOGI(WmsLogTag::WMS_LIFE, "Create session, id: %{public}d", GetPersistentId());
@@ -617,6 +617,29 @@ WSError SceneSession::BackgroundTask(const bool isSaveSnapshot, LifeCycleChangeR
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
+}
+
+void SceneSession::RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func)
+{
+    onGetAppUseControlDisplayMapFunc_ = std::move(func);
+}
+
+void SceneSession::NotifyRemoveAppLockSnapshot()
+{
+    if (!WindowHelper::IsMainWindow(GetWindowType())) {
+        return;
+    }
+    if (IsSupportAppLockSnapshot()) {
+        ControlInfo controlInfo;
+        bool isAppControl = GetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
+        bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
+        SetAppLockControl(isAppControl && isAppUseControl);
+        return;
+    }
+    SetAppLockControl(false);
+    if (IsSessionForeground()) {
+        NotifyRemoveSnapshot();
+    }
 }
 
 WMError SceneSession::NotifySnapshotUpdate()
@@ -1136,8 +1159,9 @@ void SceneSession::HandleSessionDragEvent(SessionEvent event)
             }
         }
         Gravity gravity = moveDragController_->GetGravity();
-        SetSessionEventParam({rect.posX_, rect.posY_, rect.width_, rect.height_,
-            static_cast<uint32_t>(dragResizeType), static_cast<uint32_t>(gravity)});
+        Gravity dragGravity = moveDragController_->GetDragGravity();
+        SetSessionEventParam({rect.posX_, rect.posY_, rect.width_, rect.height_, static_cast<uint32_t>(dragResizeType),
+            static_cast<uint32_t>(gravity), static_cast<uint32_t>(dragGravity)});
     } else if (moveDragController_ && event == SessionEvent::EVENT_END_MOVE) {
         const auto& lastDragEndRect = moveDragController_->GetLastDragEndRect();
         SetSessionEventParam({lastDragEndRect.posX_, lastDragEndRect.posY_,
@@ -2944,6 +2968,9 @@ void SceneSession::GetKeyboardAvoidArea(WSRect& rect, AvoidArea& avoidArea)
             WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     }
     for (auto& inputMethod : inputMethodVector) {
+        if (!inputMethod) {
+            continue;
+        }
         if (inputMethod->GetSessionState() != SessionState::STATE_FOREGROUND &&
             inputMethod->GetSessionState() != SessionState::STATE_ACTIVE) {
             continue;
@@ -7359,7 +7386,7 @@ WSRect SceneSession::GetLastSafeRect() const
     return lastSafeRect;
 }
 
-void SceneSession::SetLastSafeRect(WSRect rect)
+void SceneSession::SetLastSafeRect(const WSRect& rect)
 {
     lastSafeRect.posX_ = rect.posX_;
     lastSafeRect.posY_ = rect.posY_;
@@ -8735,13 +8762,13 @@ uint32_t SceneSession::UpdateUIParam(const SessionUIParam& uiParam)
         return dirtyFlags_;
     }
     dirtyFlags_ |= UpdateVisibilityInner(true) ? static_cast<uint32_t>(SessionUIDirtyFlag::VISIBLE) : 0;
+    dirtyFlags_ |= UpdateScaleInner(uiParam.scaleX_, uiParam.scaleY_, uiParam.pivotX_, uiParam.pivotY_) ?
+        static_cast<uint32_t>(SessionUIDirtyFlag::SCALE) : 0;
     bool isUpdateRectDirty = UpdateRectInner(uiParam, GetSizeChangeReason());
     if (isUpdateRectDirty) {
         dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
     }
-    dirtyFlags_ |= UpdateScaleInner(uiParam.scaleX_, uiParam.scaleY_, uiParam.pivotX_, uiParam.pivotY_) ?
-        static_cast<uint32_t>(SessionUIDirtyFlag::SCALE) : 0;
     if (dirtyFlags_ & static_cast<uint32_t>(SessionUIDirtyFlag::GLOBAL_RECT) ||
         dirtyFlags_ & static_cast<uint32_t>(SessionUIDirtyFlag::SCALE)) {
         NotifyGlobalScaledRectChange();
@@ -8812,7 +8839,7 @@ void SceneSession::NotifyAddOrRemoveSnapshotWindow(bool interactive)
 {
     // persistent imageFit exist, add snapshot when interactive is false.
     if (isPersistentImageFit_.load()) {
-        TLOGI(WmsLogTag::WMS_PATTERN, "Add or remove static image from window, interactive:%{public}d", interactive);
+        TLOGI(WmsLogTag::WMS_PATTERN, "id:%{public}d, interactive:%{public}d", GetPersistentId(), interactive);
         PostTask([weakThis = wptr(this), interactive, where = __func__] {
             auto session = weakThis.promote();
             if (session == nullptr) {
@@ -8930,6 +8957,7 @@ void SceneSession::NotifyClientToUpdateAvoidArea()
         return;
     }
     // flush avoid areas on (avoid area dirty && (normal session rect NOT dirty || avoid session))
+    // DirtyWindow already updated avoid area in OnBoundsChanged
     if ((IsImmersiveType() || !IsDirtyWindow()) && specificCallback_->onUpdateAvoidArea_) {
         specificCallback_->onUpdateAvoidArea_(GetPersistentId());
     }
@@ -10405,6 +10433,38 @@ WMError SceneSession::SetSeparationTouchEnabled(const std::vector<int32_t>& para
     SetSessionInfoAdvancedFeatureFlag(OHOS::Rosen::ADVANCED_FEATURE_BIT_WINDOW_SEPARATION_TOUCH_ENABLED, !enabled);
     NotifySessionInfoChange();
     return WMError::WM_OK;
+}
+
+void SceneSession::RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func)
+{
+    const char* const where = __func__;
+    PostTask([weakThis = wptr(this), where, func = std::move(func)] {
+        auto session = weakThis.promote();
+        if (!session || !func) {
+            TLOGNE(WmsLogTag::WMS_PC, "session or onRecoverWindowEffectFunc_ is null");
+            return;
+        }
+        session->onRecoverWindowEffectFunc_ = std::move(func);
+        TLOGNI(WmsLogTag::WMS_PC, "%{public}s id: %{public}d,", where, session->GetPersistentId());
+    }, __func__);
+}
+
+WSError SceneSession::RecoverWindowEffect(bool recoverCorner, bool recoverShadow)
+{
+    const char* const where = __func__;
+    PostTask([weakThis = wptr(this), recoverCorner, recoverShadow, where] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_PC, "session is null");
+            return;
+        }
+        if (session->onRecoverWindowEffectFunc_) {
+            TLOGND(WmsLogTag::WMS_PC, "%{public}s id %{public}d recoverCorner: %{public}d recoverShadow: %{public}d",
+                where, session->GetPersistentId(), recoverCorner, recoverShadow);
+            session->onRecoverWindowEffectFunc_(recoverCorner, recoverShadow);
+        }
+    }, __func__);
+    return WSError::WS_OK;
 }
 
 void SceneSession::RegisterIsAppBoundSystemTrayCallback(

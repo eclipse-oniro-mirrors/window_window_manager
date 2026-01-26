@@ -1965,6 +1965,22 @@ HWTEST_F(SceneSessionManagerTest3, StartOrMinimizePcAppInPadUIAbilityBySCB, Test
     EXPECT_EQ(WSError::WS_OK, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession3, false));
     ssm_->SetTrayAppList(std::move(trayAppListOld));
 }
+
+/**
+ * @tc.name: NotifyRotationBegin
+ * @tc.desc: call NotifyRotationBegin
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, NotifyRotationBegin, TestSize.Level1)
+{
+    bool isStopDrag = false;
+    ssm_->NotifyRotationBegin(isStopDrag);
+    EXPECT_FALSE(isStopDrag);
+
+    isStopDrag = true;
+    ssm_->NotifyRotationBegin(isStopDrag);
+    EXPECT_TRUE(isStopDrag);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

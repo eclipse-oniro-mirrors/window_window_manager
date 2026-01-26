@@ -632,6 +632,7 @@ public:
     void RegisterSingleHandContainerNode(const std::string& stringId);
     const SingleHandCompatibleModeConfig& GetSingleHandCompatibleModeConfig() const;
     bool GetSingleHandModeEnable() const;
+    const SingleHandBackgroundLayoutConfig& GetSingleHandBackgroundLayoutConfig() const;
     void ConfigSupportFollowParentWindowLayout();
     void ConfigSupportFollowRelativePositionToParent();
     void SetHasRootSceneRequestedVsyncFunc(HasRootSceneRequestedVsyncFunc&& func);
@@ -669,6 +670,7 @@ public:
         uint64_t screenId, const std::vector<std::string>& privacyWindowTags, bool enable) override;
     WMError NotifyBrightnessModeChange(const std::string& brightnessMode);
     void NotifyOnAttachToFrameNode(const sptr<Session>& session);
+    bool IsNeedNotifyScreenshotEvent(const sptr<SceneSession>& sceneSession);
     WMError NotifyScreenshotEvent(ScreenshotEventType type) override;
     WMError UpdateSessionScreenshotAppEventListener(int32_t persistentId, bool haveListener);
     WMError AddSessionBlackList(const std::unordered_set<std::string>& bundleNames,
@@ -896,6 +898,7 @@ public:
     void PreLoadStartingWindow(sptr<SceneSession> sceneSession);
     bool IsSyncLoadStartingWindow() { return syncLoadStartingWindow_; };
     bool IsDmaReclaimEnabled() { return enableDmaReclaim_; };
+    WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl);
 
     /*
      * Window Animation
@@ -909,6 +912,8 @@ public:
     WMError UpdateScreenLockState(int32_t persistentId);
 
     WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams) override;
+
+    void NotifyRotationBegin(bool isStopDrag);
 
 protected:
     SceneSessionManager();
@@ -1618,6 +1623,7 @@ private:
     SetTopWindowBoundaryByIDFunc setTopWindowBoundaryByIDFunc_;
     SingleHandCompatibleModeConfig singleHandCompatibleModeConfig_;
     bool singleHandModeEnable_ = true;
+    SingleHandBackgroundLayoutConfig singleHandBackgroundLayoutConfig_;
     std::unordered_set<std::string> appsWithDeduplicatedWindowStatus_;
     std::shared_mutex appHookWindowInfoMapMutex_;
     std::unordered_map<std::string, HookWindowInfo> appHookWindowInfoMap_;
@@ -1626,6 +1632,9 @@ private:
     bool GetDisplaySizeById(DisplayId displayId, int32_t& displayWidth, int32_t& displayHeight);
     void UpdateSessionWithFoldStateChange(DisplayId displayId, SuperFoldStatus status, SuperFoldStatus prevStatus);
     void ConfigSingleHandCompatibleMode(const WindowSceneConfig::ConfigItem& configItem);
+    void ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
+        SingleHandBackgroundTextConfig& textConfig);
+    void ConfigSingleHandBackgroundLayout(const WindowSceneConfig::ConfigItem& configItem);
     void ConfigAppsWithDeduplicatedWindowStatus();
     void SetWindowStatusDeduplicationBySystemConfig(const SessionInfo& sessionInfo, SystemSessionConfig& systemConfig);
     HasRootSceneRequestedVsyncFunc hasRootSceneRequestedVsyncFunc_;
@@ -1843,6 +1852,7 @@ private:
     std::atomic<bool> delayRemoveSnapshot_ = false;
     bool syncLoadStartingWindow_ = false;
     bool enableDmaReclaim_ = false;
+    std::unordered_map<DisplayId, bool> appUseControlDisplayMap_;
     void InitWindowPattern();
     void InitStartingWindow();
     void InitDmaReclaimParam();
@@ -1879,6 +1889,9 @@ private:
         int32_t persistentId) override;
     WMError RemoveImageForRecent(int32_t persistentId) override;
     void GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts);
+    void InitSnapshotBlurConfig();
+    float GetBlurRadiusFromParam(const std::string& blurRadiusColorStr) const;
+    uint32_t GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const;
 
     RecoverState recoverState_ = RecoverState::RECOVER_END;
     OutlineParams recoverOutlineParams_;
@@ -1895,6 +1908,9 @@ private:
     std::string GetCallerSessionColorMode(const SessionInfo& sessionInfo);
     void NotifySessionScreenLockedChange(bool isScreenLocked);
     void SetBufferAvailable(sptr<SceneSession>& sceneSession);
+
+    float blurRadius_ = 0.0f;
+    uint32_t blurBackgroundColor_ = 0x00000000;
 
     /*
      * Compatible Mode

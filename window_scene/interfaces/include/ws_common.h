@@ -1058,6 +1058,25 @@ struct SingleHandScreenInfo {
     SingleHandMode mode = SingleHandMode::MIDDLE;
 };
 
+struct SingleHandBackgroundTextConfig {
+    int32_t posX = 0;
+    int32_t posY = 0;
+    int32_t width = -1;
+    int32_t height = -1;
+    int32_t fontSize = 0;
+    int32_t minFontSize = 0;
+    int32_t maxLines = 0;
+    std::string maxFontScale = "";
+};
+
+struct SingleHandBackgroundLayoutConfig {
+    bool isCustomLayout = false;
+    WSRect settingButtonRect = {0, 0, 0, 0};
+    SingleHandBackgroundTextConfig title;
+    SingleHandBackgroundTextConfig content;
+    SingleHandBackgroundTextConfig issueText;
+};
+
 struct DeviceScreenConfig {
     std::string rotationPolicy_ = "11"; // default use phone policy
     std::string defaultRotationPolicy_ = "1"; // default unspecified policy
@@ -1148,6 +1167,7 @@ struct SessionEventParam {
     int32_t sessionHeight_ = 0;
     uint32_t dragResizeType = 0;
     uint32_t gravity = 0;
+    uint32_t dragGravity = 0;
     uint32_t waterfallResidentState = 0;
     uint32_t compatibleStyleMode = 0;
     int32_t windowGlobalPosX_ = 0;

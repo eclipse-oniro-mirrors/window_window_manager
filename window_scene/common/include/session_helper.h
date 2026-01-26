@@ -256,6 +256,16 @@ public:
         }
         return value * std::pow(DECIMAL_BASE, shift);
     }
+
+    static bool IsHexChar(char c)
+    {
+        return std::isxdigit(static_cast<unsigned char>(c)) != 0;
+    }
+
+    static bool IsDecChar(char c)
+    {
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
+    }
 };
 } // Rosen
 } // OHOS

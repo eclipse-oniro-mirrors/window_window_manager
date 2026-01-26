@@ -309,6 +309,11 @@ void SensorFoldStateMgr::HandleTentChange(const SensorStatus& sensorStatus)
 {
     SensorStatus tmpSensorStatus = sensorStatus;
     TentSensorInfo& tentSensor = tmpSensorStatus.tentSensorInfo_;
+    if (tentSensor.tentType_ > TENT_MODE_ON) {
+        TLOGI_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES,
+            "only need deal on or off :%{public}d, other no processing", tentSensor.tentType_);
+        return;
+    }
     if (tentSensor.tentType_ == tentModeType_) {
         TLOGI(WmsLogTag::DMS, "Repeat reporting tent mode:%{public}d, no processing", tentModeType_);
         return;
@@ -317,6 +322,7 @@ void SensorFoldStateMgr::HandleTentChange(const SensorStatus& sensorStatus)
     SetTentMode(tentSensor.tentType_);
     if (tentSensor.tentType_ == TENT_MODE_ON) {
         ReportTentStatusChange(ReportTentModeStatus::NORMAL_ENTER_TENT_MODE);
+        currentFoldStatus_ = {FoldStatus::FOLDED};
         HandleSensorChange(FoldStatus::FOLDED);
         FoldScreenBasePolicy::GetInstance().ChangeOnTentMode(FoldStatus::FOLDED);
         SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
@@ -406,6 +412,7 @@ void SensorFoldStateMgr::TentModeHandleSensorChange(const SensorStatus& sensorSt
             SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
         }
         ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_CANCEL);
+        PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
     }
 }
 

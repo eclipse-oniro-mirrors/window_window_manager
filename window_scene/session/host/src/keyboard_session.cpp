@@ -38,8 +38,8 @@ namespace {
     constexpr int32_t INSERT_TO_THE_END = -1;
 }
 KeyboardSession::KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-    const sptr<KeyboardSessionCallback>& keyboardCallback, int32_t userId)
-    : SystemSession(info, specificCallback, userId)
+    const sptr<KeyboardSessionCallback>& keyboardCallback)
+    : SystemSession(info, specificCallback)
 {
     keyboardCallback_ = keyboardCallback;
     scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, GetPersistentId());
@@ -226,6 +226,7 @@ void KeyboardSession::SetCallingSessionId(uint32_t callingSessionId)
                 WSRect endRect = {panelRect.posX_, panelRect.posY_ + panelRect.height_, panelRect.width_,
                     panelRect.height_};
                 // panelRect as beginRect
+                callingSession->NotifyKeyboardAnimationWillBegin(false, panelRect, endRect, false, nullptr);
                 callingSession->NotifyKeyboardAnimationCompleted(false, panelRect, endRect);
             }
         }
@@ -790,7 +791,7 @@ void KeyboardSession::CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRe
         // The callingId may change in WindowManager.
         // Use scb's callingId to properly handle callingWindow raise/restore.
         sptr<SceneSession> callingSession = session->GetSceneSession(callingId);
-        if (callingSession != nullptr) {
+        if (callingSession != nullptr && animationInfo.animated) {
             callingSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo.beginRect,
                 animationInfo.endRect, animationInfo.animated, rsTransaction);
         }
@@ -1281,6 +1282,24 @@ void KeyboardSession::PrintRectsInfo(const std::vector<Rect>& rects, const std::
         oss << "[" << rect.posX_ << "," << rect.posY_ << "," << rect.width_ << "," << rect.height_ << "]";
     }
     TLOGI(WmsLogTag::WMS_KEYBOARD, "%{public}s: %{public}s", infoTag.c_str(), oss.str().c_str());
+}
+
+void KeyboardSession::NotifyKeyboardAnimationWillBegin(bool isKeyboardShow, const WindowAnimationInfo& animationInfo)
+{
+    PostTask([weakThis = wptr(this), isKeyboardShow, animationInfo]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "Keyboard session is null");
+            return WSError::WS_ERROR_DESTROYED_OBJECT;
+        }
+        auto callingId = animationInfo.callingId;
+        sptr<SceneSession> callingSession = session->GetSceneSession(callingId);
+        if (callingSession != nullptr) {
+            callingSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo.beginRect,
+                animationInfo.endRect, animationInfo.animated, nullptr);
+        }
+        return WSError::WS_OK;
+    }, __func__);
 }
 
 void KeyboardSession::CallingWindowStateChange(const CallingWindowInfoData& callingWindowInfoData)

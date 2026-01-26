@@ -217,6 +217,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::GetSingleHandCompatibleModeConfig);
     BindNativeFunction(env, exportObj, "getSingleHandModeEnable", moduleName,
         JsSceneSessionManager::GetSingleHandModeEnable);
+    BindNativeFunction(env, exportObj, "getSingleHandBackgroundLayoutConfig", moduleName,
+        JsSceneSessionManager::GetSingleHandBackgroundLayoutConfig);
     BindNativeFunction(env, exportObj, "getRootSceneUIContext", moduleName,
         JsSceneSessionManager::GetRootSceneUIContext);
     BindNativeFunction(env, exportObj, "sendTouchEvent", moduleName, JsSceneSessionManager::SendTouchEvent);
@@ -322,6 +324,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::RegisterSingleHandContainerNode);
     BindNativeFunction(env, exportObj, "notifyRotationChange", moduleName,
         JsSceneSessionManager::NotifyRotationChange);
+    BindNativeFunction(env, exportObj, "notifyRotationBegin", moduleName,
+        JsSceneSessionManager::NotifyRotationBegin);
     BindNativeFunction(env, exportObj, "supportFollowParentWindowLayout", moduleName,
         JsSceneSessionManager::SupportFollowParentWindowLayout);
     BindNativeFunction(env, exportObj, "supportFollowRelativePositionToParent", moduleName,
@@ -1142,6 +1146,13 @@ napi_value JsSceneSessionManager::GetSingleHandModeEnable(napi_env env, napi_cal
     return (me != nullptr) ? me->OnGetSingleHandModeEnable(env, info) : nullptr;
 }
 
+napi_value JsSceneSessionManager::GetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnGetSingleHandBackgroundLayoutConfig(env, info) : nullptr;
+}
+
 napi_value JsSceneSessionManager::AddWindowDragHotArea(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
@@ -1547,6 +1558,13 @@ napi_value JsSceneSessionManager::NotifyRotationChange(napi_env env, napi_callba
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnNotifyRotationChange(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::NotifyRotationBegin(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnNotifyRotationBegin(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::SupportZLevel(napi_env env, napi_callback_info info)
@@ -3075,6 +3093,22 @@ napi_value JsSceneSessionManager::OnGetSingleHandModeEnable(napi_env env, napi_c
         return NapiGetUndefined(env);
     }
     return jsSingleHandModeEnableObj;
+}
+
+napi_value JsSceneSessionManager::OnGetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    const auto& singleHandBackgroundLayoutConfig =
+        SceneSessionManager::GetInstance().GetSingleHandBackgroundLayoutConfig();
+    napi_value jsSingleHandBackgroundLayoutConfigObj =
+        JsWindowSceneConfig::CreateSingleHandBackgroundLayoutConfig(env, singleHandBackgroundLayoutConfig);
+    if (jsSingleHandBackgroundLayoutConfigObj == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "jsSingleHandBackgroundLayoutConfigObj is nullptr");
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY), "System is abnormal"));
+        return NapiGetUndefined(env);
+    }
+    return jsSingleHandBackgroundLayoutConfigObj;
 }
 
 napi_value JsSceneSessionManager::OnAddWindowDragHotArea(napi_env env, napi_callback_info info)
@@ -5343,6 +5377,26 @@ napi_value JsSceneSessionManager::OnNotifyRotationChange(napi_env env, napi_call
         return NapiGetUndefined(env);
     }
     return rotationChangeResultObj;
+}
+
+napi_value JsSceneSessionManager::OnNotifyRotationBegin(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Argc count is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    bool isStopDrag = false;
+    if (!ConvertFromJsValue(env, argv[0], isStopDrag)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to isStopDrag");
+        return NapiGetUndefined(env);
+    }
+    SceneSessionManager::GetInstance().NotifyRotationBegin(isStopDrag);
+    return NapiGetUndefined(env);
 }
 
 void JsSceneSessionManager::RegisterSceneSessionDestructCallback()

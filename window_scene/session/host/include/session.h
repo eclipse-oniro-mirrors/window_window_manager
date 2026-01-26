@@ -124,6 +124,7 @@ using OutlineParamsChangeCallbackFunc = std::function<void(bool enabled, const O
 using NotifyRestartAppFunc = std::function<void(const SessionInfo& info, int32_t callingPid)>;
 using ProcessCallingSessionIdChangeFunc = std::function<void(uint32_t callingSessionId)>;
 using GetRsCmdBlockingCountFunc = std::function<int32_t()>;
+using GetAppUseControlDisplayMapFunc = std::function<std::unordered_map<DisplayId, bool>&()>;
 class ILifecycleListener {
 public:
     virtual void OnActivation() {}
@@ -318,6 +319,11 @@ public:
     virtual bool GetIsPrivacyMode() const { return false; };
     void SetSnapshotPrivacyMode(bool privacyMode) { snapshotPrivacyMode_.store(privacyMode); };
     bool GetSnapshotPrivacyMode() const;
+    void SetBlurRadius(const float blurRadius);
+    float GetBlurRadius() const;
+    void SetBlurBackgroundColor(const float blurBackgroundColor);
+    uint32_t GetBlurBackgroundColor() const;
+
     std::atomic<bool> snapshotPrivacyMode_ { false };
 
     virtual void SetAppControlInfo(ControlAppType type, ControlInfo controlInfo) {};
@@ -327,6 +333,7 @@ public:
         return false;
     };
     bool GetAppLockControl() const { return isAppLockControl_.load(); };
+    void SetAppLockControl(bool control) { isAppLockControl_.store(control); };
     void SetSaveSnapshotCallback(Task&& task)
     {
         if (task) {
@@ -826,6 +833,7 @@ public:
     bool HasSnapshot();
     virtual void RecoverSnapshotPersistence(const SessionInfo& info) {};
     virtual void ClearSnapshotPersistence() {};
+    virtual void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) {};
     void SetHasSnapshot(SnapshotStatus key, DisplayOrientation rotate);
     std::string GetSnapshotPersistentKey(int32_t id);
     std::string GetSnapshotPersistentKey(int32_t id, SnapshotStatus key);
@@ -873,7 +881,7 @@ public:
     virtual bool IsPrelaunch() const { return false; }
 
 protected:
-    void GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId = 0);
+    void GeneratePersistentId(bool isExtension, int32_t persistentId);
     virtual void UpdateSessionState(SessionState state);
     void NotifySessionStateChange(const SessionState& state);
     void UpdateSessionTouchable(bool touchable);
@@ -1085,6 +1093,8 @@ protected:
     /*
      * Window Pattern
      */
+    bool IsSupportAppLockSnapshot() const;
+    GetAppUseControlDisplayMapFunc onGetAppUseControlDisplayMapFunc_;
     std::atomic<bool> isAttach_ { false };
     std::atomic<bool> needNotifyAttachState_ = { false };
     int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
@@ -1268,6 +1278,8 @@ private:
     std::pair<std::shared_ptr<uint8_t[]>, size_t> preloadStartingWindowSvgBufferInfo_;
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
+    float blurRadius_ = 0.0f;
+    uint32_t blurBackgroundColor_ = 0x00000000;
 
     /*
      * Specific Window

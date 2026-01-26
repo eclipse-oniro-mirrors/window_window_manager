@@ -164,6 +164,7 @@ private:
     // Window Property
     int HandleSetWindowCornerRadius(MessageParcel& data, MessageParcel& reply);
     int HandleSetWindowShadows(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverWindowEffect(MessageParcel& data, MessageParcel& reply);
     // Layout
     int HandleGetCrossAxisState(MessageParcel& data, MessageParcel& reply);
 
