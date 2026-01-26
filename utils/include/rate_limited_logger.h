@@ -29,7 +29,7 @@
 namespace OHOS {
 namespace Rosen {
 namespace {
-const std::unordered_set<WmsLogTag> tagWhiteList = {WmsLogTag::WMS_LAYOUT};
+const std::unordered_set<WmsLogTag> TAG_WHITE_LIST = {WmsLogTag::WMS_LAYOUT};
 constexpr uint32_t TEN_SECONDS = 10 * 1000;
 constexpr uint32_t ONE_MINUTE  = 60 * 1000;
 constexpr uint32_t ONE_HOUR    = 60 * 60 * 1000;
@@ -137,7 +137,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 #define TLOGI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                          \
     do {                                                                                          \
         uintptr_t functionAddress = GET_PACKED_ADDR_LINE();                                       \
-        if (tagWhiteList.find(tag) != tagWhiteList.end() &&                                       \
+        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
             RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
             timeWindowMs, maxCount)) {                                                            \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
@@ -150,7 +150,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 #define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
     do {                                                                                          \
         uintptr_t functionAddress = GET_PACKED_ADDR_LINE_WID(wid);                                \
-        if (tagWhiteList.find(tag) != tagWhiteList.end() &&                                       \
+        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
             RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
             timeWindowMs, maxCount)) {                                                            \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
