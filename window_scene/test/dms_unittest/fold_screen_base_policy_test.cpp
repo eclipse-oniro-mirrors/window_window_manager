@@ -400,7 +400,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl03, TestSize.Level
 
 HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl04, TestSize.Level1)
 {
-    if(FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()){
+    if(FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
 
     LOG_SetCallback(MyLogCallback);
     FoldScreenBasePolicy* policy = mockBasePolicy.get();
