@@ -14239,6 +14239,9 @@ void ScreenSessionManager::WaitSwitchUserAnimateFinish(int32_t newUserId, bool i
     clientProxy->OnAnimationFinish();
     SetUserDisplayNodePositionZ(newUserId, POSITION_Z_HIGH);
     RemoveUserDisplayNodeFromTree(currentUserId_);
+    if (newUserId == currentUserId_) {
+        SetUserDisplayNodePositionZ(newUserId, POSITION_Z_DEFAULT);
+    }
     TLOGNFI(WmsLogTag::DMS, "success");
 }
 
