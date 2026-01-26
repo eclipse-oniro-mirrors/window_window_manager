@@ -38,8 +38,8 @@ namespace {
     constexpr int32_t INSERT_TO_THE_END = -1;
 }
 KeyboardSession::KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-    const sptr<KeyboardSessionCallback>& keyboardCallback, int32_t userId)
-    : SystemSession(info, specificCallback, userId)
+    const sptr<KeyboardSessionCallback>& keyboardCallback)
+    : SystemSession(info, specificCallback)
 {
     keyboardCallback_ = keyboardCallback;
     scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, GetPersistentId());

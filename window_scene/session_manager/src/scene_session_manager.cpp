@@ -2794,24 +2794,24 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
     sptr<SceneSession::SpecificSessionCallback> specificCb = CreateSpecificSessionCallback();
     sptr<SceneSession> sceneSession = nullptr;
     if (sessionInfo.isSystem_) {
-        sceneSession = new SCBSystemSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new SCBSystemSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::DEFAULT, "[WMSSCB]Create SCBSystemSession, type: %{public}d", sessionInfo.windowType_);
     } else if (property == nullptr && SessionHelper::IsMainWindow(static_cast<WindowType>(sessionInfo.windowType_))) {
-        sceneSession = new MainSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new MainSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::WMS_MAIN, "Create MainSession, id: %{public}d", sceneSession->GetPersistentId());
     } else if (property != nullptr && SessionHelper::IsSubWindow(property->GetWindowType())) {
-        sceneSession = new SubSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new SubSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::WMS_SUB, "Create SubSession, type: %{public}d", property->GetWindowType());
     } else if (property != nullptr && property->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         sptr<KeyboardSession::KeyboardSessionCallback> keyboardCb = CreateKeyboardSessionCallback();
-        sceneSession = new KeyboardSession(sessionInfo, specificCb, keyboardCb, GetCurrentUserId());
+        sceneSession = new KeyboardSession(sessionInfo, specificCb, keyboardCb);
         sceneSession->SetIsSystemKeyboard(property->IsSystemKeyboard());
         CreateKeyboardPanelSession(sceneSession);
         HandleKeyboardAvoidChange(sceneSession, sceneSession->GetScreenId(),
             SystemKeyboardAvoidChangeReason::KEYBOARD_CREATED);
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Create KeyboardSession, type: %{public}d", property->GetWindowType());
     } else if (property != nullptr && SessionHelper::IsSystemWindow(property->GetWindowType())) {
-        sceneSession = new SystemSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new SystemSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::WMS_SYSTEM, "Create SystemSession, type: %{public}d", property->GetWindowType());
     } else {
         TLOGE(WmsLogTag::WMS_LIFE, "Invalid window type");
@@ -9211,7 +9211,7 @@ void SceneSessionManager::RemoveHighlightSessionIds(const sptr<SceneSession>& sc
         std::lock_guard<std::mutex> lock(highlightIdsMutex_);
         if (highlightIds_.find(sceneSession->GetPersistentId()) != highlightIds_.end()) {
             auto highlightNotifyInfo = sptr<HighlightNotifyInfo>::MakeSptr(INVALID_TIME_STAMP,
-                std::vector<int32_t>{sceneSession->GetPersistentId()}, INVALID_SESSION_ID, false);
+                std::vector<int32_t>(sceneSession->GetPersistentId()), INVALID_SESSION_ID, false);
             sceneSession->UpdateHighlightStatus(highlightNotifyInfo, false, false);
             highlightIds_.erase(sceneSession->GetPersistentId());
         } else {
