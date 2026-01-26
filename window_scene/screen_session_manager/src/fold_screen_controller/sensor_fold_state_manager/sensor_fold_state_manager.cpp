@@ -65,7 +65,6 @@ void SensorFoldStateManager::HandleTentChange(int tentType, sptr<FoldScreenPolic
 void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, float angle,
     sptr<FoldScreenPolicy> foldScreenPolicy)
 {
-    std::lock_guard<std::recursive_mutex> lock(mStateMutex_);
     if (foldScreenPolicy == nullptr) {
         TLOGE(WmsLogTag::DMS, "foldScreenPolicy is nullptr");
         return;
@@ -75,6 +74,7 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, float angl
         return;
     }
     auto task = [=] {
+        std::lock_guard<std::recursive_mutex> lock(mStateMutex_);
         if (mState_ != nextState) {
             TLOGI(WmsLogTag::DMS, "current state: %{public}d, next state: %{public}d.", mState_, nextState);
             ReportNotifyFoldStatusChange(static_cast<int32_t>(mState_), static_cast<int32_t>(nextState), angle);
