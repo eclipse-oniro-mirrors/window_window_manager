@@ -998,16 +998,18 @@ void WindowSceneSessionImpl::UpdateDefaultStatusBarColor()
         TLOGD(WmsLogTag::WMS_IMMS, "win %{public}u no need update", GetPersistentId());
         return;
     }
-    SystemBarProperty statusBarProp = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
+    auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
+    SystemBarProperty statusBarProp = GetSystemBarPropertyByType(type);
     statusBarProp.contentColor_ = contentColor;
     statusBarProp.settingFlag_ = static_cast<SystemBarSettingFlag>(
         static_cast<uint32_t>(statusBarProp.settingFlag_) |
         static_cast<uint32_t>(SystemBarSettingFlag::FOLLOW_SETTING));
-    property_->SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, statusBarProp);
+    property_->SetSystemBarProperty(type, statusBarProp);
     {
         std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
-        if (ownSystemBarPropertyMap_.empty()) {
-            SetSpecificBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, statusBarProp);
+        if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end() ||
+            ownSystemBarPropertyMap_[type].empty()) {
+            SetSpecificBarProperty(type, statusBarProp);
         }
     }
 }
