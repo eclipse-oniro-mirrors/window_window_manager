@@ -475,8 +475,8 @@ void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
             dragMoveMountedNode->AddCrossScreenChild(movedSurfaceNode, SUFFIX_INDEX, true);
         }
         cloneNodeCount_++;
-        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display:%{public}" PRIu64 " persistentId:%{public}d",
-            displayId, GetPersistentId());
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display: %{public}" PRIu64 " persistentId: %{public}d, "
+            "cloneNodeCount: %{public}d", displayId, GetPersistentId(), cloneNodeCount_);
     }
 }
 
