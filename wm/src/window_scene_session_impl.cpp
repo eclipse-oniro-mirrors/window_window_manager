@@ -2868,7 +2868,10 @@ Ace::ViewportConfig WindowSceneSessionImpl::FillTargetOrientationConfig(
     auto deviceRotation = static_cast<uint32_t>(displayInfo->GetDefaultDeviceRotationOffset());
     uint32_t transformHint = (targetRotation * ONE_FOURTH_FULL_CIRCLE_DEGREE + deviceRotation) % FULL_CIRCLE_DEGREE;
     float density = GetVirtualPixelRatio(displayInfo);
-    virtualPixelRatio_ = density;
+    {
+        std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
+        virtualPixelRatio_ = density;
+    }
     config.SetSize(targetRect.width_, targetRect.height_);
     config.SetPosition(targetRect.posX_, targetRect.posY_);
     config.SetDensity(density);

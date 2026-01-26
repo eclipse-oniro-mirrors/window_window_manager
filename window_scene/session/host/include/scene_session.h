@@ -1580,7 +1580,7 @@ private:
     NotifyIsCustomAnimationPlayingCallback onIsCustomAnimationPlaying_;
     NotifyWindowAnimationFlagChangeFunc onWindowAnimationFlagChange_;
     NotifyAnimateToFunc onAnimateTo_;
-    bool isUIFirstEnabled_ = false;
+    std::atomic<bool> isUIFirstEnabled_ = false;
     void DisableUIFirstIfNeed();
 
     /*

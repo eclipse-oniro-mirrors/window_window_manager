@@ -1043,9 +1043,6 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         napi_unwrap(env, nativeContext, &contextPtr);
     }
     NapiAsyncTask::ExecuteCallback execute = [lists, isOldApi, newApi, contextPtr, ctxRef]() {
-        if (lists == nullptr) {
-            return;
-        }
         if (isOldApi) {
             if (lists->ability->GetWindow() == nullptr) {
                 lists->errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
