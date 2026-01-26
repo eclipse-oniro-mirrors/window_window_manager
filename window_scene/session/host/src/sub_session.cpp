@@ -169,8 +169,8 @@ WSError SubSession::Hide(bool needSyncHide)
             TLOGNE(WmsLogTag::WMS_SUB, "session is null");
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        session->isSubWindowResizingOrMoving_ = false;
         TLOGNI(WmsLogTag::WMS_LIFE, "Hide session, id: %{public}d", session->GetPersistentId());
+        session->isSubWindowResizingOrMoving_ = false;
         auto ret = session->SetActive(false);
         if (ret != WSError::WS_OK) {
             return ret;
