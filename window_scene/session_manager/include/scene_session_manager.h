@@ -913,6 +913,8 @@ public:
 
     WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams) override;
 
+    void NotifyRotationBegin(bool isStopDrag);
+
 protected:
     SceneSessionManager();
     virtual ~SceneSessionManager();
