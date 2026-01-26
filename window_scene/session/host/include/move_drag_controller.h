@@ -199,7 +199,6 @@ public:
 
     void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void CalcFirstMoveTargetRect(const WSRect& windowRect, bool useWindowRect);
-    WSRect CalcFirstOriginalRectPos(WSRect windowRect);
     WSRect GetFullScreenToFloatingRect(const WSRect& originalRect, const WSRect& windowRect);
     int32_t GetOriginalPointerPosX();
     int32_t GetOriginalPointerPosY();
@@ -497,6 +496,8 @@ private:
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
 
     bool EventDownInit(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    float GetVirtualPixelRatio(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const;
+    WSRect CalcFirstOriginalRectPos(const WSRect& windowRect) const;
     bool CalcMoveInputBarRect(
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const WSRect& originalRect, SizeChangeReason reason);
     void AdjustTargetPositionByAvailableArea(int32_t& moveDragFinalX, int32_t& moveDragFinalY);
