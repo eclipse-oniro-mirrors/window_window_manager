@@ -3016,6 +3016,8 @@ export class WindowInternal implements Window {
     private native setWindowShadowEnabledSync(nativeObj: long, enable: boolean): void;
     private native isImmersiveLayoutSync(nativeObj: long): boolean;
     private native keepKeyboardOnFocusSync(nativeObj: long, enable: boolean): void;
+    private native enableLandscapeMultiWindow(nativeObj: long): void;
+    private native disableLandscapeMultiWindow(nativeObj: long): void;
 
     private native setWindowTransitionAnimation(nativeObj: long, transitionType: WindowTransitionType,
         animation: TransitionAnimation): void;
@@ -4821,6 +4823,30 @@ export class WindowInternal implements Window {
       });
     }
 
+    public enableLandscapeMultiWindow(): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute(() => {
+          this.enableLandscapeMultiWindow(this.nativeObj);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public disableLandscapeMultiWindow(): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute(() => {
+          this.disableLandscapeMultiWindow(this.nativeObj);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public setResizeByDragEnabled(enable: boolean, callback: AsyncCallback<void>) {
       taskpool.execute(() => {
         this.setResizeByDragEnabled(this.nativeObj, enable);
@@ -5318,6 +5344,8 @@ export interface Window {
     startMoving(): Promise<void>;
     startMoving(offsetX: int, offsetY: int): Promise<void>;
     stopMoving(): Promise<void>;
+    enableLandscapeMultiWindow(): Promise<void>;
+    disableLandscapeMultiWindow(): Promise<void>;
     setResizeByDragEnabled(enable: boolean, callback: AsyncCallback<void>): void;
     setResizeByDragEnabled(enable: boolean): Promise<void>;
     enableDrag(enable: boolean): Promise<void>;
