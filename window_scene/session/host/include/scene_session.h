@@ -213,7 +213,7 @@ public:
         SetWindowPatternOpacityFunc setOpacityFunc_;
     };
 
-    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
+    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     virtual ~SceneSession();
 
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
