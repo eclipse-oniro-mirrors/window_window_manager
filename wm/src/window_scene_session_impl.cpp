@@ -19,6 +19,7 @@
 #include <limits>
 #include <ability_manager_client.h>
 #include <algorithm>
+#include <iterator>
 #include <modifier/rs_property.h>
 #include <modifier_ng/appearance/rs_behind_window_filter_modifier.h>
 #include <parameters.h>
@@ -3669,7 +3670,9 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type,
         ownPropList.erase(iter);
         // ABILITY_RUNTIME properties should always be head node
         if (!ownPropList.empty() && ownPropList.front().first == SystemBarPropertyOwner::ABILITY_RUNTIME) {
-            ownPropList.insert(ownPropList.begin() + 1, ownPropPair);
+            auto ownPropListIter = ownPropList.begin();
+            std::advance(ownPropListIter, 1);
+            ownPropList.insert(ownPropListIter, ownPropPair);
         } else {
             ownPropList.push_front(ownPropPair);
         }
@@ -3741,7 +3744,8 @@ PartialSystemBarProperty& WindowSceneSessionImpl::GetCurrentSystemBarPropertyFor
 {
     std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
     if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
-        return PartialSystemBarProperty();
+        PartialSystemBarProperty prop;
+        return prop;
     }
     auto& ownPropList = ownSystemBarPropertyMap_[type];
     auto iter = std::find_if(ownPropList.begin(), ownPropList.end(), [owner](OwnSystemBarPropertyPair pair) {
@@ -3750,7 +3754,8 @@ PartialSystemBarProperty& WindowSceneSessionImpl::GetCurrentSystemBarPropertyFor
     if (iter != ownPropList.end()) {
         return iter->second;
     } else {
-        return PartialSystemBarProperty();
+        PartialSystemBarProperty prop;
+        return prop;
     }
 }
 

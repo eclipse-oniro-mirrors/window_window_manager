@@ -1170,7 +1170,7 @@ struct PartialSystemBarProperty {
     uint32_t contentColor_;
     bool enableAnimation_;
     SystemBarPropertyFlag flag_;
-}
+};
 
 /*
  * @enum SystemBarPropertyOwner
