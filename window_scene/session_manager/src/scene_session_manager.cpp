@@ -9211,7 +9211,7 @@ void SceneSessionManager::RemoveHighlightSessionIds(const sptr<SceneSession>& sc
         std::lock_guard<std::mutex> lock(highlightIdsMutex_);
         if (highlightIds_.find(sceneSession->GetPersistentId()) != highlightIds_.end()) {
             auto highlightNotifyInfo = sptr<HighlightNotifyInfo>::MakeSptr(INVALID_TIME_STAMP,
-                std::vector<int32_t>(sceneSession->GetPersistentId()), INVALID_SESSION_ID, false);
+                std::vector<int32_t>{sceneSession->GetPersistentId()}, INVALID_SESSION_ID, false);
             sceneSession->UpdateHighlightStatus(highlightNotifyInfo, false, false);
             highlightIds_.erase(sceneSession->GetPersistentId());
         } else {
