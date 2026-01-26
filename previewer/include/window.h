@@ -233,6 +233,10 @@ public:
         const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags)
         { return WMError::WM_OK; }
+    virtual WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+    virtual WMError RemoveOwnSystemBarProperty(WindowType type,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
     virtual void UpdateSpecificSystemBarEnabled(bool systemBarEnable, bool systemBarEnableAnimation,
         SystemBarProperty& property) {}
     virtual WMError UpdateSystemBarPropertyForPage(WindowType type,

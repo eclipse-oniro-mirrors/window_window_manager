@@ -785,6 +785,32 @@ struct SystemBarPropertyFlag {
 };
 
 /**
+ * @struct PartialSystemBarProperty
+ *
+ * @brief Partial system bar property
+ */
+struct PartialSystemBarProperty {
+    bool enable_;
+    uint32_t backgroundColor_;
+    uint32_t contentColor_;
+    bool enableAnimation_;
+    SystemBarPropertyFlag flag_;
+}
+
+/*
+ * @enum SystemBarPropertyOwner
+ *
+ * @brief System bar property owner
+ */
+enum class SystemBarPropertyOwner {
+    APPLICATION,
+    ARKUI_NAVIGATION,
+    ATOMIC_SERVICE,
+    ABILITY_RUNTIME,
+};
+
+
+/**
  * @struct Rect
  *
  * @brief Window Rect.

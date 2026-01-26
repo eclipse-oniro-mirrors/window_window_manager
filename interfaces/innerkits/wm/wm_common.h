@@ -1159,15 +1159,29 @@ struct SystemBarPropertyFlag {
     bool enableAnimationFlag = false;
 };
 
-/*
- * @enum StatusBarColorChangeReason
+/**
+ * @struct PartialSystemBarProperty
  *
- * @brief Configuration of statusBarColor
+ * @brief Partial system bar property
  */
-enum class StatusBarColorChangeReason {
-    WINDOW_CONFIGURATION,
-    NAVIGATION_CONFIGURATION,
-    ATOMICSERVICE_CONFIGURATION,
+struct PartialSystemBarProperty {
+    bool enable_;
+    uint32_t backgroundColor_;
+    uint32_t contentColor_;
+    bool enableAnimation_;
+    SystemBarPropertyFlag flag_;
+}
+
+/*
+ * @enum SystemBarPropertyOwner
+ *
+ * @brief System bar property owner
+ */
+enum class SystemBarPropertyOwner {
+    APPLICATION,
+    ARKUI_NAVIGATION,
+    ATOMIC_SERVICE,
+    ABILITY_RUNTIME,
 };
 
 /**

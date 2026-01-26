@@ -3461,6 +3461,29 @@ public:
     }
 
     /**
+     * @brief Set own system bar property
+     *
+     * @param type System bar type
+     * @param prop System bar property
+     * @param owner The party who owns this property
+     * @return WMError
+     */
+    virtual WMError SetOwnSystemBarProperty(WindowType type,
+        const PartialSystemBarProperty& prop, SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+
+    /**
+     * @brief Remove own system bar property
+     *
+     * @param type System bar type
+     * @param owner The party who owns this property
+     * @return WMError
+     */
+    virtual WMError RemoveOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
      * @brief Set the single frame composer enabled flag of a window.
      *
      * @param enable true means the single frame composer is enabled, otherwise means the opposite.
