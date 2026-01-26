@@ -10559,6 +10559,10 @@ void ScreenSessionManager::ScbClientDeathCallback(int32_t deathScbPid)
     TLOGNFI(WmsLogTag::DMS, "%{public}s", oss.str().c_str());
     screenEventTracker_.RecordEvent(oss.str());
     oldScbPids_.erase(std::remove(oldScbPids_.begin(), oldScbPids_.end(), deathScbPid), oldScbPids_.end());
+    {
+        std::unique_lock<std::mutex> lock(oldScbDisplayModeMapMutex_);
+        oldScbDisplayModeMap_.erase(deathScbPid);
+    }
     deathPidVector_.push_back(deathScbPid);
 }
 
@@ -10672,6 +10676,18 @@ void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
 #endif
 }
 
+FoldDisplayMode ScreenSessionManager::FindPidInDisplayModeMap(int32_t newScbPid)
+{
+    FoldDisplayMode oldScbDisplayMode = GetFoldDisplayMode();
+    std::unique_lock<std::mutex> lock(oldScbDisplayModeMapMutex_);
+    auto iter = oldScbDisplayModeMap_.find(newScbPid);
+    TLOGNFI(WmsLogTag::DMS, "newScbPid: %{public}d, cur mode: %{public}u", newScbPid, oldScbDisplayMode);
+    if (iter != oldScbDisplayModeMap_.end()) {
+        oldScbDisplayMode = iter->second;
+    }
+    return oldScbDisplayMode;
+}
+
 void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid)
 {
 #ifdef WM_MULTI_USR_ABILITY_ENABLE
@@ -10685,14 +10701,15 @@ void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> 
         NotifyDisplayModeChanged(GetFoldDisplayMode());
     }
     int64_t delayTime = 0;
-    if (g_foldScreenFlag && oldScbDisplayMode_ != GetFoldDisplayMode() &&
+    FoldDisplayMode oldScbDisplayMode = FindPidInDisplayModeMap(newScbPid);
+    if (g_foldScreenFlag && oldScbDisplayMode != GetFoldDisplayMode() &&
         !FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
         delayTime = SWITCH_USER_DISPLAYMODE_CHANGE_DELAY;
         auto foldStatus = GetFoldStatus();
-        TLOGNFE(WmsLogTag::DMS, "old mode: %{public}u, cur mode: %{public}u", oldScbDisplayMode_, GetFoldDisplayMode());
+        TLOGNFE(WmsLogTag::DMS, "old mode: %{public}u, cur mode: %{public}u", oldScbDisplayMode, GetFoldDisplayMode());
         if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
             screenSession->UpdatePropertyByFoldControl(screenSession->GetScreenProperty());
-            OnVerticalChangeBoundsWhenSwitchUser(screenSession, oldScbDisplayMode_);
+            OnVerticalChangeBoundsWhenSwitchUser(screenSession, oldScbDisplayMode);
             screenSession->PropertyChange(screenSession->GetScreenProperty(),
                 FoldDisplayMode::MAIN == GetFoldDisplayMode() ? ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING :
                 ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND_SWITCH_USER);
@@ -10764,7 +10781,7 @@ void ScreenSessionManager::OnVerticalChangeBoundsWhenSwitchUser(sptr<ScreenSessi
     auto bounds = screenSession->GetScreenProperty().GetBounds();
     auto rotation = screenSession->GetRotation();
     // set rotation to old displayMode
-    auto oldRotation = GetOldDisplayModeRotation(oldScbDisplayMode_, screenSession->GetRotation());
+    auto oldRotation = GetOldDisplayModeRotation(oldScbDisplayMode, screenSession->GetRotation());
     screenSession->SetRotation(oldRotation);
     screenSession->SetBounds(bounds);
     auto correctionRotation = GetCurrentConfigCorrection();
@@ -11122,10 +11139,15 @@ void ScreenSessionManager::SwitchScbNodeHandle(int32_t newUserId, int32_t newScb
     if (currentUserId_ != newUserId) {
         WaitSwitchUserAnimateFinish(newUserId, coldBoot);
     }
+    FoldDisplayMode oldScbDisplayMode = GetFoldDisplayMode();
+    TLOGNFI(WmsLogTag::DMS, "newScbPid: %{public}d, cur mode: %{public}u", currentScbPId_, oldScbDisplayMode);
+    {
+        std::unique_lock<std::mutex> lock(oldScbDisplayModeMapMutex_);
+        oldScbDisplayModeMap_.insert_or_assign(currentScbPId_, oldScbDisplayMode);
+    }
     currentUserId_ = newUserId;
     currentScbPId_ = newScbPid;
     scbSwitchCV_.notify_all();
-    oldScbDisplayMode_ = GetFoldDisplayMode();
     HandleResolutionEffectAfterSwitchUser();
 #endif
 }
