@@ -262,6 +262,8 @@ const uint32_t FREEZE_SCREEN_RETRY_DELAY_MS = 2000;
 const uint32_t UNFREEZE_SCREEN_DELAY_MS = 2000;
 const std::string REAL_DEVICE_RADIUS = system::GetParameter("const.product.real_device_radius", "");
 
+const int32_t RSERROR_SUCCESS = 0;
+
 static const std::map<ScreenPowerStatus, DisplayPowerEvent> SCREEN_STATUS_POWER_EVENT_MAP = {
     {ScreenPowerStatus::POWER_STATUS_ON, DisplayPowerEvent::DISPLAY_ON},
     {ScreenPowerStatus::POWER_STATUS_OFF, DisplayPowerEvent::DISPLAY_OFF},
@@ -7157,7 +7159,11 @@ DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t wi
         TLOGNFE(WmsLogTag::DMS, "No corresponding rsId");
         return DMError::DM_ERROR_NULLPTR;
     }
-    rsInterface_.ResizeVirtualScreen(rsScreenId, width, height);
+    int32_t rsRet = rsInterface_.ResizeVirtualScreen(rsScreenId, width, height);
+    if (rsRet != RSERROR_SUCCESS) {
+        TLOGNFE(WmsLogTag::DMS, "RS side failed in resizing virtual screen, rsRet: %{public}d", rsRet);
+        return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
+    }
     screenSession->Resize(width, height);
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
         ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE);
