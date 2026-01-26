@@ -948,7 +948,7 @@ private:
     bool userSwitching_ = false;
     bool isAutoRotationOpen_ = false;
     bool isExpandCombination_ = false;
-    bool isCoordinationFlag_ = false;
+    std::atomic<bool> isCoordinationFlag_ = false;
     bool isFoldScreenOuterScreenReady_ = false;
     bool isCameraBackSelfie_ = false;
     bool isDeviceShutDown_ = false;
@@ -984,7 +984,7 @@ private:
      */
     bool isMultiScreenCollaboration_ = false;
     bool screenPrivacyStates = false;
-    bool keyguardDrawnDone_ = true;
+    std::atomic<bool> keyguardDrawnDone_ = true;
     bool needScreenOnWhenKeyguardNotify_ = false;
     bool gotScreenOffNotify_ = false;
     bool needScreenOffNotify_ = false;
