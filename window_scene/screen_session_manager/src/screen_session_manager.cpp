@@ -14122,6 +14122,7 @@ void ScreenSessionManager::SwitchUserDealUserDisplayNode(int32_t newUserId)
     }
     SetUserDisplayNodePositionZ(newUserId, POSITION_Z_LOW);
     SwitchUserResetDisplayNodeScreenId();
+    MakeMirrorAfterSwitchUser();
 }
 
 void ScreenSessionManager::AddUserDisplayNodeOnTree(int32_t userId)
@@ -14217,7 +14218,6 @@ void ScreenSessionManager::HandleNewUserDisplayNode(int32_t newUserId, bool cold
         SwitchUserDealUserDisplayNode(newUserId);
     }
     AddUserDisplayNodeOnTree(newUserId);
-    MakeMirrorAfterSwitchUser();
 }
 
 void ScreenSessionManager::WaitSwitchUserAnimateFinish(int32_t newUserId, bool isColdSwitch)
