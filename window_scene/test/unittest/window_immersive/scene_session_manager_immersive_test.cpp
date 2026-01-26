@@ -382,7 +382,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, UpdateAvoidArea_04, TestSize.Level1)
     ssm_->UpdateAvoidArea(persistentId);
     sceneSession->property_->SetWindowType(WindowType::APP_WINDOW_BASE);
     ssm_->UpdateAvoidArea(persistentId);
-    sleep(1);  
+    sleep(1);
 }
 
 /**
