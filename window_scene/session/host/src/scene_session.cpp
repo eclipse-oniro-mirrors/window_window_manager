@@ -1159,8 +1159,9 @@ void SceneSession::HandleSessionDragEvent(SessionEvent event)
             }
         }
         Gravity gravity = moveDragController_->GetGravity();
-        SetSessionEventParam({rect.posX_, rect.posY_, rect.width_, rect.height_,
-            static_cast<uint32_t>(dragResizeType), static_cast<uint32_t>(gravity)});
+        Gravity dragGravity = moveDragController_->GetDragGravity();
+        SetSessionEventParam({rect.posX_, rect.posY_, rect.width_, rect.height_, static_cast<uint32_t>(dragResizeType),
+            static_cast<uint32_t>(gravity), static_cast<uint32_t>(dragGravity)});
     } else if (moveDragController_ && event == SessionEvent::EVENT_END_MOVE) {
         const auto& lastDragEndRect = moveDragController_->GetLastDragEndRect();
         SetSessionEventParam({lastDragEndRect.posX_, lastDragEndRect.posY_,
