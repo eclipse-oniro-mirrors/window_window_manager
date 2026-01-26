@@ -444,6 +444,80 @@ HWTEST_F(SceneSessionImmersiveTest, NotifyClientToUpdateAvoidArea, TestSize.Leve
     sceneSession->NotifyClientToUpdateAvoidArea();
     EXPECT_EQ(6, sceneSession->GetPersistentId());
 }
+
+/**
+ * @tc.name: HandleLayoutAvoidAreaUpdate
+ * @tc.desc: HandleLayoutAvoidAreaUpdate
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, HandleLayoutAvoidAreaUpdate, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleLayoutAvoidAreaUpdate";
+    info.bundleName_ = "HandleLayoutAvoidAreaUpdate";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    
+    session->isLastFrameLayoutFinishedFunc_ = nullptr;
+    session->isAINavigationBarAvoidAreaValid_ = nullptr;
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+
+    session->isLastFrameLayoutFinishedFunc_ = [](bool& isLayoutFinished) {
+        isLayoutFinished = false;
+        return WSError::WS_ERROR_NULLPTR;
+    };
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+
+    session->isLastFrameLayoutFinishedFunc_ = [](bool& isLayoutFinished) {
+        isLayoutFinished = true;
+        return WSError::WS_OK;
+    };
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_SYSTEM));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
+
+    session->isAINavigationBarAvoidAreaValid_ = [](DisplayId displayId,
+        const AvoidArea& avoidArea, int32_t sessionBottom) {
+        return true;
+    };
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
+
+    session->isAINavigationBarAvoidAreaValid_ = [](DisplayId displayId,
+        const AvoidArea& avoidArea, int32_t sessionBottom) {
+        return false;
+    };
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
+}
+
+/**
+ * @tc.name: HandleActionUpdateAvoidAreaOption
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, HandleActionUpdateAvoidAreaOption, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleActionUpdateAvoidAreaOption";
+    info.bundleName_ = "HandleActionUpdateAvoidAreaOption";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> sessionProperty = session->GetSessionProperty();
+
+    sessionProperty->SetAvoidAreaOption(1);
+    sessionProperty->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_FLOAT);
+    WMError ret = session->HandleActionUpdateAvoidAreaOption(sessionProperty, action);
+    ASSERT_EQ(WMError::WM_OK, ret);
+
+    sessionProperty->SetAvoidAreaOption(2);
+    sessionProperty->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    ret = session->HandleActionUpdateAvoidAreaOption(sessionProperty, action);
+    ASSERT_EQ(WMError::WM_OK, ret);
+
+    sessionProperty->SetAvoidAreaOption(3);
+    sessionProperty->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    ret = session->HandleActionUpdateAvoidAreaOption(sessionProperty, action);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
 }
 }
 }
