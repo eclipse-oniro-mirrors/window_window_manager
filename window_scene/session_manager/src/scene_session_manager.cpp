@@ -144,7 +144,7 @@ constexpr int ORIEN_MAX_WIDTH = 12;
 constexpr int OFFSET_MAX_WIDTH = 8;
 constexpr int SCALE_MAX_WIDTH = 8;
 constexpr int PID_MAX_WIDTH = 8;
-constexpr int PERSISTENT_ID_MAX_WIDTH = 12;
+constexpr int PARENT_ID_MAX_WIDTH = 6;
 constexpr int WINDOW_NAME_MAX_LENGTH = 20;
 constexpr int32_t CANCEL_POINTER_ID = 99999999;
 constexpr int32_t STATUS_BAR_AVOID_AREA = 0;
@@ -7721,7 +7721,7 @@ void SceneSessionManager::DumpSessionInfo(const sptr<SceneSession>& session, std
     oss << std::left << std::setw(WINDOW_NAME_MAX_WIDTH) << windowName
         << std::left << std::setw(DISPLAY_NAME_MAX_WIDTH) << displayId
         << std::left << std::setw(PID_MAX_WIDTH) << session->GetCallingPid()
-        << std::left << std::setw(PERSISTENT_ID_MAX_WIDTH) << session->GetPersistentId()
+        << std::left << std::setw(PARENT_ID_MAX_WIDTH) << session->GetPersistentId()
         << std::left << std::setw(VALUE_MAX_WIDTH) << static_cast<uint32_t>(session->GetWindowType())
         << std::left << std::setw(VALUE_MAX_WIDTH) << static_cast<uint32_t>(session->GetWindowMode())
         << std::left << std::setw(VALUE_MAX_WIDTH) << flag
@@ -7773,7 +7773,7 @@ WSError SceneSessionManager::GetAllSessionDumpInfo(std::string& dumpInfo)
     std::ostringstream oss;
     oss << "-------------------------------------ScreenGroup 0"
         << "-------------------------------------" << std::endl;
-    oss << "WindowName           DisplayId Pid     WinId       Type Mode Flag ZOrd Orientation [ x    y    w    h    ]"
+    oss << "WindowName           DisplayId Pid     WinId Type Mode Flag ZOrd Orientation [ x    y    w    h    ]"
         << " [ OffsetX OffsetY ] [ ScaleX  ScaleY  PivotX  PivotY  ]" << std::endl;
     std::vector<sptr<SceneSession>> allSession;
     std::vector<sptr<SceneSession>> backgroundSession;
