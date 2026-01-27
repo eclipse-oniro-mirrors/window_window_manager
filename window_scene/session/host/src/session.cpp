@@ -3006,6 +3006,9 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
+    if (isAppLockControl_.load() == isAppUseControl) {
+        return;
+    }
     isAppLockControl_.store(isAppUseControl);
     if (isAppUseControl) {
         if (IsPersistentImageFit()) {
