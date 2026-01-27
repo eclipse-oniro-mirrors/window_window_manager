@@ -1004,12 +1004,10 @@ void WindowSceneSessionImpl::UpdateDefaultStatusBarColor()
         static_cast<uint32_t>(statusBarProp.settingFlag_) |
         static_cast<uint32_t>(SystemBarSettingFlag::FOLLOW_SETTING));
     property_->SetSystemBarProperty(type, statusBarProp);
-    {
-        std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
-        if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end() ||
-            ownSystemBarPropertyMap_[type].empty()) {
-            SetSpecificBarProperty(type, statusBarProp);
-        }
+    auto prop = GetCurrentActiveSystemBarProperty(type);
+    if ((static_cast<uint32_t>(prop.settingFlag_) &
+        static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING)) == 0u) {
+        SetSpecificBarProperty(type, statusBarProp);
     }
 }
 
