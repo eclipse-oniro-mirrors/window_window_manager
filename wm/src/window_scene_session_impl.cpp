@@ -3511,13 +3511,23 @@ WMError WindowSceneSessionImpl::UpdateSystemBarProperties(
 WMError WindowSceneSessionImpl::UpdateSystemBarPropertyForPage(WindowType type,
     const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag)
 {
-    PartialSystemBarProperty prop = {
-        .enable_ = systemBarProperty.enable_,
-        .backgroundColor_ = systemBarProperty.backgroundColor_,
-        .contentColor_ = systemBarProperty.contentColor_,
-        .enableAnimation_ = systemBarProperty.enableAnimation_,
-        .flag_ = systemBarPropertyFlag
-    };
+    auto prop = GetOwnSystemBarProperty(type, SystemBarPropertyOwner::APPLICATION);
+    if (systemBarPropertyFlag.enableFlag) {
+        prop.enable_ = systemBarProperty.enable_;
+        prop.flag_.enableFlag = true;
+    }
+    if (systemBarPropertyFlag.backgroundColorFlag) {
+        prop.backgroundColor_ = systemBarProperty.backgroundColor_;
+        prop.flag_.backgroundColorFlag = true;
+    }
+    if (systemBarPropertyFlag.contentColorFlag) {
+        prop.contentColor_ = systemBarProperty.contentColor_;
+        prop.flag_.contentColorFlag = true;
+    }
+    if (systemBarPropertyFlag.enableAnimationFlag) {
+        prop.enableAnimation_ = systemBarProperty.enableAnimation_;
+        prop.flag_.enableAnimationFlag = true;
+    }
     auto ret = SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::APPLICATION);
     if (ret == WMError::WM_OK) {
         property_->SetSystemBarProperty(type, systemBarProperty);
