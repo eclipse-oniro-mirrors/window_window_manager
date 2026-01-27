@@ -210,11 +210,6 @@ napi_value JsUIEffectController::OnAnimateTo(napi_env env, napi_callback_info in
     };
     NapiAsyncTask::CompleteCallback complete =
         [lists](napi_env env, NapiAsyncTask& task, int32_t status) {
-            if (lists == nullptr) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "System abnormal."));
-                return;
-            }
             if (lists->errCode == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
