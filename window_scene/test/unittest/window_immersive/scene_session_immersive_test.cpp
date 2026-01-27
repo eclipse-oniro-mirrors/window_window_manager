@@ -39,9 +39,14 @@ public:
     void SetUp() override;
     void TearDown() override;
 
+    WSPropertyChangeAction action;
+    sptr<SceneSession> sceneSession;
+    sptr<WindowSessionProperty> property;
+    SessionInfo info;
     static sptr<SceneSessionManager> ssm_;
 
 private:
+    std::shared_ptr<AppExecFwk::EventHandler> handler_ = nullptr;
     void CreateSession(SessionInfo sessionInfo, int32_t persistentId);
 };
 
@@ -62,6 +67,14 @@ void SceneSessionImmersiveTest::TearDownTestCase()
 
 void SceneSessionImmersiveTest::SetUp()
 {
+    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    property = sptr<WindowSessionProperty>::MakeSptr();
+    action = WSPropertyChangeAction::ACTION_UPDATE_ASPECT_RATIO;
+    if (!handler_) {
+        auto runner = AppExecFwk::EventRunner::Create("SceneSessionTest");
+        handler_ = std::make_shared<AppExecFwk::EventHandler>(runner);
+    }
+    sceneSession->SetEventHandler(handler_, nullptr);    
 }
 
 void SceneSessionImmersiveTest::TearDown()
