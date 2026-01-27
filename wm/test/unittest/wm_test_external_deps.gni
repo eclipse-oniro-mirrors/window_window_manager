@@ -14,6 +14,7 @@
 test_external_deps = [
   "ability_base:configuration",
   "ability_base:want",
+  "ability_runtime:ability_connect_callback_stub",
   "ability_runtime:ability_context_native",
   "ability_runtime:ability_manager",
   "ability_runtime:app_context",
