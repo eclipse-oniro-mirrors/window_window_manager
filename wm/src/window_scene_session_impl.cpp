@@ -3660,20 +3660,19 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const P
         auto it = std::find_if(ownPropList.begin(), ownPropList.end(), [owner, &prop](OwnSystemBarPropertyPair& pair) {
             return pair.first == owner && pair.second.flag_ == prop.flag_;
         });
-        if (it == ownPropList.end()) {
-            ownPropList.push_front(OwnSystemBarPropertyPair(owner, prop));
-        } else {
+        if (it != ownPropList.end()) {
             it->second = prop;
             ownPropList.erase(it);
-            auto insertIt = ownPropList.begin();
-            // ABILITY_RUNTIME properties should always be head node
-            if (owner != SystemBarPropertyOwner::ABILITY_RUNTIME) {
-                while (insertIt != ownPropList.end() && insertIt->first == SystemBarPropertyOwner::ABILITY_RUNTIME) {
-                    insertIt++;
-                }
-            }
-            ownPropList.insert(insertIt, *it);
         }
+        auto insertPair = it == ownPropList.end() ? OwnSystemBarPropertyPair(owner, prop) : *it;
+        auto insertIt = ownPropList.begin();
+        // ABILITY_RUNTIME properties should always be head node
+        if (owner != SystemBarPropertyOwner::ABILITY_RUNTIME) {
+            while (insertIt != ownPropList.end() && insertIt->first == SystemBarPropertyOwner::ABILITY_RUNTIME) {
+                insertIt++;
+            }
+        }
+        ownPropList.insert(insertIt, insertPair);
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u "
             "prop [%{public}u %{public}x %{public}x %{public}u] "
             "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}lu",
