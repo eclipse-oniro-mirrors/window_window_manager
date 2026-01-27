@@ -63,6 +63,7 @@ group("unittest") {
       ":wm_web_picture_in_picture_controller_test",
       ":wm_window_adapter_lite_test",
       ":wm_window_adapter_test",
+      ":wm_window_agent_test",
       ":wm_window_effect_test",
       ":wm_window_event_subscriber_test",
       ":wm_window_impl_test",
