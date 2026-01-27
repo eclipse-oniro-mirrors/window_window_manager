@@ -306,7 +306,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, MinimizeAllWindow01, TestSize.Level1
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId), WMError::WM_OK);
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
 
-    ssm_->minimizeAllFunc_ == nullptr;
+    ssm_->minimizeAllFunc_ = nullptr;
     EXPECT_EQ(ssm_->MinimizeAllAppWindows(displayId, excludeWindowId), WMError::WM_OK);
     MinimizeAllFunc func = [](DisplayId displayId, int32_t excludeWindowId) {};
     ssm_->RegisterMinimizeAllCallback(std::move(func));
