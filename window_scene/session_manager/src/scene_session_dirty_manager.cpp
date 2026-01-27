@@ -227,7 +227,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
         transform = transform.Scale({singleHandData.scaleX, singleHandData.scaleY},
                                     singleHandData.pivotX, singleHandData.pivotY);
     }
- 
+
     auto sessionProperty = sceneSession->GetSessionProperty();
     if (sessionProperty == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "sessionProperty is nullptr");

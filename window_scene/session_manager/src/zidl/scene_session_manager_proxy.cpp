@@ -3006,8 +3006,8 @@ WMError SceneSessionManagerProxy::ConvertToRelativeCoordinateExtended(
         TLOGE(WmsLogTag::WMS_LAYOUT, "Write interface token failed.");
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    if (!data.WriteInt32(rect.posX_) || !data.WriteInt32(rect.posY_) ||
-        !data.WriteUint32(rect.width_) || !data.WriteUint32(rect.height_) ||
+    if (!data.WriteInt32(rect.posX_) || !data.WriteInt32(rect.posY_) || !data.WriteUint32(rect.width_) ||
+        !data.WriteUint32(rect.height_) ||
         !data.WriteUint64(newDisplayId)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to write rect");
         return WMError::WM_ERROR_IPC_FAILED;
@@ -3022,7 +3022,7 @@ WMError SceneSessionManagerProxy::ConvertToRelativeCoordinateExtended(
         data, reply, option);
     if (sendRet != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_MULTI_WINDOW,
-            "SendRequest ConvertToRelativeCoordinateExtended failed, code: %{public}d", sendRet);
+            "SendRequest failed, code: %{public}d", sendRet);
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t posX = 0;
@@ -4255,6 +4255,72 @@ WMError SceneSessionManagerProxy::CreateUIEffectController(const sptr<IUIEffectC
     return err;
 }
 
+WMError SceneSessionManagerProxy::GetPiPSettingSwitchStatus(bool& switchStatus)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "Remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_SWITCH_STATUS),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    bool status = false;
+    if (!reply.ReadBool(status)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Read status failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    switchStatus = status;
+    return static_cast<WMError>(ret);
+}
+
+WMError SceneSessionManagerProxy::GetIsPipEnabled(bool& isPipEnabled)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "Remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_IS_PIP_ENABLED),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    bool status = false;
+    if (!reply.ReadBool(status)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Read status failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    isPipEnabled = status;
+    return static_cast<WMError>(ret);
+}
+
 WMError SceneSessionManagerProxy::AddSessionBlackList(
     const std::unordered_set<std::string>& bundleNames, const std::unordered_set<std::string>& privacyWindowTags)
 {
@@ -4350,72 +4416,6 @@ WMError SceneSessionManagerProxy::RemoveSessionBlackList(
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read ret failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    return static_cast<WMError>(ret);
-}
-
-WMError SceneSessionManagerProxy::GetPiPSettingSwitchStatus(bool& switchStatus)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-    if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write interfaceToken failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    sptr remote = Remote();
-    if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Remote is null");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_SWITCH_STATUS),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    bool status = false;
-    if (!reply.ReadBool(status)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Read status failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    int32_t ret = 0;
-    if (!reply.ReadInt32(ret)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Read ret failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    switchStatus = status;
-    return static_cast<WMError>(ret);
-}
-
-WMError SceneSessionManagerProxy::GetIsPipEnabled(bool& isPipEnabled)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-    if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write interfaceToken failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    sptr remote = Remote();
-    if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Remote is null");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_IS_PIP_ENABLED),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    bool status = false;
-    if (!reply.ReadBool(status)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Read status failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    int32_t ret = 0;
-    if (!reply.ReadInt32(ret)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Read ret failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    isPipEnabled = status;
     return static_cast<WMError>(ret);
 }
 

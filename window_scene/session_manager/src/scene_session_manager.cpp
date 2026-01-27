@@ -839,8 +839,11 @@ void SceneSessionManager::ConfigWindowSceneXml()
         ConfigStartingWindowAnimation(item);
     }
     item = config["maxMidSceneNum"];
-    if (GetSingleIntItem(item, param)) {
-        systemConfig_.maxMidSceneNum_ = static_cast<uint32_t>(param);
+    if (item.IsInts()) {
+        auto numbers = *item.intsValue_;
+        if (numbers.size() == 1) {
+            systemConfig_.maxMidSceneNum_ = static_cast<uint32_t>(numbers[0]);
+        }
     }
     ConfigFreeMultiWindow();
     ConfigWindowSizeLimits();
@@ -2899,6 +2902,7 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
         GetAppDragResizeType(sessionInfo.bundleName_, dragResizeType);
         sceneSession->SetAppDragResizeType(dragResizeType);
         sceneSession->SetDragKeyFramePolicy(GetAppKeyFramePolicy(sessionInfo.bundleName_));
+        sceneSession->SetSingleHandModeFlag(true);
         sceneSession->SetSingleHandTransform(singleHandTransform_);
         TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, displayId: %{public}" PRIu64,
             sceneSession->GetPersistentId(), sceneSession->GetSessionProperty()->GetDisplayId());
@@ -12712,10 +12716,10 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
 }
 
 void SceneSessionManager::DealwithDrawingContentChange(const std::vector<std::pair<uint64_t, bool>>&
-    drawingContentChangeInfo)
+    drawingChangeInfos)
 {
     std::vector<sptr<WindowDrawingContentInfo>> windowDrawingContenInfos;
-    for (const auto& [surfaceId, drawingState] : drawingContentChangeInfo) {
+    for (const auto& [surfaceId, drawingState] : drawingChangeInfos) {
         int32_t windowId = 0;
         int32_t pid = 0;
         int32_t uid = 0;
