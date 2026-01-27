@@ -3566,7 +3566,7 @@ WMError WindowSceneSessionImpl::SetStatusBarColorForNavigation(const std::option
     } else {
         TLOGI(WmsLogTag::WMS_IMMS, "clear");
         SystemBarPropertyFlag mask = { .contentColorFlag = true };
-        return RemoveOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION, true);
+        return RemoveOwnSystemBarProperty(type, mask, SystemBarPropertyOwner::ARKUI_NAVIGATION);
     }
 }
 
@@ -3599,7 +3599,7 @@ WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std
     } else {
         TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "clear");
         SystemBarPropertyFlag mask = { .enableFlag = true, .enableAnimationFlag = true };
-        return RemoveOwnSystemBarProperty(type, mask, SystemBarPropertyOwner::ARKUI_NAVIGATION, true);
+        return RemoveOwnSystemBarProperty(type, mask, SystemBarPropertyOwner::ARKUI_NAVIGATION);
     }
 }
 
@@ -3660,7 +3660,7 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const P
         }
         auto& ownPropList = ownSystemBarPropertyMap_[type];
         auto it = std::find_if(ownPropList.begin(), ownPropList.end(), [owner, &prop](OwnSystemBarPropertyPair& pair) {
-            return pair.first == owner && pair.second.flag_ == prop.flag;
+            return pair.first == owner && pair.second.flag_ == prop.flag_;
         });
         if (it == ownPropList.end()) {
             ownPropList.push_front(OwnSystemBarPropertyPair(owner, prop));
@@ -3696,7 +3696,7 @@ WMError WindowSceneSessionImpl::RemoveOwnSystemBarProperty(WindowType type, cons
             return WMError::WM_OK;
         }
         auto& ownPropList = ownSystemBarPropertyMap_[type];
-        for (auto it = ownPropList.begin(), it != ownPropList.end(); it++) {
+        for (auto it = ownPropList.begin(); it != ownPropList.end(); it++) {
             // remove own property which is contained by given mask
             if (it->first == owner && flag.Contains(it->second.flag_)) {
                 it = ownPropList.erase(it);
@@ -3708,8 +3708,8 @@ WMError WindowSceneSessionImpl::RemoveOwnSystemBarProperty(WindowType type, cons
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u"
             "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}lu",
             GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), static_cast<uint32_t>(owner),
-            prop.flag_.enableFlag, prop.flag_.backgroundColorFlag, 
-            prop.flag_.contentColorFlag, prop.flag_.enableAnimationFlag, ownPropList.size());
+            flag.enableFlag, flag.backgroundColorFlag, 
+            flag.contentColorFlag, flag.enableAnimationFlag, ownPropList.size());
     }
     return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
