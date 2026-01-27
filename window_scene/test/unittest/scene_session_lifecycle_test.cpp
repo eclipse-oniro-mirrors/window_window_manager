@@ -707,19 +707,19 @@ HWTEST_F(SceneSessionLifecycleTest, UpdateActiveStatus01, TestSize.Level0)
     sptr<Rosen::ISession> session_;
     sptr<SceneSession::SpecificSessionCallback> specificCallback =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback, nullptr);
+    ASSERT_NE(specificCallback, nullptr);
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = true;
     auto result = sceneSession->UpdateActiveStatus(true);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     result = sceneSession->UpdateActiveStatus(false);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -735,16 +735,16 @@ HWTEST_F(SceneSessionLifecycleTest, UpdateActiveStatus02, TestSize.Level1)
     sptr<Rosen::ISession> session_;
     sptr<SceneSession::SpecificSessionCallback> specificCallback =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback, nullptr);
+    ASSERT_NE(specificCallback, nullptr);
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = false;
     auto result = sceneSession->UpdateActiveStatus(true);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -760,40 +760,40 @@ HWTEST_F(SceneSessionLifecycleTest, UpdateActiveStatus03, TestSize.Level0)
     sptr<Rosen::ISession> session_;
     sptr<SceneSession::SpecificSessionCallback> specificCallback =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback, nullptr);
+    ASSERT_NE(specificCallback, nullptr);
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    EXPECT_NE(property, nullptr);
+    ASSERT_NE(property, nullptr);
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = true;
     sceneSession->state_ = SessionState::STATE_DISCONNECT;
 
     auto result = sceneSession->UpdateActiveStatus(false);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     result = sceneSession->UpdateActiveStatus(true);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sceneSession->isActive_ = false;
     result = sceneSession->UpdateActiveStatus(false);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sceneSession->isActive_ = true;
     sceneSession->state_ = SessionState::STATE_FOREGROUND;
     result = sceneSession->UpdateActiveStatus(true);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sceneSession->isActive_ = true;
     sceneSession->state_ = SessionState::STATE_ACTIVE;
     result = sceneSession->UpdateActiveStatus(false);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sceneSession->isActive_ = false;
     result = sceneSession->UpdateActiveStatus(true);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -807,17 +807,17 @@ HWTEST_F(SceneSessionLifecycleTest, UpdateActiveStatus04, TestSize.Level1)
     info.abilityName_ = "UpdateActiveStatus04";
     info.bundleName_ = "UpdateActiveStatus04";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    EXPECT_NE(property, nullptr);
+    ASSERT_NE(property, nullptr);
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = true;
     sceneSession->state_ = SessionState::STATE_ACTIVE;
 
     auto result = sceneSession->UpdateActiveStatus(true);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -832,7 +832,7 @@ HWTEST_F(SceneSessionLifecycleTest, Connect, TestSize.Level0)
     info.abilityName_ = "Connect1";
     info.windowType_ = 1;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
 
     sptr<ISessionStage> sessionStage = nullptr;
     sptr<IWindowEventChannel> eventChannel = nullptr;
@@ -841,7 +841,7 @@ HWTEST_F(SceneSessionLifecycleTest, Connect, TestSize.Level0)
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     sptr<IRemoteObject> token;
     WSError res = sceneSession->Connect(sessionStage, eventChannel, surfaceNode, systemConfig, property, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(res, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -856,7 +856,7 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner01, TestSize.Level0)
     info.abilityName_ = "ConnectInner01";
     info.windowType_ = 1;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     SystemSessionConfig systemConfig;
@@ -866,11 +866,11 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner01, TestSize.Level0)
     sceneSession->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
     auto result = sceneSession->ConnectInner(
         mockSessionStage, nullptr, nullptr, systemConfig, property, nullptr, -1, -1, "session2");
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     result = sceneSession->ConnectInner(
         mockSessionStage, nullptr, nullptr, systemConfig, property, nullptr, -1, -1, "session1");
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     result = sceneSession->ConnectInner(mockSessionStage, nullptr, nullptr, systemConfig, property, nullptr, -1, -1);
     ASSERT_EQ(result, WSError::WS_ERROR_NULLPTR);
@@ -889,7 +889,7 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner02, TestSize.Level0)
     info.abilityName_ = "ConnectInner02";
 
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     SystemSessionConfig systemConfig;
@@ -923,7 +923,7 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
     info.processOptions = processOptions;
 
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     SystemSessionConfig systemConfig;
@@ -949,7 +949,7 @@ HWTEST_F(SceneSessionLifecycleTest, Reconnect, TestSize.Level0)
     info.abilityName_ = "Reconnect1";
     info.windowType_ = 1;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
 
     sptr<ISessionStage> sessionStage = nullptr;
     sptr<IWindowEventChannel> eventChannel = nullptr;
