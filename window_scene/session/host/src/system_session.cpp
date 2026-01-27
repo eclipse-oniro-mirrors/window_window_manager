@@ -390,6 +390,9 @@ int32_t SystemSession::GetSubWindowZLevel() const
     int32_t zLevel = 0;
     auto sessionProperty = GetSessionProperty();
     zLevel = sessionProperty->GetSubWindowZLevel();
+    if (onSubSessionZLevelChange_) {
+        onSubSessionZLevelChange_(zLevel);
+    }
     return zLevel;
 }
 
