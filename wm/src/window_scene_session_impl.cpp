@@ -4370,10 +4370,10 @@ WMError WindowSceneSessionImpl::SetImageForRecentPixelMap(const std::shared_ptr<
 {
     int32_t persistentId = GetPersistentId();
     TLOGI(WmsLogTag::WMS_PATTERN,
-        "%{public}s set imageForRecent, persistentId=%{public}d", __func__, persistentId);
+        "set imageForRecent, persistentId=%{public}d", persistentId);
     WMError ret = SingletonContainer::Get<WindowAdapter>().SetImageForRecentPixelMap(pixelMap, imageFit, persistentId);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s set imageForRecent failed, ret=%{public}d", __func__, ret);
+        TLOGE(WmsLogTag::WMS_PATTERN, "set imageForRecent failed, ret=%{public}d", ret);
     }
     return ret;
 }
@@ -4382,10 +4382,10 @@ WMError WindowSceneSessionImpl::RemoveImageForRecent()
 {
     int32_t persistentId = GetPersistentId();
     TLOGI(WmsLogTag::WMS_PATTERN,
-        "%{public}s remove imageForRecent, persistentId=%{public}d", __func__, persistentId);
+        "remove imageForRecent, persistentId=%{public}d", persistentId);
     WMError ret = SingletonContainer::Get<WindowAdapter>().RemoveImageForRecent(persistentId);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s remove imageForRecent failed, ret=%{public}d", __func__, ret);
+        TLOGE(WmsLogTag::WMS_PATTERN, "remove imageForRecent failed, ret=%{public}d", ret);
     }
     return ret;
 }
