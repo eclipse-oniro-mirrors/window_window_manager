@@ -3518,8 +3518,7 @@ WMError WindowSceneSessionImpl::UpdateSystemBarPropertyForPage(WindowType type,
         .enableAnimation_ = systemBarProperty.enableAnimation_,
         .flag_ = systemBarPropertyFlag
     };
-    SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::APPLICATION);
-    auto ret = SetSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
+    auto ret = SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::APPLICATION);
     if (ret == WMError::WM_OK) {
         property_->SetSystemBarProperty(type, systemBarProperty);
     }
@@ -3562,19 +3561,18 @@ WMError WindowSceneSessionImpl::SetStatusBarColorForNavigation(const std::option
     if (color != std::nullopt) {
         prop.contentColor_ = color.value();
         prop.flag_.contentColorFlag = true;
-        SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION);
-        TLOGI(WmsLogTag::WMS_IMMS, "color:%{public}x", color.value());
+        TLOGI(WmsLogTag::WMS_IMMS, "color:%{public}x", prop.contentColor_);
+        return SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION);
     } else {
-        prop.flag_.contentColorFlag = false;
+        TLOGI(WmsLogTag::WMS_IMMS, "clear");
         if (!prop.flag_.enableFlag && !prop.flag_.enableAnimationFlag) {
             // no more navigation configurations, remove from list
-            RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ARKUI_NAVIGATION);
+            return RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ARKUI_NAVIGATION);
         } else {
-            SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION, true);
+            prop.flag_.contentColorFlag = false;
+            return SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION, true);
         }
-        TLOGI(WmsLogTag::WMS_IMMS, "clear");
     }
-    return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
 
 WMError WindowSceneSessionImpl::GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties)
@@ -3600,21 +3598,20 @@ WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std
         prop.enableAnimation_ = property.value().enableAnimation_;
         prop.flag_.enableFlag = true;
         prop.flag_.enableAnimationFlag = true;
-        SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION);
         TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
             "enable:%{public}d, enableAnimation:%{public}d", prop.enable_, prop.enableAnimation_);
+        return SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION);
     } else {
-        prop.flag_.enableFlag = false;
-        prop.flag_.enableAnimationFlag = false;
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "clear");
         if (!prop.flag_.contentColorFlag) {
             // no more navigation configurations, remove from list
-            RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ARKUI_NAVIGATION);
+            return RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ARKUI_NAVIGATION);
         } else {
-            SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION, true);
+            prop.flag_.enableFlag = false;
+            prop.flag_.enableAnimationFlag = false;
+            return SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION, true);
         }
-        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "clear");
     }
-    return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
 
 WMError WindowSceneSessionImpl::SetStatusBarColorForPage(const std::optional<uint32_t> color)
@@ -3624,13 +3621,12 @@ WMError WindowSceneSessionImpl::SetStatusBarColorForPage(const std::optional<uin
         PartialSystemBarProperty prop;
         prop.contentColor_ = color.value();
         prop.flag_.contentColorFlag = true;
-        SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ATOMIC_SERVICE);
-        TLOGI(WmsLogTag::WMS_IMMS, "color:%{public}x", color.value());
+        TLOGI(WmsLogTag::WMS_IMMS, "color:%{public}x", prop.contentColor_);
+        return SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ATOMIC_SERVICE);
     } else {
-        RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ATOMIC_SERVICE);
         TLOGI(WmsLogTag::WMS_IMMS, "clear");
+        return RemoveOwnSystemBarProperty(type, SystemBarPropertyOwner::ATOMIC_SERVICE);
     }
-    return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
 
 WMError WindowSceneSessionImpl::UpdateSystemBarProperty(WindowType type, const SystemBarProperty& systemBarProperty)
@@ -3667,59 +3663,63 @@ void WindowSceneSessionImpl::GetSystemBarPropertyForPage(const std::map<WindowTy
 WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
     SystemBarPropertyOwner owner, bool inPlace)
 {
-    std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
-    if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
-        ownSystemBarPropertyMap_[type] = std::list<OwnSystemBarPropertyPair>();
-    }
-    auto& ownPropList = ownSystemBarPropertyMap_[type];
-    auto it = std::find_if(ownPropList.begin(), ownPropList.end(), [owner](OwnSystemBarPropertyPair pair) {
-        return pair.first == owner;
-    });
-    if (it == ownPropList.end()) {
-        if (!inPlace) {
-            ownPropList.push_front(OwnSystemBarPropertyPair(owner, prop));
+    {
+        std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
+        if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
+            ownSystemBarPropertyMap_[type] = std::list<OwnSystemBarPropertyPair>();
         }
-    } else {
-        it->second = prop;
-        if (!inPlace) {
-            ownPropList.erase(it);
-            // ABILITY_RUNTIME properties should always be head node
-            if (!ownPropList.empty() && ownPropList.front().first == SystemBarPropertyOwner::ABILITY_RUNTIME) {
-                auto insertIt = ownPropList.begin();
-                insertIt++;
-                ownPropList.insert(insertIt, *it);
-            } else {
-                ownPropList.push_front(*it);
+        auto& ownPropList = ownSystemBarPropertyMap_[type];
+        auto it = std::find_if(ownPropList.begin(), ownPropList.end(), [owner](OwnSystemBarPropertyPair pair) {
+            return pair.first == owner;
+        });
+        if (it == ownPropList.end()) {
+            if (!inPlace) {
+                ownPropList.push_front(OwnSystemBarPropertyPair(owner, prop));
+            }
+        } else {
+            it->second = prop;
+            if (!inPlace) {
+                ownPropList.erase(it);
+                // ABILITY_RUNTIME properties should always be head node
+                if (!ownPropList.empty() && ownPropList.front().first == SystemBarPropertyOwner::ABILITY_RUNTIME) {
+                    auto insertIt = ownPropList.begin();
+                    insertIt++;
+                    ownPropList.insert(insertIt, *it);
+                } else {
+                    ownPropList.push_front(*it);
+                }
             }
         }
+        TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u prop %{public}u %{public}x"
+            " %{public}x %{public}u flag %{public}u%{public}u%{public}u%{public}u list size %{public}lu",
+            GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), prop.enable_, prop.backgroundColor_,
+            prop.contentColor_, prop.enableAnimation_, prop.flag_.enableFlag, prop.flag_.backgroundColorFlag,
+            prop.flag_.contentColorFlag, prop.flag_.enableAnimationFlag, ownPropList.size());
     }
-    TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u prop %{public}u %{public}x"
-        " %{public}x %{public}u flag %{public}u%{public}u%{public}u%{public}u list size %{public}lu",
-        GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), prop.enable_, prop.backgroundColor_,
-        prop.contentColor_, prop.enableAnimation_, prop.flag_.enableFlag, prop.flag_.backgroundColorFlag,
-        prop.flag_.contentColorFlag, prop.flag_.enableAnimationFlag, ownPropList.size());
-    return WMError::WM_OK;
+    return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
 
 WMError WindowSceneSessionImpl::RemoveOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner)
 {
-    std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
-    if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
-        return WMError::WM_OK;
+    {
+        std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
+        if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
+            return WMError::WM_OK;
+        }
+        auto& ownPropList = ownSystemBarPropertyMap_[type];
+        auto it = std::find_if(ownPropList.begin(), ownPropList.end(), [owner](OwnSystemBarPropertyPair pair) {
+            return pair.first == owner;
+        });
+        if (it != ownPropList.end()) {
+            ownPropList.erase(it);
+        }
+        if (ownPropList.empty()) {
+            ownSystemBarPropertyMap_.erase(type);
+        }
+        TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u list size %{public}lu",
+            GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), ownPropList.size());
     }
-    auto& ownPropList = ownSystemBarPropertyMap_[type];
-    auto it = std::find_if(ownPropList.begin(), ownPropList.end(), [owner](OwnSystemBarPropertyPair pair) {
-        return pair.first == owner;
-    });
-    if (it != ownPropList.end()) {
-        ownPropList.erase(it);
-    }
-    if (ownPropList.empty()) {
-        ownSystemBarPropertyMap_.erase(type);
-    }
-    TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u list size %{public}lu",
-        GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), ownPropList.size());
-    return WMError::WM_OK;
+    return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
 
 PartialSystemBarProperty WindowSceneSessionImpl::GetOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner)
