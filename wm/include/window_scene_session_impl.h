@@ -338,9 +338,9 @@ public:
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags) override;
     WMError SetStatusBarColorForPage(const std::optional<uint32_t> color) override;
     WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
-        SystemBarPropertyOwner owner, bool inPlace = false) override;
-    WMError RemoveOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner) override;
-    PartialSystemBarProperty GetOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner) override;
+        SystemBarPropertyOwner owner) override;
+    WMError RemoveOwnSystemBarProperty(WindowType type, const SystemBarPropertyFlag& flag,
+        SystemBarPropertyOwner owner) override;
 
     /*
      * Window Pattern

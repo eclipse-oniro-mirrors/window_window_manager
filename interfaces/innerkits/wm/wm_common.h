@@ -1157,6 +1157,17 @@ struct SystemBarPropertyFlag {
     bool backgroundColorFlag = false;
     bool contentColorFlag = false;
     bool enableAnimationFlag = false;
+
+    bool operator==(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag == other.enableFlag && backgroundColorFlag == other.backgroundColorFlag &&
+            contentColorFlag == other.contentColorFlag && enableAnimationFlag == other.enableAnimationFlag);
+    }
+
+    bool Contains(const SystemBarPropertyFlag& other) {
+        return (enableFlag || !other.enableFlag) && (backgroundColorFlag || !other.backgroundColorFlag) &&
+            (contentColorFlag || !other.contentColorFlag) && (enableAnimationFlag || !other.enableAnimationFlag);
+    }
 };
 
 /**
@@ -1165,10 +1176,10 @@ struct SystemBarPropertyFlag {
  * @brief Partial system bar property
  */
 struct PartialSystemBarProperty {
-    bool enable_;
-    uint32_t backgroundColor_;
-    uint32_t contentColor_;
-    bool enableAnimation_;
+    bool enable_ = false;
+    uint32_t backgroundColor_ = 0;
+    uint32_t contentColor_ = 0;
+    bool enableAnimation_ = false;
     SystemBarPropertyFlag flag_;
 };
 

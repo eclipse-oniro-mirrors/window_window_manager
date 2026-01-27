@@ -3466,35 +3466,21 @@ public:
      * @param type System bar type
      * @param prop System bar property
      * @param owner The party who owns this property
-     * @param inPlace Whether set own property in place(Do not move it to head node)
      * @return WMError
      */
     virtual WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
-        SystemBarPropertyOwner owner, bool inPlace = false) { return WMError::WM_OK; }
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
 
     /**
      * @brief Remove own system bar property
      *
      * @param type System bar type
+     * @param flag The property types that need to be removed
      * @param owner The party who owns this property
      * @return WMError
      */
-    virtual WMError RemoveOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner)
-    {
-        return WMError::WM_OK;
-    }
-
-    /**
-     * @brief Get own system bar property
-     *
-     * @param type System bar type
-     * @param owner The party who owns this property
-     * @return PartialSystemBarProperty
-     */
-    virtual PartialSystemBarProperty GetOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner)
-    {
-        return PartialSystemBarProperty();
-    }
+    virtual WMError RemoveOwnSystemBarProperty(WindowType type, const SystemBarPropertyFlag& flag,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
 
     /**
      * @brief Set the single frame composer enabled flag of a window.
