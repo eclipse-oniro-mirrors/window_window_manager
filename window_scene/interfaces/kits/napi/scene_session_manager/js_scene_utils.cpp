@@ -1832,6 +1832,8 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     }
     napi_set_named_property(env, objValue, "errorReason",
         CreateJsValue(env, sessionInfo.errorReason));
+    napi_set_named_property(env, objValue, "shouldSkipKillInStartup",
+        CreateJsValue(env, sessionInfo.shouldSkipKillInStartup));
 
     SetJsSessionInfoByWant(env, sessionInfo, objValue);
     napi_set_named_property(env, objValue, "supportWindowModes",

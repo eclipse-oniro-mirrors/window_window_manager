@@ -33,8 +33,8 @@ struct BundleInfo;
 
 namespace OHOS::Rosen {
 class AbilityInfoManager {
-WM_DECLARE_SINGLE_INSTANCE(AbilityInfoManager);
 public:
+    static AbilityInfoManager& GetInstance();
     static bool FindAbilityInfo(const AppExecFwk::BundleInfo& bundleInfo,
         const std::string& moduleName, const std::string& abilityName, AppExecFwk::AbilityInfo& abilityInfo);
 
@@ -49,10 +49,10 @@ public:
 private:
     std::mutex applicationInfoMutex_;
     std::unordered_map<std::string, std::string> applicationInfoMap_;
-    int32_t userId_ = 0;
     // Above guarded by applicationInfoMutex_
 
     sptr<AppExecFwk::IBundleMgr> bundleMgr_;
+    int32_t userId_ = 0;
 };
 } // namespace OHOS::Rosen
 
