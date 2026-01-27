@@ -5262,6 +5262,29 @@ void SceneSessionManager::SetSupportRotationRegisteredListener(NotifySupportRota
     supportRotationRegisteredListener_ = std::move(func);
 }
 
+WMError SceneSessionManager::NotifyRotationProperty(int32_t persistentId,
+    uint32_t rotation, uint32_t width, uint32_t height)
+{
+    auto sceneSession = GetSceneSession(persistentId);
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "session is nullptr, id:%{public}d", persistentId);
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    const char* const where = __func__;
+    ffrtQueueHelper_->SubmitTask([weakSceneSession = wptr(sceneSession), rotation, width, height, where] {
+        auto session = weakSceneSession.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
+            return;
+        }
+        WSError ret = session->NotifyRotationProperty(rotation, width, height);
+        if (ret != WSError::WS_OK) {
+            TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s failed, ret:%{public}d", where, ret);
+        }
+    });
+    return WMError::WM_OK;
+}
+
 void SceneSessionManager::RegisterCreateSubSessionListener(int32_t persistentId,
     const NotifyCreateSubSessionFunc& func)
 {

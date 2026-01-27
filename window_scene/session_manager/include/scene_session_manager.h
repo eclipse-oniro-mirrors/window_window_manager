@@ -730,6 +730,7 @@ public:
      * Window Rotation
      */
     void SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func);
+    WMError NotifyRotationProperty(int32_t persistentId, uint32_t rotation, uint32_t width, uint32_t height);
 
      /*
      * FloatingBall Window

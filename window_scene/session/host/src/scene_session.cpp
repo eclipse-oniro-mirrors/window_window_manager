@@ -9650,54 +9650,46 @@ WSError SceneSession::ConvertWindowOrientationToDisplayRotation(const int32_t va
 
 WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, uint32_t height)
 {
-    PostTask(
-        [weakThis = wptr(this), rotation, width, height, where = __func__] {
-            if (width == 0 || height == 0) {
-                return WSError::WS_ERROR_INVALID_PARAM;
-            }
-            auto session = weakThis.promote();
-            if (!session) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
-                return WSError::WS_ERROR_NULLPTR;
-            }
-            WSRect wsrect = { 0, 0, width, height };
-            auto properties = session->GetSystemBarPropertyForRotation();
-            std::map<AvoidAreaType, AvoidArea> avoidAreas;
-            uint32_t orientation = 0;
-            WSError ret = session->ConvertRotationToOrientation(rotation, width, height, orientation);
-            if (ret != WSError::WS_OK) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert Rotation to Orientation");
-                return ret;
-            }
-            // Orientation type is required here
-            session->GetAvoidAreasByRotation(
-                static_cast<Rotation>(orientation), wsrect, properties, avoidAreas);
-            if (!session->sessionStage_) {
-                return WSError::WS_ERROR_NULLPTR;
-            }
-            Rect rect = { wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_ };
-            OrientationInfo info = { orientation, rect, avoidAreas };
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation:%{public}u, width:%{public}u, height:%{public}u",
+        rotation, width, height);
+    if (width == 0 || height == 0) {
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    if (!sessionStage_) {
+        TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s sessionStage is null", __func__);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    WSRect wsrect = { 0, 0, width, height };
+    auto properties = GetSystemBarPropertyForRotation();
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    uint32_t orientation = 0;
+    WSError ret = ConvertRotationToOrientation(rotation, width, height, orientation);
+    if (ret != WSError::WS_OK) {
+        TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert Rotation to Orientation");
+        return ret;
+    }
+    // Orientation type is required here
+    GetAvoidAreasByRotation(static_cast<Rotation>(orientation), wsrect, properties, avoidAreas);
+    Rect rect = { wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_ };
+    OrientationInfo info = { orientation, rect, avoidAreas };
 
-            WSRect currentWsrect = session->GetSessionRect();
-            auto currentProperties = session->GetCurrentSystemBarPropertyForRotation();
-            std::map<AvoidAreaType, AvoidArea> currentAvoidAreas;
-            uint32_t currentOrientation = 0;
-            uint32_t currentRotation = static_cast<uint32_t>(session->GetCurrentRotation());
-            WSError currentRet = session->ConvertRotationToOrientation(currentRotation,
-                currentWsrect.width_, currentWsrect.height_, currentOrientation);
-            if (currentRet != WSError::WS_OK) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert currentWsrect Rotation to Orientation");
-                return currentRet;
-            }
-            // Orientation type is required here
-            session->GetAvoidAreasByRotation(
-                static_cast<Rotation>(currentOrientation), currentWsrect, currentProperties, currentAvoidAreas);
-            Rect currentRect =
-                { currentWsrect.posX_, currentWsrect.posY_,currentWsrect.width_, currentWsrect.height_ };
-            OrientationInfo currentInfo = { currentOrientation, currentRect, currentAvoidAreas };
-            session->sessionStage_->NotifyTargetRotationInfo(info, currentInfo);
-            return WSError::WS_OK;
-        }, __func__);
+    WSRect currentWsrect = GetSessionRect();
+    auto currentProperties = GetCurrentSystemBarPropertyForRotation();
+    std::map<AvoidAreaType, AvoidArea> currentAvoidAreas;
+    uint32_t currentOrientation = 0;
+    uint32_t currentRotation = static_cast<uint32_t>(GetCurrentRotation());
+    WSError currentRet = ConvertRotationToOrientation(currentRotation,
+        currentWsrect.width_, currentWsrect.height_, currentOrientation);
+    if (currentRet != WSError::WS_OK) {
+        TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert currentWsrect Rotation to Orientation");
+        return currentRet;
+    }
+    // Orientation type is required here
+    GetAvoidAreasByRotation(
+        static_cast<Rotation>(currentOrientation), currentWsrect, currentProperties, currentAvoidAreas);
+    Rect currentRect = { currentWsrect.posX_, currentWsrect.posY_, currentWsrect.width_, currentWsrect.height_ };
+    OrientationInfo currentInfo = { currentOrientation, currentRect, currentAvoidAreas };
+    sessionStage_->NotifyTargetRotationInfo(info, currentInfo);
     return WSError::WS_OK;
 }
 
