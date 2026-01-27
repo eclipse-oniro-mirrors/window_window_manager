@@ -74,7 +74,7 @@ void SceneSessionImmersiveTest::SetUp()
         auto runner = AppExecFwk::EventRunner::Create("SceneSessionTest");
         handler_ = std::make_shared<AppExecFwk::EventHandler>(runner);
     }
-    sceneSession->SetEventHandler(handler_, nullptr);    
+    sceneSession->SetEventHandler(handler_, nullptr);
 }
 
 void SceneSessionImmersiveTest::TearDown()
