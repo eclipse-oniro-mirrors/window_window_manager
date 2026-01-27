@@ -356,7 +356,7 @@ HWTEST_F(RateLimitedLoggerTest, AbnormalTimeWindowMsParameter, TestSize.Level1)
     bool result = RateLimitedLogger::getInstance().logFunction(functionAddress, timeWindowMs, maxCount);
 
     // Then - The log should be printed fail
-    EXPECT_TRUE(result);
+    EXPECT_FALSE(result);
 }
 
 /**
