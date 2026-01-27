@@ -3726,8 +3726,7 @@ PartialSystemBarProperty WindowSceneSessionImpl::GetOwnSystemBarProperty(WindowT
 {
     std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
     if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
-        PartialSystemBarProperty prop;
-        return prop;
+        return PartialSystemBarProperty();
     }
     auto& ownPropList = ownSystemBarPropertyMap_[type];
     auto iter = std::find_if(ownPropList.begin(), ownPropList.end(), [owner](OwnSystemBarPropertyPair pair) {
@@ -3736,8 +3735,7 @@ PartialSystemBarProperty WindowSceneSessionImpl::GetOwnSystemBarProperty(WindowT
     if (iter != ownPropList.end()) {
         return iter->second;
     } else {
-        PartialSystemBarProperty prop;
-        return prop;
+        return PartialSystemBarProperty();
     }
 }
 
