@@ -272,6 +272,9 @@ public:
     WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
     WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
     void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
+    void ReportClickTitleMinimize(const std::string& bundleName);
+    void ReportClickTitleClose(const std::string& bundleName);
+    void ReportCompatibleTitleOperate(const std::string& bundleName, const std::string& operateType);
 
     /*
      * Window Property
