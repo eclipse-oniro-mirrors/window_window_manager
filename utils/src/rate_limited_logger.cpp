@@ -27,9 +27,9 @@ RateLimitedLogger& RateLimitedLogger::getInstance()
 
 bool RateLimitedLogger::logFunction(const std::uintptr_t& functionAddress, uint32_t timeWindowMs, uint32_t maxCount)
 {
-    // Parameter abnormality 
-    if (timeWindowMs == 0 || maxCount == 0) { 
-        return false; 
+    // Parameter abnormality
+    if (timeWindowMs == 0 || maxCount == 0) {
+        return false;
     }
 
     // Disable log rate limiting, always print logs
