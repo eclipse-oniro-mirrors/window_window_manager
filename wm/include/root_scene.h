@@ -80,7 +80,6 @@ public:
     void NotifyAvoidAreaChangeForRoot(const sptr<AvoidArea>& avoidArea, AvoidAreaType type,
         const sptr<OccupiedAreaChangeInfo>& info = nullptr);
     void RegisterUpdateRootSceneAvoidAreaCallback(UpdateRootSceneAvoidAreaCallback&& callback);
-    std::string GetClassType() const override { return "RootScene"; }
     bool IsSystemWindow() const override { return WindowHelper::IsSystemWindow(GetType()); }
     bool IsAppWindow() const override { return WindowHelper::IsAppWindow(GetType()); }
     void GetExtensionConfig(AAFwk::WantParams& want) const override;
@@ -147,6 +146,8 @@ public:
     void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) override;
 
     static sptr<RootScene> staticRootScene_;
+
+    std::string GetClassType() const override { return "RootScene"; }
 
     /*
      * RS Client Multi Instance
