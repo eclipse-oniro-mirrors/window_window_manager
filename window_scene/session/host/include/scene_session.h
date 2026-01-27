@@ -705,8 +705,8 @@ public:
     bool UpdateInteractiveInner(bool interactive);
     void UpdateLifecyclePausedInner();
     void HookSceneSessionActivation(NotifyHookSceneSessionActivationFunc&& func);
-    virtual void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func) {}
-    virtual void SetIsUserRequestedExit(bool isUserRequestedExit) {}
+    void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func);
+    void SetIsUserRequestedExit(bool isUserRequestedExit);
     void SetGetAllAppUseControlMapFunc(GetAllAppUseControlMapFunc&& callback);
     void CalculatedStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
     bool isRemoving_ = false;
@@ -1493,7 +1493,6 @@ private:
     std::map<uint64_t, int32_t> uiExtNodeIdToPersistentIdMap_;
     std::string clientIdentityToken_ = { "" };
     SessionChangeByActionNotifyManagerFunc sessionChangeByActionNotifyManagerFunc_;
-
     bool isAddBlank_ = false;
     bool bufferAvailableCallbackEnable_ = false;
 
