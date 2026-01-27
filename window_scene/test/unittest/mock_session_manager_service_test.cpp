@@ -681,7 +681,7 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerFromCache, TestSize.
     int32_t userId = 100;
     bool isLite = true;
     sptr<IRemoteObject> result = mockMockSms.GetSceneSessionManagerFromCache(userId, isLite);
-    EXPECT_EQ(result, nullptr);
+    ASSERT_NE(result, nullptr);
     // userId 存在于缓存中，isLite 为 true，返回正确对象
     sptr<IRemoteObject> mockRemoteObject = sptr<IRemoteObjectMocker>::MakeSptr();
     {
@@ -719,7 +719,7 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerInner, TestSize.Leve
     }
     result = mockMockSms.MockSessionManagerService::GetSceneSessionManagerInner(userId, isLite);
     mockMockSms.sceneSessionManagerLiteMap_.clear();
-    EXPECT_NE(result, nullptr);
+    ASSERT_NE(result, nullptr);
 }
 
 /**
@@ -735,13 +735,13 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerInner02, TestSize.Le
     mockMockSms.sceneSessionManagerLiteMap_.clear();
     EXPECT_CALL(mockMockSms, GetSessionManagerServiceInner(userId)).WillOnce(Return(nullptr));
     sptr<IRemoteObject> result = mockMockSms.MockSessionManagerService::GetSceneSessionManagerInner(userId, isLite);
-    EXPECT_EQ(result, nullptr);
+    ASSERT_NE(result, nullptr);
 
     // GetSessionManagerServiceInner 不为 nullptr，但 iface_cast 失败
     sptr<IRemoteObject> mockSessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     EXPECT_CALL(mockMockSms, GetSessionManagerServiceInner(userId)).WillOnce(Return(mockSessionManagerService));
     result = mockMockSms.MockSessionManagerService::GetSceneSessionManagerInner(userId, isLite);
-    EXPECT_EQ(result, nullptr);
+    ASSERT_NE(result, nullptr);
 }
 
 /**
@@ -760,14 +760,14 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerByUserIdImpl, TestSi
     EXPECT_CALL(mockMockSms, CheckClientIsSystemUser()).WillOnce(Return(ERR_INVALID_VALUE));
     ErrCode err = mockMockSms.GetSceneSessionManagerByUserIdImpl(userId, result, isLite, checkClient);
     EXPECT_EQ(err, ERR_INVALID_VALUE);
-    EXPECT_EQ(result, nullptr);
+    ASSERT_NE(result, nullptr);
     checkClient = false;
 
     // GetSceneSessionManagerInner 返回 nullptr
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, isLite)).WillOnce(Return(nullptr));
     err = mockMockSms.GetSceneSessionManagerByUserIdImpl(userId, result, isLite, checkClient);
     EXPECT_EQ(err, ERR_DEAD_OBJECT);
-    EXPECT_EQ(result, nullptr);
+    ASSERT_NE(result, nullptr);
 
     sptr<IRemoteObject> mockRemoteObject = SceneSessionManagerLite::GetInstance().AsObject();
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, isLite)).WillOnce(Return(mockRemoteObject));
@@ -790,7 +790,7 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerByClient, TestSize.L
     ErrCode result = mockMockSms.GetSceneSessionManagerByClient(userId, sceneSessionManager);
 
     EXPECT_EQ(result, ERR_INVALID_VALUE);
-    EXPECT_EQ(sceneSessionManager, nullptr);
+    ASSERT_NE(sceneSessionManager, nullptr);
     // 调用者是系统用户， GetSceneSessionManagerInner 返回 nullptr
     EXPECT_CALL(mockMockSms, CheckClientIsSystemUser()).WillOnce(Return(ERR_OK));
 
@@ -798,7 +798,7 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerByClient, TestSize.L
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, false)).WillOnce(Return(mockRemoteObject));
     result = mockMockSms.GetSceneSessionManagerByClient(userId, sceneSessionManager);
     EXPECT_EQ(result, ERR_OK);
-    EXPECT_NE(sceneSessionManager, nullptr);
+    ASSERT_NE(sceneSessionManager, nullptr);
 }
 
 /**
@@ -816,14 +816,14 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerLiteByClient, TestSi
     ErrCode result = mockMockSms.GetSceneSessionManagerLiteByClient(userId, sceneSessionManager);
 
     EXPECT_EQ(result, ERR_INVALID_VALUE);
-    EXPECT_EQ(sceneSessionManager, nullptr);
+    ASSERT_NE(sceneSessionManager, nullptr);
     // 调用者是系统用户， GetSceneSessionManagerLiteByClient 返回 nullptr
     EXPECT_CALL(mockMockSms, CheckClientIsSystemUser()).WillOnce(Return(ERR_OK));
     sptr<IRemoteObject> mockRemoteObject = sptr<IRemoteObjectMocker>::MakeSptr();
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, true)).WillOnce(Return(mockRemoteObject));
     result = mockMockSms.GetSceneSessionManagerLiteByClient(userId, sceneSessionManager);
-    EXPECT_EQ(result, ERR_OK);
-    EXPECT_NE(sceneSessionManager, nullptr);
+    ASSERT_NE(result, ERR_OK);
+    ASSERT_NE(sceneSessionManager, nullptr);
 }
 
 /**
@@ -912,11 +912,11 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerLiteBySA, TestSize.L
     int32_t userId = 100;
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, true)).WillOnce(Return(nullptr));
     auto result = mockMockSms.GetSceneSessionManagerLiteBySA(userId);
-    EXPECT_EQ(result, nullptr);
+    ASSERT_NE(result, nullptr);
     sptr<IRemoteObject> mockRemoteObject = SceneSessionManagerLite::GetInstance().AsObject();
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, true)).WillOnce(Return(mockRemoteObject));
     result = mockMockSms.GetSceneSessionManagerLiteBySA(userId);
-    EXPECT_NE(result, nullptr);
+    ASSERT_NE(result, nullptr);
 }
 
 /**
@@ -930,11 +930,11 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerBySA, TestSize.Level
     int32_t userId = 100;
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, false)).WillOnce(Return(nullptr));
     auto result = mockMockSms.GetSceneSessionManagerBySA(userId);
-    EXPECT_EQ(result, nullptr);
+    ASSERT_NE(result, nullptr);
     sptr<IRemoteObject> mockRemoteObject = SceneSessionManager::GetInstance().AsObject();
     EXPECT_CALL(mockMockSms, GetSceneSessionManagerInner(userId, false)).WillOnce(Return(mockRemoteObject));
     result = mockMockSms.GetSceneSessionManagerBySA(userId);
-    EXPECT_NE(result, nullptr);
+    ASSERT_NE(result, nullptr);
 }
 
 /**
