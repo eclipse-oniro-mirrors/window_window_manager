@@ -342,26 +342,25 @@ void MockSessionManagerService::RemoveFromMap(std::map<int32_t, sptr<IRemoteObje
     }
 }
 
-ErrCode MockSessionManagerService::RegisterSMSRecoverListener(const sptr<IRemoteObject>& listener,
-                                                              int32_t userId,
-                                                              bool isLite)
+ErrCode MockSessionManagerService::RegisterSMSRecoverListener(int32_t userId,
+                                                              bool isLite,
+                                                              const sptr<IRemoteObject>& listener)
 {
-    int32_t pid = IPCSkeleton::GetCallingRealPid();
-    DisplayId displayId = DISPLAY_ID_INVALID;
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_RECOVER, "listener is null");
         return ERR_INVALID_VALUE;
     }
+    DisplayId displayId = DISPLAY_ID_INVALID;
     int32_t clientUserId = GetUserIdByCallingUid();
     if (clientUserId <= INVALID_USER_ID) {
         TLOGE(WmsLogTag::WMS_RECOVER, "illegal clientUserId: %{public}d", clientUserId);
         return ERR_INVALID_VALUE;
     }
-    // When SYSTEM_USERID calling, userId = INVALID_USER_ID, set userId to defaultWMSUserId_
-    if (clientUserId == SYSTEM_USERID && userId == INVALID_USER_ID) {
-        userId = defaultWMSUserId_;
-    }
-    if (clientUserId == SYSTEM_USERID && userId != INVALID_USER_ID) {
+    if (clientUserId == SYSTEM_USERID) {
+        if (userId == INVALID_USER_ID) {
+            std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
+            userId = defaultWMSUserId_;
+        }
         auto ret = GetForegroundOsAccountDisplayId(userId, displayId);
         if (ret != ERR_OK) {
             return ret;
@@ -369,13 +368,14 @@ ErrCode MockSessionManagerService::RegisterSMSRecoverListener(const sptr<IRemote
     } else {
         displayId = DEFAULT_SCREEN_ID;
     }
+
+    int32_t pid = IPCSkeleton::GetCallingRealPid();
     auto clientDeathListener = sptr<ClientListenerDeathRecipient>::MakeSptr(clientUserId, displayId, pid, isLite);
     if (listener->IsProxyObject() && !listener->AddDeathRecipient(clientDeathListener)) {
         TLOGE(WmsLogTag::WMS_RECOVER, "failed to add death recipient");
         return ERR_INVALID_VALUE;
     }
-    sptr<ISessionManagerServiceRecoverListener> smsListener =
-        iface_cast<ISessionManagerServiceRecoverListener>(listener);
+    auto smsListener = iface_cast<ISessionManagerServiceRecoverListener>(listener);
 
     TLOGI(WmsLogTag::WMS_RECOVER, "clientUserId: %{public}d, userId: %{public}d, pid: %{public}d,"
         "isLite: %{public}d, displayId: %{public}" PRIu64, clientUserId, userId, pid, isLite, displayId);

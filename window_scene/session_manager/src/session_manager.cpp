@@ -90,15 +90,9 @@ void SessionManagerServiceRecoverListener::OnWMSConnectionChanged(int32_t wmsUse
 SessionManager::~SessionManager()
 {
     UnregisterSMSRecoverListener();
-    sptr<IRemoteObject> remoteObject = nullptr;
-    if (mockSessionManagerServiceProxy_) {
-        remoteObject = mockSessionManagerServiceProxy_->AsObject();
-    }
-    if (remoteObject) {
-        remoteObject->RemoveDeathRecipient(foundationDeath_);
-    }
+    RemoveMockFoundationDeathRecipient();
     RemoveSSMDeathRecipient();
-    TLOGI(WmsLogTag::WMS_SCB, "destroyed, userId: %{public}d", userId_);
+    TLOGI(WmsLogTag::WMS_SCB, "session manager destroyed, userId: %{public}d", userId_);
 }
 
 SessionManager::SessionManager(const int32_t userId) : userId_(userId) {}
@@ -266,7 +260,7 @@ WMError SessionManager::InitMockSMSProxy()
 
 __attribute__((no_sanitize("cfi"))) void SessionManager::InitSceneSessionManagerProxy()
 {
-    TLOGI(WmsLogTag::WMS_SCB, "init ssm proxy");
+    TLOGI(WmsLogTag::WMS_SCB, "enter");
     {
         std::lock_guard<std::mutex> lock(sceneSessionManagerMutex_);
         if (sceneSessionManagerProxy_) {
@@ -277,7 +271,7 @@ __attribute__((no_sanitize("cfi"))) void SessionManager::InitSceneSessionManager
     {
         std::lock_guard<std::mutex> lock(sessionManagerServiceMutex_);
         if (sessionManagerServiceProxy_ == nullptr) {
-            TLOGE(WmsLogTag::WMS_SCB, "get sms proxy failed");
+            TLOGE(WmsLogTag::WMS_SCB, "sms proxy is null");
             return;
         }
         remoteObject = sessionManagerServiceProxy_->GetSceneSessionManager();
@@ -286,7 +280,9 @@ __attribute__((no_sanitize("cfi"))) void SessionManager::InitSceneSessionManager
             return;
         }
     }
-    sceneSessionManagerDeath_ = sptr<SSMDeathRecipient>::MakeSptr(userId_);
+    if (!sceneSessionManagerDeath_) {
+        sceneSessionManagerDeath_ = sptr<SSMDeathRecipient>::MakeSptr(userId_);
+    }
     {
         std::lock_guard<std::mutex> lock(sceneSessionManagerMutex_);
         sceneSessionManagerProxy_ = iface_cast<ISceneSessionManager>(remoteObject);
@@ -322,7 +318,7 @@ void SessionManager::RegisterSMSRecoverListener()
         }
         mockProxy = mockSessionManagerServiceProxy_;
     }
-    mockProxy->RegisterSMSRecoverListener(smsRecoverListener_, userId_, false);
+    mockProxy->RegisterSMSRecoverListener(userId_, false, smsRecoverListener_);
     {
         std::lock_guard<std::mutex> lock(recoverListenerMutex_);
         isRecoverListenerRegistered_ = true;
@@ -416,6 +412,21 @@ void SessionManager::RemoveSSMDeathRecipient()
     }
     if (remoteObject) {
         remoteObject->RemoveDeathRecipient(sceneSessionManagerDeath_);
+    }
+    TLOGI(WmsLogTag::WMS_SCB, "removed");
+}
+
+void SessionManager::RemoveMockFoundationDeathRecipient()
+{
+    sptr<IRemoteObject> remoteObject = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mockSessionManagerServiceMutex_);
+        if (mockSessionManagerServiceProxy_) {
+            remoteObject = mockSessionManagerServiceProxy_->AsObject();
+        }
+    }
+    if (remoteObject) {
+        remoteObject->RemoveDeathRecipient(foundationDeath_);
     }
     TLOGI(WmsLogTag::WMS_SCB, "removed");
 }
