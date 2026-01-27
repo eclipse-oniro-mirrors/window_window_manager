@@ -337,9 +337,10 @@ public:
     WMError UpdateSystemBarProperties(const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags) override;
     WMError SetStatusBarColorForPage(const std::optional<uint32_t> color) override;
-    WMError SetOwnSystemBarProperty(WindowType type,
-        const PartialSystemBarProperty& prop, SystemBarPropertyOwner owner) override;
+    WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
+        SystemBarPropertyOwner owner, bool inPlace = false) override;
     WMError RemoveOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner) override;
+    PartialSystemBarProperty GetOwnSystemBarProperty(WindowType type, SystemBarPropertyOwner owner) override;
 
     /*
      * Window Pattern
@@ -518,7 +519,6 @@ private:
     std::unordered_map<WindowType, std::list<OwnSystemBarPropertyPair>> ownSystemBarPropertyMap_;
     std::mutex ownSystemBarPropertyMapMutex_;
     SystemBarProperty GetCurrentActiveSystemBarProperty(WindowType type);
-    PartialSystemBarProperty& GetCurrentSystemBarPropertyForOwner(WindowType type, SystemBarPropertyOwner owner);
 
     /*
      * Window Animation
