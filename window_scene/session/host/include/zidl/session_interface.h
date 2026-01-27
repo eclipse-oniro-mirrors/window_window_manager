@@ -243,11 +243,11 @@ public:
      * @brief Raise main window above another.
      *
      * @param targetId Indicates the {@link int32_t} id of the target main window.
-     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     * @return Returns WSError::WS_ERROR_DEVICE_NOT_SUPPORT if called failed, means the device is not support.
      * @permission Make sure the caller has system permission.
      */
-    virtual WSError RaiseMainWindowAboveTarget(int32_t targetId) { return WSError::WS_OK; }
-
+    virtual WSError RaiseMainWindowAboveTarget(int32_t targetId) { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }
+    
     /**
      * @brief Raise the application main window to the top layer of the application.
      *
@@ -429,6 +429,7 @@ public:
     virtual WSError SetDialogSessionBackGestureEnabled(bool isEnabled) { return WSError::WS_OK; }
     virtual void NotifyExtensionDetachToDisplay() {}
     virtual int32_t GetStatusBarHeight() { return 0; }
+
     /**
      * @brief Request to get focus or lose focus.
      *
@@ -477,7 +478,7 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError OnSetImageForRecent(uint32_t imgResourceId, ImageFit ImageFit) { return WSError::WS_OK; }
-
+    
     /**
      * @brief Callback for set image for recent.
      *
@@ -646,19 +647,19 @@ public:
     {
         return WMError::WM_OK;
     }
-
+ 
     virtual WMError GetFloatingBallWindowId(uint32_t& windowId)
     {
         return WMError::WM_OK;
     }
-
+ 
     /**
      * @brief Close flating ball window while stopFb is called.
      *
      * Notify system that flating ball window is stopping and execute animation.
      */
     virtual void NotifyFloatingBallPrepareClose() {}
-
+ 
     /**
      * @brief Notify prepare to close window
      */
@@ -666,7 +667,7 @@ public:
     {
         return WSError::WS_OK;
     }
-
+ 
     virtual WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want)
     {
         return WMError::WM_OK;
@@ -703,7 +704,7 @@ public:
     {
         return WSError::WS_OK;
     }
-    
+
     /*
      * Window event
      */

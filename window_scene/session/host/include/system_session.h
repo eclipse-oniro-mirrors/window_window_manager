@@ -38,10 +38,11 @@ public:
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
         std::shared_ptr<RSTransaction> rsTransaction) override;
     void RectCheck(uint32_t curWidth, uint32_t curHeight) override;
-    bool IsVisibleForeground() const override;
-    bool IsVisibleNotBackground() const override;
     WSError SetDialogSessionBackGestureEnabled(bool isEnabled) override;
     int32_t GetSubWindowZLevel() const override;
+
+    bool IsVisibleForeground() const override;
+    bool IsVisibleNotBackground() const override;
 
     /*
      * Floating Ball Window
