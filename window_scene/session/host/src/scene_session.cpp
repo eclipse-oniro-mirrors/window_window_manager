@@ -148,10 +148,10 @@ std::map<uint64_t, std::map<uint32_t, WSRect>> SceneSession::windowDragHotAreaMa
 static bool g_enableForceUIFirst = system::GetParameter("window.forceUIFirst.enabled", "1") == "1";
 GetConstrainedModalExtWindowInfoFunc SceneSession::onGetConstrainedModalExtWindowInfoFunc_;
 
-SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId)
+SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
     : Session(info)
 {
-    GeneratePersistentId(false, info.persistentId_, userId);
+    GeneratePersistentId(false, info.persistentId_);
     specificCallback_ = specificCallback;
     SetCollaboratorType(info.collaboratorType_);
     TLOGI(WmsLogTag::WMS_LIFE, "Create session, id: %{public}d", GetPersistentId());
@@ -1159,8 +1159,9 @@ void SceneSession::HandleSessionDragEvent(SessionEvent event)
             }
         }
         Gravity gravity = moveDragController_->GetGravity();
-        SetSessionEventParam({rect.posX_, rect.posY_, rect.width_, rect.height_,
-            static_cast<uint32_t>(dragResizeType), static_cast<uint32_t>(gravity)});
+        Gravity dragGravity = moveDragController_->GetDragGravity();
+        SetSessionEventParam({rect.posX_, rect.posY_, rect.width_, rect.height_, static_cast<uint32_t>(dragResizeType),
+            static_cast<uint32_t>(gravity), static_cast<uint32_t>(dragGravity)});
     } else if (moveDragController_ && event == SessionEvent::EVENT_END_MOVE) {
         const auto& lastDragEndRect = moveDragController_->GetLastDragEndRect();
         SetSessionEventParam({lastDragEndRect.posX_, lastDragEndRect.posY_,
@@ -2967,6 +2968,9 @@ void SceneSession::GetKeyboardAvoidArea(WSRect& rect, AvoidArea& avoidArea)
             WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     }
     for (auto& inputMethod : inputMethodVector) {
+        if (!inputMethod) {
+            continue;
+        }
         if (inputMethod->GetSessionState() != SessionState::STATE_FOREGROUND &&
             inputMethod->GetSessionState() != SessionState::STATE_ACTIVE) {
             continue;
@@ -7326,8 +7330,9 @@ WSError SceneSession::NotifySessionExceptionInner(const sptr<AAFwk::SessionInfo>
             return WSError::WS_ERROR_NULLPTR;
         }
         if (SessionHelper::IsMainWindow(session->GetWindowType()) && !session->clientIdentityToken_.empty() &&
-            isFromClient && (abilitySessionInfo->errorReason != ERROR_REASON_LOW_MEMORY_KILL &&
-            session->clientIdentityToken_ != abilitySessionInfo->identityToken)) {
+            isFromClient && (session->clientIdentityToken_ != abilitySessionInfo->identityToken &&
+                abilitySessionInfo->errorReason != ERROR_REASON_LOW_MEMORY_KILL &&
+                !abilitySessionInfo->shouldSkipKillInStartup)) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s client exception not matched: %{public}s, %{public}s",
                 where, session->clientIdentityToken_.c_str(), abilitySessionInfo->identityToken.c_str());
             session->RemoveLifeCycleTask(LifeCycleTaskType::STOP);
@@ -7340,6 +7345,7 @@ WSError SceneSession::NotifySessionExceptionInner(const sptr<AAFwk::SessionInfo>
         info.callerToken_ = abilitySessionInfo->callerToken;
         info.errorCode = abilitySessionInfo->errorCode;
         info.errorReason = abilitySessionInfo->errorReason;
+        info.shouldSkipKillInStartup = abilitySessionInfo->shouldSkipKillInStartup;
         info.persistentId_ = static_cast<int32_t>(abilitySessionInfo->persistentId);
         {
             std::lock_guard<std::recursive_mutex> lock(session->sessionInfoMutex_);
@@ -7382,7 +7388,7 @@ WSRect SceneSession::GetLastSafeRect() const
     return lastSafeRect;
 }
 
-void SceneSession::SetLastSafeRect(WSRect rect)
+void SceneSession::SetLastSafeRect(const WSRect& rect)
 {
     lastSafeRect.posX_ = rect.posX_;
     lastSafeRect.posY_ = rect.posY_;
@@ -8835,7 +8841,7 @@ void SceneSession::NotifyAddOrRemoveSnapshotWindow(bool interactive)
 {
     // persistent imageFit exist, add snapshot when interactive is false.
     if (isPersistentImageFit_.load()) {
-        TLOGI(WmsLogTag::WMS_PATTERN, "Add or remove static image from window, interactive:%{public}d", interactive);
+        TLOGI(WmsLogTag::WMS_PATTERN, "id:%{public}d, interactive:%{public}d", GetPersistentId(), interactive);
         PostTask([weakThis = wptr(this), interactive, where = __func__] {
             auto session = weakThis.promote();
             if (session == nullptr) {
@@ -9646,54 +9652,46 @@ WSError SceneSession::ConvertWindowOrientationToDisplayRotation(const int32_t va
 
 WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, uint32_t height)
 {
-    PostTask(
-        [weakThis = wptr(this), rotation, width, height, where = __func__] {
-            if (width == 0 || height == 0) {
-                return WSError::WS_ERROR_INVALID_PARAM;
-            }
-            auto session = weakThis.promote();
-            if (!session) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
-                return WSError::WS_ERROR_NULLPTR;
-            }
-            WSRect wsrect = { 0, 0, width, height };
-            auto properties = session->GetSystemBarPropertyForRotation();
-            std::map<AvoidAreaType, AvoidArea> avoidAreas;
-            uint32_t orientation = 0;
-            WSError ret = session->ConvertRotationToOrientation(rotation, width, height, orientation);
-            if (ret != WSError::WS_OK) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert Rotation to Orientation");
-                return ret;
-            }
-            // Orientation type is required here
-            session->GetAvoidAreasByRotation(
-                static_cast<Rotation>(orientation), wsrect, properties, avoidAreas);
-            if (!session->sessionStage_) {
-                return WSError::WS_ERROR_NULLPTR;
-            }
-            Rect rect = { wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_ };
-            OrientationInfo info = { orientation, rect, avoidAreas };
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation:%{public}u, width:%{public}u, height:%{public}u",
+        rotation, width, height);
+    if (width == 0 || height == 0) {
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    if (!sessionStage_) {
+        TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s sessionStage is null", __func__);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    WSRect wsrect = { 0, 0, width, height };
+    auto properties = GetSystemBarPropertyForRotation();
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    uint32_t orientation = 0;
+    WSError ret = ConvertRotationToOrientation(rotation, width, height, orientation);
+    if (ret != WSError::WS_OK) {
+        TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert Rotation to Orientation");
+        return ret;
+    }
+    // Orientation type is required here
+    GetAvoidAreasByRotation(static_cast<Rotation>(orientation), wsrect, properties, avoidAreas);
+    Rect rect = { wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_ };
+    OrientationInfo info = { orientation, rect, avoidAreas };
 
-            WSRect currentWsrect = session->GetSessionRect();
-            auto currentProperties = session->GetCurrentSystemBarPropertyForRotation();
-            std::map<AvoidAreaType, AvoidArea> currentAvoidAreas;
-            uint32_t currentOrientation = 0;
-            uint32_t currentRotation = static_cast<uint32_t>(session->GetCurrentRotation());
-            WSError currentRet = session->ConvertRotationToOrientation(currentRotation,
-                currentWsrect.width_, currentWsrect.height_, currentOrientation);
-            if (currentRet != WSError::WS_OK) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert currentWsrect Rotation to Orientation");
-                return currentRet;
-            }
-            // Orientation type is required here
-            session->GetAvoidAreasByRotation(
-                static_cast<Rotation>(currentOrientation), currentWsrect, currentProperties, currentAvoidAreas);
-            Rect currentRect =
-                { currentWsrect.posX_, currentWsrect.posY_,currentWsrect.width_, currentWsrect.height_ };
-            OrientationInfo currentInfo = { currentOrientation, currentRect, currentAvoidAreas };
-            session->sessionStage_->NotifyTargetRotationInfo(info, currentInfo);
-            return WSError::WS_OK;
-        }, __func__);
+    WSRect currentWsrect = GetSessionRect();
+    auto currentProperties = GetCurrentSystemBarPropertyForRotation();
+    std::map<AvoidAreaType, AvoidArea> currentAvoidAreas;
+    uint32_t currentOrientation = 0;
+    uint32_t currentRotation = static_cast<uint32_t>(GetCurrentRotation());
+    WSError currentRet = ConvertRotationToOrientation(currentRotation,
+        currentWsrect.width_, currentWsrect.height_, currentOrientation);
+    if (currentRet != WSError::WS_OK) {
+        TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert currentWsrect Rotation to Orientation");
+        return currentRet;
+    }
+    // Orientation type is required here
+    GetAvoidAreasByRotation(
+        static_cast<Rotation>(currentOrientation), currentWsrect, currentProperties, currentAvoidAreas);
+    Rect currentRect = { currentWsrect.posX_, currentWsrect.posY_, currentWsrect.width_, currentWsrect.height_ };
+    OrientationInfo currentInfo = { currentOrientation, currentRect, currentAvoidAreas };
+    sessionStage_->NotifyTargetRotationInfo(info, currentInfo);
     return WSError::WS_OK;
 }
 

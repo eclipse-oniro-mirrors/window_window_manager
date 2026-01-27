@@ -212,7 +212,7 @@ public:
         SetWindowPatternOpacityFunc setOpacityFunc_;
     };
 
-    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
+    SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     virtual ~SceneSession();
 
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
@@ -298,6 +298,7 @@ public:
     virtual void OpenKeyboardSyncTransaction() {}
     virtual void CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRect, bool isKeyboardShow,
         const WindowAnimationInfo& animationInfo, const CallingWindowInfoData& callingWindowInfoData) {}
+    virtual void NotifyKeyboardAnimationWillBegin(bool isKeyboardShow, const WindowAnimationInfo& animationInfo) {}
     virtual void CallingWindowStateChange(const CallingWindowInfoData& callingWindowInfoData) {}
     virtual void ForceProcessKeyboardOccupiedAreaInfo() {}
     WSError ChangeSessionVisibilityWithStatusBar(const sptr<AAFwk::SessionInfo> info, bool visible) override;
@@ -423,7 +424,6 @@ public:
     WSError SetDefaultRequestedOrientation(Orientation orientation);
     void SetWindowAnimationFlag(bool needDefaultAnimationFlag);
     void SetCollaboratorType(int32_t collaboratorType);
-    void SetLastSafeRect(WSRect rect);
     void SetMovable(bool isMovable);
     void SetOriPosYBeforeRaisedByKeyboard(int32_t posY);
     void SetColorSpace(ColorSpace colorSpace);
@@ -562,7 +562,6 @@ public:
     void SetBufferAvailableCallbackEnable(bool enable);
     bool GetBufferAvailableCallbackEnable() const override;
     int32_t GetCollaboratorType() const;
-    WSRect GetLastSafeRect() const;
     WSRect GetSessionTargetRectByDisplayId(DisplayId displayId) const;
     std::string GetUpdatedIconPath() const;
     int32_t GetParentPersistentId() const;
@@ -946,7 +945,7 @@ public:
     void OnWaterfallButtonChange(bool isShow);
 
     /*
-     * Keyboard
+     * Keyboard(public)
      */
     void SetIsSystemKeyboard(bool isSystemKeyboard);
     bool IsSystemKeyboard() const;
@@ -970,6 +969,8 @@ public:
         DisplayId displayId = DISPLAY_ID_INVALID) { return; }
     void RegisterNotifyOccupiedAreaChangeCallback(ForceNotifyOccupiedAreaChangeCallback&& callback);
     void ForceNotifyKeyboardOccupiedArea();
+    void SetLastSafeRect(const WSRect& rect);
+    WSRect GetLastSafeRect() const;
 
     /*
      * Window Property
@@ -1212,7 +1213,7 @@ protected:
     NotifyLandscapeMultiWindowSessionFunc onSetLandscapeMultiWindowFunc_;
 
     /*
-     * Keyboard
+     * Keyboard(protected)
      */
     virtual void EnableCallingSessionAvoidArea() {}
     virtual void RestoreCallingSession(uint32_t callingId, const std::shared_ptr<RSTransaction>& rsTransaction) {}
@@ -1436,7 +1437,6 @@ private:
     NotifyForceSplitFunc forceSplitFunc_;
     UpdatePrivateStateAndNotifyFunc updatePrivateStateAndNotifyFunc_;
     int32_t collaboratorType_ = CollaboratorType::DEFAULT_TYPE;
-    WSRect lastSafeRect = { 0, 0, 0, 0 };
     std::vector<sptr<SceneSession>> subSession_;
     std::vector<sptr<SceneSession>> toastSession_;
     std::atomic_bool needStartingWindowExitAnimation_ { true };
@@ -1446,6 +1446,11 @@ private:
     std::atomic_bool isStartMoving_ { false };
     std::atomic_bool isVisibleForAccessibility_ { true };
     bool isSystemSpecificSession_ { false };
+
+    /**
+     * Keyboard(private)
+    */
+    WSRect lastSafeRect = { 0, 0, 0, 0 };
 
     /*
      * UIExtension

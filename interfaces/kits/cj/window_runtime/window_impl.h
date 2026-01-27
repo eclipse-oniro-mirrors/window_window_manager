@@ -120,8 +120,8 @@ public:
     ResWindow CheckWindow();
     OHOS::FFI::RuntimeType* GetRuntimeType() override { return GetClassType(); }
     int32_t SetSubWindowModal(bool isModal);
-    int32_t SetWindowLimits(const CWindowLimits& cWindowLimits, CWindowLimits& rePtr);
-    int32_t GetWindowLimits(CWindowLimits& rePtr);
+    int32_t SetWindowLimits(const CWindowLimits& cWindowLimits, CWindowLimits& retPtr);
+    int32_t GetWindowLimits(CWindowLimits& retPtr);
     bool GetImmersiveModeEnabledState(int32_t& errCode);
     int32_t SetImmersiveModeEnabledState(bool enabled);
     int32_t KeepKeyboardOnFocus(bool keepKeyboardFlag);
@@ -129,14 +129,14 @@ public:
     int32_t SetWindowDecorHeight(int32_t height);
     int32_t Recover();
     int32_t SetWindowDecorVisible(bool isVisible);
-    int32_t GetTitleButtonRect(CTitleButtonRect& rePtr);
+    int32_t GetTitleButtonRect(CTitleButtonRect& retPtr);
     int32_t SetDialogBackGestureEnabled(bool enabled);
     int32_t DisableLandscapeMultiWindow();
     int32_t EnableLandscapeMultiWindow();
     int32_t SetWindowGrayScale(float grayScale);
     uint32_t GetPreferredOrientation(int32_t& errCode);
     int32_t GetWindowStatus(int32_t& errCode);
-    int32_t GetWindowSystemBarProperties(CJBarProperties& rePtr);
+    int32_t GetWindowSystemBarProperties(CJBarProperties& retPtr);
     int32_t SpecificSystemBarEnabled(int32_t name, bool enable, bool enableAnimation);
     int32_t Maximize(int32_t presentation);
     int32_t CreateSubWindowWithOptions(std::string name, int64_t &windowId,

@@ -1697,6 +1697,24 @@ HWTEST_F(MoveDragControllerTest, TestGetGravity, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TestGetDragGravity
+ * @tc.desc: Verify GetDragGravity returns correct value or TOP_LEFT when not found
+ * @tc.type: FUNC
+*/
+HWTEST_F(MoveDragControllerTest, TestGetDragGravity, TestSize.Level1)
+{
+    // Case 1: type in DRAG_GRAVITY_MAP
+    moveDragController->type_ = AreaType::TOP;
+    auto gravity = moveDragController->GetDragGravity();
+    EXPECT_EQ(gravity, Gravity::TOP);
+
+    // Case 2: type not in DRAG_GRAVITY_MAP
+    moveDragController->type_  = AreaType::UNDEFINED;
+    gravity = moveDragController->GetDragGravity();
+    EXPECT_EQ(gravity, Gravity::TOP_LEFT);
+}
+
+/**
  * @tc.name: TestRestoreToPreDragGravity
  * @tc.desc: Verify RestoreToPreDragGravity handles null, no-value, and valid cases
  * @tc.type: FUNC

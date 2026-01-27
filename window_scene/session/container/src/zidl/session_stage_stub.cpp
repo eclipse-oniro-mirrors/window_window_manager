@@ -1160,7 +1160,7 @@ int SessionStageStub::HandleNotifyKeyboardAnimationCompleted(MessageParcel& data
 
 int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_ROTATION, "in");
+    TLOGI(WmsLogTag::WMS_ROTATION, "in");
     uint32_t rotation = 0;
     if (!data.ReadUint32(rotation)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "read rotation failed");
@@ -1248,7 +1248,7 @@ int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageP
 
 int SessionStageStub::HandleNotifyPageRotationIsIgnored(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_ROTATION, "in");
+    TLOGI(WmsLogTag::WMS_ROTATION, "in");
     NotifyPageRotationIsIgnored();
     return ERR_NONE;
 }

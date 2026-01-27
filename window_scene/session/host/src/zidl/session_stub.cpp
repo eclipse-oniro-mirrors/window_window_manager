@@ -798,6 +798,10 @@ int SessionStub::HandleSessionException(MessageParcel& data, MessageParcel& repl
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
+    if (!data.ReadBool(abilitySessionInfo->shouldSkipKillInStartup)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read shouldSkipKillInStartup failed.");
+        return ERR_INVALID_DATA;
+    }
     ExceptionInfo exceptionInfo;
     if (!data.ReadBool(exceptionInfo.needRemoveSession)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read needRemoveSession failed.");

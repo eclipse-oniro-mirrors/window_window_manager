@@ -199,6 +199,11 @@ ohos_static_library("scene_session_manager_static") {
   } else {
     imf_enable = false
   }
+
+  if (device_status_enable) {
+    external_deps += [ "device_status:devicestatus_client" ]
+    defines += [ "DEVICE_STATUS_ENABLE" ]
+  }
   print("imf_enable: ", imf_enable)
   if (imf_enable == true) {
     external_deps += [ "imf:inputmethod_client" ]
@@ -361,6 +366,11 @@ ohos_shared_library("scene_session_manager") {
     imf_enable = true
   } else {
     imf_enable = false
+  }
+
+  if (device_status_enable) {
+    external_deps += [ "device_status:devicestatus_client" ]
+    defines += [ "DEVICE_STATUS_ENABLE" ]
   }
   print("imf_enable: ", imf_enable)
   if (imf_enable == true) {

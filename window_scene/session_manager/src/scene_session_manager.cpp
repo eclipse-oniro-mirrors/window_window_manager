@@ -111,6 +111,9 @@
 #endif // IMF_ENABLE
 #include "dms_global_mutex.h"
 
+#ifdef DEVICE_STATUS_ENABLE
+#include "interaction_manager.h"
+#endif // DEVICE_STATUS_ENABLE
 
 namespace OHOS::Rosen {
 namespace {
@@ -144,7 +147,7 @@ constexpr int ORIEN_MAX_WIDTH = 12;
 constexpr int OFFSET_MAX_WIDTH = 8;
 constexpr int SCALE_MAX_WIDTH = 8;
 constexpr int PID_MAX_WIDTH = 8;
-constexpr int PERSISTENT_ID_MAX_WIDTH = 12;
+constexpr int PARENT_ID_MAX_WIDTH = 6;
 constexpr int WINDOW_NAME_MAX_LENGTH = 20;
 constexpr int32_t CANCEL_POINTER_ID = 99999999;
 constexpr int32_t STATUS_BAR_AVOID_AREA = 0;
@@ -2794,24 +2797,24 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
     sptr<SceneSession::SpecificSessionCallback> specificCb = CreateSpecificSessionCallback();
     sptr<SceneSession> sceneSession = nullptr;
     if (sessionInfo.isSystem_) {
-        sceneSession = new SCBSystemSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new SCBSystemSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::DEFAULT, "[WMSSCB]Create SCBSystemSession, type: %{public}d", sessionInfo.windowType_);
     } else if (property == nullptr && SessionHelper::IsMainWindow(static_cast<WindowType>(sessionInfo.windowType_))) {
-        sceneSession = new MainSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new MainSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::WMS_MAIN, "Create MainSession, id: %{public}d", sceneSession->GetPersistentId());
     } else if (property != nullptr && SessionHelper::IsSubWindow(property->GetWindowType())) {
-        sceneSession = new SubSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new SubSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::WMS_SUB, "Create SubSession, type: %{public}d", property->GetWindowType());
     } else if (property != nullptr && property->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         sptr<KeyboardSession::KeyboardSessionCallback> keyboardCb = CreateKeyboardSessionCallback();
-        sceneSession = new KeyboardSession(sessionInfo, specificCb, keyboardCb, GetCurrentUserId());
+        sceneSession = new KeyboardSession(sessionInfo, specificCb, keyboardCb);
         sceneSession->SetIsSystemKeyboard(property->IsSystemKeyboard());
         CreateKeyboardPanelSession(sceneSession);
         HandleKeyboardAvoidChange(sceneSession, sceneSession->GetScreenId(),
             SystemKeyboardAvoidChangeReason::KEYBOARD_CREATED);
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Create KeyboardSession, type: %{public}d", property->GetWindowType());
     } else if (property != nullptr && SessionHelper::IsSystemWindow(property->GetWindowType())) {
-        sceneSession = new SystemSession(sessionInfo, specificCb, GetCurrentUserId());
+        sceneSession = new SystemSession(sessionInfo, specificCb);
         TLOGI(WmsLogTag::WMS_SYSTEM, "Create SystemSession, type: %{public}d", property->GetWindowType());
     } else {
         TLOGE(WmsLogTag::WMS_LIFE, "Invalid window type");
@@ -4611,7 +4614,7 @@ void SceneSessionManager::SetExtensionSubSessionDisplayId(const sptr<WindowSessi
     }
 }
 
-void SceneSessionManager::ReportSubWindowCreationFailure(const int32_t& pid, const std::string& abilityName,
+void SceneSessionManager::ReportSubWindowCreationFailure(int32_t pid, const std::string& abilityName,
         const std::string& parentBundleName, const std::string& hostBundleName)
 {
     taskScheduler_->PostAsyncTask([pid, abilityName, parentBundleName, hostBundleName]() {
@@ -5257,6 +5260,29 @@ void SceneSessionManager::SetStartPiPFailedListener(NotifyStartPiPFailedFunc&& f
 void SceneSessionManager::SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func)
 {
     supportRotationRegisteredListener_ = std::move(func);
+}
+
+WMError SceneSessionManager::NotifyRotationProperty(int32_t persistentId,
+    uint32_t rotation, uint32_t width, uint32_t height)
+{
+    auto sceneSession = GetSceneSession(persistentId);
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "session is nullptr, id:%{public}d", persistentId);
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    const char* const where = __func__;
+    ffrtQueueHelper_->SubmitTask([weakSceneSession = wptr(sceneSession), rotation, width, height, where] {
+        auto session = weakSceneSession.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
+            return;
+        }
+        WSError ret = session->NotifyRotationProperty(rotation, width, height);
+        if (ret != WSError::WS_OK) {
+            TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s failed, ret:%{public}d", where, ret);
+        }
+    });
+    return WMError::WM_OK;
 }
 
 void SceneSessionManager::RegisterCreateSubSessionListener(int32_t persistentId,
@@ -7721,7 +7747,7 @@ void SceneSessionManager::DumpSessionInfo(const sptr<SceneSession>& session, std
     oss << std::left << std::setw(WINDOW_NAME_MAX_WIDTH) << windowName
         << std::left << std::setw(DISPLAY_NAME_MAX_WIDTH) << displayId
         << std::left << std::setw(PID_MAX_WIDTH) << session->GetCallingPid()
-        << std::left << std::setw(PERSISTENT_ID_MAX_WIDTH) << session->GetPersistentId()
+        << std::left << std::setw(PARENT_ID_MAX_WIDTH) << session->GetPersistentId()
         << std::left << std::setw(VALUE_MAX_WIDTH) << static_cast<uint32_t>(session->GetWindowType())
         << std::left << std::setw(VALUE_MAX_WIDTH) << static_cast<uint32_t>(session->GetWindowMode())
         << std::left << std::setw(VALUE_MAX_WIDTH) << flag
@@ -7773,7 +7799,7 @@ WSError SceneSessionManager::GetAllSessionDumpInfo(std::string& dumpInfo)
     std::ostringstream oss;
     oss << "-------------------------------------ScreenGroup 0"
         << "-------------------------------------" << std::endl;
-    oss << "WindowName           DisplayId Pid     WinId       Type Mode Flag ZOrd Orientation [ x    y    w    h    ]"
+    oss << "WindowName           DisplayId Pid     WinId Type Mode Flag ZOrd Orientation [ x    y    w    h    ]"
         << " [ OffsetX OffsetY ] [ ScaleX  ScaleY  PivotX  PivotY  ]" << std::endl;
     std::vector<sptr<SceneSession>> allSession;
     std::vector<sptr<SceneSession>> backgroundSession;
@@ -12700,10 +12726,8 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     ProcessWindowModeType();
 #ifdef MEMMGR_WINDOW_ENABLE
     if (memMgrWindowInfos.size() != 0) {
-        taskScheduler_->PostAsyncTaskToExportHandler([memMgrWindowInfos = std::move(memMgrWindowInfos)]() {
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
-            Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
-        }, "notifyMemMgr");
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
+        Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
     }
 #endif
 }
@@ -14812,6 +14836,7 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
         } else if (sessionMapDirty_ == static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA)) {
             PostProcessProperty(sessionMapDirty_);
         }
+        SceneInputManager::GetInstance().SetIsRotationBegin(false);
         FlushWindowInfoToMMI();
         NotifyWindowPropertyChange(screenId);
         sessionMapDirty_ = 0;
@@ -18333,6 +18358,9 @@ WMError SceneSessionManager::RemoveImageForRecent(int32_t persistentId)
         TLOGE(WmsLogTag::WMS_PATTERN, "%{public}d is not a systemApp", persistentId);
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
+    if (sceneSession->IsSessionForeground()) {
+        sceneSession->NotifyRemoveSnapshot();
+    }
     sceneSession->ResetSnapshot();
     sceneSession->DeletePersistentImageFit();
     return WMError::WM_OK;
@@ -19945,6 +19973,18 @@ uint32_t SceneSessionManager::GetBlurBackgroundColorFromParam(const std::string&
 
 void SceneSessionManager::RegisterMinimizeAllCallback(MinimizeAllFunc&& func){
     minimizeAllFunc_ = std::move(func);
+}
+
+void SceneSessionManager::NotifyRotationBegin(bool isStopDrag)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "NotifyRotationBegin isStopDrag: %{public}d", isStopDrag);
+    SceneInputManager::GetInstance().SetIsRotationBegin(true);
+    if (isStopDrag) {
+        #ifdef DEVICE_STATUS_ENABLE
+        Msdp::DeviceStatus::InteractionManager::GetInstance()->StopDrag(
+            { Msdp::DeviceStatus::DragResult::DRAG_CANCEL, false, -1 });
+        #endif // DEVICE_STATUS_ENABLE
+    }
 }
 
 } // namespace OHOS::Rosen

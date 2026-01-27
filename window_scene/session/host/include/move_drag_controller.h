@@ -186,6 +186,8 @@ public:
      */
     Gravity GetGravity() const;
 
+    Gravity GetDragGravity() const;
+
     /**
      * @brief Restore the gravity of the surfaceNode to the pre-drag state.
      *

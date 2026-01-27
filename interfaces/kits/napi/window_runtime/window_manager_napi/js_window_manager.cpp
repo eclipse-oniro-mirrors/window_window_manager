@@ -655,20 +655,23 @@ napi_value JsWindowManager::OnCreateWindow(napi_env env, napi_callback_info info
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Incorrect number of parameters."));
         return NapiGetUndefined(env);
     }
     napi_value nativeObj = argv[0];
     if (nativeObj == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert object to CreateWindow");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Mandatory parameters are left unspecified."));
         return NapiGetUndefined(env);
     }
     WindowOption option;
     void* contextPtr = nullptr;
     if (!ParseConfigOption(env, nativeObj, option, contextPtr)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to parse config");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Failed to parse config."));
         return NapiGetUndefined(env);
     }
     napi_value callback = nullptr;
@@ -819,7 +822,8 @@ napi_value JsWindowManager::OnFindWindowSync(napi_env env, napi_callback_info in
         errCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
     }
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -832,7 +836,7 @@ napi_value JsWindowManager::OnFindWindowSync(napi_env env, napi_callback_info in
         sptr<Window> window = Window::Find(windowName);
         if (window == nullptr) {
             napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][findWindow]msg: Window is nullptr."));
+                "[window][findWindow]msg: The window is not created or destroyed."));
             return NapiGetUndefined(env);
         } else {
             return CreateJsWindowObject(env, window);

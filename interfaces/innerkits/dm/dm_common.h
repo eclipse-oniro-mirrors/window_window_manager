@@ -45,6 +45,7 @@ const static std::string DEFAULT_SCREEN_NAME = "buildIn";
 constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr int32_t CONCURRENT_USER_ID_DEFAULT = -1;
+constexpr int32_t INVALID_USERID = -1;
 constexpr int32_t USER_ID_DEFAULT = 0;
 constexpr int32_t ROTATION_UNSET = -1;
 constexpr int32_t ROTATION_MIN = 0;
