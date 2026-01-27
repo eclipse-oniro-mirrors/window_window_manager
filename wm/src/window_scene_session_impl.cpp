@@ -7522,16 +7522,14 @@ void WindowSceneSessionImpl::ReportClickTitleMinimize(const std::string& bundleN
 {
     HiSysEventWrite(SCENE_BOARD_UE_DOMAIN, CLICK_TITLE_MINIMIZE,
         OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
-        "BUNDLENAME", bundleName,
-        "HOVERTYPE", hoverType);
+        "BUNDLENAME", bundleName);
 }
 
 void WindowSceneSessionImpl::ReportClickTitleClose(const std::string& bundleName)
 {
     HiSysEventWrite(SCENE_BOARD_UE_DOMAIN, CLICK_TITLE_CLOSE,
         OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
-        "BUNDLENAME", bundleName,
-        "HOVERTYPE", hoverType);
+        "BUNDLENAME", bundleName);
 }
 
 void WindowSceneSessionImpl::ReportCompatibleTitleOperate(const std::string& bundleName, const std::string& operateType)
@@ -7539,7 +7537,7 @@ void WindowSceneSessionImpl::ReportCompatibleTitleOperate(const std::string& bun
     HiSysEventWrite(SCENE_BOARD_UE_DOMAIN, COMPATIBLE_TITLE_OPERATE,
         OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
         "BUNDLENAME", bundleName,
-        "HOVERTYPE", operateType);
+        "OPERATETYPE", operateType);
 }
 
 bool WindowSceneSessionImpl::IsSystemDensityChanged(const sptr<DisplayInfo>& displayInfo)
