@@ -3679,7 +3679,7 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const P
             "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}lu",
             GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), static_cast<uint32_t>(owner),
             prop.enable_, prop.backgroundColor_, prop.contentColor_, prop.enableAnimation_,
-            prop.flag_.enableFlag, prop.flag_.backgroundColorFlag, 
+            prop.flag_.enableFlag, prop.flag_.backgroundColorFlag,
             prop.flag_.contentColorFlag, prop.flag_.enableAnimationFlag, ownPropList.size());
     }
     return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
