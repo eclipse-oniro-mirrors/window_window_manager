@@ -3707,7 +3707,7 @@ WMError WindowSceneSessionImpl::RemoveOwnSystemBarProperty(WindowType type, cons
         if (ownPropList.empty()) {
             ownSystemBarPropertyMap_.erase(type);
         }
-        TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u"
+        TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u "
             "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}lu",
             GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), static_cast<uint32_t>(owner),
             flag.enableFlag, flag.backgroundColorFlag, 
