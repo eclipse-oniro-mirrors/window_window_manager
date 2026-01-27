@@ -265,6 +265,50 @@ HWTEST_F(ScreenSessionManagerTest, SetDisplayNodeSecurity, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetForegroundConcurrentUser2
+ * @tc.desc: GetForegroundConcurrentUser2
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetForegroundConcurrentUser2, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->displayConcurrentUserMap_.clear();
+    std::shared_ptr<ScreenSessionManager::UserInfo> userInfo = nullptr;
+    ssm_->GetForegroundConcurrentUser(100, userInfo);
+    EXPECT_EQ(userInfo, nullptr);
+    ssm_->displayConcurrentUserMap_[1000][100] = {true, 0};
+    ssm_->GetForegroundConcurrentUser(100, userInfo);
+    ASSERT_NE(userInfo, nullptr);
+    EXPECT_EQ(true, userInfo->isForeground);
+}
+
+/**
+ * @tc.name: SetVirtualScreenUser
+ * @tc.desc: SetVirtualScreenUser
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenUser, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->displayConcurrentUserMap_.clear();
+    sptr<ScreenSession> screenSession = new ScreenSession(1000, ScreenProperty(), 0);
+    int32_t userId = 100;
+    ssm_->SetVirtualScreenUser(screenSession, userId);
+    EXPECT_TRUE(g_errLog.find("invalid params") != std::string::npos);
+    g_errLog.clear();
+    ssm_->displayConcurrentUserMap_[1000][userId] = {false, 0};
+    ssm_->SetVirtualScreenUser(screenSession, userId);
+    EXPECT_TRUE(g_errLog.find("invalid params") != std::string::npos);
+    g_errLog.clear();
+    ssm_->displayConcurrentUserMap_[1000][userId] = {true, 0};
+    ssm_->SetVirtualScreenUser(screenSession, userId);
+    EXPECT_TRUE(g_errLog.find("invalid params") == std::string::npos);
+    g_errLog.clear();
+}
+
+/**
  * @tc.name: UpdatePropertyByActiveModeChange001
  * @tc.desc: UpdatePropertyByActiveModeChange001
  * @tc.type: FUNC
