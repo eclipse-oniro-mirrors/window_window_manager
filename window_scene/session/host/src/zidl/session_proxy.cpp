@@ -506,10 +506,6 @@ WSError SessionProxy::PendingSessionActivation(sptr<AAFwk::SessionInfo> abilityS
             return WSError::WS_ERROR_IPC_FAILED;
         }
     }
-    if (!data.WriteString(abilitySessionInfo->instanceKey)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write instanceKey failed");
-        return WSError::WS_ERROR_IPC_FAILED;
-    }
     if (abilitySessionInfo->startWindowOption) {
         if (!data.WriteBool(true) || !data.WriteParcelable(abilitySessionInfo->startWindowOption.get())) {
             TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "Write startWindowOption failed");
@@ -520,6 +516,10 @@ WSError SessionProxy::PendingSessionActivation(sptr<AAFwk::SessionInfo> abilityS
             TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "Write has not startWindowOption failed");
             return WSError::WS_ERROR_IPC_FAILED;
         }
+    }
+    if (!data.WriteString(abilitySessionInfo->instanceKey)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write instanceKey failed");
+        return WSError::WS_ERROR_IPC_FAILED;
     }
     auto size = abilitySessionInfo->supportWindowModes.size();
     if (size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
