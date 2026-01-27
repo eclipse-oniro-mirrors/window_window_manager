@@ -3696,10 +3696,12 @@ WMError WindowSceneSessionImpl::RemoveOwnSystemBarProperty(WindowType type, cons
             return WMError::WM_OK;
         }
         auto& ownPropList = ownSystemBarPropertyMap_[type];
-        for (auto it = ownPropList.begin(); it != ownPropList.end(); it++) {
+        for (auto it = ownPropList.begin(); it != ownPropList.end();) {
             // remove own property which is contained by given mask
             if (it->first == owner && flag.Contains(it->second.flag_)) {
                 it = ownPropList.erase(it);
+            } else {
+                it++;
             }
         }
         if (ownPropList.empty()) {
