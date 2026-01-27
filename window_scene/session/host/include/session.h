@@ -1110,9 +1110,10 @@ protected:
     static bool isScbCoreEnabled_;
 
     /*
-     *CompatibleMode Window scale
+     * CompatibleMode Window Scale
+     * Resize When DragEnd
      */
-    uint32_t needNotifyDragEventOnNextVsync_ = 0;
+    std::atomic_bool needNotifyDragEventOnNextVsync_ = false;
 
     /*
      * Keyboard Window
