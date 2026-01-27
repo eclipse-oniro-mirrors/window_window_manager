@@ -4614,7 +4614,7 @@ void SceneSessionManager::SetExtensionSubSessionDisplayId(const sptr<WindowSessi
     }
 }
 
-void SceneSessionManager::ReportSubWindowCreationFailure(const int32_t& pid, const std::string& abilityName,
+void SceneSessionManager::ReportSubWindowCreationFailure(int32_t pid, const std::string& abilityName,
         const std::string& parentBundleName, const std::string& hostBundleName)
 {
     taskScheduler_->PostAsyncTask([pid, abilityName, parentBundleName, hostBundleName]() {

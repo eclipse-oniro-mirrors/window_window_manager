@@ -1267,7 +1267,7 @@ private:
         const sptr<WindowSessionProperty>& property);
     void SetExtensionSubSessionDisplayId(const sptr<WindowSessionProperty>& property,
         const sptr<ISessionStage>& sessionStage);
-    void ReportSubWindowCreationFailure(const int32_t& pid, const std::string& abilityName,
+    void ReportSubWindowCreationFailure(int32_t pid, const std::string& abilityName,
         const std::string& parentBundleName, const std::string& hostBundleName);
 
     /*
