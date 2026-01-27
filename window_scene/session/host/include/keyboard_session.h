@@ -77,16 +77,16 @@ public:
     WSError ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption) override;
     void SetKeyboardEffectOptionChangeListener(const NotifyKeyboarEffectOptionChangeFunc& func) override;
     void SetSkipSelfWhenShowOnVirtualScreen(bool isSkip) override;
-    WSError UpdateSizeChangeReason(SizeChangeReason reason) override;
     bool GetIsKeyboardSyncTransactionOpen() const { return isKeyboardSyncTransactionOpen_; }
     void SetSkipEventOnCastPlus(bool isSkip) override;
+    WSError UpdateSizeChangeReason(SizeChangeReason reason) override;
     void ForceProcessKeyboardOccupiedAreaInfo() override;
 
 protected:
     void EnableCallingSessionAvoidArea() override;
+    void RestoreCallingSession(uint32_t callingId, const std::shared_ptr<RSTransaction>& rsTransaction) override;
     void HandleKeyboardMoveDragEnd(const WSRect& rect, SizeChangeReason reason = SizeChangeReason::UNDEFINED,
         DisplayId displayId = DISPLAY_ID_INVALID) override;
-    void RestoreCallingSession(uint32_t callingId, const std::shared_ptr<RSTransaction>& rsTransaction) override;
 
 private:
     sptr<SceneSession> GetSceneSession(uint32_t persistentId);
@@ -102,11 +102,11 @@ private:
     std::string GetSessionScreenName();
     void NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason reason);
     void NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info);
+    bool IsNeedRaiseSubWindow(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect);
+    void PostKeyboardAnimationSyncTimeoutTask();
     void HandleCrossScreenChild(bool isMoveOrDrag);
     void HandleMoveDragSurfaceNode(SizeChangeReason reason) override;
     void SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool needFlush = true) override;
-    bool IsNeedRaiseSubWindow(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect);
-    void PostKeyboardAnimationSyncTimeoutTask();
     void ProcessKeyboardOccupiedAreaInfo(uint32_t callingId, bool needRecalculateAvoidAreas,
         bool needCheckRSTransaction);
     void NotifyOccupiedAreaChanged(const sptr<SceneSession>& callingSession,
@@ -125,7 +125,7 @@ private:
     WSRect CalculateSafeRectForAIWindow(const WSRect& callingSessionRect, const WSRect& keyboardPanelRect);
     WMError HandleActionUpdateKeyboardTouchHotArea(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
-    
+
     sptr<KeyboardSessionCallback> keyboardCallback_ = nullptr;
     bool isKeyboardSyncTransactionOpen_ = false;
     NotifyKeyboarEffectOptionChangeFunc changeKeyboardEffectOptionFunc_;
