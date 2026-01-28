@@ -221,7 +221,7 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
         }
         case WindowManagerMessage::TRANS_ID_UPDATE_LAYOUT_MODE: {
             uint32_t layoutMode = 0;
-            if (!data.ReadUint32(layoutMode)) {
+            if (!data.ReadUint32(layoutMode) || layoutMode >= static_cast<uint32_t>(WindowLayoutMode::END)) {
                 TLOGE(WmsLogTag::WMS_LAYOUT, "read layoutMode failed");
                 return ERR_INVALID_DATA;
             }

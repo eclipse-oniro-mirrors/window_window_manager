@@ -894,6 +894,15 @@ WSError SceneSession::SetMoveAvailableArea(DisplayId displayId)
     if (systemConfig_.IsPhoneWindow() && isFoldable && statusBarRect.width_) {
         availableArea.width_ = statusBarRect.width_;
     }
+    if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId()) &&
+        GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
+        ret = DisplayManager::GetInstance().GetExpandAvailableArea(displayId, availableArea);
+        if (ret != DMError::DM_OK) {
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to get available area, ret: %{public}d", ret);
+            return WSError::WS_ERROR_INVALID_DISPLAY;
+        }
+    }
+
     TLOGD(WmsLogTag::WMS_KEYBOARD,
           "the available area x is: %{public}d, y is: %{public}d, width is: %{public}d, height is: %{public}d",
           availableArea.posX_, availableArea.posY_, availableArea.width_, availableArea.height_);
@@ -1265,7 +1274,7 @@ uint32_t SceneSession::GetWindowDragHotAreaType(DisplayId displayId, uint32_t ty
 {
     std::shared_lock<std::shared_mutex> lock(windowDragHotAreaMutex_);
     if (windowDragHotAreaMap_.find(displayId) == windowDragHotAreaMap_.end()) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Display is invalid.");
+        TLOGW(WmsLogTag::WMS_LAYOUT, "DisplayId is invalid.");
         return type;
     }
     for (const auto& [key, rect] : windowDragHotAreaMap_[displayId]) {
@@ -1943,8 +1952,9 @@ void SceneSession::SetSessionRectChangeCallback(const NotifySessionRectChangeFun
             if (rect.width_ == 0 && rect.height_ == 0) {
                 reason = SizeChangeReason::MOVE;
             }
-            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s, winName:%{public}s, reason:%{public}d, rect:%{public}s",
-                where, session->GetWindowName().c_str(), reason, rect.ToString().c_str());
+            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s, id:%{public}d, winName:%{public}s, reason:%{public}d, "
+                "rect:%{public}s", where, session->GetPersistentId(), session->GetWindowName().c_str(),
+                reason, rect.ToString().c_str());
             if (session->GetClientDisplayId() == VIRTUAL_DISPLAY_ID && rect.posY_ == 0) {
                 rect.posY_ += PcFoldScreenManager::GetInstance().GetVirtualDisplayPosY();
             }
@@ -1976,7 +1986,7 @@ void SceneSession::SetSessionWindowLimitsChangeCallback(const NotifySessionWindo
                 windowLimits.ToString().c_str(), windowLimitsVP.ToString().c_str(), userWindowLimits.pixelUnit_);
             session->sessionWindowLimitsChangeFunc_(limitsToNotify);
         }
-    }, __func__);
+        }, __func__);
 }
 
 void SceneSession::SetSessionDisplayIdChangeCallback(NotifySessionDisplayIdChangeFunc&& func)
@@ -2231,6 +2241,9 @@ void SceneSession::UpdateSessionRectPosYFromClient(SizeChangeReason reason, Disp
     if (configDisplayId_ != VIRTUAL_DISPLAY_ID && clientDisplayId != VIRTUAL_DISPLAY_ID) {
         return;
     }
+    // case 1：rect.posY_ < 0. Move from side C to side B
+    // case 2: rect.posY_ > 0 && rect.posY_ < defaultDisplay + foldCrease. Move window to C
+    // case 3: rect.posY_ > 0 && rect.posY_ >= defaultDisplay + foldCrease. Move window to C
     if (rect.posY_ >= 0) {
         const auto& [defaultDisplayRect, virtualDisplayRect, foldCreaseRect] =
             PcFoldScreenManager::GetInstance().GetDisplayRects();
@@ -4981,7 +4994,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
 {
     auto movedSurfaceNode = GetSurfaceNodeForMoveDrag();
     if (movedSurfaceNode == nullptr) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "SurfaceNode is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SurfaceNode is null");
         return;
     }
     const auto startDisplayId = moveDragController_->GetMoveDragStartDisplayId();
@@ -4999,11 +5012,11 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
             }
             auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(displayId);
             if (screenSession == nullptr) {
-                TLOGD(WmsLogTag::WMS_LAYOUT, "ScreenSession is null");
+                TLOGE(WmsLogTag::WMS_LAYOUT, "ScreenSession is null");
                 continue;
             }
             bool isDestScreenMainOrExtend = isMainOrExtendScreenMode(screenSession->GetSourceMode());
-            // Not main to extend or extend to main or extend to extend, no need to add cross parent child
+            // Only main to extend or extend to main need to add clone node
             if (!(isStartScreenMainOrExtend && isDestScreenMainOrExtend)) {
                 TLOGD(WmsLogTag::WMS_LAYOUT, "No need to add cross-parent child elements for out-of-scope situations, "
                     "DisplayId: %{public}" PRIu64, displayId);
@@ -5030,6 +5043,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
 
             {
                 AutoRSTransaction trans(dragMoveMountedNode->GetRSUIContext());
+                // input parameter -1 means inserting to the end of childList
                 dragMoveMountedNode->AddCrossScreenChild(movedSurfaceNode, -1, true);
             }
             HandleSubSessionSurfaceNodeByWindowAnchor(reason, displayId);

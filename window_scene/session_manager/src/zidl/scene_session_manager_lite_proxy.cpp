@@ -962,12 +962,12 @@ WMError SceneSessionManagerLiteProxy::UpdateWindowModeByIdForUITest(int32_t wind
         TLOGE(WmsLogTag::WMS_LAYOUT, "Send request failed, ret:%{public}d", ret);
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    return WMError::WM_OK;
+    return static_cast<WMError>(reply.ReadInt32());
 }
 
 void SceneSessionManagerLiteProxy::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
-    WLOGFD("get focus Winow info lite proxy");
+    TLOGD(WmsLogTag::WMS_FOCUS, "get focus Winow info lite proxy");
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;

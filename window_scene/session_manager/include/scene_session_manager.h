@@ -89,6 +89,7 @@ constexpr const char* IS_CALL_BY_SCB = "isCallBySCB";
 
 struct SCBAbilityInfo {
     AppExecFwk::AbilityInfo abilityInfo_;
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModesInFreeMultiWindowMode;
     uint32_t sdkVersion_;
     std::string codePath_;
     bool isAbilityHook_;
@@ -927,11 +928,6 @@ private:
     bool isTrayAppForeground_ = false;
     std::unordered_map<std::string, ConvertSystemConfigFunc> convertConfigMap_;
     static sptr<SceneSessionManager> CreateInstance();
-    static inline bool isNotCurrentScreen(sptr<SceneSession> sceneSession, ScreenId screenId)
-    {
-        return sceneSession->GetSessionInfo().screenId_ != screenId &&
-               sceneSession->GetSessionInfo().screenId_ != SCREEN_ID_INVALID;
-    }
     void Init();
     void RegisterAppListener();
     bool IsPrepareTerminateEnabled() const;

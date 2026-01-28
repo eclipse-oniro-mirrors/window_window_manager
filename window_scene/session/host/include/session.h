@@ -52,6 +52,7 @@ namespace OHOS::Rosen {
 class RSSurfaceNode;
 class RSUIContext;
 class RSTransaction;
+class RSSyncTransactionController;
 class Session;
 using NotifySessionRectChangeFunc = std::function<void(const WSRect& rect,
     SizeChangeReason reason, DisplayId displayId, const RectAnimationConfig& rectAnimationConfig)>;
@@ -529,11 +530,6 @@ public:
     bool NeedCheckContextTransparent() const;
 
     /*
-     * Window Layout
-     */
-    bool UpdateWindowModeSupportType(const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo);
-
-    /*
      * Window Rotate Animation
      */
     void SetAcquireRotateAnimationConfigFunc(const AcquireRotateAnimationConfigFunc& func);
@@ -711,8 +707,8 @@ public:
     bool GetUIStateDirty() const;
     static bool IsScbCoreEnabled();
     static void SetScbCoreEnabled(bool enabled);
-    bool IsVisible() const;
     virtual bool IsNeedSyncScenePanelGlobalPosition() { return true; }
+    bool IsVisible() const;
     void SetAppInstanceKey(const std::string& appInstanceKey);
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
@@ -740,8 +736,6 @@ public:
     /*
      * Window Layout
      */
-    static bool IsBackgroundUpdateRectNotifyEnabled();
-    static void SetBackgroundUpdateRectNotifyEnabled(const bool enabled);
     void SetClientRect(const WSRect& rect);
     WSRect GetClientRect() const;
     void ResetDirtyFlags();
@@ -1013,11 +1007,6 @@ protected:
     bool needSnapshot_ = false;
     float snapshotScale_ = 0.5;
     sptr<ScenePersistence> scenePersistence_ = nullptr;
-
-    /*
-     * Window Layout
-     */
-    static bool isBackgroundUpdateRectNotifyEnabled_;
 
     /**
      * @brief Vsync service entry used to schedule callbacks on vsync and

@@ -892,10 +892,6 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
     if (hasStartSetting) {
         abilitySessionInfo->startSetting.reset(data.ReadParcelable<AAFwk::AbilityStartSetting>());
     }
-    if (!data.ReadString(abilitySessionInfo->instanceKey)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read instanceKey failed.");
-        return ERR_INVALID_DATA;
-    }
     bool hasStartWindowOption = false;
     if (!data.ReadBool(hasStartWindowOption)) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "Read hasStartWindowOption failed.");
@@ -904,6 +900,10 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
     if (hasStartWindowOption) {
         auto startWindowOption = data.ReadParcelable<AAFwk::StartWindowOption>();
         abilitySessionInfo->startWindowOption.reset(startWindowOption);
+    }
+    if (!data.ReadString(abilitySessionInfo->instanceKey)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read instanceKey failed.");
+        return ERR_INVALID_VALUE;
     }
     uint32_t size = data.ReadUint32();
     if (size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
