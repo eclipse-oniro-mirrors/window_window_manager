@@ -681,7 +681,7 @@ HWTEST(MockSessionManagerServiceTest, GetSceneSessionManagerFromCache, TestSize.
     int32_t userId = 100;
     bool isLite = true;
     sptr<IRemoteObject> result = mockMockSms.GetSceneSessionManagerFromCache(userId, isLite);
-    EXPECT_NE(result, nullptr);
+    EXPECT_EQ(result, nullptr);
     // userId 存在于缓存中，isLite 为 true，返回正确对象
     sptr<IRemoteObject> mockRemoteObject = sptr<IRemoteObjectMocker>::MakeSptr();
     {
