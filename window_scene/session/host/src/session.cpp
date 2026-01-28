@@ -664,7 +664,8 @@ void Session::NotifyRestart()
     }
 }
 
-void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist, bool needSaveSnapshot)
+void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist,
+    bool needSaveSnapshot, std::function<void()>&& callback)
 {
     /*
      * for blankness prolems, persist snapshot could conflict with background process,
@@ -673,7 +674,7 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist, bool needSaveSna
     if (needSaveSnapshot) {
         SaveSnapshot(useFfrt, needPersist);
     }
-    auto task = [weakThis = wptr(this), where = __func__]() {
+    auto task = [weakThis = wptr(this), where = __func__, callback = std::move(callback)]() mutable {
         auto session = weakThis.promote();
         if (session == nullptr) {
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s session is null", where);
@@ -682,7 +683,7 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist, bool needSaveSna
         auto lifecycleListeners = session->GetListeners<ILifecycleListener>();
         for (auto& listener : lifecycleListeners) {
             if (auto listenerPtr = listener.lock()) {
-                listenerPtr->OnAddSnapshot();
+                listenerPtr->OnAddSnapshot(std::move(callback));
             }
         }
     };
