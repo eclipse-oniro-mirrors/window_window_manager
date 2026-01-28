@@ -48,6 +48,9 @@ namespace OHOS {
 namespace Rosen {
 constexpr Rect g_emptyRect = {0, 0, 0, 0};
 
+class AniVm {
+};
+
 class AniWindowUtils {
 public:
     static ani_status InitAniCreator(ani_env* env,

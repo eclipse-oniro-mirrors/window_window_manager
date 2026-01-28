@@ -2750,10 +2750,6 @@ export class WindowStageInternal implements WindowStage {
       });
     }
 
-    public setCustomDensity(density: double): void {
-      this.setCustomDensitySync(this.nativeObj, density, false);
-    }
-
     public setCustomDensity(density: double, applyToSubWindow?: boolean): void {
       let isApplyToSubWindow = applyToSubWindow ? applyToSubWindow : false;
       this.setCustomDensitySync(this.nativeObj, density, isApplyToSubWindow);
@@ -2825,7 +2821,6 @@ export interface WindowStage {
     setImageForRecent(imageResource: long | image.PixelMap, value: ImageFit): Promise<void>;
     removeImageForRecent(): Promise<void>;
     setWindowModal(isModal: boolean): Promise<void>;
-    setCustomDensity(density: double): void;
     setCustomDensity(density: double, applyToSubWindow?: boolean): void;
     setDefaultDensityEnabled(enabled: boolean): void;
     removeStartingWindow(): Promise<void>;
