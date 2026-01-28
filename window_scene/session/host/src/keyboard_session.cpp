@@ -921,12 +921,12 @@ void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaC
     ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
     auto displayId = GetSessionProperty()->GetDisplayId();
     if (displayId != defaultScreenId) {
-        TLOGI(WmsLogTag::WMS_KEYBOARD, "DisplayId: %{public}" PRIu64", defaultScreenId: %{public}" PRIu64"",
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "displayId: %{public}" PRIu64", defaultScreenId: %{public}" PRIu64"",
             displayId, defaultScreenId);
         return;
     }
     if (keyboardCallback_ == nullptr || keyboardCallback_->onNotifyOccupiedAreaChange == nullptr) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "Callback is null");
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Callback is nullptr");
         return;
     }
     keyboardCallback_->onNotifyOccupiedAreaChange(info);

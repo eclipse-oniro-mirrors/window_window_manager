@@ -6676,9 +6676,6 @@ void SceneSession::RegisterThrowSlipAnimationStateChangeCallback(
 
 bool SceneSession::IsMissionHighlighted()
 {
-    if (!SessionHelper::IsMainWindow(GetWindowType())) {
-        return false;
-    }
     if (IsFocused()) {
         return true;
     }
