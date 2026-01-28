@@ -198,6 +198,9 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
                     AAFwk::StartupVisibility::STARTUP_HIDE;
                 property->SetMissionInfo(missionInfo);
             }
+            if (WindowHelper::IsMainWindow(session->GetWindowType())) {
+                property->SetLogicalDeviceConfig(session->GetSessionInfo().logicalDeviceConfig);
+            }
             property->SetPrelaunch(session->GetSessionInfo().isPrelaunch_);
             property->SetFrameNum(session->GetSessionInfo().frameNum_);
         }
