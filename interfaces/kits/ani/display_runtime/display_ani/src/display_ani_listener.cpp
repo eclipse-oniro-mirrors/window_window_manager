@@ -21,6 +21,17 @@
 namespace OHOS {
 namespace Rosen {
 
+std::string ANI_EVENT_ADD = "add";
+std::string ANI_EVENT_REMOVE = "remove";
+std::string ANI_EVENT_CHANGE = "change";
+std::string ANI_EVENT_PRIVATE_MODE_CHANGE = "privateModeChange";
+std::string ANI_EVENT_FOLD_STATUS_CHANGED = "foldStatusChange";
+std::string ANI_EVENT_FOLD_ANGLE_CHANGED = "foldAngleChange";
+std::string ANI_EVENT_CAPTURE_STATUS_CHANGED = "captureStatusChange";
+std::string ANI_EVENT_DISPLAY_MODE_CHANGED = "foldDisplayModeChange";
+std::string ANI_EVENT_AVAILABLE_AREA_CHANGED = "availableAreaChange";
+std::string ANI_EVENT_BRIGHTNESS_INFO_CHANGED = "brightnessInfoChange";
+
 DisplayAniListener::~DisplayAniListener()
 {
     TLOGI(WmsLogTag::DMS, "[ANI]~AniDisplayListener");
