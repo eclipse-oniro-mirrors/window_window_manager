@@ -1441,6 +1441,34 @@ HWTEST_F(SceneSessionManagerTest4, RegisterSessionExceptionFunc, TestSize.Level1
 }
 
 /**
+ * @tc.name: NotifySessionException
+ * @tc.desc: NotifySessionException
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, NotifySessionException, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName";
+    sessionInfo.persistentId_ = 1;
+    sessionInfo.isSystem_ = true;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    ExceptionInfo exceptionInfo;
+    sceneSession->clientIdentityToken_ = "testToken1";
+    abilitySessionInfo->identityToken = "testToken2";
+    ASSERT_NE(abilitySessionInfo, nullptr);
+
+    abilitySessionInfo->shouldSkipKillInStartup = true;
+    WSError result = sceneSession->NotifySessionExceptionInner(abilitySessionInfo, exceptionInfo, true);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    usleep(WAIT_SYNC_IN_NS);
+}
+
+/**
  * @tc.name: RegisterSessionSnapshotFunc
  * @tc.desc: RegisterSessionSnapshotFunc
  * @tc.type: FUNC

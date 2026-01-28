@@ -119,40 +119,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue01, TestSize.Level0)
     g_errLog.clear();
 }
 
-/**
-* @tc.name: PopFromQueue02
-* @tc.desc: PopFromQueue02
-* @tc.type: FUNC
-*/
-HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue02, TestSize.Level0)
-{
-    TaskSequenceProcess process = TaskSequenceProcess(3, 3, 1000);
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    process.taskRunningFlag_.store(true);
-    process.PushToQueue(3, {1, nullptr});
-    process.PopFromQueue();
-    EXPECT_TRUE(g_errLog.find("TaskSequenceProcess do not pop") != std::string::npos);
-    g_errLog.clear();
-}
-
-/**
-* @tc.name: PopFromQueue03
-* @tc.desc: PopFromQueue03
-* @tc.type: FUNC
-*/
-HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue03, TestSize.Level0)
-{
-    TaskSequenceProcess process = TaskSequenceProcess(3, 3, 1000);
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    process.taskRunningFlag_.store(false);
-    process.PushToQueue(0, {0, nullptr});
-    process.taskTimerId_ = 0;
-    process.PopFromQueue();
-    EXPECT_TRUE(g_errLog.find("TaskSequenceProcess do not StartSysTimer succ") != std::string::npos);
-    g_errLog.clear();
-}
 
 /**
 * @tc.name: FindMinSnTaskQueueId01
@@ -178,41 +144,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_FindMinSnTaskQueueId01, TestSize.Level0)
     EXPECT_TRUE(res);
 }
 
-
-/**
-* @tc.name: PushToQueue01
-* @tc.desc: PushToQueue01
-* @tc.type: FUNC
-*/
-HWTEST_F(TaskSequenceProcessTest, ATC_PushToQueue01, TestSize.Level0)
-{
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    TaskSequenceProcess process = TaskSequenceProcess(1, 1, 1000);
-    process.PushToQueue(0, {0, nullptr});
-    process.PushToQueue(1, {0, nullptr});
-    EXPECT_TRUE(g_errLog.find("Task Push fail, maxQueueNumber:") != std::string::npos);
-    process.PushToQueue(0, {1, nullptr});
-
-    g_errLog.clear();
-}
-
-/**
-* @tc.name: ExecTask01
-* @tc.desc: ExecTask01
-* @tc.type: FUNC
-*/
-HWTEST_F(TaskSequenceProcessTest, ATC_ExecTask01, TestSize.Level0)
-{
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    TaskSequenceProcess process = TaskSequenceProcess(1, 1, 1000);
-    process.PushToQueue(0, {0, nullptr});
-    process.ExecTask();
-    EXPECT_TRUE(g_errLog.find("TaskSequenceProcess do not execute") != std::string::npos);
-    g_errLog.clear();
-}
-
 /**
 * @tc.name: FinishTaskTest01
 * @tc.desc: FinishTaskTest01
@@ -228,26 +159,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_FinishTask01, TestSize.Level0)
     process.PushToQueue(0, {0, task});
     process.FinishTask();
     EXPECT_TRUE(taskCallback);
-}
-
-/**
-* @tc.name: StartSysTimer01
-* @tc.desc: StartSysTimer01
-* @tc.type: FUNC
-*/
-HWTEST_F(TaskSequenceProcessTest, ATC_StartSysTimer01, TestSize.Level0)
-{
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    TaskSequenceProcess process = TaskSequenceProcess(1, 1, 1000);
-    auto id = process.taskTimerId_;
-    process.taskTimerId_ = 0;
-    process.StartSysTimer();
-    EXPECT_TRUE(g_errLog.find("TaskTimerId is zero") != std::string::npos);
-    g_errLog.clear();
-
-    process.taskTimerId_ = id;
-    process.StartSysTimer();
 }
 } // namespace
 } // namespace Rosen

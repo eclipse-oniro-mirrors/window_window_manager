@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_SNAPSHOT_HELPER_H
 #define OHOS_ROSEN_WINDOW_SCENE_SNAPSHOT_HELPER_H
 
+#include <mutex>
 #include <string>
 
 #include <dm_common.h>
@@ -33,7 +34,6 @@ constexpr uint32_t PORTRAIT_ANGLE = 0;
 constexpr uint32_t LANDSCAPE_ANGLE = 90;
 constexpr uint32_t PORTRAIT_INVERTED_ANGLE = 180;
 constexpr uint32_t LANDSCAPE_INVERTED_ANGLE = 270;
-constexpr uint32_t ROTATION_ANGLE = 360;
 constexpr uint32_t ROTATION_COUNT = 4;
 constexpr uint32_t SECONDARY_EXPAND_OFFSET = 1;
 constexpr int32_t PIXEL_OFFSET = 1;

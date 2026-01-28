@@ -417,6 +417,7 @@ struct SessionInfo {
     int32_t requestCode = -1;
     int32_t errorCode = -1;
     std::string errorReason = "";
+    bool shouldSkipKillInStartup = false;
     int32_t persistentId_ = INVALID_SESSION_ID;
     int32_t callerPersistentId_ = INVALID_SESSION_ID;
     std::string callerBundleName_ = "";
@@ -523,6 +524,7 @@ struct SessionInfo {
      * Compatible Mode
      */
     std::string pageConfig = "";
+    std::string logicalDeviceConfig = "";
 
     AAFwk::Want GetWantSafely() const
     {

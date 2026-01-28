@@ -4353,13 +4353,13 @@ WMError SceneSessionManagerProxy::AddSessionBlackList(
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Remote is null");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Remote is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_SESSION_BLACK_LIST),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "SendRequest failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = 0;
@@ -4402,13 +4402,13 @@ WMError SceneSessionManagerProxy::RemoveSessionBlackList(
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Remote is null");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Remote is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_SESSION_BLACK_LIST),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "SendRequest failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = 0;

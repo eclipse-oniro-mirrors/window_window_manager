@@ -127,6 +127,7 @@ public:
     void NotifyScreenshot(DisplayId displayId);
     void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds);
     ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent) override;
+    void SetVirtualScreenUser(sptr<ScreenSession> screenSession, int32_t userId);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
     DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
@@ -447,8 +448,10 @@ public:
     void SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag) override;
     // notify scb virtual screen change
     void OnVirtualScreenChange(ScreenId screenId, ScreenEvent screenEvent,
-        const UniqueScreenRotationOptions& rotationOptions);
-    void OnVirtualScreenChange(ScreenId screenId, ScreenEvent screenEvent);
+        const UniqueScreenRotationOptions& rotationOptions, int32_t userId = INVALID_USERID);
+    void OnVirtualScreenChange(ScreenId screenId, ScreenEvent screenEvent, int32_t userId = INVALID_USERID);
+    void OnVirtualScreenConnect(ScreenId screenId, const UniqueScreenRotationOptions& rotationOptions, int32_t userId);
+    void OnVirtualScreenDisConnect(ScreenId screenId, const UniqueScreenRotationOptions& rotationOptions);
     DMError VirtualScreenUniqueSwitch(const std::vector<ScreenId>& screenIds,
         const UniqueScreenRotationOptions& rotationOptions);
     int32_t GetDeviceOrientationAPI14(sptr<ScreenSession> screenSession, Rotation rotation);
@@ -607,6 +610,8 @@ public:
     };
     const std::map<DisplayId, std::map<int32_t, UserInfo>> GetDisplayConcurrentUserMap() const;
     int32_t GetForegroundConcurrentUser(DisplayId displayId) const;
+    void GetForegroundConcurrentUser(int32_t uid, std::shared_ptr<UserInfo>& uInfo) const;
+    void ModifyForegroundConcurrentUser(ScreenId screenId, int32_t userId, std::shared_ptr<UserInfo> userInfo);
     void SetDisplayConcurrentUserMap(DisplayId displayId, int32_t userId, bool isForeground, int32_t pid);
     void RemoveUserByPid(int32_t pid);
     bool CheckPidInDeathPidVector(int32_t pid) const;

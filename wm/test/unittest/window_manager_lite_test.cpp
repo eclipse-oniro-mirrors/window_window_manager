@@ -217,6 +217,11 @@ public:
     };
 };
 
+class TestAllGroupInfoChangedListener : public IAllGroupInfoChangedListener {
+public:
+    void OnDisplayGroupInfoChange(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd) override {}
+};
+
 class WindowManagerLiteTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -1360,6 +1365,39 @@ HWTEST_F(WindowManagerLiteTest, RegisterCallingWindowDisplayChangedListener, Fun
 }
 
 /**
+ * @tc.name: UnregisterCallingWindowDisplayChangedListener
+ * @tc.desc: check UnregisterCallingWindowDisplayChangedListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, UnregisterCallingWindowDisplayChangedListener, TestSize.Level1)
+{
+    WMError ret;
+    sptr<IKeyboardCallingWindowDisplayChangedListener> listener = nullptr;
+ 
+    // branch 1: listener is null
+    ret = instance_->UnregisterCallingWindowDisplayChangedListener(nullptr);
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+ 
+    // branch 2: not find listener and return ok
+    listener = sptr<TestIKeyboardCallingWindowDisplayChangedListener>::MakeSptr();
+    instance_->pImpl_->callingDisplayChangedListeners_.clear();
+    ret = instance_->UnregisterCallingWindowDisplayChangedListener(listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
+ 
+    // branch 3: erase listener success but adapter return failed
+    instance_->pImpl_->callingDisplayChangedListeners_.push_back(listener);
+    instance_->pImpl_->callingDisplayListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
+    ret = instance_->UnregisterCallingWindowDisplayChangedListener(listener);
+    EXPECT_NE(WMError::WM_OK, ret);
+ 
+    // branch 4: mock window adapter and return success
+    mockInstance_->pImpl_->callingDisplayChangedListeners_.push_back(listener);
+    mockInstance_->pImpl_->callingDisplayListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(mockUserId_);
+    ret = mockInstance_->UnregisterCallingWindowDisplayChangedListener(listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
  * @tc.name: NotifyCallingWindowDisplayChanged1
  * @tc.desc: check NotifyCallingWindowDisplayChanged
  * @tc.type: FUNC
@@ -1787,6 +1825,66 @@ HWTEST_F(WindowManagerLiteTest, GetDisplayIdByWindowId, TestSize.Level1)
 
     // branch 2: mock window adapter and return ok
     ret = mockInstance_->GetDisplayIdByWindowId(windowIds, windowDisplayIdMap);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: RegisterAllGroupInfoChangedListener
+ * @tc.desc: check RegisterAllGroupInfoChangedListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, RegisterAllGroupInfoChangedListener, TestSize.Level1)
+{
+    WMError ret;
+    sptr<IAllGroupInfoChangedListener> listener = nullptr;
+ 
+    // branch 1
+    ret = instance_->RegisterAllGroupInfoChangedListener(listener);
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+ 
+    // branch 2: Not use mock adapter and return failed.
+    listener = sptr<TestAllGroupInfoChangedListener>::MakeSptr();
+    ret = instance_->RegisterAllGroupInfoChangedListener(listener);
+    EXPECT_NE(WMError::WM_OK, ret);
+ 
+    // branch 3: use mock and return ok
+    ret = mockInstance_->RegisterAllGroupInfoChangedListener(listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
+ 
+    // branch 4: branch overried
+    ret = mockInstance_->RegisterAllGroupInfoChangedListener(listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+ 
+/**
+ * @tc.name: UnregisterAllGroupInfoChangedListener
+ * @tc.desc: check UnregisterAllGroupInfoChangedListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, UnregisterAllGroupInfoChangedListener, TestSize.Level1)
+{
+    WMError ret;
+    sptr<IAllGroupInfoChangedListener> listener = nullptr;
+ 
+    // branch 1: Nullptr
+    ret = instance_->UnregisterAllGroupInfoChangedListener(listener);
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+ 
+    // branch 2: Not find listener and return ok.
+    listener = sptr<TestAllGroupInfoChangedListener>::MakeSptr();
+    ret = instance_->UnregisterAllGroupInfoChangedListener(listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
+ 
+    // branch 3: Into windowAdapter and unregister failed.
+    instance_->pImpl_->allGroupInfoChangedListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr();
+    instance_->pImpl_->allGroupInfoChangedListeners_.emplace_back(listener);
+    ret = instance_->UnregisterAllGroupInfoChangedListener(listener);
+    EXPECT_NE(WMError::WM_OK, ret);
+ 
+    // branch 4: Into windowAdapter and use mock to unregister success.
+    mockInstance_->pImpl_->allGroupInfoChangedListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr();
+    mockInstance_->pImpl_->allGroupInfoChangedListeners_.emplace_back(listener);
+    ret = mockInstance_->UnregisterAllGroupInfoChangedListener(listener);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 }

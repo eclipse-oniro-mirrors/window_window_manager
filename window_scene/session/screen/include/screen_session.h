@@ -466,6 +466,7 @@ private:
     ScreenProperty property_;
     mutable std::mutex propertyMutex_; // above guarded by clientProxyMutex_
     std::shared_ptr<RSDisplayNode> displayNode_;
+    std::atomic<int32_t> virtualScreenUserId_ = INVALID_USERID;
     ScreenState screenState_ { ScreenState::INIT };
     std::vector<IScreenChangeListener*> screenChangeListenerList_;
     mutable std::mutex screenChangeListenerListMutex_;

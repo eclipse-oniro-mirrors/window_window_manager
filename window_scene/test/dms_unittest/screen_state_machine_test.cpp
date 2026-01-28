@@ -213,6 +213,18 @@ HWTEST_F(ScreenStateMachineTest, ActionScreenPowerOff_ShouldReturnTrue_WhenTypeI
     ScreenPowerInfoType type = std::make_pair(id, ScreenPowerStatus::POWER_STATUS_OFF);
     EXPECT_TRUE(fsm_->ActionScreenPowerOff(event, type));
 }
+
+/**sc
+ * @tc.name: DoSetScreenFoldPowerFunc_ShouldReturnFalse_WhenCallbackNull
+ * @tc.desc: DoSetScreenFoldPowerFunc func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenStateMachineTest, DoSetScreenFoldPowerFunc_ShouldReturnFalse_WhenCallbackNull, TestSize.Level0)
+{
+    bool res = ScreenStateMachine::DoSetScreenFoldPowerFunc(ScreenPowerEvent::POWER_ON,
+        PowerStateChangeReason::POWER_BUTTON);
+    EXPECT_FALSE(res);
+}
 }
 } // namespace Rosen
 } // namespace OHOS
