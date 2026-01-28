@@ -87,7 +87,7 @@ public:
     void AfterPaused() override;
     void AfterDestroyed() override;
     void OnSizeChange(const sptr<OccupiedAreaChangeInfo>& info,
-        const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) override;
+    const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) override;
     void OnKeyboardDidShow(const KeyboardPanelInfo& keyboardPanelInfo) override;
     void OnKeyboardWillShow(const KeyboardAnimationInfo& keyboardAnimationInfo,
         const KeyboardAnimationCurve& curve) override;

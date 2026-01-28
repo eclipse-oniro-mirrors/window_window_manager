@@ -375,7 +375,7 @@ static ani_int ExtWindowGetProperties(ani_env* env, ani_object obj, ani_long nat
     };
     return static_cast<ani_int>(
         ExtWindowSetRectMember(env, propertyRef,
-            Builder::BuildPropertyName("uiExtensionHostWindowProxyRect").c_str(), rect));
+        Builder::BuildPropertyName("uiExtensionHostWindowProxyRect").c_str(), rect));
 }
 
 static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_long win,
@@ -409,15 +409,15 @@ static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_lon
         return static_cast<ani_int>(ret);
     }
     if ((retCode = (WMError)ExtWindowSetRectMember(
-        env, area, Builder::BuildPropertyName("rightRect").c_str(), avoidArea.rightRect_)) != WMError::WM_OK) {
+             env, area, Builder::BuildPropertyName("rightRect").c_str(), avoidArea.rightRect_)) != WMError::WM_OK) {
         return (ani_int)retCode;
     }
     if ((retCode = (WMError)ExtWindowSetRectMember(
-        env, area, Builder::BuildPropertyName("topRect").c_str(), avoidArea.topRect_)) != WMError::WM_OK) {
+             env, area, Builder::BuildPropertyName("topRect").c_str(), avoidArea.topRect_)) != WMError::WM_OK) {
         return (ani_int)retCode;
     }
     if ((retCode = (WMError)ExtWindowSetRectMember(
-        env, area, Builder::BuildPropertyName("bottomRect").c_str(), avoidArea.bottomRect_)) != WMError::WM_OK) {
+             env, area, Builder::BuildPropertyName("bottomRect").c_str(), avoidArea.bottomRect_)) != WMError::WM_OK) {
         return (ani_int)retCode;
     }
     return static_cast<ani_int>(WmErrorCode::WM_OK);

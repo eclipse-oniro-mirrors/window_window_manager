@@ -1339,7 +1339,7 @@ public:
      * @brief Notify screenshot event.
      *
      * @param type screenshot event type.
-     * @return WM_OK means set success, others means set failed.
+     * @return WM_OK means notify success, others means notify failed.
      */
     WMError NotifyScreenshotEvent(ScreenshotEventType type);
 

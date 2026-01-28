@@ -422,7 +422,7 @@ public:
      */
     WMError UnregisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
-
+ 
     /**
      * @brief Set global drag resize type.
      * this priority is highest.
