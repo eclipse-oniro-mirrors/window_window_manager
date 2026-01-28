@@ -4515,7 +4515,7 @@ napi_value JsWindow::OnSetBrightness(napi_env env, napi_callback_info info)
         } else {
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window set brightness failed"));
         }
-        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}u, brightness=%{public}f, result: %{public}d",
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "set brightness end: win=%{public}u, brightness=%{public}f, ret: %{public}d",
             weakWindow->GetWindowId(), brightness, ret);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetBrightness") != napi_status::napi_ok) {
