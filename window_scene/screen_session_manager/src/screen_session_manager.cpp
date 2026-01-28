@@ -5406,12 +5406,10 @@ void ScreenSessionManager::TryToRecoverFoldDisplayMode(ScreenPowerStatus status)
 #endif
 }
 
-#ifdef FOLD_ABILITY_ENABLE
 bool ScreenSessionManager::IsInRecoveringProcess()
 {
     return isRecoveringDisplayMode_;
 }
-#endif
 
 bool ScreenSessionManager::SetScreenPower(ScreenPowerStatus status, PowerStateChangeReason reason)
 {

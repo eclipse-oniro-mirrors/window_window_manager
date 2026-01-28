@@ -118,9 +118,7 @@ public:
     void ForceSkipScreenOffAnimation();
     ScreenPowerState GetScreenPower() override;
     void SyncScreenPowerState(ScreenPowerState state) override;
-#ifdef FOLD_ABILITY_ENABLE
     bool IsInRecoveringProcess();
-#endif
 
     void RegisterDisplayChangeListener(sptr<IDisplayChangeListener> listener);
     bool NotifyDisplayStateChanged(DisplayId id, DisplayState state);
