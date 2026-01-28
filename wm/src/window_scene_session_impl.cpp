@@ -6929,6 +6929,11 @@ WSError WindowSceneSessionImpl::NotifyWindowAttachStateChange(bool isAttach)
                     return;
                 }
                 window->isAttachedOnFrameNode_ = isAttach;
+                window->attachState_ = static_cast<AttachState>(isAttach);
+                if (!isAttach && window->isNeedReleaseUIContent_) {
+                    window->DestroyExistUIContent();
+                    window->isNeedReleaseUIContent_ = false;
+                }
                 if (window->state_ == WindowState::STATE_DESTROYED && !isAttach &&
                     WindowHelper::IsSubWindow(window->GetType()) &&
                     !window->property_->GetIsUIExtFirstSubWindow()) {

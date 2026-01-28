@@ -14,6 +14,7 @@
  */
 
 #include "js_err_utils.h"
+#include "js_runtime_utils.h"
 #include "js_window_stage.h"
 #include "js_window.h"
 #include "window_manager_hilog.h"
@@ -76,6 +77,13 @@ napi_value JsWindowStage::SetUIContent(napi_env env, napi_callback_info info)
     WLOGFI("[NAPI]");
     JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
     return (me != nullptr) ? me->OnSetUIContent(env, info) : nullptr;
+}
+
+napi_value JsWindowStage::ReleaseUIContent(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "[NAPI]");
+    JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
+    return (me != nullptr) ? me->OnReleaseUIContent(env, info) : nullptr;
 }
 
 napi_value JsWindowStage::GetMainWindow(napi_env env, napi_callback_info info)
@@ -265,6 +273,29 @@ napi_value JsWindowStage::OnSetUIContent(napi_env env, napi_callback_info info)
     }
     weakScene->GetMainWindow()->NapiSetUIContent(contextUrl, env, argv[CONTENT_STORAGE_ARG]);
     return NapiGetUndefined(env);
+}
+
+napi_value JsWindowStage::OnReleaseUIContent(napi_env env, napi_callback_info info)
+{
+    napi_value result = nullptr;
+    std::shared_ptr<WsNapiAsyncTask> napiAsyncTask = CreateEmptyWsNapiAsyncTask(env, nullptr, &result);
+    auto asyncTask = [weak = windowScene_, env, task = napiAsyncTask] {
+        auto weakScene = weak.lock();
+        sptr<Window> win = weakScene ? weakScene->GetMainWindow() : nullptr;
+        if (win == nullptr) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][loadContent]msg: The window is not created or destroyed."));
+            TLOGNE(WmsLogTag::WMS_LIFE, "Get window failed");
+            return;
+        }
+        win->ReleaseUIContent();
+        task->Resolve(env, NapiGetUndefined(env));
+    };
+    if (napi_send_event(env, asyncTask, napi_eprio_high, "OnReleaseUIContent") != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+        "send event failed"));
+    }
+    return result;
 }
 
 napi_value JsWindowStage::OnGetMainWindow(napi_env env, napi_callback_info info)
@@ -1272,6 +1303,8 @@ napi_value CreateJsWindowStage(napi_env env, std::shared_ptr<Rosen::WindowScene>
         objValue, "loadContent", moduleName, JsWindowStage::LoadContent);
     BindNativeFunction(env,
         objValue, "loadContentByName", moduleName, JsWindowStage::LoadContentByName);
+    BindNativeFunction(env,
+        objValue, "releaseUIContent", moduleName, JsWindowStage::ReleaseUIContent);
     BindNativeFunction(env,
         objValue, "getMainWindow", moduleName, JsWindowStage::GetMainWindow);
     BindNativeFunction(env,

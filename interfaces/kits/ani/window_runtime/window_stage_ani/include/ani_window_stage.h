@@ -76,6 +76,7 @@ public:
         ani_string path, ani_object storage);
     static void LoadContentByName(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_string path, ani_object storage);
+    static void ReleaseUIContent(ani_env* env, ani_object obj, ani_long nativeObj);
     static void DisableWindowDecor(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetShowOnLockScreen(ani_env* env, ani_class cls, ani_long nativeObj, ani_boolean showOnLockScreen);
     static void SetWindowModal(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isModal);
@@ -108,6 +109,7 @@ public:
     ani_ref OnCreateSubWindow(ani_env *env, ani_string name);
 private:
     void OnLoadContent(ani_env* env, ani_string path, ani_object storage, bool isLoadByName);
+    void OnReleaseUIContent(ani_env* env);
     void OnDisableWindowDecor(ani_env* env);
     void OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockScreen);
     void OnSetWindowModal(ani_env* env, ani_boolean isModal);

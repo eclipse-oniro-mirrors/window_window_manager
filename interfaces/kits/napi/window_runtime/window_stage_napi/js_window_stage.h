@@ -36,6 +36,7 @@ public:
     ~JsWindowStage();
     static void Finalizer(napi_env env, void* data, void* hint);
     static napi_value SetUIContent(napi_env env, napi_callback_info info);
+    static napi_value ReleaseUIContent(napi_env env, napi_callback_info info);
     static napi_value GetMainWindow(napi_env env, napi_callback_info info);
     static napi_value GetMainWindowSync(napi_env env, napi_callback_info info);
     static napi_value On(napi_env env, napi_callback_info info);
@@ -77,6 +78,7 @@ public:
 
 private:
     napi_value OnSetUIContent(napi_env env, napi_callback_info info);
+    napi_value OnReleaseUIContent(napi_env env, napi_callback_info info);
     napi_value OnGetMainWindow(napi_env env, napi_callback_info info);
     napi_value OnGetMainWindowSync(napi_env env, napi_callback_info info);
     napi_value OnEvent(napi_env env, napi_callback_info info);

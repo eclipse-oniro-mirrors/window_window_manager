@@ -990,6 +990,11 @@ public:
      * @brief Flush vsync for prelaunch.
      */
     virtual void FlushVsync() {}
+
+    /**
+     * @brief Destroy window ui content
+     */
+    virtual void ReleaseUIContent() {}
 };
 }
 }

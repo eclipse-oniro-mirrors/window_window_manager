@@ -80,6 +80,12 @@ struct CursorInfo {
     }
 };
 
+enum class AttachState : int32_t {
+    DEFAULT = -1,
+    DETACH = 0,
+    ATTACH = 1,
+};
+
 using IKBWillShowListener = IKeyboardWillShowListener;
 using IKBWillHideListener = IKeyboardWillHideListener;
 
@@ -114,6 +120,8 @@ public:
         BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
     WMError AniSetUIContentByName(const std::string& contentName, ani_env* env, ani_object storage,
         BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
+    WMError AniReleaseUIContent() override;
+    void ReleaseUIContent() override;
     WMError SetUIContentByName(const std::string& contentInfo, napi_env env, napi_value storage,
         AppExecFwk::Ability* ability) override;
     WMError SetUIContentByAbc(const std::string& abcPath, napi_env env, napi_value storage,
@@ -650,6 +658,7 @@ protected:
     template<typename T> WMError UnregisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
     void ClearListenersById(int32_t persistentId);
     void NotifyDmsDisplayMove(DisplayId to);
+    void DestroyExistUIContent();
 
     /*
      * Free Multi Window
@@ -832,6 +841,8 @@ protected:
     std::string navDestinationInfo_;
     sptr<LifecycleFutureCallback> lifecycleCallback_ = nullptr;
     bool isAttachedOnFrameNode_ = true;
+    bool isNeedReleaseUIContent_ = false;
+    AttachState attachState_ = AttachState::DEFAULT;
 
     /*
      * Window Layout
@@ -1042,7 +1053,6 @@ private:
         int isAni = 0);
     std::shared_ptr<std::vector<uint8_t>> GetAbcContent(const std::string& abcPath);
     void RegisterUIContenCallback();
-    inline void DestroyExistUIContent();
     std::string GetRestoredRouterStack();
 
     bool CheckIfNeedCommitRsTransaction(WindowSizeChangeReason wmReason);

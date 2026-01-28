@@ -2373,6 +2373,7 @@ public:
     {
         return WMError::WM_OK;
     }
+    virtual WMError AniReleaseUIContent() { return WMError::WM_OK; }
 
     /**
      * @brief set window ui content
@@ -2422,6 +2423,13 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    /**
+     * @brief destroy window ui content
+     *
+     * @return void
+     */
+    virtual void ReleaseUIContent() {}
 
     /**
      * @brief Get ui content info.

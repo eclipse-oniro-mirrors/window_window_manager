@@ -2463,6 +2463,7 @@ export class WindowStageInternal implements WindowStage {
     private static native nativeTransferDynamic(nativeObj: long): ESValue;
     public native loadContentSync(nativeObj: long, path: string, storage?: LocalStorage): void;
     public native loadContentByNameSync(nativeObj: long, path: string, storage?: LocalStorage): void;
+    public native releaseUIContentSync(nativeObj: long): void;
     public native disableWindowDecorSync(nativeObj:long): void;
     public native setShowOnLockScreenSync(nativeObj:long, showOnLockScreen: boolean): void;
     public native setWindowModal(nativeObj: long, isModal: boolean): void;
@@ -2543,6 +2544,17 @@ export class WindowStageInternal implements WindowStage {
       } catch (err: Error) {
         callback(err as BusinessError, undefined);
       }
+    }
+
+    public releaseUIContent(): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        try {
+          this.releaseUIContentSync(this.nativeObj);
+          resolve(undefined);
+        } catch (err: Error) {
+          reject(err as BusinessError);
+        }
+      });
     }
 
     public disableWindowDecor(): void {
@@ -2812,6 +2824,7 @@ export interface WindowStage {
     loadContentByName(name: string, storage: LocalStorage, callback: AsyncCallback<void>): void;
     loadContentByName(name: string, storage?: LocalStorage): Promise<void>;
     loadContentByName(name: string, callback: AsyncCallback<void>): void;
+    releaseUIContent(): Promise<void>;
     getMainWindowSync(): Window;
     getMainWindow(): Promise<Window>;
     getMainWindow(callback: AsyncCallback<Window>): void;
