@@ -160,6 +160,24 @@ HWTEST_F(ScreenSessionManagerLiteProxyTest, GetCutoutInfo, TestSize.Level1)
     auto res = screenSessionManagerLiteProxy_->GetCutoutInfo(displayId);
     ASSERT_EQ(nullptr, res);
 }
+
+/**
+ * @tc.name: SetResolution
+ * @tc.desc: SetResolution
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerLiteProxyTest, SetResolution, TestSize.Level1)
+{
+    SingletonContainer::Get<ScreenManagerAdapter>().InitDMSProxy();
+
+    MessageParcel reply;
+    ScreenId screenId = 0;
+    uint32_t width = 1080;
+    uint32_t height = 2400;
+    float vpr = 2.8;
+    auto err = screenSessionManagerLiteProxy_->SetResolution(screenId, width, height, vpr);
+    EXPECT_EQ(err, static_cast<DMError>(reply.ReadInt32()));
+}
 }
 }
 }

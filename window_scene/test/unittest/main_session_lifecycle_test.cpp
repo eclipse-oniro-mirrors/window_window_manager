@@ -77,33 +77,33 @@ HWTEST_F(MainSessionLifecycleTest, Reconnect01, TestSize.Level1)
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(nullptr, property);
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
-    EXPECT_NE(nullptr, mockSessionStage);
+    ASSERT_NE(nullptr, mockSessionStage);
     sptr<TestWindowEventChannel> testWindowEventChannel = sptr<TestWindowEventChannel>::MakeSptr();
-    EXPECT_NE(nullptr, testWindowEventChannel);
+    ASSERT_NE(nullptr, testWindowEventChannel);
 
     auto result = mainSession_->Reconnect(nullptr, nullptr, nullptr, property);
-    ASSERT_EQ(result, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 
     result = mainSession_->Reconnect(nullptr, testWindowEventChannel, surfaceNode, property);
-    ASSERT_EQ(result, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 
     result = mainSession_->Reconnect(mockSessionStage, nullptr, surfaceNode, property);
-    ASSERT_EQ(result, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 
     result = mainSession_->Reconnect(mockSessionStage, testWindowEventChannel, surfaceNode, property);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     property->SetWindowState(WindowState::STATE_HIDDEN);
     result = mainSession_->Reconnect(mockSessionStage, testWindowEventChannel, surfaceNode, property);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     property->SetWindowState(WindowState::STATE_SHOWN);
     result = mainSession_->Reconnect(mockSessionStage, testWindowEventChannel, surfaceNode, property);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     mainSession_->pcFoldScreenController_ = nullptr;
     result = mainSession_->Reconnect(mockSessionStage, testWindowEventChannel, surfaceNode, property);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -143,9 +143,9 @@ HWTEST_F(MainSessionLifecycleTest, NotifyForegroundInteractiveStatus02, TestSize
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(nullptr, property);
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
-    EXPECT_NE(nullptr, mockSessionStage);
+    ASSERT_NE(nullptr, mockSessionStage);
     sptr<TestWindowEventChannel> testWindowEventChannel = sptr<TestWindowEventChannel>::MakeSptr();
-    EXPECT_NE(nullptr, testWindowEventChannel);
+    ASSERT_NE(nullptr, testWindowEventChannel);
 
     mainSession_->SetSessionState(SessionState::STATE_CONNECT);
     WSError reconnect = mainSession_->Reconnect(mockSessionStage, testWindowEventChannel, surfaceNode, property);

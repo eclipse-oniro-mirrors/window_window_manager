@@ -126,6 +126,7 @@ void DualDisplayFoldPolicy::SetdisplayModeChangeStatus(bool status, bool isOnBoo
             return;
         }
         displayModeChangeRunning_ = false;
+        ScreenSessionManager::GetInstance().RunFinishTask();
         endTimePoint_ = std::chrono::steady_clock::now();
         if (lastCachedisplayMode_.load() != GetScreenDisplayMode()) {
             TLOGI(WmsLogTag::DMS, "start change displaymode to lastest mode");
@@ -158,13 +159,14 @@ ScreenId DualDisplayFoldPolicy::GetScreenIdByDisplayMode(FoldDisplayMode display
 
 void DualDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason)
 {
-    SetLastCacheDisplayMode(displayMode);
-    if (GetModeChangeRunningStatus()) {
-        TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
+    if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
+        TLOGI(WmsLogTag::DMS, "Fold status is locked, can't change to display mode: %{public}d", displayMode);
         return;
     }
-    TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, lastElapsedMs: %{public}" PRId64 "ms",
-        displayMode, getFoldingElapsedMs());
+    SetLastCacheDisplayMode(displayMode);
+    TLOGI(WmsLogTag::DMS,
+        "start change displaymode: %{public}d, reason: %{public}d, lastElapsedMs: %{public}" PRId64 "ms",
+        displayMode, reason, getFoldingElapsedMs());
     ScreenId screenId = GetScreenIdByDisplayMode(displayMode);
     sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
     if (screenSession == nullptr) {
@@ -192,6 +194,7 @@ void DualDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode,
     }
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
     SetdisplayModeChangeStatus(false);
+    return;
 }
 
 void DualDisplayFoldPolicy::ChangeScreenDisplayModeProc(sptr<ScreenSession> screenSession,
@@ -359,8 +362,13 @@ void DualDisplayFoldPolicy::UpdateForPhyScreenPropertyChange()
 
 FoldDisplayMode DualDisplayFoldPolicy::GetModeMatchStatus()
 {
+    return GetModeMatchStatus(currentFoldStatus_);
+}
+
+FoldDisplayMode DualDisplayFoldPolicy::GetModeMatchStatus(FoldStatus targetFoldStatus)
+{
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
-    switch (currentFoldStatus_) {
+    switch (targetFoldStatus) {
         case FoldStatus::EXPAND: {
             displayMode = FoldDisplayMode::MAIN;
             break;
@@ -514,7 +522,7 @@ void DualDisplayFoldPolicy::ChangeScreenDisplayModeOnBootAnimation(sptr<ScreenSe
             screenSession->GetScreenProperty().GetBounds().rect_.width_,
             screenSession->GetScreenProperty().GetBounds().rect_.height_);
     } else {
-        screenSession->NotifyFoldPropertyChange(screenProperty_, reason, FoldDisplayMode::UNKNOWN);
+        screenSession->NotifyFoldPropertyChange(screenProperty_, reason, GetScreenDisplayMode());
     }
     screenId_ = screenId;
 }

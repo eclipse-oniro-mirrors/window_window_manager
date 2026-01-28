@@ -29,7 +29,8 @@ public:
     bool IsFakeDisplayExist();
     bool IsNeedSetSnapshotRect(DisplayId displayId);
     Drawing::Rect GetSnapshotRect(DisplayId displayId, bool isCaptureFullOfScreen = false);
-    DMRect GetRecordRect(DisplayId displayId);
+    DMRect GetRecordRect(const std::vector<ScreenId>& screenIds);
+    ScreenId GetRealScreenId(const std::vector<ScreenId>& screenIds);
 };
 }
 #endif // OHOS_ROSEN_WINDOW_SUPER_FOLD_POLICY_H

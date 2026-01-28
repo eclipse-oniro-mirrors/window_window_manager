@@ -19,11 +19,44 @@
 #include <charconv>
 #include <string>
 
+#include "dm_common.h"
+
 namespace OHOS {
 namespace Rosen {
+
 class StringUtil {
 public:
     static std::string Trim(std::string s);
+
+    template<typename T>
+    static constexpr bool CanToString()
+    {
+        if (std::is_same<T, uint64_t>::value ||
+            std::is_same<T, int64_t>::value ||
+            std::is_same<T, uint32_t>::value ||
+            std::is_same<T, int32_t>::value ||
+            std::is_same<T, bool>::value) {
+            return true;
+        }
+        return false;
+    }
+
+    template<typename T>
+    static bool VectorToString(const std::vector<T>& vec, std::string& str)
+    {
+        if (!CanToString<T>()) {
+            str.clear();
+            return false;
+        }
+        std::stringstream oss;
+        oss << "[ ";
+        for (auto item : vec) {
+            oss <<  item << " ";
+        }
+        oss << "]";
+        str = oss.str();
+        return true;
+    }
 
     static inline bool ConvertStringToInt32(const std::string& str, int32_t& num)
     {

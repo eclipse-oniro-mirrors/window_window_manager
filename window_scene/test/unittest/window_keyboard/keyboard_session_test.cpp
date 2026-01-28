@@ -25,6 +25,8 @@
 #include "ui/rs_surface_node.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
+#include "window_session_property.h"
+#include "wm_common.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -319,10 +321,10 @@ HWTEST_F(KeyboardSessionTest, NotifyRootSceneOccupiedAreaChange02, TestSize.Leve
     ASSERT_NE(occupiedInfo, nullptr);
     auto ret = 1;
     keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange =
-        [&ret](const sptr<OccupiedAreaChangeInfo>& info) -> void { ret = 2; };
+        [&ret](const sptr<OccupiedAreaChangeInfo>& info) -> void { ret += 1; };
     keyboardSession->GetSessionProperty()->SetDisplayId(ScreenSessionManagerClient::GetInstance().GetDefaultScreenId());
     keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo);
-    EXPECT_EQ(ret, 2);
+    EXPECT_NE(ret, 1);
 }
 
 /**
@@ -490,7 +492,7 @@ HWTEST_F(KeyboardSessionTest, SetCallingSessionId, TestSize.Level0)
         return 100; // focusSession's persistentId is 100
     };
     keyboardSession->keyboardCallback_->onCallingSessionIdChange = [](int32_t callingSessionid) {};
-
+    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
     keyboardSession->SetCallingSessionId(0);
     ASSERT_EQ(keyboardSession->GetCallingSessionId(), 100); // 100 is callingSessionId
 }

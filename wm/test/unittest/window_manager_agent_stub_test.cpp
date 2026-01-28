@@ -463,6 +463,27 @@ HWTEST_F(WindowManagerAgentStubTest, OnRemoteRequest22, TestSize.Level1)
     EXPECT_EQ(res, 5);
 }
 
+
+/**
+ * @tc.name: OnRemoteRequest23
+ * @tc.desc: test TRANS_ID_NOTIFY_WINDOW_SUPPORT_ROTATION_CHANGE success
+ */
+HWTEST_F(WindowManagerAgentStubTest, OnRemoteRequest23, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(WindowManagerAgentStub::GetDescriptor());
+    sptr<SupportRotationInfo> supportRotationInfo = sptr<SupportRotationInfo>::MakeSptr();
+    data.WriteParcelable(supportRotationInfo);
+
+    uint32_t code = static_cast<uint32_t>(
+        IWindowManagerAgent::WindowManagerAgentMsg::TRANS_ID_NOTIFY_WINDOW_SUPPORT_ROTATION_CHANGE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
 /**
  * @tc.name: ReadWindowInfoList01
  * @tc.desc: test ReadWindowInfoList
@@ -471,7 +492,7 @@ HWTEST_F(WindowManagerAgentStubTest, OnRemoteRequest22, TestSize.Level1)
 HWTEST_F(WindowManagerAgentStubTest, ReadWindowInfoList01, TestSize.Level1)
 {
     MessageParcel data;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     data.WriteUint32(1);
     EXPECT_FALSE(stub_->ReadWindowInfoList(data, windowInfoList));
@@ -490,7 +511,7 @@ HWTEST_F(WindowManagerAgentStubTest, ReadWindowInfoList01, TestSize.Level1)
 HWTEST_F(WindowManagerAgentStubTest, ReadWindowInfoList02, TestSize.Level1)
 {
     MessageParcel data;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     data.WriteUint32(100000);
     EXPECT_FALSE(stub_->ReadWindowInfoList(data, windowInfoList));

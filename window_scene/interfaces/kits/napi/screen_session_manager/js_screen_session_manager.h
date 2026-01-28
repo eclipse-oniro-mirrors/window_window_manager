@@ -27,7 +27,7 @@
 #endif
 
 namespace OHOS::Rosen {
-class JsScreenSessionManager final : public IScreenConnectionListener,
+class JsScreenSessionManager final : public IScreenConnectionListener, public ITentModeListener,
     public PowerMgr::TakeOverShutdownCallbackStub {
 public:
     explicit JsScreenSessionManager(napi_env env);
@@ -38,6 +38,7 @@ public:
 
     void OnScreenConnected(const sptr<ScreenSession>& screenSession) override;
     void OnScreenDisconnected(const sptr<ScreenSession>& screenSession) override;
+    void OnTentModeChange(const TentMode tentMode) override;
     bool OnTakeOverShutdown(const PowerMgr::TakeOverInfo& info) override;
 
 private:
@@ -59,6 +60,7 @@ private:
     static napi_value NotifyFoldToExpandCompletion(napi_env env, napi_callback_info info);
     static napi_value NotifyScreenConnectCompletion(napi_env env, napi_callback_info info);
     static napi_value NotifyAodOpCompletion(napi_env env, napi_callback_info info);
+    static napi_value SetPowerStateForAod(napi_env env, napi_callback_info info);
     static napi_value RecordEventFromScb(napi_env env, napi_callback_info info);
     static napi_value SetCameraStatus(napi_env env, napi_callback_info info);
     static napi_value GetFoldStatus(napi_env env, napi_callback_info info);
@@ -81,6 +83,8 @@ private:
     static napi_value RegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
 
     napi_value OnRegisterCallback(napi_env env, const napi_callback_info info);
+    void RegisterScreenConnectionCallback(napi_env env, const std::string& callbackType, napi_ref& callbackRef);
+    void RegisterTentModeCallback(napi_env env, const std::string& callbackType, napi_ref& callbackRef);
     napi_value OnUpdateScreenRotationProperty(napi_env env, const napi_callback_info info);
     napi_value OnUpdateServerScreenProperty(napi_env env, const napi_callback_info info);
     napi_value OnGetCurvedCompressionArea(napi_env env, const napi_callback_info info);
@@ -99,6 +103,7 @@ private:
     napi_value OnNotifyFoldToExpandCompletion(napi_env env, const napi_callback_info info);
     napi_value OnNotifyScreenConnectCompletion(napi_env env, const napi_callback_info info);
     napi_value OnNotifyAodOpCompletion(napi_env env, const napi_callback_info info);
+    napi_value OnSetPowerStateForAod(napi_env env, const napi_callback_info info);
     napi_value OnRecordEventFromScb(napi_env env, const napi_callback_info info);
     napi_value OnGetFoldStatus(napi_env env, const napi_callback_info info);
     napi_value OnGetSuperFoldStatus(napi_env env, const napi_callback_info info);
@@ -117,12 +122,18 @@ private:
     napi_value OnFreezeScreen(napi_env env, napi_callback_info info);
     napi_value OnGetScreenSnapshotWithAllWindows(napi_env env, napi_callback_info info);
     napi_value OnNotifySwitchUserAnimationFinish(napi_env env, napi_callback_info info);
+
     napi_value OnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
+    bool ObtainCallBackInfo(napi_env env, const napi_callback_info info,
+        std::string& callbackType, napi_ref& callbackRef);
+    bool CheckAndTransState(ScbScreenPowerState state, ScreenPowerState& screenState);
 
     std::shared_ptr<NativeReference> screenConnectionCallback_;
+    std::vector<std::shared_ptr<NativeReference>> tentModeChangeCallback_;
     std::shared_ptr<NativeReference> shutdownCallback_;
     napi_env env_;
     std::map<uint64_t, napi_ref> jsScreenSessionMap_;
+    std::shared_mutex tentModeChangeCallbackMutex_;
 };
 } // namespace OHOS::Rosen
 

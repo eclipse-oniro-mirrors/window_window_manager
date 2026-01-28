@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/scene_session_manager_lite.h"
 #include "session_manager/include/zidl/pip_change_listener_stub.h"
@@ -55,6 +56,20 @@ HWTEST_F(SceneSessionManagerLiteTest, GetInstance, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateScreenLockStatusForApp
+ * @tc.desc: test function : UpdateScreenLockStatusForApp
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UpdateScreenLockStatusForApp, TestSize.Level1)
+{
+    std::string bundleName = "aaa";
+    bool isRelease = false;
+    auto expectRet = SceneSessionManager::GetInstance().UpdateScreenLockStatusForApp(bundleName, isRelease);
+    auto ret = SceneSessionManagerLite::GetInstance().UpdateScreenLockStatusForApp(bundleName, isRelease);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
  * @tc.name: SendPointerEventForHover
  * @tc.desc: test function : SendPointerEventForHover
  * @tc.type: FUNC
@@ -64,6 +79,67 @@ HWTEST_F(SceneSessionManagerLiteTest, SendPointerEventForHover, TestSize.Level1)
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
     EXPECT_EQ(SceneSessionManagerLite::GetInstance().SendPointerEventForHover(pointerEvent),
         WSError::WS_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: RegisterWindowPropertyChangeAgent
+ * @tc.desc: test function : RegisterWindowPropertyChangeAgent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, RegisterWindowPropertyChangeAgent, TestSize.Level1)
+{
+    WindowInfoKey windowInfoKey = WindowInfoKey::MID_SCENE;
+    uint32_t interestInfo = 0;
+    sptr<IWindowManagerAgent> windowManagerAgent;
+    auto expectRet = SceneSessionManager::GetInstance().RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+    auto ret = SceneSessionManagerLite::GetInstance().RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: UnregisterWindowPropertyChangeAgent
+ * @tc.desc: test function : UnregisterWindowPropertyChangeAgent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UnregisterWindowPropertyChangeAgent, TestSize.Level1)
+{
+    WindowInfoKey windowInfoKey = WindowInfoKey::MID_SCENE;
+    uint32_t interestInfo = 0;
+    sptr<IWindowManagerAgent> windowManagerAgent;
+    auto expectRet = SceneSessionManager::GetInstance().UnregisterWindowPropertyChangeAgent(windowInfoKey,
+        interestInfo, windowManagerAgent);
+    auto ret = SceneSessionManagerLite::GetInstance().UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: RecoverWindowPropertyChangeFlag
+ * @tc.desc: test function : RecoverWindowPropertyChangeFlag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, RecoverWindowPropertyChangeFlag, TestSize.Level1)
+{
+    auto expectRet = SceneSessionManager::GetInstance().RecoverWindowPropertyChangeFlag(0, 0);
+    auto ret = SceneSessionManagerLite::GetInstance().RecoverWindowPropertyChangeFlag(0, 0);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: test function : SetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, SetProcessWatermark, TestSize.Level1)
+{
+    int32_t pid = 100;
+    const std::string watermarkName = "test";
+    bool isEnabled = true;
+    auto expectRet = SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto ret = SceneSessionManagerLite::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, expectRet);
 }
 
 /**

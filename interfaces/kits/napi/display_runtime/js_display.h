@@ -68,6 +68,7 @@ napi_value NapiGetUndefined(napi_env env);
 napi_valuetype GetType(napi_env env, napi_value value);
 napi_value CreateJsFoldCreaseRegionObject(napi_env env, const FoldCreaseRegion& region);
 napi_value CreateJsCreaseRectsArrayObject(napi_env env, const std::vector<DMRect>& creaseRects);
+napi_value CreateJsRoundedCorner(napi_env env, const std::vector<RoundedCorner>& roundedCorner);
 class JsDisplay final {
 public:
     explicit JsDisplay(const sptr<Display>& display);
@@ -83,6 +84,7 @@ public:
     static napi_value UnregisterDisplayManagerCallback(napi_env env, napi_callback_info info);
     static napi_value GetLiveCreaseRegion(napi_env env, napi_callback_info info);
     sptr<Display> GetDisplay() const { return display_; }
+    static napi_value GetRoundedCorner(napi_env env, napi_callback_info info);
 
 private:
     sptr<Display> display_ = nullptr;
@@ -103,6 +105,7 @@ private:
     DMError UnRegisterDisplayListenerWithType(napi_env env, const std::string& type, napi_value value);
     bool IsCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject);
     napi_value OnGetLiveCreaseRegion(napi_env env, napi_callback_info info);
+    napi_value OnGetRoundedCorner(napi_env env, napi_callback_info info);
 };
 enum class DisplayStateMode : uint32_t {
     STATE_UNKNOWN = 0,

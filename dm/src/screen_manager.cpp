@@ -22,6 +22,9 @@
 
 #include "display_manager_adapter.h"
 #include "display_manager_agent_default.h"
+#include "ipc_skeleton.h"
+#include "string_util.h"
+#include "sys_cap_util.h"
 #include "permission.h"
 #include "singleton_delegator.h"
 #include "window_manager_hilog.h"
@@ -47,10 +50,13 @@ public:
     DMError UnregisterScreenGroupListener(sptr<IScreenGroupListener> listener);
     DMError RegisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener);
     DMError UnregisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener);
+    DMError RegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener);
+    DMError UnRegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener);
     DMError RegisterDisplayManagerAgent();
     DMError UnregisterDisplayManagerAgent();
     void OnRemoteDied();
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
+    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height);
 
 private:
     void NotifyScreenConnect(sptr<ScreenInfo> info);
@@ -71,6 +77,7 @@ private:
     std::set<sptr<IScreenListener>> screenListeners_;
     std::set<sptr<IScreenGroupListener>> screenGroupListeners_;
     std::set<sptr<IVirtualScreenGroupListener>> virtualScreenGroupListeners_;
+    std::set<sptr<IRecordDisplayListener>> recordDisplayListeners_;
     sptr<IDisplayManagerAgent> virtualScreenAgent_ = nullptr;
     std::mutex virtualScreenAgentMutex_;
 };
@@ -158,6 +165,15 @@ public:
         }
         NotifyVirtualScreenGroupChanged(screenInfos[0], trigger, screenIds, groupEvent);
     };
+
+    void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds)
+    {
+        TLOGD(WmsLogTag::DMS, "begin");
+        for (auto listener: pImpl_->recordDisplayListeners_) {
+            listener->OnChange(displayIds);
+        }
+    };
+
 private:
     void NotifyVirtualScreenGroupChanged(sptr<ScreenInfo> screenInfo,
         const std::string trigger, std::vector<ScreenId>& ids, ScreenGroupChangeEvent groupEvent)
@@ -369,6 +385,46 @@ DMError ScreenManager::UnregisterScreenGroupListener(sptr<IScreenGroupListener> 
     return pImpl_->UnregisterScreenGroupListener(listener);
 }
 
+DMError ScreenManager::RegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "RegisterRecordDisplayListener listener is nullptr.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return pImpl_->RegisterRecordDisplayListener(listener);
+}
+
+DMError ScreenManager::Impl::RegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    DMError regSucc = RegisterDisplayManagerAgent();
+    if (regSucc == DMError::DM_OK) {
+        recordDisplayListeners_.insert(listener);
+    }
+    return regSucc;
+}
+
+DMError ScreenManager::UnRegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "UnRegisterRecordDisplayListener listener is nullptr.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return pImpl_->UnRegisterRecordDisplayListener(listener);
+}
+
+DMError ScreenManager::Impl::UnRegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto iter = std::find(recordDisplayListeners_.begin(), recordDisplayListeners_.end(), listener);
+    if (iter == recordDisplayListeners_.end()) {
+        TLOGE(WmsLogTag::DMS, "could not find this listener");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    recordDisplayListeners_.erase(iter);
+    return isAllListenersRemoved() ? UnregisterDisplayManagerAgent() : DMError::DM_OK;
+}
+
 DMError ScreenManager::Impl::RegisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -464,15 +520,24 @@ DMError ScreenManager::MakeExpand(const std::vector<ExpandOption>& options, Scre
     return ret;
 }
 
-DMError ScreenManager::MakeUniqueScreen(const std::vector<ScreenId>& screenIds)
+DMError ScreenManager::MakeUniqueScreen(const std::vector<ScreenId>& screenIds,
+    const UniqueScreenRotationOptions& rotationOptions)
 {
     std::vector<DisplayId> displayIds;
-    return MakeUniqueScreen(screenIds, displayIds);
+    TLOGD(WmsLogTag::DMS, "Start passing parameters from DMS side, isRotationLocked: %{public}d, rotation: %{public}d",
+        rotationOptions.isRotationLocked_, rotationOptions.rotation_);
+    return MakeUniqueScreen(screenIds, displayIds, rotationOptions);
 }
 
-DMError ScreenManager::MakeUniqueScreen(const std::vector<ScreenId>& screenIds, std::vector<DisplayId>& displayIds)
+DMError ScreenManager::MakeUniqueScreen(const std::vector<ScreenId>& screenIds)
 {
-    TLOGD(WmsLogTag::DMS, "start Make UniqueScreen");
+    return MakeUniqueScreen(screenIds, UniqueScreenRotationOptions());
+}
+
+DMError ScreenManager::MakeUniqueScreen(const std::vector<ScreenId>& screenIds, std::vector<DisplayId>& displayIds,
+    const UniqueScreenRotationOptions& rotationOptions)
+{
+    TLOGD(WmsLogTag::DMS, "start make unique screen");
     if (screenIds.empty()) {
         TLOGE(WmsLogTag::DMS, "screenIds is null");
         return DMError::DM_ERROR_INVALID_PARAM;
@@ -481,8 +546,14 @@ DMError ScreenManager::MakeUniqueScreen(const std::vector<ScreenId>& screenIds, 
         TLOGW(WmsLogTag::DMS, "Make UniqueScreen failed. ScreenIds size bigger than %{public}u.", MAX_SCREEN_SIZE);
         return DMError::DM_ERROR_INVALID_PARAM;
     }
-    DMError ret = SingletonContainer::Get<ScreenManagerAdapter>().MakeUniqueScreen(screenIds, displayIds);
+    DMError ret = SingletonContainer::Get<ScreenManagerAdapter>().MakeUniqueScreen(screenIds, displayIds,
+        rotationOptions);
     return ret;
+}
+
+DMError ScreenManager::MakeUniqueScreen(const std::vector<ScreenId>& screenIds, std::vector<DisplayId>& displayIds)
+{
+    return MakeUniqueScreen(screenIds, displayIds, UniqueScreenRotationOptions());
 }
 
 DMError ScreenManager::MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId, ScreenId& screenGroupId)
@@ -500,15 +571,18 @@ DMError ScreenManager::MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> m
     return ret;
 }
 
-DMError ScreenManager::MakeMirrorForRecord(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId,
-    ScreenId& screenGroupId)
+DMError ScreenManager::MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,
+    std::vector<ScreenId>& mirrorScreenIds, ScreenId& screenGroupId)
 {
-    TLOGI(WmsLogTag::DMS, "Make mirror for screen: %{public}" PRIu64"", mainScreenId);
-    if (mirrorScreenId.size() > MAX_SCREEN_SIZE) {
+    std::string mainScreenIdsStr = "";
+    if (StringUtil::VectorToString(mainScreenIds, mainScreenIdsStr)) {
+        TLOGI(WmsLogTag::DMS, "Make mirror for screens: %{public}s", mainScreenIdsStr.c_str());
+    }
+    if (mirrorScreenIds.size() > MAX_SCREEN_SIZE) {
         TLOGW(WmsLogTag::DMS, "Make Mirror failed. MirrorScreenId size bigger than %{public}u.", MAX_SCREEN_SIZE);
         return DMError::DM_ERROR_INVALID_PARAM;
     }
-    DMError ret = SingletonContainer::Get<ScreenManagerAdapter>().MakeMirrorForRecord(mainScreenId, mirrorScreenId,
+    DMError ret = SingletonContainer::Get<ScreenManagerAdapter>().MakeMirrorForRecord(mainScreenIds, mirrorScreenIds,
         screenGroupId);
     if (screenGroupId == SCREEN_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "create mirror failed");
@@ -609,6 +683,19 @@ DMError ScreenManager::RemoveVirtualScreenFromGroup(std::vector<ScreenId> screen
     return DMError::DM_OK;
 }
 
+DMError ScreenManager::AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+{
+    DMError errCode = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenWhiteList(screenId, missionIds);
+    return errCode;
+}
+
+DMError ScreenManager::RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+{
+    DMError errCode = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenWhiteList(screenId,
+        missionIds);
+    return errCode;
+}
+
 ScreenId ScreenManager::CreateVirtualScreen(VirtualScreenOption option)
 {
     return pImpl_->CreateVirtualScreen(option);
@@ -624,9 +711,9 @@ ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
     return SingletonContainer::Get<ScreenManagerAdapter>().CreateVirtualScreen(option, virtualScreenAgent_);
 }
 
-DMError ScreenManager::DestroyVirtualScreen(ScreenId screenId)
+DMError ScreenManager::DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty)
 {
-    return SingletonContainer::Get<ScreenManagerAdapter>().DestroyVirtualScreen(screenId);
+    return SingletonContainer::Get<ScreenManagerAdapter>().DestroyVirtualScreen(screenId, isCallingByThirdParty);
 }
 
 DMError ScreenManager::SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface)
@@ -656,6 +743,13 @@ DMError ScreenManager::SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, b
 }
 
 DMError ScreenManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+{
+    TLOGI(WmsLogTag::DMS, "BoundName: %{public}s, pid: %{public}d", SysCapUtil::GetBundleName().c_str(),
+        IPCSkeleton::GetCallingPid());
+    return pImpl_->ResizeVirtualScreen(screenId, width, height);
+}
+
+DMError ScreenManager::Impl::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
 {
     return SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(screenId, width, height);
 }

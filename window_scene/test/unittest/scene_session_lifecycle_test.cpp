@@ -574,10 +574,32 @@ HWTEST_F(SceneSessionLifecycleTest, DisconnectTask02, TestSize.Level0)
     sceneSession->isActive_ = true;
     result = sceneSession->DisconnectTask(false, true);
     ASSERT_EQ(result, WSError::WS_OK);
-    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_EQ(result, WSError::WS_OK);
-    sceneSession->sessionInfo_.isPrelaunch_ = true;
-    result = sceneSession->DisconnectTask(false, true);
+}
+
+/**
+ * @tc.name: DisconnectTask03
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, DisconnectTask03, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "DisconnectTask03";
+    info.bundleName_ = "DisconnectTask03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    EXPECT_NE(property, nullptr);
+    property->SetPrelaunch(sceneSession->GetSessionInfo().isPrelaunch_);
+    property->SetFrameNum(sceneSession->GetSessionInfo().frameNum_);
+    sceneSession->SetSessionProperty(property);
+
+    sceneSession->EditSessionInfo().isPrelaunch_ = true;
+    sceneSession->EditSessionInfo().frameNum_ = 3;
+    auto result = sceneSession->DisconnectTask(true, true);
+    ASSERT_EQ(sceneSession->GetSessionInfo().isPrelaunch_, false);
+    ASSERT_EQ(sceneSession->GetSessionInfo().frameNum_, 0);
     ASSERT_EQ(result, WSError::WS_OK);
 }
 
@@ -886,8 +908,8 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner02, TestSize.Level0)
 }
 
 /**
- * @tc.name: ConnectInner02
- * @tc.desc: ConnectInner02
+ * @tc.name: ConnectInner03
+ * @tc.desc: ConnectInner03
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
@@ -913,6 +935,51 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
     sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
     auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
     ASSERT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: ConnectInner04
+ * @tc.desc: ConnectInner04
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
+{
+    SessionInfo info;
+    info.bundleName_ = "ConnectInner04";
+    info.abilityName_ = "ConnectInner04";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    SystemSessionConfig systemConfig;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    WindowType windowType = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    property->SetWindowType(windowType);
+    EXPECT_EQ(property->GetWindowType(), windowType);
+
+    sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
+    ASSERT_NE(eventChannel, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    windowType = WindowType::WINDOW_TYPE_APP_SUB_WINDOW;
+    property->SetWindowType(windowType);
+    EXPECT_EQ(property->GetWindowType(), windowType);
+
+    eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
+    ASSERT_NE(eventChannel, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**

@@ -40,6 +40,7 @@ public:
     static napi_value SetPiPControlEnabled(napi_env env, napi_callback_info info);
     static napi_value GetPiPWindowInfo(napi_env env, napi_callback_info info);
     static napi_value GetPiPSettingSwitch(napi_env env, napi_callback_info info);
+    static napi_value IsPiPActive(napi_env env, napi_callback_info info);
     static napi_value RegisterCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterCallback(napi_env env, napi_callback_info info);
     static napi_value PictureInPicturePossible(napi_env env, napi_callback_info info);
@@ -61,6 +62,7 @@ private:
     napi_value OnSetPiPControlEnabled(napi_env env, napi_callback_info info);
     napi_value OnGetPiPWindowInfo(napi_env env, napi_callback_info info);
     napi_value OnGetPiPSettingSwitch(napi_env env, napi_callback_info info);
+    napi_value OnIsPiPActive(napi_env env, napi_callback_info info);
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
     napi_value OnUnregisterCallback(napi_env env, napi_callback_info info);
     napi_value OnPictureInPicturePossible(napi_env env, napi_callback_info info);

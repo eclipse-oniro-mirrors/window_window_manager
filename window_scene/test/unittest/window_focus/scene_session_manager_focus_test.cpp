@@ -119,6 +119,110 @@ HWTEST_F(SceneSessionManagerFocusTest, OnScreenDisconnected, Function | SmallTes
     screenSession->SetScreenType(ScreenType::VIRTUAL);
     screenConnectionChangeListener->OnScreenDisconnected(screenSession);
 }
+
+/**
+ * @tc.name: IsBlockingFocusWindowType_SessionConfig
+ * @tc.desc: Check if the session blockingFocus and device type is qualified
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, IsBlockingFocusWindowType_SessionConfig, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsBlockingFocusWindowType_SessionConfig";
+    info.bundleName_ = "IsBlockingFocusWindowType_SessionConfig";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    sceneSession->blockingFocus_ = false;
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    sceneSession->blockingFocus_ = true;
+    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+}
+
+/**
+ * @tc.name: IsBlockingFocusWindowType_WindowType
+ * @tc.desc: Check if the session blockingFocus with window type
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, IsBlockingFocusWindowType_WindowType, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsBlockingFocusWindowType_WindowType";
+    info.bundleName_ = "IsBlockingFocusWindowType_WindowType";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    sceneSession->blockingFocus_ = true;
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    sceneSession->blockingFocus_ = false;
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+}
+
+/**
+ * @tc.name: IsBlockingFocusWindowType_HotAreasCheck
+ * @tc.desc: Check if one of the HotAreas of the current session is full-screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, IsBlockingFocusWindowType_HotAreasCheck, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsBlockingFocusWindowType_HotAreasCheck";
+    info.bundleName_ = "IsBlockingFocusWindowType_HotAreasCheck";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    sceneSession->blockingFocus_ = true;
+    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->GetSessionProperty()->SetDisplayId(10001);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    sceneSession->GetSessionProperty()->SetDisplayId(DEFAULT_DISPLAY_ID);
+    auto display = DisplayManager::GetInstance().GetDisplayById(DEFAULT_DISPLAY_ID);
+    ASSERT_NE(nullptr, display);
+    auto displayInfo = display->GetDisplayInfo();
+    ASSERT_NE(nullptr, displayInfo);
+    auto width = displayInfo->GetWidth();
+    auto height = displayInfo->GetHeight();
+    sceneSession->SetSessionRect({ 0, 0, width, height });
+    std::vector<OHOS::Rosen::Rect> touchHotAreasInSceneSession(0);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    OHOS::Rosen::Rect area = { 0, 0, width -1, height };
+    touchHotAreasInSceneSession.emplace_back(area);
+    sceneSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    area = { 0, 1, width, height };
+    touchHotAreasInSceneSession.emplace_back(area);
+    sceneSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    area = { 0, 0, width, height - 1 };
+    touchHotAreasInSceneSession.emplace_back(area);
+    sceneSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    area = { 1, 0, width, height };
+    touchHotAreasInSceneSession.emplace_back(area);
+    sceneSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
+    EXPECT_EQ(false, ssm_->IsBlockingFocusWindowType(sceneSession));
+
+    area = { 0, 0, width, height };
+    touchHotAreasInSceneSession.emplace_back(area);
+    sceneSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
+    EXPECT_EQ(true, ssm_->IsBlockingFocusWindowType(sceneSession));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

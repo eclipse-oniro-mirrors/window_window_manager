@@ -18,6 +18,7 @@
 
 #include <pointer_event.h>
 
+#include <limits>
 #include <string>
 #include "ws_common.h"
 #include "ws_common_inner.h"
@@ -28,19 +29,19 @@ namespace OHOS {
 namespace Rosen {
 class SessionHelper {
 public:
-    static WSRect GetOverlap(const WSRect& rect1, const WSRect& rect2, int offsetX, int offsetY)
+    template<typename T>
+    static WSRectT<T> GetOverlap(const WSRectT<T>& rect1, const WSRectT<T>& rect2, T offsetX, T offsetY)
     {
-        int32_t x_begin = std::max(rect1.posX_, rect2.posX_);
-        int32_t x_end = std::min(rect1.posX_ + static_cast<int32_t>(rect1.width_),
+        T x_begin = std::max(rect1.posX_, rect2.posX_);
+        T x_end = std::min(rect1.posX_ + static_cast<int32_t>(rect1.width_),
             rect2.posX_ + static_cast<int32_t>(rect2.width_));
-        int32_t y_begin = std::max(rect1.posY_, rect2.posY_);
-        int32_t y_end = std::min(rect1.posY_ + static_cast<int32_t>(rect1.height_),
+        T y_begin = std::max(rect1.posY_, rect2.posY_);
+        T y_end = std::min(rect1.posY_ + static_cast<int32_t>(rect1.height_),
             rect2.posY_ + static_cast<int32_t>(rect2.height_));
         if (y_begin >= y_end || x_begin >= x_end) {
             return { 0, 0, 0, 0 };
         }
-        return { x_begin - offsetX, y_begin - offsetY,
-            static_cast<uint32_t>(x_end - x_begin), static_cast<uint32_t>(y_end - y_begin) };
+        return { x_begin - offsetX, y_begin - offsetY, x_end - x_begin, y_end - y_begin };
     }
 
     static inline bool IsEmptyRect(const WSRect& r)
@@ -129,21 +130,30 @@ public:
         int32_t sourceType, int outside, float vpr, const WSRect& rect, const WindowLimits& limits)
     {
         int32_t insideCorner = WINDOW_FRAME_CORNER_WIDTH * vpr;
+        int32_t insideCornerTouch = WINDOW_FRAME_CORNER_TOUCH_WIDTH * vpr;
         int32_t insideEdge = WINDOW_FRAME_WIDTH * vpr;
         int32_t leftOut = -outside;
         int32_t leftIn = insideEdge;
         int32_t leftCorner = insideCorner;
+        int32_t leftCornerTouch = insideCornerTouch;
         int32_t rightCorner = rect.width_ - insideCorner;
+        int32_t rightCornerTouch = rect.width_ - insideCornerTouch;
         int32_t rightIn = rect.width_ - insideEdge;
         int32_t rightOut = rect.width_ + outside;
         int32_t topOut = -outside;
         int32_t topIn = insideEdge;
         int32_t topCorner = insideCorner;
+        int32_t topCornerTouch = insideCornerTouch;
         int32_t bottomCorner = rect.height_ - insideCorner;
+        int32_t bottomCornerTouch = rect.height_ - insideCornerTouch;
         int32_t bottomIn = rect.height_ - insideEdge;
         int32_t bottomOut = rect.height_ + outside;
 
         auto isInRange = [](int32_t min, int32_t max, int32_t value) { return min <= value && value <= max; };
+        auto isInRect = [pointWinX, pointWinY, &isInRange](int32_t xMin, int32_t xMax, int32_t yMin, int32_t yMax) {
+            return isInRange(xMin, xMax, pointWinX) && isInRange(yMin, yMax, pointWinY);
+        };
+
         bool isWidthDraggable = limits.minWidth_ < limits.maxWidth_;
         bool isHeightDraggable = limits.minHeight_ < limits.maxHeight_;
         bool bothWidthHeightDraggable = isWidthDraggable && isHeightDraggable;
@@ -171,6 +181,22 @@ public:
             type = AreaType::BOTTOM;
         } else {
             type = AreaType::UNDEFINED;
+        }
+
+        if (sourceType == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) {
+            if (isInRect(leftOut, leftCornerTouch, topOut, topIn) ||
+                isInRect(leftOut, leftIn, topOut, topCornerTouch)) {
+                type = AreaType::LEFT_TOP;
+            } else if (isInRect(leftOut, leftCornerTouch, bottomIn, bottomOut) ||
+                isInRect(leftOut, leftIn, bottomCornerTouch, bottomOut)) {
+                type = AreaType::LEFT_BOTTOM;
+            } else if (isInRect(rightCornerTouch, rightOut, topOut, topIn) ||
+                isInRect(rightIn, rightOut, topOut, topCornerTouch)) {
+                type = AreaType::RIGHT_TOP;
+            } else if (isInRect(rightIn, rightOut, bottomCornerTouch, bottomOut) ||
+                isInRect(rightCornerTouch, rightOut, bottomIn, bottomOut)) {
+                type = AreaType::RIGHT_BOTTOM;
+            }
         }
         return type;
     }
@@ -221,6 +247,24 @@ public:
                 break;
         }
         return rotation;
+    }
+
+    static int32_t ShiftDecimalDigit(int32_t value, int32_t shift)
+    {
+        if (value < 0 || value >= DECIMAL_BASE || shift < 0 || shift >= std::numeric_limits<int32_t>::digits10) {
+            return 0; //Returns 0 if an overflow occurs.
+        }
+        return value * std::pow(DECIMAL_BASE, shift);
+    }
+
+    static bool IsHexChar(char c)
+    {
+        return std::isxdigit(static_cast<unsigned char>(c)) != 0;
+    }
+
+    static bool IsDecChar(char c)
+    {
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
     }
 };
 } // Rosen

@@ -167,7 +167,7 @@ void InputWindowMonitor::ConstructScreenInfos(std::vector<MMI::DisplayInfo>& dis
         screenInfo.screenType = MMI::ScreenType::REAL;
         screenInfo.width = displayInfo.width;
         screenInfo.height = displayInfo.height;
-        screenInfo.tpDirection = displayInfo.direction;
+        screenInfo.tpDirection = MMI::DIRECTION0;
         screenInfo.dpi = displayInfo.dpi;
         screenInfo.rotation = static_cast<MMI::Rotation>(displayInfo.direction);
         screenInfos.emplace_back(screenInfo);

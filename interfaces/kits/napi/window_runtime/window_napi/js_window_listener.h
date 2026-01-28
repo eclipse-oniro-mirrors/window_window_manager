@@ -52,6 +52,7 @@ const std::string GESTURE_NAVIGATION_ENABLED_CHANGE_CB = "gestureNavigationEnabl
 const std::string WATER_MARK_FLAG_CHANGE_CB = "waterMarkFlagChange";
 const std::string WINDOW_VISIBILITY_CHANGE_CB = "windowVisibilityChange";
 const std::string OCCLUSION_STATE_CHANGE_CB = "occlusionStateChanged";
+const std::string FRAME_METRICS_MEASURED_CHANGE_CB = "frameMetricsMeasured";
 const std::string WINDOW_DISPLAYID_CHANGE_CB = "displayIdChange";
 const std::string SYSTEM_DENSITY_CHANGE_CB = "systemDensityChange";
 const std::string ACROSS_DISPLAYS_CHANGE_CB = "mainWindowFullScreenAcrossDisplaysChanged";
@@ -84,6 +85,7 @@ class JsWindowListener : public IWindowChangeListener,
                          public IGestureNavigationEnabledChangedListener,
                          public IWindowVisibilityChangedListener,
                          public IOcclusionStateChangedListener,
+                         public IFrameMetricsChangedListener,
                          public IDisplayIdChangeListener,
                          public ISystemDensityChangeListener,
                          public IAcrossDisplaysChangeListener,
@@ -144,6 +146,7 @@ public:
     void SetMainEventHandler();
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;
     void OnOcclusionStateChanged(const WindowVisibilityState state) override;
+    void OnFrameMetricsChanged(const FrameMetrics& metrics) override;
     void OnDisplayIdChanged(DisplayId displayId) override;
     void OnSystemDensityChanged(float density) override;
     void OnAcrossDisplaysChanged(bool isAcrossDisplays) override;

@@ -71,7 +71,7 @@ void JsFbWindowListener::OnFbListenerCallback(const FloatingBallState& state)
         CallJsFunction(env, jsCallback->GetNapiValue(), argv, ArraySize(argv));
     };
     if (env_ != nullptr) {
-        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate);
+        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnFbListenerCallback");
         if (ret != napi_status::napi_ok) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to SendEvent");
         }
@@ -91,7 +91,7 @@ void JsFbWindowListener::OnClickEvent()
         CallJsFunction(env, jsCallback->GetNapiValue(), {}, 0);
     };
     if (env_ != nullptr) {
-        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate);
+        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnClickEvent");
         if (ret != napi_status::napi_ok) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to SendEvent");
         }

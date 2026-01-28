@@ -33,7 +33,7 @@ class WindowManagerImpl {
 public:
     static int32_t CreateWindow(WindowParameters window);
     static int32_t SetWindowLayoutMode(uint32_t mode);
-    static int32_t MinimizeAll(int64_t displayId);
+    static int32_t MinimizeAll(int64_t displayId, int32_t excludeWindowId = 0);
     static int32_t FindWindow(std::string name, int64_t& windowId);
     static int32_t GetLastWindow(OHOS::AbilityRuntime::Context* ctx, int64_t& id);
     static int32_t ShiftAppWindowFocus(int32_t sourceWindowId, int32_t targetWindowId);

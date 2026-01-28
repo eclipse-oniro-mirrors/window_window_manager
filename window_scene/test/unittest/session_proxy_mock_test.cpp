@@ -164,7 +164,6 @@ HWTEST_F(SessionProxyMockTest, PendingSessionActivation01, TestSize.Level1)
     abilitySessionInfo->needClearInNotShowRecent = false;
     abilitySessionInfo->callerToken = sptr<MockIRemoteObject>::MakeSptr();
     abilitySessionInfo->instanceKey = "PendingSessionActivation01";
-    abilitySessionInfo->isFromIcon = false;
     abilitySessionInfo->specifiedFlag = "specifiedFlag";
     abilitySessionInfo->reuseDelegatorWindow = true;
     abilitySessionInfo->scenarios = 1;

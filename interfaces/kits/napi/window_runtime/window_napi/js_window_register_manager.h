@@ -49,6 +49,7 @@ enum class RegisterListenerType : uint32_t {
     WINDOW_TITLE_BUTTON_RECT_CHANGE_CB,
     WINDOW_VISIBILITY_CHANGE_CB,
     OCCLUSION_STATE_CHANGE_CB,
+    FRAME_METRICS_MEASURED_CHANGE_CB,
     WINDOW_DISPLAYID_CHANGE_CB,
     SYSTEM_DENSITY_CHANGE_CB,
     ACROSS_DISPLAYS_CHANGE_CB,
@@ -115,6 +116,8 @@ private:
     WmErrorCode ProcessWindowVisibilityChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessOcclusionStateChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
+        bool isRegister, napi_env env, napi_value parameter = nullptr);
+    WmErrorCode ProcessFrameMetricsMeasuredChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessDisplayIdChangeRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);

@@ -35,7 +35,7 @@ class AccessibilityElementInfo;
 }
 namespace OHOS::Rosen {
 class RSTransaction;
-class RSCanvasNode;
+class RSWindowKeyFrameNode;
 
 class ISessionStage : public IRemoteBroker {
 public:
@@ -166,6 +166,15 @@ public:
     virtual void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) = 0;
 
     /**
+     * @brief Notify global scaled rect.
+     *
+     * Notify client when global scaled rect changed.
+     *
+     * @param globalScaledRect rect to change.
+     */
+    virtual void NotifyGlobalScaledRectChange(const Rect& globalScaledRect) {}
+
+    /**
      * @brief Set pip event to client.
      *
      * Set the pip event to client. Such as close, restore, destroy events.
@@ -258,8 +267,8 @@ public:
         return WSError::WS_OK;
     }
 
-    virtual WSError LinkKeyFrameCanvasNode(std::shared_ptr<RSCanvasNode>& rsCanvasNode) = 0;
-    virtual WSError SetKeyFramePolicy(KeyFramePolicy& keyFramePolicy) = 0;
+    virtual WSError LinkKeyFrameNode() = 0;
+    virtual WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) = 0;
 
     virtual WSError SetSplitButtonVisible(bool isVisible) = 0;
 
@@ -275,7 +284,10 @@ public:
     virtual void NotifyKeyboardAnimationCompleted(const KeyboardPanelInfo& keyboardPanelInfo) {}
     virtual void NotifyKeyboardAnimationWillBegin(const KeyboardAnimationInfo& keyboardAnimationInfo,
         const std::shared_ptr<RSTransaction>& rsTransaction) {};
-    virtual WSError NotifyTargetRotationInfo(OrientationInfo& info) { return WSError::WS_DO_NOTHING; }
+    virtual WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo)
+    {
+        return WSError::WS_DO_NOTHING;
+    }
     virtual WSError NotifyPageRotationIsIgnored() { return WSError::WS_DO_NOTHING; }
     virtual RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo)
     {
@@ -283,8 +295,10 @@ public:
     }
     virtual WSError SetCurrentRotation(int32_t currentRotation) = 0;
     virtual WSError NotifyAppForceLandscapeConfigUpdated() = 0;
+    virtual WSError NotifyAppForceLandscapeConfigEnableUpdated() = 0;
     virtual WSError NotifyAppHookWindowInfoUpdated() = 0;
     virtual WSError CloseSpecificScene() { return WSError::WS_DO_NOTHING; }
+    virtual WSError UpdateBrightness(float brightness) = 0;
 
     /**
      * @brief Send fb event to client.
@@ -305,6 +319,25 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) = 0;
+
+    /**
+     * @brief App window sidebar blur.
+     *
+     * add window siderBar blur effect.
+     *
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError AddSidebarBlur() { return WSError::WS_DO_NOTHING; }
+
+    /**
+     * @brief Set sidebar blur style with type.
+     *
+     * Set sidebar blur style with type.
+     *
+     * @param type Indicates the action type.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError SetSidebarBlurStyleWithType(SidebarBlurType type) { return WSError::WS_DO_NOTHING; }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_INTERFACE_H

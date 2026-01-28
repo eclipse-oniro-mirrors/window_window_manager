@@ -60,11 +60,11 @@ void SessionStagePcTest(sptr<WindowSessionImpl> stageStub, MessageParcel& parcel
         parcel, reply, option);
     parcel.RewindRead(0);
     stageStub->OnRemoteRequest(
-        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_LINK_KEYFRAME_CANVAS_NODE),
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_LINK_KEYFRAME_NODE),
         parcel, reply, option);
     parcel.RewindRead(0);
     stageStub->OnRemoteRequest(
-        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_KEYFRAME_POLICY),
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_STAGE_KEYFRAME_POLICY),
         parcel, reply, option);
     parcel.RewindRead(0);
     stageStub->OnRemoteRequest(

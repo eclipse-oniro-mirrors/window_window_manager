@@ -76,6 +76,8 @@ private:
         bool isRegister, ani_env* env);
     WmErrorCode ProcessOcclusionStateChangeRegister(const sptr<AniWindowListener>& listener, sptr<Window> window,
         bool isRegister, ani_env* env);
+    WmErrorCode ProcessFrameMetricsMeasuredChangeRegister(const sptr<AniWindowListener>& listener, sptr<Window> window,
+        bool isRegister, ani_env* env);
     WmErrorCode ProcessSystemDensityChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessDisplayIdChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
@@ -83,6 +85,8 @@ private:
     WmErrorCode ProcessWindowStatusChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowTitleButtonRectChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
+        bool isRegister, ani_env* env);
+    WmErrorCode ProcessWindowWillCloseRegister(const sptr<AniWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowRectChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);

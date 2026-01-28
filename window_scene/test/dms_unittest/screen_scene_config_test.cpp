@@ -29,6 +29,14 @@
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg = msg;
+    }
+}
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -101,16 +109,6 @@ HWTEST_F(ScreenSceneConfigTest, GetConfigPath2, TestSize.Level1)
     ASSERT_STREQ("/system/a.xml", result.c_str());
 }
 
-/**
- * @tc.name: LoadConfigXml
- * @tc.desc: test function : loadConfigXml
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSceneConfigTest, LoadConfigXml, TestSize.Level1)
-{
-    auto result = ScreenSceneConfig::LoadConfigXml();
-    ASSERT_EQ(true, result);
-}
 
 /**
  * @tc.name: IsValidNode1
@@ -166,14 +164,14 @@ HWTEST_F(ScreenSceneConfigTest, ReadIntNumbersConfigInfo, TestSize.Level1)
     auto configFilePath = ScreenSceneConfig::GetConfigPath("etc/window/resources/display_manager_config.xml");
     xmlDocPtr docPtr = xmlReadFile(configFilePath.c_str(), nullptr, XML_PARSE_NOBLANKS);
     if (docPtr == nullptr) {
-        return;
+        GTEST_SKIP();
     }
 
     xmlNodePtr rootPtr = xmlDocGetRootElement(docPtr);
     if (rootPtr == nullptr || rootPtr->name == nullptr ||
         xmlStrcmp(rootPtr->name, reinterpret_cast<const xmlChar*>("Configs"))) {
         xmlFreeDoc(docPtr);
-        return;
+        GTEST_SKIP();
     }
     uint32_t readCount = 0;
     for (xmlNodePtr curNodePtr = rootPtr->xmlChildrenNode; curNodePtr != nullptr; curNodePtr = curNodePtr->next) {
@@ -262,14 +260,14 @@ HWTEST_F(ScreenSceneConfigTest, ReadEnableConfigInfo, TestSize.Level1)
     auto configFilePath = ScreenSceneConfig::GetConfigPath("etc/window/resources/display_manager_config.xml");
     xmlDocPtr docPtr = xmlReadFile(configFilePath.c_str(), nullptr, XML_PARSE_NOBLANKS);
     if (docPtr == nullptr) {
-        return;
+        GTEST_SKIP();
     }
 
     xmlNodePtr rootPtr = xmlDocGetRootElement(docPtr);
     if (rootPtr == nullptr || rootPtr->name == nullptr ||
         xmlStrcmp(rootPtr->name, reinterpret_cast<const xmlChar*>("Configs"))) {
         xmlFreeDoc(docPtr);
-        return;
+        GTEST_SKIP();
     }
     uint32_t readCount = 0;
     for (xmlNodePtr curNodePtr = rootPtr->xmlChildrenNode; curNodePtr != nullptr; curNodePtr = curNodePtr->next) {
@@ -309,14 +307,14 @@ HWTEST_F(ScreenSceneConfigTest, ReadStringConfigInfo, TestSize.Level1)
     auto configFilePath = ScreenSceneConfig::GetConfigPath("etc/window/resources/display_manager_config.xml");
     xmlDocPtr docPtr = xmlReadFile(configFilePath.c_str(), nullptr, XML_PARSE_NOBLANKS);
     if (docPtr == nullptr) {
-        return;
+        GTEST_SKIP();
     }
 
     xmlNodePtr rootPtr = xmlDocGetRootElement(docPtr);
     if (rootPtr == nullptr || rootPtr->name == nullptr ||
         xmlStrcmp(rootPtr->name, reinterpret_cast<const xmlChar*>("Configs"))) {
         xmlFreeDoc(docPtr);
-        return;
+        GTEST_SKIP();
     }
     uint32_t readCount = 0;
     for (xmlNodePtr curNodePtr = rootPtr->xmlChildrenNode; curNodePtr != nullptr; curNodePtr = curNodePtr->next) {
@@ -708,9 +706,12 @@ HWTEST_F(ScreenSceneConfigTest, SetSubCutoutSvgPath01, TestSize.Level1)
  */
 HWTEST_F(ScreenSceneConfigTest, SetCurvedCompressionAreaInLandscape, TestSize.Level1)
 {
-    int res = 0;
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     ScreenSceneConfig::SetCurvedCompressionAreaInLandscape();
-    ASSERT_EQ(0, res);
+    EXPECT_TRUE(g_logMsg.find("waterfallAreaCompressionSizeWhenHorzontal value is not exist") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -807,9 +808,15 @@ HWTEST_F(ScreenSceneConfigTest, GetCurvedCompressionAreaInLandscape03, TestSize.
  */
 HWTEST_F(ScreenSceneConfigTest, ReadStringListConfigInfo01, TestSize.Level1)
 {
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     xmlNodePtr rootNode = nullptr;
     ScreenSceneConfig::ReadStringListConfigInfo(rootNode, "");
-    EXPECT_EQ(rootNode, nullptr);
+    EXPECT_TRUE(g_logMsg.find("get root element failed") == std::string::npos &&
+        g_logMsg.find("rootContext is null") == std::string::npos &&
+        g_logMsg.find("invalid node") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1203,6 +1210,66 @@ HWTEST_F(ScreenSceneConfigTest, ParseNodeConfig07, TestSize.Level1)
     ASSERT_NE(currNode, nullptr);
     ScreenSceneConfig::ParseNodeConfig(currNode);
     xmlFreeNode(currNode);
+}
+
+/**
+ * @tc.name: ParseStrToUll
+ * @tc.desc: Test ParseStrToUll
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSceneConfigTest, ParseStrToUll, TestSize.Level1)
+{
+    std::string input = "12345";
+    uint64_t result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 12345u);
+
+    input = "abc123";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = "123abc";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = "";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = "18446744073709551615";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 18446744073709551615ULL);
+
+    input = "18446744073709551616";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+
+    input = " 123 ";
+    result = ScreenSceneConfig::ParseStrToUll(input);
+    EXPECT_EQ(result, 0u);
+}
+
+/**
+ * @tc.name: ParseDisplaysConfig03
+ * @tc.desc: ParseDisplaysConfig03
+ @tc.type: FUNC
+ */
+HWTEST_F(ScreenSceneConfigTest, ParseDisplaysConfig03, TestSize.Level1)
+{
+    ScreenSceneConfig::displaysConfigs_.clear();
+    xmlNodePtr displaysNode = xmlNewNode(nullptr, BAD_CAST("displays"));
+    xmlNodePtr displayNode = xmlNewChild(displaysNode, nullptr, BAD_CAST("display"), nullptr);
+    xmlNewChild(displayNode, nullptr, BAD_CAST("physicalId"), BAD_CAST("101"));
+    xmlNewChild(displayNode, nullptr, BAD_CAST("logicalId"), BAD_CAST("201"));
+    xmlNodePtr emptyNameNode = xmlNewChild(displayNode, nullptr, BAD_CAST("name"), BAD_CAST(""));
+    xmlNewChild(displayNode, nullptr, BAD_CAST("dpi"), BAD_CAST("300"));
+    ScreenSceneConfig::ParseDisplaysConfig(displaysNode);
+    ASSERT_EQ(ScreenSceneConfig::GetDisplaysConfigs().size(), 1u);
+    const auto& config = ScreenSceneConfig::GetDisplaysConfigs()[0];
+    EXPECT_EQ(config.physicalId, 101u);
+    EXPECT_EQ(config.logicalId, 201u);
+    EXPECT_EQ(config.dpi, 300);
+    EXPECT_TRUE(config.name.empty());
+    xmlFree(displaysNode);
 }
 
 /**

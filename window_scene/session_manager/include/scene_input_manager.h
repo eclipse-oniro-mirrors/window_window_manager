@@ -48,6 +48,8 @@ public:
     void ResetSessionDirty();
     std::pair<std::vector<MMI::WindowInfo>, std::vector<std::shared_ptr<Media::PixelMap>>>
         GetFullWindowInfoList();
+    void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
+        std::vector<MMI::Rect>& pointerHotAreas) const;
 
     /*
      * Multi User
@@ -55,6 +57,8 @@ public:
     void FlushEmptyInfoToMMI();
     void SetUserBackground(bool userBackground);
     void SetCurrentUserId(int32_t userId);
+
+    void SetIsRotationBegin(bool isRotationBegin);
 
 protected:
     SceneInputManager() = default;
@@ -96,6 +100,7 @@ private:
      */
     int32_t currentUserId_ = INVALID_USER_ID;
     std::atomic<bool> isUserBackground_ { false };
+    std::atomic<bool> isRotationBegin_ { false };
 };
 }//Rosen
 }//OHOS

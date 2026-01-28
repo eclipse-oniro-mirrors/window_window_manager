@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <unordered_map>
 
 #ifdef _WIN32
 #define WINDOW_EXPORT __attribute__((dllexport))
@@ -39,6 +40,8 @@ const static std::string DEFAULT_SCREEN_NAME = "buildIn";
 constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr uint32_t BASELINE_DENSITY = 160;
+constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
+constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
 
 /**
@@ -267,6 +270,25 @@ enum class Orientation : uint32_t {
 };
 
 /**
+ * @brief Rotation info type
+ */
+enum class RotationInfoType : uint32_t {
+    WINDOW_ORIENTATION = 0,
+    DISPLAY_ORIENTATION = 1,
+    DISPLAY_ROTATION = 2,
+};
+
+/**
+ * @brief Window Orientation
+ */
+enum class WindowOrientation : uint32_t {
+    PORTRAIT = 0,
+    LANDSCAPE_INVERTED,
+    PORTRAIT_INVERTED,
+    LANDSCAPE,
+};
+
+/**
  * @brief Enumerates display orientations.
  */
 enum class DisplayOrientation : uint32_t {
@@ -322,6 +344,48 @@ enum class FoldDisplayMode: uint32_t {
     MAIN = 2,
     SUB = 3,
     COORDINATION = 4,
+    GLOBAL_FULL = 5,
+};
+
+const std::unordered_map<std::string, FoldDisplayMode> STRING_TO_FOLD_DISPLAY_MODE = {
+    {"0", FoldDisplayMode::UNKNOWN},
+    {"1", FoldDisplayMode::FULL},
+    {"2", FoldDisplayMode::MAIN},
+    {"3", FoldDisplayMode::SUB},
+    {"4", FoldDisplayMode::COORDINATION},
+    {"5", FoldDisplayMode::GLOBAL_FULL}
+};
+
+struct RotationCorrectionWhiteConfig {
+    std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
+    std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
+
+    int32_t GetUseLogicCamera(FoldDisplayMode key) const
+    {
+        auto it = useLogicCamera.find(key);
+        if (it != useLogicCamera.end()) {
+            return it->second;
+        }
+        return DEFAULT_USE_LOGIC_CAMERA;
+    }
+
+    int32_t GetCustomLogicDirection(FoldDisplayMode key) const
+    {
+        auto it = customLogicDirection.find(key);
+        if (it != customLogicDirection.end()) {
+            return it->second;
+        }
+        return DEFAULT_CUSTOM_LOGIC_DIRECTION;
+    }
+};
+
+/**
+ * @brief Enumerates TentMode.
+ */
+enum class TentMode : uint32_t {
+    UNKNOWN,
+    TENT_MODE,
+    HOVER,
 };
 
 /**

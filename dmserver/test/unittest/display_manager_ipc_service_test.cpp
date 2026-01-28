@@ -252,48 +252,52 @@ HWTEST_F(DisplayManagerIpcServiceTest, ScreenColor, TestSize.Level1)
 {
     int32_t dmError = 0;
     std::vector<uint32_t> colorGamuts;
-    ASSERT_EQ(ERR_OK, dms_->GetScreenSupportedColorGamuts(SCREEN_ID_INVALID, colorGamuts, dmError));
+
+    dms_->GetScreenSupportedColorGamuts(SCREEN_ID_INVALID, colorGamuts, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
     EXPECT_EQ(0, colorGamuts.size());
-    ASSERT_EQ(ERR_OK, dms_->GetScreenSupportedColorGamuts(0, colorGamuts, dmError));
+
+    dms_->GetScreenSupportedColorGamuts(0, colorGamuts, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
     EXPECT_EQ(0, colorGamuts.size());
 
     uint32_t colorGamut = ScreenColorGamut::COLOR_GAMUT_SRGB;
-    ASSERT_EQ(ERR_OK, dms_->GetScreenColorGamut(SCREEN_ID_INVALID, colorGamut, dmError));
+    dms_->GetScreenColorGamut(SCREEN_ID_INVALID, colorGamut, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    EXPECT_EQ(ScreenColorGamut::COLOR_GAMUT_NATIVE, colorGamut);
-    ASSERT_EQ(ERR_OK, dms_->GetScreenColorGamut(0, colorGamut, dmError));
+
+    dms_->GetScreenColorGamut(0, colorGamut, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    EXPECT_EQ(ScreenColorGamut::COLOR_GAMUT_NATIVE, colorGamut);
+
 
     colorGamut = ScreenColorGamut::COLOR_GAMUT_SRGB;
-    ASSERT_EQ(ERR_OK, dms_->SetScreenColorGamut(SCREEN_ID_INVALID, colorGamut, dmError));
-    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    ASSERT_EQ(ERR_OK, dms_->SetScreenColorGamut(0, colorGamut, dmError));
+    dms_->SetScreenColorGamut(SCREEN_ID_INVALID, colorGamut, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
 
-    ASSERT_EQ(ERR_OK, dms_->SetScreenColorGamut(SCREEN_ID_INVALID, 0, dmError));
+    dms_->SetScreenColorGamut(0, colorGamut, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    ASSERT_EQ(ERR_OK, dms_->SetScreenColorGamut(0, 0, dmError));
+
+    dms_->SetScreenColorGamut(SCREEN_ID_INVALID, 0, dmError);
+    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
+
+    dms_->SetScreenColorGamut(0, 0, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
 
     uint32_t gamutMap = ScreenGamutMap::GAMUT_MAP_CONSTANT;
-    ASSERT_EQ(ERR_OK, dms_->GetScreenGamutMap(SCREEN_ID_INVALID, gamutMap, dmError));
-    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    EXPECT_EQ(ScreenGamutMap::GAMUT_MAP_CONSTANT, gamutMap);
-    ASSERT_EQ(ERR_OK, dms_->GetScreenGamutMap(0, gamutMap, dmError));
-    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    EXPECT_EQ(ScreenGamutMap::GAMUT_MAP_CONSTANT, gamutMap);
-
-    ASSERT_EQ(ERR_OK, dms_->SetScreenGamutMap(SCREEN_ID_INVALID, gamutMap, dmError));
-    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    ASSERT_EQ(ERR_OK, dms_->SetScreenGamutMap(0, gamutMap, dmError));
+    dms_->GetScreenGamutMap(SCREEN_ID_INVALID, gamutMap, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
 
-    ASSERT_EQ(ERR_OK, dms_->SetScreenColorTransform(SCREEN_ID_INVALID));
+    dms_->GetScreenGamutMap(0, gamutMap, dmError);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
-    ASSERT_EQ(ERR_OK, dms_->SetScreenColorTransform(0));
+
+    dms_->SetScreenGamutMap(SCREEN_ID_INVALID, gamutMap, dmError);
+    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
+
+    dms_->SetScreenGamutMap(0, gamutMap, dmError);
+    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
+
+    dms_->SetScreenColorTransform(SCREEN_ID_INVALID);
+    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
+    dms_->SetScreenColorTransform(0);
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
 }
 

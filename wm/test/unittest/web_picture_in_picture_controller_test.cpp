@@ -263,13 +263,19 @@ HWTEST_F(WebPictureInPictureControllerTest, SetPipParentWindowId, TestSize.Level
 {
     auto webPipControl = sptr<WebPictureInPictureController>::MakeSptr(config);
     uint32_t windowId = 10000;
+    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
+    bool isPC = multiWindowUIType == "FreeFormMultiWindow";
+    if (!isPC) {
+        EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+        GTEST_SKIP();
+    }
     webPipControl->mainWindow_  = nullptr;
-    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_PIP_STATE_ABNORMALLY);
+    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_PIP_INTERNAL_ERROR);
  
     auto mw = sptr<MockWindow>::MakeSptr();
     ASSERT_NE(nullptr, mw);
     webPipControl->mainWindow_ = mw;
-    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_PIP_STATE_ABNORMALLY);
+    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_INVALID_PARAM);
 }
 }
 }

@@ -72,6 +72,22 @@ HWTEST_F(ScreenManagerLiteTest, GetPhysicalScreenIds, TestSize.Level1)
     auto ret = sml_.GetPhysicalScreenIds(screenIds);
     EXPECT_EQ(ret, DMError::DM_OK);
 }
+
+/**
+ * @tc.name: SetResolution
+ * @tc.desc: SetResolution
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerLiteTest, SetResolution, TestSize.Level1)
+{
+    uint32_t width = 1080;
+    uint32_t height = 2400;
+    uint32_t dpi = 460;
+    EXPECT_EQ(sml_.SetResolution(width, height, dpi), DMError::DM_OK);
+
+    dpi = 10;
+    EXPECT_EQ(sml_.SetResolution(width, height, dpi), DMError::DM_ERROR_INVALID_PARAM);
++}
 }
 } // namespace Rosen
 } // namespace OHOS

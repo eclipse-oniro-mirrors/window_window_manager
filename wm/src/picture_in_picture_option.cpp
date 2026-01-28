@@ -112,6 +112,16 @@ void PipOption::SetStorageRef(napi_ref ref)
     storage_ = ref;
 }
 
+void PipOption::SetCornerAdsorptionEnabled(bool cornerAdsorptionEnabled)
+{
+    cornerAdsorptionEnabled_ = cornerAdsorptionEnabled;
+}
+ 
+bool PipOption::GetCornerAdsorptionEnabled() const
+{
+    return cornerAdsorptionEnabled_;
+}
+
 napi_ref PipOption::GetNodeControllerRef() const
 {
     return customNodeController_;
@@ -224,6 +234,7 @@ void PipOption::GetPiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
     pipTemplateInfo.defaultWindowSizeType = defaultWindowSizeType_;
     pipTemplateInfo.pipControlStatusInfoList = pipControlStatusInfoList_;
     pipTemplateInfo.pipControlEnableInfoList = pipControlEnableInfoList_;
+    pipTemplateInfo.cornerAdsorptionEnabled = cornerAdsorptionEnabled_;
 }
 // LCOV_EXCL_STOP
 } // namespace Rosen

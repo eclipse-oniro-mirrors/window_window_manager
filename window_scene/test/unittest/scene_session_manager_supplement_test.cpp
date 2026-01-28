@@ -291,6 +291,43 @@ HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerTe
 }
 
 /**
+ * @tc.name: RequestSceneSessionActivationInnerTest_03
+ * @tc.desc: SceneSessionManagerSupplementTest RequestSceneSessionActivationInner
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerTest_03, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "testBundleName";
+    sessionInfo.abilityName_ = "testAbilityName";
+    sessionInfo.ancoSceneState = AncoSceneState::NOTIFY_START_FAILED;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->SetFocusedOnShow(true);
+    sceneSession->SetScbCoreEnabled(false);
+    auto ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    ASSERT_EQ(ret, WSError::WS_ERROR_PRE_HANDLE_COLLABORATOR_FAILED);
+
+    sceneSession->SetScbCoreEnabled(true);
+    sceneSession->isVisible_ = true;
+    sceneSession->state_ = SessionState::STATE_FOREGROUND;
+    sceneSession->SetRestartApp(false);
+    ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    ASSERT_EQ(ret, WSError::WS_ERROR_PRE_HANDLE_COLLABORATOR_FAILED);
+
+    sceneSession->SetRestartApp(true);
+    ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    ASSERT_EQ(ret, WSError::WS_ERROR_PRE_HANDLE_COLLABORATOR_FAILED);
+
+    sceneSession->isVisible_ = false;
+    ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    ASSERT_EQ(ret, WSError::WS_ERROR_PRE_HANDLE_COLLABORATOR_FAILED);
+}
+
+/**
  * @tc.name: NotifyCollaboratorAfterStart
  * @tc.desc: SceneSessionManagerSupplementTest NotifyCollaboratorAfterStart
  * @tc.type: FUNC

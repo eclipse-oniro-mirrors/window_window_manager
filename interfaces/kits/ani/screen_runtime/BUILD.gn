@@ -76,6 +76,9 @@ ohos_shared_library("screenani_kit") {
     "graphic_surface:surface",  # use for SurfaceUtils
     "hilog:libhilog",
     "hitrace:hitrace_meter",
+    "image_framework:image",
+    "image_framework:image_native",
+    "image_framework:image_taihe",
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",

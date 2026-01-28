@@ -53,7 +53,8 @@ protected:
 
 private:
     void ConnectToServer();
-    sptr<IScreenSessionManager> screenSessionManager_;
+    sptr<IScreenSessionManager> screenSessionManager_ = nullptr;
+    std::shared_mutex screenSessionManagerMutex_;
     std::recursive_mutex mutex_;
     sptr<ScreenSMDeathRecipient> ssmDeath_ = nullptr;
     bool destroyed_ = false;

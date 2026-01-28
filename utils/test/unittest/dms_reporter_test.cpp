@@ -15,10 +15,19 @@
 
 #include <gtest/gtest.h>
 #include "dms_reporter.h"
+#include "hilog/log.h"
 
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg = msg;
+    }
+}
 namespace OHOS {
 namespace Rosen {
 class DmsReporterTest : public testing::Test {
@@ -45,10 +54,13 @@ namespace {
  */
 HWTEST_F(DmsReporterTest, ReportRegisterSessionListener, TestSize.Level1)
 {
-    int res = 0;
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     DmsReporter dmsReporter;
     dmsReporter.ReportRegisterSessionListener(true, 0);
-    ASSERT_EQ(res, 0);
+    EXPECT_TRUE(g_logMsg.find("Write HiSysEvent error") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -58,10 +70,13 @@ HWTEST_F(DmsReporterTest, ReportRegisterSessionListener, TestSize.Level1)
  */
 HWTEST_F(DmsReporterTest, ReportQuerySessionInfo, TestSize.Level1)
 {
-    int res = 0;
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     DmsReporter dmsReporter;
     dmsReporter.ReportQuerySessionInfo(true, 0);
-    ASSERT_EQ(res, 0);
+    EXPECT_TRUE(g_logMsg.find("Write HiSysEvent error") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -71,10 +86,13 @@ HWTEST_F(DmsReporterTest, ReportQuerySessionInfo, TestSize.Level1)
  */
 HWTEST_F(DmsReporterTest, ReportContinueApp, TestSize.Level1)
 {
-    int res = 0;
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     DmsReporter dmsReporter;
     dmsReporter.ReportContinueApp(true, 0);
-    ASSERT_EQ(res, 0);
+    EXPECT_TRUE(g_logMsg.find("Write HiSysEvent error") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 } // namespace

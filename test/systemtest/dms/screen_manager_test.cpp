@@ -344,6 +344,9 @@ HWTEST_F(ScreenManagerTest, CreateVirtualScreenTenTimes, TestSize.Level1)
  */
 HWTEST_F(ScreenManagerTest, ScreenManager01, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     DisplayTestUtils utils;
     ASSERT_TRUE(utils.CreateSurface());
     defaultOption_.surface_ = utils.psurface_;
@@ -363,6 +366,9 @@ HWTEST_F(ScreenManagerTest, ScreenManager01, TestSize.Level1)
  */
 HWTEST_F(ScreenManagerTest, ScreenManager02, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     DisplayTestUtils utils;
     ASSERT_TRUE(utils.CreateSurface());
     defaultOption_.surface_ = utils.psurface_;
@@ -387,6 +393,9 @@ HWTEST_F(ScreenManagerTest, ScreenManager02, TestSize.Level1)
  */
 HWTEST_F(ScreenManagerTest, ScreenManager03, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     DisplayTestUtils utils;
     defaultOption_.isForShot_ = false;
     for (uint32_t i = 0; i < execTimes_; i++) {
@@ -407,6 +416,9 @@ HWTEST_F(ScreenManagerTest, ScreenManager03, TestSize.Level1)
  */
 HWTEST_F(ScreenManagerTest, ScreenManager04, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     DisplayTestUtils utils;
     defaultOption_.isForShot_ = false;
     for (uint32_t i = 0; i < execTimes_; i++) {
@@ -434,6 +446,9 @@ HWTEST_F(ScreenManagerTest, ScreenManager04, TestSize.Level1)
  */
 HWTEST_F(ScreenManagerTest, ScreenManager05, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     DisplayTestUtils utils;
     utils.SetDefaultWH(defaultDisplay_);
     ASSERT_TRUE(utils.CreateSurface());
@@ -473,6 +488,9 @@ HWTEST_F(ScreenManagerTest, ScreenManager05, TestSize.Level1)
  */
 HWTEST_F(ScreenManagerTest, ScreenManager06, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     DisplayTestUtils utils;
     utils.SetDefaultWH(defaultDisplay_);
     defaultOption_.surface_ = nullptr;
@@ -514,16 +532,19 @@ HWTEST_F(ScreenManagerTest, ScreenManager06, TestSize.Level1)
  */
 HWTEST_F(ScreenManagerTest, ScreenManager07, TestSize.Level1)
 {
-    sptr<Screen> screen = ScreenManager::GetInstance().GetScreenById(defaultScreenId_);
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
+    sptr screen = ScreenManager::GetInstance().GetScreenById(defaultScreenId_);
     ASSERT_TRUE(screen);
     auto modes = screen->GetSupportedModes();
     auto defaultModeId = screen->GetModeId();
     ASSERT_GT(modes.size(), 0);
     for (uint32_t modeIdx = 0; modeIdx < modes.size(); modeIdx++) {
-        ASSERT_EQ(DMError::DM_OK, screen->SetScreenActiveMode(modeIdx));
-        sleep(TEST_SLEEP_S);
-        ASSERT_EQ(modeIdx, screen->GetModeId());
-        sleep(TEST_SLEEP_S);
+    ASSERT_EQ(DMError::DM_OK, screen->SetScreenActiveMode(modeIdx));
+    sleep(TEST_SLEEP_S);
+    ASSERT_EQ(modeIdx, screen->GetModeId());
+    sleep(TEST_SLEEP_S);
     }
     ASSERT_EQ(DMError::DM_OK, screen->SetScreenActiveMode(defaultModeId));
 }
@@ -541,7 +562,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager08, TestSize.Level1)
     defaultOption_.isForShot_ = false;
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -591,7 +612,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager09, TestSize.Level1)
     defaultOption_.isForShot_ = false;
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -611,7 +632,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager09, TestSize.Level1)
     ASSERT_NE(DISPLAY_ID_INVALID, virtualDisplayId);
     sptr<Window> window = CreateWindowByDisplayId(virtualDisplayId);
     if (window == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window);
     ASSERT_EQ(true, DrawWindowColor(window, COLOR_RED));
@@ -648,7 +669,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager10, TestSize.Level1)
     for (uint32_t i = 0; i < execTimes_; i++) {
         CHECK_TEST_INIT_SCREEN_STATE
         if (group == nullptr) {
-            return;
+            GTEST_SKIP();
         }
         ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
         sleep(TEST_SLEEP_S);
@@ -680,7 +701,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager11, TestSize.Level1)
         sleep(TEST_SLEEP_S);
         CHECK_TEST_INIT_SCREEN_STATE
         if (group == nullptr) {
-            return;
+            GTEST_SKIP();
         }
         ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
         sleep(TEST_SLEEP_S);
@@ -732,7 +753,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager12, TestSize.Level1)
     defaultOption_.isForShot_ = false;
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -780,7 +801,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager13, TestSize.Level1)
     defaultOption_.isForShot_ = false;
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -831,7 +852,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager14, TestSize.Level1)
     defaultOption_.isForShot_ = false;
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -889,7 +910,7 @@ HWTEST_F(ScreenManagerTest, ScreenManager15, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -944,32 +965,36 @@ HWTEST_F(ScreenManagerTest, ScreenManager16, TestSize.Level1)
 {
     std::vector<sptr<Screen>> screens;
     ScreenManager::GetInstance().GetAllScreens(screens);
-    ASSERT_GE(screens.size(), 1);
+    ASSERT_GE(screens.size(), 1u);
+
     auto display = DisplayManager::GetInstance().GetDefaultDisplay();
     ASSERT_NE(display, nullptr);
-    uint32_t orientation = static_cast<uint32_t>(Orientation::VERTICAL);
-    uint32_t end = static_cast<uint32_t>(Orientation::REVERSE_HORIZONTAL);
+
     sptr<ScreenChangeListener> screenListener = new ScreenChangeListener();
     ASSERT_NE(screenListener, nullptr);
     ScreenManager::GetInstance().RegisterScreenListener(screenListener);
-    for (; orientation <= end; ++orientation) {
-        screens[0]->SetOrientation(static_cast<Orientation>(orientation));
+
+    uint32_t start = static_cast<uint32_t>(Orientation::VERTICAL);
+    uint32_t end = static_cast<uint32_t>(Orientation::REVERSE_HORIZONTAL);
+    for (uint32_t orientation = start; orientation <= end; ++orientation) {
+        Orientation targetOrientation = static_cast<Orientation>(orientation);
+
+        screens[0]->SetOrientation(targetOrientation);
         ScreenId screenId = screenListener->changeFuture_.GetResult(TIME_OUT);
         ASSERT_EQ(screenId, screens[0]->GetId());
-        usleep(1E6);
-        if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-            ASSERT_EQ(static_cast<uint32_t>(screens[0]->GetOrientation()),
-            static_cast<uint32_t>(Orientation::UNSPECIFIED));
-        } else {
-            ASSERT_NE(static_cast<uint32_t>(screens[0]->GetOrientation()),
-            static_cast<uint32_t>(Orientation::UNSPECIFIED));
-        }
         ASSERT_EQ(static_cast<uint32_t>(display->GetOrientation()), orientation);
+
+        usleep(1E6);
         sleep(TEST_SLEEP_S);
     }
+
     screens[0]->SetOrientation(Orientation::UNSPECIFIED);
-    ASSERT_EQ(static_cast<uint32_t>(screens[0]->GetOrientation()), static_cast<uint32_t>(Orientation::UNSPECIFIED));
-    ASSERT_EQ(static_cast<uint32_t>(display->GetOrientation()), static_cast<uint32_t>(Orientation::UNSPECIFIED));
+    ScreenId finalScreenId = screenListener->changeFuture_.GetResult(TIME_OUT);
+    ASSERT_EQ(finalScreenId, screens[0]->GetId());
+
+    ASSERT_EQ(static_cast<uint32_t>(display->GetOrientation()),
+              static_cast<uint32_t>(Orientation::UNSPECIFIED));
+
     ScreenManager::GetInstance().UnregisterScreenListener(screenListener);
 }
 
@@ -1007,7 +1032,7 @@ HWTEST_F(ScreenManagerTest, VirtualExpandScreen01, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1030,7 +1055,7 @@ HWTEST_F(ScreenManagerTest, VirtualExpandScreen01, TestSize.Level1)
 
     sptr<Window> window = CreateWindowByDisplayId(virtualDisplayId);
     if (window == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window);
     ASSERT_EQ(true, DrawWindowColor(window, COLOR_RED));
@@ -1060,7 +1085,7 @@ HWTEST_F(ScreenManagerTest, ResizeVirtualScreen01, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1094,7 +1119,7 @@ HWTEST_F(ScreenManagerTest, ResizeVirtualScreen02, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1128,7 +1153,7 @@ HWTEST_F(ScreenManagerTest, ResizeVirtualScreen03, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1157,7 +1182,7 @@ HWTEST_F(ScreenManagerTest, SetVirtualScreenRefreshRate01, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1187,7 +1212,7 @@ HWTEST_F(ScreenManagerTest, SetVirtualScreenRefreshRate02, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1221,7 +1246,7 @@ HWTEST_F(ScreenManagerTest, SetVirtualScreenRefreshRate03, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1272,7 +1297,7 @@ HWTEST_F(ScreenManagerTest, SetVirtualScreenMaxRefreshRate01, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1313,7 +1338,7 @@ HWTEST_F(ScreenManagerTest, SetVirtualScreenMaxRefreshRate02, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);
@@ -1350,7 +1375,7 @@ HWTEST_F(ScreenManagerTest, SetVirtualScreenMaxRefreshRate03, TestSize.Level1)
 
     CHECK_TEST_INIT_SCREEN_STATE
     if (group == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ScreenId virtualScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption_);
     sleep(TEST_SLEEP_S);

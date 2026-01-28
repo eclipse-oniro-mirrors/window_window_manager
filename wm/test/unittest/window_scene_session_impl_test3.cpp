@@ -98,6 +98,21 @@ HWTEST_F(WindowSceneSessionImplTest3, UpdateOrientation, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateBrightness
+ * @tc.desc: UpdateBrightness
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, UpdateBrightness, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(option, nullptr);
+    option->SetWindowName("UpdateBrightness");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(windowSceneSessionImpl, nullptr);
+    EXPECT_EQ(WSError::WS_OK, windowSceneSessionImpl->UpdateBrightness(1.0f));
+}
+
+/**
  * @tc.name: SetWindowMask
  * @tc.desc: SetWindowMask
  * @tc.type: FUNC
@@ -251,6 +266,39 @@ HWTEST_F(WindowSceneSessionImplTest3, AdjustKeyboardLayout, TestSize.Level1)
     windowSceneSessionImpl->hostSession_ = nullptr;
     ret = windowSceneSessionImpl->AdjustKeyboardLayout(params);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: TestWindowScreenListenerOnDisconnectBehavior
+ * @tc.desc: TestWindowScreenListenerOnDisconnectBehavior
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, TestWindowScreenListenerOnDisconnectBehavior, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("WindowScreenListenerTest");
+
+    sptr<WindowSceneSessionImpl> windowSession1 = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, windowSession1);
+    windowSession1->property_->SetPersistentId(1);
+    windowSession1->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    windowSession1->property_->keyboardLayoutParamsMap_[0] = {};
+
+    sptr<WindowSceneSessionImpl> windowSession2 = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, windowSession2);
+    windowSession2->property_->SetPersistentId(2);
+    windowSession2->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    windowSession2->property_->keyboardLayoutParamsMap_[0] = {};
+
+    WindowSceneSessionImpl::windowSessionMap_["WindowName1"] = {1, windowSession1};
+    WindowSceneSessionImpl::windowSessionMap_["WindowName2"] = {2, windowSession2};
+
+    WindowSceneSessionImpl::WindowScreenListener listener;
+    listener.OnDisconnect(0);
+    EXPECT_EQ(windowSession1->property_->keyboardLayoutParamsMap_.size(), 1); // should not clear the layout
+    EXPECT_EQ(windowSession2->property_->keyboardLayoutParamsMap_.size(), 0); // should clear the layout
+    WindowSceneSessionImpl::windowSessionMap_.erase("WindowName1");
+    WindowSceneSessionImpl::windowSessionMap_.erase("WindowName2");
 }
 
 /**
@@ -905,29 +953,6 @@ HWTEST_F(WindowSceneSessionImplTest3, Resize01, TestSize.Level1)
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
     ASSERT_EQ(WMError::WM_OK, subWindow->Resize(100, 200));
     ASSERT_EQ(WMError::WM_OK, subWindow->Resize(200, 200));
-}
-
-/**
- * @tc.name: GetAvoidAreaByType
- * @tc.desc: GetAvoidAreaByType
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest3, GetAvoidAreaByType, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetAvoidAreaByType");
-    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    windowSceneSessionImpl->property_->SetPersistentId(1);
-    windowSceneSessionImpl->hostSession_ = session;
-    AvoidArea avoidArea;
-    auto ret = windowSceneSessionImpl->GetAvoidAreaByType(AvoidAreaType::TYPE_CUTOUT, avoidArea);
-    EXPECT_EQ(WMError::WM_OK, ret);
-    windowSceneSessionImpl->hostSession_ = nullptr;
-    ret = windowSceneSessionImpl->GetAvoidAreaByType(AvoidAreaType::TYPE_CUTOUT, avoidArea);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
 }
 
 /**
@@ -1967,7 +1992,6 @@ HWTEST_F(WindowSceneSessionImplTest3, SetWindowRectAutoSave, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSessionImpl->property_->SetPersistentId(1);
     windowSceneSessionImpl->hostSession_ = session;
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
     EXPECT_EQ(WMError::WM_OK, ret);
     ret = windowSceneSessionImpl->SetWindowRectAutoSave(false, false);
@@ -1975,17 +1999,6 @@ HWTEST_F(WindowSceneSessionImplTest3, SetWindowRectAutoSave, TestSize.Level1)
     windowSceneSessionImpl->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
-    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
-    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
-    windowSceneSessionImpl->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    windowSceneSessionImpl->windowSystemConfig_.freeMultiWindowEnable_ = false;
-    windowSceneSessionImpl->property_->SetPcAppInpadCompatibleMode(true);
-    ret = windowSceneSessionImpl->SetWindowRectAutoSave(true, false);
-    EXPECT_EQ(WMError::WM_OK, ret);
     GTEST_LOG_(INFO) << "WindowSceneSessionImplTest3: SetWindowRectAutoSave end";
 }
 

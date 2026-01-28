@@ -103,7 +103,7 @@ HWTEST_F(MultiInstanceManagerTest, IsMultiInstance, TestSize.Level1)
     AppExecFwk::MultiAppModeType modeType = AppExecFwk::MultiAppModeType::MULTI_INSTANCE;
     uint32_t maxCount = 5;
     Init(modeType, maxCount);
-    ASSERT_TRUE(MultiInstanceManager::GetInstance().IsMultiInstance(BUNDLE_NAME));
+    EXPECT_TRUE(MultiInstanceManager::GetInstance().IsMultiInstance(BUNDLE_NAME));
 }
 
 /**
@@ -116,7 +116,7 @@ HWTEST_F(MultiInstanceManagerTest, IsMultiInstance02, TestSize.Level1)
     AppExecFwk::MultiAppModeType modeType = AppExecFwk::MultiAppModeType::UNSPECIFIED;
     uint32_t maxCount = 5;
     Init(modeType, maxCount);
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().IsMultiInstance(BUNDLE_NAME));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().IsMultiInstance(BUNDLE_NAME));
 }
 
 /**
@@ -131,17 +131,17 @@ HWTEST_F(MultiInstanceManagerTest, IsValidInstanceKey, TestSize.Level1)
     Init(modeType, maxCount);
     std::string validInstanceKey = "app_instance_0";
     std::string validInstanceKey2 = "app_instance_4";
-    ASSERT_TRUE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, validInstanceKey));
-    ASSERT_TRUE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, validInstanceKey2));
+    EXPECT_TRUE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, validInstanceKey));
+    EXPECT_TRUE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, validInstanceKey2));
 
     std::string invalidInstanceKey = "app_instance0";
     std::string invalidInstanceKey2 = "app_instance_-1";
     std::string invalidInstanceKey3 = "app_instance_5";
     std::string invalidInstanceKey4 = "app_instance_x";
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey));
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey2));
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey3));
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey4));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey2));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey3));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().IsValidInstanceKey(BUNDLE_NAME, invalidInstanceKey4));
 }
 
 /**
@@ -157,7 +157,7 @@ HWTEST_F(MultiInstanceManagerTest, FillInstanceKeyIfNeed, TestSize.Level1)
     sptr<SceneSession> sceneSession = GetSceneSession();
     MultiInstanceManager::GetInstance().FillInstanceKeyIfNeed(sceneSession);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_0");
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_0");
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession);
 }
 
@@ -175,7 +175,7 @@ HWTEST_F(MultiInstanceManagerTest, FillInstanceKeyIfNeed02, TestSize.Level1)
     sptr<SceneSession> sceneSession = GetSceneSession(instanceKey);
     MultiInstanceManager::GetInstance().FillInstanceKeyIfNeed(sceneSession);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), instanceKey);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), instanceKey);
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession);
 }
 
@@ -192,15 +192,15 @@ HWTEST_F(MultiInstanceManagerTest, FillInstanceKeyIfNeed03, TestSize.Level1)
     sptr<SceneSession> sceneSession = GetSceneSession();
     MultiInstanceManager::GetInstance().FillInstanceKeyIfNeed(sceneSession);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_0");
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_0");
     sptr<SceneSession> sceneSession1 = GetSceneSession();
     MultiInstanceManager::GetInstance().FillInstanceKeyIfNeed(sceneSession1);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession1);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_1");
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_1");
     sptr<SceneSession> sceneSession2 = GetSceneSession();
     MultiInstanceManager::GetInstance().FillInstanceKeyIfNeed(sceneSession2);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession2);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_1");
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "app_instance_1");
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession);
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession1);
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession2);
@@ -218,7 +218,7 @@ HWTEST_F(MultiInstanceManagerTest, MultiInstancePendingSessionActivation, TestSi
     Init(modeType, maxCount);
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = BUNDLE_NAME;
-    ASSERT_TRUE(MultiInstanceManager::GetInstance().MultiInstancePendingSessionActivation(sessionInfo));
+    EXPECT_TRUE(MultiInstanceManager::GetInstance().MultiInstancePendingSessionActivation(sessionInfo));
 }
 
 /**
@@ -234,7 +234,7 @@ HWTEST_F(MultiInstanceManagerTest, MultiInstancePendingSessionActivation02, Test
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = BUNDLE_NAME;
     sessionInfo.persistentId_ = 100;
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().MultiInstancePendingSessionActivation(sessionInfo));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().MultiInstancePendingSessionActivation(sessionInfo));
 }
 
 /**
@@ -250,7 +250,7 @@ HWTEST_F(MultiInstanceManagerTest, MultiInstancePendingSessionActivation03, Test
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = BUNDLE_NAME;
     sessionInfo.appInstanceKey_ = "app_instance_xx";
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().MultiInstancePendingSessionActivation(sessionInfo));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().MultiInstancePendingSessionActivation(sessionInfo));
 }
 
 /**
@@ -263,7 +263,7 @@ HWTEST_F(MultiInstanceManagerTest, GetMaxInstanceCount, TestSize.Level1)
     AppExecFwk::MultiAppModeType modeType = AppExecFwk::MultiAppModeType::MULTI_INSTANCE;
     uint32_t maxCount = 5;
     Init(modeType, maxCount);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetMaxInstanceCount(BUNDLE_NAME), maxCount);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetMaxInstanceCount(BUNDLE_NAME), maxCount);
 }
 
 /**
@@ -276,14 +276,14 @@ HWTEST_F(MultiInstanceManagerTest, GetInstanceCount, TestSize.Level1)
     AppExecFwk::MultiAppModeType modeType = AppExecFwk::MultiAppModeType::MULTI_INSTANCE;
     uint32_t maxCount = 5;
     Init(modeType, maxCount);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetInstanceCount(BUNDLE_NAME), 0);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetInstanceCount(BUNDLE_NAME), 0);
     std::string instanceKey0 = "app_instance_0";
     sptr<SceneSession> sceneSession = GetSceneSession(instanceKey0);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetInstanceCount(BUNDLE_NAME), 1);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetInstanceCount(BUNDLE_NAME), 1);
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetInstanceCount(BUNDLE_NAME), 0);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetInstanceCount(BUNDLE_NAME), 0);
 }
 
 /**
@@ -296,14 +296,14 @@ HWTEST_F(MultiInstanceManagerTest, GetLastInstanceKey, TestSize.Level1)
     AppExecFwk::MultiAppModeType modeType = AppExecFwk::MultiAppModeType::MULTI_INSTANCE;
     uint32_t maxCount = 5;
     Init(modeType, maxCount);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "");
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "");
     std::string instanceKey0 = "app_instance_0";
     sptr<SceneSession> sceneSession = GetSceneSession(instanceKey0);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), instanceKey0);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), instanceKey0);
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "");
+    EXPECT_EQ(MultiInstanceManager::GetInstance().GetLastInstanceKey(BUNDLE_NAME), "");
 }
 
 /**
@@ -317,23 +317,23 @@ HWTEST_F(MultiInstanceManagerTest, CreateNewInstanceKey, TestSize.Level1)
     uint32_t maxCount = 5;
     Init(modeType, maxCount);
     std::string instanceKey0 = "app_instance_0";
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
     sptr<SceneSession> sceneSession = GetSceneSession(instanceKey0);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession);
     std::string instanceKey1 = "app_instance_1";
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey1);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey1);
     sptr<SceneSession> sceneSession1 = GetSceneSession(instanceKey1);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession1);
     std::string instanceKey2 = "app_instance_2";
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey2);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey2);
     sptr<SceneSession> sceneSession2 = GetSceneSession(instanceKey2);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession2);
     std::string instanceKey3 = "app_instance_3";
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey3);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey3);
     sptr<SceneSession> sceneSession3 = GetSceneSession(instanceKey3);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession3);
     std::string instanceKey4 = "app_instance_4";
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey4);
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey4);
     sptr<SceneSession> sceneSession4 = GetSceneSession(instanceKey4);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession4);
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession);
@@ -355,16 +355,16 @@ HWTEST_F(MultiInstanceManagerTest, IsInstanceKeyExist, TestSize.Level1)
     Init(modeType, maxCount);
     std::string instanceKey0 = "app_instance_0";
     std::string instanceKey3 = "app_instance_3";
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey0));
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey0));
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME), instanceKey0);
     sptr<SceneSession> sceneSession = GetSceneSession(instanceKey0);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession);
-    ASSERT_TRUE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey0));
-    ASSERT_FALSE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey3));
-    ASSERT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME, instanceKey3), instanceKey3);
+    EXPECT_TRUE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey0));
+    EXPECT_FALSE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey3));
+    EXPECT_EQ(MultiInstanceManager::GetInstance().CreateNewInstanceKey(BUNDLE_NAME, instanceKey3), instanceKey3);
     sptr<SceneSession> sceneSession3 = GetSceneSession(instanceKey3);
     MultiInstanceManager::GetInstance().IncreaseInstanceKeyRefCount(sceneSession3);
-    ASSERT_TRUE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey3));
+    EXPECT_TRUE(MultiInstanceManager::GetInstance().IsInstanceKeyExist(BUNDLE_NAME, instanceKey3));
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession);
     MultiInstanceManager::GetInstance().DecreaseInstanceKeyRefCount(sceneSession3);
 }

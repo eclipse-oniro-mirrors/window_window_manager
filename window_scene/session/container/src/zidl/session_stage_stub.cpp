@@ -158,6 +158,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleNotifyTransformChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SINGLE_HAND_TRANSFORM):
             return HandleNotifySingleHandTransformChange(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_GLOBAL_SCALED_RECT):
+            return HandleNotifyGlobalScaledRectChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DIALOG_STATE_CHANGE):
             return HandleNotifyDialogStateChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_PIP_ACTION_EVENT):
@@ -194,10 +196,10 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleSetSupportEnterWaterfallMode(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_EXTENSION_DATA):
             return HandleExtensionHostData(data, reply, option);
-        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_LINK_KEYFRAME_CANVAS_NODE):
-            return HandleLinkKeyFrameCanvasNode(data, reply);
-        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_KEYFRAME_POLICY):
-            return HandleSetKeyFramePolicy(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_LINK_KEYFRAME_NODE):
+            return HandleLinkKeyFrameNode(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_STAGE_KEYFRAME_POLICY):
+            return HandleSetStageKeyFramePolicy(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_CONTAINER_MODAL_EVENT):
             return HandleSendContainerModalEvent(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_DRAG_ACTIVATED):
@@ -226,6 +228,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleSetCurrentRotation(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_APP_FORCE_LANDSCAPE_CONFIG_UPDATED):
             return HandleNotifyAppForceLandscapeConfigUpdated(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_APP_FORCE_LANDSCAPE_ENABLE_UPDATED):
+            return HandleNotifyAppForceLandscapeConfigEnableUpdated(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_APP_HOOK_WINDOW_INFO_UPDATED):
             return HandleNotifyAppHookWindowInfoUpdated(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_PAUSED_STATUS):
@@ -246,6 +250,12 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateIsShowDecorInFreeMultiWindow(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_ANIMATION_SPEED):
             return HandleUpdateAnimationSpeed(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_BRIGHTNESS):
+            return HandleUpdateBrightness(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_ADD_SIDEBAR_BLUR):
+            return HandleAddSidebarBlur(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_SIDEBAR_BLUR_STYLE):
+            return HandleSetSidebarBlurStyleWithType(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -289,7 +299,12 @@ int SessionStageStub::HandleUpdateRect(MessageParcel& data, MessageParcel& reply
         TLOGE(WmsLogTag::WMS_LAYOUT, "Read SceneAnimationConfig failed");
         return -1;
     }
-    if (hasRSTransaction) {
+    bool isInnerProcess = false;
+    if (!data.ReadBool(isInnerProcess)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read isInnerProcess failed.");
+        return -1;
+    }
+    if (hasRSTransaction && !isInnerProcess) {
         std::shared_ptr<RSTransaction> transaction(data.ReadParcelable<RSTransaction>());
         if (!transaction) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "transaction unMarsh failed.");
@@ -764,6 +779,15 @@ int SessionStageStub::HandleNotifySingleHandTransformChange(MessageParcel& data,
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleNotifyGlobalScaledRectChange(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    Rect globalScaledRect;
+    globalScaledRect.Unmarshalling(data);
+    NotifyGlobalScaledRectChange(globalScaledRect);
+    return ERR_NONE;
+}
+
 int SessionStageStub::HandleNotifyDensityFollowHost(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "HandleNotifyDensityFollowHost");
@@ -1011,19 +1035,14 @@ int SessionStageStub::HandleExtensionHostData(MessageParcel& data, MessageParcel
     return ERR_NONE;
 }
 
-int SessionStageStub::HandleLinkKeyFrameCanvasNode(MessageParcel& data, MessageParcel& reply)
+int SessionStageStub::HandleLinkKeyFrameNode(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "in");
-    auto rsCanvasNode = RSCanvasNode::Unmarshalling(data);
-    if (!rsCanvasNode) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "fail get rsCanvasNode");
-        return ERR_INVALID_DATA;
-    }
-    LinkKeyFrameCanvasNode(rsCanvasNode);
+    LinkKeyFrameNode();
     return ERR_NONE;
 }
 
-int SessionStageStub::HandleSetKeyFramePolicy(MessageParcel& data, MessageParcel& reply)
+int SessionStageStub::HandleSetStageKeyFramePolicy(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "in");
     sptr<KeyFramePolicy> keyFramePolicy = data.ReadParcelable<KeyFramePolicy>();
@@ -1031,7 +1050,7 @@ int SessionStageStub::HandleSetKeyFramePolicy(MessageParcel& data, MessageParcel
         TLOGE(WmsLogTag::WMS_LAYOUT, "Read keyFramePolicy failed.");
         return ERR_INVALID_DATA;
     }
-    SetKeyFramePolicy(*keyFramePolicy);
+    SetStageKeyFramePolicy(*keyFramePolicy);
     return ERR_NONE;
 }
 
@@ -1141,7 +1160,7 @@ int SessionStageStub::HandleNotifyKeyboardAnimationCompleted(MessageParcel& data
 
 int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_ROTATION, "in");
+    TLOGI(WmsLogTag::WMS_ROTATION, "in");
     uint32_t rotation = 0;
     if (!data.ReadUint32(rotation)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "read rotation failed");
@@ -1180,14 +1199,56 @@ int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageP
         avoidAreas[static_cast<AvoidAreaType>(type)] = *area;
     }
 
+    uint32_t currentRotation = 0;
+    if (!data.ReadUint32(currentRotation)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "read current rotation failed");
+        return ERR_INVALID_VALUE;
+    }
+
+    Rect currentRect = {0, 0, 0, 0};
+    if (!data.ReadInt32(currentRect.posX_) || !data.ReadInt32(currentRect.posY_) ||
+        !data.ReadUint32(currentRect.width_) ||!data.ReadUint32(currentRect.height_)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "read current rect failed");
+        return ERR_INVALID_VALUE;
+    }
+    std::map<AvoidAreaType, AvoidArea> currentAvoidAreas;
+    uint32_t currentSize = 0;
+    if (!data.ReadUint32(currentSize)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "read current avoid area size failed");
+        return ERR_INVALID_VALUE;
+    }
+    if (currentSize > AVOID_AREA_TYPE_MAX_SIZE) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "current avoid area size is invalid");
+        return ERR_INVALID_VALUE;
+    }
+    for (uint32_t i = 0; i < currentSize; i++) {
+        uint32_t type = 0;
+        if (!data.ReadUint32(type)) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "read current avoid area type failed");
+            return ERR_INVALID_VALUE;
+        }
+        if (type < static_cast<uint32_t>(AvoidAreaType::TYPE_START) ||
+            type >= static_cast<uint32_t>(AvoidAreaType::TYPE_END)) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "current avoid area type invalid");
+            return ERR_INVALID_VALUE;
+        }
+        sptr<AvoidArea> currentArea = data.ReadParcelable<AvoidArea>();
+        if (currentArea == nullptr) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "read current avoid area failed");
+            return ERR_INVALID_VALUE;
+        }
+        currentAvoidAreas[static_cast<AvoidAreaType>(type)] = *currentArea;
+    }
+
     OrientationInfo info = { rotation, rect, avoidAreas };
-    NotifyTargetRotationInfo(info);
+    OrientationInfo currentInfo = { currentRotation, currentRect, currentAvoidAreas };
+    NotifyTargetRotationInfo(info, currentInfo);
     return ERR_NONE;
 }
 
 int SessionStageStub::HandleNotifyPageRotationIsIgnored(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_ROTATION, "in");
+    TLOGI(WmsLogTag::WMS_ROTATION, "in");
     NotifyPageRotationIsIgnored();
     return ERR_NONE;
 }
@@ -1258,6 +1319,12 @@ int SessionStageStub::HandleNotifyAppForceLandscapeConfigUpdated(MessageParcel& 
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::DEFAULT, "in");
+    NotifyAppForceLandscapeConfigEnableUpdated();
+    return ERR_NONE;
+}
 int SessionStageStub::HandleNotifyAppHookWindowInfoUpdated(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "in");
@@ -1311,6 +1378,42 @@ int SessionStageStub::HandleUpdateIsShowDecorInFreeMultiWindow(MessageParcel& da
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleUpdateBrightness(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "in");
+    float brightness;
+    if (!data.ReadFloat(brightness)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read brightness failed");
+        return ERR_INVALID_VALUE;
+    }
+    WSError errCode = UpdateBrightness(brightness);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write errCode failed");
+        return ERR_TRANSACTION_FAILED;
+    }
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleAddSidebarBlur(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_PC, "in");
+    AddSidebarBlur();
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleSetSidebarBlurStyleWithType(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_DECOR, "called!");
+    uint32_t typeValue = 0;
+    if (!data.ReadUint32(typeValue) || typeValue >= static_cast<uint32_t>(SidebarBlurType::END)) {
+        TLOGE(WmsLogTag::WMS_PC, "read reasonType failed");
+        return ERR_INVALID_DATA;
+    }
+    SidebarBlurType type = static_cast<SidebarBlurType>(typeValue);
+    SetSidebarBlurStyleWithType(type);
     return ERR_NONE;
 }
 } // namespace OHOS::Rosen

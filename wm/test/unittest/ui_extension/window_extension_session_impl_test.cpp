@@ -296,6 +296,39 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfiguration02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateConfigurationForSpecified02
+ * @tc.desc: UpdateConfigurationForSpecified02 Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForSpecified02, TestSize.Level1)
+{
+    window_->uiContent_ = nullptr;
+    std::shared_ptr<AppExecFwk::Configuration> configuration;
+    std::shared_ptr<Global::Resource::ResourceManager> resourceManager;
+    window_->UpdateConfigurationForSpecified(configuration, resourceManager);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    ASSERT_NE(nullptr, window_->uiContent_);
+    window_->UpdateConfigurationForSpecified(configuration, resourceManager);
+    configuration = std::make_shared<AppExecFwk::Configuration>();
+    window_->UpdateConfigurationForSpecified(configuration, resourceManager);
+}
+
+/**
+ * @tc.name: UpdateDefaultStatusBarColor
+ * @tc.desc: UpdateDefaultStatusBarColor Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateDefaultStatusBarColor, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    window_->UpdateDefaultStatusBarColor();
+    window_->property_->isAtomicService_ = true;
+    window_->UpdateDefaultStatusBarColor();
+    window_->specifiedColorMode_ = "light";
+    window_->UpdateDefaultStatusBarColor();
+}
+
+/**
  * @tc.name: UpdateConfigurationForAll01
  * @tc.desc: UpdateConfigurationForAll01 Test
  * @tc.type: FUNC
@@ -625,6 +658,52 @@ HWTEST_F(WindowExtensionSessionImplTest, UnregisterHostWindowRectChangeListener,
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->UnregisterHostWindowRectChangeListener(listener));
     window->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
     EXPECT_EQ(WMError::WM_OK, window->UnregisterHostWindowRectChangeListener(listener));
+}
+
+/**
+ * @tc.name: RegisterRectChangeInGlobalDisplayListener
+ * @tc.desc: RegisterRectChangeInGlobalDisplayListener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, RegisterRectChangeInGlobalDisplayListener, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RegisterRectChangeInGlobalDisplayListener");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    ASSERT_NE(0, window->GetPersistentId());
+    window->dataHandler_ = nullptr;
+    sptr<IRectChangeInGlobalDisplayListener> listener = nullptr;
+
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->RegisterRectChangeInGlobalDisplayListener(listener));
+    window->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window->RegisterRectChangeInGlobalDisplayListener(listener));
+    listener = sptr<IRectChangeInGlobalDisplayListener>::MakeSptr();
+    EXPECT_EQ(WMError::WM_OK, window->RegisterRectChangeInGlobalDisplayListener(listener));
+    // Test listener alreday registered
+    EXPECT_EQ(WMError::WM_OK, window->RegisterRectChangeInGlobalDisplayListener(listener));
+}
+
+/**
+ * @tc.name: UnregisterRectChangeInGlobalDisplayListener
+ * @tc.desc: UnregisterRectChangeInGlobalDisplayListener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UnregisterRectChangeInGlobalDisplayListener, TestSize.Level1)
+{
+    window_->dataHandler_ = nullptr;
+    sptr<IRectChangeInGlobalDisplayListener> listener = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window_->UnregisterRectChangeInGlobalDisplayListener(listener));
+
+    listener = sptr<IRectChangeInGlobalDisplayListener>::MakeSptr();
+    window_->rectChangeInGlobalDisplayUIExtListenerIds_.emplace(111);
+    EXPECT_EQ(WMError::WM_OK, window_->UnregisterRectChangeInGlobalDisplayListener(listener));
+    window_->rectChangeInGlobalDisplayUIExtListenerIds_.clear();
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window_->UnregisterRectChangeInGlobalDisplayListener(listener));
+    window_->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    EXPECT_EQ(WMError::WM_OK, window_->UnregisterRectChangeInGlobalDisplayListener(listener));
 }
 
 /**
@@ -1469,6 +1548,19 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateSystemViewportConfig3, TestSize.L
 }
 
 /**
+ * @tc.name: UpdateSystemViewportConfig_DensityCustomized
+ * @tc.desc: Density customized
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateSystemViewportConfig_DensityCustomized, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    window_->isDensityCustomized_ = true;
+    window_->UpdateSystemViewportConfig();
+    usleep(WAIT_SYNC_IN_NS);
+}
+
+/**
  * @tc.name: NotifyDisplayInfoChange1
  * @tc.desc: Normal test
  * @tc.type: FUNC
@@ -1998,6 +2090,21 @@ HWTEST_F(WindowExtensionSessionImplTest, GetVirtualPixelRatio_compat, TestSize.L
     window->property_->SetCompatibleModeProperty(compatibleModeProperty);
     auto value = window->GetVirtualPixelRatio(nullptr);
     EXPECT_NEAR(value, COMPACT_SIMULATION_SCALE_DPI, 0.00001f);
+}
+
+/**
+ * @tc.name: GetVirtualPixelRatio_DensityCustomized
+ * @tc.desc: GetVirtualPixelRatio_DensityCustomized test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetVirtualPixelRatio_DensityCustomized, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetVirtualPixelRatio_DensityCustomized");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->isDensityCustomized_ = true;
+    window->customizedDensity_ = 2.0f;
+    EXPECT_NEAR(window->GetVirtualPixelRatio(nullptr), window->customizedDensity_, 0.00001f);
 }
 
 /**
@@ -2752,6 +2859,68 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionDensity, TestSize.Level1
 }
 
 /**
+ * @tc.name: UpdateExtensionDensity
+ * @tc.desc: UpdateExtensionDensity_DensityCustomized Density customized test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionDensity_DensityCustomized, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateExtensionDensity");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->isDensityCustomized_ = true;
+    window->customizedDensity_ = 2.0f;
+
+    SessionViewportConfig config;
+    config.isDensityFollowHost_ = false;
+    config.density_ = 3.0f;
+    window->UpdateExtensionDensity(config);
+    EXPECT_NEAR(config.density_, window->customizedDensity_, 0.00001f);
+}
+
+/**
+ * @tc.name: UpdateExtensionDensity
+ * @tc.desc: UpdateExtensionDensity_DensityCustomized1 Density customized test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionDensity_DensityCustomized1, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateExtensionDensity");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->isDensityCustomized_ = true;
+    window->customizedDensity_ = 2.0f;
+
+    SessionViewportConfig config;
+    config.isDensityFollowHost_ = true;
+    config.density_ = 3.0f;
+    window->UpdateExtensionDensity(config);
+    EXPECT_NEAR(3.0f, window->hostDensityValue_->load(), 0.00001f);
+    EXPECT_NEAR(config.density_, window->customizedDensity_, 0.00001f);
+}
+
+/**
+ * @tc.name: SetUIExtCustomDensity
+ * @tc.desc: SetUIExtCustomDensity Density customized test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, SetUIExtCustomDensity, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateExtensionDensity");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->SetUIExtCustomDensity(0.0f));
+
+    window->handler_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_SYSTEM_ABNORMALLY, window->SetUIExtCustomDensity(1.0f));
+
+    auto runner = AppExecFwk::EventRunner::Create("WindowExtensionSessionImplTest");
+    window->handler_ = std::make_shared<AppExecFwk::EventHandler>(runner);
+    EXPECT_EQ(WMError::WM_OK, window->SetUIExtCustomDensity(1.0f));
+    usleep(WAIT_SYNC_IN_NS);
+}
+
+/**
  * @tc.name: GetDefaultDensity
  * @tc.desc: GetDefaultDensity Test
  * @tc.type: FUNC
@@ -2851,6 +3020,30 @@ HWTEST_F(WindowExtensionSessionImplTest, OnWaterfallModeChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnHostWindowDelayRaiseStateChange_False
+ * @tc.desc: OnHostWindowDelayRaiseStateChange_False Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowDelayRaiseStateChange_False, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("OnHostWindowDelayRaiseStateChange");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    ASSERT_NE(0, window->GetPersistentId());
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply = std::make_optional<AAFwk::Want>();
+
+    window->property_->SetWindowDelayRaiseEnabled(true);
+    bool isHostWindowDelayRaiseEnabled = false;
+    want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
+    EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
+    EXPECT_FALSE(window->IsWindowDelayRaiseEnabled());
+}
+
+/**
  * @tc.name: OnHostWindowDelayRaiseStateChange
  * @tc.desc: OnHostWindowDelayRaiseStateChange Test
  * @tc.type: FUNC
@@ -2870,15 +3063,30 @@ HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowDelayRaiseStateChange, Test
     want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
     window->property_->SetWindowDelayRaiseEnabled(isHostWindowDelayRaiseEnabled);
     EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
+}
 
+/**
+ * @tc.name: OnHostWindowDelayRaiseStateChange_True
+ * @tc.desc: OnHostWindowDelayRaiseStateChange_True Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowDelayRaiseStateChange_True, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("OnHostWindowDelayRaiseStateChange");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    ASSERT_NE(0, window->GetPersistentId());
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply = std::make_optional<AAFwk::Want>();
+    bool isHostWindowDelayRaiseEnabled = true;
+    want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
     window->property_->SetWindowDelayRaiseEnabled(false);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
     EXPECT_TRUE(window->IsWindowDelayRaiseEnabled());
-    isHostWindowDelayRaiseEnabled = false;
-    want.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, isHostWindowDelayRaiseEnabled);
-    EXPECT_EQ(WMError::WM_OK, window->OnHostWindowDelayRaiseStateChange(std::move(want), reply));
-    EXPECT_FALSE(window->IsWindowDelayRaiseEnabled());
 }
 
 /**
@@ -2906,6 +3114,27 @@ HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowRectChange, TestSize.Level1
 }
 
 /**
+ * @tc.name: OnHostRectChangeInGlobalDisplay
+ * @tc.desc: OnHostRectChangeInGlobalDisplay Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostRectChangeInGlobalDisplay, TestSize.Level1)
+{
+    window_->property_->SetPersistentId(1);
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply = std::make_optional<AAFwk::Want>();
+    window_->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    sptr<IRectChangeInGlobalDisplayListener> listener = sptr<IRectChangeInGlobalDisplayListener>::MakeSptr();
+    window_->RegisterRectChangeInGlobalDisplayListener(listener);
+
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostRectChangeInGlobalDisplay(std::move(want), reply));
+    window_->rectChangeInGlobalDisplayUIExtListenerIds_.emplace(111);
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostRectChangeInGlobalDisplay(std::move(want), reply));
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostRectChangeInGlobalDisplay(std::move(want), reply));
+}
+
+/**
  * @tc.name: OnResyncExtensionConfig
  * @tc.desc: OnResyncExtensionConfig Test
  * @tc.type: FUNC
@@ -2918,14 +3147,30 @@ HWTEST_F(WindowExtensionSessionImplTest, OnResyncExtensionConfig, Function | Sma
     configParam.SetParam(Extension::CROSS_AXIS_FIELD,
         AAFwk::Integer::Box(static_cast<int32_t>(CrossAxisState::STATE_CROSS)));
     configParam.SetParam(Extension::WATERFALL_MODE_FIELD, AAFwk::Integer::Box(static_cast<int32_t>(1)));
-    configParam.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD,
-        AAFwk::Integer::Box(static_cast<int32_t>(true)));
     wantParam.SetParam(Extension::UIEXTENSION_CONFIG_FIELD, AAFwk::WantParamWrapper::Box(configParam));
     want.SetParams(wantParam);
     std::optional<AAFwk::Want> reply = std::make_optional<AAFwk::Want>();
     EXPECT_EQ(WMError::WM_OK, window_->OnResyncExtensionConfig(std::move(want), reply));
     EXPECT_EQ(CrossAxisState::STATE_CROSS, window_->crossAxisState_.load());
     EXPECT_TRUE(window_->IsWaterfallModeEnabled());
+}
+
+/**
+ * @tc.name: OnResyncExtensionConfig_DelayRaise
+ * @tc.desc: OnResyncExtensionConfig_DelayRaise Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnResyncExtensionConfig_DelayRaise, Function | SmallTest | Level3)
+{
+    AAFwk::Want want;
+    AAFwk::WantParams configParam;
+    AAFwk::WantParams wantParam;
+    configParam.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD,
+        AAFwk::Integer::Box(static_cast<int32_t>(true)));
+    wantParam.SetParam(Extension::UIEXTENSION_CONFIG_FIELD, AAFwk::WantParamWrapper::Box(configParam));
+    want.SetParams(wantParam);
+    std::optional<AAFwk::Want> reply = std::make_optional<AAFwk::Want>();
+    EXPECT_EQ(WMError::WM_OK, window_->OnResyncExtensionConfig(std::move(want), reply));
     EXPECT_TRUE(window_->IsWindowDelayRaiseEnabled());
 }
 
@@ -2973,23 +3218,41 @@ HWTEST_F(WindowExtensionSessionImplTest, OnExtensionMessage, TestSize.Level1)
     auto ret = window->OnExtensionMessage(code, persistentId, want);
     EXPECT_EQ(WMError::WM_OK, ret);
 
+    code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
+    code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
+
+    window->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER);
+    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
+    code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER);
+    window->rectChangeInGlobalDisplayUIExtListenerIds_.emplace(111);
+    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
+}
+
+/**
+ * @tc.name: OnExtensionMessage_WindowRise
+ * @tc.desc: OnExtensionMessage_WindowRise test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnExtensionMessage_WindowRise, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("OnExtensionMessage");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    uint32_t code = 9999;
+    int32_t persistentId = 1111;
+    AAFwk::Want want;
+    window->dataHandler_ = nullptr;
+
     code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_WINDOW_TO_RAISE);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
-    code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
-    code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
 
     window->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
     code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_WINDOW_TO_RAISE);
-    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
-    code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
-    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
-    code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
-    window->rectChangeUIExtListenerIds_.emplace(111);
-    ASSERT_FALSE(window->rectChangeUIExtListenerIds_.empty());
-    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
-    window->rectChangeUIExtListenerIds_.clear();
     EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
 }
 
@@ -3013,6 +3276,39 @@ HWTEST_F(WindowExtensionSessionImplTest, OnExtensionMessage_KeyboardListener, Te
     EXPECT_EQ(WMError::WM_OK, window_->OnExtensionMessage(code, persistentId, want));
     code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_HIDE_LISTENER);
     EXPECT_EQ(WMError::WM_OK, window_->OnExtensionMessage(code, persistentId, want));
+}
+
+/**
+ * @tc.name: OnExtensionMessage_WindowRise
+ * @tc.desc: OnExtensionMessage_WindowRise test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnExtensionMessage_HostWindowRect, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("OnExtensionMessage");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    uint32_t code = 9999;
+    int32_t persistentId = 1111;
+    AAFwk::Want want;
+    window->dataHandler_ = nullptr;
+
+    code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
+    code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
+
+    window->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
+    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
+    code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER);
+    window->rectChangeUIExtListenerIds_.emplace(111);
+    ASSERT_FALSE(window->rectChangeUIExtListenerIds_.empty());
+    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
+    window->rectChangeUIExtListenerIds_.clear();
+    EXPECT_EQ(WMError::WM_OK, window->OnExtensionMessage(code, persistentId, want));
 }
 
 /**
@@ -3194,13 +3490,11 @@ HWTEST_F(WindowExtensionSessionImplTest, SetImmersiveModeEnabledState, TestSize.
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
     window->property_->SetWindowName("SetImmersiveModeEnabledState");
-    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, window->SetImmersiveModeEnabledState(true));
 
     SessionInfo sessionInfo;
     sptr<SessionMocker> session = new(std::nothrow) SessionMocker(sessionInfo);
     window->hostSession_ = session;
     window->property_->SetPersistentId(1);
-    EXPECT_CALL(*session, TransferExtensionData).WillOnce(Return(ERR_NONE));
     EXPECT_EQ(WMError::WM_OK, window->SetImmersiveModeEnabledState(true));
 }
 
@@ -3214,9 +3508,21 @@ HWTEST_F(WindowExtensionSessionImplTest, GetImmersiveModeEnabledState, TestSize.
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
     window->property_->SetWindowName("GetImmersiveModeEnabledState");
-    window->hostImmersiveModeEnabled_ = false;
+    window->immersiveModeEnabled_ = false;
     EXPECT_EQ(false, window->GetImmersiveModeEnabledState());
-    window->hostImmersiveModeEnabled_ = true;
+}
+
+/**
+ * @tc.name: GetImmersiveModeEnabledState1
+ * @tc.desc: GetImmersiveModeEnabledState1 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetImmersiveModeEnabledState1, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowName("GetImmersiveModeEnabledState");
+    window->immersiveModeEnabled_ = true;
     EXPECT_EQ(true, window->GetImmersiveModeEnabledState());
 }
 
@@ -3468,6 +3774,37 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateRotateDuration, TestSize.Level2)
     window_->UpdateRotateDuration(reason, duration, rsTransaction);
     EXPECT_EQ(duration, transactionDuration);
     EXPECT_EQ(reason, WindowSizeChangeReason::ROTATION);
+}
+
+/**
+ * @tc.name: GetWindowStateSnapshot01
+ * @tc.desc: test GetWindowStateSnapshot.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetWindowStateSnapshot01, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    std::string winStateSnapshotJsonStr;
+    auto errCode = window_->GetWindowStateSnapshot(winStateSnapshotJsonStr);
+    EXPECT_EQ(errCode, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: SetStatusBarColorForExtension
+ * @tc.desc: SetStatusBarColorForExtension test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, SetStatusBarColorForExtension, TestSize.Level1)
+{
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, window_->SetStatusBarColorForExtension(255));
+
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, session);
+    window_->hostSession_ = session;
+    window_->property_->SetPersistentId(1);
+    EXPECT_CALL(*session, TransferExtensionData).WillOnce(Return(ERR_NONE));
+    EXPECT_EQ(WMError::WM_OK, window_->SetStatusBarColorForExtension(255));
 }
 }
 } // namespace Rosen

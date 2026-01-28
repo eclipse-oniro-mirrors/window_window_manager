@@ -111,7 +111,7 @@ public:
     void SetWindowFlags(uint32_t flags);
 
     /**
-     * @brief Remove winodw flag.
+     * @brief Remove window flag.
      *
      * @param flag The flag value removed.
      */

@@ -26,6 +26,7 @@
 #include "session/host/include/main_session.h"
 #include "wm_common.h"
 #include "mock/mock_session_stage.h"
+#include "mock_vsync_station.h"
 #include "input_event.h"
 #include <pointer_event.h>
 #include "ui/rs_surface_node.h"
@@ -572,6 +573,11 @@ HWTEST_F(SceneSessionTest2, ChangeSessionVisibilityWithStatusBar, TestSize.Level
     sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
     result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, false);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
+
+    sceneSession->isTerminating_ = true;
+    sptr<AAFwk::SessionInfo> terminatingMock = sptr<AAFwk::SessionInfo>::MakeSptr();
+    result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, false);
+    ASSERT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -1088,7 +1094,7 @@ HWTEST_F(SceneSessionTest2, GetSessionTargetRectByDisplayId, TestSize.Level1)
     bool res = sceneSession->AddSubSession(sceneSession);
     EXPECT_EQ(true, res);
     EXPECT_EQ(sceneSession, (sceneSession->GetSubSession())[0]);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1024, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     WSRect rectResult = sceneSession->GetSessionTargetRectByDisplayId(0);
     EXPECT_EQ(0, rectResult.posX_);
     EXPECT_EQ(0, rectResult.width_);
@@ -1196,7 +1202,7 @@ HWTEST_F(SceneSessionTest2, OnSessionEvent01, TestSize.Level1)
 
     sceneSession->leashWinSurfaceNode_ = nullptr;
     SessionEvent event = SessionEvent::EVENT_START_MOVE;
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->OnSessionEvent(event);
 
     sceneSession->moveDragController_->isStartDrag_ = true;
@@ -1484,7 +1490,7 @@ HWTEST_F(SceneSessionTest2, OnMoveDragCallback02, TestSize.Level1)
     bool isPreImeEvent = true;
     sceneSession->SendKeyEventToUI(keyEvent, isPreImeEvent);
     sceneSession->IsDirtyWindow();
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(0, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->NotifyUILostFocus();
 }
 
@@ -1726,6 +1732,27 @@ HWTEST_F(SceneSessionTest2, IsFullScreenMovable, TestSize.Level1)
 }
 
 /**
+ * @tc.name: IsSplitMovable
+ * @tc.desc: IsSplitMovable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, IsSplitMovable, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsSplitMovable";
+    info.bundleName_ = "IsSplitMovable";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    auto result = sceneSession->IsSplitMovable();
+    ASSERT_EQ(false, result);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    sceneSession->property_ = property;
+    result = sceneSession->IsSplitMovable();
+    ASSERT_EQ(true, result);
+}
+
+/**
  * @tc.name: SetTitleAndDockHoverShowChangeCallback
  * @tc.desc: SetTitleAndDockHoverShowChangeCallback
  * @tc.type: FUNC
@@ -1741,42 +1768,43 @@ HWTEST_F(SceneSessionTest2, SetTitleAndDockHoverShowChangeCallback, TestSize.Lev
 }
 
 /**
- * @tc.name: HandleMoveDragEvent
- * @tc.desc: HandleMoveDragEvent function01
+ * @tc.name: NotifyDragEventOnNextVsync
+ * @tc.desc: NotifyDragEventOnNextVsync function01
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest2, HandleMoveDragEvent, TestSize.Level1)
+HWTEST_F(SceneSessionTest2, NotifyDragEventOnNextVsync, TestSize.Level1)
 {
     SessionInfo info;
-    info.abilityName_ = "HandleMoveDragEvent";
-    info.bundleName_ = "HandleMoveDragEvent";
+    info.abilityName_ = "NotifyDragEventOnNextVsync";
+    info.bundleName_ = "NotifyDragEventOnNextVsync";
     info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     SizeChangeReason reason = { SizeChangeReason::DRAG };
-    session->HandleMoveDragEvent(reason);
+    session->NotifyDragEventOnNextVsync(reason);
     SessionEvent event = { SessionEvent::EVENT_DRAG };
     EXPECT_EQ(WSError::WS_OK, session->OnSessionEvent(event));
  
-    auto moveDragController = sptr<MoveDragController>::MakeSptr(2024, session->GetWindowType());
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
     session->moveDragController_ = moveDragController;
     session->moveDragController_->isStartDrag_ = true;
+    session->UpdateSizeChangeReason(SizeChangeReason::UNDEFINED);
     session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     session->systemConfig_.freeMultiWindowSupport_ = true;
     session->systemConfig_.freeMultiWindowEnable_ = true;
     session->dragResizeTypeDuringDrag_ = DragResizeType::RESIZE_SCALE;
-    session->compatibleDragScaleFlags_ = true;
  
-    session->SetRequestNextVsyncFunc(nullptr);
-    ASSERT_EQ(nullptr, session->requestNextVsyncFunc_);
-    session->HandleMoveDragEvent(reason);
- 
-    session->SetRequestNextVsyncFunc([](const std::shared_ptr<VsyncCallback>& callback) {
-        SessionInfo info1;
-        info1.abilityName_ = "HandleMoveDragEventRequestNextVsync";
-        info1.bundleName_ = "HandleMoveDragEventRequestNextVsync";
-    });
-    ASSERT_NE(nullptr, session->requestNextVsyncFunc_);
-    session->HandleMoveDragEvent(reason);
+    session->SetVsyncStation(nullptr);
+    ASSERT_EQ(nullptr, session->vsyncStation_);
+    session->NotifyDragEventOnNextVsync(reason);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+    ASSERT_NE(nullptr, session->vsyncStation_);
+    session->NotifyDragEventOnNextVsync(reason);
+    EXPECT_EQ(WSError::WS_OK, session->OnSessionEvent(event));
+
+    session->UpdateSizeChangeReason(reason);
+    session->NotifyDragEventOnNextVsync(reason);
     EXPECT_EQ(WSError::WS_OK, session->OnSessionEvent(event));
 }
  
@@ -1803,7 +1831,7 @@ HWTEST_F(SceneSessionTest2, IsDragResizeScale, Function | SmallTest | Level2)
  
     session->property_ = oriProperty;
     reason = { SizeChangeReason::DRAG };
-    auto moveDragController = sptr<MoveDragController>::MakeSptr(2024, session->GetWindowType());
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
     session->moveDragController_ = moveDragController;
  
     session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
@@ -1811,7 +1839,7 @@ HWTEST_F(SceneSessionTest2, IsDragResizeScale, Function | SmallTest | Level2)
     session->systemConfig_.freeMultiWindowEnable_ = true;
     session->dragResizeTypeDuringDrag_ = DragResizeType::RESIZE_SCALE;
     session->moveDragController_->isStartDrag_ = true;
-    session->compatibleDragScaleFlags_ = true;
+    session->needNotifyDragEventOnNextVsync_ = true;
     EXPECT_EQ(session->IsDragResizeScale(reason), true);
 }
 } // namespace

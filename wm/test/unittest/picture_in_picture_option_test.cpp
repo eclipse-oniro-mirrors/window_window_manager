@@ -237,6 +237,20 @@ HWTEST_F(PictureInPictureOptionTest, TypeNodeEnabled, TestSize.Level1)
 }
 
 /**
+ * @tc.name: CornerAdsorptionEnabled
+ * @tc.desc: SetCornerAdsorptionEnabled/GetCornerAdsorptionEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureOptionTest, CornerAdsorptionEnabled, TestSize.Level1)
+{
+    sptr<PipOption> option = sptr<PipOption>::MakeSptr();
+    option->SetCornerAdsorptionEnabled(true);
+    ASSERT_TRUE(option->GetCornerAdsorptionEnabled());
+    option->SetCornerAdsorptionEnabled(false);
+    ASSERT_FALSE(option->GetCornerAdsorptionEnabled());
+}
+
+/**
  * @tc.name: GetPiPTemplateInfo
  * @tc.desc: GetPiPTemplateInfo/GetPipPriority
  * @tc.type: FUNC

@@ -2,7 +2,7 @@ import uiExtensionHost from '@ohos.uiExtensionHost';
 import window from '@ohos.window';
 
 function main() {
-    loadLibrary('embeddablewindowstageani_kit.z')
+    loadLibrary('embeddablewindowstageani_module.z')
     let win = uiExtensionHost.createExtentionWindow(0, 0);
     console.println('test <set> uiExtensionHostWindowProxyRect');
 

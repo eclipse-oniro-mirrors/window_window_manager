@@ -28,12 +28,12 @@ namespace Rosen {
  */
 class IPiPLifeCycle : virtual public RefBase {
 public:
-    virtual void OnPreparePictureInPictureStart() {}
-    virtual void OnPictureInPictureStart() {}
-    virtual void OnPreparePictureInPictureStop() {}
-    virtual void OnPictureInPictureStop() {}
+    virtual void OnPreparePictureInPictureStart(PiPStateChangeReason reason) {}
+    virtual void OnPictureInPictureStart(PiPStateChangeReason reason) {}
+    virtual void OnPreparePictureInPictureStop(PiPStateChangeReason reason) {}
+    virtual void OnPictureInPictureStop(PiPStateChangeReason reason) {}
     virtual void OnPictureInPictureOperationError(int32_t errorCode) {}
-    virtual void OnRestoreUserInterface() {}
+    virtual void OnRestoreUserInterface(PiPStateChangeReason reason) {}
 
     // native callback
     virtual void OnPreparePictureInPictureStart(uint32_t controllerId) {}

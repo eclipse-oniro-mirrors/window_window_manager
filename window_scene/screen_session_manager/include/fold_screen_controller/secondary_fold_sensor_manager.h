@@ -37,6 +37,7 @@ class SecondaryFoldSensorManager : public RefBase {
 public:
     void SetFoldScreenPolicy(sptr<FoldScreenPolicy> foldScreenPolicy);
     void SetSensorFoldStateManager(sptr<SensorFoldStateManager> sensorFoldStateManager);
+    void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
     void RegisterPostureCallback();
     void RegisterHallCallback();
     void UnRegisterPostureCallback();
@@ -53,8 +54,6 @@ private:
     sptr<FoldScreenPolicy> foldScreenPolicy_;
     sptr<SensorFoldStateManager> sensorFoldStateManager_;
 
-    SensorUser postureUser {};
-    SensorUser hallUser {};
     std::vector<float> globalAngle_ = {-1.0F, -1.0F, -1.0F};
     std::vector<uint16_t> globalHall_ = {USHRT_MAX, USHRT_MAX};
     bool registerPosture_ = false;

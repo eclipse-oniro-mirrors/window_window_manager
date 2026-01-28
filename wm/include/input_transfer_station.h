@@ -37,6 +37,8 @@ public:
     }
     void AddInputWindow(const sptr<Window>& window);
     void RemoveInputWindow(uint32_t windowId);
+    void InjectTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    void LoadTouchPredictor();
     void MarkRegisterToMMI()
     {
         isRegisteredMMI_ = true;
@@ -67,6 +69,8 @@ private:
     bool isRegisteredMMI_ { false };
 
     void LoadGameController();
+
+    static inline bool isTouchPredictorLoaded_ {false};
 };
 
 class InputEventListener : public MMI::IInputEventConsumer {

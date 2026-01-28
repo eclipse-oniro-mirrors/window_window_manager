@@ -57,16 +57,6 @@ private:
     LogLevel level_ { LOG_LEVEL_MIN };
 };
 
-#define CALL_DEBUG_ENTER        OHOS::Rosen::InnerFunctionTracer ___innerFuncTracer_Debug___    \
-    { std::bind(&OHOS::HiviewDFX::HiLog::Debug, LABEL, std::placeholders::_1, __FUNCTION__), LABEL.tag, LOG_DEBUG }
-
-#define CALL_INFO_TRACE         OHOS::Rosen::InnerFunctionTracer ___innerFuncTracer_Info___     \
-    { std::bind(&OHOS::HiviewDFX::HiLog::Info, LABEL, std::placeholders::_1, __FUNCTION__), LABEL.tag, LOG_INFO }
-
-#define CALL_TEST_DEBUG         OHOS::Rosen::InnerFunctionTracer ___innerFuncTracer_Info___     \
-    { std::bind(&OHOS::HiviewDFX::HiLog::Info, LABEL, std::placeholders::_1,     \
-    (test_info_ == nullptr ? "TestBody" : test_info_->name())), LABEL.tag, LOG_DEBUG }
-
 } // namespace Rosen
 }
 #endif // OHOS_WS_INTENTION_EVENT_ENTRANCE_LOG

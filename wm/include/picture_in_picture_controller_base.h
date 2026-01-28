@@ -106,6 +106,9 @@ public:
     bool GetPipSettingSwitchStatusEnabled();
     bool GetPiPSettingSwitchStatus();
     bool isWeb_ = false;
+    void SetStateChangeReason(PiPStateChangeReason reason);
+    PiPStateChangeReason GetStateChangeReason() const;
+    WMError IsPiPActive(bool& status);
 
     // diffrent between normal and web
     virtual WMError StartPictureInPicture(StartPipType startType) = 0;
@@ -163,6 +166,7 @@ protected:
     bool isStoppedFromClient_ = false;
     int32_t handleId_ = -1;
     uint64_t surfaceId_ = 0;
+    PiPStateChangeReason stateChangeReason_ = PiPStateChangeReason::OTHER;
 
     // diffrent between normal and web
     virtual WMError CreatePictureInPictureWindow(StartPipType startType) = 0;

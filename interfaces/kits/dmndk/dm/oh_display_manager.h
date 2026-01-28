@@ -33,7 +33,7 @@
  * @brief Defines the data structures for the C APIs of the display module.
  *
  * @kit ArkUI
- * @library libnative_display_manager.so.
+ * @library libnative_display_manager.so
  * @syscap SystemCapability.WindowManager.WindowManager.Core
  * @since 12
  * @version 1.0

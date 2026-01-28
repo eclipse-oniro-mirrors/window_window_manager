@@ -49,10 +49,10 @@ HWTEST_F(ScenePersistentStorageTest, HasKey, TestSize.Level1)
     std::string key = "aspect_ratio";
     ScenePersistentStorageType storageType = ScenePersistentStorageType::UKNOWN;
     bool result01 = scenePersistentStorage_.HasKey(key, storageType);
-    ASSERT_FALSE(result01);
+    EXPECT_FALSE(result01);
     storageType = ScenePersistentStorageType::ASPECT_RATIO;
     bool result02 = scenePersistentStorage_.HasKey(key, storageType);
-    ASSERT_FALSE(result02);
+    EXPECT_FALSE(result02);
 }
 
 /**
@@ -68,7 +68,7 @@ HWTEST_F(ScenePersistentStorageTest, Delete, TestSize.Level1)
     scenePersistentStorage_.Delete(key, storageType);
     storageType = ScenePersistentStorageType::ASPECT_RATIO;
     scenePersistentStorage_.Delete(key, storageType);
-    ASSERT_FALSE(scenePersistentStorage_.HasKey(key, ScenePersistentStorageType::UKNOWN));
+    EXPECT_FALSE(scenePersistentStorage_.HasKey(key, ScenePersistentStorageType::UKNOWN));
 }
 
 /**
@@ -81,7 +81,7 @@ HWTEST_F(ScenePersistentStorageTest, InitDir, TestSize.Level1)
     ScenePersistentStorage scenePersistentStorage_;
     std::string dir_ = "0/Storage/DownLoad";
     scenePersistentStorage_.InitDir(dir_);
-    ASSERT_FALSE(scenePersistentStorage_.HasKey("maximize_state", ScenePersistentStorageType::MAXIMIZE_STATE));
+    EXPECT_FALSE(scenePersistentStorage_.HasKey("maximize_state", ScenePersistentStorageType::MAXIMIZE_STATE));
 }
 } // namespace
 } // namespace Rosen

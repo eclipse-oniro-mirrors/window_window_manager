@@ -238,6 +238,14 @@ HWTEST_F(SceneSessionManagerStubLifecycleTest, HandleMinimizeAllAppWindows, Test
 
     data.WriteUint64(0);
     EXPECT_EQ(stub_->HandleMinimizeAllAppWindows(data, reply), ERR_NONE);
+
+    data.WriteUint64(0);
+    data.WriteBool(true);
+    EXPECT_EQ(stub_->HandleMinimizeAllAppWindows(data, reply), ERR_NONE);
+
+    data.WriteUint64(0);
+    data.WriteInt32(0);
+    EXPECT_EQ(stub_->HandleMinimizeAllAppWindows(data, reply), ERR_NONE);
 }
 
 /**

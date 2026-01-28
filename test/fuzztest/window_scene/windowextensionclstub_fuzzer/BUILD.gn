@@ -40,11 +40,12 @@ ohos_fuzztest("WindowExtensionClStubFuzzTest") {
     "${window_base_path}/extension/extension_connection:libwindow_extension_client",
     "${window_base_path}/extension/window_extension:libwindow_extension",
     "${window_base_path}/utils:libwmutil",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
     "${window_base_path}/window_scene/session_manager:session_manager",
   ]
 
   external_deps = [
+    "ability_base:want",
     "c_utils:utils",
     "graphic_2d:librender_service_base",
     "hilog:libhilog",

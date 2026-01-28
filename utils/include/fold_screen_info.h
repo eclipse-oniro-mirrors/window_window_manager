@@ -102,5 +102,13 @@ private:
         return true;
     }
 };
+
+struct FoldCreaseRegionItem {
+    DisplayOrientation orientation_;
+    FoldDisplayMode foldDisplayMode_;
+    FoldCreaseRegion region_;
+    FoldCreaseRegionItem(DisplayOrientation orientation, FoldDisplayMode foldDisplayMode, FoldCreaseRegion region)
+        : orientation_(orientation), foldDisplayMode_(foldDisplayMode), region_(region) {}
+};
 } // namespace OHOS::Rosen
 #endif // FOUNDATION_DMSERVER_FOLD_SCREEN_INFO_H

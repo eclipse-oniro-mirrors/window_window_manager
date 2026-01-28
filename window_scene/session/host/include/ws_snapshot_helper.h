@@ -16,16 +16,17 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_SNAPSHOT_HELPER_H
 #define OHOS_ROSEN_WINDOW_SCENE_SNAPSHOT_HELPER_H
 
+#include <mutex>
 #include <string>
 
 #include <dm_common.h>
 
 namespace OHOS::Rosen {
 namespace {
-constexpr uint32_t SCREEN_UNKNOWN = 0;
-constexpr uint32_t SCREEN_EXPAND = 1;
-constexpr uint32_t SCREEN_FOLDED = 2;
-constexpr uint32_t SCREEN_COUNT = 3;
+constexpr int32_t SCREEN_UNKNOWN = 0;
+constexpr int32_t SCREEN_EXPAND = 1;
+constexpr int32_t SCREEN_FOLDED = 2;
+constexpr int32_t SCREEN_COUNT = 3;
 constexpr uint32_t SNAPSHOT_PORTRAIT = 0;
 constexpr uint32_t SNAPSHOT_LANDSCAPE = 1;
 constexpr uint32_t ORIENTATION_COUNT = 2;
@@ -33,11 +34,11 @@ constexpr uint32_t PORTRAIT_ANGLE = 0;
 constexpr uint32_t LANDSCAPE_ANGLE = 90;
 constexpr uint32_t PORTRAIT_INVERTED_ANGLE = 180;
 constexpr uint32_t LANDSCAPE_INVERTED_ANGLE = 270;
-constexpr uint32_t ROTATION_ANGLE = 360;
 constexpr uint32_t ROTATION_COUNT = 4;
 constexpr uint32_t SECONDARY_EXPAND_OFFSET = 1;
+constexpr int32_t PIXEL_OFFSET = 1;
 }
-using SnapshotStatus = uint32_t;
+using SnapshotStatus = int32_t;
 constexpr SnapshotStatus defaultStatus = SCREEN_UNKNOWN;
 constexpr SnapshotStatus defaultCapacity = SCREEN_EXPAND;
 constexpr SnapshotStatus maxCapacity = SCREEN_COUNT;
@@ -45,13 +46,21 @@ constexpr SnapshotStatus maxCapacity = SCREEN_COUNT;
 class WSSnapshotHelper {
 public:
     static WSSnapshotHelper* GetInstance();
-    uint32_t GetScreenStatus();
-    static uint32_t GetScreenStatus(FoldStatus foldStatus);
+    int32_t GetScreenStatus();
+    static int32_t GetScreenStatus(FoldStatus foldStatus);
     static DisplayOrientation GetDisplayOrientation(int32_t rotation);
-    void SetWindowScreenStatus(uint32_t screenStatus);
+    bool IsSnapshotNeedCorrect(SnapshotStatus key) const;
+    void SetWindowScreenStatus(int32_t screenStatus);
     void SetWindowScreenStatus(FoldStatus foldStatus);
     void SetWindowOrientationStatus(Rotation rotation);
     uint32_t GetWindowRotation() const;
+
+    static bool NeedCrop(int32_t value, float scale = 0.5)
+    {
+        float scaledValue = value * scale;
+        float fractional = std::ceil(scaledValue) - scaledValue;
+        return fractional > 0;
+    }
 
 private:
     WSSnapshotHelper() = default;

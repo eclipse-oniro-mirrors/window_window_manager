@@ -24,6 +24,8 @@ public:
     SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~SubSession();
 
+    void OnFirstStrongRef(const void* objectId) override;
+
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError HideSync() override;

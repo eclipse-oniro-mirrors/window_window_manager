@@ -217,7 +217,7 @@ HWTEST_F(SecondaryDisplaySensorFoldStateManagerTest, HandleAngleOrHallChange06, 
 HWTEST_F(SecondaryDisplaySensorFoldStateManagerTest, HandleAngleOrHallChange07, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
-        return;
+        GTEST_SKIP();
     }
     g_errLog.clear();
     LOG_SetCallback(MyLogCallback);
@@ -243,7 +243,7 @@ HWTEST_F(SecondaryDisplaySensorFoldStateManagerTest, HandleAngleOrHallChange07, 
 HWTEST_F(SecondaryDisplaySensorFoldStateManagerTest, HandleAngleOrHallChange08, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
-        return;
+        GTEST_SKIP();
     }
     g_errLog.clear();
     LOG_SetCallback(MyLogCallback);
@@ -418,7 +418,7 @@ HWTEST_F(SecondaryDisplaySensorFoldStateManagerTest, GetNextFoldStateHalf02, Tes
 HWTEST_F(SecondaryDisplaySensorFoldStateManagerTest, GetNextFoldStateHalf03, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
-        return;
+        GTEST_SKIP();
     }
     SecondaryDisplaySensorFoldStateManager manager;
     int32_t allowUserSensorForLargeFoldDevice = 0;

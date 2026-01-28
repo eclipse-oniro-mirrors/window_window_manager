@@ -82,7 +82,7 @@ void JsScreenListener::RemoveCallback(napi_env env, const std::string& type, nap
         bool isEquals = false;
         napi_strict_equals(env, jsListenerObject, (*iter)->GetNapiValue(), &isEquals);
         if (isEquals) {
-            listeners.erase(iter);
+            iter = listeners.erase(iter);
         } else {
             iter++;
         }

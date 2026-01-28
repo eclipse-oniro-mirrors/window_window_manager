@@ -462,6 +462,30 @@ HWTEST_F(PictureInPictureManagerTest, DoActiveStatusChangeEvent, TestSize.Level1
     PictureInPictureManager::DoActiveStatusChangeEvent(true);
     ASSERT_EQ(pipController->curActiveStatus_, true);
 }
+
+/**
+ * @tc.name: DoCloseWithReason
+ * @tc.desc: DoCloseWithReason
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureManagerTest, DoCloseWithReason, TestSize.Level1)
+{
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto option = sptr<PipOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    auto pipController = sptr<PictureInPictureController>::MakeSptr(option, nullptr, 100, nullptr);
+    ASSERT_NE(pipController, nullptr);
+    PictureInPictureManager::activeController_ = nullptr;
+    ASSERT_EQ(false, PictureInPictureManager::HasActiveController());
+    PictureInPictureManager::DoCloseWithReason(true, true, PiPStateChangeReason::REQUEST_DELETE);
+    PictureInPictureManager::SetActiveController(pipController);
+    ASSERT_EQ(true, PictureInPictureManager::HasActiveController());
+    PictureInPictureManager::DoCloseWithReason(true, true, PiPStateChangeReason::REQUEST_DELETE);
+    PictureInPictureManager::DoActionCloseByRequest();
+    PictureInPictureManager::DoActionCloseByPanel();
+    PictureInPictureManager::DoActionCloseByDumpster();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

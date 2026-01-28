@@ -65,7 +65,7 @@ void ScreenAniListener::RemoveCallback(ani_env* env, const std::string& type, an
         ani_boolean isEquals = 0;
         env->Reference_StrictEquals(callback, *iter, &isEquals);
         if (isEquals) {
-            listeners.erase(iter);
+            iter = listeners.erase(iter);
         } else {
             iter++;
         }

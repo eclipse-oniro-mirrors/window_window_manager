@@ -106,12 +106,14 @@ public:
     static napi_value SetTouchableAreas(napi_env env, napi_callback_info info);
     static napi_value SetResizeByDragEnabled(napi_env env, napi_callback_info info);
     static napi_value SetRaiseByClickEnabled(napi_env env, napi_callback_info info);
+    static napi_value SetMainWindowRaiseByClickEnabled(napi_env env, napi_callback_info info);
     static napi_value HideNonSystemFloatingWindows(napi_env env, napi_callback_info info);
     static napi_value SetWindowTouchable(napi_env env, napi_callback_info info);
     static napi_value SetTransparent(napi_env env, napi_callback_info info);
     static napi_value ChangeCallingWindowId(napi_env env, napi_callback_info info);
     static napi_value SetPreferredOrientation(napi_env env, napi_callback_info info);
     static napi_value GetPreferredOrientation(napi_env env, napi_callback_info info);
+    static napi_value ConvertOrientationAndRotation(napi_env env, napi_callback_info info);
     static napi_value SetSnapshotSkip(napi_env env, napi_callback_info info);
     static napi_value RaiseToAppTop(napi_env env, napi_callback_info info);
     static napi_value SetAspectRatio(napi_env env, napi_callback_info info);
@@ -137,6 +139,7 @@ public:
     static napi_value EnableDrag(napi_env env, napi_callback_info info);
     static napi_value SetExclusivelyHighlighted(napi_env env, napi_callback_info info);
     static napi_value IsWindowHighlighted(napi_env env, napi_callback_info info);
+    static napi_value RestoreMainWindow(napi_env env, napi_callback_info info);
 
     // colorspace, gamut
     static napi_value IsSupportWideGamut(napi_env env, napi_callback_info info);
@@ -194,6 +197,7 @@ public:
      */
     static napi_value GetWindowStatus(napi_env env, napi_callback_info info);
     static napi_value SetWindowMask(napi_env env, napi_callback_info info);
+    static napi_value ClearWindowMask(napi_env env, napi_callback_info info);
     static napi_value SetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     static napi_value IsInFreeWindowMode(napi_env env, napi_callback_info info);
 
@@ -243,6 +247,7 @@ public:
     static napi_value SetWindowSystemBarProperties(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarColor(napi_env env, napi_callback_info info);
     static napi_value GetStatusBarProperty(napi_env env, napi_callback_info info);
+    static napi_value GetWindowStateSnapshot(napi_env env, napi_callback_info info);
     static napi_value GetAvoidArea(napi_env env, napi_callback_info info);
     static napi_value GetWindowAvoidAreaSync(napi_env env, napi_callback_info info);
     static napi_value GetWindowAvoidAreaIgnoringVisibilitySync(napi_env env, napi_callback_info info);
@@ -255,6 +260,14 @@ public:
     static napi_value SetRelativePositionToParentWindowEnabled(napi_env env, napi_callback_info info);
     static napi_value SetFollowParentWindowLayoutEnabled(napi_env env, napi_callback_info info);
     static napi_value SetWindowShadowEnabled(napi_env env, napi_callback_info info);
+
+    /*
+     * Window Event
+     */
+    static napi_value SetReceiveDragEventEnabled(napi_env env, napi_callback_info info);
+    static napi_value IsReceiveDragEventEnabled(napi_env env, napi_callback_info info);
+    static napi_value SetSeparationTouchEnabled(napi_env env, napi_callback_info info);
+    static napi_value IsSeparationTouchEnabled(napi_env env, napi_callback_info info);
 
 private:
     const std::string& GetWindowName() const;
@@ -310,6 +323,7 @@ private:
     napi_value OnIsWindowShowingSync(napi_env env, napi_callback_info info);
     napi_value OnSetPreferredOrientation(napi_env env, napi_callback_info info);
     napi_value OnGetPreferredOrientation(napi_env env, napi_callback_info info);
+    napi_value OnConvertOrientationAndRotation(napi_env env, napi_callback_info info);
     napi_value OnRaiseToAppTop(napi_env env, napi_callback_info info);
     napi_value OnSetAspectRatio(napi_env env, napi_callback_info info);
     napi_value OnSetContentAspectRatio(napi_env env, napi_callback_info info);
@@ -331,6 +345,7 @@ private:
     napi_value OnIsMainWindowFullScreenAcrossDisplays(napi_env env, napi_callback_info info);
     napi_value OnSetExclusivelyHighlighted(napi_env env, napi_callback_info info);
     napi_value OnIsWindowHighlighted(napi_env env, napi_callback_info info);
+    napi_value OnRestoreMainWindow(napi_env env, napi_callback_info info);
 
     // colorspace, gamut
     napi_value OnIsSupportWideGamut(napi_env env, napi_callback_info info);
@@ -361,6 +376,7 @@ private:
     napi_value OnSetTouchableAreas(napi_env env, napi_callback_info info);
     napi_value OnSetResizeByDragEnabled(napi_env env, napi_callback_info info);
     napi_value OnSetRaiseByClickEnabled(napi_env env, napi_callback_info info);
+    napi_value OnSetMainWindowRaiseByClickEnabled(napi_env env, napi_callback_info info);
     napi_value OnHideNonSystemFloatingWindows(napi_env env, napi_callback_info info);
     napi_value OnSetWindowTouchable(napi_env env, napi_callback_info info);
     napi_value OnSetTransparent(napi_env env, napi_callback_info info);
@@ -421,6 +437,7 @@ private:
      * PC Window
      */
     napi_value OnSetWindowMask(napi_env env, napi_callback_info info);
+    napi_value OnClearWindowMask(napi_env env, napi_callback_info info);
     napi_value OnGetWindowStatus(napi_env env, napi_callback_info info);
     napi_value OnSetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     napi_value OnIsInFreeWindowMode(napi_env env, napi_callback_info info);
@@ -477,6 +494,7 @@ private:
     napi_value OnSetWindowSystemBarProperties(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarColor(napi_env env, napi_callback_info info);
     napi_value OnGetStatusBarPropertySync(napi_env env, napi_callback_info info);
+    napi_value OnGetWindowStateSnapshot(napi_env env, napi_callback_info info);
     napi_value OnGetAvoidArea(napi_env env, napi_callback_info info);
     napi_value OnGetWindowAvoidAreaSync(napi_env env, napi_callback_info info);
     napi_value OnGetWindowAvoidAreaIgnoringVisibilitySync(napi_env env, napi_callback_info info);
@@ -489,6 +507,14 @@ private:
     napi_value OnSetFollowParentWindowLayoutEnabled(napi_env env, napi_callback_info info);
     napi_value OnSetRelativePositionToParentWindowEnabled(napi_env env, napi_callback_info info);
     napi_value OnSetWindowShadowEnabled(napi_env env, napi_callback_info info);
+
+    /*
+     * Window Event
+     */
+    napi_value OnSetReceiveDragEventEnabled(napi_env env, napi_callback_info info);
+    napi_value OnIsReceiveDragEventEnabled(napi_env env, napi_callback_info info);
+    napi_value OnSetSeparationTouchEnabled(napi_env env, napi_callback_info info);
+    napi_value OnIsSeparationTouchEnabled(napi_env env, napi_callback_info info);
 };
 }  // namespace Rosen
 }  // namespace OHOS

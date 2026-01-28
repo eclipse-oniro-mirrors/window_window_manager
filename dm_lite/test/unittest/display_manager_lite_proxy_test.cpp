@@ -26,6 +26,14 @@ using namespace testing;
 using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+        const char* msg)
+    {
+        g_logMsg += msg;
+    }
+}
 class DisplayManagerLiteProxyTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -262,6 +270,9 @@ HWTEST_F(DisplayManagerLiteProxyTest, GetCutoutInfo, TestSize.Level1)
  */
 HWTEST_F(DisplayManagerLiteProxyTest, WakeUpBegin, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
     sptr<IRemoteObject> impl =
         SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_->AsObject();
@@ -321,17 +332,16 @@ HWTEST_F(DisplayManagerLiteProxyTest, SuspendEnd, TestSize.Level1)
  * @tc.desc: SetDisplayState
  * @tc.type: FUNC
  */
-HWTEST_F(DisplayManagerLiteProxyTest, SetDisplayState, TestSize.Level1)
+HWTEST_F(DisplayManagerLiteProxyTest, SetDisplayState, Function | SmallTest | Level1)
 {
     SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
     sptr<IRemoteObject> impl =
         SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_->AsObject();
+    ASSERT_NE(impl, nullptr);
     sptr<DisplayManagerLiteProxy> displayManagerLiteProxy = new DisplayManagerLiteProxy(impl);
-
+    ASSERT_NE(displayManagerLiteProxy, nullptr);
     DisplayState state {1};
     displayManagerLiteProxy->SetDisplayState(state);
-    int resultValue = 0;
-    ASSERT_EQ(resultValue, 0);
 }
 
 /**
@@ -424,22 +434,15 @@ HWTEST_F(DisplayManagerLiteProxyTest, GetDisplayState, TestSize.Level1)
  * @tc.desc: GetAllDisplayIds
  * @tc.type: FUNC
  */
-HWTEST_F(DisplayManagerLiteProxyTest, GetAllDisplayIds, TestSize.Level1)
+HWTEST_F(DisplayManagerLiteProxyTest, GetAllDisplayIds, Function | SmallTest | Level1)
 {
-    SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    adapter.InitDMSProxy();
+    auto ids1 = adapter.GetAllDisplayIds(100);
+    auto ids2 = adapter.GetAllDisplayIds(-1);
 
-    sptr<IRemoteObject> impl =
-        SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_->AsObject();
-    sptr<DisplayManagerLiteProxy> displayManagerLiteProxy = new DisplayManagerLiteProxy(impl);
-
-    int resultValue = 0;
-    std::function<void()> func = [&]()
-    {
-        displayManagerLiteProxy->GetAllDisplayIds();
-        resultValue = 1;
-    };
-    func();
-    ASSERT_EQ(resultValue, 1);
+    EXPECT_FALSE(ids1.empty());
+    EXPECT_EQ(ids1, ids2);
 }
 
 /**
@@ -474,6 +477,78 @@ HWTEST_F(DisplayManagerLiteProxyTest, SetSystemKeyboardStatus02, TestSize.Level1
 
     auto ret = displayManagerLiteProxy->SetSystemKeyboardStatus(false);
     ASSERT_NE(ret, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: IsOnboardDisplay
+ * @tc.desc: IsOnboardDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyTest, IsOnboardDisplay, Function | SmallTest | Level1)
+{
+    DisplayId displayId = 0;
+    bool isOnboardDisplay = false;
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    adapter.InitDMSProxy();
+    auto res = adapter.IsOnboardDisplay(displayId, isOnboardDisplay);
+
+    EXPECT_EQ(res, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: IsOnboardDisplay_InvalidParam
+ * @tc.desc: IsOnboardDisplay_InvalidParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyTest, IsOnboardDisplay_InvalidParam, Function | SmallTest | Level1)
+{
+    DisplayId displayId = -1;
+    bool isOnboardDisplay = false;
+
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    adapter.InitDMSProxy();
+    auto res = adapter.IsOnboardDisplay(displayId, isOnboardDisplay);
+    EXPECT_EQ(res, DMError::DM_ERROR_INVALID_PARAM);
+    EXPECT_EQ(isOnboardDisplay, false);
+}
+
+/**
+ * @tc.name: SetResolution
+ * @tc.desc: SetResolution
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyTest, SetResolution, TestSize.Level1)
+{
+    SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
+    sptr<IRemoteObject> impl =
+        SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_->AsObject();
+    sptr<DisplayManagerLiteProxy> displayManagerLiteProxy = new DisplayManagerLiteProxy(impl);
+
+    ScreenId id = 0;
+    uint32_t width = 1080;
+    uint32_t height = 2400;
+    float vpr = 2.8;
+    auto ret = displayManagerLiteProxy->SetResolution(id, width, height, vpr);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SyncScreenPowerState
+ * @tc.desc: SyncScreenPowerState
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyTest, SyncScreenPowerState, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
+    sptr<IRemoteObject> impl =
+        SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_->AsObject();
+    sptr<DisplayManagerLiteProxy> displayManagerLiteProxy = new DisplayManagerLiteProxy(impl);
+
+    displayManagerLiteProxy->SyncScreenPowerState(ScreenPowerState::POWER_ON);
+    EXPECT_TRUE(g_logMsg.find("Sync power state success") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 }

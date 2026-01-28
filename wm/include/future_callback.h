@@ -37,10 +37,10 @@ public:
     int32_t GetUpdateRectResult(long timeoutMs);
     void OnFirstValidRectUpdate(int32_t persistentId);
 
-    // oriention
-    OrientationInfo GetTargetOrientationResult(long timeoutMs);
+    // orientation
+    std::pair<OrientationInfo, OrientationInfo> GetTargetOrientationResult(long timeoutMs);
     void ResetGetTargetRotationLock();
-    WSError OnUpdateTargetOrientationInfo(OrientationInfo& info);
+    WSError OnUpdateTargetOrientationInfo(OrientationInfo& info, OrientationInfo& currentInfo);
 
     // rotation change
     RotationChangeResult GetRotationResult(long timeoutMs);
@@ -51,7 +51,7 @@ private:
     RunnableFuture<Rect> resizeFuture_{};
     RunnableFuture<Rect> moveToFuture_{};
     RunnableFuture<Rect> moveWindowToGlobalDisplayFuture_{};
-    RunnableFuture<OrientationInfo> getTargetRotationFuture_{};
+    RunnableFuture<std::pair<OrientationInfo, OrientationInfo>> getTargetRotationFuture_{};
     RunnableFuture<RotationChangeResult> getRotationResultFuture_{};
     RunnableFuture<int32_t> updateRectFuture_{};
 };

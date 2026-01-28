@@ -104,101 +104,8 @@ enum class JsSessionType : uint32_t {
     TYPE_FLOATING_BALL = 45,
 };
 
-const std::map<WindowType, JsSessionType> WINDOW_TO_JS_SESSION_TYPE_MAP {
-    { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW,          JsSessionType::TYPE_APP                     },
-    { WindowType::WINDOW_TYPE_APP_SUB_WINDOW,           JsSessionType::TYPE_SUB_APP                 },
-    { WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW,      JsSessionType::TYPE_SYSTEM_ALERT            },
-    { WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT,       JsSessionType::TYPE_INPUT_METHOD            },
-    { WindowType::WINDOW_TYPE_STATUS_BAR,               JsSessionType::TYPE_STATUS_BAR              },
-    { WindowType::WINDOW_TYPE_PANEL,                    JsSessionType::TYPE_PANEL                   },
-    { WindowType::WINDOW_TYPE_KEYGUARD,                 JsSessionType::TYPE_KEYGUARD                },
-    { WindowType::WINDOW_TYPE_VOLUME_OVERLAY,           JsSessionType::TYPE_VOLUME_OVERLAY          },
-    { WindowType::WINDOW_TYPE_NAVIGATION_BAR,           JsSessionType::TYPE_NAVIGATION_BAR          },
-    { WindowType::WINDOW_TYPE_FLOAT,                    JsSessionType::TYPE_FLOAT                   },
-    { WindowType::WINDOW_TYPE_WALLPAPER,                JsSessionType::TYPE_WALLPAPER               },
-    { WindowType::WINDOW_TYPE_DESKTOP,                  JsSessionType::TYPE_DESKTOP                 },
-    { WindowType::WINDOW_TYPE_LAUNCHER_DOCK,            JsSessionType::TYPE_LAUNCHER_DOCK           },
-    { WindowType::WINDOW_TYPE_FLOAT_CAMERA,             JsSessionType::TYPE_FLOAT_CAMERA            },
-    { WindowType::WINDOW_TYPE_DIALOG,                   JsSessionType::TYPE_DIALOG                  },
-    { WindowType::WINDOW_TYPE_SCREENSHOT,               JsSessionType::TYPE_SCREENSHOT              },
-    { WindowType::WINDOW_TYPE_TOAST,                    JsSessionType::TYPE_TOAST                   },
-    { WindowType::WINDOW_TYPE_POINTER,                  JsSessionType::TYPE_POINTER                 },
-    { WindowType::WINDOW_TYPE_LAUNCHER_RECENT,          JsSessionType::TYPE_LAUNCHER_RECENT         },
-    { WindowType::WINDOW_TYPE_SCENE_BOARD,              JsSessionType::TYPE_SCENE_BOARD             },
-    { WindowType::WINDOW_TYPE_DRAGGING_EFFECT,          JsSessionType::TYPE_DRAGGING_EFFECT         },
-    { WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS_BAR,  JsSessionType::TYPE_INPUT_METHOD_STATUS_BAR },
-    { WindowType::WINDOW_TYPE_GLOBAL_SEARCH,            JsSessionType::TYPE_GLOBAL_SEARCH           },
-    { WindowType::WINDOW_TYPE_NEGATIVE_SCREEN,          JsSessionType::TYPE_NEGATIVE_SCREEN         },
-    { WindowType::WINDOW_TYPE_VOICE_INTERACTION,        JsSessionType::TYPE_VOICE_INTERACTION       },
-    { WindowType::WINDOW_TYPE_SYSTEM_TOAST,             JsSessionType::TYPE_SYSTEM_TOAST            },
-    { WindowType::WINDOW_TYPE_SYSTEM_FLOAT,             JsSessionType::TYPE_SYSTEM_FLOAT            },
-    { WindowType::WINDOW_TYPE_THEME_EDITOR,             JsSessionType::TYPE_THEME_EDITOR            },
-    { WindowType::WINDOW_TYPE_PIP,                      JsSessionType::TYPE_PIP                     },
-    { WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR,     JsSessionType::TYPE_NAVIGATION_INDICATOR    },
-    { WindowType::WINDOW_TYPE_SEARCHING_BAR,            JsSessionType::TYPE_SEARCHING_BAR           },
-    { WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW,        JsSessionType::TYPE_SYSTEM_SUB_WINDOW       },
-    { WindowType::WINDOW_TYPE_HANDWRITE,                JsSessionType::TYPE_HANDWRITE               },
-    { WindowType::WINDOW_TYPE_KEYBOARD_PANEL,           JsSessionType::TYPE_KEYBOARD_PANEL          },
-    { WindowType::WINDOW_TYPE_DOCK_SLICE,               JsSessionType::TYPE_DIVIDER                 },
-    { WindowType::WINDOW_TYPE_TRANSPARENT_VIEW,         JsSessionType::TYPE_TRANSPARENT_VIEW        },
-    { WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD,        JsSessionType::TYPE_WALLET_SWIPE_CARD       },
-    { WindowType::WINDOW_TYPE_SCREEN_CONTROL,           JsSessionType::TYPE_SCREEN_CONTROL          },
-    { WindowType::WINDOW_TYPE_FLOAT_NAVIGATION,         JsSessionType::TYPE_FLOAT_NAVIGATION        },
-    { WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION, JsSessionType::TYPE_MUTISCREEN_COLLABORATION},
-    { WindowType::WINDOW_TYPE_DYNAMIC,                  JsSessionType::TYPE_DYNAMIC                 },
-    { WindowType::WINDOW_TYPE_MAGNIFICATION,            JsSessionType::TYPE_MAGNIFICATION           },
-    { WindowType::WINDOW_TYPE_MAGNIFICATION_MENU,       JsSessionType::TYPE_MAGNIFICATION_MENU      },
-    { WindowType::WINDOW_TYPE_SELECTION,                JsSessionType::TYPE_SELECTION               },
-    { WindowType::WINDOW_TYPE_FB,                       JsSessionType::TYPE_FLOATING_BALL           },
-};
-
-const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP {
-    { JsSessionType::TYPE_APP,                      WindowType::WINDOW_TYPE_APP_MAIN_WINDOW         },
-    { JsSessionType::TYPE_SUB_APP,                  WindowType::WINDOW_TYPE_APP_SUB_WINDOW          },
-    { JsSessionType::TYPE_SYSTEM_ALERT,             WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW     },
-    { JsSessionType::TYPE_INPUT_METHOD,             WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT      },
-    { JsSessionType::TYPE_STATUS_BAR,               WindowType::WINDOW_TYPE_STATUS_BAR              },
-    { JsSessionType::TYPE_PANEL,                    WindowType::WINDOW_TYPE_PANEL                   },
-    { JsSessionType::TYPE_KEYGUARD,                 WindowType::WINDOW_TYPE_KEYGUARD                },
-    { JsSessionType::TYPE_VOLUME_OVERLAY,           WindowType::WINDOW_TYPE_VOLUME_OVERLAY          },
-    { JsSessionType::TYPE_NAVIGATION_BAR,           WindowType::WINDOW_TYPE_NAVIGATION_BAR          },
-    { JsSessionType::TYPE_FLOAT,                    WindowType::WINDOW_TYPE_FLOAT                   },
-    { JsSessionType::TYPE_WALLPAPER,                WindowType::WINDOW_TYPE_WALLPAPER               },
-    { JsSessionType::TYPE_DESKTOP,                  WindowType::WINDOW_TYPE_DESKTOP                 },
-    { JsSessionType::TYPE_LAUNCHER_DOCK,            WindowType::WINDOW_TYPE_LAUNCHER_DOCK           },
-    { JsSessionType::TYPE_FLOAT_CAMERA,             WindowType::WINDOW_TYPE_FLOAT_CAMERA            },
-    { JsSessionType::TYPE_DIALOG,                   WindowType::WINDOW_TYPE_DIALOG                  },
-    { JsSessionType::TYPE_SCREENSHOT,               WindowType::WINDOW_TYPE_SCREENSHOT              },
-    { JsSessionType::TYPE_TOAST,                    WindowType::WINDOW_TYPE_TOAST                   },
-    { JsSessionType::TYPE_POINTER,                  WindowType::WINDOW_TYPE_POINTER                 },
-    { JsSessionType::TYPE_LAUNCHER_RECENT,          WindowType::WINDOW_TYPE_LAUNCHER_RECENT         },
-    { JsSessionType::TYPE_SCENE_BOARD,              WindowType::WINDOW_TYPE_SCENE_BOARD             },
-    { JsSessionType::TYPE_DRAGGING_EFFECT,          WindowType::WINDOW_TYPE_DRAGGING_EFFECT         },
-    { JsSessionType::TYPE_INPUT_METHOD_STATUS_BAR,  WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS_BAR },
-    { JsSessionType::TYPE_GLOBAL_SEARCH,            WindowType::WINDOW_TYPE_GLOBAL_SEARCH           },
-    { JsSessionType::TYPE_NEGATIVE_SCREEN,          WindowType::WINDOW_TYPE_NEGATIVE_SCREEN         },
-    { JsSessionType::TYPE_VOICE_INTERACTION,        WindowType::WINDOW_TYPE_VOICE_INTERACTION       },
-    { JsSessionType::TYPE_SYSTEM_TOAST,             WindowType::WINDOW_TYPE_SYSTEM_TOAST,           },
-    { JsSessionType::TYPE_SYSTEM_FLOAT,             WindowType::WINDOW_TYPE_SYSTEM_FLOAT,           },
-    { JsSessionType::TYPE_THEME_EDITOR,             WindowType::WINDOW_TYPE_THEME_EDITOR            },
-    { JsSessionType::TYPE_PIP,                      WindowType::WINDOW_TYPE_PIP,                    },
-    { JsSessionType::TYPE_NAVIGATION_INDICATOR,     WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR    },
-    { JsSessionType::TYPE_SEARCHING_BAR,            WindowType::WINDOW_TYPE_SEARCHING_BAR           },
-    { JsSessionType::TYPE_SYSTEM_SUB_WINDOW,        WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW       },
-    { JsSessionType::TYPE_HANDWRITE,                WindowType::WINDOW_TYPE_HANDWRITE               },
-    { JsSessionType::TYPE_KEYBOARD_PANEL,           WindowType::WINDOW_TYPE_KEYBOARD_PANEL          },
-    { JsSessionType::TYPE_DIVIDER,                  WindowType::WINDOW_TYPE_DOCK_SLICE              },
-    { JsSessionType::TYPE_TRANSPARENT_VIEW,         WindowType::WINDOW_TYPE_TRANSPARENT_VIEW        },
-    { JsSessionType::TYPE_WALLET_SWIPE_CARD,        WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD       },
-    { JsSessionType::TYPE_SCREEN_CONTROL,           WindowType::WINDOW_TYPE_SCREEN_CONTROL          },
-    { JsSessionType::TYPE_FLOAT_NAVIGATION,         WindowType::WINDOW_TYPE_FLOAT_NAVIGATION        },
-    { JsSessionType::TYPE_MUTISCREEN_COLLABORATION, WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION},
-    { JsSessionType::TYPE_DYNAMIC,                  WindowType::WINDOW_TYPE_DYNAMIC                 },
-    { JsSessionType::TYPE_MAGNIFICATION,            WindowType::WINDOW_TYPE_MAGNIFICATION           },
-    { JsSessionType::TYPE_MAGNIFICATION_MENU,       WindowType::WINDOW_TYPE_MAGNIFICATION_MENU      },
-    { JsSessionType::TYPE_SELECTION,                WindowType::WINDOW_TYPE_SELECTION               },
-    { JsSessionType::TYPE_FLOATING_BALL,            WindowType::WINDOW_TYPE_FB                      },
-};
+extern const std::map<WindowType, JsSessionType> WINDOW_TO_JS_SESSION_TYPE_MAP;
+extern const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP;
 
 enum class ThrowSlipMode;
 
@@ -278,9 +185,15 @@ napi_value ConvertWindowAnimationPropertyToJsValue(napi_env env,
     const WindowAnimationProperty& animationProperty);
 napi_value ConvertKeyboardEffectOptionToJsValue(napi_env env, const KeyboardEffectOption& effectOption);
 napi_value CreateWaterfallResidentState(napi_env env);
+napi_value CreateCompatibleStyleMode(napi_env env);
 bool NapiIsCallable(napi_env env, napi_value value);
 bool ConvertRectInfoFromJs(napi_env env, napi_value jsObject, WSRect& rect);
 bool ConvertSessionRectInfoFromJs(napi_env env, napi_value jsObject, WSRect& rect);
+bool ConvertKeyboardBaseInfoFromJs(napi_env env, napi_value jsObject, KeyboardBaseInfo& keyboardBaseInfo);
+bool ConvertKeyboardAnimationRectConfigFromJs(napi_env env, napi_value jsObject,
+    KeyboardAnimationRectConfig& keyboardAnimationRectConfig);
+bool ConvertCallingWindowInfoDataFromJs(napi_env env, napi_value jsObject,
+    CallingWindowInfoData& callingWindowInfoData);
 bool ConvertSingleHandScreenInfoFromJs(napi_env env, napi_value jsObject,
     SingleHandScreenInfo& singleHandHandScreenInfo);
 bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo);
@@ -291,6 +204,9 @@ bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect
 bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInfo& rotationChangeInfo);
 bool ConvertThrowSlipModeFromJs(napi_env env, napi_value value, ThrowSlipMode& throwSlipMode);
 bool convertAnimConfigFromJs(napi_env env, napi_value value, SceneAnimationConfig& config);
+bool ConvertSupportRotationInfoFromJsValue(napi_env env, napi_value jsObject,
+    SupportRotationInfo& suppoortRotationInfo);
+bool ParseBoolArrayValueFromJsValue(napi_env env, napi_value array, std::vector<bool>& vector);
 template<class T>
 bool ParseJsValue(napi_env env, napi_value jsObject, const std::string& name, T& data)
 {

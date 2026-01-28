@@ -29,6 +29,10 @@ public:
     static ani_boolean TransferStatic(ani_env* env, ani_object obj, ani_object input, ani_object screenAniObj);
     static ani_object TransferDynamic(ani_env* env, ani_object obj, ani_long nativeObj);
     sptr<Screen> GetScreen() const { return screen_; }
+    static void SetScreenActiveMode(ani_env* env, ani_object obj, ani_long modeIndex);
+    void OnSetScreenActiveMode(ani_env* env, ani_object obj, ani_long modeIndex);
+    static void SetOrientation(ani_env* env, ani_object obj, ani_enum_item orientationAni);
+    void OnSetOrientation(ani_env* env, ani_object obj, ani_enum_item orientationAni);
  
 private:
     sptr<Screen> screen_ = nullptr;

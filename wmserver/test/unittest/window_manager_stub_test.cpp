@@ -258,6 +258,7 @@ HWTEST_F(WindowManagerStubTest, OnRemoteRequest10, TestSize.Level1)
 
     data.WriteInterfaceToken(WindowManagerStub::GetDescriptor());
     data.WriteUint64(0);
+    data.WriteInt32(0);
 
     uint32_t code = static_cast<uint32_t>(IWindowManager::WindowManagerMessage::TRANS_ID_MINIMIZE_ALL_APP_WINDOWS);
 

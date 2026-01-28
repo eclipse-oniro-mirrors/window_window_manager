@@ -36,18 +36,24 @@ SubSession::SubSession(const SessionInfo& info, const sptr<SpecificSessionCallba
     : SceneSession(info, specificCallback)
 {
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
-    moveDragController_ = sptr<MoveDragController>::MakeSptr(GetPersistentId(), GetWindowType());
-    if (specificCallback != nullptr &&
-        specificCallback->onWindowInputPidChangeCallback_ != nullptr) {
-        moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback->onWindowInputPidChangeCallback_);
-    }
-    SetMoveDragCallback();
     TLOGD(WmsLogTag::WMS_LIFE, "Create");
 }
 
 SubSession::~SubSession()
 {
     TLOGD(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
+}
+
+void SubSession::OnFirstStrongRef(const void* objectId)
+{
+    // OnFirstStrongRef is overridden in the parent class IPCObjectStub,
+    // so its parent implementation must be invoked here to avoid IPC communication issues.
+    SceneSession::OnFirstStrongRef(objectId);
+
+    moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(this));
+    if (specificCallback_ != nullptr && specificCallback_->onWindowInputPidChangeCallback_ != nullptr) {
+        moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback_->onWindowInputPidChangeCallback_);
+    }
 }
 
 WSError SubSession::Show(sptr<WindowSessionProperty> property)
@@ -163,8 +169,8 @@ WSError SubSession::Hide(bool needSyncHide)
             TLOGNE(WmsLogTag::WMS_SUB, "session is null");
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        session->isSubWindowResizingOrMoving_ = false;
         TLOGNI(WmsLogTag::WMS_LIFE, "Hide session, id: %{public}d", session->GetPersistentId());
+        session->isSubWindowResizingOrMoving_ = false;
         auto ret = session->SetActive(false);
         if (ret != WSError::WS_OK) {
             return ret;
@@ -448,10 +454,6 @@ void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
             TLOGE(WmsLogTag::WMS_LAYOUT, "ScreenSession is null");
             continue;
         }
-        if (screenSession->GetDisplayNode() == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "DisplayNode is null");
-            continue;
-        }
         if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
             TLOGD(WmsLogTag::WMS_LAYOUT, "virtual screen, no need to add cross parent child");
             continue;
@@ -469,8 +471,8 @@ void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
             dragMoveMountedNode->AddCrossScreenChild(movedSurfaceNode, SUFFIX_INDEX, true);
         }
         cloneNodeCount_++;
-        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display:%{public}" PRIu64 " persistentId:%{public}d",
-            displayId, GetPersistentId());
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display: %{public}" PRIu64 " persistentId: %{public}d, "
+            "cloneNodeCount: %{public}d", displayId, GetPersistentId(), cloneNodeCount_);
     }
 }
 

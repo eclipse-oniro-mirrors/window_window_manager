@@ -146,63 +146,6 @@ HWTEST_F(WindowFocusSceneSessionTest, IsAppOrLowerSystemSession02, TestSize.Leve
 }
 
 /**
- * @tc.name: IsBlockingFocusWindowType_SessionConfig
- * @tc.desc: Check if the session blockingFocus and device type is qualified
- * @tc.type: FUNC
- */
-HWTEST_F(WindowFocusSceneSessionTest, IsBlockingFocusWindowType_SessionConfig, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "IsBlockingFocusWindowType_SessionConfig";
-    info.bundleName_ = "IsBlockingFocusWindowType_SessionConfig";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-
-    sceneSession->blockingFocus_ = false;
-    EXPECT_EQ(false, sceneSession->IsBlockingFocusWindowType());
-
-    sceneSession->blockingFocus_ = true;
-    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    EXPECT_EQ(false, sceneSession->IsBlockingFocusWindowType());
-}
-
-/**
- * @tc.name: IsBlockingFocusWindowType_RectCheck
- * @tc.desc: Check if the height and width of the current session is full-screen
- * @tc.type: FUNC
- */
-HWTEST_F(WindowFocusSceneSessionTest, IsBlockingFocusWindowType_RectCheck, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "IsBlockingFocusWindowType_RectCheck";
-    info.bundleName_ = "IsBlockingFocusWindowType_RectCheck";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-
-    sceneSession->blockingFocus_ = true;
-    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    constexpr DisplayId displayId = DEFAULT_DISPLAY_ID;
-    sceneSession->GetSessionProperty()->SetDisplayId(displayId);
-
-    const WSRect rect = {0, 0, 0, 0};
-    sceneSession->SetSessionRect(rect);
-
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    EXPECT_EQ(false, sceneSession->IsBlockingFocusWindowType());
-
-    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
-    ASSERT_NE(nullptr, display);
-    auto displayInfo = display->GetDisplayInfo();
-    ASSERT_NE(nullptr, displayInfo);
-    sceneSession->SetSessionRect({0, 0, displayInfo->GetWidth(), displayInfo->GetHeight()});
-    EXPECT_EQ(true, sceneSession->IsBlockingFocusWindowType());
-
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_PANEL);
-    EXPECT_EQ(true, sceneSession->IsBlockingFocusWindowType());
-
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
-    EXPECT_EQ(false, sceneSession->IsBlockingFocusWindowType());
-}
-
-/**
  * @tc.name: IsSystemSessionAboveApp
  * @tc.desc: IsSystemSessionAboveApp true
  * @tc.type: FUNC

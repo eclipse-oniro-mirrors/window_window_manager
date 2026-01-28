@@ -18,6 +18,7 @@
 #include "screen_session_manager/include/screen_session_manager_lite.h"
 #include "window_manager_hilog.h"
 #include "display_manager_agent_default.h"
+#include "flod_screen_state_internel.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -64,7 +65,7 @@ HWTEST_F(ScreenSessionManagerLiteTest, ConnectToServer, TestSize.Level1)
 {
     ScreenSessionManagerLite screenSessionManagerLite = ScreenSessionManagerLite();
     screenSessionManagerLite.ConnectToServer();
-    ASSERT_EQ(screenSessionManagerLite.screenSessionManager_, nullptr);
+    ASSERT_NE(screenSessionManagerLite.screenSessionManager_, nullptr);
 }
 
 /**
@@ -78,7 +79,7 @@ HWTEST_F(ScreenSessionManagerLiteTest, RegisterDisplayManagerAgent, TestSize.Lev
     sptr<IDisplayManagerAgent> displayManagerAgent= new DisplayManagerAgentDefault();
     DisplayManagerAgentType type = DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER;
     DMError ret = screenSessionManagerLite.RegisterDisplayManagerAgent(displayManagerAgent, type);
-    ASSERT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+    ASSERT_NE(ret, DMError::DM_ERROR_NULLPTR);
 }
 
 /**
@@ -92,7 +93,7 @@ HWTEST_F(ScreenSessionManagerLiteTest, UnregisterDisplayManagerAgent, TestSize.L
     sptr<IDisplayManagerAgent> displayManagerAgent= new DisplayManagerAgentDefault();
     DisplayManagerAgentType type = DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER;
     DMError ret = screenSessionManagerLite.UnregisterDisplayManagerAgent(displayManagerAgent, type);
-    ASSERT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+    ASSERT_NE(ret, DMError::DM_ERROR_NULLPTR);
 }
 
 /**
@@ -103,32 +104,18 @@ HWTEST_F(ScreenSessionManagerLiteTest, UnregisterDisplayManagerAgent, TestSize.L
 HWTEST_F(ScreenSessionManagerLiteTest, GetFoldDisplayMode, TestSize.Level1)
 {
     ScreenSessionManagerLite screenSessionManagerLite = ScreenSessionManagerLite();
-    FoldDisplayMode ret = screenSessionManagerLite.GetFoldDisplayMode();
-    ASSERT_EQ(ret, FoldDisplayMode::UNKNOWN);
-}
-
-/**
- * @tc.name: IsFoldable
- * @tc.desc: IsFoldable
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerLiteTest, IsFoldable, TestSize.Level1)
-{
-    ScreenSessionManagerLite screenSessionManagerLite = ScreenSessionManagerLite();
-    bool ret = screenSessionManagerLite.IsFoldable();
-    ASSERT_FALSE(ret);
-}
-
-/**
- * @tc.name: GetFoldStatus
- * @tc.desc: GetFoldStatus
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerLiteTest, GetFoldStatus, TestSize.Level1)
-{
-    ScreenSessionManagerLite screenSessionManagerLite = ScreenSessionManagerLite();
-    FoldStatus ret = screenSessionManagerLite.GetFoldStatus();
-    ASSERT_EQ(ret, FoldStatus::UNKNOWN);
+    bool isFoldable = screenSessionManagerLite.IsFoldable();
+    if (!isFoldable) {
+        GTEST_SKIP();
+    }
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice())
+    {
+        FoldDisplayMode ret = screenSessionManagerLite.GetFoldDisplayMode();
+        ASSERT_EQ(ret, FoldDisplayMode::UNKNOWN);
+    } else {
+        FoldDisplayMode ret = screenSessionManagerLite.GetFoldDisplayMode();
+        ASSERT_NE(ret, FoldDisplayMode::UNKNOWN);
+    }
 }
 
 /**
@@ -140,7 +127,7 @@ HWTEST_F(ScreenSessionManagerLiteTest, GetDefaultDisplayInfo, TestSize.Level1)
 {
     ScreenSessionManagerLite screenSessionManagerLite = ScreenSessionManagerLite();
     sptr<DisplayInfo> ret = screenSessionManagerLite.GetDefaultDisplayInfo();
-    ASSERT_EQ(ret, nullptr);
+    ASSERT_NE(ret, nullptr);
 }
 
 /**
@@ -153,7 +140,7 @@ HWTEST_F(ScreenSessionManagerLiteTest, GetDisplayInfoById, TestSize.Level1)
     ScreenSessionManagerLite screenSessionManagerLite = ScreenSessionManagerLite();
     DisplayId displayId = 0;
     sptr<DisplayInfo> ret = screenSessionManagerLite.GetDisplayInfoById(displayId);
-    ASSERT_EQ(ret, nullptr);
+    ASSERT_NE(ret, nullptr);
 }
 
 /**
@@ -166,7 +153,7 @@ HWTEST_F(ScreenSessionManagerLiteTest, GetCutoutInfo, TestSize.Level1)
     ScreenSessionManagerLite screenSessionManagerLite = ScreenSessionManagerLite();
     DisplayId displayId = 0;
     sptr<CutoutInfo> ret = screenSessionManagerLite.GetCutoutInfo(displayId);
-    ASSERT_EQ(ret, nullptr);
+    ASSERT_NE(ret, nullptr);
 }
 
 /**

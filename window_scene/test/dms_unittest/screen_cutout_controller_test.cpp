@@ -283,11 +283,11 @@ HWTEST_F(ScreenCutoutControllerTest, InitRect, TestSize.Level1)
 }
 
 /**
- * @tc.name: CheckBoundaryRects01
+ * @tc.name: CheckBoundaryRectsWithRotation01
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects01, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation01, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {-15, -15, 8, 8};
@@ -297,17 +297,17 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects01, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 35, 35}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 35, 35);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 35, 35, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 1);
     EXPECT_EQ(boundaryRects[0], emptyRect_);
 }
 
 /**
- * @tc.name: CheckBoundaryRects02
+ * @tc.name: CheckBoundaryRectsWithRotation02
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects02, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation02, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {1, 1, 7, 7};
@@ -317,17 +317,17 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects02, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 35, 35}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 35, 35);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 35, 35, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 2);
     EXPECT_EQ(boundaryRects[0], emptyRect_);
 }
 
 /**
- * @tc.name: CheckBoundaryRects03
+ * @tc.name: CheckBoundaryRectsWithRotation03
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects03, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation03, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {1, 1, 7, 7};
@@ -336,16 +336,16 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects03, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 6, 6}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 6, 6);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 6, 6, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 0);
 }
 
 /**
- * @tc.name: CheckBoundaryRects04
+ * @tc.name: CheckBoundaryRectsWithRotation04
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects04, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation04, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {1, 0, 8, 8};
@@ -355,17 +355,17 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects04, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 25, 23}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 25, 23);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 25, 23, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 1);
     EXPECT_EQ(boundaryRects[0], emptyRect);
 }
 
 /**
- * @tc.name: CheckBoundaryRects05
+ * @tc.name: CheckBoundaryRectsWithRotation05
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects05, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation05, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {0, 0, 0, 0};
@@ -375,7 +375,7 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects05, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 35, 35}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 35, 35);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 35, 35, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 1);
     EXPECT_EQ(boundaryRects[0], emptyRect_);
 }

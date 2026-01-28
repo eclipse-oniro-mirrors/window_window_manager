@@ -61,7 +61,7 @@ HWTEST_F(RootSceneSessionTest, SetLoadContentFunc, TestSize.Level1)
     RootSceneSession rootSceneSession;
     RootSceneSession::LoadContentFunc loadContentFunc_ = LoadContentFuncTest;
     rootSceneSession.SetLoadContentFunc(loadContentFunc_);
-    ASSERT_FALSE(rootSceneSession.IsVisible());
+    EXPECT_FALSE(rootSceneSession.IsVisible());
 }
 
 /**
@@ -77,7 +77,7 @@ HWTEST_F(RootSceneSessionTest, LoadContentFunc, TestSize.Level1)
     napi_value nativeValue_ = nullptr;
     AbilityRuntime::Context* conText_ = nullptr;
     rootSceneSession.LoadContent(strTest, nativeEnv_, nativeValue_, conText_);
-    ASSERT_FALSE(rootSceneSession.IsVisible());
+    EXPECT_FALSE(rootSceneSession.IsVisible());
 }
 
 /**
@@ -95,7 +95,28 @@ HWTEST_F(RootSceneSessionTest, LoadContent, TestSize.Level1)
     RootSceneSession::LoadContentFunc loadContentFunc_ = LoadContentFuncTest;
     rootSceneSession.SetLoadContentFunc(loadContentFunc_);
     rootSceneSession.LoadContent(strTest, nativeEnv_, nativeValue_, conText_);
-    ASSERT_FALSE(rootSceneSession.IsVisible());
+    EXPECT_FALSE(rootSceneSession.IsVisible());
+}
+
+/**
+ * @tc.name: GetUIContent
+ * @tc.desc: get UIContent
+ * @tc.type: FUNC
+ */
+HWTEST_F(RootSceneSessionTest, GetUIContent, TestSize.Level1)
+{
+    RootSceneSession rootSceneSession;
+    std::string strTest("GetUIContentTest");
+    napi_env nativeEnv_ = nullptr;
+    napi_value nativeValue_ = nullptr;
+    int isCalled = false;
+    rootSceneSession.SetGetUIContentFunc([&isCalled](DisplayId displayId) -> Ace::UIContent* {
+        isCalled = true;
+        return nullptr;
+    });
+    auto uiContent = rootSceneSession.GetUIContent(1);
+    EXPECT_EQ(uiContent, nullptr);
+    EXPECT_TRUE(isCalled);
 }
 
 /**
@@ -165,7 +186,7 @@ HWTEST_F(RootSceneSessionTest, SetRootSessionRect, TestSize.Level1)
     AvoidArea avoidArea;
     WSRect rect;
     rootSceneSession.SetRootSessionRect(rect);
-    ASSERT_EQ(rootSceneSession.GetSessionRect(), rect);
+    EXPECT_EQ(rootSceneSession.GetSessionRect(), rect);
 }
 
 /**
@@ -178,7 +199,7 @@ HWTEST_F(RootSceneSessionTest, UpdateAvoidArea, TestSize.Level1)
     RootSceneSession rootSceneSession;
     AvoidArea avoidArea;
     auto ret = rootSceneSession.UpdateAvoidArea(sptr<AvoidArea>::MakeSptr(avoidArea), AvoidAreaType::TYPE_SYSTEM);
-    ASSERT_EQ(WSError::WS_ERROR_NULLPTR, ret);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, ret);
 }
 
 /**
@@ -358,11 +379,11 @@ HWTEST_F(RootSceneSessionTest, SetRootSessionRect_01, TestSize.Level1)
     ssm_->rootSceneSession_->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
     ssm_->rootSceneSession_->SetRootSessionRect({ 0, 0, 1260, 2720 });
     WSRect rect = { 0, 0, 1260, 2720 };
-    ASSERT_EQ(ssm_->rootSceneSession_->GetSessionRect(), rect);
+    EXPECT_EQ(ssm_->rootSceneSession_->GetSessionRect(), rect);
     ssm_->rootSceneSession_->GetLayoutController()->SetSessionRect({ 0, 0, 2720, 1260 });
     ssm_->rootSceneSession_->SetRootSessionRect({ 0, 0, 1260, 2720 });
     rect = { 0, 0, 1260, 2720 };
-    ASSERT_EQ(ssm_->rootSceneSession_->GetSessionRect(), rect);
+    EXPECT_EQ(ssm_->rootSceneSession_->GetSessionRect(), rect);
 }
 
 /**
@@ -378,7 +399,7 @@ HWTEST_F(RootSceneSessionTest, UpdateAvoidArea_01, TestSize.Level1)
     ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr(specificCb);
     AvoidArea avoidArea;
     auto ret = ssm_->rootSceneSession_->UpdateAvoidArea(new AvoidArea(avoidArea), AvoidAreaType::TYPE_SYSTEM);
-    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret, WSError::WS_OK);
 }
 
 /**

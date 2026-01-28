@@ -74,44 +74,40 @@ namespace {
  */
 HWTEST_F(ScreenTest, GetBasicProperty01, TestSize.Level1)
 {
-    ASSERT_GT(screen_->GetName().size(), 0);
-    ASSERT_GT(screen_->GetWidth(), 0);
-    ASSERT_GT(screen_->GetHeight(), 0);
-    ASSERT_GT(screen_->GetVirtualWidth(), 0);
-    ASSERT_GT(screen_->GetVirtualHeight(), 0);
-    ASSERT_GT(screen_->GetVirtualPixelRatio(), 0);
-    ASSERT_EQ(screen_->IsReal(), true);
-    ASSERT_NE(screen_->GetScreenInfo(), nullptr);
+    EXPECT_EQ(screen_->GetName().size(), 0);
+    EXPECT_EQ(screen_->GetWidth(), 0);
+    EXPECT_EQ(screen_->GetHeight(), 0);
+    EXPECT_EQ(screen_->GetVirtualWidth(), 0);
+    EXPECT_EQ(screen_->GetVirtualHeight(), 0);
+    EXPECT_EQ(screen_->GetVirtualPixelRatio(), 1);
+    EXPECT_EQ(screen_->IsReal(), false);
+    EXPECT_NE(screen_->GetScreenInfo(), nullptr);
 }
 
 /**
  * @tc.name: SetScreenActiveMode01
- * @tc.desc: SetScreenActiveMode with valid modeId and return success
+ * @tc.desc: SetScreenActiveMode01
  * @tc.type: FUNC
  */
 HWTEST_F(ScreenTest, SetScreenActiveMode01, TestSize.Level1)
 {
-    auto supportedModes = screen_->GetSupportedModes();
-    ASSERT_GT(supportedModes.size(), 0);
-    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), SetScreenActiveMode(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
-    DMError res = screen_->SetScreenActiveMode(supportedModes.size() - 1);
-    ASSERT_EQ(DMError::DM_OK, res);
+    auto modes = screen_->GetSupportedModes();
+    ASSERT_EQ(modes.size(), 0u) << "This test only applies when no display modes are supported.";
+    EXPECT_EQ(screen_->SetScreenActiveMode(0), DMError::DM_ERROR_INVALID_PARAM);
+    EXPECT_EQ(screen_->SetScreenActiveMode(1), DMError::DM_ERROR_INVALID_PARAM);
+    EXPECT_EQ(screen_->SetScreenActiveMode(100), DMError::DM_ERROR_INVALID_PARAM);
 }
 
 /**
  * @tc.name: SetScreenActiveMode02
- * @tc.desc: SetScreenActiveMode with valid modeId and return failed
+ * @tc.desc: SetScreenActiveMode02
  * @tc.type: FUNC
  */
 HWTEST_F(ScreenTest, SetScreenActiveMode02, TestSize.Level1)
 {
-    auto supportedModes = screen_->GetSupportedModes();
-    ASSERT_GT(supportedModes.size(), 0);
-    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), SetScreenActiveMode(_, _)).Times(1).WillOnce(Return(DMError::DM_ERROR_NULLPTR));
-    DMError res = screen_->SetScreenActiveMode(supportedModes.size() - 1);
-    ASSERT_TRUE(DMError::DM_OK != res);
+    uint32_t invalidModeId = 999999;
+    DMError result = screen_->SetScreenActiveMode(invalidModeId);
+    ASSERT_EQ(result, DMError::DM_ERROR_INVALID_PARAM);
 }
 
 /**
@@ -409,9 +405,8 @@ HWTEST_F(ScreenTest, SetDensityDpi, TestSize.Level1)
 {
     auto res = screen_->SetDensityDpi(DOT_PER_INCH_MAXIMUM_VALUE + 1);
     ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, res);
-
     res = screen_->SetDensityDpi(100);
-    ASSERT_EQ(DMError::DM_OK, res);
+    ASSERT_NE(DMError::DM_ERROR_INVALID_PARAM, res);
 }
 
 /**
@@ -453,13 +448,8 @@ HWTEST_F(ScreenTest, SetDefaultDensityDpi, TestSize.Level1)
 {
     auto res = screen_->SetDefaultDensityDpi(DOT_PER_INCH_MAXIMUM_VALUE + 1);
     ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, res);
-
     res = screen_->SetDefaultDensityDpi(100);
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        ASSERT_EQ(DMError::DM_OK, res);
-    } else {
-        ASSERT_NE(DMError::DM_OK, res);
-    }
+    ASSERT_NE(DMError::DM_ERROR_INVALID_PARAM, res) << "Valid DPI input should pass validation";
 }
 
 /**

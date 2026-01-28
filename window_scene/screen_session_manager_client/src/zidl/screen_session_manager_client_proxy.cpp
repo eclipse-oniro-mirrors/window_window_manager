@@ -41,30 +41,57 @@ void ScreenSessionManagerClientProxy::OnScreenConnectionChanged(SessionOption Se
     }
 }
 
-bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(SessionOption& SessionOption,
+void ScreenSessionManagerClientProxy::OnTentModeChange(TentMode tentMode)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(tentMode))) {
+        TLOGE(WmsLogTag::DMS, "Write tentMode failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_TENT_MODE_CHANGE),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+}
+
+bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(const SessionOption& sessionOption,
     ScreenEvent screenEvent, MessageParcel& data)
 {
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return false;
     }
-    if (!data.WriteUint64(SessionOption.rsId_)) {
+    if (!data.WriteUint64(sessionOption.rsId_)) {
         TLOGE(WmsLogTag::DMS, "Write rsId failed");
         return false;
     }
-    if (!data.WriteString(SessionOption.name_)) {
+    if (!data.WriteString(sessionOption.name_)) {
         TLOGE(WmsLogTag::DMS, "Write name failed");
         return false;
     }
-    if (!data.WriteBool(SessionOption.isExtend_)) {
+    if (!data.WriteBool(sessionOption.isExtend_)) {
         TLOGE(WmsLogTag::DMS, "Write isExtended failed");
         return false;
     }
-    if (!data.WriteString(SessionOption.innerName_)) {
+    if (!data.WriteString(sessionOption.innerName_)) {
         TLOGE(WmsLogTag::DMS, "Write innerName failed");
         return false;
     }
-    if (!data.WriteUint64(SessionOption.screenId_)) {
+    if (!data.WriteUint64(sessionOption.screenId_)) {
         TLOGE(WmsLogTag::DMS, "Write screenId failed");
         return false;
     }
@@ -72,17 +99,43 @@ bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(SessionOption& Ses
         TLOGE(WmsLogTag::DMS, "Write screenEvent failed");
         return false;
     }
-    if (!data.WriteUint64(static_cast<uint64_t>(SessionOption.rotationCorrectionMap_.size()))) {
+    if (!data.WriteUint64(static_cast<uint64_t>(sessionOption.rotationCorrectionMap_.size()))) {
         TLOGE(WmsLogTag::DMS, "Write size failed");
         return false;
     }
-    for (auto& iter : SessionOption.rotationCorrectionMap_) {
+    for (auto& iter : sessionOption.rotationCorrectionMap_) {
         if (!data.WriteUint32(static_cast<uint32_t>(iter.first))) {
             TLOGE(WmsLogTag::DMS, "Write displayMode failed");
             return false;
         }
         if (!data.WriteUint32(static_cast<uint32_t>(iter.second))) {
             TLOGE(WmsLogTag::DMS, "Write offset failed");
+            return false;
+        }
+    }
+    if (!data.WriteBool(sessionOption.supportsFocus_)) {
+        TLOGE(WmsLogTag::DMS, "Write supportsFocus failed");
+        return false;
+    }
+    if (!data.WriteBool(sessionOption.isRotationLocked_)) {
+        TLOGE(WmsLogTag::DMS, "Write isRotationLocked failed");
+        return false;
+    }
+    if (!data.WriteInt32(sessionOption.rotation_)) {
+        TLOGE(WmsLogTag::DMS, "Write rotation failed");
+        return false;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(sessionOption.rotationOrientationMap_.size()))) {
+        TLOGE(WmsLogTag::DMS, "Write rotationOrientationMap size failed");
+        return false;
+    }
+    for (const auto& pair : sessionOption.rotationOrientationMap_) {
+        if (!data.WriteInt32(pair.first)) {
+            TLOGE(WmsLogTag::DMS, "Write rotationOrientationMap key failed");
+            return false;
+        }
+        if (!data.WriteInt32(pair.second)) {
+            TLOGE(WmsLogTag::DMS, "Write rotationOrientationMap value failed");
             return false;
         }
     }

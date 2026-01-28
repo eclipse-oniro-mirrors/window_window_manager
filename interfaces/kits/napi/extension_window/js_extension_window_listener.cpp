@@ -240,7 +240,7 @@ void JsExtensionWindowListener::OnDisplayIdChanged(DisplayId displayId)
         napi_value argv[] = { CreateJsValue(env, static_cast<int64_t>(displayId)) };
         thisListener->CallJsMethod(WINDOW_DISPLAYID_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_status::napi_ok != napi_send_event(env_, jsCallback, napi_eprio_high)) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnDisplayIdChanged") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to send event");
     }
 }
@@ -258,7 +258,7 @@ void JsExtensionWindowListener::OnSystemDensityChanged(float density)
         napi_value argv[] = { CreateJsValue(env, density) };
         thisListener->CallJsMethod(SYSTEM_DENSITY_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_status::napi_ok != napi_send_event(env_, jsCallback, napi_eprio_high)) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnSystemDensityChanged") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to send event");
     }
 }
@@ -274,7 +274,7 @@ void JsExtensionWindowListener::OnScreenshot()
         }
         thisListener->CallJsMethod(SCREENSHOT_EVENT_CB.c_str(), nullptr, 0);
     };
-    if (napi_status::napi_ok != napi_send_event(env_, jsCallback, napi_eprio_high)) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnScreenshot") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_IMMS, "Failed to send event");
     }
 }
@@ -292,7 +292,7 @@ void JsExtensionWindowListener::OnSecureLimitChange(bool isLimit)
         napi_value argv[] = { CreateJsValue(env, isLimit) };
         thisListener->CallJsMethod(EXTENSION_SECURE_LIMIT_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_status::napi_ok != napi_send_event(env_, jsCallback, napi_eprio_high)) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnSecureLimitChange") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to send event");
     }
 }
@@ -328,7 +328,7 @@ void JsExtensionWindowListener::OnKeyboardDidShow(const KeyboardPanelInfo& keybo
         napi_value argv[] = { objValue };
         thisListener->CallJsMethod(KEYBOARD_DID_SHOW_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_status::napi_ok != napi_send_event(env_, jsCallback, napi_eprio_high)) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnKeyboardDidShow") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to send event");
     }
 }
@@ -364,7 +364,7 @@ void JsExtensionWindowListener::OnKeyboardDidHide(const KeyboardPanelInfo& keybo
         napi_value argv[] = { objValue };
         thisListener->CallJsMethod(KEYBOARD_DID_HIDE_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_status::napi_ok != napi_send_event(env_, jsCallback, napi_eprio_high)) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnKeyboardDidHide") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to send event");
     }
 }

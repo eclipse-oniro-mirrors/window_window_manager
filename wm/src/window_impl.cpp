@@ -75,6 +75,24 @@ Ace::ContentInfoType GetAceContentInfoType(BackupAndRestoreType type)
     }
     return contentInfoType;
 }
+
+const std::map<OHOS::AppExecFwk::DisplayOrientation, Orientation> ABILITY_TO_WMS_ORIENTATION_MAP {
+    {OHOS::AppExecFwk::DisplayOrientation::UNSPECIFIED, Orientation::UNSPECIFIED},
+    {OHOS::AppExecFwk::DisplayOrientation::LANDSCAPE, Orientation::HORIZONTAL},
+    {OHOS::AppExecFwk::DisplayOrientation::PORTRAIT, Orientation::VERTICAL},
+    {OHOS::AppExecFwk::DisplayOrientation::FOLLOWRECENT, Orientation::LOCKED},
+    {OHOS::AppExecFwk::DisplayOrientation::LANDSCAPE_INVERTED, Orientation::REVERSE_HORIZONTAL},
+    {OHOS::AppExecFwk::DisplayOrientation::PORTRAIT_INVERTED, Orientation::REVERSE_VERTICAL},
+    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION, Orientation::SENSOR},
+    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_LANDSCAPE, Orientation::SENSOR_HORIZONTAL},
+    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_PORTRAIT, Orientation::SENSOR_VERTICAL},
+    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_RESTRICTED, Orientation::AUTO_ROTATION_RESTRICTED},
+    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED,
+        Orientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED},
+    {OHOS::AppExecFwk::DisplayOrientation::AUTO_ROTATION_PORTRAIT_RESTRICTED,
+        Orientation::AUTO_ROTATION_PORTRAIT_RESTRICTED},
+    {OHOS::AppExecFwk::DisplayOrientation::LOCKED, Orientation::LOCKED},
+};
 }
 
 WM_IMPLEMENT_SINGLE_INSTANCE(ResSchedReport);
@@ -82,6 +100,14 @@ WM_IMPLEMENT_SINGLE_INSTANCE(ResSchedReport);
 const WindowImpl::ColorSpaceConvertMap WindowImpl::colorSpaceConvertMap[] = {
     { ColorSpace::COLOR_SPACE_DEFAULT, GraphicColorGamut::GRAPHIC_COLOR_GAMUT_SRGB },
     { ColorSpace::COLOR_SPACE_WIDE_GAMUT, GraphicColorGamut::GRAPHIC_COLOR_GAMUT_DCI_P3 },
+};
+
+const std::map<DragType, uint32_t> STYLEID_MAP = {
+    {DragType::DRAG_UNDEFINED, MMI::MOUSE_ICON::DEFAULT},
+    {DragType::DRAG_BOTTOM_OR_TOP, MMI::MOUSE_ICON::NORTH_SOUTH},
+    {DragType::DRAG_LEFT_OR_RIGHT, MMI::MOUSE_ICON::WEST_EAST},
+    {DragType::DRAG_LEFT_TOP_CORNER, MMI::MOUSE_ICON::NORTH_WEST_SOUTH_EAST},
+    {DragType::DRAG_RIGHT_TOP_CORNER, MMI::MOUSE_ICON::NORTH_EAST_SOUTH_WEST}
 };
 
 std::map<std::string, std::pair<uint32_t, sptr<Window>>> WindowImpl::windowMap_;
@@ -99,6 +125,7 @@ std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> WindowImpl::o
 std::map<uint32_t, sptr<IDialogDeathRecipientListener>> WindowImpl::dialogDeathRecipientListener_;
 std::recursive_mutex WindowImpl::globalMutex_;
 std::shared_mutex WindowImpl::windowMapMutex_;
+
 int g_constructorCnt = 0;
 int g_deConstructorCnt = 0;
 WindowImpl::WindowImpl(const sptr<WindowOption>& option)
@@ -114,6 +141,9 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
     auto& sysBarPropMap = option->GetSystemBarProperty();
     for (auto it : sysBarPropMap) {
         property_->SetSystemBarProperty(it.first, it.second);
+        if (it.first == WindowType::WINDOW_TYPE_STATUS_BAR) {
+            windowStatusBarColor_ = it.second.contentColor_;
+        }
     }
     name_ = option->GetWindowName();
 
@@ -608,20 +638,33 @@ void WindowImpl::OnNewWant(const AAFwk::Want& want)
     }
 }
 
-WMError WindowImpl::NapiSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
-        BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
-{
-    return SetUIContentInner(contentInfo, env, storage,
-        type == BackupAndRestoreType::NONE ? WindowSetUIContentType::DEFAULT : WindowSetUIContentType::RESTORE,
-        type, ability, 1);
-}
-
 WMError WindowImpl::NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
     BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
 {
     return SetUIContentInner(contentInfo, env, storage,
         type == BackupAndRestoreType::NONE ? WindowSetUIContentType::DEFAULT : WindowSetUIContentType::RESTORE,
         type, ability);
+}
+
+WMError WindowImpl::AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
+    BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
+{
+    return SetUIContentInner(contentInfo, env, storage,
+        type == BackupAndRestoreType::NONE ? WindowSetUIContentType::DEFAULT : WindowSetUIContentType::RESTORE,
+        type, ability, 1);
+}
+
+WMError WindowImpl::NapiSetUIContentByName(const std::string& contentName, napi_env env, napi_value storage,
+    BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
+{
+    return SetUIContentInner(contentName, env, storage, WindowSetUIContentType::BY_NAME,
+        BackupAndRestoreType::NONE, ability);
+}
+WMError WindowImpl::AniSetUIContentByName(const std::string& contentName, ani_env* env, ani_object storage,
+    BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
+{
+    return SetUIContentInner(contentName, env, storage, WindowSetUIContentType::BY_NAME,
+        BackupAndRestoreType::NONE, ability, 1);
 }
 
 WMError WindowImpl::SetUIContentByName(
@@ -967,6 +1010,10 @@ WMError WindowImpl::UpdateSystemBarProperties(
             systemBarProperties.at(systemBarType).backgroundColor_ : property.backgroundColor_;
         property.contentColor_ = systemBarPropertyFlag.contentColorFlag ?
             systemBarProperties.at(systemBarType).contentColor_ : property.contentColor_;
+        if (systemBarType == WindowType::WINDOW_TYPE_STATUS_BAR) {
+            windowStatusBarColor_ = systemBarPropertyFlag.contentColorFlag ?
+                systemBarProperties.at(systemBarType).contentColor_ : property.contentColor_;
+        }
         property.enableAnimation_ = systemBarPropertyFlag.enableAnimationFlag ?
             systemBarProperties.at(systemBarType).enableAnimation_ : property.enableAnimation_;
 
@@ -1017,23 +1064,18 @@ WMError WindowImpl::SetSystemBarProperty(WindowType type, const SystemBarPropert
     return ret;
 }
 
-WMError WindowImpl::SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-    const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags)
+WMError WindowImpl::SetStatusBarColorForNavigation(const std::optional<uint32_t> color)
 {
     SystemBarProperty current = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    auto flagIter = propertyFlags.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    auto propertyIter = properties.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    if ((flagIter != propertyFlags.end() && flagIter->second.contentColorFlag) &&
-        (propertyIter != properties.end() && current.contentColor_ != propertyIter->second.contentColor_)) {
-        current.contentColor_ = propertyIter->second.contentColor_;
+    if (color != std::nullopt) {
+        current.contentColor_ = color.value();
         current.settingFlag_ = static_cast<SystemBarSettingFlag>(
-            static_cast<uint32_t>(propertyIter->second.settingFlag_) |
+            static_cast<uint32_t>(current.settingFlag_) |
             static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING));
-        WLOGI("Window:%{public}u %{public}s set status bar content color %{public}u",
-            GetWindowId(), GetWindowName().c_str(), current.contentColor_);
-        return SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, current);
+    } else {
+        current.contentColor_ = windowStatusBarColor_;
     }
-    return WMError::WM_OK;
+    return SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, current);
 }
 
 WMError WindowImpl::GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties)
@@ -1820,10 +1862,10 @@ void WindowImpl::AdjustWindowAnimationFlag(bool withAnimation)
     // use custom animation when transitionController exists; else use default animation
     WindowType winType = property_->GetWindowType();
     bool isAppWindow = WindowHelper::IsAppWindow(winType);
-    if (withAnimation && !isAppWindow && animationTransitionController_) {
+    if (withAnimation && !isAppWindow && !animationTransitionControllers_.empty()) {
         // use custom animation
         property_->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::CUSTOM));
-    } else if ((isAppWindow && needDefaultAnimation_) || (withAnimation && !animationTransitionController_)) {
+    } else if ((isAppWindow && needDefaultAnimation_) || (withAnimation && animationTransitionControllers_.empty())) {
         // use default animation
         property_->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::DEFAULT));
     } else if (winType == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
@@ -1892,6 +1934,12 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::TOGGLING) {
         state_ = WindowState::STATE_SHOWN;
         NotifyAfterForeground();
+
+        if (static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::KEYGUARD) {
+            if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
+                NotifyAfterDidForeground(reason, true);
+            }
+        }
         return WMError::WM_OK;
     }
     if (state_ == WindowState::STATE_SHOWN) {
@@ -1960,6 +2008,11 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
         state_ = stateChangeReason == WindowStateChangeReason::KEYGUARD ?
             WindowState::STATE_FROZEN : WindowState::STATE_HIDDEN;
         NotifyAfterBackground();
+
+        if (WindowHelper::IsMainWindow(property_->GetWindowType()) &&
+            stateChangeReason == WindowStateChangeReason::KEYGUARD) {
+            NotifyAfterDidBackground(reason, true);
+        }
         return WMError::WM_OK;
     }
     if (state_ == WindowState::STATE_HIDDEN || state_ == WindowState::STATE_CREATED) {
@@ -1987,13 +2040,29 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
     if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
         NotifyAfterDidBackground(reason);
     }
-    uint32_t animationFlag = property_->GetAnimationFlag();
-    if (animationFlag == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
-        animationTransitionController_->AnimationForHidden();
-    }
+    CustomHideAnimation();
+
     ResetMoveOrDragState();
     escKeyEventTriggered_ = false;
     return ret;
+}
+
+void WindowImpl::CustomHideAnimation()
+{
+    uint32_t animationFlag = property_->GetAnimationFlag();
+    if (animationFlag == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
+        TLOGD(WmsLogTag::WMS_ANIMATION, "Animate for Hidden");
+        std::vector<sptr<IAnimationTransitionController>> animationTransitionControllers;
+        {
+            std::lock_guard<std::mutex> lockListener(transitionControllerMutex_);
+            animationTransitionControllers = animationTransitionControllers_;
+        }
+        for (auto animationTransitionController : animationTransitionControllers) {
+            if (animationTransitionController != nullptr) {
+                animationTransitionController->AnimationForHidden();
+            }
+        }
+    }
 }
 
 WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfiguration moveConfiguration)
@@ -2688,9 +2757,15 @@ WMError WindowImpl::RegisterAnimationTransitionController(const sptr<IAnimationT
         WLOGFE("listener is nullptr");
         return WMError::WM_ERROR_NULLPTR;
     }
-    animationTransitionController_ = listener;
+    {
+        std::lock_guard<std::mutex> lockListener(transitionControllerMutex_);
+        if (std::find(animationTransitionControllers_.begin(), animationTransitionControllers_.end(), listener) ==
+            animationTransitionControllers_.end()) {
+            animationTransitionControllers_.push_back(listener);
+        }
+    }
     wptr<WindowProperty> propertyToken(property_);
-    wptr<IAnimationTransitionController> animationTransitionControllerToken(animationTransitionController_);
+    wptr<IAnimationTransitionController> animationTransitionControllerToken(listener);
     if (uiContent_) {
         uiContent_->SetNextFrameLayoutCallback([propertyToken, animationTransitionControllerToken]() {
             auto property = propertyToken.promote();
@@ -2700,7 +2775,7 @@ WMError WindowImpl::RegisterAnimationTransitionController(const sptr<IAnimationT
             }
             uint32_t animationFlag = property->GetAnimationFlag();
             if (animationFlag == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
-                // CustomAnimation is enabled when animationTransitionController_ exists
+                // CustomAnimation is enabled when animationTransitionController exists
                 animationTransitionController->AnimationForShown();
             }
         });
@@ -3752,7 +3827,8 @@ void WindowImpl::UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk:
 
 void WindowImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type)
 {
-    WLOGI("Update AvoidArea, id: %{public}u", property_->GetWindowId());
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u type %{public}d area %{public}s",
+          property_->GetWindowId(), type, avoidArea->ToString().c_str());
     auto display = SingletonContainer::IsDestroyed() ? nullptr :
         SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
     UpdateViewportConfig(GetRect(), display, WindowSizeChangeReason::AVOID_AREA_CHANGE, nullptr, {{type, *avoidArea}});
@@ -4170,10 +4246,10 @@ void WindowImpl::NotifyAfterForeground(bool needNotifyListeners, bool needNotify
     }
 }
 
-void WindowImpl::NotifyAfterDidForeground(uint32_t reason)
+void WindowImpl::NotifyAfterDidForeground(uint32_t reason, bool forceNotify)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
-    if (reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
+    TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d, need forceNotify:%{public}d", reason, forceNotify);
+    if (reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL) && !forceNotify) {
         TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d no need notify did foreground", reason);
         return;
     }
@@ -4205,10 +4281,10 @@ void WindowImpl::NotifyAfterBackground(bool needNotifyListeners, bool needNotify
     }
 }
 
-void WindowImpl::NotifyAfterDidBackground(uint32_t reason)
+void WindowImpl::NotifyAfterDidBackground(uint32_t reason, bool forceNotify)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
-    if (reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
+    TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d, need forceNotify:%{public}d", reason, forceNotify);
+    if (reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL) && !forceNotify) {
         TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d no need notify did background", reason);
         return;
     }

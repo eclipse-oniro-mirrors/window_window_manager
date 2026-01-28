@@ -202,5 +202,9 @@
     {
         "first_instroduced":"22",
         "name":"OH_WindowManager_UnlockCursor"
+    },
+    {
+        "first_instroduced":"22",
+        "name":"OH_PictureInPicture_SetParentWindowId"
     }
 ]

@@ -33,8 +33,9 @@ public:
     /**
      * @brief Construct of FocusChangeInfo
      */
-    FocusChangeInfo(uint32_t winId, DisplayId displayId, int32_t pid, int32_t uid, WindowType type,
-        const sptr<IRemoteObject>& abilityToken): windowId_(winId), displayId_(displayId), pid_(pid), uid_(uid),
+    FocusChangeInfo(uint32_t winId, DisplayId displayId, DisplayId realDisplayId, DisplayGroupId displayGroupId,
+        int32_t pid, int32_t uid, WindowType type, const sptr<IRemoteObject>& abilityToken): windowId_(winId),
+        displayId_(displayId), realDisplayId_(realDisplayId), displayGroupId_(displayGroupId), pid_(pid), uid_(uid),
         windowType_(type),  abilityToken_(abilityToken) {};
 
     /**
@@ -51,6 +52,7 @@ public:
     virtual bool Marshalling(Parcel& parcel) const
     {
         bool ret = parcel.WriteInt32(windowId_) && parcel.WriteUint64(displayId_) &&
+            parcel.WriteUint64(realDisplayId_) && parcel.WriteUint64(displayGroupId_) &&
             parcel.WriteInt32(pid_) && parcel.WriteInt32(uid_) &&
             parcel.WriteUint32(static_cast<uint32_t>(windowType_));
         if (!ret) {
@@ -68,6 +70,7 @@ public:
     {
         auto focusChangeInfo = new FocusChangeInfo();
         bool res = parcel.ReadInt32(focusChangeInfo->windowId_) && parcel.ReadUint64(focusChangeInfo->displayId_) &&
+            parcel.ReadUint64(focusChangeInfo->realDisplayId_) && parcel.ReadUint64(focusChangeInfo->displayGroupId_) &&
             parcel.ReadInt32(focusChangeInfo->pid_) && parcel.ReadInt32(focusChangeInfo->uid_);
         if (!res) {
             delete focusChangeInfo;
@@ -82,6 +85,8 @@ public:
 
     int32_t windowId_ = INVALID_WINDOW_ID;
     DisplayId displayId_ = 0;
+    DisplayId realDisplayId_ = 0;
+    DisplayGroupId displayGroupId_ = 0;
     int32_t pid_ = -1;
     int32_t uid_ = -1;
     WindowType windowType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;

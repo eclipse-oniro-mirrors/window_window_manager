@@ -20,10 +20,20 @@
 #include "screen_session_manager/include/fold_screen_controller/fold_screen_sensor_manager.h"
 #include "screen_session_manager/include/fold_screen_controller/sensor_fold_state_manager/secondary_display_sensor_fold_state_manager.h"
 #include "fold_screen_state_internel.h"
+#include "screen_session_manager.h"
+#include "screen_sensor_mgr.h"
+#include "fold_screen_common.h"
 
 using namespace testing;
 using namespace testing::ext;
-
+namespace {
+std::string g_logMsg;
+void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+    const char* msg)
+{
+    g_logMsg = msg;
+}
+}
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -52,8 +62,10 @@ public:
     void TearDown() override;
 };
 
+ScreenSessionManager *ssm_;
 void SecondaryFoldSensorManagerTest::SetUpTestCase()
 {
+    ssm_ = &ScreenSessionManager::GetInstance();
     ONLY_FOR_SECONDARY_DISPLAY_FOLD
     g_policy = new SecondaryDisplayFoldPolicy(g_displayInfoMutex, screenPowerTaskScheduler_);
     SecondaryFoldSensorManager::GetInstance().SetFoldScreenPolicy(g_policy);
@@ -71,6 +83,10 @@ void SecondaryFoldSensorManagerTest::SetUp()
 
 void SecondaryFoldSensorManagerTest::TearDown()
 {
+    DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(
+        SENSOR_TYPE_ID_POSTURE);
+    DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(
+        SENSOR_TYPE_ID_HALL_EXT);
 }
 
 namespace {
@@ -94,7 +110,7 @@ HWTEST_F(SecondaryFoldSensorManagerTest, RegisterPostureCallback01, TestSize.Lev
 HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterPostureCallback01, TestSize.Level1)
 {
     ONLY_FOR_SECONDARY_DISPLAY_FOLD
-    SecondaryFoldSensorManager::GetInstance().UnRegisterPostureCallback();
+    DMS::ScreenSensorMgr::GetInstance().UnRegisterPostureCallback();
     EXPECT_FALSE(SecondaryFoldSensorManager::GetInstance().IsPostureUserCallbackInvalid());
 }
 
@@ -118,19 +134,19 @@ HWTEST_F(SecondaryFoldSensorManagerTest, RegisterHallCallback01, TestSize.Level1
 HWTEST_F(SecondaryFoldSensorManagerTest, UnRegisterHallCallback01, TestSize.Level1)
 {
     ONLY_FOR_SECONDARY_DISPLAY_FOLD
-    SecondaryFoldSensorManager::GetInstance().UnRegisterHallCallback();
+    DMS::ScreenSensorMgr::GetInstance().UnRegisterHallCallback();
     EXPECT_FALSE(SecondaryFoldSensorManager::GetInstance().IsHallUserCallbackInvalid());
 }
 
 static std::vector<float> HandlePostureData(float postureBc, float postureAb, float postureAbAnti)
 {
-    FoldScreenSensorManager::PostureDataSecondary postureData = {
+    DMS::PostureDataSecondary postureData = {
         .postureBc = postureBc,
         .postureAb = postureAb,
         .postureAbAnti = postureAbAnti,
     };
     SensorEvent postureEvent = {
-        .dataLen = sizeof(FoldScreenSensorManager::PostureDataSecondary),
+        .dataLen = sizeof(DMS::PostureDataSecondary),
         .data = reinterpret_cast<uint8_t *>(&postureData),
     };
     OHOS::Rosen::SecondaryFoldSensorManager::GetInstance().HandlePostureData(&postureEvent);
@@ -209,13 +225,13 @@ HWTEST_F(SecondaryFoldSensorManagerTest, HandlePostureData04, TestSize.Level1)
 
 static std::vector<uint16_t> HandleHallDataExt(uint16_t hallBc, uint16_t hallAb)
 {
-    FoldScreenSensorManager::EXTHALLData hallData = {
+    DMS::ExtHallData hallData = {
         .flag = 26,
         .hall = hallBc,
         .hallAb = hallAb,
     };
     SensorEvent hallEvent = {
-        .dataLen = sizeof(FoldScreenSensorManager::EXTHALLData),
+        .dataLen = sizeof(DMS::ExtHallData),
         .data = reinterpret_cast<uint8_t *>(&hallData),
     };
     OHOS::Rosen::SecondaryFoldSensorManager::GetInstance().HandleHallDataExt(&hallEvent);
@@ -247,7 +263,7 @@ HWTEST_F(SecondaryFoldSensorManagerTest, HandleHallDataExt02, TestSize.Level1)
 {
     ONLY_FOR_SECONDARY_DISPLAY_FOLD
     SensorEvent hallEvent = {
-        .dataLen = sizeof(FoldScreenSensorManager::EXTHALLData),
+        .dataLen = sizeof(DMS::ExtHallData),
         .data = nullptr,
     };
     OHOS::Rosen::SecondaryFoldSensorManager::GetInstance().HandleHallDataExt(&hallEvent);

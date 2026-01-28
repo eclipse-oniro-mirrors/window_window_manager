@@ -470,8 +470,7 @@ WMError WindowImpl::UpdateSystemBarProperty(bool status)
     return WMError::WM_OK;
 }
 
-WMError WindowImpl::SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-    const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags)
+WMError WindowImpl::SetStatusBarColorForNavigation(const std::optional<uint32_t> color)
 {
     return WMError::WM_OK;
 }

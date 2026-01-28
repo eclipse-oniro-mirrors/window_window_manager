@@ -38,6 +38,7 @@ public:
     void SetPiPControlEnabled(PiPControlType controlType, PiPControlStatus enabled);
     void SetXComponentController(std::shared_ptr<XComponentController> xComponentController);
     void SetControlGroup(std::vector<std::uint32_t> controlGroup);
+    void SetCornerAdsorptionEnabled(bool cornerAdsorptionEnabled);
     void* GetContext() const;
     std::string GetNavigationId() const;
     uint32_t GetPipTemplate();
@@ -47,6 +48,7 @@ public:
     std::vector<PiPControlEnableInfo> GetControlEnable();
     void GetContentSize(uint32_t& width, uint32_t& height);
     std::shared_ptr<XComponentController> GetXComponentController();
+    bool GetCornerAdsorptionEnabled() const;
     void SetNodeControllerRef(napi_ref ref);
     napi_ref GetNodeControllerRef() const;
     void SetTypeNodeRef(napi_ref ref);
@@ -74,6 +76,7 @@ private:
     napi_ref customNodeController_ = nullptr;
     napi_ref typeNode_ = nullptr;
     bool useTypeNode_ = false;
+    bool cornerAdsorptionEnabled_ = true;
     napi_ref storage_ = nullptr;
     int32_t handleId_ = -1;
 };

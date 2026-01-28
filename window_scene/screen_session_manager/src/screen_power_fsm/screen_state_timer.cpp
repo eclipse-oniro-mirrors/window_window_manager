@@ -28,7 +28,7 @@ void ScreenStateTimer::StartTimer(int32_t state, uint32_t delayMs, TaskScheduler
     stateCancelMap_[state] = task;
     auto expectTime = std::chrono::steady_clock::now();
     if (ffrtQueueHelper == nullptr) {
-        TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] ffrtQueueHelper is nullptr");
+        TLOGNFI(WmsLogTag::DMS, "[ScreenPower FSM] ffrtQueueHelper is nullptr");
         return;
     }
     ffrtQueueHelper->SubmitTask([this, state, delayMs, expectTime] {
@@ -36,7 +36,7 @@ void ScreenStateTimer::StartTimer(int32_t state, uint32_t delayMs, TaskScheduler
         std::unique_lock<std::mutex> lock(mutex_);
         auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - expectTime).count();
         auto delayTmp = delayMs - interval;
-        TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] task start delay time: %{public}lld", delayTmp);
+        TLOGNFI(WmsLogTag::DMS, "[ScreenPower FSM] task start delay time: %{public}lld", delayTmp);
         if (delayTmp <= 0 || std::cv_status::timeout == DmUtils::safe_wait_for(cv_, lock,
             std::chrono::milliseconds(delayTmp))) {
             if (stateCancelMap_.find(state) != stateCancelMap_.end()) {
@@ -50,7 +50,7 @@ void ScreenStateTimer::StartTimer(int32_t state, uint32_t delayMs, TaskScheduler
 void ScreenStateTimer::StopTimer(int32_t state)
 {
     std::unique_lock<std::mutex> lock(mutex_);
-    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] current state: %{public}d", state);
+    TLOGNFI(WmsLogTag::DMS, "[ScreenPower FSM] current state: %{public}d", state);
     stateCancelMap_.erase(state);
     cv_.notify_all();
 }

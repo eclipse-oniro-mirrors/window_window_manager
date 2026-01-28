@@ -92,6 +92,163 @@ HWTEST_F(WindowSceneSessionImplEventTest, UnlockCursor, TestSize.Level0)
     ret = window->UnlockCursor(1);
     EXPECT_EQ(ret, WMError::WM_OK);
 }
+
+/**
+ * @tc.name: SetReceiveDragEventEnabled
+ * @tc.desc: SetReceiveDragEventEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, SetReceiveDragEventEnabled, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetReceiveDragEventEnabled");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->hostSession_ = nullptr;
+    auto ret = window->SetReceiveDragEventEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->property_->persistentId_ = 11;
+    window->state_ = WindowState::STATE_SHOWN;
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    window->hostSession_ = session;
+    ret = window->SetReceiveDragEventEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: IsReceiveDragEventEnabled
+ * @tc.desc: IsReceiveDragEventEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, IsReceiveDragEventEnabled, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsReceiveDragEventEnabled");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->hostSession_ = nullptr;
+    auto ret = window->SetReceiveDragEventEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+
+    auto isRet =  window->IsReceiveDragEventEnabled();
+    EXPECT_EQ(isRet, true);
+
+    window->property_->persistentId_ = 11;
+    window->state_ = WindowState::STATE_SHOWN;
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    window->hostSession_ = session;
+
+    ret = window->SetReceiveDragEventEnabled(false);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    isRet =  window->IsReceiveDragEventEnabled();
+    EXPECT_EQ(isRet, false);
+}
+
+/**
+ * @tc.name: SetSeparationTouchEnabled
+ * @tc.desc: SetSeparationTouchEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, SetSeparationTouchEnabled, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSeparationTouchEnabled");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->hostSession_ = nullptr;
+    auto ret = window->SetSeparationTouchEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->property_->persistentId_ = 11;
+    window->state_ = WindowState::STATE_SHOWN;
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    window->hostSession_ = session;
+    ret = window->SetSeparationTouchEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    window->property_->persistentId_ = 12;
+    window->state_ = WindowState::STATE_SHOWN;
+    window->hostSession_ = session;
+    ret = window->SetSeparationTouchEnabled(false);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: IsSeparationTouchEnabled
+ * @tc.desc: IsSeparationTouchEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, IsSeparationTouchEnabled, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSeparationTouchEnabled");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->hostSession_ = nullptr;
+    auto ret = window->SetSeparationTouchEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+
+    auto isRet =  window->IsSeparationTouchEnabled();
+    EXPECT_EQ(isRet, true);
+
+    window->property_->persistentId_ = 11;
+    window->state_ = WindowState::STATE_SHOWN;
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    window->hostSession_ = session;
+
+    ret = window->SetSeparationTouchEnabled(false);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    isRet =  window->IsSeparationTouchEnabled();
+    EXPECT_EQ(isRet, false);
+}
+
+/**
+ * @tc.name: ClearWindowMask
+ * @tc.desc: ClearWindowMask
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, ClearWindowMask, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ClearWindowMask");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    // 1.invalid window
+    window->hostSession_ = nullptr;
+    auto ret = window->ClearWindowMask();
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->property_->persistentId_ = 11;
+    window->state_ = WindowState::STATE_SHOWN;
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    // 2.is not shaped window
+    ret = window->ClearWindowMask();
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_OPERATION);
+    window->property_->SetIsShaped(true);
+
+    EXPECT_CALL(*session, UpdateSessionPropertyByAction(_, _)).WillRepeatedly(Return(WMError::WM_OK));
+    // 3.recover default corner and shadow
+    EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
+    // 4.recover default shadow
+    window->property_->SetWindowCornerRadius(10);
+    EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
+    // 5.recover default corner
+    ShadowsInfo shadowsInfo = window->property_->GetWindowShadows();
+    shadowsInfo.hasRadiusValue_ = true;
+    window->property_->SetWindowShadows(shadowsInfo);
+    window->property_->SetWindowCornerRadius(WINDOW_CORNER_RADIUS_INVALID);
+    EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
+    // 6.no need recover default value
+    window->property_->SetWindowCornerRadius(10);
+    EXPECT_EQ(WMError::WM_OK, window->ClearWindowMask());
+    window->property_->SetIsShaped(true);
+    // 7.update property failed
+    EXPECT_CALL(*session, UpdateSessionPropertyByAction(_, _)).WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, window->ClearWindowMask());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

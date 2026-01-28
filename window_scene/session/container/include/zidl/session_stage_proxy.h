@@ -18,7 +18,7 @@
 
 #include <iremote_proxy.h>
 #include <transaction/rs_transaction.h>
-#include <ui/rs_canvas_node.h>
+#include <feature/window_keyframe/rs_window_keyframe_node.h>
 
 #include "interfaces/include/ws_common.h"
 #include "session/container/include/zidl/session_stage_interface.h"
@@ -37,7 +37,6 @@ public:
             0, WindowAnimationCurve::LINEAR, {0.0f, 0.0f, 0.0f, 0.0f} },
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {}) override;
     WSError UpdateGlobalDisplayRectFromServer(const WSRect& rect, SizeChangeReason reason) override;
-    void UpdateDensity() override;
     WSError UpdateOrientation() override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
     WSError HandleBackEvent() override;
@@ -70,6 +69,7 @@ public:
     WSError UpdateTitleInTargetPos(bool isShow, int32_t height) override;
     void NotifyTransformChange(const Transform& transform) override;
     void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) override;
+    void NotifyGlobalScaledRectChange(const Rect& globalScaledRect) override;
     WSError NotifyDialogStateChange(bool isForeground) override;
     WSError SetPipActionEvent(const std::string& action, int32_t status) override;
     WSError SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -85,7 +85,7 @@ public:
     void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     void UpdateAnimationSpeed(float speed) override;
     void NotifySessionFullScreen(bool fullScreen) override;
-    WSError NotifyTargetRotationInfo(OrientationInfo& Info) override;
+    WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo) override;
     WSError NotifyPageRotationIsIgnored() override;
     RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo) override;
 
@@ -93,8 +93,8 @@ public:
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
 
-    WSError LinkKeyFrameCanvasNode(std::shared_ptr<RSCanvasNode>& rsCanvasNode) override;
-    WSError SetKeyFramePolicy(KeyFramePolicy& keyFramePolicy) override;
+    WSError LinkKeyFrameNode() override;
+    WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
 
     WSError SetDragActivated(bool dragActivated) override;
     WSError SetSplitButtonVisible(bool isVisible) override;
@@ -111,6 +111,7 @@ public:
         const std::shared_ptr<RSTransaction>& rsTransaction) override;
     WSError SetCurrentRotation(int32_t currentRotation) override;
     WSError NotifyAppForceLandscapeConfigUpdated() override;
+    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
     WSError NotifyAppHookWindowInfoUpdated() override;
     WSError CloseSpecificScene() override;
 
@@ -121,6 +122,12 @@ public:
     WSError SendFbActionEvent(const std::string& action) override;
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
+
+    // Window Property
+    WSError UpdateBrightness(float brightness) override;
+    void UpdateDensity() override;
+    WSError AddSidebarBlur() override;
+    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;

@@ -68,6 +68,7 @@ public:
     void OnAnimationFinish() override {};
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override {};
     sptr<IRemoteObject> AsObject() override {return testPtr;};
+    void OnTentModeChange(TentMode tentMode) override {};
     sptr<IRemoteObject> testPtr;
 };
 }

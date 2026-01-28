@@ -580,6 +580,48 @@ HWTEST_F(DisplayManagerAgentProxyTest, OnScreenshot02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyRecordingDisplayChanged01
+ * @tc.desc: NotifyRecordingDisplayChanged01
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyRecordingDisplayChanged01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    std::vector<DisplayId> displayIds;
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    displayManagerAgentProxy->NotifyRecordingDisplayChanged(displayIds);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    displayManagerAgentProxy = sptr<DisplayManagerAgentProxy>::MakeSptr(remoteMocker);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    displayManagerAgentProxy->NotifyRecordingDisplayChanged(displayIds);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    displayManagerAgentProxy->NotifyRecordingDisplayChanged(displayIds);
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") != std::string::npos);
+}
+
+/**
+ * @tc.name: OnScreenshot02
+ * @tc.desc: OnScreenshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyRecordingDisplayChanged02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    std::vector<DisplayId> displayIds;
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64VectorErrorFlag(true);
+    displayManagerAgentProxy->NotifyRecordingDisplayChanged(displayIds);
+    EXPECT_TRUE(g_logMsg.find("Write displayId failed") != std::string::npos);
+}
+
+/**
  * @tc.name: NotifyPrivateWindowStateChanged01
  * @tc.desc: NotifyPrivateWindowStateChanged01
  * @tc.type: FUNC

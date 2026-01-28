@@ -38,8 +38,8 @@ void DropEmbeddableWindowStageByAni(ani_object aniObj)
     auto obj = localObjs.find(reinterpret_cast<ani_object>(aniObj));
     if (obj != localObjs.end()) {
         delete obj->second;
+        localObjs.erase(obj);
     }
-    localObjs.erase(obj);
 }
 
 AniEmbeddableWindowStage* GetEmbeddableWindowStageFromAni(void* aniObj)
@@ -62,7 +62,7 @@ ani_object CreateAniEmbeddableWindowStage(ani_env* env, sptr<Rosen::Window> wind
 
     ani_status ret;
     ani_class cls = nullptr;
-    if ((ret = env->FindClass("L@ohos/window/window/WindowStageInternal;", &cls)) != ANI_OK) {
+    if ((ret = env->FindClass("@ohos.window.window.WindowStageInternal", &cls)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] null env %{public}u", ret);
         return cls;
     }
@@ -77,7 +77,7 @@ ani_object CreateAniEmbeddableWindowStage(ani_env* env, sptr<Rosen::Window> wind
     }
 
     ani_method initFunc = nullptr;
-    if ((ret = env->Class_FindMethod(cls, "<ctor>", ":V", &initFunc)) != ANI_OK) {
+    if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] get ctor fail %{public}u", ret);
         return nullptr;
     }
@@ -87,7 +87,7 @@ ani_object CreateAniEmbeddableWindowStage(ani_env* env, sptr<Rosen::Window> wind
         return nullptr;
     }
     ani_method setObjFunc = nullptr;
-    if ((ret = env->Class_FindMethod(cls, "setNativeObj", "J:V", &setObjFunc)) != ANI_OK) {
+    if ((ret = env->Class_FindMethod(cls, "setNativeObj", "l:", &setObjFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] get ctor fail %{public}u", ret);
         return nullptr;
     }
@@ -114,37 +114,3 @@ AniEmbeddableWindowStage* GetEmbeddableWindowStageFromEnv(ani_env* env, ani_clas
 }
 }  // namespace Rosen
 }  // namespace OHOS
-
-extern "C" {
-ANI_EXPORT ani_status ExtensionWindow_ANI_Constructor(ani_vm *vm, uint32_t* result);
-ANI_EXPORT ani_status ExtensionWindowHost_ANI_Constructor(ani_vm *vm, uint32_t* result);
-ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t* result)
-{
-    using namespace OHOS::Rosen;
-    ani_status ret;
-    ani_env* env;
-    if ((ret = vm->GetEnv(ANI_VERSION_1, &env)) != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] null env");
-        return ANI_NOT_FOUND;
-    }
-
-    ani_class cls = nullptr;
-    if ((ret = env->FindClass("L@ohos/window/window/WindowStage;", &cls)) != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] null env %{public}u", ret);
-        return ANI_NOT_FOUND;
-    }
-    *result = ANI_VERSION_1;
-
-    ret = ExtensionWindow_ANI_Constructor(vm, result);
-    if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] Constructor ExtensionWindow failed: %{public}u", ret);
-        return ret;
-    }
-    ret = ExtensionWindowHost_ANI_Constructor(vm, result);
-    if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] Constructor ExtensionWindowHost failed: %{public}u", ret);
-        return ret;
-    }
-    return ANI_OK;
-}
-}

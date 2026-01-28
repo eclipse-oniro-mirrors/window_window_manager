@@ -138,6 +138,11 @@ public:
         return (IsBelowSystemWindow(type) || IsAboveSystemWindow(type) || IsSystemSubWindow(type));
     }
 
+    static inline bool IsSystemWindowButNotDialog(WindowType type)
+    {
+        return IsSystemWindow(type) && !IsDialogWindow(type);
+    }
+
     static inline bool IsUIExtensionWindow(WindowType type)
     {
         return (type == WindowType::WINDOW_TYPE_UI_EXTENSION);
@@ -727,6 +732,16 @@ public:
             return std::fabs(value - 1.0f) < EPSILON;
         };
         return !IsApproximatelyOne(transform.scaleX_) || !IsApproximatelyOne(transform.scaleY_);
+    }
+
+    static bool IsSupportSetZIndexWindow(WindowType windowType)
+    {
+        return windowType == WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD ||
+               windowType == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
+               windowType == WindowType::WINDOW_TYPE_SCREENSHOT ||
+               windowType == WindowType::WINDOW_TYPE_SCREEN_CONTROL ||
+               windowType == WindowType::WINDOW_TYPE_FLOAT_NAVIGATION ||
+               windowType == WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION;
     }
 
 private:

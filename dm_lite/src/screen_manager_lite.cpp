@@ -409,6 +409,11 @@ ScreenPowerState ScreenManagerLite::GetScreenPower()
     return SingletonContainer::Get<ScreenManagerAdapterLite>().GetScreenPower();
 }
 
+void ScreenManagerLite::SyncScreenPowerState(ScreenPowerState state)
+{
+    SingletonContainer::Get<ScreenManagerAdapterLite>().SyncScreenPowerState(state);
+}
+
 DMError ScreenManagerLite::GetPhysicalScreenIds(std::vector<ScreenId>& screenIds)
 {
     TLOGI(WmsLogTag::DMS, "enter");
@@ -451,6 +456,19 @@ bool ScreenManagerLite::SynchronizePowerStatus(ScreenPowerState state)
 {
     TLOGD(WmsLogTag::DMS, "state: %{public}u", state);
     return SingletonContainer::Get<ScreenManagerAdapterLite>().SynchronizePowerStatus(state);
+}
+
+DMError ScreenManagerLite::SetResolution(uint32_t width, uint32_t height, uint32_t dpi)
+{
+    if (width <= 0 || height <= 0 || dpi > DOT_PER_INCH_MAXIMUM_VALUE || dpi < DOT_PER_INCH_MINIMUM_VALUE) {
+        TLOGE(WmsLogTag::DMS, "Invalid param, w:%{public}u h:%{public}u dpi:%{public}u", width, height, dpi);
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    // Calculate display density, Density = Dpi / 160.
+    // 160 is the coefficient between density and dpi.
+    float density = static_cast<float>(dpi) / 160;
+    ScreenId defaultId = 0;
+    return SingletonContainer::Get<ScreenManagerAdapterLite>().SetResolution(defaultId, width, height, density);
 }
 
 } // namespace OHOS::Rosen

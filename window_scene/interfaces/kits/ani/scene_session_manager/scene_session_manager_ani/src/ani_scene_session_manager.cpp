@@ -30,7 +30,7 @@ ani_status AniSceneSessionManager::Init(ani_env* env, ani_namespace nsp)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI] AniSceneSessionManager Init");
     ani_function setObjFunc = nullptr;
-    ani_status ret = env->Namespace_FindFunction(nsp, "setSceneSessionManagerRef", "J:V", &setObjFunc);
+    ani_status ret = env->Namespace_FindFunction(nsp, "setSceneSessionManagerRef", "l:", &setObjFunc);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] find setSceneSessionManagerRef func fail %{public}u", ret);
         return ret;
@@ -81,12 +81,12 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm* vm, uint32_t* result)
         return ANI_NOT_FOUND;
     }
     ani_namespace nsp;
-    if ((ret = env->FindNamespace("L@ohos/sceneSessionManager/sceneSessionManager;", &nsp)) != ANI_OK) {
+    if ((ret = env->FindNamespace("@ohos.sceneSessionManager.sceneSessionManager", &nsp)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] null env %{public}u", ret);
         return ANI_NOT_FOUND;
     }
     std::array funcs = {
-        ani_native_function {"getRootSceneUIContextSync", "J:L@ohos/arkui/UIContext/UIContext;",
+        ani_native_function {"getRootSceneUIContextSync", "l:C{@ohos.arkui.UIContext.UIContext}",
             reinterpret_cast<void *>(AniSceneSessionManager::GetRootSceneUIContext)}
     };
     if ((ret = env->Namespace_BindNativeFunctions(nsp, funcs.data(), funcs.size()))) {

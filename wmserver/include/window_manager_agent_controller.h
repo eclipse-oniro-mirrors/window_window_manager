@@ -40,8 +40,7 @@ public:
     void NotifyWaterMarkFlagChangedResult(bool showWaterMark);
     void NotifyGestureNavigationEnabledResult(bool enable);
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground);
-    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-        const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList);
+    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList);
 
 private:
     WindowManagerAgentController() {}

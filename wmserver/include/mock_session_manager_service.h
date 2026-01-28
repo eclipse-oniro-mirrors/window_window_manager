@@ -66,6 +66,12 @@ public:
     void UnregisterSMSRecoverListenerInner(int32_t clientUserId, DisplayId displayId, int32_t pid, bool isLite);
 
     /*
+     * Window Hierarchy
+     */
+    ErrCode NotifySetSpecificWindowZIndex() override;
+    void ResetSpecificWindowZIndex(int32_t clientUserId, int32_t pid);
+
+    /*
      * Window Snapshot
      */
     ErrCode SetSnapshotSkipByUserIdAndBundleNames(int32_t userId,
@@ -75,7 +81,7 @@ public:
 
 protected:
     MockSessionManagerService();
-    virtual ~MockSessionManagerService() = default;
+    virtual ~MockSessionManagerService();
 
 private:
     /*
@@ -136,7 +142,9 @@ private:
         std::vector<std::string>>& userIdAndBunldeNames);
 
     sptr<IRemoteObject> screenSessionManager_;
+    std::mutex screenSessionManagerMutex_;
     sptr<IRemoteObject> defaultSceneSessionManager_;
+    std::mutex defaultSceneSessionManagerMutex_;
 
     /*
      * Multi User
@@ -145,7 +153,7 @@ private:
     std::mutex defaultWMSUserIdMutex_;
     DisplayId defaultScreenId_;
     std::mutex userId2ScreenIdMapMutex_;
-    std::map<int32_t, int32_t> userId2ScreenIdMap_;
+    std::map<int32_t, DisplayId> userId2ScreenIdMap_;
     std::shared_mutex smsDeathRecipientMapLock_;
     std::map<int32_t, sptr<SMSDeathRecipient>> smsDeathRecipientMap_;
     std::mutex sessionManagerServiceMapMutex_;
@@ -161,14 +169,20 @@ private:
      * Window Recover
      */
     std::map<int32_t, SMSRecoverListenerMap> recoverListenerMap_;
-    std::shared_mutex recoverListenerMutex_;
+    std::mutex recoverListenerMutex_;
     std::map<int32_t, SMSRecoverListenerMap> liteRecoverListenerMap_;
-    std::shared_mutex liteRecoverListenerMutex_;
+    std::mutex liteRecoverListenerMutex_;
 
     std::map<DisplayId, SMSRecoverListenerMap> systemAppRecoverListenerMap_;
-    std::shared_mutex systemAppRecoverListenerMutex_;
+    std::mutex systemAppRecoverListenerMutex_;
     std::map<DisplayId, SMSRecoverListenerMap> liteSystemAppRecoverListenerMap_;
-    std::shared_mutex liteSystemAppRecoverListenerMutex_;
+    std::mutex liteSystemAppRecoverListenerMutex_;
+
+    /*
+     * Window Hierarchy
+     */
+    std::unordered_map<int32_t, int32_t> specificZIndexByPidMap_;
+    std::mutex specificZIndexByPidMapMutex_;
 
     /*
      * Window Snapshot

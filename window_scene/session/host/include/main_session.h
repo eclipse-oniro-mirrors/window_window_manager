@@ -24,6 +24,8 @@ public:
     MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~MainSession();
 
+    void OnFirstStrongRef(const void* objectId) override;
+
     WSError Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<WindowSessionProperty> property = nullptr,
         sptr<IRemoteObject> token = nullptr, int32_t pid = -1, int32_t uid = -1) override;
@@ -31,6 +33,8 @@ public:
     void NotifyForegroundInteractiveStatus(bool interactive) override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     void RectCheck(uint32_t curWidth, uint32_t curHeight) override;
+    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
+    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
 
     /*
      * Window Hierarchy
@@ -80,6 +84,22 @@ public:
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     void RegisterForceSplitFullScreenChangeCallback(ForceSplitFullScreenChangeCallback&& callback) override;
     bool IsFullScreenInForceSplit() override;
+    void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) override;
+    WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
+    void RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func) override;
+
+    /*
+     * Window Pattern
+     */
+    void RecoverSnapshotPersistence(const SessionInfo& info) override;
+    void ClearSnapshotPersistence() override;
+
+    /*
+     * Prelaunch check
+     */
+    void RemovePrelaunchStartingWindow() override;
+    void SetPrelaunch() override;
+    bool IsPrelaunch() const override;
 
 protected:
     void UpdatePointerArea(const WSRect& rect) override;
@@ -110,6 +130,14 @@ private:
      */
     ForceSplitFullScreenChangeCallback forceSplitFullScreenChangeCallback_;
     std::atomic_bool isFullScreenInForceSplit_ { false };
+    CompatibleModeChangeCallback compatibleModeChangeCallback_;
+    NotifyForceSplitEnableFunc forceSplitEnableFunc_;
+
+    /*
+     * Prelaunch check
+     */
+    int64_t prelaunchStart_ = 0;
+    bool prelaunchEnable_ = false;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_MAIN_SESSION_H

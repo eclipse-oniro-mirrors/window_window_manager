@@ -31,6 +31,7 @@ static const std::string DUAL_DISPLAY = "2";
 static const std::string SINGLE_POCKET_DISPLAY = "4";
 static const std::string SUPER_FOLD_DISPLAY = "5";
 static const std::string SECONDARY_FOLD_DISPLAY = "6";
+static const std::string SINGLE_SUPER_DISPLAY = "7";
 static const std::string DEFAULT_OFFSET = "0";
 static const size_t THIRD_ANGLE = 2;
 }
@@ -55,45 +56,27 @@ public:
 
     static bool IsDualDisplayFoldDevice()
     {
-        if (!IsValidFoldType(g_foldScreenType)) {
-            return false;
-        }
-        std::vector<std::string> foldTypes = StringSplit(g_foldScreenType, ',');
-        if (foldTypes.empty()) {
-            return false;
-        }
-        return foldTypes[0] == DUAL_DISPLAY;
+        return GetFoldType() == DUAL_DISPLAY;
     }
 
     static bool IsSingleDisplayFoldDevice()
     {
-        // ALTB ccm property conflict with the chip, waiting for chip conflict resolution
-        return !IsDualDisplayFoldDevice() && !IsSingleDisplayPocketFoldDevice() &&
-            !IsSuperFoldDisplayDevice() && !IsSecondaryDisplayFoldDevice();
+        return GetFoldType() == SINGLE_DISPLAY;
     }
 
     static bool IsSingleDisplayPocketFoldDevice()
     {
-        if (!IsValidFoldType(g_foldScreenType)) {
-            return false;
-        }
-        std::vector<std::string> foldTypes = StringSplit(g_foldScreenType, ',');
-        if (foldTypes.empty()) {
-            return false;
-        }
-        return foldTypes[0] == SINGLE_POCKET_DISPLAY;
+        return GetFoldType() == SINGLE_POCKET_DISPLAY;
+    }
+
+    static bool IsSingleDisplaySuperFoldDevice()
+    {
+        return GetFoldType() == SINGLE_SUPER_DISPLAY;
     }
 
     static bool IsSuperFoldDisplayDevice()
     {
-        if (!IsValidFoldType(g_foldScreenType)) {
-            return false;
-        }
-        std::vector<std::string> foldTypes = StringSplit(g_foldScreenType, ',');
-        if (foldTypes.empty()) {
-            return false;
-        }
-        return foldTypes[0] == SUPER_FOLD_DISPLAY;
+        return GetFoldType() == SUPER_FOLD_DISPLAY;
     }
 
     static bool IsSecondaryDisplayFoldDevice()
@@ -106,7 +89,7 @@ public:
         if (IsDualDisplayFoldDevice()) {
             return foldDisplayMode == FoldDisplayMode::SUB;
         }
-        if (IsSingleDisplayFoldDevice() || IsSingleDisplayPocketFoldDevice()) {
+        if (IsSingleDisplayFoldDevice() || IsSingleDisplayPocketFoldDevice() || IsSingleDisplaySuperFoldDevice()) {
             return foldDisplayMode == FoldDisplayMode::MAIN;
         }
         return false;

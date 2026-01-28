@@ -384,6 +384,123 @@ HWTEST_F(WindowSessionImplTest2, NotifyWindowOcclusionState, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyWindowOcclusionStateAll
+ * @tc.desc: notify all occlusion state change
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, NotifyWindowOcclusionStateAll, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("NotifyWindowOcclusionStateAll");
+    ASSERT_NE(window, nullptr);
+
+    // default visibility state
+    EXPECT_EQ(window->lastVisibilityState_, WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION);
+    WindowVisibilityState state = WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION;
+    EXPECT_EQ(window->NotifyWindowOcclusionState(static_cast<WindowVisibilityState>(state + 1)), WSError::WS_OK);
+    EXPECT_EQ(window->lastVisibilityState_, WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION);
+
+    window->occlusionStateChangeListeners_.clear();
+    EXPECT_EQ(window->occlusionStateChangeListeners_.size(), 0);
+    sptr<IOcclusionStateChangedListener> listener = sptr<IOcclusionStateChangedListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterOcclusionStateChangeListener(listener), WMError::WM_OK);
+    EXPECT_EQ(window->occlusionStateChangeListeners_.size(), 1);
+
+    // traverse all visibility states verify
+    WindowVisibilityState visibilityStates[] = {
+        WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION,
+        WindowVisibilityState::WINDOW_VISIBILITY_STATE_PARTICALLY_OCCLUSION,
+        WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION
+    };
+
+    for (auto state : visibilityStates) {
+        auto ret = window->NotifyWindowOcclusionState(state);
+        EXPECT_EQ(WSError::WS_OK, ret);
+        EXPECT_EQ(state, window->lastVisibilityState_);
+    }
+
+    window->occlusionStateChangeListeners_.clear();
+    EXPECT_EQ(window->occlusionStateChangeListeners_.size(), 0);
+
+    window->Destroy();
+}
+
+/**
+ * @tc.name: RegisterFrameMetricsChangeListener
+ * @tc.desc: register frame metrics change listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, RegisterFrameMetricsChangeListener, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("RegisterFrameMetricsChangeListener");
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    window->frameMetricsChangeListeners_.clear();
+    window->uiContent_ = nullptr;
+    EXPECT_NE(window->RegisterFrameMetricsChangeListener(nullptr), WMError::WM_OK);
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_NE(window->RegisterFrameMetricsChangeListener(nullptr), WMError::WM_OK);
+    Ace::UIContentMocker* content = reinterpret_cast<Ace::UIContentMocker*>(window->uiContent_.get());
+    EXPECT_CALL(*content, SetFrameMetricsCallBack(_));
+    sptr<IFrameMetricsChangedListener> listener = sptr<IFrameMetricsChangedListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterFrameMetricsChangeListener(listener), WMError::WM_OK);
+    EXPECT_EQ(window->frameMetricsChangeListeners_.size(), 1);
+    sptr<IFrameMetricsChangedListener> listener2 = sptr<IFrameMetricsChangedListener>::MakeSptr();
+    window->frameMetricsChangeListeners_[window->GetPersistentId()].push_back(listener2);
+    sptr<IFrameMetricsChangedListener> listener3 = sptr<IFrameMetricsChangedListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterFrameMetricsChangeListener(listener3), WMError::WM_OK);
+    window->frameMetricsChangeListeners_.clear();
+    window->Destroy();
+}
+
+/**
+ * @tc.name: UnregisterFrameMetricsChangeListener
+ * @tc.desc: unregister frame metrics change listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, UnregisterFrameMetricsChangeListener, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("UnregisterFrameMetricsChangeListener");
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    window->frameMetricsChangeListeners_.clear();
+    window->uiContent_ = nullptr;
+    EXPECT_NE(window->RegisterFrameMetricsChangeListener(nullptr), WMError::WM_OK);
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_NE(window->UnregisterFrameMetricsChangeListener(nullptr), WMError::WM_OK);
+    Ace::UIContentMocker* content = reinterpret_cast<Ace::UIContentMocker*>(window->uiContent_.get());
+    EXPECT_CALL(*content, SetFrameMetricsCallBack(_));
+    sptr<IFrameMetricsChangedListener> listener = sptr<IFrameMetricsChangedListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterFrameMetricsChangeListener(listener), WMError::WM_OK);
+    sptr<IFrameMetricsChangedListener> listener2 = sptr<IFrameMetricsChangedListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterFrameMetricsChangeListener(listener2), WMError::WM_OK);
+    EXPECT_EQ(window->UnregisterFrameMetricsChangeListener(listener), WMError::WM_OK);
+    EXPECT_CALL(*content, SetFrameMetricsCallBack(_));
+    EXPECT_EQ(window->UnregisterFrameMetricsChangeListener(listener2), WMError::WM_OK);
+    window->frameMetricsChangeListeners_.clear();
+    EXPECT_EQ(window->frameMetricsChangeListeners_.size(), 0);
+    window->Destroy();
+}
+
+/**
+ * @tc.name: NotifyFrameMetrics
+ * @tc.desc: unregister frame metrics change listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, NotifyFrameMetrics, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("NotifyFrameMetrics");
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    window->frameMetricsChangeListeners_.clear();
+    sptr<IFrameMetricsChangedListener> listener = sptr<IFrameMetricsChangedListener>::MakeSptr();
+    window->frameMetricsChangeListeners_[window->GetPersistentId()].push_back(listener);
+    Ace::FrameMetrics metric;
+    window->NotifyFrameMetrics(metric);
+    window->frameMetricsChangeListeners_.clear();
+    window->Destroy();
+}
+
+/**
  * @tc.name: UpdateViewportConfig_KeyFrame
  * @tc.desc: UpdateViewportConfig_KeyFrame
  * @tc.type: FUNC
@@ -396,7 +513,7 @@ HWTEST_F(WindowSessionImplTest2, UpdateViewportConfig_KeyFrame, TestSize.Level1)
     sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
     KeyFramePolicy keyFramePolicy;
-    window->SetKeyFramePolicy(keyFramePolicy);
+    window->SetStageKeyFramePolicy(keyFramePolicy);
     WindowSizeChangeReason reason = WindowSizeChangeReason::UNDEFINED;
     window->UpdateViewportConfig(rect, reason, nullptr, displayInfo, avoidAreas);
     ASSERT_EQ(window->keyFramePolicy_.stopping_, false);
@@ -423,41 +540,40 @@ HWTEST_F(WindowSessionImplTest2, RegisterKeyFrameCallback, TestSize.Level1)
 }
 
 /**
- * @tc.name: LinkKeyFrameCanvasNode
- * @tc.desc: LinkKeyFrameCanvasNode
+ * @tc.name: LinkKeyFrameNode
+ * @tc.desc: LinkKeyFrameNode
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest2, LinkKeyFrameCanvasNode, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest2, LinkKeyFrameNode, TestSize.Level1)
 {
-    auto window = GetTestWindowImpl("LinkKeyFrameCanvasNode");
+    auto window = GetTestWindowImpl("LinkKeyFrameNode");
     ASSERT_NE(window, nullptr);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     auto hostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    auto rsCanvasNode = RSCanvasNode::Create();
     window->uiContent_ = nullptr;
     window->hostSession_ = nullptr;
-    ASSERT_EQ(window->LinkKeyFrameCanvasNode(rsCanvasNode), WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_ERROR_NULLPTR);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    ASSERT_EQ(window->LinkKeyFrameCanvasNode(rsCanvasNode), WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_ERROR_NULLPTR);
     window->uiContent_ = nullptr;
     window->hostSession_ = hostSession;
-    ASSERT_EQ(window->LinkKeyFrameCanvasNode(rsCanvasNode), WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_ERROR_NULLPTR);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    ASSERT_EQ(window->LinkKeyFrameCanvasNode(rsCanvasNode), WSError::WS_OK);
+    ASSERT_EQ(window->LinkKeyFrameNode(), WSError::WS_OK);
     window->Destroy();
 }
 
 /**
- * @tc.name: SetKeyFramePolicy
- * @tc.desc: SetKeyFramePolicy
+ * @tc.name: SetStageKeyFramePolicy
+ * @tc.desc: SetStageKeyFramePolicy
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest2, SetKeyFramePolicy, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest2, SetStageKeyFramePolicy, TestSize.Level1)
 {
-    auto window = GetTestWindowImpl("SetKeyFramePolicy");
+    auto window = GetTestWindowImpl("SetStageKeyFramePolicy");
     ASSERT_NE(window, nullptr);
     KeyFramePolicy keyFramePolicy;
-    ASSERT_EQ(window->SetKeyFramePolicy(keyFramePolicy), WSError::WS_OK);
+    ASSERT_EQ(window->SetStageKeyFramePolicy(keyFramePolicy), WSError::WS_OK);
     ASSERT_EQ(window->keyFramePolicy_, keyFramePolicy);
     window->Destroy();
 }
@@ -479,25 +595,6 @@ HWTEST_F(WindowSessionImplTest2, NotifyUIContentFocusStatus, TestSize.Level1)
 
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->NotifyUIContentFocusStatus();
-    window->Destroy();
-}
-
-/**
- * @tc.name: NotifyAfterFocused
- * @tc.desc: NotifyAfterFocused
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest2, NotifyAfterFocused, TestSize.Level1)
-{
-    auto window = GetTestWindowImpl("NotifyAfterFocused");
-    ASSERT_NE(window, nullptr);
-    window->NotifyAfterFocused();
-    ASSERT_TRUE(window->shouldReNotifyFocus_);
-
-    window->shouldReNotifyFocus_ = false;
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    window->NotifyAfterFocused();
-    ASSERT_FALSE(window->shouldReNotifyFocus_);
     window->Destroy();
 }
 
@@ -526,25 +623,6 @@ HWTEST_F(WindowSessionImplTest2, NotifyTransferComponentDataSync, TestSize.Level
     AAFwk::WantParams wantParams;
     AAFwk::WantParams reWantParams;
     ASSERT_EQ(WSErrorCode::WS_OK, window->NotifyTransferComponentDataSync(wantParams, reWantParams));
-    window->Destroy();
-}
-
-/**
- * @tc.name: UpdateAvoidArea
- * @tc.desc: UpdateAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest2, UpdateAvoidArea, TestSize.Level1)
-{
-    auto window = GetTestWindowImpl("UpdateAvoidArea");
-    ASSERT_NE(window, nullptr);
-    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
-    avoidArea->topRect_ = { 1, 0, 0, 0 };
-    avoidArea->leftRect_ = { 0, 1, 0, 0 };
-    avoidArea->rightRect_ = { 0, 0, 1, 0 };
-    avoidArea->bottomRect_ = { 0, 0, 0, 1 };
-    AvoidAreaType type = AvoidAreaType::TYPE_SYSTEM;
-    ASSERT_EQ(WSError::WS_OK, window->UpdateAvoidArea(avoidArea, type));
     window->Destroy();
 }
 
@@ -1381,6 +1459,30 @@ HWTEST_F(WindowSessionImplTest2, UpdateDecorEnableToAce, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateDecorEnableToAce02
+ * @tc.desc: UpdateDecorEnableToAce02
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, UpdateDecorEnableToAce02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImpl: UpdateDecorEnableToAce02 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateDecorEnableToAce02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->windowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.isSystemDecorEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+
+    window->UpdateDecorEnableToAce(true);
+    ASSERT_FALSE(window->IsDecorEnable());
+}
+
+/**
  * @tc.name: UpdateDecorEnable
  * @tc.desc: UpdateDecorEnable
  * @tc.type: FUNC
@@ -1771,9 +1873,36 @@ HWTEST_F(WindowSessionImplTest2, SetDragKeyFramePolicy, TestSize.Level1)
     sptr<SessionMocker> hostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = hostSession;
     KeyFramePolicy keyFramePolicy;
-    ASSERT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_SHOWN;
+    ASSERT_FALSE(window->IsWindowSessionInvalid());
+
+    // other
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+
+    // phone
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    // subWindow
+    window->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_INVALID_CALLING);
+    // mainWindow
+    window->property_->type_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    // pad
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    // pc
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // pass
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_OK);
+    // invalid id
+    window->property_->SetPersistentId(0);
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_INVALID_WINDOW);
+    // invalid session
+    window->property_->SetPersistentId(1);
     window->hostSession_ = nullptr;
-    ASSERT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_NULLPTR);
+    EXPECT_EQ(window->SetDragKeyFramePolicy(keyFramePolicy), WMError::WM_ERROR_INVALID_WINDOW);
 }
 
 /**

@@ -76,24 +76,32 @@ HWTEST_F(sceneSessionManagerProxyLifecycleTest, MinimizeAllAppWindows, TestSize.
     sptr<SceneSessionManagerProxy> ssManagerProxy = sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
     ASSERT_NE(ssManagerProxy, nullptr);
     DisplayId displayId = 0;
+    int32_t excludeWindowId = 0;
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
     EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId));
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId, excludeWindowId));
  
     iRemoteObjectMocker = sptr<MockIRemoteObject>::MakeSptr();
     ssManagerProxy = sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
     ASSERT_NE(ssManagerProxy, nullptr);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId));
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId, excludeWindowId));
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
     MockMessageParcel::SetWriteUint64ErrorFlag(true);
     EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId));
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId, excludeWindowId));
     MockMessageParcel::SetWriteUint64ErrorFlag(false);
-    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId));
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId, excludeWindowId));
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
  
     iRemoteObjectMocker->SetRequestResult(ERR_INVALID_DATA);
     EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId));
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId, excludeWindowId));
     iRemoteObjectMocker->SetRequestResult(ERR_NONE);
     EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId));
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, ssManagerProxy->MinimizeAllAppWindows(displayId, excludeWindowId));
     MockMessageParcel::ClearAllErrorFlag();
 }
 

@@ -198,19 +198,6 @@ HWTEST_F(WindowSessionTest3, CheckFocusable, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTouchable03
- * @tc.desc: IsSessionValid() and touchable return true
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest3, SetTouchable03, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetSessionState(SessionState::STATE_FOREGROUND);
-    session_->sessionInfo_.isSystem_ = false;
-    EXPECT_EQ(WSError::WS_OK, session_->SetTouchable(true));
-}
-
-/**
  * @tc.name: GetTouchable02
  * @tc.desc: GetTouchable Test
  * @tc.type: FUNC
@@ -332,6 +319,22 @@ HWTEST_F(WindowSessionTest3, PresentFocusIfPointDown, TestSize.Level1)
     session_->PresentFocusIfPointDown();
     session_->SetPendingSessionToBackgroundForDelegatorListener(nullptr);
     EXPECT_EQ(WSError::WS_OK, session_->PendingSessionToBackgroundForDelegator(true));
+}
+
+/**
+ * @tc.name: PresentFocusIfPointDown01
+ * @tc.desc: PresentFocusIfPointDown Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, PresentFocusIfPointDown01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->property_->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
+    session_->PresentFocusIfPointDown();
+
+    session_->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session_->property_->SetRaiseEnabled(false);
+    session_->PresentFocusIfPointDown();
 }
 
 /**
@@ -740,6 +743,41 @@ HWTEST_F(WindowSessionTest3, PresentFocusIfNeed02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: PresentFocusIfNeed03
+ * @tc.desc: PresentFocusIfNeed Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, PresentFocusIfNeed03, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    int32_t pointerAction = MMI::PointerEvent::POINTER_ACTION_DOWN;
+    int32_t sourceType = MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
+    session_->property_->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
+    session_->PresentFocusIfNeed(pointerAction, sourceType);
+
+    session_->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session_->property_->SetRaiseEnabled(false);
+    session_->PresentFocusIfNeed(pointerAction, sourceType);
+}
+
+/**
+ * @tc.name: IsNeedRequestToTop
+ * @tc.desc: IsNeedRequestToTop Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, IsNeedRequestToTop, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->property_->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
+    EXPECT_EQ(session_->IsNeedRequestToTop(), true);
+    session_->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session_->property_->SetRaiseEnabled(false);
+    EXPECT_EQ(session_->IsNeedRequestToTop(), false);
+    session_->property_->SetRaiseEnabled(true);
+    EXPECT_EQ(session_->IsNeedRequestToTop(), true);
+}
+
+/**
  * @tc.name: UpdateFocus03
  * @tc.desc: UpdateFocus Test
  * @tc.type: FUNC
@@ -1136,23 +1174,6 @@ HWTEST_F(WindowSessionTest3, SetMainSessionUIStateDirty, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetStartingBeforeVisible
- * @tc.desc: test SetStartingBeforeVisible
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest3, SetStartingBeforeVisible, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetStartingBeforeVisible(true);
-    ASSERT_EQ(true, session_->isStartingBeforeVisible_);
-    ASSERT_EQ(true, session_->GetStartingBeforeVisible());
-
-    session_->SetStartingBeforeVisible(false);
-    ASSERT_EQ(false, session_->isStartingBeforeVisible_);
-    ASSERT_EQ(false, session_->GetStartingBeforeVisible());
-}
-
-/**
  * @tc.name: GetScreenId
  * @tc.desc: test func: GetScreenId
  * @tc.type: FUNC
@@ -1194,6 +1215,41 @@ HWTEST_F(WindowSessionTest3, GetIsHighlighted, Function | SmallTest | Level2)
     bool isHighlighted = true;
     ASSERT_EQ(session_->GetIsHighlighted(isHighlighted), WSError::WS_OK);
     ASSERT_EQ(isHighlighted, false);
+}
+
+/**
+ * @tc.name: EncodeAndDecodeSnapShotRecoverValue
+ * @tc.desc: EncodeAndDecodeSnapShotRecoverValue Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, EncodeAndDecodeSnapShotRecoverValue, Function | SmallTest | Level2)
+{
+    ASSERT_NE(session_, nullptr);
+    int32_t snapShotRecoverValue = 0;
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    snapShotRecoverValue = session_->EncodeSnapShotRecoverValue(DisplayOrientation::PORTRAIT);
+    EXPECT_EQ(session_->DecodeSnapShotRecoverValue(snapShotRecoverValue,
+        SnapShotRecoverType::ROTATE), static_cast<int32_t>(DisplayOrientation::PORTRAIT));
+    EXPECT_EQ(session_->DecodeSnapShotRecoverValue(snapShotRecoverValue,
+        SnapShotRecoverType::EXIT_SPLIT_ON_BACKGROUND),
+        static_cast<int32_t>(session_->IsExitSplitOnBackgroundRecover()));
+}
+
+/**
+ * @tc.name: IsExitSplitOnBackgroundRecover
+ * @tc.desc: IsExitSplitOnBackgroundRecover Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, IsExitSplitOnBackgroundRecover, Function | SmallTest | Level2)
+{
+    ASSERT_NE(session_, nullptr);
+    int32_t snapShotRecoverValue = 0;
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), false);
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), true);
+    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), true);
 }
 } // namespace
 } // namespace Rosen

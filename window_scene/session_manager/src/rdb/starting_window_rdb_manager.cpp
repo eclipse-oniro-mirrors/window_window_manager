@@ -18,6 +18,7 @@
 #include <hitrace_meter.h>
 
 #include "ability_info.h"
+#include "perform_reporter.h"
 #include "rdb/scope_guard.h"
 #include "resource_manager.h"
 #include "window_manager_hilog.h"
@@ -40,6 +41,8 @@ const std::string DB_BRANDING_PATH = "BRANDING_PATH";
 const std::string DB_BACKGROUND_IMAGE_PATH = "BACKGROUND_IMAGE_PATH";
 const std::string DB_BACKGROUND_IMAGE_FIT = "BACKGROUND_IMAGE_FIT";
 const std::string DB_STARTWINDOW_TYPE = "STARTWINDOW_TYPE";
+const std::string CLOSE_TASK_ID = "CLOSE_STARTWINDOW_RDB_TASK";
+constexpr int32_t CLOSE_TASK_DELAY_MS = 300000;
 constexpr int32_t DB_PRIMARY_KEY_INDEX = 0;
 constexpr int32_t DB_BUNDLE_NAME_INDEX = 1;
 constexpr int32_t DB_MODULE_NAME_INDEX = 2;
@@ -58,6 +61,7 @@ constexpr int32_t DB_STARTWINDOW_TYPE_INDEX = 14;
 constexpr const char* PROFILE_PREFIX = "$profile:";
 constexpr uint16_t MAX_JSON_STRING_LENGTH = 4096;
 constexpr int32_t DEFAULT_ROW_COUNT = -1;
+constexpr double KILOBYTE = 1024.0;
 
 NativeRdb::ValuesBucket BuildValuesBucket(const StartingWindowRdbItemKey& key, const StartingWindowInfo& value)
 {
@@ -99,8 +103,9 @@ bool CheckRdbResult(int resCode)
 }
 } // namespace
 
-StartingWindowRdbManager::StartingWindowRdbManager(const WmsRdbConfig& wmsRdbConfig)
-    : wmsRdbConfig_(wmsRdbConfig)
+StartingWindowRdbManager::StartingWindowRdbManager(
+    const WmsRdbConfig& wmsRdbConfig, std::shared_ptr<AppExecFwk::EventHandler> handler)
+    : wmsRdbConfig_(wmsRdbConfig), handler_(handler)
 {
     std::string uniqueConstraint = std::string("CONSTRAINT uniqueConstraint UNIQUE (" +
         DB_BUNDLE_NAME + ", " + DB_MODULE_NAME + ", " + DB_ABILITY_NAME + ", " + DB_DARK_MODE + ")");
@@ -121,10 +126,12 @@ StartingWindowRdbManager::~StartingWindowRdbManager()
 
 std::shared_ptr<NativeRdb::RdbStore> StartingWindowRdbManager::GetRdbStore()
 {
+    DelayClearRdbStore();
     std::lock_guard<std::mutex> lock(rdbMutex_);
     if (rdbStore_ != nullptr) {
         return rdbStore_;
     }
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetRdbStore");
     NativeRdb::RdbStoreConfig rdbStoreConfig(wmsRdbConfig_.dbPath + wmsRdbConfig_.dbName);
     rdbStoreConfig.SetSecurityLevel(NativeRdb::SecurityLevel::S1);
     int32_t resCode = NativeRdb::E_OK;
@@ -134,6 +141,25 @@ std::shared_ptr<NativeRdb::RdbStore> StartingWindowRdbManager::GetRdbStore()
     TLOGI(WmsLogTag::WMS_PATTERN, "resCode: %{public}d, version: %{public}d",
         resCode, wmsRdbConfig_.version);
     return rdbStore_;
+}
+
+void StartingWindowRdbManager::DelayClearRdbStore(int32_t delay)
+{
+    if (handler_ == nullptr) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "not support, handler is null");
+        return;
+    }
+    auto task = [weakPtr = weak_from_this()] {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:DelayClearRdbStore");
+        auto rdbMgr = weakPtr.lock();
+        if (rdbMgr != nullptr) {
+            std::lock_guard<std::mutex> lock(rdbMgr->rdbMutex_);
+            rdbMgr->rdbStore_ = nullptr;
+            TLOGNI(WmsLogTag::WMS_PATTERN, "rdb delay closed");
+        }
+    };
+    handler_->RemoveTask(CLOSE_TASK_ID);
+    handler_->PostTask(task, CLOSE_TASK_ID, delay <= 0 ? CLOSE_TASK_DELAY_MS : delay);
 }
 
 bool StartingWindowRdbManager::Init()
@@ -157,6 +183,8 @@ bool StartingWindowRdbManager::InsertData(const StartingWindowRdbItemKey& key, c
     auto valuesBucket = BuildValuesBucket(key, value);
     auto ret = rdbStore->InsertWithConflictResolution(
         rowId, wmsRdbConfig_.tableName, valuesBucket, NativeRdb::ConflictResolution::ON_CONFLICT_REPLACE);
+    WindowInfoReporter::GetInstance().ReportWindowIO("starting_window_config.db",
+        sizeof(valuesBucket) / KILOBYTE);
     return CheckRdbResult(ret);
 }
 
@@ -174,6 +202,8 @@ bool StartingWindowRdbManager::BatchInsert(int64_t& outInsertNum,
         valuesBuckets.emplace_back(valuesBucket);
     }
     auto ret = rdbStore->BatchInsert(outInsertNum, wmsRdbConfig_.tableName, valuesBuckets);
+    WindowInfoReporter::GetInstance().ReportWindowIO("starting_window_config.db",
+        sizeof(valuesBuckets) / KILOBYTE);
     return CheckRdbResult(ret);
 }
 

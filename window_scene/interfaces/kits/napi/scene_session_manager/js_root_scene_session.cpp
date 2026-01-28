@@ -400,21 +400,28 @@ static int32_t GetRealCallerSessionId(const sptr<SceneSession>& sceneSession)
     return realCallerSessionId;
 }
 
+void JsRootSceneSession::SetSceneSessionForPrelaunch(const SessionInfo& info, const sptr<SceneSession>& sceneSession)
+{
+    if (info.isPrelaunch_) {
+        sceneSession->SetPrelaunch();
+        sceneSession->EditSessionInfo().frameNum_ = info.frameNum_;
+    }
+}
+
 void JsRootSceneSession::PendingSessionActivation(SessionInfo& info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "bundleName %{public}s, moduleName %{public}s, abilityName %{public}s, "
-        "appIndex %{public}d, reuse %{public}d, specifiedFlag %{public}s, requestId %{public}d, prelaunch %{public}d",
-        info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(), info.appIndex_,
-        info.reuse, info.specifiedFlag_.c_str(), info.requestId, info.isPrelaunch_);
+    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d,bundleName:%{public}s,moduleName:%{public}s,abilityName:%{public}s,"
+        "appIndex:%{public}d,reuse:%{public}d,requestId:%{public}d,specifiedFlag:%{public}s,prelaunch:%{public}d,"
+        "frameNum:%{public}d",
+        info.persistentId_, info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(),
+        info.appIndex_, info.reuse, info.requestId, info.specifiedFlag_.c_str(), info.isPrelaunch_, info.frameNum_);
     sptr<SceneSession> sceneSession = GenSceneSession(info);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "sceneSession is nullptr");
         return;
     }
-    if (info.isPrelaunch_) {
-        sceneSession->SetPrelaunch();
-    }
 
+    SetSceneSessionForPrelaunch(info, sceneSession);
     if (info.want != nullptr) {
         bool isNeedBackToOther = info.want->GetBoolParam(AAFwk::Want::PARAM_BACK_TO_OTHER_MISSION_STACK, false);
         TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d isNeedBackToOther: %{public}d",
@@ -511,6 +518,11 @@ sptr<SceneSession> JsRootSceneSession::GenSceneSession(SessionInfo& info)
             return nullptr;
         }
 
+        if (result == BrokerStates::BROKER_STARTED && info.collaboratorType_ == CollaboratorType::REDIRECT_TYPE) {
+            TLOGW(WmsLogTag::WMS_LIFE, "redirect and not create session.");
+            return nullptr;
+        }
+
         if (info.reuse || info.isAtomicService_ || !info.specifiedFlag_.empty()) {
             if (SceneSessionManager::GetInstance().CheckCollaboratorType(info.collaboratorType_)) {
                 sceneSession = SceneSessionManager::GetInstance().FindSessionByAffinity(
@@ -544,8 +556,8 @@ sptr<SceneSession> JsRootSceneSession::GenSceneSession(SessionInfo& info)
             }
             info.persistentId_ = sceneSession->GetPersistentId();
             sceneSession->SetSessionInfoPersistentId(sceneSession->GetPersistentId());
-            sceneSession->SetDefaultDisplayIdIfNeed();
         }
+        sceneSession->SetDefaultDisplayIdIfNeed();
     }
     return sceneSession;
 }

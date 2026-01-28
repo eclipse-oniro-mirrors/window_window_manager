@@ -79,7 +79,7 @@ HWTEST_F(DisplayUpdateTest, RegisterDisplayUpdateListener, TestSize.Level1)
     auto window = Window::Create("private", option);
     if (window == nullptr) {
         WLOGFE("window is null");
-        return;
+        GTEST_SKIP();
     }
     window->Show();
     auto ret1 = dm.UnregisterDisplayUpdateListener(listener_);

@@ -28,12 +28,14 @@ group("unittest") {
     ":utils_dms_reporter_test",
     ":utils_perform_reporter_test",
     ":utils_persistent_storage_test",
+    ":utils_rate_limited_logger_test",
     ":utils_point_test",
     ":utils_rs_adapter_test",
     ":utils_screen_group_info_test",
     ":utils_screen_info_test",
     ":utils_string_test",
     ":utils_surface_reader_test",
+    ":utils_task_sequence_process_test",
     ":utils_window_helper_test",
     ":utils_window_property_test",
     ":utils_window_transition_info_test",
@@ -47,18 +49,39 @@ group("unittest") {
       ":utils_surface_draw_test",
     ]
   }
+  if (window_manager_use_sceneboard) {
+    deps += [
+      ":utils_load_mmi_client_adapter_test",
+    ]
+  }
 }
 
 test_external_deps = [
+  "ability_base:configuration",
+  "ability_runtime:wantagent_innerkits",
   "c_utils:utils",
+  "ffrt:libffrt",
   "googletest:gmock",
   "googletest:gtest",
   "googletest:gtest_main",
   "graphic_2d:librender_service_base",
   "graphic_2d:librender_service_client",
   "hilog:libhilog",
+  "init:libbegetutil",
+  "input:libmmi-client",
   "preferences:native_preferences",
+  "time_service:time_client",
 ]
+
+ohos_unittest("utils_task_sequence_process_test") {
+  module_out_path = module_out_path
+
+  sources = [ "task_sequence_process_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
 
 ohos_unittest("wm_window_frame_trace_impl_test") {
   module_out_path = module_out_path
@@ -209,6 +232,16 @@ ohos_unittest("utils_persistent_storage_test") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("utils_rate_limited_logger_test") {
+  module_out_path = module_out_path
+
+  sources = [ "rate_limited_logger_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ohos_unittest("utils_cutout_info_test") {
   module_out_path = module_out_path
 
@@ -333,6 +366,16 @@ ohos_unittest("utils_dms_global_mutex_test") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("utils_load_mmi_client_adapter_test") {
+  module_out_path = module_out_path
+
+  sources = [ "load_mmi_client_adapter_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ## Build dm_unittest_common.a {{{
 config("utils_unittest_common_public_config") {
   include_dirs = [
@@ -344,6 +387,7 @@ config("utils_unittest_common_public_config") {
     "../../../wm/include",
     "../../../dm/include",
     "${dmserver_gen_path}",
+    "${window_base_path}/window_scene/common/include",
   ]
 }
 

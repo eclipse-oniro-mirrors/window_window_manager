@@ -89,6 +89,7 @@ ohos_shared_library("window_native_kit") {
     "ability_runtime:dialog_request_info",
     "ability_runtime:extensionkit_native",
     "ability_runtime:runtime",
+    "ability_runtime:napi_common",
     "access_token:libaccesstoken_sdk",
     "ace_engine:ace_uicontent",
     "bundle_framework:appexecfwk_base",

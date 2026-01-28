@@ -88,7 +88,7 @@ HWTEST_F(WindowInputMethodTest, ShowKeyboard01, TestSize.Level1)
         EXPECT_EQ(WMError::WM_OK, fullWindow->ChangeKeyboardEffectOption(effectOption));
         sleep(TEST_SLEEP_SECOND);
         fullWindow->Destroy();
-        return;
+        GTEST_SKIP();
     }
     effectOption.viewMode_ = KeyboardViewMode::DARK_IMMERSIVE_MODE;
     EXPECT_EQ(WMError::WM_OK, fullWindow->ShowKeyboard(callingWindowId, targetDisplayId, effectOption));

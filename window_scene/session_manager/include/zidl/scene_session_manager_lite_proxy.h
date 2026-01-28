@@ -70,6 +70,8 @@ public:
     WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) override;
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                         std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override;
     WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
         const sptr<IWindowManagerAgent>& windowManagerAgent) override;
     WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
@@ -77,8 +79,19 @@ public:
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override;
     WMError CheckUIExtensionCreation(int32_t windowId, uint32_t tokenId, const AppExecFwk::ElementName& element,
         AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid) override;
+    WMError SetGlobalDragResizeType(DragResizeType dragResizeType) override;
+    WMError GetGlobalDragResizeType(DragResizeType& dragResizeType) override;
+    WMError SetAppDragResizeType(const std::string& bundleName, DragResizeType dragResizeType) override;
+    WMError GetAppDragResizeType(const std::string& bundleName, DragResizeType& dragResizeType) override;
+    WMError SetAppKeyFramePolicy(const std::string& bundleName, const KeyFramePolicy& keyFramePolicy) override;
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos) override;
+    WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override;
+    WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) override;
+    WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags) override;
     WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override;
+    WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease) override;
     WMError GetWindowModeType(WindowModeType& windowModeType) override;
     WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo) override;
     WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed) override;
@@ -91,6 +104,7 @@ public:
         const sptr<AAFwk::IAbilityManagerCollaborator>& impl) override;
     WSError UnregisterIAbilityManagerCollaborator(int32_t type) override;
     WMError GetWindowStyleType(WindowStyleType& windowModeType) override;
+    WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled) override;
     WMError TerminateSessionByPersistentId(int32_t persistentId) override;
     WMError CloseTargetFloatWindow(const std::string& bundleName) override;
     WMError CloseTargetPiPWindow(const std::string& bundleName) override;
@@ -125,6 +139,7 @@ public:
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) override;
+    WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);

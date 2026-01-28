@@ -29,17 +29,21 @@ class AccessibilityEventInfo;
 }
 namespace OHOS::Rosen {
 class RSSurfaceNode;
-class RSCanvasNode;
+class RSWindowKeyFrameNode;
 class RSTransaction;
 enum class ImageFit;
 
 enum class CommonEventCommand : int32_t {
     LOCK_CURSOR = 0,
     UNLOCK_CURSOR,
+    SET_RECEIVE_DRAG_EVENT,
+    SET_WINDOW_SEPARATION_TOUCH_ENABLED,
 };
 constexpr int32_t COMMON_EVENT_COMMAND_MAX_LENGTH = 5;
 constexpr int32_t LOCK_CURSOR_LENGTH = 2;
 constexpr int32_t UNLOCK_CURSOR_LENGTH = 1;
+constexpr int32_t SET_RECEIVE_DRAG_EVENT_LENGTH = 1;
+constexpr int32_t WINDOW_SEPARATION_TOUCH_ENABLED_LENGTH = 1;
 
 class ISession : public IRemoteBroker {
 public:
@@ -123,6 +127,8 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError OnRestoreMainWindow() { return WSError::WS_OK; }
+    virtual WMError RestoreFloatMainWindow(
+        const std::shared_ptr<AAFwk::WantParams>& wantParams) { return WMError::WM_OK; }
 
     /**
      * @brief Raise the application subwindow to the top layer of the application.
@@ -145,6 +151,7 @@ public:
         bool isFromMoveToGlobal = false, const MoveConfiguration& moveConfiguration = {},
         const RectAnimationConfig& rectAnimationConfig = {}) { return WSError::WS_OK; }
     virtual WSError UpdateClientRect(const WSRect& rect) { return WSError::WS_OK; }
+    virtual void NotifyWindowStatusDidChangeAfterShowWindow() {}
 
     /**
      * @brief Updates the window's rectangle in global coordinates from client-side state.
@@ -168,7 +175,10 @@ public:
     virtual AvoidArea GetAvoidAreaByTypeIgnoringVisibility(AvoidAreaType type,
         const WSRect& rect = WSRect::EMPTY_RECT) { return {}; }
     virtual WSError GetTargetOrientationConfigInfo(Orientation targetOrientation,
-        const std::map<Rosen::WindowType, Rosen::SystemBarProperty>& properties) { return WSError::WS_OK; }
+        const std::map<Rosen::WindowType, Rosen::SystemBarProperty>& targetProperties,
+        const std::map<Rosen::WindowType, Rosen::SystemBarProperty>& currentProperties) { return WSError::WS_OK; }
+    virtual WSError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
+        const int32_t value, int32_t& convertedValue) { return WSError::WS_OK; }
     virtual WSError GetAllAvoidAreas(std::map<AvoidAreaType, AvoidArea>& avoidAreas) { return WSError::WS_OK; }
     virtual WSError RequestSessionBack(bool needMoveToBackground) { return WSError::WS_OK; }
     virtual WSError MarkProcessed(int32_t eventId) { return WSError::WS_OK; }
@@ -277,7 +287,7 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError KeyFrameAnimateEnd() { return WSError::WS_OK; }
-    virtual WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSCanvasNode>& rsCanvasNode,
+    virtual WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode,
         std::shared_ptr<RSTransaction>& rsTransaction) { return WSError::WS_OK; }
     virtual WSError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) { return WSError::WS_OK; }
 
@@ -286,6 +296,7 @@ public:
         return WSError::WS_OK;
     }
     virtual WMError NotifySnapshotUpdate() { return WMError::WM_OK; }
+    virtual WMError NotifyRemovePrelaunchStartingWindow() { return WMError::WM_OK; }
     virtual void NotifyExtensionDied() {}
     virtual void NotifyExtensionTimeout(int32_t errorCode) {}
     virtual void TriggerBindModalUIExtension() {}
@@ -370,6 +381,13 @@ public:
         return WSError::WS_OK;
     }
 
+    /**
+     * @brief get is pip active
+     *
+     * @return WSError
+     */
+    virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
+
     virtual WSError ProcessPointDownSession(int32_t posX, int32_t posY) { return WSError::WS_OK; }
     virtual WSError SendPointEventForMoveDrag(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         bool isExecuteDelayRaise = false) { return WSError::WS_OK; }
@@ -405,6 +423,7 @@ public:
     virtual WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) { return WMError::WM_OK; }
     virtual WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) { return WMError::WM_OK; }
+    virtual WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) { return WMError::WM_OK; }
     virtual WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) { return WMError::WM_OK; }
     virtual WSError AdjustKeyboardLayout(const KeyboardLayoutParams& params) { return WSError::WS_OK; }
     virtual WSError SetDialogSessionBackGestureEnabled(bool isEnabled) { return WSError::WS_OK; }
@@ -493,6 +512,15 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError SetWindowShadows(const ShadowsInfo& shadowsInfo) { return WSError::WS_OK; }
+
+    /**
+     * @brief Callback for recover window effect.
+     *
+     * @param recoverCorner true means need to recover corner radius.
+     * @param recoverShadow true means need to recover shaodow.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) { return WSError::WS_OK; }
 
     /**
      *  Gesture Back
@@ -655,7 +683,23 @@ public:
         return WSError::WS_OK;
     }
 
+    /**
+     * @brief notify session when compatible mode change
+     *
+     * @param mode compatible mode.
+     * @return WSError::WS_OK means notify success, otherwise failed.
+     */
+    virtual WSError NotifyCompatibleModeChange(CompatibleStyleMode mode)
+    {
+        return WSError::WS_OK;
+    }
+
     virtual WSError RestartApp(const std::shared_ptr<AAFwk::Want>& want)
+    {
+        return WSError::WS_OK;
+    }
+    
+    virtual WSError NotifyAppForceLandscapeConfigEnableUpdated()
     {
         return WSError::WS_OK;
     }
@@ -664,6 +708,14 @@ public:
      * Window event
      */
     virtual WMError SendCommonEvent(int32_t command, const std::vector<int32_t>& parameters)
+    {
+        return WMError::WM_OK;
+    }
+    virtual WMError SetReceiveDragEventEnabled(const std::vector<int32_t>& parameters)
+    {
+        return WMError::WM_OK;
+    }
+    virtual WMError SetSeparationTouchEnabled(const std::vector<int32_t>& parameters)
     {
         return WMError::WM_OK;
     }

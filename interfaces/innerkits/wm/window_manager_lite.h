@@ -61,6 +61,22 @@ public:
     WMError UnregisterFocusChangedListener(const sptr<IFocusChangedListener>& listener);
 
     /**
+     * @brief Register all display group info changed listener.
+     *
+     * @param listener IAllGroupInfoChangedListener.
+     * @return WM_OK means register success, others mean register failure.
+     */
+    WMError RegisterAllGroupInfoChangedListener(const sptr<IAllGroupInfoChangedListener>& listener);
+
+    /**
+     * @brief Unregister all display group info changed listener.
+     *
+     * @param listener IAllGroupInfoChangedListener.
+     * @return WM_OK means unregister success, others mean unregister failure.
+     */
+    WMError UnregisterAllGroupInfoChangedListener(const sptr<IAllGroupInfoChangedListener>& listener);
+
+    /**
      * @brief Register visibility changed listener.
      *
      * @param listener IVisibilityChangedListener.
@@ -85,12 +101,31 @@ public:
     WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) const;
 
     /**
+     * @brief update screen lock status.
+     *
+     * @param bundleName bundle name of app.
+     * @param isRelease whether release the screen lock.
+     * @return WM_OK means update success, others means update failed.
+     */
+    WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease);
+
+    /**
      * @brief Get focus window.
      *
      * @param focusInfo Focus window info.
      * @return FocusChangeInfo object about focus window.
      */
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+
+    /**
+     * @brief Get all group infomation.
+     *
+     * @param displayId2GroupIdMap display id to display group id map.
+     * @param allFocusInfoList focus infomation in every display group.
+     * @return void.
+     */
+    void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                         std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
 
     /**
      * @brief Register drawingcontent changed listener.
@@ -278,6 +313,16 @@ public:
     WindowStyleType GetWindowStyleType();
 
     /**
+     * @brief set process watermark.
+     *
+     * @param pid pid
+     * @param watermarkName watermark picture name
+     * @param isEnabled add or remove
+     * @return WM_OK means set process watermark success, others means failed.
+     */
+    WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled);
+
+    /**
      * @brief Terminate session by persistentId and start caller.
      * @persistentId persistentId to be terminated.
      *
@@ -350,6 +395,15 @@ public:
     WMError UnregisterWindowUpdateListener(const sptr<IWindowUpdateListener>& listener);
 
     /**
+     * @brief notify window info change.
+     *
+     * @param flags mark the changed value.
+     * @param windowInfoList the changed window info list.
+     * @return WM_OK means notify success, others means notify failed.
+     */
+    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList);
+
+    /**
      * @brief Register window info change callback.
      *
      * @param observedInfo Property which to observe.
@@ -368,6 +422,60 @@ public:
      */
     WMError UnregisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
+
+    /**
+     * @brief Set global drag resize type.
+     * this priority is highest.
+     *
+     * @param dragResizeType global drag resize type to set
+     * @return WM_OK means set success, others means failed.
+     */
+    WMError SetGlobalDragResizeType(DragResizeType dragResizeType);
+
+    /**
+     * @brief Get global drag resize type.
+     * if it is RESIZE_TYPE_UNDEFINED, return default value.
+     *
+     * @param dragResizeType global drag resize type to get
+     * @return WM_OK means get success, others means failed.
+     */
+    WMError GetGlobalDragResizeType(DragResizeType& dragResizeType);
+
+    /**
+     * @brief Set drag resize type of specific app.
+     * only when global value is RESIZE_TYPE_UNDEFINED, this value take effect.
+     *
+     * @param bundleName bundleName of specific app
+     * @param dragResizeType drag resize type to set
+     * @return WM_OK means set success, others means failed.
+     */
+    WMError SetAppDragResizeType(const std::string& bundleName, DragResizeType dragResizeType);
+
+    /**
+     * @brief Get drag resize type of specific app.
+     * effective order:
+     *  1. global value
+     *  2. app value
+     *  3. default value
+     *
+     * @param bundleName bundleName of specific app
+     * @param dragResizeType drag resize type to get
+     * @return WM_OK means get success, others means failed.
+     */
+    WMError GetAppDragResizeType(const std::string& bundleName, DragResizeType& dragResizeType);
+
+    /**
+     * @brief Set drag key frame type of specific app.
+     * effective order:
+     *  1. resize when drag
+     *  2. key frame
+     *  3. default value
+     *
+     * @param bundleName bundleName of specific app
+     * @param keyFramePolicy param of key frame
+     * @return WM_OK means set success, others means failed.
+     */
+    WMError SetAppKeyFramePolicy(const std::string& bundleName, const KeyFramePolicy& keyFramePolicy);
 
     /**
      * @brief List window info.
@@ -400,6 +508,7 @@ private:
     std::recursive_mutex mutex_;
     class Impl;
     std::unique_ptr<Impl> pImpl_;
+    std::unordered_map<WindowInfoKey, uint32_t> interestInfoMap_;
 
     /**
      * Multi user and multi screen
@@ -415,6 +524,7 @@ private:
     void UpdateFocusStatus(uint32_t windowId, const sptr<IRemoteObject>& abilityToken, WindowType windowType,
         DisplayId displayId, bool focused) const;
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) const;
+    void UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd) const;
     void UpdateWindowVisibilityInfo(
         const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos) const;
     void UpdateWindowDrawingContentInfo(
@@ -434,6 +544,8 @@ private:
         const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+    WMError RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+    WMError UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
 };
 } // namespace Rosen
 } // namespace OHOS

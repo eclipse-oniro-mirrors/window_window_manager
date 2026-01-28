@@ -193,6 +193,12 @@ void SceneSessionManagerLite::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Dis
     return SceneSessionManager::GetInstance().GetFocusWindowInfo(focusInfo, displayId);
 }
 
+void SceneSessionManagerLite::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                              std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    SceneSessionManager::GetInstance().GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
+}
+
 WMError SceneSessionManagerLite::RegisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
@@ -225,6 +231,11 @@ WMError SceneSessionManagerLite::CheckUIExtensionCreation(int32_t windowId, uint
 WMError SceneSessionManagerLite::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
 {
     return SceneSessionManager::GetInstance().GetVisibilityWindowInfo(infos);
+}
+
+WMError SceneSessionManagerLite::UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease)
+{
+    return SceneSessionManager::GetInstance().UpdateScreenLockStatusForApp(bundleName, isRelease);
 }
 
 WSError SceneSessionManagerLite::UpdateWindowMode(int32_t persistentId, int32_t windowMode)
@@ -288,6 +299,11 @@ WSError SceneSessionManagerLite::UnregisterIAbilityManagerCollaborator(int32_t t
 WMError SceneSessionManagerLite::GetWindowStyleType(WindowStyleType& windowStyletype)
 {
     return SceneSessionManager::GetInstance().GetWindowStyleType(windowStyletype);
+}
+
+WMError SceneSessionManagerLite::SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+{
+    return SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
 }
 
 WMError SceneSessionManagerLite::TerminateSessionByPersistentId(int32_t persistentId)
@@ -360,10 +376,63 @@ WMError SceneSessionManagerLite::UnregisterSessionLifecycleListener(const sptr<I
     return SceneSessionManager::GetInstance().UnregisterSessionLifecycleListener(listener);
 }
 
+WMError SceneSessionManagerLite::SetGlobalDragResizeType(DragResizeType dragResizeType)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "set global drag resize lite in: %{public}d",
+        static_cast<int32_t>(dragResizeType));
+    return SceneSessionManager::GetInstance().SetGlobalDragResizeType(dragResizeType);
+}
+
+WMError SceneSessionManagerLite::GetGlobalDragResizeType(DragResizeType& dragResizeType)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "get global drag resize lite in");
+    return SceneSessionManager::GetInstance().GetGlobalDragResizeType(dragResizeType);
+}
+
+WMError SceneSessionManagerLite::SetAppDragResizeType(const std::string& bundleName, DragResizeType dragResizeType)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "set app drag resize lite in: %{public}s %{public}d",
+        bundleName.c_str(), static_cast<int32_t>(dragResizeType));
+    return SceneSessionManager::GetInstance().SetAppDragResizeType(bundleName, dragResizeType);
+}
+
+WMError SceneSessionManagerLite::GetAppDragResizeType(const std::string& bundleName, DragResizeType& dragResizeType)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "get app drag resize lite in: %{public}s", bundleName.c_str());
+    return SceneSessionManager::GetInstance().GetAppDragResizeType(bundleName, dragResizeType);
+}
+
+WMError SceneSessionManagerLite::SetAppKeyFramePolicy(const std::string& bundleName,
+    const KeyFramePolicy& keyFramePolicy)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "set app key frame lite in: %{public}s %{public}d",
+        bundleName.c_str(), keyFramePolicy.enabled());
+    return SceneSessionManager::GetInstance().SetAppKeyFramePolicy(bundleName, keyFramePolicy);
+}
+
 WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos)
 {
     return SceneSessionManager::GetInstance().ListWindowInfo(windowInfoOption, infos);
+}
+
+WMError SceneSessionManagerLite::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    return SceneSessionManager::GetInstance().RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+}
+
+WMError SceneSessionManagerLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    return SceneSessionManager::GetInstance().UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+}
+
+WMError SceneSessionManagerLite::RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
+{
+    return SceneSessionManager::GetInstance().RecoverWindowPropertyChangeFlag(observedFlags, interestedFlags);
 }
 
 WSError SceneSessionManagerLite::GetRecentMainSessionInfoList(std::vector<RecentSessionInfo>& recentSessionInfoList)
@@ -455,5 +524,11 @@ WMError SceneSessionManagerLite::GetParentMainWindowId(int32_t windowId, int32_t
 {
     TLOGI(WmsLogTag::WMS_LIFE, "in");
     return SceneSessionManager::GetInstance().GetParentMainWindowId(windowId, mainWindowId);
+}
+
+WSError SceneSessionManagerLite::NotifyAppUseControlDisplay(DisplayId displayId, bool useControl)
+{
+    TLOGI(WmsLogTag::WMS_PATTERN, "in");
+    return SceneSessionManager::GetInstance().NotifyAppUseControlDisplay(displayId, useControl);
 }
 } // namespace OHOS::Rosen

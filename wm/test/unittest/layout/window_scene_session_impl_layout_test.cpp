@@ -21,6 +21,7 @@
 #include "mock_session.h"
 #include "mock_uicontent.h"
 #include "mock_window_adapter.h"
+#include "mock_window_scene_session_impl.h"
 #include "scene_board_judgement.h"
 #include "session/host/include/scene_session.h"
 #include "singleton_mocker.h"
@@ -507,6 +508,45 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, SetMinimumDimensions_Test_Other_Windo
 }
 
 /**
+ * @tc.name: UpdateWindowSizeLimits_Test_By_WinType
+ * @tc.desc: UpdateWindowSizeLimits test result by window types
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateWindowSizeLimits_Test_By_WinType, TestSize.Level1)
+{
+    sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
+    windowOption->SetWindowName("UpdateWindowSizeLimits_Test_By_WinType");
+    sptr<MockWindowSceneSessionImpl> window = sptr<MockWindowSceneSessionImpl>::MakeSptr(windowOption);
+    window->GetProperty()->SetPersistentId(1005);
+    window->GetProperty()->SetDisplayId(0);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> sessionMocker = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = sessionMocker;
+    EXPECT_CALL(*window, GetVirtualPixelRatio(_))
+        .Times(3)
+        .WillRepeatedly(Return(3.25f));
+
+    // Case1: Not system window
+    window->GetProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->UpdateWindowSizeLimits();
+    EXPECT_NE(window->GetProperty()->GetWindowLimits().minWidth_, 1);
+    EXPECT_NE(window->GetProperty()->GetWindowLimits().minHeight_, 1);
+
+    // Case2: System window and user limits has been set
+    window->GetProperty()->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    window->userLimitsSet_ = true;
+    window->UpdateWindowSizeLimits();
+    EXPECT_NE(window->GetProperty()->GetWindowLimits().minWidth_, 1);
+    EXPECT_NE(window->GetProperty()->GetWindowLimits().minHeight_, 1);
+
+    // Case3: System window and user limits has not been set
+    window->userLimitsSet_ = false;
+    window->UpdateWindowSizeLimits();
+    EXPECT_EQ(window->GetProperty()->GetWindowLimits().minWidth_, 1);
+    EXPECT_EQ(window->GetProperty()->GetWindowLimits().minHeight_, 1);
+}
+
+/**
  * @tc.name: CalculateNewLimitsByRatio01
  * @tc.desc: CalculateNewLimitsByRatio
  * @tc.type: FUNC
@@ -958,6 +998,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, GetGlobalScaledRect, TestSize.Level1)
     hookWindowInfo.widthHookRatio = 0.5f;
     window->SetAppHookWindowInfo(hookWindowInfo);
     Rect globalScaledRect = { 0, 0, 800, 800 };
+    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
     WMError res = window->GetGlobalScaledRect(globalScaledRect);
     EXPECT_EQ(res, WMError::WM_OK);
     EXPECT_NE(globalScaledRect.width_, 800);

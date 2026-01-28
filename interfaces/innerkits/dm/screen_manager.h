@@ -55,6 +55,14 @@ public:
         virtual void OnChange(const std::vector<ScreenId>&, ScreenGroupChangeEvent) = 0;
     };
 
+    class IRecordDisplayListener : public virtual RefBase {
+    public:
+        /**
+         * @brief Notify when recording display changed.
+         */
+        virtual void OnChange(const std::vector<DisplayId>& displayIds) = 0;
+    };
+
     class IVirtualScreenGroupListener : public virtual RefBase {
     public:
         struct ChangeInfo {
@@ -121,8 +129,8 @@ public:
      * @param screenGroupId Screen group id.
      * @return DM_OK means make mirror success, others means make mirror failed.
      */
-    DMError MakeMirrorForRecord(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId,
-        ScreenId& screenGroupId);
+    DMError MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,
+        std::vector<ScreenId>& mirrorScreenIds, ScreenId& screenGroupId);
 
     /**
      * @brief Make screen as mirror-screen for region of main screen.
@@ -173,9 +181,30 @@ public:
      * @brief Make screens as unique-screen.
      *
      * @param screenIds Unique screen ids.
+     * @param rotationOptions Parameter controlling whether screen rotation is locked when creating unique screen
+     * @return DM_OK means make unique screen success, others means make unique failed.
+     */
+    DMError MakeUniqueScreen(const std::vector<ScreenId>& screenIds,
+        const UniqueScreenRotationOptions& rotationOptions);
+
+    /**
+     * @brief Make screens as unique-screen.
+     *
+     * @param screenIds Unique screen ids.
      * @return DM_OK means make unique screen success, others means make unique failed.
      */
     DMError MakeUniqueScreen(const std::vector<ScreenId>& screenIds);
+
+    /**
+     * @brief Make screens as unique-screen.
+     *
+     * @param screenIds Unique screen ids.
+     * @param displayIds Unique display ids.
+     * @param rotationOptions Parameter controlling whether screen rotation is locked when creating unique screen
+     * @return DM_OK means make unique screen success, others means make unique failed.
+     */
+    DMError MakeUniqueScreen(const std::vector<ScreenId>& screenIds, std::vector<DisplayId>& displayIds,
+        const UniqueScreenRotationOptions& rotationOptions);
 
     /**
      * @brief Make screens as unique-screen.
@@ -219,6 +248,24 @@ public:
     DMError RemoveVirtualScreenFromGroup(std::vector<ScreenId> screens);
 
     /**
+     * @brief Add virtual screen whitelist.
+     *
+     * @param screenId Screen id.
+     * @param missionIds mission ids.
+     * @return DM_OK means add success, others means add failed.
+     */
+    DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds);
+
+    /**
+     * @brief Remove virtual screen whitelist.
+     *
+     * @param screenId Screen id.
+     * @param missionIds mission ids.
+     * @return DM_OK means remove success, others means remove failed.
+     */
+    DMError RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds);
+
+    /**
      * @brief Create virtual screen.
      *
      * @param option Indicates the options of the virtual screen.
@@ -232,7 +279,7 @@ public:
      * @param screenId Indicates the screen id of the virtual screen.
      * @return DM_OK means destroy success, others means destroy failed.
      */
-    DMError DestroyVirtualScreen(ScreenId screenId);
+    DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false);
 
     /**
      * @brief Set surface for the virtual screen.
@@ -385,6 +432,22 @@ public:
      * @return DM_OK means unregister success, others means unregister failed.
      */
     DMError UnregisterScreenGroupListener(sptr<IScreenGroupListener> listener);
+
+    /**
+     * @brief Register recording display change listener.
+     *
+     * @param listener IRecordDisplayListener.
+     * @return DM_OK means register success, others means register failed.
+     */
+    DMError RegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener);
+
+    /**
+     * @brief Unregister recording display change listener.
+     *
+     * @param listener IRecordDisplayListener.
+     * @return DM_OK means unregister success, others means unregister failed.
+     */
+    DMError UnRegisterRecordDisplayListener(sptr<IRecordDisplayListener> listener);
 
     /**
      * @brief Register virtual screen group listener.

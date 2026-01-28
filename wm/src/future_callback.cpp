@@ -14,6 +14,7 @@
  */
 
 #include "future_callback.h"
+#include "rate_limited_logger.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS {
@@ -22,8 +23,8 @@ namespace Rosen {
 WSError FutureCallback::OnUpdateSessionRect(const Rect& rect, WindowSizeChangeReason reason,
     int32_t persistentId)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, rect:%{public}s, reason:%{public}u",
-        persistentId, rect.ToString().c_str(), reason);
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
+        "Id:%{public}d, rect:%{public}s, reason:%{public}u", persistentId, rect.ToString().c_str(), reason);
     switch (reason) {
         case WindowSizeChangeReason::MOVE:
             moveToFuture_.SetValue(rect);
@@ -54,10 +55,10 @@ WSError FutureCallback::OnUpdateGlobalDisplayRect(
     return WSError::WS_DO_NOTHING;
 }
 
-WSError FutureCallback::OnUpdateTargetOrientationInfo(OrientationInfo& info)
+WSError FutureCallback::OnUpdateTargetOrientationInfo(OrientationInfo& info, OrientationInfo& currentInfo)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "update the target orientation info");
-    getTargetRotationFuture_.SetValue(info);
+    getTargetRotationFuture_.SetValue(std::make_pair(info, currentInfo));
     return WSError::WS_DO_NOTHING;
 }
 
@@ -81,12 +82,12 @@ Rect FutureCallback::GetMoveWindowToGlobalDisplayAsyncResult(long timeoutMs)
 {
     return moveWindowToGlobalDisplayFuture_.GetResult(timeoutMs);
 }
-// LCOV_EXCL_STOP
 
-OrientationInfo FutureCallback::GetTargetOrientationResult(long timeoutMs)
+std::pair<OrientationInfo, OrientationInfo> FutureCallback::GetTargetOrientationResult(long timeoutMs)
 {
     return getTargetRotationFuture_.GetResult(timeoutMs);
 }
+// LCOV_EXCL_STOP
 
 RotationChangeResult FutureCallback::GetRotationResult(long timeoutMs)
 {

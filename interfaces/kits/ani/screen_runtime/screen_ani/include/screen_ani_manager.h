@@ -38,6 +38,25 @@ public:
         sptr<ScreenAniListener> screenAniListener);
     static ani_long MakeMirror(ani_env* env, ani_long mainScreen, ani_object mirrorScreen);
     static void GetAllScreens(ani_env* env, ani_object screensAni);
+    static void CreateVirtualScreen(ani_env* env, ani_object options, ani_object virtualScreen);
+    static void SetVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceIdAni);
+    static void DestroyVirtualScreen(ani_env* env, ani_long screenId);
+    static ani_boolean IsScreenRotationLocked(ani_env* env);
+    static void SetScreenRotationLocked(ani_env* env, ani_boolean isLocked);
+    static void SetMultiScreenRelativePosition(ani_env* env, ani_object mainScreenOptionsAni,
+        ani_object secondaryScreenOptionsAni);
+    static void SetMultiScreenMode(ani_env* env, ani_long primaryScreenId, ani_long secondaryScreenId,
+        ani_enum_item secondaryScreenMode);
+    static void SetScreenPrivacyMaskImage(ani_env* env, ani_long screenId, ani_object imageAni);
+    static ani_object MakeUnique(ani_env* env, ani_object uniqueScreenIds);
+    static void ResizeVirtualScreen(ani_env* env, ani_long screenId, ani_long width, ani_long height);
+    static ani_long MakeMirrorWithRegion(ani_env* env, ani_long mainScreen, ani_object mirrorScreen,
+        ani_object mainScreenRegionAni);
+    static void StopMirror(ani_env* env, ani_object mirrorScreen);
+    static ani_status NspBindNativeFunctions(ani_env* env, ani_namespace nsp);
+    static ani_status ClassBindNativeFunctions(ani_env* env, ani_class screenCls);
+    static ani_long MakeExpand(ani_env* env, ani_object expandOptionsAni);
+    static void StopExpand(ani_env* env, ani_object expandScreensAni);
 private:
     void OnRegisterCallback(ani_env* env, ani_string type, ani_ref callback);
     void OnUnRegisterCallback(ani_env* env, ani_string type, ani_ref callback);

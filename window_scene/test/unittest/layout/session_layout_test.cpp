@@ -276,6 +276,28 @@ HWTEST_F(SessionLayoutTest, UpdateWindowModeSupportType01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyWindowStatusDidChangeIfNeedWhenUpdateRect
+ * @tc.desc: NotifyWindowStatusDidChangeIfNeedWhenUpdateRect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, NotifyWindowStatusDidChangeIfNeedWhenUpdateRect, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(0);
+    session_->NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason::MAXIMIZE);
+
+    session_->sessionStage_ = mockSessionStage;
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
+
+    session_->NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason::MAXIMIZE);
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
+
+    session_->NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason::MAXIMIZE_IN_IMPLICT);
+}
+
+/**
  * @tc.name: SetHasRequestedVsyncFunc
  * @tc.desc: SetHasRequestedVsyncFunc
  * @tc.type: FUNC
@@ -407,6 +429,25 @@ HWTEST_F(SessionLayoutTest, OnVsyncReceivedAfterModeChanged, TestSize.Level1)
     session->OnVsyncReceivedAfterModeChanged();
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_EQ(session->isWindowModeDirty_.load(), false);
+}
+
+/**
+ * @tc.name: SetGetRsCmdBlockingCountFunc
+ * @tc.desc: SetGetRsCmdBlockingCountFunc
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, SetGetRsCmdBlockingCountFunc, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetGetRsCmdBlockingCountFunc";
+    info.bundleName_ = "SetGetRsCmdBlockingCountFunc";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    session->SetGetRsCmdBlockingCountFunc(nullptr);
+    ASSERT_EQ(nullptr, session->getRsCmdBlockingCountFunc_);
+    session->SetGetRsCmdBlockingCountFunc([]() {
+        return 0;
+    });
+    ASSERT_NE(nullptr, session->getRsCmdBlockingCountFunc_);
 }
 
 /**

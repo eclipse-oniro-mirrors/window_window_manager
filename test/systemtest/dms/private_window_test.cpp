@@ -75,7 +75,7 @@ HWTEST_F(PrivateWindowTest, RegisterPrivateWindowListener, TestSize.Level1)
     sptr<WindowOption> option = new WindowOption();
     auto window = Window::Create("private", option);
     if (window == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     window->SetPrivacyMode(true);
     window->Show();

@@ -479,6 +479,35 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnVirtualScreenDisconnected, TestS
 }
 
 /**
+ * @tc.name: OnTentModeChange
+ * @tc.desc: OnTentModeChange test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnTentModeChange, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    DisplayId displayId = 10;
+    auto ssmProxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(nullptr);
+    ssmProxy->OnTentModeChange(TentMode::UNKNOWN);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    ssmProxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(nullptr, ssmProxy);
+    ssmProxy->OnTentModeChange(TentMode::UNKNOWN);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ssmProxy->OnTentModeChange(TentMode::UNKNOWN);
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ssmProxy->OnTentModeChange(TentMode::UNKNOWN);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ssmProxy->OnTentModeChange(TentMode::UNKNOWN);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: OnScreenConnectionChangedMock
  * @tc.desc: OnScreenConnectionChangedMock
  * @tc.type: FUNC
@@ -532,7 +561,10 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, ScreenConnectWriteParam, TestSize.
         .rsId_ = 0,
         .isExtend_ = false,
         .screenId_ = 0,
-        .rotationCorrectionMap_ = rotationCorrectionMap
+        .rotationCorrectionMap_ = rotationCorrectionMap,
+        .isRotationLocked_ = true,
+        .rotation_ = 1,
+        .rotationOrientationMap_ = {{0, 0}, {1, 1}, {2, 2}, {3, 3}}
     };
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
     auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
@@ -562,6 +594,11 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, ScreenConnectWriteParam, TestSize.
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ret = proxy->ScreenConnectWriteParam(option, screenEvent, data);
+    EXPECT_FALSE(ret);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
     ret = proxy->ScreenConnectWriteParam(option, screenEvent, data);
     EXPECT_FALSE(ret);
 }

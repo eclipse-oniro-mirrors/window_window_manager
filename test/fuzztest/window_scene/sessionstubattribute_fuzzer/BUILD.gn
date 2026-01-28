@@ -34,11 +34,12 @@ ohos_fuzztest("SessionStubAttributeFuzzTest") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/screen_session_manager:screen_session_manager",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
     "${window_base_path}/window_scene/session_manager:session_manager",
   ]
 
   external_deps = [
+    "ability_base:session_info",
     "accessibility:accessibility_common",
     "accessibility:accessibility_interface",
     "bundle_framework:appexecfwk_base",

@@ -80,6 +80,7 @@ public:
     virtual bool SetScreenBrightness(uint64_t screenId, uint32_t level);
     virtual uint32_t GetScreenBrightness(uint64_t screenId);
     virtual DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
+    virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
 private:
     static inline SingletonDelegator<DisplayManagerAdapterLite> delegator;
 };
@@ -95,9 +96,11 @@ public:
     virtual bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason);
     virtual ScreenPowerState GetScreenPower(ScreenId dmsScreenId);
     virtual ScreenPowerState GetScreenPower();
+    virtual void SyncScreenPowerState(ScreenPowerState state);
     virtual sptr<ScreenInfo> GetScreenInfo(ScreenId screenId);
     virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
     virtual bool SynchronizePowerStatus(ScreenPowerState state);
+    virtual DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height, float virtualPixelRatio);
 private:
     static inline SingletonDelegator<ScreenManagerAdapterLite> delegator;
 };

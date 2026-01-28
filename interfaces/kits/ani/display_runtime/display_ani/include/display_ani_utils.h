@@ -24,6 +24,8 @@
 #include "refbase.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
+#include "surface_utils.h"
+#include "screen_manager.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -38,11 +40,18 @@ static void ConvertWaterArea(WaterfallDisplayAreaRects waterfallDisplayAreaRects
 static void ConvertDisplayPhysicalResolution(std::vector<DisplayPhysicalResolution> &displayPhysicalArray,
     ani_object arrayObj, ani_env *env);
 
+static void ConvertRoundedCorner(const std::vector<RoundedCorner>& roundedCornerArray,
+    ani_object arrayObj, ani_env *env);
+
 static ani_enum_item CreateAniEnum(ani_env* env, const char* enum_descriptor, ani_size index);
 
 static ani_status CvtDisplay(sptr<Display> display, ani_env* env, ani_object obj);
 
+static void CvtDisplayHelper(sptr<Display> display, ani_env* env, ani_object obj, sptr<DisplayInfo> info);
+
 static ani_status GetStdString(ani_env *env, ani_string ani_str, std::string &result);
+
+static ani_status GetAniArrayInt(ani_env *env, ani_object arrayObj, std::vector<int32_t>& arrayNative);
 
 static ani_status NewAniObject(ani_env* env, ani_class cls, const char *signature, ani_object* result, ...);
 
@@ -50,11 +59,18 @@ static ani_status NewAniObjectNoParams(ani_env* env, ani_class cls, ani_object* 
 
 static ani_object CreateAniUndefined(ani_env* env);
 
-static void CreateAniArrayInt(ani_env* env, ani_size size, ani_array_int *aniArray, std::vector<uint32_t> vec);
+static ani_object CreateOptionalInt(ani_env *env, ani_int value);
 
-static void CreateAniArrayDouble(ani_env* env, ani_size size, ani_array_double *aniArray, std::vector<float> vec);
+static void CreateAniArrayInt(ani_env* env, ani_size size, ani_array *aniArray, std::vector<uint32_t> vec);
+
+static void CreateAniArrayDouble(ani_env* env, ani_size size, ani_array *aniArray, std::vector<float> vec);
 
 static ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result);
+
+static DmErrorCode GetVirtualScreenOptionFromAni(
+    ani_env* env, ani_object virtualScreenConfigObj, VirtualScreenOption& option);
+
+static bool GetSurfaceFromAni(ani_env* env, ani_string surfaceIdAniValue, sptr<Surface>& surface);
 
 static ani_status CallAniFunctionVoid(ani_env* env, const char* ns,
     const char* fn, const char* signature, ...);
@@ -84,6 +100,8 @@ static void DisposeAniDisplayObject(DisplayId displayId);
 static ani_status CvtBrightnessInfo(ani_env* env, ani_object obj, ScreenBrightnessInfo brightnessInfo);
 
 static ani_object CreateBrightnessInfoObject(ani_env* env);
+
+static ani_status GetStdStringVector(ani_env* env, ani_object arryObj, std::vector<std::string>& result);
 };
 }
 }

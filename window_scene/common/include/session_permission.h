@@ -45,7 +45,7 @@ public:
     static bool VerifyCallingPermission(const std::string& permissionName);
     static bool VerifyPermissionByCallerToken(const uint32_t callerToken, const std::string& permissionName);
     static bool VerifyPermissionByBundleName(
-        const std::string& permissionName, const std::string& bundleName, uint32_t userId);
+        const std::string& bundleName, const std::string& permissionName, uint32_t userId);
     static bool IsSameBundleNameAsCalling(const std::string& bundleName);
     static bool IsSameAppAsCalling(const std::string& bundleName, const std::string& appIdentifier);
     static bool IsStartedByUIExtension();

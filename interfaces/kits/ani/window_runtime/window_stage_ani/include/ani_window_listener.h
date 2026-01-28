@@ -47,7 +47,9 @@ class AniWindowListener : public IWindowChangeListener,
                         public IGestureNavigationEnabledChangedListener,
                         public IWindowVisibilityChangedListener,
                         public IOcclusionStateChangedListener,
+                        public IFrameMetricsChangedListener,
                         public IWindowTitleButtonRectChangedListener,
+                        public IWindowWillCloseListener,
                         public IWindowStatusChangeListener,
                         public IWindowNoInteractionListener,
                         public IWindowRectChangeListener,
@@ -104,6 +106,7 @@ public:
     int64_t GetTimeout() const override;
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;
     void OnOcclusionStateChanged(const WindowVisibilityState state) override;
+    void OnFrameMetricsChanged(const FrameMetrics& metrics) override;
     void OnSystemDensityChanged(float density) override;
     void OnDisplayIdChanged(DisplayId displayId) override;
 
@@ -131,7 +134,7 @@ private:
     void OnLastStrongRef(const void *) override;
 
     void KeyboardWillAnimateWithName(const KeyboardAnimationInfo& keyboardAnimationInfo,
-        const std::string& callBackName, const KeyboardAnimationCurve& curve);
+        const char* fn, const KeyboardAnimationCurve& curve);
 
     Rect currRect_ = {0, 0, 0, 0};
     WindowState state_ {WindowState::STATE_INITIAL};

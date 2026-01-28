@@ -24,6 +24,14 @@
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg = msg;
+    }
+}
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -298,8 +306,13 @@ HWTEST_F(SingleDisplaySensorPocketFoldStateManagerTest, ReportTentStatusChange, 
 {
     SingleDisplaySensorPocketFoldStateManager stateManager;
     ReportTentModeStatus tentStatus = ReportTentModeStatus::NORMAL_ENTER_TENT_MODE;
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     stateManager.ReportTentStatusChange(tentStatus);
-    ASSERT_EQ(tentStatus, ReportTentModeStatus::NORMAL_ENTER_TENT_MODE);
+    EXPECT_TRUE(g_logMsg.find("Write HiSysEvent error") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 }
 } // namespace Rosen

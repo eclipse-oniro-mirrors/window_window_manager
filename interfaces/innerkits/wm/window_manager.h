@@ -48,6 +48,7 @@ using SystemBarRegionTints = std::vector<SystemBarRegionTint>;
 using GetJSWindowObjFunc = std::function<void*(const std::string& windowName)>;
 using WindowChangeInfoType = std::variant<int32_t, uint32_t, int64_t, uint64_t, std::string, float, Rect, WindowMode,
     WindowVisibilityState, bool>;
+using WindowInfoList = std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>;
 
 struct VisibleWindowNumInfo {
     uint32_t displayId;
@@ -128,6 +129,23 @@ public:
      * @param focusChangeInfo Window info while its focus status changed.
      */
     virtual void OnUnfocused(const sptr<FocusChangeInfo>& focusChangeInfo) = 0;
+};
+
+/**
+ * @class IAllGroupInfoChangedListener
+ *
+ * @brief Listener to observe display added and removed.
+ */
+class IAllGroupInfoChangedListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when a display is connected or disconnected.
+     *
+     * @param displayGroupId display group id of the changed display.
+     * @param displayId display id.
+     * @param isAdd true means a new display is added in the current display group, false means the opposite.
+     */
+    virtual void OnDisplayGroupInfoChange(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd) = 0;
 };
 
 /**
@@ -268,8 +286,7 @@ public:
      *
      * @param windowInfoList
      */
-    virtual void OnWindowInfoChanged(
-        const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList) = 0;
+    virtual void OnWindowInfoChanged(const WindowInfoList& windowInfoList) = 0;
 
     void SetInterestInfo(const std::unordered_set<WindowInfoKey>& interestInfo) { interestInfo_ = interestInfo; }
     const std::unordered_set<WindowInfoKey>& GetInterestInfo() const { return interestInfo_; }
@@ -610,6 +627,24 @@ public:
     virtual void OnPiPStateChanged(const std::string& bundleName, bool isForeground) = 0;
 };
 
+/*
+ * @class IWindowSupportRotationListener
+ *
+ * @brief IWindowSupportRotationListener is used to observe the window support rotation change.
+ */
+class IWindowSupportRotationListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when window support rotation change
+     *
+     * @param supportRotationInfo information of support rotation
+     *
+     */
+    virtual void OnSupportRotationChange(const SupportRotationInfo& supportRotationInfo) = 0;
+};
+
+class WindowManagerAgent;
+
 /**
  * @class WindowManager
  *
@@ -882,16 +917,16 @@ public:
      * @param windowInfoList the changed window info list.
      * @return WM_OK means notify success, others means notify failed.
      */
-    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-        const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList);
+    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList);
 
     /**
      * @brief Minimize all app window.
      *
      * @param displayId Display id.
+     * @param excludeWindowId Exclude window id.
      * @return WM_OK means minimize success, others means minimize failed.
      */
-    WMError MinimizeAllAppWindows(DisplayId displayId);
+    WMError MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId = 0);
 
     /**
      * @brief Toggle all app windows to the foreground.
@@ -1023,6 +1058,15 @@ public:
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
 
     /**
+     * @brief Get focus window info.
+     *
+     * @param focusInfo Focus window info.
+     * @param abilityToken Ability token.
+     * @return FocusChangeInfo object about focus window.
+     */
+    void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo, const sptr<IRemoteObject>& abilityToken);
+
+    /**
      * @brief Dump all session info
      *
      * @param infos session infos
@@ -1046,6 +1090,15 @@ public:
      * @return WM_OK if successfully retrieved uiContentRemoteObj
      */
     WMError GetUIContentRemoteObj(int32_t windowId, sptr<IRemoteObject>& uiContentRemoteObj);
+
+    /**
+     * @brief Get uiContent remote object for root scene
+     *
+     * @param displayId display id
+     * @param uiContentRemoteObj remote uiContent object
+     * @return WM_OK means set success, others means set failed.
+     */
+    WMError GetRootUIContentRemoteObj(DisplayId displayId, sptr<IRemoteObject>& uiContentRemoteObj);
 
     /**
      * @brief raise window to top by windowId
@@ -1073,6 +1126,15 @@ public:
      * @return WM_OK means shift window focus success, others means failed.
      */
     WMError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId);
+
+    /**
+     * @brief Set zIndex of the specific system window with window type.
+     *
+     * @param windowType Window type of the specific system window
+     * @param zIndex  The value of ZIndex
+     * @return WM_OK means set zIndex success, others means failed.
+     */
+    WMError SetSpecificSystemWindowZIndex(WindowType windowType, int32_t zIndex);
 
     /**
      * @brief Set start window background color.
@@ -1214,7 +1276,7 @@ public:
      * this priority is highest.
      *
      * @param dragResizeType global drag resize type to set
-     * @return WM_OK means get success, others means failed.
+     * @return WM_OK means set success, others means failed.
      */
     WMError SetGlobalDragResizeType(DragResizeType dragResizeType);
 
@@ -1233,7 +1295,7 @@ public:
      *
      * @param bundleName bundleName of specific app
      * @param dragResizeType drag resize type to set
-     * @return WM_OK means get success, others means failed.
+     * @return WM_OK means set success, others means failed.
      */
     WMError SetAppDragResizeType(const std::string& bundleName, DragResizeType dragResizeType);
 
@@ -1259,7 +1321,7 @@ public:
      *
      * @param bundleName bundleName of specific app
      * @param keyFramePolicy param of key frame
-     * @return WM_OK means get success, others means failed.
+     * @return WM_OK means set success, others means failed.
      */
     WMError SetAppKeyFramePolicy(const std::string& bundleName, const KeyFramePolicy& keyFramePolicy);
 
@@ -1364,6 +1426,27 @@ public:
     WMError UnregisterWindowLifeCycleCallback(const sptr<IWindowLifeCycleListener>& listener);
 
     /**
+     * @brief Register window support rotation change listener.
+     *
+     * @param listener IWindowSupportRotationListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    WMError RegisterWindowSupportRotationListener(const sptr<IWindowSupportRotationListener>& listener);
+
+    /**
+     * @brief Unregister window support rotation change listener.
+     *
+     * @param listener IWindowSupportRotationListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    WMError UnregisterWindowSupportRotationListener(const sptr<IWindowSupportRotationListener>& listener);
+
+    /*
+     * notify support rotation change to listener
+     */
+    void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
+
+    /**
      * @brief Register get js window callback.
      * @param getJSWindowFunc get js window obj callback.
      */
@@ -1466,6 +1549,10 @@ private:
     WMError UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     void SetIsModuleHookOffToSet(const std::string& moduleName);
     bool GetIsModuleHookOffFromSet(const std::string& moduleName);
+
+    // For fault agent re-register.
+    void ActiveFaultAgentReregister(const WindowManagerAgentType type,
+        const sptr<WindowManagerAgent>& agent, WMError& ret);
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -212,6 +212,16 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "OccupiedAreaChangeInfo is null");
                 return ERR_INVALID_DATA;
             }
+            int32_t posX = 0;
+            int32_t posY = 0;
+            uint32_t width = 0;
+            uint32_t height = 0;
+            if (!data.ReadInt32(posX) || !data.ReadInt32(posY) ||
+                !data.ReadUint32(width) || !data.ReadUint32(height)) {
+                TLOGE(WmsLogTag::WMS_KEYBOARD, "Rect value read failed.");
+                return ERR_INVALID_DATA;
+            }
+            Rect rect { posX, posY, width, height };
             std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
             uint32_t size = 0;
             if (!data.ReadUint32(size)) {
@@ -241,16 +251,6 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 }
                 avoidAreas[static_cast<AvoidAreaType>(type)] = *area;
             }
-            int32_t posX = 0;
-            int32_t posY = 0;
-            uint32_t width = 0;
-            uint32_t height = 0;
-            if (!data.ReadInt32(posX) || !data.ReadInt32(posY) ||
-                !data.ReadUint32(width) || !data.ReadUint32(height)) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Rect value read failed.");
-                return ERR_INVALID_DATA;
-            }
-            struct Rect rect { posX, posY, width, height };
             bool hasRSTransaction = false;
             if (!data.ReadBool(hasRSTransaction)) {
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "hasRSTransaction value read failed.");

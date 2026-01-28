@@ -181,7 +181,7 @@ HWTEST_F(WindowPropertyTest, ResumeLastWindowMode, TestSize.Level1)
     winPropDst.lastMode_ = WindowMode::WINDOW_MODE_PIP;
     winPropDst.mode_ = WindowMode::WINDOW_MODE_UNDEFINED;
     winPropDst.ResumeLastWindowMode();
-    ASSERT_EQ(WindowMode::WINDOW_MODE_UNDEFINED, winPropDst.mode_);
+    ASSERT_EQ(WindowMode::WINDOW_MODE_UNDEFINED, winPropDst.GetWindowMode());
 
     winPropDst.windowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING;
     winPropDst.lastMode_ = WindowMode::WINDOW_MODE_PIP;

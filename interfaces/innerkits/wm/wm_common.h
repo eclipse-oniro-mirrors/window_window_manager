@@ -47,6 +47,7 @@ constexpr int32_t MIN_COLOR_MODE = -1;
 constexpr int32_t MAX_COLOR_MODE = 1;
 constexpr int32_t LIGHT_COLOR_MODE = 0;
 constexpr int32_t DARK_COLOR_MODE = 1;
+constexpr int32_t ANCO_SERVICE_BROKER_UID = 5557;
 constexpr uint32_t MIN_SPACING_BETWEEN_BUTTONS = 8;
 constexpr uint32_t MAX_SPACING_BETWEEN_BUTTONS = 24;
 constexpr uint32_t MIN_BUTTON_BACKGROUND_SIZE = 20;
@@ -62,6 +63,7 @@ constexpr uint32_t MAX_SIZE_PIP_CONTROL_GROUP = 8;
 constexpr uint32_t MAX_SIZE_PIP_CONTROL = 9;
 constexpr int32_t SPECIFIC_ZINDEX_INVALID = -1;
 constexpr double POS_ZERO = 0.001f;
+constexpr uint32_t SUPPORT_ROTATION_SIZE = 4;
 /*
  * PC Window Sidebar Blur
  */
@@ -107,6 +109,32 @@ constexpr uint32_t OUTLINE_COLOR_OPAQUE = 0xff; // Color opaque byte.
  */
 constexpr uint32_t MAX_SUB_WINDOW_LEVEL = 10;
 }
+
+/**
+ * @brief Enumerates type of window manager agent.
+ */
+enum class WindowManagerAgentType : uint32_t {
+    WINDOW_MANAGER_AGENT_TYPE_FOCUS,
+    WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
+    WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
+    WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
+    WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM = 7,
+    WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
+    WINDOW_MANAGER_AGENT_TYPE_CAMERA_WINDOW,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
+    WINDOW_MANAGER_AGENT_TYPE_PIP,
+    WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY,
+    WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
+    WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
+    WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
+    WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
+    WINDOW_MANAGER_AGENT_TYPE_END,
+};
 
 /**
  * @brief Enumerates type of window.
@@ -187,6 +215,16 @@ enum class WindowType : uint32_t {
     SYSTEM_WINDOW_END = SYSTEM_SUB_WINDOW_END,
 
     WINDOW_TYPE_UI_EXTENSION = 3000
+};
+ 
+/**
+ * @struct RealTimeSwitchInfo.
+ *
+ * @brief the information for compatible mode App when switching window style in real time.
+ */
+struct RealTimeSwitchInfo {
+    bool isNeedChange_{false};
+    uint32_t showTypes_{0};
 };
 
 /**
@@ -577,6 +615,7 @@ enum class WindowSizeChangeReason : uint32_t {
     ROOT_SCENE_CHANGE,
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
+    LS_STATE_CHANGE,
     FULL_SCREEN_IN_FORCE_SPLIT,
     END,
 };
@@ -1120,6 +1159,17 @@ struct SystemBarPropertyFlag {
     bool enableAnimationFlag = false;
 };
 
+/*
+ * @enum StatusBarColorChangeReason
+ *
+ * @brief Configuration of statusBarColor
+ */
+enum class StatusBarColorChangeReason {
+    WINDOW_CONFIGURATION,
+    NAVIGATION_CONFIGURATION,
+    ATOMICSERVICE_CONFIGURATION,
+};
+
 /**
  * @struct Rect
  *
@@ -1167,6 +1217,20 @@ struct Rect {
         std::ostringstream oss;
         oss << "[" << posX_ << " " << posY_ << " " << width_ << " " << height_ << "]";
         return oss.str();
+    }
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteInt32(posX_) && parcel.WriteInt32(posY_) &&
+               parcel.WriteUint32(width_) && parcel.WriteUint32(height_);
+    }
+
+    void Unmarshalling(Parcel& parcel)
+    {
+        posX_ = parcel.ReadInt32();
+        posY_ = parcel.ReadInt32();
+        width_ = parcel.ReadUint32();
+        height_ = parcel.ReadUint32();
     }
 
     static const Rect EMPTY_RECT;
@@ -1551,6 +1615,50 @@ struct ExceptionInfo : public Parcelable {
 };
 
 /**
+ * @struct FrameMetrics
+ *
+ * @brief frame metrics info.
+ */
+struct FrameMetrics : public Parcelable {
+    bool firstDrawFrame_ = false;
+    uint64_t inputHandlingDuration_ = 0;
+    uint64_t layoutMeasureDuration_ = 0;
+    uint64_t vsyncTimestamp_ = 0;
+
+    /**
+     * @brief Marshalling FrameMetrics.
+     *
+     * @param parcel Package of FrameMetrics.
+     * @return True means marshall success, false means marshall failed.
+     */
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteBool(firstDrawFrame_) &&
+               parcel.WriteUint64(inputHandlingDuration_) &&
+               parcel.WriteUint64(layoutMeasureDuration_) &&
+               parcel.WriteUint64(vsyncTimestamp_);
+    }
+
+    /**
+     * @brief Unmarshalling FrameMetrics.
+     *
+     * @param parcel Package of FrameMetrics.
+     * @return FrameMetrics object.
+     */
+    static FrameMetrics* Unmarshalling(Parcel& parcel)
+    {
+        auto info = std::make_unique<FrameMetrics>();
+        if (!parcel.ReadBool(info->firstDrawFrame_) ||
+            !parcel.ReadUint64(info->inputHandlingDuration_) ||
+            !parcel.ReadUint64(info->layoutMeasureDuration_) ||
+            !parcel.ReadUint64(info->vsyncTimestamp_)) {
+            return nullptr;
+        }
+        return info.release();
+    }
+};
+
+/**
  * @brief Enumerates window update type.
  */
 enum class WindowUpdateType : int32_t {
@@ -1656,6 +1764,19 @@ enum class PiPControlType : uint32_t {
     END,
 };
 
+/**
+ * @brief Enumerates picture in picture state change reason.
+ */
+enum class PiPStateChangeReason : int32_t {
+    REQUEST_START = 0,
+    AUTO_START = 1,
+    REQUEST_DELETE = 2,
+    PANEL_ACTION_DELETE = 3,
+    DRAG_DELETE = 4,
+    PANEL_ACTION_RESTORE = 5,
+    OTHER = 6,
+};
+
 struct PiPControlStatusInfo {
     PiPControlType controlType;
     PiPControlStatus status;
@@ -1673,6 +1794,7 @@ struct PiPTemplateInfo : public Parcelable {
     std::vector<PiPControlStatusInfo> pipControlStatusInfoList;
     std::vector<PiPControlEnableInfo> pipControlEnableInfoList;
     uint32_t defaultWindowSizeType{0};
+    bool cornerAdsorptionEnabled{true};
 
     PiPTemplateInfo() {}
 
@@ -1705,6 +1827,9 @@ struct PiPTemplateInfo : public Parcelable {
             }
         }
         if (!parcel.WriteUint32(defaultWindowSizeType)) {
+            return false;
+        }
+        if (!parcel.WriteBool(cornerAdsorptionEnabled)) {
             return false;
         }
         return true;
@@ -1752,6 +1877,10 @@ struct PiPTemplateInfo : public Parcelable {
             pipTemplateInfo->pipControlEnableInfoList.emplace_back(info);
         }
         if (!parcel.ReadUint32(pipTemplateInfo->defaultWindowSizeType)) {
+            delete pipTemplateInfo;
+            return nullptr;
+        }
+        if (!parcel.ReadBool(pipTemplateInfo->cornerAdsorptionEnabled)) {
             delete pipTemplateInfo;
             return nullptr;
         }
@@ -1882,6 +2011,14 @@ struct WindowLimits {
             1.0f,                              // vpRatio
             PixelUnit::VP                      // pixelUnit
         };
+    }
+
+    bool IsDefault() const
+    {
+        return (maxWidth_ == static_cast<uint32_t>(INT32_MAX) &&
+                maxHeight_ == static_cast<uint32_t>(INT32_MAX) &&
+                minWidth_ == 1 &&
+                minHeight_ == 1);
     }
 
     std::string ToString() const
@@ -2092,6 +2229,7 @@ struct WindowMetaInfo : public Parcelable {
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
     bool isMidScene = false;
     bool isFocused = false;
+    bool isTouchable = true;
 
     bool Marshalling(Parcel& parcel) const override
     {
@@ -2100,7 +2238,8 @@ struct WindowMetaInfo : public Parcelable {
                parcel.WriteUint32(static_cast<uint32_t>(windowType)) && parcel.WriteUint32(parentWindowId) &&
                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
-               parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode));
+               parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               parcel.WriteBool(isTouchable);
     }
 
     static WindowMetaInfo* Unmarshalling(Parcel& parcel)
@@ -2115,7 +2254,8 @@ struct WindowMetaInfo : public Parcelable {
             !parcel.ReadUint64(windowMetaInfo->surfaceNodeId) ||
             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
-            !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue)) {
+            !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
+            !parcel.ReadBool(windowMetaInfo->isTouchable)) {
             delete windowMetaInfo;
             return nullptr;
         }
@@ -2491,6 +2631,11 @@ struct KeyboardLayoutParams : public Parcelable {
         return LandscapeKeyboardRect_.IsUninitializedRect() && PortraitKeyboardRect_.IsUninitializedRect() &&
                LandscapePanelRect_.IsUninitializedRect() && PortraitPanelRect_.IsUninitializedRect();
     }
+    
+    bool isValidAvoidHeight() const
+    {
+        return landscapeAvoidHeight_ >= 0 && portraitAvoidHeight_ >= 0;
+    }
 
     static inline bool WriteParcel(Parcel& parcel, const Rect& rect)
     {
@@ -2507,6 +2652,7 @@ struct KeyboardLayoutParams : public Parcelable {
     virtual bool Marshalling(Parcel& parcel) const override
     {
         return (parcel.WriteUint32(static_cast<uint32_t>(gravity_)) &&
+                parcel.WriteUint64(displayId_) &&
                 parcel.WriteInt32(landscapeAvoidHeight_) &&
                 parcel.WriteInt32(portraitAvoidHeight_) &&
                 WriteParcel(parcel, LandscapeKeyboardRect_) &&
@@ -2520,6 +2666,7 @@ struct KeyboardLayoutParams : public Parcelable {
         KeyboardLayoutParams* params = new KeyboardLayoutParams();
         uint32_t gravity;
         if (parcel.ReadUint32(gravity) &&
+            parcel.ReadUint64(params->displayId_) &&
             parcel.ReadInt32(params->landscapeAvoidHeight_) &&
             parcel.ReadInt32(params->portraitAvoidHeight_) &&
             ReadParcel(parcel, params->LandscapeKeyboardRect_) &&
@@ -2544,6 +2691,7 @@ struct KeyboardTouchHotAreas {
     std::vector<Rect> portraitKeyboardHotAreas_;
     std::vector<Rect> landscapePanelHotAreas_;
     std::vector<Rect> portraitPanelHotAreas_;
+    uint64_t displayId_ = DISPLAY_ID_INVALID;
 
     bool isKeyboardEmpty() const
     {
@@ -2553,6 +2701,20 @@ struct KeyboardTouchHotAreas {
     bool isPanelEmpty() const
     {
         return (landscapePanelHotAreas_.empty() || portraitPanelHotAreas_.empty());
+    }
+
+    bool operator==(const KeyboardTouchHotAreas& other) const
+    {
+        return (landscapeKeyboardHotAreas_ == other.landscapeKeyboardHotAreas_ &&
+                portraitKeyboardHotAreas_ == other.portraitKeyboardHotAreas_ &&
+                landscapePanelHotAreas_ == other.landscapePanelHotAreas_ &&
+                portraitPanelHotAreas_ == other.portraitPanelHotAreas_ &&
+                displayId_ == other.displayId_);
+    }
+
+    bool operator!=(const KeyboardTouchHotAreas& other) const
+    {
+        return !this->operator==(other);
     }
 };
 
@@ -3256,6 +3418,78 @@ struct OutlineParams : public Parcelable {
 };
 
 /**
+ * @brief support rotation of current application
+ */
+struct SupportRotationInfo : public Parcelable {
+    DisplayId displayId_ = DISPLAY_ID_INVALID;
+    int32_t persistentId_ = 0;
+    // ture means support rotate to index*90 rotation
+    std::vector<bool> containerSupportRotation_ = {true, false, false, false};
+    std::vector<bool> sceneSupportRotation_ = {true, false, false, false};
+    std::string supportRotationChangeReason_ = "";
+
+    SupportRotationInfo() {}
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        if (!parcel.WriteUint64(static_cast<uint64_t>(displayId_))) {
+            return false;
+        }
+        if (!parcel.WriteInt32(persistentId_)) {
+            return false;
+        }
+        for (uint32_t i = 0; i < SUPPORT_ROTATION_SIZE; i++) {
+            if (!parcel.WriteBool(containerSupportRotation_[i])) {
+                return false;
+            }
+        }
+        for (uint32_t i = 0; i < SUPPORT_ROTATION_SIZE; i++) {
+            if (!parcel.WriteBool(sceneSupportRotation_[i])) {
+                return false;
+            }
+        }
+        if (!parcel.WriteString(supportRotationChangeReason_)) {
+            return false;
+        }
+        return true;
+    }
+
+    static SupportRotationInfo* Unmarshalling(Parcel& parcel)
+    {
+        SupportRotationInfo* supportRotationInfo = new SupportRotationInfo();
+        if (!parcel.ReadUint64(supportRotationInfo->displayId_)) {
+            delete supportRotationInfo;
+            return nullptr;
+        }
+        if (!parcel.ReadInt32(supportRotationInfo->persistentId_)) {
+            delete supportRotationInfo;
+            return nullptr;
+        }
+        for (uint32_t i = 0; i < SUPPORT_ROTATION_SIZE; i++) {
+            bool isSupport = false;
+            if (!parcel.ReadBool(isSupport)) {
+                delete supportRotationInfo;
+                return nullptr;
+            }
+            supportRotationInfo->containerSupportRotation_[i] = isSupport;
+        }
+        for (uint32_t i = 0; i < SUPPORT_ROTATION_SIZE; i++) {
+            bool isSupport = false;
+            if (!parcel.ReadBool(isSupport)) {
+                delete supportRotationInfo;
+                return nullptr;
+            }
+            supportRotationInfo->sceneSupportRotation_[i] = isSupport;
+        }
+        if (!parcel.ReadString(supportRotationInfo->supportRotationChangeReason_)) {
+            delete supportRotationInfo;
+            return nullptr;
+        }
+        return supportRotationInfo;
+    }
+};
+
+/**
  * @enum WaterfallResidentState
  * @brief Represents the resident (persistent) state control of the waterfall layout.
  */
@@ -3268,9 +3502,44 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+};
 
-    /** Disable the resident state but keep the current waterfall layout state unchanged. */
-    CANCEL = 3,
+/**
+ * @enum CompatibleMode
+ * @brief Controls the compatible aspect ratio modes for window display.
+ */
+enum class CompatibleStyleMode : uint32_t {
+    INVALID_VALUE = -1,
+    // Default aspect ratio
+    LANDSCAPE_DEFAULT = 0,
+    // 18:9 aspect ratio
+    LANDSCAPE_18_9 = 1,
+    // 1:1 aspect ratio
+    LANDSCAPE_1_1 = 3,
+    // 2:3 aspect ratio
+    LANDSCAPE_2_3 = 4,
+    // split aspect ratio
+    LANDSCAPE_SPLIT = 5,
+};
+
+struct StateChangeOption {
+    int32_t parentPersistentId_ = 0;
+    WindowState newState_ = WindowState::STATE_INITIAL;
+    uint32_t reason_ = 0;
+    bool withAnimation_ = false;
+    bool withFocus_ = false;
+    bool waitAttach_ = false;
+    bool isFromInnerkits_ = false;
+    bool waitDetach_ = false;
+
+    StateChangeOption(int32_t parentPersistentId, WindowState newState)
+        : parentPersistentId_(parentPersistentId), newState_(newState) {}
+
+    StateChangeOption(int32_t parentPersistentId, WindowState newState, uint32_t reason, bool withAnimation,
+        bool withFocus, bool waitAttach, bool isFromInnerkits, bool waitDetach)
+        : parentPersistentId_(parentPersistentId), newState_(newState), reason_(reason),
+          withAnimation_(withAnimation), withFocus_(withFocus), waitAttach_(waitAttach),
+          isFromInnerkits_(isFromInnerkits), waitDetach_(waitDetach) {}
 };
 }
 }

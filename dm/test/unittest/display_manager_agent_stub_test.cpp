@@ -388,6 +388,24 @@ namespace {
     }
 
     /**
+     * @tc.name: OnRemoteRequest18
+     * @tc.desc: TRANS_ID_ON_RECORDING_DISPLAY_CHANGED
+     * @tc.type: FUNC
+     */
+    HWTEST_F(DisplayManagerAgentStubTest, OnRemoteRequest18, TestSize.Level1)
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+
+        data.WriteInterfaceToken(DisplayManagerAgentStub::GetDescriptor());
+        data.WriteUInt64Vector({0});
+        uint32_t code = static_cast<uint32_t>(IDisplayManagerAgent::TRANS_ID_ON_RECORDING_DISPLAY_CHANGED);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_NE(res, -1);
+    }
+
+    /**
      * @tc.name: ProcPrivateWindowList
      * @tc.desc: ProcPrivateWindowList test
      * @tc.type: FUNC

@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "iremote_object_mocker.h"
+#include "pointer_event.h"
 #include "window_adapter_lite.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
@@ -276,6 +277,24 @@ HWTEST_F(WindowAdapterLiteTest, ListWindowInfo01, Function | SmallTest | Level2)
     std::vector<sptr<WindowInfo>> infos;
     auto err = instance_->ListWindowInfo(windowInfoOption, infos);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, err);
+}
+
+/**
+ * @tc.name: RecoverWindowPropertyChangeFlag
+ * @tc.desc: test RecoverWindowPropertyChangeFlag
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, RecoverWindowPropertyChangeFlag01, TestSize.Level1)
+{
+    ASSERT_NE(instance_, nullptr);
+    auto ret = instance_->RecoverWindowPropertyChangeFlag();
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    auto oldProxy = instance_->windowManagerServiceProxy_;
+    instance_->windowManagerServiceProxy_ = nullptr;
+    ret = instance_->RecoverWindowPropertyChangeFlag();
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    instance_->windowManagerServiceProxy_ = oldProxy;
 }
 
 /**

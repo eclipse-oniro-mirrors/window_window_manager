@@ -38,7 +38,11 @@ public:
     virtual WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
         const sptr<IWindowManagerAgent>& windowManagerAgent) = 0;
     virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) { return WMError::WM_OK; };
+    virtual WMError UpdateScreenLockStatusForApp(
+        const std::string& bundleName, bool isRelease) { return WMError::WM_OK; }
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+    virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) = 0;
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid) = 0;
     virtual WMError CheckUIExtensionCreation(int32_t windowId, uint32_t tokenId, const AppExecFwk::ElementName& element,
         AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid) = 0;
@@ -52,14 +56,34 @@ public:
         std::vector<int32_t>& clearFailedIds) = 0;
     virtual WSError RaiseWindowToTop(int32_t persistentId) { return WSError::WS_OK; }
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType) = 0;
+    virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError TerminateSessionByPersistentId(int32_t persistentId) = 0;
     virtual WMError CloseTargetFloatWindow(const std::string& bundleName) = 0;
     virtual WMError CloseTargetPiPWindow(const std::string& bundleName) = 0;
     virtual WMError GetCurrentPiPWindowInfo(std::string& bundleName) = 0;
     virtual WMError GetRootMainWindowId(int32_t persistentId, int32_t& hostWindowId) = 0;
     virtual WMError GetAccessibilityWindowInfo(std::vector<sptr<AccessibilityWindowInfo>>& infos) = 0;
+    virtual WMError SetGlobalDragResizeType(DragResizeType dragResizeType) { return WMError::WM_OK; }
+    virtual WMError GetGlobalDragResizeType(DragResizeType& dragResizeType) { return WMError::WM_OK; }
+    virtual WMError SetAppDragResizeType(const std::string& bundleName,
+        DragResizeType dragResizeType) { return WMError::WM_OK; }
+    virtual WMError GetAppDragResizeType(const std::string& bundleName,
+        DragResizeType& dragResizeType) { return WMError::WM_OK; }
+    virtual WMError SetAppKeyFramePolicy(const std::string& bundleName,
+        const KeyFramePolicy& keyFramePolicy) { return WMError::WM_OK; }
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
         { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,

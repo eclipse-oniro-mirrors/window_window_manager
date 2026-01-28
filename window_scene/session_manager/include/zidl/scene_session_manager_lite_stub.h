@@ -60,13 +60,23 @@ private:
     int HandleGetParentMainWindowId(MessageParcel& data, MessageParcel& reply);
     //for window manager service
     int HandleGetFocusSessionInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAllGroupInfo(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleCheckWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateWindowModeByIdForUITest(MessageParcel& data, MessageParcel& reply);
     int HandleCheckUIExtensionCreation(MessageParcel& data, MessageParcel& reply);
+    int HandleSetGlobalDragResizeType(MessageParcel& data, MessageParcel& reply);
+    int HandleGetGlobalDragResizeType(MessageParcel& data, MessageParcel& reply);
+    int HandleSetAppDragResizeType(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAppDragResizeType(MessageParcel& data, MessageParcel& reply);
+    int HandleSetAppKeyFramePolicy(MessageParcel& data, MessageParcel& reply);
     int HandleListWindowInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleRegisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
+    int HandleUnregisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverWindowPropertyChangeFlag(MessageParcel& data, MessageParcel& reply);
     int HandleGetVisibilityWindowInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateSessionScreenLock(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowModeType(MessageParcel& data, MessageParcel& reply);
     int HandleGetMainWinodowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateAnimationSpeedWithPid(MessageParcel& data, MessageParcel& reply);
@@ -78,6 +88,7 @@ private:
     int HandleRegisterCollaborator(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterCollaborator(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowStyleType(MessageParcel& data, MessageParcel& reply);
+    int HandleSetProcessWatermark(MessageParcel& data, MessageParcel& reply);
     int HandleTerminateSessionByPersistentId(MessageParcel& data, MessageParcel& reply);
     int HandleCloseTargetFloatWindow(MessageParcel& data, MessageParcel& reply);
     int HandleCloseTargetPiPWindow(MessageParcel& data, MessageParcel& reply);
@@ -103,6 +114,7 @@ private:
     int HandleSendPointerEventForHover(MessageParcel& data, MessageParcel& reply);
     int HandleSetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply);
     int HandleUnsetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyAppUseControlDisplay(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleUnRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetDisplayIdByWindowId(MessageParcel& data, MessageParcel& reply);

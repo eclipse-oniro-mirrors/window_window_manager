@@ -22,10 +22,12 @@ namespace Rosen {
 
 std::string ScenePersistentStorage::saveDir_;
 std::map<ScenePersistentStorageType, std::string> ScenePersistentStorage::storagePath_;
+std::shared_mutex ScenePersistentStorage::storageMutex_;
 
 bool ScenePersistentStorage::HasKey(const std::string& key, ScenePersistentStorageType storageType)
 {
     bool res = false;
+    std::shared_lock<std::shared_mutex> lock(storageMutex_);
     auto pref = GetPreference(storageType);
     if (!pref) {
         TLOGD(WmsLogTag::DEFAULT, "[ScenePersistentStorage] Preferences is nullptr");
@@ -39,6 +41,7 @@ bool ScenePersistentStorage::HasKey(const std::string& key, ScenePersistentStora
 
 void ScenePersistentStorage::Delete(const std::string& key, ScenePersistentStorageType storageType)
 {
+    std::unique_lock<std::shared_mutex> lock(storageMutex_);
     auto pref = GetPreference(storageType);
     if (!pref) {
         WLOGE("[ScenePersistentStorage] Preferences is nullptr");
@@ -82,5 +85,48 @@ void ScenePersistentStorage::InitDir(std::string dir)
     };
 }
 
+void ScenePersistentStorage::RenameKeys(const std::map<std::string, std::string>& renameMap,
+    ScenePersistentStorageType storageType)
+{
+    if (renameMap.empty()) {
+        return;
+    }
+    std::unique_lock<std::shared_mutex> lock(storageMutex_);
+    auto pref = GetPreference(storageType);
+    if (!pref) {
+        TLOGD(WmsLogTag::DEFAULT, "[ScenePersistentStorage] Preferences is nullptr");
+        return;
+    }
+    for (const auto& [oldKey, newKey] : renameMap) {
+        if (oldKey.empty() || newKey.empty() || oldKey == newKey) {
+            continue;
+        }
+        if (!pref->HasKey(oldKey)) {
+            TLOGD(WmsLogTag::DEFAULT, "[ScenePersistentStorage] OldKey does not exist: %{public}s", oldKey.c_str());
+            continue;
+        }
+        switch (storageType) {
+            case ScenePersistentStorageType::ASPECT_RATIO: {
+                auto floatValue = pref->GetFloat(oldKey);
+                pref->PutFloat(newKey, floatValue);
+                pref->Delete(oldKey);
+                TLOGD(WmsLogTag::DEFAULT, "[ScenePersistentStorage] Rename OldKey: %{public}s to newKey: %{public}s",
+                    oldKey.c_str(), newKey.c_str());
+                break;
+            }
+            case ScenePersistentStorageType::MAXIMIZE_STATE: {
+                auto intValue = pref->GetInt(oldKey);
+                pref->PutInt(newKey, intValue);
+                pref->Delete(oldKey);
+                TLOGD(WmsLogTag::DEFAULT, "[ScenePersistentStorage] Rename OldKey: %{public}s to newKey: %{public}s",
+                    oldKey.c_str(), newKey.c_str());
+                break;
+            }
+            default:
+                TLOGW(WmsLogTag::DEFAULT, "[ScenePersistentStorage] Unknown storage type");
+        }
+    }
+    pref->Flush();
+}
 } // namespace Rosen
 } // namespace OHOS

@@ -457,6 +457,78 @@ HWTEST_F(SceneSessionManagerLayoutTest, UpdateAppHookWindowInfoWhenSwitchFreeMul
 }
 
 /**
+ * @tc.name: UpdateRsCmdBlockingCount
+ * @tc.desc: test function : UpdateRsCmdBlockingCount
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, UpdateRsCmdBlockingCount, TestSize.Level1)
+{
+    ssm_->rsCmdBlockingFlag_.count = 0;
+    ssm_->rsCmdBlockingFlag_.startTime = 0;
+
+    bool enable = true;
+    ssm_->UpdateRsCmdBlockingCount(enable);
+    EXPECT_EQ(ssm_->GetOrResetRsCmdBlockingCount(), 1);
+
+    ssm_->rsCmdBlockingFlag_.startTime = 0;
+    EXPECT_NE(ssm_->GetOrResetRsCmdBlockingCount(), 1);
+
+    enable = false;
+    ssm_->UpdateRsCmdBlockingCount(enable);
+    EXPECT_EQ(ssm_->GetOrResetRsCmdBlockingCount(), 0);
+
+    ssm_->rsCmdBlockingFlag_.startTime = -1;
+    EXPECT_EQ(ssm_->GetOrResetRsCmdBlockingCount(), 0);
+}
+
+/**
+ * @tc.name: RegisterGetRsCmdBlockingCount
+ * @tc.desc: test function : RegisterGetRsCmdBlockingCount
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, RegisterGetRsCmdBlockingCount, TestSize.Level1)
+{
+    ssm_->RegisterGetRsCmdBlockingCountFunc(nullptr);
+    SessionInfo info;
+    info.abilityName_ = "RegisterGetRsCmdBlockingCount";
+    info.bundleName_ = "RegisterGetRsCmdBlockingCount";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ssm_->RegisterGetRsCmdBlockingCountFunc(session);
+    EXPECT_NE(nullptr, session->getRsCmdBlockingCountFunc_);
+}
+
+/**
+ * @tc.name: TestRunAfterNVsyncs
+ * @tc.desc: test function : TestRunAfterNVsyncs
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, TestRunAfterNVsyncs, TestSize.Level1)
+{
+    ssm_->vsyncStation_ = nullptr;
+    bool callbackExecuted = false;
+    ssm_->RunAfterNVsyncs(1, [&callbackExecuted](int64_t, int64_t) {
+        callbackExecuted = true;
+    });
+    EXPECT_FALSE(callbackExecuted);
+
+    auto vsyncStation = std::make_shared<VsyncStation>(1);
+    ssm_->vsyncStation_ = vsyncStation;
+    callbackExecuted = false;
+    ssm_->RunAfterNVsyncs(0, [&callbackExecuted](int64_t, int64_t) {
+        callbackExecuted = true;
+    });
+    ssm_->vsyncStation_->VsyncCallbackInner(0, 0);
+    EXPECT_TRUE(callbackExecuted);
+
+    callbackExecuted = false;
+    ssm_->RunAfterNVsyncs(1, [&callbackExecuted](int64_t, int64_t) {
+        callbackExecuted = true;
+    });
+    ssm_->vsyncStation_->VsyncCallbackInner(0, 0);
+    EXPECT_TRUE(callbackExecuted);
+}
+
+/**
  * @tc.name: GetAllWindowLayoutInfo
  * @tc.desc: test function : GetAllWindowLayoutInfo
  * @tc.type: FUNC

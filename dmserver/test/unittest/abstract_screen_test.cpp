@@ -409,13 +409,11 @@ HWTEST_F(AbstractScreenTest, GetRSDisplayNodeConfig02, TestSize.Level1)
  */
 HWTEST_F(AbstractScreenTest, GetChildPosition, TestSize.Level1)
 {
-    ScreenId screenId = -1;
-    absScreenGroup_->GetChildPosition(screenId);
-    ASSERT_EQ(screenId, -1);
-
-    screenId = 1;
-    absScreenGroup_->GetChildPosition(screenId);
-    ASSERT_EQ(screenId, 1);
+    ScreenId screenId = 1;
+    Point expectedPoint(0, 0);
+    Point actualPoint = absScreenGroup_->GetChildPosition(screenId);
+    EXPECT_EQ(expectedPoint.posX_, actualPoint.posX_);
+    EXPECT_EQ(expectedPoint.posY_, actualPoint.posY_);
 }
 
 /**

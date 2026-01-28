@@ -24,14 +24,13 @@
 namespace OHOS::Rosen {
 template<class T>
 class Future {
-    constexpr static HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "Future"};
 public:
     T GetResult(long timeOut)
     {
         std::unique_lock <std::mutex> lock(mutex_);
         if (!DmUtils::safe_wait_for(conditionVariable_, lock,
             std::chrono::milliseconds(timeOut), [this] { return IsReady(); })) {
-            OHOS::HiviewDFX::HiLog::Error(LABEL, "wait for %{public}ld, timeout.", timeOut);
+            TLOGE(WmsLogTag::DEFAULT, "wait for %{public}ld, timeout.", timeOut);
         }
         return FetchResult();
     }

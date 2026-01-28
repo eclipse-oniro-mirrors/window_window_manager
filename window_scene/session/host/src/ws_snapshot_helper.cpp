@@ -14,6 +14,8 @@
  */
 
 #include "session/host/include/ws_snapshot_helper.h"
+
+#include "fold_screen_state_internel.h"
 #include "parameters.h"
 
 namespace OHOS::Rosen {
@@ -33,14 +35,14 @@ WSSnapshotHelper* WSSnapshotHelper::GetInstance()
     return &instance;
 }
 
-uint32_t WSSnapshotHelper::GetScreenStatus()
+int32_t WSSnapshotHelper::GetScreenStatus()
 {
     std::lock_guard lock(statusMutex_);
     return GetInstance()->screenStatus_;
 }
 
 // LCOV_EXCL_START
-uint32_t WSSnapshotHelper::GetScreenStatus(FoldStatus foldStatus)
+int32_t WSSnapshotHelper::GetScreenStatus(FoldStatus foldStatus)
 {
     if (foldStatus == FoldStatus::UNKNOWN || foldStatus == FoldStatus::FOLDED ||
         foldStatus == FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_EXPAND ||
@@ -61,7 +63,7 @@ DisplayOrientation WSSnapshotHelper::GetDisplayOrientation(int32_t rotation)
     return DisplayOrientation::PORTRAIT;
 }
 
-void WSSnapshotHelper::SetWindowScreenStatus(uint32_t screenStatus)
+void WSSnapshotHelper::SetWindowScreenStatus(int32_t screenStatus)
 {
     std::lock_guard lock(statusMutex_);
     GetInstance()->screenStatus_ = screenStatus;
@@ -85,10 +87,16 @@ uint32_t WSSnapshotHelper::GetWindowRotation() const
         std::lock_guard lock(rotationMutex_);
         rotation = static_cast<uint32_t>(GetInstance()->screenRotation_);
     }
-    if (CORRECTION_ENABLE && GetInstance()->GetScreenStatus() == 0) {
+    if (IsSnapshotNeedCorrect(GetInstance()->GetScreenStatus())) {
         return (rotation + SECONDARY_EXPAND_OFFSET) % ROTATION_COUNT;
     }
     return rotation;
+}
+
+bool WSSnapshotHelper::IsSnapshotNeedCorrect(SnapshotStatus key) const
+{
+    return CORRECTION_ENABLE && (key == SCREEN_UNKNOWN ||
+        (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() && key == SCREEN_EXPAND));
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen

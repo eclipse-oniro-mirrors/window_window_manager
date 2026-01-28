@@ -19,6 +19,7 @@
 #include <hitrace_meter.h>
 #include <map>
 #include <set>
+#include <js_err_utils.h>
 
 #include "cutout_info.h"
 #include "display.h"
@@ -181,6 +182,13 @@ napi_value JsDisplay::GetCutoutInfo(napi_env env, napi_callback_info info)
     TLOGD(WmsLogTag::DMS, "called");
     JsDisplay* me = CheckParamsAndGetThis<JsDisplay>(env, info);
     return (me != nullptr) ? me->OnGetCutoutInfo(env, info) : nullptr;
+}
+
+napi_value JsDisplay::GetRoundedCorner(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DMS, "called");
+    JsDisplay* me = CheckParamsAndGetThis<JsDisplay>(env, info);
+    return (me != nullptr) ? me->OnGetRoundedCorner(env, info) : nullptr;
 }
 
 napi_value JsDisplay::GetDisplayCapability(napi_env env, napi_callback_info info)
@@ -430,6 +438,7 @@ napi_valuetype GetType(napi_env env, napi_value value)
 
 napi_value JsDisplay::OnGetCutoutInfo(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGD(WmsLogTag::DMS, "called");
     napi_value result = nullptr;
     size_t argc = 4;
@@ -439,26 +448,41 @@ napi_value JsDisplay::OnGetCutoutInfo(napi_env env, napi_callback_info info)
     if (argc >= ARGC_ONE && argv[ARGC_ONE - 1] != nullptr && GetType(env, argv[ARGC_ONE - 1]) == napi_function) {
         lastParam = argv[ARGC_ONE - 1];
     }
+    sptr<DisplayInfo> displayinfo = display_->GetDisplayInfo();
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [this, env, task = napiAsyncTask.get()]() {
+    auto asyncTask = [this, env, task = napiAsyncTask.get(), displayinfo]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplay::OnGetCutoutInfo");
-        sptr<CutoutInfo> cutoutInfo = display_->GetCutoutInfo();
+        sptr<CutoutInfo> cutoutInfo = display_->GetCutoutInfo(displayinfo);
         if (cutoutInfo != nullptr) {
             task->Resolve(env, CreateJsCutoutInfoObject(env, cutoutInfo));
             TLOGND(WmsLogTag::DMS, "JsDisplay::OnGetCutoutInfo success");
         } else {
-            task->Reject(env, CreateJsError(env,
-                static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_SCREEN), "JsDisplay::OnGetCutoutInfo failed."));
+            task->Reject(env, JsErrUtils::CreateJsError(env,
+                DmErrorCode::DM_ERROR_INVALID_SCREEN, "[display][getCutoutInfo]"));
         }
         delete task;
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetCutoutInfo") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env,
-                static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_SCREEN), "Send event failed!"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env,
+            DmErrorCode::DM_ERROR_INVALID_SCREEN, "[display][getCutoutInfo]msg: Internal task error."));
     } else {
         napiAsyncTask.release();
     }
     return result;
+}
+
+napi_value JsDisplay::OnGetRoundedCorner(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DMS, "called");
+    std::vector<RoundedCorner> roundedCorner;
+    auto errCode = display_->GetRoundedCorner(roundedCorner);
+    if (errCode != DMError::DM_OK) {
+        std::string errMsg = "Invalid display or screen.";
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_SCREEN), errMsg));
+        TLOGE(WmsLogTag::DMS, "Invalid display or screen.");
+        return NapiGetUndefined(env);
+    }
+    return CreateJsRoundedCorner(env, roundedCorner);
 }
 
 std::unique_ptr<NapiAsyncTask> JsDisplay::CreateEmptyAsyncTask(napi_env env, napi_value lastParam, napi_value* result)
@@ -500,14 +524,13 @@ napi_value JsDisplay::OnGetAvailableArea(napi_env env, napi_callback_info info)
             task->Resolve(env, CreateJsRectObject(env, area));
             TLOGNI(WmsLogTag::DMS, "JsDisplay::OnGetAvailableArea success");
         } else {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
-                "JsDisplay::OnGetAvailableArea failed."));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[display][getAvailableArea]"));
         }
         delete task;
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetAvailableArea") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env,
-                static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_SCREEN), "Send event failed!"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env,
+            DmErrorCode::DM_ERROR_INVALID_SCREEN, "[display][getAvailableArea]msg: Internal task error."));
     } else {
         napiAsyncTask.release();
     }
@@ -569,6 +592,7 @@ napi_value JsDisplay::OnHasImmersiveWindow(napi_env env, napi_callback_info info
 
 napi_value JsDisplay::OnGetLiveCreaseRegion(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGI(WmsLogTag::DMS, "called");
     FoldCreaseRegion region;
     DMError nativeErrorCode = display_->GetLiveCreaseRegion(region);
@@ -580,7 +604,7 @@ napi_value JsDisplay::OnGetLiveCreaseRegion(napi_env env, napi_callback_info inf
     }
     DmErrorCode ret = errorCodeMapping->second;
     if (ret != DmErrorCode::DM_OK) {
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(ret)));
+        napi_throw(env, JsErrUtils::CreateJsError(env, ret, "[display][getLiveCreaseRegion]"));
         return NapiGetUndefined(env);
     }
     return CreateJsFoldCreaseRegionObject(env, region);
@@ -621,6 +645,7 @@ static napi_value CreateJsColorSpaceArray(napi_env env, const std::vector<uint32
 
 napi_value JsDisplay::OnGetSupportedColorSpaces(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGI(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -690,6 +715,7 @@ static napi_value CreateJsHDRFormatArray(napi_env env, const std::vector<uint32_
 
 napi_value JsDisplay::OnGetSupportedHDRFormats(napi_env env, napi_callback_info info)
 {
+    display_->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     TLOGI(WmsLogTag::DMS, "called");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -840,6 +866,50 @@ napi_value CreateJsBrightnessInfo(napi_env env, const ScreenBrightnessInfo& brig
     return objValue;
 }
 
+napi_value CreateJsRoundedCornerPosition(napi_env env, Position position)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to create object");
+        return NapiGetUndefined(env);
+    }
+    napi_set_named_property(env, objValue, "x", CreateJsValue(env, position.x));
+    napi_set_named_property(env, objValue, "y", CreateJsValue(env, position.y));
+    return objValue;
+}
+
+napi_value CreateJsRoundedCornerObject(napi_env env, RoundedCorner corner)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to create object");
+        return NapiGetUndefined(env);
+    }
+    napi_set_named_property(env, objValue, "type", CreateJsValue(env, corner.type));
+    napi_set_named_property(env, objValue, "position", CreateJsRoundedCornerPosition(env, corner.position));
+    napi_set_named_property(env, objValue, "radius", CreateJsValue(env, corner.radius));
+    return objValue;
+}
+
+napi_value CreateJsRoundedCorner(napi_env env, const std::vector<RoundedCorner>& roundedCorner)
+{
+    TLOGD(WmsLogTag::DMS, "called");
+    napi_value arrayValue = nullptr;
+    napi_create_array_with_length(env, roundedCorner.size(), &arrayValue);
+    if (arrayValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to create object");
+        return NapiGetUndefined(env);
+    }
+    size_t i = 0;
+    for (const auto& cornerItem : roundedCorner) {
+        napi_set_element(env, arrayValue, i++, CreateJsRoundedCornerObject(env, cornerItem));
+    }
+
+    return arrayValue;
+}
+
 void NapiSetNamedProperty(napi_env env, napi_value objValue, sptr<DisplayInfo> info)
 {
     napi_set_named_property(env, objValue, "id", CreateJsValue(env, static_cast<uint32_t>(info->GetDisplayId())));
@@ -901,7 +971,7 @@ napi_value CreateJsDisplayObject(napi_env env, sptr<Display>& display)
         TLOGE(WmsLogTag::DMS, "Failed to GetDisplayInfo");
         return NapiGetUndefined(env);
     }
-
+    display->SetDisplayInfoEnv(static_cast<void*>(env), Display::EnvType::NAPI);
     NapiSetNamedProperty(env, objValue, info);
 
     if (jsDisplayObj == nullptr || jsDisplayObj->GetNapiValue() == nullptr) {
@@ -916,6 +986,7 @@ napi_value CreateJsDisplayObject(napi_env env, sptr<Display>& display)
         BindNativeFunction(env, objValue, "off", "JsDisplay", JsDisplay::UnregisterDisplayManagerCallback);
         BindNativeFunction(env, objValue, "getDisplayCapability", "JsDisplay", JsDisplay::GetDisplayCapability);
         BindNativeFunction(env, objValue, "getLiveCreaseRegion", "JsDisplay", JsDisplay::GetLiveCreaseRegion);
+        BindNativeFunction(env, objValue, "getRoundedCorner", "JsDisplay", JsDisplay::GetRoundedCorner);
         std::shared_ptr<NativeReference> jsDisplayRef;
         napi_ref result = nullptr;
         napi_create_reference(env, objValue, 1, &result);

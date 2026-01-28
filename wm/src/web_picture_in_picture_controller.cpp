@@ -14,6 +14,7 @@
  */
 
 #include "singleton_container.h"
+#include "parameters.h"
 #include "picture_in_picture_manager.h"
 #include "web_picture_in_picture_controller.h"
 #include "window_manager_hilog.h"
@@ -198,6 +199,11 @@ uint8_t WebPictureInPictureController::GetWebRequestId()
 
 WMError WebPictureInPictureController::SetPipParentWindowId(uint32_t windowId)
 {
+    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
+    if (multiWindowUIType != "FreeFormMultiWindow") {
+        TLOGE(WmsLogTag::WMS_PIP, "device not support");
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     if (mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is null");
         return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
@@ -205,7 +211,7 @@ WMError WebPictureInPictureController::SetPipParentWindowId(uint32_t windowId)
     auto newMainWindow = WindowSceneSessionImpl::GetMainWindowWithId(windowId);
     if (newMainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow not found: %{public}u", windowId);
-        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        return WMError::WM_ERROR_INVALID_PARAM;
     }
     mainWindow_ = newMainWindow;
     mainWindowId_ = windowId;

@@ -21,8 +21,11 @@ group("unittest") {
 
   deps = [
     ":snapshot_display_test",
-    ":snapshot_utils_test",
   ]
+
+  if (window_manager_use_sceneboard) {
+    deps += [ ":snapshot_utils_test" ]
+  }
 }
 
 ohos_unittest("snapshot_utils_test") {

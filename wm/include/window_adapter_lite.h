@@ -42,12 +42,19 @@ public:
 
     using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+    virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
     virtual WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
         const sptr<IWindowManagerAgent>& windowManagerAgent);
     virtual WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
         const sptr<IWindowManagerAgent>& windowManagerAgent);
+    virtual WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent);
+    virtual WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent);
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid);
     virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos);
+    virtual WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease);
     virtual void ClearWindowAdapter();
     virtual WMError GetWindowModeType(WindowModeType& windowModeType);
     virtual WMError RaiseWindowToTop(int32_t persistentId);
@@ -61,11 +68,17 @@ public:
     virtual WMError ClearMainSessions(const std::vector<int32_t>& persistentIds);
     virtual WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds);
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType);
+    virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled);
     virtual WMError TerminateSessionByPersistentId(int32_t persistentId);
     virtual WMError CloseTargetFloatWindow(const std::string& bundleName);
     virtual WMError CloseTargetPiPWindow(const std::string& bundleName);
     virtual WMError GetCurrentPiPWindowInfo(std::string& bundleName);
     virtual WMError GetAccessibilityWindowInfo(std::vector<sptr<AccessibilityWindowInfo>>& infos);
+    virtual WMError SetGlobalDragResizeType(DragResizeType dragResizeType);
+    virtual WMError GetGlobalDragResizeType(DragResizeType& dragResizeType);
+    virtual WMError SetAppDragResizeType(const std::string& bundleName, DragResizeType dragResizeType);
+    virtual WMError GetAppDragResizeType(const std::string& bundleName, DragResizeType& dragResizeType);
+    virtual WMError SetAppKeyFramePolicy(const std::string& bundleName, const KeyFramePolicy& keyFramePolicy);
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos);
     virtual WMError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     virtual WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
@@ -78,6 +91,13 @@ private:
 
     static inline SingletonDelegator<WindowAdapterLite> delegator;
     bool InitSSMProxy();
+
+    /*
+     * Window Recover
+     */
+    uint32_t observedFlags_ = 0;
+    uint32_t interestedFlags_ = 0;
+    WMError RecoverWindowPropertyChangeFlag();
 
     /*
      * Multi user and multi screen

@@ -32,6 +32,10 @@ public:
     static napi_value CreateFreeMultiWindowConfig(napi_env env, const SystemSessionConfig& config);
     static napi_value CreateWindowLimits(napi_env env, const WindowLimits& windowLimits);
     static napi_value CreateSingleHandCompatibleConfig(napi_env env, const SingleHandCompatibleModeConfig& config);
+    static napi_value CreateSingleHandBackgroundLayoutConfig(napi_env env,
+        const SingleHandBackgroundLayoutConfig& config);
+    static napi_value CreateJsRect(napi_env env, const WSRect& rect);
+    static napi_value CreateSingleHandBackgroundTextConfig(napi_env env, const SingleHandBackgroundTextConfig& config);
     static napi_value CreateSystemConfig(napi_env env, const SystemSessionConfig& config);
 
 private:

@@ -54,6 +54,9 @@ enum class ListenerFunctionType : uint32_t {
     UI_EFFECT_SET_PARAMS_CB,
     UI_EFFECT_ANIMATE_TO_CB,
     VIRTUAL_DENSITY_CHANGE_CB,
+    SET_SPECIFIC_SESSION_ZINDEX_CB,
+    NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
+    MINIMIZE_ALL_CB,
 };
 
 class JsSceneSessionManager final {
@@ -85,6 +88,8 @@ public:
     static napi_value UpdateWindowMode(napi_env env, napi_callback_info info);
     static napi_value NotifySingleHandInfoChange(napi_env env, napi_callback_info info);
     static napi_value GetSingleHandCompatibleModeConfig(napi_env env, napi_callback_info info);
+    static napi_value GetSingleHandModeEnable(napi_env env, napi_callback_info info);
+    static napi_value GetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info);
     static napi_value GetRootSceneUIContext(napi_env env, napi_callback_info info);
     static napi_value SendTouchEvent(napi_env env, napi_callback_info info);
     static napi_value AddWindowDragHotArea(napi_env env, napi_callback_info info);
@@ -108,6 +113,7 @@ public:
     static napi_value SetAppDragResizeType(napi_env env, napi_callback_info info);
     static napi_value GetCustomDecorHeight(napi_env env, napi_callback_info info);
     static napi_value NotifyEnterRecentTask(napi_env env, napi_callback_info info);
+    static napi_value NotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     static napi_value UpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookWindowInfo(napi_env env, napi_callback_info info);
@@ -127,20 +133,27 @@ public:
     static napi_value CloneWindow(napi_env env, napi_callback_info info);
     static napi_value RegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationChange(napi_env env, napi_callback_info info);
+    static napi_value NotifyRotationBegin(napi_env env, napi_callback_info info);
     static napi_value SupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     static napi_value SupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
+    static napi_value UpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
     static napi_value SupportZLevel(napi_env env, napi_callback_info info);
     static napi_value SetSupportFunctionType(napi_env env, napi_callback_info info);
     static napi_value GetApplicationInfo(napi_env env, napi_callback_info info);
     static napi_value SetUIEffectControllerAliveInUI(napi_env env, napi_callback_info info);
     static napi_value SupportCreateFloatWindow(napi_env env, napi_callback_info info);
     static napi_value ApplyFeatureConfig(napi_env env, napi_callback_info info);
+    static napi_value NotifySupportRotationChange(napi_env env, napi_callback_info info);
+    static napi_value GetAllJsonProfile(napi_env env, napi_callback_info info);
+    static napi_value GetJsonProfile(napi_env env, napi_callback_info info);
+    static napi_value SetAppForceLandscapeConfigEnable(napi_env env, napi_callback_info info);
 
     /*
      * PC Window
      */
     static napi_value GetWindowLimits(napi_env env, napi_callback_info info);
     static napi_value SetIsDockAutoHide(napi_env env, napi_callback_info info);
+    static napi_value SetTrayAppListInfo(napi_env env, napi_callback_info info);
 
     /*
      * Multi Instance
@@ -159,6 +172,7 @@ public:
     static napi_value SetMaximizeFullScreen(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarDefaultVisibilityPerDisplay(napi_env env, napi_callback_info info);
     static napi_value NotifyStatusBarShowStatus(napi_env env, napi_callback_info info);
+    static napi_value NotifyLSStateChange(napi_env env, napi_callback_info info);
     static napi_value NotifyStatusBarConstantlyShowStatus(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarAvoidHeight(napi_env env, napi_callback_info info);
 
@@ -180,6 +194,7 @@ public:
      * PiP Window
      */
     static napi_value SetPiPSettingSwitchStatus(napi_env env, napi_callback_info info);
+    static napi_value SetIsPipEnabled(napi_env env, napi_callback_info info);
     static napi_value GetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
 
 private:
@@ -213,6 +228,8 @@ private:
     napi_value OnUpdateWindowMode(napi_env env, napi_callback_info info);
     napi_value OnNotifySingleHandInfoChange(napi_env env, napi_callback_info info);
     napi_value OnGetSingleHandCompatibleModeConfig(napi_env env, napi_callback_info info);
+    napi_value OnGetSingleHandModeEnable(napi_env env, napi_callback_info info);
+    napi_value OnGetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info);
     napi_value OnGetRootSceneUIContext(napi_env env, napi_callback_info info);
     napi_value OnSendTouchEvent(napi_env env, napi_callback_info info);
     napi_value OnAddWindowDragHotArea(napi_env env, napi_callback_info info);
@@ -239,6 +256,7 @@ private:
     napi_value OnSwitchFreeMultiWindow(napi_env env, napi_callback_info info);
     napi_value OnGetFreeMultiWindowConfig(napi_env env, napi_callback_info info);
     napi_value OnNotifyEnterRecentTask(napi_env env, napi_callback_info info);
+    napi_value OnNotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     napi_value OnUpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookWindowInfo(napi_env env, napi_callback_info info);
@@ -256,12 +274,18 @@ private:
     napi_value OnCloneWindow(napi_env env, napi_callback_info info);
     napi_value OnRegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     napi_value OnNotifyRotationChange(napi_env env, napi_callback_info info);
+    napi_value OnNotifyRotationBegin(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
+    napi_value OnUpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
     napi_value OnSupportZLevel(napi_env env, napi_callback_info info);
     napi_value OnSetSupportFunctionType(napi_env env, napi_callback_info info);
     napi_value OnUpdateRecentMainSessionInfos(napi_env env, napi_callback_info info);
     napi_value OnApplyFeatureConfig(napi_env env, napi_callback_info info);
+    napi_value OnNotifySupportRotationChange(napi_env env, napi_callback_info info);
+    napi_value OnGetAllJsonProfile(napi_env env, napi_callback_info info);
+    napi_value OnGetJsonProfile(napi_env env, napi_callback_info info);
+    napi_value OnSetAppForceLandscapeConfigEnable(napi_env env, napi_callback_info info);
     
     /*
      * PC Window
@@ -270,6 +294,7 @@ private:
     void RegisterVirtualPixelRatioChangeCallback();
     void OnVirtualPixelChange(float density, DisplayId displayId);
     napi_value OnSetIsDockAutoHide(napi_env env, napi_callback_info info);
+    napi_value OnHandleTrayAppChange(napi_env env, napi_callback_info info);
 
     /*
      * Multi Instance
@@ -288,6 +313,7 @@ private:
     napi_value OnSetMaximizeFullScreen(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarDefaultVisibilityPerDisplay(napi_env env, napi_callback_info info);
     napi_value OnNotifyStatusBarShowStatus(napi_env env, napi_callback_info info);
+    napi_value OnNotifyLSStateChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyStatusBarConstantlyShowStatus(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarAvoidHeight(napi_env env, napi_callback_info info);
 
@@ -350,6 +376,7 @@ private:
     void OnStartPiPFailed(DisplayId displayId);
     void ProcessStartPiPFailedRegister();
     napi_value OnSetPiPSettingSwitchStatus(napi_env env, napi_callback_info info);
+    napi_value OnSetIsPipEnabled(napi_env env, napi_callback_info info);
     napi_value OnGetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
 
     /*
@@ -392,6 +419,16 @@ private:
     static napi_value NotifySessionTransferToTargetScreenEvent(napi_env env, napi_callback_info info);
     napi_value OnNotifySessionTransferToTargetScreenEvent(napi_env env, napi_callback_info info);
     static napi_value UpdateRecentMainSessionInfos(napi_env env, napi_callback_info info);
+    static napi_value UpdateAppBoundSystemTrayStatus(napi_env env, napi_callback_info info);
+    napi_value OnUpdateAppBoundSystemTrayStatus(napi_env env, napi_callback_info info);
+    void RegisterMinimizeAllCallback();
+    void OnMinimizeAll(DisplayId displayId, int32_t excludeWindowId);
+
+    /*
+     * Window Hierarchy
+     */
+    void RegisterSetSpecificWindowZIndexCallback();
+    void OnSetSpecificWindowZIndex(WindowType windowType, int32_t zIndex, SetSpecificZIndexReason reason);
 
     napi_env env_;
     std::shared_mutex jsCbMapMutex_;
@@ -406,6 +443,8 @@ private:
     std::unordered_map<int32_t, RotationChangeResult> GetRotationChangeResult(
         const std::vector<sptr<SceneSession>>& activeSceneSessionMapCopy,
         const RotationChangeInfo& rotationChangeInfo, bool isRestrictNotify = false);
+    void ProcessSupportRotationRegister();
+    void OnSupportRotationRegistered();
 
     /*
      * Window Pattern

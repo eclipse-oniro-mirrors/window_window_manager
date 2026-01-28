@@ -146,7 +146,8 @@ void WindowInputChannel::HandlePointerEvent(std::shared_ptr<MMI::PointerEvent>& 
         return;
     }
 
-    if (window_->IsAnco() && !window_->IsHitTitleBar(pointerEvent)) {
+    bool isHitHotArea = window_->IsHitTitleBar(pointerEvent) || window_->IsHitHotAreas(pointerEvent);
+    if (window_->IsAnco() && !isHitHotArea) {
         ProcAncoEvent(pointerEvent);
         pointerEvent->MarkProcessed();
         return;
@@ -175,6 +176,19 @@ void WindowInputChannel::HandlePointerEvent(std::shared_ptr<MMI::PointerEvent>& 
         window_->GetWindowId(), action);
     window_->ConsumePointerEvent(pointerEvent);
     window_->SetTouchEvent(action);
+}
+
+void WindowInputChannel::InjectTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (pointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "pointerEvent is nullptr at InjectTouchEvent");
+        return;
+    }
+    if (window_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "window_ is nullptr, id:%{public}d", pointerEvent->GetId());
+        return;
+    }
+    window_->InjectTouchEvent(pointerEvent);
 }
 
 void WindowInputChannel::Destroy()

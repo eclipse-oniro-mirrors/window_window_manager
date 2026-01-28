@@ -28,9 +28,11 @@ namespace OHOS::Rosen {
 class MultiScreenManager {
 WM_DECLARE_SINGLE_INSTANCE_BASE(MultiScreenManager);
 public:
-    DMError VirtualScreenUniqueSwitch(sptr<ScreenSession> screenSession, const std::vector<ScreenId>& screenIds);
+    DMError VirtualScreenUniqueSwitch(sptr<ScreenSession> screenSession, const std::vector<ScreenId>& screenIds,
+        const UniqueScreenRotationOptions& rotationOptions);
 
-    DMError UniqueSwitch(const std::vector<ScreenId>& screenIds, std::vector<DisplayId>& displayIds);
+    DMError UniqueSwitch(const std::vector<ScreenId>& screenIds, std::vector<DisplayId>& displayIds,
+        const UniqueScreenRotationOptions& rotationOptions);
 
     DMError MirrorSwitch(const ScreenId mainScreenId, const std::vector<ScreenId>& screenIds, DMRect mainScreenRegion,
         ScreenId& screenGroupId, const RotationOption& rotationOption, bool forceMirror = false);
@@ -64,8 +66,8 @@ private:
         DMRect mainScreenRegion, ScreenId& screenGroupId, const RotationOption& rotationOption,
         bool forceMirror = false);
 
-    DMError PhysicalScreenMirrorSwitch(const std::vector<ScreenId>& screenIds, DMRect mainScreenRegion,
-        const RotationOption& rotationOption, bool forceMirror = false);
+    DMError PhysicalScreenMirrorSwitch(const ScreenId mainScreenId, const std::vector<ScreenId>& screenIds,
+        DMRect mainScreenRegion, const RotationOption& rotationOption, bool forceMirror = false);
 
     DMError PhysicalScreenUniqueSwitch(const std::vector<ScreenId>& screenIds);
 

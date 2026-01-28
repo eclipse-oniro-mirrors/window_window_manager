@@ -62,6 +62,7 @@ public:
         TRANS_ID_ON_ANIMATE_FINISH_TIMEOUT,
         TRANS_ID_ON_FOLD_PROPERTY_CHANGED,
         TRANS_ID_SET_INTERNAL_CLIPTOBOUNDS,
+        TRANS_ID_ON_TENT_MODE_CHANGE,
     };
 
     virtual void SwitchUserCallback(std::vector<int32_t> oldScbPids, int32_t currentScbPid) = 0;
@@ -108,6 +109,7 @@ public:
     virtual void OnScreenModeChanged(ScreenModeChangeEvent screenModeChangeEvent) = 0;
     virtual void OnAnimationFinish() = 0;
     virtual void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) = 0;
+    virtual void OnTentModeChange(TentMode tentMode) = 0;
 };
 } // namespace OHOS::Rosen
 

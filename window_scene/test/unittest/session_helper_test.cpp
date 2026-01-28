@@ -80,6 +80,53 @@ HWTEST_F(SessionHelperTest, GetAreaTypeForScaleResize, TestSize.Level1)
     // LEFT_TOP
     EXPECT_EQ(SessionHelper::GetAreaTypeForScaleResize(pointWinX, pointWinY, outside, rect4), AreaType::LEFT_TOP);
 }
+
+/**
+ * @tc.name: ShiftDecimalDigit
+ * @tc.desc: Verify ShiftDecimalDigit
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionHelperTest, ShiftDecimalDigit, TestSize.Level1)
+{
+    EXPECT_EQ(SessionHelper::ShiftDecimalDigit(4, 2), 400);
+    EXPECT_EQ(SessionHelper::ShiftDecimalDigit(4, -1), 0);
+    EXPECT_EQ(SessionHelper::ShiftDecimalDigit(-1, 2), 0);
+    EXPECT_EQ(SessionHelper::ShiftDecimalDigit(11, 2), 0);
+    EXPECT_EQ(SessionHelper::ShiftDecimalDigit(1, 100), 0);
+}
+
+/**
+ * @tc.name: IsHexChar
+ * @tc.desc: Verify IsHexChar
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionHelperTest, IsHexChar, TestSize.Level1)
+{
+    EXPECT_TRUE(SessionHelper::IsHexChar('0'));
+    EXPECT_TRUE(SessionHelper::IsHexChar('9'));
+    EXPECT_TRUE(SessionHelper::IsHexChar('A'));
+    EXPECT_TRUE(SessionHelper::IsHexChar('F'));
+    EXPECT_TRUE(SessionHelper::IsHexChar('a'));
+    EXPECT_TRUE(SessionHelper::IsHexChar('f'));
+    EXPECT_FALSE(SessionHelper::IsHexChar('G'));
+    EXPECT_FALSE(SessionHelper::IsHexChar('g'));
+    EXPECT_FALSE(SessionHelper::IsHexChar('/'));
+    EXPECT_FALSE(SessionHelper::IsHexChar('-'));
+}
+
+/**
+ * @tc.name: IsDecChar
+ * @tc.desc: Verify IsDecChar
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionHelperTest, IsDecChar, TestSize.Level1)
+{
+    EXPECT_TRUE(SessionHelper::IsDecChar('0'));
+    EXPECT_TRUE(SessionHelper::IsDecChar('9'));
+    EXPECT_FALSE(SessionHelper::IsDecChar('a'));
+    EXPECT_FALSE(SessionHelper::IsDecChar('F'));
+    EXPECT_FALSE(SessionHelper::IsDecChar('/'));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

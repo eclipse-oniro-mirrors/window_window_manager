@@ -137,7 +137,7 @@ HWTEST_F(DisplayManagerTest, HasPrivateWindow, TestSize.Level1)
 {
     sptr<Window> window = CreateWindow("test", WindowMode::WINDOW_MODE_FULLSCREEN, Rect {0, 0, 0, 0});
     if (window == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window);
     window->SetPrivacyMode(true);
@@ -166,7 +166,7 @@ HWTEST_F(DisplayManagerTest, HasPrivateWindowCovered, TestSize.Level1)
 
     sptr<Window> window1 = CreateWindow("test", WindowMode::WINDOW_MODE_FULLSCREEN, Rect {0, 0, 0, 0});
     if (window1 == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window1);
     // 10:rect.posX_, 120:rect.posY_, 650:rect.width, 500:rect.height
@@ -211,7 +211,7 @@ HWTEST_F(DisplayManagerTest, HasPrivateWindowCovered01, TestSize.Level1)
     // 10:rect.posX_, 120:rect.posY_, 650:rect.width, 500:rect.height
     if (window1 == nullptr)
     {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window1);
     sptr<Window> window2 = CreateWindow("private", WindowMode::WINDOW_MODE_FLOATING,
@@ -249,7 +249,7 @@ HWTEST_F(DisplayManagerTest, HasPrivateWindowCovered02, TestSize.Level1)
 
     sptr<Window> window1 = CreateWindow("test", WindowMode::WINDOW_MODE_FULLSCREEN, Rect {0, 0, 0, 0});
     if (window1 == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window1);
     // 10:rect.posX_, 120:rect.posY_, 650:rect.width, 500:rect.height
@@ -300,7 +300,7 @@ HWTEST_F(DisplayManagerTest, HasPrivateWindowCovered03, TestSize.Level1)
     sptr<Window> window1 = CreateWindow("test", WindowMode::WINDOW_MODE_FULLSCREEN, Rect {0, 0, 0, 0});
    
     if (window1 == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window1);
     // 10:rect.posX_, 120:rect.pos_Y, rect.width_:650, rect.height_:700
@@ -340,7 +340,7 @@ HWTEST_F(DisplayManagerTest, HasPrivateWindowSkipSnapShot, TestSize.Level1)
 {
     sptr<Window> window1 = CreateWindow("test", WindowMode::WINDOW_MODE_FULLSCREEN, Rect {0, 0, 0, 0});
     if (window1 == nullptr) {
-        return;
+        GTEST_SKIP();
     }
     ASSERT_NE(nullptr, window1);
     // 10:rect.posX_, 120:rect.posY_, 650:rect.width, 500:rect.height

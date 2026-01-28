@@ -74,6 +74,13 @@ napi_value JsScreenSession::Create(napi_env env, const sptr<ScreenSession>& scre
         CreateJsValue(env, static_cast<int64_t>(screenSession->GetMainDisplayIdOfGroup())));
     napi_set_named_property(env, objValue, "isRealScreen",
         CreateJsValue(env, screenSession->GetIsRealScreen()));
+    napi_set_named_property(env, objValue, "isUniqueRotationLocked",
+        CreateJsValue(env, screenSession->GetUniqueRotationLock()));
+    napi_set_named_property(env, objValue, "uniqueRotation",
+        CreateJsValue(env, screenSession->GetUniqueRotation()));
+    std::map<int32_t, int32_t> uniqueRotationOrientationMap = screenSession->GetUniqueRotationOrientationMap();
+    napi_value jsMap = ConvertMapToJsMap(env, uniqueRotationOrientationMap);
+    napi_set_named_property(env, objValue, "uniqueRotationOrientationMap", jsMap);
 
     const char* moduleName = "JsScreenSession";
     BindNativeFunction(env, objValue, "on", moduleName, JsScreenSession::RegisterCallback);
@@ -134,6 +141,62 @@ JsScreenSession::JsScreenSession(napi_env env, const sptr<ScreenSession>& screen
     }
 }
 
+napi_value JsScreenSession::ConvertMapToJsMap(napi_env env, const std::map<int32_t, int32_t>& map)
+{
+    constexpr size_t argCount = 2;
+    napi_value global;
+    napi_value mapConstructor;
+    napi_status status = napi_get_global(env, &global);
+    if (status != napi_ok) {
+        napi_throw_error(env, nullptr, "Failed to get global object");
+        return nullptr;
+    }
+
+    status = napi_get_named_property(env, global, "Map", &mapConstructor);
+    if (status != napi_ok || mapConstructor == nullptr) {
+        napi_throw_error(env, nullptr, "Failed to get Map constructor");
+        return nullptr;
+    }
+
+    napi_value jsMap;
+    status = napi_new_instance(env, mapConstructor, 0, nullptr, &jsMap);
+    if (status != napi_ok || jsMap == nullptr) {
+        napi_throw_error(env, nullptr, "Failed to create Map instance");
+        return nullptr;
+    }
+
+    napi_value setMethod;
+    status = napi_get_named_property(env, jsMap, "set", &setMethod);
+    if (status != napi_ok || setMethod == nullptr) {
+        napi_throw_error(env, nullptr, "Failed to get Map.set method");
+        return nullptr;
+    }
+
+    for (const auto& pair : map) {
+        napi_value key, value;
+        status = napi_create_int32(env, pair.first, &key);
+        if (status != napi_ok) {
+            napi_throw_error(env, nullptr, "Failed to create key int32");
+            return nullptr;
+        }
+        status = napi_create_int32(env, pair.second, &value);
+        if (status != napi_ok) {
+            napi_throw_error(env, nullptr, "Failed to create value int32");
+            return nullptr;
+        }
+
+        napi_value args[argCount] = {key, value};
+        status = napi_call_function(env, jsMap, setMethod, argCount, args, nullptr);
+        if (status != napi_ok) {
+            napi_throw_error(env, nullptr, "Failed to call Map.set");
+            return nullptr;
+        }
+    }
+
+    TLOGD(WmsLogTag::DMS, "Converted map with %{public}zu entries to JS Map", map.size());
+    return jsMap;
+}
+
 JsScreenSession::~JsScreenSession()
 {
     TLOGI(WmsLogTag::DMS, "~JsScreenSession");
@@ -171,7 +234,7 @@ napi_value JsScreenSession::LoadContent(napi_env env, napi_callback_info info)
 
 napi_value JsScreenSession::OnLoadContent(napi_env env, napi_callback_info info)
 {
-    TLOGD(WmsLogTag::DMS, "[NAPI]JsScreenSession::OnLoadContent");
+    TLOGW(WmsLogTag::DMS, "[NAPI]JsScreenSession::OnLoadContent");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -492,7 +555,10 @@ void JsScreenSession::CallJsCallback(const std::string& callbackType)
         UnRegisterScreenChangeListener();
     }
     wptr<ScreenSession> screenSessionWeak(screenSession_);
-    auto asyncTask = [jsCallbackRef = GetJSCallback(callbackType), callbackType, screenSessionWeak, env = env_]() {
+    auto jsCallbackRef = GetJSCallback(callbackType);
+    // ensure CallJsCallback ends before asyncTask, prevent jsCallbackRef deref not in js thread.
+    std::lock_guard<std::mutex> lock(callbackMutex_);
+    auto asyncTask = [jsCallbackRef, callbackType, screenSessionWeak, env = env_, &callbackMutex = callbackMutex_]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreenSession::CallJsCallback");
         if (jsCallbackRef == nullptr) {
             TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, jsCallbackRef is null!", callbackType.c_str());
@@ -503,6 +569,7 @@ void JsScreenSession::CallJsCallback(const std::string& callbackType)
             TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, method is null!", callbackType.c_str());
             return;
         }
+        std::lock_guard<std::mutex> lock(callbackMutex);
         if (callbackType == ON_CONNECTION_CALLBACK || callbackType == ON_DISCONNECTION_CALLBACK) {
             auto screenSession = screenSessionWeak.promote();
             if (screenSession == nullptr) {

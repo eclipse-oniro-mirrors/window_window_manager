@@ -87,6 +87,11 @@ public:
     void RegisterWindowManagerRecoverCallbackFunc(const WindowManagerRecoverCallbackFunc& callbackFunc);
     void RecoverSessionManagerService(const sptr<ISessionManagerService>& sessionManagerService);
 
+    /*
+     * Window Hierarchy
+     */
+    void NotifySetSpecificWindowZIndex();
+
 private:
     friend class sptr<SessionManager>;
     ~SessionManager() override;

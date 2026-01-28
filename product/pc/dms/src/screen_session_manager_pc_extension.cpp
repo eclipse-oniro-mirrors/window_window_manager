@@ -109,7 +109,7 @@ void ScreenSessionManagerExt::GetAndMergeEdidInfo(sptr<ScreenSession> screenSess
     }
 }
 
-void ScreenSessionManagerExt::ScreenConnectionChanged(sptr<ScreenSession> screenSession,
+void ScreenSessionManagerExt::ScreenConnectionChanged(sptr<ScreenSession>& screenSession,
     ScreenId screenId, ScreenEvent screenEvent, bool phyMirrorEnable)
 {
     auto clientProxy = GetClientProxy();
@@ -132,8 +132,7 @@ void ScreenSessionManagerExt::ScreenConnectionChanged(sptr<ScreenSession> screen
         clientProxy->OnScreenConnectionChanged(GetSessionOption(screenSession, screenId), screenEvent);
         sptr<ScreenSession> internalSession = GetInternalScreenSession();
         if (!RecoverRestoredMultiScreenMode(screenSession)) {
-            SetMultiScreenDefaultRelativePosition();
-            ReportHandleScreenEvent(ScreenEvent::CONNECTED, ScreenCombination::SCREEN_EXTEND);
+            HandleDefaultMultiScreenMode(internalSession, screenSession);
         }
         sptr<ScreenSession> newInternalSession = GetInternalScreenSession();
         if (newInternalSession != nullptr && internalSession != nullptr &&

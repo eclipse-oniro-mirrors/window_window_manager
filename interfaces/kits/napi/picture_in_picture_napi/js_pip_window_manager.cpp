@@ -171,56 +171,106 @@ static void GetPipOptionParamFromJs(napi_env env, napi_value optionObject,
     ConvertFromJsValue(env, propertyValue, property);
 }
 
-static int32_t GetPictureInPictureOptionFromJs(napi_env env, napi_value optionObject, PipOption& option)
+static void GetAndSetContext(napi_env env, napi_value optionObject, PipOption& option)
 {
     napi_value contextPtrValue = nullptr;
-    napi_value navigationIdValue = nullptr;
-    napi_value templateTypeValue = nullptr;
-    napi_value widthValue = nullptr;
-    napi_value heightValue = nullptr;
-    napi_value xComponentControllerValue = nullptr;
-    napi_value controlGroup = nullptr;
-    napi_value nodeController = nullptr;
-    napi_value storage = nullptr;
-    napi_ref nodeControllerRef = nullptr;
     void* contextPtr = nullptr;
+    napi_get_named_property(env, optionObject, "context", &contextPtrValue);
+    napi_unwrap(env, contextPtrValue, &contextPtr);
+    option.SetContext(contextPtr);
+}
+
+static void GetAndSetNavigationId(napi_env env, napi_value optionObject, PipOption& option)
+{
     std::string navigationId = "";
+    GetPipOptionParamFromJs(env, optionObject, "navigationId", navigationId);
+    option.SetNavigationId(navigationId);
+}
+
+static void GetAndSetTemplateType(napi_env env, napi_value optionObject, PipOption& option)
+{
     uint32_t templateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_PLAY);
+    GetPipOptionParamFromJs(env, optionObject, "templateType", templateType);
+    option.SetPipTemplate(templateType);
+}
+
+static void GetAndSetContentSize(napi_env env, napi_value optionObject, PipOption& option)
+{
     uint32_t width = 0;
     uint32_t height = 0;
-    uint32_t defaultWindowSizeType = 0;
-    std::vector<std::uint32_t> controls;
-    int32_t handleId = -1;
+    GetPipOptionParamFromJs(env, optionObject, "contentWidth", width);
+    GetPipOptionParamFromJs(env, optionObject, "contentHeight", height);
+    option.SetContentSize(width, height);
+}
 
-    napi_get_named_property(env, optionObject, "context", &contextPtrValue);
-    napi_get_named_property(env, optionObject, "navigationId", &navigationIdValue);
-    napi_get_named_property(env, optionObject, "templateType", &templateTypeValue);
-    napi_get_named_property(env, optionObject, "contentWidth", &widthValue);
-    napi_get_named_property(env, optionObject, "contentHeight", &heightValue);
-    napi_get_named_property(env, optionObject, "componentController", &xComponentControllerValue);
-    napi_get_named_property(env, optionObject, "controlGroups", &controlGroup);
-    napi_get_named_property(env, optionObject, "customUIController", &nodeController);
-    napi_get_named_property(env, optionObject, "localStorage", &storage);
-    napi_create_reference(env, nodeController, 1, &nodeControllerRef);
-    checkLocalStorage(env, option, storage);
-    napi_unwrap(env, contextPtrValue, &contextPtr);
-    ConvertFromJsValue(env, navigationIdValue, navigationId);
-    ConvertFromJsValue(env, templateTypeValue, templateType);
-    ConvertFromJsValue(env, widthValue, width);
-    ConvertFromJsValue(env, heightValue, height);
+static void GetAndSetDefaultWindowSizeType(napi_env env, napi_value optionObject, PipOption& option)
+{
+    uint32_t defaultWindowSizeType = 0;
     GetPipOptionParamFromJs(env, optionObject, "defaultWindowSizeType", defaultWindowSizeType);
-    GetControlGroupFromJs(env, controlGroup, controls, templateType);
-    GetPipOptionParamFromJs(env, optionObject, "handleId", handleId);
+    option.SetDefaultWindowSizeType(defaultWindowSizeType);
+}
+
+static void GetAndSetXComponentController(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value xComponentControllerValue = nullptr;
+    napi_get_named_property(env, optionObject, "componentController", &xComponentControllerValue);
     std::shared_ptr<XComponentController> xComponentControllerResult =
         XComponentController::GetXComponentControllerFromNapiValue(env, xComponentControllerValue);
-    option.SetContext(contextPtr);
-    option.SetNavigationId(navigationId);
-    option.SetPipTemplate(templateType);
-    option.SetContentSize(width, height);
-    option.SetDefaultWindowSizeType(defaultWindowSizeType);
-    option.SetControlGroup(controls);
     option.SetXComponentController(xComponentControllerResult);
+}
+
+static void GetAndSetControlGroup(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value controlGroup = nullptr;
+    std::vector<uint32_t> controls;
+    napi_get_named_property(env, optionObject, "controlGroups", &controlGroup);
+    GetControlGroupFromJs(env, controlGroup, controls, option.GetPipTemplate());
+    option.SetControlGroup(controls);
+}
+
+static void GetAndSetNodeControllerRef(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value nodeController = nullptr;
+    napi_ref nodeControllerRef = nullptr;
+    napi_get_named_property(env, optionObject, "customUIController", &nodeController);
+    napi_create_reference(env, nodeController, 1, &nodeControllerRef);
     option.SetNodeControllerRef(nodeControllerRef);
+}
+
+static void GetAndSetLocalStorage(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value storage = nullptr;
+    napi_get_named_property(env, optionObject, "localStorage", &storage);
+    checkLocalStorage(env, option, storage);
+}
+
+static void GetAndSetCornerAdsorptionEnabled(napi_env env, napi_value optionObject, PipOption& option)
+{
+    bool cornerAdsorptionEnabled = true;
+    GetPipOptionParamFromJs(env, optionObject, "cornerAdsorptionEnabled", cornerAdsorptionEnabled);
+    option.SetCornerAdsorptionEnabled(cornerAdsorptionEnabled);
+}
+
+static void GetAndSetHandleId(napi_env env, napi_value optionObject, PipOption& option)
+{
+    int32_t handleId = -1;
+    GetPipOptionParamFromJs(env, optionObject, "handleId", handleId);
+    option.SetHandleId(handleId);
+}
+
+static int32_t GetPictureInPictureOptionFromJs(napi_env env, napi_value optionObject, PipOption& option)
+{
+    GetAndSetContext(env, optionObject, option);
+    GetAndSetNavigationId(env, optionObject, option);
+    GetAndSetTemplateType(env, optionObject, option);
+    GetAndSetContentSize(env, optionObject, option);
+    GetAndSetDefaultWindowSizeType(env, optionObject, option);
+    GetAndSetXComponentController(env, optionObject, option);
+    GetAndSetControlGroup(env, optionObject, option);
+    GetAndSetNodeControllerRef(env, optionObject, option);
+    GetAndSetLocalStorage(env, optionObject, option);
+    GetAndSetCornerAdsorptionEnabled(env, optionObject, option);
+    GetAndSetHandleId(env, optionObject, option);
     return checkOptionParams(option);
 }
 

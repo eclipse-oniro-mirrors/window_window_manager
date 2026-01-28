@@ -526,8 +526,91 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnScreenConnectionChanged, Te
     data.WriteUint64(1);
     data.WriteUint32(1);
     data.WriteUint32(2);
+    data.WriteBool(true);
+    data.WriteInt32(1);
+    uint64_t mapSize = 4;
+    data.WriteUint64(mapSize);
+    data.WriteInt32(0);
+    data.WriteInt32(0);
+    data.WriteInt32(1);
+    data.WriteInt32(1);
+    data.WriteInt32(2);
+    data.WriteInt32(2);
+    data.WriteInt32(3);
+    data.WriteInt32(3);
+
     int ret = screenSessionManagerClientStub_->HandleOnScreenConnectionChanged(data, reply);
     EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name: HandleOnScreenConnectionChanged04
+ * @tc.desc: HandleOnScreenConnectionChanged test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnScreenConnectionChanged04, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    ScreenId rsId = 0;
+    data.WriteUint64(rsId);
+    std::string name = "test";
+    data.WriteString(name);
+    data.WriteBool(false);
+    std::string innerName = "test";
+    data.WriteString(innerName);
+    ScreenId screenId = 0;
+    data.WriteUint64(screenId);
+    ScreenEvent screenEvent = ScreenEvent::CONNECTED;
+    data.WriteUint8(static_cast<uint8_t>(screenEvent));
+    uint64_t size = 1;
+    data.WriteUint64(size);
+    data.WriteUint32(1);
+    data.WriteUint32(2);
+    data.WriteBool(true);
+    data.WriteInt32(1);
+
+    int ret = screenSessionManagerClientStub_->HandleOnScreenConnectionChanged(data, reply);
+    EXPECT_EQ(ret, 5);
+}
+
+/**
+ * @tc.name: HandleOnScreenConnectionChanged05
+ * @tc.desc: HandleOnScreenConnectionChanged test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnScreenConnectionChanged05, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    ScreenId rsId = 0;
+    data.WriteUint64(rsId);
+    std::string name = "test";
+    data.WriteString(name);
+    data.WriteBool(false);
+    std::string innerName = "test";
+    data.WriteString(innerName);
+    ScreenId screenId = 0;
+    data.WriteUint64(screenId);
+    ScreenEvent screenEvent = ScreenEvent::CONNECTED;
+    data.WriteUint8(static_cast<uint8_t>(screenEvent));
+    uint64_t size = 1;
+    data.WriteUint64(size);
+    data.WriteUint32(1);
+    data.WriteUint32(2);
+    data.WriteBool(true);
+    data.WriteInt32(1);
+    data.WriteInt32(3);
+    uint64_t mapSize = 5;
+    data.WriteUint64(mapSize);
+    for (int i = 0; i < mapSize; ++i) {
+        data.WriteInt32(i);
+        data.WriteInt32(i);
+    }
+    int ret = screenSessionManagerClientStub_->HandleOnScreenConnectionChanged(data, reply);
+    EXPECT_EQ(ret, 5);
 }
 
 /**

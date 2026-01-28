@@ -24,8 +24,6 @@ group("systemtest") {
     ":wms_window_gesture_navigation_enabled_test",
     ":wms_window_multi_ability_test",
     ":wms_window_nointeraction_listener_test",
-    ":wms_window_recover_test",
-    ":wms_window_status_change_test",
     ":wms_window_systemsubwindow_test",
   ]
   if (!window_manager_use_sceneboard) {
@@ -40,7 +38,6 @@ group("systemtest") {
       ":wms_window_immersive_test",
       ":wms_window_input_method_test",
       ":wms_window_input_test",
-      ":wms_window_layout_test",
       ":wms_window_mode_support_info_test",
       ":wms_window_move_drag_test",
       ":wms_window_occupied_area_change_test",
@@ -62,6 +59,9 @@ group("systemtest") {
       ":wms_window_layout_integration_test",
       ":wms_window_pc_test",
       ":wms_window_specialwindow_test",
+      ":wms_window_recover_test",
+      ":wms_window_layout_test",
+      ":wms_window_status_change_test",
     ]
   }
 }
@@ -114,7 +114,7 @@ ohos_systemtest("wms_window_animate_to_test") {
     "${window_base_path}/test/common/utils:libtestutil",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -135,7 +135,7 @@ ohos_systemtest("wms_window_layout_test") {
     "${window_base_path}/test/common/utils:libtestutil",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -156,7 +156,7 @@ ohos_systemtest("wms_window_layout_integration_test") {
     "${window_base_path}/test/common/utils:libtestutil",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -376,7 +376,7 @@ ohos_systemtest("wms_window_recover_test") {
   deps = [
     ":wms_systemtest_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -494,7 +494,7 @@ ohos_systemtest("wms_window_status_change_test") {
   deps = [
     ":wms_systemtest_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -510,7 +510,7 @@ ohos_systemtest("wms_window_callback_test") {
   deps = [
     ":wms_systemtest_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -529,7 +529,7 @@ ohos_systemtest("wms_window_decor_test") {
   deps = [
     ":wms_systemtest_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -545,7 +545,7 @@ ohos_systemtest("wms_window_specialwindow_test") {
   deps = [
     ":wms_systemtest_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps
@@ -564,7 +564,7 @@ ohos_systemtest("wms_window_pc_test") {
   deps = [
     ":wms_systemtest_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
   ]
 
   external_deps = test_external_deps

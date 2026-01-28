@@ -734,6 +734,34 @@ ScreenPowerState DisplayManagerLiteProxy::GetScreenPower()
 #endif
 }
 
+void DisplayManagerLiteProxy::SyncScreenPowerState(ScreenPowerState state)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(state))) {
+        TLOGE(WmsLogTag::DMS, "Write power state failed");
+        return;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SYNC_SCREEN_POWER_STATE),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "Sync power state success");
+#endif
+}
+
 bool DisplayManagerLiteProxy::SetDisplayState(DisplayState state)
 {
 #ifdef SCENE_BOARD_ENABLED
@@ -1038,6 +1066,46 @@ DMError DisplayManagerLiteProxy::SetSystemKeyboardStatus(bool isTpKeyboardOn)
 #endif
 }
 
+DMError DisplayManagerLiteProxy::IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "write interface token failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(displayId)) {
+        TLOGE(WmsLogTag::DMS, "write displayId failed");
+        return DMError::DM_ERROR_WRITE_DATA_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_IS_ON_BOARD_DISPLAY),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "send request failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    uint32_t res;
+    if (!reply.ReadUint32(res)) {
+        TLOGE(WmsLogTag::DMS, "read result failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (static_cast<DMError>(res) != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "server error:%{public}d", res);
+        return static_cast<DMError>(res);
+    }
+    if (!reply.ReadBool(isOnboardDisplay)) {
+        TLOGE(WmsLogTag::DMS, "read isOnboardDisplay failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    TLOGI(WmsLogTag::DMS, "res %{public}u", res);
+    return DMError::DM_OK;
+}
+
 sptr<ScreenInfo> DisplayManagerLiteProxy::GetScreenInfoById(ScreenId screenId)
 {
 #ifdef SCENE_BOARD_ENABLED
@@ -1151,5 +1219,34 @@ bool DisplayManagerLiteProxy::SynchronizePowerStatus(ScreenPowerState state)
 #else
     return false;
 #endif
+}
+
+DMError DisplayManagerLiteProxy::SetResolution(ScreenId screenId, uint32_t width, uint32_t height,
+    float virtualPixelRatio)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(screenId) || !data.WriteUint32(width) ||
+        !data.WriteUint32(height) || !data.WriteFloat(virtualPixelRatio)) {
+        TLOGE(WmsLogTag::DMS, "write screenId/width/height/virtualPixelRatio failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_RESOLUTION),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(reply.ReadInt32());
 }
 } // namespace OHOS::Rosen

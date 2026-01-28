@@ -381,6 +381,25 @@ HWTEST_F(SceneSessionTest, GetRequestedOrientation, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetKeepScreenOn01
+ * @tc.desc: SetKeepScreenOn true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetKeepScreenOn01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetKeepScreenOn01";
+    info.bundleName_ = "SetKeepScreenOn01";
+    info.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    EXPECT_EQ(sceneSession->SetKeepScreenOn(true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsKeepScreenOn(), true);
+    EXPECT_EQ(sceneSession->SetKeepScreenOn(false), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsKeepScreenOn(), false);
+}
+
+/**
  * @tc.name: IsKeepScreenOn01
  * @tc.desc: IsKeepScreenOn true
  * @tc.type: FUNC
@@ -410,6 +429,25 @@ HWTEST_F(SceneSessionTest, IsKeepScreenOn02, TestSize.Level1)
     ASSERT_NE(sceneSession, nullptr);
     ASSERT_EQ(WSError::WS_OK, sceneSession->SetKeepScreenOn(false));
     ASSERT_EQ(false, sceneSession->IsKeepScreenOn());
+}
+
+/**
+ * @tc.name: SetViewKeepScreenOn01
+ * @tc.desc: SetViewKeepScreenOn true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetViewKeepScreenOn01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetViewKeepScreenOn01";
+    info.bundleName_ = "SetViewKeepScreenOn01";
+    info.windowType_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    EXPECT_EQ(sceneSession->SetViewKeepScreenOn(true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsViewKeepScreenOn(), true);
+    EXPECT_EQ(sceneSession->SetViewKeepScreenOn(false), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->IsViewKeepScreenOn(), false);
 }
 
 /**
@@ -471,26 +509,6 @@ HWTEST_F(SceneSessionTest, HandleActionUpdateWindowShadowEnabled01, TestSize.Lev
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     ret = sceneSession->HandleActionUpdateWindowShadowEnabled(property, action);
     EXPECT_EQ(WMError::WM_OK, ret);
-}
-
-/**
- * @tc.name: SetWindowShadowEnabled01
- * @tc.desc: SetWindowShadowEnabled
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, SetWindowShadowEnabled01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "SetWindowShadowEnabled";
-    info.bundleName_ = "SetWindowShadowEnabled";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    bool isEnabled = true;
-    EXPECT_EQ(WSError::WS_OK, sceneSession->SetWindowShadowEnabled(isEnabled));
-    EXPECT_EQ(isEnabled, sceneSession->GetWindowShadowEnabled());
-    isEnabled = false;
-    EXPECT_EQ(WSError::WS_OK, sceneSession->SetWindowShadowEnabled(isEnabled));
-    EXPECT_EQ(isEnabled, sceneSession->GetWindowShadowEnabled());
 }
 
 /**
@@ -1103,7 +1121,7 @@ HWTEST_F(SceneSessionTest, NotifySessionRectChange, TestSize.Level1)
 
     auto oriProperty = sceneSession->GetSessionProperty();
     sceneSession->property_ = oriProperty;
-    auto moveDragController = sptr<MoveDragController>::MakeSptr(2024, sceneSession->GetWindowType());
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->moveDragController_ = moveDragController;
     SizeChangeReason reason = { SizeChangeReason::DRAG };
     sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
@@ -1111,66 +1129,9 @@ HWTEST_F(SceneSessionTest, NotifySessionRectChange, TestSize.Level1)
     sceneSession->systemConfig_.freeMultiWindowEnable_ = true;
     sceneSession->dragResizeTypeDuringDrag_ = DragResizeType::RESIZE_SCALE;
     sceneSession->moveDragController_->isStartDrag_ = true;
-    sceneSession->compatibleDragScaleFlags_ = true;
+    sceneSession->needNotifyDragEventOnNextVsync_ = true;
     sceneSession->NotifySessionRectChange(overlapRect, reason, 11);
     EXPECT_EQ(sceneSession->IsDragResizeScale(reason), true);
-}
-
-/**
- * @tc.name: GetKeyboardAvoidArea
- * @tc.desc: GetKeyboardAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, GetKeyboardAvoidArea, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "Background01";
-    info.bundleName_ = "IsFloatingWindowAppType";
-    info.windowType_ = 1;
-    sptr<Rosen::ISession> session_;
-    sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback_, nullptr);
-    specificCallback_->onGetSceneSessionVectorByType_ = [](WindowType type) -> std::vector<sptr<SceneSession>> {
-        std::vector<sptr<SceneSession>> backgroundSession;
-        return backgroundSession;
-    };
-
-    sptr<SceneSession> sceneSession;
-    sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    EXPECT_NE(sceneSession, nullptr);
-    WSRect overlapRect = { 0, 0, 0, 0 };
-    AvoidArea avoidArea;
-    sceneSession->GetKeyboardAvoidArea(overlapRect, avoidArea);
-    ASSERT_EQ(true, overlapRect.IsEmpty());
-    ASSERT_EQ(true, sceneSession->keyboardAvoidAreaActive_);
-    sceneSession->keyboardAvoidAreaActive_ = false;
-    sceneSession->GetKeyboardAvoidArea(overlapRect, avoidArea);
-    ASSERT_EQ(false, sceneSession->keyboardAvoidAreaActive_);
-    ASSERT_EQ(true, overlapRect.IsEmpty());
-}
-
-/**
- * @tc.name: GetCutoutAvoidArea
- * @tc.desc: GetCutoutAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, GetCutoutAvoidArea, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "Background01";
-    info.bundleName_ = "IsFloatingWindowAppType";
-    info.windowType_ = 1;
-    sptr<Rosen::ISession> session_;
-    sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback_, nullptr);
-    sptr<SceneSession> sceneSession;
-    sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
-    WSRect overlapRect = { 0, 0, 0, 0 };
-    AvoidArea avoidArea;
-    sceneSession->GetCutoutAvoidArea(overlapRect, avoidArea);
 }
 
 /**
@@ -1306,89 +1267,6 @@ HWTEST_F(SceneSessionTest, IsShowWhenLocked, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetAvoidAreaByType
- * @tc.desc: GetAvoidAreaByType
- * @tc.type: FUNC ok
- */
-HWTEST_F(SceneSessionTest, GetAvoidAreaByType, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "Background01";
-    info.bundleName_ = "IsFloatingWindowAppType";
-    info.windowType_ = 1;
-    sptr<Rosen::ISession> session_;
-    sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback_, nullptr);
-    specificCallback_->onGetSceneSessionVectorByTypeAndDisplayId_ =
-        [](WindowType type, uint64_t displayId) -> std::vector<sptr<SceneSession>> {
-        SessionInfo info_;
-        info_.abilityName_ = "Background01";
-        info_.bundleName_ = "IsFloatingWindowAppType";
-        std::vector<sptr<SceneSession>> backgroundSession;
-        sptr<SceneSession> session2 = sptr<SceneSession>::MakeSptr(info_, nullptr);
-        backgroundSession.push_back(session2);
-        return backgroundSession;
-    };
-    sptr<SceneSession> sceneSession;
-    sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    EXPECT_NE(sceneSession, nullptr);
-    WSRect rect = { 0, 0, 320, 240 }; // width: 320, height: 240
-    sceneSession->SetSessionRect(rect);
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    sceneSession->property_ = property;
-    AvoidArea avoidArea;
-    sceneSession->GetAvoidAreaByType(AvoidAreaType::TYPE_CUTOUT);
-    sceneSession->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM);
-    sceneSession->GetAvoidAreaByType(AvoidAreaType::TYPE_KEYBOARD);
-    sceneSession->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM_GESTURE);
-    EXPECT_NE(sceneSession, nullptr);
-}
-
-/**
- * @tc.name: GetAvoidAreaByTypeIgnoringVisibility
- * @tc.desc: GetAvoidAreaByTypeIgnoringVisibility
- * @tc.type: FUNC ok
- */
-HWTEST_F(SceneSessionTest, GetAvoidAreaByTypeIgnoringVisibility, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "Background01";
-    info.bundleName_ = "GetAvoidAreaByTypeIgnoringVisibility";
-    info.windowType_ = 1;
-    sptr<Rosen::ISession> session_;
-    sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback_, nullptr);
-    specificCallback_->onGetSceneSessionVectorByTypeAndDisplayId_ =
-        [](WindowType type, uint64_t displayId) -> std::vector<sptr<SceneSession>> {
-        SessionInfo info_;
-        info_.abilityName_ = "Background01";
-        info_.bundleName_ = "GetAvoidAreaByTypeIgnoringVisibility";
-        std::vector<sptr<SceneSession>> backgroundSession;
-        sptr<SceneSession> session2 = sptr<SceneSession>::MakeSptr(info_, nullptr);
-        backgroundSession.push_back(session2);
-        return backgroundSession;
-    };
-    sptr<SceneSession> sceneSession;
-    sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    EXPECT_NE(sceneSession, nullptr);
-    WSRect rect = { 0, 0, 320, 240 }; // width: 320, height: 240
-    sceneSession->SetSessionRect(rect);
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    sceneSession->property_ = property;
-    sing T = std::underlying_type_t<AvoidAreaType>;
-    for (T avoidAreaType = static_cast<T>(AvoidAreaType::TYPE_START);
-        avoidAreaType < static_cast<T>(AvoidAreaType::TYPE_END); avoidAreaType++) {
-        auto type = static_cast<AvoidAreaType>(avoidAreaType);
-        sceneSession->GetAvoidAreaByTypeIgnoringVisibility(type);
-    }
-    EXPECT_NE(sceneSession, nullptr);
-}
-
-/**
  * @tc.name: TransferPointerEvent
  * @tc.desc: TransferPointerEvent
  * @tc.type: FUNC
@@ -1430,7 +1308,7 @@ HWTEST_F(SceneSessionTest, TransferPointerEventDecorDialog, TestSize.Level1)
     sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(12, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
     std::shared_ptr<MMI::PointerEvent> pointerEvent_ = MMI::PointerEvent::Create();
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
@@ -1478,63 +1356,6 @@ HWTEST_F(SceneSessionTest, ProcessWindowMoving, TestSize.Level1)
     EXPECT_NE(sceneSession, nullptr);
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
     sceneSession->ProcessWindowMoving(pointerEvent);
-}
-
-/**
- * @tc.name: PrintAvoidAreaInfo
- * @tc.desc: PrintAvoidAreaInfo
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, PrintAvoidAreaInfo, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "PrintAvoidAreaInfo";
-    info.bundleName_ = "PrintAvoidAreaInfo";
-    sptr<SceneSession>sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
-    sceneSession->property_->displayId_ = 0;
-    WSRect winRect;
-    WSRect avoidRect;
-    auto type = AvoidAreaType::TYPE_SYSTEM;
-    sceneSession->PrintAvoidAreaInfo(sceneSession->property_->displayId_, type, winRect, avoidRect);
-    std::tuple<DisplayId, WSRect, WSRect> inputParamters(sceneSession->property_->displayId_, winRect, avoidRect);
-    EXPECT_EQ(inputParamters, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
-    sceneSession->property_->displayId_ = 1;
-    sceneSession->PrintAvoidAreaInfo(sceneSession->property_->displayId_, type, winRect, avoidRect);
-    std::tuple<DisplayId, WSRect, WSRect> inputParamters1(sceneSession->property_->displayId_, winRect, avoidRect);
-    EXPECT_EQ(inputParamters1, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
-    sceneSession->PrintAvoidAreaInfo(sceneSession->property_->displayId_, type, winRect, avoidRect);
-    EXPECT_EQ(inputParamters1, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
-    AvoidArea avoidArea;
-    sceneSession->CalculateAvoidAreaByType(type, winRect, avoidRect, avoidArea);
-    EXPECT_EQ(inputParamters1, sceneSession->lastAvoidAreaInputParamtersMap_[type]);
-}
-
-/**
- * @tc.name: CalculateAvoidAreaRect
- * @tc.desc: CalculateAvoidAreaRect
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, CalculateAvoidAreaRect, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "Background01";
-    info.bundleName_ = "IsFloatingWindowAppType";
-    info.windowType_ = 1;
-    sptr<Rosen::ISession> session_;
-    sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback_, nullptr);
-    sptr<SceneSession> sceneSession;
-    sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
-    EXPECT_NE(sceneSession, nullptr);
-    WSRect overlapRect = { 0, 0, 0, 0 };
-    WSRect avoidRect = { 0, 0, 0, 0 };
-    AvoidArea avoidArea;
-    sceneSession->CalculateAvoidAreaRect(overlapRect, avoidRect, avoidArea);
-    WSRect overlapRect_ = { 1, 1, 1, 1 };
-    WSRect avoidRect_ = { 1, 1, 1, 1 };
-    sceneSession->CalculateAvoidAreaRect(overlapRect_, avoidRect_, avoidArea);
 }
 
 /**
@@ -1778,7 +1599,7 @@ HWTEST_F(SceneSessionTest, OnSessionEvent, TestSize.Level1)
     info.bundleName_ = "OnSessionEvent";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->OnSessionEvent(SessionEvent::EVENT_START_MOVE);
     sceneSession->moveDragController_->isStartDrag_ = true;
     sceneSession->moveDragController_->hasPointDown_ = true;
@@ -2186,26 +2007,6 @@ HWTEST_F(SceneSessionTest, GetAppForceLandscapeConfig, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetMoveDragCallback
- * @tc.desc: SetMoveDragCallback
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, SetMoveDragCallback, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "SetMoveDragCallback";
-    info.bundleName_ = "SetMoveDragCallback";
-    sptr<SceneSession::SpecificSessionCallback> specificCallback =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback, nullptr);
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
-
-    sceneSession->moveDragController_ = nullptr;
-    sceneSession->SetMoveDragCallback();
-}
-
-/**
  * @tc.name: SetDefaultDisplayIdIfNeed
  * @tc.desc: SetDefaultDisplayIdIfNeed
  * @tc.type: FUNC
@@ -2381,9 +2182,9 @@ HWTEST_F(SceneSessionTest, CloneWindow, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
     sceneSession->SetSurfaceNode(surfaceNode);
-    auto shadowSurfaceNode = sceneSession->GetShadowSurfaceNode();
+    auto sfaceNode = sceneSession->GetSurfaceNode();
     sceneSession->CloneWindow(surfaceNodeId, needOffScreen);
-    EXPECT_TRUE(shadowSurfaceNode != nullptr);
+    EXPECT_TRUE(sfaceNode != nullptr);
 }
 
 /**
@@ -2417,6 +2218,43 @@ HWTEST_F(SceneSessionTest, GetGlobalOrWinRect, Function | SmallTest | Level2)
     rect = sceneSession->GetGlobalOrWinRect();
     EXPECT_EQ(2, rect.posX_);
     EXPECT_EQ(2, rect.posY_);
+}
+
+/**
+ * @tc.name: GetWindowLimits
+ * @tc.desc: Verify GetWindowLimits handles null property and valid property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetWindowLimits, TestSize.Level1)
+{
+    SessionInfo info;
+    auto sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Case 1: property_ is null → return default WindowLimits()
+    {
+        sceneSession->property_ = nullptr;
+        WindowLimits limits = sceneSession->GetWindowLimits();
+
+        EXPECT_EQ(limits.maxWidth_, static_cast<uint32_t>(INT32_MAX));
+        EXPECT_EQ(limits.maxHeight_, static_cast<uint32_t>(INT32_MAX));
+        EXPECT_EQ(limits.minWidth_, 1);
+        EXPECT_EQ(limits.minHeight_, 1);
+    }
+
+    // Case 2: property_ valid → return property->limits_
+    {
+        auto property = sptr<WindowSessionProperty>::MakeSptr();
+        WindowLimits expectedLimits(800, 600, 200, 100, 0.0, 0.0);
+
+        property->SetWindowLimits(expectedLimits);
+        sceneSession->property_ = property;
+        WindowLimits limits = sceneSession->GetWindowLimits();
+
+        EXPECT_EQ(limits.maxWidth_, 800);
+        EXPECT_EQ(limits.maxHeight_, 600);
+        EXPECT_EQ(limits.minWidth_, 200);
+        EXPECT_EQ(limits.minHeight_, 100);
+    }
 }
 } // namespace
 } // namespace Rosen

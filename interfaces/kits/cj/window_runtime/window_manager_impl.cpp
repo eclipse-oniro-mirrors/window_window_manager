@@ -112,14 +112,15 @@ int32_t WindowManagerImpl::SetWindowLayoutMode(uint32_t mode)
     return static_cast<int32_t>(ret);
 }
 
-int32_t WindowManagerImpl::MinimizeAll(int64_t displayId)
+int32_t WindowManagerImpl::MinimizeAll(int64_t displayId, int32_t excludeWindowId)
 {
     if (displayId < 0 ||
         SingletonContainer::Get<DisplayManager>().GetDisplayById(static_cast<uint64_t>(displayId)) == nullptr) {
         return static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<WindowManager>().MinimizeAllAppWindows(static_cast<uint64_t>(displayId)));
+        SingletonContainer::Get<WindowManager>().MinimizeAllAppWindows(
+            static_cast<uint64_t>(displayId), static_cast<int32_t>(excludeWindowId)));
     return static_cast<int32_t>(ret);
 }
 

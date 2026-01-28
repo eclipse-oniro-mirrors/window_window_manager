@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,84 +15,106 @@
 
 #include "window_manager_agent.h"
 #include "foundation/window/window_manager/interfaces/innerkits/wm/window_manager.h"
-#include "singleton_container.h"
+#include "window_manager_hilog.h"
 #include "wm_common.h"
 
 namespace OHOS {
 namespace Rosen {
+WindowManagerAgent::WindowManagerAgent(const int32_t userId) : userId_(userId) {}
+
 void WindowManagerAgent::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused)
 {
-    SingletonContainer::Get<WindowManager>().UpdateFocusChangeInfo(focusChangeInfo, focused);
+    TLOGD(WmsLogTag::WMS_FOCUS, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).UpdateFocusChangeInfo(focusChangeInfo, focused);
 }
 
 void WindowManagerAgent::UpdateWindowModeTypeInfo(WindowModeType type)
 {
-    SingletonContainer::Get<WindowManager>().UpdateWindowModeTypeInfo(type);
+    TLOGD(WmsLogTag::WMS_SYSTEM, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).UpdateWindowModeTypeInfo(type);
 }
 
 void WindowManagerAgent::UpdateSystemBarRegionTints(DisplayId displayId, const SystemBarRegionTints& tints)
 {
-    SingletonContainer::Get<WindowManager>().UpdateSystemBarRegionTints(displayId, tints);
+    TLOGD(WmsLogTag::WMS_SYSTEM, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).UpdateSystemBarRegionTints(displayId, tints);
 }
 
 void WindowManagerAgent::NotifyAccessibilityWindowInfo(const std::vector<sptr<AccessibilityWindowInfo>>& infos,
     WindowUpdateType type)
 {
-    SingletonContainer::Get<WindowManager>().NotifyAccessibilityWindowInfo(infos, type);
+    TLOGD(WmsLogTag::WMS_MAIN, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).NotifyAccessibilityWindowInfo(infos, type);
 }
 
 void WindowManagerAgent::UpdateWindowVisibilityInfo(const std::vector<sptr<WindowVisibilityInfo>>& visibilityInfos)
 {
-    SingletonContainer::Get<WindowManager>().UpdateWindowVisibilityInfo(visibilityInfos);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).UpdateWindowVisibilityInfo(visibilityInfos);
 }
 
 void WindowManagerAgent::UpdateWindowDrawingContentInfo(
     const std::vector<sptr<WindowDrawingContentInfo>>& windowDrawingContentInfos)
 {
-    SingletonContainer::Get<WindowManager>().UpdateWindowDrawingContentInfo(windowDrawingContentInfos);
+    TLOGD(WmsLogTag::WMS_SYSTEM, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).UpdateWindowDrawingContentInfo(windowDrawingContentInfos);
 }
 
 void WindowManagerAgent::UpdateCameraFloatWindowStatus(uint32_t accessTokenId, bool isShowing)
 {
-    SingletonContainer::Get<WindowManager>().UpdateCameraFloatWindowStatus(accessTokenId, isShowing);
+    TLOGD(WmsLogTag::WMS_SYSTEM, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).UpdateCameraFloatWindowStatus(accessTokenId, isShowing);
 }
 
 void WindowManagerAgent::NotifyWaterMarkFlagChangedResult(bool showWaterMark)
 {
-    SingletonContainer::Get<WindowManager>().NotifyWaterMarkFlagChangedResult(showWaterMark);
+    TLOGD(WmsLogTag::DEFAULT, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).NotifyWaterMarkFlagChangedResult(showWaterMark);
 }
 
 void WindowManagerAgent::UpdateVisibleWindowNum(
     const std::vector<VisibleWindowNumInfo>& visibleWindowNumInfo)
 {
-    SingletonContainer::Get<WindowManager>().UpdateVisibleWindowNum(visibleWindowNumInfo);
+    TLOGD(WmsLogTag::WMS_MAIN, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).UpdateVisibleWindowNum(visibleWindowNumInfo);
 }
 
 void WindowManagerAgent::NotifyGestureNavigationEnabledResult(bool enable)
 {
-    SingletonContainer::Get<WindowManager>().NotifyGestureNavigationEnabledResult(enable);
+    TLOGD(WmsLogTag::DEFAULT, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).NotifyGestureNavigationEnabledResult(enable);
 }
 
 void WindowManagerAgent::NotifyWindowStyleChange(WindowStyleType type)
 {
-    SingletonContainer::Get<WindowManager>().NotifyWindowStyleChange(type);
+    TLOGD(WmsLogTag::WMS_MAIN, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).NotifyWindowStyleChange(type);
 }
 
 void WindowManagerAgent::NotifyWindowSystemBarPropertyChange(
     WindowType type, const SystemBarProperty& systemBarProperty)
 {
-    SingletonContainer::Get<WindowManager>().NotifyWindowSystemBarPropertyChange(type, systemBarProperty);
+    TLOGD(WmsLogTag::WMS_IMMS, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).NotifyWindowSystemBarPropertyChange(type, systemBarProperty);
 }
 
 void WindowManagerAgent::NotifyWindowPidVisibilityChanged(const sptr<WindowPidVisibilityInfo>& info)
 {
-    SingletonContainer::Get<WindowManager>().NotifyWindowPidVisibilityChanged(info);
+    TLOGD(WmsLogTag::WMS_LIFE, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).NotifyWindowPidVisibilityChanged(info);
 }
 
 void WindowManagerAgent::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-    const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList)
+    const WindowInfoList& windowInfoList)
 {
-    SingletonContainer::Get<WindowManager>().NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance().NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
+}
+
+void WindowManagerAgent::NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo)
+{
+    TLOGD(WmsLogTag::WMS_ROTATION, "userId_=%{public}d", userId_);
+    WindowManager::GetInstance(userId_).NotifySupportRotationChange(supportRotationInfo);
 }
 } // namespace Rosen
 } // namespace OHOS

@@ -209,6 +209,12 @@ HWTEST_F(ScreenSessionDumperTest, ExecuteDumpCmd, TestSize.Level1)
     sptr<ScreenSessionDumper> dumper8 = new ScreenSessionDumper(fd, args);
     dumper8->ExecuteDumpCmd();
     ASSERT_EQ(dumper8->fd_, 1);
+
+    fd = 1;
+    args = {u"-ln,1"};
+    sptr<ScreenSessionDumper> dumper10 = new ScreenSessionDumper(fd, args);
+    dumper10->ExecuteDumpCmd();
+    ASSERT_EQ(dumper10->fd_, 1);
 }
 
 /**
@@ -426,8 +432,17 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue01, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,1");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-motion,1";
+    dumper ->SetMotionSensorValue(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -440,8 +455,16 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue02, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,2");
-    ASSERT_EQ(true, true);
+    std::string input = "-motion,2";
+    dumper ->SetMotionSensorValue(input);
+    
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -454,8 +477,16 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue03, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,3");
-    ASSERT_EQ(true, true);
+    std::string input = "-motion,3";
+    dumper ->SetMotionSensorValue(input);
+    
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -468,8 +499,16 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue04, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,4");
-    ASSERT_EQ(true, true);
+    std::string input = "-motion,4";
+    dumper ->SetMotionSensorValue(input);
+    
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -482,8 +521,16 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue05, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,5");
-    ASSERT_EQ(true, true);
+    std::string input = "-motion,5";
+    dumper ->SetMotionSensorValue(input);
+    
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -496,8 +543,15 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue06, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,9999");
-    ASSERT_EQ(true, true);
+    std::string input = "-motion,9999";
+    dumper ->SetMotionSensorValue(input);
+    
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_NE(valueStr.size(), 1);
 }
 
 /**
@@ -510,8 +564,16 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue07, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,xxxxx");
-    ASSERT_EQ(true, true);
+    std::string input = "-motion,xxxxx";
+    dumper ->SetMotionSensorValue(input);
+    
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_NE(valueStr.size(), 1);
+    EXPECT_FALSE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -519,13 +581,21 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue07, TestSize.Level1)
  * @tc.desc: test function : SetMotionSensorValue
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue07, TestSize.Level1)
+HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue08, TestSize.Level1)
 {
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetMotionSensorValue("-motion,,,,,,");
-    ASSERT_EQ(true, true);
+    std::string input = "-motion,,,,,,";
+    dumper ->SetMotionSensorValue(input);
+    
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_NE(valueStr.size(), 1);
+    EXPECT_FALSE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -533,13 +603,22 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue07, TestSize.Level1)
  * @tc.desc: test function : SetRotationLockedValue
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue01, TestSize.Level1)
+HWTEST_F(ScreenSessionDumperTest, SetRotationLockedValue01, TestSize.Level1)
 {
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetRotationLockedValue("-rotationlock,0");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-rotationlock,0";
+    dumper ->SetRotationLockedValue(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -547,13 +626,22 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue01, TestSize.Level1)
  * @tc.desc: test function : SetRotationLockedValue
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue02, TestSize.Level1)
+HWTEST_F(ScreenSessionDumperTest, SetRotationLockedValue02, TestSize.Level1)
 {
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetRotationLockedValue("-rotationlock,1");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-rotationlock,1";
+    dumper ->SetRotationLockedValue(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -561,13 +649,22 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue02, TestSize.Level1)
  * @tc.desc: test function : SetRotationLockedValue
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue03, TestSize.Level1)
+HWTEST_F(ScreenSessionDumperTest, SetRotationLockedValue03, TestSize.Level1)
 {
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetRotationLockedValue("-rotationlock,,,,,");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-rotationlock,,,,,";
+    dumper ->SetRotationLockedValue(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_NE(valueStr.size(), 1);
+    EXPECT_FALSE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -575,13 +672,20 @@ HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue03, TestSize.Level1)
  * @tc.desc: test function : SetRotationLockedValue
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionDumperTest, SetMotionSensorValue04, TestSize.Level1)
+HWTEST_F(ScreenSessionDumperTest, SetRotationLockedValue04, TestSize.Level1)
 {
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->SetRotationLockedValue("-rotationlock,1-");
-    ASSERT_EQ(true, true);
+    std::string input = "-rotationlock,1-";
+    dumper ->SetRotationLockedValue(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_NE(valueStr.size(), 1);
 }
 
 /**
@@ -594,8 +698,17 @@ HWTEST_F(ScreenSessionDumperTest, MockSendCastPublishEvent01, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->MockSendCastPublishEvent("-publishcastevent,0");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-publishcastevent,0";
+    dumper ->MockSendCastPublishEvent(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -608,8 +721,17 @@ HWTEST_F(ScreenSessionDumperTest, MockSendCastPublishEvent02, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->MockSendCastPublishEvent("-publishcastevent,1");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-publishcastevent,1";
+    dumper ->MockSendCastPublishEvent(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -622,8 +744,17 @@ HWTEST_F(ScreenSessionDumperTest, MockSendCastPublishEvent03, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->MockSendCastPublishEvent("-publishcastevent,,,,,");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-publishcastevent,,,,,";
+    dumper ->MockSendCastPublishEvent(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_NE(valueStr.size(), 1);
+    EXPECT_FALSE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -636,8 +767,16 @@ HWTEST_F(ScreenSessionDumperTest, MockSendCastPublishEvent04, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->MockSendCastPublishEvent("-publishcastevent,1-");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-publishcastevent,1-";
+    dumper ->MockSendCastPublishEvent(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_NE(valueStr.size(), 1);
 }
 
 /**
@@ -650,8 +789,17 @@ HWTEST_F(ScreenSessionDumperTest, MockSendCastPublishEvent05, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->MockSendCastPublishEvent("-publishcastevent,a");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-publishcastevent,a";
+    dumper ->MockSendCastPublishEvent(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_FALSE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -664,8 +812,13 @@ HWTEST_F(ScreenSessionDumperTest, MockSendCastPublishEvent06, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
-    dumper ->MockSendCastPublishEvent("-publishcastevent=1");
-    ASSERT_EQ(true, true);
+
+    std::string input = "-publishcastevent=1";
+    dumper ->MockSendCastPublishEvent(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_FALSE(isConditionMet);
 }
 
 /**
@@ -679,7 +832,16 @@ HWTEST_F(ScreenSessionDumperTest, MockSendCastPublishEvent07, TestSize.Level1)
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
     dumper ->MockSendCastPublishEvent("-publishcastevent,7");
-    ASSERT_EQ(true, true);
+    std::string input = "-publishcastevent,7";
+    dumper ->MockSendCastPublishEvent(input);
+
+    size_t commaPos = input.find_last_of(',');
+    bool isConditionMet = commaPos != std::string::npos;
+    EXPECT_TRUE(isConditionMet);
+
+    std::string valueStr = input.substr(commaPos + 1);
+    EXPECT_EQ(valueStr.size(), 1);
+    EXPECT_TRUE(std::isdigit(valueStr[0]));
 }
 
 /**
@@ -692,11 +854,19 @@ HWTEST_F(ScreenSessionDumperTest, SetHoverStatusChange, TestSize.Level1)
     int fd = 1;
     std::vector<std::u16string> args = {u"-h"};
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
     dumper ->SetHoverStatusChange("-hoverStatus,-1");
     dumper ->SetHoverStatusChange("-hoverStatus,-0");
     dumper ->SetHoverStatusChange("-hoverStatus,1");
     dumper ->SetHoverStatusChange("-hoverStatus,4");
-    ASSERT_EQ(true, true);
+    EXPECT_TRUE(g_errLog.find("screenSession is nullptr") != std::string::npos ||
+        g_errLog.find("the value is too long") ！= std::string::npos ||
+        g_errLog.find("the value is not a number") ！= std::string::npos ||
+        g_errLog.find("params is invalid") ！= std::string::npos)
+    g_errLog.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -919,6 +1089,35 @@ HWTEST_F(ScreenSessionDumperTest, DumpMultiUserInfo, TestSize.Level1)
     dumper->DumpMultiUserInfo(oldScbPids, userId, scbPid);
     ASSERT_NE(dumper->dumpInfo_, std::string());
 }
+
+/**
+ * @tc.name: ShowCurrentStatus
+ * @tc.desc: test function : ShowCurrentStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ShowCurrentStatus, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-lcd"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->dumpInfo_ = "";
+    dumper->ExecuteDumpCmd();
+ 
+    dumper->dumpInfo_ = "";
+    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_ON);
+    dumper->ShowCurrentStatus(SCREEN_ID_FULL);
+    ASSERT_TRUE(dumper->dumpInfo_.find("PANEL_POWER_STATUS_ON") == std::string::npos);
+ 
+    dumper->dumpInfo_ = "";
+    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF);
+    dumper->ShowCurrentStatus(SCREEN_ID_FULL);
+    ASSERT_TRUE(dumper->dumpInfo_.find("PANEL_POWER_STATUS_OFF") == std::string::npos);
+ 
+    dumper->dumpInfo_ = "";
+    dumper->ShowCurrentStatus(12478);
+    ASSERT_TRUE(dumper->dumpInfo_.find("status failed") == std::string::npos);
+}
+
 #ifdef FOLD_ABILITY_ENABLE
 /**
  * @tc.name: DumpFoldCreaseRegion
@@ -1081,6 +1280,45 @@ HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange06, TestSize.Level1)
     dumper->SetSuperFoldStatusChange("-supertrans,1");
     ASSERT_EQ(dumper->fd_, 1);
 }
+
+
+/**
+ * @tc.name: SetSuperFoldStatusChange07
+ * @tc.desc: test function : SetSuperFoldStatusChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange07, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldStatusChange("-supertrans,4");
+    ASSERT_EQ(dumper->fd_, 1);
+
+    EXPECT_TRUE(g_errLog.find("set hall value") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSuperFoldStatusChange08
+ * @tc.desc: test function : SetSuperFoldStatusChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldStatusChange08, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldStatusChange("-supertrans,5");
+    ASSERT_EQ(dumper->fd_, 1);
+    EXPECT_TRUE(g_errLog.find("set hall value") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
 
 /**
  * @tc.name: SetSecondaryStatusChange01
@@ -1300,6 +1538,60 @@ HWTEST_F(ScreenSessionDumperTest, SetFoldStatusLocked, TestSize.Level1)
     dumper->params_[0] = "-test";
     ret = dumper->SetFoldStatusLocked();
     ASSERT_EQ(ret, -1);
+}
+
+/**
+ * @tc.name: ForceSetFoldStatusAndLock
+ * @tc.desc: test function : ForceSetFoldStatusAndLock
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ForceSetFoldStatusAndLock, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u""};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    std::string emptyInput = "";
+    int ret = dumper->ForceSetFoldStatusAndLock(emptyInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string noCommaInput = "-ln1";
+    ret = dumper->ForceSetFoldStatusAndLock(noCommaInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string wrongPrefixInput = "-lx,1";
+    ret = dumper->ForceSetFoldStatusAndLock(wrongPrefixInput);
+    ASSERT_EQ(ret, -1);
+
+    std::string invalidStatusInput = "-ln,999";
+    ret = dumper->ForceSetFoldStatusAndLock(invalidStatusInput);
+    ASSERT_EQ(ret, -1);
+
+    if (!ScreenSessionManager::GetInstance().IsFoldable()) {
+        GTEST_SKIP();
+    }
+    std::vector<std::string> validStatusValues = {
+        "1", "2", "3", "11", "21", "12", "22", "13", "23"};
+    for (const auto& status : validStatusValues) {
+        std::string validInput = "-ln," + status;
+        ret = dumper->ForceSetFoldStatusAndLock(validInput);
+        ASSERT_TRUE(ret == 0 || ret == -1);
+    }
+    dumper->RestorePhysicalFoldStatus();
+}
+
+/**
+ * @tc.name: RestorePhysicalFoldStatus
+ * @tc.desc: test function : RestorePhysicalFoldStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, RestorePhysicalFoldStatus, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u""};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int ret = dumper->RestorePhysicalFoldStatus();
+    ASSERT_TRUE(ret == 0 || ret == -1);
 }
 
 /**
