@@ -190,11 +190,6 @@ public:
     WSError UpdateFlag(const std::string& flag) override;
     WSError UseImplicitAnimation(bool useImplicit) override;
 
-    /*
-     * Window Pattern
-     */
-    void NotifyWindowAttachStateListenerRegistered(bool registered) override;
-
     /**
      * Window layout
      */
@@ -224,6 +219,11 @@ public:
     WSError RequestFocus(bool isFocused) override;
     WSError GetIsHighlighted(bool& isHighlighted) override;
     WMError NotifyDisableDelegatorChange() override;
+
+    /*
+     * Window Pattern
+     */
+    void NotifyWindowAttachStateListenerRegistered(bool registered) override;
 
     /**
      * window animation

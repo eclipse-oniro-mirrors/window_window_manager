@@ -3111,17 +3111,6 @@ void Session::ResetPreloadSnapshot()
     preloadSnapshot_ = nullptr;
 }
 
-void Session::SetEnableAddSnapshot(bool enableAddSnapshot)
-{
-    TLOGI(WmsLogTag::WMS_PATTERN, "enableAddSnapshot: %{public}d", enableAddSnapshot);
-    enableAddSnapshot_ = enableAddSnapshot;
-}
-
-bool Session::GetEnableAddSnapshot() const
-{
-    return enableAddSnapshot_;
-}
-
 void Session::SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap)
 {
     std::string functionNameStr = (functionName != nullptr) ? functionName : "unknown";
