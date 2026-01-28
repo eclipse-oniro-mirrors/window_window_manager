@@ -99,7 +99,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground01, TestSize.Level0)
     sceneSession->UpdateSessionState(SessionState::STATE_DISCONNECT);
     sceneSession->isActive_ = true;
     result = sceneSession->Foreground(property);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -123,7 +123,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground02, TestSize.Level1)
     sceneSession->isActive_ = true;
     sptr<WindowSessionProperty> property = nullptr;
     auto result = sceneSession->Foreground(property);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -148,7 +148,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground03, TestSize.Level1)
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::CUSTOM));
     auto result = sceneSession->Foreground(property);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -308,7 +308,7 @@ HWTEST_F(SceneSessionLifecycleTest, Background01, TestSize.Level0)
     sceneSession->UpdateSessionState(SessionState::STATE_CONNECT);
     sceneSession->isActive_ = true;
     result = sceneSession->Background();
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -426,10 +426,10 @@ HWTEST_F(SceneSessionLifecycleTest, BackgroundTask02, TestSize.Level1)
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = true;
     auto result = sceneSession->BackgroundTask();
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
     sceneSession->isActive_ = true;
     result = sceneSession->BackgroundTask(false);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
