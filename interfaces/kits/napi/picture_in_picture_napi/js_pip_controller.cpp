@@ -215,8 +215,9 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
         TLOGE(WmsLogTag::WMS_PIP, "Invalid typeNode");
         return NapiThrowInvalidParam(env, "[PiPWindow][updateContentNode]msg: Invalid typeNode");
     }
-    napi_ref typeNodeRef = nullptr;
-    napi_create_reference(env, typeNode, NUMBER_ONE, &typeNodeRef);
+    napi_ref ref = nullptr;
+    napi_create_reference(env, typeNode, NUMBER_ONE, &ref);
+    std::shared_ptr<NativeReference> typeNodeRef(reinterpret_cast<NativeReference*>(ref));
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [env, task = napiAsyncTask, typeNodeRef,
@@ -224,26 +225,18 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
         if (!PictureInPictureManager::IsSupportPiP()) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
                 "Capability not supported. Failed to call the API due to limited device capabilities."));
-            napi_delete_reference(env, typeNodeRef);
             return;
         }
         auto pipController = weak.promote();
         if (pipController == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
                 "PiP internal error."));
-            napi_delete_reference(env, typeNodeRef);
             return;
         }
-        napi_ref oldTypeNodeRef = pipController->GetTypeNode();
         pipController->UpdateContentNodeRef(typeNodeRef);
-        if (oldTypeNodeRef != nullptr) {
-            napi_delete_reference(env, oldTypeNodeRef);
-            oldTypeNodeRef = nullptr;
-        }
         task->Resolve(env, NapiGetUndefined(env));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnUpdateContentNode") != napi_status::napi_ok) {
-        napi_delete_reference(env, typeNodeRef);
         napiAsyncTask->Reject(env, CreateJsError(env,
             static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Send event failed"));
     }

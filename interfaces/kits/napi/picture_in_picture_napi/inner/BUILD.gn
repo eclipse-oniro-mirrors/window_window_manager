@@ -16,10 +16,7 @@ import("../../../../../windowmanager_aafwk.gni")
 
 config("pip_manager_config") {
   visibility = [ ":*" ]
-  include_dirs = [
-    "../",
-    "../../../../../wm/include",
-  ]
+  include_dirs = [ "../../../../../wm/include" ]
 }
 
 ohos_shared_library("pip_napi") {
@@ -31,7 +28,6 @@ ohos_shared_library("pip_napi") {
     debug = false
   }
   sources = [
-    "../js_pip_window_listener.cpp",
     "js_pip_manager.cpp",
     "js_pip_module.cpp",
   ]

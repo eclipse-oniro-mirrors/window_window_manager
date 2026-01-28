@@ -24,7 +24,7 @@ namespace OHOS::Rosen {
 class PipChangeListenerStub : public IRemoteStub<IPipChangeListener> {
 public:
     PipChangeListenerStub() = default;
-    virtual ~PipChangeListenerStub() = default;
+    ~PipChangeListenerStub() override = default;
 
     int OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
 
