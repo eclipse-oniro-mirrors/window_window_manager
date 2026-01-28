@@ -76,7 +76,7 @@ void AnomalyDetection::CheckCallingSession(const sptr<SceneSession>& session)
     }
 }
 
-void AnomalyDetection::CheckSubWindow(cosnt sptr<SceneSession>& session)
+void AnomalyDetection::CheckSubWindow(const sptr<SceneSession>& session)
 {
     if (WindowHelper::IsSubWindow(session->GetWindowType()) ||
         session->GetWindowType() == WindowType::WINDOW_TYPE_DIALOG) {
@@ -111,7 +111,7 @@ void AnomalyDetection::CheckWallpaper(const sptr<SceneSession>& session)
     constexpr uint32_t defaultWallpaperZOrder = 1;
     if (!SceneSessionManager::GetInstance().IsScreenLocked() && session->GetZOrder() != defaultWallpaperZOrder) {
         TLOGD(WmsLogTag::WMS_HIERARCHY,
-              "ZOrderCheck err %{public}d persistentId:%{public}d, wallpaper zOrder abnormal pre",
+              "ZOrderCheck err %{public}d persitentId:%{public}d, wallpaper zOrder abnormal pre",
               session->GetZOrder(), session->GetPersistentId());
         auto task = [session, defaultWallpaperZOrder] {
             if (session == nullptr) {
@@ -119,9 +119,9 @@ void AnomalyDetection::CheckWallpaper(const sptr<SceneSession>& session)
             }
             if (session->IsVisibleForeground() && session->GetZOrder() != defaultWallpaperZOrder) {
                 TLOGE(WmsLogTag::WMS_HIERARCHY,
-                      "ZOrderCheck err %{public}d persistentId:%{public}d, wallpaper zOrder abnormal",
+                      "ZOrderCheck err %{public}d, persitentId:%{public}d, wallpaper zOrder abnormal",
                       session->GetZOrder(), session->GetPersistentId());
-                ReportZOrderException("check wallppaerWhenLocked", session);
+                ReportZOrderException("check wallpaerWhenLocked", session);
             }
         };
         auto handler = SceneSessionManager::GetInstance().GetTaskScheduler();
