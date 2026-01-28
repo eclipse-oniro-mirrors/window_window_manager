@@ -351,14 +351,13 @@ WMError WindowAdapterLite::GetWindowModeType(WindowModeType& windowModeType)
     return wmsProxy->GetWindowModeType(windowModeType);
 }
 
-WMError WindowAdapterLite::GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo)
+WMError WindowAdapterLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
-    TLOGD(WmsLogTag::WMS_MAIN, "get top main window info");
-
+    WLOGFD("update animation speed with pid=%{public}d, speed=%.2f", pid, speed);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->GetMainWindowInfos(topNum, topNInfo);
+    return wmsProxy->UpdateAnimationSpeedWithPid(pid, speed);
 }
 
 WMError WindowAdapterLite::GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken,
@@ -372,13 +371,14 @@ WMError WindowAdapterLite::GetMainWindowInfoByToken(const sptr<IRemoteObject>& a
     return wmsProxy->GetMainWindowInfoByToken(abilityToken, windowInfo);
 }
 
-WMError WindowAdapterLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
+WMError WindowAdapterLite::GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
-    TLOGD(WmsLogTag::WMS_ANIMATION, "update animation speed with pid");
+    TLOGD(WmsLogTag::WMS_MAIN, "get top main window info");
+
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->UpdateAnimationSpeedWithPid(pid, speed);
+    return wmsProxy->GetMainWindowInfos(topNum, topNInfo);
 }
 
 WMError WindowAdapterLite::GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo)

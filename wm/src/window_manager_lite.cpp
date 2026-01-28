@@ -915,6 +915,21 @@ WMError WindowManagerLite::GetWindowModeType(WindowModeType& windowModeType) con
     return ret;
 }
 
+WMError WindowManagerLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
+{
+    // 0.f:less than 0.f is invalid, animation speed cannot be negative
+    // 10.f:greater than 10.f is invalid, unexpected UI behavior
+    if (speed < 0.0f || speed > 10.0f) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "update animation speed with invalid speed, speed = %{public}f", speed);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    WMError ret = WindowAdapterLite::GetInstance(userId_).UpdateAnimationSpeedWithPid(pid, speed);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "update animation speed with pid failed, pid = %{public}d", pid);
+    }
+    return ret;
+}
+
 WMError WindowManagerLite::RegisterWindowModeChangedListener(const sptr<IWindowModeChangedListener>& listener)
 {
     if (listener == nullptr) {
@@ -1036,15 +1051,6 @@ WMError WindowManagerLite::GetMainWindowInfos(int32_t topNum, std::vector<MainWi
 {
     TLOGI(WmsLogTag::WMS_MAIN, "Get main window info lite");
     return WindowAdapterLite::GetInstance(userId_).GetMainWindowInfos(topNum, topNInfo);
-}
-
-WMError WindowManagerLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
-{
-    WMError ret = WindowAdapterLite::GetInstance(userId_).UpdateAnimationSpeedWithPid(pid, speed);
-    if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "failed");
-    }
-    return ret;
 }
 
 WMError WindowManagerLite::GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo)
