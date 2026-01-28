@@ -1879,6 +1879,8 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         CreateJsValue(env, sessionInfo.hostAppIndex));
     napi_set_named_property(env, objValue, "hostAppInstanceKey",
         CreateJsValue(env, sessionInfo.hostAppInstanceKey));
+    napi_set_named_property(env, objValue, "hostAbilityName",
+        CreateJsValue(env, sessionInfo.hostAbilityName));
     return objValue;
 }
 

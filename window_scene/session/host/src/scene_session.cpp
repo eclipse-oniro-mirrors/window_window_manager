@@ -6165,6 +6165,7 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
     info.hostBundleName = abilitySessionInfo->hostBundleName;
     info.hostAppIndex = session->GetSessionInfo().appIndex_;
     info.hostAppInstanceKey = session->GetAppInstanceKey();
+    info.hostAbilityName = session->GetSessionInfo().abilityName_;
     if (session->IsPcOrPadEnableActivation()) {
         info.startWindowOption = abilitySessionInfo->startWindowOption;
         int32_t maxWindowWidth = abilitySessionInfo->want.GetIntParam(AAFwk::Want::PARAM_RESV_MAX_WINDOW_WIDTH, 0);
