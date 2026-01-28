@@ -972,7 +972,6 @@ constexpr float MINIMUM_BRIGHTNESS = 0.0f;
 constexpr float MAXIMUM_BRIGHTNESS = 1.0f;
 constexpr float INVALID_BRIGHTNESS = 999.0f;
 constexpr int32_t INVALID_PID = -1;
-constexpr int32_t INVALID_UID = -1;
 constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t SYSTEM_USERID = 0;
 constexpr int32_t BASE_USER_RANGE = 200000;

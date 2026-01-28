@@ -721,6 +721,12 @@ DMError ScreenSessionManager::RegisterDisplayAttributeAgent(std::vector<std::str
         TLOGNFE(WmsLogTag::DMS, "attributes size less than 0");
         return DMError::DM_ERROR_INVALID_PARAM;
     }
+    auto uid = IPCSkeleton::GetCallingUid();
+    auto pid = IPCSkeleton::GetCallingPid();
+    {
+        std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+        uidAndPidMap_[uid] = pid;
+    }
     uintptr_t key = reinterpret_cast<uintptr_t>(displayManagerAgent->AsObject().GetRefPtr());
     bool ret = ScreenSessionManagerAdapter::GetInstance().dmAttributeAgentContainer_.RegisterAttributeAgent(key,
         displayManagerAgent, attributes);
@@ -2337,13 +2343,15 @@ sptr<ScreenSession> ScreenSessionManager::GetDefaultScreenSession()
 }
 
 sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo,
-    const sptr<ScreenSession>& screenSession)
+    const sptr<ScreenSession>& screenSession, int32_t uid)
 {
     if (displayInfo == nullptr) {
         TLOGNFI(WmsLogTag::DMS, "ConvertToDisplayInfo error, displayInfo is nullptr.");
         return nullptr;
     }
-    auto uid = IPCSkeleton::GetCallingUid();
+    if (uid == INVALID_UID) {
+        uid = IPCSkeleton::GetCallingUid();
+    }
     std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
     if (displayHookMap_.find(uid) != displayHookMap_.end() && !displayHookMap_[uid].isFullScreenInForceSplit_) {
         auto info = displayHookMap_[uid];
@@ -3252,13 +3260,15 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
         screenSessionMapCopy = screenSessionMap_;
     }
-    std::unique_lock<std::shared_mutex> lock(hookInfoMutex_);
-    if (enable) {
-        if (uid != 0) {
-            displayHookMap_[uid] = hookInfo;
+    {
+        std::unique_lock<std::shared_mutex> lock(hookInfoMutex_);
+        if (enable) {
+            if (uid != 0) {
+                displayHookMap_[uid] = hookInfo;
+            }
+        } else {
+            displayHookMap_.erase(uid);
         }
-    } else {
-        displayHookMap_.erase(uid);
     }
     NotifyDisplayChangedByUid(screenSessionMapCopy, DisplayChangeEvent::DISPLAY_SIZE_CHANGED, uid);
 }
@@ -3283,6 +3293,7 @@ void ScreenSessionManager::NotifyDisplayChangedByUidInner(sptr<DisplayInfo> disp
         ScreenSessionManagerAdapter::GetInstance().OnDisplayChange(displayInfo, event, uid);
     };
     taskScheduler_->PostAsyncTask(task, "NotifyDisplayChanged");
+    CheckAttributeChange(displayInfo, uid);
     TLOGNFI(WmsLogTag::DMS, "notify end");
 }
 
@@ -6407,15 +6418,19 @@ void ScreenSessionManager::NotifyDisplayChanged(sptr<DisplayInfo> displayInfo, D
     taskScheduler_->PostAsyncTask(task, "NotifyDisplayChanged");
 }
 
-void ScreenSessionManager::CheckAttributeChange(sptr<DisplayInfo> displayInfo)
+void ScreenSessionManager::CheckAttributeChange(sptr<DisplayInfo> displayInfo, int32_t uid)
 {
     if (displayInfo == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "DisplayInfo is nullptr");
         return;
     }
+    DisplayId displayId = displayInfo->GetDisplayId();
+    if (uid != INVALID_UID) {
+        sptr<ScreenSession> screenSession = GetScreenSession(displayId);
+        HookDisplayInfoByUid(displayInfo, screenSession, uid);
+    }
     std::vector<std::string> attributes;
     std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
-    DisplayId displayId = displayInfo->GetDisplayId();
     if (lastDisplayInfoMap_.find(displayId) == lastDisplayInfoMap_.end()) {
         lastDisplayInfoMap_.insert({displayId, std::move(new DisplayInfo())});
     }
@@ -6438,7 +6453,11 @@ void ScreenSessionManager::CheckAttributeChange(sptr<DisplayInfo> displayInfo)
     }
     TLOGD(WmsLogTag::DMS, "%{public}s]", oss.str().c_str());
 
-    NotifyDisplayAttributeChanged(displayInfo, attributes);
+    if (uid != INVALID_UID) {
+        NotifyDisplayAttributeChanged(displayInfo, attributes, uid);
+    } else {
+        NotifyDisplayAttributeChanged(displayInfo, attributes);
+    }
     lastDisplayInfoMap_[displayId] = displayInfo;
 }
  
@@ -6490,11 +6509,15 @@ void ScreenSessionManager::GetChangedListenableAttribute(sptr<DisplayInfo> displ
 }
  
 void ScreenSessionManager::NotifyDisplayAttributeChanged(sptr<DisplayInfo> displayInfo,
-    const std::vector<std::string>& attributes)
+    const std::vector<std::string>& attributes, int32_t uid)
 {
     TLOGNFI(WmsLogTag::DMS, "called");
     auto task = [=] {
-        ScreenSessionManagerAdapter::GetInstance().OnDisplayAttributeChange(displayInfo, attributes);
+        if (uid != INVALID_UID) {
+            ScreenSessionManagerAdapter::GetInstance().OnDisplayAttributeChange(displayInfo, attributes, uid);
+        } else {
+            ScreenSessionManagerAdapter::GetInstance().OnDisplayAttributeChange(displayInfo, attributes);
+        }
     };
     taskScheduler_->PostAsyncTask(task, "NotifyDisplayAttributeChanged");
 }
