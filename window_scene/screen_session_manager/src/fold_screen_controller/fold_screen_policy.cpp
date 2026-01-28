@@ -213,6 +213,21 @@ void FoldScreenPolicy::SetIsClearingBootAnimation(bool isClearingBootAnimation) 
 
 void FoldScreenPolicy::GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const {}
 
+void FoldScreenPolicy::ChangeScreenPowerOnFold(
+    const std::vector<std::pair<ScreenId, ScreenPowerStatus>>& screenPowerTaskList)
+{
+    for (const auto& screenPowerTask : screenPowerTaskList) {
+        ScreenId screenId = screenPowerTask.first;
+        ScreenPowerStatus screenPowerStatus = screenPowerTask.second;
+        TLOGI(WmsLogTag::DMS, "screenId:%{public}" PRIu64", screenPowerStatus:%{public}" PRIu32,
+            screenId, screenPowerStatus);
+        screenId_ = screenId;
+        ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
+        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(screenId, screenPowerStatus);
+        SetdisplayModeChangeStatus(false);
+    }
+}
+
 const std::unordered_set<FoldStatus>& FoldScreenPolicy::GetSupportedFoldStatus() const
 {
     return SUPPORTED_FOLD_STATUS;
