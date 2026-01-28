@@ -100,7 +100,7 @@ bool AbilityInfoManager::IsAnco(const std::string& bundleName, const std::string
     return isAnco;
 }
 
-void AbilityInfoManager::RemoveAppInfo(const std::string& bundleName)
+void AbilityInfoManager::RefreshAppInfo(const std::string& bundleName)
 {
     std::unique_lock<std::mutex> lock(applicationInfoMutex_);
     applicationInfoMap_.erase(bundleName);
