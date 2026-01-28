@@ -31,8 +31,8 @@ constexpr uint32_t MIN_SYSTEM_WINDOW_HEIGHT = 5;
 constexpr uint8_t MAX_FB_CLICK_COUNT = 8;
 const std::string FB_CLICK_EVENT = "click";
 
-SystemSession::SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-    int32_t userId): SceneSession(info, specificCallback, userId)
+SystemSession::SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
+    : SceneSession(info, specificCallback)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "Create");
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
@@ -396,6 +396,9 @@ int32_t SystemSession::GetSubWindowZLevel() const
     int32_t zLevel = 0;
     auto sessionProperty = GetSessionProperty();
     zLevel = sessionProperty->GetSubWindowZLevel();
+    if (onSubSessionZLevelChange_) {
+        onSubSessionZLevelChange_(zLevel);
+    }
     return zLevel;
 }
 
@@ -707,7 +710,6 @@ WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantP
             TLOGE(WmsLogTag::WMS_SYSTEM, "cannot get recent func");
             return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
         }
-        auto parentSessionState = parentSession->GetSessionState();
         if ((parentSession->IsSessionForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
             session->getIsRecentStateFunc_()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "parent window is at foreground but not interactive");

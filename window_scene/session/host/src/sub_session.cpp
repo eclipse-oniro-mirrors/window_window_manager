@@ -32,8 +32,8 @@ constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "SubSes
 constexpr int32_t SUFFIX_INDEX = -1;
 } // namespace
 
-SubSession::SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId)
-    : SceneSession(info, specificCallback, userId)
+SubSession::SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
+    : SceneSession(info, specificCallback)
 {
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
     TLOGD(WmsLogTag::WMS_LIFE, "Create");
@@ -169,8 +169,8 @@ WSError SubSession::Hide(bool needSyncHide)
             TLOGNE(WmsLogTag::WMS_SUB, "session is null");
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        session->isSubWindowResizingOrMoving_ = false;
         TLOGNI(WmsLogTag::WMS_LIFE, "Hide session, id: %{public}d", session->GetPersistentId());
+        session->isSubWindowResizingOrMoving_ = false;
         auto ret = session->SetActive(false);
         if (ret != WSError::WS_OK) {
             return ret;
@@ -454,10 +454,6 @@ void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
             TLOGE(WmsLogTag::WMS_LAYOUT, "ScreenSession is null");
             continue;
         }
-        if (screenSession->GetDisplayNode() == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "DisplayNode is null");
-            continue;
-        }
         if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
             TLOGD(WmsLogTag::WMS_LAYOUT, "virtual screen, no need to add cross parent child");
             continue;
@@ -475,8 +471,8 @@ void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
             dragMoveMountedNode->AddCrossScreenChild(movedSurfaceNode, SUFFIX_INDEX, true);
         }
         cloneNodeCount_++;
-        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display:%{public}" PRIu64 " persistentId:%{public}d",
-            displayId, GetPersistentId());
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display: %{public}" PRIu64 " persistentId: %{public}d, "
+            "cloneNodeCount: %{public}d", displayId, GetPersistentId(), cloneNodeCount_);
     }
 }
 

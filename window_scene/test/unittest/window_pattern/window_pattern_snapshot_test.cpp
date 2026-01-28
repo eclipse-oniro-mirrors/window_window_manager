@@ -31,6 +31,7 @@
 #include "session/host/include/main_session.h"
 #include "session_manager.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "mock/mock_accesstoken_kit.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
 #include "window_manager_agent.h"
@@ -1165,53 +1166,167 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
 
     type = ControlAppType::APP_LOCK;
+    std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    appLockDisplayMap[1000] = false;
+    sceneSession->GetSessionProperty()->SetDisplayId(1000);
+    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
+        std::unordered_map<DisplayId, bool>& {
+        return appLockDisplayMap;
+    });
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") == std::string::npos);
+
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
     sceneSession->isSnapshotBlur_.store(false);
+    sceneSession->SetAppLockControl(false);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
+
+    sceneSession->SetAppLockControl(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
 
     sceneSession->state_ = SessionState::STATE_ACTIVE;
     controlInfo.isNeedControl = true;
-    session_->isPersistentImageFit_ = true;
+    sceneSession->SetAppLockControl(false);
+    sceneSession->isPersistentImageFit_ = true;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 
-    session_->isPersistentImageFit_ = false;
+    sceneSession->SetAppLockControl(false);
+    sceneSession->isPersistentImageFit_ = false;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 
     controlInfo.isNeedControl = false;
+    sceneSession->SetAppLockControl(true);
     sceneSession->isVisible_ = true;
     sceneSession->isSnapshotBlur_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->state_ = SessionState::STATE_BACKGROUND;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->isVisible_ = false;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(true);
     sceneSession->snapshotPrivacyMode_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(true);
     sceneSession->snapshotPrivacyMode_.store(false);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(false);
     sceneSession->snapshotPrivacyMode_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(false);
     sceneSession->snapshotPrivacyMode_.store(false);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
+}
+
+/**
+ * @tc.name: IsSupportAppLockSnapshot
+ * @tc.desc: IsSupportAppLockSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, IsSupportAppLockSnapshot, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 121;
+    info.abilityName_ = "IsSupportAppLockSnapshot";
+    info.bundleName_ = "IsSupportAppLockSnapshot";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    bool res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, true);
+
+    std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
+        std::unordered_map<DisplayId, bool>& {
+        return appLockDisplayMap;
+    });
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, true);
+
+    appLockDisplayMap[0] = true;
+    res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, true);
+
+    appLockDisplayMap[1000] = false;
+    sceneSession->GetSessionProperty()->SetDisplayId(1000);
+    res = sceneSession->IsSupportAppLockSnapshot();
+    EXPECT_EQ(res, false);
+}
+
+/**
+ * @tc.name: NotifyRemoveAppLockSnapshot
+ * @tc.desc: NotifyRemoveAppLockSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveAppLockSnapshot, TestSize.Level1)
+{
+    SessionInfo info;
+    info.persistentId_ = 1211;
+    info.abilityName_ = "NotifyRemoveAppLockSnapshot";
+    info.bundleName_ = "NotifyRemoveAppLockSnapshot";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    sceneSession->SetAppLockControl(true);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), true);
+
+    sceneSession->state_ = SessionState::STATE_ACTIVE;
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
+        std::unordered_map<DisplayId, bool>& {
+        return appLockDisplayMap;
+    });
+    appLockDisplayMap[1000] = false;
+    sceneSession->GetSessionProperty()->SetDisplayId(1000);
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), false);
+
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), false);
+
+    sceneSession->SetAppLockControl(true);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    sceneSession->NotifyRemoveAppLockSnapshot();
+    EXPECT_EQ(sceneSession->GetAppLockControl(), false);
+}
+
+/**
+ * @tc.name: NotifyAppUseControlDisplay
+ * @tc.desc: NotifyAppUseControlDisplay Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, NotifyAppUseControlDisplay, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSACalling(true);
+    ASSERT_EQ(ssm_->NotifyAppUseControlDisplay(0, true), WSError::WS_OK);
+
+    MockAccesstokenKit::MockIsSACalling(false);
+    ASSERT_EQ(ssm_->NotifyAppUseControlDisplay(0, true), WSError::WS_ERROR_INVALID_PERMISSION);
 }
 
 /**
@@ -1317,6 +1432,11 @@ HWTEST_F(WindowPatternSnapshotTest, RemoveImageForRecent, TestSize.Level1)
     int32_t persistentId = sceneSession->GetPersistentId();
     sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
     sceneSession->scenePersistence_ = scenePersistence;
+    sceneSession->state_ = SessionState::STATE_ACTIVE;
+    ret = ssm_->RemoveImageForRecent(sceneSession->GetPersistentId());
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
     ret = ssm_->RemoveImageForRecent(sceneSession->GetPersistentId());
     EXPECT_EQ(ret, WMError::WM_OK);
     ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());

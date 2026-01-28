@@ -184,17 +184,17 @@ public:
         }
 
         if (sourceType == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) {
-            if (isInRect(leftOut, leftCornerTouch, topOut, topCorner) ||
-                isInRect(leftOut, leftCorner, topOut, topCornerTouch)) {
+            if (isInRect(leftOut, leftCornerTouch, topOut, topIn) ||
+                isInRect(leftOut, leftIn, topOut, topCornerTouch)) {
                 type = AreaType::LEFT_TOP;
-            } else if (isInRect(leftOut, leftCornerTouch, bottomCorner, bottomOut) ||
-                isInRect(leftOut, leftCorner, bottomCornerTouch, bottomOut)) {
+            } else if (isInRect(leftOut, leftCornerTouch, bottomIn, bottomOut) ||
+                isInRect(leftOut, leftIn, bottomCornerTouch, bottomOut)) {
                 type = AreaType::LEFT_BOTTOM;
-            } else if (isInRect(rightCornerTouch, rightOut, topOut, topCorner) ||
-                isInRect(rightCorner, rightOut, topOut, topCornerTouch)) {
+            } else if (isInRect(rightCornerTouch, rightOut, topOut, topIn) ||
+                isInRect(rightIn, rightOut, topOut, topCornerTouch)) {
                 type = AreaType::RIGHT_TOP;
-            } else if (isInRect(rightCorner, rightOut, bottomCornerTouch, bottomOut) ||
-                isInRect(rightCornerTouch, rightOut, bottomCorner, bottomOut)) {
+            } else if (isInRect(rightIn, rightOut, bottomCornerTouch, bottomOut) ||
+                isInRect(rightCornerTouch, rightOut, bottomIn, bottomOut)) {
                 type = AreaType::RIGHT_BOTTOM;
             }
         }
@@ -255,6 +255,16 @@ public:
             return 0; //Returns 0 if an overflow occurs.
         }
         return value * std::pow(DECIMAL_BASE, shift);
+    }
+
+    static bool IsHexChar(char c)
+    {
+        return std::isxdigit(static_cast<unsigned char>(c)) != 0;
+    }
+
+    static bool IsDecChar(char c)
+    {
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
     }
 };
 } // Rosen

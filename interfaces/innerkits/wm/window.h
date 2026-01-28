@@ -19,6 +19,7 @@
 #include <refbase.h>
 #include <parcel.h>
 #include <iremote_object.h>
+#include <optional>
 
 #include "dm_common.h"
 #include "wm_common.h"
@@ -3424,14 +3425,12 @@ public:
     }
 
     /**
-     * @brief Set System Bar(include status bar and nav bar) Properties
+     * @brief Set Status Bar Color For Navigation
      *
-     * @param properties system bar properties
-     * @param propertyFlags flags of system bar property
+     * @param color status bar color
      * @return WMError
      */
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags)
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color)
     {
         return WMError::WM_OK;
     }
@@ -3877,6 +3876,16 @@ public:
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Clear the window mask of window.
+     *
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError ClearWindowMask()
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -4600,13 +4609,6 @@ public:
         return nullptr;
     }
 
-     /**
-     * @brief Get is subwindow support maximize.
-     *
-     * @return true means subwindow support maximize, others means do not support.
-     */
-    virtual bool IsSubWindowMaximizeSupported() const { return false; }
-
     /**
      * @brief Update the pipTemplateInfo.
      *
@@ -4709,6 +4711,13 @@ public:
      * @return WMError.
      */
     virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) { return WMError::WM_OK; }
+
+    /**
+     * @brief Get is subwindow support maximize.
+     *
+     * @return true means subwindow support maximize, others means do not support.
+     */
+    virtual bool IsSubWindowMaximizeSupported() const { return false; }
 
     /**
      * @brief Set drag key frame policy.

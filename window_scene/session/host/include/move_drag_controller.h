@@ -186,6 +186,8 @@ public:
      */
     Gravity GetGravity() const;
 
+    Gravity GetDragGravity() const;
+
     /**
      * @brief Restore the gravity of the surfaceNode to the pre-drag state.
      *
@@ -448,6 +450,7 @@ private:
     bool EventDownInit(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     bool CalcMoveInputBarRect(
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const WSRect& originalRect, SizeChangeReason reason);
+    void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void AdjustTargetPositionByAvailableArea(int32_t& moveDragFinalX, int32_t& moveDragFinalY);
     MoveDirection CalcMoveDirection(DisplayId lastDisplayId, DisplayId currentDisplayId);
 
@@ -690,7 +693,6 @@ private:
     void SetOriginalMoveDragPos(int32_t pointerId, int32_t pointerType, int32_t pointerPosX,
                                 int32_t pointerPosY, int32_t pointerWindowX, int32_t pointerWindowY,
                                 const WSRect& winRect);
-    void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     WSRect GetScreenRectById(DisplayId displayId);
     void MoveDragInterrupted(bool resetPosition = true);
     void UpdateMoveAvailableArea(DisplayId targetDisplayId);

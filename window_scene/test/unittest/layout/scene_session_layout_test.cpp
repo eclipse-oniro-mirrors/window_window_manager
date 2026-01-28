@@ -20,6 +20,7 @@
 #include "display_manager.h"
 #include "input_event.h"
 #include "key_event.h"
+#include "mock/mock_scene_session.h"
 #include "mock/mock_session_stage.h"
 #include "mock_vsync_station.h"
 #include "pointer_event.h"
@@ -153,6 +154,58 @@ HWTEST_F(SceneSessionLayoutTest, UpdateRect03, TestSize.Level0)
     rect.height_ = 800;
     session->GetLayoutController()->SetSessionRect(rect);
     EXPECT_EQ(session->UpdateRect(rect, reason, "SceneSessionLayoutTest"), WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRect04
+ * @tc.desc: UpdateRect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, UpdateRect04, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRect04";
+    info.bundleName_ = "UpdateRect04";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sceneSession->handler_ = nullptr;
+    SizeChangeReason reason = SizeChangeReason::RESIZE;
+
+    WSRect sessionRect = { 200, 200, 200, 200 };
+    WSRect requestRect = { 100, 100, 800, 800 };
+    sceneSession->GetLayoutController()->SetSessionRect(sessionRect);
+    sceneSession->SetClientRect(sessionRect);
+    auto mockRsTx = std::shared_ptr<RSTransaction>(nullptr);
+    // NotifyClientToUpdateRect is expected to be called once
+    EXPECT_CALL(*sceneSession, NotifyClientToUpdateRect("SceneSessionLayoutTest", mockRsTx))
+        .Times(1);
+    EXPECT_EQ(sceneSession->UpdateRect(requestRect, reason, "SceneSessionLayoutTest", mockRsTx), WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRect05
+ * @tc.desc: UpdateRect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, UpdateRect05, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRect05";
+    info.bundleName_ = "UpdateRect05";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sceneSession->handler_ = nullptr;
+    SizeChangeReason reason = SizeChangeReason::DRAG_END;
+
+    WSRect sessionRect = { 200, 200, 200, 200 };
+    WSRect requestRect = { 200, 200, 200, 200 };
+    sceneSession->GetLayoutController()->SetSessionRect(sessionRect);
+    sceneSession->SetClientRect(sessionRect);
+    auto mockRsTx = std::shared_ptr<RSTransaction>(nullptr);
+    // NotifyClientToUpdateRect is expected to be called 0 times
+    EXPECT_CALL(*sceneSession, NotifyClientToUpdateRect("SceneSessionLayoutTest", mockRsTx))
+        .Times(0);
+    EXPECT_EQ(sceneSession->UpdateRect(requestRect, reason, "SceneSessionLayoutTest", mockRsTx), WSError::WS_OK);
 }
 
 /**

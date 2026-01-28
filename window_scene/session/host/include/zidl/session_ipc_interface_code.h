@@ -134,6 +134,7 @@ enum class SessionInterfaceCode {
 
     // Window Event
     TRANS_ID_SEND_COMMAND_EVENT,
+    TRANS_ID_RECOVER_WINDOW_EFFECT,
 
     // KeyFrame
     TRANS_ID_KEY_FRAME_ANIMATE_END,

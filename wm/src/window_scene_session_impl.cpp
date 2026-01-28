@@ -216,6 +216,7 @@ void UpdateLimitIfInRange(uint32_t& currentLimit, uint32_t newLimit, uint32_t mi
 std::mutex WindowSceneSessionImpl::keyboardPanelInfoChangeListenerMutex_;
 using WindowSessionImplMap = std::map<std::string, std::pair<int32_t, sptr<WindowSessionImpl>>>;
 std::mutex WindowSceneSessionImpl::windowAttachStateChangeListenerMutex_;
+std::atomic<bool> WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
 
 WindowSceneSessionImpl::WindowSceneSessionImpl(const sptr<WindowOption>& option,
     const std::shared_ptr<RSUIContext>& rsUIContext) : WindowSessionImpl(option, rsUIContext)
@@ -570,7 +571,7 @@ WMError WindowSceneSessionImpl::RecoverAndReconnectSceneSession()
     auto context = GetContext();
     auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(context);
     if (context && context->GetHapModuleInfo() && abilityContext && abilityContext->GetAbilityInfo()) {
-        if (!abilityContext->IsHook() || (abilityContext->IsHook() && abilityContext->GetHookOff())) {
+        if (!abilityContext->IsHook() || abilityContext->GetHookOff()) {
             property_->EditSessionInfo().abilityName_ = abilityContext->GetAbilityInfo()->name;
             property_->EditSessionInfo().moduleName_ = context->GetHapModuleInfo()->moduleName;
         }
@@ -725,6 +726,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
         SetDefaultDisplayIdIfNeed();
         SetTargetAPIVersion(SysCapUtil::GetApiCompatibleVersion());
         ret = Connect();
+        SendLogicalDeviceConfigToArkUI();
         TLOGD(WmsLogTag::WMS_PC, "targeAPItVersion: %{public}d", GetTargetAPIVersion());
     } else { // system or sub window
         TLOGI(WmsLogTag::WMS_LIFE, "Create system or sub window with type=%{public}d", GetType());
@@ -2868,7 +2870,10 @@ Ace::ViewportConfig WindowSceneSessionImpl::FillTargetOrientationConfig(
     auto deviceRotation = static_cast<uint32_t>(displayInfo->GetDefaultDeviceRotationOffset());
     uint32_t transformHint = (targetRotation * ONE_FOURTH_FULL_CIRCLE_DEGREE + deviceRotation) % FULL_CIRCLE_DEGREE;
     float density = GetVirtualPixelRatio(displayInfo);
-    virtualPixelRatio_ = density;
+    {
+        std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
+        virtualPixelRatio_ = density;
+    }
     config.SetSize(targetRect.width_, targetRect.height_);
     config.SetPosition(targetRect.posX_, targetRect.posY_);
     config.SetDensity(density);
@@ -3157,8 +3162,9 @@ WMError WindowSceneSessionImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea
     };
     avoidArea = hostSession->GetAvoidAreaByType(type, sessionRect, apiVersion);
     getAvoidAreaCnt_++;
-    TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}d times %{public}u area %{public}s",
-          GetWindowId(), GetWindowName().c_str(), type, getAvoidAreaCnt_.load(), avoidArea.ToString().c_str());
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
+        "win %{public}u type %{public}d times %{public}u area %{public}s",
+        GetWindowId(), type, getAvoidAreaCnt_.load(), avoidArea.ToString().c_str());
     return WMError::WM_OK;
 }
 
@@ -3386,6 +3392,10 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
+            "win %{public}u statusBar: %{public}u %{public}x %{public}x %{public}u %{public}u",
+            GetWindowId(), property.enable_, property.backgroundColor_, property.contentColor_,
+            property.enableAnimation_, property.settingFlag_);
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_STATUS_PROPS);
         if (auto uiContent = GetUIContentSharedPtr()) {
             uiContent->SetStatusBarItemColor(property.contentColor_);
@@ -3401,6 +3411,8 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_PROPS);
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "win %{public}u aiBar: %{public}u %{public}u",
+            GetWindowId(), property.enable_, property.enableAnimation_);
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_INDICATOR_PROPS);
     }
     return WMError::WM_OK;
@@ -3451,13 +3463,6 @@ WMError WindowSceneSessionImpl::SetSpecificBarProperty(WindowType type, const Sy
         return WMError::WM_OK;
     }
     setSameSystembarPropertyCnt_ = 0;
-    if (!(GetSystemBarPropertyByType(type) == property)) {
-        TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u "
-            "%{public}u %{public}x %{public}x %{public}u %{public}u",
-            GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), property.enable_,
-            property.backgroundColor_, property.contentColor_, property.enableAnimation_, property.settingFlag_);
-    }
-
     isSystembarPropertiesSet_ = true;
     property_->SetSystemBarProperty(type, property);
     WMError ret = NotifySpecificWindowSessionProperty(type, property);
@@ -3514,8 +3519,8 @@ WMError WindowSceneSessionImpl::UpdateSystemBarPropertyForPage(WindowType type,
     }
     {
         std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
-        auto iter = nowsystemBarPropertyMap_.find(type);
-        if (iter != nowsystemBarPropertyMap_.end()) {
+        auto iter = nowSystemBarPropertyMap_.find(type);
+        if (iter != nowSystemBarPropertyMap_.end()) {
             iter->second.enable_ = systemBarPropertyFlag.enableFlag ? systemBarProperty.enable_ : iter->second.enable_;
             iter->second.backgroundColor_ = systemBarPropertyFlag.backgroundColorFlag ?
                 systemBarProperty.backgroundColor_ : iter->second.backgroundColor_;
@@ -3525,10 +3530,10 @@ WMError WindowSceneSessionImpl::UpdateSystemBarPropertyForPage(WindowType type,
                 systemBarProperty.enableAnimation_ : iter->second.enableAnimation_;
             iter->second.settingFlag_ |= systemBarProperty.settingFlag_;
         } else {
-            nowsystemBarPropertyMap_[type] = systemBarProperty;
+            nowSystemBarPropertyMap_[type] = systemBarProperty;
         }
     }
-    auto ret = SetSystemBarProperty(type, nowsystemBarPropertyMap_[type]);
+    auto ret = SetSystemBarProperty(type, nowSystemBarPropertyMap_[type]);
     if (ret == WMError::WM_OK) {
         property_->SetSystemBarProperty(type, systemBarProperty);
     }
@@ -3556,43 +3561,40 @@ WMError WindowSceneSessionImpl::SetSystemBarProperty(WindowType type, const Syst
     return SetSpecificBarProperty(type, property);
 }
 
-WMError WindowSceneSessionImpl::SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-    const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags)
+WMError WindowSceneSessionImpl::SetStatusBarColorForNavigation(const std::optional<uint32_t> color)
 {
     auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
-    bool finshUpdate = false;
+    auto winProp = GetSystemBarPropertyByType(type);
     {
         std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
-        auto iter = nowsystemBarPropertyMap_.find(type);
-        if (iter == nowsystemBarPropertyMap_.end()) {
-            nowsystemBarPropertyMap_[type] = GetSystemBarPropertyByType(type);
-            iter = nowsystemBarPropertyMap_.find(type);
+        if (nowSystemBarPropertyMap_.find(type) == nowSystemBarPropertyMap_.end()) {
+            nowSystemBarPropertyMap_[type] = GetSystemBarPropertyByType(type);
         }
-        auto flagIter = propertyFlags.find(type);
-        auto propertyIter = properties.find(type);
-        if (flagIter != propertyFlags.end() && flagIter->second.contentColorFlag &&
-            propertyIter != properties.end() && propertyIter->second.contentColor_ != iter->second.contentColor_) {
-            iter->second.contentColor_ = propertyIter->second.contentColor_;
-            iter->second.settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
-            UpdateStatusBarColorHistory(StatusBarColorChangeReason::NAVIGATION_CONFIGURATION,
-                std::optional<uint32_t>(propertyIter->second.contentColor_));
-            isNavigationUseColor_ = true;
-            finshUpdate = true;
+        if (color == std::nullopt) {
+            if (!isAtomicServiceUseColor_) {
+                auto flag = (static_cast<uint32_t>(nowSystemBarPropertyMap_[type].settingFlag_) &
+                    ~static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING)) |
+                    static_cast<uint32_t>(winProp.settingFlag_);
+                nowSystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
+            }
+        } else {
+            nowSystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
         }
+        isNavigationUseColor_ = (color != std::nullopt);
+        nowSystemBarPropertyMap_[type].contentColor_ =
+            UpdateStatusBarColorHistory(StatusBarColorChangeReason::NAVIGATION_CONFIGURATION, color);
+        TLOGI(WmsLogTag::WMS_IMMS, "option:%{public}d, color:%{public}x",
+            color == std::nullopt ? 0 : color.value(), nowSystemBarPropertyMap_[type].contentColor_);
     }
-    if (finshUpdate) {
-        SetSpecificBarProperty(type, nowsystemBarPropertyMap_[type]);
-        property_->SetSystemBarProperty(type, GetSystemBarPropertyByType(type));
-    }
-    return WMError::WM_OK;
+    return updateSystemBarproperty(type, nowSystemBarPropertyMap_[type]);
 }
 
 WMError WindowSceneSessionImpl::GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties)
 {
     {
         std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
-        auto iter = nowsystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-        if (iter != nowsystemBarPropertyMap_.end()) {
+        auto iter = nowSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
+        if (iter != nowSystemBarPropertyMap_.end()) {
             properties[WindowType::WINDOW_TYPE_STATUS_BAR] = iter->second;
         } else {
             properties[WindowType::WINDOW_TYPE_STATUS_BAR] =
@@ -3645,21 +3647,22 @@ WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std
     {
         std::lock_guard<std::mutex> lock(nowsystemBarPropertyMapMutex_);
         if (property == std::nullopt) {
-            nowsystemBarPropertyMap_[type].enable_ = newProperty.enable_;
-            nowsystemBarPropertyMap_[type].enableAnimation_ = newProperty.enableAnimation_;
-            auto flag = (static_cast<uint32_t>(nowsystemBarPropertyMap_[type].settingFlag_) &
+            nowSystemBarPropertyMap_[type].enable_ = newProperty.enable_;
+            nowSystemBarPropertyMap_[type].enableAnimation_ = newProperty.enableAnimation_;
+            auto flag = (static_cast<uint32_t>(nowSystemBarPropertyMap_[type].settingFlag_) &
                 ~static_cast<uint32_t>(SystemBarSettingFlag::ENABLE_SETTING)) |
                 static_cast<uint32_t>(newProperty.settingFlag_);
-            nowsystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
+            nowSystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
         } else {
-            nowsystemBarPropertyMap_[type].enable_ = property.value().enable_;
-            nowsystemBarPropertyMap_[type].enableAnimation_ = property.value().enableAnimation_;
-            nowsystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::ENABLE_SETTING;
+            nowSystemBarPropertyMap_[type].enable_ = property.value().enable_;
+            nowSystemBarPropertyMap_[type].enableAnimation_ = property.value().enableAnimation_;
+            nowSystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::ENABLE_SETTING;
         }
-        newProperty = nowsystemBarPropertyMap_[type];
-        TLOGI(WmsLogTag::WMS_IMMS, "option:%{public}d, enable:%{public}d, enableAnimation:%{public}d",
-            property == std::nullopt ? 0 : property.value().enable_, nowsystemBarPropertyMap_[type].enable_,
-            nowsystemBarPropertyMap_[type].enableAnimation_);
+        newProperty = nowSystemBarPropertyMap_[type];
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
+            "option:%{public}d, enable:%{public}d, enableAnimation:%{public}d",
+            property == std::nullopt, nowSystemBarPropertyMap_[type].enable_,
+            nowSystemBarPropertyMap_[type].enableAnimation_);
     }
     return updateSystemBarproperty(type, newProperty);
 }
@@ -3675,22 +3678,22 @@ WMError WindowSceneSessionImpl::SetStatusBarColorForPage(const std::optional<uin
         }
         if (color == std::nullopt) {
             if (!isNavigationUseColor_) {
-                auto flag = (static_cast<uint32_t>(nowsystemBarPropertyMap_[type].settingFlag_) &
+                auto flag = (static_cast<uint32_t>(nowSystemBarPropertyMap_[type].settingFlag_) &
                     ~static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING)) |
                     static_cast<uint32_t>(newProperty.settingFlag_);
-                nowsystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
+                nowSystemBarPropertyMap_[type].settingFlag_ = static_cast<SystemBarSettingFlag>(flag);
             }
             isAtomicServiceUseColor_ = false;
         } else {
-            nowsystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
+            nowSystemBarPropertyMap_[type].settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
             isAtomicServiceUseColor_ = true;
         }
-        nowsystemBarPropertyMap_[type].contentColor_ =
+        nowSystemBarPropertyMap_[type].contentColor_ =
             UpdateStatusBarColorHistory(StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION, color);
         TLOGI(WmsLogTag::WMS_IMMS, "option:%{public}d, color:%{public}x",
-            color == std::nullopt ? 0 : color.value(), nowsystemBarPropertyMap_[type].contentColor_);
+            color == std::nullopt, nowSystemBarPropertyMap_[type].contentColor_);
     }
-    return updateSystemBarproperty(type, nowsystemBarPropertyMap_[type]);
+    return updateSystemBarproperty(type, nowSystemBarPropertyMap_[type]);
 }
 
 WMError WindowSceneSessionImpl::updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty)
@@ -3809,7 +3812,7 @@ WMError WindowSceneSessionImpl::SetWindowTitle(const std::string& title)
     }
     if (!IsDecorEnable()) {
         TLOGE(WmsLogTag::WMS_DECOR, "DecorEnable is false");
-        return WMError::WM_ERROR_INVALID_WINDOW;
+        return WMError::WM_OK;
     }
     if (WindowHelper::IsMainWindow(GetType())) {
         auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(GetContext());
@@ -5235,6 +5238,7 @@ WMError WindowSceneSessionImpl::SetCornerRadius(float cornerRadius)
 
     WLOGFI("Set window %{public}s corner radius %{public}f", GetWindowName().c_str(), cornerRadius);
     surfaceNode_->SetCornerRadius(cornerRadius);
+    rsCornerRadius_ = cornerRadius;
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
     return WMError::WM_OK;
 }
@@ -6713,14 +6717,63 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
 
     auto rsMask = RSMask::CreatePixelMapMask(mask);
     surfaceNode_->SetCornerRadius(0.0f);
-    surfaceNode_->SetShadowRadius(0.0f);
+    if (property_->GetWindowShadows().hasRadiusValue_) {
+        surfaceNode_->SetShadowRadius(0.0f);
+    }
     surfaceNode_->SetAbilityBGAlpha(0);
     surfaceNode_->SetMask(rsMask); // RS interface to set mask
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
 
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
+    hostSession->SetWindowCornerRadius(0);
+    ShadowsInfo shadowsInfo;
+    shadowsInfo.hasRadiusValue_ = true;
+    hostSession->SetWindowShadows(shadowsInfo);
+
     property_->SetWindowMask(mask);
     property_->SetIsShaped(true);
     return UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_MASK);
+}
+
+WMError WindowSceneSessionImpl::ClearWindowMask()
+{
+    TLOGI(WmsLogTag::WMS_PC, "WindowId: %{public}u", GetWindowId());
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_PC, "session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (!property_->GetIsShaped()) {
+        TLOGE(WmsLogTag::WMS_PC, "The window is not shaped");
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
+
+    bool hasCornerRadius = property_->GetWindowCornerRadius() != WINDOW_CORNER_RADIUS_INVALID;
+    if (hasCornerRadius) {
+        hostSession->SetWindowCornerRadius(property_->GetWindowCornerRadius());
+    }
+
+    ShadowsInfo shadowsInfo = property_->GetWindowShadows();
+    bool hasShadowRadius = shadowsInfo.hasRadiusValue_;
+    if (hasShadowRadius) {
+        hostSession->SetWindowShadows(shadowsInfo);
+        surfaceNode_->SetShadowRadius(ConvertRadiusToSigma(shadowsInfo.radius_));
+    }
+
+    if (!(hasCornerRadius && hasShadowRadius)) {
+        hostSession->RecoverWindowEffect(!hasCornerRadius, !hasShadowRadius);
+    }
+    surfaceNode_->SetCornerRadius(rsCornerRadius_);
+    surfaceNode_->SetMask(nullptr);
+    RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
+    property_->SetIsShaped(false);
+    WMError ret = UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_MASK);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PC, "UpdateProperty failed, id:%{public}u", GetWindowId());
+    }
+    return ret;
 }
 
 WMError WindowSceneSessionImpl::SetFollowParentMultiScreenPolicy(bool enabled)
@@ -7753,6 +7806,7 @@ WMError WindowSceneSessionImpl::GetWindowStateSnapshot(std::string& winStateSnap
     auto persistentId = GetPersistentId();
     nlohmann::json winStateSnapshotJson = {
         {"isPcMode", system::GetBoolParameter("persist.sceneboard.ispcmode", false)},
+        {"isSupportFreeWindowMode", windowSystemConfig_.freeMultiWindowSupport_ || windowSystemConfig_.IsPcWindow()},
     };
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
     auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(persistentId,
@@ -7885,6 +7939,25 @@ void WindowSceneSessionImpl::SetForceSplitConfigEnable(bool enableForceSplit)
     TLOGI(WmsLogTag::WMS_COMPAT, "SetForceSplitEnable, enableForceSplit: %{public}u",
         enableForceSplit);
     uiContent->SetForceSplitEnable(enableForceSplit);
+}
+
+void WindowSceneSessionImpl::SendLogicalDeviceConfigToArkUI()
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "bundleName: %{public}s, logicalDeviceConfig: %{public}s",
+        property_->GetSessionInfo().bundleName_.c_str(), property_->GetLogicalDeviceConfig().c_str());
+    if (WindowSceneSessionImpl::hasSentLogicalDeviceConfig_) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Logical device config has already sent");
+        return;
+    }
+    Ace::UIContent::SetXComponentCompensationAngle(property_->GetLogicalDeviceConfig());
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = true;
+    if (property_->GetLogicalDeviceConfig() == "") {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send default logical device config to arkui");
+    } else if (property_->GetLogicalDeviceConfig() == "{}") {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send null logical device config to arkui");
+    } else {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send logical device config to arkui successfully!");
+    }
 }
 
 WMError WindowSceneSessionImpl::GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo)

@@ -676,6 +676,15 @@ void ScreenSessionManagerClient::NotifyAodOpCompletion(AodOP operation, int32_t 
     screenSessionManager_->NotifyAodOpCompletion(operation, result);
 }
 
+void ScreenSessionManagerClient::SetPowerStateForAod(ScreenPowerState state)
+{
+    if (!screenSessionManager_) {
+        TLOGE(WmsLogTag::DMS, "screenSessionManager is null");
+        return;
+    }
+    screenSessionManager_->SetPowerStateForAod(state);
+}
+
 void ScreenSessionManagerClient::RecordEventFromScb(std::string description, bool needRecordEvent)
 {
     if (!screenSessionManager_) {

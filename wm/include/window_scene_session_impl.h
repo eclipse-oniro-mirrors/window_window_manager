@@ -158,8 +158,7 @@ public:
     void NotifySessionBackground(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError NotifyPrepareClosePiPWindow() override;
     void UpdateSubWindowState(const WindowType& type);
-    WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) override;
+    WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) override;
     WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) override;
     WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) override;
     WMError SetSystemBarPropertyForPage(WindowType type, std::optional<SystemBarProperty> property) override;
@@ -198,6 +197,7 @@ public:
      * PC Window
      */
     WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask) override;
+    WMError ClearWindowMask() override;
     WMError SetFollowParentMultiScreenPolicy(bool enabled) override;
     WMError UseImplicitAnimation(bool useImplicit) override;
     bool IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
@@ -228,10 +228,10 @@ public:
     WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY) override;
     WmErrorCode StopMoveWindow() override;
     WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
+    void MaximizeEvent(const sptr<ISession> &hostSession);
     void UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType);
     bool haveSetSupportedWindowModes_ = false;
     uint32_t pendingWindowModeSupportType_ { WindowModeSupport::WINDOW_MODE_SUPPORT_ALL };
-    void MaximizeEvent(const sptr<ISession> &hostSession);
 
     /*
      * Compatible Mode
@@ -241,6 +241,7 @@ public:
     WSError PcAppInPadNormalClose() override;
     void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     void SetForceSplitConfigEnable(bool enableForceSplit) override;
+    void SendLogicalDeviceConfigToArkUI();
 
     /*
      * Free Multi Window
@@ -492,7 +493,7 @@ private:
     void ApplyMaximizePresentation(MaximizePresentation presentation);
     std::shared_ptr<MMI::PointerEvent> lastPointerEvent_ = nullptr;
     bool IsFullScreenSizeWindow(uint32_t width, uint32_t height);
-    bool isResizedByLimit_ = false;
+    std::atomic<bool> isResizedByLimit_ = false;
 
     /*
      * Window Immersive
@@ -513,7 +514,7 @@ private:
         const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag) override;
     WMError updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty);
     std::mutex nowsystemBarPropertyMapMutex_;
-    std::unordered_map<WindowType, SystemBarProperty> nowsystemBarPropertyMap_;
+    std::unordered_map<WindowType, SystemBarProperty> nowSystemBarPropertyMap_;
     bool isAtomicServiceUseColor_ = false;
     bool isNavigationUseColor_ = false;
     std::stack<StatusBarColorConfigPair> statusBarColorHistory_;
@@ -551,6 +552,7 @@ private:
     float GetMainWindowCustomDensity();
     float customDensity_ = UNDEFINED_DENSITY;
     bool isEnableDefaultDensityWhenCreate_ = false;
+    float rsCornerRadius_;
     WMError SetPcAppInpadSpecificSystemBarInvisible();
     WMError SetPcAppInpadOrientationLandscape();
 
@@ -602,6 +604,11 @@ private:
      * Window Input Event
      */
     int32_t superFoldOffsetY_ = -1; // calculate the total height of the display_B area and crease area.
+
+    /*
+     * Window Compatible Mode
+     */
+    static std::atomic<bool> hasSentLogicalDeviceConfig_;
 
     /*
      * Window Scene

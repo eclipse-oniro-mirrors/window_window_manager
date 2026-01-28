@@ -225,6 +225,8 @@
             OHOS::Rosen::SceneSession::HasExtensionTokenInfoWithTokenID*;
             OHOS::Rosen::SceneSession::AnimateTo*;
             OHOS::Rosen::SceneSession::SceneSession*;
+            OHOS::Rosen::SceneSession::RegisterGetAppUseControlDisplayMapFunc*;
+            OHOS::Rosen::SceneSession::NotifyRemoveAppLockSnapshot*;
             OHOS::Rosen::SessionUtils::SetMoveResampleEnabled*;
             OHOS::Rosen::SystemSession::SystemSession*;
             OHOS::Rosen::KeyboardSession::KeyboardSession*;
@@ -341,6 +343,7 @@
             OHOS::Rosen::SceneSession::RegisterIsAppBoundSystemTrayCallback*;
             OHOS::Rosen::SceneSession::SetIsUserRequestedExit*;
             OHOS::Rosen::SceneSession::RegisterNotifyOccupiedAreaChangeCallback*;
+            OHOS::Rosen::SceneSession::RegisterRecoverWindowEffectCallback*;
             OHOS::Rosen::MoveDragController::SetMoveResampleSystemConfig*;
             OHOS::Rosen::SessionStub::OnRemoteRequest*;
             OHOS::Rosen::Session::*;

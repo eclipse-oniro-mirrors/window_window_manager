@@ -2493,5 +2493,21 @@ HWTEST_F(ScreenSessionManagerClientTest, ProcPropertyChangedForSuperFold, TestSi
     logMsg.clear();
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: SetPowerStateForAod01
+ * @tc.desc: SetPowerStateForAod test, normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, SetPowerStateForAod01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+    screenSessionManagerClient_->SetPowerStateForAod(ScreenPowerState::POWER_DOZE);
+    EXPECT_TRUE(logMsg.find("screenSessionManager is null") == std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace Rosen
 } // namespace OHOS

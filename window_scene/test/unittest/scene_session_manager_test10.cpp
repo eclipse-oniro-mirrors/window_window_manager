@@ -18,12 +18,15 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include <parameters.h>
 #include "session_manager/include/scene_session_manager.h"
+#include "session_manager/include/session_manager_agent_controller.h"
 #include "session_info.h"
 #include "session/host/include/root_scene_session.h"
 #include "session/host/include/scene_session.h"
 #include "session_manager.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "window_manager_agent.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -31,12 +34,28 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
+    constexpr float DEFAULT_BLUR_RADIUS = 200.0f;
+
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
         g_errLog = msg;
     }
+
+    class WindowPropertyChangeAgentTest : public WindowManagerAgent {
+    public:
+        WindowPropertyChangeAgentTest() : WindowManagerAgent(INVALID_USER_ID) {}
+
+        void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) override
+        {
+            propertyDirtyFlags_ = propertyDirtyFlags;
+            windowInfoListSize_ = windowInfoList.size();
+        }
+
+        uint32_t propertyDirtyFlags_ = 0;
+        size_t windowInfoListSize_ = 0;
+    };
 }
 class SceneSessionManagerTest10 : public testing::Test {
 public:
@@ -871,6 +890,30 @@ HWTEST_F(SceneSessionManagerTest10, NotifyVisibleChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetBlurRadiusFromParam
+ * @tc.desc: test GetBlurRadiusFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    EXPECT_FLOAT_EQ(12.0f, ssm_->GetBlurRadiusFromParam("12"));
+    EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->GetBlurRadiusFromParam("-1"));
+}
+
+/**
+ * @tc.name: GetBlurBackgroundColorFromParam
+ * @tc.desc: test GetBlurBackgroundColorFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurBackgroundColorFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    std::string color = "FFFFFFFF";
+    EXPECT_EQ(std::numeric_limits<uint32_t>::max(), ssm_->GetBlurBackgroundColorFromParam(color));
+}
+
+/**
  * @tc.name: TestIsInDefaultScreen_01
  * @tc.desc: Test IsInDefaultScreen with not DefaultScreen id
  * @tc.type: FUNC
@@ -910,14 +953,89 @@ HWTEST_F(SceneSessionManagerTest10, TestIsInDefaultScreen_02, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFunc01, TestSize.Level1)
 {
-    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(nullptr));
     SessionInfo info;
     info.abilityName_ = "RegisterRequestVsyncFunc01";
     info.bundleName_ = "RegisterRequestVsyncFunc01";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(nullptr, sceneSession);
-    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession);
+    EXPECT_EQ(WSError::WS_OK, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession));
     EXPECT_NE(nullptr, sceneSession->sessionPropertyChangeNotifyManagerFunc_);
+}
+
+/**
+ * @tc.name: RegisterSessionPropertyChangeNotifyManagerFunc02
+ * @tc.desc: test RegisterSessionPropertyChangeNotifyManagerFunc notify path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFunc02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<WindowPropertyChangeAgentTest> windowManagerAgent = sptr<WindowPropertyChangeAgentTest>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t pid = 65535;
+    ASSERT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+
+    SessionInfo info;
+    info.persistentId_ = 100;
+    info.bundleName_ = "RegisterSessionPropertyChangeNotifyManagerFunc02";
+    info.abilityName_ = "RegisterSessionPropertyChangeNotifyManagerFunc02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+
+    EXPECT_EQ(WSError::WS_OK, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession));
+    windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+
+    ssm_->sceneSessionMap_.emplace(sceneSession->GetPersistentId(), sceneSession);
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+
+    EXPECT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+    ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());
+}
+
+/**
+ * @tc.name: NotifySessionPropertyChangeFromSession01
+ * @tc.desc: test NotifySessionPropertyChangeFromSession notify path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, NotifySessionPropertyChangeFromSession01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<WindowPropertyChangeAgentTest> windowManagerAgent = sptr<WindowPropertyChangeAgentTest>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t pid = 65535;
+    ASSERT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+
+    const int32_t persistentId = 200;
+
+    SessionInfo info;
+    info.persistentId_ = persistentId;
+    info.bundleName_ = "NotifySessionPropertyChangeFromSession01";
+    info.abilityName_ = "NotifySessionPropertyChangeFromSession01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    ssm_->sceneSessionMap_.emplace(persistentId, sceneSession);
+
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    EXPECT_EQ(WSError::WS_OK, ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE));
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+
+    EXPECT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+    ssm_->sceneSessionMap_.erase(persistentId);
 }
 
 /**

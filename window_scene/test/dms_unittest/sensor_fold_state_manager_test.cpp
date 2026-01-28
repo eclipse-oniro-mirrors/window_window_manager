@@ -32,7 +32,7 @@ constexpr uint32_t SLEEP_TIME_US = 100000;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
-        g_errLog = msg;
+        g_errLog += msg;
     }
 }
 
@@ -62,6 +62,25 @@ void SensorFoldStateManagerTest::TearDown()
 }
 
 namespace {
+
+/**
+ * @tc.name: SetTaskScheduler
+ * @tc.number: SetTaskScheduler
+ * @tc.desc: taskScheduler_ could be properly set when the input is valid.
+ */
+HWTEST_F(SensorFoldStateManagerTest, SetTaskScheduler, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    auto scheduler = std::make_shared<TaskScheduler>("task_test");
+    ASSERT_NE(scheduler, nullptr);
+    mgr.SetTaskScheduler(scheduler);
+    scheduler = nullptr;
+    mgr.SetTaskScheduler(scheduler);
+    EXPECT_TRUE(g_errLog.find("scheduler is nullptr") != std::string::npos);
+}
+
 
 /**
  * @tc.name: HandleSensorChange

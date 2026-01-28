@@ -180,8 +180,7 @@ private:
     std::atomic<bool> needUpdateDisplayFromDMS_ = false;
     DisplayId defaultDisplayId_ = DISPLAY_ID_INVALID;
     DisplayId primaryDisplayId_ = DISPLAY_ID_INVALID;
-    std::map<DisplayId, sptr<Display>> displayMap_;
-    std::map<DisplayId, std::chrono::steady_clock::time_point> displayUptateTimeMap_;
+    static thread_local std::map<DisplayId, sptr<Display>> displayMap_;
     DisplayStateCallback displayStateCallback_;
     std::recursive_mutex& mutex_;
     std::set<sptr<IDisplayListener>> displayListeners_;
@@ -233,6 +232,7 @@ private:
     sptr<DisplayManagerBrightnessInfoAgent> brightnessInfoListenerAgent_;
 };
 
+thread_local std::map<DisplayId, sptr<Display>> DisplayManager::Impl::displayMap_;
 class DisplayManager::Impl::DisplayManagerListener : public DisplayManagerAgentDefault {
 public:
     explicit DisplayManagerListener(sptr<Impl> impl) : pImpl_(impl)
@@ -758,21 +758,21 @@ bool DisplayManager::Impl::SetVirtualScreenAsDefault(ScreenId screenId)
 
 sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
 {
+    if (displayId == DISPLAY_ID_INVALID) {
+        TLOGE(WmsLogTag::DMS, "screen id is invalid");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DMS, "GetDisplayById start, displayId: %{public}" PRIu64" ", displayId);
-    auto currentTime = std::chrono::steady_clock::now();
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
-        auto lastRequestIter = displayUptateTimeMap_.find(displayId);
-        static uint32_t getDisplayIntervalUs_ = (std::string(program_invocation_name) != "com.ohos.sceneboard")
-             ? APP_GET_DISPLAY_INTERVAL_US : SCB_GET_DISPLAY_INTERVAL_US;
-        if (displayId != DISPLAY_ID_INVALID && lastRequestIter != displayUptateTimeMap_.end()) {
-            auto interval = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastRequestIter->second)
-                .count();
+        auto iter = displayMap_.find(displayId);
+        if (iter != displayMap_.end()) {
+            static uint32_t getDisplayIntervalUs_ = (std::string(program_invocation_name) != "com.ohos.sceneboard")
+                                                        ? APP_GET_DISPLAY_INTERVAL_US
+                                                        : SCB_GET_DISPLAY_INTERVAL_US;
+            auto interval = iter->second->GetDisplayInfoLifeTime();
             if (interval < getDisplayIntervalUs_ && !needUpdateDisplayFromDMS_) {
-                auto iter = displayMap_.find(displayId);
-                if (iter != displayMap_.end()) {
-                    return displayMap_[displayId];
-                }
+                    return iter->second;
             }
         }
     }
@@ -785,12 +785,8 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!UpdateDisplayInfoLocked(displayInfo)) {
         displayMap_.erase(displayId);
-        //map erase函数删除不存在key行为安全
-        displayUptateTimeMap_.erase(displayId);
-        return nullptr;
     }
     needUpdateDisplayFromDMS_ = false;
-    displayUptateTimeMap_[displayId] = currentTime;
     return displayMap_[displayId];
 }
 

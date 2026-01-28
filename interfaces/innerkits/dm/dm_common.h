@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 #include <parcel.h>
 
@@ -44,6 +45,7 @@ const static std::string DEFAULT_SCREEN_NAME = "buildIn";
 constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr int32_t CONCURRENT_USER_ID_DEFAULT = -1;
+constexpr int32_t INVALID_USERID = -1;
 constexpr int32_t USER_ID_DEFAULT = 0;
 constexpr int32_t ROTATION_UNSET = -1;
 constexpr int32_t ROTATION_MIN = 0;
@@ -53,6 +55,8 @@ constexpr uint32_t BASELINE_DENSITY = 160;
 constexpr uint32_t HALF_SCREEN_PARAM = 2;
 constexpr uint32_t DISPLAY_A_HEIGHT = 3296;
 constexpr uint32_t DISPLAY_B_HEIGHT = 1608;
+constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
+constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
 constexpr uint32_t DISPLAY_A_WIDTH = 2472;
 constexpr float DEFAULT_SNAPSHOT_SCALE = 1.0f;
@@ -119,6 +123,9 @@ enum class PowerStateChangeReason : uint32_t {
     STATE_CHANGE_REASON_END_DREAM = 50,
     STATE_CHANGE_REASON_SYNCHRONIZE_POWER_STATE = 51,
     STATE_CHANGE_REASON_APPCAST = 52,
+    STATE_CHANGE_REASON_AOD_SET_DOZE = 53,
+    STATE_CHANGE_REASON_AOD_SET_DOZE_SUSPEND = 54,
+    STATE_CHANGE_REASON_AOD_SET_OFF = 55,
     STATE_CHANGE_REASON_REMOTE = 100,
     STATE_CHANGE_REASON_UNKNOWN = 1000,
 };
@@ -133,6 +140,15 @@ enum class ScreenPowerState : uint32_t {
     POWER_OFF,
     POWER_BUTT,
     INVALID_STATE,
+    POWER_DOZE,
+    POWER_DOZE_SUSPEND,
+};
+
+/**
+ * @brief Enumerates the state of the screen power by SceneBoard.
+ */
+enum class ScbScreenPowerState : uint32_t {
+    POWER_OFF,
     POWER_DOZE,
     POWER_DOZE_SUSPEND,
 };
@@ -486,6 +502,38 @@ enum class FoldDisplayMode: uint32_t {
     SUB = 3,
     COORDINATION = 4,
     GLOBAL_FULL = 5,
+};
+
+const std::unordered_map<std::string, FoldDisplayMode> STRING_TO_FOLD_DISPLAY_MODE = {
+    {"0", FoldDisplayMode::UNKNOWN},
+    {"1", FoldDisplayMode::FULL},
+    {"2", FoldDisplayMode::MAIN},
+    {"3", FoldDisplayMode::SUB},
+    {"4", FoldDisplayMode::COORDINATION},
+    {"5", FoldDisplayMode::GLOBAL_FULL}
+};
+
+struct RotationCorrectionWhiteConfig {
+    std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
+    std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
+
+    int32_t GetUseLogicCamera(FoldDisplayMode key) const
+    {
+        auto it = useLogicCamera.find(key);
+        if (it != useLogicCamera.end()) {
+            return it->second;
+        }
+        return DEFAULT_USE_LOGIC_CAMERA;
+    }
+
+    int32_t GetCustomLogicDirection(FoldDisplayMode key) const
+    {
+        auto it = customLogicDirection.find(key);
+        if (it != customLogicDirection.end()) {
+            return it->second;
+        }
+        return DEFAULT_CUSTOM_LOGIC_DIRECTION;
+    }
 };
 
 /**

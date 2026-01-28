@@ -1075,21 +1075,6 @@ HWTEST_F(WindowAdapterTest, IsWindowRectAutoSave, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetStartWindowBackgroundColor
- * @tc.desc: WindowAdapter/SetStartWindowBackgroundColor
- * @tc.type: FUNC
- */
-HWTEST_F(WindowAdapterTest, SetStartWindowBackgroundColor, TestSize.Level1)
-{
-    WindowAdapter windowAdapter;
-    windowAdapter.isProxyValid_ = true;
-    windowAdapter.windowManagerServiceProxy_ = nullptr;
-    const std::string& moduleName = "testModuleName";
-    const std::string& abilityName = "testAbilityName";
-    ASSERT_EQ(WMError::WM_ERROR_SAMGR, windowAdapter.SetStartWindowBackgroundColor(moduleName, abilityName, 0, 0));
-}
-
-/**
  * @tc.name: GetDisplayIdByWindowId
  * @tc.desc: WindowAdapter/GetDisplayIdByWindowId
  * @tc.type: FUNC

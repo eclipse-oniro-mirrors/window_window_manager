@@ -33,8 +33,10 @@
 
 namespace OHOS::Rosen {
 FoldScreenController::FoldScreenController(std::recursive_mutex& displayInfoMutex,
-    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler)
-    : displayInfoMutex_(displayInfoMutex), screenPowerTaskScheduler_(screenPowerTaskScheduler)
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler,
+    std::shared_ptr<TaskScheduler> taskScheduler)
+    : displayInfoMutex_(displayInfoMutex), screenPowerTaskScheduler_(screenPowerTaskScheduler),
+    taskScheduler_(taskScheduler)
 {
     if (FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
         foldScreenPolicy_ = GetFoldScreenPolicy(DisplayDeviceType::DOUBLE_DISPLAY_DEVICE);
@@ -65,9 +67,11 @@ FoldScreenController::FoldScreenController(std::recursive_mutex& displayInfoMute
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
         SecondaryFoldSensorManager::GetInstance().SetFoldScreenPolicy(foldScreenPolicy_);
         SecondaryFoldSensorManager::GetInstance().SetSensorFoldStateManager(sensorFoldStateManager_);
+        SecondaryFoldSensorManager::GetInstance().SetTaskScheduler(taskScheduler_);
     } else {
         FoldScreenSensorManager::GetInstance().SetFoldScreenPolicy(foldScreenPolicy_);
         FoldScreenSensorManager::GetInstance().SetSensorFoldStateManager(sensorFoldStateManager_);
+        FoldScreenSensorManager::GetInstance().SetTaskScheduler(taskScheduler_);
     }
 #endif
 }

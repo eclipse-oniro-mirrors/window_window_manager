@@ -114,6 +114,19 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "moveResample",                                 WindowSceneConfig::ValueType::MAP },
     { "resampleFpsRange",                             WindowSceneConfig::ValueType::INTS },
     // ========================================================================
+    { "singleHandBackgroundLayout",                   WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundSettingButton",            WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundTitle",                    WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundContent",                  WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundIssueText",                WindowSceneConfig::ValueType::MAP },
+    { "posX",                                         WindowSceneConfig::ValueType::INTS },
+    { "posY",                                         WindowSceneConfig::ValueType::INTS },
+    { "width",                                        WindowSceneConfig::ValueType::INTS },
+    { "height",                                       WindowSceneConfig::ValueType::INTS },
+    { "fontSize",                                     WindowSceneConfig::ValueType::INTS },
+    { "minFontSize",                                  WindowSceneConfig::ValueType::INTS },
+    { "maxLines",                                     WindowSceneConfig::ValueType::INTS },
+    { "maxFontScale",                                 WindowSceneConfig::ValueType::STRING },
 };
 
 std::vector<std::string> WindowSceneConfig::SplitNodeContent(const xmlNodePtr& node, const std::string& pattern)

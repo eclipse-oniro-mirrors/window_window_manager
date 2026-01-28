@@ -353,6 +353,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleSendCommonEvent(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_REMOVE_PRELAUNCH_STARTING_WINDOW):
             return HandleRemovePrelaunchStartingWindow(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT):
+            return HandleRecoverWindowEffect(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -542,6 +544,7 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         MissionInfo missionInfo = property->GetMissionInfo();
         reply.WriteParcelable(&missionInfo);
         reply.WriteBool(property->GetIsShowDecorInFreeMultiWindow());
+        reply.WriteString(property->GetLogicalDeviceConfig());
         reply.WriteBool(property->IsPrelaunch());
         reply.WriteInt32(property->GetFrameNum());
     }
@@ -794,6 +797,10 @@ int SessionStub::HandleSessionException(MessageParcel& data, MessageParcel& repl
     }
     if (!data.ReadString(abilitySessionInfo->identityToken)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadBool(abilitySessionInfo->shouldSkipKillInStartup)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read shouldSkipKillInStartup failed.");
         return ERR_INVALID_DATA;
     }
     ExceptionInfo exceptionInfo;
@@ -1177,14 +1184,21 @@ int SessionStub::HandleRaiseAboveTarget(MessageParcel& data, MessageParcel& repl
 
 int SessionStub::HandleRaiseMainWindowAboveTarget(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_HIERARCHY, "In");
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "In");
     int32_t targetId = 0;
     if (!data.ReadInt32(targetId)) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "read targetId failed");
         return ERR_INVALID_DATA;
     }
+    if (targetId <= static_cast<int32_t>(INVALID_WINDOW_ID)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "targetId invalid");
+        return ERR_INVALID_DATA;
+    }
     WSError errCode = RaiseMainWindowAboveTarget(targetId);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "write errCode failed");
+        return ERR_INVALID_DATA;
+    };
     return ERR_NONE;
 }
 
@@ -2215,6 +2229,23 @@ int SessionStub::HandleSetWindowShadows(MessageParcel& data, MessageParcel& repl
         return ERR_INVALID_DATA;
     }
     TLOGI(WmsLogTag::WMS_ANIMATION, "HandleSetWindowShadows end");
+    return ERR_NONE;
+}
+
+int SessionStub::HandleRecoverWindowEffect(MessageParcel& data, MessageParcel& reply)
+{
+    bool recoverCorner = false;
+    if (!data.ReadBool(recoverCorner)) {
+        TLOGE(WmsLogTag::WMS_PC, "Read recoverCorner failed.");
+        return ERR_INVALID_DATA;
+    }
+    bool recoverShadow = false;
+    if (!data.ReadBool(recoverShadow)) {
+        TLOGE(WmsLogTag::WMS_PC, "Read recoverShadow failed.");
+        return ERR_INVALID_DATA;
+    }
+    TLOGD(WmsLogTag::WMS_PC, "recoverCorner: %{public}d, recoverShadow: %{public}d", recoverCorner, recoverShadow);
+    RecoverWindowEffect(recoverCorner, recoverShadow);
     return ERR_NONE;
 }
 
