@@ -230,6 +230,8 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetStatusBarColorForNavigation, Te
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetStatusBarColorForNavigation");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->SetStatusBarColorForNavigation(std::nullopt));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->property_->SetPersistentId(1);
@@ -271,6 +273,9 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetSystemBarPropertyForPage, TestS
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetSystemBarPropertyForPage");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW,
+        window->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, std::nullopt));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->property_->SetPersistentId(1);
@@ -315,10 +320,6 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetStatusBarColorForPage, TestSize
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetStatusBarColorForPage");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->property_->SetPersistentId(1);
-    window->hostSession_ = session;
 
     uint32_t color = 0x334455;
     window->SetStatusBarColorForPage(color);
@@ -355,10 +356,6 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarPropertyForPage, Te
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("UpdateSystemBarPropertyForPage_Direct");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->property_->SetPersistentId(1);
-    window->hostSession_ = session;
 
     SystemBarProperty property;
     property.enable_ = true;
