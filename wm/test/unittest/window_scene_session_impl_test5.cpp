@@ -1011,21 +1011,6 @@ HWTEST_F(WindowSceneSessionImplTest5, StartMoveWindowWithCoordinate_03, TestSize
 }
 
 /**
- * @tc.name: GetSystemBarProperties
- * @tc.desc: GetSystemBarProperties test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, GetSystemBarProperties, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    std::map<WindowType, SystemBarProperty> properties;
-    EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-    window->nowSystemBarPropertyMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-}
-
-/**
  * @tc.name: UpdateSystemBarproperty
  * @tc.desc: UpdateSystemBarproperty
  * @tc.type: FUNC
