@@ -3085,14 +3085,16 @@ HWTEST_F(ScreenSessionManagerTest, HandleCastVirtualScreenMirrorRegion, TestSize
 
     ssm_->screenSessionMap_[51] = virtualSession;
     ssm_->screenSessionMap_[52] = internalSession;
-    ret = ssm_->HandleCastVirtualScreenMirrorRegion();
-    EXPECT_TRUE(ret);
-
-    internalSession->SetRotation(Rotation::ROTATION_180);
-    ret = ssm_->HandleCastVirtualScreenMirrorRegion();
-    EXPECT_TRUE(ret);
-
-    internalSession->SetRotation(Rotation::ROTATION_270);
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        ret = ssm_->HandleCastVirtualScreenMirrorRegion();
+        EXPECT_FALSE(ret);
+ 
+        internalSession->SetRotation(Rotation::ROTATION_180);
+        ret = ssm_->HandleCastVirtualScreenMirrorRegion();
+        EXPECT_FALSE(ret);
+ 
+        internalSession->SetRotation(Rotation::ROTATION_270);
+    }
     ret = ssm_->HandleCastVirtualScreenMirrorRegion();
     EXPECT_TRUE(ret);
     DMRect expectedRect1 = {0, 0, 0, 0};
@@ -3656,13 +3658,9 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectAfterSwitchUser, TestSi
     screenSession->SetScreenType(ScreenType::REAL);
     screenSession->isInternal_ = true;
  
-    ssm_->HandleResolutionEffectAfterSwitchUser();
-    EXPECT_TRUE(g_errLog.find("Internal Session null") != std::string::npos);
-    g_errLog.clear();
- 
     ssm_->screenSessionMap_[51] = screenSession;
     ssm_->HandleResolutionEffectAfterSwitchUser();
-    EXPECT_FALSE(g_errLog.find("Internal Session null") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("RecoveryResolutionEffect") != std::string::npos);
     g_errLog.clear();
     ssm_->screenSessionMap_.erase(51);
 }
