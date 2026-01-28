@@ -61,10 +61,10 @@ public:
     static void NotifyScreenshotEvent(ani_env* env, ani_long nativeObj, ani_enum_item eventType);
     static void RegisterWindowManagerCallback(ani_env* env, ani_long nativeObj, ani_string type, ani_ref callback);
     static void UnregisterWindowManagerCallback(ani_env* env, ani_long nativeObj, ani_string type, ani_ref callback);
-    static void SetWindowLayoutMode(ani_env* env, ani_long nativeObj, ani_enum_item mode);
-    static void ToggleShownStateForAllAppWindows(ani_env* env, ani_long nativeObj);
     static void SetSpecificSystemWindowZIndex(ani_env* env, ani_long nativeObj, ani_enum_item apiWindowType,
         ani_int zIndex);
+    static void SetWindowLayoutMode(ani_env* env, ani_long nativeObj, ani_enum_item mode);
+    static void ToggleShownStateForAllAppWindows(ani_env* env, ani_long nativeObj);
 private:
     ani_ref OnGetLastWindow(ani_env* env, ani_object context);
     ani_ref OnFindWindow(ani_env* env, ani_string windowName);

@@ -1276,7 +1276,7 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
     if (display) {
         vpr_ = display->GetVirtualPixelRatio();
     } else {
-        vpr_ = 1.5f;  // 1.5f: default virtual pixel ratio
+        vpr_ = 1.5f; // 1.5f: default virtual pixel ratio
     }
     const auto sourceType = pointerEvent->GetSourceType();
     int outside = (sourceType == MMI::PointerEvent::SOURCE_TYPE_MOUSE) ? HOTZONE_POINTER * vpr_ : HOTZONE_TOUCH * vpr_;
@@ -1284,7 +1284,7 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
         moveDragProperty_.originalRect_, limits_);
     dragAreaType_ = SessionHelper::GetAreaTypeForScaleResize(pointerItem.GetWindowX(), pointerItem.GetWindowY(),
         outside, moveDragProperty_.originalRect_);
-    TLOGI(WmsLogTag::WMS_LAYOUT, "pointWinX:%{public}d, pointWinY:%{public}d, outside:%{public}d, vpr:%{public}f, "
+    TLOGI(WmsLogTag::WMS_LAYOUT, "pointWinX:%{private}d, pointWinY:%{private}d, outside:%{public}d, vpr:%{public}f, "
         "rect:%{public}s, type:%{public}d", pointerItem.GetWindowX(), pointerItem.GetWindowY(), outside, vpr_,
         moveDragProperty_.originalRect_.ToString().c_str(), type_);
     if (type_ == AreaType::UNDEFINED) {

@@ -624,7 +624,6 @@ void SceneSessionManager::RegisterRecoverStateChangeListener()
 
 void SceneSessionManager::OnRecoverStateChange(const RecoverState& state)
 {
-    TLOGI(WmsLogTag::WMS_RECOVER, "state: %{public}u", state);
     recoverState_ = state;
     switch(state) {
         case RecoverState::RECOVER_INITIAL:
@@ -1880,6 +1879,7 @@ void SceneSessionManager::SetRootSceneContext(const std::weak_ptr<AbilityRuntime
 void SceneSessionManager::CreateRootSceneSession()
 {
     system::SetParameter("bootevent.wms.fullscreen.ready", "true");
+    TLOGI(WmsLogTag::WMS_LIFE, "Set wms.fullscreen.ready success!");
     auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     specificCb->onGetSceneSessionVectorByTypeAndDisplayId_ = [this](WindowType type, uint64_t displayId) {
         return this->GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
