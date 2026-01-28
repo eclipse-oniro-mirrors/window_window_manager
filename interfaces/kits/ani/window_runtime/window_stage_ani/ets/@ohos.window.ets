@@ -4360,7 +4360,7 @@ export class WindowInternal implements Window {
       this.onSync(this.nativeObj, 'frameMetricsMeasured', callback);
     }
 
-    public offFrameMetricsMeasured(callback: Callback<FrameMetrics>): void {
+    public offFrameMetricsMeasured(callback?: Callback<FrameMetrics>): void {
       this.offSync(this.nativeObj, 'frameMetricsMeasured', callback);
     }
 
