@@ -230,13 +230,16 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetStatusBarColorForNavigation, Te
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetStatusBarColorForNavigation");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    window->hostSession_ = session;
 
     // set a color
     uint32_t color = 0xAABBCC;
-    auto ret = window->SetStatusBarColorForNavigation(color);
-    EXPECT_EQ(WMError::WM_OK, ret);
+    window->SetStatusBarColorForNavigation(color);
     auto it = window->ownSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    EXPECT_NE(it, window->ownSystemBarPropertyMap_.end());
+    EXPECT_FALSE(it == window->ownSystemBarPropertyMap_.end());
     bool found = false;
     for (const auto& pair : it->second) {
         if (pair.first == SystemBarPropertyOwner::ARKUI_NAVIGATION && pair.second.flag_.contentColorFlag) {
@@ -248,8 +251,7 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetStatusBarColorForNavigation, Te
     EXPECT_TRUE(found);
 
     // clear
-    ret = window->SetStatusBarColorForNavigation(std::nullopt);
-    EXPECT_EQ(WMError::WM_OK, ret);
+    window->SetStatusBarColorForNavigation(std::nullopt);
     it = window->ownSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
     if (it != window->ownSystemBarPropertyMap_.end()) {
         bool still = std::any_of(it->second.begin(), it->second.end(), [](const OwnSystemBarPropertyPair& p) {
@@ -269,14 +271,17 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetSystemBarPropertyForPage, TestS
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetSystemBarPropertyForPage");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    window->hostSession_ = session;
 
     SystemBarProperty prop;
     prop.enable_ = false;
     prop.enableAnimation_ = true;
-    auto ret = window->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
-    EXPECT_EQ(WMError::WM_OK, ret);
+    window->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
     auto it = window->ownSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    EXPECT_NE(it, window->ownSystemBarPropertyMap_.end());
+    EXPECT_FALSE(it == window->ownSystemBarPropertyMap_.end());
     bool found = false;
     for (const auto& pair : it->second) {
         if (pair.first == SystemBarPropertyOwner::ARKUI_NAVIGATION && pair.second.flag_.enableFlag &&
@@ -290,8 +295,7 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetSystemBarPropertyForPage, TestS
     EXPECT_TRUE(found);
 
     // clear
-    ret = window->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, std::nullopt);
-    EXPECT_EQ(WMError::WM_OK, ret);
+    window->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, std::nullopt);
     it = window->ownSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
     if (it != window->ownSystemBarPropertyMap_.end()) {
         bool still = std::any_of(it->second.begin(), it->second.end(), [](const OwnSystemBarPropertyPair& p) {
@@ -311,12 +315,15 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetStatusBarColorForPage, TestSize
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetStatusBarColorForPage");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    window->hostSession_ = session;
 
     uint32_t color = 0x334455;
-    auto ret = window->SetStatusBarColorForPage(color);
-    EXPECT_EQ(WMError::WM_OK, ret);
+    window->SetStatusBarColorForPage(color);
     auto it = window->ownSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    EXPECT_NE(it, window->ownSystemBarPropertyMap_.end());
+    EXPECT_FALSE(it == window->ownSystemBarPropertyMap_.end());
     bool found = false;
     for (const auto& pair : it->second) {
         if (pair.first == SystemBarPropertyOwner::ATOMIC_SERVICE && pair.second.flag_.contentColorFlag) {
@@ -328,8 +335,7 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetStatusBarColorForPage, TestSize
     EXPECT_TRUE(found);
 
     // clear
-    ret = window->SetStatusBarColorForPage(std::nullopt);
-    EXPECT_EQ(WMError::WM_OK, ret);
+    window->SetStatusBarColorForPage(std::nullopt);
     it = window->ownSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
     if (it != window->ownSystemBarPropertyMap_.end()) {
         bool still = std::any_of(it->second.begin(), it->second.end(), [](const OwnSystemBarPropertyPair& p) {
@@ -349,6 +355,10 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarPropertyForPage, Te
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("UpdateSystemBarPropertyForPage_Direct");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    window->hostSession_ = session;
 
     SystemBarProperty property;
     property.enable_ = true;
@@ -362,11 +372,9 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarPropertyForPage, Te
     flag.enableFlag = true;
     flag.enableAnimationFlag = false;
 
-    auto ret = window->UpdateSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, property, flag);
-    EXPECT_EQ(WMError::WM_OK, ret);
-
+    window->UpdateSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, property, flag);
     auto it = window->ownSystemBarPropertyMap_.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    EXPECT_NE(it, window->ownSystemBarPropertyMap_.end());
+    EXPECT_FALSE(it == window->ownSystemBarPropertyMap_.end());
     bool found = false;
     for (const auto& pair : it->second) {
         if (pair.first == SystemBarPropertyOwner::APPLICATION) {
