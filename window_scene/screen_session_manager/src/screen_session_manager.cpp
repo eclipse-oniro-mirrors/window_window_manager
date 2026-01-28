@@ -171,9 +171,9 @@ constexpr float SECONDARY_ROTATION_270 = 270.0F;
 static const constexpr char* SET_SETTING_DPI_KEY {"default_display_dpi"};
 static bool g_offScreenRenderValue = true;
 std::vector<float> extendScreenDpiOptions {};
-constexpr int32_t EXTEND_SCREEN_DPI_OPTIONS_COUNT { 16 };
-constexpr float EXTEND_SCREEN_DPI_MIN_VALUE { 136.0f };
-constexpr float EXTEND_SCREEN_DPI_INCREASE_STEP { 24.0f };
+constexpr int32_t EXTEND_SCREEN_DPI_OPTIONS_COUNT { 16 }; // The number of supported independent dpi
+constexpr float EXTEND_SCREEN_DPI_MIN_VALUE { 136.0f }; // Minimum value supported by independent dpi
+constexpr float EXTEND_SCREEN_DPI_INCREASE_STEP { 24.0f }; // The difference in adjacent gears supported by independent dpi
 constexpr float EXTEND_SCREEN_DPI_BASELINE { 160.0f };
 const bool SUPPORT_COMPATIBLE_MODE =
     (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
@@ -296,7 +296,8 @@ WM_IMPLEMENT_SINGLE_INSTANCE(ScreenSessionManager)
 void ScreenSessionManager::InitExtendScreenDpiOptions()
 {
     for (int i = 0; i < EXTEND_SCREEN_DPI_OPTIONS_COUNT; ++i) {
-        extendScreenDpiOptions.push_back(EXTEND_SCREEN_DPI_MIN_VALUE + EXTEND_SCREEN_DPI_INCREASE_STEP * i);
+        extendScreenDpiOptions.push_back(EXTEND_SCREEN_DPI_MIN_VALUE
+            + EXTEND_SCREEN_DPI_INCREASE_STEP * static_cast<float>(i));
     }
 }
 
@@ -4333,9 +4334,9 @@ void ScreenSessionManager::SetInnerScreenFallbackPlan(sptr<ScreenSession> screen
 float ScreenSessionManager::CalDefaultExtendScreenDensity(ScreenProperty& property)
 {
     float PPI = property.GetScreenRealPPI();
-    if (PPI > EPSILON) {
+    if (PPI > EPSILON && EXTEND_SCREEN_DPI_BASELINE > EPSILON) {
         float defaultExtendScreenDPI = std::ceil(PPI * PHYSICAL_MASS);
-        return defaultExtendScreenDPI / BASELINE_DENSITY;
+        return defaultExtendScreenDPI / EXTEND_SCREEN_DPI_BASELINE;
     } else {
         return densityDpi_;
     }
@@ -4360,9 +4361,6 @@ float ScreenSessionManager::GetOptionalDpi(const float dpi) {
 void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
     ScreenProperty& property, float& extendDensity)
 {
-    if (g_offScreenRenderValue) {
-        return;
-    }
     std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);
@@ -4370,12 +4368,20 @@ void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenS
         float density_ = CalDefaultExtendScreenDensity(property);
         float dpi = GetOptionalDpi(density_ * BASELINE_DENSITY);
         extendDefaultDensity_ = dpi / BASELINE_DENSITY;
+        if (g_offScreenRenderValue) {
+            return;
+        }
         extendDensity = extendDefaultDensity_;
         g_extendScreenDpiCoef = EXTEND_SCREEN_DPI_DEFAULT_PARAMETER;
-        TLOGNFW(WmsLogTag::DMS, "get setting dpi fail, use extend screen default dpi");
+        TLOGNFW(WmsLogTag::DMS, "get setting dpi fail, use extend screen default dpi: "
+        "%{public}f", extendDensity);
     } else {
+        if (g_offScreenRenderValue) {
+            return;
+        }
         g_extendScreenDpiCoef = std::stof(dpiMap[serialNumber]) / BASELINE_DENSITY;
         extendDensity = EXTEND_SCREEN_DPI_DEFAULT_PARAMETER;
+        TLOGNFI(WmsLogTag::DMS, "get setting dpi: %{public}f", g_extendScreenDpiCoef);
     }
 }
 
