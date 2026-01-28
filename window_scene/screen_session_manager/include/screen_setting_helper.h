@@ -62,6 +62,7 @@ public:
         SETTING_EXTEND_INDEP_DPI_KEY);
     static std::map<std::string, uint32_t> GetBorderingAreaPercent(const std::string& key =
         SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY);
+    static std::string GetWiredScreenGamut(const std::string& key = SETTING_DISPLAY_WIRED_SCREEN_GAMUT);
     static bool GetScreenMode(MultiScreenInfo& info, const std::string& inputString);
     static bool UpdateScreenMode(MultiScreenInfo& info, uint32_t mode, bool isExternal);
     static bool GetScreenActiveMode(SupportedScreenModes& info, const std::string& inputString);
@@ -72,6 +73,8 @@ public:
     static void UnregisterSettingWireCastObserver();
     static void RegisterSettingBorderingAreaPercentObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingBorderingAreaPercentObserver();
+    static void RegisterSettingWiredScreenGamutObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingWiredScreenGamutObserver();
     static void RegisterSettingExtendScreenDpiObserver(SettingObserver::UpdateFunc func);
     static void UnRegisterSettingExtendScreenDpiObserver();
     static void RegisterSettingExtendScreenIndepDpiObserver(SettingObserver::UpdateFunc func);
@@ -148,6 +151,7 @@ private:
     static const constexpr char* SETTING_SCREEN_RESOLUTION_MODE_KEY {"user_set_resolution_mode"};
     static const constexpr char* SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY {"bordering_area_percent"};
     static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"settings.display.dual_display_ready"};
+    static const constexpr char* SETTING_DISPLAY_WIRED_SCREEN_GAMUT {"settings.display.wired_screen_gamut"};
     static const constexpr uint32_t BASE_TEN = 10;
     static sptr<SettingObserver> dpiObserver_;
     static sptr<SettingObserver> offScreenRenderObserver_;
@@ -162,6 +166,7 @@ private:
     static sptr<SettingObserver> correctionWhiteListObserver_;
     static sptr<SettingObserver> borderingAreaPercentObserver_;
     static sptr<SettingObserver> coordinationReadyObserver_;
+    static sptr<SettingObserver> wiredScreenGamutObserver_;
 };
 } // namespace Rosen
 } // namespace OHOS
