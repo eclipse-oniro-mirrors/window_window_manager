@@ -73,11 +73,11 @@ void SystemSession::UpdateCameraWindowStatus(bool isShowing)
         auto pipType = GetPiPTemplateInfo().pipTemplateType;
         if (pipType == static_cast<uint32_t>(PiPTemplateType::VIDEO_CALL) ||
             pipType == static_cast<uint32_t>(PiPTemplateType::VIDEO_MEETING)) {
-            TLOGI(WmsLogTag::WMS_SYSTEM, "PiPWindow status: %{public}d, id: %{public}d", isShowing, GetPersistentId());
+            TLOGI(WmsLogTag::WMS_PIP, "PiPWindow status: %{public}d, id: %{public}d", isShowing, GetPersistentId());
             specificCallback_->onCameraSessionChange_(GetSessionProperty()->GetAccessTokenId(), isShowing);
         }
     } else {
-        TLOGI(WmsLogTag::WMS_SYSTEM, "Skip window type, isShowing: %{public}d", isShowing);
+        TLOGI(WmsLogTag::WMS_PIP, "Skip window type, isShowing: %{public}d", isShowing);
     }
 }
 
@@ -408,12 +408,18 @@ WMError SystemSession::UpdateFloatingBall(const FloatingBallTemplateInfo& fbTemp
         return WMError::WM_DO_NOTHING;
     }
 
+    if (fbTemplateInfo.template_ < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
+        fbTemplateInfo.template_ >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Template %{public}d is invalid", fbTemplateInfo.template_);
+        return WMError::WM_ERROR_FB_PARAM_INVALID;
+    }
+
     if (GetFbTemplateInfo().template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb static template can't update");
         return WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED;
     }
 
-    if (GetFbTemplateInfo().template_ != 0 && GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
+    if (GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb template type can't update %{public}d, %{public}d",
             GetFbTemplateInfo().template_, fbTemplateInfo.template_);
         return WMError::WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED;
