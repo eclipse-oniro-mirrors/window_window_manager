@@ -730,6 +730,7 @@ public:
      * Window Rotation
      */
     void SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func);
+    WMError NotifyRotationProperty(int32_t persistentId, uint32_t rotation, uint32_t width, uint32_t height);
 
      /*
      * FloatingBall Window
@@ -912,6 +913,8 @@ public:
     WMError UpdateScreenLockState(int32_t persistentId);
 
     WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams) override;
+
+    void NotifyRotationBegin(bool isStopDrag);
 
 protected:
     SceneSessionManager();
@@ -1264,7 +1267,7 @@ private:
         const sptr<WindowSessionProperty>& property);
     void SetExtensionSubSessionDisplayId(const sptr<WindowSessionProperty>& property,
         const sptr<ISessionStage>& sessionStage);
-    void ReportSubWindowCreationFailure(const int32_t& pid, const std::string& abilityName,
+    void ReportSubWindowCreationFailure(int32_t pid, const std::string& abilityName,
         const std::string& parentBundleName, const std::string& hostBundleName);
 
     /*

@@ -830,6 +830,15 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyAppUseControlDisplay, TestSize.
     errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
     EXPECT_EQ(errCode, WSError::WS_OK);
     MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<SceneSessionManagerLiteProxy> tmpProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    errCode = tmpProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+
+    iRemoteObjectMocker->SetRequestResult(ERR_INVALID_DATA);
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    iRemoteObjectMocker->SetRequestResult(ERR_NONE);
 }
 
 /**

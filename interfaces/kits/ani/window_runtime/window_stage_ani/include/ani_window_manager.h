@@ -36,7 +36,8 @@ public:
     static ani_ref GetLastWindow(ani_env* env, ani_long nativeObj, ani_object context);
     static ani_ref FindWindow(ani_env* env, ani_long nativeObj, ani_string windowName);
     static void MinimizeAll(ani_env* env, ani_long nativeObj, ani_long displayId);
-    static void MinimizeAllWithExclusion(ani_env* env, ani_long nativeObj, ani_long displayId, ani_int excludeWindowId);
+    static void MinimizeAllWithExclusion(ani_env* env, ani_long nativeObj,
+        ani_long displayId, ani_int excludeWindowId);
     static void ShiftAppWindowFocus(ani_env* env, ani_long nativeObj,
         ani_int sourceWindowId, ani_int targetWindowId);
     static ani_object GetAllMainWindowInfo(ani_env* env, ani_long nativeObj, ani_object context);

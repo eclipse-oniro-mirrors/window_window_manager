@@ -881,7 +881,7 @@ public:
     virtual bool IsPrelaunch() const { return false; }
 
 protected:
-    void GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId = 0);
+    void GeneratePersistentId(bool isExtension, int32_t persistentId);
     virtual void UpdateSessionState(SessionState state);
     void NotifySessionStateChange(const SessionState& state);
     void UpdateSessionTouchable(bool touchable);

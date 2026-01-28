@@ -67,7 +67,27 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid) override
+    {
+        lastModuleName_ = moduleName;
+        lastAbilityName_ = abilityName;
+        lastColor_ = color;
+        lastUid_ = uid;
+        return WMError::WM_OK;
+    }
+
+    static std::string lastModuleName_;
+    static std::string lastAbilityName_;
+    static uint32_t lastColor_;
+    static int32_t lastUid_;
 };
+
+std::string MockWindowAdapter::lastModuleName_;
+std::string MockWindowAdapter::lastAbilityName_;
+uint32_t MockWindowAdapter::lastColor_ = 0;
+int32_t MockWindowAdapter::lastUid_ = 0;
 
 class TestCameraFloatWindowChangedListener : public ICameraFloatWindowChangedListener {
 public:
@@ -1961,6 +1981,39 @@ HWTEST_F(WindowManagerTest, UnregisterVisibilityStateChangedListener, Function |
 }
 
 /**
+ * @tc.name: NotifyWindowVisibilityStateChanged
+ * @tc.desc: NotifyWindowVisibilityStateChanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, NotifyWindowVisibilityStateChanged, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, instance_);
+    instance_->pImpl_->windowVisibilityStateListeners_.clear();
+
+    auto listener = sptr<TestInterestWindowIdsListener>::MakeSptr();
+    ASSERT_NE(nullptr, listener);
+    listener->AddInterestInfo(WindowInfoKey::WINDOW_ID);
+    listener->AddInterestInfo(WindowInfoKey::VISIBILITY_STATE);
+    instance_->pImpl_->windowVisibilityStateListeners_.push_back(listener);
+
+    std::vector<sptr<WindowVisibilityInfo>> windowVisibilityInfos;
+    sptr<WindowVisibilityInfo> info = sptr<WindowVisibilityInfo>::MakeSptr();
+    info->windowId_ = 10;
+    info->visibilityState_ = WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION;
+    windowVisibilityInfos.push_back(info);
+
+    instance_->pImpl_->NotifyWindowVisibilityStateChanged(windowVisibilityInfos);
+
+    ASSERT_EQ(static_cast<size_t>(1), listener->received_.size());
+    const auto& windowChangeInfo = listener->received_.front();
+    EXPECT_EQ(static_cast<size_t>(1), windowChangeInfo.count(WindowInfoKey::WINDOW_ID));
+    EXPECT_EQ(static_cast<uint32_t>(10), std::get<uint32_t>(windowChangeInfo.at(WindowInfoKey::WINDOW_ID)));
+    EXPECT_EQ(static_cast<size_t>(1), windowChangeInfo.count(WindowInfoKey::VISIBILITY_STATE));
+    EXPECT_EQ(WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION,
+        std::get<WindowVisibilityState>(windowChangeInfo.at(WindowInfoKey::VISIBILITY_STATE)));
+}
+
+/**
  * @tc.name: RegisterDisplayIdChangedListener
  * @tc.desc: check RegisterDisplayIdChangedListener
  * @tc.type: FUNC
@@ -2431,6 +2484,25 @@ HWTEST_F(WindowManagerTest, UnregisterGlobalRectChangedListener, Function | Smal
     mockInstance_->pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
     ret = mockInstance_->UnregisterFloatingScaleChangedListener(listener);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetStartWindowBackgroundColor
+ * @tc.desc: SetStartWindowBackgroundColor
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, SetStartWindowBackgroundColor, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, mockInstance_);
+    const std::string moduleName = "testModule";
+    const std::string abilityName = "testAbility";
+    const uint32_t color = 0x12345678;
+
+    WMError ret = mockInstance_->SetStartWindowBackgroundColor(moduleName, abilityName, color);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(moduleName, MockWindowAdapter::lastModuleName_);
+    EXPECT_EQ(abilityName, MockWindowAdapter::lastAbilityName_);
+    EXPECT_EQ(color, MockWindowAdapter::lastColor_);
 }
 
 /**

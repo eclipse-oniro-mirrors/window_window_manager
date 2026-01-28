@@ -753,6 +753,59 @@ HWTEST_F(KeyboardSessionTest4, TestIsLandscapeWithValidSession, TestSize.Level1)
     screenSessionManagerClient_->screenSessionMap_.clear();
     EXPECT_EQ(keyboardSession->IsLandscape(invalidScreenId2, isLandscape), WMError::WM_ERROR_INVALID_DISPLAY);
 }
+
+/**
+ * @tc.name: NotifyKeyboardAnimationWillBegin01
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifyKeyboardAnimationWillBegin01, TestSize.Level1)
+{
+    bool isKeyboardShow = true;
+    WindowAnimationInfo animationInfo;
+    sptr<SceneSession> sceneSession = GetSceneSession("TestSceneSession", "TestSceneSession");
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->persistentId_ = 100;
+    animationInfo.callingId = 100;
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession("NotifyKeyboardAnimationWillBegin",
+        "NotifyKeyboardAnimationWillBegin");
+    keyboardSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
+}
+
+/**
+ * @tc.name: NotifyKeyboardAnimationWillBegin02
+ * @tc.desc: test function: NotifyKeyboardAnimationWillBegin02
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifyKeyboardAnimationWillBegin02, TestSize.Level1)
+{
+    std::string abilityName = "NotifyKeyboardAnimationWillBegin02";
+    std::string bundleName = "NotifyKeyboardAnimationWillBegin02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, bundleName);
+    ASSERT_NE(keyboardSession, nullptr);
+
+    bool isKeyboardShow = true;
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 100;
+
+    keyboardSession->specificCallback_->onUpdateAvoidArea_ = [](uint32_t callingSessionId) {};
+    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, true);
+
+    ASSERT_NE(keyboardSession->keyboardCallback_, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession = [](uint32_t persistentId) {
+        SessionInfo callingSessionInfo;
+        callingSessionInfo.abilityName_ = "CallingSession";
+        callingSessionInfo.bundleName_ = "CallingSession";
+        auto callingSession = sptr<SceneSession>::MakeSptr(callingSessionInfo, nullptr);
+        callingSession->persistentId_ = persistentId;
+        return callingSession;
+    };
+    keyboardSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
+    ASSERT_NE(keyboardSession->GetSceneSession(animationInfo.callingId), nullptr);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

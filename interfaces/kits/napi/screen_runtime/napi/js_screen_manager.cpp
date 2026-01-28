@@ -1056,13 +1056,11 @@ DmErrorCode GetVirtualScreenOptionFromJs(napi_env env, napi_value optionObject, 
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
     option.density_ = static_cast<float>(densityValue);
-
     napi_value surfaceIdNapiValue = nullptr;
     napi_get_named_property(env, optionObject, "surfaceId", &surfaceIdNapiValue);
     if (!GetSurfaceFromJs(env, surfaceIdNapiValue, option.surface_)) {
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
-
     napi_value supportsFocus = nullptr;
     napi_status status = napi_get_named_property(env, optionObject, "supportsFocus", &supportsFocus);
     if (status != napi_ok) {
@@ -1071,6 +1069,13 @@ DmErrorCode GetVirtualScreenOptionFromJs(napi_env env, napi_value optionObject, 
     }
     if (!ConvertFromJsValue(env, supportsFocus, option.supportsFocus_)) {
         TLOGE(WmsLogTag::DMS, "No supportsFocus parameter to convert");
+    }
+    napi_value userIdNapiValue = nullptr;
+    if (napi_get_named_property(env, optionObject, "userId", &userIdNapiValue) == napi_ok) {
+        if (!ConvertFromJsValue(env, userIdNapiValue, option.userId_)) {
+            TLOGE(WmsLogTag::DMS, "No userId parameter to convert");
+            return DmErrorCode::DM_ERROR_INVALID_PARAM;
+        }
     }
     return DmErrorCode::DM_OK;
 }

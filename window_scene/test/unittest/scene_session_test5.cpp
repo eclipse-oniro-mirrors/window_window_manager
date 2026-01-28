@@ -3062,6 +3062,8 @@ HWTEST_F(SceneSessionTest5, NotifyRotationProperty, Function | SmallTest | Level
 
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    EXPECT_NE(sceneSession->sessionStage_, nullptr);
     sceneSession->GetSessionProperty()->SetDisplayId(1001);
     ScreenSessionConfig config;
     sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
@@ -3069,17 +3071,23 @@ HWTEST_F(SceneSessionTest5, NotifyRotationProperty, Function | SmallTest | Level
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.emplace(1001, screenSession);
 
     WSError result = sceneSession->NotifyRotationProperty(0, 0, 0);
-    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
     WSError result1 = sceneSession->NotifyRotationProperty(0, 0, 1);
-    EXPECT_EQ(result1, WSError::WS_OK);
+    EXPECT_EQ(result1, WSError::WS_ERROR_INVALID_PARAM);
     WSError result2 = sceneSession->NotifyRotationProperty(0, 1, 1);
     EXPECT_EQ(result2, WSError::WS_OK);
     WSError result3 = sceneSession->NotifyRotationProperty(90, 1, 1);
     EXPECT_EQ(result3, WSError::WS_OK);
+
+    sceneSession->sessionStage_ = nullptr;
+    WSError result4 = sceneSession->NotifyRotationProperty(90, 1, 1);
+    EXPECT_EQ(result4, WSError::WS_ERROR_NULLPTR);
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+
     sceneSession->GetSessionProperty()->SetDisplayId(1024);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.emplace(1024, nullptr);
-    sceneSession->NotifyRotationProperty(90, 1, 1);
-    usleep(100000);
+    WSError result5 = sceneSession->NotifyRotationProperty(90, 1, 1);
+    EXPECT_EQ(result5, WSError::WS_ERROR_INVALID_DISPLAY);
     EXPECT_TRUE(g_errLog.find("failed to convert Rotation to Orientation") != std::string::npos);
 }
 

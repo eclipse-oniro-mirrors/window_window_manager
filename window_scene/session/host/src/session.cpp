@@ -3006,6 +3006,9 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
+    if (isAppLockControl_.load() == isAppUseControl) {
+        return;
+    }
     isAppLockControl_.store(isAppUseControl);
     if (isAppUseControl) {
         if (IsPersistentImageFit()) {
@@ -4551,7 +4554,7 @@ WSError Session::ProcessBackEvent()
     return sessionStage_->HandleBackEvent();
 }
 
-void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId)
+void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
 {
     std::lock_guard lock(g_persistentIdSetMutex);
     if (persistentId != INVALID_SESSION_ID  && !g_persistentIdSet.count(persistentId)) {
@@ -4565,12 +4568,8 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32
     }
 
     g_persistentId++;
-    uint32_t maskedUserId = static_cast<uint32_t>(userId) & 0x000000FF; // userId use 8 bits
-    uint32_t maskedPersistentId = static_cast<uint32_t>(g_persistentId.load()) & 0x003FFFFF; // persistentId use 22 bits
-    int32_t tempPersistentId = (maskedUserId << 22) | maskedPersistentId;
-    while (g_persistentIdSet.count(tempPersistentId)) {
+    while (g_persistentIdSet.count(g_persistentId)) {
         g_persistentId++;
-        tempPersistentId++;
     }
     if (isExtension) {
         constexpr uint32_t pidLength = 18;
@@ -4581,9 +4580,9 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32
             (static_cast<uint32_t>(g_persistentId.load()) & persistentIdMask);
         persistentId_ = assembledPersistentId | 0x40000000;
     } else {
-        persistentId_ = tempPersistentId;
+        persistentId_ = static_cast<uint32_t>(g_persistentId.load()) & 0x3fffffff;
     }
-    g_persistentIdSet.insert(persistentId_);
+    g_persistentIdSet.insert(g_persistentId);
     TLOGI(WmsLogTag::WMS_LIFE,
         "persistentId: %{public}d, persistentId_: %{public}d", persistentId, persistentId_);
 }
