@@ -789,7 +789,8 @@ struct SystemBarPropertyFlag {
             contentColorFlag == other.contentColorFlag && enableAnimationFlag == other.enableAnimationFlag);
     }
 
-    bool Contains(const SystemBarPropertyFlag& other) const {
+    bool Contains(const SystemBarPropertyFlag& other) const
+    {
         return (enableFlag || !other.enableFlag) && (backgroundColorFlag || !other.backgroundColorFlag) &&
             (contentColorFlag || !other.contentColorFlag) && (enableAnimationFlag || !other.enableAnimationFlag);
     }
