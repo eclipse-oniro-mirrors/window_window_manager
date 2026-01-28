@@ -1006,7 +1006,7 @@ HWTEST_F(PcFoldScreenControllerTest, RegisterFullScreenWaterfallModeChangeCallba
     controller_->RegisterFullScreenWaterfallModeChangeCallback(std::move(func1));
     ASSERT_NE(controller_->fullScreenWaterfallModeChangeCallback_, nullptr);
     controller_->UnregisterFullScreenWaterfallModeChangeCallback();
-    ASSERT_NE(controller_->fullScreenWaterfallModeChangeCallback_, nullptr);
+    ASSERT_EQ(controller_->fullScreenWaterfallModeChangeCallback_, nullptr);
 
     // register and execute
     controller_->isFullScreenWaterfallMode_ = true;
