@@ -160,10 +160,10 @@ WSError ExtensionSessionManager::RequestExtensionSessionBackground(const sptr<Ex
     auto abilitySessionInfo = SetAbilitySessionInfo(extensionSession);
     wptr<ExtensionSession> weakExtSession(extensionSession);
     auto task = [this, weakExtSession, callback = std::move(resultCallback),
-        extSessionInfo = std::move(abilitySessionInfo)]() {
+        extSessionInfo = std::move(abilitySessionInfo), where = __func__]() {
         auto extSession = weakExtSession.promote();
         if (extSession == nullptr) {
-            WLOGFE("session is nullptr");
+            TLOGNE(WmsLogTag::WMS_UIEXT, "session is nullptr");
             return WSError::WS_ERROR_NULLPTR;
         }
         auto persistentId = extSession->GetPersistentId();
@@ -172,7 +172,8 @@ WSError ExtensionSessionManager::RequestExtensionSessionBackground(const sptr<Ex
         extSession->SetActive(false);
         extSession->Background();
         if (IsExtensionSessionInvalid(persistentId)) {
-            WLOGFE("RequestExtensionSessionBackground Session is invalid! persistentId:%{public}d", persistentId);
+            TLOGNE(WmsLogTag::WMS_UIEXT, "%{public}s Session is invalid! persistentId:%{public}d",
+                where, persistentId);
             return WSError::WS_ERROR_INVALID_SESSION;
         }
         auto errorCode = AAFwk::AbilityManagerClient::GetInstance()->MinimizeUIExtensionAbility(extSessionInfo);
