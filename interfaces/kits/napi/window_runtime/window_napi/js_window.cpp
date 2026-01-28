@@ -1145,7 +1145,7 @@ napi_value JsWindow::SetWindowContainerColor(napi_env env, napi_callback_info in
 
 napi_value JsWindow::SetWindowContainerModalColor(napi_env env, napi_callback_info info)
 {
-    TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    TLOGI(WmsLogTag::WMS_DECOR, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnSetWindowContainerModalColor(env, info) : nullptr;
 }
@@ -2795,7 +2795,7 @@ napi_value JsWindow::OnGetWindowPropertiesSync(napi_env env, napi_callback_info 
             "[window][getWindowProperties]msg: The window is not created or destroyed");
     }
     auto objValue = CreateJsWindowPropertiesObject(env, windowPropertyInfo);
-    TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "Get Prop, wid: %{public}u", windowToken_->GetWindowId());
+    TLOGND(WmsLogTag::WMS_ATTRIBUTE, "Get Prop, wid: %{public}u", windowToken_->GetWindowId());
     if (objValue != nullptr) {
         return objValue;
     } else {

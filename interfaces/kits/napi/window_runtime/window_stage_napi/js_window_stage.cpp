@@ -829,7 +829,8 @@ napi_value JsWindowStage::OnSetCustomDensity(napi_env env, napi_callback_info in
     }
 
     bool applyToSubWindow = false;
-    if (GetType(env, argv[INDEX_ONE]) != napi_undefined && GetType(env, argv[INDEX_ONE]) != napi_null) {
+    if (argc == ARG_COUNT_TWO &&
+        GetType(env, argv[INDEX_ONE]) != napi_undefined && GetType(env, argv[INDEX_ONE]) != napi_null) {
         if (!ConvertFromJsValue(env, argv[INDEX_ONE], applyToSubWindow)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to convert parameter to boolean");
             return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
