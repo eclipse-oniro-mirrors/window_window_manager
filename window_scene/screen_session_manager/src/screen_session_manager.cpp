@@ -274,6 +274,11 @@ static const std::map<DisplayState, ScreenPowerEvent> POWER_STATE_CHANGE_MAP = {
     {DisplayState::DOZE_SUSPEND, ScreenPowerEvent::SET_DISPLAY_STATE_DOZE_SUSPEND}
 };
 
+static const std::unordered_map<std::string, GraphicCM_ColorSpaceType> GRAPHIC_COLOR_SPACE_MAP = {
+    {"sRGB", GraphicCM_ColorSpaceType::GRAPHIC_CM_SRGB_FULL},
+    {"P3", GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL}
+};
+
 // based on the bundle_util
 // LCOV_EXCL_START
 inline int32_t GetUserIdByCallingUid()
@@ -1971,6 +1976,62 @@ void ScreenSessionManager::HandlePhysicalMirrorConnect(sptr<ScreenSession> scree
             ScreenPowerUtils::EnablePowerForceTimingOut();
             DisablePowerOffRenderControl(0);
         }
+        HandlePhysicalMirrorColorSpaceWithDeiveType();
+    }
+}
+
+void ScreenSessionManager::HandlePhysicalMirrorColorSpaceWithDeiveType()
+{
+    std::string deviceType = DEVICE_TYPE;
+    std::transform(deviceType.begin(), deviceType.end(), deviceType.begin(), ::tolower);
+    if (deviceType == "phone" || deviceType == "pc") {
+        HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_SRGB_FULL);
+        return;
+    }
+    if (deviceType == "tablet") {
+        RegisterSettingWiredScreenGamutObserver();
+        return;
+    }
+    if (g_isPcDevice) {
+        HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL);
+        return;
+    }
+}
+
+void ScreenSessionManager::HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType colorSpace)
+{
+    if (colorSpace == lastPhysicalMirrorColorSpace_) {
+        return;
+    }
+    lastPhysicalMirrorColorSpace_ = colorSpace;
+    auto screenIds = GetAllScreenIds();
+    if (screenIds.empty()) {
+        TLOGNFE(WmsLogTag::DMS, "no screenId");
+        return;
+    }
+    for (ScreenId screenId : screenIds) {
+        if (!IsDefaultMirrorMode(screenId)) {
+            continue;
+        }
+        auto screenSession = GetScreenSession(screenId);
+        if (screenSession == nullptr || screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr or virtual");
+            return;
+        }
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetScreenColorSpace(%" PRIu64", %u)", screenId, colorSpace);
+        int32_t ret = RSInterfaces::GetInstance().SetScreenColorSpace(screenId, colorSpace);
+        if (ret != StatusCode::SUCCESS) {
+            TLOGE(WmsLogTag::DMS,
+                  "SetMirrorColorSpace fail! ret:%{public}d, screenId:%{public}llu, colorSpace:%{public}d",
+                  ret,
+                  screenId,
+                  colorSpace);
+            return;
+        }
+        TLOGI(WmsLogTag::DMS,
+              "SetMirrorColorSpace success, screenId:%{public}llu, colorSpace:%{public}d",
+              screenId,
+              colorSpace);
     }
 }
 
@@ -1981,6 +2042,8 @@ void ScreenSessionManager::HandlePhysicalMirrorDisconnect(sptr<ScreenSession> sc
         RecoveryResolutionEffect();
         NotifyCastWhenScreenConnectChange(false);
         FreeDisplayMirrorNodeInner(screenSession);
+        ScreenSettingHelper::UnregisterSettingWiredScreenGamutObserver();
+        lastPhysicalMirrorColorSpace_ = GraphicCM_ColorSpaceType::GRAPHIC_CM_COLORSPACE_NONE;
         isPhyScreenConnected_ = false;
         if (!g_isPcDevice) {
             std::vector<ScreenId> screenIdsToExclude = { screenId };
@@ -10822,9 +10885,15 @@ bool ScreenSessionManager::HandleSwitchPcMode()
     }
     std::lock_guard<std::mutex> lock(pcModeSwitchMutex_);
     if (system::GetBoolParameter(IS_PC_MODE_KEY, false)) {
+        if (isPhyScreenConnected_) {
+            HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL);
+        }
         TLOGNFI(WmsLogTag::DMS, "PcMode change isPcDevice true");
         g_isPcDevice = true;
     } else {
+        if (isPhyScreenConnected_) {
+            RegisterSettingWiredScreenGamutObserver();
+        }
         TLOGNFI(WmsLogTag::DMS, "PadMode change isPcDevice false");
         g_isPcDevice = false;
     }
@@ -11127,6 +11196,9 @@ void ScreenSessionManager::SwitchScbNodeHandle(int32_t newUserId, int32_t newScb
     scbSwitchCV_.notify_all();
     oldScbDisplayMode_ = GetFoldDisplayMode();
     HandleResolutionEffectAfterSwitchUser();
+    if (isPhyScreenConnected_) {
+        RegisterSettingWiredScreenGamutObserver();
+    }
 #endif
 }
 
@@ -13330,6 +13402,26 @@ void ScreenSessionManager::SetBorderingAreaPercent()
             TLOGNFE(WmsLogTag::DMS, "get setting bordering area percent is:%{public}u", borderingAreaPercent);
         }
     }
+}
+
+void ScreenSessionManager::RegisterSettingWiredScreenGamutObserver()
+{
+    TLOGNFI(WmsLogTag::DMS, "Register Setting wired screen gamut Observer");
+    SettingObserver::UpdateFunc updateFunc = [&](const std::string& key) { SetWiredScreenGamut(); };
+    ScreenSettingHelper::RegisterSettingWiredScreenGamutObserver(DmUtils::wrap_callback(updateFunc));
+}
+
+void ScreenSessionManager::SetWiredScreenGamut()
+{
+    std::string gamut = ScreenSettingHelper::GetWiredScreenGamut();
+    TLOGI(WmsLogTag::DMS, "wired screen gamut=%{public}s", gamut.c_str());
+    auto iter = GRAPHIC_COLOR_SPACE_MAP.find(gamut);
+    if (iter == GRAPHIC_COLOR_SPACE_MAP.end()) {
+        TLOGNFE(WmsLogTag::DMS, "wired screen gamut is error");
+        return;
+    }
+    GraphicCM_ColorSpaceType colorSpace = iter->second;
+    HandlePhysicalMirrorColorSpace(colorSpace);
 }
 
 void ScreenSessionManager::RegisterSettingExtendScreenDpiObserver()

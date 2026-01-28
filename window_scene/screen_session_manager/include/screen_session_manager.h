@@ -264,6 +264,8 @@ public:
     bool IsMultiScreenCollaboration();
     bool HasCastEngineOrPhyMirror(const std::vector<ScreenId>& screenIdsToExclude);
     void HandlePhysicalMirrorConnect(sptr<ScreenSession> screenSession, bool phyMirrorEnable);
+    void HandlePhysicalMirrorColorSpaceWithDeiveType();
+    void HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType colorSpace);
     sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId) override;
     sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId, int32_t width, int32_t height, Rotation rotation) override;
     DMError HasImmersiveWindow(ScreenId screenId, bool& immersive) override;
@@ -979,6 +981,8 @@ private:
     std::atomic<bool> isLandscapeLockStatus_ = false;
     std::atomic<bool> isExtendMode_ = false;
 
+    GraphicCM_ColorSpaceType lastPhysicalMirrorColorSpace_{GraphicCM_ColorSpaceType::GRAPHIC_CM_COLORSPACE_NONE};
+
     /**
      * On/Off screen
      */
@@ -1082,6 +1086,8 @@ private:
     void SetExtendScreenDpi();
     void SetExtendScreenIndepDpi();
     void RegisterSettingBorderingAreaPercentObserver();
+    void RegisterSettingWiredScreenGamutObserver();
+    void SetWiredScreenGamut();
     void SetBorderingAreaPercent();
     bool HandleSwitchPcMode();
     void SwitchModeHandleExternalScreen(bool isSwitchToPcMode);

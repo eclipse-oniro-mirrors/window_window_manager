@@ -38,6 +38,7 @@ const std::string SETTING_URI_PROXY = "datashare:///com.ohos.settingsdata/entry/
 const std::string WALL_KEY = "wallpaperAodDisplay";
 const std::string SETTING_RESOLUTION_EFFECT_KEY = "user_set_resolution_effect_select";
 const std::string SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY  = "bordering_area_percent";
+const std::string SETTING_DISPLY_WIRED_SCREEN_GAMUT_KEY = "settings.display.wired_screen_gamut";
 const std::string DURING_CALL_KEY = "during_call_state";
 const std::string SETTING_MULTI_USER_URI = "datashare:///com.ohos.settingsdata/entry/settingsdata/";
 const std::string SETTING_MULTI_USER_TABLE = "USER_SETTINGSDATA_";
@@ -140,7 +141,8 @@ ErrCode SettingProvider::RegisterObserver(const sptr<SettingObserver>& observer)
     std::string callingIdentity = IPCSkeleton::ResetCallingIdentity();
     Uri uri = ((observer->GetKey() == DURING_CALL_KEY ||
         observer->GetKey() == SETTING_RESOLUTION_EFFECT_KEY ||
-        observer->GetKey() ==  SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY)) ?
+        observer->GetKey() == SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY ||
+        observer->GetKey() == SETTING_DISPLY_WIRED_SCREEN_GAMUT_KEY)) ?
         AssembleUriMultiUser(observer->GetKey()) : AssembleUri(observer->GetKey());
     auto helper = CreateDataShareHelper();
     if (helper == nullptr) {
