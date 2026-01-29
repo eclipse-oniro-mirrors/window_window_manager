@@ -478,6 +478,7 @@ struct SessionInfo {
     std::string hostBundleName = "";
     int32_t hostAppIndex = 0;
     std::string hostAppInstanceKey = "";
+    std::string hostAbilityName = "";
 
     /*
      * Keyboard
