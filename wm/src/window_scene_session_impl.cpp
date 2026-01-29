@@ -1933,8 +1933,10 @@ WMError WindowSceneSessionImpl::ShowKeyboard(
         effectOption.gradientMode_ = KeyboardGradientMode::NONE;
     }
     property_->SetKeyboardEffectOption(effectOption);
-    property_->SetCallingSessionId(callingWindowId);
-    property_->SetDisplayId(tgtDisplayId);
+    if (property_->GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS_BAR) {
+        property_->SetCallingSessionId(callingWindowId);
+        property_->SetDisplayId(tgtDisplayId);
+    }
     return Show();
 }
 
