@@ -3503,7 +3503,7 @@ WMError SceneSessionManagerProxy::SetScreenPrivacyWindowTagSwitch(
     }
     for (const auto& privacyWidnowTag: privacyWindowTags) {
         if (!data.WriteString(privacyWidnowTag)) {
-            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write privacyWind   owTag failed");
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write privacyWindowTag failed");
             return WMError::WM_ERROR_IPC_FAILED;
         }
     }
