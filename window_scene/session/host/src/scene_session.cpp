@@ -571,6 +571,7 @@ WSError SceneSession::NotifyFrameLayoutFinishFromApp(bool notifyListener, const 
             TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s, set rect and notifyListener.", where);
             session->layoutRect_ = rect;
         }
+        session->lastSnapshotScreen_ = WSSnapshotHelper::GetInstance()->GetScreenStatus();
         session->NotifyLayoutFinished();
         if (notifyListener && session->frameLayoutFinishFunc_) {
             TLOGND(WmsLogTag::WMS_MULTI_WINDOW, "%{public}s id: %{public}d", where, session->GetPersistentId());
