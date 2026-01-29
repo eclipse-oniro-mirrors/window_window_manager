@@ -448,6 +448,8 @@ private:
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
 
     bool EventDownInit(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    float GetVirtualPixelRatio(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const;
+    WSRect CalcFirstOriginalRectPos(const WSRect& windowRect) const;
     bool CalcMoveInputBarRect(
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const WSRect& originalRect, SizeChangeReason reason);
     void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);

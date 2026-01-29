@@ -1271,13 +1271,7 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
     hasPointDown_ = true;
     auto originalRect = CallSceneSession(&SceneSession::GetGlobalOrWinRect, WSRect::EMPTY_RECT);
     moveDragProperty_.originalRect_ = originalRect;
-    auto display = DisplayManager::GetInstance().GetDisplayById(
-        static_cast<uint64_t>(pointerEvent->GetTargetDisplayId()));
-    if (display) {
-        vpr_ = display->GetVirtualPixelRatio();
-    } else {
-        vpr_ = 1.5f; // 1.5f: default virtual pixel ratio
-    }
+    vpr_ = GetVirtualPixelRatio(pointerEvent);
     const auto sourceType = pointerEvent->GetSourceType();
     int outside = (sourceType == MMI::PointerEvent::SOURCE_TYPE_MOUSE) ? HOTZONE_POINTER * vpr_ : HOTZONE_TOUCH * vpr_;
     type_ = SessionHelper::GetAreaType(pointerItem.GetWindowX(), pointerItem.GetWindowY(), sourceType, outside, vpr_,
@@ -1301,12 +1295,42 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
     if (MathHelper::NearZero(aspectRatio_)) {
         CalcFreeformTranslateLimits(type_);
     }
-    moveDragProperty_.originalRect_.posX_ = (originalRect.posX_ - parentRect_.posX_) / moveDragProperty_.scaleX_;
-    moveDragProperty_.originalRect_.posY_ = (originalRect.posY_ - parentRect_.posY_) / moveDragProperty_.scaleY_;
+    originalRect = CalcFirstOriginalRectPos(originalRect);
+    moveDragProperty_.originalRect_.posX_ = originalRect.posX_;
+    moveDragProperty_.originalRect_.posY_ = originalRect.posY_;
     mainMoveAxis_ = AxisType::UNDEFINED;
     SetStartDragFlag(true);
     NotifyWindowInputPidChange(isStartDrag_);
     return true;
+}
+
+float MoveDragController::GetVirtualPixelRatio(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const
+{
+    auto display = DisplayManager::GetInstance().GetDisplayById(
+        static_cast<uint64_t>(pointerEvent->GetTargetDisplayId()));
+    float defaultVpr = 1.5f;
+    return display ? display->GetVirtualPixelRatio() : defaultVpr;
+}
+
+WSRect MoveDragController::CalcFirstOriginalRectPos(const WSRect& windowRect) const
+{
+    // Calculate the original position of a window rect (in parent coordinates).
+    WSRect originalRect;
+    if (MathHelper::NearZero(moveDragProperty_.scaleX_) || MathHelper::NearZero(moveDragProperty_.scaleY_)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "scale ratio is 0");
+        return windowRect;
+    }
+    // For system windows the position is independent of the parent and must not be adjusted
+    // by the parent offset.
+    // For dialog or subwindow the parent position is subtracted before unscaling.
+    if (WindowHelper::IsDialogWindow(winType_) || WindowHelper::IsSubWindow(winType_)) {
+        originalRect.posX_ = (windowRect.posX_ - parentRect_.posX_) / moveDragProperty_.scaleX_;
+        originalRect.posY_ = (windowRect.posY_ - parentRect_.posY_) / moveDragProperty_.scaleY_;
+    } else {
+        originalRect.posX_ = windowRect.posX_ / moveDragProperty_.scaleX_;
+        originalRect.posY_ = windowRect.posY_ / moveDragProperty_.scaleY_;
+    }
+    return originalRect;
 }
 
 /** @note @window.drag */
@@ -1624,12 +1648,9 @@ void MoveDragController::CalcFirstMoveTargetRect(const WSRect& windowRect, bool 
         return;
     }
 
-    WSRect originalRect = {
-        (windowRect.posX_ - parentRect_.posX_) / moveDragProperty_.scaleX_,
-        (windowRect.posY_ - parentRect_.posY_) / moveDragProperty_.scaleY_,
-        windowRect.width_,
-        windowRect.height_
-    };
+    WSRect originalRect = CalcFirstOriginalRectPos(windowRect);
+    originalRect.width_ = windowRect.width_;
+    originalRect.height_ = windowRect.height_;
     if (useWindowRect) {
         originalRect.posX_ = windowRect.posX_;
         originalRect.posY_ = windowRect.posY_;
