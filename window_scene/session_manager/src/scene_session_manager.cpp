@@ -1947,7 +1947,7 @@ AvoidArea SceneSessionManager::GetRootSessionAvoidAreaByType(AvoidAreaType type,
 {
     if (auto rootSession = GetRootSceneSession()) {
         return ignoreVisibility ?
-            rootSession->GetAvoidAreaByType(type) : rootSession->GetAvoidAreaByTypeIgnoringVisibility(type);
+            rootSession->GetAvoidAreaByTypeIgnoringVisibility(type) : rootSession->GetAvoidAreaByType(type);
     }
     return {};
 }
