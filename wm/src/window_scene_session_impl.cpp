@@ -6259,10 +6259,10 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     NotifyFreeWindowModeChange(enable);
     // Switch process finish, update system config
     SetFreeMultiWindowMode(enable);
+    UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     if (enable) {
         PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
     }
-    UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     UpdateEnableDragWhenSwitchMultiWindow(enable);
     if (!enable && !WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
@@ -6317,7 +6317,10 @@ void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScree
 
 void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable)
 {
-    if (freeMultiWindowEnable && enableImmersiveMode_) {
+    uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
+    if (freeMultiWindowEnable && enableImmersiveMode_ &&
+        (WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING) &&
+        !isAnco)) {
         maximizeLayoutFullScreen_.store(false);
         cacheEnableImmersiveMode_.store(true);
         enableImmersiveMode_.store(false);
@@ -6329,13 +6332,21 @@ void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEna
         }
     }
     if (!freeMultiWindowEnable) {
-        if (maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_) {
-            SetLayoutFullScreenByApiVersion(false);
+        // remove immersive mode if non-immersive in pad mode and enter immersive using the maximize in freeMultiWindow
+        bool isNeedRemoveMaximizeLayout = maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_;
+        // recover immersive mode if immersive in pad mode
+        bool isNeedRecoverLayout = cacheEnableImmersiveMode_ &&
+            (WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING) &&
+            !IsAnco());
+        if (isNeedRemoveMaximizeLayout) {
             maximizeLayoutFullScreen_.store(false);
+            enableImmersiveMode_.store(false);
         }
-        if (cacheEnableImmersiveMode_) {
+        if (isNeedRecoverLayout) {
             enableImmersiveMode_.store(true);
             cacheEnableImmersiveMode_.store(false);
+        }    
+        if (isNeedRemoveMaximizeLayout || isNeedRecoverLayout) {
             property_->SetIsLayoutFullScreen(enableImmersiveMode_);
             SetLayoutFullScreenByApiVersion(enableImmersiveMode_);
             if (auto hostSession = GetHostSession()) {
