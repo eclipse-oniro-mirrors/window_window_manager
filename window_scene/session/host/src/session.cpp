@@ -3006,6 +3006,9 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
+    if (isAppLockControl_.load() == isAppUseControl) {
+        return;
+    }
     isAppLockControl_.store(isAppUseControl);
     if (isAppUseControl) {
         if (IsPersistentImageFit()) {
@@ -3106,17 +3109,6 @@ void Session::ResetPreloadSnapshot()
 {
     std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
     preloadSnapshot_ = nullptr;
-}
-
-void Session::SetEnableAddSnapshot(bool enableAddSnapshot)
-{
-    TLOGI(WmsLogTag::WMS_PATTERN, "enableAddSnapshot: %{public}d", enableAddSnapshot);
-    enableAddSnapshot_ = enableAddSnapshot;
-}
-
-bool Session::GetEnableAddSnapshot() const
-{
-    return enableAddSnapshot_;
 }
 
 void Session::SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap)

@@ -17,6 +17,7 @@
 #define OHOS_PIP_OPTION_H
 #include <refbase.h>
 #include <string>
+#include "js_runtime_utils.h"
 #include "napi/native_api.h"
 #include "wm_common.h"
 #include "xcomponent_controller.h"
@@ -28,7 +29,6 @@ class PipOption : virtual public RefBase {
 public:
     explicit PipOption();
     virtual ~PipOption() = default;
-    void ClearNapiRefs(napi_env env);
     void SetContext(void* contextPtr);
     void SetNavigationId(const std::string& navigationId);
     void SetPipTemplate(uint32_t templateType);
@@ -37,8 +37,10 @@ public:
     void SetPiPControlStatus(PiPControlType controlType, PiPControlStatus status);
     void SetPiPControlEnabled(PiPControlType controlType, PiPControlStatus enabled);
     void SetXComponentController(std::shared_ptr<XComponentController> xComponentController);
-    void SetControlGroup(std::vector<std::uint32_t> controlGroup);
     void SetCornerAdsorptionEnabled(bool cornerAdsorptionEnabled);
+    void RegisterPipContentListenerWithType(const std::string&, std::shared_ptr<NativeReference> updateNodeCallbackRef);
+    void UnRegisterPipContentListenerWithType(const std::string&);
+    void SetControlGroup(std::vector<std::uint32_t> controlGroup);
     void* GetContext() const;
     std::string GetNavigationId() const;
     uint32_t GetPipTemplate();
@@ -48,13 +50,14 @@ public:
     std::vector<PiPControlEnableInfo> GetControlEnable();
     void GetContentSize(uint32_t& width, uint32_t& height);
     std::shared_ptr<XComponentController> GetXComponentController();
-    bool GetCornerAdsorptionEnabled() const;
-    void SetNodeControllerRef(napi_ref ref);
-    napi_ref GetNodeControllerRef() const;
-    void SetTypeNodeRef(napi_ref ref);
-    napi_ref GetTypeNodeRef() const;
-    void SetStorageRef(napi_ref ref);
-    napi_ref GetStorageRef() const;
+    bool GetCornerAdsorptionEnabled();
+    std::shared_ptr<NativeReference> GetPipContentCallbackRef(const std::string&);
+    void SetNodeControllerRef(std::shared_ptr<NativeReference> ref);
+    std::shared_ptr<NativeReference> GetNodeControllerRef() const;
+    void SetTypeNodeRef(std::shared_ptr<NativeReference> ref);
+    std::shared_ptr<NativeReference> GetTypeNodeRef() const;
+    void SetStorageRef(std::shared_ptr<NativeReference> ref);
+    std::shared_ptr<NativeReference> GetStorageRef() const;
     void SetTypeNodeEnabled(bool enable);
     bool IsTypeNodeEnabled() const;
     uint32_t GetPipPriority(uint32_t pipTemplateType) const;
@@ -73,11 +76,12 @@ private:
     std::vector<PiPControlEnableInfo> pipControlEnableInfoList_;
     std::vector<std::uint32_t> controlGroup_;
     std::shared_ptr<XComponentController> xComponentController_ = nullptr;
-    napi_ref customNodeController_ = nullptr;
-    napi_ref typeNode_ = nullptr;
+    std::map<std::string, std::shared_ptr<NativeReference>> pipContentlistenerMap_;
+    std::shared_ptr<NativeReference> customNodeController_ = nullptr;
+    std::shared_ptr<NativeReference> typeNode_ = nullptr;
     bool useTypeNode_ = false;
     bool cornerAdsorptionEnabled_ = true;
-    napi_ref storage_ = nullptr;
+    std::shared_ptr<NativeReference> storage_ = nullptr;
     int32_t handleId_ = -1;
 };
 }

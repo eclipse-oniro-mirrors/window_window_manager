@@ -5926,10 +5926,6 @@ void SceneSessionManager::StopDelayedFlushWindowInfoToMMITask() {
 
 void SceneSessionManager::HandleUserSwitching(bool isUserActive)
 {
-    // A brief screen freeze may occur when handling a switching event.
-    // Record the duration and report it to HiSysEvent for troubleshooting.
-    UserSwitchReporter reporter(isUserActive);
-
     isUserBackground_ = !isUserActive;
     SceneInputManager::GetInstance().SetUserBackground(!isUserActive);
     if (isUserActive) { // switch to current user
@@ -5970,9 +5966,13 @@ void SceneSessionManager::HandleUserSwitch(const UserSwitchEventType type, const
     }
 
     taskScheduler_->PostSyncTask([this, type, isUserActive, where = __func__] {
+        // A brief screen freeze may occur when handling a user switch event,
+        // record the duration and report it to HiSysEvent for troubleshooting.
+        UserSwitchReporter reporter(type, isUserActive);
+
         TLOGNI(WmsLogTag::WMS_MULTI_USER,
-               "%{public}s: currentUserId: %{public}d, switchEventType: %{public}u, isUserActive: %{public}u",
-               where, currentUserId_.load(), type, isUserActive);
+            "%{public}s: currentUserId: %{public}d, switchEventType: %{public}u, isUserActive: %{public}u",
+            where, currentUserId_.load(), type, isUserActive);
         switch (type) {
             case UserSwitchEventType::SWITCHING: {
                 HandleUserSwitching(isUserActive);
@@ -10686,12 +10686,13 @@ WSError SceneSessionManager::GetSessionInfos(const std::string& deviceId, int32_
 
 WSError SceneSessionManager::GetMainWindowStatesByPid(int32_t pid, std::vector<MainWindowState>& windowStates)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "pid:%{public}d", pid);
+    TLOGD(WmsLogTag::WMS_LIFE, "pid:%{public}d", pid);
     if (!SessionPermission::IsSACalling() && !SessionPermission::IsShellCall()) {
         TLOGE(WmsLogTag::WMS_LIFE, "Get all mainWindow states failed, only support SA calling.");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
     if (pid < 0) {
+        TLOGE(WmsLogTag::WMS_LIFE, "invalid pid");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
     auto task = [this, pid, &windowStates] {

@@ -106,6 +106,7 @@ group("unittest") {
 
 test_external_deps = [
   "ability_base:configuration",
+  "ability_runtime:ability_connect_callback_stub",
   "ability_runtime:ability_manager",
   "ability_runtime:app_manager",
   "ability_runtime:session_handler",

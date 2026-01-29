@@ -212,33 +212,33 @@ bool AniFbController::CheckParams(ani_env* env, const FbOption& option)
     if (option.GetTemplate() < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
         option.GetTemplate() >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]template is invalid");
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "template is invalid");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "template is invalid");
         return false;
     }
     if (option.GetTitle().length() < TITLE_MIN_LEN || option.GetTitle().length() > TITLE_MAX_LEN) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]title length Exceed the limit %{public}zu", option.GetTitle().length());
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "title is invalid");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "title is invalid");
         return false;
     }
     if (option.GetContent().length() > CONTENT_MAX_LEN) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]content length Exceed the limit %{public}zu", option.GetContent().length());
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "content length Exceed the limit");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "content length Exceed the limit");
         return false;
     }
     if (option.GetIcon() != nullptr && option.GetIcon()->GetByteCount() > PIXEL_MAP_MAX_SIZE) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]icon size Exceed the limit %{public}d", option.GetIcon()->GetByteCount());
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "icon size Exceed the limit");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "icon size Exceed the limit");
         return false;
     }
     if (!option.GetBackgroundColor().empty() && !ColorParser::IsValidColorNoAlpha(option.GetBackgroundColor())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]backgroundColor is invalid");
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "backgroundColor is invalid");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "backgroundColor is invalid");
         return false;
     }
     if (option.GetTemplate() == static_cast<uint32_t>(FloatingBallTemplate::STATIC) &&
         option.GetIcon() == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]template %{public}u need icon", option.GetTemplate());
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "current template need icon");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "current template need icon");
         return false;
     }
     return true;
@@ -251,13 +251,13 @@ void AniFbController::StartFloatingBallAni(ani_env* env,
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
     if (!Permission::CheckCallingPermission("ohos.permission.USE_FLOAT_BALL")) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_NO_PERMISSION,
+        AniThrowError(env, WmErrorCode::WM_ERROR_NO_PERMISSION,
             "[FB]no permission ohos.permission.USE_FLOAT_BALL to start floatingBall");
         return;
     }
     // paramsInterface check
     if (paramsInterface == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]paramsInterface is nullptr");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]paramsInterface is nullptr");
         return;
     }
     ani_boolean isUndefined = false;
@@ -265,14 +265,14 @@ void AniFbController::StartFloatingBallAni(ani_env* env,
     env->Reference_IsUndefined(paramsInterface, &isUndefined);
     env->Reference_IsNull(paramsInterface, &isNull);
     if (isUndefined || isNull) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]paramsInterface is undefined or null");
         return;
     }
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }
@@ -285,13 +285,13 @@ void AniFbController::OnstartFloatingBallAni(ani_env* env, ani_object paramsInte
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
     // check nullptr
     if (fbController_ == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
         return;
     }
     // fbOption
     FbOption fbOption;
     if (GetFbOption(env, paramsInterface, fbOption) == false) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]Invalid parameters, please check if title is null, or parameter is invalid");
         return;
     }
@@ -303,7 +303,7 @@ void AniFbController::OnstartFloatingBallAni(ani_env* env, ani_object paramsInte
     // check result
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fbController_->StartFloatingBall failed");
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]internal error");
+        AniThrowError(env, errCode, "[FB]internal error");
         return;
     }
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]OnstartFloatingBallAni finish");
@@ -318,7 +318,7 @@ void AniFbController::UpdateFloatingBallAni(ani_env* env,
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }
@@ -331,13 +331,13 @@ void AniFbController::OnupdateFloatingBallAni(ani_env* env, ani_object paramsInt
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
     // check nullptr
     if (fbController_ == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
         return;
     }
     // get fbOption
     FbOption fbOption;
     if (GetFbOption(env, paramsInterface, fbOption) == false) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]Invalid parameters, please check if title is null, or parameter is invalid");
         return;
     }
@@ -349,7 +349,7 @@ void AniFbController::OnupdateFloatingBallAni(ani_env* env, ani_object paramsInt
     // check result
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fbController_->UpdateFloatingBall failed");
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]internal error");
+        AniThrowError(env, errCode, "[FB]internal error");
         return;
     }
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]OnupdateFloatingBallAni finish");
@@ -361,7 +361,7 @@ void AniFbController::StopFloatingBallAni(ani_env* env, ani_object obj, ani_long
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }
@@ -370,7 +370,7 @@ void AniFbController::StopFloatingBallAni(ani_env* env, ani_object obj, ani_long
         ani_ref undef = AniGetUndefined(env);
         aniFbController->OnUnRegisterCallback(env, FbListenerType::CLICK_CB, undef, aniFbController);
     } else {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]OnstopFloatingBallAni failed");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]OnstopFloatingBallAni failed");
     }
 }
 
@@ -379,14 +379,14 @@ bool AniFbController::OnstopFloatingBallAni(ani_env* env)
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
     // check nullptr
     if (fbController_ == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
         return false;
     }
     // working
     WMError errCode = fbController_->StopFloatingBallFromClient();
     // check result
     if (errCode != WMError::WM_OK) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]internal error");
+        AniThrowError(env, errCode, "[FB]internal error");
         return false;
     }
     return true;
@@ -398,7 +398,7 @@ ani_object AniFbController::GetFloatingBallWindowInfoAni(ani_env* env, ani_objec
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        return AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        return AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
     }
     // working
@@ -411,14 +411,14 @@ ani_object AniFbController::OnGetFloatingBallWindowInfoAni(ani_env* env)
     // check nullptr
     if (fbController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]AniFbController is nullptr");
-        AniThrowError<WMError>(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "[FB]floating ball internal error");
+        AniThrowError(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "[FB]floating ball internal error");
         return static_cast<ani_object>(AniGetUndefined(env));
     }
     // get windowId
     uint32_t windowId;
     WMError errCode = fbController_->GetFloatingBallWindowInfo(windowId);
     if (errCode != WMError::WM_OK) {
-        AniThrowError<WMError>(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "[FB]GetFloatingBallWindowInfo failed");
+        AniThrowError(env, errCode, "[FB]GetFloatingBallWindowInfo failed");
         return static_cast<ani_object>(AniGetUndefined(env));
     }
     // wrap windowId to ani_interface(ani_object)
@@ -464,13 +464,13 @@ void AniFbController::RestoreMainWindowAni(ani_env* env, ani_object obj, ani_lon
     env->Reference_IsUndefined(want, &isUndefined);
     env->Reference_IsNull(want, &isNull);
     if (isUndefined || isNull) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]want is undefined or null");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]want is undefined or null");
         return;
     }
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }
@@ -484,15 +484,19 @@ void AniFbController::OnrestoreMainWindowAni(ani_env* env, ani_object want)
     // get AAFwk::Want
     AAFwk::Want wantValue;
     if (!AppExecFwk::UnwrapWant(env, want, wantValue)) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]unWrap want failed");
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "[FB]unWrap want failed");
         return;
     }
     // working
     std::shared_ptr<AAFwk::Want> abilityWant = std::make_shared<AAFwk::Want>(wantValue);
+    if (abilityWant == nullptr || abilityWant->GetBundle().empty()) {
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "[FB]abilityWant is invalid");
+        return;
+    }
     WMError errCode = fbController_->RestoreMainWindow(abilityWant);
     // check result
     if (errCode != WMError::WM_OK) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]internal error");
+        AniThrowError(env, errCode, "[FB]internal error");
         return;
     }
 }
@@ -524,7 +528,7 @@ void AniFbController::RegisterFbOnClickCallback(ani_env* env, ani_object obj, an
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }
@@ -539,7 +543,7 @@ void AniFbController::OnRegisterFbOnClickCallback(ani_env* env, ani_ref callback
     WmErrorCode ret = aniFbController->RegisterListenerOnClick(env, callback);
     // check result
     if (ret != WmErrorCode::WM_OK) {
-        AniThrowError<WmErrorCode>(env, ret, "[FB]fbController_->RegisterListener failed");
+        AniThrowError(env, ret, "[FB]fbController_->RegisterListener failed");
         return;
     }
 }
@@ -549,7 +553,8 @@ WmErrorCode AniFbController::RegisterListenerOnClick(ani_env* env, ani_ref callb
     TLOGI(WmsLogTag::DEFAULT, "[FB]start");
     // IsCallbackRegistered
     if (IsCallbackRegistered(env, FbListenerType::CLICK_CB, callback)) {
-        return WmErrorCode::WM_OK;
+        TLOGE(WmsLogTag::DEFAULT, "[FB]Callback already registered");
+        return WmErrorCode::WM_ERROR_FB_REPEAT_OPERATION;
     }
     // parameters prepare
     ani_ref cbRef{};
@@ -608,7 +613,7 @@ void AniFbController::RegisterFbOnStateChangeCallback(ani_env* env,
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }
@@ -625,7 +630,7 @@ void AniFbController::OnRegisterFbOnStateChangeCallback(ani_env* env,
     WmErrorCode ret = aniFbController->RegisterListenerOnStateChange(env, callback);
     // check result
     if (ret != WmErrorCode::WM_OK) {
-        AniThrowError<WmErrorCode>(env, ret, "[FB]fbController_->RegisterListener failed");
+        AniThrowError(env, ret, "[FB]fbController_->RegisterListener failed");
         return;
     }
 }
@@ -635,7 +640,8 @@ WmErrorCode AniFbController::RegisterListenerOnStateChange(ani_env* env, ani_ref
     TLOGI(WmsLogTag::DEFAULT, "[FB]start");
     // IsCallbackRegistered
     if (IsCallbackRegistered(env, FbListenerType::STATE_CHANGE_CB, callback)) {
-        return WmErrorCode::WM_OK;
+        TLOGE(WmsLogTag::DEFAULT, "[FB]Callback already registered");
+        return WmErrorCode::WM_ERROR_FB_REPEAT_OPERATION;
     }
     // parameters prepare
     ani_ref cbRef{};
@@ -695,7 +701,7 @@ void AniFbController::UnRegisterFbOnClickCallback(ani_env* env,
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }
@@ -712,7 +718,7 @@ void AniFbController::UnRegisterFbOnStateChangeCallback(ani_env* env,
     // check nullptr
     AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
     if (aniFbController == nullptr) {
-        AniThrowError<WmErrorCode>(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
             "[FB]AniFbController* aniFbController for nativeObj is nullptr");
         return;
     }

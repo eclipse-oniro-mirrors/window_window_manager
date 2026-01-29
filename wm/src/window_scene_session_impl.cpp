@@ -216,6 +216,7 @@ void UpdateLimitIfInRange(uint32_t& currentLimit, uint32_t newLimit, uint32_t mi
 std::mutex WindowSceneSessionImpl::keyboardPanelInfoChangeListenerMutex_;
 using WindowSessionImplMap = std::map<std::string, std::pair<int32_t, sptr<WindowSessionImpl>>>;
 std::mutex WindowSceneSessionImpl::windowAttachStateChangeListenerMutex_;
+std::atomic<bool> WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
 
 WindowSceneSessionImpl::WindowSceneSessionImpl(const sptr<WindowOption>& option,
     const std::shared_ptr<RSUIContext>& rsUIContext) : WindowSessionImpl(option, rsUIContext)
@@ -725,6 +726,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
         SetDefaultDisplayIdIfNeed();
         SetTargetAPIVersion(SysCapUtil::GetApiCompatibleVersion());
         ret = Connect();
+        SendLogicalDeviceConfigToArkUI();
         TLOGD(WmsLogTag::WMS_PC, "targeAPItVersion: %{public}d", GetTargetAPIVersion());
     } else { // system or sub window
         TLOGI(WmsLogTag::WMS_LIFE, "Create system or sub window with type=%{public}d", GetType());
@@ -2369,7 +2371,7 @@ void WindowSceneSessionImpl::CheckMoveConfiguration(MoveConfiguration& moveConfi
 /** @note @window.layout */
 WMError WindowSceneSessionImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfiguration moveConfiguration)
 {
-    TLOGI_LMT(TEN_SECONDS, RECORD_200_TIMES, WmsLogTag::WMS_LAYOUT,
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
         "Id:%{public}d MoveTo:(%{public}d %{public}d) global:%{public}d cfg:%{public}s",
         property_->GetPersistentId(), x, y, isMoveToGlobal, moveConfiguration.ToString().c_str());
     if (IsWindowSessionInvalid()) {
@@ -2392,7 +2394,7 @@ WMError WindowSceneSessionImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal
         }
     }
     Rect newRect = { x, y, requestRect.width_, requestRect.height_ }; // must keep x/y
-    TLOGI_LMT(TEN_SECONDS, RECORD_200_TIMES, WmsLogTag::WMS_LAYOUT,
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
         "Id:%{public}d state:%{public}d type:%{public}d mode:%{public}d rect:"
         "%{public}s->%{public}s req=%{public}s", property_->GetPersistentId(), state_, GetType(), GetWindowMode(),
         windowRect.ToString().c_str(), newRect.ToString().c_str(), requestRect.ToString().c_str());
@@ -2868,7 +2870,10 @@ Ace::ViewportConfig WindowSceneSessionImpl::FillTargetOrientationConfig(
     auto deviceRotation = static_cast<uint32_t>(displayInfo->GetDefaultDeviceRotationOffset());
     uint32_t transformHint = (targetRotation * ONE_FOURTH_FULL_CIRCLE_DEGREE + deviceRotation) % FULL_CIRCLE_DEGREE;
     float density = GetVirtualPixelRatio(displayInfo);
-    virtualPixelRatio_ = density;
+    {
+        std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
+        virtualPixelRatio_ = density;
+    }
     config.SetSize(targetRect.width_, targetRect.height_);
     config.SetPosition(targetRect.posX_, targetRect.posY_);
     config.SetDensity(density);
@@ -4367,13 +4372,25 @@ WMError WindowSceneSessionImpl::SetImageForRecentPixelMap(const std::shared_ptr<
     ImageFit imageFit)
 {
     int32_t persistentId = GetPersistentId();
-    return SingletonContainer::Get<WindowAdapter>().SetImageForRecentPixelMap(pixelMap, imageFit, persistentId);
+    TLOGI(WmsLogTag::WMS_PATTERN,
+        "set imageForRecent, persistentId=%{public}d", persistentId);
+    WMError ret = SingletonContainer::Get<WindowAdapter>().SetImageForRecentPixelMap(pixelMap, imageFit, persistentId);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "set imageForRecent failed, ret=%{public}d", ret);
+    }
+    return ret;
 }
 
 WMError WindowSceneSessionImpl::RemoveImageForRecent()
 {
     int32_t persistentId = GetPersistentId();
-    return SingletonContainer::Get<WindowAdapter>().RemoveImageForRecent(persistentId);
+    TLOGI(WmsLogTag::WMS_PATTERN,
+        "remove imageForRecent, persistentId=%{public}d", persistentId);
+    WMError ret = SingletonContainer::Get<WindowAdapter>().RemoveImageForRecent(persistentId);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "remove imageForRecent failed, ret=%{public}d", ret);
+    }
+    return ret;
 }
 
 /** @note @window.drag */
@@ -7934,6 +7951,25 @@ void WindowSceneSessionImpl::SetForceSplitConfigEnable(bool enableForceSplit)
     TLOGI(WmsLogTag::WMS_COMPAT, "SetForceSplitEnable, enableForceSplit: %{public}u",
         enableForceSplit);
     uiContent->SetForceSplitEnable(enableForceSplit);
+}
+
+void WindowSceneSessionImpl::SendLogicalDeviceConfigToArkUI()
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "bundleName: %{public}s, logicalDeviceConfig: %{public}s",
+        property_->GetSessionInfo().bundleName_.c_str(), property_->GetLogicalDeviceConfig().c_str());
+    if (WindowSceneSessionImpl::hasSentLogicalDeviceConfig_) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Logical device config has already sent");
+        return;
+    }
+    Ace::UIContent::SetXComponentCompensationAngle(property_->GetLogicalDeviceConfig());
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = true;
+    if (property_->GetLogicalDeviceConfig() == "") {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send default logical device config to arkui");
+    } else if (property_->GetLogicalDeviceConfig() == "{}") {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send null logical device config to arkui");
+    } else {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Send logical device config to arkui successfully!");
+    }
 }
 
 WMError WindowSceneSessionImpl::GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo)

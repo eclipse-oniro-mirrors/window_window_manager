@@ -51,6 +51,7 @@ ohos_shared_library("cj_window_ffi") {
       "ability_runtime:abilitykit_native",
       "ability_runtime:dialog_request_info",
       "ability_runtime:extensionkit_native",
+      "ability_runtime:napi_common",
       "ability_runtime:runtime",
       "ability_runtime:wantagent_innerkits",
       "access_token:libaccesstoken_sdk",

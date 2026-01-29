@@ -687,8 +687,8 @@ void AniWindowManager::MinimizeAllWithExclusion(ani_env* env, ani_long nativeObj
 {
     TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");
     if (static_cast<int32_t>(excludeWindowId) <= 0) {
-        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] Minimize all failed, Invalidate params excludeWindowId : %{public}d.",
-            static_cast<int32_t>(excludeWindowId));
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] Minimize all failed, Invalidate params excludeWindowId: %{public}d.",
+            excludeWindowId);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }

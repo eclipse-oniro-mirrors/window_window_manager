@@ -254,7 +254,6 @@ private:
     static napi_value SaveSnapshotSync(napi_env env, napi_callback_info info);
     static napi_value SaveSnapshotAsync(napi_env env, napi_callback_info info);
     static napi_value SetBorderUnoccupied(napi_env env, napi_callback_info info);
-    static napi_value SetEnableAddSnapshot(napi_env env, napi_callback_info info);
     static napi_value SetFreezeImmediately(napi_env env, napi_callback_info info);
     static napi_value SendContainerModalEvent(napi_env env, napi_callback_info info);
     static napi_value SetExclusivelyHighlighted(napi_env env, napi_callback_info info);
@@ -355,7 +354,6 @@ private:
     napi_value OnSaveSnapshotSync(napi_env env, napi_callback_info info);
     napi_value OnSaveSnapshotAsync(napi_env env, napi_callback_info info);
     napi_value OnSetBorderUnoccupied(napi_env env, napi_callback_info info);
-    napi_value OnSetEnableAddSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSetFreezeImmediately(napi_env env, napi_callback_info info);
     napi_value OnMaskSupportEnterWaterfallMode(napi_env env, napi_callback_info info);
     napi_value OnUpdateFullScreenWaterfallMode(napi_env env, napi_callback_info info);

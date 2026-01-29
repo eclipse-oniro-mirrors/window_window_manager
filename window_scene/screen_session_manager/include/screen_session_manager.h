@@ -127,13 +127,14 @@ public:
     void NotifyScreenshot(DisplayId displayId);
     void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds);
     ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent) override;
+    std::vector<uint64_t> FilterMissionIdsBySurfaceNodeIds(const std::vector<uint64_t>& missionIds,
+        const std::vector<uint64_t>& surfaceNodeIds);
     void SetVirtualScreenUser(sptr<ScreenSession> screenSession, int32_t userId);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
     DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
     DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds) override;
     DMError RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds) override;
-    std::vector<uint64_t> ProcessMissionIdsToSurfaceNodeIds(const std::vector<uint64_t>& missionIds);
     DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay) override;
     virtual DMError SetScreenPrivacyMaskImage(ScreenId screenId,
         const std::shared_ptr<Media::PixelMap>& privacyMaskImg) override;
@@ -191,8 +192,9 @@ public:
     void NotifyDisplayDestroy(DisplayId displayId);
     void NotifyAndPublishEvent(sptr<DisplayInfo> displayInfo, ScreenId screenId, sptr<ScreenSession> screenSession);
     void NotifyDisplayChanged(sptr<DisplayInfo> displayInfo, DisplayChangeEvent event);
-    void CheckAttributeChange(sptr<DisplayInfo> displayInfo);
-    void NotifyDisplayAttributeChanged(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes);
+    void CheckAttributeChange(sptr<DisplayInfo> displayInfo, int32_t uid = INVALID_UID);
+    void NotifyDisplayAttributeChanged(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes,
+        int32_t uid = INVALID_UID);
     void GetChangedListenableAttribute(sptr<DisplayInfo> displayInfo1, sptr<DisplayInfo> displayInfo2,
         std::vector<std::string>& attributes);
 
@@ -265,6 +267,8 @@ public:
     bool IsMultiScreenCollaboration();
     bool HasCastEngineOrPhyMirror(const std::vector<ScreenId>& screenIdsToExclude);
     void HandlePhysicalMirrorConnect(sptr<ScreenSession> screenSession, bool phyMirrorEnable);
+    void HandlePhysicalMirrorColorSpaceWithDeiveType();
+    void HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType colorSpace);
     sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId) override;
     sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId, int32_t width, int32_t height, Rotation rotation) override;
     DMError HasImmersiveWindow(ScreenId screenId, bool& immersive) override;
@@ -770,7 +774,8 @@ private:
         const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type);
     void SetRelativePositionForDisconnect(MultiScreenPositionOptions defaultScreenOptions);
     int Dump(int fd, const std::vector<std::u16string>& args) override;
-    sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession);
+    sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession,
+        int32_t uid = INVALID_UID);
     DisplayId GetFakeDisplayId(sptr<ScreenSession> screenSession);
     DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
         std::vector<uint64_t>& windowIdList) override;
@@ -987,6 +992,8 @@ private:
     std::atomic<bool> isLandscapeLockStatus_ = false;
     std::atomic<bool> isExtendMode_ = false;
 
+    GraphicCM_ColorSpaceType lastPhysicalMirrorColorSpace_{GraphicCM_ColorSpaceType::GRAPHIC_CM_COLORSPACE_NONE};
+
     /**
      * On/Off screen
      */
@@ -1090,6 +1097,8 @@ private:
     void SetExtendScreenDpi();
     void SetExtendScreenIndepDpi();
     void RegisterSettingBorderingAreaPercentObserver();
+    void RegisterSettingWiredScreenGamutObserver();
+    void SetWiredScreenGamut();
     void SetBorderingAreaPercent();
     bool HandleSwitchPcMode();
     void SwitchModeHandleExternalScreen(bool isSwitchToPcMode);

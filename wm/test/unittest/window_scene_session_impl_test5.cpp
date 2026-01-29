@@ -3181,6 +3181,43 @@ HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitConfigEnable02, TestSize.Leve
 }
 
 /**
+ * @tc.name: SendLogicalDeviceConfigToArkUI
+ * @tc.desc: Test SendLogicalDeviceConfigToArkUI
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, SendLogicalDeviceConfigToArkUI, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SendLogicalDeviceConfigToArkUI");
+    option->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    WindowType winType = window->GetType();
+    EXPECT_TRUE(WindowHelper::IsMainWindow(winType));
+    std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
+    EXPECT_EQ(uiContent, nullptr);
+
+    EXPECT_FALSE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
+    window->property_->SetLogicalDeviceConfig("");
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
+    window->property_->SetLogicalDeviceConfig("{}");
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
+    window->property_->SetLogicalDeviceConfig("{aaa: bbb}");
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+}
+
+/**
  * @tc.name: NotifyAppForceLandscapeConfigEnableUpdated01
  * @tc.desc: Test NotifyAppForceLandscapeConfigEnableUpdated when window type is not main window
  * @tc.type: FUNC

@@ -8586,7 +8586,7 @@ napi_value JsWindow::OnSetWindowMask(napi_env env, napi_callback_info info)
             !WindowHelper::IsAppFloatingWindow(window->GetType())) {
             WmErrorCode wmErrorCode = WmErrorCode::WM_ERROR_INVALID_CALLING;
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "[window][setWindowMask]msg: "
-                "Invalid window type. Only sub windows and float windows are supported"));
+                "Invalid window type. Only subwindows and float windows are supported"));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowMask(windowMask));
@@ -8764,7 +8764,7 @@ napi_value JsWindow::OnSetImmersiveModeEnabledState(napi_env env, napi_callback_
         !WindowHelper::IsSubWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_IMMS, "not allowed since invalid window type");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING, "[window][setImmersiveModeEnabledState]"
-            "msg: Invalid window type. Only main windows and sub windows are supported");
+            "msg: Invalid window type. Only main windows and subwindows are supported");
     }
     WmErrorCode ret = WmErrorCode::WM_OK;
     napi_value nativeVal = argv[0];
@@ -8809,7 +8809,7 @@ napi_value JsWindow::OnGetImmersiveModeEnabledState(napi_env env, napi_callback_
         !WindowHelper::IsSubWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_IMMS, "not allowed since invalid window type");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING, "[window][getImmersiveModeEnabledState]msg: "
-            "Invalid window type. Only main windows and sub windows are supported");
+            "Invalid window type. Only main windows and subwindows are supported");
     }
 
     bool isEnabled = windowToken_->GetImmersiveModeEnabledState();

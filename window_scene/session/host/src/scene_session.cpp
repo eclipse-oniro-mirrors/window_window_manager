@@ -199,6 +199,9 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
                     AAFwk::StartupVisibility::STARTUP_HIDE;
                 property->SetMissionInfo(missionInfo);
             }
+            if (WindowHelper::IsMainWindow(session->GetWindowType())) {
+                property->SetLogicalDeviceConfig(session->GetSessionInfo().logicalDeviceConfig);
+            }
             property->SetPrelaunch(session->GetSessionInfo().isPrelaunch_);
             property->SetFrameNum(session->GetSessionInfo().frameNum_);
         }
@@ -1632,10 +1635,76 @@ WSError SceneSession::GetGlobalMaximizeMode(MaximizeMode& mode)
     }, __func__);
 }
 
+static WSError CheckAspectRatioValid(const sptr<SceneSession>& session, float ratio, float vpr)
+{
+    if (MathHelper::NearZero(ratio)) {
+        return WSError::WS_OK;
+    }
+    if (!session) {
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    auto sessionProperty = session->GetSessionProperty();
+    if (!sessionProperty) {
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    auto limits = sessionProperty->GetWindowLimits();
+    if (session->IsDecorEnable()) {
+        if (limits.minWidth_ && limits.maxHeight_ &&
+            MathHelper::LessNotEqual(ratio, SessionUtils::ToLayoutWidth(limits.minWidth_, vpr) /
+            SessionUtils::ToLayoutHeight(limits.maxHeight_, vpr))) {
+            WLOGE("Failed, because aspectRatio is smaller than minWidth/maxHeight");
+            return WSError::WS_ERROR_INVALID_PARAM;
+        } else if (limits.minHeight_ && limits.maxWidth_ &&
+            MathHelper::GreatNotEqual(ratio, SessionUtils::ToLayoutWidth(limits.maxWidth_, vpr) /
+            SessionUtils::ToLayoutHeight(limits.minHeight_, vpr))) {
+            WLOGE("Failed, because aspectRatio is bigger than maxWidth/minHeight");
+            return WSError::WS_ERROR_INVALID_PARAM;
+        }
+    } else {
+        if (limits.minWidth_ && limits.maxHeight_ && MathHelper::LessNotEqual(ratio,
+            static_cast<float>(limits.minWidth_) / limits.maxHeight_)) {
+            WLOGE("Failed, because aspectRatio is smaller than minWidth/maxHeight");
+            return WSError::WS_ERROR_INVALID_PARAM;
+        } else if (limits.minHeight_ && limits.maxWidth_ && MathHelper::GreatNotEqual(ratio,
+            static_cast<float>(limits.maxWidth_) / limits.minHeight_)) {
+            WLOGE("Failed, because aspectRatio is bigger than maxWidth/minHeight");
+            return WSError::WS_ERROR_INVALID_PARAM;
+        }
+    }
+    return WSError::WS_OK;
+}
+
 /** @note @window.layout */
 WSError SceneSession::SetAspectRatio(float ratio)
 {
-    return SetContentAspectRatio(ratio, true, true);
+    return PostSyncTask([weakThis = wptr(this), ratio, where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s session is null", where);
+            return WSError::WS_ERROR_DESTROYED_OBJECT;
+        }
+        float vpr = 1.5f; // 1.5f: default virtual pixel ratio
+        auto display = DisplayManager::GetInstance().GetDefaultDisplay();
+        if (display) {
+            vpr = display->GetVirtualPixelRatio();
+            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s vpr=%{public}f", where, vpr);
+        }
+        WSError ret = CheckAspectRatioValid(session, ratio, vpr);
+        if (ret != WSError::WS_OK) {
+            return ret;
+        }
+        session->Session::SetAspectRatio(ratio);
+        session->SaveAspectRatio(session->GetAspectRatio());
+        WSRect adjustedRect = session->GetSessionRect();
+        TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s Before adjusting, the id:%{public}d, the current rect:%{public}s, "
+            "ratio:%{public}f", where, session->GetPersistentId(), adjustedRect.ToString().c_str(), ratio);
+        if (session->layoutController_->AdjustRectByAspectRatio(adjustedRect, session->IsDecorEnable())) {
+            TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s After adjusting, the id:%{public}d, the adjusted rect:%{public}s",
+                where, session->GetPersistentId(), adjustedRect.ToString().c_str());
+            session->NotifySessionRectChange(adjustedRect, SizeChangeReason::RESIZE);
+        }
+        return WSError::WS_OK;
+    }, __func__);
 }
 
 WSError SceneSession::SetContentAspectRatio(float ratio, bool isPersistent, bool needUpdateRect)

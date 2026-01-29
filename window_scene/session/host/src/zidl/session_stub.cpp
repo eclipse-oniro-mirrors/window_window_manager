@@ -544,6 +544,7 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         MissionInfo missionInfo = property->GetMissionInfo();
         reply.WriteParcelable(&missionInfo);
         reply.WriteBool(property->GetIsShowDecorInFreeMultiWindow());
+        reply.WriteString(property->GetLogicalDeviceConfig());
         reply.WriteBool(property->IsPrelaunch());
         reply.WriteInt32(property->GetFrameNum());
     }
@@ -1183,14 +1184,21 @@ int SessionStub::HandleRaiseAboveTarget(MessageParcel& data, MessageParcel& repl
 
 int SessionStub::HandleRaiseMainWindowAboveTarget(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_HIERARCHY, "In");
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "In");
     int32_t targetId = 0;
     if (!data.ReadInt32(targetId)) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "read targetId failed");
         return ERR_INVALID_DATA;
     }
+    if (targetId <= static_cast<int32_t>(INVALID_WINDOW_ID)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "targetId invalid");
+        return ERR_INVALID_DATA;
+    }
     WSError errCode = RaiseMainWindowAboveTarget(targetId);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "write errCode failed");
+        return ERR_INVALID_DATA;
+    };
     return ERR_NONE;
 }
 
