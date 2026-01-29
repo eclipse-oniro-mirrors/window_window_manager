@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef OHOS_ROSEN_DMS_TASK_SCHEDULER_H
+#ifndef OHOS_ROSEN_DMS_TASK_SCHEDULER_H 
 #define OHOS_ROSEN_DMS_TASK_SCHEDULER_H
 
 #include "task_scheduler.h"
