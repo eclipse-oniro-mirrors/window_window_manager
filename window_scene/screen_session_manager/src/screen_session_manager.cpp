@@ -268,10 +268,10 @@ const int32_t EXTEND_DISPLAY_FUNCTIONS = system::GetIntParameter("const.settings
 const int32_t RESOLUTION_EFFECT_OS_MODE_RECOVER =
     system::GetIntParameter("const.product.os_mode_restore_resolution", 0);
 const int32_t RESOLUTION_EFFECT_FEATURE_MASK = 2;
-const int32_t RESOLUTION_EFFECT_OS_SWICTH_PAD_RECOVER_MASK = 1;
+const int32_t RESOLUTION_EFFECT_OS_SWITCH_PAD_RECOVER_MASK = 1;
 const bool RESOLUTION_EFFECT_FEATURE_EN = EXTEND_DISPLAY_FUNCTIONS & RESOLUTION_EFFECT_FEATURE_MASK;
-const bool RESOLUTION_EFFECT_OS_SWICTH_PAD_RECOVER =
-    RESOLUTION_EFFECT_OS_MODE_RECOVER & RESOLUTION_EFFECT_OS_SWICTH_PAD_RECOVER_MASK;
+const bool RESOLUTION_EFFECT_OS_SWITCH_PAD_RECOVER =
+    RESOLUTION_EFFECT_OS_MODE_RECOVER & RESOLUTION_EFFECT_OS_SWITCH_PAD_RECOVER_MASK;
 
 static const std::map<ScreenPowerStatus, DisplayPowerEvent> SCREEN_STATUS_POWER_EVENT_MAP = {
     {ScreenPowerStatus::POWER_STATUS_ON, DisplayPowerEvent::DISPLAY_ON},
@@ -3641,8 +3641,8 @@ bool ScreenSessionManager::HandleResolutionEffectChange()
     }
     bool effectFlag = false;
     ScreenSettingHelper::GetResolutionEffect(effectFlag, externalSession->GetSerialNumber());
-    bool osSwicthPadRecovery = IS_SUPPORT_PC_MODE && !g_isPcDevice && RESOLUTION_EFFECT_OS_SWICTH_PAD_RECOVER;
-    if(!effectFlag || osSwicthPadRecovery ||
+    bool osSwitchPadRecovery = IS_SUPPORT_PC_MODE && !g_isPcDevice && RESOLUTION_EFFECT_OS_SWITCH_PAD_RECOVER;
+    if(!effectFlag || osSwitchPadRecovery ||
         externalSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
         RecoveryResolutionEffect();
         return false;
