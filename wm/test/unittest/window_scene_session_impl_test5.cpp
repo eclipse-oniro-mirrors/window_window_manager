@@ -839,9 +839,10 @@ HWTEST_F(WindowSceneSessionImplTest5, ShowKeyboard02, TestSize.Level1)
     keyboardWindow->property_->SetPersistentId(1000);
     keyboardWindow->hostSession_ = session;
     keyboardWindow->property_->SetWindowName("ShowKeyboard02");
-    keyboardWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS);
-    keyboardWindow->state_ = WindowState::STATE_DESTROYED;
+    keyboardWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS_BAR);
     keyboardWindow->property_->SetCallingSessionId(500);
+
+    keyboardWindow->state_ = WindowState::STATE_DESTROYED;
 
     KeyboardEffectOption effectOption;
     effectOption.viewMode_ = KeyboardViewMode::DARK_IMMERSIVE_MODE;
