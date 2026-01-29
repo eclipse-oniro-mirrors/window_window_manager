@@ -243,7 +243,7 @@ public:
      * @brief Raise main window above another.
      *
      * @param targetId Indicates the {@link int32_t} id of the target main window.
-     * @return Returns WSError::WS_ERROR_DEVICE_NOT_SUPPORT if called failed, means the device is not support.
+     * @return Returns WSError::WS_ERROR_DEVICE_NOT_SUPPORT if called failed, means the device is not supported.
      * @permission Make sure the caller has system permission.
      */
     virtual WSError RaiseMainWindowAboveTarget(int32_t targetId) { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }

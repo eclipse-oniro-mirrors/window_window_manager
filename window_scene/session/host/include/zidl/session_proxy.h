@@ -224,7 +224,7 @@ public:
     WSError RequestFocus(bool isFocused) override;
     WSError GetIsHighlighted(bool& isHighlighted) override;
     WMError NotifyDisableDelegatorChange() override;
-
+    
     /**
      * window animation
      */
@@ -236,7 +236,7 @@ public:
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
     WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
-    
+
     /**
      * Restart app
      */
