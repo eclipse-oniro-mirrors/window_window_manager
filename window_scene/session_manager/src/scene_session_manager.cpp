@@ -28,7 +28,6 @@
 #include <hitrace_meter.h>
 #include <parameters.h>
 #include <ui/rs_node.h>
-#include "hitrace/hitracechain.h"
 #include "ffrt_serial_queue_helper.h"
 #include "parameter.h"
 #include "publish/scb_dump_subscriber.h"
@@ -3469,19 +3468,9 @@ WSError SceneSessionManager::RequestSceneSessionActivation(const sptr<SceneSessi
 {
     auto task = [this, weakSceneSession = wptr(sceneSession), isNewActive,
         requestId]() THREAD_SAFETY_GUARD(SCENE_GUARD) {
-        OHOS::HiviewDFX::HiTraceId hiTraceId = OHOS::HiviewDFX::HiTraceChain::GetId();
-        bool isValid = hiTraceId.IsValid();
-        if (!isValid) {
-            hiTraceId = OHOS::HiviewDFX::HiTraceChain::Begin("WindowCreateOnCall",
-                HiTraceFlag::HITRACE_FLAG_INCLUDE_ASYNC | HiTraceFlag::HITRACE_FLAG_NO_BE_INFO |
-                HiTraceFlag::HITRACE_FLAG_DONOT_CREATE_SPAN);
-        }
         sptr<SceneSession> sceneSession = weakSceneSession.promote();
         if (sceneSession == nullptr) {
             TLOGNE(WmsLogTag::WMS_MAIN, "Request active session is nullptr");
-            if (!isValid) {
-                OHOS::HiviewDFX::HiTraceChain::End(hiTraceId);
-            }
             return WSError::WS_ERROR_NULLPTR;
         }
         if (!Session::IsScbCoreEnabled()) {
@@ -3495,9 +3484,7 @@ WSError SceneSessionManager::RequestSceneSessionActivation(const sptr<SceneSessi
             isNewActive, sceneSession->GetSessionInfo().requestId);
         if (!GetSceneSession(persistentId)) {
             TLOGNE(WmsLogTag::WMS_MAIN, "Request active session invalid by %{public}d", persistentId);
-            if (!isValid) {
-                OHOS::HiviewDFX::HiTraceChain::End(hiTraceId);
-            }
+            RemoveRequestTaskInfo(sceneSession->GetPersistentId(), requestId);
             return WSError::WS_ERROR_INVALID_SESSION;
         }
         auto ret = RequestSceneSessionActivationInner(sceneSession, isNewActive, requestId);
@@ -3506,9 +3493,6 @@ WSError SceneSessionManager::RequestSceneSessionActivation(const sptr<SceneSessi
         }
         abilityInfoMap_.clear(); // clear cache after terminate
         RemoveRequestTaskInfo(sceneSession->GetPersistentId(), requestId);
-        if (!isValid) {
-            OHOS::HiviewDFX::HiTraceChain::End(hiTraceId);
-        }
         return ret;
     };
     std::string taskName = "RequestSceneSessionActivation:PID:" +
@@ -4033,7 +4017,7 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
             TLOGNI(WmsLogTag::WMS_MAIN, "[id: %{public}d] Notify session background", persistentId);
             sceneSession->NotifySessionBackground(1, true, true);
         } else {
-            TLOGNI(WmsLogTag::WMS_MAIN, "[id: %{public}d] begin MinimzeUIAbility, system: %{public}u",
+            TLOGNI(WmsLogTag::WMS_MAIN, "[id: %{public}d] begin MinimizeUIAbility, system: %{public}u",
                 persistentId, static_cast<uint32_t>(sceneSession->GetSessionInfo().isSystem_));
             auto sceneSessionInfo = SetAbilitySessionInfo(sceneSession);
             if (!isDelegator) {
@@ -4083,7 +4067,7 @@ WSError SceneSessionManager::DestroyDialogWithMainWindow(const sptr<SceneSession
         return WSError::WS_ERROR_NULLPTR;
     }
     if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
-        TLOGI(WmsLogTag::WMS_DIALOG, "Begin to destroy dialog, parentId: %{public}d", sceneSession->GetPersistentId());
+        TLOGI(WmsLogTag::WMS_DIALOG, "parentId: %{public}d", sceneSession->GetPersistentId());
         const auto& dialogVec = sceneSession->GetDialogVector();
         for (const auto& dialog : dialogVec) {
             if (dialog == nullptr) {
@@ -4879,7 +4863,8 @@ bool SceneSessionManager::CheckSystemWindowPermission(const sptr<WindowSessionPr
         TLOGD(WmsLogTag::WMS_KEYBOARD, "check create permission success, input method app create input method window.");
         return true;
     }
-    if (type == WindowType::WINDOW_TYPE_DIALOG || type == WindowType::WINDOW_TYPE_PIP) {
+    if (type == WindowType::WINDOW_TYPE_DIALOG || type == WindowType::WINDOW_TYPE_PIP ||
+        type == WindowType::WINDOW_TYPE_SELECTION) {
         // some system types could be created by normal app
         return true;
     }
@@ -4913,7 +4898,7 @@ bool SceneSessionManager::CheckSystemWindowPermission(const sptr<WindowSessionPr
             TLOGW(WmsLogTag::WMS_SYSTEM, "check system subWindow permission warning, parentId:%{public}d.", parentId);
         }
     }
-    if (SessionHelper::IsNeedSACalling(type)) {
+    if (SessionHelper::IsMagnificationWindow(type)) {
         if (SessionPermission::IsSACalling()) {
             TLOGI(WmsLogTag::WMS_SYSTEM, "check sa permission success, create with SA calling.");
             return true;
@@ -18085,7 +18070,7 @@ void SceneSessionManager::RefreshAppInfo(const std::string& bundleName)
     if (MultiInstanceManager::IsSupportMultiInstance(systemConfig_)) {
         MultiInstanceManager::GetInstance().RefreshAppInfo(bundleName);
     }
-    AbilityInfoManager::GetInstance().RemoveAppInfo(bundleName);
+    AbilityInfoManager::GetInstance().RefreshAppInfo(bundleName);
 }
 
 WMError SceneSessionManager::UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease)
