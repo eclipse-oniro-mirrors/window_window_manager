@@ -125,8 +125,9 @@ void AnomalyDetection::CheckWallpaper(const sptr<SceneSession>& session)
             }
         };
         auto handler = SceneSessionManager::GetInstance().GetTaskScheduler();
+        int64_t delayTime = 300;
         if (handler) {
-            handler->PostTask(task, "SceneZorderCheckProcessCheckWallpaper", 300);
+            handler->PostTask(task, "SceneZorderCheckProcessCheckWallpaper", delayTime);
         }
     }
 }
