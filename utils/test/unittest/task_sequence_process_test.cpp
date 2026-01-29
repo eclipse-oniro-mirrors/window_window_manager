@@ -114,11 +114,49 @@ HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue01, TestSize.Level0)
     TaskSequenceProcess process = TaskSequenceProcess(3, 3, 1000);
     g_errLog.clear();
     LOG_SetCallback(MyLogCallback);
+    process.taskRunningFlag_.store(false);
     process.PopFromQueue();
-    EXPECT_TRUE(g_errLog.find("TaskSequenceProcess is empty") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("queue is empty") != std::string::npos);
     g_errLog.clear();
 }
 
+/**
+* @tc.name: PopFromQueue02
+* @tc.desc: PopFromQueue02
+* @tc.type: FUNC
+*/
+HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue02, TestSize.Level0)
+{
+    TaskSequenceProcess process = TaskSequenceProcess(3, 3, 1000);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto now = std::chrono::system_clock::now();
+    uint64_t startTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    process.currentTimeMs_ = startTimeMs + 1000;
+    process.taskRunningFlag_.store(true);
+    process.PopFromQueue();
+    EXPECT_TRUE(g_errLog.find("task flag is true") != std::string::npos);
+    g_errLog.clear();
+}
+
+/**
+* @tc.name: PopFromQueue03
+* @tc.desc: PopFromQueue03
+* @tc.type: FUNC
+*/
+HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue03, TestSize.Level0)
+{
+    TaskSequenceProcess process = TaskSequenceProcess(3, 3, 0);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto now = std::chrono::system_clock::now();
+    uint64_t startTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    process.currentTimeMs_ = 0;
+    process.taskRunningFlag_.store(true);
+    process.PopFromQueue();
+    EXPECT_TRUE(g_errLog.find("task time out") != std::string::npos);
+    g_errLog.clear();
+}
 
 /**
 * @tc.name: FindMinSnTaskQueueId01
@@ -159,6 +197,22 @@ HWTEST_F(TaskSequenceProcessTest, ATC_FinishTask01, TestSize.Level0)
     process.PushToQueue(0, {0, task});
     process.FinishTask();
     EXPECT_TRUE(taskCallback);
+}
+
+/**
+* @tc.name: StartSysTimer01
+* @tc.desc: StartSysTimer01
+* @tc.type: FUNC
+*/
+HWTEST_F(TaskSequenceProcessTest, ATC_StartSysTimer01, TestSize.Level0)
+{
+    TaskSequenceProcess process = TaskSequenceProcess(3, 3, 0);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    process.taskScheduler_ = nullptr;
+    process.StartSysTimer();
+    EXPECT_TRUE(g_errLog.find("taskScheduler is nullptr") != std::string::npos);
+    g_errLog.clear();
 }
 } // namespace
 } // namespace Rosen
