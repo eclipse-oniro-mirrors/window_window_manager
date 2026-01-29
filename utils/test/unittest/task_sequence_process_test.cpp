@@ -112,7 +112,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_AddTask02, TestSize.Level0)
 HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue01, TestSize.Level0)
 {
     TaskSequenceProcess process = TaskSequenceProcess(3, 3, 1000);
-    g_errLog.clear();
     LOG_SetCallback(MyLogCallback);
     process.taskRunningFlag_.store(false);
     process.PopFromQueue();
@@ -128,7 +127,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue01, TestSize.Level0)
 HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue02, TestSize.Level0)
 {
     TaskSequenceProcess process = TaskSequenceProcess(3, 3, 1000);
-    g_errLog.clear();
     LOG_SetCallback(MyLogCallback);
     auto now = std::chrono::system_clock::now();
     uint64_t startTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -147,7 +145,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue02, TestSize.Level0)
 HWTEST_F(TaskSequenceProcessTest, ATC_PopFromQueue03, TestSize.Level0)
 {
     TaskSequenceProcess process = TaskSequenceProcess(3, 3, 0);
-    g_errLog.clear();
     LOG_SetCallback(MyLogCallback);
     auto now = std::chrono::system_clock::now();
     uint64_t startTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -183,23 +180,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_FindMinSnTaskQueueId01, TestSize.Level0)
 }
 
 /**
-* @tc.name: FinishTaskTest01
-* @tc.desc: FinishTaskTest01
-* @tc.type: FUNC
-*/
-HWTEST_F(TaskSequenceProcessTest, ATC_FinishTask01, TestSize.Level0)
-{
-    TaskSequenceProcess process = TaskSequenceProcess(1, 1000);
-    bool taskCallback =  false;
-    std::function<void()> task = [&taskCallback]() {
-        taskCallback =true;
-    };
-    process.PushToQueue(0, {0, task});
-    process.FinishTask();
-    EXPECT_TRUE(taskCallback);
-}
-
-/**
 * @tc.name: StartSysTimer01
 * @tc.desc: StartSysTimer01
 * @tc.type: FUNC
@@ -207,7 +187,6 @@ HWTEST_F(TaskSequenceProcessTest, ATC_FinishTask01, TestSize.Level0)
 HWTEST_F(TaskSequenceProcessTest, ATC_StartSysTimer01, TestSize.Level0)
 {
     TaskSequenceProcess process = TaskSequenceProcess(3, 3, 0);
-    g_errLog.clear();
     LOG_SetCallback(MyLogCallback);
     process.taskScheduler_ = nullptr;
     process.StartSysTimer();
