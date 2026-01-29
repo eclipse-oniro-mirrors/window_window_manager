@@ -94,13 +94,12 @@ WSError SubSession::Show(sptr<WindowSessionProperty> property)
     return WSError::WS_OK;
 }
 
-void SubSession::NotifySessionRectChange(const WSRect& rect, SizeChangeReason reason, DisplayId displayId,
-    const RectAnimationConfig& rectAnimationConfig)
+void SubSession::NotifySessionRectChange(const WSRect& rect, SizeChangeReason reason, DisplayId displayId)
 {
     if (reason == SizeChangeReason::DRAG_END) {
         SetShouldFollowParentWhenShow(false);
     }
-    SceneSession::NotifySessionRectChange(rect, reason, displayId, rectAnimationConfig);
+    SceneSession::NotifySessionRectChange(rect, reason, displayId);
 }
 
 bool SubSession::IsNeedCrossDisplayRendering() const
@@ -109,7 +108,7 @@ bool SubSession::IsNeedCrossDisplayRendering() const
 }
 
 void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
-    const MoveConfiguration& moveConfiguration, const RectAnimationConfig& rectAnimationConfig)
+    const MoveConfiguration& moveConfiguration)
 {
     if (moveConfiguration.displayId != DISPLAY_ID_INVALID) {
         SetShouldFollowParentWhenShow(false);
@@ -145,7 +144,7 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
         }
     }
 
-    SceneSession::UpdateSessionRectInner(rect, reason, moveConfiguration, rectAnimationConfig);
+    SceneSession::UpdateSessionRectInner(rect, reason, moveConfiguration);
 }
 
 WSError SubSession::Hide()
