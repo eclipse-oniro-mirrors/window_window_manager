@@ -994,7 +994,7 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportTypeFloatWindow_)) {
             return false;
         }
-        if (!parcel.WriteBool(maxMidSceneNum_)) {
+        if (!parcel.WriteUint32(maxMidSceneNum_)) {
             return false;
         }
         if (!parcel.WriteBool(supportFollowParentWindowLayout_)) {
