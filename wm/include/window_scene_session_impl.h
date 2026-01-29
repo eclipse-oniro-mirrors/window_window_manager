@@ -267,6 +267,14 @@ public:
     WMError GetGestureBackEnabled(bool& enable) const override;
 
     /*
+     * PC Fold Screen
+     */
+    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
+    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
+    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
+    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
+
+    /*
      * Window Property
      */
     WMError SetCornerRadius(float cornerRadius) override;
@@ -304,16 +312,9 @@ public:
     WMError CloseDirectly() override;
 
     /*
-     * PC Fold Screen
+     * Starting Window
      */
-    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
-    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
-
-    /*
-     * PC Screen Manager
-     */
-    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
-    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
+    WMError NotifyRemoveStartingWindow() override;
 
     /*
      * Window Scene
