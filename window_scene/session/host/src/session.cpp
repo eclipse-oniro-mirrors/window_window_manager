@@ -3216,6 +3216,18 @@ void Session::PreloadSnapshot()
     preloadSnapshot_ = std::move(uniquePixelMap);
 }
 
+void Session::SaveStartWindow(std::shared_ptr<Media::PixelMap> persistentPixelMap, bool isDark)
+{
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Session::SaveStartWindow[%d][%s]",
+        persistentId_, sessionInfo_.bundleName_.c_str());
+    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d", GetPersistentId());
+    if (scenePersistence_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "failed %{public}d", GetPersistentId());
+        return;
+    }
+    scenePersistence_->SaveStartWindow(persistentPixelMap, isDark);
+}
+
 void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media::PixelMap> persistentPixelMap,
     bool updateSnapshot, LifeCycleChangeReason reason)
 {

@@ -311,6 +311,7 @@ public:
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
         std::shared_ptr<Media::PixelMap> persistentPixelMap = nullptr, bool updateSnapshot = false,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+    void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark);
     bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
         float scaleValue) const;
     bool CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode) const;

@@ -83,6 +83,7 @@
             OHOS::Rosen::SceneSessionManager::InitWithRenderServiceAdded*;
             OHOS::Rosen::SceneSessionManager::IsInputEventEnabled*;
             OHOS::Rosen::SceneSessionManager::IsScreenLocked*;
+            OHOS::Rosen::SceneSessionManager::IsStartWindowDark*;
             OHOS::Rosen::SceneSessionManager::NotifyAINavigationBarShowStatus*;
             OHOS::Rosen::SceneSessionManager::NotifyAmsPendingSessionWhenFail*;
             OHOS::Rosen::SceneSessionManager::NotifyCompleteFirstFrameDrawing*;

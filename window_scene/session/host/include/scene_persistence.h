@@ -36,6 +36,11 @@ public:
 
     static bool CreateSnapshotDir(const std::string& directory);
     static bool CreateUpdatedIconDir(const std::string& directory);
+    static bool CreateStartWindowDir(const std::string& directory);
+    bool SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark);
+    std::string GetStartWindowPath(bool isDark) const;
+    bool HasStartWindowPersistence(bool isDark) const;
+    void SetHasStartWindowPersistence(bool isDark, bool hasPersistence);
 
     void SetSnapshotCapacity(SnapshotStatus capacity);
     static void InitAstcEnabled();
@@ -85,6 +90,12 @@ private:
     std::string updatedIconPath_;
     static bool isAstcEnabled_;
 
+    static std::string lightStartWindowDirectory_;
+    static std::string darkStartWindowDirectory_;
+    std::string lightStartWindowPath_;
+    std::string darkStartWindowPath_;
+    std::atomic<bool> hasStartWindowPersistence_[2] = { false, false };
+
     std::atomic<int> savingSnapshotSum_ { 0 };
     std::atomic<bool> isSavingSnapshot_ = { false };
 
@@ -92,6 +103,7 @@ private:
     mutable std::mutex savingSnapshotMutex_;
     mutable std::mutex hasSnapshotMutex_;
     mutable std::mutex snapshotSizeMutex_;
+    mutable std::mutex savingStartWindowMutex_;
     bool isPcWindow_ = false;
 };
 } // namespace OHOS::Rosen

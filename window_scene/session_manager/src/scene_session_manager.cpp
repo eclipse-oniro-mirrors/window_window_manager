@@ -5795,6 +5795,9 @@ WSError SceneSessionManager::InitUserInfo(int32_t userId, std::string& fileDir)
         if (!ScenePersistence::CreateUpdatedIconDir(fileDir)) {
             TLOGND(WmsLogTag::WMS_MAIN, "Create icon directory failed");
         }
+        if (!ScenePersistence::CreateStartWindowDir(fileDir)) {
+            TLOGND(WmsLogTag::WMS_MAIN, "Create icon directory failed");
+        }
         currentUserId_ = userId;
         SceneInputManager::GetInstance().SetCurrentUserId(currentUserId_);
         if (MultiInstanceManager::IsSupportMultiInstance(systemConfig_)) {
@@ -6318,6 +6321,13 @@ bool SceneSessionManager::GetStartWindowColorFollowApp(const SessionInfo& sessio
     return false;
 }
 
+bool SceneSessionManager::IsStartWindowDark(const SessionInfo& sessionInfo)
+{
+    bool isAppDark = GetIsDarkFromConfiguration(GetCallerSessionColorMode(sessionInfo));
+    bool isSystemDark = GetIsDarkFromConfiguration(std::string(AppExecFwk::ConfigurationInner::COLOR_MODE_AUTO));
+    return GetStartWindowColorFollowApp(sessionInfo) ? isAppDark : isSystemDark;
+}
+
 void SceneSessionManager::GetStartupPage(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo)
 {
     if (GetIconFromDesk(sessionInfo, startingWindowInfo.iconPathEarlyVersion_)) {
@@ -6559,12 +6569,43 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             }
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
+            if (!HasStartWindowPersistence(sessionInfo.bundleName_, isDark)) {
+                sceneSession->SaveStartWindow(pixelMap, isDark); // 存图片是否成功
+                SetHasStartWindowPersistence(sessionInfo.bundleName_, isDark, true);
+            }
         }
         TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s session %{public}d, isSvg %{public}d",
             where, sceneSession->GetPersistentId(), isIconSvg);
         sceneSession->NotifyPreLoadStartingWindowFinished();
     };
     ffrtQueueHelper_->SubmitTask(loadTask);
+}
+
+bool SceneSessionManager::HasStartWindowPersistence(const std::string& bundleName, bool isDark)
+{
+    std::shared_lock<std::shared_mutex> lock(startingWindowPersistenceMapMutex_);
+    auto iter = startingWindowPersistenceMap_.find(bundleName);
+    if (iter == startingWindowPersistenceMap_.end()) {
+        return false;
+    }
+    auto& infoMap = iter->second;
+    auto iterDark = infoMap.find(isDark);
+    if (iterDark == infoMap.end()) {
+        return false;
+    }
+    return iterDark->second;
+}
+
+void SceneSessionManager::SetHasStartWindowPersistence(const std::string& bundleName, bool isDark, bool hasPersistence)
+{
+    std::unique_lock<std::shared_mutex> lock(startingWindowPersistenceMapMutex_);
+    auto iter = startingWindowPersistenceMap_.find(bundleName);
+    if (iter == startingWindowPersistenceMap_.end()) {
+        startingWindowPersistenceMap_[bundleName] = {{isDark, hasPersistence}};
+        return;
+    }
+    auto& infoMap = iter->second;
+    infoMap[isDark] = hasPersistence;
 }
 
 bool SceneSessionManager::CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo,
@@ -6617,6 +6658,8 @@ void SceneSessionManager::OnBundleUpdated(const std::string& bundleName, int use
     }, __func__);
     auto task = [this, bundleName, where = __func__] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:OnBundleUpdated [%s]", bundleName.c_str());
+        SetHasStartWindowPersistence(bundleName, false, false);
+        SetHasStartWindowPersistence(bundleName, true, false);
         if (startingWindowRdbMgr_ == nullptr || bundleMgr_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: rdb or bms is nullptr", where);
             return;
