@@ -2344,7 +2344,7 @@ WMError SceneSessionManager::RemoveSkipSelfWhenShowOnVirtualScreenList(const std
 WMError SceneSessionManager::SetScreenPrivacyWindowTagSwitch(
     uint64_t screenId, const std::vector<std::string>& privacyWindowTags, bool enable)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "screenId: %{public}" PRIu64 ", tagsize: %{public}zu, enable: %{public}d",
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "screenId: %{public}" PRIu64 ", tagsize: %{public}zu, enable: %{public}d",
         screenId, privacyWindowTags.size(), enable);
     if (!SessionPermission::IsSACalling()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied!");
@@ -7132,7 +7132,7 @@ bool SceneSessionManager::NotifyVisibleChange(int32_t persistentId)
 WSError SceneSessionManager::SetBrightness(const sptr<SceneSession>& sceneSession, float brightness)
 {
 #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
-    if (GetDisplayBrightness() != brightness &&
+    if ((GetDisplayBrightness() != brightness || systemConfig_.IsPcWindow()) &&
         GetFocusedSessionId() == sceneSession->GetPersistentId()) {
         PostBrightnessTask(brightness);
     }
@@ -10465,7 +10465,7 @@ void SceneSessionManager::NotifyCompleteFirstFrameDrawing(int32_t persistentId)
     };
 
     if (sceneSession->GetLeashWinSurfaceNode()) {
-        SetSkipSelfWhenShowOnVirtualScreen(sceneSession->GetLeashWinSurfaceNode()->GetId(),
+        SetSkipSelfWhenShowOnVirtualScreen(sceneSession->GetMissionId(),
             sceneSession->GetSkipSelfWhenShowOnVirtualScreen());
     }
     return taskScheduler_->PostAsyncTask(task, "NotifyCompleteFirstFrameDrawing" + std::to_string(persistentId));
@@ -18031,6 +18031,7 @@ void SceneSessionManager::ClearProcessRecordWhenAppExit(const AppExecFwk::Proces
             where, processData.pid, processData.bundleName.c_str());
         appWatermarkPidMap_.erase(processData.pid);
         snapshotSkipPidSet_.erase(processData.pid);
+        processWatermarkPidMap_.erase(processData.pid);
     }, __func__);
 }
 

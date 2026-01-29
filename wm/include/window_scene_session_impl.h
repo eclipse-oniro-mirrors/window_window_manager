@@ -44,6 +44,7 @@ public:
     WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
+    WMError NotifyRemoveStartingWindow() override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
     void UpdateAnimationSpeedIfEnabled();
     void PreProcessCreate();
@@ -266,14 +267,6 @@ public:
     WMError GetGestureBackEnabled(bool& enable) const override;
 
     /*
-     * PC Fold Screen
-     */
-    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
-    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
-    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
-    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
-
-    /*
      * Window Property
      */
     WMError SetCornerRadius(float cornerRadius) override;
@@ -311,9 +304,16 @@ public:
     WMError CloseDirectly() override;
 
     /*
-     * Starting Window
+     * PC Fold Screen
      */
-    WMError NotifyRemoveStartingWindow() override;
+    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
+    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
+
+    /*
+     * PC Screen Manager
+     */
+    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
+    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
 
     /*
      * Window Scene
