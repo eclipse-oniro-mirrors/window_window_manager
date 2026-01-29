@@ -36,8 +36,8 @@ class DisplayAniListener : public DisplayManager::IDisplayListener,
                           public DisplayManager::IBrightnessInfoListener,
                           public DisplayManager::IDisplayAttributeListener {
 public:
-    DisplayAniListener(ani_env* env)
-        : env_(env), weakRef_(wptr<DisplayAniListener> (this)) {}
+    DisplayAniListener(ani_env* env, ani_vm* vm)
+        : env_(env), vm_(vm), weakRef_(wptr<DisplayAniListener> (this)) {}
     ~DisplayAniListener() override;
     void SetMainEventHandler();
     void AddCallback(const std::string& type, ani_ref callback);
@@ -61,6 +61,7 @@ private:
     void RemoveDuplicateMethods(ani_env* env, std::vector<ani_ref>& callbacks);
     void ProcessAttributeCallbacks(ani_env* env, const std::vector<std::string>& attributes, DisplayId displayId);
     ani_env* env_;
+    ani_vm* vm_;
     std::mutex aniCallbackMtx_;
     std::map<std::string, std::vector<ani_ref>> aniCallback_;
     wptr<DisplayAniListener> weakRef_  = nullptr;

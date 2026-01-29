@@ -103,6 +103,40 @@ static ani_object CreateBrightnessInfoObject(ani_env* env);
 
 static ani_status GetStdStringVector(ani_env* env, ani_object arryObj, std::vector<std::string>& result);
 };
+
+class AniVm {
+public:
+    explicit AniVm(ani_vm* vm) : vm_(vm) {}
+    ~AniVm()
+    {
+        if (vm_ == nullptr || !needDetach_) {
+            return;
+        }
+        auto ret = vm_->DetachCurrentThread();
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] detach: ret=%{public}d", static_cast<int32_t>(ret));
+    }
+ 
+    ani_env* GetAniEnv()
+    {
+        if (vm_ == nullptr) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] vm is null");
+            return nullptr;
+        }
+        ani_env* env = nullptr;
+        auto ret = vm_->GetEnv(ANI_VERSION_1, &env);
+        if (ret != ANI_OK || env == nullptr) {
+            ret = vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env);
+            needDetach_ = (ret == ANI_OK && env != nullptr);
+            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] attach: ret=%{public}d, needDetach=%{public}d",
+                static_cast<int32_t>(ret), needDetach_);
+        }
+        return env;
+    }
+
+private:
+    ani_vm* vm_ = nullptr;
+    bool needDetach_ = false;
+};
 }
 }
 #endif

@@ -320,7 +320,13 @@ void DisplayManagerAni::OnRegisterCallback(ani_env* env, ani_string type, ani_re
         env->GlobalReference_Delete(cbRef);
         return;
     }
-    sptr<DisplayAniListener> displayAniListener = sptr<DisplayAniListener>::MakeSptr(env);
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get vm failed, retL: %{public}u", aniRet);
+        return;
+    }
+    sptr<DisplayAniListener> displayAniListener = sptr<DisplayAniListener>::MakeSptr(env, vm);
     if (displayAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI]displayListener is nullptr");
         env->GlobalReference_Delete(cbRef);
@@ -434,8 +440,14 @@ void DisplayManagerAni::OnRegisterDisplayAttributeListener(ani_env* env, ani_obj
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "callback undefined");
         return;
     }
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get vm failed, retL: %{public}u", aniRet);
+        return;
+    }
     TLOGI(WmsLogTag::DMS, "[ANI] OnRegisterDisplayAttributeListener");
-    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env);
+    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env, vm);
     if (displayAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] displayAniListener is nullptr");
         env->GlobalReference_Delete(cbRef);

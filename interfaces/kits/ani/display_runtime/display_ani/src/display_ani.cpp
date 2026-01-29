@@ -299,7 +299,13 @@ void DisplayAni::OnRegisterCallback(ani_env* env, ani_object obj, ani_string typ
         return;
     }
 
-    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env);
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get vm failed, aniRet: %{public}u", aniRet);
+        return;
+    }
+    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env, vm);
     if (displayAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI]displayListener is nullptr");
         env->GlobalReference_Delete(cbRef);

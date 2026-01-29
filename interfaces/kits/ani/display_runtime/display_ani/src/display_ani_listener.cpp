@@ -542,17 +542,13 @@ void DisplayAniListener::OnBrightnessInfoChanged(DisplayId id, const ScreenBrigh
 {
     TLOGI(WmsLogTag::DMS, "[ANI] brightnessInfoChange is called, displayId: %{public}" PRIu64"", id);
     auto thisListener = weakRef_.promote();
-    if (thisListener == nullptr || env_ == nullptr) {
-        TLOGE(WmsLogTag::DMS, "[ANI] this listener or env is nullptr");
+    if (thisListener == nullptr || vm_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] this listener or vm is nullptr");
         return;
     }
     std::lock_guard<std::mutex> lock(aniCallbackMtx_);
     if (aniCallback_.empty()) {
         TLOGE(WmsLogTag::DMS, "[ANI] OnBrightnessInfoChanged not register!");
-        return;
-    }
-    if (env_ == nullptr) {
-        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
         return;
     }
     auto it = aniCallback_.find(ANI_EVENT_BRIGHTNESS_INFO_CHANGED);
@@ -561,7 +557,13 @@ void DisplayAniListener::OnBrightnessInfoChanged(DisplayId id, const ScreenBrigh
         return;
     }
     for (auto oneAniCallback : it->second) {
-        auto task = [env = env_, oneAniCallback, id, screenBrightness = brightnessInfo] () {
+        auto task = [vm = vm_, oneAniCallback, id, screenBrightness = brightnessInfo] () {
+            auto aniVm = AniVm(vm);
+            auto env = aniVm.GetAniEnv();
+            if (env == nullptr) {
+                TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
+                return;
+            }
             ani_object obj = DisplayAniUtils::CreateBrightnessInfoObject(env);
             DisplayAniUtils::CvtBrightnessInfo(env, obj, screenBrightness);
             DisplayAniUtils::CallAniFunctionVoid(env, "@ohos.display.display", "brightnessInfoChangeCallback",
