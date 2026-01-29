@@ -2717,7 +2717,7 @@ HWTEST_F(ScreenSessionManagerTest, FirstSCBConnect, TestSize.Level1)
 HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectChangeWhenRotate, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    if (!RESOLUTION_EFFECT_FEATURE_EN && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+    if (!RESOLUTION_EFFECT_FEATURE_EN || !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         GTEST_SKIP();
     }
     LOG_SetCallback(MyLogCallback);
