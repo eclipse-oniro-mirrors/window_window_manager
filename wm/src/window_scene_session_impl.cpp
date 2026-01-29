@@ -3675,11 +3675,11 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const P
         ownPropList.insert(insertIt, insertPair);
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u "
             "prop [%{public}u %{public}x %{public}x %{public}u] "
-            "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}lu",
+            "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}u",
             GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), static_cast<uint32_t>(owner),
             prop.enable_, prop.backgroundColor_, prop.contentColor_, prop.enableAnimation_,
             prop.flag_.enableFlag, prop.flag_.backgroundColorFlag,
-            prop.flag_.contentColorFlag, prop.flag_.enableAnimationFlag, ownPropList.size());
+            prop.flag_.contentColorFlag, prop.flag_.enableAnimationFlag, static_cast<uint32_t>(ownPropList.size()));
     }
     return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
@@ -3705,10 +3705,10 @@ WMError WindowSceneSessionImpl::RemoveOwnSystemBarProperty(WindowType type, cons
             ownSystemBarPropertyMap_.erase(type);
         }
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u "
-            "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}lu",
+            "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}u",
             GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), static_cast<uint32_t>(owner),
             flag.enableFlag, flag.backgroundColorFlag,
-            flag.contentColorFlag, flag.enableAnimationFlag, ownPropList.size());
+            flag.contentColorFlag, flag.enableAnimationFlag, static_cast<uint32_t>(ownPropList.size()));
     }
     return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }

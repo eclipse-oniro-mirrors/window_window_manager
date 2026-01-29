@@ -1011,25 +1011,25 @@ HWTEST_F(WindowSceneSessionImplTest5, StartMoveWindowWithCoordinate_03, TestSize
 }
 
 /**
- * @tc.name: UpdateSystemBarproperty
- * @tc.desc: UpdateSystemBarproperty
+ * @tc.name: UpdateSystemBarProperty
+ * @tc.desc: UpdateSystemBarProperty
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarproperty, Function | SmallTest | Level2)
+HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarProperty, Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSystemBarproperty");
+    option->SetWindowName("UpdateSystemBarProperty");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     SystemBarProperty prop = SystemBarProperty();
-    window->UpdateSystemBarproperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
+    window->UpdateSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetPersistentId(1);
     window->property_ = property;
     window->state_ = WindowState::STATE_SHOWN;
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarproperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop));
+    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop));
 }
 
 /**
