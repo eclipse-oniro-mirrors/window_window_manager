@@ -19189,7 +19189,8 @@ void SceneSessionManager::NotifyWindowPropertyChange(ScreenId screenId)
                 TLOGW(WmsLogTag::WMS_ATTRIBUTE, "sceneSession nullptr");
                 continue;
             }
-            if (isNotCurrentScreen(sceneSession, screenId)) {
+            if (sceneSession->GetSessionInfo().screenId_ != SCREEN_ID_INVALID &&
+                sceneSession->GetSessionInfo().screenId_ != screenId) {
                 continue;
             }
             if (!(sceneSession->GetPropertyDirtyFlags() & observedFlags_)) {
