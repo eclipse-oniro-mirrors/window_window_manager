@@ -6876,7 +6876,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
             return NapiGetUndefined(env);
         }
     }
-    auto task = [weakThis = wptr(this), persistentId = persistentId_, jsCallBack, env = env_, where == __func__] {
+    auto callback = [weakThis = wptr(this), persistentId = persistentId_, jsCallBack, env = env_, where = __func__] {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: jsSceneSession id:%{public}d has been destroyed",
@@ -6887,9 +6887,8 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: jsCallBack is nullptr", where);
             return;
         }
-        napi_value jsAddSnapshot = CreateJsValue(env, true);
-        napi_value argv[] = { jsAddSnapshot };
-        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+        napi_value argv[] = {};
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), 0, argv, nullptr);
     };
 
     TLOGI(WmsLogTag::WMS_PATTERN, "argc: %{public}zu, useFfrt: %{public}d, needPersist: %{public}d, "
@@ -6899,7 +6898,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_PATTERN, "session is null, id:%{public}d", persistentId_);
         return NapiGetUndefined(env);
     }
-    session->NotifyAddSnapshot(useFfrt, needPersist, true, std::move(task));
+    session->NotifyAddSnapshot(useFfrt, needPersist, true, std::move(callback));
     return NapiGetUndefined(env);
 }
 
