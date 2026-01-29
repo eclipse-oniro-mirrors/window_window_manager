@@ -101,7 +101,7 @@ namespace {
 HWTEST_F(ScreenSessionManagerTest, CalDefaultExtendScreenDensity, TestSize.Level1)
 {
     auto ssm = new ScreenSessionManager();
- 	ASSERT_NE(ssm, nullptr);
+    ASSERT_NE(ssm, nullptr);
     ssm->InitExtendScreenDpiOptions();
     ScreenProperty property = ScreenProperty();
     EXPECT_EQ(ssm->CalDefaultExtendScreenDensity(property), 1.0f);
