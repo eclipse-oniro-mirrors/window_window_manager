@@ -1318,7 +1318,7 @@ HWTEST_F(SceneSessionTest4, HandleActionUpdateSubWindowZLevel, TestSize.Level1)
  * @tc.desc: normal function
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionImmersiveTest, HandleActionUpdateAvoidAreaOption, TestSize.Level1)
+HWTEST_F(SceneSessionTest4, HandleActionUpdateAvoidAreaOption, TestSize.Level1)
 {
     SessionInfo info;
     info.abilityName_ = "HandleActionUpdateAvoidAreaOption";
