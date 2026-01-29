@@ -510,6 +510,7 @@ public:
      */
     void SwitchUser() override;
     void SetDefaultMultiScreenModeWhenSwitchUser() override;
+    void UpdateScbDisplayModeMap();
     void SwitchScbNodeHandle(int32_t newUserId, int32_t newScbPid, bool coldBoot);
     void HotSwitch(int32_t newUserId, int32_t newScbPid);
     void AddScbClientDeathRecipient(const sptr<IScreenSessionManagerClient>& scbClient, int32_t scbPid);
