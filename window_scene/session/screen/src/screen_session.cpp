@@ -1023,7 +1023,6 @@ void ScreenSession::ProcPropertyChangedForSuperFold(ScreenProperty& screenProper
     // back server for post processs of screen change
     screenProperty.SetSuperFoldStatusChangeEvent(changeEvent);
     screenProperty.SetIsDestroyDisplay(eventPara.GetIsFakeInUse());
-    screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
 
     switch (changeEvent) {
         case SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED: {
@@ -3288,6 +3287,7 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
         screenProperty.GetBounds().rect_.width_, screenProperty.GetBounds().rect_.height_,
         eventPara.GetBounds().rect_.width_, eventPara.GetBounds().rect_.height_);
 
+    screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         ProcPropertyChangedForSuperFold(screenProperty, eventPara);
         
@@ -3296,7 +3296,7 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
             screenProperty.GetBounds().rect_.width_, screenProperty.GetBounds().rect_.height_);
         return;
     }
-    screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
+
     screenProperty.SetPhyWidth(eventPara.GetPhyWidth());
     screenProperty.SetPhyHeight(eventPara.GetPhyHeight());
     screenProperty.SetDpiPhyBounds(eventPara.GetPhyWidth(), eventPara.GetPhyHeight());
