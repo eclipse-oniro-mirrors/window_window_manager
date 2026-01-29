@@ -2345,7 +2345,7 @@ int SessionStub::HandleSetDragKeyFramePolicy(MessageParcel& data, MessageParcel&
     WSError errCode = SetDragKeyFramePolicy(*keyFramePolicy);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "write errCode fail.");
-        return ERR_INVALID_DATA;
+        return IPC_STUB_WRITE_PARCEL_ERR;
     }
     return ERR_NONE;
 }
