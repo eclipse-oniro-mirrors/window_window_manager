@@ -17,9 +17,9 @@
 #define OHOS_ROSEN_EDIDPARSE_H
 #include <vector>
 #include <string>
- 
+
 #define COLOR_CHARACTER_MAX 10
- 
+
 typedef struct baseEdid {
     std::string modelName;
     std::string manufacturerName;
@@ -41,7 +41,7 @@ typedef struct baseEdid {
     uint8_t extensionFlag;
     uint8_t checkSum;
 } BaseEdid;
- 
+
 // Making API functions visible to callers
 extern "C" {
 /**

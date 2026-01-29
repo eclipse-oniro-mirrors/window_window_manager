@@ -3175,7 +3175,7 @@ enum class RecentSessionState : uint32_t {
     INACTIVE,
     END,
 };
- 
+
 /**
  * @struct RecentSessionInfo
  *
@@ -3184,7 +3184,7 @@ enum class RecentSessionState : uint32_t {
 struct RecentSessionInfo : public Parcelable {
     RecentSessionInfo() = default;
     RecentSessionInfo(int32_t persistentId) : missionId(persistentId) {}
- 
+
     bool Marshalling(Parcel& parcel) const override
     {
         return parcel.WriteInt32(missionId) &&
@@ -3195,7 +3195,7 @@ struct RecentSessionInfo : public Parcelable {
                parcel.WriteUint32(static_cast<uint32_t>(windowType)) &&
                parcel.WriteUint32(static_cast<uint32_t>(sessionState));
     }
- 
+
     static RecentSessionInfo* Unmarshalling(Parcel& parcel)
     {
         RecentSessionInfo* recentSessionInfo = new RecentSessionInfo();
@@ -3215,7 +3215,7 @@ struct RecentSessionInfo : public Parcelable {
         recentSessionInfo->sessionState = static_cast<RecentSessionState>(sessionState);
         return recentSessionInfo;
     }
- 
+
     int32_t missionId = -1;
     std::string bundleName;
     std::string moduleName;
@@ -3238,32 +3238,32 @@ enum class SubWindowSource : uint32_t {
  */
 enum class ScreenshotEventType : int32_t {
     START = 0,
- 
+
     /**
      * System screenshot.
      */
     SYSTEM_SCREENSHOT = START,
- 
+
     /**
      * System screenshot abort.
      */
     SYSTEM_SCREENSHOT_ABORT = 1,
- 
+
     /**
      * Scroll shot start.
      */
     SCROLL_SHOT_START = 2,
- 
+
     /**
      * Scroll shot end.
      */
     SCROLL_SHOT_END = 3,
- 
+
     /**
      * Scroll shot abort.
      */
     SCROLL_SHOT_ABORT = 4,
- 
+
     END,
 };
 

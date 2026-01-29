@@ -68,12 +68,10 @@ enum class AnimationType : uint32_t {
      * Window animation type fade in out
      */
     FADE_IN_OUT = 0,
-
     /**
      * Window animation type fade in
      */
     FADE_IN = 1,
-    
     /**
      * Window animation type see the world
      */
