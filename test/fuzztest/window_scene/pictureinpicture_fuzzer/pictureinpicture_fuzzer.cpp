@@ -88,6 +88,18 @@ void PIPSessionTest(sptr<Session> sessionStub, MessageParcel& parcel, MessagePar
     parcel.RewindRead(0);
     sessionStub->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_AUTOSTART_PIP), parcel, reply,
                                  option);
+
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_PIP_WINDOW_PREPARE_CLOSE),
+                                 parcel, reply, option);
+
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_PIP_RECT), parcel, reply,
+                                 option);
+
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_PIP_PARENT_WINDOWID), parcel,
+                                 reply, option);
     return;
 }
 
@@ -126,6 +138,14 @@ void PIPSessionStageTest(sptr<WindowSessionImpl> stageStub, MessageParcel& parce
     parcel.RewindRead(0);
     stageStub->OnRemoteRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_PIP_CONTROL_EVENT), parcel,
                                reply, option);
+    
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_CLOSE_EXIST_PIP_WINDOW),
+                               parcel, reply, option);
+
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_PIP_ACTION_EVENT), parcel,
+                               reply, option);
     return;
 }
 
@@ -154,6 +174,63 @@ bool DoSomethingInterestingWithMyAPI3(const uint8_t *data, size_t size)
     PIPSessionStageTest(stageStub, parcel, reply, option);
     return true;
 }
+
+void PIPSceneSessionMgrLiteStubTest(MessageParcel& parcel, MessageParcel& reply, MessageOption& option)
+{
+    parcel.RewindRead(0);
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(
+        static_cast<uint32_t>(
+            ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_CLOSE_TARGET_FLOAT_WINDOW),
+        parcel, reply, option);
+
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(
+        static_cast<uint32_t>(
+            ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_CLOSE_TARGET_PIP_WINDOW),
+        parcel, reply, option);
+
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(
+        static_cast<uint32_t>(
+            ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_CURRENT_PIP_WINDOW_INFO),
+        parcel, reply, option);
+
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(
+        static_cast<uint32_t>(
+            ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_SET_PIP_ENABLED_BY_SCREENID),
+        parcel, reply, option);
+
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(
+        static_cast<uint32_t>(
+            ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_UNSET_PIP_ENABLED_BY_SCREENID),
+        parcel, reply, option);
+
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(
+        static_cast<uint32_t>(
+            ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_REGISTER_PIP_CHG_LISTENER),
+        parcel, reply, option);
+
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(
+        static_cast<uint32_t>(
+            ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_UNREGISTER_PIP_CHG_LISTENER),
+        parcel, reply, option);
+    return;
+}
+
+bool DoSomethingInterestingWithMyAPI4(const uint8_t *data, size_t size)
+{
+    if (data == nullptr || size < DATA_MIN_SIZE) {
+        return false;
+    }
+
+    MessageParcel parcel;
+    MessageParcel reply;
+    MessageOption option;
+
+    parcel.WriteInterfaceToken(SceneSessionManagerLiteStub::GetDescriptor());
+    parcel.WriteBuffer(data, size);
+
+    PIPSceneSessionMgrLiteStubTest(parcel, reply, option);
+    return true;
+}
 }  // namespace OHOS
 
 /* Fuzzer entry point */
@@ -163,5 +240,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     OHOS::DoSomethingInterestingWithMyAPI1(data, size);
     OHOS::DoSomethingInterestingWithMyAPI2(data, size);
     OHOS::DoSomethingInterestingWithMyAPI3(data, size);
+    OHOS::DoSomethingInterestingWithMyAPI4(data, size);
     return 0;
 }

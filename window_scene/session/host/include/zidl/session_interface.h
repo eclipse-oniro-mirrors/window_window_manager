@@ -384,7 +384,7 @@ public:
     /**
      * @brief get is pip active
      *
-     * @return WSError
+     * @return WMError
      */
     virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
 

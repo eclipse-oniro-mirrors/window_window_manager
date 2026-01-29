@@ -2912,7 +2912,7 @@ WMError SceneSessionManagerLiteProxy::SetPipEnableByScreenId(int32_t screenId, b
     if (remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_SET_PIP_ENABLED_BY_SCREENID),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed.");
+        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = 0;
@@ -2945,7 +2945,7 @@ WMError SceneSessionManagerLiteProxy::UnsetPipEnableByScreenId(int32_t screenId)
     if (remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UNSET_PIP_ENABLED_BY_SCREENID),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed.");
+        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = 0;
@@ -2986,7 +2986,7 @@ WMError SceneSessionManagerLiteProxy::RegisterPipChgListenerByScreenId(int32_t s
     }
     if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_REGISTER_PIP_CHG_LISTENER),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed.");
+        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = 0;
@@ -3020,7 +3020,7 @@ WMError SceneSessionManagerLiteProxy::UnregisterPipChgListenerByScreenId(int32_t
     if (remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UNREGISTER_PIP_CHG_LISTENER),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed.");
+        TLOGE(WmsLogTag::WMS_PIP, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = 0;
