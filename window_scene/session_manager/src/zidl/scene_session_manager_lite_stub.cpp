@@ -1787,7 +1787,11 @@ int SceneSessionManagerLiteStub::HandleEnterKioskMode(MessageParcel& data, Messa
 int SceneSessionManagerLiteStub::HandleExitKioskMode(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "in");
-    sptr<IRemoteObject> token = nullptr;
+    sptr<IRemoteObject> token = data.ReadRemoteObject();
+    if (token == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to read token");
+        return ERR_INVALID_DATA;
+    }
     WMError ret = ExitKioskMode(token);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write ret failed");
