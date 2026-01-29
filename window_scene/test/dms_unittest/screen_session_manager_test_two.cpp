@@ -101,11 +101,12 @@ namespace {
 HWTEST_F(ScreenSessionManagerTest, CalDefaultExtendScreenDensity, TestSize.Level1)
 {
     auto ssm = new ScreenSessionManager();
-    ASSERT_NE(ssm, nullptr);
+ 	ASSERT_NE(ssm, nullptr);
     ssm->InitExtendScreenDpiOptions();
     ScreenProperty property = ScreenProperty();
+    EXPECT_EQ(ssm->CalDefaultExtendScreenDensity(property), 1.0f);
     property.screenRealPPI_ = 160.0f;
-    EXPECT_EQ(ssm->CalDefaultExtendScreenDensity(property), 160.0f);
+    EXPECT_EQ(ssm->CalDefaultExtendScreenDensity(property), 1.6f);
 }
  
 /**
@@ -134,6 +135,7 @@ HWTEST_F(ScreenSessionManagerTest, GetOrCalExtendScreenDefaultDensity, TestSize.
     auto property = screenSession->GetScreenProperty();
     float density = 1.0f;
     ssm_->GetOrCalExtendScreenDefaultDensity(screenSession, property, density);
+    EXPECT_EQ(density, 1.0f);
 }
  
 /**

@@ -2192,6 +2192,40 @@ HWTEST_F(ScreenSessionTest, screen_session_test012, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetExtendPhysicalScreenResolution
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetExtendPhysicalScreenResolution, TestSize.Level1)
+{
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    LOG_SetCallback(MyLogCallback);
+    g_errLog.clear();
+    session->SetIsInternal(true);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen is internal") != std::string::npos);
+    g_errLog.clear();
+ 
+    session->SetIsInternal(false);
+    session->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") != std::string::npos);
+    g_errLog.clear();
+    session->SetExtendPhysicalScreenResolution(false);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") != std::string::npos);
+    g_errLog.clear();
+ 
+    session->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") == std::string::npos);
+    g_errLog.clear();
+    session->SetExtendPhysicalScreenResolution(false);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") == std::string::npos);
+    g_errLog.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: GetName
  * @tc.desc: normal function
  * @tc.type: FUNC

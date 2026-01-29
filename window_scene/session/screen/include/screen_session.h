@@ -386,6 +386,7 @@ public:
 
     void SetDisplayNode(std::shared_ptr<RSDisplayNode> displayNode);
     void SetScreenOffScreenRendering();
+    void SetExtendPhysicalScreenResolution(bool offScreenRenderValue);
     void SetScreenOffScreenRenderingInner();
     void SetScreenProperty(ScreenProperty property);
 
