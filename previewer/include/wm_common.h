@@ -1547,7 +1547,6 @@ struct WindowInfoOption : public Parcelable {
     WindowInfoFilterOption windowInfoFilterOption = WindowInfoFilterOption::ALL;
     WindowInfoTypeOption windowInfoTypeOption = WindowInfoTypeOption::ALL;
     DisplayId displayId = DISPLAY_ID_INVALID;
-    RectAnimationConfig rectAnimationConfig = { 0, 0.0f, 0.0f, 0.0f, 0.0f };
     int32_t windowId = 0;
 
     bool Marshalling(Parcel& parcel) const override
@@ -1654,6 +1653,7 @@ struct KeyboardAnimationConfig {
 
 struct MoveConfiguration {
     DisplayId displayId = DISPLAY_ID_INVALID;
+    RectAnimationConfig rectAnimationConfig = { 0, 0.0f, 0.0f, 0.0f, 0.0f };
     std::string ToString() const
     {
         std::string str;
