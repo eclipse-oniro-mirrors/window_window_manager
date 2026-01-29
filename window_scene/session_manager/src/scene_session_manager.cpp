@@ -10686,12 +10686,13 @@ WSError SceneSessionManager::GetSessionInfos(const std::string& deviceId, int32_
 
 WSError SceneSessionManager::GetMainWindowStatesByPid(int32_t pid, std::vector<MainWindowState>& windowStates)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "pid:%{public}d", pid);
+    TLOGD(WmsLogTag::WMS_LIFE, "pid:%{public}d", pid);
     if (!SessionPermission::IsSACalling() && !SessionPermission::IsShellCall()) {
         TLOGE(WmsLogTag::WMS_LIFE, "Get all mainWindow states failed, only support SA calling.");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
     if (pid < 0) {
+        TLOGE(WmsLogTag::WMS_LIFE, "invalid pid");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
     auto task = [this, pid, &windowStates] {
