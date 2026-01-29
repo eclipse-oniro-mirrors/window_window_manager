@@ -2166,6 +2166,33 @@ napi_value InitDisplaySourceMode(napi_env env)
     return objValue;
 }
 
+napi_value InitCornerType(napi_env env)
+{
+    TLOGD(WmsLogTag::DMS, "called");
+
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "env is nullptr");
+        return nullptr;
+    }
+
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to get object");
+        return nullptr;
+    }
+
+    napi_set_named_property(env, objValue, "TOP_LEFT",
+        CreateJsValue(env, static_cast<uint32_t>(CornerType::TOP_LEFT)));
+    napi_set_named_property(env, objValue, "TOP_RIGHT",
+        CreateJsValue(env, static_cast<uint32_t>(CornerType::TOP_RIGHT)));
+    napi_set_named_property(env, objValue, "BOTTOM_RIGHT",
+        CreateJsValue(env, static_cast<uint32_t>(CornerType::BOTTOM_RIGHT)));
+    napi_set_named_property(env, objValue, "BOTTOM_LEFT",
+        CreateJsValue(env, static_cast<uint32_t>(CornerType::BOTTOM_LEFT)));
+    return objValue;
+}
+
 static void BindCoordinateConvertNativeFunction(napi_env env, napi_value exportObj, const char* moduleName)
 {
     BindNativeFunction(env, exportObj, "convertRelativeToGlobalCoordinate", moduleName,
@@ -2196,6 +2223,7 @@ napi_value JsDisplayManagerInit(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "HDRFormat", InitHDRFormat(env));
     napi_set_named_property(env, exportObj, "ScreenShape", InitScreenShape(env));
     napi_set_named_property(env, exportObj, "DisplaySourceMode", InitDisplaySourceMode(env));
+    napi_set_named_property(env, exportObj, "CornerType", InitCornerType(env));
 
     const char *moduleName = "JsDisplayManager";
     BindNativeFunction(env, exportObj, "getDefaultDisplay", moduleName, JsDisplayManager::GetDefaultDisplay);

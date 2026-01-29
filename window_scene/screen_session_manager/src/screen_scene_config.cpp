@@ -75,7 +75,8 @@ enum XmlNodeElement {
     HALF_FOLDED_BUFFER,
     LARGER_BOUNDARY_FOR_THRESHOLD,
     POSTURE_SIZE,
-    HALL_SIZE
+    HALL_SIZE,
+    WAIT_COORDINATION_READY_MAX_TIME,
 };
 }
 
@@ -132,7 +133,8 @@ std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {HALF_FOLDED_BUFFER, "halfFoldedBuffer"},
     {LARGER_BOUNDARY_FOR_THRESHOLD, "largerBoundaryForThreshold"},
     {POSTURE_SIZE, "postureSize"},
-    {HALL_SIZE, "hallSize"}
+    {HALL_SIZE, "hallSize"},
+    {WAIT_COORDINATION_READY_MAX_TIME, "waitCoordinationReadyMaxTime"},
 };
 
 std::vector<std::string> ScreenSceneConfig::Split(std::string str, std::string pattern)
@@ -239,7 +241,8 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
         (xmlNodeMap_[HALF_FOLDED_BUFFER] == nodeName) ||
         (xmlNodeMap_[LARGER_BOUNDARY_FOR_THRESHOLD] == nodeName) ||
         (xmlNodeMap_[POSTURE_SIZE] == nodeName) ||
-        (xmlNodeMap_[HALL_SIZE] == nodeName);
+        (xmlNodeMap_[HALL_SIZE] == nodeName) ||
+        (xmlNodeMap_[WAIT_COORDINATION_READY_MAX_TIME] == nodeName);
     bool stringConfigCheck = (xmlNodeMap_[DEFAULT_DISPLAY_CUTOUT_PATH] == nodeName) ||
         (xmlNodeMap_[SUB_DISPLAY_CUTOUT_PATH] == nodeName) ||
         (xmlNodeMap_[ROTATION_POLICY] == nodeName) ||

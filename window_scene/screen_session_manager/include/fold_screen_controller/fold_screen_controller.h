@@ -38,7 +38,8 @@ enum class DisplayDeviceType :uint32_t {
 class FoldScreenController : public DMS::FoldScreenBaseController {
 public:
     FoldScreenController(std::recursive_mutex& displayInfoMutex,
-        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler);
+        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler,
+        std::shared_ptr<TaskScheduler> taskScheduler);
     virtual ~FoldScreenController();
 
     void BootAnimationFinishPowerInit() override;
@@ -84,6 +85,7 @@ private:
     sptr<SensorFoldStateManager> sensorFoldStateManager_;
     std::recursive_mutex& displayInfoMutex_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
+    std::shared_ptr<TaskScheduler> taskScheduler_;
     std::vector<FoldCreaseRegionItem> foldCreaseRegionItems_;
 };
 } // namespace OHOS::Rosen

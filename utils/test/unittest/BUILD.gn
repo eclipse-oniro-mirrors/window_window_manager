@@ -60,6 +60,7 @@ test_external_deps = [
   "ability_base:configuration",
   "ability_runtime:wantagent_innerkits",
   "c_utils:utils",
+  "ffrt:libffrt",
   "googletest:gmock",
   "googletest:gtest",
   "googletest:gtest_main",
@@ -386,6 +387,7 @@ config("utils_unittest_common_public_config") {
     "../../../wm/include",
     "../../../dm/include",
     "${dmserver_gen_path}",
+    "${window_base_path}/window_scene/common/include",
   ]
 }
 

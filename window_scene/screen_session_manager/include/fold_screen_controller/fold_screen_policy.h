@@ -20,9 +20,10 @@
 #include <mutex>
 
 #include "dm_common.h"
-#include "window_manager_hilog.h"
-#include "session/screen/include/screen_property.h"
 #include "fold_screen_info.h"
+#include "screen_power_fsm/screen_state_machine.h"
+#include "session/screen/include/screen_property.h"
+#include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
 namespace {
@@ -56,6 +57,8 @@ public:
     virtual void SetMainScreenRegion(DMRect& mainScreenRegion);
     virtual void SetIsClearingBootAnimation(bool isClearingBootAnimation);
     virtual void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const;
+    virtual void ChangeScreenPowerOnFold(
+        const std::vector<std::pair<ScreenId, ScreenPowerStatus>>& screenPowerTaskList);
     virtual const std::unordered_set<FoldStatus>& GetSupportedFoldStatus() const;
     virtual bool GetPhysicalFoldLockFlag() const;
     virtual FoldStatus GetForceFoldStatus() const;

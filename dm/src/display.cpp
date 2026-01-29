@@ -25,14 +25,29 @@
 #include "dm_common.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
+#include "pixel_map_napi.h"
+#include "ani.h"
+#include "concurrency_helpers.h"
+#include <event_handler.h>
+#include <event_runner.h>
 
 namespace OHOS::Rosen {
+std::shared_ptr<OHOS::AppExecFwk::EventHandler> g_eventHandler;
+std::once_flag g_onceFlagForInitEventHandler;
+std::shared_ptr<OHOS::AppExecFwk::EventHandler> GetMainEventHandler()
+{
+    std::call_once(g_onceFlagForInitEventHandler, [] {
+        g_eventHandler =
+            std::make_shared<OHOS::AppExecFwk::EventHandler>(OHOS::AppExecFwk::EventRunner::GetMainEventRunner());
+    });
+    return g_eventHandler;
+}
 class Display::Impl : public RefBase {
 public:
     Impl(const std::string& name, sptr<DisplayInfo> info)
     {
         name_= name;
-        displayInfo_ = info;
+        SetDisplayInfo(info);
     }
     ~Impl() = default;
     DEFINE_VAR_FUNC_GET_SET(std::string, Name, name);
@@ -46,10 +61,46 @@ public:
     {
         std::lock_guard<std::mutex> lock(displayInfoMutex_);
         displayInfo_ = value;
+        displayUpdateTime_ = std::chrono::steady_clock::now();
+    }
+
+    void SetDisplayInfoEnv(void* env, EnvType type)
+    {
+        env_ = env;
+        envType_ = type;
+    }
+
+    void* GetDisplayInfoEnv()
+    {
+        return env_;
+    }
+
+    EnvType GetEnvType()
+    {
+        return envType_;
+    }
+
+    void SetValidFlag(bool validFlag)
+    {
+        validFlag_ = validFlag;
+    }
+
+    bool GetValidFlag() const
+    {
+        return validFlag_;
+    }
+
+    std::chrono::steady_clock::time_point GetDisplayUpdateTime()
+    {
+        return displayUpdateTime_;
     }
 
 private:
     sptr<DisplayInfo> displayInfo_;
+    bool validFlag_ = false;
+    void* env_ = nullptr;
+    EnvType envType_ = EnvType::NONE;
+    std::chrono::steady_clock::time_point displayUpdateTime_{};
     std::mutex displayInfoMutex_;
 };
 
@@ -177,21 +228,84 @@ Orientation Display::GetOrientation() const
 
 void Display::UpdateDisplayInfo(sptr<DisplayInfo> displayInfo) const
 {
-    if (displayInfo == nullptr) {
-        TLOGE(WmsLogTag::DMS, "displayInfo is invalid");
+    if (displayInfo == nullptr || pImpl_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "displayInfo or pImpl_ is nullptr");
         return;
     }
+
+    pImpl_->SetDisplayInfo(displayInfo);
+}
+
+// per display info on thread which is presented for env
+// env is used to update display info
+void Display::SetDisplayInfoEnv(void* env, EnvType type)
+{
     if (pImpl_ == nullptr) {
         TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
         return;
     }
-    pImpl_->SetDisplayInfo(displayInfo);
+
+    pImpl_->SetDisplayInfoEnv(env, type);
+}
+
+uint32_t Display::GetDisplayInfoLifeTime()
+{
+    if (pImpl_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
+        return 0;
+    }
+
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() -
+        pImpl_->GetDisplayUpdateTime()).count();
 }
 
 void Display::UpdateDisplayInfo() const
 {
+    if (pImpl_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "pImpl_ is nullptr");
+        return;
+    }
+
+    if (pImpl_->GetValidFlag()) {
+        TLOGD(WmsLogTag::DMS, "do nothing PID %{public}d TID %{public}d ENV", getpid(), gettid());
+        return;
+    }
+
     auto displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(GetId());
+    if (displayInfo == nullptr) {
+            return;
+    }
     UpdateDisplayInfo(displayInfo);
+    EnvType type = pImpl_->GetEnvType();
+    void* env = pImpl_->GetDisplayInfoEnv();
+    if (type == EnvType::NAPI) {
+        DisplayNapiEnv nenv = static_cast<DisplayNapiEnv>(env);
+        pImpl_->SetValidFlag(true);
+        TLOGD(WmsLogTag::DMS, "set validFlag true PID %{public}d TID %{public}d", getpid(), gettid());
+
+        // post task to current thread, the task will be executed after current task
+        // the task is used to presented current task is finish
+        auto asyncTask = [this]() {
+            pImpl_->SetValidFlag(false);
+            TLOGD(WmsLogTag::DMS, "set validFlag false PID %{public}d TID %{public}d", getpid(), gettid());
+        };
+        napi_status ret = napi_send_event(nenv, asyncTask, napi_eprio_vip, "UpdateDisplayValid");
+        if (ret != napi_status::napi_ok) {
+            pImpl_->SetValidFlag(false);
+            TLOGD(WmsLogTag::DMS, "Failed to SendEvent");
+        }
+    } else if (type == EnvType::ANI) {
+        pImpl_->SetValidFlag(true);
+        TLOGD(WmsLogTag::DMS, "set validFlag true PID %{public}d TID %{public}d", getpid(), gettid());
+        auto asyncTask = [this]() {
+            pImpl_->SetValidFlag(false);
+            TLOGD(WmsLogTag::DMS, "set validFlag false PID %{public}d TID %{public}d", getpid(), gettid());
+        };
+        std::shared_ptr<OHOS::AppExecFwk::EventHandler> eventHandler = GetMainEventHandler();
+        eventHandler->PostTask(asyncTask, 0);
+    } else {
+        TLOGD(WmsLogTag::DMS, "update without env");
+    }
 }
 
 float Display::GetVirtualPixelRatio() const
@@ -228,16 +342,26 @@ sptr<DisplayInfo> Display::GetDisplayInfoWithCache() const
     return pImpl_->GetDisplayInfo();
 }
 
-sptr<CutoutInfo> Display::GetCutoutInfo() const
+sptr<CutoutInfo> Display::GetCutoutInfo(sptr<DisplayInfo> displayInfo) const
 {
-    return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(GetId(), GetWidth(),
-                                                                          GetHeight(), GetOriginRotation());
+    if (displayInfo == nullptr) {
+        displayInfo = GetDisplayInfo();
+        if (displayInfo == nullptr) {
+            return nullptr;
+        }
+    }
+    return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(displayInfo->GetDisplayId(),
+        displayInfo->GetWidth(), displayInfo->GetHeight(), displayInfo->GetOriginRotation());
 }
 
 DMError Display::GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner) const
 {
+    auto displayInfo = GetDisplayInfo();
+    if (displayInfo == nullptr) {
+        return DMError::DM_ERROR_NULLPTR;
+    }
     return SingletonContainer::Get<DisplayManagerAdapter>().GetRoundedCorner(roundedCorner,
-        GetId(), GetWidth(), GetHeight());
+        displayInfo->GetDisplayId(), displayInfo->GetWidth(), displayInfo->GetHeight());
 }
 
 DMError Display::HasImmersiveWindow(bool& immersive)

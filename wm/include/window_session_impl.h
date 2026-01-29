@@ -918,6 +918,7 @@ protected:
      */
     int16_t rotationAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
+    mutable std::mutex virtualPixelRatioMutex_;
 
     /*
      * Keyboard
@@ -1186,7 +1187,7 @@ private:
     bool hasNotifyPrelaunchStartingwindow_ = false;
     std::atomic_bool dragActivated_ = true;
     WindowSizeChangeReason lastSizeChangeReason_ = WindowSizeChangeReason::END;
-    bool postTaskDone_ = false;
+    std::atomic<bool> postTaskDone_ = false;
     Transform layoutTransform_;
     SingleHandTransform singleHandTransform_;
     mutable std::mutex currentTransformMutex_;

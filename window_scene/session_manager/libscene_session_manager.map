@@ -70,6 +70,7 @@
             OHOS::Rosen::SceneSessionManager::GetSessionSnapshotPixelMap*;
             OHOS::Rosen::SceneSessionManager::GetSingleHandCompatibleModeConfig*;
             OHOS::Rosen::SceneSessionManager::GetSingleHandModeEnable*;
+            OHOS::Rosen::SceneSessionManager::GetSingleHandBackgroundLayoutConfig*;
             OHOS::Rosen::SceneSessionManager::GetStartupPage*;
             OHOS::Rosen::SceneSessionManager::GetSystemSessionConfig*;
             OHOS::Rosen::SceneSessionManager::GetWindowLimits*;
@@ -86,6 +87,7 @@
             OHOS::Rosen::SceneSessionManager::NotifyAmsPendingSessionWhenFail*;
             OHOS::Rosen::SceneSessionManager::NotifyCompleteFirstFrameDrawing*;
             OHOS::Rosen::SceneSessionManager::NotifyEnterRecentTask*;
+            OHOS::Rosen::SceneSessionManager::NotifyRotationProperty*;
             OHOS::Rosen::SceneSessionManager::NotifySCBRecentStateChange*;
             OHOS::Rosen::SceneSessionManager::NotifyForegroundInteractiveStatus*;
             OHOS::Rosen::SceneSessionManager::NotifyHookOrientationChange*;
@@ -203,6 +205,7 @@
             OHOS::Rosen::SceneSessionManager::UpdateWindowMode*;
             OHOS::Rosen::SceneSessionManager::VisitSnapshotFromCache*;
             OHOS::Rosen::SceneSessionManager::RegisterMinimizeAllCallback*;
+            OHOS::Rosen::SceneSessionManager::NotifyRotationBegin*;
             OHOS::Rosen::SceneSessionManagerLite::GetInstance*;
             OHOS::Rosen::SessionLifecycleListenerStub::OnRemoteRequest*;
             OHOS::Rosen::SessionRouterStackListenerStub::OnRemoteRequest*;

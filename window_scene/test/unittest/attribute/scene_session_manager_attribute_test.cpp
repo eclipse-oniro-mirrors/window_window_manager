@@ -108,6 +108,55 @@ HWTEST_F(SceneSessionManagerAttributeTest, GetTopNavDestinationName, TestSize.Le
     ssm_->sceneSessionMap_.clear();
     ssm_->sceneSessionMap_ = oldSceneSessionMap;
 }
+
+/**
+ * @tc.name: IsNeedNotifyScreenshotEvent
+ * @tc.desc: test IsNeedNotifyScreenshotEvent.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, IsNeedNotifyScreenshotEvent, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    auto oldScreenshotEventListenerSessionSet = ssm_->screenshotAppEventListenerSessionSet_;
+    ssm_->sceneSessionMap_.clear();
+    ssm_->screenshotAppEventListenerSessionSet_.clear();
+
+    EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(nullptr), false);
+
+    SessionInfo sessionInfo;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sceneSession->property_->SetPersistentId(100);
+    ssm_->sceneSessionMap_.insert(std::make_pair(sceneSession->GetPersistentId(), sceneSession));
+
+    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(sceneSession), false);
+
+    sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
+    EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(sceneSession), true);
+
+    SessionInfo sessionInfo2;
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(sessionInfo2, nullptr);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession->property_->SetPersistentId(101);
+    subSession->property_->SetParentPersistentId(sceneSession->GetPersistentId());
+    subSession->SetParentSession(sceneSession);
+    ssm_->sceneSessionMap_.insert(std::make_pair(subSession->GetPersistentId(), subSession));
+    ssm_->screenshotAppEventListenerSessionSet_.insert(subSession->GetPersistentId());
+
+    subSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    ssm_->OnScreenshot(0);
+    auto ret = ssm_->NotifyScreenshotEvent(ScreenshotEventType::SCROLL_SHOT_START);
+    EXPECT_NE(ret, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(subSession), true);
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->screenshotAppEventListenerSessionSet_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+    ssm_->screenshotAppEventListenerSessionSet_ = oldScreenshotEventListenerSessionSet;
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

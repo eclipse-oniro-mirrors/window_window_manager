@@ -711,8 +711,13 @@ HWTEST_F(DisplayManagerAdapterTest, SetResolution, TestSize.Level1)
  */
 HWTEST_F(DisplayManagerAdapterTest, ResizeVirtualScreen, TestSize.Level1)
 {
+    sptr<IScreenSessionManager> screenSessionManagerServiceProxyTmp =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
     DMError err = SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(0, 70, 100);
-    ASSERT_EQ(err, DMError::DM_OK);
+    ASSERT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxyTmp;
 }
 
 /**

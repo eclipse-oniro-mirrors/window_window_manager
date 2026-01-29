@@ -333,6 +333,54 @@ HWTEST_F(DisplayTest, GetOriginRotation, TestSize.Level1)
     baseInfo->SetOriginRotation(rotation);
     EXPECT_EQ(display->GetOriginRotation(), Rotation::ROTATION_0);
 }
+
+/**
+ * @tc.name: GetDisplayInfoEnv
+ * @tc.desc: GetDisplayInfoEnv
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayTest, GetDisplayInfoEnv, TestSize.Level1)
+{
+    sptr<DisplayInfo> baseInfo = sptr<DisplayInfo>::MakeSptr();
+    sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
+    int envData = 0;
+    void* env = reinterpret_cast<void*>(&envData);
+    display->SetDisplayInfoEnv(env, Display::EnvType::NAPI);
+    EXPECT_EQ(display->pImpl_->GetDisplayInfoEnv(), env);
+    display->SetDisplayInfoEnv(nullptr, Display::EnvType::NONE);
+}
+
+/**
+ * @tc.name: GetValidFlag
+ * @tc.desc: GetValidFlag
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayTest, GetValidFlag, TestSize.Level1)
+{
+    sptr<DisplayInfo> baseInfo = sptr<DisplayInfo>::MakeSptr();
+    sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
+    bool flag = true;
+    display->pImpl_->SetValidFlag(flag);
+    EXPECT_EQ(display->pImpl_->GetValidFlag(), flag);
+    display->pImpl_->SetValidFlag(false);
+}
+
+/**
+ * @tc.name: GetEnvType
+ * @tc.desc: GetEnvType
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayTest, GetEnvType, TestSize.Level1)
+{
+    sptr<DisplayInfo> baseInfo = sptr<DisplayInfo>::MakeSptr();
+    sptr<Display> display = sptr<Display>::MakeSptr("", baseInfo);
+    int envData = 0;
+    void* env = reinterpret_cast<void*>(&envData);
+    display->SetDisplayInfoEnv(env, Display::EnvType::NAPI);
+    EXPECT_EQ(display->pImpl_->GetEnvType(), Display::EnvType::NAPI);
+    display->SetDisplayInfoEnv(nullptr, Display::EnvType::NONE);
+}
+
 }
 } // namespace Rosen
 } // namespace OHOS

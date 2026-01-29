@@ -39,7 +39,6 @@ export type WindowWillCloseCallback<T, V = void> = (data: T) => V;
 const DOMAIN = 0x4200;
 const TAG = '[ANI]';
 const WM_ERROR_INVALID_PARAM = 401;
-const WM_ERROR_ILLEGAL_PARAM = 1300016;
 declare type WindowAnimationCurveParam = Array<number>;
 
 namespace window {
@@ -2872,7 +2871,6 @@ export class WindowInternal implements Window {
     private static native nativeTransferStatic(input: ESValue): Object;
     private static native nativeTransferDynamic(nativeObj: long): ESValue;
 
-    private native throwIfWindowInvalid(nativeObj: long): void;
     private native setWindowTopmost(nativeObj: long, isWindowTopmost: boolean): void;
     private native resize(nativeObj: long, width: int, height: int): void;
     private native moveWindowTo(nativeObj: long, x: int, y: int): void;
@@ -2936,6 +2934,7 @@ export class WindowInternal implements Window {
     private native setWindowTouchableSync(nativeObj: long, isTouchable: boolean): void;
     private native setDialogBackGestureEnabledSync(nativeObj: long, enabled: boolean): void;
     private native setWindowMaskSync(nativeObj: long, windowMask: Array<Array<long>>): void;
+    private native clearWindowMaskSync(nativeObj: long): void;
     private native getUIContextSync(nativeObj: long): UIContext;
     private native getWindowAvoidAreaSync(nativeObj: long, type: int): AvoidArea;
     private native setWindowBrightness(nativeObj: long, brightness: double): void;
@@ -3460,10 +3459,6 @@ export class WindowInternal implements Window {
     }
 
     public setDragKeyFramePolicy(keyFramePolicy: KeyFramePolicy): Promise<KeyFramePolicy> {
-      if ((keyFramePolicy.interval ?? 1) <= 0 || (keyFramePolicy.distance ?? 1) < 0 ||
-          (keyFramePolicy.animationDelay ?? 1) < 0 || (keyFramePolicy.animationDuration ?? 1) < 0) {
-        throw new BusinessError(WM_ERROR_ILLEGAL_PARAM, new Error('Static invalid param!'));
-      }
       return new Promise<KeyFramePolicy>((resolve: (value: KeyFramePolicy) => void, reject: (error: BusinessError) => void) => {
         taskpool.execute(() => {
           return this.setDragKeyFramePolicy(this.nativeObj, keyFramePolicy);
@@ -3876,6 +3871,18 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.setWindowMaskSync(this.nativeObj, windowMask);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public clearWindowMask(): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.clearWindowMaskSync(this.nativeObj);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -4363,7 +4370,7 @@ export class WindowInternal implements Window {
       this.onSync(this.nativeObj, 'frameMetricsMeasured', callback);
     }
 
-    public offFrameMetricsMeasured(callback: Callback<FrameMetrics>): void {
+    public offFrameMetricsMeasured(callback?: Callback<FrameMetrics>): void {
       this.offSync(this.nativeObj, 'frameMetricsMeasured', callback);
     }
 
@@ -4789,7 +4796,6 @@ export class WindowInternal implements Window {
     }
 
     public startMoving(): Promise<void> {
-      this.throwIfWindowInvalid(this.nativeObj);
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute((): void => {
           this.startMoving(this.nativeObj);
@@ -5187,6 +5193,7 @@ export interface Window {
     setWindowTouchable(isTouchable: boolean, callback: AsyncCallback<void>): void;
     setDialogBackGestureEnabled(enabled: boolean): Promise<void>;
     setWindowMask(windowMask: Array<Array<long>>): Promise<void>;
+    clearWindowMask(): Promise<void>;
     setTouchableAreas(rects: Array<Rect>): void;
     getUIContext(): UIContext;
     getWindowAvoidArea(type: AvoidAreaType): AvoidArea;

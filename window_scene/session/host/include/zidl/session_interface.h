@@ -495,7 +495,7 @@ public:
      *
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
-    virtual WSError OnSetImageForRecent() { return WSError::WS_OK; }
+    virtual WSError OnRemoveImageForRecent() { return WSError::WS_OK; }
 
     /**
      * @brief Callback for setting to radius of window.
@@ -512,6 +512,15 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError SetWindowShadows(const ShadowsInfo& shadowsInfo) { return WSError::WS_OK; }
+
+    /**
+     * @brief Callback for recover window effect.
+     *
+     * @param recoverCorner true means need to recover corner radius.
+     * @param recoverShadow true means need to recover shaodow.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) { return WSError::WS_OK; }
 
     /**
      *  Gesture Back
@@ -562,13 +571,6 @@ public:
     virtual WSError StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
         int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId) { return WSError::WS_OK; }
     virtual WSError GetCrossAxisState(CrossAxisState& state) { return WSError::WS_OK; };
-
-    /**
-     * @brief Notify the window attach state listener is registered or not.
-     *
-     * @param registered true means register success.
-     */
-    virtual void NotifyWindowAttachStateListenerRegistered(bool registered) { }
     virtual WSError SetFollowParentWindowLayoutEnabled(bool isFollow) { return WSError::WS_OK; };
     virtual WSError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) { return WSError::WS_OK; };
     virtual WSError UpdateFlag(const std::string& flag) { return WSError::WS_OK; };
@@ -590,6 +592,13 @@ public:
      * @return Successful call returns WMError::WS_OK, otherwise it indicates failure
      */
     virtual WMError NotifyDisableDelegatorChange() { return WMError::WM_OK; }
+
+    /**
+     * @brief Notify the window attach state listener is registered or not.
+     *
+     * @param registered true means register success.
+     */
+    virtual void NotifyWindowAttachStateListenerRegistered(bool registered) { }
 
     /**
      * @brief Use implict animation

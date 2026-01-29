@@ -168,21 +168,6 @@ ani_object AniWindow::NativeTransferDynamic(ani_env* aniEnv, ani_class cls, ani_
     return result;
 }
 
-void AniWindow::ThrowIfWindowInvalid(ani_env* env, ani_object obj, ani_long nativeObj)
-{
-    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
-    if (aniWindow == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-    auto window = aniWindow->GetWindow();
-    if (window == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-}
-
 void AniWindow::SetWindowColorSpace(ani_env* env, ani_object obj, ani_long nativeObj, ani_int colorSpace)
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] colorSpace:%{public}d", static_cast<int32_t>(colorSpace));
@@ -1937,6 +1922,18 @@ void AniWindow::SetWindowMask(ani_env* env, ani_object obj, ani_long nativeObj, 
     }
 }
 
+void AniWindow::ClearWindowMask(ani_env* env, ani_object obj, ani_long nativeObj)
+{
+    TLOGD(WmsLogTag::WMS_PC, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (aniWindow != nullptr) {
+        aniWindow->OnClearWindowMask(env);
+    } else {
+        TLOGE(WmsLogTag::WMS_PC, "[ANI]aniWindow is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+    }
+}
+
 void AniWindow::OnSetWindowMask(ani_env* env, ani_array windowMaskArray)
 {
     auto window = GetWindow();
@@ -2000,6 +1997,28 @@ bool AniWindow::CheckWindowMaskParams(ani_env* env, ani_array windowMask)
         }
     }
     return true;
+}
+
+void AniWindow::OnClearWindowMask(ani_env* env)
+{
+    auto window = GetWindow();
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_PC, "[ANI]window is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    if (!WindowHelper::IsSubWindow(window->GetType()) && !WindowHelper::IsAppFloatingWindow(window->GetType())) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING, "Invalid window type");
+        return;
+    }
+    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->ClearWindowMask());
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PC, "[ANI]ClearWindowMask failed, ret: %{public}d", ret);
+        AniWindowUtils::AniThrowError(env, ret);
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_PC, "[ANI]Window [%{public}u, %{public}s] OnClearWindowMask end",
+        window->GetWindowId(), window->GetWindowName().c_str());
 }
 
 void AniWindow::SetTouchableAreas(ani_env* env, ani_object obj, ani_long nativeObj, ani_array rects)
@@ -6276,8 +6295,6 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
         return ANI_NOT_FOUND;
     }
     std::array methods = {
-        ani_native_function {"throwIfWindowInvalid", "l:",
-            reinterpret_cast<void *>(AniWindow::ThrowIfWindowInvalid)},
         ani_native_function {"resize", "lii:",
             reinterpret_cast<void *>(WindowResize)},
         ani_native_function {"moveWindowTo", "lii:",
@@ -6349,6 +6366,7 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::SetDialogBackGestureEnabled)},
         ani_native_function {"setWindowMaskSync", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetWindowMask)},
+        ani_native_function {"clearWindowMaskSync", ":", reinterpret_cast<void *>(AniWindow::ClearWindowMask)},
         ani_native_function {"setTouchableAreas", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetTouchableAreas)},
         ani_native_function {"getUIContextSync", "l:C{@ohos.arkui.UIContext.UIContext}",

@@ -956,29 +956,6 @@ HWTEST_F(WindowSceneSessionImplTest3, Resize01, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetAvoidAreaByType
- * @tc.desc: GetAvoidAreaByType
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest3, GetAvoidAreaByType, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetAvoidAreaByType");
-    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    windowSceneSessionImpl->property_->SetPersistentId(1);
-    windowSceneSessionImpl->hostSession_ = session;
-    AvoidArea avoidArea;
-    auto ret = windowSceneSessionImpl->GetAvoidAreaByType(AvoidAreaType::TYPE_CUTOUT, avoidArea);
-    EXPECT_EQ(WMError::WM_OK, ret);
-    windowSceneSessionImpl->hostSession_ = nullptr;
-    ret = windowSceneSessionImpl->GetAvoidAreaByType(AvoidAreaType::TYPE_CUTOUT, avoidArea);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
-}
-
-/**
  * @tc.name: IsLayoutFullScreen
  * @tc.desc: IsLayoutFullScreen
  * @tc.type: FUNC

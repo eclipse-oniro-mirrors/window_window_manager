@@ -311,6 +311,7 @@ public:
     /**
      * @brief Get sub window outline enabled
      *
+     * @return Is sub window outline enabled
      */
     bool IsSubWindowOutlineEnabled() const;
 

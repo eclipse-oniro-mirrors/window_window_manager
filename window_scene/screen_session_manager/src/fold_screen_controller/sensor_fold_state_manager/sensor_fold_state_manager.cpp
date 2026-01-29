@@ -29,11 +29,29 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr int32_t MAX_QUEUE_SIZE = 1;
-constexpr uint64_t MAX_TIME_INTERVAL_MS = 200;
-TaskSequenceProcess g_taskProcessor(MAX_QUEUE_SIZE, MAX_TIME_INTERVAL_MS, "foldStatusProcessor");
+constexpr uint64_t MAX_TIME_INTERVAL_MS = 2000;
 }
-SensorFoldStateManager::SensorFoldStateManager() = default;
-SensorFoldStateManager::~SensorFoldStateManager() = default;
+SensorFoldStateManager::SensorFoldStateManager()
+{
+    taskProcess_ = new TaskSequenceProcess(
+        MAX_QUEUE_SIZE,
+        MAX_TIME_INTERVAL_MS
+    );
+}
+
+SensorFoldStateManager::~SensorFoldStateManager()
+{
+    delete taskProcess_;
+}
+
+void SensorFoldStateManager::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
+{
+    if (scheduler == nullptr) {
+        TLOGE(WmsLogTag::DMS, "scheduler is nullptr.");
+        return;
+    }
+    taskProcess_->SetTaskScheduler(scheduler);
+}
 
 void SensorFoldStateManager::HandleAngleChange(float angle, int hall, sptr<FoldScreenPolicy> foldScreenPolicy) {}
 
@@ -85,7 +103,7 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, float angl
             FinishTaskSequence();
         }
     };
-    g_taskProcessor.AddTask(task);
+    taskProcess_->AddTask(task);
 }
 
 void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, const std::vector<float> &angles,
@@ -140,6 +158,10 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, const std:
         } else {
             TLOGD(WmsLogTag::DMS, "fold state doesn't change, foldState = %{public}d.", manager->mState_);
         }
+        if (policy == nullptr) {
+            TLOGNE(WmsLogTag::DMS, "policy is nullptr.");
+            return;
+        }
 
         // running status is false , foldstatus change process is finished here, we should start next task
         if (policy->GetdisplayModeRunningStatus() == false) {
@@ -152,13 +174,13 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, const std:
             taskScheduler->PostAsyncTask(task, "secondaryFoldStatusChange");
         }
     };
-    g_taskProcessor.AddTask(event);
+    taskProcess_->AddTask(event);
 }
 
 void SensorFoldStateManager::FinishTaskSequence()
 {
     TLOGI(WmsLogTag::DMS, "TaskSequenceProcess SensorFoldStateManager::FinishTaskSequence");
-    g_taskProcessor.FinishTask();
+    taskProcess_->FinishTask();
 }
 
 void SensorFoldStateManager::ProcessNotifyFoldStatusChange(FoldStatus currentStatus, FoldStatus nextStatus,

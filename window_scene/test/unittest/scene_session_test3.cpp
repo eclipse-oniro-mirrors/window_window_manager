@@ -291,6 +291,42 @@ HWTEST_F(SceneSessionTest3, GetBlank, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetBlurRadius
+ * @tc.desc: check func SetBlurRadius/GetBlurRadius
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, SetBlurRadius, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetBlurRadius";
+    info.bundleName_ = "SetBlurRadius";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+
+    float blurRadius = 6.5f;
+    sceneSession->SetBlurRadius(blurRadius);
+    EXPECT_FLOAT_EQ(blurRadius, sceneSession->GetBlurRadius());
+}
+
+/**
+ * @tc.name: SetBlurBackgroundColor
+ * @tc.desc: check func SetBlurBackgroundColor/GetBlurBackgroundColor
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, SetBlurBackgroundColor, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetBlurBackgroundColor";
+    info.bundleName_ = "SetBlurBackgroundColor";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+
+    float blurBackgroundColor = 128.0f;
+    sceneSession->SetBlurBackgroundColor(blurBackgroundColor);
+    EXPECT_EQ(static_cast<uint32_t>(blurBackgroundColor), sceneSession->GetBlurBackgroundColor());
+}
+
+/**
  * @tc.name: SetBufferAvailableCallbackEnable
  * @tc.desc: check func SetBufferAvailableCallbackEnable
  * @tc.type: FUNC

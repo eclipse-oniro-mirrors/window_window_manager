@@ -1607,6 +1607,26 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] state:%{public}u, isTerminating:%{public}d",
         GetPersistentId(), static_cast<uint32_t>(state), isTerminating_);
+    if ((state == SessionState::STATE_DISCONNECT || state == SessionState::STATE_END) &&
+        SessionHelper::IsMainWindow(GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
+        std::ostringstream oss;
+        oss << "[Event]lifecycle to:" << static_cast<uint32_t>(SessionState::STATE_FOREGROUND)
+            << ", id:" << GetWindowId()
+            << ", name:" << GetWindowName().c_str()
+            << "[Msg]foreground from client error, when server closed.";
+        std::string info = oss.str();
+        int32_t ret = HiSysEventWrite(
+            OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
+            "WINDOW_LIFE_CYCLE_EXCEPTION",
+            OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+            "PID", getpid(),
+            "UID", getuid(),
+            "MSG", info);
+        if (ret != 0) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
+        }
+    }
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
@@ -1614,7 +1634,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     }
 
     UpdateSessionState(SessionState::STATE_FOREGROUND);
-    if (!isActive_ || (isActive_ && GetSessionInfo().reuseDelegatorWindow)) {
+    if (!isActive_ || GetSessionInfo().reuseDelegatorWindow) {
         SetActive(true);
     }
     isStarting_ = false;
@@ -2896,8 +2916,9 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
     };
     bool ret = false;
     if (needBlurSnapshot) {
-        float blurRadius = 200.0f;
-        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius);
+        config.backGroundColor = blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ?
+            GetBackgroundColor() : blurBackgroundColor_;
+        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius_);
     } else {
         ret = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode, callback, config);
     }
@@ -2979,8 +3000,15 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (type != ControlAppType::APP_LOCK) {
         return;
     }
+    if (!IsSupportAppLockSnapshot()) {
+        SaveSnapshot(true, true, nullptr);
+        return;
+    }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
+    if (isAppLockControl_.load() == isAppUseControl) {
+        return;
+    }
     isAppLockControl_.store(isAppUseControl);
     if (isAppUseControl) {
         if (IsPersistentImageFit()) {
@@ -2998,6 +3026,23 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (!GetIsPrivacyMode() && !GetSnapshotPrivacyMode()) {
         SaveSnapshot(true, true, nullptr, true);
     }
+}
+
+bool Session::IsSupportAppLockSnapshot() const
+{
+    if (!onGetAppUseControlDisplayMapFunc_) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d GetAppUseControlDisplayMap failed", persistentId_);
+        return true;
+    }
+    auto& appUseControlDisplayMap = onGetAppUseControlDisplayMapFunc_();
+    auto displayId = GetSessionProperty()->GetDisplayId();
+    if (appUseControlDisplayMap.find(displayId) == appUseControlDisplayMap.end()) {
+        return true;
+    }
+    bool support = appUseControlDisplayMap[displayId];
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, displayId: %{public}" PRIu64 ", support: %{public}d",
+        persistentId_, displayId, support);
+    return support;
 }
 
 bool Session::GetSnapshotPrivacyMode() const
@@ -3064,17 +3109,6 @@ void Session::ResetPreloadSnapshot()
 {
     std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
     preloadSnapshot_ = nullptr;
-}
-
-void Session::SetEnableAddSnapshot(bool enableAddSnapshot)
-{
-    TLOGI(WmsLogTag::WMS_PATTERN, "enableAddSnapshot: %{public}d", enableAddSnapshot);
-    enableAddSnapshot_ = enableAddSnapshot;
-}
-
-bool Session::GetEnableAddSnapshot() const
-{
-    return enableAddSnapshot_;
 }
 
 void Session::SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap)
@@ -4463,6 +4497,26 @@ SystemSessionConfig Session::GetSystemConfig() const
     return systemConfig_;
 }
 
+void Session::SetBlurRadius(const float blurRadius)
+{
+    blurRadius_ = blurRadius;
+}
+
+float Session::GetBlurRadius() const
+{
+    return blurRadius_;
+}
+
+void Session::SetBlurBackgroundColor(const float blurBackgroundColor)
+{
+    blurBackgroundColor_ = blurBackgroundColor;
+}
+
+uint32_t Session::GetBlurBackgroundColor() const
+{
+    return blurBackgroundColor_;
+}
+
 void Session::SetSnapshotScale(const float snapshotScale)
 {
     snapshotScale_ = snapshotScale;
@@ -4489,7 +4543,7 @@ WSError Session::ProcessBackEvent()
     return sessionStage_->HandleBackEvent();
 }
 
-void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId)
+void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
 {
     std::lock_guard lock(g_persistentIdSetMutex);
     if (persistentId != INVALID_SESSION_ID  && !g_persistentIdSet.count(persistentId)) {
@@ -4503,12 +4557,8 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32
     }
 
     g_persistentId++;
-    uint32_t maskedUserId = static_cast<uint32_t>(userId) & 0x000000FF; // userId use 8 bits
-    uint32_t maskedPersistentId = static_cast<uint32_t>(g_persistentId.load()) & 0x003FFFFF; // persistentId use 22 bits
-    int32_t tempPersistentId = (maskedUserId << 22) | maskedPersistentId;
-    while (g_persistentIdSet.count(tempPersistentId)) {
+    while (g_persistentIdSet.count(g_persistentId)) {
         g_persistentId++;
-        tempPersistentId++;
     }
     if (isExtension) {
         constexpr uint32_t pidLength = 18;
@@ -4519,9 +4569,9 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32
             (static_cast<uint32_t>(g_persistentId.load()) & persistentIdMask);
         persistentId_ = assembledPersistentId | 0x40000000;
     } else {
-        persistentId_ = tempPersistentId;
+        persistentId_ = static_cast<uint32_t>(g_persistentId.load()) & 0x3fffffff;
     }
-    g_persistentIdSet.insert(persistentId_);
+    g_persistentIdSet.insert(g_persistentId);
     TLOGI(WmsLogTag::WMS_LIFE,
         "persistentId: %{public}d, persistentId_: %{public}d", persistentId, persistentId_);
 }
@@ -5601,14 +5651,17 @@ std::shared_ptr<RSUIContext> Session::GetRSUIContext(const char* caller)
         // is deferred to the UIExtensionPattern::OnConnect(ui_extension_pattern.cpp) method,
         // as ArkUI knows the host window for this type of window.
         rsUIContext_ = ScreenSessionManagerClient::GetInstance().GetRSUIContext(screenId);
-        screenIdOfRSUIContext_ = screenId;
+        if (rsUIContext_ != nullptr) {
+            screenIdOfRSUIContext_ = screenId;
+            TLOGI(WmsLogTag::WMS_SCB,
+                "SetSessionRSUIContext: %{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
+                caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
+        }
     }
     if (rsUIContext_ == nullptr) {
         TLOGI(WmsLogTag::WMS_SCB, "%{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
             caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
     }
-    TLOGD(WmsLogTag::WMS_SCB, "%{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
-            caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
     return rsUIContext_;
 }
 

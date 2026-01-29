@@ -125,6 +125,10 @@ public:
 
     void SetCallingPid(int32_t callingPid) { callingPid_ = callingPid; }
 
+    int32_t GetCollaboratorType() const { return collaboratorType_; }
+
+    void SetCollaboratorType(int32_t collaboratorType) { collaboratorType_ = collaboratorType; }
+
     uint32_t windowId_ { INVALID_WINDOW_ID };
     int32_t pid_ { 0 };
     int32_t uid_ { 0 };
@@ -140,6 +144,7 @@ public:
     bool isSystem_ = false;
     uint32_t zOrder_ { 0 };
     int32_t callingPid_ { -1 };
+    int32_t collaboratorType_ = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_VISIBILITY_INFO_H

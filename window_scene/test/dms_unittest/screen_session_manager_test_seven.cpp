@@ -14,12 +14,14 @@
  */
 
 #include <gtest/gtest.h>
+#include <thread>
 
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "display_manager_agent_default.h"
 #include "iconsumer_surface.h"
 #include "connection/screen_cast_connection.h"
 #include "screen_scene_config.h"
+#include "screen_setting_helper.h"
 #include <surface.h>
 #include "scene_board_judgement.h"
 #include "fold_screen_state_internel.h"
@@ -41,6 +43,7 @@ const int32_t CV_WAIT_SCREENON_MS = 300;
 const int32_t CV_WAIT_SCREENOFF_MS_MAX = 3500;
 const uint32_t INVALID_DISPLAY_ORIENTATION = 99;
 constexpr uint32_t SLEEP_TIME_IN_US = 100000; // 100ms
+constexpr uint32_t WAIT_COORDINATION_READY_US = 10000; // 10ms
 constexpr int32_t CAST_WIRED_PROJECTION_START = 1005;
 constexpr int32_t CAST_WIRED_PROJECTION_STOP = 1007;
 bool g_isPcDevice = ScreenSceneConfig::GetExternalScreenDefaultMode() == "none";
@@ -65,7 +68,6 @@ public:
     ScreenId DEFAULT_SCREEN_ID {0};
     ScreenId VIRTUAL_SCREEN_ID {2};
     ScreenId VIRTUAL_SCREEN_RS_ID {100};
-    int32_t INVALID_USER_ID {1000};
     void SetAceessTokenPermission(const std::string processName);
     sptr<ScreenSession> InitTestScreenSession(std::string name, ScreenId &screenId);
     DMHookInfo CreateDefaultHookInfo();
@@ -351,11 +353,11 @@ HWTEST_F(ScreenSessionManagerTest, GetVirtualScreenFlag, TestSize.Level1)
 }
 
 /**
- * @tc.name: ResizeVirtualScreen
+ * @tc.name: ResizeVirtualScreen01
  * @tc.desc: ResizeVirtualScreen test
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen01, TestSize.Level1)
 {
     sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
     VirtualScreenOption virtualOption;
@@ -368,6 +370,80 @@ HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen, TestSize.Level1)
     sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
     if (screenSession->GetDisplayNode() != nullptr) {
         EXPECT_EQ(DMError::DM_OK, ssm_->ResizeVirtualScreen(screenId, width, height));
+    }
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen02
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen02, TestSize.Level1)
+{
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(INVALID_SCREEN_ID);
+    EXPECT_EQ(nullptr, screenSession);
+    uint32_t width {100};
+    uint32_t height {100};
+    EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(INVALID_SCREEN_ID, width, height));
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen03
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen03, TestSize.Level1)
+{
+    ScreenId screenId = ssm_->GetDefaultScreenId();
+    uint32_t width {100};
+    uint32_t height {100};
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_NE(screenSession, nullptr);
+    EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(screenId, width, height));
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen04
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen04, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    virtualOption.width_ = 100;
+    virtualOption.height_ = 100;
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_TRUE(screenId != INVALID_SCREEN_ID);
+    uint32_t width {100};
+    uint32_t height {100};
+    sptr<ScreenSession> ScreenSession = ssm_->GetScreenSession(screenId);
+    if (screenSession->GetDisplayNode() != nullptr) {
+        EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(screenId, width, height));
+    }
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen05
+ * @tc.desc: ResizeVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ResizeVirtualScreen05, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_TRUE(screenId != INVALID_SCREEN_ID);
+    ssm_->screenIdManager_.sms2RsScreenIdMap_.erase(screenId);
+    uint32_t width {100};
+    uint32_t height {100};
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screeenId);
+    if (screenSession->GetDisplayNode() != nullptr) {
+        EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ssm_->ResizeVirtualScreen(screenId, width, height));
     }
     ssm_->DestroyVirtualScreen(screenId);
 }
@@ -917,7 +993,7 @@ HWTEST_F(ScreenSessionManagerTest, NotifyFoldStatusChanged02, TestSize.Level1)
     }
     if (!(ssm_->IsFoldable())) {
         ssm_->foldScreenController_ = new FoldScreenController(
-            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_);
+            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     }
     ASSERT_NE(ssm_->foldScreenController_, nullptr);
     statusParam = "-y";
@@ -1053,7 +1129,7 @@ HWTEST_F(ScreenSessionManagerTest, GetCurrentScreenPhyBounds01, TestSize.Level1)
     }
     if (!(ssm_->IsFoldable())) {
         ssm_->foldScreenController_ = new FoldScreenController(
-            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_);
+            ssm_->displayInfoMutex_, ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     }
 
     ASSERT_NE(ssm_->foldScreenController_, nullptr);
@@ -1076,7 +1152,7 @@ HWTEST_F(ScreenSessionManagerTest, GetCurrentScreenPhyBounds02, TestSize.Level1)
     ScreenId screenId = 0;
     ssm_->GetCurrentScreenPhyBounds(phyWidth, phyHeight, isReset, screenId);
     auto foldController = sptr<FoldScreenController>::MakeSptr(ssm_->displayInfoMutex_,
-        ssm_->screenPowerTaskScheduler_);
+        ssm_->screenPowerTaskScheduler_, ssm_->taskScheduler_);
     ASSERT_NE(foldController, nullptr);
     DisplayPhysicalResolution physicalSize_full;
     physicalSize_full.foldDisplayMode_ = FoldDisplayMode::FULL;
@@ -1129,6 +1205,94 @@ HWTEST_F(ScreenSessionManagerTest, PhyMirrorConnectWakeupScreen, TestSize.Level1
     ScreenSceneConfig::stringConfig_["externalScreenDefaultMode"] = "mirror";
     ssm_->PhyMirrorConnectWakeupScreen();
 #endif
+}
+
+/**
+ * @tc.name: ConfigureScreenScene
+ * @tc.desc: ConfigureScreenScene test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    auto intBackup = ScreenSceneConfig::intNumbersConfig_;
+    auto enableBackup = ScreenSceneConfig::enableConfig_;
+    auto stringBackup = ScreenSceneConfig::stringConfig_;
+
+    ScreenSceneConfig::intNumbersConfig_.clear();
+    ScreenSceneConfig::enableConfig_.clear();
+    ScreenSceneConfig::stringConfig_.clear();
+    ScreenSceneConfig::intNumbersConfig_["defaultDeviceRotationOffset"] = {2};
+    ScreenSceneConfig::enableConfig_["isRightPowerButton"] = false;
+    ScreenSceneConfig::stringConfig_["rotationPolicy"] = "2";
+    ScreenSceneConfig::stringConfig_["defaultRotationPolicy"] = "3";
+
+    ssm_->defaultDeviceRotationOffset_ = 0;
+    ssm_->deviceScreenConfig_.rotationPolicy_ = "11";
+    ssm_->deviceScreenConfig_.defaultRotationPolicy_ = "1";
+    ssm_->deviceScreenConfig_.isRightPowerButton_ = true;
+    ssm_->ConfigureScreenScene();
+    EXPECT_EQ(2u, ssm_->defaultDeviceRotationOffset_);
+    EXPECT_EQ("2", ssm_->deviceScreenConfig_.rotationPolicy_);
+    EXPECT_EQ("3", ssm_->deviceScreenConfig_.defaultRotationPolicy_);
+    EXPECT_FALSE(ssm_->deviceScreenConfig_.isRightPowerButton_);
+
+    ScreenSceneConfig::intNumbersConfig_ = intBackup;
+    ScreenSceneConfig::enableConfig_ = enableBackup;
+    ScreenSceneConfig::stringConfig_ = stringBackup;
+}
+
+/**
+ * @tc.name: RegisterSettingCoordinationReadyObserver
+ * @tc.desc: RegisterSettingCoordinationReadyObserver test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RegisterSettingCoordinationReadyObserver, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<SettingObserver> observer = new SettingObserver();
+    ScreenSettingHelper::coordinationReadyObserver_ = observer;
+    ssm_->RegisterSettingCoordinationReadyObserver();
+    EXPECT_EQ(observer, ScreenSettingHelper::coordinationReadyObserver_);
+    ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
+}
+
+/**
+ * @tc.name: WaitForCoordinationReady
+ * @tc.desc: WaitForCoordinationReady test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, WaitForCoordinationReady, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->isCoordinationReady_ = true;
+    ssm_->waitCoordinationReadyMaxTime_ = 0; //ms
+    ssm_->WaitForCoordinationReady();
+    EXPECT_FALSE(ssm_->GetWaitingForCoordinationReady());
+}
+
+/**
+ * @tc.name: NotifyCoordinationReadyCV
+ * @tc.desc: NotifyCoordinationReadyCV test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, NotifyCoordinationReadyCV, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->isCoordinationReady_ = false;
+    ssm_->waitCoordinationReadyMaxTime_ = 1000; //ms
+    auto ssm = ssm_;
+    std::thread waitThread([ssm]() { ssm->WaitForCoordinationReady(); });
+    for (int i = 0; i < 50; ++i) {
+        if (ssm_->GetWaitingForCoordinationReady()) {
+            break;
+        }
+        usleep(WAIT_COORDINATION_READY_US);
+    }
+    EXPECT_TRUE(ssm_->GetWaitingForCoordinationReady());
+    ssm_->NotifyCoordinationReadyCV();
+    waitThread.join();
+    EXPECT_FALSE(ssm_->GetWaitingForCoordinationReady());
 }
 
 /**

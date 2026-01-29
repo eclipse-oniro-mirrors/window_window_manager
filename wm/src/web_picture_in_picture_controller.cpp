@@ -98,9 +98,9 @@ WMError WebPictureInPictureController::StartPictureInPicture(StartPipType startT
 void WebPictureInPictureController::SetUIContent() const
 {
     napi_value storage = nullptr;
-    napi_ref storageRef = pipOption_->GetStorageRef();
+    std::shared_ptr<NativeReference> storageRef = pipOption_->GetStorageRef();
     if (storageRef != nullptr) {
-        napi_get_reference_value(env_, storageRef, &storage);
+        storage = storageRef->GetNapiValue();
         TLOGI(WmsLogTag::WMS_PIP, "startPiP with localStorage");
     }
     window_->SetUIContentByAbc(WEB_PIP_CONTENT_PATH, env_, storage, nullptr);

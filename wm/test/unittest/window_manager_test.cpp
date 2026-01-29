@@ -67,7 +67,27 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid) override
+    {
+        lastModuleName_ = moduleName;
+        lastAbilityName_ = abilityName;
+        lastColor_ = color;
+        lastUid_ = uid;
+        return WMError::WM_OK;
+    }
+
+    static std::string lastModuleName_;
+    static std::string lastAbilityName_;
+    static uint32_t lastColor_;
+    static int32_t lastUid_;
 };
+
+std::string MockWindowAdapter::lastModuleName_;
+std::string MockWindowAdapter::lastAbilityName_;
+uint32_t MockWindowAdapter::lastColor_ = 0;
+int32_t MockWindowAdapter::lastUid_ = 0;
 
 class TestCameraFloatWindowChangedListener : public ICameraFloatWindowChangedListener {
 public:
@@ -82,16 +102,6 @@ public:
     void OnWindowVisibilityChanged(const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfo) override
     {
         WLOGI("TestVisibilityChangedListener");
-    };
-};
-
-class TestSystemBarChangedListener : public ISystemBarChangedListener {
-public:
-    int32_t count_ = 0;
-    void OnSystemBarPropertyChange(DisplayId displayId, const SystemBarRegionTints& tints) override
-    {
-        count_++;
-        WLOGI("TestSystemBarChangedListener");
     };
 };
 
@@ -655,79 +665,6 @@ HWTEST_F(WindowManagerTest, UnregisterWindowModeChangedListener01, TestSize.Leve
 
     instance_->pImpl_->windowModeListenerAgent_ = oldWindowManagerAgent;
     instance_->pImpl_->windowModeListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: RegisterSystemBarChangedListener01
- * @tc.desc: check RegisterSystemBarChangedListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, RegisterSystemBarChangedListener01, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, instance_);
-    auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
-    auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
-    instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
-    instance_->pImpl_->systemBarChangedListeners_.clear();
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, instance_->RegisterSystemBarChangedListener(nullptr));
-
-    auto oldAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
-
-    instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
-    instance_->pImpl_->systemBarChangedListeners_.clear();
-    WMError ret = instance_->RegisterSystemBarChangedListener(nullptr);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
-
-    sptr<ISystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
-
-    ASSERT_EQ(WMError::WM_ERROR_SAMGR, instance_->RegisterSystemBarChangedListener(listener));
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-
-    // to check that the same listner can not be registered twice
-
-    instance_->pImpl_->systemBarChangedListenerAgent_ = oldAgent;
-    instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: UnregisterSystemBarChangedListener01
- * @tc.desc: check UnregisterSystemBarChangedListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, UnregisterSystemBarChangedListener01, TestSize.Level1)
-{
-    ASSERT_NE(instance_, nullptr);
-    auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
-    auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
-    instance_->pImpl_->systemBarChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
-    instance_->pImpl_->systemBarChangedListeners_.clear();
-    // check nullpter
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, instance_->UnregisterSystemBarChangedListener(nullptr));
-
-    sptr<TestSystemBarChangedListener> listener1 = sptr<TestSystemBarChangedListener>::MakeSptr();
-    sptr<TestSystemBarChangedListener> listener2 = sptr<TestSystemBarChangedListener>::MakeSptr();
-    ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
-    instance_->RegisterSystemBarChangedListener(listener1);
-    instance_->RegisterSystemBarChangedListener(listener2);
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-
-    instance_->UnregisterSystemBarChangedListener(listener1);
-    instance_->UnregisterSystemBarChangedListener(listener2);
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-    ASSERT_EQ(nullptr, instance_->pImpl_->systemBarChangedListenerAgent_);
-
-    instance_->pImpl_->systemBarChangedListeners_.push_back(listener1);
-    ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
-
-    instance_->pImpl_->systemBarChangedListenerAgent_ = oldWindowManagerAgent;
-    instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
 }
 
 /**
@@ -2044,6 +1981,39 @@ HWTEST_F(WindowManagerTest, UnregisterVisibilityStateChangedListener, Function |
 }
 
 /**
+ * @tc.name: NotifyWindowVisibilityStateChanged
+ * @tc.desc: NotifyWindowVisibilityStateChanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, NotifyWindowVisibilityStateChanged, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, instance_);
+    instance_->pImpl_->windowVisibilityStateListeners_.clear();
+
+    auto listener = sptr<TestInterestWindowIdsListener>::MakeSptr();
+    ASSERT_NE(nullptr, listener);
+    listener->AddInterestInfo(WindowInfoKey::WINDOW_ID);
+    listener->AddInterestInfo(WindowInfoKey::VISIBILITY_STATE);
+    instance_->pImpl_->windowVisibilityStateListeners_.push_back(listener);
+
+    std::vector<sptr<WindowVisibilityInfo>> windowVisibilityInfos;
+    sptr<WindowVisibilityInfo> info = sptr<WindowVisibilityInfo>::MakeSptr();
+    info->windowId_ = 10;
+    info->visibilityState_ = WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION;
+    windowVisibilityInfos.push_back(info);
+
+    instance_->pImpl_->NotifyWindowVisibilityStateChanged(windowVisibilityInfos);
+
+    ASSERT_EQ(static_cast<size_t>(1), listener->received_.size());
+    const auto& windowChangeInfo = listener->received_.front();
+    EXPECT_EQ(static_cast<size_t>(1), windowChangeInfo.count(WindowInfoKey::WINDOW_ID));
+    EXPECT_EQ(static_cast<uint32_t>(10), std::get<uint32_t>(windowChangeInfo.at(WindowInfoKey::WINDOW_ID)));
+    EXPECT_EQ(static_cast<size_t>(1), windowChangeInfo.count(WindowInfoKey::VISIBILITY_STATE));
+    EXPECT_EQ(WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION,
+        std::get<WindowVisibilityState>(windowChangeInfo.at(WindowInfoKey::VISIBILITY_STATE)));
+}
+
+/**
  * @tc.name: RegisterDisplayIdChangedListener
  * @tc.desc: check RegisterDisplayIdChangedListener
  * @tc.type: FUNC
@@ -2102,25 +2072,6 @@ HWTEST_F(WindowManagerTest, UnregisterDisplayIdChangedListener01, Function | Sma
 
     instance_->pImpl_->WindowDisplayIdChangeListenerAgent_ = oldWindowManagerAgent;
     instance_->pImpl_->windowDisplayIdChangeListeners_ = oldListeners;
-}
-
-/**
- * @tc.name: NotifySystemBarChanged
- * @tc.desc: check NotifySystemBarChanged
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, NotifySystemBarChanged, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, instance_);
-    ASSERT_NE(nullptr, instance_->pImpl_);
-    sptr<TestSystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
-    ASSERT_NE(nullptr, listener);
-    instance_->pImpl_->systemBarChangedListeners_.push_back(listener);
-    
-    SystemBarRegionTints tints;
-    instance_->pImpl_->NotifySystemBarChanged(0, tints);
-    EXPECT_EQ(1, listener->count_);
-    instance_->pImpl_->systemBarChangedListeners_.clear();
 }
 
 /**
@@ -2533,6 +2484,25 @@ HWTEST_F(WindowManagerTest, UnregisterGlobalRectChangedListener, Function | Smal
     mockInstance_->pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
     ret = mockInstance_->UnregisterFloatingScaleChangedListener(listener);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetStartWindowBackgroundColor
+ * @tc.desc: SetStartWindowBackgroundColor
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, SetStartWindowBackgroundColor, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, mockInstance_);
+    const std::string moduleName = "testModule";
+    const std::string abilityName = "testAbility";
+    const uint32_t color = 0x12345678;
+
+    WMError ret = mockInstance_->SetStartWindowBackgroundColor(moduleName, abilityName, color);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(moduleName, MockWindowAdapter::lastModuleName_);
+    EXPECT_EQ(abilityName, MockWindowAdapter::lastAbilityName_);
+    EXPECT_EQ(color, MockWindowAdapter::lastColor_);
 }
 
 /**

@@ -21,7 +21,12 @@
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
-WM_IMPLEMENT_SINGLE_INSTANCE(AbilityInfoManager);
+
+AbilityInfoManager& AbilityInfoManager::GetInstance()
+{
+    static AbilityInfoManager instance;
+    return instance;
+}
 
 // LCOV_EXCL_START
 bool AbilityInfoManager::FindAbilityInfo(const AppExecFwk::BundleInfo& bundleInfo,

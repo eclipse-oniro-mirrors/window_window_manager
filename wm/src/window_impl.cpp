@@ -141,6 +141,9 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
     auto& sysBarPropMap = option->GetSystemBarProperty();
     for (auto it : sysBarPropMap) {
         property_->SetSystemBarProperty(it.first, it.second);
+        if (it.first == WindowType::WINDOW_TYPE_STATUS_BAR) {
+            windowStatusBarColor_ = it.second.contentColor_;
+        }
     }
     name_ = option->GetWindowName();
 
@@ -1007,6 +1010,10 @@ WMError WindowImpl::UpdateSystemBarProperties(
             systemBarProperties.at(systemBarType).backgroundColor_ : property.backgroundColor_;
         property.contentColor_ = systemBarPropertyFlag.contentColorFlag ?
             systemBarProperties.at(systemBarType).contentColor_ : property.contentColor_;
+        if (systemBarType == WindowType::WINDOW_TYPE_STATUS_BAR) {
+            windowStatusBarColor_ = systemBarPropertyFlag.contentColorFlag ?
+                systemBarProperties.at(systemBarType).contentColor_ : property.contentColor_;
+        }
         property.enableAnimation_ = systemBarPropertyFlag.enableAnimationFlag ?
             systemBarProperties.at(systemBarType).enableAnimation_ : property.enableAnimation_;
 
@@ -1057,23 +1064,18 @@ WMError WindowImpl::SetSystemBarProperty(WindowType type, const SystemBarPropert
     return ret;
 }
 
-WMError WindowImpl::SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-    const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags)
+WMError WindowImpl::SetStatusBarColorForNavigation(const std::optional<uint32_t> color)
 {
     SystemBarProperty current = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    auto flagIter = propertyFlags.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    auto propertyIter = properties.find(WindowType::WINDOW_TYPE_STATUS_BAR);
-    if ((flagIter != propertyFlags.end() && flagIter->second.contentColorFlag) &&
-        (propertyIter != properties.end() && current.contentColor_ != propertyIter->second.contentColor_)) {
-        current.contentColor_ = propertyIter->second.contentColor_;
+    if (color != std::nullopt) {
+        current.contentColor_ = color.value();
         current.settingFlag_ = static_cast<SystemBarSettingFlag>(
-            static_cast<uint32_t>(propertyIter->second.settingFlag_) |
+            static_cast<uint32_t>(current.settingFlag_) |
             static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING));
-        WLOGI("Window:%{public}u %{public}s set status bar content color %{public}u",
-            GetWindowId(), GetWindowName().c_str(), current.contentColor_);
-        return SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, current);
+    } else {
+        current.contentColor_ = windowStatusBarColor_;
     }
-    return WMError::WM_OK;
+    return SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, current);
 }
 
 WMError WindowImpl::GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties)

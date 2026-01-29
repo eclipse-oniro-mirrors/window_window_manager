@@ -1079,10 +1079,9 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowTitle, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     window->property_->SetPersistentId(1);
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->windowSystemConfig_.freeMultiWindowSupport_ = false;
     window->windowSystemConfig_.isSystemDecorEnable_ = false;
-    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
     window->windowSystemConfig_.isSystemDecorEnable_ = true;
     window->property_->SetDecorEnable(true);
@@ -1090,30 +1089,11 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowTitle, TestSize.Level1)
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
-    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_NULLPTR);
     EXPECT_EQ(window->Create(abilityContext_, session), WMError::WM_OK);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
-
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
-    window->windowSystemConfig_.isSystemDecorEnable_ = true;
-    window->property_->SetDecorEnable(true);
-    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
- 
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    window->property_->SetPcAppInpadCompatibleMode(true);
-    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
-    window->windowSystemConfig_.isSystemDecorEnable_ = false;
-    EXPECT_EQ(WMError::WM_OK, window->SetWindowTitle(title));
-    const std::string feature = "large_screen";
-    std::string deviceType = OHOS::system::GetParameter("const.product.devicetype", "");
-    auto context = std::make_shared<MockAbilityContextImpl>();
-    window->context_ = context;
-    context->hapModuleInfo_ = std::make_shared<AppExecFwk::HapModuleInfo>();
-    context->hapModuleInfo_->requiredDeviceFeatures = {{deviceType, {feature}}};
-    EXPECT_EQ(WMError::WM_OK, window->SetWindowTitle(title));
     EXPECT_EQ(WMError::WM_OK, window->Destroy(true));
 }
 

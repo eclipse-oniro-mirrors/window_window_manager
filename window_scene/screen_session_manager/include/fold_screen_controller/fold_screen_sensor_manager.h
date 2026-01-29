@@ -49,6 +49,8 @@ public:
 
     void SetSensorFoldStateManager(sptr<SensorFoldStateManager> sensorFoldStateManager);
 
+    void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
+
     void HandlePostureData(const SensorEvent* const event);
 
     void HandleHallData(const SensorEvent* const event);

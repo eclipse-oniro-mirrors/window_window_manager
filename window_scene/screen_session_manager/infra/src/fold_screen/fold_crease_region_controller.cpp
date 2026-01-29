@@ -39,18 +39,16 @@ sptr<FoldCreaseRegion> FoldCreaseRegionController::GetCurrentFoldCreaseRegion()
     if (!isInitModeCreaseRegion_.load()) {
         InitModeCreaseRegion();
     }
-    if (currentFoldCreaseRegion_ == nullptr) {
-        FoldDisplayMode displayMode = FoldDisplayMode::FULL;
-        sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
-        if (screenSession == nullptr) {
-            TLOGE(WmsLogTag::DMS, "screenSession is null");
-            return currentFoldCreaseRegion_;
-        }
-        Rotation targetRotation = Rotation::ROTATION_90;
-        screenSession->AddRotationCorrection(targetRotation, displayMode);
-        std::vector<DMRect> rects = GetCreaseRegionRects(SCREEN_ID_FULL, displayMode, targetRotation);
-        currentFoldCreaseRegion_ = new FoldCreaseRegion(SCREEN_ID_FULL, rects);
+    FoldDisplayMode displayMode = FoldDisplayMode::FULL;
+    sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return currentFoldCreaseRegion_;
     }
+    Rotation targetRotation = Rotation::ROTATION_90;
+    screenSession->AddRotationCorrection(targetRotation, displayMode);
+    std::vector<DMRect> rects = GetCreaseRegionRects(SCREEN_ID_FULL, displayMode, targetRotation);
+    currentFoldCreaseRegion_ = new FoldCreaseRegion(SCREEN_ID_FULL, rects);
     return currentFoldCreaseRegion_;
 }
 

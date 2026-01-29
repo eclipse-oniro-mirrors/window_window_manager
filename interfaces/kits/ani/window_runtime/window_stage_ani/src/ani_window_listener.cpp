@@ -538,9 +538,11 @@ void AniWindowListener::OnOcclusionStateChanged(const WindowVisibilityState stat
 void AniWindowListener::OnFrameMetricsChanged(const FrameMetrics& metrics)
 {
     const char* const where = __func__;
-    auto task = [self = weakRef_, metrics, where, env = env_]() {
+    auto task = [self = weakRef_, metrics, where, vm = vm_]() {
         auto thisListener = self.promote();
-        if (thisListener == nullptr || env == nullptr) {
+        auto aniVm = AniVm(vm);
+        auto env = aniVm.GetAniEnv();
+        if (thisListener == nullptr || env == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: listener or env is null", where);
             return;
         }

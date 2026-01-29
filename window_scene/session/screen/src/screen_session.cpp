@@ -394,6 +394,7 @@ sptr<DisplayInfo> ScreenSession::ConvertToDisplayInfo()
     displayInfo->SetSupportedRefreshRate(GetSupportedRefreshRate());
     displayInfo->SetSupportsFocus(GetSupportsFocus());
     displayInfo->SetSupportsInput(GetSupportsInput());
+    displayInfo->SetBundleName(GetBundleName());
     return displayInfo;
 }
 
@@ -538,6 +539,13 @@ bool ScreenSession::GetIsPcUse()
 void ScreenSession::SetIsFakeSession(bool isFakeSession)
 {
     isFakeSession_ = isFakeSession;
+}
+
+void ScreenSession::SetPhyWidthAndHeight(uint32_t phyWidth, uint32_t phyHeight)
+{
+    property_.SetPhyWidth(phyWidth);
+    property_.SetPhyHeight(phyHeight);
+    property_.CalculateXYDpi(phyWidth, phyHeight);
 }
 
 void ScreenSession::SetValidHeight(uint32_t validHeight)
@@ -1333,9 +1341,11 @@ void ScreenSession::UpdatePropertyAfterRotation(RRect bounds, int rotation, Fold
         }
     }
     {
+        Rotation deviceRotation = property_.GetDeviceRotation();
+        RemoveRotationCorrection(deviceRotation, foldDisplayMode);
         AutoRSTransaction trans(GetRSUIContext());
         std::shared_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
-        displayNode_->SetScreenRotation(static_cast<uint32_t>(property_.GetDeviceRotation()));
+        displayNode_->SetScreenRotation(static_cast<uint32_t>(deviceRotation));
     }
     TLOGI(WmsLogTag::DMS, "bounds:[%{public}f %{public}f %{public}f %{public}f],rotation:%{public}d,\
         displayOrientation:%{public}u, foldDisplayMode:%{public}u",

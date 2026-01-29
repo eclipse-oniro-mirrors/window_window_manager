@@ -384,6 +384,47 @@ HWTEST_F(WindowSessionImplTest2, NotifyWindowOcclusionState, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyWindowOcclusionStateAll
+ * @tc.desc: notify all occlusion state change
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, NotifyWindowOcclusionStateAll, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("NotifyWindowOcclusionStateAll");
+    ASSERT_NE(window, nullptr);
+
+    // default visibility state
+    EXPECT_EQ(window->lastVisibilityState_, WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION);
+    WindowVisibilityState state = WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION;
+    EXPECT_EQ(window->NotifyWindowOcclusionState(static_cast<WindowVisibilityState>(state + 1)), WSError::WS_OK);
+    EXPECT_EQ(window->lastVisibilityState_, WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION);
+
+    window->occlusionStateChangeListeners_.clear();
+    EXPECT_EQ(window->occlusionStateChangeListeners_.size(), 0);
+    sptr<IOcclusionStateChangedListener> listener = sptr<IOcclusionStateChangedListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterOcclusionStateChangeListener(listener), WMError::WM_OK);
+    EXPECT_EQ(window->occlusionStateChangeListeners_.size(), 1);
+
+    // traverse all visibility states verify
+    WindowVisibilityState visibilityStates[] = {
+        WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION,
+        WindowVisibilityState::WINDOW_VISIBILITY_STATE_PARTICALLY_OCCLUSION,
+        WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION
+    };
+
+    for (auto state : visibilityStates) {
+        auto ret = window->NotifyWindowOcclusionState(state);
+        EXPECT_EQ(WSError::WS_OK, ret);
+        EXPECT_EQ(state, window->lastVisibilityState_);
+    }
+
+    window->occlusionStateChangeListeners_.clear();
+    EXPECT_EQ(window->occlusionStateChangeListeners_.size(), 0);
+
+    window->Destroy();
+}
+
+/**
  * @tc.name: RegisterFrameMetricsChangeListener
  * @tc.desc: register frame metrics change listener
  * @tc.type: FUNC
