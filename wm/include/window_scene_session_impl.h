@@ -44,7 +44,6 @@ public:
     WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
-    WMError NotifyRemoveStartingWindow() override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
     void UpdateAnimationSpeedIfEnabled();
     void PreProcessCreate();
