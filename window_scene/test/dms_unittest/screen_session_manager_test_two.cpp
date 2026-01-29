@@ -46,7 +46,8 @@ const bool CORRECTION_ENABLE = system::GetIntParameter<int32_t>("const.system.se
 const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
 bool g_isPcDevice = ScreenSceneConfig::GetExternalScreenDefaultMode() == "none";
 const int32_t EXTEND_DISPLAY_FUNCTIONS = system::GetIntParameter("const.settings.extend_display_function_list", 0);
-const int32_t RESOLUTION_EFFECT_OS_MODE_RECOVER = system::GetIntParameter("const.product.os_mode_restore_resolution", 0);
+const int32_t RESOLUTION_EFFECT_OS_MODE_RECOVER =
+    system::GetIntParameter("const.product.os_mode_restore_resolution", 0);
 const int32_t RESOLUTION_EFFECT_FEATURE_MASK = 2;
 const int32_t RESOLUTION_EFFECT_OS_SWICTH_PAD_RECOVER_MASK = 1;
 const bool RESOLUTION_EFFECT_FEATURE_EN = EXTEND_DISPLAY_FUNCTIONS & RESOLUTION_EFFECT_FEATURE_MASK;
@@ -2835,7 +2836,7 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectChange, TestSize.Level1
         screenSession1->property_.UpdateScreenRotation(Rotation::ROTATION_90);
         ret = ssm_->HandleResolutionEffectChange();
         EXPECT_EQ(!ret, ssm_->GetSuperFoldStatus() != SuperFoldStatus::EXPANDED);
-    } else if (!IS_SUPPORT_PC_MODE){
+    } else if (!IS_SUPPORT_PC_MODE) {
         EXPECT_TRUE(ret);
     }
 
