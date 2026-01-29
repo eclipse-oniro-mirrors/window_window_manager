@@ -2047,13 +2047,17 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
         if (!interactive_) {
             hasFirstNotifyInteractive_ = false;
         }
+    } else {
+        TLOGI(WmsLogTag::WMS_LIFE, "Window hide failed, id:%{public}d, name:%{public}s, res:%{public}d",
+            GetPersistentId(), property_->GetWindowName().c_str(), static_cast<int32_t>(res));
+        NotifyBackgroundFailed(WMError::WM_DO_NOTHING);
     }
     CustomHideAnimation();
     
     NotifyWindowStatusChange(GetWindowMode());
     NotifyWindowStatusDidChange(GetWindowMode());
     escKeyEventTriggered_ = false;
-    TLOGI(WmsLogTag::WMS_LIFE, "Window hide success [id:%{public}d, type: %{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "Window hide end, id:%{public}d, type: %{public}d",
         property_->GetPersistentId(), type);
     return res;
 }
@@ -2323,7 +2327,10 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
 
     auto ret = DestroyInner(needNotifyServer);
     RecordLifeCycleExceptionEvent(LifeCycleEvent::DESTROY_EVENT, ret);
-    if (ret != WMError::WM_OK && ret != WMError::WM_ERROR_NULLPTR) { // nullptr means no session in server
+    // nullptr means no session in server
+    // main window ipc failed means no session in server
+    if (ret != WMError::WM_OK && ret != WMError::WM_ERROR_NULLPTR &&
+        !(WindowHelper::IsMainWindow(GetType()) && ret == WMError::WM_ERROR_IPC_FAILED)) {
         WLOGFW("Destroy window failed, id: %{public}d", GetPersistentId());
         return ret;
     }

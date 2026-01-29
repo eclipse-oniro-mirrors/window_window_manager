@@ -3130,6 +3130,48 @@ HWTEST_F(WindowSceneSessionImplTest, VerifySubWindowLevel, TestSize.Level1)
     ret = WindowSceneSessionImpl::VerifySubWindowLevel(false, windowSceneSession);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
+
+/**
+ * @tc.name: Destroy01
+ * @tc.desc: Destroy window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, Destroy01, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("Destroy01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    window->property_->SetPersistentId(9527);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, Disconnect(_, _)).WillOnce(Return(WSError::WS_ERROR_IPC_FAILED));
+    EXPECT_EQ(WMError::WM_OK, window->Destroy(false));
+}
+
+/**
+ * @tc.name: Destroy02
+ * @tc.desc: Destroy window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, Destroy02, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("Destroy02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    window->property_->SetPersistentId(9528);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, Disconnect(_, _)).Times(AtLeast(1)).WillOnce(Return(WSError::WS_ERROR_INVALID_SESSION));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_SESSION, window->Destroy(false));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

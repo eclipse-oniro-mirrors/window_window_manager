@@ -428,7 +428,12 @@ ohos_unittest("wm_window_stub_test") {
 
 ohos_unittest("wm_window_scene_session_impl_test") {
   module_out_path = module_out_path
-
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
   sources = [ "window_scene_session_impl_test.cpp" ]
 
   deps = [
