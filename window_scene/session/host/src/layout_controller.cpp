@@ -138,6 +138,85 @@ int32_t LayoutController::GetSessionPersistentId() const
     return sessionProperty_->GetPersistentId();
 }
 
+void LayoutController::AdjustRectByLimits(WindowLimits limits, float ratio, bool isDecor, float vpr, WSRect& rect)
+{
+    if (isDecor) {
+        rect.width_ = SessionUtils::ToLayoutWidth(rect.width_, vpr);
+        rect.height_ = SessionUtils::ToLayoutHeight(rect.height_, vpr);
+        limits.minWidth_ = SessionUtils::ToLayoutWidth(limits.minWidth_, vpr);
+        limits.maxWidth_ = SessionUtils::ToLayoutWidth(limits.maxWidth_, vpr);
+        limits.minHeight_ = SessionUtils::ToLayoutHeight(limits.minHeight_, vpr);
+        limits.maxHeight_ = SessionUtils::ToLayoutHeight(limits.maxHeight_, vpr);
+    }
+    if (static_cast<uint32_t>(rect.height_) > limits.maxHeight_) {
+        rect.height_ = static_cast<int32_t>(limits.maxHeight_);
+        rect.width_ = floor(rect.height_ * ratio);
+    } else if (static_cast<uint32_t>(rect.width_) > limits.maxWidth_) {
+        rect.width_ = static_cast<int32_t>(limits.maxWidth_);
+        rect.height_ = floor(rect.width_ / ratio);
+    } else if (static_cast<uint32_t>(rect.width_) < limits.minWidth_) {
+        rect.width_ = static_cast<int32_t>(limits.minWidth_);
+        rect.height_ = ceil(rect.width_ / ratio);
+    } else if (static_cast<uint32_t>(rect.height_) < limits.minHeight_) {
+        rect.height_ = static_cast<int32_t>(limits.minHeight_);
+        rect.width_ = ceil(rect.height_ * ratio);
+    }
+    if (isDecor) {
+        rect.height_ = SessionUtils::ToWinHeight(rect.height_, vpr) ;
+        rect.width_ = SessionUtils::ToWinWidth(rect.width_, vpr);
+    }
+}
+
+bool LayoutController::AdjustRectByAspectRatio(WSRect& rect, bool isDecorEnable)
+{
+    const int tolerancePx = 2; // 2: tolerance delta pixel value, unit: px
+    WSRect originalRect = rect;
+    if (sessionProperty_->GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING ||
+        !WindowHelper::IsMainWindow(sessionProperty_->GetWindowType())) {
+        return false;
+    }
+
+    if (MathHelper::NearZero(aspectRatio_)) {
+        return false;
+    }
+    float vpr = 1.5f; // 1.5f: default virtual pixel ratio
+    auto display = DisplayManager::GetInstance().GetDefaultDisplay();
+    if (display) {
+        vpr = display->GetVirtualPixelRatio();
+    }
+    int32_t minW;
+    int32_t maxW;
+    int32_t minH;
+    int32_t maxH;
+    SessionUtils::CalcFloatWindowRectLimits(sessionProperty_->GetWindowLimits(),
+        getSystemConfigFunc_().maxFloatingWindowSize_, vpr, minW, maxW, minH, maxH);
+    rect.width_ = std::max(minW, static_cast<int32_t>(rect.width_));
+    rect.width_ = std::min(maxW, static_cast<int32_t>(rect.width_));
+    rect.height_ = std::max(minH, static_cast<int32_t>(rect.height_));
+    rect.height_ = std::min(maxH, static_cast<int32_t>(rect.height_));
+    if (isDecorEnable) {
+        if (SessionUtils::ToLayoutWidth(rect.width_, vpr) >
+                SessionUtils::ToLayoutHeight(rect.height_, vpr) * aspectRatio_) {
+            rect.width_ = SessionUtils::ToWinWidth(SessionUtils::ToLayoutHeight(rect.height_, vpr)* aspectRatio_, vpr);
+        } else {
+            rect.height_ = SessionUtils::ToWinHeight(SessionUtils::ToLayoutWidth(rect.width_, vpr) / aspectRatio_, vpr);
+        }
+    } else {
+        if (rect.width_ > rect.height_ * aspectRatio_) {
+            rect.width_ = rect.height_ * aspectRatio_;
+        } else {
+            rect.height_ = rect.width_ / aspectRatio_;
+        }
+    }
+    AdjustRectByLimits(sessionProperty_->GetWindowLimits(), aspectRatio_, isDecorEnable, vpr, rect);
+    if (std::abs(static_cast<int32_t>(originalRect.width_) - static_cast<int32_t>(rect.width_)) <= tolerancePx &&
+        std::abs(static_cast<int32_t>(originalRect.height_) - static_cast<int32_t>(rect.height_)) <= tolerancePx) {
+        rect = originalRect;
+        return false;
+    }
+    return true;
+}
+
 WSRect LayoutController::AdjustRectByAspectRatio(const WSRect& rect, const WindowDecoration& decoration)
 {
     if (sessionProperty_ == nullptr) {

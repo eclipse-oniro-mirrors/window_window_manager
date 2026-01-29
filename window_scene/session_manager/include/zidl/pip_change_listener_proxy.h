@@ -24,7 +24,7 @@ class PipChangeListenerProxy : public IRemoteProxy<IPipChangeListener> {
 public:
     explicit PipChangeListenerProxy(const sptr<IRemoteObject>& impl) : IRemoteProxy(impl) {}
 
-    virtual ~PipChangeListenerProxy() = default;
+    ~PipChangeListenerProxy() override = default;
 
     void OnPipStart(int32_t windowId) override;
 

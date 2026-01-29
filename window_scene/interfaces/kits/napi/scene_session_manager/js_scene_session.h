@@ -201,6 +201,7 @@ private:
     static napi_value OpenKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value CloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value NotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
+    static napi_value NotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info);
     static napi_value CallingWindowStateChange(napi_env env, napi_callback_info info);
     static napi_value SetScale(napi_env env, napi_callback_info info);
     static napi_value SetWindowLastSafeRect(napi_env env, napi_callback_info info);
@@ -253,7 +254,6 @@ private:
     static napi_value SaveSnapshotSync(napi_env env, napi_callback_info info);
     static napi_value SaveSnapshotAsync(napi_env env, napi_callback_info info);
     static napi_value SetBorderUnoccupied(napi_env env, napi_callback_info info);
-    static napi_value SetEnableAddSnapshot(napi_env env, napi_callback_info info);
     static napi_value SetFreezeImmediately(napi_env env, napi_callback_info info);
     static napi_value SendContainerModalEvent(napi_env env, napi_callback_info info);
     static napi_value SetExclusivelyHighlighted(napi_env env, napi_callback_info info);
@@ -310,6 +310,7 @@ private:
     napi_value OnCloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     napi_value OnCallingWindowStateChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
+    napi_value OnNotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info);
     napi_value OnSetScale(napi_env env, napi_callback_info info);
     napi_value OnSetWindowLastSafeRect(napi_env env, napi_callback_info info);
     napi_value OnSetMovable(napi_env env, napi_callback_info info);
@@ -353,7 +354,6 @@ private:
     napi_value OnSaveSnapshotSync(napi_env env, napi_callback_info info);
     napi_value OnSaveSnapshotAsync(napi_env env, napi_callback_info info);
     napi_value OnSetBorderUnoccupied(napi_env env, napi_callback_info info);
-    napi_value OnSetEnableAddSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSetFreezeImmediately(napi_env env, napi_callback_info info);
     napi_value OnMaskSupportEnterWaterfallMode(napi_env env, napi_callback_info info);
     napi_value OnUpdateFullScreenWaterfallMode(napi_env env, napi_callback_info info);
@@ -581,7 +581,7 @@ private:
 
     bool HandleCloseKeyboardSyncTransactionKeyboardBaseInfo(napi_env env,
         napi_value argv[], int index, KeyboardBaseInfo& keyboardBaseInfo);
-    bool HandleCloseKeyboardSyncTransactionKeyboardAnimationRectConfig(napi_env env,
+    bool HandleKeyboardAnimationRectConfig(napi_env env,
         napi_value argv[], int index, KeyboardAnimationRectConfig& keyboardAnimationRectConfig);
     bool HandleCallingWindowInfoData(napi_env env,
         napi_value argv[], int index, CallingWindowInfoData& callingWindowInfoData);

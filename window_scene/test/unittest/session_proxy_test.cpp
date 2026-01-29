@@ -1283,6 +1283,38 @@ HWTEST_F(SessionProxyTest, NotifyFrameLayoutFinishFromApp, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyWindowAttachStateListenerRegistered
+ * @tc.desc: NotifyWindowAttachStateListenerRegistered test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, NotifyWindowAttachStateListenerRegistered, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifyWindowAttachStateListenerRegistered start";
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(remoteMocker);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    sProxy->NotifyWindowAttachStateListenerRegistered(true);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    sProxy->NotifyWindowAttachStateListenerRegistered(true);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    sProxy->NotifyWindowAttachStateListenerRegistered(true);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    sProxy->NotifyWindowAttachStateListenerRegistered(true);
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifySnapshotUpdate end";
+}
+
+/**
  * @tc.name: NotifySnapshotUpdate
  * @tc.desc: NotifySnapshotUpdate test
  * @tc.type: FUNC

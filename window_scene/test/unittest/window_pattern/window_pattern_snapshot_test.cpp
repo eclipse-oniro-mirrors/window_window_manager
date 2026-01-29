@@ -31,6 +31,7 @@
 #include "session/host/include/main_session.h"
 #include "session_manager.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "mock/mock_accesstoken_kit.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
 #include "window_manager_agent.h"
@@ -677,31 +678,6 @@ HWTEST_F(WindowPatternSnapshotTest, GetSnapshotPixelMap, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetEnableAddSnapshot
- * @tc.desc: GetEnableAddSnapshot Test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowPatternSnapshotTest, GetEnableAddSnapshot, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    bool res = session_->GetEnableAddSnapshot();
-    EXPECT_EQ(res, true);
-}
-
-/**
- * @tc.name: SetEnableAddSnapshot
- * @tc.desc: SetEnableAddSnapshot Test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowPatternSnapshotTest, SetEnableAddSnapshot, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetEnableAddSnapshot(false);
-    bool res = session_->GetEnableAddSnapshot();
-    EXPECT_EQ(res, false);
-}
-
-/**
  * @tc.name: NotifyUpdateSnapshotWindow
  * @tc.desc: NotifyUpdateSnapshotWindow Test
  * @tc.type: FUNC
@@ -1177,48 +1153,62 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
 
     sceneSession->GetSessionProperty()->SetDisplayId(0);
     sceneSession->isSnapshotBlur_.store(false);
+    sceneSession->SetAppLockControl(false);
+    sceneSession->UpdateAppLockSnapshot(type, controlInfo);
+    EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
+
+    sceneSession->SetAppLockControl(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
 
     sceneSession->state_ = SessionState::STATE_ACTIVE;
     controlInfo.isNeedControl = true;
+    sceneSession->SetAppLockControl(false);
     sceneSession->isPersistentImageFit_ = true;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 
+    sceneSession->SetAppLockControl(false);
     sceneSession->isPersistentImageFit_ = false;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), true);
 
     controlInfo.isNeedControl = false;
+    sceneSession->SetAppLockControl(true);
     sceneSession->isVisible_ = true;
     sceneSession->isSnapshotBlur_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->state_ = SessionState::STATE_BACKGROUND;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->isVisible_ = false;
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(true);
     sceneSession->snapshotPrivacyMode_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(true);
     sceneSession->snapshotPrivacyMode_.store(false);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(false);
     sceneSession->snapshotPrivacyMode_.store(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_EQ(sceneSession->isAppLockControl_.load(), false);
 
+    sceneSession->SetAppLockControl(true);
     sceneSession->property_->SetPrivacyMode(false);
     sceneSession->snapshotPrivacyMode_.store(false);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
@@ -1280,6 +1270,13 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveAppLockSnapshot, TestSize.Level1
 
     sceneSession->state_ = SessionState::STATE_ACTIVE;
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    std::unordered_map<DisplayId, bool> appLockDisplayMap;
+    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
+        std::unordered_map<DisplayId, bool>& {
+        return appLockDisplayMap;
+    });
+    appLockDisplayMap[1000] = false;
+    sceneSession->GetSessionProperty()->SetDisplayId(1000);
     sceneSession->NotifyRemoveAppLockSnapshot();
     EXPECT_EQ(sceneSession->GetAppLockControl(), false);
 
@@ -1288,11 +1285,7 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveAppLockSnapshot, TestSize.Level1
     EXPECT_EQ(sceneSession->GetAppLockControl(), false);
 
     sceneSession->SetAppLockControl(true);
-    std::unordered_map<DisplayId, bool> appLockDisplayMap;
-    sceneSession->RegisterGetAppUseControlDisplayMapFunc([&appLockDisplayMap]() ->
-        std::unordered_map<DisplayId, bool>& {
-        return appLockDisplayMap;
-    });
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
     sceneSession->NotifyRemoveAppLockSnapshot();
     EXPECT_EQ(sceneSession->GetAppLockControl(), false);
 }
@@ -1304,6 +1297,10 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveAppLockSnapshot, TestSize.Level1
  */
 HWTEST_F(WindowPatternSnapshotTest, NotifyAppUseControlDisplay, TestSize.Level1)
 {
+    MockAccesstokenKit::MockIsSACalling(true);
+    ASSERT_EQ(ssm_->NotifyAppUseControlDisplay(0, true), WSError::WS_OK);
+
+    MockAccesstokenKit::MockIsSACalling(false);
     ASSERT_EQ(ssm_->NotifyAppUseControlDisplay(0, true), WSError::WS_ERROR_INVALID_PERMISSION);
 }
 
@@ -1410,6 +1407,11 @@ HWTEST_F(WindowPatternSnapshotTest, RemoveImageForRecent, TestSize.Level1)
     int32_t persistentId = sceneSession->GetPersistentId();
     sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
     sceneSession->scenePersistence_ = scenePersistence;
+    sceneSession->state_ = SessionState::STATE_ACTIVE;
+    ret = ssm_->RemoveImageForRecent(sceneSession->GetPersistentId());
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
     ret = ssm_->RemoveImageForRecent(sceneSession->GetPersistentId());
     EXPECT_EQ(ret, WMError::WM_OK);
     ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());

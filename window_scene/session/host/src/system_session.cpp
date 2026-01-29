@@ -31,8 +31,8 @@ constexpr uint32_t MIN_SYSTEM_WINDOW_HEIGHT = 5;
 constexpr uint8_t MAX_FB_CLICK_COUNT = 8;
 const std::string FB_CLICK_EVENT = "click";
 
-SystemSession::SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-    int32_t userId): SceneSession(info, specificCallback, userId)
+SystemSession::SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
+    : SceneSession(info, specificCallback)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "Create");
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
@@ -304,7 +304,7 @@ bool SystemSession::NeedSystemPermission(WindowType type)
         type == WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW || type == WindowType::WINDOW_TYPE_TOAST ||
         type == WindowType::WINDOW_TYPE_DRAGGING_EFFECT || type == WindowType::WINDOW_TYPE_APP_LAUNCHING ||
         type == WindowType::WINDOW_TYPE_PIP || type == WindowType::WINDOW_TYPE_FLOAT ||
-        type == WindowType::WINDOW_TYPE_FB);
+        type == WindowType::WINDOW_TYPE_FB || type == WindowType::WINDOW_TYPE_SELECTION);
 }
 
 bool SystemSession::CheckPointerEventDispatch(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const
@@ -396,6 +396,9 @@ int32_t SystemSession::GetSubWindowZLevel() const
     int32_t zLevel = 0;
     auto sessionProperty = GetSessionProperty();
     zLevel = sessionProperty->GetSubWindowZLevel();
+    if (onSubSessionZLevelChange_) {
+        onSubSessionZLevelChange_(zLevel);
+    }
     return zLevel;
 }
 

@@ -324,6 +324,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::RegisterSingleHandContainerNode);
     BindNativeFunction(env, exportObj, "notifyRotationChange", moduleName,
         JsSceneSessionManager::NotifyRotationChange);
+    BindNativeFunction(env, exportObj, "notifyRotationBegin", moduleName,
+        JsSceneSessionManager::NotifyRotationBegin);
     BindNativeFunction(env, exportObj, "supportFollowParentWindowLayout", moduleName,
         JsSceneSessionManager::SupportFollowParentWindowLayout);
     BindNativeFunction(env, exportObj, "supportFollowRelativePositionToParent", moduleName,
@@ -1556,6 +1558,13 @@ napi_value JsSceneSessionManager::NotifyRotationChange(napi_env env, napi_callba
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnNotifyRotationChange(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::NotifyRotationBegin(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnNotifyRotationBegin(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::SupportZLevel(napi_env env, napi_callback_info info)
@@ -5368,6 +5377,26 @@ napi_value JsSceneSessionManager::OnNotifyRotationChange(napi_env env, napi_call
         return NapiGetUndefined(env);
     }
     return rotationChangeResultObj;
+}
+
+napi_value JsSceneSessionManager::OnNotifyRotationBegin(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Argc count is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    bool isStopDrag = false;
+    if (!ConvertFromJsValue(env, argv[0], isStopDrag)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to isStopDrag");
+        return NapiGetUndefined(env);
+    }
+    SceneSessionManager::GetInstance().NotifyRotationBegin(isStopDrag);
+    return NapiGetUndefined(env);
 }
 
 void JsSceneSessionManager::RegisterSceneSessionDestructCallback()

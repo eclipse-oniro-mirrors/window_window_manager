@@ -3461,6 +3461,28 @@ public:
     }
 
     /**
+     * @brief Set own system bar property
+     *
+     * @param type System bar type
+     * @param prop System bar property
+     * @param owner The party who owns this property
+     * @return WMError
+     */
+    virtual WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+
+    /**
+     * @brief Remove own system bar property
+     *
+     * @param type System bar type
+     * @param flag The property types that need to be removed
+     * @param owner The party who owns this property
+     * @return WMError
+     */
+    virtual WMError RemoveOwnSystemBarProperty(WindowType type, const SystemBarPropertyFlag& flag,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+
+    /**
      * @brief Set the single frame composer enabled flag of a window.
      *
      * @param enable true means the single frame composer is enabled, otherwise means the opposite.
@@ -4609,13 +4631,6 @@ public:
         return nullptr;
     }
 
-     /**
-     * @brief Get is subwindow support maximize.
-     *
-     * @return true means subwindow support maximize, others means do not support.
-     */
-    virtual bool IsSubWindowMaximizeSupported() const { return false; }
-
     /**
      * @brief Update the pipTemplateInfo.
      *
@@ -4718,6 +4733,13 @@ public:
      * @return WMError.
      */
     virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) { return WMError::WM_OK; }
+
+    /**
+     * @brief Get is subwindow support maximize.
+     *
+     * @return true means subwindow support maximize, others means do not support.
+     */
+    virtual bool IsSubWindowMaximizeSupported() const { return false; }
 
     /**
      * @brief Set drag key frame policy.

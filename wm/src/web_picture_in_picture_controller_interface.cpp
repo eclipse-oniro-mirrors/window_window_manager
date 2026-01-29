@@ -344,7 +344,8 @@ WMError WebPictureInPictureControllerInterface::UnregisterResizeListener(NativeP
     return UnregisterListenerWithType(ListenerType::SIZE_CHANGE_CB, listener);
 }
 
-WMError WebPictureInPictureControllerInterface::CheckRegisterParam(const sptr<NativePiPWindowListener>& listener)
+WMError WebPictureInPictureControllerInterface::CheckRegisterParam(ListenerType type,
+    const sptr<NativePiPWindowListener>& listener)
 {
     if (sptrWebPipController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "WebPipController is nullptr");
@@ -361,7 +362,7 @@ WMError WebPictureInPictureControllerInterface::RegisterListenerWithType(Listene
     const sptr<NativePiPWindowListener>& listener)
 {
     WMError ret = WMError::WM_OK;
-    if ((ret = CheckRegisterParam(listener)) != WMError::WM_OK) {
+    if ((ret = CheckRegisterParam(type, listener)) != WMError::WM_OK) {
         return ret;
     }
     if (IsRegistered(type, listener)) {
@@ -389,8 +390,7 @@ WMError WebPictureInPictureControllerInterface::RegisterListenerWithType(Listene
                 cbMapSize = startPipCallbackSet_.size();
                 break;
             default:
-                TLOGE(WmsLogTag::WMS_PIP, "Listener type not found");
-                return WMError::WM_ERROR_INVALID_PARAM;
+                break;
         }
     }
     if (ret != WMError::WM_OK) {
@@ -405,7 +405,7 @@ WMError WebPictureInPictureControllerInterface::UnregisterListenerWithType(Liste
     const sptr<NativePiPWindowListener>& listener)
 {
     WMError ret = WMError::WM_OK;
-    if ((ret = CheckRegisterParam(listener)) != WMError::WM_OK) {
+    if ((ret = CheckRegisterParam(type, listener)) != WMError::WM_OK) {
         return ret;
     }
     if (!IsRegistered(type, listener)) {
@@ -433,8 +433,7 @@ WMError WebPictureInPictureControllerInterface::UnregisterListenerWithType(Liste
                 cbMapSize = startPipCallbackSet_.size();
                 break;
             default:
-                TLOGE(WmsLogTag::WMS_PIP, "Listener type not found");
-                return WMError::WM_ERROR_INVALID_PARAM;
+                break;
         }
     }
     if (ret != WMError::WM_OK) {
@@ -491,8 +490,7 @@ WMError WebPictureInPictureControllerInterface::UnregisterAll(ListenerType type)
                 pipController->UnregisterAllPiPStart();
                 break;
             default:
-                TLOGE(WmsLogTag::WMS_PIP, "Listener type not found");
-                return WMError::WM_ERROR_INVALID_PARAM;
+                break;
         }
         return WMError::WM_OK;
     } else {
@@ -508,6 +506,9 @@ bool WebPictureInPictureControllerInterface::IsRegistered(ListenerType type,
     switch (type) {
         case ListenerType::STATE_CHANGE_CB:
             for (const auto& it : lifeCycleCallbackSet_) {
+                if (it == nullptr) {
+                    continue;
+                }
                 if (it->GetLifeCycleCallbackRef() == listener->GetLifeCycleCallbackRef()) {
                     return true;
                 }
@@ -515,6 +516,9 @@ bool WebPictureInPictureControllerInterface::IsRegistered(ListenerType type,
             break;
         case ListenerType::CONTROL_EVENT_CB:
             for (const auto& it : controlEventCallbackSet_) {
+                if (it == nullptr) {
+                    continue;
+                }
                 if (it->GetControlEventCallbackRef() == listener->GetControlEventCallbackRef()) {
                     return true;
                 }
@@ -522,6 +526,9 @@ bool WebPictureInPictureControllerInterface::IsRegistered(ListenerType type,
             break;
         case ListenerType::SIZE_CHANGE_CB:
             for (const auto& it : resizeCallbackSet_) {
+                if (it == nullptr) {
+                    continue;
+                }
                 if (it->GetResizeCallbackRef() == listener->GetResizeCallbackRef()) {
                     return true;
                 }
@@ -529,6 +536,9 @@ bool WebPictureInPictureControllerInterface::IsRegistered(ListenerType type,
             break;
         case ListenerType::PIP_START_CB:
             for (const auto& it : startPipCallbackSet_) {
+                if (it == nullptr) {
+                    continue;
+                }
                 if (it->GetStartPipCallbackRef() == listener->GetStartPipCallbackRef()) {
                     return true;
                 }
@@ -557,6 +567,10 @@ WMError WebPictureInPictureControllerInterface::ProcessStateChangeUnregister(
     const sptr<NativePiPWindowListener>& listener)
 {
     for (const auto& it : lifeCycleCallbackSet_) {
+        if (it == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "one of lifeCycleCallbacks is nullptr");
+            return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        }
         if (it->GetLifeCycleCallbackRef() != listener->GetLifeCycleCallbackRef()) {
             continue;
         }
@@ -590,6 +604,10 @@ WMError WebPictureInPictureControllerInterface::ProcessControlEventUnregister(
     const sptr<NativePiPWindowListener>& listener)
 {
     for (const auto& it : controlEventCallbackSet_) {
+        if (it == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "one of controlEventCallbacks is nullptr");
+            return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        }
         if (it->GetControlEventCallbackRef() != listener->GetControlEventCallbackRef()) {
             continue;
         }
@@ -623,6 +641,10 @@ WMError WebPictureInPictureControllerInterface::ProcessSizeChangeUnregister(
     const sptr<NativePiPWindowListener>& listener)
 {
     for (const auto& it : resizeCallbackSet_) {
+        if (it == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "one of resizeCallbacks is nullptr");
+            return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        }
         if (it->GetResizeCallbackRef() != listener->GetResizeCallbackRef()) {
             continue;
         }
@@ -633,6 +655,7 @@ WMError WebPictureInPictureControllerInterface::ProcessSizeChangeUnregister(
             return ret;
         }
         resizeCallbackSet_.erase(it);
+        TLOGI(WmsLogTag::WMS_PIP, "resize listener deleted");
         return ret;
     }
     TLOGE(WmsLogTag::WMS_PIP, "resize callback not found");
@@ -656,6 +679,10 @@ WMError WebPictureInPictureControllerInterface::ProcessPipStartUnregister(
     const sptr<NativePiPWindowListener>& listener)
 {
     for (const auto& it : startPipCallbackSet_) {
+        if (it == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "one of startPipCallbacks is nullptr");
+            return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        }
         if (it->GetStartPipCallbackRef() != listener->GetStartPipCallbackRef()) {
             continue;
         }
@@ -666,6 +693,7 @@ WMError WebPictureInPictureControllerInterface::ProcessPipStartUnregister(
             return ret;
         }
         startPipCallbackSet_.erase(it);
+        TLOGI(WmsLogTag::WMS_PIP, "startPip listener deleted");
         return ret;
     }
     TLOGE(WmsLogTag::WMS_PIP, "startPip callback not found");

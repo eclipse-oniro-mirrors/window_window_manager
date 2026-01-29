@@ -492,7 +492,7 @@ HWTEST_F(KeyboardSessionTest, SetCallingSessionId, TestSize.Level0)
         return 100; // focusSession's persistentId is 100
     };
     keyboardSession->keyboardCallback_->onCallingSessionIdChange = [](int32_t callingSessionid) {};
-
+    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
     keyboardSession->SetCallingSessionId(0);
     ASSERT_EQ(keyboardSession->GetCallingSessionId(), 100); // 100 is callingSessionId
 }

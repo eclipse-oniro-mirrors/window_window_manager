@@ -683,6 +683,12 @@ void SceneInputManager::SetUserBackground(bool userBackground)
     isUserBackground_.store(userBackground);
 }
 
+void SceneInputManager::SetIsRotationBegin(bool isRotationBegin)
+{
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "isRotationBegin=%{public}d", isRotationBegin);
+    isRotationBegin_.store(isRotationBegin);
+}
+
 void SceneInputManager::SetCurrentUserId(int32_t userId)
 {
     TLOGD(WmsLogTag::WMS_MULTI_USER, "Current userId=%{public}d", userId);
@@ -743,10 +749,14 @@ void SceneInputManager::FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& win
                                               const bool forceFlush)
 {
     eventHandler_->PostTask([this, windowInfoList = std::move(windowInfoList),
-                            pixelMapList = std::move(pixelMapList), forceFlush]() {
+                            pixelMapList = std::move(pixelMapList), forceFlush] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "FlushDisplayInfoToMMI");
         if (isUserBackground_.load()) {
             TLOGND(WmsLogTag::WMS_MULTI_USER, "User in background, no need to flush display info");
+            return;
+        }
+        if (isRotationBegin_.load()) {
+            TLOGND(WmsLogTag::WMS_EVENT, "rotating, no need to flush display info");
             return;
         }
         if (sceneSessionDirty_ == nullptr) {

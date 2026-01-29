@@ -348,8 +348,6 @@ public:
             addSnapshotCallback_ = std::move(task);
         }
     }
-    void SetEnableAddSnapshot(bool enableAddSnapshot = true);
-    bool GetEnableAddSnapshot() const;
 
     SessionState GetSessionState() const;
     virtual void SetSessionState(SessionState state);
@@ -881,7 +879,7 @@ public:
     virtual bool IsPrelaunch() const { return false; }
 
 protected:
-    void GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId = 0);
+    void GeneratePersistentId(bool isExtension, int32_t persistentId);
     virtual void UpdateSessionState(SessionState state);
     void NotifySessionStateChange(const SessionState& state);
     void UpdateSessionTouchable(bool touchable);
@@ -1261,7 +1259,6 @@ private:
     /*
      * Window Scene Snapshot
      */
-    std::atomic<bool> enableAddSnapshot_ = true;
     Task saveSnapshotCallback_ = []() {};
     Task addSnapshotCallback_ = []() {};
     std::mutex saveSnapshotCallbackMutex_;

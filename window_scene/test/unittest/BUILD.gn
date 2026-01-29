@@ -55,7 +55,6 @@ group("unittest") {
     "event_distribution:ws_scene_session_event_test",
     "event_distribution:ws_session_event_test",
     "event_distribution:ws_window_session_property_event_test",
-    "layout:ws_layout_test",
     "rotation:ws_scene_session_manager_rotation_test",
     "rotation:ws_scene_session_rotation_test",
     "rotation:ws_window_session_property_rotation_test",
@@ -63,6 +62,8 @@ group("unittest") {
     "window_focus:unittest",
     "window_immersive:window_scene_immersive_test",
     "window_pattern:window_pattern_starting_window_rdb_test",
+    "scene_session_pattern:scene_session_pattern_test",
+    "scene_session_manager_pattern:scene_session_manager_pattern_test",
   ]
 
   if (window_manager_feature_support_dmsfwk) {
@@ -1504,6 +1505,8 @@ ohos_static_library("ws_unittest_common") {
     "window_pattern:*",
     "window_recover:*",
     "window_immersive:*",
+    "scene_session_pattern:*",
+    "scene_session_manager_pattern:*",
   ]
   testonly = true
 

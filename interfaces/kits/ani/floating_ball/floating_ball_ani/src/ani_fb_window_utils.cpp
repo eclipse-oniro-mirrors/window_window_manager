@@ -300,5 +300,29 @@ ani_status CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, con
     }
     return ret;
 }
+
+ani_object AniThrowError(ani_env* env, WMError wmError, const std::string& message)
+{
+     // WMError → WmErrorCode
+    WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
+    return AniThrowError(env, wmErrorCode, message);
+}
+
+ani_object AniThrowError(ani_env* env, WmErrorCode wmErrorCode, const std::string& message)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
+    std::string errorMessage = message.empty() ? GetErrorMsg(wmErrorCode) : message;
+    ani_object aniError;
+    ani_status status = CreateBusinessError(env, static_cast<int32_t>(wmErrorCode), errorMessage, &aniError);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fail to new aniError, status:%{public}d", static_cast<int32_t>(status));
+    }
+    status = env->ThrowError(static_cast<ani_error>(aniError));
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fail to ThrowAniError, status:%{public}d", static_cast<int32_t>(status));
+    }
+    return CreateAniUndefined(env);
+}
+
 } // Rosen
 } // OHOS

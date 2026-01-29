@@ -287,7 +287,6 @@ public:
     WMError NotifyWatchGestureConsumeResult(int32_t keyCode, bool isConsumed) override;
     void RegisterWatchFocusActiveChangeCallback(NotifyWatchFocusActiveChangeFunc&& func);
     WMError NotifyWatchFocusActiveChange(bool isActive) override;
-    void RegisterFlushWindowInfoCallback();
     void FlushWindowInfoToMMI(const bool forceFlush = false);
     void SendCancelEventBeforeEraseSession(const sptr<SceneSession>& sceneSession);
     void BuildCancelPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, int32_t fingerId,
@@ -730,6 +729,7 @@ public:
      * Window Rotation
      */
     void SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func);
+    WMError NotifyRotationProperty(int32_t persistentId, uint32_t rotation, uint32_t width, uint32_t height);
 
      /*
      * FloatingBall Window
@@ -912,6 +912,8 @@ public:
     WMError UpdateScreenLockState(int32_t persistentId);
 
     WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams) override;
+
+    void NotifyRotationBegin(bool isStopDrag);
 
 protected:
     SceneSessionManager();
@@ -1264,7 +1266,7 @@ private:
         const sptr<WindowSessionProperty>& property);
     void SetExtensionSubSessionDisplayId(const sptr<WindowSessionProperty>& property,
         const sptr<ISessionStage>& sessionStage);
-    void ReportSubWindowCreationFailure(const int32_t& pid, const std::string& abilityName,
+    void ReportSubWindowCreationFailure(int32_t pid, const std::string& abilityName,
         const std::string& parentBundleName, const std::string& hostBundleName);
 
     /*

@@ -359,6 +359,8 @@ public:
     RealTimeSwitchInfo GetRealTimeSwitchInfo() const;
     void SetPageCompatibleMode(CompatibleStyleMode compatibleMode);
     CompatibleStyleMode GetPageCompatibleMode() const;
+    void SetLogicalDeviceConfig(const std::string& logicalDeviceConfig);
+    std::string GetLogicalDeviceConfig() const;
 
     /*
      * Keyboard
@@ -560,6 +562,7 @@ private:
     mutable std::mutex compatibleModeMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
+    std::string logicalDeviceConfig_ = "";
     uint8_t backgroundAlpha_ = 0xff; // default alpha is opaque.
     mutable std::mutex atomicServiceMutex_;
     bool isAtomicService_ = false;
