@@ -1118,7 +1118,7 @@ HWTEST_F(PcFoldScreenControllerTest, SystemKeyboardStatusChangeForSupportEnterWa
     controller_->SystemKeyboardStatusChangeForSupportEnterWaterfallMode(displayId, hasSystemKeyboard);
     EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
  
-    hasSystemKeyboard = true;
+    hasSystemKeyboard = false;
     controller_->SystemKeyboardStatusChangeForSupportEnterWaterfallMode(displayId, hasSystemKeyboard);
     EXPECT_TRUE(controller_->supportEnterWaterfallMode_);
  
