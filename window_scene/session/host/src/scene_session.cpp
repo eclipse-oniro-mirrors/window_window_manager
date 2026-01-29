@@ -23,7 +23,6 @@
 #include <climits>
 #include "configuration.h"
 #include <hitrace_meter.h>
-#include "hitrace/hitracechain.h"
 #include <type_traits>
 #ifdef IMF_ENABLE
 #include <input_method_controller.h>
