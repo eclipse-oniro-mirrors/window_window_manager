@@ -1359,11 +1359,6 @@ void WindowImpl::GetConfigurationFromAbilityInfo()
     sizeLimits.minHeight_ = abilityInfo->minWindowHeight;
     sizeLimits.maxRatio_ = static_cast<float>(abilityInfo->maxWindowRatio);
     sizeLimits.minRatio_ = static_cast<float>(abilityInfo->minWindowRatio);
-
-    TLOGD(WmsLogTag::WMS_LAYOUT, "id: %{public}u sizeLimits:[maxWidth: %{public}u, maxHeight: %{public}u,
-        minWidth: %{public}u, minHeight: %{public}u, maxRatio: %{public}f, minRatio: %{public}f]",
-        property_->GetWindowId(), sizeLimits.maxWidth_, sizeLimits.maxHeight_, sizeLimits.minWidth_,
-        sizeLimits.minHeight_, sizeLimits.maxRatio_, sizeLimits.minRatio_);
     property_->SetSizeLimits(sizeLimits);
 
     // get orientation configuration

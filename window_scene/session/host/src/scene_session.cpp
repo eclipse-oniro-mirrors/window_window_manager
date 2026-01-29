@@ -3953,10 +3953,6 @@ bool SceneSession::IsDraggable() const
         (GetSessionProperty()->GetIsPcAppInPad() && !isMainWindow));
     bool isPhoneWindowCanDrag = isFloatingDragAccessible && (isSystemWindow || isSubWindow) &&
         (systemConfig_.IsPhoneWindow() || (systemConfig_.IsPadWindow() && !IsFreeMultiWindowMode()));
-    TLOGD(WmsLogTag::WMS_LAYOUT, "isDraggableFlag, id:%{public}d, isFloatingDragAccessible:%{public}d,"
-            "isPcOrFreeMultiWindowCanDrag:%{public}d, isPhoneWindowCanDrag:{public}d", GetPersistentId(),
-            isFloatingDragAccessible, isPcOrFreeMultiWindowCanDrag, isPhoneWindowCanDrag);
-
     return isPcOrFreeMultiWindowCanDrag || isPhoneWindowCanDrag;
 }
 

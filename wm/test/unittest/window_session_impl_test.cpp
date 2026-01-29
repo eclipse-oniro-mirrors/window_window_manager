@@ -28,6 +28,7 @@
 #include "mock_session_stub.h"
 #include "mock_uicontent.h"
 #include "mock_window.h"
+#include "mock_window_session_impl.h"
 #include "mock_window_session_property.h"
 #include "parameters.h"
 #include "window_helper.h"
@@ -2366,67 +2367,73 @@ HWTEST_F(WindowSessionImplTest, GetStatusBarHeight, TestSize.Level1)
  * @tc.desc: GetStatusBarHeightFunOptimize
  * @tc.type: FUNC
  */
-HWTEST_F(GetWindowStatusInnerTest01, GetWindowStatusInner, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, GetWindowStatusInner01, TestSize.Level1)
 {
     WindowMode mode = WindowMode::WINDOW_MODE_UNDEFINED;
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr();
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetWindowStatusInner");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
     sptr<WindowSessionProperty> property_ = sptr<WindowSessionProperty>::MakeSptr();
 
-    //case:mode == WindowMode::WINDOW_MODE_FLOATING && property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR
-    property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    //case:mode == WindowMode::WINDOW_MODE_FLOATING&&property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
     mode = WindowMode::WINDOW_MODE_FLOATING;
-    auto result = Window->GetWindowStatusInner(mdoe);
+    auto result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
 
-    //case:mode == WindowMode::WINDOW_MODE_FLOATING && property_->GetMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR
-    property_->SetMaximizeMode(MaximizeMode::MODE_END);
+    //case:mode == WindowMode::WINDOW_MODE_FLOATING&&property_->GetMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_END);
     mode = WindowMode::WINDOW_MODE_FLOATING;
-    result = Window->GetWindowStatusInner(mdoe);
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FLOATING);
 
     //case:mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY
     //case1:mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY
     mode = WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
-    result = Window->GetWindowStatusInner(mdoe);
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
 
     //case2:mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY
     mode = WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
-    result = Window->GetWindowStatusInner(mdoe);
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
 
     //case:mode == WindowMode::WINDOW_MODE_FULLSCREEN
     // case1:!IsPcOrPadFreeMultiWindowMode
+    mode = WindowMode::WINDOW_MODE_FULLSCREEN;
     window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
-    result = Window->GetWindowStatusInner(mdoe);
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // case2:!GetTargetAPIVersion() >= 14
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    window->SetTargetAPIVersion(12);
-    result = Window->GetWindowStatusInner(mdoe);
+    window->targetAPIVersion_ = 12;
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // case3:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
+    EXPECT_CALL(*window, GetImmersiveModeEnabledState())
+    .Times(1)
+    .WillRepeatedly(Return(true));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    window->SetTargetAPIVersion(14);
-    window->SetImmersiveModeEnabledState(true);
-    result = Window->GetWindowStatusInner(mdoe);
+    window->targetAPIVersion_ = 14;
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // case4:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
+    EXPECT_CALL(*window, GetImmersiveModeEnabledState())
+    .Times(1)
+    .WillRepeatedly(Return(false));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    window->SetTargetAPIVersion(14);
-    window->SetImmersiveModeEnabledState(false);
-    result = Window->GetWindowStatusInner(mdoe);
+    window->targetAPIVersion_ = 14;
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
 
     //case:state_ == WindowState::STATE_HIDDEN
     mode = WindowMode::WINDOW_MODE_UNDEFINED;
     window->state_ = WindowState::STATE_HIDDEN;
-    result = Window->GetWindowStatusInner(mdoe);
+    result = window->GetWindowStatusInner(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MINIMIZE);
-
 }
 
 /**

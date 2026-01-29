@@ -323,28 +323,22 @@ HWTEST_F(SceneSessionManagerTest4, GetWindowStatus04, TestSize.Level1)
  * @tc.desc: GetWindowStatus
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest5, GetWindowStatus05, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest4, GetWindowStatus05, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     WindowMode mode = WindowMode::WINDOW_MODE_FLOATING;
     SessionState sessionState = SessionState::STATE_FOREGROUND;
-    sptr<WindowSessionProperty> property = nullptr;
-    // property is nullptr
-    auto result1 = ssm_->GetWindowStatus(mode, sessionState, property);
-    EXPECT_EQ(result1, WindowStatus::WINDOW_STATUS_UNDEFINED);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
 
-    property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-
-    // case:mode == WindowMode::WINDOW_MODE_FLOATING && property->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR
+    // case:mode == WindowMode::WINDOW_MODE_FLOATING&&property->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR
     mode = WindowMode::WINDOW_MODE_FLOATING;
-    property->GetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    property->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
     auto result2 = ssm_->GetWindowStatus(mode, sessionState, property);
     EXPECT_EQ(result2, WindowStatus::WINDOW_STATUS_MAXIMIZE);
 
-    // case:mode == WindowMode::WINDOW_MODE_FLOATING && property->GetMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR
+    // case:mode == WindowMode::WINDOW_MODE_FLOATING&&property->GetMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR
     mode = WindowMode::WINDOW_MODE_FLOATING;
-    property->GetMaximizeMode(MaximizeMode::MODE_END);
+    property->SetMaximizeMode(MaximizeMode::MODE_END);
     auto result3 = ssm_->GetWindowStatus(mode, sessionState, property);
     EXPECT_EQ(result3, WindowStatus::WINDOW_STATUS_FLOATING);
 
@@ -355,34 +349,33 @@ HWTEST_F(SceneSessionManagerTest5, GetWindowStatus05, TestSize.Level1)
 
     // case:mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY
     mode = WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
-    auto result4 = ssm_->GetWindowStatus(mode, sessionState, property);
-    EXPECT_EQ(result4, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
+    auto result5 = ssm_->GetWindowStatus(mode, sessionState, property);
+    EXPECT_EQ(result5, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
 
     // case:mode == WindowMode::WINDOW_MODE_FULLSCREEN
     mode = WindowMode::WINDOW_MODE_FULLSCREEN;
-    auto result5 = ssm_->GetWindowStatus(mode, sessionState, property);
-    EXPECT_EQ(result5, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+    auto result6 = ssm_->GetWindowStatus(mode, sessionState, property);
+    EXPECT_EQ(result6, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     //case:sessionState != SessionState::STATE_FOREGROUND && sessionState != SessionState::STATE_ACTIVE
 
     //case1:sessionState == SessionState::STATE_FOREGROUND
     mode = WindowMode::WINDOW_MODE_UNDEFINED;
     sessionState = SessionState::STATE_FOREGROUND;
-    auto result6 = ssm_->GetWindowStatus(mode, sessionState, property);
-    EXPECT_EQ(result6, WindowStatus::WINDOW_STATUS_UNDEFINED);
+    auto result7 = ssm_->GetWindowStatus(mode, sessionState, property);
+    EXPECT_EQ(result7, WindowStatus::WINDOW_STATUS_UNDEFINED);
 
     //case2:sessionState == SessionState::STATE_ACTIVE
     mode = WindowMode::WINDOW_MODE_UNDEFINED;
     sessionState = SessionState::STATE_ACTIVE;
-    auto result6 = ssm_->GetWindowStatus(mode, sessionState, property);
-    EXPECT_EQ(result6, WindowStatus::WINDOW_STATUS_UNDEFINED);
+    auto result8 = ssm_->GetWindowStatus(mode, sessionState, property);
+    EXPECT_EQ(result8, WindowStatus::WINDOW_STATUS_UNDEFINED);
 
     //case3:sessionState != SessionState::STATE_FOREGROUND && sessionState != SessionState::STATE_ACTIVE
     mode = WindowMode::WINDOW_MODE_UNDEFINED;
     sessionState = SessionState::STATE_END;
-    auto result6 = ssm_->GetWindowStatus(mode, sessionState, property);
-    EXPECT_EQ(result6, WindowStatus::WINDOW_STATUS_MINIMIZE);
-
+    auto result9 = ssm_->GetWindowStatus(mode, sessionState, property);
+    EXPECT_EQ(result9, WindowStatus::WINDOW_STATUS_MINIMIZE);
 }
 
 /**

@@ -7942,21 +7942,20 @@ void WindowSessionImpl::NotifyPrepareCloseFloatingBall()
 WindowStatus WindowSessionImpl::GetWindowStatusInner(WindowMode mode)
 {
     auto windowStatus = WindowStatus::WINDOW_STATUS_UNDEFINED;
-    static const std::unordered_map<WindowMode, WindowStatus> modeToStatusMap = {
- 	         {WindowMode::WINDOW_MODE_FLOATING,     WindowStatus::WINDOW_STATUS_FLOATING},
- 	         {WindowMode::WINDOW_MODE_SPLIT_PRIMARY,  WindowStatus::WINDOW_STATUS_SPLITSCREEN},
- 	         {WindowMode::WINDOW_MODE_SPLIT_SECONDARY, WindowStatus::WINDOW_STATUS_SPLITSCREEN},
- 	         {WindowMode::WINDOW_MODE_FULLSCREEN,   WindowStatus::WINDOW_STATUS_FULLSCREEN},
- 	    };
-     auto it = modeToStatusMap.find(mode);
- 	     if(it != modeToStatusMap.end()) {
- 	        windowStatus = it -> second;
-            if (property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR) {
-                windowStatus = WindowStatus::WINDOW_STATUS_MAXIMIZE;
-            }
-             if (IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14) { // 14: isolated version
+    if (mode == WindowMode::WINDOW_MODE_FLOATING) {
+        windowStatus = WindowStatus::WINDOW_STATUS_FLOATING;
+        if (property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR) {
+            windowStatus = WindowStatus::WINDOW_STATUS_MAXIMIZE;
+        }
+    } else if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        windowStatus = WindowStatus::WINDOW_STATUS_SPLITSCREEN;
+    }
+    if (mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
+        if (IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14) { // 14: isolated version
             windowStatus = GetImmersiveModeEnabledState() ? WindowStatus::WINDOW_STATUS_FULLSCREEN :
                 WindowStatus::WINDOW_STATUS_MAXIMIZE;
+        } else {
+            windowStatus = WindowStatus::WINDOW_STATUS_FULLSCREEN;
         }
     }
     if (state_ == WindowState::STATE_HIDDEN) {

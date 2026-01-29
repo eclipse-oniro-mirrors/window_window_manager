@@ -1369,8 +1369,6 @@ std::vector<AppExecFwk::SupportWindowMode> WindowSceneSessionImpl::ExtractSuppor
             }
         }
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, metadata: %{public}s, abilityInfo-Modes: %{public}s",
-            GetWindowId(), updateWindowModes.ToString().c_str(), abilityInfo->windowModes.ToString().c_str());
     if (updateWindowModes.empty()) {
         updateWindowModes = abilityInfo->windowModes;
     }
