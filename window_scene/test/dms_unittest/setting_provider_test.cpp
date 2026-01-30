@@ -19,10 +19,19 @@
 
 #include "screen_session_manager.h"
 #include "setting_provider.h"
+#include "hilog/log.h"
 
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg = msg;
+    }
+}
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -117,6 +126,30 @@ HWTEST_F(SettingProviderTest, ExecRegisterCb02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RegisterObserver_ObserverNullptr
+ * @tc.desc: test function : RegisterObserver_ObserverNullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SettingProviderTest, RegisterObserver_ObserverNullptr, TestSize.Level1)
+{
+    sptr<SettingObserver> observer = nullptr;
+    ErrCode res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).RegisterObserver(observer);
+    EXPECT_EQ(res, ERR_NO_INIT);
+}
+
+/**
+ * @tc.name: UnregisterObserver_ObserverNullptr
+ * @tc.desc: test function : UnregisterObserver_ObserverNullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SettingProviderTest, UnregisterObserver_ObserverNullptr, TestSize.Level1)
+{
+    sptr<SettingObserver> observer = nullptr;
+    ErrCode res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).UnregisterObserver(observer);
+    EXPECT_EQ(res, ERR_NO_INIT);
+}
+
+/**
  * @tc.name: UnregisterObserver
  * @tc.desc: test function : UnregisterObserver
  * @tc.type: FUNC
@@ -192,7 +225,109 @@ HWTEST_F(SettingProviderTest, AssembleUriMultiUser, TestSize.Level1)
     EXPECT_TRUE(res.ToString().find("datashare:///com.ohos.settingsdata/entry/settingsdata/SETTINGSDATA") !=
         std::string::npos);
 
+    key = "wallpaperAodDisplay";
+    res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).AssembleUriMultiUser(key);
+    EXPECT_TRUE(res.ToString().find("wallpaperAodDisplay") != std::string::npos);
+
     ScreenSessionManager::GetInstance().currentUserIdForSettings_ = saveSettings;
+}
+
+/**
+ * @tc.name: CreateDataShareHelperMultiUser
+ * @tc.desc: test function : CreateDataShareHelperMultiUser
+ * @tc.type: FUNC
+ */
+HWTEST_F(SettingProviderTest, CreateDataShareHelperMultiUser, TestSize.Level1)
+{
+    int32_t saveSettings = ScreenSessionManager::GetInstance().currentUserIdForSettings_;
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    // userId > 0
+    ScreenSessionManager::GetInstance().currentUserIdForSettings_ = 1;
+    auto res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).CreateDataShareHelperMultiUser();
+    EXPECT_TRUE(g_logMsg.find("current userId") != std::string::npos);
+    EXPECT_EQ(res, nullptr);
+    g_logMsg.clear();
+    // userId = 0
+    ScreenSessionManager::GetInstance().currentUserIdForSettings_ = 0;
+    res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).CreateDataShareHelperMultiUser();
+    EXPECT_TRUE(g_logMsg.find("invalid userId") != std::string::npos);
+    EXPECT_EQ(res, nullptr);
+    LOG_SetCallback(nullptr);
+
+    ScreenSessionManager::GetInstance().currentUserIdForSettings_ = saveSettings;
+}
+
+/**
+ * @tc.name: CreateDataShareHelperMultiUserByTable
+ * @tc.desc: test function : CreateDataShareHelperMultiUserByTable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SettingProviderTest, CreateDataShareHelperMultiUserByTable, TestSize.Level1)
+{
+    int32_t saveSettings = ScreenSessionManager::GetInstance().currentUserIdForSettings_;
+    std::string tableName = "table_name";
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    // userId = 0
+    ScreenSessionManager::GetInstance().currentUserIdForSettings_ = 0;
+    auto res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).CreateDataShareHelperMultiUserByTable(tableName);
+    EXPECT_TRUE(g_logMsg.find("invalid userId") != std::string::npos);
+    EXPECT_EQ(res, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+
+    ScreenSessionManager::GetInstance().currentUserIdForSettings_ = saveSettings;
+}
+
+/**
+ * @tc.name: AssembleUriMultiUserByTable
+ * @tc.desc: test function : AssembleUriMultiUserByTable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SettingProviderTest, AssembleUriMultiUserByTable, TestSize.Level1)
+{
+    int32_t saveSettings = ScreenSessionManager::GetInstance().currentUserIdForSettings_;
+    std::string key = "during_call_state";
+    std::string tableName = "table_name";
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    // userId = 0
+    ScreenSessionManager::GetInstance().currentUserIdForSettings_ = 0;
+    SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).AssembleUriMultiUserByTable(key, tableName);
+    EXPECT_TRUE(g_logMsg.find("invalid userId") != std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+
+    ScreenSessionManager::GetInstance().currentUserIdForSettings_ = saveSettings;
+}
+
+/**
+ * @tc.name: RegisterObserverByTable_ObserverNullptr
+ * @tc.desc: test function : RegisterObserverByTable_ObserverNullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SettingProviderTest, RegisterObserverByTable_ObserverNullptr, TestSize.Level1)
+{
+    sptr<SettingObserver> observer = nullptr;
+    std::string tableName = "table_name";
+    ErrCode res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).RegisterObserverByTable(observer, tableName);
+    EXPECT_EQ(res, ERR_NO_INIT);
+}
+
+/**
+ * @tc.name: UnregisterObserverByTable_ObserverNullptr
+ * @tc.desc: test function : UnregisterObserverByTable_ObserverNullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SettingProviderTest, UnregisterObserverByTable_ObserverNullptr, TestSize.Level1)
+{
+    sptr<SettingObserver> observer = nullptr;
+    std::string tableName = "table_name";
+    ErrCode res = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).UnregisterObserverByTable(observer, tableName);
+    EXPECT_EQ(res, ERR_NO_INIT);
 }
 }
 }
