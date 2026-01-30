@@ -367,74 +367,6 @@ WMError SubSession::NotifySetParentSession(int32_t oldParentWindowId, int32_t ne
     }, __func__);
 }
 
-void SubSession::HandleCrossSurfaceNodeByWindowAnchor(SizeChangeReason reason, DisplayId displayId)
-{
-    auto surfaceNode = GetSurfaceNodeForMoveDrag();
-    if (!surfaceNode) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, SurfaceNode is null", GetPersistentId());
-        return;
-    }
-    if (reason == SizeChangeReason::DRAG || reason == SizeChangeReason::DRAG_MOVE) {
-        auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
-        if (dragMoveMountedNode == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
-            return;
-        }
-        {
-            AutoRSTransaction trans(surfaceNode->GetRSUIContext());
-            surfaceNode->SetPositionZ(GetZOrder());
-            surfaceNode->SetIsCrossNode(true);
-        }
-        {
-            AutoRSTransaction trans(dragMoveMountedNode->GetRSUIContext());
-            dragMoveMountedNode->AddCrossScreenChild(surfaceNode, SUFFIX_INDEX, true);
-        }
-        cloneNodeCountDuringCross_.fetch_add(1);
-        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display:%{public}" PRIu64 " persistentId:%{public}d, "
-            "cloneNodeCountDuringCross:%{public}d", displayId, GetPersistentId(), cloneNodeCountDuringCross_.load());
-    } else if (reason == SizeChangeReason::DRAG_END) {
-        surfaceNode->SetPositionZ(moveDragController_->GetOriginalPositionZ());
-        auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
-        if (dragMoveMountedNode == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
-            return;
-        }
-        dragMoveMountedNode->RemoveCrossScreenChild(surfaceNode);
-        surfaceNode->SetIsCrossNode(false);
-        cloneNodeCountDuringCross_.fetch_sub(1);
-        TLOGI(WmsLogTag::WMS_LAYOUT, "Remove sub window from display:%{public}" PRIu64 " persistentId:%{public}d, "
-            "cloneNodeCountDuringCross:%{public}d", displayId, GetPersistentId(), cloneNodeCountDuringCross_.load());
-    }
-}
-
-WSError SubSession::SetSubWindowZLevel(int32_t zLevel)
-{
-    PostTask([weakThis = wptr(this), zLevel]() {
-        auto session = weakThis.promote();
-        if (!session) {
-            TLOGE(WmsLogTag::WMS_HIERARCHY, "session is null");
-            return;
-        }
-        auto property = session->GetSessionProperty();
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "Notify session zLevel change, id: %{public}d, zLevel: %{public}d",
-            session->GetPersistentId(), zLevel);
-        property->SetSubWindowZLevel(zLevel);
-        if (session->onSubSessionZLevelChange_) {
-            session->onSubSessionZLevelChange_(zLevel);
-        }
-    }, "SetSubWindowZLevel");
-    return WSError::WS_OK;
-}
-
-int32_t SubSession::GetSubWindowZLevel() const
-{
-    int32_t zLevel = 0;
-    auto sessionProperty = GetSessionProperty();
-    zLevel = sessionProperty->GetSubWindowZLevel();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "zLevel: %{public}d", zLevel);
-    return zLevel;
-}
-
 void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
 {
     auto movedSurfaceNode = GetSurfaceNodeForMoveDrag();
@@ -578,5 +510,73 @@ void SubSession::RemoveSurfaceNodeFromScreen()
         TLOGI(WmsLogTag::WMS_LAYOUT, "Remove sub window from display:%{public}" PRIu64 " persistentId:%{public}d, "
             "cloneNodeCount:%{public}d", displayId, GetPersistentId(), cloneNodeCount_);
     }
+}
+
+void SubSession::HandleCrossSurfaceNodeByWindowAnchor(SizeChangeReason reason, DisplayId displayId)
+{
+    auto surfaceNode = GetSurfaceNodeForMoveDrag();
+    if (!surfaceNode) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, SurfaceNode is null", GetPersistentId());
+        return;
+    }
+    if (reason == SizeChangeReason::DRAG || reason == SizeChangeReason::DRAG_MOVE) {
+        auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
+        if (dragMoveMountedNode == nullptr) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
+            return;
+        }
+        {
+            AutoRSTransaction trans(surfaceNode->GetRSUIContext());
+            surfaceNode->SetPositionZ(GetZOrder());
+            surfaceNode->SetIsCrossNode(true);
+        }
+        {
+            AutoRSTransaction trans(dragMoveMountedNode->GetRSUIContext());
+            dragMoveMountedNode->AddCrossScreenChild(surfaceNode, SUFFIX_INDEX, true);
+        }
+        cloneNodeCountDuringCross_.fetch_add(1);
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Add sub window to display:%{public}" PRIu64 " persistentId:%{public}d, "
+            "cloneNodeCountDuringCross:%{public}d", displayId, GetPersistentId(), cloneNodeCountDuringCross_.load());
+    } else if (reason == SizeChangeReason::DRAG_END) {
+        surfaceNode->SetPositionZ(moveDragController_->GetOriginalPositionZ());
+        auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
+        if (dragMoveMountedNode == nullptr) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
+            return;
+        }
+        dragMoveMountedNode->RemoveCrossScreenChild(surfaceNode);
+        surfaceNode->SetIsCrossNode(false);
+        cloneNodeCountDuringCross_.fetch_sub(1);
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Remove sub window from display:%{public}" PRIu64 " persistentId:%{public}d, "
+            "cloneNodeCountDuringCross:%{public}d", displayId, GetPersistentId(), cloneNodeCountDuringCross_.load());
+    }
+}
+
+WSError SubSession::SetSubWindowZLevel(int32_t zLevel)
+{
+    PostTask([weakThis = wptr(this), zLevel]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "session is null");
+            return;
+        }
+        auto property = session->GetSessionProperty();
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "Notify session zLevel change, id: %{public}d, zLevel: %{public}d",
+            session->GetPersistentId(), zLevel);
+        property->SetSubWindowZLevel(zLevel);
+        if (session->onSubSessionZLevelChange_) {
+            session->onSubSessionZLevelChange_(zLevel);
+        }
+    }, "SetSubWindowZLevel");
+    return WSError::WS_OK;
+}
+
+int32_t SubSession::GetSubWindowZLevel() const
+{
+    int32_t zLevel = 0;
+    auto sessionProperty = GetSessionProperty();
+    zLevel = sessionProperty->GetSubWindowZLevel();
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "zLevel: %{public}d", zLevel);
+    return zLevel;
 }
 } // namespace OHOS::Rosen

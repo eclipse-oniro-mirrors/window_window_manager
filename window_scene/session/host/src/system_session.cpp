@@ -340,24 +340,6 @@ void SystemSession::RectCheck(uint32_t curWidth, uint32_t curHeight)
     RectSizeCheckProcess(curWidth, curHeight, minWidth, minHeight, maxFloatingWindowSize);
 }
 
-bool SystemSession::IsVisibleForeground() const
-{
-    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
-        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
-        return parentSession_->IsVisibleForeground() && Session::IsVisibleForeground();
-    }
-    return Session::IsVisibleForeground();
-}
-
-bool SystemSession::IsVisibleNotBackground() const
-{
-    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
-        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
-        return parentSession_->IsVisibleNotBackground() && Session::IsVisibleNotBackground();
-    }
-    return Session::IsVisibleNotBackground();
-}
-
 WSError SystemSession::SetDialogSessionBackGestureEnabled(bool isEnabled)
 {
     return PostSyncTask([weakThis = wptr(this), isEnabled]() {
@@ -375,6 +357,24 @@ WSError SystemSession::SetDialogSessionBackGestureEnabled(bool isEnabled)
         session->dialogSessionBackGestureEnabled_ = isEnabled;
         return WSError::WS_OK;
     });
+}
+
+bool SystemSession::IsVisibleForeground() const
+{
+    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
+        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
+        return parentSession_->IsVisibleForeground() && Session::IsVisibleForeground();
+    }
+    return Session::IsVisibleForeground();
+}
+
+bool SystemSession::IsVisibleNotBackground() const
+{
+    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
+        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
+        return parentSession_->IsVisibleNotBackground() && Session::IsVisibleNotBackground();
+    }
+    return Session::IsVisibleNotBackground();
 }
 
 void SystemSession::UpdatePiPWindowStateChanged(bool isForeground)
@@ -475,6 +475,7 @@ WMError SystemSession::GetFloatingBallWindowId(uint32_t& windowId)
         return WMError::WM_DO_NOTHING;
     }
     int32_t callingPid = IPCSkeleton::GetCallingPid();
+
     return PostSyncTask([weakThis = wptr(this), callingPid, &windowId, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {

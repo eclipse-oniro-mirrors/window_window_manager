@@ -2559,6 +2559,7 @@ int SceneSessionManagerStub::HandleAnimateTo(MessageParcel& data, MessageParcel&
     }
     return ERR_NONE;
 }
+
 int SceneSessionManagerStub::HandleCreateUIEffectController(MessageParcel& data, MessageParcel& reply)
 {
     sptr<IRemoteObject> controllerObject = data.ReadRemoteObject();
