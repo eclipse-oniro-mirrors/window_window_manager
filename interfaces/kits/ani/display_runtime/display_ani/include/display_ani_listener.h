@@ -66,16 +66,16 @@ private:
     wptr<DisplayAniListener> weakRef_  = nullptr;
     std::shared_ptr<AppExecFwk::EventHandler> eventHandler_ = nullptr;
 };
-extern std::string ANI_EVENT_ADD;
-extern std::string ANI_EVENT_REMOVE;
-extern std::string ANI_EVENT_CHANGE;
-extern std::string ANI_EVENT_PRIVATE_MODE_CHANGE;
-extern std::string ANI_EVENT_FOLD_STATUS_CHANGED;
-extern std::string ANI_EVENT_FOLD_ANGLE_CHANGED;
-extern std::string ANI_EVENT_CAPTURE_STATUS_CHANGED;
-extern std::string ANI_EVENT_DISPLAY_MODE_CHANGED;
-extern std::string ANI_EVENT_AVAILABLE_AREA_CHANGED;
-extern std::string ANI_EVENT_BRIGHTNESS_INFO_CHANGED;
+extern const std::string ANI_EVENT_ADD;
+extern const std::string ANI_EVENT_REMOVE;
+extern const std::string ANI_EVENT_CHANGE;
+extern const std::string ANI_EVENT_PRIVATE_MODE_CHANGE;
+extern const std::string ANI_EVENT_FOLD_STATUS_CHANGED;
+extern const std::string ANI_EVENT_FOLD_ANGLE_CHANGED;
+extern const std::string ANI_EVENT_CAPTURE_STATUS_CHANGED;
+extern const std::string ANI_EVENT_DISPLAY_MODE_CHANGED;
+extern const std::string ANI_EVENT_AVAILABLE_AREA_CHANGED;
+extern const std::string ANI_EVENT_BRIGHTNESS_INFO_CHANGED;
 }  // namespace Rosen
 }  // namespace OHOS
 #endif
