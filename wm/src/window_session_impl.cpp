@@ -89,6 +89,7 @@ constexpr int32_t MAX_ROTATION_VALUE = 3;
 /*
  * DFX
  */
+const std::string SET_UICONTENT_TIMEOUT_LISTENER_TASK_NAME = "SetUIContentTimeoutListener";
 const std::string SET_UIEXTENSION_DESTROY_TIMEOUT_LISTENER_TASK_NAME = "SetUIExtDestroyTimeoutListener";
 const std::string BUTTON_BACKGROUND_CORNER_RADIUS = "buttonBackgroundCornerRadius";
 const std::string BUTTON_BACKGROUND_SIZE = "buttonBackgroundSize";

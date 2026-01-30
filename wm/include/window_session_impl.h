@@ -54,7 +54,6 @@ using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
 /*
  * DFX
  */
-const std::string SET_UICONTENT_TIMEOUT_LISTENER_TASK_NAME = "SetUIContentTimeoutListener";
 constexpr int64_t SET_UICONTENT_TIMEOUT_TIME_MS = 4000;
 constexpr int64_t SET_UICONTENT_TIMEOUT_TIME_AFTER_FREEZE_MS = 5000;
 static std::atomic<float> animationSpeed_ = 1.0f;
