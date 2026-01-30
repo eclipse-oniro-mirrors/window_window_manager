@@ -75,7 +75,6 @@ SingleDisplayPocketFoldPolicy::SingleDisplayPocketFoldPolicy(std::recursive_mute
     currentFoldCreaseRegion_ = new FoldCreaseRegion(screenIdFull, rect);
     auto numbersConfig = ScreenSceneConfig::GetIntNumbersConfig();
     SetConfig(numbersConfig);
-    
 }
 
 void SingleDisplayPocketFoldPolicy::SetConfig(std::map<std::string, std::vector<int>>& numbersConfig)
