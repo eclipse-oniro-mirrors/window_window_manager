@@ -1493,6 +1493,38 @@ void AniWindow::OnRaiseMainWindowAboveTarget(ani_env* env, ani_int windowId)
     }
 }
 
+void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowToken is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowTopmost]msg: Window is null");
+        return;
+    }
+    if (!windowToken_->IsPcOrPadFreeMultiWindowMode()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] device not support");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
+            "[window][setWindowTopmost]msg: device not support");
+        return;
+    }
+    if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] not allowed since window is not main window");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][setWindowTopmost]msg: not allowed since window is not main window");
+        return;
+    }
+    auto ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetMainWindowTopmost(isWindowTopmost));
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] Window set main window topmost failed");
+        AniWindowUtils::AniThrowError(env, ret,
+            "[window][setWindowTopmost]");
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_HIERARCHY,
+        "[ANI] id: %{public}u, name: %{public}s, isWindowTopmost: %{public}d",
+        windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str(), isWindowTopmost);
+}
+
 void AniWindow::SetMainWindowRaiseByClickEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enable)
 {
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
@@ -1525,38 +1557,6 @@ void AniWindow::OnSetMainWindowRaiseByClickEnabled(ani_env* env, ani_boolean ena
         AniWindowUtils::AniThrowError(env, ret, "[window][setMainWindowRaiseByClickEnabled]");
         return;
     }
-}
-
-void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
-{
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowToken is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTopmost]msg: Window is null");
-        return;
-    }
-    if (!windowToken_->IsPcOrPadFreeMultiWindowMode()) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] device not support");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "[window][setWindowTopmost]msg: device not support");
-        return;
-    }
-    if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] not allowed since window is not main window");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setWindowTopmost]msg: not allowed since window is not main window");
-        return;
-    }
-    auto ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetMainWindowTopmost(isWindowTopmost));
-    if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] Window set main window topmost failed");
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][setWindowTopmost]");
-        return;
-    }
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "[ANI] id: %{public}u, name: %{public}s, isWindowTopmost: %{public}d",
-        windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str(), isWindowTopmost);
 }
 
 void AniWindow::SetWindowFocusable(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isFocusable)
@@ -6377,10 +6377,10 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::SetWaterMarkFlag)},
         ani_native_function {"raiseMainWindowAboveTargetSync", "li:",
             reinterpret_cast<void *>(AniWindow::RaiseMainWindowAboveTarget)},
-        ani_native_function {"setMainWindowRaiseByClickEnabledSync", "lz:",
-            reinterpret_cast<void *>(AniWindow::SetMainWindowRaiseByClickEnabled)},
         ani_native_function {"setWindowTopmost", "lz:",
             reinterpret_cast<void *>(SetWindowTopmost)},
+        ani_native_function {"setMainWindowRaiseByClickEnabledSync", "lz:",
+            reinterpret_cast<void *>(AniWindow::SetMainWindowRaiseByClickEnabled)},
         ani_native_function {"setWindowFocusableSync", "lz:",
             reinterpret_cast<void *>(AniWindow::SetWindowFocusable)},
         ani_native_function {"getSubWindowZLevelSync", "l:i",

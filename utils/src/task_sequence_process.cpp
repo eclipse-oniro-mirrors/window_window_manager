@@ -80,7 +80,7 @@ std::function<void()> TaskSequenceProcess::PopFromQueue()
     }
     uint64_t queueId = DEFAULT_QUEUE_ID;
     if (!FindMinSnTaskQueueId(queueId)) {
-        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess is empty");
+        TLOGE(WmsLogTag::DMS, "queue is empty");
         return nullptr;
     }
     std::function<void()> task = taskQueueMap_[queueId].front().task;

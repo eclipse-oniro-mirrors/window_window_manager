@@ -157,7 +157,7 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_REGISTER_PIP_CHG_LISTENER):
             return HandleRegisterPipChgListener(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UNREGISTER_PIP_CHG_LISTENER):
-            return HandleUnRegisterPipChgListener(data, reply);
+            return HandleUnregisterPipChgListener(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_ROOT_MAIN_WINDOW_ID):
             return HandleGetRootMainWindowId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_WINDOW_INFO):
@@ -1785,7 +1785,11 @@ int SceneSessionManagerLiteStub::HandleEnterKioskMode(MessageParcel& data, Messa
 int SceneSessionManagerLiteStub::HandleExitKioskMode(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "in");
-    sptr<IRemoteObject> token = nullptr;
+    sptr<IRemoteObject> token = data.ReadRemoteObject();
+    if (token == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to read token");
+        return ERR_INVALID_DATA;
+    }
     WMError ret = ExitKioskMode(token);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write ret failed");
@@ -1852,9 +1856,9 @@ int SceneSessionManagerLiteStub::HandleGetDisplayIdByWindowId(MessageParcel& dat
 int SceneSessionManagerLiteStub::HandleSetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_PIP, "HandleSetPipEnableByScreenId");
-    int screenId;
+    int32_t screenId;
     if (!data.ReadInt32(screenId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read screenId failed");
+        TLOGE(WmsLogTag::WMS_PIP, "read screenId failed");
         return ERR_INVALID_DATA;
     }
     bool isPipEnabled = true;
@@ -1872,9 +1876,9 @@ int SceneSessionManagerLiteStub::HandleSetPipEnableByScreenId(MessageParcel& dat
 int SceneSessionManagerLiteStub::HandleUnsetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_PIP, "HandleUnsetPipEnableByScreenId");
-    int screenId;
+    int32_t screenId;
     if (!data.ReadInt32(screenId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read screenId failed");
+        TLOGE(WmsLogTag::WMS_PIP, "read screenId failed");
         return ERR_INVALID_DATA;
     }
     WMError errCode = UnsetPipEnableByScreenId(screenId);
@@ -1911,7 +1915,7 @@ int SceneSessionManagerLiteStub::HandleRegisterPipChgListener(MessageParcel& dat
     return ERR_NONE;
 }
 
-int SceneSessionManagerLiteStub::HandleUnRegisterPipChgListener(MessageParcel& data, MessageParcel& reply)
+int SceneSessionManagerLiteStub::HandleUnregisterPipChgListener(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_PIP, "in");
     int32_t screenId;

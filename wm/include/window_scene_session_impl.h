@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_SESSION_IMPL_H
 #define OHOS_ROSEN_WINDOW_SCENE_SESSION_IMPL_H
 
+#include <list>
 #include <modifier/rs_property.h>
 
 #include "window_session_impl.h"
@@ -26,7 +27,7 @@ namespace OHOS {
 namespace Rosen {
 using NotifyWindowRecoverStateChangeFunc = std::function<void(bool isSpecificSession,
     const WindowRecoverState& state)>;
-using StatusBarColorConfigPair = std::pair<StatusBarColorChangeReason, uint32_t>;
+using OwnSystemBarPropertyPair = std::pair<SystemBarPropertyOwner, PartialSystemBarProperty>;
 
 class WindowSceneSessionImpl : public WindowSessionImpl {
 public:
@@ -272,7 +273,6 @@ public:
     WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
     WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
     WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
-    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
 
     /*
      * Window Property
@@ -338,6 +338,10 @@ public:
     WMError UpdateSystemBarProperties(const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags) override;
     WMError SetStatusBarColorForPage(const std::optional<uint32_t> color) override;
+    WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
+        SystemBarPropertyOwner owner) override;
+    WMError RemoveOwnSystemBarProperty(WindowType type, const SystemBarPropertyFlag& flag,
+        SystemBarPropertyOwner owner) override;
 
     /*
      * Window Pattern
@@ -512,13 +516,10 @@ private:
     void MobileAppInPadLayoutFullScreenChange(bool statusBarEnable, bool navigationEnable);
     WMError UpdateSystemBarPropertyForPage(WindowType type,
         const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag) override;
-    WMError updateSystemBarproperty(WindowType type, const SystemBarProperty& systemBarProperty);
-    std::mutex nowsystemBarPropertyMapMutex_;
-    std::unordered_map<WindowType, SystemBarProperty> nowSystemBarPropertyMap_;
-    bool isAtomicServiceUseColor_ = false;
-    bool isNavigationUseColor_ = false;
-    std::stack<StatusBarColorConfigPair> statusBarColorHistory_;
-    uint32_t UpdateStatusBarColorHistory(StatusBarColorChangeReason reason, std::optional<uint32_t> color);
+    WMError UpdateSystemBarProperty(WindowType type, const SystemBarProperty& systemBarProperty);
+    std::unordered_map<WindowType, std::list<OwnSystemBarPropertyPair>> ownSystemBarPropertyMap_;
+    std::mutex ownSystemBarPropertyMapMutex_;
+    SystemBarProperty GetCurrentActiveSystemBarProperty(WindowType type);
 
     /*
      * Window Animation
@@ -599,6 +600,14 @@ private:
      */
     bool isExecuteDelayRaise_ = false;
     bool IsFullScreenEnable() const;
+
+    /*
+     * PC Window UE report
+     */
+    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
+    void ReportClickTitleMinimize(const std::string& bundleName);
+    void ReportClickTitleClose(const std::string& bundleName);
+    void ReportCompatibleTitleOperate(const std::string& bundleName, const std::string& operateType);
 
     /*
      * Window Input Event

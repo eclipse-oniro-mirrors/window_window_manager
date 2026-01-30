@@ -348,8 +348,6 @@ public:
             addSnapshotCallback_ = std::move(task);
         }
     }
-    void SetEnableAddSnapshot(bool enableAddSnapshot = true);
-    bool GetEnableAddSnapshot() const;
 
     SessionState GetSessionState() const;
     virtual void SetSessionState(SessionState state);
@@ -1110,9 +1108,10 @@ protected:
     static bool isScbCoreEnabled_;
 
     /*
-     *CompatibleMode Window scale
+     * CompatibleMode Window Scale
+     * Resize When DragEnd
      */
-    uint32_t needNotifyDragEventOnNextVsync_ = 0;
+    std::atomic_bool needNotifyDragEventOnNextVsync_ = false;
 
     /*
      * Keyboard Window
@@ -1261,7 +1260,6 @@ private:
     /*
      * Window Scene Snapshot
      */
-    std::atomic<bool> enableAddSnapshot_ = true;
     Task saveSnapshotCallback_ = []() {};
     Task addSnapshotCallback_ = []() {};
     std::mutex saveSnapshotCallbackMutex_;

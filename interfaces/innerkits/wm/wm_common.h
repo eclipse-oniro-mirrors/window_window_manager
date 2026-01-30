@@ -694,6 +694,9 @@ struct KeyFramePolicy : public Parcelable {
 
     bool Marshalling(Parcel& parcel) const override
     {
+        if (interval_ == 0) {
+            return false;
+        }
         return parcel.WriteUint32(static_cast<uint32_t>(dragResizeType_)) &&
             parcel.WriteUint32(interval_) && parcel.WriteUint32(distance_) &&
             parcel.WriteUint32(animationDuration_) && parcel.WriteUint32(animationDelay_) &&
@@ -711,7 +714,8 @@ struct KeyFramePolicy : public Parcelable {
             delete keyFramePolicy;
             return nullptr;
         }
-        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE)) {
+        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE) ||
+            keyFramePolicy->interval_ == 0) {
             delete keyFramePolicy;
             return nullptr;
         }
@@ -723,7 +727,8 @@ struct KeyFramePolicy : public Parcelable {
     {
         std::ostringstream oss;
         oss << "[" << static_cast<uint32_t>(dragResizeType_) << " " << interval_ << " " << distance_;
-        oss << " " << animationDuration_ << " " << animationDelay_ << "]";
+        oss << " " << animationDuration_ << " " << animationDelay_;
+        oss << " " << running_ << " " << stopping_ << "]";
         return oss.str();
     }
 };
@@ -972,7 +977,6 @@ constexpr float MINIMUM_BRIGHTNESS = 0.0f;
 constexpr float MAXIMUM_BRIGHTNESS = 1.0f;
 constexpr float INVALID_BRIGHTNESS = 999.0f;
 constexpr int32_t INVALID_PID = -1;
-constexpr int32_t INVALID_UID = -1;
 constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t SYSTEM_USERID = 0;
 constexpr int32_t BASE_USER_RANGE = 200000;
@@ -1157,17 +1161,43 @@ struct SystemBarPropertyFlag {
     bool backgroundColorFlag = false;
     bool contentColorFlag = false;
     bool enableAnimationFlag = false;
+
+    bool operator==(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag == other.enableFlag && backgroundColorFlag == other.backgroundColorFlag &&
+            contentColorFlag == other.contentColorFlag && enableAnimationFlag == other.enableAnimationFlag);
+    }
+
+    bool Contains(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag || !other.enableFlag) && (backgroundColorFlag || !other.backgroundColorFlag) &&
+            (contentColorFlag || !other.contentColorFlag) && (enableAnimationFlag || !other.enableAnimationFlag);
+    }
+};
+
+/**
+ * @struct PartialSystemBarProperty
+ *
+ * @brief Partial system bar property
+ */
+struct PartialSystemBarProperty {
+    bool enable_ = false;
+    uint32_t backgroundColor_ = 0;
+    uint32_t contentColor_ = 0;
+    bool enableAnimation_ = false;
+    SystemBarPropertyFlag flag_;
 };
 
 /*
- * @enum StatusBarColorChangeReason
+ * @enum SystemBarPropertyOwner
  *
- * @brief Configuration of statusBarColor
+ * @brief System bar property owner
  */
-enum class StatusBarColorChangeReason {
-    WINDOW_CONFIGURATION,
-    NAVIGATION_CONFIGURATION,
-    ATOMICSERVICE_CONFIGURATION,
+enum class SystemBarPropertyOwner {
+    APPLICATION,
+    ARKUI_NAVIGATION,
+    ATOMIC_SERVICE,
+    ABILITY_RUNTIME,
 };
 
 /**

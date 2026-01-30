@@ -22,7 +22,6 @@
 #include "ws_common.h"
 
 namespace OHOS::Rosen {
-enum class SessionInterfaceCode;
 class SessionProxy : public IRemoteProxy<ISession> {
 public:
     explicit SessionProxy(const sptr<IRemoteObject>& impl) : IRemoteProxy<ISession>(impl) {}
@@ -190,11 +189,6 @@ public:
     WSError UpdateFlag(const std::string& flag) override;
     WSError UseImplicitAnimation(bool useImplicit) override;
 
-    /*
-     * Window Pattern
-     */
-    void NotifyWindowAttachStateListenerRegistered(bool registered) override;
-
     /**
      * Window layout
      */
@@ -225,6 +219,11 @@ public:
     WSError GetIsHighlighted(bool& isHighlighted) override;
     WMError NotifyDisableDelegatorChange() override;
 
+    /*
+     * Window Pattern
+     */
+    void NotifyWindowAttachStateListenerRegistered(bool registered) override;
+
     /**
      * window animation
      */
@@ -236,6 +235,7 @@ public:
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
     WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
+
     /**
      * Restart app
      */
