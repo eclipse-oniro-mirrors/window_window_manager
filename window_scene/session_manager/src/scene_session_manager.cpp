@@ -8002,7 +8002,7 @@ WSError SceneSessionManager::GetSessionDumpInfo(const std::vector<std::string>& 
                             cmd += value;
                             cmd += ' ';
                         });
-        cmd.earse(cmd.end() - 1);
+        cmd.erase(cmd.end() - 1);
         return GetSCBDebugDumpInfo(std::move(cmd), dumpInfo);
     }
     if (params.size() >= 1 && params[0] == ARG_DUMP_PIPLINE) { // 1: params num
@@ -10429,11 +10429,10 @@ void SceneSessionManager::NotifyCompleteFirstFrameDrawing(int32_t persistentId)
     }
 
     [this, persistentId] {
-        auto task = [persistentId] {
-            AAFwk::AbilityManagerClient::GetInstance()->CompleteFirstFrameDrawing(persistentId);
-        };
         TLOGNI(WmsLogTag::DEFAULT, "Post CompleteFirstFrameDrawing task. Id: %{public}d", persistentId);
-        eventHandler_->PostTask(task, "wms:CompleteFirstFrameDrawing", 0);
+        eventHandler_->PostTask([persistentId] {
+            AAFwk::AbilityManagerClient::GetInstance()->CompleteFirstFrameDrawing(persistentId);
+        }, "wms:CompleteFirstFrameDrawing", 0);
     }();
 
     auto task = [this, abilityInfo, sceneSession, persistentId] {
