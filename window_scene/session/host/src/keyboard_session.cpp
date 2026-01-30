@@ -1052,6 +1052,11 @@ WSError KeyboardSession::UpdateSizeChangeReason(SizeChangeReason reason)
 
 void KeyboardSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool needFlush)
 {
+    auto gravity = GetKeyboardGravity();
+    if (gravity != SessionGravity::SESSION_GRAVITY_FLOAT) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "only float mode supports moving, gravity: %{public}d", gravity);
+        return;
+    }
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
         "KeyboardSession::SetSurfaceBounds id:%d [%d, %d, %d, %d] reason:%u",
         GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_, GetSizeChangeReason());
