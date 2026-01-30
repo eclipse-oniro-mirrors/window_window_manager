@@ -94,7 +94,7 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
         OHOS::Media::PackOption option;
         option.format = IMAGE_FORMAT;
         option.quality = IMAGE_QUALITY;
-        if (remove(path.c_str())) {
+        if (remove(startWindowPath.c_str())) {
             TLOGND(WmsLogTag::WMS_PATTERN, "SaveStartWindow remove old file failed");
         }
         TLOGNI(WmsLogTag::WMS_PATTERN, "SaveStartWindow begin");
@@ -110,13 +110,13 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
         }
         int64_t packedSize = 0;
         if (imagePacker.FinalizePacking(packedSize)) {
-            TLOGNE(WmsLogTag::WMS_PATTERN, "SaveStartWindow failed, finish packing error, packedSize: %{public}ld",
+            TLOGNE(WmsLogTag::WMS_PATTERN, "SaveStartWindow failed, finish packing error, packedSize: %{public}lld",
                 packedSize);
             return;
         }
         scenePersistence->SetHasStartWindowPersistence(isDark, true);
         TLOGI(WmsLogTag::WMS_PATTERN, "SaveStartWindow success, packedSize: %{public}ld", packedSize);
-    }
+    };
     snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
 }
 

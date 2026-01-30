@@ -37,7 +37,7 @@ public:
     static bool CreateSnapshotDir(const std::string& directory);
     static bool CreateUpdatedIconDir(const std::string& directory);
     static bool CreateStartWindowDir(const std::string& directory);
-    bool SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark);
+    void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark);
     std::string GetStartWindowPath(bool isDark) const;
     bool HasStartWindowPersistence(bool isDark) const;
     void SetHasStartWindowPersistence(bool isDark, bool hasPersistence);

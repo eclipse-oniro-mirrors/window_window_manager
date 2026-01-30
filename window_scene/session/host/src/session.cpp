@@ -3216,7 +3216,7 @@ void Session::PreloadSnapshot()
     preloadSnapshot_ = std::move(uniquePixelMap);
 }
 
-void Session::SaveStartWindow(std::shared_ptr<Media::PixelMap> persistentPixelMap, bool isDark)
+void Session::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& persistentPixelMap, bool isDark)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Session::SaveStartWindow[%d][%s]",
         persistentId_, sessionInfo_.bundleName_.c_str());
