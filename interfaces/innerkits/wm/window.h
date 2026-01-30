@@ -3671,7 +3671,7 @@ public:
 
     /**
      * @brief UIExtension window call to set custom density, once called this method to set custom density,
-     * UIExtension window will dinore FOLLOW_HOST_DPI and use specified density.
+     * UIExtension window will ignore FOLLOW_HOST_DPI and use specified density.
      *
      * @param density the custom density of UIExtension window.
      * @return WM_OK means set success, others means failed.
@@ -4839,6 +4839,22 @@ public:
     }
 
     /**
+     * @brief return true if current window is anco, otherwise return false
+     */
+    virtual bool IsAnco() const
+    {
+        return false;
+    }
+
+    /**
+     * @brief special process on point down event
+     */
+    virtual bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY)
+    {
+        return false;
+    }
+
+    /**
      * @brief update the floating ball window instance.
      *
      * @param fbTemplateInfo the template info of the floating-ball.
@@ -4912,62 +4928,6 @@ public:
      * @return WMError
      */
     virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
-
-    /**
-     * @brief return true if current window is anco, otherwise return false
-     */
-    virtual bool IsAnco() const
-    {
-        return false;
-    }
-
-    /**
-     * @brief special process on point down event
-     */
-    virtual bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY)
-    {
-        return false;
-    }
-
-    /**
-     * @brief notify window is full screen in force split mode.
-     *
-     * @param shouldFullScreen true means full screen, false means force split.
-     */
-    virtual void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) {}
-
-    /**
-     * @brief Register a listener to listen ui content create.
-     *
-     * @param listener IUIContentCreateListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    virtual WMError RegisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
-    {
-        return WMError::WM_OK;
-    }
-
-    /**
-     * @brief Unregister a listener to listen ui content create.
-     *
-     * @param listener IUIContentCreateListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    virtual WMError UnregisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
-    {
-        return WMError::WM_OK;
-    }
-
-    /**
-     * @brief Update compatible style mode of the window.
-     *
-     * @param mode CompatibleStyleMode.
-     * @return WM_OK means update mode success, others means failed.
-     */
-    virtual WMError UpdateCompatibleStyleMode(CompatibleStyleMode mode)
-    {
-        return WMError::WM_OK;
-    }
 
     /**
      * @brief register a listener to listen whether the window title bar is show or hide.
@@ -5081,7 +5041,47 @@ public:
      * @return true means hit title bar success, false means not hit title bar.
      */
     virtual bool IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& pointerEvent) { return false; }
- 
+
+    /**
+     * @brief notify window is full screen in force split mode.
+     *
+     * @param shouldFullScreen true means full screen, false means force split.
+     */
+    virtual void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) {}
+
+    /**
+     * @brief Register a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError UnregisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Update compatible style mode of the window.
+     *
+     * @param mode CompatibleStyleMode.
+     * @return WM_OK means update mode success, others means failed.
+     */
+    virtual WMError UpdateCompatibleStyleMode(CompatibleStyleMode mode)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief Get anco window hot areas.
      *
@@ -5139,6 +5139,14 @@ public:
     virtual WMError GetRotationLocked(bool& locked) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Set status bar color for uiExtension.
+     *
+     * @param color Color numeric to set.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
+
+    /**
      * @brief register a listener to listen the window title bar and window hot areas.
      *
      * @param listener IWindowTitleOrHotAreasListener.
@@ -5159,14 +5167,6 @@ public:
     {
         return WMError::WM_OK;
     }
-
-    /**
-     * @brief Set status bar color for uiExtension.
-     *
-     * @param color Color numeric to set.
-     * @return WM_OK means set success, others means failed.
-     */
-    virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
 
     /**
      * @brief Flush vsync for prelaunch.

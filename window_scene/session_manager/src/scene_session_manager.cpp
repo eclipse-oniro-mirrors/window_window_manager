@@ -624,7 +624,6 @@ void SceneSessionManager::RegisterRecoverStateChangeListener()
 
 void SceneSessionManager::OnRecoverStateChange(const RecoverState& state)
 {
-    TLOGI(WmsLogTag::WMS_RECOVER, "state: %{public}u", state);
     recoverState_ = state;
     switch(state) {
         case RecoverState::RECOVER_INITIAL:
@@ -1874,6 +1873,7 @@ void SceneSessionManager::SetRootSceneContext(const std::weak_ptr<AbilityRuntime
 void SceneSessionManager::CreateRootSceneSession()
 {
     system::SetParameter("bootevent.wms.fullscreen.ready", "true");
+    TLOGI(WmsLogTag::WMS_LIFE, "Set wms.fullscreen.ready success!");
     auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     specificCb->onGetSceneSessionVectorByTypeAndDisplayId_ = [this](WindowType type, uint64_t displayId) {
         return this->GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
@@ -2338,7 +2338,7 @@ WMError SceneSessionManager::RemoveSkipSelfWhenShowOnVirtualScreenList(const std
 WMError SceneSessionManager::SetScreenPrivacyWindowTagSwitch(
     uint64_t screenId, const std::vector<std::string>& privacyWindowTags, bool enable)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "screenId: %{public}" PRIu64 ", tagsize: %{public}zu, enable: %{public}d",
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "screenId: %{public}" PRIu64 ", tagsize: %{public}zu, enable: %{public}d",
         screenId, privacyWindowTags.size(), enable);
     if (!SessionPermission::IsSACalling()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied!");
@@ -4497,9 +4497,8 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         info.moduleName_ = property->GetSessionInfo().moduleName_;
         info.screenId_ = property->GetDisplayId();
 
-        if (IsPiPForbidden(property, type)) {
+        if (CheckAndNotifyPiPForbidden(*property, type) != WSError::WS_OK) {
             TLOGNE(WmsLogTag::WMS_PIP, "forbid pip");
-            NotifyMulScreenPipStart(property, type);
             return WSError::WS_ERROR_INVALID_PERMISSION;
         }
         ClosePipWindowIfExist(type);
@@ -4707,72 +4706,39 @@ bool SceneSessionManager::IsEnablePiPCreate(const sptr<WindowSessionProperty>& p
     return true;
 }
 
-bool SceneSessionManager::IsPiPForbidden(const sptr<WindowSessionProperty>& property, const WindowType& type)
+WSError SceneSessionManager::CheckAndNotifyPiPForbidden(const WindowSessionProperty& property, const WindowType& type)
 {
-    sptr<SceneSession> parentSession = GetSceneSession(property->GetParentPersistentId());
+    sptr<SceneSession> parentSession = GetSceneSession(property.GetParentPersistentId());
     if (parentSession == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "invalid parentSession");
-        return false;
+        return WSError::WS_OK;
     }
     sptr<WindowSessionProperty> parentProperty = parentSession->GetSessionProperty();
     if (parentProperty == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "invalid parentProperty");
-        return false;
+        return WSError::WS_OK;
     }
     DisplayId screenId = parentProperty->GetDisplayId();
     if (screenId == SCREEN_ID_INVALID) {
         TLOGE(WmsLogTag::WMS_PIP, "invalid screenId");
-        return false;
+        return WSError::WS_OK;
     }
     sptr<ScreenSession> screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(screenId);
     if (screenSession == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "invalid screenSession");
-        return false;
+        return WSError::WS_OK;
     }
     std::string screenName = screenSession->GetName();
     if (type == WindowType::WINDOW_TYPE_PIP && PIP_SCENE_FORBID_LIST.find(screenName) != PIP_SCENE_FORBID_LIST.end()) {
         TLOGI(WmsLogTag::WMS_PIP, "screen name %{public}s", screenName.c_str());
-        return true;
+        return WSError::WS_ERROR_INVALID_PERMISSION;
     }
 
     if (type == WindowType::WINDOW_TYPE_PIP && !GetPipDeviceCollaborationPolicy(screenId)) {
-        return true;
+        (void)pipController_->NotifyMulScreenPipStart(screenId, parentSession->GetWindowId());
+        return WSError::WS_ERROR_INVALID_PERMISSION;
     }
-    return false;
-}
-
-void SceneSessionManager::NotifyMulScreenPipStart(const sptr<WindowSessionProperty>& property, WindowType type)
-{
-    sptr<SceneSession> parentSession = GetSceneSession(property->GetParentPersistentId());
-    if (parentSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "invalid parentSession");
-        return;
-    }
-    sptr<WindowSessionProperty> parentProperty = parentSession->GetSessionProperty();
-    if (parentProperty == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "invalid parentProperty");
-        return;
-    }
-    DisplayId screenId = parentProperty->GetDisplayId();
-    if (screenId == SCREEN_ID_INVALID) {
-        TLOGE(WmsLogTag::WMS_PIP, "invalid screenId");
-        return;
-    }
-
-    int32_t windowId = parentSession->GetWindowId();
-    TLOGI(WmsLogTag::WMS_PIP, "Notify MulScreen, type:%{public}d, %{public}d, screenId:%{public}" PRIu64,
-        type, windowId, screenId);
-    if (type != WindowType::WINDOW_TYPE_PIP || GetPipDeviceCollaborationPolicy(screenId)) {
-        return;
-    }
-
-    std::shared_lock<std::shared_mutex> lock(pipChgListenerMapMutex_);
-    auto iter = pipChgListenerMap_.find(screenId);
-    if (iter != pipChgListenerMap_.end()) {
-        if (iter->second != nullptr) {
-            iter->second->OnPipStart(windowId);
-        }
-    }
+    return WSError::WS_OK;
 }
 
 WSError SceneSessionManager::IsFloatingBallValid(const sptr<SceneSession>& parentSession)
@@ -7112,7 +7078,7 @@ bool SceneSessionManager::NotifyVisibleChange(int32_t persistentId)
 WSError SceneSessionManager::SetBrightness(const sptr<SceneSession>& sceneSession, float brightness)
 {
 #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
-    if (GetDisplayBrightness() != brightness &&
+    if ((GetDisplayBrightness() != brightness || systemConfig_.IsPcWindow()) &&
         GetFocusedSessionId() == sceneSession->GetPersistentId()) {
         PostBrightnessTask(brightness);
     }
@@ -10445,7 +10411,7 @@ void SceneSessionManager::NotifyCompleteFirstFrameDrawing(int32_t persistentId)
     };
 
     if (sceneSession->GetLeashWinSurfaceNode()) {
-        SetSkipSelfWhenShowOnVirtualScreen(sceneSession->GetLeashWinSurfaceNode()->GetId(),
+        SetSkipSelfWhenShowOnVirtualScreen(sceneSession->GetMissionId(),
             sceneSession->GetSkipSelfWhenShowOnVirtualScreen());
     }
     return taskScheduler_->PostAsyncTask(task, "NotifyCompleteFirstFrameDrawing" + std::to_string(persistentId));
@@ -15575,6 +15541,11 @@ bool SceneSessionManager::IsSessionInSpecificDisplay(const sptr<SceneSession>& s
 
 WMError SceneSessionManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
 {
+    if (!SessionPermission::IsSystemCalling() &&
+        !SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_VISIBLE_WINDOW_INFO)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied!");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
     auto task = [this, &infos, where = __func__]() {
         for (auto [surfaceId, _] : lastVisibleData_) {
             sptr<SceneSession> session = SelectSesssionFromMap(surfaceId);
@@ -18011,6 +17982,7 @@ void SceneSessionManager::ClearProcessRecordWhenAppExit(const AppExecFwk::Proces
             where, processData.pid, processData.bundleName.c_str());
         appWatermarkPidMap_.erase(processData.pid);
         snapshotSkipPidSet_.erase(processData.pid);
+        processWatermarkPidMap_.erase(processData.pid);
     }, __func__);
 }
 
@@ -19163,7 +19135,8 @@ void SceneSessionManager::NotifyWindowPropertyChange(ScreenId screenId)
                 TLOGW(WmsLogTag::WMS_ATTRIBUTE, "sceneSession nullptr");
                 continue;
             }
-            if (isNotCurrentScreen(sceneSession, screenId)) {
+            if (sceneSession->GetSessionInfo().screenId_ != SCREEN_ID_INVALID &&
+                sceneSession->GetSessionInfo().screenId_ != screenId) {
                 continue;
             }
             if (!(sceneSession->GetPropertyDirtyFlags() & observedFlags_)) {
@@ -19549,50 +19522,60 @@ WMError SceneSessionManager::GetIsPipEnabled(bool& isPipEnabled)
 
 WMError SceneSessionManager::SetPipEnableByScreenId(int32_t screenId, bool isEnabled)
 {
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_PIP, "The caller is not an SA.");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+
     TLOGI(WmsLogTag::WMS_PIP, "SetPipEnableByScreenId: %{public}d, isEnable: %{public}d", screenId, isEnabled);
-    std::unique_lock<std::shared_mutex> lock(screenPipEnabledMapLock_);
-    screenPipEnabledMap_.insert_or_assign(screenId, isEnabled);
-    return WMError::WM_OK;
+    return pipController_->SetPipEnableByScreenId(screenId, isEnabled);
 }
 
 WMError SceneSessionManager::UnsetPipEnableByScreenId(int32_t screenId)
 {
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_PIP, "The caller is not an SA.");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+
     TLOGI(WmsLogTag::WMS_PIP, "UnsetPipEnableByScreenId: %{public}d", screenId);
-    std::unique_lock<std::shared_mutex> lock(screenPipEnabledMapLock_);
-    screenPipEnabledMap_.erase(screenId);
+    return pipController_->UnsetPipEnableByScreenId(screenId);
+}
+
+WMError SceneSessionManager::RegisterPipChgListenerByScreenId(int32_t screenId,
+    const sptr<IPipChangeListener>& listener)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_PIP, "The caller is not an SA.");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+
+    taskScheduler_->PostAsyncTask([this, screenId, listener, where = __func__] {
+        WMError ret = pipController_->RegisterPipChgListenerByScreenId(screenId, listener);
+        TLOGNI(WmsLogTag::WMS_PIP, "%{public}s, ret:%{public}d", where, ret);
+    }, __func__);
+    return WMError::WM_OK;
+}
+
+WMError SceneSessionManager::UnregisterPipChgListenerByScreenId(int32_t screenId)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_PIP, "The caller is not an SA.");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+    TLOGI(WmsLogTag::WMS_PIP, "UnregisterPipChgListenerByScreenId: %{public}d", screenId);
+
+    taskScheduler_->PostAsyncTask([this, screenId, where = __func__] {
+        WMError ret = pipController_->UnregisterPipChgListenerByScreenId(screenId);
+        TLOGNI(WmsLogTag::WMS_PIP, "%{public}s, ret:%{public}d", where, ret);
+    }, __func__);
     return WMError::WM_OK;
 }
 
 bool SceneSessionManager::GetPipDeviceCollaborationPolicy(int32_t screenId)
 {
     TLOGI(WmsLogTag::WMS_PIP, "GetPipDeviceCollaborationPolicy: %{public}d", screenId);
-    std::shared_lock<std::shared_mutex> lock(screenPipEnabledMapLock_);
-    auto iter = screenPipEnabledMap_.find(screenId);
-    if (iter == screenPipEnabledMap_.end()) {
-        return true; // 默认支持
-    }
-    return iter->second;
-}
-
-WMError SceneSessionManager::RegisterPipChgListenerByScreenId(int32_t screenId,
-    const sptr<IPipChangeListener>& listener)
-{
-    TLOGI(WmsLogTag::WMS_PIP, "RegisterPipChgListenerByScreenId: %{public}d", screenId);
-    if (listener == nullptr) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "listener is nullptr");
-        return WMError::WM_ERROR_INVALID_PARAM;
-    }
-    std::unique_lock<std::shared_mutex> lock(pipChgListenerMapMutex_);
-    pipChgListenerMap_.insert_or_assign(screenId, listener);
-    return WMError::WM_OK;
-}
-
-WMError SceneSessionManager::UnregisterPipChgListenerByScreenId(int32_t screenId)
-{
-    TLOGI(WmsLogTag::WMS_PIP, "UnregisterPipChgListenerByScreenId: %{public}d", screenId);
-    std::unique_lock<std::shared_mutex> lock(pipChgListenerMapMutex_);
-    pipChgListenerMap_.erase(screenId);
-    return WMError::WM_OK;
+    return pipController_->GetPipDeviceCollaborationPolicy(screenId);
 }
 
 WMError SceneSessionManager::UpdateScreenLockState(int32_t persistentId)

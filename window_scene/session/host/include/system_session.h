@@ -43,7 +43,6 @@ public:
 
     bool IsVisibleForeground() const override;
     bool IsVisibleNotBackground() const override;
-
     /*
      * Floating Ball Window
      */

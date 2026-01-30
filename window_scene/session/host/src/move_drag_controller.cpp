@@ -1278,7 +1278,7 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
         moveDragProperty_.originalRect_, limits_);
     dragAreaType_ = SessionHelper::GetAreaTypeForScaleResize(pointerItem.GetWindowX(), pointerItem.GetWindowY(),
         outside, moveDragProperty_.originalRect_);
-    TLOGI(WmsLogTag::WMS_LAYOUT, "pointWinX:%{public}d, pointWinY:%{public}d, outside:%{public}d, vpr:%{public}f, "
+    TLOGI(WmsLogTag::WMS_LAYOUT, "pointWinX:%{private}d, pointWinY:%{private}d, outside:%{public}d, vpr:%{public}f, "
         "rect:%{public}s, type:%{public}d", pointerItem.GetWindowX(), pointerItem.GetWindowY(), outside, vpr_,
         moveDragProperty_.originalRect_.ToString().c_str(), type_);
     if (type_ == AreaType::UNDEFINED) {

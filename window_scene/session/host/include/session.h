@@ -1092,6 +1092,12 @@ protected:
     static bool isScbCoreEnabled_;
 
     /*
+     * CompatibleMode Window Scale
+     * Resize When DragEnd
+     */
+    std::atomic_bool needNotifyDragEventOnNextVsync_ = false;
+
+    /*
      * Window Hierarchy
      */
     NotifyRaiseMainWindowAboveTargetFunc onRaiseMainWindowAboveTarget_;
@@ -1106,11 +1112,6 @@ protected:
     std::atomic<bool> needNotifyAttachState_ = { false };
     int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
     SnapshotStatus capacity_ = defaultCapacity;
-
-    /*
-     *CompatibleMode Window scale
-     */
-    uint32_t needNotifyDragEventOnNextVsync_ = 0;
 
     /*
      * Keyboard Window

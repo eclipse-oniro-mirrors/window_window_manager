@@ -121,11 +121,16 @@ const std::string NAME_LANDSCAPE_18_9_CLICK = "win_change_to_18_9_landscape";
 const std::string NAME_LANDSCAPE_SPLIT_CLICK = "win_change_to_split_landscape";
 const std::string NAME_DEFAULT_LANDSCAPE_CLICK = "win_change_to_default_landscape";
 const std::string EVENT_NAME_HOVER = "win_hover_event";
+const std::string EVENT_NAME_MINIMIZE = "win_minimize_event";
+const std::string EVENT_NAME_CLOSE = "win_close_event";
 const std::string MOUSE_HOVER = "mouseHover";
 const std::string TOUCH_HOVER = "touchHover";
 const std::string EXIT_HOVER = "exitHover";
 constexpr char SCENE_BOARD_UE_DOMAIN[] = "SCENE_BOARD_UE";
 constexpr char HOVER_MAXIMIZE_MENU[] = "PC_HOVER_MAXIMIZE_MENU";
+constexpr char CLICK_TITLE_MINIMIZE[] = "PC_CLICK_TITLE_MINIMIZE";
+constexpr char CLICK_TITLE_CLOSE[] = "PC_CLICK_TITLE_CLOSE";
+constexpr char COMPATIBLE_TITLE_OPERATE[] = "PC_COMPATIBLE_TITLE_OPERATE";
 const std::unordered_set<WindowType> INVALID_SYSTEM_WINDOW_TYPE = {
     WindowType::WINDOW_TYPE_NEGATIVE_SCREEN,
     WindowType::WINDOW_TYPE_THEME_EDITOR,
@@ -2042,13 +2047,17 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
         if (!interactive_) {
             hasFirstNotifyInteractive_ = false;
         }
+    } else {
+        TLOGI(WmsLogTag::WMS_LIFE, "Window hide failed, id:%{public}d, name:%{public}s, res:%{public}d",
+            GetPersistentId(), property_->GetWindowName().c_str(), static_cast<int32_t>(res));
+        NotifyBackgroundFailed(WMError::WM_DO_NOTHING);
     }
     CustomHideAnimation();
     
     NotifyWindowStatusChange(GetWindowMode());
     NotifyWindowStatusDidChange(GetWindowMode());
     escKeyEventTriggered_ = false;
-    TLOGI(WmsLogTag::WMS_LIFE, "Window hide success [id:%{public}d, type: %{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "Window hide end, id:%{public}d, type: %{public}d",
         property_->GetPersistentId(), type);
     return res;
 }
@@ -2318,7 +2327,10 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
 
     auto ret = DestroyInner(needNotifyServer);
     RecordLifeCycleExceptionEvent(LifeCycleEvent::DESTROY_EVENT, ret);
-    if (ret != WMError::WM_OK && ret != WMError::WM_ERROR_NULLPTR) { // nullptr means no session in server
+    // nullptr means no session in server
+    // main window ipc failed means no session in server
+    if (ret != WMError::WM_OK && ret != WMError::WM_ERROR_NULLPTR &&
+        !(WindowHelper::IsMainWindow(GetType()) && ret == WMError::WM_ERROR_IPC_FAILED)) {
         WLOGFW("Destroy window failed, id: %{public}d", GetPersistentId());
         return ret;
     }
@@ -6259,10 +6271,10 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     NotifyFreeWindowModeChange(enable);
     // Switch process finish, update system config
     SetFreeMultiWindowMode(enable);
+    UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     if (enable) {
         PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
     }
-    UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     UpdateEnableDragWhenSwitchMultiWindow(enable);
     if (!enable && !WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
@@ -7507,6 +7519,7 @@ WMError WindowSceneSessionImpl::OnContainerModalEvent(const std::string& eventNa
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
     hostSession->OnContainerModalEvent(eventName, value);
+    std::string bundleName = property_->GetSessionInfo().bundleName_;
     if (eventName == WINDOW_WATERFALL_EVENT) {
         bool lastFullScreenWaterfallMode = isFullScreenWaterfallMode_.load();
         SetFullScreenWaterfallMode(true);
@@ -7518,12 +7531,24 @@ WMError WindowSceneSessionImpl::OnContainerModalEvent(const std::string& eventNa
         return ret;
     } else if (eventName == BACK_WINDOW_EVENT) {
         HandleBackEvent();
+        ReportCompatibleTitleOperate(bundleName, BACK_WINDOW_EVENT);
+        return WMError::WM_OK;
+    } else if (eventName == EVENT_NAME_HOVER) {
+        ReportHoverMaximizeMenu(bundleName, value);
+        return WMError::WM_OK;
+    } else if (eventName == EVENT_NAME_MINIMIZE) {
+        ReportClickTitleMinimize(bundleName);
+        return WMError::WM_OK;
+    } else if (eventName == EVENT_NAME_CLOSE) {
+        ReportClickTitleClose(bundleName);
         return WMError::WM_OK;
     } else if (eventName == COMPATIBLE_MAX_WINDOW_EVENT) {
         MaximizeForCompatibleMode();
+        ReportCompatibleTitleOperate(bundleName, COMPATIBLE_MAX_WINDOW_EVENT);
         return WMError::WM_OK;
     } else if (eventName == COMPATIBLE_RECOVER_WINDOW_EVENT) {
         RecoverForCompatibleMode();
+        ReportCompatibleTitleOperate(bundleName, COMPATIBLE_RECOVER_WINDOW_EVENT);
         return WMError::WM_OK;
     }  else if (eventName == NAME_LANDSCAPE_18_9_CLICK) {
         SwitchCompatibleMode(CompatibleStyleMode::LANDSCAPE_18_9);
@@ -7540,10 +7565,6 @@ WMError WindowSceneSessionImpl::OnContainerModalEvent(const std::string& eventNa
     } else if (eventName == NAME_LANDSCAPE_SPLIT_CLICK) {
         SwitchCompatibleMode(CompatibleStyleMode::LANDSCAPE_SPLIT);
         return WMError::WM_OK;
-    } else if (eventName == EVENT_NAME_HOVER) {
-        std::string bundleName = property_->GetSessionInfo().bundleName_;
-        ReportHoverMaximizeMenu(bundleName, value);
-        return WMError::WM_OK;
     }
     return WMError::WM_DO_NOTHING;
 }
@@ -7554,6 +7575,28 @@ void WindowSceneSessionImpl::ReportHoverMaximizeMenu(const std::string& bundleNa
         OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
         "BUNDLENAME", bundleName,
         "HOVERTYPE", hoverType);
+}
+
+void WindowSceneSessionImpl::ReportClickTitleMinimize(const std::string& bundleName)
+{
+    HiSysEventWrite(SCENE_BOARD_UE_DOMAIN, CLICK_TITLE_MINIMIZE,
+        OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
+        "BUNDLENAME", bundleName);
+}
+
+void WindowSceneSessionImpl::ReportClickTitleClose(const std::string& bundleName)
+{
+    HiSysEventWrite(SCENE_BOARD_UE_DOMAIN, CLICK_TITLE_CLOSE,
+        OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
+        "BUNDLENAME", bundleName);
+}
+
+void WindowSceneSessionImpl::ReportCompatibleTitleOperate(const std::string& bundleName, const std::string& operateType)
+{
+    HiSysEventWrite(SCENE_BOARD_UE_DOMAIN, COMPATIBLE_TITLE_OPERATE,
+        OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
+        "BUNDLENAME", bundleName,
+        "OPERATETYPE", operateType);
 }
 
 bool WindowSceneSessionImpl::IsSystemDensityChanged(const sptr<DisplayInfo>& displayInfo)

@@ -61,6 +61,7 @@
 #include "zidl/session_lifecycle_listener_interface.h"
 #include "zidl/session_router_stack_listener.h"
 #include "zidl/pip_change_listener.h"
+#include "pip_controller.h"
 
 namespace OHOS::AAFwk {
 class SessionInfo;
@@ -1381,6 +1382,7 @@ private:
      * PiP Window
      */
     NotifyStartPiPFailedFunc startPiPFailedFunc_;
+    std::shared_ptr<PipController> pipController_ = nullptr;
 
     SystemSessionConfig systemConfig_;
     float snapshotScale_ = 0.5;
@@ -1512,18 +1514,12 @@ private:
     uint64_t pipWindowSurfaceId_ = 0;
     bool pipSwitchStatus_ = true;
     bool pipIsPipEnabled_ = false;
-    std::shared_mutex screenPipEnabledMapLock_;
-    std::unordered_map<int32_t, bool> screenPipEnabledMap_;
-    std::shared_mutex pipChgListenerMapMutex_;
-    std::map<int32_t, sptr<IPipChangeListener>> pipChgListenerMap_;
     bool CheckPiPPriority(const PiPTemplateInfo& pipTemplateInfo, DisplayId displayId = 0);
     std::string GetScreenName(int32_t persistentId);
     bool IsEnablePiPCreate(const sptr<WindowSessionProperty>& property);
-    bool IsPiPForbidden(const sptr<WindowSessionProperty>& property, const WindowType& type);
+    WSError CheckAndNotifyPiPForbidden(const WindowSessionProperty& property, const WindowType& type);
     bool IsLastPiPWindowVisible(uint64_t surfaceId, WindowVisibilityState lastVisibilityState);
     void NotifyPiPWindowVisibleChange(bool isScreenLocked);
-    void NotifyMulScreenPipStart(const sptr<WindowSessionProperty>& property, WindowType type);
-
     /*
      * Floating ball
      */
