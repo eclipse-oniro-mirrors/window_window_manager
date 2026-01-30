@@ -134,7 +134,7 @@ public:
     virtual void OnDisconnect() {}
     virtual void OnLayoutFinished() {}
     virtual void OnRemoveBlank() {}
-    virtual void OnAddSnapshot() {}
+    virtual void OnAddSnapshot(std::function<void()>&& callback = nullptr) {}
     virtual void OnRemoveSnapshot() {}
     virtual void OnDrawingCompleted() {}
     virtual void OnExtensionDied() {}
@@ -254,7 +254,8 @@ public:
     void NotifyDisconnect();
     void NotifyLayoutFinished();
     void NotifyRemoveBlank();
-    void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true);
+    void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true,
+        std::function<void()>&& callback = nullptr);
     void NotifyRemoveSnapshot();
     void NotifyUpdateSnapshotWindow();
     void NotifyPreLoadStartingWindowFinished();
