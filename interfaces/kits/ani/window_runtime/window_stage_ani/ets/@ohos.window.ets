@@ -5756,15 +5756,15 @@ export function setWindowLayoutMode(mode: WindowLayoutMode): Promise<void> {
 }
 
 export interface MainWindowInfo {
-  displayId: number;
-  windowId: number;
+  displayId: long;
+  windowId: int;
   showing: boolean;
   label: string;
 }
 
 export class MainWindowInfoInternal implements MainWindowInfo {
-  displayId: number;
-  windowId: number;
+  displayId: long;
+  windowId: int;
   showing: boolean;
   label: string;
 }

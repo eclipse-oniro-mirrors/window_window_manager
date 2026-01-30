@@ -1811,9 +1811,9 @@ ani_object AniWindowUtils::CreateAniMainWindowInfo(ani_env* env, const MainWindo
         TLOGE(WmsLogTag::WMS_LIFE, "[ANI] create string failed");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
     }
-    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>displayId", nullptr, ani_double(info.displayId_));
+    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>displayId", nullptr, ani_long(info.displayId_));
     CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>showing", nullptr, ani_boolean(info.showing_));
-    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>windowId", nullptr, ani_double(info.persistentId_));
+    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>windowId", nullptr, ani_int(info.persistentId_));
     CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>label", nullptr, label);
     return mainWindowInfo;
 }
