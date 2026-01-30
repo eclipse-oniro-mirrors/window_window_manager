@@ -83,7 +83,6 @@ void SingleDisplayPocketFoldPolicy::SetConfig(std::map<std::string, std::vector<
         uint32_t subDensityDpi = static_cast<uint32_t>(numbersConfig["subDpi"][0]);
         TLOGNFI(WmsLogTag::DMS, "subDensityDpi = %{public}u", subDensityDpi);
         if (subDensityDpi >= DOT_PER_INCH_MINIMUM_VALUE && subDensityDpi <= DOT_PER_INCH_MAXIMUM_VALUE) {
-            isDensityDpiLoad_ = true;
             subDensityDpi_ = static_cast<float>(subDensityDpi) / BASELINE_DENSITY;
         }
     }
