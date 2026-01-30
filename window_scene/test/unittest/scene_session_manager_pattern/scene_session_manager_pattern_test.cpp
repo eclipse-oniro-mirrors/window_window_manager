@@ -25,7 +25,6 @@
 #include "session_manager/include/scene_session_manager.h"
 #include "window_manager_agent.h"
 
-
 using namespace testing;
 using namespace testing::ext;
 
