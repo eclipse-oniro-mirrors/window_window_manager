@@ -926,7 +926,7 @@ void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaC
         return;
     }
     if (keyboardCallback_ == nullptr || keyboardCallback_->onNotifyOccupiedAreaChange == nullptr) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "Callback is null");
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "callback is null");
         return;
     }
     keyboardCallback_->onNotifyOccupiedAreaChange(info);
@@ -993,7 +993,7 @@ void KeyboardSession::HandleCrossScreenChild(bool isMoveOrDrag)
         RETURN_IF_PARAM_IS_NULL(keyboardPanelSurfaceNode);
         auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
         if (dragMoveMountedNode == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "dragMoveMountedNode is null");
             continue;
         }
         if (isMoveOrDrag) {

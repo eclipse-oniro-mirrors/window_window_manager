@@ -4482,10 +4482,10 @@ bool SceneSession::MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeR
     if (pcFoldScreenController_ == nullptr) {
         return false;
     }
-    CompatibilityModeWindowScaleTransfer(rect, true);
     bool isDockAutoHide = onGetIsDockAutoHideFunc_ ? onGetIsDockAutoHideFunc_() : false;
     int32_t statusBarHeight = (IsLayoutFullScreen() || isDockAutoHide) ? 0 : GetStatusBarHeight();
     int32_t dockHeight = (IsLayoutFullScreen() || isDockAutoHide) ? 0 : GetDockHeight();
+    CompatibilityModeWindowScaleTransfer(rect, true);
     bool ret = pcFoldScreenController_->ThrowSlip(GetScreenId(), rect, statusBarHeight, dockHeight);
     if (!ret) {
         TLOGD(WmsLogTag::WMS_LAYOUT_PC, "no throw slip");

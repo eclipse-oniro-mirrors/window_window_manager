@@ -8002,6 +8002,7 @@ WSError SceneSessionManager::GetSessionDumpInfo(const std::vector<std::string>& 
                             cmd += value;
                             cmd += ' ';
                         });
+        cmd.earse(cmd.end() - 1);
         return GetSCBDebugDumpInfo(std::move(cmd), dumpInfo);
     }
     if (params.size() >= 1 && params[0] == ARG_DUMP_PIPLINE) { // 1: params num
@@ -8965,7 +8966,7 @@ void SceneSessionManager::SetSCBUnfocusedListener(const NotifySCBAfterUpdateFocu
     notifySCBAfterUnfocusedFunc_ = func;
 }
 
-void SceneSessionManager::SetSCBFocusChangeListener(const NotifyDiffSCBAfterUpdateFocusFunc&& func)
+void SceneSessionManager::SetSCBFocusChangeListener(NotifyDiffSCBAfterUpdateFocusFunc&& func)
 {
     TLOGD(WmsLogTag::WMS_FOCUS, "in");
     notifyDiffSCBAfterUnfocusedFunc_ = std::move(func);
@@ -14914,8 +14915,7 @@ void SceneSessionManager::PostProcessFocus()
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (auto& iter : sceneSessionMap_) {
             auto session = iter.second;
-            if (session == nullptr || !session->GetPostProcessFocusState().enabled_ ||
-                !session->IsVisibleForeground()) {
+            if (session == nullptr || !session->GetPostProcessFocusState().enabled_) {
                 continue;
             }
             processingSessions.push_back(iter);

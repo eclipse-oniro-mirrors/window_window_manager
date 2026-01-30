@@ -393,8 +393,6 @@ static void UpdateKeyboardHotAreasInner(const sptr<SceneSession>& sceneSession, 
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
-    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
-    std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
     if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         if (keyboardTouchHotAreas.isKeyboardEmpty()) {
             return;

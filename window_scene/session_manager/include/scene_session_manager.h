@@ -251,7 +251,7 @@ public:
     void SetShiftFocusListener(const ProcessShiftFocusFunc& func);
     void SetSCBFocusedListener(const NotifySCBAfterUpdateFocusFunc& func);
     void SetSCBUnfocusedListener(const NotifySCBAfterUpdateFocusFunc& func);
-    void SetSCBFocusChangeListener(const NotifyDiffSCBAfterUpdateFocusFunc&& func);
+    void SetSCBFocusChangeListener(NotifyDiffSCBAfterUpdateFocusFunc&& func);
     void SetDumpUITreeFunc(const DumpUITreeFunc& func);
     void SetFindScenePanelRsNodeByZOrderFunc(FindScenePanelRsNodeByZOrderFunc&& func);
     const AppWindowSceneConfig& GetWindowSceneConfig() const;
