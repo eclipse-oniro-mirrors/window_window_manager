@@ -128,7 +128,7 @@ napi_value JsUIEffectController::OnSetParams(napi_env env, napi_callback_info in
     }
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
     NapiAsyncTask::ExecuteCallback execute = [params, client = client_, server = server_, errCodePtr] {
-        if (errCodePtr == nullptr || client == nullptr || server == nullptr || params == nullptr) {
+        if (errCodePtr == nullptr || client == nullptr || server == nullptr) {
             return;
         }
         WMError ret = server->SetParams(params);
@@ -200,9 +200,6 @@ napi_value JsUIEffectController::OnAnimateTo(napi_env env, napi_callback_info in
         }
     }
     NapiAsyncTask::ExecuteCallback execute = [lists, client = client_, server = server_] {
-        if (lists == nullptr) {
-            return;
-        }
         WMError ret = server->AnimateTo(lists->params, lists->option, lists->interruptOption);
         lists->errCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
         TLOGI(WmsLogTag::WMS_ANIMATION, "ui effect %{public}d animateTo, err code %{public}d",

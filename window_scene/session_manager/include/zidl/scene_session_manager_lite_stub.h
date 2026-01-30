@@ -78,15 +78,15 @@ private:
     int HandleGetVisibilityWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionScreenLock(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowModeType(MessageParcel& data, MessageParcel& reply);
-    int HandleGetMainWinodowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateAnimationSpeedWithPid(MessageParcel& data, MessageParcel& reply);
-    int HandleGetCallingWindowInfo(MessageParcel& data, MessageParcel& reply);
-    int HandleGetAllMainWindowInfos(MessageParcel& data, MessageParcel& reply);
     int HandleGetMainWindowInfoByToken(MessageParcel& data, MessageParcel& reply);
     int HandleClearMainSessions(MessageParcel& data, MessageParcel& reply);
     int HandleRaiseWindowToTop(MessageParcel& data, MessageParcel& reply);
+    int HandleGetMainWinodowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterCollaborator(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterCollaborator(MessageParcel& data, MessageParcel& reply);
+    int HandleGetCallingWindowInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAllMainWindowInfos(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowStyleType(MessageParcel& data, MessageParcel& reply);
     int HandleSetProcessWatermark(MessageParcel& data, MessageParcel& reply);
     int HandleTerminateSessionByPersistentId(MessageParcel& data, MessageParcel& reply);
@@ -112,12 +112,12 @@ private:
     int HandleEnterKioskMode(MessageParcel& data, MessageParcel& reply);
     int HandleExitKioskMode(MessageParcel& data, MessageParcel& reply);
     int HandleSendPointerEventForHover(MessageParcel& data, MessageParcel& reply);
+    int HandleGetDisplayIdByWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleSetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply);
     int HandleUnsetPipEnableByScreenId(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyAppUseControlDisplay(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
-    int HandleUnRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
-    int HandleGetDisplayIdByWindowId(MessageParcel& data, MessageParcel& reply);
+    int HandleUnregisterPipChgListener(MessageParcel& data, MessageParcel& reply);
 
     int ProcessRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option);
 };

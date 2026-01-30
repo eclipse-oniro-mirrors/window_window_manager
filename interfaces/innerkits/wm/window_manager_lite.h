@@ -168,6 +168,15 @@ public:
     WMError RegisterCameraWindowChangedListener(const sptr<ICameraWindowChangedListener>& listener);
 
     /**
+     * @brief Set the animation speed for a specific process.
+     *
+     * @param pid Process id.
+     * @param speed The animation speed.
+     * @return WM_OK means set success, others means failed.
+     */
+    WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed);
+
+    /**
      * @brief Unregister camera window changed listener.
      *
      * @param listener ICameraWindowChangedListener.
@@ -191,15 +200,6 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo);
-
-    /**
-     * @brief Set the animation speed for a specific process.
-     *
-     * @param pid process id.
-     * @param speed The animation speed.
-     * @return WM_OK means set success, others means set failed.
-     */
-    WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed);
 
     /**
      * @brief Get keyboard calling window information.

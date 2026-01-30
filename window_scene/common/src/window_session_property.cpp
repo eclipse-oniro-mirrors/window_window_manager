@@ -2532,6 +2532,16 @@ CompatibleStyleMode WindowSessionProperty::GetPageCompatibleMode() const
     return pageCompatibleMode_;
 }
 
+void WindowSessionProperty::SetLogicalDeviceConfig(const std::string& logicalDeviceConfig)
+{
+    logicalDeviceConfig_ = logicalDeviceConfig;
+}
+
+std::string WindowSessionProperty::GetLogicalDeviceConfig() const
+{
+    return logicalDeviceConfig_;
+}
+
 void WindowSessionProperty::SetPcAppInpadCompatibleMode(bool enabled)
 {
     isPcAppInpadCompatibleMode_ = enabled;

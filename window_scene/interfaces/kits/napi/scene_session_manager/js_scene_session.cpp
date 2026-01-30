@@ -575,8 +575,6 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::SaveSnapshotAsync);
     BindNativeFunction(env, objValue, "setBorderUnoccupied", moduleName,
         JsSceneSession::SetBorderUnoccupied);
-    BindNativeFunction(env, objValue, "setEnableAddSnapshot", moduleName,
-        JsSceneSession::SetEnableAddSnapshot);
     BindNativeFunction(env, objValue, "setFreezeImmediately", moduleName,
         JsSceneSession::SetFreezeImmediately);
     BindNativeFunction(env, objValue, "throwSlipDirectly", moduleName,
@@ -2928,13 +2926,6 @@ napi_value JsSceneSession::SetBorderUnoccupied(napi_env env, napi_callback_info 
     TLOGD(WmsLogTag::WMS_SCB, "[NAPI]");
     JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
     return (me != nullptr) ? me->OnSetBorderUnoccupied(env, info) : nullptr;
-}
-
-napi_value JsSceneSession::SetEnableAddSnapshot(napi_env env, napi_callback_info info)
-{
-    TLOGD(WmsLogTag::WMS_SCB, "[NAPI]");
-    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
-    return (me != nullptr) ? me->OnSetEnableAddSnapshot(env, info) : nullptr;
 }
 
 napi_value JsSceneSession::SetFreezeImmediately(napi_env env, napi_callback_info info)
@@ -6868,14 +6859,37 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
         }
     }
 
-    TLOGI(WmsLogTag::WMS_PATTERN, "argc: %{public}zu, useFfrt: %{public}d, needPersist: %{public}d",
-        argc, useFfrt, needPersist);
+    std::shared_ptr<NativeReference> jsCallBack = nullptr;
+    if (argc >= ARGC_THREE) {
+        napi_value value = argv[2];
+        if (value == nullptr || !NapiIsCallable(env, value)) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to callback");
+            return NapiGetUndefined(env);
+        }
+    }
+    auto callback = [weakThis = wptr(this), persistentId = persistentId_, jsCallBack, env = env_, where = __func__] {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: jsSceneSession id:%{public}d has been destroyed",
+                where, persistentId);
+            return;
+        }
+        if (!jsCallBack) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: jsCallBack is nullptr", where);
+            return;
+        }
+        napi_value argv[] = {};
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), 0, argv, nullptr);
+    };
+
+    TLOGI(WmsLogTag::WMS_PATTERN, "argc: %{public}zu, useFfrt: %{public}d, needPersist: %{public}d, "
+        "callback: %{public}d", argc, useFfrt, needPersist, jsCallBack == nullptr);
     auto session = weakSession_.promote();
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_PATTERN, "session is null, id:%{public}d", persistentId_);
         return NapiGetUndefined(env);
     }
-    session->NotifyAddSnapshot(useFfrt, needPersist, true);
+    session->NotifyAddSnapshot(useFfrt, needPersist, true, std::move(callback));
     return NapiGetUndefined(env);
 }
 
@@ -7634,33 +7648,6 @@ napi_value JsSceneSession::OnSetBorderUnoccupied(napi_env env, napi_callback_inf
         return NapiGetUndefined(env);
     }
     session->SetBorderUnoccupied(borderUnoccupied);
-    return NapiGetUndefined(env);
-}
-
-napi_value JsSceneSession::OnSetEnableAddSnapshot(napi_env env, napi_callback_info info)
-{
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = { nullptr };
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != ARGC_ONE) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Argc is invalid: %{public}zu", argc);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    bool enableAddSnapshot = true;
-    if (!ConvertFromJsValue(env, argv[0], enableAddSnapshot)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to enableAddSnapshot");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    auto session = weakSession_.promote();
-    if (session == nullptr) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "session is nullptr, id:%{public}d", persistentId_);
-        return NapiGetUndefined(env);
-    }
-    session->SetEnableAddSnapshot(enableAddSnapshot);
     return NapiGetUndefined(env);
 }
 

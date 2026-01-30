@@ -179,14 +179,14 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleRecoverWatermarkImageForApp(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_VISIBILITY_WINDOW_INFO_ID):
             return HandleGetVisibilityWindowInfo(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_EXTENSION_WINDOW_STAGE_TO_SCB):
-            return HandleAddExtensionWindowStageToSCB(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_EXTENSION_WINDOW_STAGE_FROM_SCB):
-            return HandleRemoveExtensionWindowStageFromSCB(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_MODALEXTENSION_RECT_TO_SCB):
             return HandleUpdateModalExtensionRect(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_PROCESS_MODALEXTENSION_POINTDOWN_TO_SCB):
             return HandleProcessModalExtensionPointDown(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_EXTENSION_WINDOW_STAGE_TO_SCB):
+            return HandleAddExtensionWindowStageToSCB(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_EXTENSION_WINDOW_STAGE_FROM_SCB):
+            return HandleRemoveExtensionWindowStageFromSCB(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_OR_REMOVE_SECURE_SESSION):
             return HandleAddOrRemoveSecureSession(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_EXTENSION_WINDOW_FLAGS):
@@ -2559,6 +2559,7 @@ int SceneSessionManagerStub::HandleAnimateTo(MessageParcel& data, MessageParcel&
     }
     return ERR_NONE;
 }
+
 int SceneSessionManagerStub::HandleCreateUIEffectController(MessageParcel& data, MessageParcel& reply)
 {
     sptr<IRemoteObject> controllerObject = data.ReadRemoteObject();
@@ -2607,7 +2608,7 @@ int SceneSessionManagerStub::HandleAddSessionBlackList(MessageParcel& data, Mess
     for (uint64_t i = 0; i < size; i++) {
         std::string bundleName;
         if (!data.ReadString(bundleName)) {
-            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read windowId failed");
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read bundleName failed");
             return ERR_INVALID_DATA;
         }
         bundleNames.insert(bundleName);
@@ -2624,7 +2625,7 @@ int SceneSessionManagerStub::HandleAddSessionBlackList(MessageParcel& data, Mess
     }
     std::unordered_set<std::string> privacyWindowTags;
     for (uint64_t i = 0; i < size; i++) {
-        std::string privacyWindowTag = 0;
+        std::string privacyWindowTag = "";
         if (!data.ReadString(privacyWindowTag)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read privacyWindowTag failed");
             return ERR_INVALID_DATA;
@@ -2671,7 +2672,7 @@ int SceneSessionManagerStub::HandleRemoveSessionBlackList(MessageParcel& data, M
     }
     std::unordered_set<std::string> privacyWindowTags;
     for (uint64_t i = 0; i < size; i++) {
-        std::string privacyWindowTag = 0;
+        std::string privacyWindowTag = "";
         if (!data.ReadString(privacyWindowTag)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read privacyWindowTag failed");
             return ERR_INVALID_DATA;

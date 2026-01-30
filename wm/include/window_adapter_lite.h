@@ -57,9 +57,9 @@ public:
     virtual WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease);
     virtual void ClearWindowAdapter();
     virtual WMError GetWindowModeType(WindowModeType& windowModeType);
+    virtual WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed);
     virtual WMError RaiseWindowToTop(int32_t persistentId);
     virtual WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo);
-    virtual WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed);
     virtual WMError GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo);
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();

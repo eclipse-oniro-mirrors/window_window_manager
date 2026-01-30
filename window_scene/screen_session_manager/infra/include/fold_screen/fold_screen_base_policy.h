@@ -105,6 +105,8 @@ public:
     virtual void SetMainScreenRegion(DMRect& mainScreenRegion) {};
     bool GetLockDisplayStatus() const;
     void SetCurrentDisplayMode(FoldDisplayMode mode);
+    virtual void ChangeScreenPowerOnFold(const std::vector<std::pair<ScreenId,
+        ScreenPowerStatus>>& screenPowerTaskList);
     // Lock target fold status
     virtual const std::unordered_set<FoldStatus>& GetSupportedFoldStatus() const;
     virtual bool GetPhysicalFoldLockFlag() const;
@@ -114,6 +116,7 @@ public:
     virtual FoldStatus GetPhysicalFoldStatus();
     bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
         FoldStatus targetFoldStatus) const;
+    virtual float GetSpecialVirtualPixelRatio();
 
 protected:
     FoldScreenBasePolicy();

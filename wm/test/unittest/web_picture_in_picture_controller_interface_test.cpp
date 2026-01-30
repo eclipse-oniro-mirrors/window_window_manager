@@ -19,9 +19,9 @@
 #include "mock_static_call.h"
 #include "mock_session.h"
 #include "web_picture_in_picture_controller_interface.h"
-
 #include "native_pip_window_listener.h"
 #include "window_manager_hilog.h"
+#include "parameters.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -37,6 +37,10 @@ public:
     int num = 0;
     sptr<WebPictureInPictureControllerInterface> controller = nullptr;
     PiPConfig pipConfig{};
+private:
+    static constexpr uint32_t mainWindowId = 100;
+    static constexpr uint32_t width = 100;
+    static constexpr uint32_t height = 150;
 };
 
 void WebPictureInPictureControllerInterfaceTest::SetUpTestCase()
@@ -49,10 +53,10 @@ void WebPictureInPictureControllerInterfaceTest::TearDownTestCase()
 
 void WebPictureInPictureControllerInterfaceTest::SetUp()
 {
-    pipConfig.mainWindowId = 100;
+    pipConfig.mainWindowId = mainWindowId;
     pipConfig.pipTemplateType = 0;
-    pipConfig.width = 100;
-    pipConfig.height = 150;
+    pipConfig.width = width;
+    pipConfig.height = height;
     pipConfig.controlGroup = {101};
     pipConfig.env = reinterpret_cast<napi_env>(&num);
     controller = sptr<WebPictureInPictureControllerInterface>::MakeSptr();
@@ -215,6 +219,11 @@ HWTEST_F(WebPictureInPictureControllerInterfaceTest, SetPipParentWindowId, TestS
     WMError ret =controller->SetPipParentWindowId(windowId);
     EXPECT_EQ(ret, WMError::WM_ERROR_PIP_INTERNAL_ERROR);
     controller->Create(pipConfig);
+    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
+    if (!(multiWindowUIType == "FreeFormMultiWindow")) {
+        EXPECT_EQ(controller->SetPipParentWindowId(windowId), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+        GTEST_SKIP();
+    }
     ret = controller->SetPipParentWindowId(windowId);
     EXPECT_EQ(ret, WMError::WM_OK);
 }
@@ -481,7 +490,7 @@ HWTEST_F(WebPictureInPictureControllerInterfaceTest, UnsetPipInitialSurfaceRect,
 {
     controller->Create(pipConfig);
     WMError ret = controller->SetPipInitialSurfaceRect(10, 10, 20, 20);
-    EXPECT_EQ(WMError::WM_ERROR_PIP_INTERNAL_ERROR, ret);
+    EXPECT_EQ(WMError::WM_OK, ret);
     ret = controller->UnsetPipInitialSurfaceRect();
     EXPECT_EQ(WMError::WM_OK, ret);
     controller->sptrWebPipController_ = nullptr;

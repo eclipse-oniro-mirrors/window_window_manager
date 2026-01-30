@@ -178,7 +178,7 @@ private:
     int HandleSetWindowAnchorInfo(MessageParcel& data, MessageParcel& reply);
 
     int HandleSetFollowParentWindowLayoutEnabled(MessageParcel& data, MessageParcel& reply);
-
+    
     // Window Transition Animation For PC
     int HandleSetWindowTransitionAnimation(MessageParcel& data, MessageParcel& reply);
 

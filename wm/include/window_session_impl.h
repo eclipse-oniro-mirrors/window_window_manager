@@ -918,6 +918,7 @@ protected:
      */
     int16_t rotationAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
+    mutable std::mutex virtualPixelRatioMutex_;
 
     /*
      * Keyboard
@@ -1186,7 +1187,7 @@ private:
     bool hasNotifyPrelaunchStartingwindow_ = false;
     std::atomic_bool dragActivated_ = true;
     WindowSizeChangeReason lastSizeChangeReason_ = WindowSizeChangeReason::END;
-    bool postTaskDone_ = false;
+    std::atomic<bool> postTaskDone_ = false;
     Transform layoutTransform_;
     SingleHandTransform singleHandTransform_;
     mutable std::mutex currentTransformMutex_;
@@ -1234,11 +1235,6 @@ private:
     std::shared_ptr<Media::PixelMap> iconCache_;
 
     /*
-     * Window Input Event
-     */
-    bool isWatchGestureConsumed_ = false;
-
-    /*
      * PC Event Filter
      */
     std::mutex keyEventFilterMutex_;
@@ -1247,6 +1243,11 @@ private:
     MouseEventFilterFunc mouseEventFilter_;
     std::mutex touchEventFilterMutex_;
     TouchEventFilterFunc touchEventFilter_;
+
+    /*
+     * Window Input Event
+     */
+    bool isWatchGestureConsumed_ = false;
 
     /*
      * Vsync count

@@ -149,6 +149,10 @@ void PcFoldScreenController::UpdateSupportEnterWaterfallMode(bool isSupportEnter
 void PcFoldScreenController::SystemKeyboardStatusChangeForSupportEnterWaterfallMode(
     DisplayId displayId, bool hasSystemKeyboard)
 {
+    if (!PcFoldScreenManager::GetInstance().IsPcFoldScreen(GetDisplayId())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "only main screen support water fall mode.");
+        return;
+    }
     lastSupportEnterWaterfallMode_ = supportEnterWaterfallMode_;
     supportEnterWaterfallMode_ = IsSupportEnterWaterfallMode(
         PcFoldScreenManager::GetInstance().GetScreenFoldStatus(displayId), hasSystemKeyboard);
@@ -542,6 +546,10 @@ void PcFoldScreenController::UpdateRect()
     auto sceneSession = weakSceneSession_.promote();
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is nullptr, id: %{public}d", GetPersistentId());
+        return;
+    }
+    if (!PcFoldScreenManager::GetInstance().IsPcFoldScreen(GetDisplayId())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "only main screen need update rect.");
         return;
     }
     auto ret = sceneSession->NotifyClientToUpdateRect("ScreenFoldStatusChanged", nullptr);

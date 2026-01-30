@@ -134,7 +134,7 @@ public:
     virtual void OnDisconnect() {}
     virtual void OnLayoutFinished() {}
     virtual void OnRemoveBlank() {}
-    virtual void OnAddSnapshot() {}
+    virtual void OnAddSnapshot(std::function<void()>&& callback = nullptr) {}
     virtual void OnRemoveSnapshot() {}
     virtual void OnDrawingCompleted() {}
     virtual void OnExtensionDied() {}
@@ -254,7 +254,8 @@ public:
     void NotifyDisconnect();
     void NotifyLayoutFinished();
     void NotifyRemoveBlank();
-    void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true);
+    void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true,
+        std::function<void()>&& callback = nullptr);
     void NotifyRemoveSnapshot();
     void NotifyUpdateSnapshotWindow();
     void NotifyPreLoadStartingWindowFinished();
@@ -348,8 +349,6 @@ public:
             addSnapshotCallback_ = std::move(task);
         }
     }
-    void SetEnableAddSnapshot(bool enableAddSnapshot = true);
-    bool GetEnableAddSnapshot() const;
 
     SessionState GetSessionState() const;
     virtual void SetSessionState(SessionState state);
@@ -495,10 +494,10 @@ public:
     bool GetStateFromManager(const ManagerState key);
     virtual void PresentFocusIfNeed(int32_t pointerAcrion, int32_t sourceType = 0);
     virtual WSError UpdateWindowMode(WindowMode mode);
-    WSError SetAppSupportPhoneInPc(bool isSupportPhone);
-    WSError SetCompatibleModeProperty(const sptr<CompatibleModeProperty> compatibleModeProperty);
-    WSError PcAppInPadNormalClose();
     WSError SetIsPcAppInPad(bool enable);
+    WSError SetCompatibleModeProperty(const sptr<CompatibleModeProperty> compatibleModeProperty);
+    WSError SetAppSupportPhoneInPc(bool isSupportPhone);
+    WSError PcAppInPadNormalClose();
     WSError SetPcAppInpadCompatibleMode(bool enabled);
     WSError SetPcAppInpadSpecificSystemBarInvisible(bool isPcAppInpadSpecificSystemBarInvisible);
     WSError SetPcAppInpadOrientationLandscape(bool isPcAppInpadOrientationLandscape);
@@ -679,10 +678,10 @@ public:
     /*
      * Window Lifecycle
      */
-    bool GetIsPendingToBackgroundState() const;
-    void SetIsPendingToBackgroundState(bool isPendingToBackgroundState);
     bool IsActivatedAfterScreenLocked() const;
     void SetIsActivatedAfterScreenLocked(bool isActivatedAfterScreenLocked);
+    bool GetIsPendingToBackgroundState() const;
+    void SetIsPendingToBackgroundState(bool isPendingToBackgroundState);
     void SetAttachState(bool isAttach, WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED);
     bool GetAttachState() const;
     void RegisterDetachCallback(const sptr<IPatternDetachCallback>& callback);
@@ -711,8 +710,8 @@ public:
     bool GetUIStateDirty() const;
     static bool IsScbCoreEnabled();
     static void SetScbCoreEnabled(bool enabled);
-    bool IsVisible() const;
     virtual bool IsNeedSyncScenePanelGlobalPosition() { return true; }
+    bool IsVisible() const;
     void SetAppInstanceKey(const std::string& appInstanceKey);
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
@@ -730,12 +729,6 @@ public:
     void SetHidingStartingWindow(bool hidingStartWindow);
     bool GetHidingStartingWindow() const;
     WSError SetLeashWindowAlpha(bool hidingStartWindow);
-
-    /*
-     * Window Hierarchy
-     */
-    void ProcessClickModalWindowOutside(int32_t posX, int32_t posY);
-    void SetClickModalWindowOutsideListener(NotifyClickModalWindowOutsideFunc&& func);
 
     /*
      * Window Layout
@@ -782,6 +775,12 @@ public:
      * Screen Lock
      */
     bool IsScreenLockWindow() const;
+
+    /*
+     * Window Hierarchy
+     */
+    void ProcessClickModalWindowOutside(int32_t posX, int32_t posY);
+    void SetClickModalWindowOutsideListener(NotifyClickModalWindowOutsideFunc&& func);
 
     /*
      * Free Multi Window
@@ -1085,6 +1084,21 @@ protected:
     bool rectChangeListenerRegistered_ = false;
 
     /*
+     * Window Pipeline
+     */
+    uint32_t dirtyFlags_ = 0; // only accessed on SSM thread
+    bool isNeedSyncSessionRect_ { true }; // where need sync to session rect,  currently use in split drag
+    bool isStarting_ = false;   // when start app, session is starting state until foreground
+    std::atomic_bool mainUIStateDirty_ = false;
+    static bool isScbCoreEnabled_;
+
+    /*
+     * CompatibleMode Window Scale
+     * Resize When DragEnd
+     */
+    std::atomic_bool needNotifyDragEventOnNextVsync_ = false;
+
+    /*
      * Window Hierarchy
      */
     NotifyRaiseMainWindowAboveTargetFunc onRaiseMainWindowAboveTarget_;
@@ -1099,20 +1113,6 @@ protected:
     std::atomic<bool> needNotifyAttachState_ = { false };
     int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
     SnapshotStatus capacity_ = defaultCapacity;
-
-    /*
-     * Window Pipeline
-     */
-    uint32_t dirtyFlags_ = 0; // only accessed on SSM thread
-    bool isNeedSyncSessionRect_ { true }; // where need sync to session rect,  currently use in split drag
-    bool isStarting_ = false;   // when start app, session is starting state until foreground
-    std::atomic_bool mainUIStateDirty_ = false;
-    static bool isScbCoreEnabled_;
-
-    /*
-     *CompatibleMode Window scale
-     */
-    uint32_t needNotifyDragEventOnNextVsync_ = 0;
 
     /*
      * Keyboard Window
@@ -1222,8 +1222,8 @@ private:
     void RecordWindowStateAttachExceptionEvent(bool isAttached);
     bool SetLifeCycleTaskRunning(const sptr<SessionLifeCycleTask>& lifeCycleTask);
 
-    std::atomic<bool> isPendingToBackgroundState_ { false };
     std::atomic<bool> isActivatedAfterScreenLocked_ { true };
+    std::atomic<bool> isPendingToBackgroundState_ { false };
     sptr<IPatternDetachCallback> detachCallback_ = nullptr;
 
     std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode_;
@@ -1261,7 +1261,6 @@ private:
     /*
      * Window Scene Snapshot
      */
-    std::atomic<bool> enableAddSnapshot_ = true;
     Task saveSnapshotCallback_ = []() {};
     Task addSnapshotCallback_ = []() {};
     std::mutex saveSnapshotCallbackMutex_;

@@ -45,7 +45,7 @@ constexpr int WINDOW_NAME_TYPE_VOICEINPUT = 2;
 const std::string SCREENSHOT_WINDOW_NAME_PREFIX = "ScreenShotWindow";
 const std::string PREVIEW_WINDOW_NAME_PREFIX = "PreviewWindow";
 const std::string VOICEINPUT_WINDOW_NAME_PREFIX = "__VoiceHardwareInput";
-const std::string SCREEN_LOCK_WINDOW = "scbScreenLock";
+const std::string SCREEN_LOCK_WINDOW = "SCBScreenLock";
 constexpr int32_t CURSOR_DRAG_COUNT_MAX = 1;
 } // namespace
 
@@ -227,7 +227,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
         transform = transform.Scale({singleHandData.scaleX, singleHandData.scaleY},
                                     singleHandData.pivotX, singleHandData.pivotY);
     }
- 
+
     auto sessionProperty = sceneSession->GetSessionProperty();
     if (sessionProperty == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "sessionProperty is nullptr");
@@ -243,7 +243,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
     auto screenProperty = screensProperties[displayId];
     auto isScreenLockWindow = sceneSession->GetSessionInfo().bundleName_.find(SCREEN_LOCK_WINDOW) != std::string::npos;
     bool isRotateWindow = !NearEqual(PositiveFmod(screenProperty.GetPhysicalRotation() -
-        screenProperty.GetScreenComponentRotation(), DIRECTION360), DIRECTION360);
+        screenProperty.GetScreenComponentRotation(), DIRECTION360), DIRECTION0);
     bool isSystem = sceneSession->GetSessionInfo().isSystem_;
     bool displayModeIsFull = static_cast<MMI::DisplayMode>(displayMode) == MMI::DisplayMode::FULL;
     bool displayModeIsGlobalFull = displayMode == FoldDisplayMode::GLOBAL_FULL;
@@ -393,8 +393,6 @@ static void UpdateKeyboardHotAreasInner(const sptr<SceneSession>& sceneSession, 
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
-    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
-    std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
     if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         if (keyboardTouchHotAreas.isKeyboardEmpty()) {
             return;

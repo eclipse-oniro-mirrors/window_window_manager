@@ -1607,7 +1607,10 @@ void WindowSessionImpl::SetUniqueVirtualPixelRatio(bool useUniqueDensity, float 
     useUniqueDensity_ = useUniqueDensity;
     if (useUniqueDensity_) {
         float oldVirtualPixelRatio = virtualPixelRatio_;
-        virtualPixelRatio_ = virtualPixelRatio;
+        {
+            std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
+            virtualPixelRatio_ = virtualPixelRatio;
+        }
         if (!MathHelper::NearZero(oldVirtualPixelRatio - virtualPixelRatio)) {
             UpdateDensity();
             SetUniqueVirtualPixelRatioForSub(useUniqueDensity, virtualPixelRatio);
@@ -1986,7 +1989,10 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     float density = GetVirtualPixelRatio(displayInfo);
     UpdateCurrentWindowOrientation(displayInfo->GetDisplayOrientation());
     int32_t orientation = static_cast<int32_t>(displayInfo->GetDisplayOrientation());
-    virtualPixelRatio_ = density;
+    {
+        std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
+        virtualPixelRatio_ = density;
+    }
     auto config = FillViewportConfig(rect, density, orientation, transformHint, GetDisplayId());
     if (reason == WindowSizeChangeReason::DRAG_END && keyFramePolicy_.stopping_) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "key frame stop");
