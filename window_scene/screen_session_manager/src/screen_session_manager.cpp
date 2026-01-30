@@ -1846,7 +1846,10 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
 {
     screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_ONE;
     InitRotationCorrectionMap(DISPLAYMODE_CORRECTION);
-    screenSession->SetRotationCorrectionMap(rotationCorrectionMap_);
+    {
+        std::shared_lock<std::shared_mutex> lock(rotationCorrectionMutex_);
+        screenSession->SetRotationCorrectionMap(rotationCorrectionMap_);
+    }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
@@ -9215,8 +9218,11 @@ void ScreenSessionManager::SetScreenPrivacyState(bool hasPrivate)
     TLOGNFI(WmsLogTag::DMS, "enter, hasPrivate: %{public}d", hasPrivate);
     ScreenId id = GetDefaultScreenId();
     auto screenSession = GetScreenSession(id);
-    hasPrivateWindowForeground_.clear();
-    hasPrivateWindowForeground_[id] = hasPrivate;
+    {
+        std::lock_guard<std::mutex> lock(hasPrivateWindowForegroundMutex_);
+        hasPrivateWindowForeground_.clear();
+        hasPrivateWindowForeground_[id] = hasPrivate;
+    }
     NotifyPrivateSessionStateChanged(hasPrivate);
 }
 
@@ -10887,7 +10893,10 @@ void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
         TLOGNFE(WmsLogTag::DMS, "screen session is null.");
         return;
     }
-    userSwitching_ = true;
+    {
+        std::unique_lock<std::mutex> lock(switchUserMutex_);
+        userSwitching_ = true;
+    }
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerSession->GetScreenId()
         << ", rsId: " << innerSession->GetRSScreenId()
@@ -10902,7 +10911,10 @@ void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
             ExitOuterOnlyMode(innerSession->GetRSScreenId(), externalSession->GetRSScreenId(),
                 MultiScreenMode::SCREEN_MIRROR);
             switchUserCV_.notify_all();
-            userSwitching_ = false;
+            {
+                std::unique_lock<std::mutex> lock(switchUserMutex_);
+                userSwitching_ = false;
+            }
         } else {
             TLOGNFI(WmsLogTag::DMS, "change to mirror.");
             SetIsOuterOnlyMode(false);
@@ -10911,7 +10923,10 @@ void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
     } else {
         TLOGNFI(WmsLogTag::DMS, "already mirror.");
         switchUserCV_.notify_all();
-        userSwitching_ = false;
+        {
+            std::unique_lock<std::mutex> lock(switchUserMutex_);
+            userSwitching_ = false;
+        }
     }
 #endif
 }
