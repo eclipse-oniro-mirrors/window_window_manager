@@ -15,15 +15,15 @@
 
 #include <gtest/gtest.h>
 #include <regex>
-#include <unistd.h>
 #include <bundle_mgr_proxy.h>
+#include <unistd.h>
 
-#include "session_manager/include/scene_session_manager.h"
+#include "iremote_object_mocker.h"
 #include "session/host/include/scene_session.h"
 #include "session_info.h"
-#include "window_manager_agent.h"
 #include "session_manager.h"
-#include "iremote_object_mocker.h"
+#include "session_manager/include/scene_session_manager.h"
+#include "window_manager_agent.h"
 
 
 using namespace testing;
