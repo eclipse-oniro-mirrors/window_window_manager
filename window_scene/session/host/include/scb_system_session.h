@@ -52,7 +52,7 @@ protected:
     void NotifyClientToUpdateAvoidArea() override;
 
 private:
-    bool isNeedSyncGlobalPos_ = true; // can only accessed in main thread
+    bool isNeedSyncGlobalPos_ = true; // only accessed in main thread
 
     /*
      * App Use Control
