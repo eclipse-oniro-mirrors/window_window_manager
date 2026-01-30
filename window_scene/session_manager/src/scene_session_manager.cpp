@@ -14402,8 +14402,7 @@ void SceneSessionManager::AddWindowDragHotArea(DisplayId displayId, uint32_t typ
 WSError SceneSessionManager::UpdateMaximizeMode(int32_t persistentId, bool isMaximize)
 {
     auto task = [this, persistentId, isMaximize]() {
-        TLOGND(WmsLogTag::WMS_PC, "update maximize mode, id: %{public}d, isMaximize: %{public}d",
-            persistentId, isMaximize);
+        TLOGND(WmsLogTag::WMS_PC, "update maximize mode, id: %{public}d, isMaximize: %{public}d", persistentId, isMaximize);
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
             TLOGNE(WmsLogTag::WMS_PC, "could not find window, persistentId:%{public}d", persistentId);
@@ -14437,12 +14436,10 @@ WSError SceneSessionManager::GetIsLayoutFullScreen(bool& isLayoutFullScreen)
             }
             isLayoutFullScreen = sceneSession->GetSessionProperty()->IsLayoutFullScreen();
             if (isLayoutFullScreen) {
-                TLOGND(WmsLogTag::WMS_IMMS, "Current window is immersive, persistentId:%{public}d",
-                    sceneSession->GetPersistentId());
+                TLOGND(WmsLogTag::WMS_IMMS, "Current window is immersive, persistentId:%{public}d", sceneSession->GetPersistentId());
                 return WSError::WS_OK;
             } else {
-                TLOGND(WmsLogTag::WMS_IMMS, "Current window is not immersive, persistentId:%{public}d",
-                    sceneSession->GetPersistentId());
+                TLOGND(WmsLogTag::WMS_IMMS, "Current window is not immersive, persistentId:%{public}d", sceneSession->GetPersistentId());
             }
         }
         TLOGND(WmsLogTag::WMS_IMMS, "No immersive window");
