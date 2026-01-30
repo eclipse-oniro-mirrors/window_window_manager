@@ -42,7 +42,6 @@ using namespace arkts::ani_signature;
 namespace {
     static std::map<DisplayId, sptr<DisplayInfo>> localObjs;
 }
-
 // construct, set registerManager.
 DisplayAni::DisplayAni(const sptr<Display>& display) : display_(display)
 {
