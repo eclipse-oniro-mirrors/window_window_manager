@@ -1234,11 +1234,6 @@ private:
     std::shared_ptr<Media::PixelMap> iconCache_;
 
     /*
-     * Window Input Event
-     */
-    bool isWatchGestureConsumed_ = false;
-
-    /*
      * PC Event Filter
      */
     std::mutex keyEventFilterMutex_;
@@ -1247,6 +1242,11 @@ private:
     MouseEventFilterFunc mouseEventFilter_;
     std::mutex touchEventFilterMutex_;
     TouchEventFilterFunc touchEventFilter_;
+
+    /*
+     * Window Input Event
+     */
+    bool isWatchGestureConsumed_ = false;
 
     /*
      * Vsync count
