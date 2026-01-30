@@ -6584,7 +6584,7 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
 
 bool SceneSessionManager::HasStartWindowPersistence(const std::string& bundleName, bool isDark)
 {
-    std::shared_lock<std::shared_mutex> lock(hasStartWindowPersistenceMutex_);
+    std::lock_guard lock(hasStartWindowPersistenceMutex_);
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:HasStartWindowPersistence [%s]", bundleName.c_str());
     auto iter = hasStartWindowPersistence_.find(bundleName);
     if (iter == hasStartWindowPersistence_.end()) {
