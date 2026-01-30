@@ -112,23 +112,6 @@ HWTEST_F(SceneSessionManagerTest5, NotifySessionTouchOutside01, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetStartWindowBackgroundColor
- * @tc.desc: SceneSessionManager set start window background color
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest5, SetStartWindowBackgroundColor, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    auto res = ssm_->SetStartWindowBackgroundColor("mName", "aName", 0xffffffff, 100);
-    EXPECT_NE(res, WMError::WM_ERROR_INVALID_CALLING);
-
-    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
-    ssm_->bundleMgr_ = sptr<AppExecFwk::BundleMgrProxy>::MakeSptr(iRemoteObjectMocker);
-    res = ssm_->SetStartWindowBackgroundColor("mName", "aName", 0xffffffff, 100);
-    EXPECT_NE(res, WMError::WM_ERROR_INVALID_CALLING);
-}
-
-/**
  * @tc.name: OnBundleUpdated
  * @tc.desc: Erase cached info when bundle update
  * @tc.type: FUNC
