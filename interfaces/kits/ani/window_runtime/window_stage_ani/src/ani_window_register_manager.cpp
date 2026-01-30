@@ -942,7 +942,7 @@ WmErrorCode AniWindowRegisterManager::ProcessAcrossDisplaysChangeRegister(const 
     if (isRegister) {
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterAcrossDisplaysChangeListener(listener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterAcrossDisplaysChangeListener(listener));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnRegisterAcrossDisplaysChangeListener(listener));
     }
     return ret;
 }
