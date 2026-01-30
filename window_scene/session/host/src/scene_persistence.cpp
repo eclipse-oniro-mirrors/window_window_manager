@@ -115,7 +115,7 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
             return;
         }
         scenePersistence->SetHasStartWindowPersistence(isDark, true);
-        TLOGI(WmsLogTag::WMS_PATTERN, "SaveStartWindow success, packedSize: %{public}ld", packedSize);
+        TLOGI(WmsLogTag::WMS_PATTERN, "SaveStartWindow success, packedSize: %{public}lld", packedSize);
     };
     snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
 }

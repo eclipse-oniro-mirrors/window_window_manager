@@ -6569,8 +6569,9 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             }
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
+            bool isDark = IsStartWindowDark(sessionInfo);
             if (!HasStartWindowPersistence(sessionInfo.bundleName_, isDark)) {
-                sceneSession->SaveStartWindow(pixelMap, isDark); // 存图片是否成功
+                sceneSession->SaveStartWindow(pixelMap, isDark);
                 SetHasStartWindowPersistence(sessionInfo.bundleName_, isDark, true);
             }
         }
@@ -6583,9 +6584,10 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
 
 bool SceneSessionManager::HasStartWindowPersistence(const std::string& bundleName, bool isDark)
 {
-    std::shared_lock<std::shared_mutex> lock(startingWindowPersistenceMapMutex_);
-    auto iter = startingWindowPersistenceMap_.find(bundleName);
-    if (iter == startingWindowPersistenceMap_.end()) {
+    std::shared_lock<std::shared_mutex> lock(hasStartWindowPersistenceMutex_);
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:HasStartWindowPersistence [%s]", bundleName.c_str());
+    auto iter = hasStartWindowPersistence_.find(bundleName);
+    if (iter == hasStartWindowPersistence_.end()) {
         return false;
     }
     auto& infoMap = iter->second;
@@ -6598,10 +6600,11 @@ bool SceneSessionManager::HasStartWindowPersistence(const std::string& bundleNam
 
 void SceneSessionManager::SetHasStartWindowPersistence(const std::string& bundleName, bool isDark, bool hasPersistence)
 {
-    std::unique_lock<std::shared_mutex> lock(startingWindowPersistenceMapMutex_);
-    auto iter = startingWindowPersistenceMap_.find(bundleName);
-    if (iter == startingWindowPersistenceMap_.end()) {
-        startingWindowPersistenceMap_[bundleName] = {{isDark, hasPersistence}};
+    std::unique_lock<std::shared_mutex> lock(hasStartWindowPersistenceMutex_);
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetHasStartWindowPersistence [%s]", bundleName.c_str());
+    auto iter = hasStartWindowPersistence_.find(bundleName);
+    if (iter == hasStartWindowPersistence_.end()) {
+        hasStartWindowPersistence_[bundleName] = {{isDark, hasPersistence}};
         return;
     }
     auto& infoMap = iter->second;
