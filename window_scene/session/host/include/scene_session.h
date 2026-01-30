@@ -708,6 +708,7 @@ public:
     void SetIsUserRequestedExit(bool isUserRequestedExit);
     void SetGetAllAppUseControlMapFunc(GetAllAppUseControlMapFunc&& callback);
     void CalculatedStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
+    void NotifyPendingSessionActivation(SessionInfo& info);
     bool isRemoving_ = false;
 
     void SendPointerEventToUI(std::shared_ptr<MMI::PointerEvent> pointerEvent);
