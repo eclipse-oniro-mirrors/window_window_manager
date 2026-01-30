@@ -48,7 +48,7 @@ private:
     std::shared_ptr<AppExecFwk::EventHandler> eventHandler_ = nullptr;
 };
 extern const std::string ANI_EVENT_CONNECT;
-extenr const std::string ANI_EVENT_DISCONNECT;
+extern const std::string ANI_EVENT_DISCONNECT;
 extern const std::string ANI_EVENT_CHANGE;
 }  // namespace Rosen
 }  // namespace OHOS
