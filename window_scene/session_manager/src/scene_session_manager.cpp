@@ -18676,6 +18676,29 @@ WMError SceneSessionManager::GetFbPanelWindowId(uint32_t& windowId)
     return WMError::WM_ERROR_FB_INTERNAL_ERROR;
 }
 
+WSError SceneSessionManager::CloneWindow(int32_t fromPersistentId, int32_t toPersistentId, bool needOffScreen)
+{
+    auto toSceneSession = GetSceneSession(toPersistentId);
+    if (toSceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_PC, "Session is nullptr, id: %{public}d", toPersistentId);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    NodeId nodeId = INVALID_NODEID;
+    if (fromPersistentId >= 0) { // if fromPersistentId < 0, excute CloneWindow(0) to cancel cloneWindow
+        auto fromSceneSession = GetSceneSession(fromPersistentId);
+        if (fromSceneSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_PC, "Session is nullptr, id: %{public}d", fromPersistentId);
+            return WSError::WS_ERROR_NULLPTR;
+        }
+        if (auto surfaceNode = fromSceneSession->GetSurfaceNode()) {
+            nodeId = surfaceNode->GetId();
+        }
+    }
+    toSceneSession->CloneWindow(nodeId, needOffScreen);
+    TLOGI(WmsLogTag::WMS_PC, "fromSurfaceId: %{public}" PRIu64, nodeId);
+    return WSError::WS_OK;
+}
+
 void SceneSessionManager::SetStatusBarAvoidHeight(DisplayId displayId, int32_t height)
 {
     const char* const where = __func__;
@@ -18731,29 +18754,6 @@ WMError SceneSessionManager::MinimizeAllAppWindows(DisplayId displayId, int32_t 
         }
     }, __func__);
     return WMError::WM_OK;
-}
-
-WSError SceneSessionManager::CloneWindow(int32_t fromPersistentId, int32_t toPersistentId, bool needOffScreen)
-{
-    auto toSceneSession = GetSceneSession(toPersistentId);
-    if (toSceneSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_PC, "Session is nullptr, id: %{public}d", toPersistentId);
-        return WSError::WS_ERROR_NULLPTR;
-    }
-    NodeId nodeId = INVALID_NODEID;
-    if (fromPersistentId >= 0) { // if fromPersistentId < 0, excute CloneWindow(0) to cancel cloneWindow
-        auto fromSceneSession = GetSceneSession(fromPersistentId);
-        if (fromSceneSession == nullptr) {
-            TLOGE(WmsLogTag::WMS_PC, "Session is nullptr, id: %{public}d", fromPersistentId);
-            return WSError::WS_ERROR_NULLPTR;
-        }
-        if (auto surfaceNode = fromSceneSession->GetSurfaceNode()) {
-            nodeId = surfaceNode->GetId();
-        }
-    }
-    toSceneSession->CloneWindow(nodeId, needOffScreen);
-    TLOGI(WmsLogTag::WMS_PC, "fromSurfaceId: %{public}" PRIu64, nodeId);
-    return WSError::WS_OK;
 }
 
 DisplayId SceneSessionManager::UpdateSpecificSessionClientDisplayId(const sptr<WindowSessionProperty>& property)
