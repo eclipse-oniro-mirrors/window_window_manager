@@ -3680,10 +3680,9 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const P
             return pair.first == owner && pair.second.flag_ == prop.flag_;
         });
         if (it != ownPropList.end()) {
-            it->second = prop;
             ownPropList.erase(it);
         }
-        auto insertPair = it == ownPropList.end() ? OwnSystemBarPropertyPair(owner, prop) : *it;
+        auto insertPair = OwnSystemBarPropertyPair(owner, prop);
         auto insertIt = ownPropList.begin();
         // ABILITY_RUNTIME properties should always be head node
         if (owner != SystemBarPropertyOwner::ABILITY_RUNTIME) {
