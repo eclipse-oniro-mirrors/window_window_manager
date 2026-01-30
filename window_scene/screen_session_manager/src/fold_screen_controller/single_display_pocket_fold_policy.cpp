@@ -19,6 +19,7 @@
 #include <transaction/rs_interfaces.h>
 #include "fold_screen_controller/single_display_pocket_fold_policy.h"
 #include "rs_adapter.h"
+#include "screen_scene_config.h"
 #include "session/screen/include/screen_session.h"
 #include "screen_session_manager.h"
 #include "fold_screen_state_internel.h"
@@ -72,6 +73,19 @@ SingleDisplayPocketFoldPolicy::SingleDisplayPocketFoldPolicy(std::recursive_mute
         }
     };
     currentFoldCreaseRegion_ = new FoldCreaseRegion(screenIdFull, rect);
+    auto numbersConfig = ScreenSceneConfig::GetIntNumbersConfig();
+    SetConfig(numbersConfig);
+}
+
+void SingleDisplayPocketFoldPolicy::SetConfig(std::map<std::string, std::vector<int>>& numbersConfig)
+{
+    if (numbersConfig.count("subDpi") != 0) {
+        uint32_t subDensityDpi = static_cast<uint32_t>(numbersConfig["subDpi"][0]);
+        TLOGNFI(WmsLogTag::DMS, "subDensityDpi = %{public}u", subDensityDpi);
+        if (subDensityDpi >= DOT_PER_INCH_MINIMUM_VALUE && subDensityDpi <= DOT_PER_INCH_MAXIMUM_VALUE) {
+            subDensityDpi_ = static_cast<float>(subDensityDpi) / BASELINE_DENSITY;
+        }
+    }
 }
 
 FoldCreaseRegion SingleDisplayPocketFoldPolicy::GetFoldCreaseRegion(bool isVertical) const
@@ -372,19 +386,14 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeToMainWhenFoldScreenO
     ReportFoldStatusChangeBegin(static_cast<int32_t>(SCREEN_ID_FULL),
         static_cast<int32_t>(SCREEN_ID_MAIN));
     auto taskScreenOnMain = [=] {
-        // off full screen
-        TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToMain: IsFoldScreenOn is true, screenIdFull OFF.");
-        screenId_ = SCREEN_ID_FULL;
-        ChangeScreenDisplayModePower(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF);
-        SetdisplayModeChangeStatus(false);
-
-        // on main screen
-        TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToMain: IsFoldScreenOn is true, screenIdMain ON.");
-        screenId_ = SCREEN_ID_MAIN;
-        ChangeScreenDisplayModePower(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_ON);
-        SetdisplayModeChangeStatus(false);
+        std::vector<std::pair<ScreenId, ScreenPowerStatus>> screenPowerTaskList;
+        screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF));
+        screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_ON));
+        ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    screenPowerTaskScheduler_->PostAsyncTask(taskScreenOnMain, "screenOnMainTask");
+    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
+        ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->PostAsyncTask(taskScreenOnMain, __func__);
+    });
     SendPropertyChangeResult(screenSession, SCREEN_ID_MAIN, ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING);
 }
 
@@ -394,11 +403,14 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeToMainWhenFoldScreenO
     // off full screen
     auto taskScreenOffMainOff = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToMain: IsFoldScreenOn is false, screenIdFull OFF.");
-        screenId_ = SCREEN_ID_FULL;
-        ChangeScreenDisplayModePower(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF);
-        SetdisplayModeChangeStatus(false);
+        std::vector<std::pair<ScreenId, ScreenPowerStatus>> screenPowerTaskList;
+        screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF));
+        ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    screenPowerTaskScheduler_->PostAsyncTask(taskScreenOffMainOff, "screenOffMainOffTask");
+    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
+        ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()
+            ->PostAsyncTask(taskScreenOffMainOff, __func__);
+    });
     SendPropertyChangeResult(screenSession, SCREEN_ID_MAIN, ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING);
     bool ifTentMode = ScreenSessionManager::GetInstance().GetTentMode();
     auto taskScreenOnMainChangeScreenId = [=] {
@@ -444,19 +456,15 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeToFullWhenFoldScreenO
 {
     TLOGI(WmsLogTag::DMS, "IsFoldScreenOn is true, begin.");
     auto taskScreenOnFull = [=] {
-        // off main screen
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToFull: IsFoldScreenOn is true, screenIdMain OFF.");
-        screenId_ = SCREEN_ID_MAIN;
-        ChangeScreenDisplayModePower(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_OFF);
-        SetdisplayModeChangeStatus(false);
-
-        // on full screen
-        TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToFull: IsFoldScreenOn is true, screenIdFull ON.");
-        screenId_ = SCREEN_ID_FULL;
-        ChangeScreenDisplayModePower(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_ON);
-        SetdisplayModeChangeStatus(false);
+        std::vector<std::pair<ScreenId, ScreenPowerStatus>> screenPowerTaskList;
+        screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_OFF));
+        screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_ON));
+        ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    screenPowerTaskScheduler_->PostAsyncTask(taskScreenOnFull, "screenOnFullTask");
+    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
+        screenPowerTaskScheduler_->PostAsyncTask(taskScreenOnFull, __func__);
+    });
     SendPropertyChangeResult(screenSession, SCREEN_ID_FULL, ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND);
 }
 
@@ -467,11 +475,13 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeToFullWhenFoldScreenO
     // off main screen
     auto taskScreenOffFullOff = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToFull: IsFoldScreenOn is false, screenIdMain OFF.");
-        screenId_ = SCREEN_ID_MAIN;
-        ChangeScreenDisplayModePower(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_OFF);
-        SetdisplayModeChangeStatus(false);
+        std::vector<std::pair<ScreenId, ScreenPowerStatus>> screenPowerTaskList;
+        screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_OFF));
+        ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    screenPowerTaskScheduler_->PostAsyncTask(taskScreenOffFullOff, "screenOffFullOffTask");
+    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
+        screenPowerTaskScheduler_->PostAsyncTask(taskScreenOffFullOff, __func__);
+    });
     SendPropertyChangeResult(screenSession, SCREEN_ID_FULL, ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND);
     // on full screen
     auto taskScreenOnFullOn = [=] {
@@ -733,5 +743,13 @@ void SingleDisplayPocketFoldPolicy::NotifyRefreshRateEvent(bool isEventStatus)
         .maxRefreshRate = 60,
     };
     RSInterfaces::GetInstance().NotifyRefreshRateEvent(eventInfo);
+}
+
+float SingleDisplayPocketFoldPolicy::GetSpecialVirtualPixelRatio()
+{
+    if (currentFoldStatus_ == FoldStatus::FOLDED) {
+        return subDensityDpi_;
+    }
+    return -1.0f;
 }
 } // namespace OHOS::Rosen

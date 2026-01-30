@@ -1011,238 +1011,25 @@ HWTEST_F(WindowSceneSessionImplTest5, StartMoveWindowWithCoordinate_03, TestSize
 }
 
 /**
- * @tc.name: UpdateSystemBarProperties
- * @tc.desc: UpdateSystemBarProperties test
+ * @tc.name: UpdateSystemBarProperty
+ * @tc.desc: UpdateSystemBarProperty
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarProperties, TestSize.Level0)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSystemBarProperties");
-    option->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
-    option->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->property_->SetPersistentId(1);
-    window->state_ = WindowState::STATE_SHOWN;
-    std::unordered_map<WindowType, SystemBarProperty> systemBarProperties;
-    systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    std::unordered_map<WindowType, SystemBarPropertyFlag> systemBarPropertyFlags;
-    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = { false, false, false, false };
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
-    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = { true, false, true, false };
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
-    window->state_ = WindowState::STATE_DESTROYED;
-    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = { true, true, false, false };
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW,
-        window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
-    window->state_ = WindowState::STATE_SHOWN;
-    systemBarPropertyFlags[WindowType::ABOVE_APP_SYSTEM_WINDOW_BASE] = { false, false, false, false };
-    EXPECT_EQ(WMError::WM_DO_NOTHING, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
-}
-
-/**
- * @tc.name: UpdateSystemBarPropertyForPage
- * @tc.desc: UpdateSystemBarPropertyForPage test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarPropertyForPage, TestSize.Level0)
+HWTEST_F(WindowSceneSessionImplTest5, UpdateSystemBarProperty, Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("UpdateSystemBarProperty");
-    option->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
-    option->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->property_->SetPersistentId(1);
-    window->state_ = WindowState::STATE_DESTROYED;
-    auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
-    SystemBarProperty systemBarProperty;
-    SystemBarPropertyFlag systemBarPropertyFlag;
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW,
-        window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    window->state_ = WindowState::STATE_SHOWN;
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    window->nowSystemBarPropertyMap_[type] = systemBarProperty;
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    systemBarPropertyFlag = { true, false, false, false };
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    systemBarPropertyFlag = { true, true, false, false };
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    systemBarPropertyFlag = { true, true, true, false };
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-    systemBarPropertyFlag = { true, true, true, true };
-    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarPropertyForPage(type, systemBarProperty, systemBarPropertyFlag));
-}
-
-/**
- * @tc.name: UpdateStatusBarColorHistory
- * @tc.desc: UpdateStatusBarColorHistory test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory, TestSize.Level0)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateStatusBarColorHistory");
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    auto reason = StatusBarColorChangeReason::WINDOW_CONFIGURATION;
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
-    reason = StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
-    std::optional<uint32_t> op;
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, op), 1);
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
-}
-
-/**
- * @tc.name: UpdateStatusBarColorHistory_2
- * @tc.desc: UpdateStatusBarColorHistory_2 test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, UpdateStatusBarColorHistory_2, TestSize.Level0)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateStatusBarColorHistory");
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    auto reason = StatusBarColorChangeReason::NAVIGATION_CONFIGURATION;
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
-    reason = StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION;
-    std::optional<uint32_t> op;
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, op), 1);
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
-    EXPECT_EQ(window->UpdateStatusBarColorHistory(reason, std::optional<uint32_t>(1)), 1);
-}
-
-/**
- * @tc.name: SetSystemBarPropertyForPage
- * @tc.desc: SetSystemBarPropertyForPage
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, SetSystemBarPropertyForPage, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetSystemBarPropertyForPage");
-    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    windowSceneSessionImpl->hostSession_ = session;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetPersistentId(1);
-    windowSceneSessionImpl->property_ = property;
-    std::optional<SystemBarProperty> prop;
-    windowSceneSessionImpl->state_ = WindowState::STATE_DESTROYED;
-    auto ret = windowSceneSessionImpl->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
-    windowSceneSessionImpl->state_ = WindowState::STATE_SHOWN;
-    windowSceneSessionImpl->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
-    ret = windowSceneSessionImpl->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
-    EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
-    windowSceneSessionImpl->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    ret = windowSceneSessionImpl->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
-    EXPECT_EQ(WMError::WM_OK, ret);
-    std::optional<SystemBarProperty> prop1 = SystemBarProperty();
-    ret = windowSceneSessionImpl->SetSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, prop1);
-    EXPECT_EQ(WMError::WM_OK, ret);
-}
-
-
-/**
- * @tc.name: SetStatusBarColorForPage
- * @tc.desc: SetStatusBarColorForPage
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForPage, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetStatusBarColorForPage");
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->hostSession_ = session;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetPersistentId(1);
-    window->property_ = property;
-    window->state_ = WindowState::STATE_SHOWN;
-    std::optional<uint32_t> color;
-    EXPECT_EQ(WMError::WM_DO_NOTHING, window->SetStatusBarColorForPage(color));
-    window->isAtomicServiceUseColor_ = true;
-    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
-    window->isAtomicServiceUseColor_ = true;
-    window->isNavigationUseColor_ = true;
-    window->statusBarColorHistory_.push(
-        std::pair<StatusBarColorChangeReason,
-        uint32_t>(StatusBarColorChangeReason::NAVIGATION_CONFIGURATION, 1));
-    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
-    window->isAtomicServiceUseColor_ = true;
-    window->statusBarColorHistory_.push(
-        std::pair<StatusBarColorChangeReason,
-        uint32_t>(StatusBarColorChangeReason::ATOMICSERVICE_CONFIGURATION, 1));
-    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(color));
-    EXPECT_EQ(WMError::WM_OK, window->SetStatusBarColorForPage(std::optional<uint32_t>(0x00FFFFFF)));
-}
-
-/**
- * @tc.name: SetStatusBarColorForNavigation
- * @tc.desc: SetStatusBarColorForNavigation test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, SetStatusBarColorForNavigation, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->hostSession_ = session;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetPersistentId(1);
-    window->property_ = property;
-    window->state_ = WindowState::STATE_SHOWN;
-    std::optional<uint32_t> color;
-    EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
-    auto type = WindowType::WINDOW_TYPE_STATUS_BAR;
-    EXPECT_EQ(window->SetStatusBarColorForNavigation(std::optional<uint32_t>(1)), WMError::WM_OK);
-    EXPECT_EQ(window->nowSystemBarPropertyMap_[type].contentColor_, 1);
-    EXPECT_EQ(window->SetStatusBarColorForNavigation(color), WMError::WM_OK);
-    EXPECT_EQ(window->isNavigationUseColor_, false);
-}
-
-/**
- * @tc.name: GetSystemBarProperties
- * @tc.desc: GetSystemBarProperties test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, GetSystemBarProperties, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    std::map<WindowType, SystemBarProperty> properties;
-    EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-    window->nowSystemBarPropertyMap_[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    EXPECT_EQ(WMError::WM_OK, window->GetSystemBarProperties(properties));
-}
-
-/**
- * @tc.name: updateSystemBarproperty
- * @tc.desc: updateSystemBarproperty
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSceneSessionImplTest5, updateSystemBarproperty, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("updateSystemBarproperty");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     SystemBarProperty prop = SystemBarProperty();
-    window->updateSystemBarproperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
+    window->UpdateSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop);
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetPersistentId(1);
     window->property_ = property;
     window->state_ = WindowState::STATE_SHOWN;
-    EXPECT_EQ(WMError::WM_OK, window->updateSystemBarproperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop));
+    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, prop));
 }
 
 /**
@@ -3178,6 +2965,43 @@ HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitConfigEnable02, TestSize.Leve
     // uiContent should be null by default
     window->SetForceSplitConfigEnable(true);
     // No crash means the function handled null uiContent correctly
+}
+
+/**
+ * @tc.name: SendLogicalDeviceConfigToArkUI
+ * @tc.desc: Test SendLogicalDeviceConfigToArkUI
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, SendLogicalDeviceConfigToArkUI, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SendLogicalDeviceConfigToArkUI");
+    option->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    WindowType winType = window->GetType();
+    EXPECT_TRUE(WindowHelper::IsMainWindow(winType));
+    std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
+    EXPECT_EQ(uiContent, nullptr);
+
+    EXPECT_FALSE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
+    window->property_->SetLogicalDeviceConfig("");
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
+    window->property_->SetLogicalDeviceConfig("{}");
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
+
+    WindowSceneSessionImpl::hasSentLogicalDeviceConfig_ = false;
+    window->property_->SetLogicalDeviceConfig("{aaa: bbb}");
+    window->SendLogicalDeviceConfigToArkUI();
+    EXPECT_TRUE(WindowSceneSessionImpl::hasSentLogicalDeviceConfig_);
 }
 
 /**

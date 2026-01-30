@@ -1129,6 +1129,50 @@ namespace {
     }
 
     /**
+     * @tc.name: RegisterSettingWiredScreenGamutObserver
+     * @tc.desc: RegisterSettingWiredScreenGamutObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingWiredScreenGamutObserver, TestSize.Level1)
+    {
+        bool flag = false;
+        auto func = [&flag] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+            flag = true;
+        };
+        ScreenSettingHelper::RegisterSettingWiredScreenGamutObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::wiredScreenGamutObserver_, nullptr);
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        bool flag1 = false;
+        auto func1 = [&flag1] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+            flag1 = true;
+        };
+        ScreenSettingHelper::RegisterSettingWiredScreenGamutObserver(func1);
+        EXPECT_FALSE(g_errLog.find("setting wired screen gamut observer is registered") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
+     * @tc.name: UnregisterSettingWiredScreenGamutObserver
+     * @tc.desc: UnregisterSettingWiredScreenGamutObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnregisterSettingWiredScreenGamutObserver, TestSize.Level1)
+    {
+        ScreenSettingHelper::UnregisterSettingWiredScreenGamutObserver();
+        ASSERT_EQ(ScreenSettingHelper::wiredScreenGamutObserver_, nullptr);
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        ScreenSettingHelper::UnregisterSettingWiredScreenGamutObserver();
+        EXPECT_TRUE(g_errLog.find("setting observer is nullptr") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
      * @tc.name: GetSettingDuringCallStateTest
      * @tc.desc: Test GetSettingDuringCallState func
      * @tc.type: FUNC

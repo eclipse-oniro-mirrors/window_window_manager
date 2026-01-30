@@ -43,10 +43,10 @@ private:
     int HandleDestroyAndDisconnectSpcificSession(MessageParcel& data, MessageParcel& reply);
     int HandleDestroyAndDisconnectSpcificSessionWithDetachCallback(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
+    int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
     int HandleRecoverWindowPropertyChangeFlag(MessageParcel& data, MessageParcel& reply);
-    int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleGetFocusSessionInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetFocusWindowInfoByAbilityToken(MessageParcel& data, MessageParcel& reply);
     int HandleSetSessionLabel(MessageParcel& data, MessageParcel& reply);
@@ -155,9 +155,9 @@ private:
     int HandleMinimizeByWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleSetForegroundWindowNum(MessageParcel& data, MessageParcel& reply);
     int HandleUseImplicitAnimation(MessageParcel& data, MessageParcel& reply);
-    int HandleCreateUIEffectController(MessageParcel& data, MessageParcel& reply);
     int HandleAddSessionBlackList(MessageParcel& data, MessageParcel& reply);
     int HandleRemoveSessionBlackList(MessageParcel& data, MessageParcel& reply);
+    int HandleCreateUIEffectController(MessageParcel& data, MessageParcel& reply);
     int HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply);
     int HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply);
     int HandleMinimizeAllAppWindows(MessageParcel& data, MessageParcel& reply);

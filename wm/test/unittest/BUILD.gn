@@ -27,7 +27,6 @@ group("unittest") {
     ":wm_picture_in_picture_option_test",
     ":wm_screen_scene_test",
     ":wm_vsync_station_test",
-    ":wm_window_agent_test",
     ":wm_window_display_change_adapter_test",
     ":wm_window_impl_listener_test",
     ":wm_window_inspector_test",
@@ -38,6 +37,7 @@ group("unittest") {
     "rotation:wm_window_extension_session_impl_rotation_test",
     "rotation:wm_window_session_impl_rotation_test",
     "window_recover:wm_window_recover_manager_test",
+    "wm_pattern:window_manager_pattern_test",
   ]
   if (window_manager_use_sceneboard) {
     deps += [
@@ -58,6 +58,7 @@ group("unittest") {
       ":wm_web_picture_in_picture_controller_test",
       ":wm_window_adapter_lite_test",
       ":wm_window_adapter_test",
+      ":wm_window_agent_test",
       ":wm_window_effect_test",
       ":wm_window_event_subscriber_test",
       ":wm_window_impl_test",
@@ -93,6 +94,7 @@ group("unittest") {
       "event_distribution:wm_window_session_impl_event_test",
       "immersive:wm_immersive_test",
       "layout:wm_layout_test",
+      "pattern:window_scene_session_impl_pattern_test",
       "special_window:window_scene_session_impl_special_window_test",
       "ui_extension:wm_extension_window_impl_test",
       "ui_extension:wm_window_extension_session_impl_test",
@@ -426,7 +428,12 @@ ohos_unittest("wm_window_stub_test") {
 
 ohos_unittest("wm_window_scene_session_impl_test") {
   module_out_path = module_out_path
-
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
   sources = [ "window_scene_session_impl_test.cpp" ]
 
   deps = [
@@ -840,10 +847,12 @@ ohos_static_library("wm_unittest_common") {
     "event_distribution:*",
     "immersive:*",
     "layout:*",
+    "pattern:*",
     "rotation:*",
     "special_window:*",
     "ui_extension:*",
     "window_recover:*",
+    "wm_pattern:*",
   ]
 
   testonly = true

@@ -25,22 +25,6 @@ PipOption::PipOption()
 {
 }
 
-void PipOption::ClearNapiRefs(napi_env env)
-{
-    if (customNodeController_) {
-        napi_delete_reference(env, customNodeController_);
-        customNodeController_ = nullptr;
-    }
-    if (typeNode_) {
-        napi_delete_reference(env, typeNode_);
-        typeNode_ = nullptr;
-    }
-    if (storage_) {
-        napi_delete_reference(env, storage_);
-        storage_ = nullptr;
-    }
-}
-
 void PipOption::SetContext(void* contextPtr)
 {
     contextPtr_ = contextPtr;
@@ -102,12 +86,12 @@ void PipOption::SetControlGroup(std::vector<std::uint32_t> controlGroup)
     controlGroup_ = controlGroup;
 }
 
-void PipOption::SetNodeControllerRef(napi_ref ref)
+void PipOption::SetNodeControllerRef(std::shared_ptr<NativeReference> ref)
 {
     customNodeController_ = ref;
 }
 
-void PipOption::SetStorageRef(napi_ref ref)
+void PipOption::SetStorageRef(std::shared_ptr<NativeReference> ref)
 {
     storage_ = ref;
 }
@@ -116,30 +100,50 @@ void PipOption::SetCornerAdsorptionEnabled(bool cornerAdsorptionEnabled)
 {
     cornerAdsorptionEnabled_ = cornerAdsorptionEnabled;
 }
- 
-bool PipOption::GetCornerAdsorptionEnabled() const
+
+bool PipOption::GetCornerAdsorptionEnabled()
 {
     return cornerAdsorptionEnabled_;
 }
 
-napi_ref PipOption::GetNodeControllerRef() const
+std::shared_ptr<NativeReference> PipOption::GetNodeControllerRef() const
 {
     return customNodeController_;
 }
 
-napi_ref PipOption::GetStorageRef() const
+std::shared_ptr<NativeReference> PipOption::GetStorageRef() const
 {
     return storage_;
 }
 
-void PipOption::SetTypeNodeRef(napi_ref ref)
+void PipOption::SetTypeNodeRef(std::shared_ptr<NativeReference> ref)
 {
     typeNode_ = ref;
 }
 
-napi_ref PipOption::GetTypeNodeRef() const
+std::shared_ptr<NativeReference> PipOption::GetTypeNodeRef() const
 {
     return typeNode_;
+}
+
+void PipOption::RegisterPipContentListenerWithType(const std::string& type,
+    std::shared_ptr<NativeReference> updateNodeCallbackRef)
+{
+    pipContentlistenerMap_[type] = updateNodeCallbackRef;
+}
+
+void PipOption::UnRegisterPipContentListenerWithType(const std::string& type)
+{
+    pipContentlistenerMap_.erase(type);
+}
+
+std::shared_ptr<NativeReference> PipOption::GetPipContentCallbackRef(const std::string& type)
+{
+    auto iter = pipContentlistenerMap_.find(type);
+    if (iter == pipContentlistenerMap_.end()) {
+        return nullptr;
+    }
+    return iter->second;
 }
 
 void* PipOption::GetContext() const

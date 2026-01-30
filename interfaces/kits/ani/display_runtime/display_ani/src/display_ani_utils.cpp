@@ -603,7 +603,7 @@ ani_object DisplayAniUtils::CreateRectObject(ani_env *env)
 ani_object DisplayAniUtils::CreatePositionObject(ani_env* env)
 {
     ani_class aniClass{};
-    ani_status status = env->FindClass("@ohos.display.display.PostionImpl", &aniClass);
+    ani_status status = env->FindClass("@ohos.display.display.PositionImpl", &aniClass);
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] class not found, status:%{public}d", static_cast<int32_t>(status));
         return nullptr;

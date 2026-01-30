@@ -21,6 +21,7 @@
 #include <parameters.h>
 #include "fold_screen_controller/single_display_pocket_fold_policy.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
+#include "screen_scene_config.h"
 #include "session/screen/include/screen_session.h"
 #include "screen_session_manager.h"
 #include "fold_screen_state_internel.h"
@@ -631,6 +632,83 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, ChangeOffTentMode, TestSize.Level1)
     policy.ChangeOffTentMode();
     FoldDisplayMode displayMode = policy.GetModeMatchStatus();
     EXPECT_EQ(policy.lastCachedisplayMode_, displayMode);
+}
+
+/**
+ * @tc.name: testSetFoldedAndExpandSpecialVpr
+ * @tc.desc: test fold expand special vpr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testSetFoldedAndExpandSpecialVpr, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    // set status and dpi, test special vpr is set dpi
+    policy.currentFoldStatus_ = FoldStatus::FOLDED;
+    policy.subDensityDpi_ = 2.0f;
+    EXPECT_FLOAT_EQ(policy.GetSpecialVirtualPixelRatio(), 2.0f);
+    // set status expand, test special vpr is -1.0f
+    policy.currentFoldStatus_ = FoldStatus::EXPAND;
+    EXPECT_FLOAT_EQ(policy.GetSpecialVirtualPixelRatio(), -1.0f);
+}
+
+/**
+ * @tc.name: testSetNormalNumbersConfig
+ * @tc.desc: test set normal numbers config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testSetNormalNumbersConfig, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    std::map<std::string, std::vector<int>> numbersConfig;
+    numbersConfig["subDpi"] = {120};
+    float dpiBefore = policy.subDensityDpi_;
+    policy.SetConfig(numbersConfig);
+
+    EXPECT_FLOAT_EQ(policy.subDensityDpi_, 120.0f / BASELINE_DENSITY);
+}
+
+/**
+ * @tc.name: testSetInvalidNumbersConfig
+ * @tc.desc: test invalid config that need equals before
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testSetInvalidNumbersConfig, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    std::map<std::string, std::vector<int>> numbersConfig;
+    // out normal
+    numbersConfig["subDpi"] = {2000};
+    float dpiBefore = policy.subDensityDpi_;
+    policy.SetConfig(numbersConfig);
+
+    EXPECT_FLOAT_EQ(policy.subDensityDpi_, dpiBefore);
+}
+
+/**
+ * @tc.name: testNotSetNumbersConfig
+ * @tc.desc: test not set numbers config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testNotSetNumbersConfig, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    std::map<std::string, std::vector<int>> numbersConfig;
+    float dpiBefore = policy.subDensityDpi_;
+    policy.SetConfig(numbersConfig);
+
+    EXPECT_FLOAT_EQ(policy.subDensityDpi_, dpiBefore);
 }
 }
 } // namespace Rosen

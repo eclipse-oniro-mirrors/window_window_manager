@@ -189,26 +189,7 @@ void JsPiPWindowListener::OnPipSizeChange(const PiPWindowSize& size)
     }
 }
 
-void JsPiPWindowListener::OnPipTypeNodeChange(const napi_ref nodeRef)
-{
-    TLOGI(WmsLogTag::WMS_PIP, "called");
-    auto napiTask = [jsCallback = jsCallBack_, nodeRef, env = env_]() {
-        napi_value typeNode = nullptr;
-        napi_get_reference_value(env, nodeRef, &typeNode);
-        napi_value argv[] = {typeNode};
-        CallJsFunction(env, jsCallback->GetNapiValue(), argv, 1);
-    };
-    if (env_ != nullptr) {
-        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnPipTypeNodeChange");
-        if (ret != napi_status::napi_ok) {
-            TLOGE(WmsLogTag::WMS_PIP, "Failed to SendEvent");
-        }
-    } else {
-        TLOGE(WmsLogTag::WMS_PIP, "env is nullptr");
-    }
-}
-
-void JsPiPWindowListener::OnActiveStatusChange(bool status)
+void JsPiPWindowListener::OnActiveStatusChange(const bool& status)
 {
     TLOGI(WmsLogTag::WMS_PIP, "called, status: %{public}u", status);
     auto napiTask = [jsCallback = jsCallBack_, status, env = env_]() {

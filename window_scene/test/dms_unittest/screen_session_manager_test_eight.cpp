@@ -1419,6 +1419,31 @@ HWTEST_F(ScreenSessionManagerTest, GetCorrectionInWhiteConfigByDisplayMode, Test
 }
 
 /**
+ * @tc.name: RotationCorrectionWhiteConfig
+ * @tc.desc: RotationCorrectionWhiteConfig test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RotationCorrectionWhiteConfig, TestSize.Level1)
+{
+    RotationCorrectionWhiteConfig config;
+    config.useLogicCamera.insert(std::make_pair(FoldDisplayMode::FULL, 1));
+    config.customLogicDirection.insert(
+        std::make_pair(FoldDisplayMode::FULL, static_cast<int32_t>(Rotation::ROTATION_180)));
+
+    // Case1: useLogicCamera
+    int32_t ret = config.GetUseLogicCamera(FoldDisplayMode::FULL);
+    EXPECT_EQ(ret, 1);
+    ret = config.GetUseLogicCamera(FoldDisplayMode::GLOBAL_FULL);
+    EXPECT_EQ(ret, 0);
+
+    // Case2: customLogicDirection
+    ret = config.GetCustomLogicDirection(FoldDisplayMode::FULL);
+    EXPECT_EQ(ret, static_cast<int32_t>(Rotation::ROTATION_180));
+    ret = config.GetCustomLogicDirection(FoldDisplayMode::GLOBAL_FULL);
+    EXPECT_EQ(ret, static_cast<int32_t>(Rotation::ROTATION_0));
+}
+
+/**
  * @tc.name: GetSupportedHDRFormats
  * @tc.desc: GetSupportedHDRFormats test
  * @tc.type: FUNC

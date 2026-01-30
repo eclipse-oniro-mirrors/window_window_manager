@@ -248,24 +248,14 @@ WMError SceneSessionManagerLite::GetWindowModeType(WindowModeType& windowModeTyp
     return SceneSessionManager::GetInstance().GetWindowModeType(windowModeType);
 }
 
-WMError SceneSessionManagerLite::GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo)
-{
-    return SceneSessionManager::GetInstance().GetMainWindowInfos(topNum, topNInfo);
-}
-
 WMError SceneSessionManagerLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
 {
     return SceneSessionManager::GetInstance().UpdateAnimationSpeedWithPid(pid, speed);
 }
 
-WMError SceneSessionManagerLite::GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo)
+WSError SceneSessionManagerLite::RaiseWindowToTop(int32_t persistentId)
 {
-    return SceneSessionManager::GetInstance().GetCallingWindowInfo(callingWindowInfo);
-}
-
-WMError SceneSessionManagerLite::GetAllMainWindowInfos(std::vector<MainWindowInfo>& infos)
-{
-    return SceneSessionManager::GetInstance().GetAllMainWindowInfos(infos);
+    return SceneSessionManager::GetInstance().RaiseWindowToTop(persistentId);
 }
 
 WMError SceneSessionManagerLite::GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken,
@@ -274,15 +264,14 @@ WMError SceneSessionManagerLite::GetMainWindowInfoByToken(const sptr<IRemoteObje
     return SceneSessionManager::GetInstance().GetMainWindowInfoByToken(abilityToken, windowInfo);
 }
 
-WMError SceneSessionManagerLite::ClearMainSessions(const std::vector<int32_t>& persistentIds,
-    std::vector<int32_t>& clearFailedIds)
+WMError SceneSessionManagerLite::GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo)
 {
-    return SceneSessionManager::GetInstance().ClearMainSessions(persistentIds, clearFailedIds);
+    return SceneSessionManager::GetInstance().GetMainWindowInfos(topNum, topNInfo);
 }
 
-WSError SceneSessionManagerLite::RaiseWindowToTop(int32_t persistentId)
+WMError SceneSessionManagerLite::GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo)
 {
-    return SceneSessionManager::GetInstance().RaiseWindowToTop(persistentId);
+    return SceneSessionManager::GetInstance().GetCallingWindowInfo(callingWindowInfo);
 }
 
 WSError SceneSessionManagerLite::RegisterIAbilityManagerCollaborator(int32_t type,
@@ -294,6 +283,17 @@ WSError SceneSessionManagerLite::RegisterIAbilityManagerCollaborator(int32_t typ
 WSError SceneSessionManagerLite::UnregisterIAbilityManagerCollaborator(int32_t type)
 {
     return SceneSessionManager::GetInstance().UnregisterIAbilityManagerCollaborator(type);
+}
+
+WMError SceneSessionManagerLite::GetAllMainWindowInfos(std::vector<MainWindowInfo>& infos)
+{
+    return SceneSessionManager::GetInstance().GetAllMainWindowInfos(infos);
+}
+
+WMError SceneSessionManagerLite::ClearMainSessions(const std::vector<int32_t>& persistentIds,
+    std::vector<int32_t>& clearFailedIds)
+{
+    return SceneSessionManager::GetInstance().ClearMainSessions(persistentIds, clearFailedIds);
 }
 
 WMError SceneSessionManagerLite::GetWindowStyleType(WindowStyleType& windowStyletype)
@@ -359,6 +359,31 @@ WMError SceneSessionManagerLite::HasFloatingWindowForeground(const sptr<IRemoteO
         hasOrNot);
 }
 
+WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
+    std::vector<sptr<WindowInfo>>& infos)
+{
+    return SceneSessionManager::GetInstance().ListWindowInfo(windowInfoOption, infos);
+}
+
+WMError SceneSessionManagerLite::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    return SceneSessionManager::GetInstance().RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+}
+
+WMError SceneSessionManagerLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    return SceneSessionManager::GetInstance().UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgent);
+}
+
+WMError SceneSessionManagerLite::RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
+{
+    return SceneSessionManager::GetInstance().RecoverWindowPropertyChangeFlag(observedFlags, interestedFlags);
+}
+
 WMError SceneSessionManagerLite::RegisterSessionLifecycleListenerByIds(const sptr<ISessionLifecycleListener>& listener,
     const std::vector<int32_t>& persistentIdList)
 {
@@ -408,31 +433,6 @@ WMError SceneSessionManagerLite::SetAppKeyFramePolicy(const std::string& bundleN
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "set app key frame lite in: %{public}s %{public}d",
         bundleName.c_str(), keyFramePolicy.enabled());
     return SceneSessionManager::GetInstance().SetAppKeyFramePolicy(bundleName, keyFramePolicy);
-}
-
-WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
-    std::vector<sptr<WindowInfo>>& infos)
-{
-    return SceneSessionManager::GetInstance().ListWindowInfo(windowInfoOption, infos);
-}
-
-WMError SceneSessionManagerLite::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
-{
-    return SceneSessionManager::GetInstance().RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
-        windowManagerAgent);
-}
-
-WMError SceneSessionManagerLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
-{
-    return SceneSessionManager::GetInstance().UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
-        windowManagerAgent);
-}
-
-WMError SceneSessionManagerLite::RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
-{
-    return SceneSessionManager::GetInstance().RecoverWindowPropertyChangeFlag(observedFlags, interestedFlags);
 }
 
 WSError SceneSessionManagerLite::GetRecentMainSessionInfoList(std::vector<RecentSessionInfo>& recentSessionInfoList)
@@ -488,6 +488,13 @@ WSError SceneSessionManagerLite::SendPointerEventForHover(const std::shared_ptr<
     return SceneSessionManager::GetInstance().SendPointerEventForHover(pointerEvent);
 }
 
+WMError SceneSessionManagerLite::GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
+    std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap)
+{
+    WLOGFD("in");
+    return SceneSessionManager::GetInstance().GetDisplayIdByWindowId(windowIds, windowDisplayIdMap);
+}
+
 WMError SceneSessionManagerLite::SetPipEnableByScreenId(int32_t screenId, bool isEnabled)
 {
     WLOGFD("in");
@@ -511,13 +518,6 @@ WMError SceneSessionManagerLite::UnregisterPipChgListenerByScreenId(int32_t scre
 {
     WLOGFD("in");
     return SceneSessionManager::GetInstance().UnregisterPipChgListenerByScreenId(screenId);
-}
-
-WMError SceneSessionManagerLite::GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
-    std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap)
-{
-    WLOGFD("in");
-    return SceneSessionManager::GetInstance().GetDisplayIdByWindowId(windowIds, windowDisplayIdMap);
 }
 
 WMError SceneSessionManagerLite::GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId)

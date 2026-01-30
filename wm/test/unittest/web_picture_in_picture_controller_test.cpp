@@ -252,6 +252,13 @@ HWTEST_F(WebPictureInPictureControllerTest, UpdateWinRectByComponent, TestSize.L
     webPipControl->UpdateWinRectByComponent();
     EXPECT_EQ(webPipControl->windowRect_.posX_, 0);
     EXPECT_EQ(webPipControl->windowRect_.posY_, 0);
+
+    webPipControl->SetPipInitialSurfaceRect(15, 15, 25, 25);
+    webPipControl->UpdateWinRectByComponent();
+    EXPECT_EQ(webPipControl->windowRect_.posX_, 15);
+    EXPECT_EQ(webPipControl->windowRect_.posY_, 15);
+    EXPECT_EQ(webPipControl->windowRect_.width_, 25);
+    EXPECT_EQ(webPipControl->windowRect_.height_, 25);
 }
 
 /**

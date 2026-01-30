@@ -21,6 +21,15 @@
             OHOS::Rosen::ExtensionSessionManager::RequestExtensionSessionDestruction*;
             OHOS::Rosen::ExtensionSessionManager::RequestExtensionSessionDestructionDone*;
             OHOS::Rosen::PipChangeListenerStub::OnRemoteRequest*;
+            OHOS::Rosen::PipController::ClearPipChgListenerMap*;
+            OHOS::Rosen::PipController::ClearPipEnabledMap*;
+            OHOS::Rosen::PipController::GetPipDeviceCollaborationPolicy*;
+            OHOS::Rosen::PipController::NotifyMulScreenPipStart*;
+            OHOS::Rosen::PipController::PipController*;
+            OHOS::Rosen::PipController::RegisterPipChgListenerByScreenId*;
+            OHOS::Rosen::PipController::SetPipEnableByScreenId*;
+            OHOS::Rosen::PipController::UnregisterPipChgListenerByScreenId*;
+            OHOS::Rosen::PipController::UnsetPipEnableByScreenId*;
             OHOS::Rosen::SceneSessionManager::AddRequestTaskInfo*;
             OHOS::Rosen::SceneSessionManager::AddWindowDragHotArea*;
             OHOS::Rosen::SceneSessionManager::ApplyFeatureConfig*;
@@ -87,6 +96,7 @@
             OHOS::Rosen::SceneSessionManager::NotifyAmsPendingSessionWhenFail*;
             OHOS::Rosen::SceneSessionManager::NotifyCompleteFirstFrameDrawing*;
             OHOS::Rosen::SceneSessionManager::NotifyEnterRecentTask*;
+            OHOS::Rosen::SceneSessionManager::NotifyRotationProperty*;
             OHOS::Rosen::SceneSessionManager::NotifySCBRecentStateChange*;
             OHOS::Rosen::SceneSessionManager::NotifyForegroundInteractiveStatus*;
             OHOS::Rosen::SceneSessionManager::NotifyHookOrientationChange*;

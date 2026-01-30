@@ -252,7 +252,7 @@
             OHOS::Rosen::AbilityInfoManager::SetCurrentUserId*;
             OHOS::Rosen::AbilityInfoManager::Init*;
             OHOS::Rosen::AbilityInfoManager::IsAnco*;
-            OHOS::Rosen::AbilityInfoManager::RemoveAppInfo*;
+            OHOS::Rosen::AbilityInfoManager::RefreshAppInfo*;
             OHOS::Rosen::WindowEventChannel::SetIsUIExtension*;
             OHOS::Rosen::WindowEventChannel::SetUIExtensionUsage*;
             OHOS::Rosen::PcFoldScreenManager::GetInstance*;

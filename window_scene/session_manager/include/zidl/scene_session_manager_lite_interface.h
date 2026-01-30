@@ -83,19 +83,19 @@ public:
         TRANS_ID_GET_VISIBILITY_WINDOW_INFO_ID,
         TRANS_ID_UPDATE_SESSION_SCREEN_LOCK,
         TRANS_ID_GET_WINDOW_MODE_TYPE,
-        TRANS_ID_GET_TOPN_MAIN_WINDOW_INFO,
-        TRANS_ID_GET_ALL_MAIN_WINDOW_INFO,
-        TRANS_ID_CLEAR_MAIN_SESSIONS,
         TRANS_ID_RAISE_WINDOW_TO_TOP,
+        TRANS_ID_GET_TOPN_MAIN_WINDOW_INFO,
         TRANS_ID_REGISTER_COLLABORATOR,
         TRANS_ID_UNREGISTER_COLLABORATOR,
+        TRANS_ID_GET_ALL_MAIN_WINDOW_INFO,
+        TRANS_ID_CLEAR_MAIN_SESSIONS,
         TRANS_ID_GET_WINDOW_STYLE_TYPE,
         TRANS_ID_SET_PROCESS_WATERMARK,
         TRANS_ID_TERMINATE_SESSION_BY_PERSISTENT_ID,
+        TRANS_ID_GET_MAIN_WINDOW_STATES_BY_PID,
         TRANS_ID_CLOSE_TARGET_FLOAT_WINDOW,
         TRANS_ID_CLOSE_TARGET_PIP_WINDOW,
         TRANS_ID_GET_CURRENT_PIP_WINDOW_INFO,
-        TRANS_ID_GET_MAIN_WINDOW_STATES_BY_PID,
         TRANS_ID_GET_ROOT_MAIN_WINDOW_ID,
         TRANS_ID_UI_EXTENSION_CREATION_CHECK,
         TRANS_ID_NOTIFY_APP_USE_CONTROL_LIST,
@@ -126,8 +126,8 @@ public:
         TRANS_ID_UNSET_PIP_ENABLED_BY_SCREENID,
         TRANS_ID_REGISTER_PIP_CHG_LISTENER,
         TRANS_ID_UNREGISTER_PIP_CHG_LISTENER,
-        TRANS_ID_UPDATE_ANIMATION_SPEED_WITH_PID,
         TRANS_ID_GET_PARENT_WINDOW_ID,
+        TRANS_ID_UPDATE_ANIMATION_SPEED_WITH_PID,
         TRANS_ID_SET_SESSION_ICON_FOR_THIRD_PARTY,
         TRANS_ID_GET_MAIN_WINDOW_INFO_BY_TOKEN,
         TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY,
@@ -332,7 +332,7 @@ public:
      * @return Successful call returns WSError: WS-OK, otherwise it indicates failure
      */
     virtual WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-        bool shouldBackToCaller = true) { return WSError::WS_OK; };
+        bool shouldBackToCaller = true) { return WSError::WS_OK; }
 
     /**
      * @brief Create a new instanceKey of a specific bundle
@@ -389,7 +389,7 @@ public:
      * @return Successful call returns WMError: WM-OK, otherwise it indicates failure
      */
     virtual WMError TransferSessionToTargetScreen(const TransferSessionInfo& info) = 0;
-    
+
     /**
      * @brief Update the list of apps which can be used in kiosk mode
      *
