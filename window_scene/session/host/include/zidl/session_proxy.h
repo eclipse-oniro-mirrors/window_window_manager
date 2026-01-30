@@ -218,7 +218,7 @@ public:
     WSError RequestFocus(bool isFocused) override;
     WSError GetIsHighlighted(bool& isHighlighted) override;
     WMError NotifyDisableDelegatorChange() override;
-
+    
     /*
      * Window Pattern
      */
