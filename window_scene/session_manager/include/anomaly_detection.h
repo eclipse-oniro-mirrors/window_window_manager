@@ -23,16 +23,13 @@ namespace Rosen {
 class AnomalyDetection {
 public:
     static void SceneZOrderCheckProcess();
-    static void FocusCheckProcess(int32_t focusedId, int32_t nextId);
 
 private:
     static void ReportZOrderException(const std::string& errorReason, sptr<SceneSession> session);
-    static void ReportFocusException(const std::string& errorReason, int32_t focusedId, int32_t nextId,
-        sptr<SceneSession> session);
-    static void CheckCallingSession(sptr<SceneSession>& session);
-    static void CheckSubWindow(sptr<SceneSession>& session);
-    static void CheckShowWhenLocked(sptr<SceneSession>& session, bool& keyGuardFlag);
-    static void CheckWallpaper(sptr<SceneSession>& session);
+    static void CheckCallingSession(const sptr<SceneSession>& session);
+    static void CheckSubWindow(const sptr<SceneSession>& session);
+    static void CheckShowWhenLocked(const sptr<SceneSession>& session, bool& keyGuardFlag);
+    static void CheckWallpaper(const sptr<SceneSession>& session);
 };
 } // namespace Rosen
 } // namespace OHOS

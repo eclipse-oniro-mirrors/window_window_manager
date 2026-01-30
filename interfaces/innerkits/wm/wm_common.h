@@ -692,6 +692,9 @@ struct KeyFramePolicy : public Parcelable {
 
     bool Marshalling(Parcel& parcel) const override
     {
+        if (interval_ == 0) {
+            return false;
+        }
         return parcel.WriteUint32(static_cast<uint32_t>(dragResizeType_)) &&
             parcel.WriteUint32(interval_) && parcel.WriteUint32(distance_) &&
             parcel.WriteUint32(animationDuration_) && parcel.WriteUint32(animationDelay_) &&
@@ -709,7 +712,8 @@ struct KeyFramePolicy : public Parcelable {
             delete keyFramePolicy;
             return nullptr;
         }
-        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE)) {
+        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE) ||
+            keyFramePolicy->interval_ == 0) {
             delete keyFramePolicy;
             return nullptr;
         }
@@ -721,7 +725,8 @@ struct KeyFramePolicy : public Parcelable {
     {
         std::ostringstream oss;
         oss << "[" << static_cast<uint32_t>(dragResizeType_) << " " << interval_ << " " << distance_;
-        oss << " " << animationDuration_ << " " << animationDelay_ << "]";
+        oss << " " << animationDuration_ << " " << animationDelay_;
+        oss << " " << running_ << " " << stopping_ << "]";
         return oss.str();
     }
 };

@@ -5139,6 +5139,21 @@ HWTEST_F(ScreenSessionTest, ClearPropertyChangeReasonAndEvent, TestSize.Level1)
     EXPECT_EQ(proeperty.GetPropertyChangeReason(), ScreenPropertyChangeReason::UNDEFINED);
     EXPECT_EQ(proeperty.GetSuperFoldStatusChangeEvent(), SuperFoldStatusChangeEvents::UNDEFINED);
 }
+
+/**
+ * @tc.name  : ProcPropertyChange
+ * @tc.desc  : ProcPropertyChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ProcPropertyChange, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty, eventPara;
+    eventPara.SetPropertyChangeReason(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->ProcPropertyChange(screenProperty, eventPara);
+    EXPECT_EQ(screenProperty.GetPropertyChangeReason(), eventPara.GetPropertyChangeReason());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

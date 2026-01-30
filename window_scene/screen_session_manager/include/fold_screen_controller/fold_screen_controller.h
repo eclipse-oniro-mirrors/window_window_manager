@@ -79,6 +79,7 @@ public:
     void SetIsClearingBootAnimation(bool isClearingBootAnimation) override;
     nlohmann::ordered_json GetFoldCreaseRegionJson() override;
     void NotifyRunSensorFoldStateManager() override;
+    float GetSpecialVirtualPixelRatio() override;
 private:
     sptr<FoldScreenPolicy> GetFoldScreenPolicy(DisplayDeviceType productType);
     sptr<FoldScreenPolicy> foldScreenPolicy_;

@@ -356,6 +356,7 @@ const std::unordered_map<std::string, FoldDisplayMode> STRING_TO_FOLD_DISPLAY_MO
     {"5", FoldDisplayMode::GLOBAL_FULL}
 };
 
+// LCOV_EXCL_START
 struct RotationCorrectionWhiteConfig {
     std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
     std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
@@ -378,6 +379,7 @@ struct RotationCorrectionWhiteConfig {
         return DEFAULT_CUSTOM_LOGIC_DIRECTION;
     }
 };
+// LCOV_EXCL_STOP
 
 /**
  * @brief Enumerates TentMode.

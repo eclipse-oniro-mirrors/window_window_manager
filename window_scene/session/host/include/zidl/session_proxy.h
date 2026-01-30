@@ -234,6 +234,7 @@ public:
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
     WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
+
     /**
      * Restart app
      */

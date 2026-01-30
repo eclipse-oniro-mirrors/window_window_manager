@@ -1325,12 +1325,6 @@ private:
      */
     void UpdateAllModalUIExtensions(const WSRect& globalRect);
 
-    /*
-     * Window Property
-     */
-    NotifyWindowShadowEnableChangeFunc onWindowShadowEnableChangeFunc_;
-    void NotifyPrivacyModeChange();
-
 #ifdef DEVICE_STATUS_ENABLE
     void RotateDragWindow(std::shared_ptr<RSTransaction> rsTransaction);
 #endif // DEVICE_STATUS_ENABLE
@@ -1637,6 +1631,8 @@ private:
     bool hasDarkRes_ = false;
     mutable std::mutex colorModeMutex_;
     NotifySetWindowShadowsFunc onSetWindowShadowsFunc_;
+    NotifyWindowShadowEnableChangeFunc onWindowShadowEnableChangeFunc_;
+    void NotifyPrivacyModeChange();
     UpdateScreenshotAppEventRegisteredFunc updateScreenshotAppEventRegisteredFunc_;
     NotifySnapshotSkipChangeFunc onSnapshotSkipChangeFunc_;
     NotifyRecoverWindowEffectFunc onRecoverWindowEffectFunc_;

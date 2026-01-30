@@ -478,6 +478,7 @@ struct SessionInfo {
     std::string hostBundleName = "";
     int32_t hostAppIndex = 0;
     std::string hostAppInstanceKey = "";
+    std::string hostAbilityName = "";
 
     /*
      * Keyboard
@@ -1315,7 +1316,7 @@ enum class SnapshotNodeType : uint32_t {
 
 enum class SnapShotRecoverType : uint32_t {
     ROTATE = 0,
-    EXIT_SPLIT_ON_BACKGROUND,
+    EXIT_SPLIT_ON_BACKGROUND = 1,
 };
 
 /**

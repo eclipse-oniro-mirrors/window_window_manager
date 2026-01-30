@@ -272,7 +272,6 @@ public:
     WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
     WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
     WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
-    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
 
     /*
      * Window Property
@@ -600,6 +599,14 @@ private:
      */
     bool isExecuteDelayRaise_ = false;
     bool IsFullScreenEnable() const;
+
+    /*
+     * PC Window UE report
+     */
+    void ReportHoverMaximizeMenu(const std::string& bundleName, const std::string& hoverType);
+    void ReportClickTitleMinimize(const std::string& bundleName);
+    void ReportClickTitleClose(const std::string& bundleName);
+    void ReportCompatibleTitleOperate(const std::string& bundleName, const std::string& operateType);
 
     /*
      * Window Input Event
