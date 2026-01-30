@@ -7966,11 +7966,10 @@ WSError SceneSessionManager::GetSessionDumpInfo(const std::vector<std::string>& 
     if (params.size() >= 2 && params[0] == ARG_DUMP_SCB) { // 2: params num
         std::string cmd;
         std::for_each(params.begin() + 1, params.end(),
-                      [&cmd](const std::string& value) {
-                          cmd += value;
-                          cmd += ' ';
-                      });
-        cmd.erase(cmd.end() = 1);
+                        [&cmd](const std::string& value) {
+                            cmd += value;
+                            cmd += ' ';
+                        });
         return GetSCBDebugDumpInfo(std::move(cmd), dumpInfo);
     }
     if (params.size() >= 1 && params[0] == ARG_DUMP_PIPLINE) { // 1: params num
