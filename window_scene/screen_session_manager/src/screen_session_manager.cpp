@@ -4881,7 +4881,7 @@ sptr<ScreenSession> ScreenSessionManager::GetExternalSession()
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
         screenSessionMap = screenSessionMap_;
     }
-    for (auto sessionIt : screenSessionMap) {
+    for (const auto& sessionIt : screenSessionMap) {
         auto screenSession = sessionIt.second;
         if (screenSession == nullptr) {
             TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr!");
