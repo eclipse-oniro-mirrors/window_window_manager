@@ -4361,7 +4361,7 @@ float ScreenSessionManager::GetOptionalDpi(const float dpi) {
 void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
     ScreenProperty& property, float& extendDensity)
 {
-    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
+    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);
     if (it == dpiMap.end()) {
@@ -4379,7 +4379,7 @@ void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenS
         if (g_offScreenRenderValue) {
             return;
         }
-        g_extendScreenDpiCoef = std::stof(dpiMap[serialNumber]) / EXTEND_SCREEN_DPI_BASELINE;
+        g_extendScreenDpiCoef = std::stof(it->second) / EXTEND_SCREEN_DPI_BASELINE;
         extendDensity = EXTEND_SCREEN_DPI_DEFAULT_PARAMETER;
         TLOGNFI(WmsLogTag::DMS, "get setting dpi: %{public}f", g_extendScreenDpiCoef);
     }
@@ -13505,7 +13505,7 @@ void ScreenSessionManager::SetExtendScreenIndepDpi()
         TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
         return;
     }
-    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
+    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = externalSession->GetSerialNumber();
     ScreenId screenId = externalSession->GetScreenId();
     auto it = dpiMap.find(serialNumber);
@@ -13514,7 +13514,7 @@ void ScreenSessionManager::SetExtendScreenIndepDpi()
             "use default density: %{public}f", extendDefaultDensity_);
         SetVirtualPixelRatio(screenId, extendDefaultDensity_);
     } else {
-        float density_ = std::stof(dpiMap[serialNumber]) / EXTEND_SCREEN_DPI_BASELINE;
+        float density_ = std::stof(it->second) / EXTEND_SCREEN_DPI_BASELINE;
         SetVirtualPixelRatio(screenId, density_);
         TLOGNFI(WmsLogTag::DMS, "get setting extend screen density: %{public}f", density_);
     }
