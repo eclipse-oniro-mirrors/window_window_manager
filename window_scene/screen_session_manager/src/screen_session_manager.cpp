@@ -6599,6 +6599,7 @@ void ScreenSessionManager::SetSensorSubscriptionEnabled()
         TLOGNFE(WmsLogTag::DMS, "autoRotation is not open");
         return;
     }
+    DmsXcollie dmsXcollie("DMS:SetSensorSubscriptionEnabled", XCOLLIE_TIMEOUT_10S);
     ScreenSensorConnector::SubscribeRotationSensor();
     TLOGNFI(WmsLogTag::DMS, "subscribe rotation sensor successful");
 }
@@ -10598,6 +10599,44 @@ void ScreenSessionManager::SetDragWindowScreenId(ScreenId screenId, ScreenId dis
 }
 #endif // DEVICE_STATUS_ENABLE
 
+void ScreenSessionManager::UpdateScbDisplayModeMap()
+{
+    auto clientProxyNow = GetClientProxy();
+    int32_t userIdNow = INVALID_USER_ID;
+    int32_t nowScbPid = INVALID_SCB_PID;
+    if (!clientProxyNow) {
+        TLOGNFE(WmsLogTag::DMS, "clientProxy_ is null");
+        return;
+    }
+    // find userid from client
+    std::map<int32_t, sptr<IScreenSessionManagerClient>> multiClientProxyMap;
+    {
+        std::lock_guard<std::mutex> lock(multiClientProxyMapMutex_);
+        multiClientProxyMap = multiClientProxyMap_;
+    }
+    for (const auto& [userId, clientProxy] : multiClientProxyMap) {
+        if (clientProxy == clientProxyNow) {
+            TLOGNFI(WmsLogTag::DMS, "userid is %{public}d", userId);
+            userIdNow = userId;
+        }
+    }
+    // find pid from userid
+    auto pidIter = userPidMap_.find(userIdNow);
+    if (pidIter == userPidMap_.end()) {
+        TLOGNFE(WmsLogTag::DMS, "user not found in userPidMap");
+        return;
+    }
+    nowScbPid = pidIter->second;
+    // add mode in scbmodemap
+    FoldDisplayMode nowScbDisplayMode = GetFoldDisplayMode();
+    TLOGNFI(WmsLogTag::DMS, "NowScbPid: %{public}d, cur mode: %{public}u", nowScbPid, nowScbDisplayMode);
+    {
+        std::unique_lock<std::mutex> lock(oldScbDisplayModeMapMutex_);
+        oldScbDisplayModeMap_.insert_or_assign(nowScbPid, nowScbDisplayMode);
+    }
+    return;
+}
+
 void ScreenSessionManager::OnPropertyChange(const ScreenProperty& newProperty, ScreenPropertyChangeReason reason,
     ScreenId screenId)
 {
@@ -10610,6 +10649,8 @@ void ScreenSessionManager::OnPropertyChange(const ScreenProperty& newProperty, S
         }
         return;
     }
+    // update scb map when change displaymode
+    UpdateScbDisplayModeMap();
     clientProxy->OnPropertyChanged(screenId, newProperty, reason);
 }
 
@@ -10640,6 +10681,8 @@ void ScreenSessionManager::OnFoldPropertyChange(ScreenId screenId, const ScreenP
         ", rotation:%{public}f, width:%{public}f, height:%{public}f", screenId,
         midProperty.GetRotation(), midProperty.GetBounds().rect_.GetWidth(), midProperty.GetBounds().rect_.GetHeight());
 
+    // update scb map when change displaymode
+    UpdateScbDisplayModeMap();
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     if (screenSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Cannot get ScreenSession, screenId: %{public}" PRIu64 "", screenId);
@@ -10779,6 +10822,7 @@ void ScreenSessionManager::AddScbClientDeathRecipient(const sptr<IScreenSessionM
 
 void ScreenSessionManager::SwitchUser()
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:DMS SwitchUser");
 #ifdef WM_MULTI_USR_ABILITY_ENABLE
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied, clientName: %{public}s, pid: %{public}d",
@@ -11293,6 +11337,7 @@ void ScreenSessionManager::HandleResolutionEffectAfterSwitchUser() {
 
 void ScreenSessionManager::SwitchScbNodeHandle(int32_t newUserId, int32_t newScbPid, bool coldBoot)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "dms:SwitchScbNodeHandle");
 #ifdef WM_MULTI_USR_ABILITY_ENABLE
     std::ostringstream oss;
     oss << "currentUserId: " << currentUserId_
@@ -11323,6 +11368,8 @@ void ScreenSessionManager::SwitchScbNodeHandle(int32_t newUserId, int32_t newScb
         TLOGNFE(WmsLogTag::DMS, "clientProxy is null");
         return;
     }
+    // switch user
+    bool isNeedSwitchWait = false;
     if (coldBoot) {
         clientProxy->SwitchUserCallback(oldScbPids_, newScbPid);
         {
@@ -11330,17 +11377,12 @@ void ScreenSessionManager::SwitchScbNodeHandle(int32_t newUserId, int32_t newScb
             multiClientProxyMap_[newUserId] = clientProxy;
         }
     } else {
+        isNeedSwitchWait = (GetFoldDisplayMode() != FindPidInDisplayModeMap(newScbPid));
         HotSwitch(newUserId, newScbPid);
     }
     UpdateDisplayScaleState(GetDefaultScreenId());
     if (currentUserId_ != newUserId) {
         WaitSwitchUserAnimateFinish(newUserId, coldBoot);
-    }
-    FoldDisplayMode oldScbDisplayMode = GetFoldDisplayMode();
-    TLOGNFI(WmsLogTag::DMS, "newScbPid: %{public}d, cur mode: %{public}u", currentScbPId_, oldScbDisplayMode);
-    {
-        std::unique_lock<std::mutex> lock(oldScbDisplayModeMapMutex_);
-        oldScbDisplayModeMap_.insert_or_assign(currentScbPId_, oldScbDisplayMode);
     }
     currentUserId_ = newUserId;
     currentScbPId_ = newScbPid;
@@ -11379,7 +11421,12 @@ void ScreenSessionManager::NotifyCastWhenSwitchScbNode()
 void ScreenSessionManager::HotSwitch(int32_t newUserId, int32_t newScbPid)
 {
     // hot switch
-    if (multiClientProxyMap_.count(newUserId) == 0) {
+    std::map<int32_t, sptr<IScreenSessionManagerClient>> multiClientProxyMapCopy;
+    {
+        std::lock_guard<std::mutex> lock(multiClientProxyMapMutex_);
+        multiClientProxyMapCopy = multiClientProxyMap_;
+    }
+    if (multiClientProxyMapCopy.count(newUserId) == 0) {
         TLOGNFE(WmsLogTag::DMS, "not found client proxy. userId:%{public}d.", newUserId);
         return;
     }
@@ -11398,7 +11445,7 @@ void ScreenSessionManager::HotSwitch(int32_t newUserId, int32_t newScbPid)
             clientProxy->OnScreenConnectionChanged(option, ScreenEvent::DISCONNECTED);
         }
     }
-    SetClientProxy(multiClientProxyMap_[newUserId]);
+    SetClientProxy(multiClientProxyMapCopy[newUserId]);
     ScbStatusRecoveryWhenSwitchUser(oldScbPids_, newScbPid);
 }
 
