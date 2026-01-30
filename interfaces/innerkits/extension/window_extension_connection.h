@@ -28,12 +28,6 @@
 
 namespace OHOS {
 namespace Rosen {
-extern const std::string RECT_FORM_KEY_POS_X;
-extern const std::string RECT_FORM_KEY_POS_Y;
-extern const std::string RECT_FORM_KEY_HEIGHT;
-extern const std::string RECT_FORM_KEY_WIDTH;
-extern const std::string WINDOW_ID;
-
 class RSSurfaceNode;
 class ExtensionSession;
 /**
