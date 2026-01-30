@@ -2087,8 +2087,8 @@ public:
 
     /**
      * @brief Update configuration synchronously.
-     * 
-     * @param configuration Window configuration.
+     *
+     * @param configuration Window configuration.~
      */
     virtual void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) {}
 
@@ -3721,7 +3721,7 @@ public:
      * @return WMError
      */
     virtual WMError SetWindowModal(bool isModal)
-    { 
+    {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
