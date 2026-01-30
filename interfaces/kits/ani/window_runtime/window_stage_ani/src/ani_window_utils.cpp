@@ -545,6 +545,29 @@ ani_status AniWindowUtils::GetDoubleObject(ani_env* env, ani_object double_objec
     return ret;
 }
 
+ani_status AniWindowUtils::GetIntInObject(ani_env* env, ani_object int_object, int32_t& result)
+{
+    ani_boolean isUndefined;
+    ani_status isUndefinedRet = env->Reference_IsUndefined(int_object, &isUndefined);
+    if (ANI_OK != isUndefinedRet) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Check int_object isUndefined fail");
+        return isUndefinedRet;
+    }
+    if (isUndefined) {
+        TLOGI(WmsLogTag::DEFAULT, "[ANI] CallMeWithOptionalInt Not Pass Value");
+        return ANI_INVALID_ARGS;
+    }
+    ani_int int_value;
+    ani_status ret = env->Object_CallMethodByName_Int(int_object, "intValue", nullptr, &int_value);
+    if (ANI_OK != ret) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_CallMethodByName_Int Failed!");
+        return ret;
+    }
+    result = static_cast<int32_t>(int_value);
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] int result is: %{public}d", result);
+    return ret;
+}
+
 ani_status AniWindowUtils::GetIntVector(ani_env* env, ani_object ary, std::vector<int32_t>& result)
 {
     ani_size size = 0;
