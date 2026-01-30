@@ -2088,7 +2088,7 @@ public:
     /**
      * @brief Update configuration synchronously.
      *
-     * @param configuration Window configuration.~
+     * @param configuration Window configuration.
      */
     virtual void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) {}
 
