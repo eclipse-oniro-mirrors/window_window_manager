@@ -116,6 +116,7 @@ public:
     virtual FoldStatus GetPhysicalFoldStatus();
     bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
         FoldStatus targetFoldStatus) const;
+    virtual float GetSpecialVirtualPixelRatio();
 
 protected:
     FoldScreenBasePolicy();

@@ -19,6 +19,7 @@
 #include <transaction/rs_interfaces.h>
 #include "fold_screen_controller/single_display_pocket_fold_policy.h"
 #include "rs_adapter.h"
+#include "screen_scene_config.h"
 #include "session/screen/include/screen_session.h"
 #include "screen_session_manager.h"
 #include "fold_screen_state_internel.h"
@@ -72,6 +73,21 @@ SingleDisplayPocketFoldPolicy::SingleDisplayPocketFoldPolicy(std::recursive_mute
         }
     };
     currentFoldCreaseRegion_ = new FoldCreaseRegion(screenIdFull, rect);
+    auto numbersConfig = ScreenSceneConfig::GetIntNumbersConfig();
+    SetConfig(numbersConfig);
+    
+}
+
+void SingleDisplayPocketFoldPolicy::SetConfig(std::map<std::string, std::vector<int>>& numbersConfig)
+{
+    if (numbersConfig.count("subDpi") != 0) {
+        uint32_t subDensityDpi = static_cast<uint32_t>(numbersConfig["subDpi"][0]);
+        TLOGNFI(WmsLogTag::DMS, "subDensityDpi = %{public}u", subDensityDpi);
+        if (subDensityDpi >= DOT_PER_INCH_MINIMUM_VALUE && subDensityDpi <= DOT_PER_INCH_MAXIMUM_VALUE) {
+            isDensityDpiLoad_ = true;
+            subDensityDpi_ = static_cast<float>(subDensityDpi) / BASELINE_DENSITY;
+        }
+    }
 }
 
 FoldCreaseRegion SingleDisplayPocketFoldPolicy::GetFoldCreaseRegion(bool isVertical) const
@@ -729,5 +745,13 @@ void SingleDisplayPocketFoldPolicy::NotifyRefreshRateEvent(bool isEventStatus)
         .maxRefreshRate = 60,
     };
     RSInterfaces::GetInstance().NotifyRefreshRateEvent(eventInfo);
+}
+
+float SingleDisplayPocketFoldPolicy::GetSpecialVirtualPixelRatio()
+{
+    if (currentFoldStatus_ == FoldStatus::FOLDED) {
+        return subDensityDpi_;
+    }
+    return -1.0f;
 }
 } // namespace OHOS::Rosen

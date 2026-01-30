@@ -3461,6 +3461,16 @@ DMError ScreenSessionManager::SetVirtualPixelRatio(ScreenId screenId, float virt
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
+#ifdef FOLD_ABILITY_ENABLE
+    // deal device special config
+    if (foldScreenController_ != nullptr) {
+        float specialVpr = foldScreenController_->GetSpecialVirtualPixelRatio();
+        if (fabs(specialVpr - (-1.0f)) < 1e-6) {
+            TLOGNFI(WmsLogTag::DMS, "current device need set special vpr: %{public}f", specialVpr);
+            virtualPixelRatio = specialVpr;
+        }
+    }
+#endif
 
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     if (!screenSession) {

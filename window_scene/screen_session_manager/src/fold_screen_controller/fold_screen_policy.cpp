@@ -232,4 +232,9 @@ const std::unordered_set<FoldStatus>& FoldScreenPolicy::GetSupportedFoldStatus()
 {
     return SUPPORTED_FOLD_STATUS;
 }
+
+float FoldScreenPolicy::GetSpecialVirtualPixelRatio()
+{
+    return -1.0f;
+}
 } // namespace OHOS::Rosen

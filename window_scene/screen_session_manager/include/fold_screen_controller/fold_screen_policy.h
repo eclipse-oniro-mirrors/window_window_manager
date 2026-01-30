@@ -101,6 +101,7 @@ public:
     bool GetdisplayModeRunningStatus();
     FoldDisplayMode GetLastCacheDisplayMode();
     virtual std::vector<uint32_t> GetScreenParams() { return screenParams_; };
+    virtual float GetSpecialVirtualPixelRatio();
 
 protected:
     /*
