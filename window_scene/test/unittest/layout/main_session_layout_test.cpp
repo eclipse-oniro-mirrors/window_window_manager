@@ -111,7 +111,7 @@ HWTEST_F(MainSessionLayoutTest, NotifySubSessionRectChangeByAnchor, TestSize.Lev
     subSession->GetLayoutController()->SetSessionRect({ 0, 0, 200, 200 });
     const auto& func = [subSession](const WSRect& rect,
                                     SizeChangeReason reason,
-                                    DisplayId displayIdChangedNotifyManagerFunc_) {
+                                    DisplayId displayId) {
         subSession->GetLayoutController()->SetSessionRect(rect);
         subSession->Session::UpdateSizeChangeReason(reason);
     };

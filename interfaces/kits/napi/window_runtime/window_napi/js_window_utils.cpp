@@ -1600,6 +1600,7 @@ bool GetMoveConfigurationFromJsValue(napi_env env, napi_value jsObject, MoveConf
             return false;
         }
         moveConfiguration.displayId = static_cast<DisplayId>(displayId);
+        return true;
     }
     return true;
 }
