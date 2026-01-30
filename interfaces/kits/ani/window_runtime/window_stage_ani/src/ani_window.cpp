@@ -5144,7 +5144,7 @@ void AniWindow::OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled)
 }
 
 void AniWindow::SetRelativePositionToParentWindowEnabled(ani_env* env, ani_object obj, ani_long nativeObj,
-    ani_boolean enabled, ani_int anchor, ani_int offsetX, ani_int offsetY)
+    ani_boolean enabled, ani_object anchor, ani_object offsetX, ani_object offsetY)
 {
     TLOGD(WmsLogTag::WMS_SUB, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
@@ -5157,7 +5157,7 @@ void AniWindow::SetRelativePositionToParentWindowEnabled(ani_env* env, ani_objec
 }
 
 void AniWindow::OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boolean enabled,
-    ani_int anchor, ani_int offsetX, ani_int offsetY)
+    ani_object anchor, ani_object offsetX, ani_object offsetY)
 {
     TLOGI(WmsLogTag::WMS_SUB, "[ANI]");
     if (windowToken_ == nullptr) {
@@ -5170,8 +5170,36 @@ void AniWindow::OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boo
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
         return;
     }
-    WindowAnchorInfo windowAnchorInfo = { static_cast<bool>(enabled), static_cast<WindowAnchor>(anchor),
-        static_cast<int32_t>(offsetX), static_cast<int32_t>(offsetY) };
+    WindowAnchor anchorValue = WindowAnchor::TOP_START;
+    ani_boolean isUndefined;
+    ani_status aniRet = env->Reference_IsUndefined(anchor, &isUndefined);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SUB, "[ANI] Check enum_object isUndefined fail");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    if (!isUndefined) {
+        ani_int aniAnchorValue;
+        if (ANI_OK != env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(anchor), &aniAnchorValue)) {
+            TLOGE(WmsLogTag::WMS_SUB, "[ANI] EnumItem_GetValue_Int anchor Failed");
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            return;
+        }
+        anchorValue = static_cast<WindowAnchor>(aniAnchorValue);
+    }
+    int32_t offsetXValue = 0;
+    aniRet = AniWindowUtils::GetIntInObject(env, offsetX, offsetXValue);
+    if (aniRet != ANI_OK && aniRet != ANI_INVALID_ARGS) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    int32_t offsetYValue = 0;
+    aniRet = AniWindowUtils::GetIntInObject(env, offsetY, offsetYValue);
+    if (aniRet != ANI_OK && aniRet != ANI_INVALID_ARGS) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    WindowAnchorInfo windowAnchorInfo = { static_cast<bool>(enabled), anchorValue, offsetXValue, offsetYValue };
     WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetWindowAnchorInfo(windowAnchorInfo));
     if (errorCode != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_SUB, "[ANI] failed");
