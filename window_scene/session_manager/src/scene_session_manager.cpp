@@ -5796,7 +5796,7 @@ WSError SceneSessionManager::InitUserInfo(int32_t userId, std::string& fileDir)
             TLOGND(WmsLogTag::WMS_MAIN, "Create icon directory failed");
         }
         if (!ScenePersistence::CreateStartWindowDir(fileDir)) {
-            TLOGND(WmsLogTag::WMS_MAIN, "Create icon directory failed");
+            TLOGND(WmsLogTag::WMS_MAIN, "Create start window directory failed");
         }
         currentUserId_ = userId;
         SceneInputManager::GetInstance().SetCurrentUserId(currentUserId_);
@@ -6600,7 +6600,7 @@ bool SceneSessionManager::HasStartWindowPersistence(const std::string& bundleNam
 
 void SceneSessionManager::SetHasStartWindowPersistence(const std::string& bundleName, bool isDark, bool hasPersistence)
 {
-    std::unique_lock<std::shared_mutex> lock(hasStartWindowPersistenceMutex_);
+    std::lock_guard lock(hasStartWindowPersistenceMutex_);
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetHasStartWindowPersistence [%s]", bundleName.c_str());
     auto iter = hasStartWindowPersistence_.find(bundleName);
     if (iter == hasStartWindowPersistence_.end()) {
