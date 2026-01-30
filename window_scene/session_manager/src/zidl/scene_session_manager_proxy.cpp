@@ -3504,9 +3504,9 @@ WMError SceneSessionManagerProxy::SetScreenPrivacyWindowTagSwitch(
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write size failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    for (const auto privacyWidnowTag: privacyWindowTags) {
-        if (!data.WriteString(privacyWidnowTag)) {
-            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write privacyWidnowTag failed");
+    for (const auto& privacyWindowTag: privacyWindowTags) {
+        if (!data.WriteString(privacyWindowTag)) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write privacyWindowTag failed");
             return WMError::WM_ERROR_IPC_FAILED;
         }
     }
