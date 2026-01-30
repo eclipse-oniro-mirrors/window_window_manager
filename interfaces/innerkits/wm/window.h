@@ -3074,7 +3074,7 @@ public:
 
     /**
      * @brief get compatible mode in pc.
-     * @deprecated use IsAdaptToImmersive instead
+     * @deprecated use IsAdaptToCompatibleImmersive instead
      *
      * @return True means window is compatible mode in pc, false means the opposite.
      */
@@ -3720,7 +3720,10 @@ public:
      * @param isModal bool.
      * @return WMError
      */
-    virtual WMError SetWindowModal(bool isModal) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetWindowModal(bool isModal)
+    { 
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set the modality of sub window.
@@ -4757,8 +4760,8 @@ public:
      */
     virtual WMError UseImplicitAnimation(bool useImplicit) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-    /** 
-    * @brief Set intent param to arkui.
+    /**
+     * @brief Set intent param to arkui.
      *
      * @param intentParam intent param from ams.
      * @param loadPageCallback load page callback after send intent.

@@ -810,7 +810,7 @@ export enum Orientation {
     FOLLOW_DESKTOP = 17
 }
 
-export enum  RotationInfoType {
+export enum RotationInfoType {
     WINDOW_ORIENTATION = 0,
     DISPLAY_ORIENTATION = 1,
     DISPLAY_ROTATION = 2,
