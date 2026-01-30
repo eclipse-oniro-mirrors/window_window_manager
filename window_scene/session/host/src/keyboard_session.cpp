@@ -926,7 +926,7 @@ void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaC
         return;
     }
     if (keyboardCallback_ == nullptr || keyboardCallback_->onNotifyOccupiedAreaChange == nullptr) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "callback is null");
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "callback is nullptr");
         return;
     }
     keyboardCallback_->onNotifyOccupiedAreaChange(info);
