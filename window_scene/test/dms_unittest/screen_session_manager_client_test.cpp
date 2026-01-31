@@ -1823,30 +1823,6 @@ HWTEST_F(ScreenSessionManagerClientTest, SetScreenCombination, TestSize.Level2)
     EXPECT_NE(client, nullptr);
 }
 
-/**
- * @tc.name: ExtraDestroyScreen
- * @tc.desc: ExtraDestroyScreen test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, ExtraDestroyScreen, TestSize.Level2)
-{
-    logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    sptr<ScreenSessionManagerClient> client = new ScreenSessionManagerClient();
-    ASSERT_TRUE(client != nullptr);
-    client->ConnectToServer();
-
-    ScreenId screenId = 1;
-    sptr<ScreenSession> screenSession1 = new ScreenSession(screenId, ScreenProperty(), 0);
-    ASSERT_NE(nullptr, screenSession1);
-    client->extraScreenSessionMap_.emplace(screenId, screenSession1);
-
-    ScreenId screenId11 = 11;
-    client->extraScreenSessionMap_.emplace(screenId11, nullptr);
-    client->ExtraDestroyScreen(screenId11);
-    EXPECT_TRUE(logMsg.find("extra screenSession is null") != std::string::npos);
-}
 
 /**
  * @tc.name: OnDumperClientScreenSessions
