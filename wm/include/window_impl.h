@@ -536,7 +536,8 @@ private:
     NotifyNativeWinDestroyFunc notifyNativefunc_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::string name_;
-    std::unique_ptr<Ace::UIContent> uiContent_;
+    std::shared_ptr<Ace::UIContent> uiContent_;
+    mutable std::shared_mutex uiContentMutex_;
     std::shared_ptr<AbilityRuntime::Context> context_;
     std::recursive_mutex mutex_;
     std::recursive_mutex windowStateMutex_;

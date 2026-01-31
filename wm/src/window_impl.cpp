@@ -633,6 +633,7 @@ WMError WindowImpl::SetWindowFlags(uint32_t flags)
 void WindowImpl::OnNewWant(const AAFwk::Want& want)
 {
     WLOGI("Window [name:%{public}s, id:%{public}u]", name_.c_str(), property_->GetWindowId());
+    std::unique_lock<std::shared_mutex> lock(uiContentMutex_);
     if (uiContent_ != nullptr) {
         uiContent_->OnNewWant(want);
     }
@@ -742,8 +743,11 @@ WMError WindowImpl::SetUIContentInner(const std::string& contentInfo, void* env,
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     WLOGFD("NapiSetUIContent: %{public}s", contentInfo.c_str());
-    if (uiContent_) {
-        uiContent_->Destroy();
+    {
+        std::unique_lock<std::shared_mutex> lock(uiContentMutex_);
+        if (uiContent_) {
+            uiContent_->Destroy();
+        }
     }
     std::unique_ptr<Ace::UIContent> uiContent = UIContentCreate(ability, (void*)env, isAni);
     if (uiContent == nullptr) {
@@ -787,7 +791,7 @@ WMError WindowImpl::SetUIContentInner(const std::string& contentInfo, void* env,
     }
     // make uiContent available after Initialize/Restore
     {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        std::unique_lock<std::shared_mutex> lock(uiContentMutex_);
         uiContent_ = std::move(uiContent);
     }
 
