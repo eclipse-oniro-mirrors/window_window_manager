@@ -244,20 +244,20 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetAppDragResizeType(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_APP_KEY_FRAME_POLICY):
             return HandleSetAppKeyFramePolicy(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_WATCH_GESTURE_CONSUME_RESULT):
-            return HandleWatchGestureConsumeResult(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_WATCH_FOCUS_ACTIVE_CHANGE):
-            return HandleWatchFocusActiveChange(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SHIFT_APP_WINDOW_POINTER_EVENT):
             return HandleShiftAppWindowPointerEvent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_NOTIFY_SCREEN_SHOT_EVENT):
             return HandleNotifyScreenshotEvent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_START_WINDOW_BACKGROUND_COLOR):
             return HandleSetStartWindowBackgroundColor(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_BY_WINDOW_ID):
-            return HandleMinimizeByWindowId(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_WATCH_GESTURE_CONSUME_RESULT):
+            return HandleWatchGestureConsumeResult(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_WATCH_FOCUS_ACTIVE_CHANGE):
+            return HandleWatchFocusActiveChange(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_PARENT_WINDOW):
             return HandleSetParentWindow(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_BY_WINDOW_ID):
+            return HandleMinimizeByWindowId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_FOREGROUND_WINDOW_NUM):
             return HandleSetForegroundWindowNum(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_USE_IMPLICIT_ANIMATION):
@@ -270,12 +270,12 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleRemoveImageForRecent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ANIMATE_TO_WINDOW):
             return HandleAnimateTo(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_CREATE_UI_EFFECT_CONTROLLER):
-            return HandleCreateUIEffectController(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_SESSION_BLACK_LIST):
             return HandleAddSessionBlackList(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_SESSION_BLACK_LIST):
             return HandleRemoveSessionBlackList(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_CREATE_UI_EFFECT_CONTROLLER):
+            return HandleCreateUIEffectController(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_SWITCH_STATUS):
             return HandleGetPiPSettingSwitchStatus(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_IS_PIP_ENABLED):
@@ -288,10 +288,10 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUpdateOutline(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SPECIFIC_WINDOW_ZINDEX):
             return HandleSetSpecificWindowZIndex(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SUPPORT_ROTATION_REGISTERED):
-            return HandleNotifySupportRotationRegistered(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RESET_SPECIFIC_WINDOW_ZINDEX):
             return HandleResetSpecificWindowZIndex(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SUPPORT_ROTATION_REGISTERED):
+            return HandleNotifySupportRotationRegistered(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -312,6 +312,7 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read scene session stage object or event channel object!");
         return ERR_INVALID_DATA;
     }
+
     sptr<WindowSessionProperty> property = data.ReadStrongParcelable<WindowSessionProperty>();
     if (property == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "property is nullptr");
@@ -2627,6 +2628,36 @@ int SceneSessionManagerStub::HandleCreateUIEffectController(MessageParcel& data,
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply)
+{
+    bool switchStatus = false;
+    WMError errCode = GetPiPSettingSwitchStatus(switchStatus);
+    if (!reply.WriteBool(switchStatus)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write switchStatus fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply)
+{
+    bool isPipEnabled = false;
+    WMError errCode = GetIsPipEnabled(isPipEnabled);
+    if (!reply.WriteBool(isPipEnabled)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write isPipEnabled fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleAddSessionBlackList(MessageParcel& data, MessageParcel& reply)
 {
     uint64_t size = 0;
@@ -2720,37 +2751,6 @@ int SceneSessionManagerStub::HandleRemoveSessionBlackList(MessageParcel& data, M
     }
     return ERR_NONE;
 }
-// LCOV_EXCL_STOP
-
-int SceneSessionManagerStub::HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply)
-{
-    bool switchStatus = false;
-    WMError errCode = GetPiPSettingSwitchStatus(switchStatus);
-    if (!reply.WriteBool(switchStatus)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write switchStatus fail.");
-        return ERR_INVALID_DATA;
-    }
-    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
-        return ERR_INVALID_DATA;
-    }
-    return ERR_NONE;
-}
-
-int SceneSessionManagerStub::HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply)
-{
-    bool isPipEnabled = false;
-    WMError errCode = GetIsPipEnabled(isPipEnabled);
-    if (!reply.WriteBool(isPipEnabled)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write isPipEnabled fail.");
-        return ERR_INVALID_DATA;
-    }
-    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
-        return ERR_INVALID_DATA;
-    }
-    return ERR_NONE;
-}
 
 int SceneSessionManagerStub::HandleUpdateOutline(MessageParcel& data, MessageParcel& reply)
 {
@@ -2769,12 +2769,6 @@ int SceneSessionManagerStub::HandleUpdateOutline(MessageParcel& data, MessagePar
         TLOGE(WmsLogTag::WMS_ANIMATION, "Write errCode failed.");
         return ERR_INVALID_DATA;
     }
-    return ERR_NONE;
-}
-
-int SceneSessionManagerStub::HandleNotifySupportRotationRegistered(MessageParcel& data, MessageParcel& reply)
-{
-    NotifySupportRotationRegistered();
     return ERR_NONE;
 }
 
@@ -2813,6 +2807,12 @@ int SceneSessionManagerStub::HandleResetSpecificWindowZIndex(MessageParcel& data
         TLOGE(WmsLogTag::WMS_FOCUS, "Write errCode fail");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+// LCOV_EXCL_STOP
+int SceneSessionManagerStub::HandleNotifySupportRotationRegistered(MessageParcel& data, MessageParcel& reply)
+{
+    NotifySupportRotationRegistered();
     return ERR_NONE;
 }
 } // namespace OHOS::Rosen
