@@ -161,6 +161,7 @@
             OHOS::Rosen::SceneSession::SetWindowCornerRadiusCallback*;
             OHOS::Rosen::SceneSession::SetWindowRectAutoSaveCallback*;
             OHOS::Rosen::SceneSession::UpdateFullScreenWaterfallMode*;
+            OHOS::Rosen::SceneSession::NotifyPendingSessionActivation*;
             OHOS::Rosen::SceneSession::RegisterShowWhenLockedCallback*;
             OHOS::Rosen::SceneSession::SetDefaultRequestedOrientation*;
             OHOS::Rosen::SceneSession::SetMousePointerDownEventStatus*;

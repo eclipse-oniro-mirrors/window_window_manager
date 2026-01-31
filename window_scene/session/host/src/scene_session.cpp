@@ -6270,6 +6270,13 @@ void SceneSession::RegisterGetStartWindowConfigFunc(GetStartWindowTypeFunc&& fun
     getStartWindowConfigFunc_ = std::move(func);
 }
 
+void SceneSession::NotifyPendingSessionActivation(SessionInfo& info)
+{
+    if (pendingSessionActivationFunc_) {
+        pendingSessionActivationFunc_(info);
+    }
+}
+
 WSError SceneSession::PendingSessionActivation(const sptr<AAFwk::SessionInfo> abilitySessionInfo)
 {
     if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_MANAGE_MISSION)) {

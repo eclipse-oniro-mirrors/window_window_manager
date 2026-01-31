@@ -4329,7 +4329,11 @@ void SceneSessionManager::MoveStartLifeCycleTask(const sptr<SceneSession>& scene
         SessionInfo newSessionInfo = sceneSession->GetSessionInfo();
         newSessionInfo.persistentId_ = INVALID_SESSION_ID;
         sptr<SceneSession> newSession = RequestSceneSession(newSessionInfo, nullptr);
-        newSession->PostLifeCycleTask(std::move(lastTask->task), lastTask->name, LifeCycleTaskType::START);
+        if (sceneSession->GetSessionInfo().callerPersistentId_ == INVALID_SESSION_ID) {
+            if (auto rootSession = GetRootSceneSession()) {
+                rootSession->NotifyPendingSessionActivation(newSession->EditSessionInfo());
+            }
+        }
     }
 }
 
