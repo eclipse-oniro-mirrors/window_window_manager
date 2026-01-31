@@ -956,6 +956,40 @@ int SceneSessionManagerStub::HandleSetGestureNavigationEnabled(MessageParcel& da
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleConvertToRelativeCoordinateExtended(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t posX_ = 0;
+    int32_t posY_ = 0;
+    uint32_t width_ = 0;
+    uint32_t height_ = 0;
+    DisplayId newDisplayId = 0;
+    if (!data.ReadInt32(posX_) || !data.ReadInt32(posY_) ||
+        !data.ReadUint32(width_) || !data.ReadUint32(height_) ||
+        !data.ReadUint64(newDisplayId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read window infos failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    Rect rect = {posX_, posY_, width_, height_};
+    Rect newRect;
+    WMError errCode = ConvertToRelativeCoordinateExtended(rect, newRect, newDisplayId);
+    if (!reply.WriteInt32(static_cast<int32_t>(newRect.posX_)) ||
+        !reply.WriteInt32(static_cast<int32_t>(newRect.posY_)) ||
+        !reply.WriteUint32(static_cast<uint32_t>(newRect.width_)) ||
+        !reply.WriteUint32(static_cast<uint32_t>(newRect.height_))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write rect failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    if (!reply.WriteUint64(static_cast<uint64_t>(newDisplayId))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write newDisplayId failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleGetAccessibilityWindowInfo(MessageParcel& data, MessageParcel& reply)
 {
     std::vector<sptr<AccessibilityWindowInfo>> infos;
@@ -2734,40 +2768,6 @@ int SceneSessionManagerStub::HandleUpdateOutline(MessageParcel& data, MessagePar
     if (!reply.WriteUint32(static_cast<uint32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "Write errCode failed.");
         return ERR_INVALID_DATA;
-    }
-    return ERR_NONE;
-}
-
-int SceneSessionManagerStub::HandleConvertToRelativeCoordinateExtended(MessageParcel& data, MessageParcel& reply)
-{
-    int32_t posX_ = 0;
-    int32_t posY_ = 0;
-    uint32_t width_ = 0;
-    uint32_t height_ = 0;
-    DisplayId newDisplayId = 0;
-    if (!data.ReadInt32(posX_) || !data.ReadInt32(posY_) ||
-        !data.ReadUint32(width_) || !data.ReadUint32(height_) ||
-        !data.ReadUint64(newDisplayId)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Read window infos failed.");
-        return ERR_TRANSACTION_FAILED;
-    }
-    Rect rect = {posX_, posY_, width_, height_};
-    Rect newRect;
-    WMError errCode = ConvertToRelativeCoordinateExtended(rect, newRect, newDisplayId);
-    if (!reply.WriteInt32(static_cast<int32_t>(newRect.posX_)) ||
-        !reply.WriteInt32(static_cast<int32_t>(newRect.posY_)) ||
-        !reply.WriteUint32(static_cast<uint32_t>(newRect.width_)) ||
-        !reply.WriteUint32(static_cast<uint32_t>(newRect.height_))) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Write rect failed.");
-        return ERR_TRANSACTION_FAILED;
-    }
-    if (!reply.WriteUint64(static_cast<uint64_t>(newDisplayId))) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Write newDisplayId failed.");
-        return ERR_TRANSACTION_FAILED;
-    }
-    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode failed.");
-        return ERR_TRANSACTION_FAILED;
     }
     return ERR_NONE;
 }
