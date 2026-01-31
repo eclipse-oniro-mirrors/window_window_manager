@@ -3186,7 +3186,7 @@ napi_value JsSceneSessionManager::OnSendTouchEvent(napi_env env, napi_callback_i
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARGC_TWO || argc > ARGC_THREE) {
+    if (argc != ARGC_TWO) {
         TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
@@ -3214,16 +3214,6 @@ napi_value JsSceneSessionManager::OnSendTouchEvent(napi_env env, napi_callback_i
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
-    }
-    uint32_t identity = static_cast<uint32_t>(SendTouchAction::ACTION_NORMAL);
-    if (argc == ARGC_THREE && !ConvertFromJsValue(env, argv[ARGC_TWO], identity)) {
-        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to identity");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    if (identity == static_cast<uint32_t>(SendTouchAction::ACTION_NOT_RECEIVE_PULL_CANCEL)) {
-        pointerEvent->AddFlag(MMI::PointerEvent::EVENT_FLAG_SIMULATE_LEFT_RIGHT_ANTI_AXIS_MOVE);
     }
     SceneSessionManager::GetInstance().SendTouchEvent(pointerEvent, zIndex);
     return NapiGetUndefined(env);
