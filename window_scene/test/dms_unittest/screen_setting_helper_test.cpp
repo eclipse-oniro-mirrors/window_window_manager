@@ -1824,7 +1824,7 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         ScreenSettingHelper::RegisterSettingExtendScreenDpiObserver(func);
         EXPECT_TRUE(g_errLog.find("setting extend dpi observer is registered") == std::string::npos ||
             g_errLog.find("create observer failed") == std::string::npos ||
-            g_errLog.find("failed, ret=") = std::string::npos);
+            g_errLog.find("failed, ret=") == std::string::npos);
         LOG_SetCallback(nullptr);
     }
 }
