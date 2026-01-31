@@ -6364,7 +6364,7 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::SetDialogBackGestureEnabled)},
         ani_native_function {"setWindowMaskSync", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetWindowMask)},
-        ani_native_function {"clearWindowMaskSync", ":", reinterpret_cast<void *>(AniWindow::ClearWindowMask)},
+        ani_native_function {"clearWindowMaskSync", "l:", reinterpret_cast<void *>(AniWindow::ClearWindowMask)},
         ani_native_function {"setTouchableAreas", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetTouchableAreas)},
         ani_native_function {"getUIContextSync", "l:C{@ohos.arkui.UIContext.UIContext}",
