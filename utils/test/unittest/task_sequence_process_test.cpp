@@ -45,7 +45,10 @@ void TaskSequenceProcessTest::TearDownTestCase() {}
 
 void TaskSequenceProcessTest::SetUp() {}
 
-void TaskSequenceProcessTest::TearDown() {}
+void TaskSequenceProcessTest::TearDown() 
+{
+    usleep(100000);
+}
 
 namespace {
 
@@ -178,6 +181,23 @@ HWTEST_F(TaskSequenceProcessTest, ATC_FindMinSnTaskQueueId01, TestSize.Level0)
     res = process.FindMinSnTaskQueueId(id);
     EXPECT_TRUE(res);
 }
+
+ /** 
+ * @tc.name: FinishTaskTest01 
+ * @tc.desc: FinishTaskTest01 
+ * @tc.type: FUNC 
+ */ 
+ HWTEST_F(TaskSequenceProcessTest, ATC_FinishTask01, TestSize.Level0) 
+ { 
+     TaskSequenceProcess process = TaskSequenceProcess(1, 1000); 
+     bool taskCallback =  false; 
+     std::function<void()> task = [&taskCallback]() { 
+         taskCallback =true; 
+     }; 
+     process.PushToQueue(0, {0, task}); 
+     process.FinishTask(); 
+     EXPECT_TRUE(taskCallback); 
+ }
 
 /**
 * @tc.name: StartSysTimer01
