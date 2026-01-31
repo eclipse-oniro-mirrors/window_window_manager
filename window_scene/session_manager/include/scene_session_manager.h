@@ -898,8 +898,6 @@ public:
     void ConfigSupportPreloadStartingWindow();
     void PreLoadStartingWindow(sptr<SceneSession> sceneSession);
     bool IsStartWindowDark(const SessionInfo& sessionInfo);
-    bool HasStartWindowPersistence(const std::string& bundleName, bool isDark);
-    void SetHasStartWindowPersistence(const std::string& bundleName, bool isDark, bool hasStartWindow);
     bool IsSyncLoadStartingWindow() { return syncLoadStartingWindow_; };
     bool IsDmaReclaimEnabled() { return enableDmaReclaim_; };
     WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl);
@@ -1857,8 +1855,6 @@ private:
     bool syncLoadStartingWindow_ = false;
     bool enableDmaReclaim_ = false;
     std::unordered_map<DisplayId, bool> appUseControlDisplayMap_;
-    std::mutex hasStartWindowPersistenceMutex_;
-    std::unordered_map<std::string, std::unordered_map<bool, bool>> hasStartWindowPersistence_;
     void InitWindowPattern();
     void InitStartingWindow();
     void InitDmaReclaimParam();

@@ -6570,9 +6570,9 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
             bool isDark = IsStartWindowDark(sessionInfo);
-            if (!HasStartWindowPersistence(sessionInfo.bundleName_, isDark)) {
+            if (sceneSession->GetScenePersistence() &&
+                !(sceneSession->GetScenePersistence()->HasStartWindowPersistence(isDark))) {
                 sceneSession->SaveStartWindow(pixelMap, isDark);
-                SetHasStartWindowPersistence(sessionInfo.bundleName_, isDark, true);
             }
         }
         TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s session %{public}d, isSvg %{public}d",
@@ -6580,35 +6580,6 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
         sceneSession->NotifyPreLoadStartingWindowFinished();
     };
     ffrtQueueHelper_->SubmitTask(loadTask);
-}
-
-bool SceneSessionManager::HasStartWindowPersistence(const std::string& bundleName, bool isDark)
-{
-    std::lock_guard lock(hasStartWindowPersistenceMutex_);
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:HasStartWindowPersistence [%s]", bundleName.c_str());
-    auto iter = hasStartWindowPersistence_.find(bundleName);
-    if (iter == hasStartWindowPersistence_.end()) {
-        return false;
-    }
-    auto& infoMap = iter->second;
-    auto iterDark = infoMap.find(isDark);
-    if (iterDark == infoMap.end()) {
-        return false;
-    }
-    return iterDark->second;
-}
-
-void SceneSessionManager::SetHasStartWindowPersistence(const std::string& bundleName, bool isDark, bool hasPersistence)
-{
-    std::lock_guard lock(hasStartWindowPersistenceMutex_);
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetHasStartWindowPersistence [%s]", bundleName.c_str());
-    auto iter = hasStartWindowPersistence_.find(bundleName);
-    if (iter == hasStartWindowPersistence_.end()) {
-        hasStartWindowPersistence_[bundleName] = {{isDark, hasPersistence}};
-        return;
-    }
-    auto& infoMap = iter->second;
-    infoMap[isDark] = hasPersistence;
 }
 
 bool SceneSessionManager::CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo,
@@ -6661,8 +6632,6 @@ void SceneSessionManager::OnBundleUpdated(const std::string& bundleName, int use
     }, __func__);
     auto task = [this, bundleName, where = __func__] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:OnBundleUpdated [%s]", bundleName.c_str());
-        SetHasStartWindowPersistence(bundleName, false, false);
-        SetHasStartWindowPersistence(bundleName, true, false);
         if (startingWindowRdbMgr_ == nullptr || bundleMgr_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: rdb or bms is nullptr", where);
             return;

@@ -20,6 +20,9 @@
 
 #include "context.h"
 #include "interfaces/include/ws_common.h"
+#include "session_info.h"
+#include "session/host/include/scene_persistence.h"
+#include "session/host/include/scene_persistent_storage.h"
 #include "session_manager/include/rdb/starting_window_rdb_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_manager_hilog.h"
@@ -57,6 +60,7 @@ private:
 };
 
 sptr<SceneSessionManager> WindowPatternStartingWindowTest::ssm_ = nullptr;
+static sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr("WindowPatternStartingWindowTest", 1423);
 
 void WindowPatternStartingWindowTest::SetUpTestCase()
 {
@@ -96,6 +100,64 @@ void WindowPatternStartingWindowTest::CreateSession(SessionInfo sessionInfo, int
 }
 
 namespace {
+/**
+ * @tc.name: CreateStartWindowDir
+ * @tc.desc: test function : CreateStartWindowDir
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, CreateStartWindowDir, TestSize.Level1)
+{
+    std::string directory = "0/Storage";
+    ASSERT_NE(nullptr, scenePersistence);
+    bool result = scenePersistence->CreateStartWindowDir(directory);
+    ASSERT_EQ(result, false);
+}
+
+/**
+ * @tc.name: GetStartWindowFilePath
+ * @tc.desc: test function : GetStartWindowFilePath
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowFilePath, TestSize.Level1)
+{
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1423;
+    sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+
+    std::string darkPath = "/data/1.png";
+    std::string lightPath = "/data/2.png";
+    scenePersistence->darkStartWindowPath_ = darkPath;
+    scenePersistence->lightStartWindowPath_ = lightPath;
+
+    std::string ret = scenePersistence->GetStartWindowFilePath(true);
+    EXPECT_EQ(ret, darkPath);
+
+    ret = scenePersistence->GetStartWindowFilePath(false);
+    EXPECT_EQ(ret, lightPath);
+}
+
+/**
+ * @tc.name: HasStartWindowPersistence
+ * @tc.desc: test function: HasStartWindowPersistence
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, HasStartWindowPersistence, TestSize.Level1)
+{
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1423;
+    sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    EXPECT_EQ(scenePersistence->HasStartWindowPersistence(false), false);
+    EXPECT_EQ(scenePersistence->HasStartWindowPersistence(true), false);
+    scenePersistence->SetHasStartWindowPersistence(true, true);
+    EXPECT_EQ(scenePersistence->HasStartWindowPersistence(true), true);
+    EXPECT_EQ(scenePersistence->HasStartWindowPersistence(false), false);
+    scenePersistence->SetHasStartWindowPersistence(false, true);
+    EXPECT_EQ(scenePersistence->HasStartWindowPersistence(true), true);
+    EXPECT_EQ(scenePersistence->HasStartWindowPersistence(false), true);
+    scenePersistence->SetHasStartWindowPersistence(true, false);
+    EXPECT_EQ(scenePersistence->HasStartWindowPersistence(true), false);
+}
+
 /**
  * @tc.name: GetStartupPage01
  * @tc.desc: GetStartupPage from want
