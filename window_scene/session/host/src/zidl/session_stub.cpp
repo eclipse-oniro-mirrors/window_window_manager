@@ -2387,7 +2387,7 @@ int SessionStub::HandleGetCrossAxisState(MessageParcel& data, MessageParcel& rep
     CrossAxisState state = CrossAxisState::STATE_INVALID;
     GetCrossAxisState(state);
     if (!reply.WriteUint32(static_cast<uint32_t>(state))) {
-        TLOGE(WmsLogTag::WMS_MAIN, "write errCode fail.");
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "write errCode fail.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
