@@ -60,7 +60,8 @@ private:
 };
 
 sptr<SceneSessionManager> WindowPatternStartingWindowTest::ssm_ = nullptr;
-static sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr("WindowPatternStartingWindowTest", 1423);
+static sptr<ScenePersistence> scenePersistence =
+    sptr<ScenePersistence>::MakeSptr("WindowPatternStartingWindowTest", 1423);
 
 void WindowPatternStartingWindowTest::SetUpTestCase()
 {
