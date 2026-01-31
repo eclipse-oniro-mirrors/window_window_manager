@@ -300,7 +300,7 @@ public:
     void CloseSyncTransaction(std::function<void()> func);
     const std::vector<sptr<SceneSession>> GetActiveSceneSessionCopy();
 
-    WSError ProcessBackEvent();
+    WSError ProcessBackEvent(DisplayId displayId = DEFAULT_DISPLAY_ID);
     WSError BindDialogSessionTarget(uint64_t persistentId, sptr<IRemoteObject> targetToken) override;
     WMError SetGestureNavigationEnabled(bool enable) override;
     WMError RegisterWindowManagerAgent(WindowManagerAgentType type,

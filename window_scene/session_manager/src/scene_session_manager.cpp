@@ -5692,10 +5692,11 @@ void SceneSessionManager::UpdateRotateAnimationConfig(const RotateAnimationConfi
     }, __func__);
 }
 
-WSError SceneSessionManager::ProcessBackEvent()
+WSError SceneSessionManager::ProcessBackEvent(DisplayId displayId)
 {
-    taskScheduler_->PostAsyncTask([this]() {
-        auto focusGroup = windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    taskScheduler_->PostAsyncTask([this, displayId]() {
+        TLOGNI(WmsLogTag::WMS_MAIN, "displayId: %{public}" PRIu64, displayId);
+        auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
             TLOGNE(WmsLogTag::WMS_MAIN, "focus group is nullptr: %{public}" PRIu64, DEFAULT_DISPLAY_ID);
             return WSError::WS_ERROR_NULLPTR;
@@ -18150,7 +18151,7 @@ WMError SceneSessionManager::IsFreeMultiWindow(bool& isFreeMultiWindow)
 
 WMError SceneSessionManager::IsPcOrPadFreeMultiWindowMode(bool& isPcOrPadFreeMultiWindowMode)
 {
-    isPcOrPadFreeMultiWindowMode = (systemConfig_.IsPcWindow() || systemConfig_.IsFreeMultiWindowMode());
+    isPcOrPadFreeMultiWindowMode = (systemConfig_.IsPcWindow() || systemConfig_.freeMultiWindowEnable_);
     return WMError::WM_OK;
 }
 

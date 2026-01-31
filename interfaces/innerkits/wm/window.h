@@ -4173,6 +4173,14 @@ public:
     virtual WMError IsImmersiveLayout(bool& isImmersiveLayout) const { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Set the ContinueState of window.
+     *
+     * @param continueState of the window.
+     * @return Errorcode of window.
+     */
+    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
+
+    /**
      * @brief Get the height of status bar.
      *
      * @return the height of status bar.
@@ -4193,14 +4201,6 @@ public:
      * @return WMError.
      */
     virtual WMError GetWindowStatus(WindowStatus& windowStatus) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-
-    /**
-     * @brief Set the ContinueState of window.
-     *
-     * @param continueState of the window.
-     * @return Errorcode of window.
-     */
-    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
 
     /**
      * @brief Notify host that UIExtension timeout
