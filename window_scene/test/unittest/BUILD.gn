@@ -55,6 +55,7 @@ group("unittest") {
     "event_distribution:ws_scene_session_event_test",
     "event_distribution:ws_session_event_test",
     "event_distribution:ws_window_session_property_event_test",
+    "layout:ws_layout_test",
     "rotation:ws_scene_session_manager_rotation_test",
     "rotation:ws_scene_session_rotation_test",
     "rotation:ws_window_session_property_rotation_test",
