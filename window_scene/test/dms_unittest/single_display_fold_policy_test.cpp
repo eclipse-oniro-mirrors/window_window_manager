@@ -457,7 +457,7 @@ HWTEST_F(SingleDisplayFoldPolicyTest, SetdisplayModeChangeStatus01, TestSize.Lev
     bool status = true;
 
     policy.SetdisplayModeChangeStatus(status);
-    EXPECT_EQ(policy.pengdingTask_, 3);
+    EXPECT_EQ(policy.pengdingTask_, 4);
 }
 
 /**
@@ -474,7 +474,7 @@ HWTEST_F(SingleDisplayFoldPolicyTest, SetdisplayModeChangeStatus02, TestSize.Lev
     bool status = false;
 
     policy.SetdisplayModeChangeStatus(status);
-    EXPECT_NE(policy.pengdingTask_, 3);
+    EXPECT_NE(policy.pengdingTask_, 4);
 }
 
 /**
