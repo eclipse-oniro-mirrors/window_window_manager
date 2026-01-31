@@ -18963,6 +18963,29 @@ void SceneSessionManager::NotifyWindowSystemBarPropertyChange(
     SessionManagerAgentController::GetInstance().NotifyWindowSystemBarPropertyChange(type, systemBarProperty);
 }
 
+const std::vector<sptr<SceneSession>> SceneSessionManager::GetActiveSceneSessionCopy()
+{
+    std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
+    {
+        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+        sceneSessionMapCopy = sceneSessionMap_;
+    }
+    std::vector<sptr<SceneSession>> activeSession;
+    for (const auto& elem : sceneSessionMapCopy) {
+        auto curSession = elem.second;
+        if (curSession == nullptr) {
+            TLOGW(WmsLogTag::DEFAULT, "curSession nullptr");
+            continue;
+        }
+        if (curSession->GetSessionInfo().isSystem_ ||
+            (!curSession->IsSessionForeground())) {
+             continue;
+         }
+        activeSession.push_back(curSession);
+    }
+    return activeSession;
+}
+
 WMError SceneSessionManager::MinimizeByWindowId(const std::vector<int32_t>& windowIds)
 {
     if (!SessionPermission::IsSystemServiceCalling()) {
@@ -19000,29 +19023,6 @@ WMError SceneSessionManager::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
         }
     }
     return WMError::WM_OK;
-}
-
-const std::vector<sptr<SceneSession>> SceneSessionManager::GetActiveSceneSessionCopy()
-{
-    std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
-    {
-        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        sceneSessionMapCopy = sceneSessionMap_;
-    }
-    std::vector<sptr<SceneSession>> activeSession;
-    for (const auto& elem : sceneSessionMapCopy) {
-        auto curSession = elem.second;
-        if (curSession == nullptr) {
-            TLOGW(WmsLogTag::DEFAULT, "curSession nullptr");
-            continue;
-        }
-        if (curSession->GetSessionInfo().isSystem_ ||
-            (!curSession->IsSessionForeground())) {
-             continue;
-         }
-        activeSession.push_back(curSession);
-    }
-    return activeSession;
 }
 
 void SceneSessionManager::RegisterHookSceneSessionActivationFunc(const sptr<SceneSession>& sceneSession)
