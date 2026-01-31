@@ -145,6 +145,7 @@
             OHOS::Rosen::SceneSessionManager::RequestSceneSessionByCall*;
             OHOS::Rosen::SceneSessionManager::RequestSceneSessionDestruction*;
             OHOS::Rosen::SceneSessionManager::SendTouchEvent*;
+            OHOS::Rosen::SceneSessionManager::SendAxisEvent*;
             OHOS::Rosen::SceneSessionManager::SetAbilityManagerCollaboratorRegisteredFunc*;
             OHOS::Rosen::SceneSessionManager::SetAlivePersistentIds*;
             OHOS::Rosen::SceneSessionManager::SetAppDragResizeTypeInner*;

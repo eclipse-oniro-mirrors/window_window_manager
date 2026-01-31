@@ -197,6 +197,11 @@ public:
     static napi_value SetIsPipEnabled(napi_env env, napi_callback_info info);
     static napi_value GetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
 
+    /*
+     * Window Event
+     */
+    static napi_value SendAxisEvent(napi_env env, napi_callback_info info);
+
 private:
     napi_value OnSetBehindWindowFilterEnabled(napi_env env, napi_callback_info info);
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
@@ -396,6 +401,7 @@ private:
     void OnWatchGestureConsumeResult(int32_t keyCode, bool isConsumed);
     void RegisterWatchFocusActiveChangeCallback();
     void OnWatchFocusActiveChange(bool isActive);
+    napi_value OnSendAxisEvent(napi_env env, napi_callback_info info);
 
     /*
      * Window Lifecycle
