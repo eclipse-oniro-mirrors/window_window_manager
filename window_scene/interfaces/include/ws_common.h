@@ -54,8 +54,8 @@ constexpr int32_t WINDOW_SUPPORT_MODE_MAX_SIZE = 4;
 constexpr int32_t DEFAULT_SCALE_RATIO = 100;
 constexpr uint32_t COLOR_WHITE = 0xffffffff;
 constexpr uint32_t COLOR_BLACK = 0xff000000;
-const std::string WINDOW_SCREEN_LOCK_PREFIX = "windowLock_";
-const std::string VIEW_SCREEN_LOCK_PREFIX = "viewLock_";
+extern const std::string WINDOW_SCREEN_LOCK_PREFIX;
+extern const std::string VIEW_SCREEN_LOCK_PREFIX;
 constexpr int32_t DEFAULT_INVALID_WINDOW_MODE = 0;
 constexpr uint32_t ICON_MAX_SIZE = 128 * 1024 * 1024;
 
