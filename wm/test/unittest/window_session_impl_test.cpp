@@ -595,7 +595,7 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus01, TestSize.Level1)
     option->SetWindowName("UpdateFocus01");
     sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
     ASSERT_NE(window, nullptr);
-    auto currentTimeStamp static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
     window->updateFocusTimeStamp_.store(currentTimeStamp);
     auto info = sptr<FocusNotifyInfo>::MakeSptr();
@@ -625,7 +625,7 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus02, TestSize.Level1)
     ASSERT_NE(window1, nullptr);
     window->property_->SetPersistentId(1);
     window1->property_->SetPersistentId(2);
-    auto currentTimeStamp static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count());
     window->updateFocusTimeStamp_.store(currentTimeStamp);
     auto info = sptr<FocusNotifyInfo>::MakeSptr(currentTimeStamp + 1000, window->GetWindowId(),
