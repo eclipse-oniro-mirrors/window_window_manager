@@ -1789,11 +1789,11 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
 napi_value JsSceneSessionManager::OnProcessBackEvent(napi_env env, napi_callback_info info)
 {
     size_t argc = 1;
-    napi_value argv[1] = {};
+    napi_value argv[1] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     int64_t displayIdValue = -1;
     if (argc == 1 && !ConvertFromJsValue(env, argv[0], displayIdValue) {
-        TLOGE(WmsLogTag::WMS_MAIN, "Failed to convert parameter to displayId");
+        TLOGE(WmsLogTag::WMS_FOCUS, "Failed to convert parameter to displayId");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
