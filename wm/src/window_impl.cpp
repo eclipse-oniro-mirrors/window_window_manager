@@ -803,8 +803,8 @@ WMError WindowImpl::SetUIContentInner(const std::string& contentInfo, void* env,
         uiContent_ = std::move(uiContent);
     }
 
-    if (isIgnoreSafeAreaNeedNotify_ && auto uiContent = GetUIContentSharedPtr()) {
-        uiContent->SetIgnoreViewSafeArea(isIgnoreSafeArea_);
+    if (isIgnoreSafeAreaNeedNotify_) {
+        GetUIContentSharedPtr()->SetIgnoreViewSafeArea(isIgnoreSafeArea_);
     }
     UpdateDecorEnable(true);
 
