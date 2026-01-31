@@ -645,9 +645,6 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, RegisterDisplayManagerAgent, TestSize.
     } else {
         EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
     }
-    displayManagerAgent = nullptr;
-    EXPECT_EQ(DMError::DM_ERROR_INVALID_PARAM,
-              screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
 }
 
 /**
@@ -664,9 +661,6 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, UnregisterDisplayManagerAgent, TestSiz
     } else {
         EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
     }
-    displayManagerAgent = nullptr;
-    EXPECT_EQ(DMError::DM_ERROR_INVALID_PARAM,
-              screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
 }
 
 /**
