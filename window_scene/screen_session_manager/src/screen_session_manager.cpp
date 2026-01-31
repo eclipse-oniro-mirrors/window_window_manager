@@ -2028,24 +2028,20 @@ void ScreenSessionManager::HandlePhysicalMirrorConnect(sptr<ScreenSession> scree
             ScreenPowerUtils::EnablePowerForceTimingOut();
             DisablePowerOffRenderControl(0);
         }
-        HandlePhysicalMirrorColorSpaceWithDeiveType();
+        HandlePhysicalMirrorColorSpaceWithDeviceType();
     }
 }
 
-void ScreenSessionManager::HandlePhysicalMirrorColorSpaceWithDeiveType()
+void ScreenSessionManager::HandlePhysicalMirrorColorSpaceWithDeviceType()
 {
     std::string deviceType = DEVICE_TYPE;
     std::transform(deviceType.begin(), deviceType.end(), deviceType.begin(), ::tolower);
-    if (deviceType == "phone" || deviceType == "pc") {
-        HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_SRGB_FULL);
+    if (deviceType == "phone" || deviceType == "pc" || g_isPcDevice) {
+        HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL);
         return;
     }
     if (deviceType == "tablet") {
         RegisterSettingWiredScreenGamutObserver();
-        return;
-    }
-    if (g_isPcDevice) {
-        HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL);
         return;
     }
 }
