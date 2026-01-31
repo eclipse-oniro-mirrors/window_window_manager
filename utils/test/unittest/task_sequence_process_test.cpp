@@ -22,6 +22,7 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
+constexpr uint32_t SLEEP_TIME_IN_US = 100000; // 100ms
 class TaskSequenceProcessTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -47,7 +48,7 @@ void TaskSequenceProcessTest::SetUp() {}
 
 void TaskSequenceProcessTest::TearDown() 
 {
-    usleep(100000);
+    usleep(SLEEP_TIME_IN_US);
 }
 
 namespace {
