@@ -8264,7 +8264,7 @@ WSError SceneSessionManager::RequestSessionFocusImmediately(int32_t persistentId
     }
     auto needBlockNotifyFocusStatusUntilForeground = focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground();
     focusGroup->SetNeedBlockNotifyUnfocusStatus(needBlockNotifyFocusStatusUntilForeground);
-    if (!sceneSession->GetSessionInfo().isSystem_ && !blockNotifyUntilVisible && systemConfig_.isSupportPCMode()) {
+    if (!sceneSession->GetSessionInfo().isSystem_ && !blockNotifyUntilVisible && systemConfig_.IsSupportPCMode()) {
         if (!sceneSession->IsSessionForeground()) {
             focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(true);
         }
