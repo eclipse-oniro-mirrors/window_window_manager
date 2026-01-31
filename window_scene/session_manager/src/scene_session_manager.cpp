@@ -7587,9 +7587,11 @@ void SceneSessionManager::NotifySessionForCallback(const sptr<SceneSession>& sce
         TLOGW(WmsLogTag::DEFAULT, "id: %{public}d is system", sceneSession->GetPersistentId());
         return;
     }
+    TLOGI(WmsLogTag::DEFAULT, "id: %{public}d, needRemoveSession: %{public}u", sceneSession->GetPersistentId(),
+        static_cast<uint32_t>(needRemoveSession));
     if (sceneSession->GetSessionInfo().appIndex_ != 0) {
         TLOGI(WmsLogTag::DEFAULT, "NotifyDestroy, appIndex: %{public}d, id: %{public}d",
-               sceneSession->GetSessionInfo().appIndex_, sceneSession->GetPersistentId());
+            sceneSession->GetSessionInfo().appIndex_, sceneSession->GetPersistentId());
         listenerController_->NotifySessionLifecycleEvent(
             ISessionLifecycleListener::SessionLifecycleEvent::DESTROYED, sceneSession->GetSessionInfo(), reason);
         return;
