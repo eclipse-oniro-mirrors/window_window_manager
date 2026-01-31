@@ -95,7 +95,6 @@ void ScreenSessionManagerClientTest::SetUp()
     {
         std::lock_guard<std::mutex> lock(screenSessionManagerClient_->screenSessionMapMutex_);
         screenSessionManagerClient_->screenSessionMap_.clear();
-        screenSessionManagerClient_->extraScreenSessionMap_.clear();
     }
 }
 
@@ -104,7 +103,6 @@ void ScreenSessionManagerClientTest::TearDown()
     {
         std::lock_guard<std::mutex> lock(screenSessionManagerClient_->screenSessionMapMutex_);
         screenSessionManagerClient_->screenSessionMap_.clear();
-        screenSessionManagerClient_->extraScreenSessionMap_.clear();
     }
     screenSessionManagerClient_ = nullptr;
 }
@@ -196,12 +194,10 @@ HWTEST_F(ScreenSessionManagerClientTest, GetScreenSessionExtra, TestSize.Level1)
     EXPECT_EQ(screenSession, nullptr);
 
     screenSession = new ScreenSession(0, ScreenProperty(), 0);
-    screenSessionManagerClient_->extraScreenSessionMap_.emplace(screenId, screenSession);
 
     auto screenSession2 = screenSessionManagerClient_->GetScreenSessionExtra(screenId);
     EXPECT_EQ(screenSession2, screenSession);
 
-    screenSessionManagerClient_->extraScreenSessionMap_.clear();
     screenSession = screenSessionManagerClient_->GetScreenSessionExtra(screenId);
     EXPECT_EQ(screenSession, nullptr);
 }
