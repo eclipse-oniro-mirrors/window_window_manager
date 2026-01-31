@@ -28,7 +28,7 @@
 namespace OHOS::Rosen {
 namespace {
     const uint32_t FOLD_TO_EXPAND_ONBOOTANIMATION_TASK_NUM = 1;
-    const uint32_t FOLD_TO_EXPAND_TASK_NUM = 3;
+    const uint32_t FOLD_TO_EXPAND_TASK_NUM = 4;
     constexpr uint32_t SECONDARY_FOLD_TO_EXPAND_TASK_NUM = 3;
 }
 

@@ -34,6 +34,7 @@ namespace OHOS::Rosen {
 namespace {
 const ScreenId SCREEN_ID_MAIN = 0;
 const ScreenId SCREEN_ID_SUB = 5;
+const uint32_t FOLD_TO_EXPAND_TASK_DUAL_NUM = 3;
 const bool IS_COORDINATION_SUPPORT =
     OHOS::system::GetBoolParameter("const.window.foldabledevice.is_coordination_support", false);
 const std::string g_FoldScreenRect = system::GetParameter("const.display.foldscreen.crease_region", "");
@@ -117,7 +118,7 @@ void DualDisplayFoldPolicy::GetFoldCreaseRect(bool isVertical,
 void DualDisplayFoldPolicy::SetdisplayModeChangeStatus(bool status, bool isOnBootAnimation)
 {
     if (status) {
-        pengdingTask_ = isOnBootAnimation ? FOLD_TO_EXPAND_ONBOOTANIMATION_TASK_NUM : FOLD_TO_EXPAND_TASK_NUM;
+        pengdingTask_ = isOnBootAnimation ? FOLD_TO_EXPAND_ONBOOTANIMATION_TASK_NUM : FOLD_TO_EXPAND_TASK_DUAL_NUM;
         startTimePoint_ = std::chrono::steady_clock::now();
         displayModeChangeRunning_ = status;
     } else {
