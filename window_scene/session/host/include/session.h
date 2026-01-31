@@ -155,6 +155,12 @@ enum class LifeCycleTaskType : uint32_t {
     STOP
 };
 
+enum class SessionType : uint32_t {
+    Session,
+    SceneSession,
+    ExtensionSession
+};
+
 enum class DetectTaskState : uint32_t {
     NO_TASK,
     ATTACH_TASK,
@@ -190,6 +196,10 @@ public:
     };
     explicit Session(const SessionInfo& info);
     virtual ~Session();
+    virtual SessionType GetSessionType() const
+    {
+        return SessionType::Session;
+    };
     bool isKeyboardPanelEnabled_ = false;
     virtual void SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
         const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler = nullptr);
