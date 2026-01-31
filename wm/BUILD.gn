@@ -353,6 +353,7 @@ ohos_shared_library("libwm") {
       "-mno-fix-cortex-a53-843419"
     ]
   }
+
   part_name = "window_manager"
   subsystem_name = "window"
 

@@ -537,15 +537,6 @@ public:
     virtual WSError GetWaterfallMode(bool& isWaterfallMode) { return WSError::WS_OK; }
 
     /**
-     * @brief Callback for setting the window support modes.
-     *
-     * @param supportedWindowModes Indicates the {@link AppExecFwk::SupportWindowMode}.
-     * @return Returns WSError::WS_OK if called success, otherwise failed.
-     */
-    virtual WSError NotifySupportWindowModesChange(
-        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) { return WSError::WS_OK; }
-
-    /**
      * @brief set session label and icon
      *
      * @param label
@@ -558,6 +549,15 @@ public:
         const std::shared_ptr<Media::PixelMap>& icon) { return WSError::WS_OK; }
 
     virtual WSError ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption) { return WSError::WS_OK; };
+
+    /**
+     * @brief Callback for setting the window support modes.
+     *
+     * @param supportedWindowModes Indicates the {@link AppExecFwk::SupportWindowMode}.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError NotifySupportWindowModesChange(
+        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) { return WSError::WS_OK; }
 
     /**
      * @brief Start Moving window with coordinate.
