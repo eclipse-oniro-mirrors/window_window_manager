@@ -170,6 +170,13 @@ public:
     void SetWindowTitleButtonVisible(ani_env* env, ani_object visibleParam);
     void Restore(ani_env* env);
     void HideWindowFunction(ani_env* env, WmErrorCode errCode);
+
+    /*
+     * Multi Window
+     */
+    static void EnableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void DisableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+
     /*
      * Window Layout
      */
@@ -330,6 +337,12 @@ private:
     bool OnIsImmersiveLayout(ani_env* env);
     void OnKeepKeyboardOnFocus(ani_env* env, ani_boolean keepKeyboardFlag);
     void OnRestoreMainWindow(ani_env* env, ani_object wantParameters);
+
+    /*
+     * Multi Window
+     */
+    void OnEnableLandscapeMultiWindow(ani_env* env);
+    void OnDisableLandscapeMultiWindow(ani_env* env);
 
     /*
      * Window Layout

@@ -4942,6 +4942,60 @@ ani_object AniWindow::HandlePositionTransform(
     return AniWindowUtils::CreateAniPosition(env, outPosition);
 }
 
+void AniWindow::EnableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj)
+{
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (!aniWindow) {
+        TLOGE(WmsLogTag::WMS_MULTI_WINDOW, "[ANI] aniWindow is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->OnEnableLandscapeMultiWindow(env);
+}
+
+void AniWindow::OnEnableLandscapeMultiWindow(ani_env* env)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_MULTI_WINDOW, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    WMError ret = windowToken_->SetLandscapeMultiWindow(true);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_MULTI_WINDOW, "[ANI] Failed, windowId: %{public}u, ret: %{public}d",
+            windowToken_->GetWindowId(), static_cast<int32_t>(ret));
+        AniWindowUtils::AniThrowError(env, ret);
+        return;
+    }
+}
+
+void AniWindow::DisableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj)
+{
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (!aniWindow) {
+        TLOGE(WmsLogTag::WMS_MULTI_WINDOW, "[ANI] aniWindow is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->OnDisableLandscapeMultiWindow(env);
+}
+
+void AniWindow::OnDisableLandscapeMultiWindow(ani_env* env)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_MULTI_WINDOW, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    WMError ret = windowToken_->SetLandscapeMultiWindow(false);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_MULTI_WINDOW, "[ANI] Failed, windowId: %{public}u, ret: %{public}d",
+            windowToken_->GetWindowId(), static_cast<int32_t>(ret));
+        AniWindowUtils::AniThrowError(env, ret);
+        return;
+    }
+}
+
 ani_object AniWindow::CreateAniWindow(ani_env* env, OHOS::sptr<OHOS::Rosen::Window>& window)
 __attribute__((no_sanitize("cfi")))
 {
@@ -6606,6 +6660,10 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(Restore)},
         ani_native_function {"restoreMainWindow", "lC{std.core.Record}:",
             reinterpret_cast<void *>(AniWindow::RestoreMainWindow)},
+        ani_native_function {"enableLandscapeMultiWindow", "l:",
+            reinterpret_cast<void *>(AniWindow::EnableLandscapeMultiWindow)},
+        ani_native_function {"disableLandscapeMultiWindow", "l:",
+            reinterpret_cast<void *>(AniWindow::DisableLandscapeMultiWindow)},
     };
     for (auto method : methods) {
         if ((ret = env->Class_BindNativeMethods(cls, &method, 1u)) != ANI_OK) {
