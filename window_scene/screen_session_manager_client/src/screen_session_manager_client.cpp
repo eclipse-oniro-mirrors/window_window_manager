@@ -904,7 +904,7 @@ bool ScreenSessionManagerClient::IsFoldable()
         return isFoldable_.load();
     }
     if (!screenSessionManager_) {
-        WTLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
+        TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return false;
     }
     isFoldable_ = screenSessionManager_->IsFoldable();
