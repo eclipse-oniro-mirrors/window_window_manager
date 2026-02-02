@@ -258,7 +258,7 @@ CWindowProperties CJWindowImpl::GetWindowProperties(int32_t* errCode)
         return wp;
     }
     Rect drawableRect = g_emptyRect;
-    auto uicontent = windowToken_->GetUIContent();
+    auto uicontent =   ->GetUIContent();
     if (uicontent == nullptr) {
         TLOGW(WmsLogTag::WMS_DIALOG, "uicontent is nullptr");
     } else {
