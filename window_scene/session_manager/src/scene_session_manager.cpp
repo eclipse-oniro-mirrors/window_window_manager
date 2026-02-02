@@ -13868,15 +13868,18 @@ bool SceneSessionManager::IsNeedNotifyScreenshotEvent(const sptr<SceneSession>& 
         return false;
     }
     auto state = sceneSession->GetSessionState();
-    if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
+    auto winType = sceneSession->GetWindowType();
+    if (WindowHelper::IsSubWindow(winType) || WindowHelper::IsDialogWindow(winType)) {
         int32_t mainWinId = INVALID_SESSION_ID;
         auto mainSession = sceneSession->GetMainSession();
         if (mainSession != nullptr) {
             state = mainSession->GetSessionState();
             mainWinId = mainSession->GetWindowId();
         }
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], state=%{public}u, mainWinId=%{public}d",
-            sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), state, mainWinId);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+            "win=[%{public}d, %{public}s], state=%{public}u, winType=%{public}d, mainWinId=%{public}d",
+            sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), state, static_cast<int32_t>(winType),
+            mainWinId);
     }
     return state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE;
 }
