@@ -497,7 +497,7 @@ public:
     void OnFoldStatusChange(bool isSwitching);
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag();
-    void WaitForCoordinationReady();
+    void WaitForCoordinationReady(std::unique_lock<std::mutex>& lock);
     void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady);
     bool GetWaitingForCoordinationReady() const;
     void NotifyCoordinationReadyCV();
@@ -1129,7 +1129,6 @@ private:
     std::shared_mutex rotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
     std::atomic<bool> isCoordinationReady_ = false;
-    std::mutex coordinationReadyMutex_;
     std::condition_variable coordinationReadyCV_;
     std::atomic<bool> isWaitingForCoordinationReady_ = false;
     std::atomic<int32_t> waitCoordinationReadyMaxTime_ = 1500; // ms
