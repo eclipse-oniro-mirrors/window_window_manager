@@ -1029,7 +1029,7 @@ void WindowSceneSessionImpl::InitSubSessionDragEnable()
 
 void WindowSceneSessionImpl::InitSystemSessionDragEnable()
 {
-    if (WindowHelper::IsDialogWindow(GetType())) {
+    if (WindowHelper::IsDialogWindow(GetType()) && IsPcOrPadFreeMultiWindowMode()) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "dialogWindow default draggable, should not init false, id: %{public}d",
             GetPersistentId());
         return;
@@ -3680,10 +3680,9 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const P
             return pair.first == owner && pair.second.flag_ == prop.flag_;
         });
         if (it != ownPropList.end()) {
-            it->second = prop;
             ownPropList.erase(it);
         }
-        auto insertPair = it == ownPropList.end() ? OwnSystemBarPropertyPair(owner, prop) : *it;
+        auto insertPair = OwnSystemBarPropertyPair(owner, prop);
         auto insertIt = ownPropList.begin();
         // ABILITY_RUNTIME properties should always be head node
         if (owner != SystemBarPropertyOwner::ABILITY_RUNTIME) {
@@ -5350,7 +5349,7 @@ WMError WindowSceneSessionImpl::GetWindowCornerRadius(float& cornerRadius)
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (!windowSystemConfig_.IsPcWindow() && !windowSystemConfig_.IsPadWindow() &&
-            !windowSystemConfig_.IsPhoneWindow()) {
+        !windowSystemConfig_.IsPhoneWindow()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "This is not PC, pad or phone, not supported.");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

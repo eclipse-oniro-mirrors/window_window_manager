@@ -455,10 +455,6 @@ void SubSession::AddSurfaceNodeToScreen(DisplayId draggingOrMovingParentDisplayI
             TLOGE(WmsLogTag::WMS_LAYOUT, "ScreenSession is null");
             continue;
         }
-        if (screenSession->GetDisplayNode() == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "DisplayNode is null");
-            continue;
-        }
         if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
             TLOGD(WmsLogTag::WMS_LAYOUT, "virtual screen, no need to add cross parent child");
             continue;
@@ -495,16 +491,17 @@ void SubSession::RemoveSurfaceNodeFromScreen()
             TLOGE(WmsLogTag::WMS_LAYOUT, "ScreenSession is null");
             continue;
         }
-        if (screenSession->GetDisplayNode() == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "DisplayNode is null");
-            continue;
-        }
         if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
             TLOGD(WmsLogTag::WMS_LAYOUT, "virtual screen, no need to remove cross parent child");
             continue;
         }
+        auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
+        if (dragMoveMountedNode == nullptr) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
+            continue;
+        }
         currSurfacedNode->SetPositionZ(moveDragController_->GetOriginalPositionZ());
-        screenSession->GetDisplayNode()->RemoveCrossScreenChild(currSurfacedNode);
+        dragMoveMountedNode->RemoveCrossScreenChild(currSurfacedNode);
         cloneNodeCount_--;
         currSurfacedNode->SetIsCrossNode(false);
         TLOGI(WmsLogTag::WMS_LAYOUT, "Remove sub window from display:%{public}" PRIu64 " persistentId:%{public}d, "

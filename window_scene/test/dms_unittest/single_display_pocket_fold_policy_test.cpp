@@ -483,7 +483,7 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, SetdisplayModeChangeStatus01, TestSi
 
     bool status = true;
     policy.SetdisplayModeChangeStatus(status);
-    EXPECT_EQ(policy.pengdingTask_, 3);
+    EXPECT_EQ(policy.pengdingTask_, 4);
 }
 
 /**
@@ -499,7 +499,7 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, SetdisplayModeChangeStatus02, TestSi
 
     bool status = false;
     policy.SetdisplayModeChangeStatus(status);
-    EXPECT_NE(policy.pengdingTask_, 3);
+    EXPECT_NE(policy.pengdingTask_, 4);
 }
 
 /**

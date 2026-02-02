@@ -551,12 +551,12 @@ WSError SessionProxy::PendingSessionActivation(sptr<AAFwk::SessionInfo> abilityS
         TLOGE(WmsLogTag::WMS_LIFE, "Write scenarios failed.");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!data.WriteParcelable(abilitySessionInfo->windowCreateParams.get())) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write windowCreateParams failed");
-        return WSError::WS_ERROR_IPC_FAILED;
-    }
     if (!data.WriteBool(abilitySessionInfo->hideStartWindow)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write hideStartWindow failed.");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteParcelable(abilitySessionInfo->windowCreateParams.get())) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write windowCreateParams failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (!data.WriteBool(abilitySessionInfo->isPrelaunch)) {
@@ -3806,34 +3806,6 @@ WSError SessionProxy::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
     return static_cast<WSError>(ret);
 }
 
-WSError SessionProxy::UpdateFlag(const std::string& flag)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option(MessageOption::TF_ASYNC);
-    if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_MAIN, "WriteInterfaceToken failed");
-        return WSError::WS_ERROR_IPC_FAILED;
-    }
-    if (!data.WriteString(flag)) {
-        TLOGE(WmsLogTag::WMS_MAIN, "Write flag failed");
-        return WSError::WS_ERROR_IPC_FAILED;
-    }
-    TLOGD(WmsLogTag::WMS_MAIN, "specifiedFlag: %{public}s", flag.c_str());
-    sptr<IRemoteObject> remote = Remote();
-    if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_MAIN, "remote is null");
-        return WSError::WS_ERROR_IPC_FAILED;
-    }
-    if (remote->SendRequest(
-        static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_FLAG),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_MAIN, "SendRequest failed");
-        return WSError::WS_ERROR_IPC_FAILED;
-    }
-    return WSError::WS_OK;
-}
-
 WSError SessionProxy::SetPipParentWindowId(uint32_t windowId)
 {
     TLOGD(WmsLogTag::WMS_PIP, "ParentWindowId: %{public}u", windowId);
@@ -3923,6 +3895,34 @@ WSError SessionProxy::UpdateRotationChangeRegistered(int32_t persistentId, bool 
         static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_ROTATION_CHANGE),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SessionProxy::UpdateFlag(const std::string& flag)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_MAIN, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString(flag)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Write flag failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    TLOGD(WmsLogTag::WMS_MAIN, "specifiedFlag: %{public}s", flag.c_str());
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_FLAG),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_MAIN, "SendRequest failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     return WSError::WS_OK;

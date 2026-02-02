@@ -20,6 +20,10 @@
  
 namespace OHOS {
 namespace Rosen {
+
+const std::string ANI_EVENT_CONNECT = "connect";
+const std::string ANI_EVENT_DISCONNECT = "disconnect";
+const std::string ANI_EVENT_CHANGE = "change";
  
 ScreenAniListener::~ScreenAniListener()
 {

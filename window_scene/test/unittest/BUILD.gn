@@ -53,6 +53,7 @@ group("unittest") {
     "event_distribution:ws_scene_input_manager_test",
     "event_distribution:ws_scene_session_dirty_manager_test2",
     "event_distribution:ws_scene_session_event_test",
+    "event_distribution:ws_scene_session_manager_event_test",
     "event_distribution:ws_session_event_test",
     "event_distribution:ws_window_session_property_event_test",
     "rotation:ws_scene_session_manager_rotation_test",
@@ -657,6 +658,39 @@ ohos_unittest("ws_scene_session_manager_two_test") {
     "scene_session_manager_test10.cpp",
     "scene_session_manager_test11.cpp",
     "scene_session_manager_test12.cpp",
+  ]
+
+  cflags_cc = [ "-Wno-thread-safety" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:configuration",
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:ability_manager",
+    "ability_runtime:app_context",
+    "ability_runtime:mission_info",
+    "ability_runtime:runtime",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+    "eventhandler:libeventhandler",
+    "safwk:system_ability_fwk",
+  ]
+}
+
+ohos_unittest("ws_uea_list_config_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/test/mock",
+  ]
+
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "uea_list_config_test.cpp",
   ]
 
   cflags_cc = [ "-Wno-thread-safety" ]

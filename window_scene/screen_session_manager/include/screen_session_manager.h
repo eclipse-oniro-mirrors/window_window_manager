@@ -267,7 +267,7 @@ public:
     bool IsMultiScreenCollaboration();
     bool HasCastEngineOrPhyMirror(const std::vector<ScreenId>& screenIdsToExclude);
     void HandlePhysicalMirrorConnect(sptr<ScreenSession> screenSession, bool phyMirrorEnable);
-    void HandlePhysicalMirrorColorSpaceWithDeiveType();
+    void HandlePhysicalMirrorColorSpaceWithDeviceType();
     void HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType colorSpace);
     sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId) override;
     sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId, int32_t width, int32_t height, Rotation rotation) override;
@@ -962,7 +962,7 @@ private:
     bool userSwitching_ = false;
     bool isAutoRotationOpen_ = false;
     bool isExpandCombination_ = false;
-    bool isCoordinationFlag_ = false;
+    std::atomic<bool> isCoordinationFlag_ = false;
     bool isFoldScreenOuterScreenReady_ = false;
     bool isCameraBackSelfie_ = false;
     bool isDeviceShutDown_ = false;
@@ -1000,7 +1000,7 @@ private:
      */
     bool isMultiScreenCollaboration_ = false;
     bool screenPrivacyStates = false;
-    bool keyguardDrawnDone_ = true;
+    std::atomic<bool> keyguardDrawnDone_ = true;
     bool needScreenOnWhenKeyguardNotify_ = false;
     bool gotScreenOffNotify_ = false;
     bool needScreenOffNotify_ = false;

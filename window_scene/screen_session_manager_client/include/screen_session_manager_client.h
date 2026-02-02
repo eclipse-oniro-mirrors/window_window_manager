@@ -59,10 +59,8 @@ public:
     void RegisterScreenConnectionListener(IScreenConnectionListener* listener);
     void RegisterDisplayChangeListener(const sptr<IDisplayChangeListener>& listener);
     void RegisterScreenConnectionChangeListener(const sptr<IScreenConnectionChangeListener>& listener);
-    void ExtraDestroyScreen(ScreenId screenId);
 
     sptr<ScreenSession> GetScreenSession(ScreenId screenId) const;
-    sptr<ScreenSession> GetScreenSessionExtra(ScreenId screenId) const;
     std::map<ScreenId, ScreenProperty> GetAllScreensProperties() const;
     FoldDisplayMode GetFoldDisplayMode() const;
 
@@ -196,7 +194,6 @@ private:
 
     mutable std::mutex screenSessionMapMutex_;
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMap_;
-    std::map<ScreenId, sptr<ScreenSession>> extraScreenSessionMap_;
     std::function<void()> switchingToAnotherUserFunc_ = nullptr;
 
     sptr<IScreenSessionManager> screenSessionManager_;

@@ -545,6 +545,29 @@ ani_status AniWindowUtils::GetDoubleObject(ani_env* env, ani_object double_objec
     return ret;
 }
 
+ani_status AniWindowUtils::GetIntInObject(ani_env* env, ani_object int_object, int32_t& result)
+{
+    ani_boolean isUndefined;
+    ani_status isUndefinedRet = env->Reference_IsUndefined(int_object, &isUndefined);
+    if (ANI_OK != isUndefinedRet) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Check int_object isUndefined fail");
+        return isUndefinedRet;
+    }
+    if (isUndefined) {
+        TLOGI(WmsLogTag::DEFAULT, "[ANI] CallMeWithOptionalInt Not Pass Value");
+        return ANI_INVALID_ARGS;
+    }
+    ani_int int_value;
+    ani_status ret = env->Object_CallMethodByName_Int(int_object, "intValue", nullptr, &int_value);
+    if (ANI_OK != ret) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_CallMethodByName_Int Failed!");
+        return ret;
+    }
+    result = static_cast<int32_t>(int_value);
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] int result is: %{public}d", result);
+    return ret;
+}
+
 ani_status AniWindowUtils::GetIntVector(ani_env* env, ani_object ary, std::vector<int32_t>& result)
 {
     ani_size size = 0;
@@ -1811,9 +1834,9 @@ ani_object AniWindowUtils::CreateAniMainWindowInfo(ani_env* env, const MainWindo
         TLOGE(WmsLogTag::WMS_LIFE, "[ANI] create string failed");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
     }
-    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>displayId", nullptr, ani_double(info.displayId_));
+    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>displayId", nullptr, ani_long(info.displayId_));
     CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>showing", nullptr, ani_boolean(info.showing_));
-    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>windowId", nullptr, ani_double(info.persistentId_));
+    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>windowId", nullptr, ani_int(info.persistentId_));
     CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>label", nullptr, label);
     return mainWindowInfo;
 }

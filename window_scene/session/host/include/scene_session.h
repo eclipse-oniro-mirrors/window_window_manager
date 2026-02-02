@@ -215,7 +215,10 @@ public:
 
     SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     virtual ~SceneSession();
-
+    SessionType GetSessionType() const override
+    {
+        return SessionType::SceneSession;
+    }
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
@@ -709,6 +712,7 @@ public:
     void SetIsUserRequestedExit(bool isUserRequestedExit);
     void SetGetAllAppUseControlMapFunc(GetAllAppUseControlMapFunc&& callback);
     void CalculatedStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
+    void NotifyPendingSessionActivation(SessionInfo& info);
     bool isRemoving_ = false;
 
     void SendPointerEventToUI(std::shared_ptr<MMI::PointerEvent> pointerEvent);

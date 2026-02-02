@@ -80,7 +80,10 @@ public:
 
     explicit ExtensionSession(const SessionInfo& info);
     virtual ~ExtensionSession();
-
+    SessionType GetSessionType() const override
+    {
+        return SessionType::ExtensionSession;
+    }
     std::shared_ptr<IDataHandler> GetExtensionDataHandler() const;
     void SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
         const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler) override;
