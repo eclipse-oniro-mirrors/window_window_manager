@@ -2882,7 +2882,7 @@ WSError WindowSessionImpl::NotifyHighlightChange(const sptr<HighlightNotifyInfo>
         NotifyHighlightChange(isHighlight);
         return WSError::WS_OK;
     }
-    TLOGI(WmsLogTag::WMS_FOCUS, "timeStamp:%{public}" PRId64 ", highlightId:%{public}d, isHighlight:%{public}d,"
+    TLOGI(WmsLogTag::WMS_FOCUS, "timeStamp:%{public}" PRId64 ", highlightId:%{public}d, isHighlight:%{public}d, "
         "isSyncNotify:%{public}d, current:%{public}" PRId64 ", new:%{public}" PRId64, highlightNotifyInfo->timeStamp_,
         highlightNotifyInfo->highlightId_, isHighlight, highlightNotifyInfo->isSyncNotify_,
         updateHighlightTimeStamp_.load(), highlightNotifyInfo->timeStamp_);
@@ -7476,17 +7476,6 @@ std::vector<sptr<Window>> WindowSessionImpl::GetSubWindow(int parentId)
         return std::vector<sptr<Window>>();
     }
     return std::vector<sptr<Window>>(subWindowSessionMap_[parentId].begin(), subWindowSessionMap_[parentId].end());
-}
-
-bool WindowSessionImpl::IsApplicationModalSubWindowShowing(int32_t parentId)
-{
-    auto subMap = GetSubWindow(parentId);
-    auto applicationModalIndex = std::find_if(subMap.begin(), subMap.end(),
-        [](const auto& subWindow) {
-            return WindowHelper::IsApplicationModalSubWindow(subWindow->GetType(), subWindow->GetWindowFlags()) &&
-                   subWindow->GetWindowState() != WindowState::STATE_SHOWN;
-        });
-    return applicationModalIndex != subMap.end();
 }
 
 uint32_t WindowSessionImpl::GetBackgroundColor() const

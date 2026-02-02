@@ -524,7 +524,7 @@ void JsWindowListener::OnScreenshotAppEvent(ScreenshotEventType type)
         napi_value argv[] = { CreateJsValue(env, static_cast<uint32_t>(type)) };
         thisListener->CallJsMethod(SCREENSHOT_APP_EVENT_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_status::napi_ok != napi_send_event(env_, jsCallback, napi_eprio_high)) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnScreenshotAppEvent") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to send event");
     }
 }
@@ -951,24 +951,6 @@ void JsWindowListener::OnMainWindowClose(bool& terminateCloseProcess)
         AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 
-void JsWindowListener::OnWindowHighlightChange(bool isHighlight)
-{
-    TLOGD(WmsLogTag::WMS_FOCUS, "isHighlight: %{public}d", isHighlight);
-    auto jsCallback = [self = weakRef_, isHighlight, env = env_, where = __func__] {
-        auto thisListener = self.promote();
-        if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::WMS_FOCUS, "%{public}s: this listener or env is nullptr", where);
-            return;
-        }
-        HandleScope handleScope(env);
-        napi_value argv[] = { CreateJsValue(env, isHighlight) };
-        thisListener->CallJsMethod(WINDOW_HIGHLIGHT_CHANGE_CB.c_str(), argv, ArraySize(argv));
-    };
-    if (napi_send_event(env_, jsCallback, napi_eprio_immediate, "OnWindowHighlightChange") != napi_status::napi_ok) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "failed to send event");
-    }
-}
-
 WmErrorCode JsWindowListener::CanCancelUnregister(const std::string& eventType)
 {
     if (eventType == WINDOW_WILL_CLOSE_CB) {
@@ -1052,6 +1034,24 @@ void JsWindowListener::OnWindowWillClose(sptr<Window> window)
     }
     eventHandler_->PostSyncTask(jsCallback, "wms:JsWindowListener::OnWindowWillClose",
         AppExecFwk::EventQueue::Priority::IMMEDIATE);
+}
+
+void JsWindowListener::OnWindowHighlightChange(bool isHighlight)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "isHighlight: %{public}d", isHighlight);
+    auto jsCallback = [self = weakRef_, isHighlight, env = env_, where = __func__] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || env == nullptr) {
+            TLOGNE(WmsLogTag::WMS_FOCUS, "%{public}s: this listener or env is nullptr", where);
+            return;
+        }
+        HandleScope handleScope(env);
+        napi_value argv[] = { CreateJsValue(env, isHighlight) };
+        thisListener->CallJsMethod(WINDOW_HIGHLIGHT_CHANGE_CB.c_str(), argv, ArraySize(argv));
+    };
+    if (napi_send_event(env_, jsCallback, napi_eprio_immediate, "OnWindowHighlightChange") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "failed to send event");
+    }
 }
 
 void JsWindowListener::OnRotationChange(const RotationChangeInfo& rotationChangeInfo,
