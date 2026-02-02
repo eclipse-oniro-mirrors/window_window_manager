@@ -1831,7 +1831,7 @@ int SceneSessionManagerLiteStub::HandleGetDisplayIdByWindowId(MessageParcel& dat
     }
     if (windowIds.size() > MAX_VECTOR_SIZE) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Vector is too big, size is %{public}" PRIu32,
-              static_cast<int32_t>(windowIds.size()));
+            static_cast<int32_t>(windowIds.size()));
         return ERR_INVALID_DATA;
     }
     std::unordered_map<uint64_t, DisplayId> windowDisplayIdMap;
