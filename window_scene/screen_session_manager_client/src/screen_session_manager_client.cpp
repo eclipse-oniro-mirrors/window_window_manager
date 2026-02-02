@@ -207,35 +207,6 @@ void ScreenSessionManagerClient::HandleScreenDisconnectEvent(SessionOption optio
     }
 }
 
-void ScreenSessionManagerClient::ExtraDestroyScreen(ScreenId screenId)
-{
-    sptr<ScreenSession> screenSession = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
-        for (const auto& iter : extraScreenSessionMap_) {
-            sptr<ScreenSession> tempScreenSession = iter.second;
-            if (tempScreenSession != nullptr) {
-                if (tempScreenSession->GetScreenId() == screenId) {
-                    screenSession = tempScreenSession;
-                    break;
-                }
-            }
-        }
-    }
-    if (!screenSession) {
-        TLOGE(WmsLogTag::DMS, "extra screenSession is null");
-        return;
-    }
-    TLOGI(WmsLogTag::DMS, "ScreenId:%{public}" PRIu64 ", rsId:%{public}" PRIu64,
-        screenSession->GetScreenId(), screenSession->GetRSScreenId());
-    {
-        std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
-        screenSession->DestroyScreenScene();
-        extraScreenSessionMap_.erase(screenId);
-    }
-    TLOGI(WmsLogTag::DMS, "end");
-}
-
 void ScreenSessionManagerClient::OnScreenExtendChanged(ScreenId mainScreenId, ScreenId extendScreenId)
 {
     auto screenSession = GetScreenSession(mainScreenId);
@@ -254,17 +225,6 @@ sptr<ScreenSession> ScreenSessionManagerClient::GetScreenSession(ScreenId screen
     auto iter = screenSessionMap_.find(screenId);
     if (iter == screenSessionMap_.end()) {
         TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "Error found screen session with id: %{public}" PRIu64, screenId);
-        return nullptr;
-    }
-    return iter->second;
-}
-
-sptr<ScreenSession> ScreenSessionManagerClient::GetScreenSessionExtra(ScreenId screenId) const
-{
-    std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
-    auto iter = extraScreenSessionMap_.find(screenId);
-    if (iter == extraScreenSessionMap_.end()) {
-        TLOGE(WmsLogTag::DMS, "Error found extra screen session with id: %{public}" PRIu64, screenId);
         return nullptr;
     }
     return iter->second;
@@ -1136,7 +1096,6 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     {
         std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
         screenSessionMap_[option.screenId_] = screenSession;
-        extraScreenSessionMap_[option.screenId_] = screenSession;
     }
     screenSession->SetRotationCorrectionMap(option.rotationCorrectionMap_);
     screenSession->SetSupportsFocus(option.supportsFocus_);
@@ -1210,7 +1169,6 @@ bool ScreenSessionManagerClient::OnCreateScreenSessionOnly(ScreenId screenId, Sc
     {
         std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
         screenSessionMap_[screenId] = screenSession;
-        extraScreenSessionMap_[screenId] = screenSession;
     }
     return true;
 }
