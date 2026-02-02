@@ -4346,6 +4346,9 @@ float ScreenSessionManager::GetOptionalDpi(const float dpi) {
     if (dpi <= EXTEND_SCREEN_DPI_BASELINE + EPSILON) {
         return EXTEND_SCREEN_DPI_BASELINE;
     }
+    if (extendScreenDpiOptions.empty()) {
+        return dpi;
+    }
     auto it = std::lower_bound(extendScreenDpiOptions.begin(), extendScreenDpiOptions.end(), dpi);
     if (it == extendScreenDpiOptions.end()) {
         return extendScreenDpiOptions.back();
@@ -4361,6 +4364,10 @@ float ScreenSessionManager::GetOptionalDpi(const float dpi) {
 void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
     ScreenProperty& property, float& extendDensity)
 {
+    if (!SUPPORT_COMPATIBLE_MODE) {
+        TLOGNFI(WmsLogTag::DMS, "Not Support.");
+        return;
+    }
     const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);

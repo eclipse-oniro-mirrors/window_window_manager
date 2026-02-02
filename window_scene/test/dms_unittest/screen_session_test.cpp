@@ -31,6 +31,7 @@ namespace Rosen {
 namespace {
     constexpr uint32_t SLEEP_TIME_IN_US = 100000; // 100ms
     std::string g_errLog;
+    const bool SUPPORT_COMPATIBLE_MODE = system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 7) == 4;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
@@ -2198,8 +2199,11 @@ HWTEST_F(ScreenSessionTest, screen_session_test012, TestSize.Level1)
  */
 HWTEST_F(ScreenSessionTest, SetExtendPhysicalScreenResolution, TestSize.Level1)
 {
+    if (!SUPPORT_COMPATIBLE_MODE) {
+        GTEST_SKIP();
+    }
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
-    LOG_SetCallback(MyLogCallback);
+    LOG_SetCallback(MyLogCallbackWithAllLog);
     g_errLog.clear();
     session->SetIsInternal(true);
     session->SetExtendPhysicalScreenResolution(true);
