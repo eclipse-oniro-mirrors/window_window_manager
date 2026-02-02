@@ -2791,7 +2791,7 @@ HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange03, TestSize.Level1)
     EXPECT_EQ(mainWindow->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
     info->timeStamp_ = currentTimeStamp + 2000;
     res = mainWindow->NotifyHighlightChange(info, true);
-    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 2000);
+    EXPECT_EQ(mainWindow->updateHighlightTimeStamp_.load(), currentTimeStamp + 2000);
     EXPECT_EQ(res, WSError::WS_OK);
 }
 
