@@ -48,6 +48,7 @@ void TaskSequenceProcessTest::SetUp() {}
 
 void TaskSequenceProcessTest::TearDown() 
 {
+    LOG_SetCallback(nullptr);
     usleep(SLEEP_TIME_IN_US);
 }
 
@@ -190,14 +191,14 @@ HWTEST_F(TaskSequenceProcessTest, ATC_FindMinSnTaskQueueId01, TestSize.Level0)
  */
  HWTEST_F(TaskSequenceProcessTest, ATC_FinishTask01, TestSize.Level0)
  {
-     TaskSequenceProcess process = TaskSequenceProcess(1, 1000);
-     bool taskCallback =  false;
-     std::function<void()> task = [&taskCallback]() {
-         taskCallback =true;
-     };
-     process.PushToQueue(0, {0, task});
-     process.FinishTask();
-     EXPECT_TRUE(taskCallback);
+    TaskSequenceProcess process = TaskSequenceProcess(1, 1000);
+    bool taskCallback =  false;
+    std::function<void()> task = [&taskCallback]() {
+        taskCallback =true;
+    };
+    process.PushToQueue(0, {0, task});
+    process.FinishTask();
+    EXPECT_TRUE(taskCallback);
 }
 
 /**
