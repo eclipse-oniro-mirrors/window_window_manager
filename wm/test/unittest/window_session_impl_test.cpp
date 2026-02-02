@@ -636,7 +636,7 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus02, TestSize.Level1)
     res = window->UpdateFocus(info, false);
     EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 2000);
     info->timeStamp_ = currentTimeStamp + 3000;
-    info->unfocusWindowid_ = 300;
+    info->unfocusWindowId_ = 300;
     res = window->UpdateFocus(info, true);
     EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 3000);
     info->timeStamp_ = currentTimeStamp + 4000;
