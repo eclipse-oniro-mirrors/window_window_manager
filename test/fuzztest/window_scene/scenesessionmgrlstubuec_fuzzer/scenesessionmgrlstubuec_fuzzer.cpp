@@ -140,7 +140,7 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
 
     SceneSessionMgrLsUecTestCode(parcel);
     SceneSessionMgrLsStubFuzzer01(parcel);
-    SceneSessionMgrLsStubFuzzer01(parcel);
+    SceneSessionMgrLsStubFuzzer02(parcel);
     return true;
 }
 } // namespace OHOS
