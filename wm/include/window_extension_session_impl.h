@@ -47,7 +47,7 @@ public:
         bool isModuleAbilityHookEnd = false) override;
     WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
-    WMError Resize(uint32_t width, uint32_t height, const RectAnimationConfig& rectAnimationConfig = {}) override;
+    WMError Resize(uint32_t width, uint32_t height) override;
     WMError TransferAbilityResult(uint32_t resultCode, const AAFwk::Want& want) override;
     WMError TransferExtensionData(const AAFwk::WantParams& wantParams) override;
     WSError NotifyTransferComponentData(const AAFwk::WantParams& wantParams) override;

@@ -1964,8 +1964,7 @@ void SceneSession::SetSessionRectChangeCallback(const NotifySessionRectChangeFun
             if (session->GetClientDisplayId() == VIRTUAL_DISPLAY_ID && rect.posY_ == 0) {
                 rect.posY_ += PcFoldScreenManager::GetInstance().GetVirtualDisplayPosY();
             }
-            auto rectAnimationConfig = session->GetRequestRectAnimationConfig();
-            session->sessionRectChangeFunc_(rect, reason, DISPLAY_ID_INVALID, rectAnimationConfig);
+            session->sessionRectChangeFunc_(rect, reason, DISPLAY_ID_INVALID);
         }
         return WSError::WS_OK;
     }, __func__);
@@ -2173,12 +2172,12 @@ WMError SceneSession::IsPiPActive(bool& status)
 /** @note @window.layout */
 // set rect info and notify rect change who is register call back
 void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
-    const MoveConfiguration& moveConfiguration, const RectAnimationConfig& rectAnimationConfig)
+    const MoveConfiguration& moveConfiguration)
 {
     auto newWinRect = GetSessionRect();
     auto newRequestRect = GetSessionRequestRect();
     bool isScbCoreEnabled = Session::IsScbCoreEnabled();
-    if (reason == SizeChangeReason::MOVE || reason == SizeChangeReason::MOVE_WITH_ANIMATION) {
+    if (reason == SizeChangeReason::MOVE) {
         newWinRect.posX_ = rect.posX_;
         newWinRect.posY_ = rect.posY_;
         newRequestRect.posX_ = rect.posX_;
@@ -2187,10 +2186,8 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
             SetSessionRect(newWinRect);
         }
         SetSessionRequestRect(newRequestRect);
-        SetRequestRectAnimationConfig(moveConfiguration.rectAnimationConfig);
-        NotifySessionRectChange(newRequestRect, reason, moveConfiguration.displayId,
-            moveConfiguration.rectAnimationConfig);
-    } else if (reason == SizeChangeReason::RESIZE || reason == SizeChangeReason::RESIZE_WITH_ANIMATION) {
+        NotifySessionRectChange(newRequestRect, reason, moveConfiguration.displayId);
+    } else if (reason == SizeChangeReason::RESIZE) {
         if (rect.width_ > 0 && rect.height_ > 0) {
             newWinRect.width_ = rect.width_;
             newWinRect.height_ = rect.height_;
@@ -2200,16 +2197,12 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
         if (!isScbCoreEnabled && GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
             SetSessionRect(newWinRect);
         }
-        SetRequestRectAnimationConfig(rectAnimationConfig);
-        DisplayId displayId = GetSessionProperty() != nullptr ? GetSessionProperty()->GetDisplayId() :
-            DISPLAY_ID_INVALID;
-        TLOGI(WmsLogTag::WMS_LAYOUT, "Get displayId: %{public}" PRIu64, displayId);
         auto notifyRect = newRequestRect;
         if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId())) {
             notifyRect = rect;
         }
         SetSessionRequestRect(notifyRect);
-        NotifySessionRectChange(notifyRect, reason, displayId, rectAnimationConfig);
+        NotifySessionRectChange(notifyRect, reason);
     } else {
         if (!isScbCoreEnabled) {
             SetSessionRect(rect);
@@ -2269,12 +2262,11 @@ void SceneSession::UpdateSessionRectPosYFromClient(SizeChangeReason reason, Disp
 
 /** @note @window.layout */
 WSError SceneSession::UpdateSessionRect(
-    const WSRect& rect, SizeChangeReason reason, bool isGlobal, bool isFromMoveToGlobal,
-    const MoveConfiguration& moveConfiguration, const RectAnimationConfig& rectAnimationConfig)
+    const WSRect& rect, SizeChangeReason reason, bool isGlobal,
+    bool isFromMoveToGlobal, MoveConfiguration moveConfiguration)
 {
-    bool isMoveOrResize = reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE ||
-        reason == SizeChangeReason::MOVE_WITH_ANIMATION || reason == SizeChangeReason::RESIZE_WITH_ANIMATION;
-    if (isMoveOrResize && GetWindowType() == WindowType::WINDOW_TYPE_PIP) {
+    if ((reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE) &&
+        GetWindowType() == WindowType::WINDOW_TYPE_PIP) {
         return WSError::WS_DO_NOTHING;
     }
     WSRect newRect = rect;
@@ -2302,14 +2294,14 @@ WSError SceneSession::UpdateSessionRect(
             newRect.posY_ = (newRect.posY_ - mainGlobalRect.posY_) / mainSession->GetFloatingScale();
         }
     }
-    PostTask([weakThis = wptr(this), newRect, reason, newMoveConfiguration, rectAnimationConfig, where = __func__] {
+    PostTask([weakThis = wptr(this), newRect, reason, newMoveConfiguration, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         session->SetRequestMoveConfiguration(newMoveConfiguration);
-        session->UpdateSessionRectInner(newRect, reason, newMoveConfiguration, rectAnimationConfig);
+        session->UpdateSessionRectInner(newRect, reason, newMoveConfiguration);
         return WSError::WS_OK;
     }, __func__ + GetRectInfo(rect));
     return WSError::WS_OK;
@@ -2334,10 +2326,9 @@ WSError SceneSession::UpdateGlobalDisplayRectFromClient(const WSRect& rect, Size
         // compatible with the original logic of UpdateSessionRectInner.
         const auto& [screenId, screenRelativeRect] =
             SessionCoordinateHelper::GlobalToScreenRelativeRect(session->GetScreenId(), rect);
-        RectAnimationConfig animConfig;
-        MoveConfiguration moveConfig = { screenId, animConfig };
+        MoveConfiguration moveConfig = { screenId };
         session->SetRequestMoveConfiguration(moveConfig);
-        session->UpdateSessionRectInner(screenRelativeRect, reason, moveConfig, animConfig);
+        session->UpdateSessionRectInner(screenRelativeRect, reason, moveConfig);
     }, __func__ + GetRectInfo(rect));
     return WSError::WS_OK;
 }
@@ -4116,13 +4107,13 @@ void SceneSession::RotateDragWindow(std::shared_ptr<RSTransaction> rsTransaction
 
 /** @note @window.layout */
 void SceneSession::NotifySessionRectChange(const WSRect& rect,
-    SizeChangeReason reason, DisplayId displayId, const RectAnimationConfig& rectAnimationConfig)
+    SizeChangeReason reason, DisplayId displayId)
 {
     if (IsDragResizeScale(reason)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "compatiblemode drag scale no need notify rect change");
         return;
     }
-    PostTask([weakThis = wptr(this), rect, reason, displayId, rectAnimationConfig, where = __func__] {
+    PostTask([weakThis = wptr(this), rect, reason, displayId, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s session is null", where);
@@ -4130,7 +4121,7 @@ void SceneSession::NotifySessionRectChange(const WSRect& rect,
         }
         if (session->sessionRectChangeFunc_) {
             HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::NotifySessionRectChange");
-            session->sessionRectChangeFunc_(rect, reason, displayId, rectAnimationConfig);
+            session->sessionRectChangeFunc_(rect, reason, displayId);
         }
     }, __func__ + GetRectInfo(rect));
 }
