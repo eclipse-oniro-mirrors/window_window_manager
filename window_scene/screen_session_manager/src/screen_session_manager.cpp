@@ -14458,10 +14458,10 @@ Rotation ScreenSessionManager::GetConfigCorrectionByDisplayMode(FoldDisplayMode 
  
 void ScreenSessionManager::InitRotationCorrectionMap(std::string displayModeCorrectionConfig)
 {
+    std::unique_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
     if (!rotationCorrectionMap_.empty()) {
         return;
     }
-    std::unique_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
     rotationCorrectionMap_.clear();
     std::vector<std::string> displayModeCorrections = {};
     bool splitSuccess = ScreenSettingHelper::SplitString(displayModeCorrections, displayModeCorrectionConfig, ';');
