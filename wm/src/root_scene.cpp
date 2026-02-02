@@ -553,7 +553,7 @@ std::shared_ptr<RSUIDirector> RootScene::GetRSUIDirector() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
     auto rsUIDirector = ScreenSessionManagerClient::GetInstance().GetRSUIDirector(displayId_);
-    TLOGD(WmsLogTag::WMS_SCB, "%{public}s, displayId: %{public}" PRIu64 ", windowId: %{public}d",  
+    TLOGD(WmsLogTag::WMS_SCB, "%{public}s, displayId: %{public}" PRIu64 ", windowId: %{public}d",
           RSAdapterUtil::RSUIDirectorToStr(rsUIDirector).c_str(), displayId_, GetWindowId());
     return rsUIDirector;
 }
