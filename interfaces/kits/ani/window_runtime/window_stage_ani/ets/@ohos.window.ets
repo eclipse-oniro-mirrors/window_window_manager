@@ -824,11 +824,11 @@ export enum WindowEventType {
     WINDOW_DESTROYED = 7
 }
 
-export enum WindowStageLifeCycleEventType {
-    FOREGROUND = 1,
+export enum WindowStageLifecycleEventType {
+    SHOWN = 1,
     RESUMED = 2,
     PAUSED = 3,
-    BACKGROUND = 4,
+    HIDDEN = 4,
 }
 
 export enum WindowMode {
@@ -2803,6 +2803,14 @@ export class WindowStageInternal implements WindowStage {
     public offWindowStageEvent(callback?: Callback<WindowStageEventType>): void {
       this.offSync(this.nativeObj, 'windowStageEvent', callback);
     }
+
+    public onWindowStageLifecycleEvent(callback: Callback<WindowStageLifecycleEventType>): void {
+      this.onSync(this.nativeObj, 'windowStageLifecycleEvent', callback);
+    }
+
+    public offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifecycleEventType>): void {
+      this.offSync(this.nativeObj, 'windowStageLifecycleEvent', callback);
+    }
 }
 
 export interface WindowStage {
@@ -2842,6 +2850,8 @@ export interface WindowStage {
     off<T>(eventType: string, callback?: Callback<T>): void;
     onWindowStageEvent(callback: Callback<WindowStageEventType>): void;
     offWindowStageEvent(callback?: Callback<WindowStageEventType>): void;
+    onWindowStageLifecycleEvent(callback: Callback<WindowStageLifecycleEventType>): void;
+    offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifecycleEventType>): void;
 }
 
 export class WindowInternal implements Window {
@@ -5899,8 +5909,8 @@ function runAvoidAreaChangeCallback(cb: object, area: object, type: int): void {
 }
 
 function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
-    const func = cb as (cbArg: WindowStageLifeCycleEventType) => void;
-    func(cbArg as WindowStageLifeCycleEventType);
+    const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
+    func(cbArg as WindowStageLifecycleEventType);
 }
 
 function runWindowEventCallback(cb: object, cbArg: int): void {

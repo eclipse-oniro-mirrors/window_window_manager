@@ -5395,7 +5395,7 @@ ani_object AniWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_string name
     std::string windowName;
     AniWindowUtils::GetStdString(env, name, windowName);
     sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
-    if (!AniWindowUtils::ParseSubWindowOption(env, options, windowOption)) {
+    if (!AniWindowUtils::ParseSubWindowOptions(env, options, windowOption)) {
         TLOGE(WmsLogTag::WMS_SUB, "Failed to convert parameter to options");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return AniWindowUtils::CreateAniUndefined(env);
@@ -6144,7 +6144,7 @@ static ani_ref GetParentWindow(ani_env* env, ani_object obj, ani_long nativeObj)
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow == nullptr || aniWindow->GetWindow() == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "[ANI] windowToken is nullptr");
-        return AniWindowUtils::CreateAniUndefined(env);
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
     return aniWindow->GetParentWindow(env);
 }
@@ -6156,6 +6156,8 @@ static void SetParentWindow(ani_env* env, ani_object obj, ani_long nativeObj, an
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow == nullptr || aniWindow->GetWindow() == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "[ANI] windowToken is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][SetParentWindow]msg: window is nullptr");
         return;
     }
     aniWindow->SetParentWindow(env, windowId);
