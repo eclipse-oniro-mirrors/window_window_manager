@@ -115,11 +115,11 @@ HWTEST_F(WindowPatternStartingWindowTest, CreateStartWindowDir, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetStartWindowFilePath
- * @tc.desc: test function : GetStartWindowFilePath
+ * @tc.name: GetStartWindowPath
+ * @tc.desc: test function : GetStartWindowPath
  * @tc.type: FUNC
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowFilePath, TestSize.Level1)
+HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowPath, TestSize.Level1)
 {
     std::string bundleName = "testBundleName";
     int32_t persistentId = 1423;
@@ -130,10 +130,10 @@ HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowFilePath, TestSize.Level
     scenePersistence->darkStartWindowPath_ = darkPath;
     scenePersistence->lightStartWindowPath_ = lightPath;
 
-    std::string ret = scenePersistence->GetStartWindowFilePath(true);
+    std::string ret = scenePersistence->GetStartWindowPath(true);
     EXPECT_EQ(ret, darkPath);
 
-    ret = scenePersistence->GetStartWindowFilePath(false);
+    ret = scenePersistence->GetStartWindowPath(false);
     EXPECT_EQ(ret, lightPath);
 }
 
