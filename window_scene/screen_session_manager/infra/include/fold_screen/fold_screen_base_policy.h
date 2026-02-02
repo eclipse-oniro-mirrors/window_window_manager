@@ -27,7 +27,7 @@
 
 namespace OHOS::Rosen::DMS {
 namespace {
-    static const uint32_t FOLD_TASK_NUM = 3;
+    static const uint32_t FOLD_TASK_NUM = 4;
     static const uint32_t FOLD_TASK_NUM_ONBOOTANIMATION = 1;
 }
 class FoldScreenBasePolicy {
