@@ -850,6 +850,7 @@ private:
         float virtualPixelRatio);
     void SwitchUserResetDisplayNodeScreenId();
     void AodLibInit();
+    void UpdateSwitchUser(bool userSwitching);
     DMRect CalcRectsWithRotation(DisplayId displayId, const DMRect &rect);
     std::shared_mutex rotationCorrectionExemptionMutex_;
     std::vector<std::string> rotationCorrectionExemptionList_;
@@ -1108,7 +1109,7 @@ private:
     std::mutex pcModeSwitchMutex_;
     std::atomic<DisplayGroupId> displayGroupNum_ { 1 };
     std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
-    std::shared_mutex rotationCorrectionMutex_;
+    std::shared_mutex ssmRotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
     std::atomic<bool> isCoordinationReady_ = false;
     std::mutex coordinationReadyMutex_;
