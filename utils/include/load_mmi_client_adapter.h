@@ -30,12 +30,6 @@ class PointerEvent;
 
 namespace OHOS {
 namespace Rosen {
-#if (defined(__aarch64__) || defined(__x86_64__))
-const std::string MMI_CLIENT_ADAPTER_SO_PATH = "/system/lib64/libmmi_client_adapter.z.so";
-#else
-const std::string MMI_CLIENT_ADAPTER_SO_PATH = "/system/lib/libmmi_client_adapter.z.so";
-#endif
-
 bool LoadMMIClientAdapter(void);
 void UnloadMMIClientAdapter(void);
 bool IsHoverDown(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);

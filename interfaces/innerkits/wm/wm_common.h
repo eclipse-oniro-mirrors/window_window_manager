@@ -924,7 +924,7 @@ struct WindowSnapshotConfiguration : public Parcelable {
 /**
  * @struct MainWindowState.
  *
- * @brief main window state info.
+ * @brief Main window state info.
  */
 struct MainWindowState : public Parcelable {
     bool Marshalling(Parcel& parcel) const override

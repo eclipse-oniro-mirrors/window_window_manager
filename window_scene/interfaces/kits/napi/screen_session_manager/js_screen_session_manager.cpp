@@ -108,8 +108,6 @@ napi_value JsScreenSessionManager::Init(napi_env env, napi_value exportObj)
         JsScreenSessionManager::UpdateAvailableArea);
     BindNativeFunction(env, exportObj, "updateSuperFoldAvailableArea", moduleName,
         JsScreenSessionManager::UpdateSuperFoldAvailableArea);
-    BindNativeFunction(env, exportObj, "extraDestroyScreen", moduleName,
-        JsScreenSessionManager::ExtraDestroyScreen);
     BindNativeFunction(env, exportObj, "updateSuperFoldExpandAvailableArea", moduleName,
         JsScreenSessionManager::UpdateSuperFoldExpandAvailableArea);
     BindNativeFunction(env, exportObj, "setScreenOffDelayTime", moduleName,
@@ -251,13 +249,6 @@ napi_value JsScreenSessionManager::UpdateSuperFoldAvailableArea(napi_env env, na
     TLOGD(WmsLogTag::DMS, "[NAPI]UpdateSuperFoldAvailableArea");
     JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
     return (me != nullptr) ? me->OnUpdateSuperFoldAvailableArea(env, info) : nullptr;
-}
-
-napi_value JsScreenSessionManager::ExtraDestroyScreen(napi_env env, napi_callback_info info)
-{
-    TLOGD(WmsLogTag::DMS, "[NAPI]ExtraDestroyScreen");
-    JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
-    return (me != nullptr) ? me->OnExtraDestroyScreen(env, info) : nullptr;
 }
 
 napi_value JsScreenSessionManager::UpdateSuperFoldExpandAvailableArea(napi_env env, napi_callback_info info)
@@ -960,29 +951,6 @@ napi_value JsScreenSessionManager::OnUpdateSuperFoldAvailableArea(napi_env env, 
         return NapiGetUndefined(env);
     }
     ScreenSessionManagerClient::GetInstance().UpdateSuperFoldAvailableArea(screenId, bArea, cArea);
-    return NapiGetUndefined(env);
-}
-
-napi_value JsScreenSessionManager::OnExtraDestroyScreen(napi_env env, const napi_callback_info info)
-{
-    TLOGD(WmsLogTag::DMS, "[NAPI]OnExtraDestroyScreen");
-    size_t argc = 1;
-    napi_value argv[1] = {nullptr};
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < 1) { // 1: params num
-        TLOGE(WmsLogTag::DMS, "[NAPI]Argc is invalid: %{public}zu", argc);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    int32_t screenId;
-    if (!ConvertFromJsValue(env, argv[0], screenId)) {
-        TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to screenId");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    ScreenSessionManagerClient::GetInstance().ExtraDestroyScreen(static_cast<ScreenId>(screenId));
     return NapiGetUndefined(env);
 }
 

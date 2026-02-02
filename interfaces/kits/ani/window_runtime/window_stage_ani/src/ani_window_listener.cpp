@@ -199,7 +199,7 @@ void AniWindowListener::LifeCycleCallback(LifeCycleEventType eventType)
         AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 
-void AniWindowListener::WindowStageLifecycleCallback(WindowStageLifeCycleEventType eventType)
+void AniWindowListener::WindowStageLifecycleCallback(WindowStageLifecycleEventType eventType)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]windowStageLifecycleCallback, envent type: %{public}u", eventType);
     auto task = [self = weakRef_, eventType, eng = env_] () {
@@ -685,7 +685,7 @@ void AniWindowListener::AfterLifecycleForeground()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
         if (state_ == WindowState::STATE_INITIAL || state_ == WindowState::STATE_HIDDEN) {
-            WindowStageLifecycleCallback(WindowStageLifeCycleEventType::FOREGROUND);
+            WindowStageLifecycleCallback(WindowStageLifecycleEventType::FOREGROUND);
             state_ = WindowState::STATE_SHOWN;
         }
     }
@@ -695,7 +695,7 @@ void AniWindowListener::AfterLifecycleBackground()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
         if (state_ == WindowState::STATE_INITIAL || state_ == WindowState::STATE_SHOWN) {
-            WindowStageLifecycleCallback(WindowStageLifeCycleEventType::BACKGROUND);
+            WindowStageLifecycleCallback(WindowStageLifecycleEventType::BACKGROUND);
             state_ = WindowState::STATE_HIDDEN;
         }
     }
@@ -704,14 +704,14 @@ void AniWindowListener::AfterLifecycleBackground()
 void AniWindowListener::AfterLifecycleResumed()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
-        WindowStageLifecycleCallback(WindowStageLifeCycleEventType::RESUMED);
+        WindowStageLifecycleCallback(WindowStageLifecycleEventType::RESUMED);
     }
 }
 
 void AniWindowListener::AfterLifecyclePaused()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
-        WindowStageLifecycleCallback(WindowStageLifeCycleEventType::PAUSED);
+        WindowStageLifecycleCallback(WindowStageLifecycleEventType::PAUSED);
     }
 }
 

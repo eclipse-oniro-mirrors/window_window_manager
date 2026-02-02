@@ -231,7 +231,7 @@ void SessionListenerController::OnSessionLifecycleListenerDied(const wptr<IRemot
 }
 
 template<typename F, typename... Args>
-void SessionListenerController::CallListeners(F func, Args&&... args)
+void SessionListenerController::CallListeners(F func, Args&& ... args)
 {
     std::vector<sptr<ISessionListener>> sessionListenersTemp;
     {

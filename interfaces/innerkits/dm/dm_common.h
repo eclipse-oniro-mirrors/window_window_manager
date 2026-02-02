@@ -41,7 +41,6 @@ constexpr ScreenId ERROR_ID_NO_PERMISSION = -201ULL;
 constexpr ScreenId ERROR_ID_NOT_SYSTEM_APP = -202ULL;
 constexpr bool IS_ROTATION_LOCKED_DEFAULT = false;
 constexpr int DOT_PER_INCH = 160;
-const static std::string DEFAULT_SCREEN_NAME = "buildIn";
 constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr int32_t CONCURRENT_USER_ID_DEFAULT = -1;

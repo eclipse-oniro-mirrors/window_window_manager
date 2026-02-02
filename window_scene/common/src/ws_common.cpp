@@ -17,6 +17,9 @@
 
 namespace OHOS::Rosen {
 
+const std::string WINDOW_SCREEN_LOCK_PREFIX = "windowLock_";
+const std::string VIEW_SCREEN_LOCK_PREFIX = "viewLock_";
+
 const std::map<WSError, WSErrorCode> WS_JS_TO_ERROR_CODE_MAP {
     { WSError::WS_OK,                    WSErrorCode::WS_OK },
     { WSError::WS_DO_NOTHING,            WSErrorCode::WS_ERROR_STATE_ABNORMALLY },
