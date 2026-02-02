@@ -216,6 +216,10 @@ public:
     {
         return WSError::WS_OK;
     }
+    virtual WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener)
+    {
+        return WMError::WM_OK;
+    }
     virtual WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
