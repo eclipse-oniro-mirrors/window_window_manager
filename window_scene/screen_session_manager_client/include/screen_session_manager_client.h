@@ -209,6 +209,9 @@ private:
     sptr<IScreenConnectionChangeListener> screenConnectionChangeListener_;
     sptr<IDisplayChangeListener> displayChangeListener_;
     FoldDisplayMode displayMode_ = FoldDisplayMode::UNKNOWN;
+
+    std::atomic<bool> hasCheckFoldableStatus_ = false;
+    std::atomic<bool> isFoldable_ = false;
     SuperFoldStatus currentstate_ = SuperFoldStatus::UNKNOWN;
 
     std::mutex screenEventMutex_;

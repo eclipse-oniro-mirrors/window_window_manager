@@ -900,11 +900,16 @@ ScreenId ScreenSessionManagerClient::GetDefaultScreenId()
 
 bool ScreenSessionManagerClient::IsFoldable()
 {
+    if (hasCheckFoldableStatus_.load()) {
+        return isFoldable_.load();
+    }
     if (!screenSessionManager_) {
-        TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
+        WTLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return false;
     }
-    return screenSessionManager_->IsFoldable();
+    isFoldable_ = screenSessionManager_->IsFoldable();
+    hasCheckFoldableStatus_ = true;
+    return isFoldable_.load();
 }
 
 void ScreenSessionManagerClient::SetVirtualPixelRatioSystem(ScreenId screenId, float virtualPixelRatio)
