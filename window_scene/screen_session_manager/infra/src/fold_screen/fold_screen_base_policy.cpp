@@ -215,8 +215,8 @@ void FoldScreenBasePolicy::ChangeOffTentMode()
         TLOGI(WmsLogTag::DMS, "EnterCoordination skipped, is waiting for coordination ready");
         return;
     }
-    ScreenSessionManager::GetInstance().WaitForCoordinationReady();
-    if (!ScreenSessionManager::GetInstance().GetCoordinationFlag(lock)) {
+    ScreenSessionManager::GetInstance().WaitForCoordinationReady(lock);
+    if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
         TLOGW(WmsLogTag::DMS, "EnterCoordination skipped, current coordination flag is false");
         return;
     }
