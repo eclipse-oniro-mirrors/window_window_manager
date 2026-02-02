@@ -79,10 +79,11 @@ bool ScenePersistence::CreateStartWindowDir(const std::string& directory)
     return true;
 }
 
-void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark)
+void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark,
+    const std::function<void(std::string)>& saveStartWindowCallback)
 {
     std::string startWindowPath = isDark ? darkStartWindowPath_ : lightStartWindowPath_;
-    auto task = [weakThis = wptr(this), pixelMap, startWindowPath, isDark]() {
+    auto task = [weakThis = wptr(this), pixelMap, startWindowPath, isDark, saveStartWindowCallback]() {
         auto scenePersistence = weakThis.promote();
         if (scenePersistence == nullptr || pixelMap == nullptr || startWindowPath.find('/') == std::string::npos) {
             TLOGNE(WmsLogTag::WMS_PATTERN,
@@ -115,6 +116,7 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
             return;
         }
         scenePersistence->SetHasStartWindowPersistence(isDark, true);
+        saveStartWindowCallback(startWindowPath);
     };
     snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
 }

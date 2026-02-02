@@ -883,10 +883,14 @@ public:
     void VisitSnapshotFromCache(int32_t persistentId);
     void PutSnapshotToCache(int32_t persistentId);
     void RemoveSnapshotFromCache(int32_t persistentId);
+    void SetStartWindowPersistencePath(const std::string& bundleName, bool isDark, const std::string& path);
+    std::string GetStartWindowPersistencePath(const std::string& bundleName, bool isDark) const;
+    void ClearStartWindowPersistencePath(const std::string& bundleName);
     void UpdateAllStartingWindowRdb();
     void GetStartupPage(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo);
     bool CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& outResId, bool& outIsSvg);
     WSError RegisterSaveSnapshotFunc(const sptr<SceneSession>& sceneSession);
+    WSError RegisterStartWindowFunc(const sptr<SceneSession>& sceneSession);
     std::shared_ptr<Media::PixelMap> GetPixelMap(uint32_t resourceId,
         std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop, bool isCropped);
     std::pair<std::shared_ptr<uint8_t[]>, size_t> GetSvgBufferInfo(uint32_t resourceId,
@@ -1855,6 +1859,8 @@ private:
     bool syncLoadStartingWindow_ = false;
     bool enableDmaReclaim_ = false;
     std::unordered_map<DisplayId, bool> appUseControlDisplayMap_;
+    std::mutex startWindowPersistencePathMutex_;
+    std::unordered_map<std::string, std::unordered_map<bool, std::string>> startWindowPersistencePathMap_;
     void InitWindowPattern();
     void InitStartingWindow();
     void InitDmaReclaimParam();

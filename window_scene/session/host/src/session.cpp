@@ -3225,7 +3225,12 @@ void Session::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& persistent
         TLOGE(WmsLogTag::WMS_PATTERN, "failed %{public}d", GetPersistentId());
         return;
     }
-    scenePersistence_->SaveStartWindow(persistentPixelMap, isDark);
+    SaveStartWindowFunc saveStartWindowCallback;
+    {
+        std::lock_guard<std::mutex> lock(saveStartWindowCallbackMutex_);
+        saveStartWindowCallback = saveStartWindowCallback_;
+    }
+    scenePersistence_->SaveStartWindow(persistentPixelMap, isDark, saveStartWindowCallback);
 }
 
 void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media::PixelMap> persistentPixelMap,

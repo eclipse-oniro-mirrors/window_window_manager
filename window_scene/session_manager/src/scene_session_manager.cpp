@@ -3264,6 +3264,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     RegisterSessionExceptionFunc(sceneSession);
     RegisterVisibilityChangedDetectFunc(sceneSession);
     RegisterSaveSnapshotFunc(sceneSession);
+    RegisterStartWindowFunc(sceneSession);
     RegisterIsAppBoundSystemTrayFunc(sceneSession);
     if (systemConfig_.IsPcOrPcMode()) {
         RegisterGetStartWindowConfigCallback(sceneSession);
@@ -3912,6 +3913,36 @@ void SceneSessionManager::RemoveSnapshotFromCache(int32_t persistentId)
     }
 }
 
+void SceneSessionManager::SetStartWindowPersistencePath(const std::string& bundleName, bool isDark,
+    const std::string& path)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
+    std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
+    startWindowPersistencePathMap_[bundleName][isDark] = path;
+}
+
+std::string SceneSessionManager::GetStartWindowPersistencePath(const std::string& bundleName, bool isDark)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
+    std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
+    auto outerIt = startWindowPersistencePathMap_.find(bundleName);
+    if (outerIt == startWindowPersistencePathMap_.end()) {
+        return "";
+    }
+    auto innerIt = outerIt->second.find(idDark);
+    if (innerIt == outerIt->second.end()) {
+        return "";
+    }
+    return innerIt->second;
+}
+
+void SceneSessionManager::ClearStartWindowPersistencePath(const std::string bundleName)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
+    std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
+    startWindowPersistencePathMap_.erase(bundleName);
+}
+
 WSError SceneSessionManager::NotifyAppUseControlDisplay(DisplayId displayId, bool useControl)
 {
     TLOGI(WmsLogTag::WMS_PATTERN, "displayId: %{public}" PRIu64 ", useControl: %{public}d", displayId, useControl);
@@ -3937,6 +3968,23 @@ WSError SceneSessionManager::RegisterSaveSnapshotFunc(const sptr<SceneSession>& 
     auto persistentId = sceneSession->GetPersistentId();
     sceneSession->SetSaveSnapshotCallback([this, persistentId]() {
         this->PutSnapshotToCache(persistentId);
+    });
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::RegisterStartWindowFunc(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "session is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    const auto& sessionInfo = sceneSession->GetSessionInfo();
+    sceneSession->SetStartWindowCallback([this, sessionInfo](std::string path) {
+        bool isDark = this->IsStartWindowDark(sessionInfo);
+        this->SetStartWindowPersistencePath(sessionInfo.bundleName_, isDark, path);
     });
     return WSError::WS_OK;
 }
