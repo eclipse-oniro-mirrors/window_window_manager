@@ -6562,7 +6562,8 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             }
             sceneSession->SetPreloadStartingWindow(svgBufferInfo);
         } else {
-            auto pixelMap = GetPixelMap(resId, abilityInfo, true);
+            bool isCropped = false;
+            auto pixelMap = GetPixelMap(resId, abilityInfo, true, isCropped);
             if (pixelMap == nullptr) {
                 TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s pixelMap is nullptr", where);
                 return;
@@ -6570,7 +6571,8 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
             bool isDark = IsStartWindowDark(sessionInfo);
-            if (sceneSession->GetScenePersistence() &&
+            if (isCropped &&
+                sceneSession->GetScenePersistence() &&
                 !(sceneSession->GetScenePersistence()->HasStartWindowPersistence(isDark))) {
                 sceneSession->SaveStartWindow(pixelMap, isDark);
             }
@@ -18299,7 +18301,8 @@ WMError SceneSessionManager::SetImageForRecent(uint32_t imgResourceId, ImageFit 
         TLOGE(WmsLogTag::WMS_PATTERN, "%{public}d is not a systemApp", persistentId);
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
-    std::shared_ptr<Media::PixelMap> pixelMap = GetPixelMap(imgResourceId, abilityInfo);
+    bool isCropped;
+    std::shared_ptr<Media::PixelMap> pixelMap = GetPixelMap(imgResourceId, abilityInfo, false, isCropped);
     if (!pixelMap) {
         TLOGE(WmsLogTag::WMS_PATTERN, "get pixelMap failed");
         return WMError::WM_ERROR_NULLPTR;
@@ -18382,7 +18385,7 @@ WMError SceneSessionManager::RemoveImageForRecent(int32_t persistentId)
 }
 
 std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resourceId,
-    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop)
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop, bool& isCropped)
 {
     auto resourceMgr = GetResourceManager(*abilityInfo.get());
     if (resourceMgr == nullptr) {
@@ -18414,11 +18417,12 @@ std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resou
     }
 
     Media::DecodeOptions decodeOpts;
+    isCropped = false;
     if (needCrop) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetCropInfoByDisplaySize");
         Media::ImageInfo imageInfo;
         imageSource->GetImageInfo(imageInfo);
-        GetCropInfoByDisplaySize(imageInfo, decodeOpts);
+        isCropped = GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     }
     auto pixelMapPtr = imageSource->CreatePixelMap(decodeOpts, errorCode);
     if (errorCode != 0) {
@@ -18449,14 +18453,15 @@ std::pair<std::shared_ptr<uint8_t[]>, size_t> SceneSessionManager::GetSvgBufferI
     return {sharedBuffer, len};
 }
 
-void SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts)
+bool SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts)
 {
     int32_t displayWidth = 0;
     int32_t displayHeight = 0;
+    bool isCropped = false;
     ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
     if (!GetDisplaySizeById(defaultScreenId, displayWidth, displayHeight)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "get display size failed");
-        return;
+        return isCropped;
     }
     int32_t cropSize = std::max(displayWidth, displayHeight);
     if (imageInfo.size.width > cropSize || imageInfo.size.height > cropSize) {
@@ -18467,9 +18472,11 @@ void SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& image
             .height = std::min(imageInfo.size.height, cropSize),
         };
         decodeOpts.cropAndScaleStrategy = Media::CropAndScaleStrategy::CROP_FIRST;
+        isCropped = true;
         TLOGI(WmsLogTag::WMS_PATTERN, "crop: %{public}d, %{public}d, %{public}d, %{public}d",
             decodeOpts.CropRect.left, decodeOpts.CropRect.top, decodeOpts.CropRect.width, decodeOpts.CropRect.height);
     }
+    return isCropped;
 }
 
 void SceneSessionManager::SetIsWindowRectAutoSave(const std::string& key, bool enabled,

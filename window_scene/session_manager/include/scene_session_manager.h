@@ -888,7 +888,7 @@ public:
     bool CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& outResId, bool& outIsSvg);
     WSError RegisterSaveSnapshotFunc(const sptr<SceneSession>& sceneSession);
     std::shared_ptr<Media::PixelMap> GetPixelMap(uint32_t resourceId,
-        std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop = false);
+        std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop, bool isCropped);
     std::pair<std::shared_ptr<uint8_t[]>, size_t> GetSvgBufferInfo(uint32_t resourceId,
         std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo);
     WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
@@ -1890,7 +1890,8 @@ private:
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId) override;
     WMError RemoveImageForRecent(int32_t persistentId) override;
-    void GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts);
+    bool GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo,
+        Media::DecodeOptions& decodeOpts, bool& isCropped);
     void InitSnapshotBlurConfig();
     float GetBlurRadiusFromParam(const std::string& blurRadiusColorStr) const;
     uint32_t GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const;
