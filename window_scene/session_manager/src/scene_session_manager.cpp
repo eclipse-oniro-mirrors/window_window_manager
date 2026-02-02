@@ -7065,7 +7065,7 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
                 "err: %{public}d]", requireLock, res);
         }
     };
-    taskScheduler_->PostAsyncTask(task, "HandleKeepScreenOn");
+    taskScheduler_->PostAsyncTaskToExportHandler(task, "HandleKeepScreenOn");
 #else
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "Can not found the sub system of PowerMgr");
 #endif
