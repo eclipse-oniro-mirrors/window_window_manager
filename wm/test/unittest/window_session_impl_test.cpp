@@ -596,15 +596,17 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus01, TestSize.Level1)
     option->SetWindowName("UpdateFocus01");
     sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
     ASSERT_NE(window, nullptr);
-    window->updateFocusTimeStamp_.store(2);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
     auto info = sptr<FocusNotifyInfo>::MakeSptr();
     info->isSyncNotify_ = true;
-    info->timeStamp_ = 1;
+    info->timeStamp_ = currentTimeStamp - 1000;
     WSError res = window->UpdateFocus(info, true);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 2);
-    info->timeStamp_ = 3;
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp);
+    info->timeStamp_ = currentTimeStamp + 1000;
     res = window->UpdateFocus(info, false);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 3);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
     res = window->UpdateFocus(info, true);
     EXPECT_EQ(res, WSError::WS_OK);
 }
@@ -624,13 +626,24 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus02, TestSize.Level1)
     ASSERT_NE(window1, nullptr);
     window->property_->SetPersistentId(1);
     window1->property_->SetPersistentId(2);
-    window->updateFocusTimeStamp_.store(2);
-    auto info = sptr<FocusNotifyInfo>::MakeSptr(3, window->GetWindowId(), window1->GetWindowId(), true);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
+    auto info = sptr<FocusNotifyInfo>::MakeSptr(currentTimeStamp + 1000, window->GetWindowId(),
+        window1->GetWindowId(), true);
     WSError res = window->UpdateFocus(info, true);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 3);
-    info->timeStamp_ = 4;
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
+    info->timeStamp_ = currentTimeStamp + 2000;
     res = window->UpdateFocus(info, false);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 4);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 2000);
+    info->timeStamp_ = currentTimeStamp + 3000;
+    info->unfocusWindowId_ = 300;
+    res = window->UpdateFocus(info, true);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 3000);
+    info->timeStamp_ = currentTimeStamp + 4000;
+    info->focusWindowId_ = 300;
+    res = window->UpdateFocus(info, false);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 4000);
     EXPECT_EQ(res, WSError::WS_OK);
 }
 
