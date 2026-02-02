@@ -5338,7 +5338,7 @@ WMError WindowSceneSessionImpl::GetWindowCornerRadius(float& cornerRadius)
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (!windowSystemConfig_.IsPcWindow() && !windowSystemConfig_.IsPadWindow() &&
-            !windowSystemConfig_.IsPhoneWindow()) {
+        !windowSystemConfig_.IsPhoneWindow()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "This is not PC, pad or phone, not supported.");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

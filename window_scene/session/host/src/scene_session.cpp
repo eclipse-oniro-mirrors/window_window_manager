@@ -9946,7 +9946,6 @@ void SceneSession::NotifyUpdateFlagCallback(NotifyUpdateFlagFunc&& func)
 
 WSError SceneSession::SetCurrentRotation(int32_t currentRotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "currentRotation: %{public}d", currentRotation);
     PostTask([weakThis = wptr(this), currentRotation, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
@@ -9955,7 +9954,6 @@ WSError SceneSession::SetCurrentRotation(int32_t currentRotation)
         }
         session->currentRotation_ = currentRotation;
         if (!session->sessionStage_) {
-            TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s sessionStage is null", where);
             return;
         }
         session->sessionStage_->SetCurrentRotation(currentRotation);

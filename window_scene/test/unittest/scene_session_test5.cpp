@@ -2901,112 +2901,6 @@ HWTEST_F(SceneSessionTest5, UpdateDensity, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyRotationChange
- * @tc.desc: NotifyRotationChange
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest5, NotifyRotationChange, Function | SmallTest | Level2)
-{
-    const SessionInfo info;
-    sptr<SceneSessionMocker> session = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
-    session->sessionStage_ = nullptr;
-    session->isRotationChangeCallbackRegistered = false;
-    RotationChangeInfo rotationInfo = { RotationChangeType::WINDOW_WILL_ROTATE, 0, 0, { 0, 0, 2720, 1270 } };
-    RotationChangeResult res = session->NotifyRotationChange(rotationInfo);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    session->isRotationChangeCallbackRegistered = true;
-    res = session->NotifyRotationChange(rotationInfo);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    sptr<SessionStageMocker> sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
-    ASSERT_NE(sessionStageMocker, nullptr);
-    session->sessionStage_ = sessionStageMocker;
-    res = session->NotifyRotationChange(rotationInfo);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-}
-
-/**
- * @tc.name: NotifyRotationChange_IsRestrictNotify_SystemWindow
- * @tc.desc: NotifyRotationChange_IsRestrictNotify_SystemWindow
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest5, NotifyRotationChange_IsRestrictNotify_SystemWindow, Function | SmallTest | Level2)
-{
-    sptr<SessionStageMocker> sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
-    ASSERT_NE(sessionStageMocker, nullptr);
-    RotationChangeInfo rotationInfo = { RotationChangeType::WINDOW_WILL_ROTATE, 0, 0, { 0, 0, 2720, 1270 } };
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-
-    SessionInfo info;
-    property->SetWindowType(WindowType::WINDOW_TYPE_DESKTOP);
-    sptr<SceneSessionMocker> session = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
-    session->isRotationChangeCallbackRegistered = true;
-    session->sessionStage_ = sessionStageMocker;
-    bool isRestrictNotify = false;
-    property->isSystemCalling_ = true;
-    session->SetSessionProperty(property);
-    RotationChangeResult res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    property->isSystemCalling_ = false;
-    session->SetSessionProperty(property);
-    res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    isRestrictNotify = true;
-    property->isSystemCalling_ = true;
-    session->SetSessionProperty(property);
-    res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    property->isSystemCalling_ = false;
-    session->SetSessionProperty(property);
-    res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-}
-
-/**
- * @tc.name: NotifyRotationChange_IsRestrictNotify_NotSystemWindow
- * @tc.desc: NotifyRotationChange_IsRestrictNotify_NotSystemWindow
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest5, NotifyRotationChange_IsRestrictNotify_NotSystemWindow, Function | SmallTest | Level2)
-{
-    sptr<SessionStageMocker> sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
-    ASSERT_NE(sessionStageMocker, nullptr);
-    RotationChangeInfo rotationInfo = { RotationChangeType::WINDOW_WILL_ROTATE, 0, 0, { 0, 0, 2720, 1270 } };
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-
-    SessionInfo info;
-    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sptr<SceneSessionMocker> session = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
-    session->isRotationChangeCallbackRegistered = true;
-    session->sessionStage_ = sessionStageMocker;
-    bool isRestrictNotify = false;
-    property->isSystemCalling_ = true;
-    session->SetSessionProperty(property);
-    RotationChangeResult res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    property->isSystemCalling_ = false;
-    session->SetSessionProperty(property);
-    res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    isRestrictNotify = true;
-    property->isSystemCalling_ = true;
-    session->SetSessionProperty(property);
-    res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-
-    property->isSystemCalling_ = false;
-    session->SetSessionProperty(property);
-    res = session->NotifyRotationChange(rotationInfo, isRestrictNotify);
-    EXPECT_EQ(res.windowRect_.width_, 0);
-}
-
-/**
  * @tc.name: SetSessionGetTargetOrientationConfigInfoCallback
  * @tc.desc: SetSessionGetTargetOrientationConfigInfoCallback
  * @tc.type: FUNC
@@ -3089,39 +2983,6 @@ HWTEST_F(SceneSessionTest5, NotifyRotationProperty, Function | SmallTest | Level
     WSError result5 = sceneSession->NotifyRotationProperty(90, 1, 1);
     EXPECT_EQ(result5, WSError::WS_ERROR_INVALID_DISPLAY);
     EXPECT_TRUE(g_errLog.find("failed to convert Rotation to Orientation") != std::string::npos);
-}
-
-/**
- * @tc.name: ConvertRotationToOrientation
- * @tc.desc: ConvertRotationToOrientation
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest5, ConvertRotationToOrientation, Function | SmallTest | Level2)
-{
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    SessionInfo info;
-    info.abilityName_ = "ConvertRotationToOrientation";
-    info.bundleName_ = "ConvertRotationToOrientation";
-
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
-    sceneSession->GetSessionProperty()->SetDisplayId(1001);
-    ScreenSessionConfig config;
-    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
-        ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.emplace(1001, screenSession);
-
-    uint32_t orientation = 0;
-    WSError result = sceneSession->ConvertRotationToOrientation(90, 1, 1, orientation);
-    EXPECT_EQ(result, WSError::WS_OK);
-    
-    sceneSession->GetSessionProperty()->SetDisplayId(1024);
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.emplace(1024, nullptr);
-    uint32_t orientation1 = 0;
-    WSError result1 = sceneSession->ConvertRotationToOrientation(90, 1, 1, orientation1);
-    EXPECT_EQ(result1, WSError::WS_ERROR_INVALID_DISPLAY);
-    EXPECT_TRUE(g_errLog.find("Screen session is null") != std::string::npos);
 }
 
 /**
@@ -3217,25 +3078,6 @@ HWTEST_F(SceneSessionTest5, SetSkipEventOnCastPlus, TestSize.Level1)
     sceneSession->SetSkipEventOnCastPlus(true);
     EXPECT_EQ(persistentId, sceneSession->GetMissionId());
     EXPECT_EQ(isSkip, true);
-}
-
-/**
- * @tc.name: GetSystemBarPropertyForRotation
- * @tc.desc: GetSystemBarPropertyForRotation
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest5, GetSystemBarPropertyForRotation, Function | SmallTest | Level2)
-{
-    SessionInfo info;
-    info.abilityName_ = "GetSystemBarPropertyForRotation";
-    info.bundleName_ = "GetSystemBarPropertyForRotation";
-
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
-
-    std::map<Rosen::WindowType, Rosen::SystemBarProperty> properties;
-    sceneSession->SetSystemBarPropertyForRotation(properties);
-    EXPECT_EQ(sceneSession->GetSystemBarPropertyForRotation(), properties);
 }
 } // namespace
 } // namespace Rosen
