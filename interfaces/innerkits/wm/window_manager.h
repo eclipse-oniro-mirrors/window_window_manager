@@ -1017,6 +1017,15 @@ public:
         const sptr<IRemoteObject>& callback) const;
 
     /**
+     * @brief Set skip flag of window snapshot.
+     *
+     * @param windowId Window id which want to set.
+     * @param isSkip True means skip the snapshot, false means the opposite.
+     * @return WM_OK means set success, others means set failed.
+     */
+    WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip);
+
+    /**
      * @brief Get the name of the top page.
      *
      * @param windowId Window id which want to get.

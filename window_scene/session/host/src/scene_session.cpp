@@ -5522,6 +5522,30 @@ WMError SceneSession::SetSnapshotSkip(bool isSkip)
     return WMError::WM_OK;
 }
 
+WMError SceneSession::SetWindowSnapshotSkip(bool isSkip)
+{
+    auto surfaceNode = GetShadowSurfaceNode();
+    if (!surfaceNode) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null, win=[%{public}d, %{public}s], isSkip=%{public}d",
+            GetPersistentId(), GetWindowName().c_str(), isSkip);
+        return WMError::WM_ERROR_DESTROYED_OBJECT;
+    }
+    bool hasLeashSurfaceNode = false;
+    {
+        AutoRSTransaction trans(GetRSShadowContext());
+        surfaceNode->SetSnapshotSkipLayer(isSkip);
+        auto leashWinSurfaceNode = GetLeashWinShadowSurfaceNode();
+        hasLeashSurfaceNode = leashWinSurfaceNode != nullptr;
+        if (hasLeashSurfaceNode) {
+            AutoRSTransaction leashTrans(GetRSLeashWinShadowContext());
+            leashWinSurfaceNode->SetSnapshotSkipLayer(isSkip);
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], isSkip=%{public}d, hasLeashSurfaceNode=%{public}d",
+        GetPersistentId(), GetWindowName().c_str(), isSkip, hasLeashSurfaceNode);
+    return WMError::WM_OK;
+}
+
 void SceneSession::SetWatermarkEnabled(const std::string& watermarkName, bool isEnabled)
 {
     auto surfaceNode = GetShadowSurfaceNode();
