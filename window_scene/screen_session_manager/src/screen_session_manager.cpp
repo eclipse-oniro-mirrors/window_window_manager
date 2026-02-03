@@ -2523,9 +2523,9 @@ void ScreenSessionManager::HandleRotationCorrectionExemption(sptr<DisplayInfo>& 
     RotationCorrectionWhiteConfig config;
     if (GetRotationCorrectionWhiteConfigByBundleName(bundleName, config)) {
         Rotation rotation = CorrectionRotationByWhiteConfig(config, displayInfo->GetRotation(), foldDisplayMode);
+        TLOGNFI(WmsLogTag::DMS, "correct rotation by white config, old:%{public}d, new:%{public}d, bundleName:"
+            "%{public}s", displayInfo->GetRotation(), rotation, bundleName.c_str());
         displayInfo->SetRotation(rotation);
-        TLOGNFI(WmsLogTag::DMS, "correct by white config, rotation: %{public}d, bundleName: %{public}s",
-            rotation, bundleName.c_str());
     }
 }
  
@@ -2620,9 +2620,9 @@ void ScreenSessionManager::GetRotationCorrectionWhiteListFromDatabase()
         return;
     }
     TLOGI(WmsLogTag::DMS, "success, list size:%{public}zu", rotationCorrectionWhiteList.size());
+    InitRotationCorrectionWhiteModeByWhiteList(rotationCorrectionWhiteList);
     {
         std::unique_lock<std::shared_mutex> lock(rotationCorrectionWhiteMutex_);
-        InitRotationCorrectionWhiteModeByWhiteList(rotationCorrectionWhiteList);
         rotationCorrectionWhiteList_ = std::move(rotationCorrectionWhiteList);
     }
 }
