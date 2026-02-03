@@ -185,6 +185,14 @@ public:
     WMError UnregisterCameraWindowChangedListener(const sptr<ICameraWindowChangedListener>& listener);
 
     /**
+     * @brief raise window to top by windowId
+     *
+     * @param persistentId this window to raise
+     * @return WM_OK if raise success
+     */
+    WMError RaiseWindowToTop(int32_t persistentId);
+
+    /**
      * @brief Get window mode type.
      *
      * @param void
@@ -242,14 +250,6 @@ public:
      * @return WM_OK means clear session success, others means clear failed.
      */
     WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds);
-
-    /**
-     * @brief raise window to top by windowId
-     *
-     * @param persistentId this window to raise
-     * @return WM_OK if raise success
-     */
-    WMError RaiseWindowToTop(int32_t persistentId);
 
     /**
      * @brief Register WMS connection status changed listener.
