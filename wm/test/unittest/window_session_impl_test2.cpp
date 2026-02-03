@@ -2505,18 +2505,18 @@ HWTEST_F(WindowSessionImplTest2, RegisterAcrossDisplaysChangeListener01, TestSiz
 }
 
 /**
- * @tc.name: UnRegisterAcrossDisplaysChangeListener
- * @tc.desc: UnRegisterAcrossDisplaysChangeListener01
+ * @tc.name: UnregisterAcrossDisplaysChangeListener
+ * @tc.desc: UnregisterAcrossDisplaysChangeListener01
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest2, UnRegisterAcrossDisplaysChangeListener01, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest2, UnregisterAcrossDisplaysChangeListener01, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UnRegisterAcrossDisplaysChangeListener01");
+    option->SetWindowName("UnregisterAcrossDisplaysChangeListener01");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
 
     sptr<IAcrossDisplaysChangeListener> listener = nullptr;
-    auto ret = window->UnRegisterAcrossDisplaysChangeListener(listener);
+    auto ret = window->UnregisterAcrossDisplaysChangeListener(listener);
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
 
     window->property_->SetPersistentId(1);
@@ -2524,13 +2524,13 @@ HWTEST_F(WindowSessionImplTest2, UnRegisterAcrossDisplaysChangeListener01, TestS
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     ASSERT_NE(nullptr, session);
     window->hostSession_ = session;
-    ret = window->UnRegisterAcrossDisplaysChangeListener(listener);
+    ret = window->UnregisterAcrossDisplaysChangeListener(listener);
     EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
 
     listener = sptr<IAcrossDisplaysChangeListener>::MakeSptr();
     std::vector<sptr<IAcrossDisplaysChangeListener>> holder;
     window->acrossDisplaysChangeListeners_[window->property_->GetPersistentId()] = holder;
-    ret = window->UnRegisterAcrossDisplaysChangeListener(listener);
+    ret = window->UnregisterAcrossDisplaysChangeListener(listener);
     EXPECT_EQ(ret, WMError::WM_OK);
 
     holder = window->acrossDisplaysChangeListeners_[window->property_->GetPersistentId()];
