@@ -1103,7 +1103,7 @@ struct SystemSessionConfig : public Parcelable {
         return IsPcWindow() || (IsPadWindow() && IsFreeMultiWindowMode());
     }
 
-    bool isSupportPCMode() const
+    bool IsSupportPCMode() const
     {
         return IsPcWindow() || IsFreeMultiWindowMode();
     }
