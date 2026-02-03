@@ -46,7 +46,7 @@ void TaskSequenceProcessTest::TearDownTestCase() {}
 
 void TaskSequenceProcessTest::SetUp() {}
 
-void TaskSequenceProcessTest::TearDown() 
+void TaskSequenceProcessTest::TearDown()
 {
     LOG_SetCallback(nullptr);
     usleep(SLEEP_TIME_IN_US);
