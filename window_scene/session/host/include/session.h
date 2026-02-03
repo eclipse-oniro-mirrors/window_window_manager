@@ -718,7 +718,7 @@ public:
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
     bool GetNeedBackgroundAfterConnect() const;
     void SetNeedBackgroundAfterConnect(bool isNeed);
-    void RecordSessionStateError(SessionState expectState, SessionState currentState) const;
+    void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
 
     /*
      * Starting Window

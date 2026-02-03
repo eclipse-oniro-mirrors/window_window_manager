@@ -545,7 +545,7 @@ void Session::SetNeedBackgroundAfterConnect(bool isNeed)
     needBackgroundAfterConnect_ = isNeed;
 }
 
-void Session::RecordSessionStateError(SessionState expectState, SessionState currentState) const
+void Session::RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const
 {
     std::ostringstream oss;
     oss << "[Event]Session lifecycle scheduling error, expect session state:" << static_cast<uint32_t>(expectState)
@@ -1641,7 +1641,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     if ((state == SessionState::STATE_DISCONNECT || state == SessionState::STATE_END) &&
         SessionHelper::IsMainWindow(GetWindowType())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
-        RecordSessionStateError(SessionState::STATE_FOREGROUND, state);
+        RecordLifecycleSessionStateError(SessionState::STATE_FOREGROUND, state);
     }
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
