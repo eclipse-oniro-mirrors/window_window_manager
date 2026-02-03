@@ -38,9 +38,8 @@ public:
     MOCK_METHOD2(Background, WSError(bool isFromClient, const std::string& identityToken));
     MOCK_METHOD2(Disconnect, WSError(bool isFromClient, const std::string& identityToken));
 
-    MOCK_METHOD6(UpdateSessionRect, WSError(const WSRect& rect, SizeChangeReason reason,
-        bool isGlobal, bool isFromMoveToGlobal, const MoveConfiguration& moveConfiguration,
-        const RectAnimationConfig& rectAnimationConfig));
+    MOCK_METHOD5(UpdateSessionRect, WSError(const WSRect& rect, SizeChangeReason reason,
+        bool isGlobal, bool isFromMoveToGlobal, MoveConfiguration moveConfiguration));
     MOCK_METHOD1(UpdateClientRect, WSError(const WSRect& rect));
     MOCK_METHOD(WSError, UpdateGlobalDisplayRectFromClient, (const WSRect& rect, SizeChangeReason reason), (override));
 

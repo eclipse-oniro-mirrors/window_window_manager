@@ -55,7 +55,7 @@ class RSTransaction;
 class RSSyncTransactionController;
 class Session;
 using NotifySessionRectChangeFunc = std::function<void(const WSRect& rect,
-    SizeChangeReason reason, DisplayId displayId, const RectAnimationConfig& rectAnimationConfig)>;
+    SizeChangeReason reason, DisplayId displayId)>;
 using NotifySessionWindowLimitsChangeFunc = std::function<void(const WindowLimits& windowLimits)>;
 using NotifySessionDisplayIdChangeFunc = std::function<void(uint64_t displayId)>;
 using NotifyUpdateFloatingBallFunc = std::function<void(const FloatingBallTemplateInfo& fbTemplateInfo)>;
@@ -411,8 +411,6 @@ public:
     void SetSessionGlobalRect(const WSRect& rect);
     void SetSessionRequestRect(const WSRect& rect);
     WSRect GetSessionRequestRect() const;
-    void SetRequestRectAnimationConfig(const RectAnimationConfig& rectAnimationConfig);
-    RectAnimationConfig GetRequestRectAnimationConfig() const;
     std::string GetWindowName() const;
     WSRect GetLastLayoutRect() const;
     WSRect GetLayoutRect() const;
