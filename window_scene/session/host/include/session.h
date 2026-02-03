@@ -717,7 +717,7 @@ public:
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
     bool GetNeedBackgroundAfterConnect() const;
-    bool SetNeedBackgroundAfterConnect(bool isNeed);
+    void SetNeedBackgroundAfterConnect(bool isNeed);
     void RecordSessionStateError(SessionState expectState, SessionState currentState) const;
 
     /*
@@ -1234,7 +1234,7 @@ private:
     mutable std::mutex leashWinSurfaceNodeMutex_;
     DetectTaskInfo detectTaskInfo_;
     mutable std::shared_mutex detectTaskInfoMutex_;
-    std::atomic_bool needBackgroundAfterConnect_;
+    std::atomic_bool needBackgroundAfterConnect_ { false };
 
     /*
      * Starting Window
