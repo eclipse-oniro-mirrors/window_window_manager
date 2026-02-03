@@ -564,7 +564,10 @@ public:
      * @param isModal bool.
      * @return WMError
      */
-    virtual WMError SetWindowModal(bool isModal) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetWindowModal(bool isModal)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set the modality of sub window.
@@ -596,6 +599,17 @@ public:
      * @return WM_OK means success, others mean get failed
      */
     virtual WMError GetSubWindowZLevel(int32_t& zLevel)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Raise main window above another.
+     *
+     * @param targetId Indicates the id of the target main window.
+     * @return WM_OK means raise success, others means raise failed.
+     */
+    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -910,17 +924,6 @@ public:
      * @return WM_OK means set success.
      */
     virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-
-    /**
-     * @brief Raise main window above another.
-     *
-     * @param targetId Indicates the id of the target main window.
-     * @return WM_OK means raise success, others means raise failed.
-     */
-    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
 
     /**
      * @brief Set whether this window limits screen rotation when this window is shown.

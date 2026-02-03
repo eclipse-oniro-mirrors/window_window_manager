@@ -255,7 +255,7 @@ void SingleDisplaySuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode 
 
 void SingleDisplaySuperFoldPolicy::ChangeScreenDisplayModeToCoordination()
 {
-    std::lock_guard<std::mutex> lock(coordinationMutex_);
+    std::unique_lock<std::mutex> lock(coordinationMutex_);
     if (ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
         TLOGW(WmsLogTag::DMS, "change displaymode to coordination skipped, current coordination flag is true");
         return;
@@ -280,7 +280,7 @@ void SingleDisplaySuperFoldPolicy::ChangeScreenDisplayModeToCoordination()
 
 void SingleDisplaySuperFoldPolicy::CloseCoordinationScreen()
 {
-    std::lock_guard<std::mutex> lock(coordinationMutex_);
+    std::unique_lock<std::mutex> lock(coordinationMutex_);
     if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
         TLOGW(WmsLogTag::DMS, "CloseCoordinationScreen skipped, current coordination flag is false");
         return;
@@ -304,7 +304,7 @@ void SingleDisplaySuperFoldPolicy::CloseCoordinationScreen()
 
 void SingleDisplaySuperFoldPolicy::ExitCoordination()
 {
-    std::lock_guard<std::mutex> lock(coordinationMutex_);
+    std::unique_lock<std::mutex> lock(coordinationMutex_);
     if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
         TLOGW(WmsLogTag::DMS, "ExitCoordination skipped, current coordination flag is false");
         return;

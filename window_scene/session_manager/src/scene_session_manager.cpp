@@ -5668,10 +5668,11 @@ void SceneSessionManager::UpdateRotateAnimationConfig(const RotateAnimationConfi
     }, __func__);
 }
 
-WSError SceneSessionManager::ProcessBackEvent()
+WSError SceneSessionManager::ProcessBackEvent(DisplayId displayId)
 {
-    taskScheduler_->PostAsyncTask([this]() {
-        auto focusGroup = windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    taskScheduler_->PostAsyncTask([this, displayId]() {
+        TLOGNI(WmsLogTag::WMS_MAIN, "displayId: %{public}" PRIu64, displayId);
+        auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
             TLOGNE(WmsLogTag::WMS_MAIN, "focus group is nullptr: %{public}" PRIu64, DEFAULT_DISPLAY_ID);
             return WSError::WS_ERROR_NULLPTR;
@@ -7037,7 +7038,7 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
                 "err: %{public}d]", requireLock, res);
         }
     };
-    taskScheduler_->PostAsyncTask(task, "HandleKeepScreenOn");
+    taskScheduler_->PostAsyncTaskToExportHandler(task, "HandleKeepScreenOn");
 #else
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "Can not found the sub system of PowerMgr");
 #endif
@@ -7563,9 +7564,11 @@ void SceneSessionManager::NotifySessionForCallback(const sptr<SceneSession>& sce
         TLOGW(WmsLogTag::DEFAULT, "id: %{public}d is system", sceneSession->GetPersistentId());
         return;
     }
+    TLOGI(WmsLogTag::DEFAULT, "id: %{public}d, needRemoveSession: %{public}u", sceneSession->GetPersistentId(),
+        static_cast<uint32_t>(needRemoveSession));
     if (sceneSession->GetSessionInfo().appIndex_ != 0) {
         TLOGI(WmsLogTag::DEFAULT, "NotifyDestroy, appIndex: %{public}d, id: %{public}d",
-               sceneSession->GetSessionInfo().appIndex_, sceneSession->GetPersistentId());
+            sceneSession->GetSessionInfo().appIndex_, sceneSession->GetPersistentId());
         listenerController_->NotifySessionLifecycleEvent(
             ISessionLifecycleListener::SessionLifecycleEvent::DESTROYED, sceneSession->GetSessionInfo(), reason);
         return;
@@ -8241,7 +8244,7 @@ WSError SceneSessionManager::RequestSessionFocusImmediately(int32_t persistentId
     }
     auto needBlockNotifyFocusStatusUntilForeground = focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground();
     focusGroup->SetNeedBlockNotifyUnfocusStatus(needBlockNotifyFocusStatusUntilForeground);
-    if (!sceneSession->GetSessionInfo().isSystem_ && !blockNotifyUntilVisible && systemConfig_.isSupportPCMode()) {
+    if (!sceneSession->GetSessionInfo().isSystem_ && !blockNotifyUntilVisible && systemConfig_.IsSupportPCMode()) {
         if (!sceneSession->IsSessionForeground()) {
             focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(true);
         }
@@ -18142,7 +18145,7 @@ WMError SceneSessionManager::IsFreeMultiWindow(bool& isFreeMultiWindow)
 
 WMError SceneSessionManager::IsPcOrPadFreeMultiWindowMode(bool& isPcOrPadFreeMultiWindowMode)
 {
-    isPcOrPadFreeMultiWindowMode = (systemConfig_.IsPcWindow() || systemConfig_.IsFreeMultiWindowMode());
+    isPcOrPadFreeMultiWindowMode = (systemConfig_.IsPcWindow() || systemConfig_.freeMultiWindowEnable_);
     return WMError::WM_OK;
 }
 

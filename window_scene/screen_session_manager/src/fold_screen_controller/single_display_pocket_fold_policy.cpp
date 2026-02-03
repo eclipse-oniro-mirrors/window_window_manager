@@ -650,7 +650,7 @@ void SingleDisplayPocketFoldPolicy::AddOrRemoveDisplayNodeToTree(ScreenId screen
 
 void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeToCoordination()
 {
-    std::lock_guard<std::mutex> lock(coordinationMutex_);
+    std::unique_lock<std::mutex> lock(coordinationMutex_);
     if (ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
         TLOGW(WmsLogTag::DMS, "change displaymode to coordination skipped, current coordination flag is true");
         return;
@@ -673,7 +673,7 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayModeToCoordination()
 
 void SingleDisplayPocketFoldPolicy::CloseCoordinationScreen()
 {
-    std::lock_guard<std::mutex> lock(coordinationMutex_);
+    std::unique_lock<std::mutex> lock(coordinationMutex_);
     if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
         TLOGW(WmsLogTag::DMS, "change displaymode to coordination skipped, current coordination flag is false");
         return;
@@ -714,7 +714,7 @@ void SingleDisplayPocketFoldPolicy::GetAllCreaseRegion(std::vector<FoldCreaseReg
 
 void SingleDisplayPocketFoldPolicy::ExitCoordination()
 {
-    std::lock_guard<std::mutex> lock(coordinationMutex_);
+    std::unique_lock<std::mutex> lock(coordinationMutex_);
     if (!ScreenSessionManager::GetInstance().GetCoordinationFlag()) {
         TLOGW(WmsLogTag::DMS, "change displaymode to coordination skipped, current coordination flag is false");
         return;

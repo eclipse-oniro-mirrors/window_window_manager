@@ -3044,6 +3044,10 @@ MainThreadScheduler::MainThreadScheduler(napi_env env)
 {
     GetMainEventHandler();
     envChecker_ = std::make_shared<int>(0);
+    auto nativeEngine = reinterpret_cast<NativeEngine*>(env);
+    if (!nativeEngine->IsMainThread()) {
+        TLOGE(WmsLogTag::DEFAULT, "Only support main thread env");
+    }
 }
 
 inline void MainThreadScheduler::GetMainEventHandler()
