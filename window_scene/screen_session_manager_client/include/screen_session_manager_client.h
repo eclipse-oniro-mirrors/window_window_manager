@@ -209,6 +209,7 @@ private:
     SuperFoldStatus currentstate_ = SuperFoldStatus::UNKNOWN;
 
     std::mutex screenEventMutex_;
+    std::mutex connectToServerMutex_;
     std::unordered_set<ScreenId> connectedScreenSet_;
     std::set<std::string> animateFinishDescriptionSet_;
     std::set<std::string> animateFinishNotificationSet_;
