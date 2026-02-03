@@ -955,26 +955,11 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetVirtualMirrorScreenScaleMode, TestSiz
 }
 
 /**
- * @tc.name: ResizeVirtualScreen01
+ * @tc.name: ResizeVirtualScreen
  * @tc.desc: ResizeVirtualScreen
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen01, TestSize.Level1)
-{
-    sptr<IRemoteObject> remoteMocker = nullptr;
-    sptr<ScreenSessionManagerProxy> proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
-    ScreenId screenId = 1001;
-    uint32_t width = 1024;
-    uint32_t width = 1024;
-    EXPECT_EQ(DMError::DM_ERROR_IPC_FAILED, proxy->ResizeVirtualScreen(ScreenId, width, height));
-}
-
-/**
- * @tc.name: ResizeVirtualScreen02
- * @tc.desc: ResizeVirtualScreen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen02, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen, TestSize.Level1)
 {
     ScreenId ScreenId = 1001;
     uint32_t width = 1024;

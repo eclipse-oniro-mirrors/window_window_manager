@@ -31,9 +31,6 @@
 
 namespace OHOS {
 namespace Rosen {
-constexpr uint32_t MAX_VALID_VALUE = 2147483647;
-constexpr uint32_t MIN_VIRTUAL_SCREEN_ID = 1000;
-constexpr uint32_t MIN_VIRTUAL_SIZE = 1;
 
 ScreenManagerAni::ScreenManagerAni() {}
 
@@ -520,37 +517,6 @@ ani_object ScreenManagerAni::MakeUnique(ani_env* env, ani_object uniqueScreenIds
     }
     TLOGI(WmsLogTag::DMS, "[ANI] displayIds length %{public}d", (ani_int)displayIds.size());
     return ScreenAniUtils::CreateDisplayIdVectorAniObject(env, displayIds);
-}
-
-void ScreenManagerAni::ResizeVirtualScreen(ani_env* env, ani_long screenId, ani_long width, ani_long height)
-{
-    TLOGI(WmsLogTag::DMS, "[ANI] ResizeVirtualScreen start");
-    if (env == nullptr) {
-        TLOGE(WmsLogTag::DMS, "[ANI] env is nullpre");
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "env is nullptr");
-        return;
-    }
-    auto checkRange = [](const std::string& paramName, uint32_t value, const uint32_t& minValue,
-        const uint32_t& maxValue) -> bool {
-            if (value < minValue || value > maxValue) {
-                TLOGE(WmsLogTag::DMS, "[ANI] %{public}s is out of legal range", paramName.c_str());
-                return false;
-            }
-            return true;
-        };
-    ScreenId actualScreenId = static_cast<ScreenId>(screenId);
-    if (!checkRange("screenId", actualScreenId, MIN_VIRTUAL_SCREEN_ID, MAX_VALID_VALUE) ||
-        !checkRange("width", width, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE) ||
-        !checkRange("height", height, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE)) {
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "param is out of range");
-        return;
-    }
-    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<ScreenManager>().ResizeVirtualScreen(static_cast<ScreenId>(screenId),
-            static_cast<uint32_t>(width), static_cast<uint32_t>(height)));
-    if (res != DmErrorCode::DM_OK) {
-        AniErrUtils::ThrowBusinessError(env, res, "[ANI] ScreenManager::ResizeVirtualScreen failed.");
-    }
 }
 
 ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env,

@@ -1510,7 +1510,7 @@ DMError ScreenManagerAdapter::ResizeVirtualScreen(ScreenId screenId, uint32_t wi
         return screenSessionManagerServiceProxy_->ResizeVirtualScreen(screenId, width, height);
     }
 
-    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    return DMError::DM_OK;
 }
 
 DMError ScreenManagerAdapter::MakeUniqueScreen(const std::vector<ScreenId>& screenIds,

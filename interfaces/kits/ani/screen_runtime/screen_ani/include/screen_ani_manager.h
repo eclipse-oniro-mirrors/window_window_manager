@@ -49,7 +49,6 @@ public:
         ani_enum_item secondaryScreenMode);
     static void SetScreenPrivacyMaskImage(ani_env* env, ani_long screenId, ani_object imageAni);
     static ani_object MakeUnique(ani_env* env, ani_object uniqueScreenIds);
-    static void ResizeVirtualScreen(ani_env* env, ani_long screenId, ani_long width, ani_long height);
     static ani_long MakeMirrorWithRegion(ani_env* env, ani_long mainScreen, ani_object mirrorScreen,
         ani_object mainScreenRegionAni);
     static void StopMirror(ani_env* env, ani_object mirrorScreen);

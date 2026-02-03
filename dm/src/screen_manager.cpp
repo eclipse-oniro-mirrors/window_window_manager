@@ -22,9 +22,7 @@
 
 #include "display_manager_adapter.h"
 #include "display_manager_agent_default.h"
-#include "ipc_skeleton.h"
 #include "string_util.h"
-#include "sys_cap_util.h"
 #include "permission.h"
 #include "singleton_delegator.h"
 #include "window_manager_hilog.h"
@@ -56,7 +54,6 @@ public:
     DMError UnregisterDisplayManagerAgent();
     void OnRemoteDied();
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
-    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height);
 
 private:
     void NotifyScreenConnect(sptr<ScreenInfo> info);
@@ -743,13 +740,6 @@ DMError ScreenManager::SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, b
 }
 
 DMError ScreenManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
-{
-    TLOGI(WmsLogTag::DMS, "BoundName: %{public}s, pid: %{public}d", SysCapUtil::GetBundleName().c_str(),
-        IPCSkeleton::GetCallingPid());
-    return pImpl_->ResizeVirtualScreen(screenId, width, height);
-}
-
-DMError ScreenManager::Impl::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
 {
     return SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(screenId, width, height);
 }

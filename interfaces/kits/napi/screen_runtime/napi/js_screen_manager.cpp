@@ -41,9 +41,6 @@ constexpr int32_t INDEX_ZERO = 0;
 constexpr int32_t INDEX_ONE = 1;
 constexpr int32_t INDEX_TWO = 2;
 constexpr uint32_t MAX_SCREENS_NUM = 1000;
-constexpr uint32_t MAX_VALID_VALUE = 2147483647;
-constexpr uint32_t MIN_VIRTUAL_SCREEN_ID = 1000;
-constexpr uint32_t MIN_VIRTUAL_SIZE = 1;
 
 class JsScreenManager {
 public:
@@ -158,12 +155,6 @@ static napi_value MakeUnique(napi_env env, napi_callback_info info)
 {
     JsScreenManager* me = CheckParamsAndGetThis<JsScreenManager>(env, info);
     return (me != nullptr) ? me->OnMakeUnique(env, info) : nullptr;
-}
-
-static napi_value ResizeVirtualScreen(napi_env env, napi_callback_info info)
-{
-    JsScreenManager* me = CheckParamsAndGetThis<JsScreenManager>(env, info);
-    return (me != nullptr) ? me->OnResizeVirtualScreen(env, info) : nullptr;
 }
 
 private:
@@ -826,57 +817,6 @@ napi_value OnMakeUnique(napi_env env, napi_callback_info info)
         delete task;
     };
     NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnMakeUnique");
-    return result;
-}
-
-napi_value OnResizeVirtualScreen(napi_env env, napi_callback_info info)
-{
-    TLOGI(WmsLogTag::DMS, "[NAPI] OnResizeVirtualScreen is called");
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = {nullptr};
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARGC_THREE) {
-        TLOGE(WmsLogTag::DMS, "[NAPI] Invalid args count, need arg at least!");
-        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Invalid args count, need three arg at least!");
-    }
-    uint32_t screenId;
-    uint32_t width;
-    uint32_t height;
-    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], screenId) || !ConvertFromJsValue(env, argv[INDEX_ONE], width) ||
-        !ConvertFromJsValue(env, argv[INDEX_TWO], height)) {
-        TLOGE(WmsLogTag::DMS, "[NAPI] Failed to convert parameter");
-        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter");
-    }
-    auto checkRange = [](const std::string& paramName, uint32_t value, const uint32_t& minValue,
-        const uint32_t& maxValue) -> bool {
-        if (value < minValue || value > maxValue) {
-            TLOGE(WmsLogTag::DMS, "[NAPI] %{public}s is out of range", paramName.c_str());
-            return false;
-        }
-        return true;
-    };
-    ScreenId actualScreenId = static_cast<ScreenId>(screenId);
-    if (!checkRange("screenId", actualScreenId, MIN_VIRTUAL_SCREEN_ID, MAX_VALID_VALUE) ||
-        !checkRange("width", width, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE) ||
-        !checkRange("height", height, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE)) {
-        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "Parameter out of range");
-    }
-    napi_value lastParam = nullptr;
-    napi_value result = nullptr;
-    std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [actualScreenId, width, height, env, task = napiAsyncTask.get()]() {
-        DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(
-            SingletonContainer::Get<ScreenManager>().ResizeVirtualScreen(actualScreenId, width, height));
-        if (ret == DmErrorCode::DM_OK) {
-            TLOGNI(WmsLogTag::DMS, "[NAPI] JsScreenManager::OnResizeVirtualScreen success");
-            task->Resolve(env, NapiGetUndefined(env));
-        } else {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
-                "JsScreenManager::OnResizeVirtualScreen failed"));
-        }
-        delete task;
-    };
-    NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnResizeVirtualScreen");
     return result;
 }
 
@@ -1572,7 +1512,6 @@ napi_value JsScreenManagerInit(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "isScreenRotationLocked", moduleName,
         JsScreenManager::IsScreenRotationLocked);
     BindNativeFunction(env, exportObj, "makeUnique", moduleName, JsScreenManager::MakeUnique);
-    BindNativeFunction(env, exportObj, "resizeVirtualScreen", moduleName, JsScreenManager::ResizeVirtualScreen);
     return NapiGetUndefined(env);
 }
 }  // namespace Rosen

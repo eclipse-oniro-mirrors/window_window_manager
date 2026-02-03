@@ -7328,40 +7328,31 @@ DMError ScreenSessionManager::SetVirtualMirrorScreenCanvasRotation(ScreenId scre
     return DMError::DM_OK;
 }
 
-DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
-{
-    if (!SessionPermission::IsSystemCalling()) {
-        TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
-            SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
-        return DMError::DM_ERROR_NOT_SYSTEM_APP;
-    }
-    TLOGNFW(WmsLogTag::DMS, "screenId: %{public}" PRIu64", width: %{public}u, height: %{public}u.",
-        screenId, width, height);
-    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
-    if (screenSession == nullptr || screenSession->GetScreenProperty().GetScreenType() != ScreenType::VIRTUAL) {
-        TLOGNFE(WmsLogTag::DMS, "No such screen or not virtual screen.");
-        return DMError::DM_ERROR_NULLPTR;
-    }
-    if (screenSession->GetActiveScreenMode()->width_ == width &&
-        screenSession->GetActiveScreenMode()->height_ == height) {
-        TLOGNFE(WmsLogTag::DMS, "Target width and height of the screen are the same as the current values");
-        return DMError::DM_ERROR_NULLPTR;
-    }
-    ScreenId rsScreenId;
-    if (!screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
-        TLOGNFE(WmsLogTag::DMS, "No corresponding rsId");
-        return DMError::DM_ERROR_NULLPTR;
-    }
-    int32_t rsRet = rsInterface_.ResizeVirtualScreen(rsScreenId, width, height);
-    if (rsRet != RSERROR_SUCCESS) {
-        TLOGNFE(WmsLogTag::DMS, "RS side failed in resizing virtual screen, rsRet: %{public}d", rsRet);
-        return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
-    }
-    screenSession->Resize(width, height);
-    screenSession->PropertyChange(screenSession->GetScreenProperty(),
-        ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE);
-    return DMError::DM_OK;
-}
+ DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+ {
+     if (!SessionPermission::IsSystemCalling()) {
+         TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
+             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
+         return DMError::DM_ERROR_NOT_SYSTEM_APP;
+     }
+     TLOGNFW(WmsLogTag::DMS, "screenId: %{public}" PRIu64", width: %{public}u, height: %{public}u.",
+         screenId, width, height);
+     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+     if (screenSession == nullptr) {
+         TLOGNFE(WmsLogTag::DMS, "No such screen.");
+         return DMError::DM_ERROR_INVALID_PARAM;
+     }
+     ScreenId rsScreenId;
+     if (!screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
+         TLOGNFE(WmsLogTag::DMS, "No corresponding rsId");
+         return DMError::DM_ERROR_INVALID_PARAM;
+     }
+     rsInterface_.ResizeVirtualScreen(rsScreenId, width, height);
+     screenSession->Resize(width, height);
+     screenSession->PropertyChange(screenSession->GetScreenProperty(),
+         ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE);
+     return DMError::DM_OK;
+ }
 
 DMError ScreenSessionManager::DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty)
 {
