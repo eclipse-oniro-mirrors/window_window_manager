@@ -125,7 +125,7 @@ using NotifyRestartAppFunc = std::function<void(const SessionInfo& info, int32_t
 using ProcessCallingSessionIdChangeFunc = std::function<void(uint32_t callingSessionId)>;
 using GetRsCmdBlockingCountFunc = std::function<int32_t()>;
 using GetAppUseControlDisplayMapFunc = std::function<std::unordered_map<DisplayId, bool>&()>;
-using SaveStartWindowFunc = std::function<void(std::string)>;
+using SaveStartWindowFunc = std::function<void(std::string, bool)>;
 
 class ILifecycleListener {
 public:

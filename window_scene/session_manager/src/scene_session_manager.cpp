@@ -3264,7 +3264,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     RegisterSessionExceptionFunc(sceneSession);
     RegisterVisibilityChangedDetectFunc(sceneSession);
     RegisterSaveSnapshotFunc(sceneSession);
-    RegisterStartWindowFunc(sceneSession);
+    RegisterSaveStartWindowFunc(sceneSession);
     RegisterIsAppBoundSystemTrayFunc(sceneSession);
     if (systemConfig_.IsPcOrPcMode()) {
         RegisterGetStartWindowConfigCallback(sceneSession);
@@ -3972,7 +3972,7 @@ WSError SceneSessionManager::RegisterSaveSnapshotFunc(const sptr<SceneSession>& 
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::RegisterStartWindowFunc(const sptr<SceneSession>& sceneSession)
+WSError SceneSessionManager::RegisterSaveStartWindowFunc(const sptr<SceneSession>& sceneSession)
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_PATTERN, "session is nullptr");
@@ -3982,8 +3982,7 @@ WSError SceneSessionManager::RegisterStartWindowFunc(const sptr<SceneSession>& s
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
     const auto& sessionInfo = sceneSession->GetSessionInfo();
-    sceneSession->SetSaveStartWindowCallback([this, sessionInfo](std::string path) {
-        bool isDark = this->IsStartWindowDark(sessionInfo);
+    sceneSession->SetSaveStartWindowCallback([this, sessionInfo](std::string path, bool isDark) {
         this->SetStartWindowPersistencePath(sessionInfo.bundleName_, isDark, path);
     });
     return WSError::WS_OK;
@@ -6619,9 +6618,8 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
             bool isDark = IsStartWindowDark(sessionInfo);
-            if (isCropped &&
-                sceneSession->GetScenePersistence() &&
-                !(sceneSession->GetScenePersistence()->HasStartWindowPersistence(isDark))) {
+            std::string persistencePath = GetStartWindowPersistencePath(sessionInfo.bundleName_, isDark);
+            if (isCropped && persistencePath.empty()) {
                 sceneSession->SaveStartWindow(pixelMap, isDark);
             }
         }
@@ -6679,6 +6677,7 @@ void SceneSessionManager::OnBundleUpdated(const std::string& bundleName, int use
 {
     taskScheduler_->PostAsyncTask([this, bundleName]() {
         ClearStartWindowColorFollowApp(bundleName);
+        ClearStartWindowPersistencePath(bundleName);
     }, __func__);
     auto task = [this, bundleName, where = __func__] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:OnBundleUpdated [%s]", bundleName.c_str());

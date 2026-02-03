@@ -80,7 +80,7 @@ bool ScenePersistence::CreateStartWindowDir(const std::string& directory)
 }
 
 void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark,
-    const std::function<void(std::string)>& saveStartWindowCallback)
+    const std::function<void(std::string, bool)>& saveStartWindowCallback)
 {
     std::string startWindowPath = isDark ? darkStartWindowPath_ : lightStartWindowPath_;
     auto task = [weakThis = wptr(this), pixelMap, startWindowPath, isDark, saveStartWindowCallback]() {
@@ -116,24 +116,9 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
             return;
         }
         scenePersistence->SetHasStartWindowPersistence(isDark, true);
-        saveStartWindowCallback(startWindowPath);
+        saveStartWindowCallback(startWindowPath, isDark);
     };
     snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
-}
-
-std::string ScenePersistence::GetStartWindowPath(bool isDark) const
-{
-    return isDark ? darkStartWindowPath_ : lightStartWindowPath_;
-}
-
-bool ScenePersistence::HasStartWindowPersistence(bool isDark) const
-{
-    return hasStartWindowPersistence_[isDark];
-}
-
-void ScenePersistence::SetHasStartWindowPersistence(bool isDark, bool hasPersistence)
-{
-    hasStartWindowPersistence_[isDark] = hasPersistence;
 }
 
 void ScenePersistence::SetSnapshotCapacity(SnapshotStatus capacity)
