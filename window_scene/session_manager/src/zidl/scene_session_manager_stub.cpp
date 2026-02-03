@@ -1434,7 +1434,7 @@ int SceneSessionManagerStub::HandleUpdateSessionWindowVisibilityListener(Message
     return ERR_NONE;
 }
 
-int SceneSessionManagerStub::HandleUpdateSessionOcclusionStateListener(MessageParcel& data, MessageParcel& reply)
+int SceneSessionManagerStub::HandleUpdateSessionScreenshotListener(MessageParcel& data, MessageParcel& reply)
 {
     int32_t persistentId = 0;
     if (!data.ReadInt32(persistentId)) {
