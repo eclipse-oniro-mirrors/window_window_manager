@@ -39,6 +39,7 @@ constexpr ScreenId SCREEN_ID_FAKE = 999;
 constexpr DisplayId DISPLAY_ID_FAKE = 999;
 constexpr ScreenId ERROR_ID_NO_PERMISSION = -201ULL;
 constexpr ScreenId ERROR_ID_NOT_SYSTEM_APP = -202ULL;
+constexpr ScreenId ERROR_INVALID_PARAM = -401ULL;
 constexpr bool IS_ROTATION_LOCKED_DEFAULT = false;
 constexpr int DOT_PER_INCH = 160;
 const static std::string DEFAULT_SCREEN_NAME = "buildIn";

@@ -1015,6 +1015,8 @@ napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
                 ret = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
             } else if (screenId == ERROR_ID_NO_PERMISSION) {
                 ret = DmErrorCode::DM_ERROR_NO_PERMISSION;
+            } else if (screenId == ERROR_INVALID_PARAM) {
+                ret = DmErrorCode::DM_ERROR_INVALID_PARAM;
             }
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret), "CreateVirtualScreen failed."));
             TLOGNE(WmsLogTag::DMS, "ScreenManager::CreateVirtualScreen failed.");
