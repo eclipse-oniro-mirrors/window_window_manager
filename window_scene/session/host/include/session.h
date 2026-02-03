@@ -1287,7 +1287,7 @@ private:
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
     std::mutex saveStartWindowCallbackMutex_;
-    SaveStartWindowFunc saveStartWindowCallback_ ;
+    SaveStartWindowFunc saveStartWindowCallback_;
     float blurRadius_ = 0.0f;
     uint32_t blurBackgroundColor_ = 0x00000000;
 

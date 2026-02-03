@@ -92,7 +92,6 @@ private:
     static std::string darkStartWindowDirectory_;
     std::string lightStartWindowPath_;
     std::string darkStartWindowPath_;
-    std::atomic<bool> hasStartWindowPersistence_[2] = { false, false };
 
     std::atomic<int> savingSnapshotSum_ { 0 };
     std::atomic<bool> isSavingSnapshot_ = { false };

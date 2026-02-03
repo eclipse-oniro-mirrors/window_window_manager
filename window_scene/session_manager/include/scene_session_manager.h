@@ -1896,8 +1896,7 @@ private:
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId) override;
     WMError RemoveImageForRecent(int32_t persistentId) override;
-    bool GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo,
-        Media::DecodeOptions& decodeOpts);
+    bool GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts);
     void InitSnapshotBlurConfig();
     float GetBlurRadiusFromParam(const std::string& blurRadiusColorStr) const;
     uint32_t GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const;
