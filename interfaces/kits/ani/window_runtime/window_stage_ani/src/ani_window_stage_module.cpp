@@ -73,6 +73,8 @@ std::array g_methods = {
     ani_native_function {"loadContentByNameSync",
         "lC{std.core.String}C{arkui.stateManagement.storage.localStorage.LocalStorage}:",
         reinterpret_cast<void *>(AniWindowStage::LoadContentByName)},
+    ani_native_function {"releaseUIContentSync", nullptr,
+        reinterpret_cast<void *>(AniWindowStage::ReleaseUIContent)},
     ani_native_function {"disableWindowDecorSync", nullptr,
         reinterpret_cast<void *>(AniWindowStage::DisableWindowDecor)},
     ani_native_function {"setWindowRectAutoSave", "lzz:",
