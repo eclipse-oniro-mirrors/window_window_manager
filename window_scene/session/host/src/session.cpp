@@ -533,6 +533,38 @@ SessionInfo& Session::EditSessionInfo()
     return sessionInfo_;
 }
 
+bool Session::GetNeedBackgroundAfterConnect() const
+{
+    return needBackgroundAfterConnect_.load();
+}
+
+void Session::SetNeedBackgroundAfterConnect(bool isNeed)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, need background after connect:%{public}d",
+        GetPersistentId(), isNeed);
+    needBackgroundAfterConnect_.store(isNeed);
+}
+
+void Session::RecordSessionStateError(SessionState expectState, SessionState currentState) const
+{
+    std::ostringstream oss;
+    oss << "[Event]Session lifecycle scheduling error, expect session state:" << static_cast<uint32_t>(expectState)
+        << ", current session state:" << static_cast<uint32_t>(currentState)
+        << ", id:" << GetWindowId()
+        << ", name:" << GetWindowName().c_str()
+        << "[Msg]foreground from client error, when server closed.";
+    int32_t ret = HiSysEventWrite(
+        OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
+        "WINDOW_LIFE_CYCLE_EXCEPTION",
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+        "PID", getpid(),
+        "UID", getuid(),
+        "MSG", oss.str());
+    if (ret != 0) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
+    }
+}
+
 bool Session::RegisterLifecycleListener(const std::shared_ptr<ILifecycleListener>& listener)
 {
     return RegisterListenerLocked(lifecycleListeners_, listener);
@@ -1610,26 +1642,14 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     if ((state == SessionState::STATE_DISCONNECT || state == SessionState::STATE_END) &&
         SessionHelper::IsMainWindow(GetWindowType())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
-        std::ostringstream oss;
-        oss << "[Event]lifecycle to:" << static_cast<uint32_t>(SessionState::STATE_FOREGROUND)
-            << ", id:" << GetWindowId()
-            << ", name:" << GetWindowName().c_str()
-            << "[Msg]foreground from client error, when server closed.";
-        std::string info = oss.str();
-        int32_t ret = HiSysEventWrite(
-            OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
-            "WINDOW_LIFE_CYCLE_EXCEPTION",
-            OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
-            "PID", getpid(),
-            "UID", getuid(),
-            "MSG", info);
-        if (ret != 0) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
-        }
+        RecordSessionStateError(SessionState::STATE_FOREGROUND, state);
     }
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
+        if (state == SessionState::STATE_DISCONNECT) {
+            SetNeedBackgroundAfterConnect(false);
+        }
         return WSError::WS_ERROR_INVALID_SESSION;
     }
 
@@ -1713,6 +1733,9 @@ WSError Session::Background(bool isFromClient, const std::string& identityToken)
     if (state != SessionState::STATE_INACTIVE) {
         TLOGW(WmsLogTag::WMS_LIFE, "[id: %{public}d] Background state invalid! state: %{public}u",
             GetPersistentId(), state);
+        if (state == SessionState::STATE_DISCONNECT) {
+            SetNeedBackgroundAfterConnect(true);
+        }
         return WSError::WS_ERROR_INVALID_SESSION;
     }
     UpdateSessionState(SessionState::STATE_BACKGROUND);

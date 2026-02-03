@@ -493,6 +493,12 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s foreground specific callback is null", where);
         }
         session->DisableUIFirstIfNeed();
+        if (session->GetNeedBackgroundAfterConnect()) {
+            TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s Need background after connect, id:%{public}d",
+                where, persistentId);
+            session->SetNeedBackgroundAfterConnect(false);
+            session->NotifySessionBackground(1, true, true);
+        }
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
