@@ -36,7 +36,6 @@ using HandlWritePropertyFunc = bool (WindowSessionProperty::*)(Parcel& parcel);
 using HandlReadPropertyFunc = void (WindowSessionProperty::*)(Parcel& parcel);
 using TransitionAnimationMapType = std::unordered_map<WindowTransitionType, std::shared_ptr<TransitionAnimation>>;
 constexpr float WINDOW_CORNER_RADIUS_INVALID = -1.0f;
-constexpr float WINDOW_SHADOW_RADIUS_INVALID = -1.0f;
 
 class WindowSessionProperty : public Parcelable {
 public:

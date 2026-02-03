@@ -197,7 +197,6 @@ public:
      */
     static napi_value GetWindowStatus(napi_env env, napi_callback_info info);
     static napi_value SetWindowMask(napi_env env, napi_callback_info info);
-    static napi_value ClearWindowMask(napi_env env, napi_callback_info info);
     static napi_value SetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     static napi_value IsInFreeWindowMode(napi_env env, napi_callback_info info);
 
@@ -437,7 +436,6 @@ private:
      * PC Window
      */
     napi_value OnSetWindowMask(napi_env env, napi_callback_info info);
-    napi_value OnClearWindowMask(napi_env env, napi_callback_info info);
     napi_value OnGetWindowStatus(napi_env env, napi_callback_info info);
     napi_value OnSetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     napi_value OnIsInFreeWindowMode(napi_env env, napi_callback_info info);

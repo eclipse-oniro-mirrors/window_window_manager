@@ -121,7 +121,6 @@ enum class ListenerFuncType : uint32_t {
     ROTATION_LOCK_CHANGE_CB,
     SNAPSHOT_SKIP_CHANGE_CB,
     COMPATIBLE_MODE_CHANGE_CB,
-    RECOVER_WINDOW_EFFECT_CB,
 };
 
 class SceneSession;
@@ -464,7 +463,6 @@ private:
     void ProcessSetWindowShadowsRegister();
     void ProcessRotationLockChangeRegister();
     void ProcessSnapshotSkipChangeRegister();
-    void ProcessRecoverWindowEffectRegister();
 
     /*
      * PC Window Layout
@@ -565,7 +563,6 @@ private:
     void OnSetWindowShadows(const ShadowsInfo& shadowsInfo);
     void OnRotationLockChange(bool locked);
     void OnSnapshotSkipChange(bool isSkip);
-    void OnRecoverWindowEffect(bool recoverCorner, bool recoverShadow);
 
     /*
      * PC Window Layout
