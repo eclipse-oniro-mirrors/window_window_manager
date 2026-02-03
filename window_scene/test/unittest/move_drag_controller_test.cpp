@@ -929,8 +929,8 @@ HWTEST_F(MoveDragControllerTest, ProcessWindowDragHotAreaFunc, TestSize.Level1)
     {
         bool isDragHotAreaFuncCalled = false;
         DisplayId actualDisplayId = 0;
-        uint32_t actualType = 0;
         SizeChangeReason actualReason = SizeChangeReason::UNDEFINED;
+        uint32_t actualType = 0;
 
         auto dragHotAreaFunc = [&isDragHotAreaFuncCalled, &actualDisplayId, &actualType, &actualReason]
             (DisplayId displayId, uint32_t type, SizeChangeReason reason) {
