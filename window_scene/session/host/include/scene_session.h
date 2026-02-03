@@ -1611,6 +1611,11 @@ private:
     IsAINavigationBarAvoidAreaValidFunc isAINavigationBarAvoidAreaValid_;
     std::unordered_map<AvoidAreaType, std::tuple<DisplayId, WSRect, WSRect>> lastAvoidAreaInputParamtersMap_;
 
+    /**
+     * Window Layout
+     */
+    NotifyLayoutFullScreenChangeFunc onLayoutFullScreenChangeFunc_;
+
     /*
      * PC Window Layout
      */

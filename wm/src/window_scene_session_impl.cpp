@@ -492,6 +492,7 @@ WMError WindowSceneSessionImpl::CreateSystemWindow(WindowType type)
             property_->SetDisplayId(mainWindow->GetDisplayId());
             TLOGI(WmsLogTag::WMS_DIALOG, "The parentId: %{public}d", mainWindow->GetPersistentId());
         }
+        WLOGFD("Cannot find main window to bind");
     } else if (WindowHelper::IsSystemSubWindow(type)) {
         auto parentSession = FindParentSessionByParentId(property_->GetParentId());
         if (parentSession == nullptr || parentSession->GetHostSession() == nullptr) {
