@@ -31,8 +31,6 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
-private:
-    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
 };
 
 void SceneSessionEventTest::SetUpTestCase() {}
