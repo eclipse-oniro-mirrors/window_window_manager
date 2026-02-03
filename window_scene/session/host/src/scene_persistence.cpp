@@ -111,11 +111,13 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
         }
         int64_t packedSize = 0;
         if (imagePacker.FinalizePacking(packedSize)) {
-            TLOGNE(WmsLogTag::WMS_PATTERN, "SaveStartWindow failed, finish packing error, packedSize: %{public}lld",
+            TLOGNE(WmsLogTag::WMS_PATTERN, "SaveStartWindow failed, finish packing error, size: %{public}" PRIu64,
                 packedSize);
             return;
         }
         saveStartWindowCallback(startWindowPath, isDark);
+        TLOGNI(WmsLogTag::WMS_PATTERN, "SaveStartWindow success, size: %{public}" PRIu64,
+            packedSize);
     };
     snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
 }
