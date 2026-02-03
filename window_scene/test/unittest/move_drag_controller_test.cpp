@@ -925,7 +925,7 @@ HWTEST_F(MoveDragControllerTest, TestConsumeMoveEventWithStartMove, TestSize.Lev
  */
 HWTEST_F(MoveDragControllerTest, ProcessWindowDragHotAreaFunc, TestSize.Level1)
 {
-    // Test Case 1: Callback should be called when hot area type changes
+    // Test Case 1: Callback should be called when hot area type change
     {
         bool isDragHotAreaFuncCalled = false;
         DisplayId actualDisplayId = 0;
