@@ -1185,7 +1185,7 @@ void ScreenSessionManager::SetScreenCorrection()
         screenRotation = ConvertOffsetToCorrectRotation(phyOffset);
     }
     auto correctionRet = rsInterface_.SetLogicalCameraRotationCorrection(screenId,
-        static_cast<ScreenRotation>(GetConfigCorrectionByDisplayMode(GetFoldDisplayMode())));
+        static_cast<ScreenRotation>(GetCurrentConfigCorrection()));
     auto ret = rsInterface_.SetScreenCorrection(screenId, screenRotation);
     oss << "screenRotation: " << static_cast<int32_t>(screenRotation) << " ret value: " << ret;
     oss << "correctionRet:" << correctionRet;
@@ -1850,7 +1850,7 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_ONE;
     InitRotationCorrectionMap(DISPLAYMODE_CORRECTION);
     {
-        std::shared_lock<std::shared_mutex> lock(rotationCorrectionMutex_);
+        std::shared_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
         screenSession->SetRotationCorrectionMap(rotationCorrectionMap_);
     }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
@@ -2496,7 +2496,7 @@ void ScreenSessionManager::HandleRotationCorrectionExemption(sptr<DisplayInfo>& 
         foldDisplayMode = foldDisplayModeAfterRotation;
     }
     {
-        std::shared_lock<std::shared_mutex> lock(rotationCorrectionMutex_);
+        std::shared_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
         auto it = rotationCorrectionMap_.find(foldDisplayMode);
         if (it != rotationCorrectionMap_.end() && it->second == 0 &&
             !IsSupportRotationCorrectionByWhiteList(foldDisplayMode)) {
@@ -10891,10 +10891,7 @@ void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
         TLOGNFE(WmsLogTag::DMS, "screen session is null.");
         return;
     }
-    {
-        std::unique_lock<std::mutex> lock(switchUserMutex_);
-        userSwitching_ = true;
-    }
+    UpdateSwitchUser(true);
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerSession->GetScreenId()
         << ", rsId: " << innerSession->GetRSScreenId()
@@ -10909,10 +10906,7 @@ void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
             ExitOuterOnlyMode(innerSession->GetRSScreenId(), externalSession->GetRSScreenId(),
                 MultiScreenMode::SCREEN_MIRROR);
             switchUserCV_.notify_all();
-            {
-                std::unique_lock<std::mutex> lock(switchUserMutex_);
-                userSwitching_ = false;
-            }
+            UpdateSwitchUser(false);
         } else {
             TLOGNFI(WmsLogTag::DMS, "change to mirror.");
             SetIsOuterOnlyMode(false);
@@ -10921,10 +10915,7 @@ void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
     } else {
         TLOGNFI(WmsLogTag::DMS, "already mirror.");
         switchUserCV_.notify_all();
-        {
-            std::unique_lock<std::mutex> lock(switchUserMutex_);
-            userSwitching_ = false;
-        }
+        UpdateSwitchUser(false);
     }
 #endif
 }
@@ -14746,7 +14737,7 @@ Rotation ScreenSessionManager::GetConfigCorrectionByDisplayMode(FoldDisplayMode 
         return Rotation::ROTATION_0;
     }
     InitRotationCorrectionMap(DISPLAYMODE_CORRECTION);
-    std::shared_lock<std::shared_mutex> lock(rotationCorrectionMutex_);
+    std::shared_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
     auto iter = rotationCorrectionMap_.find(displayMode);
     if (iter == rotationCorrectionMap_.end()) {
         return Rotation::ROTATION_0;
@@ -14757,10 +14748,10 @@ Rotation ScreenSessionManager::GetConfigCorrectionByDisplayMode(FoldDisplayMode 
  
 void ScreenSessionManager::InitRotationCorrectionMap(std::string displayModeCorrectionConfig)
 {
+    std::unique_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
     if (!rotationCorrectionMap_.empty()) {
         return;
     }
-    std::unique_lock<std::shared_mutex> lock(rotationCorrectionMutex_);
     rotationCorrectionMap_.clear();
     std::vector<std::string> displayModeCorrections = {};
     bool splitSuccess = ScreenSettingHelper::SplitString(displayModeCorrections, displayModeCorrectionConfig, ';');
@@ -15155,6 +15146,12 @@ void ScreenSessionManager::ClearScreenPowerStatus(ScreenId rsScreenId)
 {
     std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
     screenPowerStatusMap_.erase(rsScreenId);
+}
+
+void ScreenSessionManager::UpdateSwitchUser(bool userSwitching)
+{
+    std::unique_lock<std::mutex> lock(switchUserMutex_);
+    userSwitching_ = userSwitching;
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen
