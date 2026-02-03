@@ -739,7 +739,7 @@ private:
     MoveTempProperty moveTempProperty_;
 
     void UpdateHotAreaType(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
-    void ProcessWindowDragHotAreaFunc(uint32_t oldWindowDragHotAreaType, DisplayId, oldHotAreaDisplayId,
+    void ProcessWindowDragHotAreaFunc(uint32_t oldWindowDragHotAreaType, DisplayId oldHotAreaDisplayId,
         SizeChangeReason reason);
     uint32_t windowDragHotAreaType_ = WINDOW_HOT_AREA_TYPE_UNDEFINED;
     NotifyWindowDragHotAreaFunc windowDragHotAreaFunc_;
