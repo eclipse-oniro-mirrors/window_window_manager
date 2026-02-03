@@ -58,7 +58,6 @@ void SuperFoldStateManager::DoAngleChangeFolded(SuperFoldStatusChangeEvents even
 void SuperFoldStateManager::DoAngleChangeHalfFolded(SuperFoldStatusChangeEvents event)
 {
     TLOGI(WmsLogTag::DMS, "enter %{public}d", event);
-    ScreenSessionManager::GetInstance().RecoveryResolutionEffect();
 }
 
 void SuperFoldStateManager::DoAngleChangeExpanded(SuperFoldStatusChangeEvents event)

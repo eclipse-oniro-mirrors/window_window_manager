@@ -3032,6 +3032,7 @@ void ScreenSessionManager::CalculateStartWhenTransferState(sptr<ScreenSession> s
         ScreenPropertyChangeReason::RELATIVE_POSITION_CHANGE);
     dynamicSession->PropertyChange(dynamicSession->GetScreenProperty(),
         ScreenPropertyChangeReason::RELATIVE_POSITION_CHANGE);
+    NotifyScreenModeChange();
 }
 
 void ScreenSessionManager::HandleStaticOnLeft(MultiScreenPositionOptions& staticScreenOptions,
@@ -3636,6 +3637,8 @@ void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate()
     }
     if (!IsVertical(internalSession->GetRotation())) {
         HandleResolutionEffectChange();
+    } else {
+        RecoveryResolutionEffect();
     }
 #endif
 }
@@ -3768,8 +3771,7 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
      * orientation and keyboard state. This state does not normally exist, and it is expected that the logic for
      * ResolutionEffect should not be applied. Therefore, a status check for SuperFoldStatus needs to be added.
      */
-    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && (IsVertical(internalSession->GetRotation()) ||
-        GetSuperFoldStatus() != SuperFoldStatus::EXPANDED)){
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && GetSuperFoldStatus() != SuperFoldStatus::EXPANDED){
         TLOGNFI(WmsLogTag::DMS, "SuperFoldDisplayDevice status not support");
         return false;
     }
@@ -6389,10 +6391,13 @@ void ScreenSessionManager::UpdateScreenRotationProperty(ScreenId screenId, const
     }
     if (g_isPcDevice) {
         sptr<ScreenSession> physicalScreen = GetPhysicalScreenSession(screenSession->GetRSScreenId());
-        if (physicalScreen) {
-            physicalScreen->UpdatePropertyAfterRotation(bounds, rotation, GetFoldDisplayMode());
+        if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+           if (isSwitchUser) {
+                screenSession->SetPointerActiveWidth(0);
+                screenSession->SetPointerActiveHeight(0);
+           }
+            GetStaticAndDynamicSession();
         }
-        GetStaticAndDynamicSession();
         NotifyScreenModeChange();
     }
     SetFoldDisplayModeAfterRotation(GetFoldDisplayMode());
