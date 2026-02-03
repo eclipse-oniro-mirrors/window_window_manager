@@ -1600,56 +1600,7 @@ bool GetMoveConfigurationFromJsValue(napi_env env, napi_value jsObject, MoveConf
             return false;
         }
         moveConfiguration.displayId = static_cast<DisplayId>(displayId);
-    }
-    napi_get_named_property(env, jsObject, "rectAnimationConfig", &jsConfig);
-    if (GetType(env, jsConfig) != napi_undefined) {
-        RectAnimationConfig rectAnimationConfig;
-        if (!ParseRectAnimationConfig(env, jsConfig, rectAnimationConfig)) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to rectAnimationConfig");
-            return false;
-        }
-        moveConfiguration.rectAnimationConfig = rectAnimationConfig;
-    }
-    return true;
-}
-
-bool ParseRectAnimationConfig(napi_env env, napi_value jsObject, RectAnimationConfig& rectAnimationConfig)
-{
-    uint32_t duration = 0;
-    if (ParseJsValue(jsObject, env, "duration", duration)) {
-        if (duration <= 0) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "RectAnimationConfig duration invalid");
-            return false;
-        }
-        rectAnimationConfig.duration = duration;
-    } else {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert object to rectAnimationConfig duration");
-        return false;
-    }
-    double coordinate = 0.0;
-    if (ParseJsValue(jsObject, env, "x1", coordinate)) {
-        rectAnimationConfig.x1 = static_cast<float>(std::clamp(coordinate, 0.0, 1.0));
-    } else {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert object to rectAnimationConfig x1");
-        return false;
-    }
-    if (ParseJsValue(jsObject, env, "y1", coordinate)) {
-        rectAnimationConfig.y1 = static_cast<float>(coordinate);
-    } else {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert object to rectAnimationConfig y1");
-        return false;
-    }
-    if (ParseJsValue(jsObject, env, "x2", coordinate)) {
-        rectAnimationConfig.x2 = static_cast<float>(std::clamp(coordinate, 0.0, 1.0));
-    } else {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert object to rectAnimationConfig x2");
-        return false;
-    }
-    if (ParseJsValue(jsObject, env, "y2", coordinate)) {
-        rectAnimationConfig.y2 = static_cast<float>(coordinate);
-    } else {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert object to rectAnimationConfig y2");
-        return false;
+        return true;
     }
     return true;
 }
