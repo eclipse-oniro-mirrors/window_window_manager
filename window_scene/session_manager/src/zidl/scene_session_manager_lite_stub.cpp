@@ -1719,7 +1719,7 @@ int SceneSessionManagerLiteStub::HandleRemoveInstanceKey(MessageParcel& data, Me
         return ERR_INVALID_DATA;
     }
     std::string instanceKey;
-    if (!reply.ReadString(instanceKey)) {
+    if (!data.ReadString(instanceKey)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read instanceKey");
         return ERR_INVALID_DATA;
     }
@@ -1750,7 +1750,10 @@ int SceneSessionManagerLiteStub::HandleTransferSessionToTargetScreen(MessageParc
         info.wantParams = *wantParams;
     }
     WMError ret = TransferSessionToTargetScreen(info);
-    reply.WriteInt32(static_cast<int32_t>(ret));
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write ret failed");
+        return ERR_INVALID_DATA;
+    }
     return ERR_NONE;
 }
 
