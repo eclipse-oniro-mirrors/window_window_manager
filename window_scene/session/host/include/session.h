@@ -352,7 +352,7 @@ public:
         }
     }
 
-    void SetSaveStartWindowCallback(SaveStartWindowFunc& task)
+    void SetSaveStartWindowCallback(SaveStartWindowFunc&& task)
     {
         if (task) {
             std::lock_guard lock(saveStartWindowCallbackMutex_);

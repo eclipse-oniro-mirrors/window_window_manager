@@ -115,7 +115,6 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
                 packedSize);
             return;
         }
-        scenePersistence->SetHasStartWindowPersistence(isDark, true);
         saveStartWindowCallback(startWindowPath, isDark);
     };
     snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
