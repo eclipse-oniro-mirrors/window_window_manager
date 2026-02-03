@@ -41,9 +41,10 @@ constexpr int32_t INDEX_ZERO = 0;
 constexpr int32_t INDEX_ONE = 1;
 constexpr int32_t INDEX_TWO = 2;
 constexpr uint32_t MAX_SCREENS_NUM = 1000;
-constexpr uint32_t MAX_VALID_VALUE = 2147483647;
-constexpr uint32_t MIN_VIRTUAL_SCREEN_ID = 1000;
 constexpr uint32_t MIN_VIRTUAL_SIZE = 1;
+constexpr uint32_t MAX_VIRTUAL_SIZE = 0x10000;
+constexpr uint32_t MIN_VIRTUAL_SCREEN_ID = 1000;
+constexpr uint32_t MAX_VIRTUAL_SCREEN_ID = 0x7FFFFFFF;
 
 class JsScreenManager {
 public:
@@ -856,9 +857,9 @@ napi_value OnResizeVirtualScreen(napi_env env, napi_callback_info info)
         return true;
     };
     ScreenId actualScreenId = static_cast<ScreenId>(screenId);
-    if (!checkRange("screenId", actualScreenId, MIN_VIRTUAL_SCREEN_ID, MAX_VALID_VALUE) ||
-        !checkRange("width", width, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE) ||
-        !checkRange("height", height, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE)) {
+    if (!checkRange("screenId", actualScreenId, MIN_VIRTUAL_SCREEN_ID, MAX_VIRTUAL_SCREEN_ID) ||
+        !checkRange("width", width, MIN_VIRTUAL_SIZE, MAX_VIRTUAL_SIZE) ||
+        !checkRange("height", height, MIN_VIRTUAL_SIZE, MAX_VIRTUAL_SIZE)) {
         return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "Parameter out of range");
     }
     napi_value lastParam = nullptr;
