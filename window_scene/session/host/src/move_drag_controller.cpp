@@ -485,7 +485,7 @@ bool MoveDragController::HandleMoving(const std::shared_ptr<MMI::PointerEvent>& 
     uint32_t oldWindowDragHotAreaType = windowDragHotAreaType_;
     moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
     UpdateHotAreaType(pointerEvent);
-    ProcessWindowDragHotAreaFunc(oldWindowDragHotAreaType, oldWindowDragHotAreaType, SizeChangeReason::DRAG_MOVE);
+    ProcessWindowDragHotAreaFunc(oldWindowDragHotAreaType, hotAreaDisplayId_, SizeChangeReason::DRAG_MOVE);
     ProcessMoveRectUpdate(pointerEvent, SizeChangeReason::DRAG_MOVE);
     return true;
 }
