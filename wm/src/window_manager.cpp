@@ -574,7 +574,7 @@ void WindowManager::Impl::NotifySupportRotationChange(const SupportRotationInfo&
 }
 
 WindowManager::WindowManager(const int32_t userId) : userId_(userId),
-    pImpl_(std::make_unique<Impl>(mutex_))
+    pImpl_(std::make_unique<Impl>())
 {
 }
 

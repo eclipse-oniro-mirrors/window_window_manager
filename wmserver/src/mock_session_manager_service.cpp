@@ -945,32 +945,32 @@ ErrCode MockSessionManagerService::GetSceneSessionManagerByClient(int32_t userId
 sptr<ISceneSessionManagerLite> MockSessionManagerService::GetSceneSessionManagerLiteBySA(int32_t userId)
 {
     sptr<ISceneSessionManagerLite> result;
-    GetSceneSessionManagerByUserIdImpl<ISceneSessionManagerLite>(userId, result, true, false);
+    GetSceneSessionManagerByUserIdImpl<ISceneSessionManagerLite>(userId, true, false, result);
     return result;
 }
 
 sptr<ISceneSessionManager> MockSessionManagerService::GetSceneSessionManagerBySA(int32_t userId)
 {
     sptr<ISceneSessionManager> result;
-    GetSceneSessionManagerByUserIdImpl<ISceneSessionManager>(userId, result, false, false);
+    GetSceneSessionManagerByUserIdImpl<ISceneSessionManager>(userId, false, false, result);
     return result;
 }
 
 template ErrCode MockSessionManagerService::GetSceneSessionManagerByUserIdImpl<ISceneSessionManagerLite>(
     int32_t userId,
-    sptr<ISceneSessionManagerLite>& result,
     bool isLite,
-    bool checkClient);
+    bool checkClient,
+    sptr<ISceneSessionManagerLite>& result);
 template ErrCode MockSessionManagerService::GetSceneSessionManagerByUserIdImpl<ISceneSessionManager>(
     int32_t userId,
-    sptr<ISceneSessionManager>& result,
     bool isLite,
-    bool checkClient);
+    bool checkClient,
+    sptr<ISceneSessionManager>& result);
 template <typename T>
 ErrCode MockSessionManagerService::GetSceneSessionManagerByUserIdImpl(int32_t userId,
-                                                                      sptr<T>& result,
                                                                       bool isLite,
-                                                                      bool checkClient)
+                                                                      bool checkClient,
+                                                                      sptr<T>& result)
 {
     TLOGD(WmsLogTag::WMS_MULTI_USER,
           "userId: %{public}d, isLite: %{public}d, checkClient: %{public}d",
