@@ -6623,9 +6623,8 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
                 sceneSession->SaveStartWindow(pixelMap, isDark);
             }
         }
-        TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s session %{public}d, isSvg %{public}d, "
-            "isCropped %{public}d, isPersistenceEmpty %{public}d",
-            where, sceneSession->GetPersistentId(), isIconSvg, isCropped, persistencePath.empty());
+        TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s session %{public}d, isSvg %{public}d"
+            where, sceneSession->GetPersistentId(), isIconSvg);
         sceneSession->NotifyPreLoadStartingWindowFinished();
     };
     ffrtQueueHelper_->SubmitTask(loadTask);
