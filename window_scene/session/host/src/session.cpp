@@ -551,8 +551,7 @@ void Session::RecordSessionStateError(SessionState expectState, SessionState cur
     oss << "[Event]Session lifecycle scheduling error, expect session state:" << static_cast<uint32_t>(expectState)
         << ", current session state:" << static_cast<uint32_t>(currentState)
         << ", id:" << GetWindowId()
-        << ", name:" << GetWindowName().c_str()
-        << "[Msg]foreground from client error, when server closed.";
+        << ", name:" << GetWindowName().c_str();
     int32_t ret = HiSysEventWrite(
         OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
         "WINDOW_LIFE_CYCLE_EXCEPTION",
