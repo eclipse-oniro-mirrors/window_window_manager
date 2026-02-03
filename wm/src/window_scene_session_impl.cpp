@@ -6297,14 +6297,10 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     if (enable) {
         PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
     }
-    if (!(IsAnco() && windowSystemConfig_.IsPadWindow())) {
-        UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
-    }
     if (enable && IsAnco() && windowSystemConfig_.IsPadWindow()) {
         uiContent_->SetContainerModalTitleVisible(false, true);
         uiContent_->EnableContainerModalCustomGesture(true);
     }
-    UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     UpdateEnableDragWhenSwitchMultiWindow(enable);
     if (!enable && !WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
