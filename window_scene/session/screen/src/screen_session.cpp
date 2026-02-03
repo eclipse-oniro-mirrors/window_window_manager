@@ -1125,7 +1125,7 @@ void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser
 
 float ScreenSession::GetValidSensorRotation()
 {
-    return currentValidSensorRotation_;
+    return currentValidSensorRotation_.load();
 }
 
 void ScreenSession::HandleHoverStatusChange(int32_t hoverStatus, bool needRotate)
@@ -1427,8 +1427,8 @@ void ScreenSession::UpdateRotationAfterBoot(bool foldToExpand)
 
 void ScreenSession::UpdateValidRotationToScb()
 {
-    TLOGI(WmsLogTag::DMS, "Rotation: %{public}f", currentValidSensorRotation_);
-    SensorRotationChange(currentValidSensorRotation_, true);
+    TLOGI(WmsLogTag::DMS, "Rotation: %{public}f", currentValidSensorRotation_.load());
+    SensorRotationChange(currentValidSensorRotation_.load(), true);
 }
 
 sptr<SupportedScreenModes> ScreenSession::GetActiveScreenMode() const
