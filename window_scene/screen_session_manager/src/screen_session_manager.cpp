@@ -5950,9 +5950,8 @@ bool ScreenSessionManager::GetWaitingForCoordinationReady() const
     return isWaitingForCoordinationReady_.load();
 }
 
-void ScreenSessionManager::WaitForCoordinationReady()
+void ScreenSessionManager::WaitForCoordinationReady(std::unique_lock<std::mutex>& lock)
 {
-    std::unique_lock<std::mutex> lock(coordinationReadyMutex_);
     SetWaitingForCoordinationReady(true);
     bool isCoordinationReady = isCoordinationReady_.load();
     TLOGI(WmsLogTag::DMS, "begin wait coordination ready. need wait: %{public}d", isCoordinationReady);
