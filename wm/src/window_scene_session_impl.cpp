@@ -4930,7 +4930,7 @@ uint32_t WindowSceneSessionImpl::GetWindowFlags() const
     return property_->GetWindowFlags();
 }
 
-bool WindowSessionImpl::IsApplicationModalSubWindowShowing(int32_t parentId)
+bool WindowSceneSessionImpl::IsApplicationModalSubWindowShowing(int32_t parentId)
 {
     auto subMap = GetSubWindow(parentId);
     auto applicationModalIndex = std::find_if(subMap.begin(), subMap.end(),
