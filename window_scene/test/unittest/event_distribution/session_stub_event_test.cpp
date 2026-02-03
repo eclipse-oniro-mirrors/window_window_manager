@@ -150,24 +150,6 @@ HWTEST_F(SessionStubEventTest, HandleSendCommonEvent, TestSize.Level1)
     EXPECT_EQ(res, ERR_NONE);
     MockMessageParcel::ClearAllErrorFlag();
 }
-
-/**
- * @tc.name: HandleRecoverWindowEffect
- * @tc.desc: HandleRecoverWindowEffect
- * @tc.type: FUNC
- */
-HWTEST_F(SessionStubEventTest, HandleRecoverWindowEffect, TestSize.Level1)
-{
-    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
-    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT);
-    MessageOption option;
-    MessageParcel data;
-    MessageParcel reply;
-    EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_NONE);
-    MockMessageParcel::SetReadBoolErrorFlag(true);
-    EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_INVALID_DATA);
-    MockMessageParcel::ClearAllErrorFlag();
-}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

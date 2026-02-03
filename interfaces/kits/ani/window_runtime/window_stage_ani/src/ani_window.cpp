@@ -1922,18 +1922,6 @@ void AniWindow::SetWindowMask(ani_env* env, ani_object obj, ani_long nativeObj, 
     }
 }
 
-void AniWindow::ClearWindowMask(ani_env* env, ani_object obj, ani_long nativeObj)
-{
-    TLOGD(WmsLogTag::WMS_PC, "[ANI]");
-    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
-    if (aniWindow != nullptr) {
-        aniWindow->OnClearWindowMask(env);
-    } else {
-        TLOGE(WmsLogTag::WMS_PC, "[ANI]aniWindow is nullptr!");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-}
-
 void AniWindow::OnSetWindowMask(ani_env* env, ani_array windowMaskArray)
 {
     auto window = GetWindow();
@@ -1997,28 +1985,6 @@ bool AniWindow::CheckWindowMaskParams(ani_env* env, ani_array windowMask)
         }
     }
     return true;
-}
-
-void AniWindow::OnClearWindowMask(ani_env* env)
-{
-    auto window = GetWindow();
-    if (window == nullptr) {
-        TLOGE(WmsLogTag::WMS_PC, "[ANI]window is nullptr!");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-    if (!WindowHelper::IsSubWindow(window->GetType()) && !WindowHelper::IsAppFloatingWindow(window->GetType())) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING, "Invalid window type");
-        return;
-    }
-    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->ClearWindowMask());
-    if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_PC, "[ANI]ClearWindowMask failed, ret: %{public}d", ret);
-        AniWindowUtils::AniThrowError(env, ret);
-        return;
-    }
-    TLOGI(WmsLogTag::WMS_PC, "[ANI]Window [%{public}u, %{public}s] OnClearWindowMask end",
-        window->GetWindowId(), window->GetWindowName().c_str());
 }
 
 void AniWindow::SetTouchableAreas(ani_env* env, ani_object obj, ani_long nativeObj, ani_array rects)
@@ -6364,7 +6330,6 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::SetDialogBackGestureEnabled)},
         ani_native_function {"setWindowMaskSync", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetWindowMask)},
-        ani_native_function {"clearWindowMaskSync", "l:", reinterpret_cast<void *>(AniWindow::ClearWindowMask)},
         ani_native_function {"setTouchableAreas", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetTouchableAreas)},
         ani_native_function {"getUIContextSync", "l:C{@ohos.arkui.UIContext.UIContext}",
