@@ -535,14 +535,14 @@ SessionInfo& Session::EditSessionInfo()
 
 bool Session::GetNeedBackgroundAfterConnect() const
 {
-    return needBackgroundAfterConnect_.load();
+    return needBackgroundAfterConnect_;
 }
 
 void Session::SetNeedBackgroundAfterConnect(bool isNeed)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, need background after connect:%{public}d",
         GetPersistentId(), isNeed);
-    needBackgroundAfterConnect_.store(isNeed);
+    needBackgroundAfterConnect_ = isNeed;
 }
 
 void Session::RecordSessionStateError(SessionState expectState, SessionState currentState) const
@@ -1646,9 +1646,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
-        if (state == SessionState::STATE_DISCONNECT) {
-            SetNeedBackgroundAfterConnect(false);
-        }
+        SetNeedBackgroundAfterConnect(false);
         return WSError::WS_ERROR_INVALID_SESSION;
     }
 

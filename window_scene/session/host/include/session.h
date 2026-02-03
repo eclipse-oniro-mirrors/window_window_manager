@@ -1234,7 +1234,7 @@ private:
     mutable std::mutex leashWinSurfaceNodeMutex_;
     DetectTaskInfo detectTaskInfo_;
     mutable std::shared_mutex detectTaskInfoMutex_;
-    std::atomic_bool needBackgroundAfterConnect_ { false };
+    bool needBackgroundAfterConnect_ { false };
 
     /*
      * Starting Window
