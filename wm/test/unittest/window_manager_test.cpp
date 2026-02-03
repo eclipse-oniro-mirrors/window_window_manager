@@ -266,7 +266,7 @@ class TestIWindowSupportRotationListener : public IWindowSupportRotationListener
     SupportRotationInfo  listenerSupportRotationInfo;
 };
 
-class TestWMSListener : public IWMSConnectionChangedListener {
+class TestWMSConnectionChangedListener : public IWMSConnectionChangedListener {
 public:
     void OnConnected(int32_t userId, int32_t screenId) override {}
     void OnDisconnected(int32_t userId, int32_t screenId) override {}
@@ -1383,18 +1383,6 @@ HWTEST_F(WindowManagerTest, NotifyDisplayInfoChange02, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyWMSDisconnected01
- * @tc.desc: check NotifyWMSDisconnected
- * @tc.type: FUNC
- */
-HWTEST_F(WindowManagerTest, NotifyWMSDisconnected01, TestSize.Level1)
-{
-    WMError ret = WindowManager::GetInstance().ShiftAppWindowFocus(0, 1);
-    ASSERT_NE(WMError::WM_OK, ret);
-    WindowManager::GetInstance().pImpl_->NotifyWMSDisconnected(1, 2);
-}
-
-/**
  * @tc.name: NotifyFocused01
  * @tc.desc: check NotifyFocused
  * @tc.type: FUNC
@@ -1672,9 +1660,49 @@ HWTEST_F(WindowManagerTest, SetAppKeyFramePolicy02, TestSize.Level1)
  */
 HWTEST_F(WindowManagerTest, NotifyWMSConnected, TestSize.Level1)
 {
-    WMError ret = WindowManager::GetInstance().ShiftAppWindowFocus(0, 1);
-    ASSERT_NE(WMError::WM_OK, ret);
-    WindowManager::GetInstance().pImpl_->NotifyWMSConnected(1, 2);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int32_t userId = 0;
+    int32_t screenId = 0;
+    sptr<IWMSConnectionChangedListener> listener = sptr<TestWMSConnectionChangedListener>::MakeSptr();
+
+    // branch 1: wmsConnectionChangedListener_ is null
+    instance_->pImpl_->wmsConnectionChangedListener_ = nullptr;
+    instance_->pImpl_->NotifyWMSConnected(userId, screenId);
+    EXPECT_TRUE(g_errLog.find("listener is null") != std::string::npos);
+
+    // branch 2: on connected
+    instance_->pImpl_->wmsConnectionChangedListener_ = listener;
+    instance_->pImpl_->NotifyWMSConnected(userId, screenId);
+    EXPECT_TRUE(g_errLog.find("WMS on connected") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyWMSDisconnected
+ * @tc.desc: check NotifyWMSDisconnected
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, NotifyWMSDisconnected, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int32_t userId = 0;
+    int32_t screenId = 0;
+    sptr<IWMSConnectionChangedListener> listener = sptr<TestWMSConnectionChangedListener>::MakeSptr();
+
+    // branch 1: wmsConnectionChangedListener_ is null
+    instance_->pImpl_->wmsConnectionChangedListener_ = nullptr;
+    instance_->pImpl_->NotifyWMSDisconnected(userId, screenId);
+    EXPECT_TRUE(g_errLog.find("listener is null") != std::string::npos);
+
+    // branch 2: On disconnected
+    instance_->pImpl_->wmsConnectionChangedListener_ = listener;
+    instance_->pImpl_->NotifyWMSDisconnected(userId, screenId);
+    EXPECT_TRUE(g_errLog.find("WMS on disconnected") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -2732,7 +2760,7 @@ HWTEST_F(WindowManagerTest, UpdateOutline, TestSize.Level1)
 HWTEST_F(WindowManagerTest, RegisterWMSConnectionChangedListener, TestSize.Level1)
 {
     ASSERT_NE(nullptr, instance_);
-    sptr<TestWMSListener> listener = new TestWMSListener();
+    sptr<IWMSConnectionChangedListener> listener = new TestWMSConnectionChangedListener();
     instance_->RegisterWMSConnectionChangedListener(listener);
 }
 
