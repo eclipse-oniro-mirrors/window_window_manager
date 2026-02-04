@@ -222,7 +222,7 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleSetWindowSnapshotSkip, TestSize.Lev
     uint32_t code = static_cast<uint32_t>(
         ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_SET_WINDOW_SNAPSHOT_SKIP);
     auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
-    EXPECT_NE(res, ERR_PROXY_ERR);
+    EXPECT_NE(res, ERR_NULL_OBJECT);
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetReadInt32ErrorFlag(true);
