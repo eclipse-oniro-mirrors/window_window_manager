@@ -265,6 +265,7 @@ HWTEST_F(WindowSceneSessionImplEventTest, SetWindowMask_InvalidRow, TestSize.Lev
     SessionInfo sessionInfo;
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
+    window->property_->SetRequestRect({0, 0, 10, 10});
 
     std::vector<std::vector<uint32_t>> windowMask;
     std::vector<uint32_t> vec1(10, 1);
