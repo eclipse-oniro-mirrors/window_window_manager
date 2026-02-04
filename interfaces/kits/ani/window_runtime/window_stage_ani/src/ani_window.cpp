@@ -3955,8 +3955,8 @@ void AniWindow::OnSetDefaultDensityEnabled(ani_env* env, ani_boolean enabled)
         AniWindowUtils::AniThrowError(env, ret, "[window][setDefaultDensityEnabled]msg: set default density failed");
         return;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] winId: %{public}u set enabled=%{public}u result=%{public}d",
-        windowToken_->GetWindowId(), enabled, ret);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] winId: %{public}u, isAcrossDisplays: %{public}u",
+        "result: %{public}d", windowToken_->GetWindowId(), enabled, ret);
     return;
 }
 
@@ -4060,8 +4060,8 @@ bool AniWindow::OnIsMainWindowFullScreenAcrossDisplays(ani_env* env)
     bool isAcrossDisplaysPtr = false;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
         windowToken_->IsMainWindowFullScreenAcrossDisplays(isAcrossDisplaysPtr));
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u, isAcrossDisplays: %{public}u,"
-        " result: %{public}d", windowToken_->GetWindowId(), isAcrossDisplaysPtr, ret);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u, isAcrossDisplays: %{public}u, "
+        "result: %{public}d", windowToken_->GetWindowId(), isAcrossDisplaysPtr, ret);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed, ret %{public}d", ret);
         AniWindowUtils::AniThrowError(env, ret,
@@ -5729,7 +5729,7 @@ static ani_boolean WindowIsWindowSupportWideGamut(ani_env* env, ani_object obj, 
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return false;
     }
-    TLOG(WmsLogTag::WMS_IMMS, "[ANI] WindowIsWindowSupportWideGamut end");
+    TLOGI(WmsLogTag::WMS_IMMS, "[ANI] WindowIsWindowSupportWideGamut end");
     return aniWindow->IsWindowSupportWideGamut(env);
 }
 
