@@ -176,6 +176,13 @@ MoveDragController::MoveDragController(wptr<SceneSession> sceneSession) : sceneS
     std::tie(enableMoveResample_, resampleMinFps_, resampleMaxFps_) = MoveDragController::GetMoveResampleSystemConfig();
 }
 
+bool MoveDragController::IsWindowCrossScreenOnDragEnd() const
+{
+    return moveDragEndDisplayId_ != DISPLAY_ID_INVALID &&
+           moveDragStartDisplayId_ != DISPLAY_ID_INVALID &&
+           moveDragEndDisplayId_ != moveDragStartDisplayId_;
+}
+
 void MoveDragController::OnConnect(ScreenId id)
 {
     TLOGW(WmsLogTag::WMS_LAYOUT, "Moving or dragging is interrupt due to new screen %{public}" PRIu64 " connection.",

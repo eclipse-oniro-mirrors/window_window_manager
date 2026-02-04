@@ -2330,6 +2330,39 @@ HWTEST_F(MoveDragControllerTest, TestUpdateResampleActivationByFpsRangeCheck, Te
     EXPECT_TRUE(prop.isMoveResampleActive_);
     EXPECT_TRUE(prop.isResampleFpsRangeChecked_);
 }
+
+/**
+ * @tc.name: TestIsWindowCrossScreenOnDragEnd
+ * @tc.desc: Verify IsWindowCrossScreenOnDragEnd under different display id combinations
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestIsWindowCrossScreenOnDragEnd, TestSize.Level1)
+{
+    // Case 1: both start and end display are invalid → false
+    moveDragController->moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
+    moveDragController->moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
+    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
+
+    // Case 2: start invalid, end valid → false
+    moveDragController->moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
+    moveDragController->moveDragEndDisplayId_ = 1;
+    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
+
+    // Case 3: start valid, end invalid → false
+    moveDragController->moveDragStartDisplayId_ = 1;
+    moveDragController->moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
+    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
+
+    // Case 4: both valid but same display → false
+    moveDragController->moveDragStartDisplayId_ = 1;
+    moveDragController->moveDragEndDisplayId_ = 1;
+    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
+
+    // Case 5: both valid and different display → true
+    moveDragController->moveDragStartDisplayId_ = 1;
+    moveDragController->moveDragEndDisplayId_ = 2;
+    EXPECT_TRUE(moveDragController->IsWindowCrossScreenOnDragEnd());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

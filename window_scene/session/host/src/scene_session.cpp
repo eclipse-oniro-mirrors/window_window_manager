@@ -5066,16 +5066,15 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
                 continue;
             }
             movedSurfaceNode->SetPositionZ(moveDragController_->GetOriginalPositionZ());
+            movedSurfaceNode->SetIsCrossNode(false);
             dragMoveMountedNode->RemoveCrossScreenChild(movedSurfaceNode);
             // When the drag-to-move or drag-to-scale operation ends, if the window's current screen
             // is the same as the starting screen, the cloned node is removed immediately. Otherwise,
             // the removal of the cloned node is submitted along with the vsync refresh.
             if (!moveDragController_->IsWindowCrossScreenOnDragEnd()) {
                 TLOGD(WmsLogTag::WMS_LAYOUT, "Cloned node removed immediately");
-                RSTransactionAdapter::FlushImplicitTransaction(dragMoveMountedNode->GetRSUIContext());
+                RSTransactionAdapter::FlushImplicitTransaction({ movedSurfaceNode, dragMoveMountedNode });
             }
-
-            movedSurfaceNode->SetIsCrossNode(false);
             HandleSubSessionSurfaceNodeByWindowAnchor(reason, displayId);
             TLOGI(WmsLogTag::WMS_LAYOUT, "Remove window from display: %{public}" PRIu64 "persistentId: %{public}d",
                 displayId, GetPersistentId());
@@ -5183,47 +5182,57 @@ void SceneSession::SetSurfaceBoundsWithAnimation(
 
 void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool needFlush)
 {
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::SetSurfaceBounds id:%d [%d, %d, %d, %d] reason:%u",
-        GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_, GetSizeChangeReason());
-    TLOGD(WmsLogTag::WMS_LAYOUT, "id: %{public}d, rect: %{public}s isGlobal: %{public}d needFlush: %{public}d",
-        GetPersistentId(), rect.ToString().c_str(), isGlobal, needFlush);
+    const auto windowId = GetPersistentId();
+    const auto windowType = GetWindowType();
+
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "SceneSession::SetSurfaceBounds id:%d [%d, %d, %d, %d] reason:%u",
+        windowId, rect.posX_, rect.posY_, rect.width_, rect.height_, GetSizeChangeReason());
+
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "id: %{public}d, type: %{public}u, rect: %{public}s, isGlobal: %{public}d, needFlush: %{public}d",
+        windowId, windowType, rect.ToString().c_str(), isGlobal, needFlush);
+
     if (getRsCmdBlockingCountFunc_ != nullptr && getRsCmdBlockingCountFunc_() > 0) {
         TLOGW(WmsLogTag::WMS_LAYOUT, "creating node, stop commit");
         return;
     }
-    AutoRSTransaction trans(GetRSUIContext(), needFlush);
+
     auto surfaceNode = GetSurfaceNode();
-    auto leashWinSurfaceNode = GetLeashWinSurfaceNode();
+    RETURN_IF_NULL(surfaceNode);
+
     NotifySubAndDialogFollowRectChange(rect, isGlobal, needFlush);
     SetSubWindowBoundsDuringCross(rect, isGlobal, needFlush);
-    if (surfaceNode && leashWinSurfaceNode) {
+
+    // When drag ends (needFlush == false) and the window is crossing screens,
+    // surface node property changes will be committed together with the ArkUI
+    // relayout triggered on the next vsync, so no explicit flush is required here.
+    // If the window is NOT crossing screens, the changes should be flushed
+    // immediately to avoid affecting the next drag operation.
+    if (!needFlush) {
+        needFlush = moveDragController_ && !moveDragController_->IsWindowCrossScreenOnDragEnd();
+    }
+
+    auto leashWinSurfaceNode = GetLeashWinSurfaceNode();
+    if (leashWinSurfaceNode) {
+        AutoRSTransaction trans(surfaceNode, needFlush);
         leashWinSurfaceNode->SetGlobalPositionEnabled(isGlobal);
         leashWinSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
         leashWinSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
         surfaceNode->SetBounds(0, 0, rect.width_, rect.height_);
         surfaceNode->SetFrame(0, 0, rect.width_, rect.height_);
-    } else if (WindowHelper::IsPipWindow(GetWindowType()) && surfaceNode) {
-        TLOGD(WmsLogTag::WMS_PIP, "PipWindow setSurfaceBounds");
+        return;
+    }
+
+    const bool isDraggableSpecialWindow = WindowHelper::IsPipWindow(windowType) ||
+                                          WindowHelper::IsSubWindow(windowType) ||
+                                          WindowHelper::IsDialogWindow(windowType) ||
+                                          WindowHelper::IsSystemWindow(windowType);
+    if (isDraggableSpecialWindow) {
+        AutoRSTransaction trans(surfaceNode, needFlush);
         surfaceNode->SetGlobalPositionEnabled(isGlobal);
         surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
         surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-    } else if (WindowHelper::IsSubWindow(GetWindowType()) && surfaceNode) {
-        WLOGFD("subwindow setSurfaceBounds");
-        surfaceNode->SetGlobalPositionEnabled(isGlobal);
-        surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-    } else if (WindowHelper::IsDialogWindow(GetWindowType()) && surfaceNode) {
-        TLOGD(WmsLogTag::WMS_DIALOG, "dialogWindow setSurfaceBounds");
-        surfaceNode->SetGlobalPositionEnabled(isGlobal);
-        surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-    } else if (WindowHelper::IsSystemWindow(GetWindowType()) && surfaceNode) {
-        TLOGD(WmsLogTag::WMS_SYSTEM, "system window setSurfaceBounds");
-        surfaceNode->SetGlobalPositionEnabled(isGlobal);
-        surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-    } else {
-        WLOGE("SetSurfaceBounds surfaceNode is null!");
     }
 }
 
