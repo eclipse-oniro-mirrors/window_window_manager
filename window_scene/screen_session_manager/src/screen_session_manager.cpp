@@ -172,9 +172,9 @@ constexpr float SECONDARY_ROTATION_270 = 270.0F;
 static const constexpr char* SET_SETTING_DPI_KEY {"default_display_dpi"};
 static bool g_offScreenRenderValue = true;
 std::vector<float> extendScreenDpiOptions {};
-constexpr int32_t EXTEND_SCREEN_DPI_OPTIONS_COUNT { 16 };
-constexpr float EXTEND_SCREEN_DPI_MIN_VALUE { 136.0f };
-constexpr float EXTEND_SCREEN_DPI_INCREASE_STEP { 24.0f };
+constexpr int32_t EXTEND_SCREEN_DPI_OPTIONS_COUNT { 16 }; // The number of supported independent dpi
+constexpr float EXTEND_SCREEN_DPI_MIN_VALUE { 136.0f }; // Minimum value supported by independent dpi
+constexpr float EXTEND_SCREEN_DPI_INCREASE_STEP { 24.0f }; // The difference in adjacent gears supported by independent dpi
 constexpr float EXTEND_SCREEN_DPI_BASELINE { 160.0f };
 const bool SUPPORT_COMPATIBLE_MODE =
     (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
@@ -313,7 +313,8 @@ WM_IMPLEMENT_SINGLE_INSTANCE(ScreenSessionManager)
 void ScreenSessionManager::InitExtendScreenDpiOptions()
 {
     for (int i = 0; i < EXTEND_SCREEN_DPI_OPTIONS_COUNT; ++i) {
-        extendScreenDpiOptions.push_back(EXTEND_SCREEN_DPI_MIN_VALUE + EXTEND_SCREEN_DPI_INCREASE_STEP * i);
+        extendScreenDpiOptions.push_back(EXTEND_SCREEN_DPI_MIN_VALUE
+            + EXTEND_SCREEN_DPI_INCREASE_STEP * static_cast<float>(i));
     }
 }
 
@@ -4436,9 +4437,9 @@ void ScreenSessionManager::SetInnerScreenFallbackPlan(sptr<ScreenSession> screen
 float ScreenSessionManager::CalDefaultExtendScreenDensity(ScreenProperty& property)
 {
     float PPI = property.GetScreenRealPPI();
-    if (PPI > EPSILON) {
+    if (PPI > EPSILON && EXTEND_SCREEN_DPI_BASELINE > EPSILON) {
         float defaultExtendScreenDPI = std::ceil(PPI * PHYSICAL_MASS);
-        return defaultExtendScreenDPI / BASELINE_DENSITY;
+        return defaultExtendScreenDPI / EXTEND_SCREEN_DPI_BASELINE;
     } else {
         return densityDpi_;
     }
@@ -4447,6 +4448,9 @@ float ScreenSessionManager::CalDefaultExtendScreenDensity(ScreenProperty& proper
 float ScreenSessionManager::GetOptionalDpi(const float dpi) {
     if (dpi <= EXTEND_SCREEN_DPI_BASELINE + EPSILON) {
         return EXTEND_SCREEN_DPI_BASELINE;
+    }
+    if (extendScreenDpiOptions.empty()) {
+        return dpi;
     }
     auto it = std::lower_bound(extendScreenDpiOptions.begin(), extendScreenDpiOptions.end(), dpi);
     if (it == extendScreenDpiOptions.end()) {
@@ -4463,22 +4467,31 @@ float ScreenSessionManager::GetOptionalDpi(const float dpi) {
 void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenSession> session,
     ScreenProperty& property, float& extendDensity)
 {
-    if (g_offScreenRenderValue) {
+    if (!SUPPORT_COMPATIBLE_MODE) {
+        TLOGNFI(WmsLogTag::DMS, "Not Support.");
         return;
     }
-    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
+    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);
     if (it == dpiMap.end()) {
         float density_ = CalDefaultExtendScreenDensity(property);
-        float dpi = GetOptionalDpi(density_ * BASELINE_DENSITY);
-        extendDefaultDensity_ = dpi / BASELINE_DENSITY;
+        float dpi = GetOptionalDpi(density_ * EXTEND_SCREEN_DPI_BASELINE);
+        extendDefaultDensity_ = dpi / EXTEND_SCREEN_DPI_BASELINE;
+        if (g_offScreenRenderValue) {
+            return;
+        }
         extendDensity = extendDefaultDensity_;
         g_extendScreenDpiCoef = EXTEND_SCREEN_DPI_DEFAULT_PARAMETER;
-        TLOGNFW(WmsLogTag::DMS, "get setting dpi fail, use extend screen default dpi");
+        TLOGNFW(WmsLogTag::DMS, "get setting dpi fail, use extend screen default dpi: "
+        "%{public}f", extendDensity);
     } else {
-        g_extendScreenDpiCoef = std::stof(dpiMap[serialNumber]) / BASELINE_DENSITY;
+        if (g_offScreenRenderValue) {
+            return;
+        }
+        g_extendScreenDpiCoef = std::stof(it->second) / EXTEND_SCREEN_DPI_BASELINE;
         extendDensity = EXTEND_SCREEN_DPI_DEFAULT_PARAMETER;
+        TLOGNFI(WmsLogTag::DMS, "get setting dpi: %{public}f", g_extendScreenDpiCoef);
     }
 }
 
@@ -4969,6 +4982,33 @@ void ScreenSessionManager::GetInternalAndExternalSession(sptr<ScreenSession>& in
             externalSession = screenSession;
         }
     }
+}
+
+sptr<ScreenSession> ScreenSessionManager::GetExternalSession()
+{
+    std::map<ScreenId, sptr<ScreenSession>> screenSessionMap;
+    {
+        std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
+        screenSessionMap = screenSessionMap_;
+    }
+    for (const auto& sessionIt : screenSessionMap) {
+        auto screenSession = sessionIt.second;
+        if (screenSession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr!");
+            continue;
+        }
+        if (!screenSession->GetIsCurrentInUse()) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
+            continue;
+        }
+        if (screenSession->GetScreenProperty().GetScreenType() != ScreenType::REAL ||
+            screenSession->isInternal_) {
+            continue;
+        }
+        TLOGNFI(WmsLogTag::DMS, "external screenId = %{public}" PRIu64, sessionIt.first);
+        return screenSession;
+    }
+    return nullptr;
 }
 
 bool ScreenSessionManager::SetScreenPowerById(ScreenId screenId, ScreenPowerState state,
@@ -6011,35 +6051,33 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
     }
     ScreenSettingHelper::GetSettingOffScreenRenderValue(g_offScreenRenderValue,
         SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY); 
-    sptr<ScreenSession> innerSession = nullptr;
-    sptr<ScreenSession> externalSession = nullptr;
-    GetInternalAndExternalSession(innerSession, externalSession);
-    if (!innerSession || !externalSession) {
-        TLOGNFE(WmsLogTag::DMS, "screen session is null.");
+    sptr<ScreenSession> externalSession = GetExternalSession();
+    if (externalSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
         return;
     }
-    RRect previousScreenBounds = externalSession->GetScreenProperty().GetBounds();
-    sptr<ScreenSession> phyScreenSession = GetPhysicalScreenSession(externalSession->GetRSScreenId());
     auto externalScreenProperty = externalSession->GetScreenProperty();
+    RRect previousScreenBounds = externalScreenProperty.GetBounds();
+    sptr<ScreenSession> phyScreenSession = GetPhysicalScreenSession(externalSession->GetRSScreenId());
     if (g_offScreenRenderValue) {
-        SetExtendScreenDpi();
         InitExtendScreenProperty(phyScreenSession->GetScreenId(), phyScreenSession,
             phyScreenSession->GetScreenProperty());
         InitExtendScreenProperty(externalSession->GetScreenId(), externalSession, externalScreenProperty);
-    } else {            
+        SetExtendScreenDpi();
+    } else {      
         auto externalphyBounds = externalScreenProperty.GetPhyBounds();
-        externalSession->SetExtendProperty(externalphyBounds, g_offScreenRenderValue);
-        phyScreenSession->SetExtendProperty(externalphyBounds, g_offScreenRenderValue);
-        uint32_t offWidth = externalphyBounds.rect_.GetWidth();
-        uint32_t offHeight = externalphyBounds.rect_.GetHeight();
-        int32_t res = RSInterfaces::GetInstance().SetPhysicalScreenResolution(
-            externalSession->GetRSScreenId(), offWidth, offHeight);
-        std::string offScreenResult = (res == StatusCode::SUCCESS) ? "success" : "failed";
-        TLOGNFW(WmsLogTag::DMS, "rsId=%{public}" PRIu64" offScreen width=%{public}u height=%{public}u %{public}s",
-            externalSession->GetRSScreenId(), offWidth, offHeight, offScreenResult.c_str());
+        externalSession->SetExtendProperty(externalphyBounds, false);
+        phyScreenSession->SetExtendProperty(externalphyBounds, false);
+        uint32_t screenWidth = externalphyBounds.rect_.GetWidth();
+        uint32_t screenHeight = externalphyBounds.rect_.GetHeight();
+        externalSession->SetAvailableArea({0, 0, screenWidth, screenHeight});
+        externalSession->SetValidWidth(screenWidth);
+        externalSession->SetValidHeight(screenHeight);
         SetExtendScreenIndepDpi();
+        TLOGNFI(WmsLogTag::DMS, "set extend property, width: %{public}u, height: %{public}u",
+            screenWidth, screenHeight);
     }
-    externalSession->SetScreenOffScreenRendering();
+    externalSession->SetExtendPhysicalScreenResolution(g_offScreenRenderValue);
     CheckAndNotifyChangeMode(previousScreenBounds, externalSession);
     OnScreenModeChange(ScreenModeChangeEvent::END);
 #endif
@@ -13666,14 +13704,12 @@ void ScreenSessionManager::SetExtendScreenDpi()
 
 void ScreenSessionManager::SetExtendScreenIndepDpi()
 {
-    sptr<ScreenSession> innerSession = nullptr;
-    sptr<ScreenSession> externalSession = nullptr;
-    GetInternalAndExternalSession(innerSession, externalSession);
-    if (!innerSession || !externalSession) {
-        TLOGNFE(WmsLogTag::DMS, "screen session is null.");
+    sptr<ScreenSession> externalSession = GetExternalSession();
+    if (!externalSession) {
+        TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
         return;
     }
-    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
+    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = externalSession->GetSerialNumber();
     ScreenId screenId = externalSession->GetScreenId();
     auto it = dpiMap.find(serialNumber);
@@ -13682,7 +13718,7 @@ void ScreenSessionManager::SetExtendScreenIndepDpi()
             "use default density: %{public}f", extendDefaultDensity_);
         SetVirtualPixelRatio(screenId, extendDefaultDensity_);
     } else {
-        float density_ = std::stof(dpiMap[serialNumber]) / BASELINE_DENSITY;
+        float density_ = std::stof(it->second) / EXTEND_SCREEN_DPI_BASELINE;
         SetVirtualPixelRatio(screenId, density_);
         TLOGNFI(WmsLogTag::DMS, "get setting extend screen density: %{public}f", density_);
     }
