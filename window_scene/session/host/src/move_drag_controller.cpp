@@ -484,8 +484,9 @@ bool MoveDragController::HandleMoving(const std::shared_ptr<MMI::PointerEvent>& 
     }
     uint32_t oldWindowDragHotAreaType = windowDragHotAreaType_;
     moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
+    DisplayId lastHotAreaDisplayId = hotAreaDisplayId_;
     UpdateHotAreaType(pointerEvent);
-    ProcessWindowDragHotAreaFunc(oldWindowDragHotAreaType, hotAreaDisplayId_, SizeChangeReason::DRAG_MOVE);
+    ProcessWindowDragHotAreaFunc(oldWindowDragHotAreaType, lastHotAreaDisplayId, SizeChangeReason::DRAG_MOVE);
     ProcessMoveRectUpdate(pointerEvent, SizeChangeReason::DRAG_MOVE);
     return true;
 }
@@ -502,9 +503,9 @@ bool MoveDragController::HandleMoveEnd(const std::shared_ptr<MMI::PointerEvent>&
     SetStartMoveFlag(false);
     hasPointDown_ = false;
     moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
-    DisplayId oldHotAreaDisplayId = hotAreaDisplayId_;
+    DisplayId lastHotAreaDisplayId = hotAreaDisplayId_;
     UpdateHotAreaType(pointerEvent);
-    ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, oldHotAreaDisplayId, SizeChangeReason::DRAG_END);
+    ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, lastHotAreaDisplayId, SizeChangeReason::DRAG_END);
     ProcessMoveRectUpdate(pointerEvent, SizeChangeReason::DRAG_END);
     // The Pointer up event sent to the ArkUI.
     return false;
@@ -569,11 +570,11 @@ void MoveDragController::ModifyWindowCoordinates(const std::shared_ptr<MMI::Poin
 }
 
 /** @note @window.drag */
-void MoveDragController::ProcessWindowDragHotAreaFunc(uint32_t oldWindowDragHotAreaType,
-    DisplayId oldHotAreaDisplayId,SizeChangeReason reason)
+void MoveDragController::ProcessWindowDragHotAreaFunc(uint32_t lastWindowDragHotAreaType,
+    DisplayId lastHotAreaDisplayId, SizeChangeReason reason)
 {
-    bool isSendHotAreaMessage = oldWindowDragHotAreaType != windowDragHotAreaType_
-        || oldHotAreaDisplayId != hotAreaDisplayId_;
+    bool isSendHotAreaMessage = lastWindowDragHotAreaType != windowDragHotAreaType_
+        || lastHotAreaDisplayId != hotAreaDisplayId_;
     if (isSendHotAreaMessage) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "start, isSendHotAreaMessage:%{public}u, reason:%{public}d",
             isSendHotAreaMessage, reason);
