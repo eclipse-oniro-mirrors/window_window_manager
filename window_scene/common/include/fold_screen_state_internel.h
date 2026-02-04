@@ -26,7 +26,7 @@ namespace {
 static const std::string INVALID_DEVICE = "-1";
 static const std::string g_foldScreenType = system::GetParameter("const.window.foldscreen.type", "0,0,0,0");
 static const std::string PHY_ROTATION_OFFSET = system::GetParameter("const.window.phyrotation.offset", "0");
-static const std::string SINGLE_DISPLAY = "1";
+static const  std::string SINGLE_DISPLAY = "1";
 static const std::string DUAL_DISPLAY = "2";
 static const std::string SINGLE_POCKET_DISPLAY = "4";
 static const std::string SUPER_FOLD_DISPLAY = "5";
