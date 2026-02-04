@@ -155,7 +155,7 @@ void TaskSequenceProcess::StartSysTimer()
     cacheTimer_ = std::make_unique<FfrtTimer>();
     cacheTimer_->StartOneShotTimer(maxTimeInterval_, this, [](void *taskSequencePtr) -> void {
         if (taskSequencePtr != nullptr) {
-            TaskSequenceProcess *taskSequenceProcess = reinterpret_cast<TaskSequenceProcess*>(&taskSequenceProcess);
+            TaskSequenceProcess *taskSequenceProcess = reinterpret_cast<TaskSequenceProcess*>(taskSequencePtr);
             taskSequenceProcess->OnTimerTask();
             TLOGW(WmsLogTag::DMS, "startTimer time out");
         } else {
