@@ -949,6 +949,7 @@ private:
     std::recursive_mutex mutex_;
     std::recursive_mutex displayInfoMutex_;
     std::shared_mutex hookInfoMutex_;
+    std::shared_mutex uidAndPidMapMutex_;
     std::mutex shareProtectMutex_;
 
     ScreenId defaultScreenId_ = SCREEN_ID_INVALID;

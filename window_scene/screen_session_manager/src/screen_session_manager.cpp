@@ -709,7 +709,7 @@ DMError ScreenSessionManager::RegisterDisplayManagerAgent(
         auto uid = IPCSkeleton::GetCallingUid();
         auto pid = IPCSkeleton::GetCallingPid();
         {
-            std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+            std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
             uidAndPidMap_[uid] = pid;
         }
     }
@@ -738,7 +738,7 @@ DMError ScreenSessionManager::RegisterDisplayAttributeAgent(std::vector<std::str
     auto uid = IPCSkeleton::GetCallingUid();
     auto pid = IPCSkeleton::GetCallingPid();
     {
-        std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+        std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
         uidAndPidMap_[uid] = pid;
     }
     uintptr_t key = reinterpret_cast<uintptr_t>(displayManagerAgent->AsObject().GetRefPtr());
@@ -14887,6 +14887,7 @@ void ScreenSessionManager::SetPropertyChangedCallback(
 
 bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid) const
 {
+    std::shared_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
     auto iter = uidAndPidMap_.find(uid);
     if (iter == uidAndPidMap_.end() || iter->second != agentPid) {
         TLOGNI(WmsLogTag::DMS, "no notify");
