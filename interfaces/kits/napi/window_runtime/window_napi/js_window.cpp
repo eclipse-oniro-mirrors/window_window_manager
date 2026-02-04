@@ -5678,7 +5678,7 @@ napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_in
                 "[window][raiseMainWindowAboveTarget]msg: Window is nullptr"));
             return;
         }
-        if (targetId == window->GetWindowId()) {
+        if (targetId == static_cast<int32_t>(window->GetWindowId())) {
             TLOGNE(WmsLogTag::WMS_HIERARCHY, "target window id equals to source window id");
             errCode = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
         }
