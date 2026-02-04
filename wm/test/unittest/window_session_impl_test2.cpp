@@ -2512,7 +2512,7 @@ HWTEST_F(WindowSessionImplTest2, RegisterAcrossDisplaysChangeListener01, TestSiz
 HWTEST_F(WindowSessionImplTest2, UnregisterAcrossDisplaysChangeListener01, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UnregisterAcrossDisplaysChangeListener01");
+    option->SetWindowName("UnRegisterAcrossDisplaysChangeListener01");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
 
     sptr<IAcrossDisplaysChangeListener> listener = nullptr;
