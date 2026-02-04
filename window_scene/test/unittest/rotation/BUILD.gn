@@ -49,7 +49,10 @@ ohos_unittest("ws_scene_session_rotation_test") {
 
   include_dirs = [ "${window_base_path}/wm/test/mock" ]
 
-  sources = [ "scene_session_rotation_test.cpp" ]
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_parameters.cpp",
+    "scene_session_rotation_test.cpp",
+  ]
 
   cflags_cc = [ "-Wno-thread-safety" ]
 

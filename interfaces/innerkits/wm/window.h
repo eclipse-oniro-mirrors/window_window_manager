@@ -681,8 +681,8 @@ public:
 /**
  * @class IExtensionSecureLimitChangeListener
  *
- * @brief IExtensionSecureLimitChangeListener is used to observe the window secure limit and
- *        its change when limit changed.
+ * @brief IExtensionSecureLimitChangeListener is used to observe the window secure limit
+ * and its change when limit changed.
  */
 class IExtensionSecureLimitChangeListener : virtual public RefBase {
 public:
@@ -1067,8 +1067,9 @@ public:
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
 
     /**
-     * @brief Update theme configuration for all windows
-     * @param configuration configuration for app
+     * @brief Update configuration synchronously for all windows.
+     *
+     * @param configuration configuration for app.
      */
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
 
@@ -1683,8 +1684,7 @@ public:
      * @param height
      * @return WMError
      */
-    virtual WMError Resize(uint32_t width, uint32_t height,
-        const RectAnimationConfig& rectAnimationConfig = {}) { return WMError::WM_OK; }
+    virtual WMError Resize(uint32_t width, uint32_t height) { return WMError::WM_OK; }
 
     /**
      * @brief resize the window instance (w,h)
@@ -2085,7 +2085,8 @@ public:
         const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager) {}
 
     /**
-     * @brief Update theme configuration.
+     * @brief Update configuration synchronously.
+     *
      * @param configuration Window configuration.
      */
     virtual void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) {}
@@ -2373,6 +2374,7 @@ public:
     {
         return WMError::WM_OK;
     }
+    virtual WMError AniReleaseUIContent() { return WMError::WM_OK; }
 
     /**
      * @brief set window ui content
@@ -2422,6 +2424,13 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    /**
+     * @brief destroy window ui content
+     *
+     * @return void
+     */
+    virtual void ReleaseUIContent() {}
 
     /**
      * @brief Get ui content info.
@@ -3072,7 +3081,7 @@ public:
 
     /**
      * @brief get compatible mode in pc.
-     * @deprecated use IsAdaptToImmersive instead
+     * @deprecated use IsAdaptToCompatibleImmersive instead
      *
      * @return True means window is compatible mode in pc, false means the opposite.
      */
@@ -3527,10 +3536,10 @@ public:
     }
 
     /**
-     * @brief Set main window container color.
+     * @brief Set window container modal color.
      *
      * @param activeColor Background active color.
-     * @param inactiveColor Background active color.
+     * @param inactiveColor Background inactive color.
      * @return Errorcode of window.
      */
     virtual WMError SetWindowContainerModalColor(const std::string& activeColor, const std::string& inactiveColor)
@@ -3740,7 +3749,10 @@ public:
      * @param isModal bool.
      * @return WMError
      */
-    virtual WMError SetWindowModal(bool isModal) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetWindowModal(bool isModal)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set the modality of sub window.
@@ -4173,6 +4185,14 @@ public:
     virtual WMError IsImmersiveLayout(bool& isImmersiveLayout) const { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Set the ContinueState of window.
+     *
+     * @param continueState of the window.
+     * @return Errorcode of window.
+     */
+    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
+
+    /**
      * @brief Get the height of status bar.
      *
      * @return the height of status bar.
@@ -4193,14 +4213,6 @@ public:
      * @return WMError.
      */
     virtual WMError GetWindowStatus(WindowStatus& windowStatus) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-
-    /**
-     * @brief Set the ContinueState of window.
-     *
-     * @param continueState of the window.
-     * @return Errorcode of window.
-     */
-    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
 
     /**
      * @brief Notify host that UIExtension timeout
@@ -4304,13 +4316,13 @@ public:
         bool& isAcrossDisplays) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
-     * @brief Get the type of window.
+     * @brief Get the type of Window.
      *
-     * @return The string corresponding to the window.
+     * @return The string corresponding to the Window.
      */
     virtual std::string GetClassType() const { return "Window"; }
 
-    /**
+    /*
      * @brief Enable or disable window delay raise
      *
      * @param isEnabled Enable or disable window delay raise
@@ -4787,8 +4799,8 @@ public:
      */
     virtual WMError UseImplicitAnimation(bool useImplicit) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-    /** 
-    * @brief Set intent param to arkui.
+    /**
+     * @brief Set intent param to arkui.
      *
      * @param intentParam intent param from ams.
      * @param loadPageCallback load page callback after send intent.

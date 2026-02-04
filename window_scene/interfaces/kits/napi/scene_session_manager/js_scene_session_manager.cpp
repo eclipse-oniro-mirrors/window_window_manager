@@ -1796,7 +1796,21 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
 
 napi_value JsSceneSessionManager::OnProcessBackEvent(napi_env env, napi_callback_info info)
 {
-    SceneSessionManager::GetInstance().ProcessBackEvent();
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    int64_t displayIdValue = -1;
+    if (argc == 1 && !ConvertFromJsValue(env, argv[0], displayIdValue)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Failed to convert parameter to displayId");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    if (displayIdValue < 0) {
+        SceneSessionManager::GetInstance().ProcessBackEvent();
+    } else {
+        SceneSessionManager::GetInstance().ProcessBackEvent(static_cast<DisplayId>(displayIdValue));
+    }
     return NapiGetUndefined(env);
 }
 
@@ -2371,6 +2385,8 @@ napi_value JsSceneSessionManager::OnRequestSceneSessionBackground(napi_env env, 
         TLOGI(WmsLogTag::WMS_LIFE, "backgroundReason: %{public}u", reason);
     }
 
+    TLOGI(WmsLogTag::WMS_LIFE, "isDelegator: %{public}u, isToDesktop: %{public}u, isSaveSnapshot: %{public}u",
+        isDelegator, isToDesktop, isSaveSnapshot);
     SceneSessionManager::GetInstance().RequestSceneSessionBackground(sceneSession, isDelegator, isToDesktop,
         isSaveSnapshot, reason);
     return NapiGetUndefined(env);
@@ -5867,6 +5883,29 @@ void JsSceneSessionManager::OnKioskModeChangeCallback(bool isKioskMode, int32_t 
         }, __func__);
 }
 
+void JsSceneSessionManager::RegisterVirtualPixelRatioChangeCallback()
+{
+    SceneSessionManager::GetInstance().RegisterVirtualPixelChangeCallback(
+        [this](float density, DisplayId displayId) {
+            this->OnVirtualPixelChange(density, displayId);
+    });
+}
+
+void JsSceneSessionManager::OnVirtualPixelChange(float density, DisplayId displayId)
+{
+    taskScheduler_->PostMainThreadTask(
+        [this, density, displayId, jsCallBack = GetJSCallback(VIRTUAL_DENSITY_CHANGE_CB), env = env_] {
+            if (jsCallBack == nullptr) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
+                return;
+            }
+            napi_value densityValue = CreateJsValue(env, density);
+            napi_value displayIdValue = CreateJsValue(env, static_cast<int64_t>(displayId));
+            napi_value argv[] = { densityValue, displayIdValue };
+            napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+        }, __func__);
+}
+
 void JsSceneSessionManager::RegisterKioskModeChangeCallback()
 {
     TLOGI(WmsLogTag::WMS_LIFE, "in");
@@ -5960,29 +5999,6 @@ napi_value JsSceneSessionManager::OnGetPipDeviceCollaborationPolicy(napi_env env
     TLOGI(WmsLogTag::WMS_PIP, "screenId  %{public}d", screenId);
     bool isPipEnabled = SceneSessionManager::GetInstance().GetPipDeviceCollaborationPolicy(screenId);
     return CreateJsValue(env, isPipEnabled);
-}
-
-void JsSceneSessionManager::RegisterVirtualPixelRatioChangeCallback()
-{
-    SceneSessionManager::GetInstance().RegisterVirtualPixelChangeCallback(
-        [this](float density, DisplayId displayId) {
-            this->OnVirtualPixelChange(density, displayId);
-    });
-}
-
-void JsSceneSessionManager::OnVirtualPixelChange(float density, DisplayId displayId)
-{
-    taskScheduler_->PostMainThreadTask(
-        [this, density, displayId, jsCallBack = GetJSCallback(VIRTUAL_DENSITY_CHANGE_CB), env = env_] {
-            if (jsCallBack == nullptr) {
-                TLOGNE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
-                return;
-            }
-            napi_value densityValue = CreateJsValue(env, density);
-            napi_value displayIdValue = CreateJsValue(env, static_cast<int64_t>(displayId));
-            napi_value argv[] = { densityValue, displayIdValue };
-            napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
-        }, __func__);
 }
 
 napi_value JsSceneSessionManager::NotifySupportRotationChange(napi_env env, napi_callback_info info)

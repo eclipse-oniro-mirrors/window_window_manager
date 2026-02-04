@@ -48,6 +48,13 @@ namespace OHOS {
 namespace Rosen {
 constexpr Rect g_emptyRect = {0, 0, 0, 0};
 
+enum class WindowStageLifecycleEventType : uint32_t {
+    FOREGROUND = 1,
+    RESUMED,
+    PAUSED,
+    BACKGROUND,
+};
+
 class AniVm {
 public:
     explicit AniVm(ani_vm* vm) : vm_(vm) {}
@@ -105,6 +112,7 @@ public:
         ani_env* env, const char* propertyName, ani_object object, std::optional<EnumType>& optEnumProp);
     static bool GetIntObject(ani_env* env, const char* propertyName, ani_object object, int32_t& result);
     static ani_status GetDoubleObject(ani_env* env, ani_object double_object, double& result);
+    static ani_status GetIntInObject(ani_env* env, ani_object int_object, int32_t& result);
     static ani_status GetBooleanObject(ani_env* env, ani_object boolean_object, bool& result);
     static bool GetPropertyUIntObject(ani_env* env, const char* propertyName, ani_object object, uint32_t& result);
     static ani_status GetIntVector(ani_env* env, ani_object ary, std::vector<int32_t>& result);

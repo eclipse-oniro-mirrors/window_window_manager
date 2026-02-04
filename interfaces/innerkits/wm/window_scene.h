@@ -119,7 +119,7 @@ public:
     WMError GoDestroy(uint32_t reason = 0);
 
     /**
-     * Hook Window go distroy.
+     * Hook Window go destroy.
      *
      * @return the error code of window
      */

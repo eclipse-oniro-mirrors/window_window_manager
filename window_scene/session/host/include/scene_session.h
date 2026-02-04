@@ -20,6 +20,7 @@
 #include <animation/rs_animation_timing_protocol.h>
 #include <animation/rs_symbol_animation.h>
 #include <pipeline/rs_node_map.h>
+#include <modifier/rs_property.h>
 #include <feature/window_keyframe/rs_window_keyframe_node.h>
 #include <chrono>
 
@@ -89,10 +90,10 @@ using HandleSecureSessionShouldHideCallback = std::function<WSError(const sptr<S
 using ClearDisplayStatusBarTemporarilyFlags = std::function<void()>;
 using CameraSessionChangeCallback = std::function<void(uint32_t accessTokenId, bool isShowing)>;
 using NotifyLandscapeMultiWindowSessionFunc = std::function<void(bool isLandscapeMultiWindow)>;
-using NotifyKeyboardLayoutAdjustFunc = std::function<void(const KeyboardLayoutParams& params)>;
-using NotifyKeyboarEffectOptionChangeFunc = std::function<void(const KeyboardEffectOption& effectOption)>;
+using NotifyKeyboarEffectOptionChangeFunc = std::function<void(const KeyboardEffectOption& mode)>;
 using SessionChangeByActionNotifyManagerFunc = std::function<void(const sptr<SceneSession>& sceneSession,
     const sptr<WindowSessionProperty>& property, WSPropertyChangeAction action)>;
+    using NotifyKeyboardLayoutAdjustFunc = std::function<void(const KeyboardLayoutParams& params)>;
 using NotifyLayoutFullScreenChangeFunc = std::function<void(bool isLayoutFullScreen)>;
 using NotifyDefaultDensityEnabledFunc = std::function<void(bool isDefaultDensityEnabled)>;
 using NotifyTitleAndDockHoverShowChangeFunc = std::function<void(bool isTitleHoverShown,
@@ -270,14 +271,12 @@ public:
      */
     WSError UpdateSizeChangeReason(SizeChangeReason reason) override;
     virtual void NotifySessionRectChange(const WSRect& rect,
-        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID,
-        const RectAnimationConfig& rectAnimationConfig = {});
+        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID);
     virtual void NotifySessionWindowLimitsChange(const WindowLimits& windowLimits);
     WSError UpdateRect(const WSRect& rect, SizeChangeReason reason,
         const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) override;
     WSError UpdateSessionRect(const WSRect& rect, SizeChangeReason reason, bool isGlobal = false,
-        bool isFromMoveToGlobal = false, const MoveConfiguration& moveConfiguration = {},
-        const RectAnimationConfig& rectAnimationConfig = {}) override;
+        bool isFromMoveToGlobal = false, MoveConfiguration moveConfiguration = {}) override;
     WSError UpdateClientRect(const WSRect& rect) override;
     WSError UpdateGlobalDisplayRectFromClient(const WSRect& rect, SizeChangeReason reason) override;
     void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform);
@@ -465,8 +464,8 @@ public:
     WSError NotifySubModalTypeChange(SubWindowModalType subWindowModalType) override;
     void RegisterSubModalTypeChangeCallback(NotifySubModalTypeChangeFunc&& func);
     void RegisterMainModalTypeChangeCallback(NotifyMainModalTypeChangeFunc&& func);
-    void RegisterSupportWindowModesCallback(NotifySetSupportedWindowModesFunc&& func);
     void CloneWindow(NodeId surfaceNodeId, bool needOffScreen);
+    void RegisterSupportWindowModesCallback(NotifySetSupportedWindowModesFunc&& func);
     void AddSidebarBlur();
     void SetSidebarBlur(bool isDefaultSidebarBlur, bool isNeedAnimation);
     void SaveLastDensity();
@@ -1157,7 +1156,7 @@ protected:
     virtual void NotifySubSessionRectChangeByAnchor(const WSRect& parentRect,
         SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID) {}
     virtual void UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
-        const MoveConfiguration& moveConfiguration, const RectAnimationConfig& rectAnimationConfig = {});
+        const MoveConfiguration& moveConfiguration);
     void NotifySessionDisplayIdChange(uint64_t displayId);
     virtual void CheckAndMoveDisplayIdRecursively(uint64_t displayId);
     void SetShouldFollowParentWhenShow(bool shouldFollow) { shouldFollowParentWhenShow_ = shouldFollow; }

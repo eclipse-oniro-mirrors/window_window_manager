@@ -485,7 +485,7 @@ private:
     std::function<void(float, float)> updateScreenPivotCallback_ = nullptr;
     bool isFold_ = false;
     float currentSensorRotation_ { -1.0f };
-    float currentValidSensorRotation_ { -1.0f };
+    std::atomic<float> currentValidSensorRotation_ { -1.0f };
     mutable std::shared_mutex hdrFormatsMutex_;
     std::vector<uint32_t> hdrFormats_;
     mutable std::shared_mutex colorSpacesMutex_;

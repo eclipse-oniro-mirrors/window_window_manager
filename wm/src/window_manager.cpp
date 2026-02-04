@@ -78,7 +78,6 @@ public:
     static inline SingletonDelegator<WindowManager> delegator_;
 
     std::shared_mutex listenerMutex_;
-    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener_;
     std::vector<sptr<IFocusChangedListener>> focusChangedListeners_;
     sptr<WindowManagerAgent> focusChangedListenerAgent_;
     std::vector<sptr<IWindowModeChangedListener>> windowModeListeners_;
@@ -121,32 +120,42 @@ public:
     sptr<IWindowLifeCycleListener> windowLifeCycleListener_;
     std::vector<sptr<IWindowSupportRotationListener>> windowSupportRotationListeners_;
     sptr<WindowManagerAgent> windowSupportRotationListenerAgent_;
+
+    // WMS connection listener
+    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener_;
+    std::mutex wmsConnectionChangedMutex_;
 };
 
 void WindowManager::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId)
 {
-    TLOGD(WmsLogTag::WMS_MULTI_USER, "WMS connected [userId:%{public}d; screenId:%{public}d]", userId, screenId);
-    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener;
+    sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        wmsConnectionChangedListener = wmsConnectionChangedListener_;
+        std::lock_guard<std::mutex> lock(wmsConnectionChangedMutex_);
+        if (!wmsConnectionChangedListener_) {
+            TLOGE(WmsLogTag::WMS_MULTI_USER, "listener is null, userId=%{public}d, screenId=%{public}d",
+                userId, screenId);
+            return;
+        }
+        listener = wmsConnectionChangedListener_;
     }
-    if (wmsConnectionChangedListener != nullptr) {
-        wmsConnectionChangedListener->OnConnected(userId, screenId);
-    }
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS on connected, userId=%{public}d, screenId=%{public}d", userId, screenId);
+    listener->OnConnected(userId, screenId);
 }
 
 void WindowManager::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId)
 {
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS disconnected [userId:%{public}d; screenId:%{public}d]", userId, screenId);
-    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener;
+    sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        wmsConnectionChangedListener = wmsConnectionChangedListener_;
+        std::lock_guard<std::mutex> lock(wmsConnectionChangedMutex_);
+        if (!wmsConnectionChangedListener_) {
+            TLOGE(WmsLogTag::WMS_MULTI_USER, "listener is null, userId=%{public}d, screenId=%{public}d",
+                userId, screenId);
+            return;
+        }
+        listener = wmsConnectionChangedListener_;
     }
-    if (wmsConnectionChangedListener != nullptr) {
-        wmsConnectionChangedListener->OnDisconnected(userId, screenId);
-    }
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS on disconnected, userId=%{public}d, screenId=%{public}d", userId, screenId);
+    listener->OnDisconnected(userId, screenId);
 }
 
 void WindowManager::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChangeInfo)
@@ -159,6 +168,7 @@ void WindowManager::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChange
         std::shared_lock<std::shared_mutex> lock(listenerMutex_);
         focusChangeListeners = focusChangedListeners_;
     }
+    WLOGD("NotifyFocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnFocused(focusChangeInfo);
     }
@@ -174,6 +184,7 @@ void WindowManager::Impl::NotifyUnfocused(const sptr<FocusChangeInfo>& focusChan
         std::shared_lock<std::shared_mutex> lock(listenerMutex_);
         focusChangeListeners = focusChangedListeners_;
     }
+    WLOGD("NotifyUnfocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnUnfocused(focusChangeInfo);
     }
@@ -594,7 +605,7 @@ WindowManager& WindowManager::GetInstance(const int32_t userId)
      * Only system applications or services with a userId of 0 are allowed to communicate
      * with multiple WMS-Servers and are permitted to listen for WMS connection status.
      */
-    static int32_t clientUserId = GetUserIdByUid(getuid());
+    int32_t clientUserId = GetUserIdByUid(getuid());
     if (clientUserId != SYSTEM_USERID || userId <= INVALID_USER_ID) {
         return GetInstance();
     }
@@ -640,6 +651,7 @@ void WindowManager::ActiveFaultAgentReregister(const WindowManagerAgentType type
 
 WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConnectionChangedListener>& listener)
 {
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "enter");
     int32_t clientUserId = GetUserIdByUid(getuid());
     // only system applications or services with a userId of 0 are allowed to communicate
     // with multiple WMS-Servers and are permitted to listen for WMS connection status.
@@ -651,9 +663,8 @@ WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConne
         TLOGE(WmsLogTag::WMS_MULTI_USER, "Register failed: listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "Start registration");
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::mutex> lock(pImpl_->wmsConnectionChangedMutex_);
         if (pImpl_->wmsConnectionChangedListener_) {
             TLOGI(WmsLogTag::WMS_MULTI_USER, "Listener already registered, skipping");
             return WMError::WM_OK;
@@ -664,14 +675,14 @@ WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConne
         [weakThis = wptr(this)](int32_t userId, int32_t screenId, bool isConnected) {
             auto windowManager = weakThis.promote();
             if (!windowManager) {
-                TLOGE(WmsLogTag::WMS_SCB, "window adapter is null");
+                TLOGE(WmsLogTag::WMS_SCB, "window manager is null");
                 return;
             }
             windowManager->OnWMSConnectionChanged(userId, screenId, isConnected);
         });
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_MULTI_USER, "Register failed: error = %{public}d", static_cast<int32_t>(ret));
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "Register callback failed");
+        std::lock_guard<std::mutex> lock(pImpl_->wmsConnectionChangedMutex_);
         pImpl_->wmsConnectionChangedListener_ = nullptr;
     }
     return ret;
@@ -679,10 +690,12 @@ WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConne
 
 WMError WindowManager::UnregisterWMSConnectionChangedListener()
 {
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->wmsConnectionChangedListener_ = nullptr;
     WindowAdapter::GetInstance(userId_).UnregisterWMSConnectionChangedListener();
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "end unregister");
+    {
+        std::lock_guard<std::mutex> lock(pImpl_->wmsConnectionChangedMutex_);
+        pImpl_->wmsConnectionChangedListener_ = nullptr;
+    }
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "Unregister success");
     return WMError::WM_OK;
 }
 

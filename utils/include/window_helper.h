@@ -205,7 +205,7 @@ public:
 
     static inline bool IsNeedWaitAttachStateWindow(WindowType type)
     {
-        return !IsKeyboardWindow(type) && IsSystemOrSubWindow(type);
+        return (!IsKeyboardWindow(type) && IsSystemOrSubWindow(type)) || IsMainWindow(type);
     }
 
     static inline bool IsDynamicWindow(WindowType type)

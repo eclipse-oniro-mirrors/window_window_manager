@@ -1175,9 +1175,7 @@ WSError WindowSessionImpl::UpdateRect(const WSRect& rect, SizeChangeReason reaso
         UpdateRectForOtherReason(wmRect, preRect, wmReason, config.rsTransaction_, avoidAreas);
     }
 
-    if (wmReason == WindowSizeChangeReason::MOVE || wmReason == WindowSizeChangeReason::RESIZE ||
-        wmReason == WindowSizeChangeReason::MOVE_WITH_ANIMATION ||
-        wmReason == WindowSizeChangeReason::RESIZE_WITH_ANIMATION) {
+    if (wmReason == WindowSizeChangeReason::MOVE || wmReason == WindowSizeChangeReason::RESIZE) {
         layoutCallback_->OnUpdateSessionRect(wmRect, wmReason, GetPersistentId());
     }
     NotifyFirstValidLayoutUpdate(preRect, wmRect);
@@ -1742,12 +1740,15 @@ WSError WindowSessionImpl::UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyI
         UpdateFocusState(isFocused);
         return WSError::WS_OK;
     }
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count());
     TLOGI(WmsLogTag::WMS_FOCUS, "unfocusId:%{public}d, focusId:%{public}d, isFocused:%{public}d,"
-        "isSyncNotify:%{public}d, current:%{public}" PRId64 ", new:%{public}" PRId64, focusNotifyInfo->unfocusWindowId_,
-        focusNotifyInfo->focusWindowId_, isFocused, focusNotifyInfo->isSyncNotify_, updateFocusTimeStamp_.load(),
-        focusNotifyInfo->timeStamp_);
+        "isSyncNotify:%{public}d, old:%{public}" PRId64 ", new:%{public}" PRId64 "current:%{public}" PRId64,
+        focusNotifyInfo->unfocusWindowId_, focusNotifyInfo->focusWindowId_, isFocused, focusNotifyInfo->isSyncNotify_,
+        updateFocusTimeStamp_.load(), focusNotifyInfo->timeStamp_, currentTimeStamp);
     auto timeStamp = focusNotifyInfo->timeStamp_;
-    if (timeStamp <= updateFocusTimeStamp_.load()) {
+    if (updateFocusTimeStamp_.load() <= currentTimeStamp && timeStamp <= updateFocusTimeStamp_.load()) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "check time fail");
         return WSError::WS_OK;
     }
     updateFocusTimeStamp_.store(timeStamp);
@@ -2191,6 +2192,23 @@ WMError WindowSessionImpl::SetUIContentByAbc(
         BackupAndRestoreType::NONE, ability);
 }
 
+WMError WindowSessionImpl::AniReleaseUIContent()
+{
+    ReleaseUIContent();
+    return WMError::WM_OK;
+}
+
+void WindowSessionImpl::ReleaseUIContent()
+{
+    if (attachState_ != AttachState::DETACH) {
+        isNeedReleaseUIContent_ = true;
+        TLOGW(WmsLogTag::WMS_LIFE, "window is attach, need to delay release uiContent,id: %{public}d",
+            GetPersistentId());
+        return;
+    }
+    DestroyExistUIContent();
+}
+
 void WindowSessionImpl::DestroyExistUIContent()
 {
     if (auto uiContent = GetUIContentSharedPtr()) {
@@ -2525,6 +2543,8 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
         if ((config.mode_ == FORCE_SPLIT_MODE || config.mode_ == NAV_FORCE_SPLIT_MODE) &&
             GetAppForceLandscapeConfigEnable(enableForceSplit) == WMError::WM_OK) {
                 SetForceSplitConfigEnable(enableForceSplit);
+        } else {
+            SetForceSplitConfigEnable(false);
         }
     }
 
@@ -2883,11 +2903,16 @@ WSError WindowSessionImpl::NotifyHighlightChange(const sptr<HighlightNotifyInfo>
         NotifyHighlightChange(isHighlight);
         return WSError::WS_OK;
     }
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
     TLOGI(WmsLogTag::WMS_FOCUS, "timeStamp:%{public}" PRId64 ", highlightId:%{public}d, isHighlight:%{public}d,"
-        "isSyncNotify:%{public}d, current:%{public}" PRId64 ", new:%{public}" PRId64, highlightNotifyInfo->timeStamp_,
-        highlightNotifyInfo->highlightId_, isHighlight, highlightNotifyInfo->isSyncNotify_,
-        updateHighlightTimeStamp_.load(), highlightNotifyInfo->timeStamp_);
-    if (highlightNotifyInfo->timeStamp_ <= updateHighlightTimeStamp_.load()) {
+        "isSyncNotify:%{public}d, old:%{public}" PRId64 ", new:%{public}" PRId64 "current:%{public}" PRId64,
+        highlightNotifyInfo->timeStamp_, highlightNotifyInfo->highlightId_, isHighlight,
+        highlightNotifyInfo->isSyncNotify_, updateHighlightTimeStamp_.load(), highlightNotifyInfo->timeStamp_,
+        currentTimeStamp);
+    if (updateHighlightTimeStamp_.load() <= currentTimeStamp &&
+        highlightNotifyInfo->timeStamp_ <= updateHighlightTimeStamp_.load()) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "check time fail");
         return WSError::WS_OK;
     }
     updateHighlightTimeStamp_.store(highlightNotifyInfo->timeStamp_);
@@ -7479,17 +7504,6 @@ std::vector<sptr<Window>> WindowSessionImpl::GetSubWindow(int parentId)
     return std::vector<sptr<Window>>(subWindowSessionMap_[parentId].begin(), subWindowSessionMap_[parentId].end());
 }
 
-bool WindowSessionImpl::IsApplicationModalSubWindowShowing(int32_t parentId)
-{
-    auto subMap = GetSubWindow(parentId);
-    auto applicationModalIndex = std::find_if(subMap.begin(), subMap.end(),
-        [](const auto& subWindow) {
-            return WindowHelper::IsApplicationModalSubWindow(subWindow->GetType(), subWindow->GetWindowFlags()) &&
-                   subWindow->GetWindowState() != WindowState::STATE_SHOWN;
-        });
-    return applicationModalIndex != subMap.end();
-}
-
 uint32_t WindowSessionImpl::GetBackgroundColor() const
 {
     if (auto uiContent = GetUIContentSharedPtr()) {
@@ -8831,7 +8845,6 @@ WSError WindowSessionImpl::NotifyPageRotationIsIgnored()
 
 WSError WindowSessionImpl::SetCurrentRotation(int32_t currentRotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "currentRotation: %{public}d", currentRotation);
     if (currentRotation > FULL_CIRCLE_DEGREE || currentRotation < ZERO_CIRCLE_DEGREE) {
         TLOGE(WmsLogTag::WMS_ROTATION, "currentRotation is invalid: %{public}d", currentRotation);
         return WSError::WS_ERROR_INVALID_PARAM;

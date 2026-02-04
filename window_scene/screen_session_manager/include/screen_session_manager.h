@@ -118,9 +118,7 @@ public:
     void ForceSkipScreenOffAnimation();
     ScreenPowerState GetScreenPower() override;
     void SyncScreenPowerState(ScreenPowerState state) override;
-#ifdef FOLD_ABILITY_ENABLE
     bool IsInRecoveringProcess();
-#endif
 
     void RegisterDisplayChangeListener(sptr<IDisplayChangeListener> listener);
     bool NotifyDisplayStateChanged(DisplayId id, DisplayState state);
@@ -497,7 +495,7 @@ public:
     void OnFoldStatusChange(bool isSwitching);
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag();
-    void WaitForCoordinationReady();
+    void WaitForCoordinationReady(std::unique_lock<std::mutex>& lock);
     void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady);
     bool GetWaitingForCoordinationReady() const;
     void NotifyCoordinationReadyCV();
@@ -862,6 +860,7 @@ private:
         float virtualPixelRatio);
     void SwitchUserResetDisplayNodeScreenId();
     void AodLibInit();
+    void UpdateSwitchUser(bool userSwitching);
     DMRect CalcRectsWithRotation(DisplayId displayId, const DMRect &rect);
     Rotation CalcPhysicalRotation(Rotation orgRotation, FoldDisplayMode displayMode);
     std::shared_mutex rotationCorrectionExemptionMutex_;
@@ -1126,10 +1125,9 @@ private:
     std::mutex pcModeSwitchMutex_;
     std::atomic<DisplayGroupId> displayGroupNum_ { 1 };
     std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
-    std::shared_mutex rotationCorrectionMutex_;
+    std::shared_mutex ssmRotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
     std::atomic<bool> isCoordinationReady_ = false;
-    std::mutex coordinationReadyMutex_;
     std::condition_variable coordinationReadyCV_;
     std::atomic<bool> isWaitingForCoordinationReady_ = false;
     std::atomic<int32_t> waitCoordinationReadyMaxTime_ = 1500; // ms

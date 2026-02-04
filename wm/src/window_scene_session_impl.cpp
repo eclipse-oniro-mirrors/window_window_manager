@@ -1029,7 +1029,7 @@ void WindowSceneSessionImpl::InitSubSessionDragEnable()
 
 void WindowSceneSessionImpl::InitSystemSessionDragEnable()
 {
-    if (WindowHelper::IsDialogWindow(GetType())) {
+    if (WindowHelper::IsDialogWindow(GetType()) && IsPcOrPadFreeMultiWindowMode()) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "dialogWindow default draggable, should not init false, id: %{public}d",
             GetPersistentId());
         return;
@@ -2482,11 +2482,8 @@ WMError WindowSceneSessionImpl::MoveWindowToGlobal(int32_t x, int32_t y, MoveCon
     CheckMoveConfiguration(moveConfiguration);
     WSRect wsRect = { newRect.posX_, newRect.posY_, newRect.width_, newRect.height_ };
     auto hostSession = GetHostSession();
-    RectAnimationConfig rectAnimationConfig = moveConfiguration.rectAnimationConfig;
-    SizeChangeReason reason = rectAnimationConfig.duration > 0 ? SizeChangeReason::MOVE_WITH_ANIMATION :
-        SizeChangeReason::MOVE;
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
-    auto ret = hostSession->UpdateSessionRect(wsRect, reason, false, true, moveConfiguration, rectAnimationConfig);
+    auto ret = hostSession->UpdateSessionRect(wsRect, SizeChangeReason::MOVE, false, true, moveConfiguration);
     if (state_ == WindowState::STATE_SHOWN) {
         layoutCallback_->ResetMoveToLock();
         auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -2701,7 +2698,7 @@ WMError WindowSceneSessionImpl::CheckAndModifyWindowRect(uint32_t& width, uint32
 }
 
 /** @note @window.layout */
-WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height, const RectAnimationConfig& rectAnimationConfig)
+WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height)
 {
     auto reason = SizeChangeReason::RESIZE;
     if (isResizedByLimit_) {
@@ -2735,16 +2732,11 @@ WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height, const Re
         windowRect.ToString().c_str(), newRect.ToString().c_str());
 
     property_->SetRequestRect(newRect);
-    property_->SetRectAnimationConfig(rectAnimationConfig);
 
     WSRect wsRect = { newRect.posX_, newRect.posY_, newRect.width_, newRect.height_ };
     auto hostSession = GetHostSession();
-    if (rectAnimationConfig.duration > 0 && reason == SizeChangeReason::RESIZE) {
-        reason = SizeChangeReason::RESIZE_WITH_ANIMATION;
-    }
-
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
-    auto ret = hostSession->UpdateSessionRect(wsRect, reason, false, false, {}, rectAnimationConfig);
+    auto ret = hostSession->UpdateSessionRect(wsRect, reason);
     return static_cast<WMError>(ret);
 }
 
@@ -3061,9 +3053,9 @@ WMError WindowSceneSessionImpl::RaiseMainWindowAboveTarget(int32_t targetId)
     }
     std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
     auto targetIter = std::find_if(windowSessionMap_.begin(), windowSessionMap_.end(),
-        [targetId](const auto& windowInfoPair) {return windowInfoPair.second.first == targetId;});
+        [targetId](const auto& windowInfoPair) {return windowInfoPair.second.first == targetId; });
     if (targetIter == windowSessionMap_.end()) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "target id invalid or pid inconsistent with source window pid");
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "target not found, id invalid or pid inconsistent with source window pid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     auto targetSessionImpl = targetIter->second.second;
@@ -3148,7 +3140,7 @@ WMError WindowSceneSessionImpl::GetSubWindowZLevel(int32_t& zLevel)
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
-    if (!WindowHelper::IsSubWindow(GetType()) || !WindowHelper::IsDialogWindow(GetType())) {
+    if (!WindowHelper::IsSubWindow(GetType()) && !WindowHelper::IsDialogWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "must be app sub window!");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
@@ -4930,6 +4922,17 @@ uint32_t WindowSceneSessionImpl::GetWindowFlags() const
     return property_->GetWindowFlags();
 }
 
+bool WindowSceneSessionImpl::IsApplicationModalSubWindowShowing(int32_t parentId)
+{
+    auto subMap = GetSubWindow(parentId);
+    auto applicationModalIndex = std::find_if(subMap.begin(), subMap.end(),
+        [](const auto& subWindow) {
+            return WindowHelper::IsApplicationModalSubWindow(subWindow->GetType(), subWindow->GetWindowFlags()) &&
+                   subWindow->GetWindowState() != WindowState::STATE_SHOWN;
+        });
+    return applicationModalIndex != subMap.end();
+}
+
 void WindowSceneSessionImpl::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration)
 {
     if (auto uiContent = GetUIContentSharedPtr()) {
@@ -5338,7 +5341,7 @@ WMError WindowSceneSessionImpl::GetWindowCornerRadius(float& cornerRadius)
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (!windowSystemConfig_.IsPcWindow() && !windowSystemConfig_.IsPadWindow() &&
-            !windowSystemConfig_.IsPhoneWindow()) {
+        !windowSystemConfig_.IsPhoneWindow()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "This is not PC, pad or phone, not supported.");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -6977,6 +6980,11 @@ WSError WindowSceneSessionImpl::NotifyWindowAttachStateChange(bool isAttach)
                     return;
                 }
                 window->isAttachedOnFrameNode_ = isAttach;
+                window->attachState_ = static_cast<AttachState>(isAttach);
+                if (!isAttach && window->isNeedReleaseUIContent_) {
+                    window->DestroyExistUIContent();
+                    window->isNeedReleaseUIContent_ = false;
+                }
                 if (window->state_ == WindowState::STATE_DESTROYED && !isAttach &&
                     WindowHelper::IsSubWindow(window->GetType()) &&
                     !window->property_->GetIsUIExtFirstSubWindow()) {
@@ -7046,7 +7054,7 @@ WSError WindowSceneSessionImpl::UpdateOrientation()
 
 void WindowSceneSessionImpl::NotifyDisplayInfoChange(const sptr<DisplayInfo>& info)
 {
-    TLOGD(WmsLogTag::DMS, "id: %{public}d", GetPersistentId());
+    TLOGD(WmsLogTag::DMS, "wid: %{public}d", GetPersistentId());
     sptr<DisplayInfo> displayInfo = nullptr;
     DisplayId displayId = 0;
     if (info == nullptr) {
