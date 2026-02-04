@@ -4471,7 +4471,7 @@ void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenS
         TLOGNFI(WmsLogTag::DMS, "Not Support.");
         return;
     }
-    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
+    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);
     if (it == dpiMap.end()) {
@@ -13709,7 +13709,7 @@ void ScreenSessionManager::SetExtendScreenIndepDpi()
         TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
         return;
     }
-    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
+    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = externalSession->GetSerialNumber();
     ScreenId screenId = externalSession->GetScreenId();
     auto it = dpiMap.find(serialNumber);
