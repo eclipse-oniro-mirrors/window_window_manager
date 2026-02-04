@@ -220,7 +220,6 @@ public:
 
     double GetTextFieldPositionY() const;
     double GetTextFieldHeight() const;
-
     void SetSessionPropertyChangeCallback(std::function<void()>&& callback);
     bool IsLayoutFullScreen() const;
     void SetIsLayoutFullScreen(bool isLayoutFullScreen);
@@ -543,6 +542,7 @@ private:
 
     double textFieldPositionY_ = 0.0;
     double textFieldHeight_ = 0.0;
+
     bool isNeedUpdateWindowMode_ = false;
     std::function<void()> touchHotAreasChangeCallback_;
     bool isLayoutFullScreen_ = false;
@@ -635,6 +635,7 @@ private:
     mutable std::mutex lifecycleUseControlMutex_;
     bool isUseControlState_ = false;
     std::string ancoRealBundleName_  = "";
+
     MissionInfo missionInfo_;
     mutable std::mutex missionInfoMutex_;
 
@@ -963,9 +964,9 @@ struct SystemSessionConfig : public Parcelable {
         }
 
         bool parcelWriteFail = !parcel.WriteUint32(miniWidthOfMainWindow_) ||
-                !parcel.WriteUint32(miniHeightOfMainWindow_) || !parcel.WriteUint32(miniWidthOfSubWindow_) ||
-                !parcel.WriteUint32(miniHeightOfSubWindow_) || !parcel.WriteUint32(miniWidthOfDialogWindow_) ||
-                !parcel.WriteUint32(miniHeightOfDialogWindow_);
+            !parcel.WriteUint32(miniHeightOfMainWindow_) || !parcel.WriteUint32(miniWidthOfSubWindow_) ||
+            !parcel.WriteUint32(miniHeightOfSubWindow_) || !parcel.WriteUint32(miniWidthOfDialogWindow_) ||
+            !parcel.WriteUint32(miniHeightOfDialogWindow_);
         if (parcelWriteFail) {
             return false;
         }

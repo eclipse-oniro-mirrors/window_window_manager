@@ -176,12 +176,12 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleGetUIContentRemoteObj(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_KEYBOARD_INFO_CHANGE):
             return HandleNotifyKeyboardPanelInfoChange(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DENSITY_UNIQUE):
+            return HandleSetUniqueVirtualPixelRatio(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_PCAPPINPADNORMAL_CLOSE):
             return HandlePcAppInPadNormalClose(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_COMPATIBLE_MODE_PROPERTY_CHANGE):
             return HandleNotifyCompatibleModePropertyChange(data, reply);
-        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DENSITY_UNIQUE):
-            return HandleSetUniqueVirtualPixelRatio(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SESSION_FULLSCREEN):
             return HandleNotifySessionFullScreen(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DUMP_INFO):
@@ -204,18 +204,20 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleSendContainerModalEvent(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_DRAG_ACTIVATED):
             return HandleSetDragActivated(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_PIPSIZE_CHANGE):
+            return HandleNotifyPipSizeChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_HIGHLIGHT_CHANGE):
             return HandleNotifyHighlightChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_CROSS_AXIS):
             return HandleNotifyWindowCrossAxisChange(data, reply);
-        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_PIPSIZE_CHANGE):
-            return HandleNotifyPipSizeChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_ACTIVE_STATUS_CHANGE):
             return HandleNotifyPiPActiveStatusChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_WINDOW_ATTACH_STATE_CHANGE):
             return HandleNotifyWindowAttachStateChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_KEYBOARD_ANIMATION_COMPLETED):
             return HandleNotifyKeyboardAnimationCompleted(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_CURRENT_ROTATION):
+            return HandleSetCurrentRotation(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_KEYBOARD_ANIMATION_WILLBEGIN):
             return HandleNotifyKeyboardAnimationWillBegin(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ROTATION_PROPERTY):
@@ -224,8 +226,6 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleNotifyPageRotationIsIgnored(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ROTATION_CHANGE):
             return HandleNotifyRotationChange(data, reply);
-        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_CURRENT_ROTATION):
-            return HandleSetCurrentRotation(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_APP_FORCE_LANDSCAPE_CONFIG_UPDATED):
             return HandleNotifyAppForceLandscapeConfigUpdated(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_APP_FORCE_LANDSCAPE_ENABLE_UPDATED):
@@ -916,15 +916,6 @@ int SessionStageStub::HandleNotifyCompatibleModePropertyChange(MessageParcel& da
     return ERR_NONE;
 }
 
-int SessionStageStub::HandleSetUniqueVirtualPixelRatio(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "HandleSetUniqueVirtualPixelRatio!");
-    bool useUniqueDensity = data.ReadBool();
-    float densityValue = data.ReadFloat();
-    SetUniqueVirtualPixelRatio(useUniqueDensity, densityValue);
-    return ERR_NONE;
-}
-
 int SessionStageStub::HandleUpdateAnimationSpeed(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_ANIMATION, "HandleUpdateAnimationSpeed!");
@@ -934,6 +925,15 @@ int SessionStageStub::HandleUpdateAnimationSpeed(MessageParcel& data, MessagePar
         return ERR_INVALID_DATA;
     }
     UpdateAnimationSpeed(speed);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleSetUniqueVirtualPixelRatio(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "HandleSetUniqueVirtualPixelRatio!");
+    bool useUniqueDensity = data.ReadBool();
+    float densityValue = data.ReadFloat();
+    SetUniqueVirtualPixelRatio(useUniqueDensity, densityValue);
     return ERR_NONE;
 }
 
@@ -1071,6 +1071,25 @@ int SessionStageStub::HandleSendContainerModalEvent(MessageParcel& data, Message
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleNotifyPipSizeChange(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_PIP, "in");
+    double width;
+    if (!data.ReadDouble(width)) {
+        return ERR_INVALID_VALUE;
+    }
+    double height;
+    if (!data.ReadDouble(height)) {
+        return ERR_INVALID_VALUE;
+    }
+    double scale;
+    if (!data.ReadDouble(scale)) {
+        return ERR_INVALID_VALUE;
+    }
+    NotifyPipWindowSizeChange(width, height, scale);
+    return ERR_NONE;
+}
+
 int SessionStageStub::HandleNotifyHighlightChange(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_FOCUS, "called!");
@@ -1101,25 +1120,6 @@ int SessionStageStub::HandleNotifyWindowCrossAxisChange(MessageParcel& data, Mes
         return ERR_INVALID_DATA;
     }
     NotifyWindowCrossAxisChange(static_cast<CrossAxisState>(state));
-    return ERR_NONE;
-}
-
-int SessionStageStub::HandleNotifyPipSizeChange(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::WMS_PIP, "in");
-    double width;
-    if (!data.ReadDouble(width)) {
-        return ERR_INVALID_VALUE;
-    }
-    double height;
-    if (!data.ReadDouble(height)) {
-        return ERR_INVALID_VALUE;
-    }
-    double scale;
-    if (!data.ReadDouble(scale)) {
-        return ERR_INVALID_VALUE;
-    }
-    NotifyPipWindowSizeChange(width, height, scale);
     return ERR_NONE;
 }
 
@@ -1158,6 +1158,17 @@ int SessionStageStub::HandleNotifyKeyboardAnimationCompleted(MessageParcel& data
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleSetCurrentRotation(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_ROTATION, "in");
+    int32_t currentRotation;
+    if (!data.ReadInt32(currentRotation)) {
+        return ERR_INVALID_VALUE;
+    }
+    SetCurrentRotation(currentRotation);
+    return ERR_NONE;
+}
+
 int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageParcel& reply)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "in");
@@ -1166,7 +1177,7 @@ int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageP
         TLOGE(WmsLogTag::WMS_ROTATION, "read rotation failed");
         return ERR_INVALID_VALUE;
     }
-
+ 
     Rect rect = {0, 0, 0, 0};
     if (!data.ReadInt32(rect.posX_) || !data.ReadInt32(rect.posY_) ||
         !data.ReadUint32(rect.width_) ||!data.ReadUint32(rect.height_)) {
@@ -1301,17 +1312,6 @@ int SessionStageStub::HandleNotifyRotationChange(MessageParcel& data, MessagePar
     return ERR_NONE;
 }
 
-int SessionStageStub::HandleSetCurrentRotation(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::WMS_ROTATION, "in");
-    int32_t currentRotation;
-    if (!data.ReadInt32(currentRotation)) {
-        return ERR_INVALID_VALUE;
-    }
-    SetCurrentRotation(currentRotation);
-    return ERR_NONE;
-}
-
 int SessionStageStub::HandleNotifyAppForceLandscapeConfigUpdated(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::DEFAULT, "in");
@@ -1321,7 +1321,7 @@ int SessionStageStub::HandleNotifyAppForceLandscapeConfigUpdated(MessageParcel& 
 
 int SessionStageStub::HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DEFAULT, "in");
+    TLOGD(WmsLogTag::WMS_COMPAT, "in");
     NotifyAppForceLandscapeConfigEnableUpdated();
     return ERR_NONE;
 }
@@ -1346,6 +1346,13 @@ int SessionStageStub::HandleNotifyKeyboardAnimationWillBegin(MessageParcel& data
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleCloseSpecificScene(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_EVENT, "in");
+    CloseSpecificScene();
+    return ERR_NONE;
+}
+
 int SessionStageStub::HandleGetRouterStackInfo(MessageParcel& data, MessageParcel& reply)
 {
     std::string routerStackInfo;
@@ -1356,13 +1363,6 @@ int SessionStageStub::HandleGetRouterStackInfo(MessageParcel& data, MessageParce
     if (!reply.WriteString(routerStackInfo)) {
         return ERR_INVALID_DATA;
     }
-    return ERR_NONE;
-}
-
-int SessionStageStub::HandleCloseSpecificScene(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::WMS_EVENT, "in");
-    CloseSpecificScene();
     return ERR_NONE;
 }
 

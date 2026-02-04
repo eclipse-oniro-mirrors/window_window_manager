@@ -2312,9 +2312,13 @@ napi_value JsSceneSessionManager::OnRequestSceneSessionActivation(napi_env env, 
 
     bool isNewActive = true;
     ConvertFromJsValue(env, argv[1], isNewActive);
+    bool isShowAbility = false;
+    ConvertFromJsValue(env, argv[2], isShowAbility);
     int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID;
-    ConvertFromJsValue(env, argv[ARG_INDEX_TWO], requestId);
-    SceneSessionManager::GetInstance().RequestSceneSessionActivation(sceneSession, isNewActive, requestId);
+    ConvertFromJsValue(env, argv[ARG_INDEX_THREE], requestId);
+
+    SceneSessionManager::GetInstance().RequestSceneSessionActivation(sceneSession, isNewActive, isShowAbility,
+        requestId);
     return NapiGetUndefined(env);
 }
 
@@ -4799,6 +4803,37 @@ napi_value JsSceneSessionManager::OnNotifyAboveLockScreen(napi_env env, napi_cal
     return NapiGetUndefined(env);
 }
 
+napi_value JsSceneSessionManager::OnGetWindowPid(napi_env env, napi_callback_info info)
+{
+    size_t argc = 4;
+    napi_value argv[4] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_SCB, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    int32_t windowId;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to windowId");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    int32_t pid = INVALID_PID;
+    WMError ret = SceneSessionManager::GetInstance().CheckWindowId(windowId, pid);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        TLOGE(WmsLogTag::WMS_SCB, "Get window pid failed, return %{public}d", wmErrorCode);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(wmErrorCode), "Get window pid failed."));
+        return NapiGetUndefined(env);
+    }
+    napi_value result = nullptr;
+    napi_create_int32(env, pid, &result);
+    return result;
+}
+
 napi_value JsSceneSessionManager::OnCloneWindow(napi_env env, napi_callback_info info)
 {
     size_t argc = ARGC_THREE;
@@ -4956,37 +4991,6 @@ napi_value JsSceneSessionManager::OnRefreshAppInfo(napi_env env, napi_callback_i
     return NapiGetUndefined(env);
 }
 
-napi_value JsSceneSessionManager::OnGetWindowPid(napi_env env, napi_callback_info info)
-{
-    size_t argc = 4;
-    napi_value argv[4] = {nullptr};
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARGC_ONE) {
-        TLOGE(WmsLogTag::WMS_SCB, "Argc is invalid: %{public}zu", argc);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    int32_t windowId;
-    if (!ConvertFromJsValue(env, argv[0], windowId)) {
-        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to windowId");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    int32_t pid = INVALID_PID;
-    WMError ret = SceneSessionManager::GetInstance().CheckWindowId(windowId, pid);
-    if (ret != WMError::WM_OK) {
-        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
-        TLOGE(WmsLogTag::WMS_SCB, "Get window pid failed, return %{public}d", wmErrorCode);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(wmErrorCode), "Get window pid failed."));
-        return NapiGetUndefined(env);
-    }
-    napi_value result = nullptr;
-    napi_create_int32(env, pid, &result);
-    return result;
-}
-
 napi_value JsSceneSessionManager::OnUpdatePcFoldScreenStatus(napi_env env, napi_callback_info info)
 {
     size_t argc = ARGC_FIVE;
@@ -5120,42 +5124,6 @@ void JsSceneSessionManager::ProcessCloseTargetFloatWindow()
     SceneSessionManager::GetInstance().SetCloseTargetFloatWindowFunc(func);
 }
 
-static napi_value CreateAppUseControlInfos(
-    napi_env env, const std::vector<AppUseControlInfo>& controlList)
-{
-    napi_value arrayValue = nullptr;
-    napi_create_array_with_length(env, controlList.size(), &arrayValue);
-    if (arrayValue == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi array");
-        return NapiGetUndefined(env);
-    }
-    int32_t index = 0;
-    for (const auto& appUseControlInfo : controlList) {
-        napi_value objValue = nullptr;
-        napi_create_object(env, &objValue);
-        if (objValue == nullptr) {
-            TLOGE(WmsLogTag::WMS_LIFE, "failed to create napi object");
-            return NapiGetUndefined(env);
-        }
-        napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, appUseControlInfo.bundleName_));
-        napi_set_named_property(env, objValue, "appIndex", CreateJsValue(env, appUseControlInfo.appIndex_));
-        napi_set_named_property(env, objValue, "isNeedControl", CreateJsValue(env, appUseControlInfo.isNeedControl_));
-        napi_set_named_property(env, objValue, "isControlRecentOnly",
-            CreateJsValue(env, appUseControlInfo.isControlRecentOnly_));
-        napi_set_element(env, arrayValue, index++, objValue);
-    }
-    return arrayValue;
-}
-
-void JsSceneSessionManager::RegisterNotifyAppUseControlListCallback()
-{
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
-    SceneSessionManager::GetInstance().RegisterNotifyAppUseControlListCallback(
-        [this](ControlAppType type, int32_t userId, const std::vector<AppUseControlInfo>& controlList) {
-            this->OnNotifyAppUseControlList(type, userId, controlList);
-        });
-}
-
 napi_value JsSceneSessionManager::OnSetIsWindowRectAutoSave(napi_env env, napi_callback_info info)
 {
     size_t argc = DEFAULT_ARG_COUNT;
@@ -5197,6 +5165,42 @@ napi_value JsSceneSessionManager::OnSetIsWindowRectAutoSave(napi_env env, napi_c
     }
     SceneSessionManager::GetInstance().SetIsWindowRectAutoSave(key, enabled, abilityKey, isSaveBySpecifiedFlag);
     return NapiGetUndefined(env);
+}
+
+static napi_value CreateAppUseControlInfos(
+    napi_env env, const std::vector<AppUseControlInfo>& controlList)
+{
+    napi_value arrayValue = nullptr;
+    napi_create_array_with_length(env, controlList.size(), &arrayValue);
+    if (arrayValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi array");
+        return NapiGetUndefined(env);
+    }
+    int32_t index = 0;
+    for (const auto& appUseControlInfo : controlList) {
+        napi_value objValue = nullptr;
+        napi_create_object(env, &objValue);
+        if (objValue == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "failed to create napi object");
+            return NapiGetUndefined(env);
+        }
+        napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, appUseControlInfo.bundleName_));
+        napi_set_named_property(env, objValue, "appIndex", CreateJsValue(env, appUseControlInfo.appIndex_));
+        napi_set_named_property(env, objValue, "isNeedControl", CreateJsValue(env, appUseControlInfo.isNeedControl_));
+        napi_set_named_property(env, objValue, "isControlRecentOnly",
+            CreateJsValue(env, appUseControlInfo.isControlRecentOnly_));
+        napi_set_element(env, arrayValue, index++, objValue);
+    }
+    return arrayValue;
+}
+
+void JsSceneSessionManager::RegisterNotifyAppUseControlListCallback()
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    SceneSessionManager::GetInstance().RegisterNotifyAppUseControlListCallback(
+        [this](ControlAppType type, int32_t userId, const std::vector<AppUseControlInfo>& controlList) {
+            this->OnNotifyAppUseControlList(type, userId, controlList);
+        });
 }
 
 void JsSceneSessionManager::OnNotifyAppUseControlList(
