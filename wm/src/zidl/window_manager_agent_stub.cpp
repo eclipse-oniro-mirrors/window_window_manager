@@ -99,7 +99,7 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
                 return ERR_INVALID_DATA;
             }
             uint32_t settingFlag = 0;
-            uint32_t MAX_SETTINGFLAG = 7;
+            constexpr MAX_SETTINGFLAG = 7;
             if (!data.ReadUint32(settingFlag) ||
                 settingFlag < static_cast<uint32_t>(SystemBarSettingFlag::DEFAULT_SETTING) ||
                 settingFlag > MAX_SETTINGFLAG) {
