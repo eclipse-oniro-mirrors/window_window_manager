@@ -635,6 +635,16 @@ namespace window {
     height: int;
   }
 
+  export interface SizeInVP {
+    width: double;
+    height: double;
+  }
+
+  export class SizeInVPInternal implements SizeInVP {
+    width: double;
+    height: double;
+  }
+
   export interface Position {
     x: int;
     y: int;
