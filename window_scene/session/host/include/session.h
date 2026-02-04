@@ -1296,12 +1296,6 @@ private:
     bool isOutlineEnabled_ = false;
     OutlineStyleParams outlineStyleParams_;
     OutlineParamsChangeCallbackFunc outlineParamsChangeCallback_;
-
-    /*
-     * Prelaunch check
-     */
-    uint64_t prelaunchStart_ = 0;
-    bool prelaunchEnable_ = false;
 };
 } // namespace OHOS::Rosen
 
