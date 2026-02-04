@@ -1585,7 +1585,6 @@ private:
     virtual void UpdateCrossAxisOfLayout(const WSRect& rect);
     CrossPlaneState UpdateCrossPlaneState(const WSRect& rect);
     void UpdatePrivateStateOfLayout(const WSRect& rect);
-    NotifyLayoutFullScreenChangeFunc onLayoutFullScreenChangeFunc_;
     WSRect requestRectWhenFollowParent_;
     MoveConfiguration requestMoveConfiguration_;
     virtual void NotifySubAndDialogFollowRectChange(const WSRect& rect, bool isGlobal, bool needFlush) {};
@@ -1605,6 +1604,11 @@ private:
     IsLastFrameLayoutFinishedFunc isLastFrameLayoutFinishedFunc_;
     IsAINavigationBarAvoidAreaValidFunc isAINavigationBarAvoidAreaValid_;
     std::unordered_map<AvoidAreaType, std::tuple<DisplayId, WSRect, WSRect>> lastAvoidAreaInputParamtersMap_;
+
+    /**
+     * Window Layout
+     */
+    NotifyLayoutFullScreenChangeFunc onLayoutFullScreenChangeFunc_;
 
     /*
      * PC Window Layout

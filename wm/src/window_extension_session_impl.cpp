@@ -153,7 +153,7 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     isUIExtensionAbilityProcess_ = true;
     property_->SetIsUIExtensionAbilityProcess(true);
     UpdateDefaultStatusBarColor();
-    TLOGI(WmsLogTag::WMS_LIFE, "Created name:%{public}s %{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "Created name:%{public}s %{public}d success.",
         property_->GetWindowName().c_str(), GetPersistentId());
     AddSetUIContentTimeoutCheck();
     return WMError::WM_OK;

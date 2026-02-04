@@ -7816,7 +7816,7 @@ napi_value JsSceneSession::OnSendContainerModalEvent(napi_env env, napi_callback
         TLOGE(WmsLogTag::WMS_EVENT, "session is nullptr, id:%{public}d", persistentId_);
         return NapiGetUndefined(env);
     }
-    if (!session->IsPcWindow()) {
+     if (!session->IsPcWindow() && !session->IsFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_EVENT, "device type not support");
         return NapiGetUndefined(env);
     }

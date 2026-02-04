@@ -2108,32 +2108,42 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
 void WindowSessionImpl::HideTitleButton(bool& hideSplitButton, bool& hideMaximizeButton,
     bool& hideMinimizeButton, bool& hideCloseButton)
 {
-    std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
-    if (uiContent == nullptr || !IsDecorEnable()) {
-        return;
-    }
-    RealTimeSwitchInfo switchInfo = property_->GetRealTimeSwitchInfo();
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
-    uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
-    hideMaximizeButton = hideMaximizeButton || property_->IsFullScreenDisabled();
-    bool isLayoutFullScreen = property_->IsLayoutFullScreen();
-    bool hideSplitBtn = hideSplitButton || property_->IsSplitDisabled();
-    if (property_->IsAdaptToImmersive() && !property_->GetIsAtomicService()) {
-        uiContent->HideWindowTitleButton(hideSplitBtn, !isLayoutFullScreen && hideMaximizeButton,
-            hideMinimizeButton, hideCloseButton);
-    } else {
-        uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeButton, hideMinimizeButton, hideCloseButton);
-    }
-    // compatible mode adapt to proportional scale, will show its button
-    bool showScaleBtn = property_->IsAdaptToProportionalScale() && !property_->GetIsAtomicService();
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_VISIBILITY,
-        !isLayoutFullScreen && showScaleBtn  ? "true" : "false");
-    // compatible mode adapt to back, will show its button
-    bool isAdaptToBackButton = property_->IsAdaptToBackButton();
-    uiContent->OnContainerModalEvent(SCB_BACK_VISIBILITY, isAdaptToBackButton ? "true" : "false");
-    bool fullScreenStart = property_->IsFullScreenStart() &&
-        (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN);
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_BTN_RES, fullScreenStart ? "true" : "false");
+    handler_->PostTask([weakThis = wptr(this), hideSplitButton, hideMaximizeButton,
+        hideMinimizeButton, hideCloseButton, where = __func__] {
+        auto window = weakThis.promote();
+        if (!window) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s window is null", where);
+            return;
+        }
+        std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
+        if (uiContent == nullptr || !window->IsDecorEnable()) {
+            return;
+        }
+        auto property = window->GetProperty();
+        RealTimeSwitchInfo switchInfo = property->GetRealTimeSwitchInfo();
+        uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
+        uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
+        bool isFullScreenStart = property->IsFullScreenStart();
+        bool hideMaximizeBtn = (hideMaximizeButton || property->IsFullScreenDisabled());
+        bool hideSplitBtn = hideSplitButton || property->IsSplitDisabled();
+        if (property->IsAdaptToImmersive() && !property->GetIsAtomicService()) {
+            uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeBtn, hideMinimizeButton, hideCloseButton);
+            uiContent->OnContainerModalEvent(EVENT_NAME_FLOAT_BAR_VISIBILITY, "true");
+        } else {
+            uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeBtn, hideMinimizeButton, hideCloseButton);
+            uiContent->OnContainerModalEvent(EVENT_NAME_FLOAT_BAR_VISIBILITY, "false");
+        }
+        // compatible mode adapt to proportional scale, will show its button
+        bool showScaleBtn = property->IsAdaptToProportionalScale() && !property->GetIsAtomicService();
+        uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_VISIBILITY, showScaleBtn ? "true" : "false");
+        bool fullScreenStart = isFullScreenStart && (window->GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN);
+        if (fullScreenStart) {
+            uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_BTN_RES, "true");
+        }
+        // compatible mode adapt to back, will show its button
+        bool isAdaptToBackButton = property->IsAdaptToBackButton();
+        uiContent->OnContainerModalEvent(SCB_BACK_VISIBILITY, isAdaptToBackButton ? "true" : "false");
+        }, __func__);
 }
 
 WMError WindowSessionImpl::NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
