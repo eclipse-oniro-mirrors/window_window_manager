@@ -2112,13 +2112,13 @@ void WindowSessionImpl::HideTitleButton(bool& hideSplitButton, bool& hideMaximiz
     bool& hideMinimizeButton, bool& hideCloseButton)
 {
     handler_->PostTask([weakThis = wptr(this), hideSplitButton, hideMaximizeButton,
-        hideMinimizeButton, hideCloseButton, where = func] {
+        hideMinimizeButton, hideCloseButton, where = __func__] {
         auto window = weakThis.promote();
         if (!window) {
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s window is null", where);
             return;
         }
-        std::shared_ptrAce::UIContent uiContent = window->GetUIContentSharedPtr();
+        std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
         if (uiContent == nullptr || !window->IsDecorEnable()) {
             return;
         }
@@ -2146,7 +2146,7 @@ void WindowSessionImpl::HideTitleButton(bool& hideSplitButton, bool& hideMaximiz
         // compatible mode adapt to back, will show its button
         bool isAdaptToBackButton = property->IsAdaptToBackButton();
         uiContent->OnContainerModalEvent(SCB_BACK_VISIBILITY, isAdaptToBackButton ? "true" : "false");
-        }, func);
+        }, __func__);
 }
 
 WMError WindowSessionImpl::NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
