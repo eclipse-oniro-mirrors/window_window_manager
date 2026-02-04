@@ -157,6 +157,27 @@ HWTEST_F(SceneSessionManagerAttributeTest, IsNeedNotifyScreenshotEvent, TestSize
     ssm_->sceneSessionMap_ = oldSceneSessionMap;
     ssm_->screenshotAppEventListenerSessionSet_ = oldScreenshotEventListenerSessionSet;
 }
+
+/**
+ * @tc.name: SetWindowSnapshotSkip
+ * @tc.desc: test SetWindowSnapshotSkip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, SetWindowSnapshotSkip, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    ssm_->sceneSessionMap_.clear();
+    EXPECT_NE(ssm_->SetWindowSnapshotSkip(1), WMError::WM_ERROR_INVALID_CALLING);
+    SessionInfo sessionInfo;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sceneSession->property_->SetPersistentId(100);
+    ssm_->sceneSessionMap_.insert(std::make_pair(sceneSession->GetPersistentId(), sceneSession));
+    EXPECT_NE(ssm_->SetWindowSnapshotSkip(sceneSession->GetPersistentId()), WMError::WM_ERROR_INVALID_CALLING);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
