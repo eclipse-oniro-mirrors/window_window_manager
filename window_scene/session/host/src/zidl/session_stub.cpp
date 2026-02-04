@@ -1105,23 +1105,7 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
     }
     MoveConfiguration moveConfiguration;
     moveConfiguration.displayId = static_cast<DisplayId>(displayId);
-    RectAnimationConfig rectAnimationConfig;
-    if (reason == SizeChangeReason::MOVE_WITH_ANIMATION || reason == SizeChangeReason::RESIZE_WITH_ANIMATION) {
-        if (!data.ReadUint32(rectAnimationConfig.duration) || !data.ReadFloat(rectAnimationConfig.x1) ||
-            !data.ReadFloat(rectAnimationConfig.y1) || !data.ReadFloat(rectAnimationConfig.x2) ||
-            !data.ReadFloat(rectAnimationConfig.y2)) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read animation config");
-            return ERR_INVALID_DATA;
-        }
-        if (reason == SizeChangeReason::MOVE_WITH_ANIMATION) {
-            moveConfiguration.rectAnimationConfig = rectAnimationConfig;
-        }
-    }
-    TLOGD(WmsLogTag::WMS_LAYOUT, "rectAnimationConfig:[%{public}u, %{public}f, %{public}f, %{public}f, %{public}f]",
-        rectAnimationConfig.duration, rectAnimationConfig.x1, rectAnimationConfig.y1, rectAnimationConfig.x2,
-        rectAnimationConfig.y2);
-    WSError errCode = UpdateSessionRect(rect, reason, isGlobal, isFromMoveToGlobal, moveConfiguration,
-        rectAnimationConfig);
+    WSError errCode = UpdateSessionRect(rect, reason, isGlobal, isFromMoveToGlobal, moveConfiguration);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }

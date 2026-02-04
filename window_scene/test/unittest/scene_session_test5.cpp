@@ -495,10 +495,9 @@ HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback, TestSize.Level1)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(session, nullptr);
     WSRect rec = { 1, 1, 1, 1 };
-    NotifySessionRectChangeFunc func = [](const WSRect& rect,
-                                          SizeChangeReason reason,
-                                          DisplayId displayId,
-                                          const RectAnimationConfig& rectAnimationConfig) { return; };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
     session->SetSessionRectChangeCallback(nullptr);
     info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     session->SetSessionRectChangeCallback(func);
@@ -524,10 +523,9 @@ HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback02, TestSize.Level1)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(session, nullptr);
     WSRect rec = { 1, 1, 1, 1 };
-    NotifySessionRectChangeFunc func = [](const WSRect& rect,
-                                          SizeChangeReason reason,
-                                          DisplayId displayId,
-                                          const RectAnimationConfig& rectAnimationConfig) { return; };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
     session->SetSessionRectChangeCallback(nullptr);
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
@@ -566,10 +564,9 @@ HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback03, TestSize.Level1)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     session->SetSessionProperty(property);
     WSRect rec = { 1, 1, 1, 1 };
-    NotifySessionRectChangeFunc func = [](const WSRect& rect,
-                                          const SizeChangeReason reason,
-                                          DisplayId displayId,
-                                          const RectAnimationConfig& rectAnimationConfig) { return; };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, const SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
     session->SetSessionRequestRect(rec);
     session->SetSessionRectChangeCallback(nullptr);
 
