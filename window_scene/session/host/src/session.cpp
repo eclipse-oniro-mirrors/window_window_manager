@@ -90,7 +90,6 @@ constexpr float BLUR_SNAPSHOT_SCALE = 0.5f;
 
 std::shared_ptr<AppExecFwk::EventHandler> Session::mainHandler_;
 bool Session::isScbCoreEnabled_ = false;
-bool Session::isBackgroundUpdateRectNotifyEnabled_ = false;
 
 Session::Session(const SessionInfo& info) : sessionInfo_(info)
 {
@@ -664,7 +663,8 @@ void Session::NotifyRestart()
     }
 }
 
-void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist, bool needSaveSnapshot)
+void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist,
+    bool needSaveSnapshot, std::function<void()>&& callback)
 {
     /*
      * for blankness prolems, persist snapshot could conflict with background process,
@@ -673,7 +673,7 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist, bool needSaveSna
     if (needSaveSnapshot) {
         SaveSnapshot(useFfrt, needPersist);
     }
-    auto task = [weakThis = wptr(this), where = __func__]() {
+    auto task = [weakThis = wptr(this), where = __func__, callback = std::move(callback)]() mutable {
         auto session = weakThis.promote();
         if (session == nullptr) {
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s session is null", where);
@@ -682,7 +682,7 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist, bool needSaveSna
         auto lifecycleListeners = session->GetListeners<ILifecycleListener>();
         for (auto& listener : lifecycleListeners) {
             if (auto listenerPtr = listener.lock()) {
-                listenerPtr->OnAddSnapshot();
+                listenerPtr->OnAddSnapshot(std::move(callback));
             }
         }
     };
@@ -1373,9 +1373,6 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     auto globalDisplayRect = SessionCoordinateHelper::RelativeToGlobalDisplayRect(GetScreenId(), updateRect);
     UpdateGlobalDisplayRect(globalDisplayRect, reason);
 
-    if (!Session::IsBackgroundUpdateRectNotifyEnabled() && !IsSessionForeground()) {
-        return WSError::WS_DO_NOTHING;
-    }
     if (sessionStage_ != nullptr) {
         UpdateClientRectPosYAndDisplayId(updateRect);
         UpdateClientRectInfo(updateRect, reason, avoidAreas, rsTransaction);
@@ -1438,7 +1435,7 @@ __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISe
     SystemSessionConfig& systemConfig, sptr<WindowSessionProperty> property,
     sptr<IRemoteObject> token, int32_t pid, int32_t uid, const std::string& identityToken)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] ConnectInner session, state: %{public}u,"
+    TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] state: %{public}u,"
         "isTerminating:%{public}d, callingPid:%{public}d, disableDelegator:%{public}d", GetPersistentId(),
         static_cast<uint32_t>(GetSessionState()), isTerminating_, pid, property->GetIsAbilityHookOff());
     if (GetSessionState() != SessionState::STATE_DISCONNECT && !isTerminating_ &&
@@ -1607,6 +1604,26 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] state:%{public}u, isTerminating:%{public}d",
         GetPersistentId(), static_cast<uint32_t>(state), isTerminating_);
+    if ((state == SessionState::STATE_DISCONNECT || state == SessionState::STATE_END) &&
+        SessionHelper::IsMainWindow(GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
+        std::ostringstream oss;
+        oss << "[Event]lifecycle to:" << static_cast<uint32_t>(SessionState::STATE_FOREGROUND)
+            << ", id:" << GetWindowId()
+            << ", name:" << GetWindowName().c_str()
+            << "[Msg]foreground from client error, when server closed.";
+        std::string info = oss.str();
+        int32_t ret = HiSysEventWrite(
+            OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
+            "WINDOW_LIFE_CYCLE_EXCEPTION",
+            OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+            "PID", getpid(),
+            "UID", getuid(),
+            "MSG", info);
+        if (ret != 0) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
+        }
+    }
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
@@ -1696,7 +1713,6 @@ WSError Session::Background(bool isFromClient, const std::string& identityToken)
         return WSError::WS_ERROR_INVALID_SESSION;
     }
     UpdateSessionState(SessionState::STATE_BACKGROUND);
-    lastSnapshotScreen_ = WSSnapshotHelper::GetInstance()->GetScreenStatus();
     SetIsPendingToBackgroundState(false);
     NotifyBackground();
     PostSpecificSessionLifeCycleTimeoutTask(DETACH_EVENT_NAME);
@@ -1705,7 +1721,7 @@ WSError Session::Background(bool isFromClient, const std::string& identityToken)
 
 void Session::ResetSessionConnectState()
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] ResetSessionState, state: %{public}u",
+    TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] state: %{public}u",
         GetPersistentId(), GetSessionState());
     SetSessionState(SessionState::STATE_DISCONNECT);
     SetCallingPid(-1);
@@ -1742,7 +1758,6 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken)
     }
     UpdateSessionState(SessionState::STATE_BACKGROUND);
     UpdateSessionState(SessionState::STATE_DISCONNECT);
-    lastSnapshotScreen_ = WSSnapshotHelper::GetInstance()->GetScreenStatus();
     NotifyDisconnect();
     if (visibilityChangedDetectFunc_) {
         visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), false);
@@ -2896,8 +2911,9 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
     };
     bool ret = false;
     if (needBlurSnapshot) {
-        float blurRadius = 200.0f;
-        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius);
+        config.backGroundColor = blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ?
+            GetBackgroundColor() : blurBackgroundColor_;
+        ret = RSInterfaces::GetInstance().TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius_);
     } else {
         ret = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode, callback, config);
     }
@@ -2979,8 +2995,15 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (type != ControlAppType::APP_LOCK) {
         return;
     }
+    if (!IsSupportAppLockSnapshot()) {
+        SaveSnapshot(true, true, nullptr);
+        return;
+    }
     bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
+    if (isAppLockControl_.load() == isAppUseControl) {
+        return;
+    }
     isAppLockControl_.store(isAppUseControl);
     if (isAppUseControl) {
         if (IsPersistentImageFit()) {
@@ -2998,6 +3021,23 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
     if (!GetIsPrivacyMode() && !GetSnapshotPrivacyMode()) {
         SaveSnapshot(true, true, nullptr, true);
     }
+}
+
+bool Session::IsSupportAppLockSnapshot() const
+{
+    if (!onGetAppUseControlDisplayMapFunc_) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d GetAppUseControlDisplayMap failed", persistentId_);
+        return true;
+    }
+    auto& appUseControlDisplayMap = onGetAppUseControlDisplayMapFunc_();
+    auto displayId = GetSessionProperty()->GetDisplayId();
+    if (appUseControlDisplayMap.find(displayId) == appUseControlDisplayMap.end()) {
+        return true;
+    }
+    bool support = appUseControlDisplayMap[displayId];
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, displayId: %{public}" PRIu64 ", support: %{public}d",
+        persistentId_, displayId, support);
+    return support;
 }
 
 bool Session::GetSnapshotPrivacyMode() const
@@ -3064,17 +3104,6 @@ void Session::ResetPreloadSnapshot()
 {
     std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
     preloadSnapshot_ = nullptr;
-}
-
-void Session::SetEnableAddSnapshot(bool enableAddSnapshot)
-{
-    TLOGI(WmsLogTag::WMS_PATTERN, "enableAddSnapshot: %{public}d", enableAddSnapshot);
-    enableAddSnapshot_ = enableAddSnapshot;
-}
-
-bool Session::GetEnableAddSnapshot() const
-{
-    return enableAddSnapshot_;
 }
 
 void Session::SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap)
@@ -3537,19 +3566,6 @@ void Session::SetBufferAvailableChangeListener(const NotifyBufferAvailableChange
         bufferAvailableChangeFunc_(bufferAvailable_, false);
     }
     WLOGFD("SetBufferAvailableChangeListener, id: %{public}d", GetPersistentId());
-}
-
-bool Session::UpdateWindowModeSupportType(const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo)
-{
-    std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
-        ExtractSupportWindowModeFromMetaData(abilityInfo);
-    auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
-    const uint32_t noType = 0;
-    if (windowModeSupportType != noType) {
-        GetSessionProperty()->SetWindowModeSupportType(windowModeSupportType);
-        return true;
-    }
-    return false;
 }
 
 void Session::SetGetRsCmdBlockingCountFunc(const GetRsCmdBlockingCountFunc& func)
@@ -4413,32 +4429,6 @@ bool Session::UseStartingWindowAboveLocked() const
     return useStartingWindowAboveLocked_;
 }
 
-void Session::SetRequestRectAnimationConfig(const RectAnimationConfig& rectAnimationConfig)
-{
-    auto property = GetSessionProperty();
-    if (property == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "id: %{public}d property is nullptr", persistentId_);
-        return;
-    }
-    property->SetRectAnimationConfig(rectAnimationConfig);
-    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, animation duration: [%{public}u]", persistentId_,
-        rectAnimationConfig.duration);
-}
-
-RectAnimationConfig Session::GetRequestRectAnimationConfig() const
-{
-    RectAnimationConfig rectAnimationConfig;
-    auto property = GetSessionProperty();
-    if (property == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "id: %{public}d property is nullptr", persistentId_);
-        return rectAnimationConfig;
-    }
-    rectAnimationConfig = property->GetRectAnimationConfig();
-    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, animation duration: [%{public}u]", persistentId_,
-        rectAnimationConfig.duration);
-    return rectAnimationConfig;
-}
-
 WindowType Session::GetWindowType() const
 {
     return GetSessionProperty()->GetWindowType();
@@ -4461,6 +4451,26 @@ void Session::SetSystemConfig(const SystemSessionConfig& systemConfig)
 SystemSessionConfig Session::GetSystemConfig() const
 {
     return systemConfig_;
+}
+
+void Session::SetBlurRadius(const float blurRadius)
+{
+    blurRadius_ = blurRadius;
+}
+
+float Session::GetBlurRadius() const
+{
+    return blurRadius_;
+}
+
+void Session::SetBlurBackgroundColor(const float blurBackgroundColor)
+{
+    blurBackgroundColor_ = blurBackgroundColor;
+}
+
+uint32_t Session::GetBlurBackgroundColor() const
+{
+    return blurBackgroundColor_;
 }
 
 void Session::SetSnapshotScale(const float snapshotScale)
@@ -4489,7 +4499,7 @@ WSError Session::ProcessBackEvent()
     return sessionStage_->HandleBackEvent();
 }
 
-void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32_t userId)
+void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
 {
     std::lock_guard lock(g_persistentIdSetMutex);
     if (persistentId != INVALID_SESSION_ID  && !g_persistentIdSet.count(persistentId)) {
@@ -4503,12 +4513,8 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32
     }
 
     g_persistentId++;
-    uint32_t maskedUserId = static_cast<uint32_t>(userId) & 0x000000FF; // userId use 8 bits
-    uint32_t maskedPersistentId = static_cast<uint32_t>(g_persistentId.load()) & 0x003FFFFF; // persistentId use 22 bits
-    int32_t tempPersistentId = (maskedUserId << 22) | maskedPersistentId;
-    while (g_persistentIdSet.count(tempPersistentId)) {
+    while (g_persistentIdSet.count(g_persistentId)) {
         g_persistentId++;
-        tempPersistentId++;
     }
     if (isExtension) {
         constexpr uint32_t pidLength = 18;
@@ -4519,9 +4525,9 @@ void Session::GeneratePersistentId(bool isExtension, int32_t persistentId, int32
             (static_cast<uint32_t>(g_persistentId.load()) & persistentIdMask);
         persistentId_ = assembledPersistentId | 0x40000000;
     } else {
-        persistentId_ = tempPersistentId;
+        persistentId_ = static_cast<uint32_t>(g_persistentId.load()) & 0x3fffffff;
     }
-    g_persistentIdSet.insert(persistentId_);
+    g_persistentIdSet.insert(g_persistentId);
     TLOGI(WmsLogTag::WMS_LIFE,
         "persistentId: %{public}d, persistentId_: %{public}d", persistentId, persistentId_);
 }
@@ -5000,16 +5006,11 @@ std::vector<AppExecFwk::SupportWindowMode> Session::ExtractSupportWindowModeFrom
     const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo)
 {
     std::vector<AppExecFwk::SupportWindowMode> updateWindowModes = {};
-    if (abilityInfo == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "id: %{public}d, abilityInfo is nullptr", GetPersistentId());
-        return updateWindowModes;
-    }
     if (IsPcWindow() || systemConfig_.IsFreeMultiWindowMode()) {
         auto metadata = abilityInfo->metadata;
         for (const auto& item : metadata) {
             if (item.name == "ohos.ability.window.supportWindowModeInFreeMultiWindow") {
                 updateWindowModes = ParseWindowModeFromMetaData(item.value);
-                return updateWindowModes;
             }
         }
     }
@@ -5022,15 +5023,18 @@ std::vector<AppExecFwk::SupportWindowMode> Session::ExtractSupportWindowModeFrom
 std::vector<AppExecFwk::SupportWindowMode> Session::ParseWindowModeFromMetaData(
     const std::string& supportModesInFreeMultiWindow)
 {
-    static const std::unordered_map<std::string, AppExecFwk::SupportWindowMode> modeMap = {
-        {"fullscreen", AppExecFwk::SupportWindowMode::FULLSCREEN},
-        {"split", AppExecFwk::SupportWindowMode::SPLIT},
-        {"floating", AppExecFwk::SupportWindowMode::FLOATING}
-    };
     std::vector<AppExecFwk::SupportWindowMode> updateWindowModes = {};
-    for (auto iter : modeMap) {
-        if (supportModesInFreeMultiWindow.find(iter.first) != std::string::npos) {
-            updateWindowModes.push_back(iter.second);
+    std::stringstream supportModes(supportModesInFreeMultiWindow);
+    std::string supportWindowMode;
+    while (getline(supportModes, supportWindowMode, ',')) {
+        if (supportWindowMode == "fullscreen") {
+            updateWindowModes.push_back(AppExecFwk::SupportWindowMode::FULLSCREEN);
+        } else if (supportWindowMode == "split") {
+            updateWindowModes.push_back(AppExecFwk::SupportWindowMode::SPLIT);
+        } else if (supportWindowMode == "floating") {
+            updateWindowModes.push_back(AppExecFwk::SupportWindowMode::FLOATING);
+        } else {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "invalid input");
         }
     }
     return updateWindowModes;
@@ -5049,9 +5053,6 @@ WSError Session::SwitchFreeMultiWindow(const SystemSessionConfig& config)
     if (!sessionStage_) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "sessionStage_ is null");
         return WSError::WS_ERROR_NULLPTR;
-    }
-    if (!UpdateWindowModeSupportType(sessionInfo_.abilityInfo)) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "not update WindowModeSupportType");
     }
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "windowId: %{public}d enable: %{public}d defaultWindowMode: %{public}d",
         GetPersistentId(), enable, systemConfig_.defaultWindowMode_);
@@ -5257,17 +5258,6 @@ void Session::SetScbCoreEnabled(bool enabled)
 {
     TLOGI(WmsLogTag::WMS_PIPELINE, "%{public}d", enabled);
     isScbCoreEnabled_ = enabled;
-}
-
-bool Session::IsBackgroundUpdateRectNotifyEnabled()
-{
-    return isBackgroundUpdateRectNotifyEnabled_;
-}
-
-void Session::SetBackgroundUpdateRectNotifyEnabled(const bool enabled)
-{
-    TLOGI(WmsLogTag::WMS_LAYOUT, "%{public}d", enabled);
-    isBackgroundUpdateRectNotifyEnabled_ = enabled;
 }
 
 bool Session::IsVisible() const
@@ -5608,7 +5598,7 @@ std::shared_ptr<RSUIContext> Session::GetRSUIContext(const char* caller)
                 caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
         }
     }
-    if (rsUIContext_ == nullptr) {
+    if (rsUIContext_ == nullptr && GetSessionType() == SessionType::SceneSession) {
         TLOGI(WmsLogTag::WMS_SCB, "%{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
             caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
     }

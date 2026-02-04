@@ -63,6 +63,7 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
     sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo(displayInfo);
     if (cutoutInfo == nullptr) {
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN, "");
+        return;
     }
     std::vector<DMRect> rects = cutoutInfo->GetBoundingRects();
     // bounding rects

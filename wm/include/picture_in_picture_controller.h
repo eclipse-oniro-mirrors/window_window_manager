@@ -30,13 +30,16 @@ public:
     void SetAutoStartEnabled(bool enable) override;
     void IsAutoStartEnabled(bool& enable) const override;
     void UpdateContentSize(int32_t width, int32_t height) override;
-    void UpdateContentNodeRef(napi_ref nodeRef) override;
+    void UpdateContentNodeRef(std::shared_ptr<NativeReference> nodeRef) override;
     void PrepareSource() override;
     void RestorePictureInPictureWindow() override;
-    void NotifyNodeUpdate(napi_ref nodeRef) override;
+    WMError RegisterPipContentListenerWithType(const std::string&,
+        std::shared_ptr<NativeReference> updateNodeCallbackRef) override;
+    WMError UnRegisterPipContentListenerWithType(const std::string&) override;
+    std::shared_ptr<NativeReference> GetPipContentCallbackRef(const std::string&) override;
     WMError SetXComponentController(std::shared_ptr<XComponentController> xComponentController) override;
-    napi_ref GetCustomNodeController() override;
-    napi_ref GetTypeNode() const override;
+    std::shared_ptr<NativeReference> GetCustomNodeController() override;
+    std::shared_ptr<NativeReference> GetTypeNode() const override;
     bool IsTypeNodeEnabled() const override;
     bool IsPullPiPAndHandleNavigation();
     std::string GetPiPNavigationId();
@@ -47,6 +50,9 @@ protected:
     void UpdatePiPSourceRect() const override;
     void SetUIContent() const override;
     void ResetExtController() override;
+    void NotifyNodeUpdate(std::shared_ptr<NativeReference> nodeRef) override;
+    void NotifyStateChangeInner(napi_env env, PiPState state) override;
+
     wptr<PictureInPictureController> weakRef_ = nullptr;
     std::shared_ptr<XComponentController> mainWindowXComponentController_ = nullptr;
     int32_t firstHandleId_ = -1;

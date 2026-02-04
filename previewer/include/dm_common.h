@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <unordered_map>
 
 #ifdef _WIN32
 #define WINDOW_EXPORT __attribute__((dllexport))
@@ -39,6 +40,8 @@ const static std::string DEFAULT_SCREEN_NAME = "buildIn";
 constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr uint32_t BASELINE_DENSITY = 160;
+constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
+constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
 
 /**
@@ -341,7 +344,42 @@ enum class FoldDisplayMode: uint32_t {
     MAIN = 2,
     SUB = 3,
     COORDINATION = 4,
+    GLOBAL_FULL = 5,
 };
+
+const std::unordered_map<std::string, FoldDisplayMode> STRING_TO_FOLD_DISPLAY_MODE = {
+    {"0", FoldDisplayMode::UNKNOWN},
+    {"1", FoldDisplayMode::FULL},
+    {"2", FoldDisplayMode::MAIN},
+    {"3", FoldDisplayMode::SUB},
+    {"4", FoldDisplayMode::COORDINATION},
+    {"5", FoldDisplayMode::GLOBAL_FULL}
+};
+
+// LCOV_EXCL_START
+struct RotationCorrectionWhiteConfig {
+    std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
+    std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
+
+    int32_t GetUseLogicCamera(FoldDisplayMode key) const
+    {
+        auto it = useLogicCamera.find(key);
+        if (it != useLogicCamera.end()) {
+            return it->second;
+        }
+        return DEFAULT_USE_LOGIC_CAMERA;
+    }
+
+    int32_t GetCustomLogicDirection(FoldDisplayMode key) const
+    {
+        auto it = customLogicDirection.find(key);
+        if (it != customLogicDirection.end()) {
+            return it->second;
+        }
+        return DEFAULT_CUSTOM_LOGIC_DIRECTION;
+    }
+};
+// LCOV_EXCL_STOP
 
 /**
  * @brief Enumerates TentMode.

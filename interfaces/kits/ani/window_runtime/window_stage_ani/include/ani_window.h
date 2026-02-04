@@ -83,6 +83,7 @@ public:
     static void SetWindowTouchable(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isTouchable);
     static void SetDialogBackGestureEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
     static void SetWindowMask(ani_env* env, ani_object obj, ani_long nativeObj, ani_array windowMask);
+    static void ClearWindowMask(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetTouchableAreas(ani_env* env, ani_object obj, ani_long nativeObj, ani_array rects);
     static ani_object GetUIContext(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_object GetWindowAvoidArea(ani_env* env, ani_object obj, ani_long nativeObj, ani_int type);
@@ -144,7 +145,7 @@ public:
     static ani_boolean IsInFreeWindowMode(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_string GetWindowStateSnapshot(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetRelativePositionToParentWindowEnabled(ani_env* env, ani_object obj, ani_long nativeObj,
-        ani_boolean enabled, ani_int anchor, ani_int offsetX, ani_int offsetY);
+        ani_boolean enabled, ani_object anchor, ani_object offsetX, ani_object offsetY);
     static void SetWindowDelayRaiseOnDrag(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isEnabled);
     static void SetDefaultDensityEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
     static void SetWindowContainerColor(ani_env* env, ani_object obj, ani_long nativeObj,
@@ -162,13 +163,20 @@ public:
     static void Hide(ani_env* env, ani_object obj, ani_long nativeObj);
     static void RestoreMainWindow(ani_env* env, ani_object obj, ani_long nativeObj, ani_object wantParameters);
 
+    void SetDecorButtonStyle(ani_env* env, ani_object decorStyle);
+    void SetWindowTitleButtonVisible(ani_env* env, ani_object visibleParam);
     ani_ref GetParentWindow(ani_env* env);
     void SetParentWindow(ani_env* env, ani_int windowId);
     void SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost);
-    void SetDecorButtonStyle(ani_env* env, ani_object decorStyle);
-    void SetWindowTitleButtonVisible(ani_env* env, ani_object visibleParam);
     void Restore(ani_env* env);
     void HideWindowFunction(ani_env* env, WmErrorCode errCode);
+
+    /*
+     * Multi Window
+     */
+    static void EnableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void DisableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+
     /*
      * Window Layout
      */
@@ -267,14 +275,8 @@ private:
     void OnSetWindowTouchable(ani_env* env, ani_boolean isTouchable);
     void OnSetDialogBackGestureEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWindowMask(ani_env* env, ani_array windowMaskArray);
+    void OnClearWindowMask(ani_env* env);
     void OnSetTouchableAreas(ani_env* env, ani_array rects);
-    ani_object OnGetUIContext(ani_env* env);
-    ani_object OnGetWindowAvoidArea(ani_env* env, ani_int type);
-    ani_object OnGetWindowAvoidAreaIgnoringVisibility(ani_env* env, ani_int type);
-    void OnRegisterWindowCallback(ani_env* env, ani_string type, ani_ref callback, ani_long timeout);
-    void OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_ref callback);
-    void OnShowWindow(ani_env* env);
-    void OnShowWindowWithOptions(ani_env* env, ani_object aniShowWindowOptions);
     void OnSetWindowTitle(ani_env* env, ani_string titleName);
     void OnSetTitleButtonVisible(ani_env* env, ani_boolean isMaximizeVisible,
         ani_boolean isMinimizeVisible, ani_boolean isSplitVisible, ani_boolean isCloseVisible);
@@ -284,6 +286,13 @@ private:
     void OnSetTitleAndDockHoverShown(ani_env* env, ani_object isTitleHoverShown, ani_object isDockHoverShown);
     void OnSetHandwritingFlag(ani_env* env, ani_boolean enable);
     ani_boolean OnGetWindowDecorVisible(ani_env* env);
+    ani_object OnGetUIContext(ani_env* env);
+    ani_object OnGetWindowAvoidArea(ani_env* env, ani_int type);
+    ani_object OnGetWindowAvoidAreaIgnoringVisibility(ani_env* env, ani_int type);
+    void OnRegisterWindowCallback(ani_env* env, ani_string type, ani_ref callback, ani_long timeout);
+    void OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_ref callback);
+    void OnShowWindow(ani_env* env);
+    void OnShowWindowWithOptions(ani_env* env, ani_object aniShowWindowOptions);
     void OnBindDialogTarget(ani_env* env, ani_object argv, ani_ref deathCallback);
     void OnDestroyWindow(ani_env* env);
     ani_boolean OnIsWindowShowing(ani_env* env);
@@ -319,7 +328,7 @@ private:
     ani_string OnGetWindowStateSnapshot(ani_env* env);
     void OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled);
     void OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boolean enabled,
-        ani_int anchor, ani_int offsetX, ani_int offsetY);
+        ani_object anchor, ani_object offsetX, ani_object offsetY);
     void OnSetDefaultDensityEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWindowContainerColor(ani_env* env, ani_string activeColor, ani_string inactiveColor);
     void OnSetWindowContainerModalColor(ani_env* env, ani_string activeColor, ani_string inactiveColor);
@@ -328,6 +337,12 @@ private:
     bool OnIsImmersiveLayout(ani_env* env);
     void OnKeepKeyboardOnFocus(ani_env* env, ani_boolean keepKeyboardFlag);
     void OnRestoreMainWindow(ani_env* env, ani_object wantParameters);
+
+    /*
+     * Multi Window
+     */
+    void OnEnableLandscapeMultiWindow(ani_env* env);
+    void OnDisableLandscapeMultiWindow(ani_env* env);
 
     /*
      * Window Layout

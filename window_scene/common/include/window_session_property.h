@@ -36,6 +36,7 @@ using HandlWritePropertyFunc = bool (WindowSessionProperty::*)(Parcel& parcel);
 using HandlReadPropertyFunc = void (WindowSessionProperty::*)(Parcel& parcel);
 using TransitionAnimationMapType = std::unordered_map<WindowTransitionType, std::shared_ptr<TransitionAnimation>>;
 constexpr float WINDOW_CORNER_RADIUS_INVALID = -1.0f;
+constexpr float WINDOW_SHADOW_RADIUS_INVALID = -1.0f;
 
 class WindowSessionProperty : public Parcelable {
 public:
@@ -48,7 +49,6 @@ public:
     void SetSessionInfo(const SessionInfo& info);
     void SetTransitionAnimationConfig(WindowTransitionType transitionType, const TransitionAnimation& animation);
     void SetRequestRect(const struct Rect& rect);
-    void SetRectAnimationConfig(const RectAnimationConfig& rectAnimationConfig);
     void SetWindowRect(const struct Rect& rect);
     void SetFocusable(bool isFocusable);
     void SetFocusableOnShow(bool isFocusableOnShow);
@@ -128,7 +128,6 @@ public:
     SessionInfo& EditSessionInfo();
     Rect GetWindowRect() const;
     Rect GetRequestRect() const;
-    RectAnimationConfig GetRectAnimationConfig() const;
     WindowType GetWindowType() const;
     bool GetDragEnabled() const;
     bool GetTouchable() const;
@@ -358,6 +357,8 @@ public:
     RealTimeSwitchInfo GetRealTimeSwitchInfo() const;
     void SetPageCompatibleMode(CompatibleStyleMode compatibleMode);
     CompatibleStyleMode GetPageCompatibleMode() const;
+    void SetLogicalDeviceConfig(const std::string& logicalDeviceConfig);
+    std::string GetLogicalDeviceConfig() const;
 
     /*
      * Keyboard
@@ -472,12 +473,10 @@ private:
     void ReadActionUpdateRotationLockChange(Parcel& parcel);
     std::string windowName_;
     SessionInfo sessionInfo_;
-    mutable std::mutex windowRectMutex_;
-    Rect windowRect_ { 0, 0, 0, 0 }; // actual window rect
     mutable std::mutex requestRectMutex_;
     Rect requestRect_ { 0, 0, 0, 0 }; // window rect requested by the client (without decoration size)
-    mutable std::mutex rectAnimationConfigMutex_;
-    RectAnimationConfig rectAnimationConfig_ { 0, 0.0f, 0.0f, 0.0f, 0.0f };
+    mutable std::mutex windowRectMutex_;
+    Rect windowRect_ { 0, 0, 0, 0 }; // actual window rect
     WindowType type_ { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW }; // type main window
     bool touchable_ { true };
     bool dragEnabled_ = { true };
@@ -559,6 +558,7 @@ private:
     mutable std::mutex compatibleModeMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
+    std::string logicalDeviceConfig_ = "";
     uint8_t backgroundAlpha_ = 0xff; // default alpha is opaque.
     mutable std::mutex atomicServiceMutex_;
     bool isAtomicService_ = false;
@@ -990,7 +990,7 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportTypeFloatWindow_)) {
             return false;
         }
-        if (!parcel.WriteBool(maxMidSceneNum_)) {
+        if (!parcel.WriteUint32(maxMidSceneNum_)) {
             return false;
         }
         if (!parcel.WriteBool(supportFollowParentWindowLayout_)) {
@@ -1103,7 +1103,7 @@ struct SystemSessionConfig : public Parcelable {
         return IsPcWindow() || (IsPadWindow() && IsFreeMultiWindowMode());
     }
 
-    bool isSupportPCMode() const
+    bool IsSupportPCMode() const
     {
         return IsPcWindow() || IsFreeMultiWindowMode();
     }

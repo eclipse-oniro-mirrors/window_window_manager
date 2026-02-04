@@ -998,6 +998,19 @@ HWTEST_F(SceneInputManagerTest, UpdateHotAreas, TestSize.Level1)
     SceneInputManager::GetInstance().UpdateHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
     ASSERT_EQ(touchHotAreas.size(), 1);
 }
+
+/**
+ * @tc.name: SetIsRotationBegin
+ * @tc.desc: SetIsRotationBegin
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetIsRotationBegin, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().SetUserBackground(false);
+    SceneInputManager::GetInstance().SetIsRotationBegin(true);
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {});
+    ASSERT_TRUE(SceneInputManager::GetInstance().isRotationBegin_.load());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

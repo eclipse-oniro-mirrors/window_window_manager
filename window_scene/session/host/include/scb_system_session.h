@@ -21,8 +21,7 @@
 namespace OHOS::Rosen {
 class SCBSystemSession : public SceneSession {
 public:
-    SCBSystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-        int32_t userId = 0);
+    SCBSystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~SCBSystemSession();
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
 
@@ -53,7 +52,7 @@ protected:
     void NotifyClientToUpdateAvoidArea() override;
 
 private:
-    bool isNeedSyncGlobalPos_ = true; // can only accessed in main thread
+    bool isNeedSyncGlobalPos_ = true; // only accessed in main thread
 
     /*
      * App Use Control

@@ -66,7 +66,6 @@ public:
     static napi_value Resize(napi_env env, napi_callback_info info);
     static napi_value ResizeWindow(napi_env env, napi_callback_info info);
     static napi_value ResizeWindowAsync(napi_env env, napi_callback_info info);
-    static napi_value ResizeWindowWithAnimation(napi_env env, napi_callback_info info);
     static napi_value ClientToGlobalDisplay(napi_env env, napi_callback_info info);
     static napi_value GlobalDisplayToClient(napi_env env, napi_callback_info info);
 
@@ -197,6 +196,7 @@ public:
      */
     static napi_value GetWindowStatus(napi_env env, napi_callback_info info);
     static napi_value SetWindowMask(napi_env env, napi_callback_info info);
+    static napi_value ClearWindowMask(napi_env env, napi_callback_info info);
     static napi_value SetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     static napi_value IsInFreeWindowMode(napi_env env, napi_callback_info info);
 
@@ -300,7 +300,6 @@ private:
     napi_value OnResize(napi_env env, napi_callback_info info);
     napi_value OnResizeWindow(napi_env env, napi_callback_info info);
     napi_value OnResizeWindowAsync(napi_env env, napi_callback_info info);
-    napi_value OnResizeWindowWithAnimation(napi_env env, napi_callback_info info);
     template <typename PositionTransformFunc>
     napi_value HandlePositionTransform(
         napi_env env, napi_callback_info info, PositionTransformFunc transformFunc, const char* caller);
@@ -436,6 +435,7 @@ private:
      * PC Window
      */
     napi_value OnSetWindowMask(napi_env env, napi_callback_info info);
+    napi_value OnClearWindowMask(napi_env env, napi_callback_info info);
     napi_value OnGetWindowStatus(napi_env env, napi_callback_info info);
     napi_value OnSetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     napi_value OnIsInFreeWindowMode(napi_env env, napi_callback_info info);

@@ -2424,11 +2424,13 @@ HWTEST_F(WindowSceneSessionImplTest2, SetTitleButtonVisible03, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    WMError res = window->SetTitleButtonVisible(false, false, false, true);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
     window->windowSystemConfig_.isSystemDecorEnable_ = false;
-    WMError res = window->SetTitleButtonVisible(false, false, false, true);
-    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+    res = window->SetTitleButtonVisible(false, false, false, true);
+    ASSERT_EQ(res, WMError::WM_OK);
     window->windowSystemConfig_.isSystemDecorEnable_ = true;
     res = window->SetTitleButtonVisible(false, false, false, true);
     ASSERT_EQ(res, WMError::WM_OK);

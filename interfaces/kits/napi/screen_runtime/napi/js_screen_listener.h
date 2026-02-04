@@ -43,9 +43,9 @@ private:
     std::map<std::string, std::vector<std::unique_ptr<NativeReference>>> jsCallBack_;
     napi_value CreateScreenIdArray(napi_env env, const std::vector<ScreenId>& data);
 };
-const std::string EVENT_CONNECT = "connect";
-const std::string EVENT_DISCONNECT = "disconnect";
-const std::string EVENT_CHANGE = "change";
+extern const std::string EVENT_CONNECT;
+extern const std::string EVENT_DISCONNECT;
+extern const std::string EVENT_CHANGE;
 }  // namespace Rosen
 }  // namespace OHOS
 #endif /* OHOS_JS_SCREEN_LISTENER_H */

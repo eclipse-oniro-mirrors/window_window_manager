@@ -806,6 +806,9 @@ bool ConvertSessionInfoState(napi_env env, napi_value jsObject, SessionInfo& ses
     if (!ConvertFromJsValueProperty(env, jsObject, "pageConfig", sessionInfo.pageConfig)) {
         return false;
     }
+    if (!ConvertFromJsValueProperty(env, jsObject, "logicalDeviceConfig", sessionInfo.logicalDeviceConfig)) {
+        return false;
+    }
     return true;
 }
 
@@ -1832,6 +1835,8 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     }
     napi_set_named_property(env, objValue, "errorReason",
         CreateJsValue(env, sessionInfo.errorReason));
+    napi_set_named_property(env, objValue, "shouldSkipKillInStartup",
+        CreateJsValue(env, sessionInfo.shouldSkipKillInStartup));
 
     SetJsSessionInfoByWant(env, sessionInfo, objValue);
     napi_set_named_property(env, objValue, "supportWindowModes",
@@ -1874,6 +1879,8 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         CreateJsValue(env, sessionInfo.hostAppIndex));
     napi_set_named_property(env, objValue, "hostAppInstanceKey",
         CreateJsValue(env, sessionInfo.hostAppInstanceKey));
+    napi_set_named_property(env, objValue, "hostAbilityName",
+        CreateJsValue(env, sessionInfo.hostAbilityName));
     return objValue;
 }
 
@@ -1959,6 +1966,8 @@ napi_value CreateJsSessionRecoverInfo(
         CreateSupportWindowModes(env, sessionInfo.supportedWindowModes));
     napi_set_named_property(env, objValue,
         "pageCompatibleMode", CreateJsValue(env, property->GetPageCompatibleMode()));
+    napi_set_named_property(env, objValue,
+        "logicalDeviceConfig", CreateJsValue(env, property->GetLogicalDeviceConfig()));
 
     napi_value jsTransitionAnimationMapValue = nullptr;
     napi_create_object(env, &jsTransitionAnimationMapValue);
@@ -2114,12 +2123,8 @@ napi_value CreateJsSessionSizeChangeReason(napi_env env)
         static_cast<int32_t>(SizeChangeReason::DRAG_END)));
     napi_set_named_property(env, objValue, "RESIZE", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::RESIZE)));
-    napi_set_named_property(env, objValue, "RESIZE_WITH_ANIMATION", CreateJsValue(env,
-        static_cast<int32_t>(SizeChangeReason::RESIZE_WITH_ANIMATION)));
     napi_set_named_property(env, objValue, "MOVE", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::MOVE)));
-    napi_set_named_property(env, objValue, "MOVE_WITH_ANIMATION", CreateJsValue(env,
-        static_cast<int32_t>(SizeChangeReason::MOVE_WITH_ANIMATION)));
     napi_set_named_property(env, objValue, "HIDE", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::HIDE)));
     napi_set_named_property(env, objValue, "TRANSFORM", CreateJsValue(env,
@@ -2414,23 +2419,6 @@ napi_value CreateJsSessionRect(napi_env env, const T& rect)
     return objValue;
 }
 
-napi_value CreateJsRectAnimationConfig(napi_env env, const RectAnimationConfig& rectAnimationConfig)
-{
-    napi_value objValue = nullptr;
-    napi_create_object(env, &objValue);
-    if (objValue == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to create object!");
-        return NapiGetUndefined(env);
-    }
-
-    napi_set_named_property(env, objValue, "duration", CreateJsValue(env, rectAnimationConfig.duration));
-    napi_set_named_property(env, objValue, "x1", CreateJsValue(env, rectAnimationConfig.x1));
-    napi_set_named_property(env, objValue, "y1", CreateJsValue(env, rectAnimationConfig.y1));
-    napi_set_named_property(env, objValue, "x2", CreateJsValue(env, rectAnimationConfig.x2));
-    napi_set_named_property(env, objValue, "y2", CreateJsValue(env, rectAnimationConfig.y2));
-    return objValue;
-}
-
 napi_value CreateJsSessionEventParam(napi_env env, const SessionEventParam& param)
 {
     WLOGFD("CreateJsSessionEventParam.");
@@ -2447,6 +2435,7 @@ napi_value CreateJsSessionEventParam(napi_env env, const SessionEventParam& para
     napi_set_named_property(env, objValue, "sessionHeight", CreateJsValue(env, param.sessionHeight_));
     napi_set_named_property(env, objValue, "dragResizeType", CreateJsValue(env, param.dragResizeType));
     napi_set_named_property(env, objValue, "gravity", CreateJsValue(env, param.gravity));
+    napi_set_named_property(env, objValue, "dragGravity", CreateJsValue(env, param.dragGravity));
     napi_set_named_property(env, objValue, "waterfallResidentState", CreateJsValue(env, param.waterfallResidentState));
     napi_set_named_property(env, objValue, "compatibleStyleMode", CreateJsValue(env, param.compatibleStyleMode));
     napi_set_named_property(env, objValue, "windowGlobalPosX", CreateJsValue(env, param.windowGlobalPosX_));
@@ -3055,6 +3044,10 @@ MainThreadScheduler::MainThreadScheduler(napi_env env)
 {
     GetMainEventHandler();
     envChecker_ = std::make_shared<int>(0);
+    auto nativeEngine = reinterpret_cast<NativeEngine*>(env);
+    if (!nativeEngine->IsMainThread()) {
+        TLOGE(WmsLogTag::DEFAULT, "Only support main thread env");
+    }
 }
 
 inline void MainThreadScheduler::GetMainEventHandler()

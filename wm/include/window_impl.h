@@ -178,8 +178,7 @@ public:
     virtual WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
-    virtual WMError Resize(uint32_t width, uint32_t height,
-        const RectAnimationConfig& rectAnimationConfig = {}) override;
+    virtual WMError Resize(uint32_t width, uint32_t height) override;
     float GetVirtualPixelRatio() override;
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) override;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) override;
@@ -309,8 +308,9 @@ public:
     virtual std::string GetContentInfo(BackupAndRestoreType type = BackupAndRestoreType::CONTINUATION) override;
     WMError SetRestoredRouterStack(const std::string& routerStack) override;
     virtual const std::shared_ptr<AbilityRuntime::Context> GetContext() const override;
-    virtual Ace::UIContent* GetUIContent() const override;
     virtual Ace::UIContent* GetUIContentWithId(uint32_t winId) const override;
+    Ace::UIContent* GetUIContent() const override;
+    std::shared_ptr<Ace::UIContent> GetUIContentSharedPtr() const;
     virtual void OnNewWant(const AAFwk::Want& want) override;
     virtual void SetRequestedOrientation(Orientation orientation, bool needAnimation = true) override;
     virtual Orientation GetRequestedOrientation() override;
@@ -536,7 +536,8 @@ private:
     NotifyNativeWinDestroyFunc notifyNativefunc_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::string name_;
-    std::unique_ptr<Ace::UIContent> uiContent_;
+    std::shared_ptr<Ace::UIContent> uiContent_;
+    mutable std::shared_mutex uiContentMutex_;
     std::shared_ptr<AbilityRuntime::Context> context_;
     std::recursive_mutex mutex_;
     std::recursive_mutex windowStateMutex_;

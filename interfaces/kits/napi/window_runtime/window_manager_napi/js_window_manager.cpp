@@ -655,20 +655,23 @@ napi_value JsWindowManager::OnCreateWindow(napi_env env, napi_callback_info info
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Incorrect number of parameters."));
         return NapiGetUndefined(env);
     }
     napi_value nativeObj = argv[0];
     if (nativeObj == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert object to CreateWindow");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Mandatory parameters are left unspecified."));
         return NapiGetUndefined(env);
     }
     WindowOption option;
     void* contextPtr = nullptr;
     if (!ParseConfigOption(env, nativeObj, option, contextPtr)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to parse config");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Failed to parse config."));
         return NapiGetUndefined(env);
     }
     napi_value callback = nullptr;
@@ -819,7 +822,8 @@ napi_value JsWindowManager::OnFindWindowSync(napi_env env, napi_callback_info in
         errCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
     }
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createWindow]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -832,7 +836,7 @@ napi_value JsWindowManager::OnFindWindowSync(napi_env env, napi_callback_info in
         sptr<Window> window = Window::Find(windowName);
         if (window == nullptr) {
             napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][findWindow]msg: Window is nullptr."));
+                "[window][findWindow]msg: The window is not created or destroyed."));
             return NapiGetUndefined(env);
         } else {
             return CreateJsWindowObject(env, window);
@@ -1043,14 +1047,11 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         napi_unwrap(env, nativeContext, &contextPtr);
     }
     NapiAsyncTask::ExecuteCallback execute = [lists, isOldApi, newApi, contextPtr, ctxRef]() {
-        if (lists == nullptr) {
-            return;
-        }
         if (isOldApi) {
             if (lists->ability->GetWindow() == nullptr) {
                 lists->errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
-                lists->errMsg = "[window][getLatsWindow]msg: FA mode can not get ability window";
+                lists->errMsg = "[window][getLastWindow]msg: FA mode can not get ability window";
                 return;
             }
             lists->window = Window::GetTopWindowWithId(lists->ability->GetWindow()->GetWindowId());
@@ -1059,23 +1060,13 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
             if (contextPtr == nullptr || context == nullptr) {
                 lists->errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
-                lists->errMsg = "[window][getLatsWindow]msg: Stage mode without context";
+                lists->errMsg = "[window][getLastWindow]msg: Stage mode without context";
                 return;
             }
             lists->window = Window::GetTopWindowWithContext(context->lock());
         }
     };
     NapiAsyncTask::CompleteCallback complete = [lists, newApi](napi_env env, NapiAsyncTask& task, int32_t status) {
-        if (lists == nullptr) {
-            if (newApi) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: NAPI abnormal"));
-            } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: NAPI abnormal"));
-            }
-            return;
-        }
         if (lists->errorCode != 0) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, static_cast<WmErrorCode>(lists->errorCode),
@@ -1090,10 +1081,10 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         if (lists->window == nullptr || lists->window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Get top window failed"));
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Get top window failed"));
             }
             return;
         }

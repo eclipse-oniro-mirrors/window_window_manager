@@ -95,7 +95,6 @@ void ScreenSessionManagerClientTest::SetUp()
     {
         std::lock_guard<std::mutex> lock(screenSessionManagerClient_->screenSessionMapMutex_);
         screenSessionManagerClient_->screenSessionMap_.clear();
-        screenSessionManagerClient_->extraScreenSessionMap_.clear();
     }
 }
 
@@ -104,7 +103,6 @@ void ScreenSessionManagerClientTest::TearDown()
     {
         std::lock_guard<std::mutex> lock(screenSessionManagerClient_->screenSessionMapMutex_);
         screenSessionManagerClient_->screenSessionMap_.clear();
-        screenSessionManagerClient_->extraScreenSessionMap_.clear();
     }
     screenSessionManagerClient_ = nullptr;
 }
@@ -180,29 +178,6 @@ HWTEST_F(ScreenSessionManagerClientTest, GetScreenSession, TestSize.Level1)
 
     screenSessionManagerClient_->screenSessionMap_.clear();
     screenSession = screenSessionManagerClient_->GetScreenSession(screenId);
-    EXPECT_EQ(screenSession, nullptr);
-}
-
-/**
- * @tc.name: GetScreenSessionExtra
- * @tc.desc: GetScreenSessionExtra test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, GetScreenSessionExtra, TestSize.Level1)
-{
-    ScreenId screenId = 0;
-    sptr<ScreenSession> screenSession = nullptr;
-    screenSession = screenSessionManagerClient_->GetScreenSessionExtra(screenId);
-    EXPECT_EQ(screenSession, nullptr);
-
-    screenSession = new ScreenSession(0, ScreenProperty(), 0);
-    screenSessionManagerClient_->extraScreenSessionMap_.emplace(screenId, screenSession);
-
-    auto screenSession2 = screenSessionManagerClient_->GetScreenSessionExtra(screenId);
-    EXPECT_EQ(screenSession2, screenSession);
-
-    screenSessionManagerClient_->extraScreenSessionMap_.clear();
-    screenSession = screenSessionManagerClient_->GetScreenSessionExtra(screenId);
     EXPECT_EQ(screenSession, nullptr);
 }
 
@@ -1823,30 +1798,6 @@ HWTEST_F(ScreenSessionManagerClientTest, SetScreenCombination, TestSize.Level2)
     EXPECT_NE(client, nullptr);
 }
 
-/**
- * @tc.name: ExtraDestroyScreen
- * @tc.desc: ExtraDestroyScreen test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, ExtraDestroyScreen, TestSize.Level2)
-{
-    logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    sptr<ScreenSessionManagerClient> client = new ScreenSessionManagerClient();
-    ASSERT_TRUE(client != nullptr);
-    client->ConnectToServer();
-
-    ScreenId screenId = 1;
-    sptr<ScreenSession> screenSession1 = new ScreenSession(screenId, ScreenProperty(), 0);
-    ASSERT_NE(nullptr, screenSession1);
-    client->extraScreenSessionMap_.emplace(screenId, screenSession1);
-
-    ScreenId screenId11 = 11;
-    client->extraScreenSessionMap_.emplace(screenId11, nullptr);
-    client->ExtraDestroyScreen(screenId11);
-    EXPECT_TRUE(logMsg.find("extra screenSession is null") != std::string::npos);
-}
 
 /**
  * @tc.name: OnDumperClientScreenSessions

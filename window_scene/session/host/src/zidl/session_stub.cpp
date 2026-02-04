@@ -299,8 +299,6 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUseImplicitAnimation(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_CONTAINER_MODAL_EVENT):
             return HandleContainerModalEvent(data, reply);
-        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_WINDOW_ATTACH_STATE_LISTENER_REGISTERED):
-            return HandleNotifyWindowAttachStateListenerRegistered(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_FOLLOW_PARENT_LAYOUT_ENABLED):
             return HandleSetFollowParentWindowLayoutEnabled(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_WINDOW_ANCHOR_INFO):
@@ -325,10 +323,10 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleNotifyKeyboardDidShowRegistered(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_DID_HIDE_REGISTERED):
             return HandleNotifyKeyboardDidHideRegistered(data, reply);
-        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_FLAG):
-            return HandleUpdateFlag(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_ROTATION_CHANGE):
             return HandleUpdateRotationChangeListenerRegistered(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_FLAG):
+            return HandleUpdateFlag(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_SCREEN_SHOT_APP_EVENT_REGISTERED):
             return HandleUpdateScreenshotAppEventRegistered(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_ACROSS_DISPLAYS_REGISTERED):
@@ -337,6 +335,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleGetIsHighlighted(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_DISABLE_DELEGATOR_CHANGE):
             return HandleNotifyDisableDelegatorChange(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_WINDOW_ATTACH_STATE_LISTENER_REGISTERED):
+            return HandleNotifyWindowAttachStateListenerRegistered(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_WINDOW_SHADOWS):
             return HandleSetWindowShadows(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_SUBWINDOW_SOURCE):
@@ -353,6 +353,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleSendCommonEvent(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_REMOVE_PRELAUNCH_STARTING_WINDOW):
             return HandleRemovePrelaunchStartingWindow(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RECOVER_WINDOW_EFFECT):
+            return HandleRecoverWindowEffect(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -539,9 +541,10 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         reply.WriteParcelable(property->GetCompatibleModeProperty());
         reply.WriteBool(property->GetUseControlState());
         reply.WriteString(property->GetAncoRealBundleName());
+        reply.WriteBool(property->GetIsShowDecorInFreeMultiWindow());
         MissionInfo missionInfo = property->GetMissionInfo();
         reply.WriteParcelable(&missionInfo);
-        reply.WriteBool(property->GetIsShowDecorInFreeMultiWindow());
+        reply.WriteString(property->GetLogicalDeviceConfig());
         reply.WriteBool(property->IsPrelaunch());
         reply.WriteInt32(property->GetFrameNum());
     }
@@ -796,6 +799,10 @@ int SessionStub::HandleSessionException(MessageParcel& data, MessageParcel& repl
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
+    if (!data.ReadBool(abilitySessionInfo->shouldSkipKillInStartup)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read shouldSkipKillInStartup failed.");
+        return ERR_INVALID_DATA;
+    }
     ExceptionInfo exceptionInfo;
     if (!data.ReadBool(exceptionInfo.needRemoveSession)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read needRemoveSession failed.");
@@ -886,10 +893,6 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
     if (hasStartSetting) {
         abilitySessionInfo->startSetting.reset(data.ReadParcelable<AAFwk::AbilityStartSetting>());
     }
-    if (!data.ReadString(abilitySessionInfo->instanceKey)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read instanceKey failed.");
-        return ERR_INVALID_DATA;
-    }
     bool hasStartWindowOption = false;
     if (!data.ReadBool(hasStartWindowOption)) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "Read hasStartWindowOption failed.");
@@ -898,6 +901,10 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
     if (hasStartWindowOption) {
         auto startWindowOption = data.ReadParcelable<AAFwk::StartWindowOption>();
         abilitySessionInfo->startWindowOption.reset(startWindowOption);
+    }
+    if (!data.ReadString(abilitySessionInfo->instanceKey)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read instanceKey failed.");
+        return ERR_INVALID_VALUE;
     }
     uint32_t size = data.ReadUint32();
     if (size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
@@ -915,12 +922,12 @@ int SessionStub::HandlePendingSessionActivation(MessageParcel& data, MessageParc
         TLOGE(WmsLogTag::WMS_LIFE, "Read reuseDelegatorWindow failed.");
         return ERR_INVALID_DATA;
     }
-    if (!data.ReadBool(abilitySessionInfo->hideStartWindow)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read hideStartWindow failed.");
-        return ERR_INVALID_DATA;
-    }
     if (!data.ReadInt32(abilitySessionInfo->scenarios)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read scenarios failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadBool(abilitySessionInfo->hideStartWindow)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read hideStartWindow failed.");
         return ERR_INVALID_DATA;
     }
     abilitySessionInfo->windowCreateParams.reset(data.ReadParcelable<WindowCreateParams>());
@@ -1100,23 +1107,7 @@ int SessionStub::HandleUpdateSessionRect(MessageParcel& data, MessageParcel& rep
     }
     MoveConfiguration moveConfiguration;
     moveConfiguration.displayId = static_cast<DisplayId>(displayId);
-    RectAnimationConfig rectAnimationConfig;
-    if (reason == SizeChangeReason::MOVE_WITH_ANIMATION || reason == SizeChangeReason::RESIZE_WITH_ANIMATION) {
-        if (!data.ReadUint32(rectAnimationConfig.duration) || !data.ReadFloat(rectAnimationConfig.x1) ||
-            !data.ReadFloat(rectAnimationConfig.y1) || !data.ReadFloat(rectAnimationConfig.x2) ||
-            !data.ReadFloat(rectAnimationConfig.y2)) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "failed to read animation config");
-            return ERR_INVALID_DATA;
-        }
-        if (reason == SizeChangeReason::MOVE_WITH_ANIMATION) {
-            moveConfiguration.rectAnimationConfig = rectAnimationConfig;
-        }
-    }
-    TLOGD(WmsLogTag::WMS_LAYOUT, "rectAnimationConfig:[%{public}u, %{public}f, %{public}f, %{public}f, %{public}f]",
-        rectAnimationConfig.duration, rectAnimationConfig.x1, rectAnimationConfig.y1, rectAnimationConfig.x2,
-        rectAnimationConfig.y2);
-    WSError errCode = UpdateSessionRect(rect, reason, isGlobal, isFromMoveToGlobal, moveConfiguration,
-        rectAnimationConfig);
+    WSError errCode = UpdateSessionRect(rect, reason, isGlobal, isFromMoveToGlobal, moveConfiguration);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }
@@ -1177,14 +1168,21 @@ int SessionStub::HandleRaiseAboveTarget(MessageParcel& data, MessageParcel& repl
 
 int SessionStub::HandleRaiseMainWindowAboveTarget(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_HIERARCHY, "In");
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "In");
     int32_t targetId = 0;
     if (!data.ReadInt32(targetId)) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "read targetId failed");
         return ERR_INVALID_DATA;
     }
+    if (targetId <= static_cast<int32_t>(INVALID_WINDOW_ID)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "targetId invalid");
+        return ERR_INVALID_DATA;
+    }
     WSError errCode = RaiseMainWindowAboveTarget(targetId);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
     return ERR_NONE;
 }
 
@@ -2218,6 +2216,23 @@ int SessionStub::HandleSetWindowShadows(MessageParcel& data, MessageParcel& repl
     return ERR_NONE;
 }
 
+int SessionStub::HandleRecoverWindowEffect(MessageParcel& data, MessageParcel& reply)
+{
+    bool recoverCorner = false;
+    if (!data.ReadBool(recoverCorner)) {
+        TLOGE(WmsLogTag::WMS_PC, "Read recoverCorner failed.");
+        return ERR_INVALID_DATA;
+    }
+    bool recoverShadow = false;
+    if (!data.ReadBool(recoverShadow)) {
+        TLOGE(WmsLogTag::WMS_PC, "Read recoverShadow failed.");
+        return ERR_INVALID_DATA;
+    }
+    TLOGD(WmsLogTag::WMS_PC, "recoverCorner: %{public}d, recoverShadow: %{public}d", recoverCorner, recoverShadow);
+    RecoverWindowEffect(recoverCorner, recoverShadow);
+    return ERR_NONE;
+}
+
 int SessionStub::HandleSetFollowParentWindowLayoutEnabled(MessageParcel& data, MessageParcel& reply)
 {
     bool isFollow = false;
@@ -2314,7 +2329,7 @@ int SessionStub::HandleSetDragKeyFramePolicy(MessageParcel& data, MessageParcel&
     WSError errCode = SetDragKeyFramePolicy(*keyFramePolicy);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "write errCode fail.");
-        return ERR_INVALID_DATA;
+        return IPC_STUB_WRITE_PARCEL_ERR;
     }
     return ERR_NONE;
 }
@@ -2356,7 +2371,7 @@ int SessionStub::HandleGetCrossAxisState(MessageParcel& data, MessageParcel& rep
     CrossAxisState state = CrossAxisState::STATE_INVALID;
     GetCrossAxisState(state);
     if (!reply.WriteUint32(static_cast<uint32_t>(state))) {
-        TLOGE(WmsLogTag::WMS_MAIN, "write errCode fail.");
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "write errCode fail.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2427,18 +2442,6 @@ int SessionStub::HandleNotifyFollowParentMultiScreenPolicy(MessageParcel& data, 
     return ERR_NONE;
 }
 
-int SessionStub::HandleNotifyWindowAttachStateListenerRegistered(MessageParcel& data, MessageParcel& reply)
-{
-    bool registered = false;
-    if (!data.ReadBool(registered)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "read registered failed");
-        return ERR_INVALID_DATA;
-    }
-    TLOGD(WmsLogTag::WMS_PATTERN, "registered: %{public}d", registered);
-    NotifyWindowAttachStateListenerRegistered(registered);
-    return ERR_NONE;
-}
-
 int SessionStub::HandleNotifyKeyboardDidShowRegistered(MessageParcel& data, MessageParcel& reply)
 {
     bool registered = false;
@@ -2487,18 +2490,6 @@ int SessionStub::HandleNotifyKeyboardWillHideRegistered(MessageParcel& data, Mes
     return ERR_NONE;
 }
 
-int SessionStub::HandleUpdateFlag(MessageParcel& data, MessageParcel& reply)
-{
-    std::string flag;
-    if (!data.ReadString(flag)) {
-        TLOGE(WmsLogTag::WMS_MAIN, "read flag failed");
-        return ERR_INVALID_DATA;
-    }
-    TLOGD(WmsLogTag::WMS_MAIN, "specifiedFlag: %{public}s", flag.c_str());
-    UpdateFlag(flag);
-    return ERR_NONE;
-}
-
 int SessionStub::HandleUpdateRotationChangeListenerRegistered(MessageParcel& data, MessageParcel& reply)
 {
     int32_t persistentId = 0;
@@ -2513,6 +2504,18 @@ int SessionStub::HandleUpdateRotationChangeListenerRegistered(MessageParcel& dat
     }
     WSError errCode = UpdateRotationChangeRegistered(persistentId, isRegister);
     TLOGD(WmsLogTag::WMS_ROTATION, "persistentId: %{public}d, register: %{public}d", persistentId, isRegister);
+    return ERR_NONE;
+}
+
+int SessionStub::HandleUpdateFlag(MessageParcel& data, MessageParcel& reply)
+{
+    std::string flag;
+    if (!data.ReadString(flag)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read flag failed");
+        return ERR_INVALID_DATA;
+    }
+    TLOGD(WmsLogTag::WMS_MAIN, "specifiedFlag: %{public}s", flag.c_str());
+    UpdateFlag(flag);
     return ERR_NONE;
 }
 
@@ -2568,6 +2571,18 @@ int SessionStub::HandleNotifyDisableDelegatorChange(MessageParcel& data, Message
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleNotifyWindowAttachStateListenerRegistered(MessageParcel& data, MessageParcel& reply)
+{
+    bool registered = false;
+    if (!data.ReadBool(registered)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "read registered failed");
+        return ERR_INVALID_DATA;
+    }
+    TLOGD(WmsLogTag::WMS_PATTERN, "registered: %{public}d", registered);
+    NotifyWindowAttachStateListenerRegistered(registered);
     return ERR_NONE;
 }
 

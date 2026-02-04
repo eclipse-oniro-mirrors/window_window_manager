@@ -20,6 +20,12 @@ namespace Rosen {
 namespace {
     constexpr uint32_t SLEEP_TIME_US = 10000;
     constexpr uint32_t RETRY_TIMES = 3;
+
+#if (defined(__aarch64__) || defined(__x86_64__))
+const std::string MMI_CLIENT_ADAPTER_SO_PATH = "/system/lib64/libmmi_client_adapter.z.so";
+#else
+const std::string MMI_CLIENT_ADAPTER_SO_PATH = "/system/lib/libmmi_client_adapter.z.so";
+#endif
 }
 
 using IsHoverDownFunc =  bool (*)(const std::shared_ptr<MMI::PointerEvent>&);

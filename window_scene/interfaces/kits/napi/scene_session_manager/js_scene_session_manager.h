@@ -89,6 +89,7 @@ public:
     static napi_value NotifySingleHandInfoChange(napi_env env, napi_callback_info info);
     static napi_value GetSingleHandCompatibleModeConfig(napi_env env, napi_callback_info info);
     static napi_value GetSingleHandModeEnable(napi_env env, napi_callback_info info);
+    static napi_value GetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info);
     static napi_value GetRootSceneUIContext(napi_env env, napi_callback_info info);
     static napi_value SendTouchEvent(napi_env env, napi_callback_info info);
     static napi_value AddWindowDragHotArea(napi_env env, napi_callback_info info);
@@ -132,6 +133,7 @@ public:
     static napi_value CloneWindow(napi_env env, napi_callback_info info);
     static napi_value RegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationChange(napi_env env, napi_callback_info info);
+    static napi_value NotifyRotationBegin(napi_env env, napi_callback_info info);
     static napi_value SupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     static napi_value SupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
     static napi_value UpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
@@ -195,6 +197,11 @@ public:
     static napi_value SetIsPipEnabled(napi_env env, napi_callback_info info);
     static napi_value GetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
 
+    /*
+     * Window Event
+     */
+    static napi_value SendAxisEvent(napi_env env, napi_callback_info info);
+
 private:
     napi_value OnSetBehindWindowFilterEnabled(napi_env env, napi_callback_info info);
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
@@ -227,6 +234,7 @@ private:
     napi_value OnNotifySingleHandInfoChange(napi_env env, napi_callback_info info);
     napi_value OnGetSingleHandCompatibleModeConfig(napi_env env, napi_callback_info info);
     napi_value OnGetSingleHandModeEnable(napi_env env, napi_callback_info info);
+    napi_value OnGetSingleHandBackgroundLayoutConfig(napi_env env, napi_callback_info info);
     napi_value OnGetRootSceneUIContext(napi_env env, napi_callback_info info);
     napi_value OnSendTouchEvent(napi_env env, napi_callback_info info);
     napi_value OnAddWindowDragHotArea(napi_env env, napi_callback_info info);
@@ -271,6 +279,7 @@ private:
     napi_value OnCloneWindow(napi_env env, napi_callback_info info);
     napi_value OnRegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     napi_value OnNotifyRotationChange(napi_env env, napi_callback_info info);
+    napi_value OnNotifyRotationBegin(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
     napi_value OnUpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
@@ -392,6 +401,7 @@ private:
     void OnWatchGestureConsumeResult(int32_t keyCode, bool isConsumed);
     void RegisterWatchFocusActiveChangeCallback();
     void OnWatchFocusActiveChange(bool isActive);
+    napi_value OnSendAxisEvent(napi_env env, napi_callback_info info);
 
     /*
      * Window Lifecycle

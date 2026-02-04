@@ -168,12 +168,29 @@ public:
     WMError RegisterCameraWindowChangedListener(const sptr<ICameraWindowChangedListener>& listener);
 
     /**
+     * @brief Set the animation speed for a specific process.
+     *
+     * @param pid Process id.
+     * @param speed The animation speed.
+     * @return WM_OK means set success, others means failed.
+     */
+    WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed);
+
+    /**
      * @brief Unregister camera window changed listener.
      *
      * @param listener ICameraWindowChangedListener.
      * @return WM_OK means unregister success, others means unregister failed.
      */
     WMError UnregisterCameraWindowChangedListener(const sptr<ICameraWindowChangedListener>& listener);
+
+    /**
+     * @brief raise window to top by windowId
+     *
+     * @param persistentId this window to raise
+     * @return WM_OK if raise success
+     */
+    WMError RaiseWindowToTop(int32_t persistentId);
 
     /**
      * @brief Get window mode type.
@@ -191,15 +208,6 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo);
-
-    /**
-     * @brief Set the animation speed for a specific process.
-     *
-     * @param pid process id.
-     * @param speed The animation speed.
-     * @return WM_OK means set success, others means set failed.
-     */
-    WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed);
 
     /**
      * @brief Get keyboard calling window information.
@@ -242,14 +250,6 @@ public:
      * @return WM_OK means clear session success, others means clear failed.
      */
     WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds);
-
-    /**
-     * @brief raise window to top by windowId
-     *
-     * @param persistentId this window to raise
-     * @return WM_OK if raise success
-     */
-    WMError RaiseWindowToTop(int32_t persistentId);
 
     /**
      * @brief Register WMS connection status changed listener.

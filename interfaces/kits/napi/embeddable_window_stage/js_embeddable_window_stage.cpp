@@ -19,9 +19,9 @@
 #include "js_extension_window.h"
 #include "js_extension_window_utils.h"
 #include "window_manager_hilog.h"
-#include "js_window_utils.h"
 #include "js_window.h"
 #include "permission.h"
+#include "js_window_utils.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -332,7 +332,7 @@ napi_value JsEmbeddableWindowStage::OnLoadContent(napi_env env, napi_callback_in
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callBack, &result);
     auto asyncTask = [window = windowExtensionSessionImpl_, contentStorage, contextUrl, parentToken, isLoadedByName,
-        env, task = napiAsyncTask] {
+        task = napiAsyncTask, env] {
         if (window == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
             TLOGNE(WmsLogTag::WMS_UIEXT, "Get windowExtensionSessionImpl failed");
@@ -510,11 +510,11 @@ napi_value JsEmbeddableWindowStage::CreateJsEmbeddableWindowStage(napi_env env, 
         objValue, "getMainWindowSync", moduleName, JsEmbeddableWindowStage::GetMainWindowSync);
     BindNativeFunction(env, objValue, "on", moduleName, JsEmbeddableWindowStage::On);
     BindNativeFunction(env, objValue, "off", moduleName, JsEmbeddableWindowStage::Off);
-    BindNativeFunction(env, objValue, "createSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
-    BindNativeFunction(env, objValue, "getSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
     BindNativeFunction(env, objValue, "createSubWindowWithOptions", moduleName,
         JsEmbeddableWindowStage::CreateSubWindowWithOptions);
     BindNativeFunction(env, objValue, "setUIContent", moduleName, JsEmbeddableWindowStage::SetUIContent);
+    BindNativeFunction(env, objValue, "createSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
+    BindNativeFunction(env, objValue, "getSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
 
     BindNativeFunction(env, objValue, "setDefaultDensityEnabled", moduleName, JsEmbeddableWindowStage::EmptySyncCall);
     BindNativeFunction(env, objValue, "setCustomDensity", moduleName, JsEmbeddableWindowStage::EmptySyncCall);

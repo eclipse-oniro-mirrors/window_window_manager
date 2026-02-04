@@ -613,6 +613,17 @@ HWTEST_F(ScreenManagerTest, SetVirtualScreenFlag02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ResizeVirtualScreen
+ * @tc.desc: ResizeVirtualScreen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerTest, ResizeVirtualScreen, TestSize.Level1)
+{
+    DMError err = ScreenManager::GetInstance().ResizeVirtualScreen(0, 70, 100);
+    ASSERT_EQ(err, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
  * @tc.name: GetVirtualScreenFlag01
  * @tc.desc: GetVirtualScreenFlag01 get cast
  * @tc.type: FUNC

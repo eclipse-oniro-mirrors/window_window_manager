@@ -121,6 +121,7 @@ enum class ListenerFuncType : uint32_t {
     ROTATION_LOCK_CHANGE_CB,
     SNAPSHOT_SKIP_CHANGE_CB,
     COMPATIBLE_MODE_CHANGE_CB,
+    RECOVER_WINDOW_EFFECT_CB,
 };
 
 class SceneSession;
@@ -200,6 +201,7 @@ private:
     static napi_value OpenKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value CloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     static napi_value NotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
+    static napi_value NotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info);
     static napi_value CallingWindowStateChange(napi_env env, napi_callback_info info);
     static napi_value SetScale(napi_env env, napi_callback_info info);
     static napi_value SetWindowLastSafeRect(napi_env env, napi_callback_info info);
@@ -252,7 +254,6 @@ private:
     static napi_value SaveSnapshotSync(napi_env env, napi_callback_info info);
     static napi_value SaveSnapshotAsync(napi_env env, napi_callback_info info);
     static napi_value SetBorderUnoccupied(napi_env env, napi_callback_info info);
-    static napi_value SetEnableAddSnapshot(napi_env env, napi_callback_info info);
     static napi_value SetFreezeImmediately(napi_env env, napi_callback_info info);
     static napi_value SendContainerModalEvent(napi_env env, napi_callback_info info);
     static napi_value SetExclusivelyHighlighted(napi_env env, napi_callback_info info);
@@ -309,6 +310,7 @@ private:
     napi_value OnCloseKeyboardSyncTransaction(napi_env env, napi_callback_info info);
     napi_value OnCallingWindowStateChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
+    napi_value OnNotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info);
     napi_value OnSetScale(napi_env env, napi_callback_info info);
     napi_value OnSetWindowLastSafeRect(napi_env env, napi_callback_info info);
     napi_value OnSetMovable(napi_env env, napi_callback_info info);
@@ -352,7 +354,6 @@ private:
     napi_value OnSaveSnapshotSync(napi_env env, napi_callback_info info);
     napi_value OnSaveSnapshotAsync(napi_env env, napi_callback_info info);
     napi_value OnSetBorderUnoccupied(napi_env env, napi_callback_info info);
-    napi_value OnSetEnableAddSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSetFreezeImmediately(napi_env env, napi_callback_info info);
     napi_value OnMaskSupportEnterWaterfallMode(napi_env env, napi_callback_info info);
     napi_value OnUpdateFullScreenWaterfallMode(napi_env env, napi_callback_info info);
@@ -463,6 +464,7 @@ private:
     void ProcessSetWindowShadowsRegister();
     void ProcessRotationLockChangeRegister();
     void ProcessSnapshotSkipChangeRegister();
+    void ProcessRecoverWindowEffectRegister();
 
     /*
      * PC Window Layout
@@ -483,8 +485,7 @@ private:
     void OnClearSubSession(int32_t subPersistentId);
     void OnBindDialogTarget(const sptr<SceneSession>& sceneSession);
     void OnSessionRectChange(const WSRect& rect,
-        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID,
-        const RectAnimationConfig& rectAnimationConfig = {});
+        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID);
     void OnSessionWindowLimitsChange(const WindowLimits& windowlimits);
     void OnFloatingBallUpdate(const FloatingBallTemplateInfo& fbTemplateInfo);
     void OnFloatingBallStop();
@@ -517,7 +518,7 @@ private:
     void OnShowWhenLocked(bool showWhenLocked);
     void OnReuqestedOrientationChange(uint32_t orientation, bool needAnimation = true);
     void OnForceHideChange(bool hide);
-    void OnWindowDragHotArea(DisplayId displayId, uint32_t type, SizeChangeReason reason);
+    void OnWindowDragHotArea(uint32_t type, SizeChangeReason reason, DisplayId displayId);
     void OnTouchOutside();
     void OnSessionInfoLockedStateChange(bool lockedState);
     void OnPrepareClosePiPSession();
@@ -563,6 +564,7 @@ private:
     void OnSetWindowShadows(const ShadowsInfo& shadowsInfo);
     void OnRotationLockChange(bool locked);
     void OnSnapshotSkipChange(bool isSkip);
+    void OnRecoverWindowEffect(bool recoverCorner, bool recoverShadow);
 
     /*
      * PC Window Layout
@@ -578,7 +580,7 @@ private:
 
     bool HandleCloseKeyboardSyncTransactionKeyboardBaseInfo(napi_env env,
         napi_value argv[], int index, KeyboardBaseInfo& keyboardBaseInfo);
-    bool HandleCloseKeyboardSyncTransactionKeyboardAnimationRectConfig(napi_env env,
+    bool HandleKeyboardAnimationRectConfig(napi_env env,
         napi_value argv[], int index, KeyboardAnimationRectConfig& keyboardAnimationRectConfig);
     bool HandleCallingWindowInfoData(napi_env env,
         napi_value argv[], int index, CallingWindowInfoData& callingWindowInfoData);

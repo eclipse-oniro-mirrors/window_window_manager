@@ -48,6 +48,47 @@ namespace OHOS {
 namespace Rosen {
 constexpr Rect g_emptyRect = {0, 0, 0, 0};
 
+enum class WindowStageLifecycleEventType : uint32_t {
+    FOREGROUND = 1,
+    RESUMED,
+    PAUSED,
+    BACKGROUND,
+};
+
+class AniVm {
+public:
+    explicit AniVm(ani_vm* vm) : vm_(vm) {}
+    ~AniVm()
+    {
+        if (vm_ == nullptr || !needDetach_) {
+            return;
+        }
+        auto ret = vm_->DetachCurrentThread();
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] detach: ret=%{public}d", static_cast<int32_t>(ret));
+    }
+ 
+    ani_env* GetAniEnv()
+    {
+        if (vm_ == nullptr) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] vm is null");
+            return nullptr;
+        }
+        ani_env* env = nullptr;
+        auto ret = vm_->GetEnv(ANI_VERSION_1, &env);
+        if (ret != ANI_OK || env == nullptr) {
+            ret = vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env);
+            needDetach_ = (ret == ANI_OK && env != nullptr);
+            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] attach: ret=%{public}d, needDetach=%{public}d",
+                static_cast<int32_t>(ret), needDetach_);
+        }
+        return env;
+    }
+
+private:
+    ani_vm* vm_ = nullptr;
+    bool needDetach_ = false;
+};
+
 class AniWindowUtils {
 public:
     static ani_status InitAniCreator(ani_env* env,
@@ -71,6 +112,7 @@ public:
         ani_env* env, const char* propertyName, ani_object object, std::optional<EnumType>& optEnumProp);
     static bool GetIntObject(ani_env* env, const char* propertyName, ani_object object, int32_t& result);
     static ani_status GetDoubleObject(ani_env* env, ani_object double_object, double& result);
+    static ani_status GetIntInObject(ani_env* env, ani_object int_object, int32_t& result);
     static ani_status GetBooleanObject(ani_env* env, ani_object boolean_object, bool& result);
     static bool GetPropertyUIntObject(ani_env* env, const char* propertyName, ani_object object, uint32_t& result);
     static ani_status GetIntVector(ani_env* env, ani_object ary, std::vector<int32_t>& result);

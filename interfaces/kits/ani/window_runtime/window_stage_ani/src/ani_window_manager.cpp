@@ -346,7 +346,7 @@ ani_int AniWindowManager::OnGetGlobalWindowMode(ani_env* env, ani_object nativeD
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "globalWinMode: %{public}u, retCode: %{public}d, displayId: %{public}" PRIu64,
             static_cast<uint32_t>(globalWinMode), static_cast<int32_t>(retCode), displayId);
-        AniWindowUtils::AniThrowError(env, ret, "getTopNavDestinationNameSync failed.");
+        AniWindowUtils::AniThrowError(env, ret, "GetGlobalWindowMode failed.");
         return result;
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "globalWinMode: %{public}u, displayId: %{public}" PRIu64,
@@ -527,7 +527,6 @@ bool GetConfigProp(ani_env* env, ani_object configuration, const char* propName,
     return true;
 }
 
-
 bool ParseOptionalConfigOption(ani_env* env, ani_object configuration, WindowOption &option)
 {
     ani_ref result;
@@ -687,8 +686,8 @@ void AniWindowManager::MinimizeAllWithExclusion(ani_env* env, ani_long nativeObj
 {
     TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");
     if (static_cast<int32_t>(excludeWindowId) <= 0) {
-        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] Minimize all failed, Invalidate params excludeWindowId : %{public}d.",
-            static_cast<int32_t>(excludeWindowId));
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] Minimize all failed, Invalidate params excludeWindowId: %{public}d.",
+            excludeWindowId);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }

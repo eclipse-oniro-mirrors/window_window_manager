@@ -262,9 +262,9 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     napi_value WindowTypeInit(napi_env env);
     napi_value AvoidAreaTypeInit(napi_env env);
     napi_value WindowModeInit(napi_env env);
+    napi_value ScreenshotEventTypeInit(napi_env env);
     napi_value GlobalWindowModeInit(napi_env env);
     napi_value WindowOcclusionStateInit(napi_env env);
-    napi_value ScreenshotEventTypeInit(napi_env env);
     napi_value ColorSpaceInit(napi_env env);
     napi_value OrientationInit(napi_env env);
     napi_value WindowStageEventTypeInit(napi_env env);
@@ -297,7 +297,6 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     bool GetWindowMaskFromJsValue(napi_env env, napi_value jsObject, std::vector<std::vector<uint32_t>>& windowMask);
     bool GetWindowIdFromJsValue(napi_env env, napi_value jsObject, std::vector<int32_t>& windowIds);
     bool GetMoveConfigurationFromJsValue(napi_env env, napi_value jsObject, MoveConfiguration& moveConfiguration);
-    bool ParseRectAnimationConfig(napi_env env, napi_value jsObject, RectAnimationConfig& rectAnimationConfig);
     void ConvertJSSystemBarStyleToSystemBarProperties(napi_env env, napi_value jsObject,
         std::map<WindowType, SystemBarProperty>& properties,
         std::map<WindowType, SystemBarPropertyFlag>& propertyFlags);

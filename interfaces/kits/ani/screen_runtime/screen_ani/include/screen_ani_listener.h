@@ -47,9 +47,9 @@ private:
     wptr<ScreenAniListener> weakRef_;
     std::shared_ptr<AppExecFwk::EventHandler> eventHandler_ = nullptr;
 };
-const std::string ANI_EVENT_CONNECT = "connect";
-const std::string ANI_EVENT_DISCONNECT = "disconnect";
-const std::string ANI_EVENT_CHANGE = "change";
+extern const std::string ANI_EVENT_CONNECT;
+extern const std::string ANI_EVENT_DISCONNECT;
+extern const std::string ANI_EVENT_CHANGE;
 }  // namespace Rosen
 }  // namespace OHOS
 #endif /* OHOS_JS_SCREEN_LISTENER_H */

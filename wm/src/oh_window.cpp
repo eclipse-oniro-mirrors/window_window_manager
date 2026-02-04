@@ -42,6 +42,7 @@ namespace {
 constexpr uint32_t NORMAL_STATE_CHANGE = 0;
 constexpr bool SHOW_WITH_NO_ANIMATION = false;
 constexpr bool SHOW_WITH_FOCUS = true;
+const int32_t MAX_SESSION_LIMIT_ALL_APP = 512;
 std::shared_ptr<OHOS::AppExecFwk::EventHandler> g_eventHandler;
 std::once_flag g_onceFlagForInitEventHandler;
 
@@ -695,7 +696,7 @@ void OH_WindowManager_ReleaseAllMainWindowInfo(WindowManager_MainWindowInfo* inf
 int32_t OH_WindowManager_GetMainWindowSnapshot(int32_t* windowIdList, size_t windowIdListSize,
     WindowManager_WindowSnapshotConfig config, OH_WindowManager_WindowSnapshotCallback callback)
 {
-    if (windowIdList == nullptr) {
+    if (windowIdList == nullptr || windowIdListSize <= 0 || windowIdListSize > MAX_SESSION_LIMIT_ALL_APP) {
         TLOGNE(WmsLogTag::WMS_LIFE, "param is nullptr");
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }

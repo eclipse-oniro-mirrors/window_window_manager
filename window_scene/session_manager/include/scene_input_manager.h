@@ -58,6 +58,8 @@ public:
     void SetUserBackground(bool userBackground);
     void SetCurrentUserId(int32_t userId);
 
+    void SetIsRotationBegin(bool isRotationBegin);
+
 protected:
     SceneInputManager() = default;
     virtual ~SceneInputManager() = default;
@@ -98,6 +100,7 @@ private:
      */
     int32_t currentUserId_ = INVALID_USER_ID;
     std::atomic<bool> isUserBackground_ { false };
+    std::atomic<bool> isRotationBegin_ { false };
 };
 }//Rosen
 }//OHOS

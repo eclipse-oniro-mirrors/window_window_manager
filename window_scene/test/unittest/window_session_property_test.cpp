@@ -1611,6 +1611,20 @@ HWTEST_F(WindowSessionPropertyTest, GetIsAtomicService, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetLogicalDeviceConfig
+ * @tc.desc: SetLogicalDeviceConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, SetLogicalDeviceConfig, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    std::string config = "{}";
+    property->SetLogicalDeviceConfig(config);
+    auto result = property->GetLogicalDeviceConfig();
+    EXPECT_EQ(result, config);
+}
+
+/**
  * @tc.name: SetPcAppInpadCompatibleMode
  * @tc.desc: SetPcAppInpadCompatibleMode
  * @tc.type: FUNC

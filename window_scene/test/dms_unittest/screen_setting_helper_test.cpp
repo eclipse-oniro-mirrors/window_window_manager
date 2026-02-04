@@ -80,6 +80,24 @@ namespace {
     }
 
     /**
+     * @tc.name: RegisterSettingDpiObserver_Nullptr
+     * @tc.desc: RegisterSettingDpiObserver_Nullptr
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingDpiObserver_Nullptr, TestSize.Level1)
+    {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingDpiObserver(func);
+        EXPECT_TRUE(g_errLog.find("failed, ret=") != std::string::npos);
+        EXPECT_EQ(ScreenSettingHelper::dpiObserver_, nullptr);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
      * @tc.name: UnregisterSettingDpiObserver01
      * @tc.desc: UnregisterSettingDpiObserver01
      * @tc.type: FUNC
@@ -101,6 +119,86 @@ namespace {
         ScreenSettingHelper::dpiObserver_ = nullptr;
         ScreenSettingHelper::UnregisterSettingDpiObserver();
         ASSERT_EQ(ScreenSettingHelper::dpiObserver_, nullptr);
+    }
+
+    /**
+     * @tc.name: RegisterSettingOffScreenRenderObserver
+     * @tc.desc: RegisterSettingOffScreenRenderObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingOffScreenRenderObserver, TestSize.Level1)
+    {
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::offScreenRenderObserver_ = new SettingObserver();
+        ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
+        ScreenSettingHelper::offScreenRenderObserver_ = nullptr;
+        ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::offScreenRenderObserver_, nullptr);
+    }
+ 
+    /**
+     * @tc.name: RegisterSettingExtendScreenIndepDpiObserver
+     * @tc.desc: RegisterSettingExtendScreenIndepDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
+    {
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
+        ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
+        ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
+    }
+ 
+    /**
+     * @tc.name: UnRegisterSettingExtendScreenIndepDpiObserver
+     * @tc.desc: UnRegisterSettingExtendScreenIndepDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnRegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
+    {
+        ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
+        ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
+        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
+        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
+    }
+
+    /**
+     * @tc.name: GetSettingOffScreenRenderValue
+     * @tc.desc: GetSettingOffScreenRenderValue
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetSettingOffScreenRenderValue, TestSize.Level1)
+    {
+        bool offerRenderValue = false;
+        std::string key = "test";
+        bool ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue, key);
+        ASSERT_FALSE(ret);
+        key = "off_screen_rendering_switch";
+        ret = ScreenSettingHelper::GetSettingOffScreenRenderValue(offerRenderValue, key);
+    }
+
+    /**
+     * @tc.name: GetDpiMode
+     * @tc.desc: Test GetDpiMode
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetDpiModeTest, Function | SmallTest | Level3)
+    {
+        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+        std::string value = "";
+        std::string key = "user_set_indep_dpi_extend";
+        bool ret = screenSettingHelper.SetSettingValue(key, value);
+        ASSERT_FALSE(ret);
+ 
+        std::map<std::string, std::string> dpiMap = screenSettingHelper.GetDpiMode(key);
+        ASSERT_TRUE(dpiMap.empty());
     }
 
     /**
@@ -311,6 +409,34 @@ namespace {
         uint32_t value = 0;
         std::string key = "test";
         bool ret = screenSettingHelper.GetSettingValue(value, key);
+        ASSERT_FALSE(ret);
+    }
+
+    /**
+     * @tc.name: GetSettingValueString
+     * @tc.desc: GetSettingValueString
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetSettingValueString, TestSize.Level1)
+    {
+        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+        std::string value;
+        std::string key = "test";
+        bool ret = screenSettingHelper.GetSettingValue(key, value);
+        ASSERT_FALSE(ret);
+    }
+
+    /**
+     * @tc.name: GetSettingValueBool
+     * @tc.desc: GetSettingValueBool
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetSettingValueBool, TestSize.Level1)
+    {
+        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+        bool value = false;
+        std::string key = "test";
+        bool ret = screenSettingHelper.GetSettingValue(key, value);
         ASSERT_FALSE(ret);
     }
 
@@ -1021,6 +1147,50 @@ namespace {
     }
 
     /**
+     * @tc.name: RegisterSettingWiredScreenGamutObserver
+     * @tc.desc: RegisterSettingWiredScreenGamutObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingWiredScreenGamutObserver, TestSize.Level1)
+    {
+        bool flag = false;
+        auto func = [&flag] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+            flag = true;
+        };
+        ScreenSettingHelper::RegisterSettingWiredScreenGamutObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::wiredScreenGamutObserver_, nullptr);
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        bool flag1 = false;
+        auto func1 = [&flag1] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+            flag1 = true;
+        };
+        ScreenSettingHelper::RegisterSettingWiredScreenGamutObserver(func1);
+        EXPECT_FALSE(g_errLog.find("setting wired screen gamut observer is registered") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
+     * @tc.name: UnregisterSettingWiredScreenGamutObserver
+     * @tc.desc: UnregisterSettingWiredScreenGamutObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnregisterSettingWiredScreenGamutObserver, TestSize.Level1)
+    {
+        ScreenSettingHelper::UnregisterSettingWiredScreenGamutObserver();
+        ASSERT_EQ(ScreenSettingHelper::wiredScreenGamutObserver_, nullptr);
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        ScreenSettingHelper::UnregisterSettingWiredScreenGamutObserver();
+        EXPECT_TRUE(g_errLog.find("setting observer is nullptr") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
      * @tc.name: GetSettingDuringCallStateTest
      * @tc.desc: Test GetSettingDuringCallState func
      * @tc.type: FUNC
@@ -1037,6 +1207,302 @@ namespace {
         screenSettingHelper.GetSettingDuringCallState(value);
         ASSERT_TRUE(value);
     }
+
+/**
+ * @tc.name: ConvertStringToFoldDisplayModeSafely
+ * @tc.desc: Test ConvertStringToFoldDisplayModeSafely func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, ConvertStringToFoldDisplayModeSafely, TestSize.Level1)
+{
+    const std::string str0 = "0";
+    const std::string str1 = "1";
+    const std::string str2 = "2";
+    const std::string str3 = "3";
+    const std::string str4 = "4";
+    const std::string str5 = "5";
+    const std::string str8 = "8";
+
+    auto foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str0);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::UNKNOWN);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str1);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::FULL);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str2);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::MAIN);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str3);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::SUB);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str4);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::COORDINATION);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str5);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::GLOBAL_FULL);
+    foldDisplayMode = ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(str8);
+    EXPECT_EQ(foldDisplayMode, FoldDisplayMode::UNKNOWN);
+}
+
+/**
+ * @tc.name: RegisterRotationCorrectionWhiteListObserver
+ * @tc.desc: Test RegisterRotationCorrectionWhiteListObserver func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, RegisterRotationCorrectionWhiteListObserver, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto func = [] (const std::string&) {
+        TLOGI(WmsLogTag::DMS, "UT test");
+    };
+    ScreenSettingHelper::correctionWhiteListObserver_ = nullptr;
+    ScreenSettingHelper::RegisterRotationCorrectionWhiteListObserver(func);
+    EXPECT_FALSE(g_errLog.find("observer is registered") != std::string::npos);
+
+    auto func1 = [] (const std::string&) {
+        TLOGI(WmsLogTag::DMS, "UT test");
+    };
+    ScreenSettingHelper::correctionWhiteListObserver_ = sptr<SettingObserver>::MakeSptr();
+    ScreenSettingHelper::RegisterRotationCorrectionWhiteListObserver(func1);
+    EXPECT_TRUE(g_errLog.find("observer is registered") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    ScreenSettingHelper::correctionWhiteListObserver_ = nullptr;
+}
+
+/**
+ * @tc.name: UnregisterRotationCorrectionWhiteListObserver
+ * @tc.desc: UnregisterRotationCorrectionWhiteListObserver
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, UnregisterRotationCorrectionWhiteListObserver, TestSize.Level1)
+{
+    ScreenSettingHelper::correctionWhiteListObserver_ = sptr<SettingObserver>::MakeSptr();
+    ScreenSettingHelper::UnregisterRotationCorrectionWhiteListObserver();
+    ASSERT_EQ(ScreenSettingHelper::correctionWhiteListObserver_, nullptr);
+
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenSettingHelper::correctionWhiteListObserver_ = nullptr;
+    ScreenSettingHelper::UnregisterRotationCorrectionWhiteListObserver();
+    EXPECT_TRUE(g_errLog.find("observer is nullptr") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetRotationCorrectionWhiteList
+ * @tc.desc: Test GetRotationCorrectionWhiteList func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetRotationCorrectionWhiteList, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> appConfigs;
+    auto ret = screenSettingHelper.GetRotationCorrectionWhiteList(appConfigs);
+    EXPECT_TRUE(g_errLog.find("failed") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    ret = screenSettingHelper.GetRotationCorrectionWhiteList(appConfigs, "testKey");
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: GetCorrectionWhiteListFromJson01
+ * @tc.desc: Test json is not array
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetCorrectionWhiteListFromJson01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+    std::string json_str = "aa";
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> appConfigs;
+    screenSettingHelper.GetCorrectionWhiteListFromJson(json_str, appConfigs);
+    EXPECT_TRUE(g_errLog.find("parse json failed") != std::string::npos);
+    g_errLog.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetCorrectionWhiteListFromJson02
+ * @tc.desc: Test json is array
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetCorrectionWhiteListFromJson02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetCorrectionWhiteListFromJson2 start";
+    ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+    std::string json_str = R"({
+        "com.test.app1": {
+            "name": "teststr",
+            "useLogicCamera": {
+                "1": 1,
+                "2": 0
+            },
+            "customLogicDirection": {
+                "1": 1,
+                "2": 2
+            }
+        },
+        "com.test.app2": {
+            "name": "",
+            "useLogicCamera": {
+                "1": 1,
+                "2": 0
+            },
+            "customLogicDirection": {
+                "1": 1,
+                "2": 2
+            }
+        }
+    })";
+
+    std::unordered_map<std::string, RotationCorrectionWhiteConfig> appConfigs;
+    screenSettingHelper.GetCorrectionWhiteListFromJson(json_str, appConfigs);
+    EXPECT_EQ(1, appConfigs.size());
+    GTEST_LOG_(INFO) << "GetCorrectionWhiteListFromJson2 end";
+}
+
+/**
+ * @tc.name: GetWhiteConfigFromJson
+ * @tc.desc: Test GetWhiteConfigFromJson
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, GetWhiteConfigFromJson, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetWhiteConfigFromJson start";
+    RotationCorrectionWhiteConfig appConfigs;
+    std::string appName;
+    using JSON = nlohmann::json;
+
+    // Case1: json is not object or null
+    const std::string json_null_str = "";
+    const std::string json_not_object_str = "aa";
+    JSON nullStrJson = JSON::parse(json_null_str, nullptr, false);
+    JSON notObjectStrJson = JSON::parse(json_not_object_str, nullptr, false);
+    bool ret = ScreenSettingHelper::GetWhiteConfigFromJson(nullStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(notObjectStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case2: json not contain name fileds
+    const std::string json_no_name_str = R"({
+        "useLogicCamera": {
+            "1": 1
+        }
+    })";
+    JSON noNameStrJson = JSON::parse(json_no_name_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(noNameStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case3: name fileds is not string
+    const std::string json_name_is_not_string_str = R"({
+        "name": true,
+        "useLogicCamera": {
+            "1": 1
+        }
+    })";
+    JSON nameIsNotStringStrJson = JSON::parse(json_name_is_not_string_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(nameIsNotStringStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case4: name is empty
+    const std::string json_name_is_empty_str = R"({
+        "name": "",
+        "useLogicCamera": {
+            "1": 1
+        }
+    })";
+    JSON nameIsEmptyStrJson = JSON::parse(json_name_is_empty_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(nameIsEmptyStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case5: not contain useLogicCamera and customLogicDirection
+    const std::string json_only_name_str = R"({
+        "name": "app1"
+    })";
+    JSON onlyNameStrJson = JSON::parse(json_only_name_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(onlyNameStrJson, appConfigs, appName);
+    EXPECT_EQ(ret, true);
+
+    // Case6: contains useLogicCamera and customLogicDirection
+    std::string json_str = R"({
+        "name": "app1",
+        "useLogicCamera": {
+            "1": 1
+        },
+        "customLogicDirection": {
+            "1": 1
+        }
+    })";
+    JSON strJson = JSON::parse(json_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(strJson, appConfigs, appName);
+    EXPECT_EQ(ret, true);
+
+    // Case7: useLogicCamera is not object
+    std::string json_not_object_2_str = R"({
+        "name": "app1",
+        "useLogicCamera": 1,
+        "customLogicDirection": {
+            "1": 1
+        }
+    })";
+    JSON notObject2StrJson = JSON::parse(json_not_object_2_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(notObject2StrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+
+    // Case8: customLogicDirection is not object
+    std::string json_not_object_3_str = R"({
+        "name": "app1",
+        "useLogicCamera": {
+            "1": 1
+        },
+        "customLogicDirection": 1
+    })";
+    JSON notObject3StrJson = JSON::parse(json_not_object_3_str, nullptr, false);
+    ret = ScreenSettingHelper::GetWhiteConfigFromJson(notObject3StrJson, appConfigs, appName);
+    EXPECT_EQ(ret, false);
+    GTEST_LOG_(INFO) << "GetWhiteConfigFromJson end";
+}
+
+/**
+ * @tc.name: ParseJsonObjectToEnumMap
+ * @tc.desc: Test ParseJsonObjectToEnumMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest | Level3)
+{
+    GTEST_LOG_(INFO) << "ParseJsonObjectToEnumMap start";
+    std::unordered_map<FoldDisplayMode, int32_t> resultMap;
+    std::string appName;
+    using JSON = nlohmann::json;
+
+    // Case1: json is not object or null
+    const std::string json_null_str = "";
+    const std::string json_not_object_str = "aa";
+    JSON nullStrJson = JSON::parse(json_null_str, nullptr, false);
+    JSON notObjectStrJson = JSON::parse(json_not_object_str, nullptr, false);
+    bool ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(nullStrJson, resultMap);
+    EXPECT_EQ(ret, false);
+    ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(notObjectStrJson, resultMap);
+    EXPECT_EQ(ret, false);
+
+    // Case2: value is not integer
+    std::string json_value_isNot_int_str = R"({
+        "1": 1,
+        "2": "test"
+    })";
+    JSON valueIsNotIntStrJson = JSON::parse(json_value_isNot_int_str, nullptr, false);
+    ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(valueIsNotIntStrJson, resultMap);
+    EXPECT_EQ(ret, false);
+
+    // Case3: value is integer
+    std::string json_value_is_int_str = R"({
+        "1": 1,
+        "2": 2
+    })";
+    JSON valueIsIntStrJson = JSON::parse(json_value_is_int_str, nullptr, false);
+    ret = ScreenSettingHelper::ParseJsonObjectToEnumMap(valueIsIntStrJson, resultMap);
+    EXPECT_EQ(ret, true);
+    GTEST_LOG_(INFO) << "ParseJsonObjectToEnumMap end";
+}
 
     /**
      * @tc.name: RegisterSettingResolutionEffectObserver
@@ -1092,6 +1558,50 @@ namespace {
         ScreenSettingHelper::resolutionEffectObserver_ = nullptr;
         ScreenSettingHelper::UnregisterSettingResolutionEffectObserver();
         ASSERT_EQ(ScreenSettingHelper::resolutionEffectObserver_, nullptr);
+    }
+
+    /**
+     * @tc.name: RegisterSettingCoordinationReadyObserver01
+     * @tc.desc: RegisterSettingCoordinationReadyObserver01
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingCoordinationReadyObserver01, TestSize.Level1)
+    {
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(func);
+        ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
+        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, nullptr);
+    }
+
+    /**
+     * @tc.name: RegisterSettingCoordinationReadyObserver02
+     * @tc.desc: RegisterSettingCoordinationReadyObserver02
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingCoordinationReadyObserver02, TestSize.Level1)
+    {
+        sptr<SettingObserver> observer = new SettingObserver();
+        ScreenSettingHelper::coordinationReadyObserver_ = observer;
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingCoordinationReadyObserver(func);
+        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, observer);
+        ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
+    }
+
+    /**
+     * @tc.name: UnregisterSettingCoordinationReadyObserver01
+     * @tc.desc: UnregisterSettingCoordinationReadyObserver01
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnregisterSettingCoordinationReadyObserver01, TestSize.Level1)
+    {
+        ScreenSettingHelper::coordinationReadyObserver_ = nullptr;
+        ScreenSettingHelper::UnregisterSettingCoordinationReadyObserver();
+        ASSERT_EQ(ScreenSettingHelper::coordinationReadyObserver_, nullptr);
     }
 
     /**
@@ -1260,6 +1770,62 @@ namespace {
         bool valueBool = false;
         ret = screenSettingHelper.GetJsonValue(root3, "testKey", valueBool);
         EXPECT_FALSE(valueBool);
+    }
+
+    /**
+     * @tc.name: RegisterSettingBorderingAreaPercentObserver_Nullptr
+     * @tc.desc: RegisterSettingBorderingAreaPercentObserver_Nullptr
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingBorderingAreaPercentObserver_Nullptr, TestSize.Level1)
+    {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingBorderingAreaPercentObserver(func);
+        EXPECT_TRUE(g_errLog.find("failed, ret=") != std::string::npos);
+        EXPECT_EQ(ScreenSettingHelper::borderingAreaPercentObserver_, nullptr);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
+     * @tc.name: UnRegisterSettingExtendScreenDpiObserver
+     * @tc.desc: UnRegisterSettingExtendScreenDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnRegisterSettingExtendScreenDpiObserver, TestSize.Level1)
+    {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        ScreenSettingHelper::extendScreenDpiObserver_ = new SettingObserver();
+        ScreenSettingHelper::UnRegisterSettingExtendScreenDpiObserver();
+        EXPECT_EQ(ScreenSettingHelper::extendScreenDpiObserver_, nullptr);
+        EXPECT_TRUE(g_errLog.find("failed, ret=") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
+     * @tc.name: RegisterSettingExtendScreenDpiObserver
+     * @tc.desc: RegisterSettingExtendScreenDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingExtendScreenDpiObserver, TestSize.Level1)
+    {
+        ScreenSettingHelper::extendScreenDpiObserver_ = new SettingObserver();
+        EXPECT_NE(ScreenSettingHelper::extendScreenDpiObserver_, nullptr);
+        auto func = [](const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        ScreenSettingHelper::RegisterSettingExtendScreenDpiObserver(func);
+        EXPECT_TRUE(g_errLog.find("setting extend dpi observer is registered") == std::string::npos ||
+            g_errLog.find("create observer failed") == std::string::npos ||
+            g_errLog.find("failed, ret=") == std::string::npos);
+        LOG_SetCallback(nullptr);
     }
 }
 } // namespace Rosen

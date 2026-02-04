@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class SystemSession : public SceneSession {
 public:
-    SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
+    SystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~SystemSession();
 
     void OnFirstStrongRef(const void* objectId) override;
@@ -38,11 +38,11 @@ public:
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
         std::shared_ptr<RSTransaction> rsTransaction) override;
     void RectCheck(uint32_t curWidth, uint32_t curHeight) override;
-    bool IsVisibleForeground() const override;
-    bool IsVisibleNotBackground() const override;
     WSError SetDialogSessionBackGestureEnabled(bool isEnabled) override;
     int32_t GetSubWindowZLevel() const override;
 
+    bool IsVisibleForeground() const override;
+    bool IsVisibleNotBackground() const override;
     /*
      * Floating Ball Window
      */

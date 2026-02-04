@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class MainSession : public SceneSession {
 public:
-    MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
+    MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~MainSession();
 
     void OnFirstStrongRef(const void* objectId) override;
@@ -69,12 +69,12 @@ public:
     /*
      * Window LifeCycle
      */
+    WSError SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon) override;
+    void SetUpdateSessionLabelAndIconListener(NofitySessionLabelAndIconUpdatedFunc&& func) override;
     void RegisterSessionLockStateChangeCallback(NotifySessionLockStateChangeCallback&& callback) override;
     void NotifySessionLockStateChange(bool isLockedState) override;
     void SetSessionLockState(bool isLockedState);
     bool GetSessionLockState() const;
-    WSError SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon) override;
-    void SetUpdateSessionLabelAndIconListener(NofitySessionLabelAndIconUpdatedFunc&& func) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) const override;
     void SetRecentSessionState(RecentSessionInfo& info, const SessionState& state) override;
 
@@ -112,7 +112,6 @@ private:
      * Window LifeCycle
      */
     WSError SetSessionLabelAndIconInner(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon);
-
     NotifySessionLockStateChangeCallback onSessionLockStateChangeCallback_;
     bool isLockedState_ = false;
     /*

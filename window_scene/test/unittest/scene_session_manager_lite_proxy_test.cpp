@@ -799,6 +799,49 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, IsFocusWindowParent, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyAppUseControlDisplay
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyAppUseControlDisplay, TestSize.Level1)
+{
+    sptr<MockIRemoteObject> iRemoteObjectMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy =
+        sptr<SceneSessionManagerLiteProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(sceneSessionManagerLiteProxy, nullptr);
+    DisplayId displayId = 1000;
+    bool useControl = false;
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    WSError errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_OK);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<SceneSessionManagerLiteProxy> tmpProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    errCode = tmpProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+
+    iRemoteObjectMocker->SetRequestResult(ERR_INVALID_DATA);
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    iRemoteObjectMocker->SetRequestResult(ERR_NONE);
+}
+
+/**
  * @tc.name: NotifyAppUseControlList
  * @tc.desc: normal function
  * @tc.type: FUNC

@@ -58,7 +58,7 @@ private:
         SIZE_CHANGE_CB,
         PIP_START_CB,
     };
-    WMError CheckRegisterParam(const sptr<NativePiPWindowListener>& listener);
+    WMError CheckRegisterParam(ListenerType type, const sptr<NativePiPWindowListener>& listener);
     WMError RegisterListenerWithType(ListenerType type, const sptr<NativePiPWindowListener>& listener);
     WMError UnregisterListenerWithType(ListenerType type, const sptr<NativePiPWindowListener>& listener);
     WMError ProcessStateChangeRegister(const sptr<NativePiPWindowListener>& listener);

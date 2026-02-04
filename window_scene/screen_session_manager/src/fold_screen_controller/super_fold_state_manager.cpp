@@ -58,7 +58,6 @@ void SuperFoldStateManager::DoAngleChangeFolded(SuperFoldStatusChangeEvents even
 void SuperFoldStateManager::DoAngleChangeHalfFolded(SuperFoldStatusChangeEvents event)
 {
     TLOGI(WmsLogTag::DMS, "enter %{public}d", event);
-    ScreenSessionManager::GetInstance().RecoveryResolutionEffect();
 }
 
 void SuperFoldStateManager::DoAngleChangeExpanded(SuperFoldStatusChangeEvents event)
@@ -915,10 +914,6 @@ DMError SuperFoldStateManager::RefreshMirrorRegionInner(
 
 DMError SuperFoldStateManager::RefreshExternalRegion()
 {
-    if (!ScreenSessionManager::GetInstance().GetIsPhysicalExtendScreenConnected()) {
-        TLOGW(WmsLogTag::DMS, "extend screen not connect");
-        return DMError::DM_OK;
-    }
     sptr<ScreenSession> mainScreenSession = ScreenSessionManager::GetInstance().GetScreenSessionByRsId(SCREEN_ID_FULL);
     if (mainScreenSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "GetScreenSession null");

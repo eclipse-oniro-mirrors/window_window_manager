@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,20 +17,23 @@
 #define OHOS_ROSEN_WINDOW_USER_SWITCH_REPORTER_H
 
 #include <cstdint>
+#include "wm_common.h"
 
 namespace OHOS {
 namespace Rosen {
 class UserSwitchReporter {
 public:
-    explicit UserSwitchReporter(bool isUserActive);
+    UserSwitchReporter(UserSwitchEventType type, bool isUserActive);
     ~UserSwitchReporter();
 
 private:
     static uint64_t GetCurrentTimeMillis();
     bool ReportSwitchDuration() const;
+    uint8_t GetSwitchState() const;
 
     uint64_t startTime_;
-    bool isUserActive_;
+    const UserSwitchEventType switchEventType_;
+    const bool isUserActive_;
 };
 } // namespace Rosen
 } // namespace OHOS

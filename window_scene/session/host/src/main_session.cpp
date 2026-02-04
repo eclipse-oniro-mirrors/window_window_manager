@@ -31,8 +31,8 @@ constexpr int32_t MAX_LABEL_SIZE = 1024;
 const uint64_t PRELAUNCH_DONE_TIME = system::GetIntParameter<int>("window.prelaunchDoneTime", 6000);
 } // namespace
 
-MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId)
-    : SceneSession(info, specificCallback, userId)
+MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
+    : SceneSession(info, specificCallback)
 {
     scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, GetPersistentId(), capacity_);
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());

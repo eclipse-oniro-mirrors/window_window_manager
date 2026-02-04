@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class SubSession : public SceneSession {
 public:
-    SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
+    SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~SubSession();
 
     void OnFirstStrongRef(const void* objectId) override;
@@ -52,10 +52,9 @@ protected:
      * Window Layout
      */
     void NotifySessionRectChange(const WSRect& rect,
-        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID,
-        const RectAnimationConfig& rectAnimationConfig = {}) override;
+        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
-        const MoveConfiguration& moveConfiguration, const RectAnimationConfig& rectAnimationConfig = {}) override;
+        const MoveConfiguration& moveConfiguration) override;
 
     /*
      * Window Hierarchy

@@ -26,7 +26,7 @@ public:
     ~SubSessionMocker() {}
     MOCK_METHOD(void, SetScreenId, (uint64_t screenId), (override));
     MOCK_METHOD(void, NotifySessionRectChange, (const WSRect& rect,
-        SizeChangeReason reason, DisplayId displayId, const RectAnimationConfig& rectAnimationConfig), (override));
+        SizeChangeReason reason, DisplayId displayId), (override));
 };
 }
 }

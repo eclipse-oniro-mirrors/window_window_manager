@@ -25,7 +25,7 @@ public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.IPipChangeListener");
 
     enum class IPipChangeListenerMessage : uint32_t {
-        TRANS_ON_PIP_CHANGE_EVENT = 0,
+        TRANS_ON_PIP_CHANGE_EVENT = 1,
     };
 
     virtual void OnPipStart(int32_t windowId) = 0;

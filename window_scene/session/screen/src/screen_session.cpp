@@ -541,6 +541,13 @@ void ScreenSession::SetIsFakeSession(bool isFakeSession)
     isFakeSession_ = isFakeSession;
 }
 
+void ScreenSession::SetPhyWidthAndHeight(uint32_t phyWidth, uint32_t phyHeight)
+{
+    property_.SetPhyWidth(phyWidth);
+    property_.SetPhyHeight(phyHeight);
+    property_.CalculateXYDpi(phyWidth, phyHeight);
+}
+
 void ScreenSession::SetValidHeight(uint32_t validHeight)
 {
     property_.SetValidHeight(validHeight);
@@ -1016,7 +1023,6 @@ void ScreenSession::ProcPropertyChangedForSuperFold(ScreenProperty& screenProper
     // back server for post processs of screen change
     screenProperty.SetSuperFoldStatusChangeEvent(changeEvent);
     screenProperty.SetIsDestroyDisplay(eventPara.GetIsFakeInUse());
-    screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
 
     switch (changeEvent) {
         case SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED: {
@@ -1119,7 +1125,7 @@ void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser
 
 float ScreenSession::GetValidSensorRotation()
 {
-    return currentValidSensorRotation_;
+    return currentValidSensorRotation_.load();
 }
 
 void ScreenSession::HandleHoverStatusChange(int32_t hoverStatus, bool needRotate)
@@ -1334,9 +1340,11 @@ void ScreenSession::UpdatePropertyAfterRotation(RRect bounds, int rotation, Fold
         }
     }
     {
+        Rotation deviceRotation = property_.GetDeviceRotation();
+        RemoveRotationCorrection(deviceRotation, foldDisplayMode);
         AutoRSTransaction trans(GetRSUIContext());
         std::shared_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
-        displayNode_->SetScreenRotation(static_cast<uint32_t>(property_.GetDeviceRotation()));
+        displayNode_->SetScreenRotation(static_cast<uint32_t>(deviceRotation));
     }
     TLOGI(WmsLogTag::DMS, "bounds:[%{public}f %{public}f %{public}f %{public}f],rotation:%{public}d,\
         displayOrientation:%{public}u, foldDisplayMode:%{public}u",
@@ -1419,8 +1427,8 @@ void ScreenSession::UpdateRotationAfterBoot(bool foldToExpand)
 
 void ScreenSession::UpdateValidRotationToScb()
 {
-    TLOGI(WmsLogTag::DMS, "Rotation: %{public}f", currentValidSensorRotation_);
-    SensorRotationChange(currentValidSensorRotation_, true);
+    TLOGI(WmsLogTag::DMS, "Rotation: %{public}f", currentValidSensorRotation_.load());
+    SensorRotationChange(currentValidSensorRotation_.load(), true);
 }
 
 sptr<SupportedScreenModes> ScreenSession::GetActiveScreenMode() const
@@ -3279,6 +3287,7 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
         screenProperty.GetBounds().rect_.width_, screenProperty.GetBounds().rect_.height_,
         eventPara.GetBounds().rect_.width_, eventPara.GetBounds().rect_.height_);
 
+    screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         ProcPropertyChangedForSuperFold(screenProperty, eventPara);
         

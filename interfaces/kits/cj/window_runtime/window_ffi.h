@@ -120,7 +120,6 @@ extern "C" {
     FFI_EXPORT int32_t FfiOHOSMaximize(int64_t id, int32_t presentation);
     FFI_EXPORT RetDataI64 FfiOHOSCreateSubWindowWithOptions(int64_t id, char* name, CSubWindowOptions option);
 
-
     // WindowStage
     FFI_EXPORT RetDataI64 FfiOHOSBindWindowStage(int64_t windowStageImplPtr);
     FFI_EXPORT RetDataI64 FfiOHOSGetMainWindow(int64_t id);

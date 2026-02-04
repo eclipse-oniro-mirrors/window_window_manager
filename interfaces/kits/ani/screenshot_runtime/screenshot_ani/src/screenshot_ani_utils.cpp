@@ -147,7 +147,7 @@ ani_status ScreenshotAniUtils::CallAniFunctionVoid(ani_env* env, const char* ns,
         return ret;
     }
     if (func == nullptr) {
-        TLOGI(WmsLogTag::DEFAULT, "[ANI] null func ani");
+        TLOGI(WmsLogTag::DEFAULT, "[ANI] null func ani.");
         return ret;
     }
     va_list args;

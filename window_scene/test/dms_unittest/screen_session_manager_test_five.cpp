@@ -145,11 +145,11 @@ HWTEST_F(ScreenSessionManagerTest, CalcDisplayNodeTranslateOnRotation04, Functio
 }
 
 /**
- * @tc.name: OnScreenChange
- * @tc.desc: OnScreenChange
+ * @tc.name: OnScreenChangeInner
+ * @tc.desc: OnScreenChangeInner
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerTest, OnScreenChange, Function | SmallTest | Level3)
+HWTEST_F(ScreenSessionManagerTest, OnScreenChangeInner, Function | SmallTest | Level3)
 {
     ScreenSessionManager* ssm = new ScreenSessionManager();
     ASSERT_NE(ssm, nullptr);
@@ -159,7 +159,7 @@ HWTEST_F(ScreenSessionManagerTest, OnScreenChange, Function | SmallTest | Level3
     ScreenEvent screenEvent = ScreenEvent::CONNECTED;
     ScreenChangeReason reason = ScreenChangeReason::HWCDEAD;
     ssm->screenSessionMap_.insert(std::make_pair(id, screenSession));
-    ssm->OnScreenChange(id, screenEvent, reason);
+    ssm->OnScreenChangeInner(id, screenEvent, reason);
     ssm->screenSessionMap_.erase(50);
 }
 

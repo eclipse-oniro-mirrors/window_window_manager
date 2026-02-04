@@ -164,6 +164,7 @@ private:
     // Window Property
     int HandleSetWindowCornerRadius(MessageParcel& data, MessageParcel& reply);
     int HandleSetWindowShadows(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverWindowEffect(MessageParcel& data, MessageParcel& reply);
     // Layout
     int HandleGetCrossAxisState(MessageParcel& data, MessageParcel& reply);
 
@@ -177,7 +178,7 @@ private:
     int HandleSetWindowAnchorInfo(MessageParcel& data, MessageParcel& reply);
 
     int HandleSetFollowParentWindowLayoutEnabled(MessageParcel& data, MessageParcel& reply);
-
+    
     // Window Transition Animation For PC
     int HandleSetWindowTransitionAnimation(MessageParcel& data, MessageParcel& reply);
 

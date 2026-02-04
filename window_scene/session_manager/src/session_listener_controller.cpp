@@ -142,6 +142,7 @@ void SessionListenerController::NotifySessionFocused(int32_t persistentId)
     if (persistentId == -1) {
         return;
     }
+
     TLOGI(WmsLogTag::WMS_FOCUS, "Id:%{public}d", persistentId);
     CallListeners(&ISessionListener::OnMissionFocused, persistentId);
 }
@@ -151,6 +152,7 @@ void SessionListenerController::NotifySessionUnfocused(int32_t persistentId)
     if (persistentId == -1) {
         return;
     }
+
     TLOGI(WmsLogTag::WMS_FOCUS, "Id:%{public}d", persistentId);
     CallListeners(&ISessionListener::OnMissionUnfocused, persistentId);
 }
@@ -171,6 +173,7 @@ void SessionListenerController::NotifySessionClosed(const SessionInfo& sessionIn
     if (persistentId == -1) {
         return;
     }
+
     WLOGFI("Id:%{public}d", persistentId);
     CallListeners(&ISessionListener::OnMissionClosed, persistentId);
     NotifySessionLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::DESTROYED, sessionInfo, reason);
@@ -181,6 +184,7 @@ void SessionListenerController::NotifySessionLabelUpdated(int32_t persistentId)
     if (persistentId == -1) {
         return;
     }
+
     WLOGFI("Id:%{public}d", persistentId);
     CallListeners(&ISessionListener::OnMissionLabelUpdated, persistentId);
 }
@@ -227,7 +231,7 @@ void SessionListenerController::OnSessionLifecycleListenerDied(const wptr<IRemot
 }
 
 template<typename F, typename... Args>
-void SessionListenerController::CallListeners(F func, Args&&... args)
+void SessionListenerController::CallListeners(F func, Args&& ... args)
 {
     std::vector<sptr<ISessionListener>> sessionListenersTemp;
     {
@@ -424,7 +428,6 @@ void SessionListenerController::NotifySessionLifecycleEvent(ISessionLifecycleLis
             TLOGI(WmsLogTag::WMS_LIFE, "start notify listeners, bundleName:%{public}s, Id:%{public}d, event:%{public}d"
                 ", reason: %{public}u",
                 bundleName.c_str(), persistentId, event, payload.lifeCycleChangeReason_);
-        
             controller->NotifyListeners(controller->listenerMapById_, persistentId, event, payload);
             controller->NotifyListeners(controller->listenerMapByBundle_, bundleName, event, payload);
             for (const auto& listener : controller->listenersOfAllBundles_) {
