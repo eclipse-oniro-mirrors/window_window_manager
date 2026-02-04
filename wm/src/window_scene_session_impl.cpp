@@ -1447,7 +1447,7 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
         const bool isAncoSupportMultiWindow =
             system::GetIntParameter("hmos_fusion.container.pc.freemode.captionbar", 0) == 1;
         bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
-        TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, windowModeSupportType: %{public}u, "
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "windowId: %{public}u, windowModeSupportType: %{public}u, "
             "isAncoSupportMultiWindow: %{public}d, isAncoInPcOrPcMode:%{public}d",
             GetWindowId(), windowModeSupportType, isAncoSupportMultiWindow, isAncoInPcOrPcMode);
         // update windowModeSupportType to server
@@ -3290,10 +3290,6 @@ WMError WindowSceneSessionImpl::SetLayoutFullScreen(bool status)
         // compatibleMode app may set statusBarColor before ignoreSafeArea
         auto systemBarProperties = property_->GetSystemBarProperty();
         if (status && systemBarProperties.find(WindowType::WINDOW_TYPE_STATUS_BAR) != systemBarProperties.end()) {
-            if (IsAnco() && (windowSystemConfig_.IsPadWindow() || windowSystemConfig_.IsPcWindow())) {
-                TLOGI(WmsLogTag::WMS_IMMS, "anco in pad or pc window need not hook.");
-                return WMError::WM_OK;
-            }
             auto statusBarProperty = systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR];
             HookDecorButtonStyleInCompatibleMode(statusBarProperty.contentColor_);
         }
@@ -3425,11 +3421,7 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
                 static_cast<uint8_t>(SubSystemId::WM_UIEXT));
         }
         if (property_->IsAdaptToImmersive() && isIgnoreSafeArea_) {
-            if (IsAnco() && (windowSystemConfig_.IsPadWindow() || windowSystemConfig_.IsPcWindow())) {
-                TLOGI(WmsLogTag::WMS_IMMS, "anco in pad or pc window need not hook.");
-            } else {
-                HookDecorButtonStyleInCompatibleMode(property.contentColor_);
-            }
+            HookDecorButtonStyleInCompatibleMode(property.contentColor_);
         }
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_PROPS);
@@ -3444,6 +3436,10 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
 void WindowSceneSessionImpl::HookDecorButtonStyleInCompatibleMode(uint32_t color)
 {
     if (!property_->IsAdaptToImmersive()) {
+        return;
+    }
+    if (IsAnco()) {
+        TLOGI(WmsLogTag::WMS_DECOR, "anco window need not hook decor.");
         return;
     }
     // alpha Color Channel
