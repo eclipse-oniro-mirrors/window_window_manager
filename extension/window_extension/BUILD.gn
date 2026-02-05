@@ -63,6 +63,7 @@ ohos_shared_library("libwindow_extension") {
 
   external_deps = [
     "ability_base:want",
+    "ability_runtime:ability_connect_callback_stub",
     "ability_runtime:ability_context_native",
     "ability_runtime:ability_manager",
     "ability_runtime:ability_start_options",
