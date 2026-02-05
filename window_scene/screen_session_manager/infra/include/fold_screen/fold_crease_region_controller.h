@@ -28,7 +28,7 @@ class FoldCreaseRegionController : public RefBase {
 const ScreenId SCREEN_ID_FULL = 0;
 const ScreenId SCREEN_ID_MAIN = 5;
 const int32_t FOLD_CREASE_RECT_SIZE = 4;
-extern const std::string FOLD_CREASE_DELIMITER;
+const std::string FOLD_CREASE_DELIMITER;
 
 const int32_t RECT_POS_X_INDEX = 0;
 const int32_t RECT_POS_Y_INDEX = 1;
