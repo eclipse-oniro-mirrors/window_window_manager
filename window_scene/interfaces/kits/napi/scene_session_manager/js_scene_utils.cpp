@@ -506,7 +506,7 @@ static bool IsJsRequestIdUndefind(napi_env env, napi_value jsRequestId, SessionI
 bool IsJsSpecifiedReasonUndefined(napi_env env, napi_value jsSpecifiedReason, SessionInfo& sessionInfo)
 {
     if (GetType(env, jsSpecifiedReason) != napi_undefined) {
-        int32_t specifiedReason = static_cast<int32_t>(SpecifiedReason::BY_SCB);
+        int32_t specifiedReason = static_cast<int32_t>(SpecifiedReason::DEFAULT);
         if (!ConvertFromJsValue(env, jsSpecifiedReason, specifiedReason)) {
             TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to specifiedReason");
             return false;
