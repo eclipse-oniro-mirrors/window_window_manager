@@ -3137,11 +3137,11 @@ void SceneSession::PatchAINavigationBarArea(AvoidArea& avoidArea)
         avoidArea.bottomRect_ = avoidArea.leftRect_;
         avoidArea.leftRect_ = areaEmpty;
     } else if (!avoidArea.topRect_.IsUninitializedRect()) {
-        avoidArea.bottomRect_ = avoidArea.topRect_;
-        avoidArea.topRect_ = areaEmpty;
-    } else if (!avoidArea.topRect_.IsUninitializedRect()) {
         avoidArea.bottomRect_ = avoidArea.rightRect_;
         avoidArea.rightRect_ = areaEmpty;
+    } else if (!avoidArea.topRect_.IsUninitializedRect()) {
+        avoidArea.bottomRect_ = avoidArea.topRect_;
+        avoidArea.topRect_ = areaEmpty;
     }
 }
 
@@ -8524,14 +8524,7 @@ void SceneSession::SetNotifyVisibleChangeFunc(const NotifyVisibleChangeFunc& fun
 
 void SceneSession::SetPrivacyModeChangeNotifyFunc(NotifyPrivacyModeChangeFunc&& func)
 {
-    PostTask([weakThis = wptr(this), func = std::move(func), where = __func__] {
-        auto session = weakThis.promote();
-        if (!session) {
-            TLOGNE(WmsLogTag::WMS_SCB, "%{public}s session is null", where);
-            return;
-        }
-        session->privacyModeChangeNotifyFunc_ = std::move(func);
-    }, __func__);
+    privacyModeChangeNotifyFunc_ = func;
 }
 
 void SceneSession::SetHighlightChangeNotifyFunc(const NotifyHighlightChangeFunc& func)
