@@ -2366,10 +2366,10 @@ bool AniWindowUtils::ParseWindowMask(ani_env* env, ani_array windowMaskArray,
         windowMask.emplace_back(elementArray);
     }
     aniRet = env->GlobalReference_Delete(g_longCls);
+    g_longCls = nullptr;
     if (aniRet != ANI_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]Failed to delete g_longCls ref, ret: %{public}u", aniRet);
     }
-    g_longCls = nullptr;
     return true;
 }
 
