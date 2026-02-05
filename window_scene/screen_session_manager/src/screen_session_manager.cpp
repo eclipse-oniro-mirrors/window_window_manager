@@ -12948,6 +12948,16 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
             MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_ENTER_STR);
             NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(),
                 DisplayChangeEvent::SOURCE_MODE_CHANGED);
+        } else {
+                std::map<DisplayId, sptr<DisplayInfo>> emptyMap;
+            if (firstSession != nullptr) {
+                NotifyDisplayStateChange(firstSession->GetScreenId(), firstSession->ConvertToDisplayInfo(),
+                    emptyMap, DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
+            }
+            if (secondarySession != nullptr) {
+                NotifyDisplayStateChange(secondarySession->GetScreenId(), secondarySession->ConvertToDisplayInfo(),
+                    emptyMap, DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
+            }
         }
     } else {
         TLOGNFE(WmsLogTag::DMS, "params error");
