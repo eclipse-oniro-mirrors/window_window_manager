@@ -596,7 +596,7 @@ public:
     bool HandleResolutionEffectChange();
     bool HandleCastVirtualScreenMirrorRegion();
     bool RecoveryResolutionEffect();
-    bool GetStoredPidFromUid(int32_t uid, int32_t& agentPid) const;
+    bool GetStoredPidFromUid(int32_t uid, int32_t& agentPid);
     bool IsFreezed(const int32_t& agentPid, const DisplayManagerAgentType& agentType);
     bool isScreenShot_ = false;
     void NotifyAodOpCompletion(AodOP operation, int32_t result) override;
