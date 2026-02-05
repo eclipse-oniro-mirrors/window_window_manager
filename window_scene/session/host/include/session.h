@@ -1286,6 +1286,7 @@ private:
     std::pair<std::shared_ptr<uint8_t[]>, size_t> preloadStartingWindowSvgBufferInfo_;
     bool borderUnoccupied_ = false;
     uint32_t GetBackgroundColor() const;
+    std::mutex saveStartWindowCallbackMutex_;
     SaveStartWindowFunc saveStartWindowCallback_;
     float blurRadius_ = 0.0f;
     uint32_t blurBackgroundColor_ = 0x00000000;
