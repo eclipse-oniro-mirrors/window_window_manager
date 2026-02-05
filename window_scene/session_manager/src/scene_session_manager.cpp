@@ -3663,7 +3663,7 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d] Begin StartUIAbility, system: %{public}u,"
  	             "reuseDelegatorWindow %{public}d isShowAbility %{public}d", persistentId,
  	        static_cast<uint32_t>(sceneSession->GetSessionInfo().isSystem_),
- 	        scenesession->GetSessionInfo().reuseDelegatorWindow, isShowAbility);
+ 	        sceneSession->GetSessionInfo().reuseDelegatorWindow, isShowAbility);
         if (sceneSession->GetSessionInfo().want != nullptr) {
             sceneSession->GetSessionInfo().want->RemoveParam("targetGrantBundleName");
         }
@@ -12774,7 +12774,7 @@ void SceneSessionManager::NotifyAppUseControlListInner(
     std::vector<sptr<SceneSession>> mainSessions;
     std::vector<AppUseControlInfo> controlByBundleList;
     for (const auto& appUseControlInfo : controlList) {
-        if (appUseControlInfo.persistentId_ > INVALID_WINDOW_ID) {
+        if (appUseControlInfo.persistentId_ > static_cast<int32_t>(INVALID_WINDOW_ID)) {
             // control by peristentId
             TLOGI(WmsLogTag::WMS_MAIN, "control by id:%{public}d", appUseControlInfo.persistentId_);
             if (auto session = GetSessionForAppUseControl(appUseControlInfo)) {
