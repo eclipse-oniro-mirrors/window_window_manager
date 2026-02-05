@@ -6013,6 +6013,7 @@ void ScreenSessionManager::WaitForCoordinationReady(std::unique_lock<std::mutex>
 
 void ScreenSessionManager::NotifyCoordinationReadyCV()
 {
+    std::unique_lock<std::mutex> cvLock(coordinationReadyMutex_);
     coordinationReadyCV_.notify_all();
 }
 
