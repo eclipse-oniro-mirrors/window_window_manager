@@ -7037,7 +7037,7 @@ napi_value JsSceneSession::OnSetPcAppInpadSpecificSystemBarInvisible(napi_env en
     }
     bool isPcAppInpadSpecificSystemBarInvisible = false;
     if (!ConvertFromJsValue(env, argv[0], isPcAppInpadSpecificSystemBarInvisible)) {
-        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to enable");
+        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to isPcAppInpadSpecificSystemBarInvisible");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
