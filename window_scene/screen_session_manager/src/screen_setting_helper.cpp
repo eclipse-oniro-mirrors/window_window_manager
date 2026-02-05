@@ -130,7 +130,7 @@ void ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(SettingObserver
     }
 }
  
-bool ScreenSettingHelper::GetSettingOffScreenRenderValue(bool& offScreenRenderValue_, const std::string& key)
+bool ScreenSettingHelper::GetSettingOffScreenRenderValue(bool& offScreenRenderValue, const std::string& key)
 {
     SettingProvider& provider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
     int32_t value;
@@ -139,7 +139,7 @@ bool ScreenSettingHelper::GetSettingOffScreenRenderValue(bool& offScreenRenderVa
         TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
         return false;
     }
-    offScreenRenderValue_ = (value == 1);
+    offScreenRenderValue = (value == 1);
     return true;
 }
 
