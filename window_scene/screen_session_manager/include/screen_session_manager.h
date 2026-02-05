@@ -483,6 +483,9 @@ public:
     void SetClientProxy(const sptr<IScreenSessionManagerClient>& client);
     virtual void NotifyCastWhenScreenConnectChange(bool isConnected);
     void NotifyCastWhenSwitchScbNode();
+    void ScreenSessionManager::HandleModeChangeReportAndNotify(sptr<ScreenSession>& firstSession,
+        sptr<ScreenSession>& secondarySession,ScreenCombination firstCombination,ScreenCombination secondaryCombination,
+        const std::string& operateMode);
     void MultiScreenModeChange(const std::string& mainScreenId, const std::string& secondaryScreenId,
         const std::string& secondaryScreenMode);
     void SwitchScrollParam(FoldDisplayMode displayMode);
