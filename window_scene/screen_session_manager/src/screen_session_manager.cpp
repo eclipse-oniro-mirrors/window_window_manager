@@ -14844,7 +14844,7 @@ void ScreenSessionManager::SetFirstSCBConnect(bool firstSCBConnect)
     firstSCBConnect_ = firstSCBConnect;
 }
 
-bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid) const
+bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid)
 {
     std::shared_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
     auto iter = uidAndPidMap_.find(uid);
