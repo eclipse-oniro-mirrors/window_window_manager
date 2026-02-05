@@ -476,7 +476,6 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
         return;
     }
 
-
     for (auto& info : sessionInfos) {
         if (info == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "sessionInfo is null");
