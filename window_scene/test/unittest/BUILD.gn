@@ -139,6 +139,8 @@ group("unittest") {
       "event_distribution:ws_session_stub_event_test",
       "layout:ws_layout_test",
       "multi_user:unittest",
+      "rotation:ws_session_proxy_rotation_test",
+      "rotation:ws_session_stub_rotation_test",
       "rotation:ws_session_stage_proxy_rotation_test",
       "rotation:ws_session_stage_stub_rotation_test",
       "window_pattern:window_pattern_snapshot_test",
