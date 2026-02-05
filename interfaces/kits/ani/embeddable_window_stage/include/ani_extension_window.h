@@ -19,7 +19,6 @@
 #include "ani.h"
 #include "ani_extension_window_register_manager.h"
 #include "extension_window.h"
-#include "extension_window.h"
 #include "session_info.h"
 
 namespace OHOS {

@@ -15,15 +15,18 @@
 
 #include "ani_extension_window_listener.h"
 
+#include <hitrace_meter.h>
+
 #include "ani.h"
+#include <ani_signature_builder.h>
 #include "event_handler.h"
 #include "event_runner.h"
-#include <hitrace_meter.h>
 #include "window_manager_hilog.h"
 
 namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
+using namespace arkts::ani_signature;
 namespace {
 constexpr const char* ETS_WINDOW_SIZE_CHANGE_CB = "sizeChangeCallback";
 constexpr const char* ETS_AVOID_AREA_CHANGE_CB = "avoidAreaChangeCallback";

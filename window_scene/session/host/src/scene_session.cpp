@@ -129,7 +129,7 @@ bool CheckIfRectElementIsTooLarge(const WSRect& rect)
            rect.width_ >= largeNumber || rect.height_ >= largeNumber;
 }
 
-bool CmpExtensionWidowInfoByTimeStamp(const ExtensionWindowEventInfo& a, const ExtensionWindowEventInfo& b)
+bool CmpExtensionWindowInfoByTimeStamp(const ExtensionWindowEventInfo& a, const ExtensionWindowEventInfo& b)
 {
     return a.startModalExtensionTimeStamp < b.startModalExtensionTimeStamp;
 }
@@ -3285,7 +3285,7 @@ void SceneSession::AddNormalModalUIExtension(const ExtensionWindowEventInfo& ext
         std::unique_lock<std::shared_mutex> lock(modalUIExtensionInfoListMutex_);
         modalUIExtensionInfoList_.push_back(extensionInfo);
         std::sort(modalUIExtensionInfoList_.begin(), modalUIExtensionInfoList_.end(),
-            CmpExtensionWidowInfoByTimeStamp);
+            CmpExtensionWindowInfoByTimeStamp);
     }
     NotifySessionInfoChange();
 }
