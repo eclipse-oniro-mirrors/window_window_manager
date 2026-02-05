@@ -249,6 +249,35 @@ HWTEST_F(WindowSceneSessionImplEventTest, ClearWindowMask, TestSize.Level1)
     EXPECT_CALL(*session, UpdateSessionPropertyByAction(_, _)).WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
     EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, window->ClearWindowMask());
 }
+
+/**
+ * @tc.name: SetWindowMask
+ * @tc.desc: SetWindowMask_InvalidRow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, SetWindowMask_InvalidRow, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMask");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->persistentId_ = 11;
+    window->state_ = WindowState::STATE_SHOWN;
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetRequestRect({0, 0, 10, 10});
+
+    std::vector<std::vector<uint32_t>> windowMask;
+    std::vector<uint32_t> vec1(10, 1);
+    std::vector<uint32_t> vec2(5, 1);
+    windowMask.emplace_back(vec1);
+    windowMask.emplace_back(vec2);
+    auto ret = window->SetWindowMask(windowMask);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+    windowMask.erase(windowMask.end() - 1);
+    ret = window->SetWindowMask(windowMask);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
