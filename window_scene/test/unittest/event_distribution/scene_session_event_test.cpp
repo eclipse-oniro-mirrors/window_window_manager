@@ -31,8 +31,6 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
-private:
-    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
 };
 
 void SceneSessionEventTest::SetUpTestCase() {}
@@ -253,27 +251,6 @@ HWTEST_F(SceneSessionEventTest, SetSeparationTouchEnabled, TestSize.Level1)
     sceneSession->persistentId_ = 1;
     ret = sceneSession->SetSeparationTouchEnabled(parameters);
     EXPECT_EQ(ret, WMError::WM_OK);
-}
-
-/**
- * @tc.name: RecoverWindowEffect
- * @tc.desc: RecoverWindowEffect
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionEventTest, RecoverWindowEffect, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "RecoverWindowEffect";
-    info.bundleName_ = "RecoverWindowEffect";
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
-    NotifyRecoverWindowEffectFunc func;
-    session->RegisterRecoverWindowEffectCallback(std::move(func));
-    EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
-
-    func = [](bool recoverCorner, bool recoverShadow) { return; };
-    session->RegisterRecoverWindowEffectCallback(std::move(func));
-    EXPECT_EQ(WSError::WS_OK, session->RecoverWindowEffect(true, true));
-    usleep(WAIT_SYNC_IN_NS);
 }
 } // namespace
 } // namespace Rosen

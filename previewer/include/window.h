@@ -622,16 +622,6 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
-    /**
-     * @brief Clear the window mask of window.
-     *
-     * @return WM_OK means set success, others means failed.
-     */
-    virtual WMError ClearWindowMask()
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
     virtual WMError SetGrayScale(float grayScale) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**

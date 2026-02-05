@@ -10495,38 +10495,6 @@ WMError SceneSession::SetSeparationTouchEnabled(const std::vector<int32_t>& para
     return WMError::WM_OK;
 }
 
-void SceneSession::RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func)
-{
-    const char* const where = __func__;
-    PostTask([weakThis = wptr(this), where, func = std::move(func)] {
-        auto session = weakThis.promote();
-        if (!session || !func) {
-            TLOGNE(WmsLogTag::WMS_PC, "session or onRecoverWindowEffectFunc_ is null");
-            return;
-        }
-        session->onRecoverWindowEffectFunc_ = std::move(func);
-        TLOGNI(WmsLogTag::WMS_PC, "%{public}s id: %{public}d,", where, session->GetPersistentId());
-    }, __func__);
-}
-
-WSError SceneSession::RecoverWindowEffect(bool recoverCorner, bool recoverShadow)
-{
-    const char* const where = __func__;
-    PostTask([weakThis = wptr(this), recoverCorner, recoverShadow, where] {
-        auto session = weakThis.promote();
-        if (!session) {
-            TLOGNE(WmsLogTag::WMS_PC, "session is null");
-            return;
-        }
-        if (session->onRecoverWindowEffectFunc_) {
-            TLOGND(WmsLogTag::WMS_PC, "%{public}s id %{public}d recoverCorner: %{public}d recoverShadow: %{public}d",
-                where, session->GetPersistentId(), recoverCorner, recoverShadow);
-            session->onRecoverWindowEffectFunc_(recoverCorner, recoverShadow);
-        }
-    }, __func__);
-    return WSError::WS_OK;
-}
-
 void SceneSession::RegisterIsAppBoundSystemTrayCallback(
     const std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>& callback)
 {

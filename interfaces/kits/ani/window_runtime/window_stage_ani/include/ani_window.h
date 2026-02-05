@@ -83,7 +83,6 @@ public:
     static void SetWindowTouchable(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isTouchable);
     static void SetDialogBackGestureEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
     static void SetWindowMask(ani_env* env, ani_object obj, ani_long nativeObj, ani_array windowMask);
-    static void ClearWindowMask(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetTouchableAreas(ani_env* env, ani_object obj, ani_long nativeObj, ani_array rects);
     static ani_object GetUIContext(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_object GetWindowAvoidArea(ani_env* env, ani_object obj, ani_long nativeObj, ani_int type);
@@ -268,7 +267,6 @@ private:
     void OnSetWindowTouchable(ani_env* env, ani_boolean isTouchable);
     void OnSetDialogBackGestureEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWindowMask(ani_env* env, ani_array windowMaskArray);
-    void OnClearWindowMask(ani_env* env);
     void OnSetTouchableAreas(ani_env* env, ani_array rects);
     ani_object OnGetUIContext(ani_env* env);
     ani_object OnGetWindowAvoidArea(ani_env* env, ani_int type);
