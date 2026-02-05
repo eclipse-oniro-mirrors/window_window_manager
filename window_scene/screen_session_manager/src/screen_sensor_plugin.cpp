@@ -20,13 +20,13 @@ namespace Rosen {
 namespace {
     constexpr uint32_t SLEEP_TIME_US = 10000;
     constexpr uint32_t RETRY_TIMES = 3;
+}
+
 #if (defined(__aarch64__) || defined(__x86_64__))
 const std::string PLUGIN_SO_PATH = "/system/lib64/platformsdk/libmotion_agent.z.so";
 #else
 const std::string PLUGIN_SO_PATH = "/system/lib/platformsdk/libmotion_agent.z.so";
 #endif
-}
-
 static void *g_handle = nullptr;
 static MotionSubscribeCallbackPtr g_motionSubscribeCallbackPtr = nullptr;
 static MotionUnsubscribeCallbackPtr g_motionUnsubscribeCallbackPtr = nullptr;
