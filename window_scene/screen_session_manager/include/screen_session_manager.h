@@ -484,7 +484,7 @@ public:
     virtual void NotifyCastWhenScreenConnectChange(bool isConnected);
     void NotifyCastWhenSwitchScbNode();
     void ScreenSessionManager::HandleModeChangeReportAndNotify(sptr<ScreenSession>& firstSession,
-        sptr<ScreenSession>& secondarySession,ScreenCombination firstCombination,ScreenCombination secondaryCombination,
+        sptr<ScreenSession>& secondarySession, ScreenCombination firstCombination, ScreenCombination secondaryCombination,
         const std::string& operateMode);
     void MultiScreenModeChange(const std::string& mainScreenId, const std::string& secondaryScreenId,
         const std::string& secondaryScreenMode);
