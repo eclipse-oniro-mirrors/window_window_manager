@@ -883,8 +883,9 @@ public:
     void VisitSnapshotFromCache(int32_t persistentId);
     void PutSnapshotToCache(int32_t persistentId);
     void RemoveSnapshotFromCache(int32_t persistentId);
-    void SetStartWindowPersistencePath(const std::string& bundleName, bool isDark, const std::string& path);
-    std::string GetStartWindowPersistencePath(const std::string& bundleName, bool isDark);
+    void SetStartWindowPersistencePath(const std::string& bundleName, const std::string& saveStartWindowKey,
+        const std::string& path);
+    std::string GetStartWindowPersistencePath(const std::string& bundleName, const std::string& saveStartWindowKey);
     void ClearStartWindowPersistencePath(const std::string& bundleName);
     void UpdateAllStartingWindowRdb();
     void GetStartupPage(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo);
@@ -1860,7 +1861,7 @@ private:
     bool enableDmaReclaim_ = false;
     std::unordered_map<DisplayId, bool> appUseControlDisplayMap_;
     std::mutex startWindowPersistencePathMutex_;
-    std::unordered_map<std::string, std::unordered_map<bool, std::string>> startWindowPersistencePathMap_;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> startWindowPersistencePathMap_;
     void InitWindowPattern();
     void InitStartingWindow();
     void InitDmaReclaimParam();

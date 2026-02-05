@@ -3216,7 +3216,8 @@ void Session::PreloadSnapshot()
     preloadSnapshot_ = std::move(uniquePixelMap);
 }
 
-void Session::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& persistentPixelMap, bool isDark)
+void Session::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& persistentPixelMap,
+    const std::string& saveStartWindowKey)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Session::SaveStartWindow[%d][%s]",
         persistentId_, sessionInfo_.bundleName_.c_str());
@@ -3225,12 +3226,7 @@ void Session::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& persistent
         TLOGE(WmsLogTag::WMS_PATTERN, "failed %{public}d", GetPersistentId());
         return;
     }
-    SaveStartWindowFunc saveStartWindowCallback;
-    {
-        std::lock_guard<std::mutex> lock(saveStartWindowCallbackMutex_);
-        saveStartWindowCallback = saveStartWindowCallback_;
-    }
-    scenePersistence_->SaveStartWindow(persistentPixelMap, isDark, saveStartWindowCallback);
+    scenePersistence_->SaveStartWindow(persistentPixelMap, saveStartWindowKey, saveStartWindowCallback_);
 }
 
 void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media::PixelMap> persistentPixelMap,

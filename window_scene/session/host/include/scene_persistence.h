@@ -37,8 +37,8 @@ public:
     static bool CreateSnapshotDir(const std::string& directory);
     static bool CreateUpdatedIconDir(const std::string& directory);
     static bool CreateStartWindowDir(const std::string& directory);
-    void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, bool isDark,
-        const std::function<void(std::string, bool)>& saveStartWindowCallback);
+    void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowkey,
+        const std::function<void(std::string, std::string)>& saveStartWindowCallback);
 
     void SetSnapshotCapacity(SnapshotStatus capacity);
     static void InitAstcEnabled();
@@ -88,10 +88,7 @@ private:
     std::string updatedIconPath_;
     static bool isAstcEnabled_;
 
-    static std::string lightStartWindowDirectory_;
-    static std::string darkStartWindowDirectory_;
-    std::string lightStartWindowPath_;
-    std::string darkStartWindowPath_;
+    static std::string startWindowDirectory_;
 
     std::atomic<int> savingSnapshotSum_ { 0 };
     std::atomic<bool> isSavingSnapshot_ = { false };

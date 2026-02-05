@@ -124,7 +124,7 @@ HWTEST_F(WindowPatternStartingWindowTest, CreateStartWindowDir, TestSize.Level1)
 
 /**
  * @tc.name: SetAndGetStartWindowPersistencePath01
- * @tc.desc: Test setting and getting the path corresponding to an existing bundleName and isDark flag
+ * @tc.desc: Test setting and getting the path corresponding to an existing bundleName and saveStartWindowKey
  * @tc.type: FUNC
  * @tc.level: Level1
  */
@@ -133,26 +133,35 @@ HWTEST_F(WindowPatternStartingWindowTest, SetAndGetStartWindowPersistencePath01,
     ASSERT_NE(ssm_, nullptr);
 
     const std::string bundleName = "testBundle";
+    // 替换原bool isDark为字符串类型的saveStartWindowKey
+    const std::string darkKey = "DarkStartWindow";
+    const std::string lightKey = "LightStartWindow";
     const std::string darkPath = "/data/testBundle/dark_start_window.png";
     const std::string lightPath = "/data/testBundle/light_start_window.png";
 
-    ssm_->SetStartWindowPersistencePath(bundleName, true, darkPath);
-    std::string retDarkPath = ssm_->GetStartWindowPersistencePath(bundleName, true);
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, darkPath);
+    std::string retDarkPath = ssm_->GetStartWindowPersistencePath(bundleName, darkKey);
     ASSERT_EQ(retDarkPath, darkPath);
 
-    ssm_->SetStartWindowPersistencePath(bundleName, false, lightPath);
-    std::string retLightPath = ssm_->GetStartWindowPersistencePath(bundleName, false);
+    ssm_->SetStartWindowPersistencePath(bundleName, lightKey, lightPath);
+    std::string retLightPath = ssm_->GetStartWindowPersistencePath(bundleName, lightKey);
     ASSERT_EQ(retLightPath, lightPath);
 
     const std::string emptyPath = "";
-    ssm_->SetStartWindowPersistencePath(bundleName, true, emptyPath);
-    std::string retEmptyPath = ssm_->GetStartWindowPersistencePath(bundleName, true);
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, emptyPath);
+    std::string retEmptyPath = ssm_->GetStartWindowPersistencePath(bundleName, darkKey);
     ASSERT_EQ(retEmptyPath, emptyPath);
+
+    const std::string customKey = "CustomStartWindow";
+    const std::string customPath = "/data/testBundle/custom_start_window.png";
+    ssm_->SetStartWindowPersistencePath(bundleName, customKey, customPath);
+    std::string retCustomPath = ssm_->GetStartWindowPersistencePath(bundleName, customKey);
+    ASSERT_EQ(retCustomPath, customPath);
 }
 
 /**
  * @tc.name: GetStartWindowPersistencePath02
- * @tc.desc: Test getting the path for non-existent bundleName or isDark flag (boundary scenario)
+ * @tc.desc: Test getting the path for non-existent bundleName or saveStartWindowKey (boundary scenario)
  * @tc.type: FUNC
  * @tc.level: Level2
  */
@@ -161,17 +170,26 @@ HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowPersistencePath02, TestS
     ASSERT_NE(ssm_, nullptr);
 
     const std::string nonExistBundle = "nonExistBundle";
-    std::string retPath = ssm_->GetStartWindowPersistencePath(nonExistBundle, true);
+    const std::string testKey = "DarkStartWindow";
+    std::string retPath = ssm_->GetStartWindowPersistencePath(nonExistBundle, testKey);
     ASSERT_EQ(retPath, "");
 
     const std::string existBundle = "emptyBundle";
+    const std::string validKey = "LightStartWindow";
+    const std::string invalidKey = "InvalidStartWindow";
     const std::string lightPath = "/data/emptyBundle/light.png";
-    ssm_->SetStartWindowPersistencePath(existBundle, false, lightPath);
-    retPath = ssm_->GetStartWindowPersistencePath(existBundle, true);
+    ssm_->SetStartWindowPersistencePath(existBundle, validKey, lightPath);
+    retPath = ssm_->GetStartWindowPersistencePath(existBundle, invalidKey);
     ASSERT_EQ(retPath, "");
+
     const std::string emptyBundle = "";
-    retPath = ssm_->GetStartWindowPersistencePath(emptyBundle, true);
+    const std::string emptyKey = "";
+    retPath = ssm_->GetStartWindowPersistencePath(emptyBundle, emptyKey);
     ASSERT_EQ(retPath, "");
+
+    ssm_->SetStartWindowPersistencePath(existBundle, emptyKey, "/data/emptyBundle/empty_key.png");
+    retPath = ssm_->GetStartWindowPersistencePath(existBundle, emptyKey);
+    ASSERT_EQ(retPath, "/data/emptyBundle/empty_key.png");
 }
 
 /**
@@ -185,18 +203,21 @@ HWTEST_F(WindowPatternStartingWindowTest, ClearStartWindowPersistencePath01, Tes
     ASSERT_NE(ssm_, nullptr);
 
     const std::string bundleName = "testBundle";
+    const std::string darkKey = "DarkStartWindow";
+    const std::string lightKey = "LightStartWindow";
     const std::string darkPath = "/data/testBundle/dark.png";
     const std::string lightPath = "/data/testBundle/light.png";
-    ssm_->SetStartWindowPersistencePath(bundleName, true, darkPath);
-    ssm_->SetStartWindowPersistencePath(bundleName, false, lightPath);
 
-    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, true), darkPath);
-    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, false), lightPath);
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, darkPath);
+    ssm_->SetStartWindowPersistencePath(bundleName, lightKey, lightPath);
+
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, darkKey), darkPath);
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, lightKey), lightPath);
 
     ssm_->ClearStartWindowPersistencePath(bundleName);
 
-    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, true), "");
-    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, false), "");
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, darkKey), "");
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, lightKey), "");
 }
 
 /**

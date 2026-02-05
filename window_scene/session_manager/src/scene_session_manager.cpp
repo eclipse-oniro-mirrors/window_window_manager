@@ -3913,15 +3913,16 @@ void SceneSessionManager::RemoveSnapshotFromCache(int32_t persistentId)
     }
 }
 
-void SceneSessionManager::SetStartWindowPersistencePath(const std::string& bundleName, bool isDark,
-    const std::string& path)
+void SceneSessionManager::SetStartWindowPersistencePath(const std::string& bundleName,
+    const std::string& saveStartWindowKey, const std::string& path)
 {
     TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
     std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
-    startWindowPersistencePathMap_[bundleName][isDark] = path;
+    startWindowPersistencePathMap_[bundleName][saveStartWindowKey] = path;
 }
 
-std::string SceneSessionManager::GetStartWindowPersistencePath(const std::string& bundleName, bool isDark)
+std::string SceneSessionManager::GetStartWindowPersistencePath(const std::string& bundleName,
+    const std::string& saveStartWindowKey)
 {
     TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
     std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
@@ -3929,7 +3930,7 @@ std::string SceneSessionManager::GetStartWindowPersistencePath(const std::string
     if (outerIt == startWindowPersistencePathMap_.end()) {
         return "";
     }
-    auto innerIt = outerIt->second.find(isDark);
+    auto innerIt = outerIt->second.find(saveStartWindowKey);
     if (innerIt == outerIt->second.end()) {
         return "";
     }
@@ -3982,8 +3983,8 @@ WSError SceneSessionManager::RegisterSaveStartWindowFunc(const sptr<SceneSession
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
     const auto& sessionInfo = sceneSession->GetSessionInfo();
-    sceneSession->SetSaveStartWindowCallback([this, sessionInfo](std::string path, bool isDark) {
-        this->SetStartWindowPersistencePath(sessionInfo.bundleName_, isDark, path);
+    sceneSession->SetSaveStartWindowCallback([this, sessionInfo](std::string path, std::string saveStartWindowKey) {
+        this->SetStartWindowPersistencePath(sessionInfo.bundleName_, saveStartWindowKey, path);
     });
     return WSError::WS_OK;
 }
@@ -6617,10 +6618,12 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             }
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
-            bool isDark = IsStartWindowDark(sessionInfo);
-            std::string persistencePath = GetStartWindowPersistencePath(sessionInfo.bundleName_, isDark);
+            std::string darkMode = IsStartWindowDark(sessionInfo) ? "dark" : "light";
+            std::string saveStartWindowKey = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +
+                sessionInfo.abilityName_ + '_' + darkMode;
+            std::string persistencePath = GetStartWindowPersistencePath(sessionInfo.bundleName_, saveStartWindowKey);
             if (isCropped && persistencePath.empty()) {
-                sceneSession->SaveStartWindow(pixelMap, isDark);
+                sceneSession->SaveStartWindow(pixelMap, saveStartWindowKey);
             }
         }
         TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s session %{public}d, isSvg %{public}d",
