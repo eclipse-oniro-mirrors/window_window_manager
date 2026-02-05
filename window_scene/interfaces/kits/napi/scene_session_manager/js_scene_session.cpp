@@ -6857,8 +6857,16 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
     std::shared_ptr<NativeReference> jsCallBack = nullptr;
     if (argc >= ARGC_THREE) {
         napi_value value = argv[2];
-        if (value == nullptr || !NapiIsCallable(env, value)) {
+        if (value == nullptr || GetType(env, value) == napi_undefined || GetType(env, value) == napi_null) {
+            TLOGD(WmsLogTag::WMS_PATTERN, "Callback null");
+        } else if (NapiIsCallable(env, value)) {
+            napi_ref result = nullptr;
+            napi_create_reference(env, value, 1, &result);
+            jsCallBack.reset(reinterpret_cast<NativeReference*>(result));
+        } else {
             TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to callback");
+            napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                "Input parameter is missing or invalid"));
             return NapiGetUndefined(env);
         }
     }
@@ -6870,7 +6878,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
             return;
         }
         if (!jsCallBack) {
-            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: jsCallBack is nullptr", where);
+            TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s: jsCallBack is nullptr", where);
             return;
         }
         napi_value argv[] = {};
@@ -6878,7 +6886,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
     };
 
     TLOGI(WmsLogTag::WMS_PATTERN, "argc: %{public}zu, useFfrt: %{public}d, needPersist: %{public}d, "
-        "callback: %{public}d", argc, useFfrt, needPersist, jsCallBack == nullptr);
+        "callback: %{public}d", argc, useFfrt, needPersist, jsCallBack != nullptr);
     auto session = weakSession_.promote();
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_PATTERN, "session is null, id:%{public}d", persistentId_);
