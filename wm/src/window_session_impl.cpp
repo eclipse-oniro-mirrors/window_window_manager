@@ -1523,12 +1523,12 @@ void WindowSessionImpl::FlushLayoutSize(int32_t width, int32_t height)
 
 void WindowSessionImpl::FlushVsync()
 {
-    if (!WindowHelper::IsMainWindow(GetType())) {
+    if (!property_->IsPrelaunch()) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch is false");
         return;
     }
 
-    if (!property_->IsPrelaunch()) {
-        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch is false");
+    if (!WindowHelper::IsMainWindow(GetType())) {
         return;
     }
 
@@ -1537,7 +1537,7 @@ void WindowSessionImpl::FlushVsync()
         return;
     }
 
-    if (hasNotifyPrelaunchStartingwindow_) {
+    if (hasNotifyPrelaunchStartingWindow_) {
         TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch startingwindow has notify");
         return;
     }
@@ -1549,7 +1549,7 @@ void WindowSessionImpl::FlushVsync()
     if (vsyncCount_ >= property_->GetFrameNum()) {
         if (auto session = GetHostSession()) {
             session->NotifyRemovePrelaunchStartingWindow();
-            hasNotifyPrelaunchStartingwindow_ = true;
+            hasNotifyPrelaunchStartingWindow_ = true;
         }
     }
 }
