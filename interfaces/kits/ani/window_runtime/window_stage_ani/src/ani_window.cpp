@@ -3507,10 +3507,10 @@ ani_object AniWindow::SnapshotSync(ani_env* env)
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
     auto retCode = windowToken_->Snapshot(pixelMap);
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
-    if (ret != WmErrorCode::WM_OK || pixelMap == nullptr) {
+    if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] winId: %{public}u snapshot end, retCode: %{public}d",
             windowToken_->GetWindowId(), static_cast<int32_t>(retCode));
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return AniWindowUtils::AniThrowError(env, ret);
     }
     auto nativePixelMap = Media::PixelMapTaiheAni::CreateEtsPixelMap(env, pixelMap);
     if (nativePixelMap == nullptr) {
