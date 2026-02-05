@@ -26,6 +26,8 @@
 
 namespace OHOS::Rosen::DMS {
 
+const std::string FOLD_CREASE_DELIMITER = ",;";
+
 WM_IMPLEMENT_SINGLE_INSTANCE(FoldCreaseRegionController)
 
 FoldCreaseRegionController::FoldCreaseRegionController()
