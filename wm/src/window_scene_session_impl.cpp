@@ -4006,10 +4006,7 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
               GetWindowId(), static_cast<uint32_t>(state));
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-    if (!WindowHelper::IsMainWindow(GetType())) {
-        if (IsSubWindowMaximizeSupported()) {
-            return MaximizeFloating();
-        }
+    if (!WindowHelper::IsMainWindow(GetType()) && !IsSubWindowMaximizeSupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "maximize fail, not main or sub window");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
@@ -6128,13 +6125,6 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(WindowMode mode)
             ret = SetLayoutFullScreenByApiVersion(true);
             if (ret != WMError::WM_OK) {
                 TLOGE(WmsLogTag::WMS_IMMS, "SetLayoutFullScreenByApiVersion errCode:%{public}d winId:%{public}u",
-                    static_cast<int32_t>(ret), GetWindowId());
-            }
-            SystemBarProperty statusProperty = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
-            statusProperty.enable_ = false;
-            ret = SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, statusProperty);
-            if (ret != WMError::WM_OK) {
-                WLOGFE("SetSystemBarProperty errCode:%{public}d winId:%{public}u",
                     static_cast<int32_t>(ret), GetWindowId());
             }
         }
