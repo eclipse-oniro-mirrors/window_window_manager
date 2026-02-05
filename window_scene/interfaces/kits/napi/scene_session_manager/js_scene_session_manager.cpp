@@ -2232,6 +2232,9 @@ napi_value JsSceneSessionManager::OnRequestSceneSession(napi_env env, napi_callb
             napi_throw(env, CreateJsError(
                 env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY), "System is abnormal"));
         }
+        if (!sessionInfo.pageConfig.empty()) {
+            sceneSession->EditSessionInfo().pageConfig = sessionInfo.pageConfig;
+        }
         return jsSceneSessionObj;
     }
 }
