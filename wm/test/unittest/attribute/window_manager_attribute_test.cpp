@@ -70,6 +70,20 @@ HWTEST_F(WindowManagerAttributeTest, SetProcessWatermark, TestSize.Level1)
     auto ret = instance_->SetProcessWatermark(pid, watermarkName, isEnabled);
     EXPECT_EQ(ret, WMError::WM_ERROR_SAMGR);
 }
+
+/**
+ * @tc.name: SetWindowSnapshotSkip
+ * @tc.desc: check SetWindowSnapshotSkip
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerAttributeTest, SetWindowSnapshotSkip, TestSize.Level1)
+{
+    int32_t windowId = 1;
+    bool isSkip = true;
+    auto expectRet = WindowAdapter::GetInstance(userId_).SetWindowSnapshotSkip(windowId, isSkip);
+    auto ret = instance_->SetWindowSnapshotSkip(windowId, isSkip);
+    EXPECT_EQ(ret, expectRet);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

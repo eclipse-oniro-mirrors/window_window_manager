@@ -951,16 +951,15 @@ void ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(SettingObs
 void ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver()
 {
     if (extendScreenIndepDpiObserver_ == nullptr) {
-        TLOGD(WmsLogTag::DMS, "extendScreenIndepDpiObserver_ is nullptr");
+        TLOGW(WmsLogTag::DMS, "extendScreenIndepDpiObserver_ is nullptr");
         return;
     }
     SettingProvider& extendScreenProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
     ErrCode ret = extendScreenProvider.UnregisterObserver(extendScreenIndepDpiObserver_);
     if (ret != ERR_OK) {
         TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
-    } else {
-        extendScreenIndepDpiObserver_ = nullptr;
     }
+    extendScreenIndepDpiObserver_ = nullptr;
 }
 
 bool ScreenSettingHelper::GetSettingExtendScreenDpi(float& coef, const std::string& key)
