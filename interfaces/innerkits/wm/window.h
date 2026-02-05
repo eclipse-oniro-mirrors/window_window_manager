@@ -738,6 +738,7 @@ public:
      */
     virtual void OnWindowWillClose(sptr<Window> window) {}
 };
+
 /**
  * @class IWindowHighlightChangeListener
  *
