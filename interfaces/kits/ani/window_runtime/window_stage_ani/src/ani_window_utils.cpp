@@ -2369,6 +2369,7 @@ bool AniWindowUtils::ParseWindowMask(ani_env* env, ani_array windowMaskArray,
     if (aniRet != ANI_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]Failed to delete g_longCls ref, ret: %{public}u", aniRet);
     }
+    g_longCls = nullptr;
     return true;
 }
 
