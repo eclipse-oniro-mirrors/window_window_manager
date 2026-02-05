@@ -667,6 +667,7 @@ protected:
     void ClearVsyncStation();
     WMError WindowSessionCreateCheck();
     void UpdateDecorEnableToAce(bool isDecorEnable);
+    bool NeedShowDecorInOtherDisplay(bool decorVisible);
     void NotifyModeChange(WindowMode mode, bool hasDeco = true);
     void NotifyFreeWindowModeChange(bool isInFreeWindowMode);
     WMError UpdateProperty(WSPropertyChangeAction action);
