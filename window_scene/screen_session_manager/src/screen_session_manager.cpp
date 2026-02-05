@@ -12934,7 +12934,7 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
         ScreenCombination firstCombination = firstSession->GetScreenCombination();
         ScreenCombination secondaryCombination = secondarySession->GetScreenCombination();
         MultiScreenManager::GetInstance().MultiScreenModeChange(firstSession, secondarySession, operateMode);
-        HandleModeChangeReportAndNotify();
+        HandleModeChangeReportAndNotify(firstSession, secondarySession, firstCombination, secondaryCombination);
     } else {
         TLOGNFE(WmsLogTag::DMS, "params error");
     }
@@ -12951,14 +12951,12 @@ void ScreenSessionManager::HandleModeChangeReportAndNotify(sptr<ScreenSession>& 
         && operateMode == SCREEN_EXTEND) {
         MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_EXIT_STR);
         MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_ENTER_STR);
-        NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(),
-            DisplayChangeEvent::SOURCE_MODE_CHANGED);
+        NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(), DisplayChangeEvent::SOURCE_MODE_CHANGED);
     } else if ((firstCombination == ScreenCombination::SCREEN_EXTEND ||secondaryCombination == ScreenCombination::SCREEN_EXTEND)
         && operateMode == SCREEN_MIRROR) {
         MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_EXIT_STR);
         MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_ENTER_STR);
-        NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(),
-            DisplayChangeEvent::SOURCE_MODE_CHANGED);
+        NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(), DisplayChangeEvent::SOURCE_MODE_CHANGED);
     } else {
         std::map<DisplayId, sptr<DisplayInfo>> emptyMap;
         if (firstSession != nullptr) {
