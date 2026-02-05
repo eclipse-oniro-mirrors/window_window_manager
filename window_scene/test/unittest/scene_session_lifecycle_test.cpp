@@ -274,6 +274,26 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground07, TestSize.Level0)
 }
 
 /**
+ * @tc.name: ForegroundTask
+ * @tc.desc: ForegroundTask function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, ForegroundTask, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "ForegroundTask";
+    info.bundleName_ = "ForegroundTask";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_ = property;
+    session->SetSessionState(SessionState::STATE_CONNECT);
+    session->SetNeedBackgroundAfterConnect(true);
+    EXPECT_EQ(WSError::WS_OK, session->ForegroundTask(property));
+    EXPECT_FALSE(session->GetNeedBackgroundAfterConnect());
+}
+
+/**
  * @tc.name: Background01
  * @tc.desc: normal function
  * @tc.type: FUNC
