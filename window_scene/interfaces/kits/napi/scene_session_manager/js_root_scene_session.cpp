@@ -467,6 +467,16 @@ void JsRootSceneSession::PendingSessionActivation(SessionInfo& info)
 void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
     const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs)
 {
+    std::vector<sptr<SceneSession>> sceneSessions;
+    size_t index = 0;
+    if (!configs.empty() && sessionInfos.size() != configs.size()) {
+        TLOGE(WmsLogTag::WMS_LIFE,
+            "The caller Param is illegal parameters. sessionInfos: %{public}zu configs: %{public}zu",
+            sessionInfos.size(), config.size());
+        return;
+    }
+
+
     for (auto& info : sessionInfos) {
         if (info == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "sessionInfo is null");
@@ -483,17 +493,17 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
         }
 
         if (info->want != nullptr) {
-            bool isNeedBackToOther = info.want->GetBoolParam(AAFwk::Want::PARAM_BACK_TO_OTHER_MISSION_STACK, false);
+            bool isNeedBackToOther = info->want->GetBoolParam(AAFwk::Want::PARAM_BACK_TO_OTHER_MISSION_STACK, false);
             TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d isNeedBackToOther: %{public}d",
                 sceneSession->GetPersistentId(), isNeedBackToOther);
             if (isNeedBackToOther) {
-                info.callerPersistentId_ = GetRealCallerSessionId(sceneSession);
+                info->callerPersistentId_ = GetRealCallerSessionId(sceneSession);
                 VerifyCallerToken(info);
             } else {
-                info.callerPersistentId_ = INVALID_SESSION_ID;
+                info->callerPersistentId_ = INVALID_SESSION_ID;
             }
 
-            auto focusedOnShow = info.want->GetBoolParam(AAFwk::Want::PARAM_RESV_WINDOW_FOCUSED, true);
+            auto focusedOnShow = info->want->GetBoolParam(AAFwk::Want::PARAM_RESV_WINDOW_FOCUSED, true);
             sceneSession->SetFocusedOnShow(focusedOnShow);
 
             std::string continueSessionId =
@@ -522,7 +532,7 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
         if (info->fullScreenStart_) {
             sceneSession->NotifySessionFullScreen(true);
         }
-        sceneSession.emplace_back(sceneSession);
+        sceneSessions.emplace_back(sceneSession);
     }
     BatchPendingSessionsActivationInner(sessionInfos, configs);
 }
