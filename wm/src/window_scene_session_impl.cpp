@@ -509,6 +509,7 @@ WMError WindowSceneSessionImpl::CreateSystemWindow(WindowType type)
         property_->SetParentPersistentId(parentSession->GetPersistentId());
         property_->SetDisplayId(parentSession->GetDisplayId());
     }
+    SetDefaultDisplayIdIfNeed();
     return WMError::WM_OK;
 }
 
@@ -5040,8 +5041,8 @@ void WindowSceneSessionImpl::UpdateConfigurationForAll(const std::shared_ptr<App
 {
     std::unordered_set<std::shared_ptr<AbilityRuntime::Context>> ignoreWindowCtxSet(
         ignoreWindowContexts.begin(), ignoreWindowContexts.end());
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "scene map size: %{public}u", static_cast<uint32_t>(windowSessionMap_.size()));
     std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "scene map size: %{public}u", static_cast<uint32_t>(windowSessionMap_.size()));
     for (const auto& winPair : windowSessionMap_) {
         auto window = winPair.second.second;
         if (window == nullptr) {

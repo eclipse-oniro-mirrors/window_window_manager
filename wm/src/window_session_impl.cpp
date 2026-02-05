@@ -2177,7 +2177,7 @@ WMError WindowSessionImpl::AniSetUIContent(const std::string& contentInfo, ani_e
 }
 
 WMError WindowSessionImpl::NapiSetUIContentByName(const std::string& contentName, napi_env env, napi_value storage,
-    BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
+    BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)t
 {
     return SetUIContentInner(contentName, env, storage, WindowSetUIContentType::BY_NAME,
         BackupAndRestoreType::NONE, ability);
@@ -2222,7 +2222,8 @@ void WindowSessionImpl::ReleaseUIContent()
 
 void WindowSessionImpl::DestroyExistUIContent()
 {
-    if (auto uiContent = GetUIContentSharedPtr()) {
+    std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
+    if (uiContent) {
         uiContent->Destroy();
     }
 }
@@ -6791,7 +6792,7 @@ template<typename T>
 EnableIfSame<T, IWindowRotationChangeListener, std::vector<sptr<IWindowRotationChangeListener>>> WindowSessionImpl::GetListeners()
 {
     std::vector<sptr<IWindowRotationChangeListener>> windowRotationChangeListener;
-    for (auto& listener : windowRotationChangeListeners_[GetPersistentId()]) {
+    for (const auto& listener : windowRotationChangeListeners_[GetPersistentId()]) {
         windowRotationChangeListener.push_back(listener);
     }
     return windowRotationChangeListener;

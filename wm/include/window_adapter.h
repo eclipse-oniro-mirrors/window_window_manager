@@ -289,14 +289,14 @@ private:
     std::map<int32_t, SessionRecoverCallbackFunc> sessionRecoverCallbackFuncMap_;
     // above guarded by mutex_
 
-    std::mutex effectMutex_;
-    std::map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap_;
-
     // Note: Currently, sptr does not support unordered_map<T, unordered_set<sptr<T>>>.
     std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentMap_;
     std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentFaultMap_;
     std::mutex wmAgentMapMutex_;
     // Agent map both locked by wmAgentMapMutex_
+
+    std::mutex effectMutex_;
+    std::map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap_;
 
     std::mutex outlineMutex_;
     OutlineRecoverCallbackFunc outlineRecoverCallbackFunc_;

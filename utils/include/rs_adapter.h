@@ -109,6 +109,7 @@ public:
 
     static std::shared_ptr<RSTransaction> GetRSTransaction(const std::shared_ptr<RSUIContext>& rsUIContext);
     static std::shared_ptr<RSTransaction> GetRSTransaction(const std::shared_ptr<RSNode>& rsNode);
+    // isInnerProcess means sync only in sceneboard process
     static void OpenSyncTransaction(const std::shared_ptr<RSUIContext>& rsUIContext, bool isInnerProcess,
         const std::shared_ptr<AppExecFwk::EventHandler>& handler = nullptr);
     static void OpenSyncTransaction(const std::shared_ptr<RSUIContext>& rsUIContext,

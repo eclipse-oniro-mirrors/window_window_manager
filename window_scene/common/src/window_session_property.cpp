@@ -1469,8 +1469,9 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteFloat(cornerRadius_) && parcel.WriteBool(isExclusivelyHighlighted_) &&
         parcel.WriteBool(isAtomicService_) && parcel.WriteUint32(apiVersion_) &&
         parcel.WriteBool(isFullScreenWaterfallMode_) && parcel.WriteBool(isAbilityHookOff_) &&
-        parcel.WriteBool(isAbilityHook_) && parcel.WriteBool(isFollowScreenChange_) &&
-        parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(subWindowOutlineEnabled_) &&
+        parcel.WriteBool(isAbilityHook_) &&
+        parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(isFollowScreenChange_) &&
+        parcel.WriteBool(subWindowOutlineEnabled_) &&   
         parcel.WriteUint32(windowModeSupportType_) &&
         MarshallingShadowsInfo(parcel) &&
         MarshallingWindowAnchorInfo(parcel) &&

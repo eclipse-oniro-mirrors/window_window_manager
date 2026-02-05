@@ -899,14 +899,14 @@ std::string WindowImpl::GetContentInfo(BackupAndRestoreType type)
 
 WMError WindowImpl::SetRestoredRouterStack(const std::string& routerStack)
 {
-    TLOGD(WmsLogTag::WMS_LIFE, "Set restored router stack.");
+    TLOGI(WmsLogTag::WMS_LIFE, "Set restored router stack.");
     restoredRouterStack_ = routerStack;
     return WMError::WM_OK;
 }
 
 std::string WindowImpl::GetRestoredRouterStack()
 {
-    TLOGD(WmsLogTag::WMS_LIFE, "Get restored router stack.");
+    TLOGI(WmsLogTag::WMS_LIFE, "Get restored router stack.");
     return std::move(restoredRouterStack_);
 }
 

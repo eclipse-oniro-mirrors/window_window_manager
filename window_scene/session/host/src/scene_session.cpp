@@ -2237,6 +2237,9 @@ void SceneSession::UpdateSessionRectPosYFromClient(SizeChangeReason reason, Disp
     TLOGI(WmsLogTag::WMS_LAYOUT, "winId: %{public}d, input: %{public}s, screenId: %{public}" PRIu64
         ", clientDisplayId: %{public}" PRIu64 ", configDisplayId: %{public}" PRIu64,
         GetPersistentId(), rect.ToString().c_str(), GetScreenId(), clientDisplayId, configDisplayId_);
+    if (configDisplayId_ == DEFAULT_DISPLAY_ID) {
+        return;
+    }
     if (configDisplayId_ != VIRTUAL_DISPLAY_ID && clientDisplayId != VIRTUAL_DISPLAY_ID) {
         return;
     }
@@ -6508,6 +6511,12 @@ WMError SceneSession::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
         TLOGE(WmsLogTag::DEFAULT, "get session property failed");
         return WMError::WM_ERROR_NULLPTR;
     }
+    if (action == WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED) {
+        if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_WINDOW_TRANSPARENT) &&
+            containerColorList_.count(GetSessionInfo().bundleName_) == 0) {
+            return WMError::WM_ERROR_INVALID_PERMISSION;
+        }
+    }
     if (action == WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE) {
         if (!SessionPermission::VerifyCallingPermission("ohos.permission.PRIVACY_WINDOW")) {
             return WMError::WM_ERROR_INVALID_PERMISSION;
@@ -6621,7 +6630,7 @@ void SceneSession::SetFullScreenWaterfallMode(bool isFullScreenWaterfallMode)
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d pcFoldScreenController is null", GetPersistentId());
         return;
     }
-    return pcFoldScreenController_->SetFullScreenWaterfallMode(isFullScreenWaterfallMode);
+    pcFoldScreenController_->SetFullScreenWaterfallMode(isFullScreenWaterfallMode);
 }
 
 WSError SceneSession::GetWaterfallMode(bool& isWaterfallMode)
@@ -6921,11 +6930,6 @@ WMError SceneSession::HandleActionUpdateWindowShadowEnabled(const sptr<WindowSes
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d, enabled: %{public}u",
         GetPersistentId(), property->GetWindowShadowEnabled());
-    if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_WINDOW_TRANSPARENT) &&
-        containerColorList_.count(GetSessionInfo().bundleName_) == 0) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d: permission denied", GetPersistentId());
-        return WMError::WM_ERROR_INVALID_PERMISSION;
-    }
     if (!WindowHelper::IsMainWindow(GetWindowType())) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, type is not supported", GetPersistentId());
         return WMError::WM_ERROR_INVALID_CALLING;
@@ -8524,7 +8528,6 @@ void SceneSession::RegisterNotifySurfaceBoundsChangeFunc(int32_t sessionId, Noti
     }
     std::lock_guard lock(registerNotifySurfaceBoundsChangeMutex_);
     notifySurfaceBoundsChangeFuncMap_[sessionId] = func;
-    NotifyFollowedParentWindowAcrossDisplaysChange(IsFullScreenWaterfallMode());
 }
 
 void SceneSession::UnregisterNotifySurfaceBoundsChangeFunc(int32_t sessionId)
