@@ -4787,7 +4787,7 @@ public:
      /**
      * @brief The comaptible mode app adapt to immersive or not.
      *
-     * @return true means comptible app adapt to immersive, others means not.
+     * @return true means compatible app adapt to immersive, others means not.
      */
     virtual bool IsAdaptToCompatibleImmersive() const { return false; }
 
