@@ -331,6 +331,19 @@ HWTEST_F(DisplayManagerAdapterTest, GetSupportedHDRFormats, TestSize.Level1)
 }
 
 /**
+ * @tc.name: QueryMultiScreenCapture
+ * @tc.desc: QueryMultiScreenCapture test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, QueryMultiScreenCapture, TestSize.Level1)
+{
+    std::vector<ScreenId> displayIdList = {DISPLAY_ID_INVALID};
+    DMRect rect;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_NE(err, DMError::DM_OK);
+}
+
+/**
  * @tc.name: GetScreenHDRFormat
  * @tc.desc: test success
  * @tc.type: FUNC

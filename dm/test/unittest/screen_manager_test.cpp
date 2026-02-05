@@ -818,6 +818,27 @@ HWTEST_F(ScreenManagerTest, MakeMirror_002, TestSize.Level1)
 }
 
 /**
+ * @tc.name: QueryMultiScreenCapture
+ * @tc.desc: QueryMultiScreenCapture func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerTest, QueryMultiScreenCapture, TestSize.Level1)
+{
+    std::vector<ScreenId> displayIdList = {};
+    DMRect rect;
+    auto& screenManager = ScreenManager::GetInstance();
+    auto ret = screenManager.QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    displayIdList = {0};
+    screenManager.QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_TRUE(g_logMsg.find("display id list") != std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: StopExpand
  * @tc.desc: StopExpand fun
  * @tc.type: FUNC

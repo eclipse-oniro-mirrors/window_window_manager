@@ -23,6 +23,8 @@ constexpr DisplayId DEFAULT_DISPLAY_ID = 0;
 constexpr ScreenId SCREEN_ID_DEFAULT = 0;
 constexpr uint64_t SCREEN_ID_SIZE_MAX = 2;
 constexpr uint64_t SCREEN_ID_SIZE_ONE = 1;
+constexpr DMRect FULL_SCREEN_RECORD_DMRECT = {0, 0, 0, 0};
+constexpr DMRect FULL_SCREEN_RECORD_PHYDMRECT = {0, 0, DISPLAY_A_WIDTH, DISPLAY_A_HEIGHT};
 }
 
 bool SuperFoldPolicy::IsFakeDisplayExist()
@@ -118,6 +120,45 @@ DMRect SuperFoldPolicy::GetRecordRect(const std::vector<ScreenId>& screenIds)
         << " bottom:" << recordRect.height_;
     TLOGW(WmsLogTag::DMS, "%{public}s", oss.str().c_str());
     return recordRect;
+}
+
+DMError SuperFoldPolicy::QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect)
+{
+    DMError ret = DMError::DM_ERROR_UNKNOWN;
+    if (displayIdList.empty() || displayIdList.size() > SCREEN_ID_SIZE_MAX) {
+        return DMError::DM_ERROR_INVALID_PARAM;
+    } else if (displayIdList.size() == SCREEN_ID_SIZE_MAX) {
+        if (std::find(displayIdList.begin(), displayIdList.end(), MAIN_SCREEN_ID_DEFAULT) != displayIdList.end() &&
+            std::find(displayIdList.begin(), displayIdList.end(), SCREEN_ID_FAKE) != displayIdList.end()) {
+            rect = FULL_SCREEN_RECORD_PHYDMRECT;
+            ret = DMError::DM_OK;
+        } else {
+            return DMError::DM_ERROR_INVALID_PARAM;
+        }
+    } else {
+        auto displayInfo = ScreenSessionManager::GetInstance().GetDisplayInfoById(displayIdList[0]);
+        if (displayIdList[0] == SCREEN_ID_FAKE) {
+            rect = GetRecordRect(displayIdList);
+            ret = DMError::DM_OK;
+        } else {
+            rect = FULL_SCREEN_RECORD_DMRECT;
+            if (displayInfo) {
+                rect.width_ = displayInfo->GetWidth();
+                rect.height_ = displayInfo->GetHeight();
+                ret = DMError::DM_OK;
+            } else {
+                return DMError::DM_ERROR_INVALID_PARAM;
+            }
+        }
+    }
+
+    std::ostringstream oss;
+    oss << "snapshot left: 0"
+        << " top:" << rect.posY_
+        << " right:" << rect.width_
+        << " bottom:" << rect.height_;
+    TLOGW(WmsLogTag::DMS, "%{public}s", oss.str().c_str());
+    return ret;
 }
 
 ScreenId SuperFoldPolicy::GetRealScreenId(const std::vector<ScreenId>& screenIds)

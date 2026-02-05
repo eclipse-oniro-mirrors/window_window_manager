@@ -31,6 +31,7 @@ public:
     Drawing::Rect GetSnapshotRect(DisplayId displayId, bool isCaptureFullOfScreen = false);
     DMRect GetRecordRect(const std::vector<ScreenId>& screenIds);
     ScreenId GetRealScreenId(const std::vector<ScreenId>& screenIds);
+    DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect);
 };
 }
 #endif // OHOS_ROSEN_WINDOW_SUPER_FOLD_POLICY_H

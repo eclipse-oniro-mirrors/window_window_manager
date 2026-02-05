@@ -145,6 +145,8 @@ public:
         bool forceMirror = false) override;
     virtual DMError MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,
         std::vector<ScreenId>& mirrorScreenIds, ScreenId& screenGroupId) override;
+    virtual DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect) override;
+    std::vector<DisplayId> GetAllValidDisplayIds(const std::vector<DisplayId>& displayIds);
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
         DMRect mainScreenRegion, ScreenId& screenGroupId) override;
     virtual DMError SetMultiScreenMode(ScreenId mainScreenId, ScreenId secondaryScreenId,
