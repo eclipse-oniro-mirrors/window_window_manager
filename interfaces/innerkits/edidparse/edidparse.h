@@ -45,13 +45,13 @@ typedef struct baseEdid {
 // Making API functions visible to callers
 extern "C" {
 /**
- * @brief Obtain the edid parse result based on the input edid information.
+ * @brief  Obtain the edid parse result based on the input edid information.
  *
- * @param edid - (input) orginal edid value
- * @param outEdid - (output) the dp infomation parsed through edid.
+ * @param  edid - (input) orginal edid value
+ * @param  outEdid - (output) the dp infomation parsed through edid.
  *
- * @return Integer indicating whether the parse is successful, 0: Succeed, -1: Failed
+ * @return Integer indicating whether the parse is successful, 0: Succeeded, -1: Failed
  */
 int ParseBaseEdid(const uint8_t* edidData, const uint32_t edidSize, BaseEdid* outEdid);
 }
-#endif  // OHOS_ROSEN_EDIDPARSE_H
+#endif
