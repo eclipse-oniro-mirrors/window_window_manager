@@ -335,6 +335,50 @@ namespace window {
     bottomRect: Rect;
   }
 
+  export interface UIEnvAvoidAreaVP {
+    visible: boolean;
+    leftRect: RectInVP;
+    topRect: RectInVP;
+    rightRect: RectInVP;
+    bottomRect: RectInVP;
+  }
+
+  export class UIEnvAvoidAreaVPInternal implements UIEnvAvoidAreaVP {
+    visible: boolean;
+    leftRect: RectInVP;
+    topRect: RectInVP;
+    rightRect: RectInVP;
+    bottomRect: RectInVP;
+  }
+
+  export interface UIEnvWindowAvoidAreaInfoPX {
+    statusBar: AvoidArea;
+    cutout: AvoidArea;
+    keyboard: AvoidArea;
+    navigationIndicator: AvoidArea;
+  }
+
+  export class UIEnvWindowAvoidAreaInfoPXInternal implements UIEnvWindowAvoidAreaInfoPX {
+    statusBar: AvoidArea;
+    cutout: AvoidArea;
+    keyboard: AvoidArea;
+    navigationIndicator: AvoidArea;
+  }
+
+  export interface UIEnvWindowAvoidAreaInfoVP {
+    statusBar: UIEnvAvoidAreaVP;
+    cutout: UIEnvAvoidAreaVP;
+    keyboard: UIEnvAvoidAreaVP;
+    navigationIndicator: UIEnvAvoidAreaVP;
+  }
+
+  export class UIEnvWindowAvoidAreaInfoVPInternal implements UIEnvWindowAvoidAreaInfoVP {
+    statusBar: UIEnvAvoidAreaVP;
+    cutout: UIEnvAvoidAreaVP;
+    keyboard: UIEnvAvoidAreaVP;
+    navigationIndicator: UIEnvAvoidAreaVP;
+  }
+
   /**
    * System bar tint of region
    *
@@ -625,6 +669,20 @@ namespace window {
     }
   }
 
+  export interface RectInVP {
+    left: double;
+    top: double;
+    width: double;
+    height: double;
+  }
+
+  export class RectInVPInternal implements RectInVP {
+    left: double;
+    top: double;
+    width: double;
+    height: double;
+  }
+
   export interface RectChangeOptions {
     rect: Rect;
     reason: RectChangeReason;
@@ -633,6 +691,16 @@ namespace window {
   export class SizeInternal implements Size {
     width: int;
     height: int;
+  }
+
+  export interface SizeInVP {
+    width: double;
+    height: double;
+  }
+
+  export class SizeInVPInternal implements SizeInVP {
+    width: double;
+    height: double;
   }
 
   export interface Position {
