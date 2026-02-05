@@ -146,7 +146,7 @@ group("unittest") {
       "window_pattern:window_pattern_starting_window_test",
       "window_recover:ws_window_recover_session_test",
       ":ws_session_manager_ut_test",
-      ":scene_session_manager_pattern_test",
+      "scene_session_manager_pattern:scene_session_manager_pattern_test",
     ]
   } else {
     deps += [
