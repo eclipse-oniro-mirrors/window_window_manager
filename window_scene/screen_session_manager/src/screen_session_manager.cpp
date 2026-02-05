@@ -12934,40 +12934,38 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
         ScreenCombination firstCombination = firstSession->GetScreenCombination();
         ScreenCombination secondaryCombination = secondarySession->GetScreenCombination();
         MultiScreenManager::GetInstance().MultiScreenModeChange(firstSession, secondarySession, operateMode);
-        HandleModeChangeReportAndNotify(firstSession, secondarySession, firstCombination, secondaryCombination);
+        if ((firstCombination == ScreenCombination::SCREEN_MIRROR ||
+            secondaryCombination == ScreenCombination::SCREEN_MIRROR) &&
+            operateMode == SCREEN_EXTEND) {
+            MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_EXIT_STR);
+            MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_ENTER_STR);
+            NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(),
+                DisplayChangeEvent::SOURCE_MODE_CHANGED);
+        } else if ((firstCombination == ScreenCombination::SCREEN_EXTEND ||
+            secondaryCombination == ScreenCombination::SCREEN_EXTEND) &&
+            operateMode == SCREEN_MIRROR) {
+            MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_EXIT_STR);
+            MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_ENTER_STR);
+            NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(),
+                DisplayChangeEvent::SOURCE_MODE_CHANGED);
+        } else {
+                std::map<DisplayId, sptr<DisplayInfo>> emptyMap;
+            if (firstSession != nullptr) {
+                NotifyDisplayStateChange(firstSession->GetScreenId(), firstSession->ConvertToDisplayInfo(),
+                    emptyMap, DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
+            }
+            if (secondarySession != nullptr) {
+                NotifyDisplayStateChange(secondarySession->GetScreenId(), secondarySession->ConvertToDisplayInfo(),
+                    emptyMap, DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
+            }
+
+        }
     } else {
         TLOGNFE(WmsLogTag::DMS, "params error");
     }
     NotifyScreenModeChange();
     OnScreenModeChange(ScreenModeChangeEvent::END);
 #endif
-}
-
-void ScreenSessionManager::HandleModeChangeReportAndNotify(sptr<ScreenSession>& firstSession,
-    sptr<ScreenSession>& secondarySession, ScreenCombination firstCombination,ScreenCombination secondaryCombination,
-    const std::string& operateMode)
-{
-    if ((firstCombination == ScreenCombination::SCREEN_MIRROR || secondaryCombination == ScreenCombination::SCREEN_MIRROR)
-        && operateMode == SCREEN_EXTEND) {
-        MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_EXIT_STR);
-        MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_ENTER_STR);
-        NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(), DisplayChangeEvent::SOURCE_MODE_CHANGED);
-    } else if ((firstCombination == ScreenCombination::SCREEN_EXTEND ||secondaryCombination == ScreenCombination::SCREEN_EXTEND)
-        && operateMode == SCREEN_MIRROR) {
-        MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_EXIT_STR);
-        MultiScreenManager::GetInstance().MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_ENTER_STR);
-        NotifyDisplayChanged(secondarySession->ConvertToDisplayInfo(), DisplayChangeEvent::SOURCE_MODE_CHANGED);
-    } else {
-        std::map<DisplayId, sptr<DisplayInfo>> emptyMap;
-        if (firstSession != nullptr) {
-            NotifyDisplayStateChange(firstSession->GetScreenId(), firstSession->ConvertToDisplayInfo(),
-                emptyMap, DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
-        }
-        if (secondarySession != nullptr) {
-            NotifyDisplayStateChange(secondarySession->GetScreenId(), secondarySession->ConvertToDisplayInfo(),
-                emptyMap, DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
-        }
-    }
 }
 
 void ScreenSessionManager::OperateModeChange(ScreenId mainScreenId, ScreenId secondaryScreenId,
