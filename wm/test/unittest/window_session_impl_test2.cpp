@@ -305,6 +305,10 @@ HWTEST_F(WindowSessionImplTest2, RecoverSessionListener, TestSize.Level1)
     occlusionStateChangeListeners.push_back(nullptr);
     window->occlusionStateChangeListeners_.clear();
     window->occlusionStateChangeListeners_.insert({ id, occlusionStateChangeListeners });
+    std::vector<sptr<IScreenshotListener>> screenshotListeners;
+    screenshotListeners.push_back(nullptr);
+    window->screenshotListeners_.clear();
+    window->screenshotListeners_.insert({ id, screenshotListeners });
     window->RecoverSessionListener();
     window->occlusionStateChangeListeners_.clear();
     ASSERT_TRUE(window->avoidAreaChangeListeners_.find(id) != window->avoidAreaChangeListeners_.end() &&
@@ -1951,6 +1955,51 @@ HWTEST_F(WindowSessionImplTest2, NotifyScreenshot02, TestSize.Level1)
     window_->NotifyScreenshot();
     window_->UnregisterScreenshotListener(listener);
     GTEST_LOG_(INFO) << "WindowSessionImplTest2: NotifyScreenshot02 end";
+}
+
+/**
+ * @tc.name: RegisterScreenshotListener
+ * @tc.desc: register screenshot change listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, RegisterScreenshotListener, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("RegisterScreenshotListener");
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    window->screenshotListeners_.clear();
+    EXPECT_NE(window->RegisterScreenshotListener(nullptr), WMError::WM_OK);
+    sptr<IScreenshotListener> listener = sptr<IScreenshotListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterScreenshotListener(listener), WMError::WM_OK);
+    EXPECT_EQ(window->screenshotListeners_.size(), 1);
+    window->screenshotListeners_[window->GetPersistentId()].push_back(nullptr);
+    sptr<IScreenshotListener> listener2 = sptr<IScreenshotListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterScreenshotListener(listener2), WMError::WM_OK);
+    window->screenshotListeners_.clear();
+    window->Destroy();
+}
+
+/**
+ * @tc.name: UnregisterScreenshotListener
+ * @tc.desc: unregister screenshot change listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, UnregisterScreenshotListener, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("UnregisterScreenshotListener");
+    ASSERT_NE(window, nullptr);
+    window->screenshotListeners_.clear();
+    EXPECT_NE(window->UnregisterScreenshotListener(nullptr), WMError::WM_OK);
+    sptr<IScreenshotListener> listener = sptr<IScreenshotListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterScreenshotListener(listener), WMError::WM_OK);
+    sptr<IScreenshotListener> listener2 = sptr<IScreenshotListener>::MakeSptr();
+    EXPECT_EQ(window->RegisterScreenshotListener(listener2), WMError::WM_OK);
+    EXPECT_EQ(window->UnregisterScreenshotListener(listener), WMError::WM_OK);
+    EXPECT_EQ(window->screenshotListeners_.size(), 1);
+    EXPECT_EQ(window->UnregisterScreenshotListener(listener2), WMError::WM_OK);
+    window->screenshotListeners_.clear();
+    EXPECT_EQ(window->screenshotListeners_.size(), 0);
+    window->Destroy();
 }
 
 /**

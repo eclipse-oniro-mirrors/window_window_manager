@@ -99,6 +99,7 @@ private:
     int HandleWatchFocusActiveChange(MessageParcel& data, MessageParcel& reply);
     int HandleGetParentMainWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionWindowVisibilityListener(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateSessionScreenshotListener(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionOcclusionStateListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowStateSnapshot(MessageParcel& data, MessageParcel& reply);
     int HandleShiftAppWindowFocus(MessageParcel& data, MessageParcel& reply);

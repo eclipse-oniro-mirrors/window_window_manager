@@ -4617,6 +4617,16 @@ void WindowSessionImpl::RecoverSessionListener()
         }
     }
     {
+        bool hasListener = false;
+        {
+            std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+            hasListener = screenshotListeners_.count(persistentId) > 0 && !screenshotListeners_[persistentId].empty();
+        }
+        if (hasListener) {
+            SingletonContainer::Get<WindowAdapter>().UpdateSessionScreenshotListener(persistentId, true);
+        }
+    }
+    {
         std::lock_guard<std::recursive_mutex> lockListener(screenshotAppEventListenerMutex_);
         if (screenshotAppEventListeners_.find(persistentId) != screenshotAppEventListeners_.end() &&
             !screenshotAppEventListeners_[persistentId].empty()) {
@@ -5735,16 +5745,59 @@ WMError WindowSessionImpl::UnregisterDialogTargetTouchListener(const sptr<IDialo
 
 WMError WindowSessionImpl::RegisterScreenshotListener(const sptr<IScreenshotListener>& listener)
 {
-    WLOGFD("in");
-    std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
-    return RegisterListener(screenshotListeners_[GetPersistentId()], listener);
+    auto persistentId = GetPersistentId();
+    bool isFirstRegister = false;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        auto ret = RegisterListener(screenshotListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
+            return ret;
+        }
+        isFirstRegister = screenshotListeners_[persistentId].size() == 1;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isFirstRegister=%{public}d", persistentId, isFirstRegister);
+    if (!isFirstRegister) {
+        return WMError::WM_OK;
+    }
+    auto ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionScreenshotListener(persistentId, true);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
+            persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        ret = UnregisterListener(screenshotListeners_[persistentId], listener);
+    }
+    return ret;
 }
 
 WMError WindowSessionImpl::UnregisterScreenshotListener(const sptr<IScreenshotListener>& listener)
 {
-    WLOGFD("in");
-    std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
-    return UnregisterListener(screenshotListeners_[GetPersistentId()], listener);
+    auto persistentId = GetPersistentId();
+    bool isLastUnregister = false;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        auto ret = UnregisterListener(screenshotListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
+            return ret;
+        }
+        if (screenshotListeners_[persistentId].empty()) {
+            screenshotListeners_.erase(persistentId);
+            isLastUnregister = true;
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isLastUnregister=%{public}d", persistentId, isLastUnregister);
+    if (!isLastUnregister) {
+        return WMError::WM_OK;
+    }
+    auto ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionScreenshotListener(persistentId, false);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
+            persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        ret = RegisterListener(screenshotListeners_[persistentId], listener);
+    }
+    return ret;
 }
 
 WMError WindowSessionImpl::RegisterScreenshotAppEventListener(const IScreenshotAppEventListenerSptr& listener)

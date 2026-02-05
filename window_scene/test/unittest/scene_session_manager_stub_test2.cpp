@@ -177,6 +177,46 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverWatermarkImageForApp01, Test
 }
 
 /**
+ * @tc.name: HandleUpdateSessionScreenshotListener
+ * @tc.desc: test HandleUpdateSessionScreenshotListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleUpdateSessionScreenshotListener, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInt32(1);
+    data.WriteBool(false);
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_UPDATE_SESSION_SCREENSHOT_LISTENER);
+    auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_NE(res, ERR_NULL_OBJECT);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    res = stub_->HandleUpdateSessionScreenshotListener(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    MessageParcel data2;
+    data2.WriteInt32(2);
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    res = stub_->HandleUpdateSessionScreenshotListener(data2, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+
+    MessageParcel data3;
+    data3.WriteInt32(3);
+    data3.WriteBool(false);
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    res = stub_->HandleUpdateSessionScreenshotListener(data3, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: HandleUpdateSessionOcclusionStateListener
  * @tc.desc: test HandleUpdateSessionOcclusionStateListener
  * @tc.type: FUNC
