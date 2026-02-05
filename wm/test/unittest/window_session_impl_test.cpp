@@ -28,6 +28,7 @@
 #include "mock_session_stub.h"
 #include "mock_uicontent.h"
 #include "mock_window.h"
+#include "mock_window_session_impl.h"
 #include "mock_window_session_property.h"
 #include "parameters.h"
 #include "window_helper.h"
@@ -595,15 +596,17 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus01, TestSize.Level1)
     option->SetWindowName("UpdateFocus01");
     sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
     ASSERT_NE(window, nullptr);
-    window->updateFocusTimeStamp_.store(2);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
     auto info = sptr<FocusNotifyInfo>::MakeSptr();
     info->isSyncNotify_ = true;
-    info->timeStamp_ = 1;
+    info->timeStamp_ = currentTimeStamp - 1000;
     WSError res = window->UpdateFocus(info, true);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 2);
-    info->timeStamp_ = 3;
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp);
+    info->timeStamp_ = currentTimeStamp + 1000;
     res = window->UpdateFocus(info, false);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 3);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
     res = window->UpdateFocus(info, true);
     EXPECT_EQ(res, WSError::WS_OK);
 }
@@ -623,13 +626,24 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus02, TestSize.Level1)
     ASSERT_NE(window1, nullptr);
     window->property_->SetPersistentId(1);
     window1->property_->SetPersistentId(2);
-    window->updateFocusTimeStamp_.store(2);
-    auto info = sptr<FocusNotifyInfo>::MakeSptr(3, window->GetWindowId(), window1->GetWindowId(), true);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
+    auto info = sptr<FocusNotifyInfo>::MakeSptr(currentTimeStamp + 1000, window->GetWindowId(),
+        window1->GetWindowId(), true);
     WSError res = window->UpdateFocus(info, true);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 3);
-    info->timeStamp_ = 4;
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
+    info->timeStamp_ = currentTimeStamp + 2000;
     res = window->UpdateFocus(info, false);
-    EXPECT_EQ(window->updateFocusTimeStamp_.load(), 4);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 2000);
+    info->timeStamp_ = currentTimeStamp + 3000;
+    info->unfocusWindowId_ = 300;
+    res = window->UpdateFocus(info, true);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 3000);
+    info->timeStamp_ = currentTimeStamp + 4000;
+    info->focusWindowId_ = 300;
+    res = window->UpdateFocus(info, false);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 4000);
     EXPECT_EQ(res, WSError::WS_OK);
 }
 
@@ -2359,6 +2373,80 @@ HWTEST_F(WindowSessionImplTest, GetStatusBarHeight, TestSize.Level1)
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
     ASSERT_EQ(0, window->GetStatusBarHeight());
+}
+
+/**
+ * @tc.name: GetWindowStatusInner
+ * @tc.desc: GetStatusBarHeightFunOptimize
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, GetWindowStatusInner01, TestSize.Level1)
+{
+    WindowMode mode = WindowMode::WINDOW_MODE_UNDEFINED;
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetWindowStatusInner");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    sptr<WindowSessionProperty> property_ = sptr<WindowSessionProperty>::MakeSptr();
+
+    //case:mode == WindowMode::WINDOW_MODE_FLOATING&&property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    mode = WindowMode::WINDOW_MODE_FLOATING;
+    auto result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
+
+    //case:mode == WindowMode::WINDOW_MODE_FLOATING&&property_->GetMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_END);
+    mode = WindowMode::WINDOW_MODE_FLOATING;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FLOATING);
+
+    //case:mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY
+    //case1:mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY
+    mode = WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
+
+    //case2:mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY
+    mode = WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
+
+    //case:mode == WindowMode::WINDOW_MODE_FULLSCREEN
+    // case1:!IsPcOrPadFreeMultiWindowMode
+    mode = WindowMode::WINDOW_MODE_FULLSCREEN;
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // case2:!GetTargetAPIVersion() >= 14
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->targetAPIVersion_ = 12;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // case3:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
+    EXPECT_CALL(*window, GetImmersiveModeEnabledState())
+    .Times(1)
+    .WillRepeatedly(Return(true));
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->targetAPIVersion_ = 14;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // case4:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
+    EXPECT_CALL(*window, GetImmersiveModeEnabledState())
+    .Times(1)
+    .WillRepeatedly(Return(false));
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->targetAPIVersion_ = 14;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
+
+    //case:state_ == WindowState::STATE_HIDDEN
+    mode = WindowMode::WINDOW_MODE_UNDEFINED;
+    window->state_ = WindowState::STATE_HIDDEN;
+    result = window->GetWindowStatusInner(mode);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MINIMIZE);
 }
 
 /**

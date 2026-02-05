@@ -67,6 +67,7 @@ public:
     virtual void SetIsClearingBootAnimation(bool isClearingBootAnimation);
     virtual nlohmann::ordered_json GetFoldCreaseRegionJson();
     virtual void NotifyRunSensorFoldStateManager();
+    virtual float GetSpecialVirtualPixelRatio();
 private:
     std::vector<FoldCreaseRegionItem> foldCreaseRegionItems_;
 };

@@ -16,14 +16,11 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_ABILITY_INFO_MANAGER_H
 #define OHOS_ROSEN_WINDOW_SCENE_ABILITY_INFO_MANAGER_H
 
-#include <cstdint>
-#include <mutex>
 #include <string>
-#include <unordered_map>
-
+#include <cstdint>
 #include <refbase.h>
-
-#include "wm_single_instance.h"
+#include <shared_mutex>
+#include <unordered_map>
 
 namespace OHOS::AppExecFwk {
 class IBundleMgr;
@@ -42,7 +39,7 @@ public:
     void SetCurrentUserId(int32_t userId);
 
     // Locks applicationInfoMutex_
-    void RemoveAppInfo(const std::string& bundleName);
+    void RefreshAppInfo(const std::string& bundleName);
     bool IsAnco(const std::string& bundleName, const std::string& abilityName, const std::string& moduleName);
     // Above guarded by applicationInfoMutex_
 

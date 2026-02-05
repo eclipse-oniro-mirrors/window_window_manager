@@ -26,6 +26,10 @@ using namespace AbilityRuntime;
 inline uint32_t SCREEN_DISCONNECT_TYPE = 0;
 inline uint32_t SCREEN_CONNECT_TYPE = 1;
 
+const std::string EVENT_CONNECT = "connect";
+const std::string EVENT_DISCONNECT = "disconnect";
+const std::string EVENT_CHANGE = "change";
+
 JsScreenListener::JsScreenListener(napi_env env) : env_(env), weakRef_(wptr<JsScreenListener> (this))
 {
     TLOGI(WmsLogTag::DMS, "Constructor execution");

@@ -126,7 +126,7 @@ private:
     sptr<IRemoteObject> GetSceneSessionManagerFromCache(int32_t userId, bool isLite);
     void UpdateSceneSessionManagerFromCache(int32_t userId, bool isLite, sptr<IRemoteObject>& sceneSessionManager);
     template <typename T>
-    ErrCode GetSceneSessionManagerByUserIdImpl(int32_t userId, sptr<T>& result, bool isLite, bool checkClient);
+    ErrCode GetSceneSessionManagerByUserIdImpl(int32_t userId, bool isLite, bool checkClient, sptr<T>& result);
     void RemoveFromMap(std::map<int32_t, sptr<IRemoteObject>>& map, std::mutex& mutex, int32_t userId);
 
     /*

@@ -2715,6 +2715,24 @@ HWTEST_F(WindowSessionImplTest5, IsHitHotAreas02, TestSize.Level1)
     isHitHotAreas = window->IsHitHotAreas(pointerEvent);
     EXPECT_EQ(isHitHotAreas, false);
 }
+
+/**
+ * @tc.name: ReleaseUIContent
+ * @tc.desc: ReleaseUIContent
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, ReleaseUIContentTest, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ReleaseUIContent");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->ReleaseUIContent();
+    EXPECT_TRUE(window->isNeedReleaseUIContent_);
+
+    window->attachState_ = AttachState::DETACH;
+    window->ReleaseUIContent();
+    EXPECT_FALSE(window->isNeedReleaseUIContent_);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -73,11 +73,11 @@ void SystemSession::UpdateCameraWindowStatus(bool isShowing)
         auto pipType = GetPiPTemplateInfo().pipTemplateType;
         if (pipType == static_cast<uint32_t>(PiPTemplateType::VIDEO_CALL) ||
             pipType == static_cast<uint32_t>(PiPTemplateType::VIDEO_MEETING)) {
-            TLOGI(WmsLogTag::WMS_SYSTEM, "PiPWindow status: %{public}d, id: %{public}d", isShowing, GetPersistentId());
+            TLOGI(WmsLogTag::WMS_PIP, "PiPWindow status: %{public}d, id: %{public}d", isShowing, GetPersistentId());
             specificCallback_->onCameraSessionChange_(GetSessionProperty()->GetAccessTokenId(), isShowing);
         }
     } else {
-        TLOGI(WmsLogTag::WMS_SYSTEM, "Skip window type, isShowing: %{public}d", isShowing);
+        TLOGI(WmsLogTag::WMS_PIP, "Skip window type, isShowing: %{public}d", isShowing);
     }
 }
 
@@ -304,7 +304,7 @@ bool SystemSession::NeedSystemPermission(WindowType type)
         type == WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW || type == WindowType::WINDOW_TYPE_TOAST ||
         type == WindowType::WINDOW_TYPE_DRAGGING_EFFECT || type == WindowType::WINDOW_TYPE_APP_LAUNCHING ||
         type == WindowType::WINDOW_TYPE_PIP || type == WindowType::WINDOW_TYPE_FLOAT ||
-        type == WindowType::WINDOW_TYPE_FB);
+        type == WindowType::WINDOW_TYPE_FB || type == WindowType::WINDOW_TYPE_SELECTION);
 }
 
 bool SystemSession::CheckPointerEventDispatch(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const
@@ -340,24 +340,6 @@ void SystemSession::RectCheck(uint32_t curWidth, uint32_t curHeight)
     RectSizeCheckProcess(curWidth, curHeight, minWidth, minHeight, maxFloatingWindowSize);
 }
 
-bool SystemSession::IsVisibleForeground() const
-{
-    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
-        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
-        return parentSession_->IsVisibleForeground() && Session::IsVisibleForeground();
-    }
-    return Session::IsVisibleForeground();
-}
-
-bool SystemSession::IsVisibleNotBackground() const
-{
-    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
-        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
-        return parentSession_->IsVisibleNotBackground() && Session::IsVisibleNotBackground();
-    }
-    return Session::IsVisibleNotBackground();
-}
-
 WSError SystemSession::SetDialogSessionBackGestureEnabled(bool isEnabled)
 {
     return PostSyncTask([weakThis = wptr(this), isEnabled]() {
@@ -375,6 +357,24 @@ WSError SystemSession::SetDialogSessionBackGestureEnabled(bool isEnabled)
         session->dialogSessionBackGestureEnabled_ = isEnabled;
         return WSError::WS_OK;
     });
+}
+
+bool SystemSession::IsVisibleForeground() const
+{
+    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
+        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
+        return parentSession_->IsVisibleForeground() && Session::IsVisibleForeground();
+    }
+    return Session::IsVisibleForeground();
+}
+
+bool SystemSession::IsVisibleNotBackground() const
+{
+    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
+        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
+        return parentSession_->IsVisibleNotBackground() && Session::IsVisibleNotBackground();
+    }
+    return Session::IsVisibleNotBackground();
 }
 
 void SystemSession::UpdatePiPWindowStateChanged(bool isForeground)
@@ -408,12 +408,18 @@ WMError SystemSession::UpdateFloatingBall(const FloatingBallTemplateInfo& fbTemp
         return WMError::WM_DO_NOTHING;
     }
 
+    if (fbTemplateInfo.template_ < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
+        fbTemplateInfo.template_ >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Template %{public}d is invalid", fbTemplateInfo.template_);
+        return WMError::WM_ERROR_FB_PARAM_INVALID;
+    }
+
     if (GetFbTemplateInfo().template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb static template can't update");
         return WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED;
     }
 
-    if (GetFbTemplateInfo().template_ != 0 && GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
+    if (GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb template type can't update %{public}d, %{public}d",
             GetFbTemplateInfo().template_, fbTemplateInfo.template_);
         return WMError::WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED;
@@ -469,6 +475,7 @@ WMError SystemSession::GetFloatingBallWindowId(uint32_t& windowId)
         return WMError::WM_DO_NOTHING;
     }
     int32_t callingPid = IPCSkeleton::GetCallingPid();
+
     return PostSyncTask([weakThis = wptr(this), callingPid, &windowId, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {

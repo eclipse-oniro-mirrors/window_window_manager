@@ -1267,7 +1267,9 @@ HWTEST_F(ScreenSessionManagerTest, WaitForCoordinationReady, TestSize.Level1)
     ASSERT_NE(ssm_, nullptr);
     ssm_->isCoordinationReady_ = true;
     ssm_->waitCoordinationReadyMaxTime_ = 0; //ms
-    ssm_->WaitForCoordinationReady();
+    std::mutex coordinationMutex;
+    std::unique_lock<std::mutex> lock(coordinationMutex);
+    ssm_->WaitForCoordinationReady(lock);
     EXPECT_FALSE(ssm_->GetWaitingForCoordinationReady());
 }
 
@@ -1282,7 +1284,11 @@ HWTEST_F(ScreenSessionManagerTest, NotifyCoordinationReadyCV, TestSize.Level1)
     ssm_->isCoordinationReady_ = false;
     ssm_->waitCoordinationReadyMaxTime_ = 1000; //ms
     auto ssm = ssm_;
-    std::thread waitThread([ssm]() { ssm->WaitForCoordinationReady(); });
+    std::thread waitThread([ssm]() {
+        std::mutex coordinationMutex;
+        std::unique_lock<std::mutex> lock(coordinationMutex);
+        ssm->WaitForCoordinationReady(lock);
+    });
     for (int i = 0; i < 50; ++i) {
         if (ssm_->GetWaitingForCoordinationReady()) {
             break;

@@ -583,9 +583,7 @@ enum class WindowSizeChangeReason : uint32_t {
     DRAG_START,
     DRAG_END,
     RESIZE,
-    RESIZE_WITH_ANIMATION,
     MOVE,
-    MOVE_WITH_ANIMATION,
     HIDE,
     TRANSFORM,
     CUSTOM_ANIMATION_SHOW,
@@ -694,6 +692,9 @@ struct KeyFramePolicy : public Parcelable {
 
     bool Marshalling(Parcel& parcel) const override
     {
+        if (interval_ == 0) {
+            return false;
+        }
         return parcel.WriteUint32(static_cast<uint32_t>(dragResizeType_)) &&
             parcel.WriteUint32(interval_) && parcel.WriteUint32(distance_) &&
             parcel.WriteUint32(animationDuration_) && parcel.WriteUint32(animationDelay_) &&
@@ -711,7 +712,8 @@ struct KeyFramePolicy : public Parcelable {
             delete keyFramePolicy;
             return nullptr;
         }
-        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE)) {
+        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE) ||
+            keyFramePolicy->interval_ == 0) {
             delete keyFramePolicy;
             return nullptr;
         }
@@ -723,7 +725,8 @@ struct KeyFramePolicy : public Parcelable {
     {
         std::ostringstream oss;
         oss << "[" << static_cast<uint32_t>(dragResizeType_) << " " << interval_ << " " << distance_;
-        oss << " " << animationDuration_ << " " << animationDelay_ << "]";
+        oss << " " << animationDuration_ << " " << animationDelay_;
+        oss << " " << running_ << " " << stopping_ << "]";
         return oss.str();
     }
 };
@@ -921,7 +924,7 @@ struct WindowSnapshotConfiguration : public Parcelable {
 /**
  * @struct MainWindowState.
  *
- * @brief main window state info.
+ * @brief Main window state info.
  */
 struct MainWindowState : public Parcelable {
     bool Marshalling(Parcel& parcel) const override
@@ -972,7 +975,6 @@ constexpr float MINIMUM_BRIGHTNESS = 0.0f;
 constexpr float MAXIMUM_BRIGHTNESS = 1.0f;
 constexpr float INVALID_BRIGHTNESS = 999.0f;
 constexpr int32_t INVALID_PID = -1;
-constexpr int32_t INVALID_UID = -1;
 constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t SYSTEM_USERID = 0;
 constexpr int32_t BASE_USER_RANGE = 200000;
@@ -1157,17 +1159,43 @@ struct SystemBarPropertyFlag {
     bool backgroundColorFlag = false;
     bool contentColorFlag = false;
     bool enableAnimationFlag = false;
+
+    bool operator==(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag == other.enableFlag && backgroundColorFlag == other.backgroundColorFlag &&
+            contentColorFlag == other.contentColorFlag && enableAnimationFlag == other.enableAnimationFlag);
+    }
+
+    bool Contains(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag || !other.enableFlag) && (backgroundColorFlag || !other.backgroundColorFlag) &&
+            (contentColorFlag || !other.contentColorFlag) && (enableAnimationFlag || !other.enableAnimationFlag);
+    }
+};
+
+/**
+ * @struct PartialSystemBarProperty
+ *
+ * @brief Partial system bar property
+ */
+struct PartialSystemBarProperty {
+    bool enable_ = false;
+    uint32_t backgroundColor_ = 0;
+    uint32_t contentColor_ = 0;
+    bool enableAnimation_ = false;
+    SystemBarPropertyFlag flag_;
 };
 
 /*
- * @enum StatusBarColorChangeReason
+ * @enum SystemBarPropertyOwner
  *
- * @brief Configuration of statusBarColor
+ * @brief System bar property owner
  */
-enum class StatusBarColorChangeReason {
-    WINDOW_CONFIGURATION,
-    NAVIGATION_CONFIGURATION,
-    ATOMICSERVICE_CONFIGURATION,
+enum class SystemBarPropertyOwner {
+    APPLICATION,
+    ARKUI_NAVIGATION,
+    ATOMIC_SERVICE,
+    ABILITY_RUNTIME,
 };
 
 /**
@@ -1253,19 +1281,6 @@ struct Rect {
 };
 
 inline constexpr Rect Rect::EMPTY_RECT { 0, 0, 0, 0 };
-
-/**
- * @struct RectAnimationConfig
- *
- * @brief Window RectAnimationConfig
- */
-struct RectAnimationConfig {
-    uint32_t duration = 0; // Duartion of the animation, in milliseconds.
-    float x1 = 0.0f;       // X coordinate of the first point on the Bezier curve.
-    float y1 = 0.0f;       // Y coordinate of the first point on the Bezier curve.
-    float x2 = 0.0f;       // X coordinate of the second point on the Bezier curve.
-    float y2 = 0.0f;       // Y coordinate of the second point on the Bezier curve.
-};
 
 /**
  * @brief UIExtension usage
@@ -2460,15 +2475,12 @@ struct KeyboardAnimationConfig {
 
 struct MoveConfiguration {
     DisplayId displayId = DISPLAY_ID_INVALID;
-    RectAnimationConfig rectAnimationConfig = { 0, 0.0f, 0.0f, 0.0f, 0.0f };
     std::string ToString() const
     {
         std::string str;
-        constexpr int BUFFER_SIZE = 1024;
+        constexpr int BUFFER_SIZE = 11;
         char buffer[BUFFER_SIZE] = { 0 };
-        if (snprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1,
-            "[displayId: %llu, rectAnimationConfig: [%u, %f, %f, %f, %f]]", displayId, rectAnimationConfig.duration,
-            rectAnimationConfig.x1, rectAnimationConfig.y1, rectAnimationConfig.x2, rectAnimationConfig.y2) > 0) {
+        if (snprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, "[%llu]", displayId) > 0) {
             str.append(buffer);
         }
         return str;

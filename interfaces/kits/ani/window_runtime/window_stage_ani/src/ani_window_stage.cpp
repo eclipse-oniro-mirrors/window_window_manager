@@ -162,6 +162,41 @@ void AniWindowStage::OnLoadContent(ani_env* env, ani_string path, ani_object sto
     }
 }
 
+void AniWindowStage::ReleaseUIContent(ani_env* env, ani_object obj, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");
+    AniWindowStage* aniWindowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
+    if (aniWindowStage != nullptr) {
+        aniWindowStage->OnReleaseUIContent(env);
+    } else {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] aniWindowStage is nullptr");
+    }
+}
+
+void AniWindowStage::OnReleaseUIContent(ani_env* env)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");
+    auto windowScene = GetWindowScene().lock();
+    if (windowScene == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI]windowScene is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    auto mainWindow = windowScene->GetMainWindow();
+    if (mainWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] mainWindow is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->AniReleaseUIContent());
+
+    TLOGI(WmsLogTag::WMS_LIFE, "[ANI] Window [%{public}u, %{public}s] release uIContent end, ret=%{public}d",
+        mainWindow->GetWindowId(), mainWindow->GetWindowName().c_str(), ret);
+    if (ret != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, ret, "Window release uIContent failed");
+    }
+}
+
 ani_ref AniWindowStage::GetMainWindow(ani_env* env)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI] Get main window");
@@ -240,7 +275,7 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
         return AniWindowUtils::CreateAniUndefined(env);
     }
     sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
-    if (!AniWindowUtils::ParseSubWindowOption(env, options, windowOption)) {
+    if (!AniWindowUtils::ParseSubWindowOptions(env, options, windowOption)) {
         TLOGE(WmsLogTag::WMS_SUB, "Failed to convert parameter to options");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return AniWindowUtils::CreateAniUndefined(env);

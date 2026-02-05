@@ -110,6 +110,9 @@ HWTEST_F(ScreenRotationPropertyTest, ConvertDeviceToFloat, TestSize.Level1)
 
     ret = ScreenRotationProperty::ConvertDeviceToFloat(DeviceRotation::ROTATION_LANDSCAPE_INVERTED);
     ASSERT_EQ(ret, 270.0f);
+
+    ret = ScreenRotationProperty::ConvertDeviceToFloat(static_cast<DeviceRotation>(4));
+    EXPECT_EQ(ret, -1.0f);
 }
 
 }

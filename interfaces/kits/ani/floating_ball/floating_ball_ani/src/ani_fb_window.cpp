@@ -80,11 +80,11 @@ ani_ref AniFbWindow::Create(ani_env* env, ani_long nativeObj, ani_object floatin
 ani_ref AniFbWindow::OnCreate(ani_env* env, ani_object floatingBallConfigurations)
 {
     if (floatingBallConfigurations == nullptr) {
-        return AniThrowError<WMError>(env, WMError::WM_ERROR_INVALID_PARAM, "[FB]floatingBallConfigurations is null");
+        return AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "[FB]floatingBallConfigurations is null");
     }
     void* contextPtr = nullptr;
     if (GetContextPtr(env, floatingBallConfigurations, contextPtr) == ANI_ERROR) {
-        return AniThrowError<WMError>(env, WMError::WM_ERROR_INVALID_PARAM,
+        return AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM,
             "[FB]Invalid parameters in config, please check if context is null");
     }
     return AniFbWindow::CreateFbController(env, contextPtr);
@@ -95,18 +95,18 @@ ani_ref AniFbWindow::CreateFbController(ani_env* env, void* contextPtr)
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
 
     if (!AniFbWindow::IsFloatingBallEnabledAni(env)) {
-        return AniThrowError<WMError>(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
+        return AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
             "[FB]device not support floatingBall");
     }
 
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
     if (context == nullptr) {
-        return AniThrowError<WMError>(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "[FB]Invalid context");
+        return AniThrowError(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "[FB]Invalid context");
     }
 
     sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
     if (mainWindow == nullptr) {
-        return AniThrowError<WMError>(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "[FB]Invalid mainWindow");
+        return AniThrowError(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "[FB]Invalid mainWindow");
     }
     
     sptr<FloatingBallController> fbController =

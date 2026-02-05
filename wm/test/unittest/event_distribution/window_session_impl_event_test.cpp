@@ -96,6 +96,21 @@ HWTEST_F(WindowSessionImplEventTest, SetTouchable, TestSize.Level1)
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
     GTEST_LOG_(INFO) << "WindowSessionImplTest: SetTouchable end";
 }
+
+/**
+ * @tc.name: GetTouchable
+ * @tc.desc: GetTouchable
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplEventTest, GetTouchable, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetTouchable");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->SetTouchable(true);
+    auto res = window->GetTouchable();
+    EXPECT_EQ(res, true);
+}
 }
 }
 }

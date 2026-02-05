@@ -681,8 +681,8 @@ public:
 /**
  * @class IExtensionSecureLimitChangeListener
  *
- * @brief IExtensionSecureLimitChangeListener is used to observe the window secure limit and
- *        its change when limit changed.
+ * @brief IExtensionSecureLimitChangeListener is used to observe the window secure limit
+ * and its change when limit changed.
  */
 class IExtensionSecureLimitChangeListener : virtual public RefBase {
 public:
@@ -1067,8 +1067,9 @@ public:
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
 
     /**
-     * @brief Update theme configuration for all windows
-     * @param configuration configuration for app
+     * @brief Update configuration synchronously for all windows.
+     *
+     * @param configuration configuration for app.
      */
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
 
@@ -1683,8 +1684,7 @@ public:
      * @param height
      * @return WMError
      */
-    virtual WMError Resize(uint32_t width, uint32_t height,
-        const RectAnimationConfig& rectAnimationConfig = {}) { return WMError::WM_OK; }
+    virtual WMError Resize(uint32_t width, uint32_t height) { return WMError::WM_OK; }
 
     /**
      * @brief resize the window instance (w,h)
@@ -2085,7 +2085,8 @@ public:
         const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager) {}
 
     /**
-     * @brief Update theme configuration.
+     * @brief Update configuration synchronously.
+     *
      * @param configuration Window configuration.
      */
     virtual void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) {}
@@ -2373,6 +2374,7 @@ public:
     {
         return WMError::WM_OK;
     }
+    virtual WMError AniReleaseUIContent() { return WMError::WM_OK; }
 
     /**
      * @brief set window ui content
@@ -2422,6 +2424,13 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    /**
+     * @brief destroy window ui content
+     *
+     * @return void
+     */
+    virtual void ReleaseUIContent() {}
 
     /**
      * @brief Get ui content info.
@@ -3072,7 +3081,7 @@ public:
 
     /**
      * @brief get compatible mode in pc.
-     * @deprecated use IsAdaptToImmersive instead
+     * @deprecated use IsAdaptToCompatibleImmersive instead
      *
      * @return True means window is compatible mode in pc, false means the opposite.
      */
@@ -3461,6 +3470,28 @@ public:
     }
 
     /**
+     * @brief Set own system bar property
+     *
+     * @param type System bar type
+     * @param prop System bar property
+     * @param owner The party who owns this property
+     * @return WMError
+     */
+    virtual WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+
+    /**
+     * @brief Remove own system bar property
+     *
+     * @param type System bar type
+     * @param flag The property types that need to be removed
+     * @param owner The party who owns this property
+     * @return WMError
+     */
+    virtual WMError RemoveOwnSystemBarProperty(WindowType type, const SystemBarPropertyFlag& flag,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+
+    /**
      * @brief Set the single frame composer enabled flag of a window.
      *
      * @param enable true means the single frame composer is enabled, otherwise means the opposite.
@@ -3505,10 +3536,10 @@ public:
     }
 
     /**
-     * @brief Set main window container color.
+     * @brief Set window container modal color.
      *
      * @param activeColor Background active color.
-     * @param inactiveColor Background active color.
+     * @param inactiveColor Background inactive color.
      * @return Errorcode of window.
      */
     virtual WMError SetWindowContainerModalColor(const std::string& activeColor, const std::string& inactiveColor)
@@ -3649,7 +3680,7 @@ public:
 
     /**
      * @brief UIExtension window call to set custom density, once called this method to set custom density,
-     * UIExtension window will dinore FOLLOW_HOST_DPI and use specified density.
+     * UIExtension window will ignore FOLLOW_HOST_DPI and use specified density.
      *
      * @param density the custom density of UIExtension window.
      * @return WM_OK means set success, others means failed.
@@ -3718,7 +3749,10 @@ public:
      * @param isModal bool.
      * @return WMError
      */
-    virtual WMError SetWindowModal(bool isModal) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetWindowModal(bool isModal)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set the modality of sub window.
@@ -4151,6 +4185,14 @@ public:
     virtual WMError IsImmersiveLayout(bool& isImmersiveLayout) const { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Set the ContinueState of window.
+     *
+     * @param continueState of the window.
+     * @return Errorcode of window.
+     */
+    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
+
+    /**
      * @brief Get the height of status bar.
      *
      * @return the height of status bar.
@@ -4171,14 +4213,6 @@ public:
      * @return WMError.
      */
     virtual WMError GetWindowStatus(WindowStatus& windowStatus) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-
-    /**
-     * @brief Set the ContinueState of window.
-     *
-     * @param continueState of the window.
-     * @return Errorcode of window.
-     */
-    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
 
     /**
      * @brief Notify host that UIExtension timeout
@@ -4282,13 +4316,13 @@ public:
         bool& isAcrossDisplays) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
-     * @brief Get the type of window.
+     * @brief Get the type of Window.
      *
-     * @return The string corresponding to the window.
+     * @return The string corresponding to the Window.
      */
     virtual std::string GetClassType() const { return "Window"; }
 
-    /**
+    /*
      * @brief Enable or disable window delay raise
      *
      * @param isEnabled Enable or disable window delay raise
@@ -4765,8 +4799,8 @@ public:
      */
     virtual WMError UseImplicitAnimation(bool useImplicit) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-    /** 
-    * @brief Set intent param to arkui.
+    /**
+     * @brief Set intent param to arkui.
      *
      * @param intentParam intent param from ams.
      * @param loadPageCallback load page callback after send intent.
@@ -4814,6 +4848,22 @@ public:
     virtual WMError InjectTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
     {
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+    }
+
+    /**
+     * @brief return true if current window is anco, otherwise return false
+     */
+    virtual bool IsAnco() const
+    {
+        return false;
+    }
+
+    /**
+     * @brief special process on point down event
+     */
+    virtual bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY)
+    {
+        return false;
     }
 
     /**
@@ -4890,62 +4940,6 @@ public:
      * @return WMError
      */
     virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
-
-    /**
-     * @brief return true if current window is anco, otherwise return false
-     */
-    virtual bool IsAnco() const
-    {
-        return false;
-    }
-
-    /**
-     * @brief special process on point down event
-     */
-    virtual bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY)
-    {
-        return false;
-    }
-
-    /**
-     * @brief notify window is full screen in force split mode.
-     *
-     * @param shouldFullScreen true means full screen, false means force split.
-     */
-    virtual void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) {}
-
-    /**
-     * @brief Register a listener to listen ui content create.
-     *
-     * @param listener IUIContentCreateListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    virtual WMError RegisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
-    {
-        return WMError::WM_OK;
-    }
-
-    /**
-     * @brief Unregister a listener to listen ui content create.
-     *
-     * @param listener IUIContentCreateListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    virtual WMError UnregisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
-    {
-        return WMError::WM_OK;
-    }
-
-    /**
-     * @brief Update compatible style mode of the window.
-     *
-     * @param mode CompatibleStyleMode.
-     * @return WM_OK means update mode success, others means failed.
-     */
-    virtual WMError UpdateCompatibleStyleMode(CompatibleStyleMode mode)
-    {
-        return WMError::WM_OK;
-    }
 
     /**
      * @brief register a listener to listen whether the window title bar is show or hide.
@@ -5059,7 +5053,47 @@ public:
      * @return true means hit title bar success, false means not hit title bar.
      */
     virtual bool IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& pointerEvent) { return false; }
- 
+
+    /**
+     * @brief notify window is full screen in force split mode.
+     *
+     * @param shouldFullScreen true means full screen, false means force split.
+     */
+    virtual void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) {}
+
+    /**
+     * @brief Register a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister a listener to listen ui content create.
+     *
+     * @param listener IUIContentCreateListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError UnregisterUIContentCreateListener(const sptr<IUIContentCreateListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Update compatible style mode of the window.
+     *
+     * @param mode CompatibleStyleMode.
+     * @return WM_OK means update mode success, others means failed.
+     */
+    virtual WMError UpdateCompatibleStyleMode(CompatibleStyleMode mode)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief Get anco window hot areas.
      *
@@ -5117,6 +5151,14 @@ public:
     virtual WMError GetRotationLocked(bool& locked) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Set status bar color for uiExtension.
+     *
+     * @param color Color numeric to set.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
+
+    /**
      * @brief register a listener to listen the window title bar and window hot areas.
      *
      * @param listener IWindowTitleOrHotAreasListener.
@@ -5137,14 +5179,6 @@ public:
     {
         return WMError::WM_OK;
     }
-
-    /**
-     * @brief Set status bar color for uiExtension.
-     *
-     * @param color Color numeric to set.
-     * @return WM_OK means set success, others means failed.
-     */
-    virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
 
     /**
      * @brief Flush vsync for prelaunch.

@@ -444,6 +444,91 @@ HWTEST_F(SceneSessionImmersiveTest, NotifyClientToUpdateAvoidArea, TestSize.Leve
     sceneSession->NotifyClientToUpdateAvoidArea();
     EXPECT_EQ(6, sceneSession->GetPersistentId());
 }
+
+/**
+ * @tc.name: HandleLayoutAvoidAreaUpdate
+ * @tc.desc: HandleLayoutAvoidAreaUpdate
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, HandleLayoutAvoidAreaUpdate, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleLayoutAvoidAreaUpdate";
+    info.bundleName_ = "HandleLayoutAvoidAreaUpdate";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    
+    session->isLastFrameLayoutFinishedFunc_ = nullptr;
+    session->isAINavigationBarAvoidAreaValid_ = nullptr;
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+
+    session->isLastFrameLayoutFinishedFunc_ = [](bool& isLayoutFinished) {
+        isLayoutFinished = false;
+        return WSError::WS_ERROR_NULLPTR;
+    };
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+
+    session->isLastFrameLayoutFinishedFunc_ = [](bool& isLayoutFinished) {
+        isLayoutFinished = true;
+        return WSError::WS_OK;
+    };
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_SYSTEM));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
+
+    session->isAINavigationBarAvoidAreaValid_ = [](DisplayId displayId,
+        const AvoidArea& avoidArea, int32_t sessionBottom) {
+        return true;
+    };
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
+
+    session->isAINavigationBarAvoidAreaValid_ = [](DisplayId displayId,
+        const AvoidArea& avoidArea, int32_t sessionBottom) {
+        return false;
+    };
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
+    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
+}
+
+/**
+ * @tc.name: GetSystemAvoidArea
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetSystemAvoidArea, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSystemAvoidArea";
+    info.bundleName_ = "GetSystemAvoidArea";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto specificCallback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sceneSession->isActive_ = true;
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    sceneSession->SetSystemConfig(systemConfig);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    sceneSession->GetSessionProperty()->SetDisplayId(2024);
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(2024, screenSession));
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    property->SetWindowFlags(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID));
+    sceneSession->SetSessionProperty(property);
+
+    WSRect rect1({0, 0, 10, 10});
+    AvoidArea avoidArea;
+    sceneSession->GetSystemAvoidArea(rect1, avoidArea);
+    WSRect rect2({0, 0, 10, 10});
+    property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->GetSystemAvoidArea(rect2, avoidArea);
+    ASSERT_EQ(avoidArea.topRect_.posX_, 0);
+
+    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    property->SetWindowFlags(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID));
+    sceneSession->SetSessionProperty(property);
+    ASSERT_EQ(avoidArea.topRect_.posX_, 0);
+}
 }
 }
 }

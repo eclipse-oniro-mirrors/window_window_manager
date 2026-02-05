@@ -246,4 +246,9 @@ void FoldScreenBaseController::NotifyRunSensorFoldStateManager()
     TLOGI(WmsLogTag::DMS, "TaskSequenceProcess FoldScreenBaseController::NotifyRunSensorFoldStateManager");
     DMS::SensorFoldStateMgr::GetInstance().FinishTaskSequence();
 }
+
+float FoldScreenBaseController::GetSpecialVirtualPixelRatio()
+{
+    return FoldScreenBasePolicy::GetInstance().GetSpecialVirtualPixelRatio();
+}
 } // namespace OHOS::Rosen

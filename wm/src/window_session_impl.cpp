@@ -89,6 +89,7 @@ constexpr int32_t MAX_ROTATION_VALUE = 3;
 /*
  * DFX
  */
+const std::string SET_UICONTENT_TIMEOUT_LISTENER_TASK_NAME = "SetUIContentTimeoutListener";
 const std::string SET_UIEXTENSION_DESTROY_TIMEOUT_LISTENER_TASK_NAME = "SetUIExtDestroyTimeoutListener";
 const std::string BUTTON_BACKGROUND_CORNER_RADIUS = "buttonBackgroundCornerRadius";
 const std::string BUTTON_BACKGROUND_SIZE = "buttonBackgroundSize";
@@ -100,6 +101,7 @@ const std::string DECOR_BUTTON_STYLE_CHANGE = "decor_button_style_change";
 constexpr int64_t SET_UIEXTENSION_DESTROY_TIMEOUT_TIME_MS = 4000;
 
 const std::string SCB_BACK_VISIBILITY = "scb_back_visibility";
+const std::string EVENT_NAME_FLOAT_BAR_VISIBILITY = "scb_float_bar_visibility";
 const std::string SCB_COMPATIBLE_MAXIMIZE_VISIBILITY = "scb_compatible_maximize_visibility";
 const std::string SCB_COMPATIBLE_MAXIMIZE_BTN_RES = "scb_compatible_maximize_btn_res";
 const std::string SCB_COMPATIBLE_MENU_VISIBILITY = "scb_set_compatible_menu";
@@ -1174,9 +1176,7 @@ WSError WindowSessionImpl::UpdateRect(const WSRect& rect, SizeChangeReason reaso
         UpdateRectForOtherReason(wmRect, preRect, wmReason, config.rsTransaction_, avoidAreas);
     }
 
-    if (wmReason == WindowSizeChangeReason::MOVE || wmReason == WindowSizeChangeReason::RESIZE ||
-        wmReason == WindowSizeChangeReason::MOVE_WITH_ANIMATION ||
-        wmReason == WindowSizeChangeReason::RESIZE_WITH_ANIMATION) {
+    if (wmReason == WindowSizeChangeReason::MOVE || wmReason == WindowSizeChangeReason::RESIZE) {
         layoutCallback_->OnUpdateSessionRect(wmRect, wmReason, GetPersistentId());
     }
     NotifyFirstValidLayoutUpdate(preRect, wmRect);
@@ -1741,12 +1741,15 @@ WSError WindowSessionImpl::UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyI
         UpdateFocusState(isFocused);
         return WSError::WS_OK;
     }
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count());
     TLOGI(WmsLogTag::WMS_FOCUS, "unfocusId:%{public}d, focusId:%{public}d, isFocused:%{public}d,"
-        "isSyncNotify:%{public}d, current:%{public}" PRId64 ", new:%{public}" PRId64, focusNotifyInfo->unfocusWindowId_,
-        focusNotifyInfo->focusWindowId_, isFocused, focusNotifyInfo->isSyncNotify_, updateFocusTimeStamp_.load(),
-        focusNotifyInfo->timeStamp_);
+        "isSyncNotify:%{public}d, old:%{public}" PRId64 ", new:%{public}" PRId64 "current:%{public}" PRId64,
+        focusNotifyInfo->unfocusWindowId_, focusNotifyInfo->focusWindowId_, isFocused, focusNotifyInfo->isSyncNotify_,
+        updateFocusTimeStamp_.load(), focusNotifyInfo->timeStamp_, currentTimeStamp);
     auto timeStamp = focusNotifyInfo->timeStamp_;
-    if (timeStamp <= updateFocusTimeStamp_.load()) {
+    if (updateFocusTimeStamp_.load() <= currentTimeStamp && timeStamp <= updateFocusTimeStamp_.load()) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "check time fail");
         return WSError::WS_OK;
     }
     updateFocusTimeStamp_.store(timeStamp);
@@ -2109,32 +2112,42 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
 void WindowSessionImpl::HideTitleButton(bool& hideSplitButton, bool& hideMaximizeButton,
     bool& hideMinimizeButton, bool& hideCloseButton)
 {
-    std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
-    if (uiContent == nullptr || !IsDecorEnable()) {
-        return;
-    }
-    RealTimeSwitchInfo switchInfo = property_->GetRealTimeSwitchInfo();
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
-    uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
-    hideMaximizeButton = hideMaximizeButton || property_->IsFullScreenDisabled();
-    bool isLayoutFullScreen = property_->IsLayoutFullScreen();
-    bool hideSplitBtn = hideSplitButton || property_->IsSplitDisabled();
-    if (property_->IsAdaptToImmersive() && !property_->GetIsAtomicService()) {
-        uiContent->HideWindowTitleButton(hideSplitBtn, !isLayoutFullScreen && hideMaximizeButton,
-            hideMinimizeButton, hideCloseButton);
-    } else {
-        uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeButton, hideMinimizeButton, hideCloseButton);
-    }
-    // compatible mode adapt to proportional scale, will show its button
-    bool showScaleBtn = property_->IsAdaptToProportionalScale() && !property_->GetIsAtomicService();
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_VISIBILITY,
-        !isLayoutFullScreen && showScaleBtn  ? "true" : "false");
-    // compatible mode adapt to back, will show its button
-    bool isAdaptToBackButton = property_->IsAdaptToBackButton();
-    uiContent->OnContainerModalEvent(SCB_BACK_VISIBILITY, isAdaptToBackButton ? "true" : "false");
-    bool fullScreenStart = property_->IsFullScreenStart() &&
-        (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN);
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_BTN_RES, fullScreenStart ? "true" : "false");
+    handler_->PostTask([weakThis = wptr(this), hideSplitButton, hideMaximizeButton,
+        hideMinimizeButton, hideCloseButton, where = __func__] {
+        auto window = weakThis.promote();
+        if (!window) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s window is null", where);
+            return;
+        }
+        std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
+        if (uiContent == nullptr || !window->IsDecorEnable()) {
+            return;
+        }
+        auto property = window->GetProperty();
+        RealTimeSwitchInfo switchInfo = property->GetRealTimeSwitchInfo();
+        uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
+        uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
+        bool isFullScreenStart = property->IsFullScreenStart();
+        bool hideMaximizeBtn = (hideMaximizeButton || property->IsFullScreenDisabled());
+        bool hideSplitBtn = hideSplitButton || property->IsSplitDisabled();
+        if (property->IsAdaptToImmersive() && !property->GetIsAtomicService()) {
+            uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeBtn, hideMinimizeButton, hideCloseButton);
+            uiContent->OnContainerModalEvent(EVENT_NAME_FLOAT_BAR_VISIBILITY, "true");
+        } else {
+            uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeBtn, hideMinimizeButton, hideCloseButton);
+            uiContent->OnContainerModalEvent(EVENT_NAME_FLOAT_BAR_VISIBILITY, "false");
+        }
+        // compatible mode adapt to proportional scale, will show its button
+        bool showScaleBtn = property->IsAdaptToProportionalScale() && !property->GetIsAtomicService();
+        uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_VISIBILITY, showScaleBtn ? "true" : "false");
+        bool fullScreenStart = isFullScreenStart && (window->GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN);
+        if (fullScreenStart) {
+            uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_BTN_RES, "true");
+        }
+        // compatible mode adapt to back, will show its button
+        bool isAdaptToBackButton = property->IsAdaptToBackButton();
+        uiContent->OnContainerModalEvent(SCB_BACK_VISIBILITY, isAdaptToBackButton ? "true" : "false");
+        }, __func__);
 }
 
 WMError WindowSessionImpl::NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
@@ -2188,6 +2201,23 @@ WMError WindowSessionImpl::SetUIContentByAbc(
 {
     return SetUIContentInner(contentInfo, env, storage, WindowSetUIContentType::BY_ABC,
         BackupAndRestoreType::NONE, ability);
+}
+
+WMError WindowSessionImpl::AniReleaseUIContent()
+{
+    ReleaseUIContent();
+    return WMError::WM_OK;
+}
+
+void WindowSessionImpl::ReleaseUIContent()
+{
+    if (attachState_ != AttachState::DETACH) {
+        isNeedReleaseUIContent_ = true;
+        TLOGW(WmsLogTag::WMS_LIFE, "window is attach, need to delay release uiContent,id: %{public}d",
+            GetPersistentId());
+        return;
+    }
+    DestroyExistUIContent();
 }
 
 void WindowSessionImpl::DestroyExistUIContent()
@@ -2524,6 +2554,8 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
         if ((config.mode_ == FORCE_SPLIT_MODE || config.mode_ == NAV_FORCE_SPLIT_MODE) &&
             GetAppForceLandscapeConfigEnable(enableForceSplit) == WMError::WM_OK) {
                 SetForceSplitConfigEnable(enableForceSplit);
+        } else {
+            SetForceSplitConfigEnable(false);
         }
     }
 
@@ -2882,11 +2914,16 @@ WSError WindowSessionImpl::NotifyHighlightChange(const sptr<HighlightNotifyInfo>
         NotifyHighlightChange(isHighlight);
         return WSError::WS_OK;
     }
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
     TLOGI(WmsLogTag::WMS_FOCUS, "timeStamp:%{public}" PRId64 ", highlightId:%{public}d, isHighlight:%{public}d,"
-        "isSyncNotify:%{public}d, current:%{public}" PRId64 ", new:%{public}" PRId64, highlightNotifyInfo->timeStamp_,
-        highlightNotifyInfo->highlightId_, isHighlight, highlightNotifyInfo->isSyncNotify_,
-        updateHighlightTimeStamp_.load(), highlightNotifyInfo->timeStamp_);
-    if (highlightNotifyInfo->timeStamp_ <= updateHighlightTimeStamp_.load()) {
+        "isSyncNotify:%{public}d, old:%{public}" PRId64 ", new:%{public}" PRId64 "current:%{public}" PRId64,
+        highlightNotifyInfo->timeStamp_, highlightNotifyInfo->highlightId_, isHighlight,
+        highlightNotifyInfo->isSyncNotify_, updateHighlightTimeStamp_.load(), highlightNotifyInfo->timeStamp_,
+        currentTimeStamp);
+    if (updateHighlightTimeStamp_.load() <= currentTimeStamp &&
+        highlightNotifyInfo->timeStamp_ <= updateHighlightTimeStamp_.load()) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "check time fail");
         return WSError::WS_OK;
     }
     updateHighlightTimeStamp_.store(highlightNotifyInfo->timeStamp_);
@@ -3282,7 +3319,7 @@ void WindowSessionImpl::SetRequestedOrientation(Orientation orientation, bool ne
         return;
     }
     if (property_->IsSupportRotateFullScreen()) {
-        TLOGI(WmsLogTag::WMS_COMPAT, "compatible request horizontal orientation %{public}u", orientation);
+        TLOGI(WmsLogTag::WMS_COMPAT, "compatible request orientation %{public}u", orientation);
         property_->SetIsLayoutFullScreen(IsHorizontalOrientation(orientation));
     }
     if (needAnimation) {
@@ -7478,17 +7515,6 @@ std::vector<sptr<Window>> WindowSessionImpl::GetSubWindow(int parentId)
     return std::vector<sptr<Window>>(subWindowSessionMap_[parentId].begin(), subWindowSessionMap_[parentId].end());
 }
 
-bool WindowSessionImpl::IsApplicationModalSubWindowShowing(int32_t parentId)
-{
-    auto subMap = GetSubWindow(parentId);
-    auto applicationModalIndex = std::find_if(subMap.begin(), subMap.end(),
-        [](const auto& subWindow) {
-            return WindowHelper::IsApplicationModalSubWindow(subWindow->GetType(), subWindow->GetWindowFlags()) &&
-                   subWindow->GetWindowState() != WindowState::STATE_SHOWN;
-        });
-    return applicationModalIndex != subMap.end();
-}
-
 uint32_t WindowSessionImpl::GetBackgroundColor() const
 {
     if (auto uiContent = GetUIContentSharedPtr()) {
@@ -8830,7 +8856,6 @@ WSError WindowSessionImpl::NotifyPageRotationIsIgnored()
 
 WSError WindowSessionImpl::SetCurrentRotation(int32_t currentRotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "currentRotation: %{public}d", currentRotation);
     if (currentRotation > FULL_CIRCLE_DEGREE || currentRotation < ZERO_CIRCLE_DEGREE) {
         TLOGE(WmsLogTag::WMS_ROTATION, "currentRotation is invalid: %{public}d", currentRotation);
         return WSError::WS_ERROR_INVALID_PARAM;

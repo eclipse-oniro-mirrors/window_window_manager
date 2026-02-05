@@ -678,31 +678,6 @@ HWTEST_F(WindowPatternSnapshotTest, GetSnapshotPixelMap, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetEnableAddSnapshot
- * @tc.desc: GetEnableAddSnapshot Test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowPatternSnapshotTest, GetEnableAddSnapshot, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    bool res = session_->GetEnableAddSnapshot();
-    EXPECT_EQ(res, true);
-}
-
-/**
- * @tc.name: SetEnableAddSnapshot
- * @tc.desc: SetEnableAddSnapshot Test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowPatternSnapshotTest, SetEnableAddSnapshot, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->SetEnableAddSnapshot(false);
-    bool res = session_->GetEnableAddSnapshot();
-    EXPECT_EQ(res, false);
-}
-
-/**
  * @tc.name: NotifyUpdateSnapshotWindow
  * @tc.desc: NotifyUpdateSnapshotWindow Test
  * @tc.type: FUNC

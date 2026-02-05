@@ -561,6 +561,23 @@ HWTEST_F(MultiScreenChangeUtilsTest, CreateExtendSession, TestSize.Level1)
     ASSERT_NE(screenSession, nullptr);
     multiSCU_.CreateExtendSession(screenSession);
 }
+
+/**
+ * @tc.name: SetScreenNotifyFlag
+ * @tc.desc: SetScreenNotifyFlag func
+ * @tc.type: FUNC
+ */
+HWTEST_F(MultiScreenChangeUtilsTest, SetScreenNotifyFlag, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<ScreenSession> innerScreen = nullptr;
+    sptr<ScreenSession> externalScreen = nullptr;
+    multiSCU_.SetScreenNotifyFlag(innerScreen, externalScreen);
+    EXPECT_TRUE(g_logMsg.find("screen sessions null") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

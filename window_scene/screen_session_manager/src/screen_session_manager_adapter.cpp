@@ -95,8 +95,11 @@ void ScreenSessionManagerAdapter::OnDisplayChange(sptr<DisplayInfo> displayInfo,
 }
 
 void ScreenSessionManagerAdapter::OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo,
-    const std::vector<std::string>& attributes)
+    const std::vector<std::string>& attributes, int32_t uid)
 {
+    if (uid != INVALID_UID) {
+        TLOGD(WmsLogTag::DMS, "Notify display attribute change with uid");
+    }
     INIT_PROXY_CHECK_RETURN();
     if (attributes.empty()) {
         TLOGE(WmsLogTag::DMS, "attributes is empty");
@@ -113,6 +116,10 @@ void ScreenSessionManagerAdapter::OnDisplayAttributeChange(sptr<DisplayInfo> dis
  
     for (auto& agent : agents) {
         int32_t agentPid = dmAttributeAgentContainer_.GetAgentPid(agent);
+        if (uid != INVALID_UID && ScreenSessionManager::GetInstance().GetStoredPidFromUid(uid, agentPid)) {
+            TLOGI(WmsLogTag::DMS, "Is not current uid, do not need to notify");
+            continue;
+        }
         if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid,
             DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER)) {
             agent->OnDisplayAttributeChange(displayInfo, attributes);

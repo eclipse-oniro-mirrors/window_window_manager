@@ -1225,19 +1225,8 @@ HWTEST_F(MultiScreenManagerTest, DoFirstMirrorChange04, TestSize.Level1)
  */
 HWTEST_F(MultiScreenManagerTest, DoFirstExtendChange01, TestSize.Level1)
 {
-    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption;
-    virtualOption.name_ = "createVirtualOption";
-    auto screenId = ScreenSessionManager::GetInstance().CreateVirtualScreen(
-        virtualOption, displayManagerAgent->AsObject());
-    auto firstSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
-
-    sptr<IDisplayManagerAgent> displayManagerAgent1 = new(std::nothrow) DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption1;
-    virtualOption1.name_ = "createVirtualOption";
-    auto screenId1 = ScreenSessionManager::GetInstance().CreateVirtualScreen(
-        virtualOption1, displayManagerAgent1->AsObject());
-    auto secondarySession = ScreenSessionManager::GetInstance().GetScreenSession(screenId1);
+    sptr<ScreenSession> firstSession = new ScreenSession();
+    sptr<ScreenSession> secondarySession = new ScreenSession();
 
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
@@ -1245,9 +1234,6 @@ HWTEST_F(MultiScreenManagerTest, DoFirstExtendChange01, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find("param error") != std::string::npos);
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
-
-    ScreenSessionManager::GetInstance().DestroyVirtualScreen(screenId);
-    ScreenSessionManager::GetInstance().DestroyVirtualScreen(screenId1);
 }
 
 /**
@@ -2375,6 +2361,24 @@ HWTEST_F(MultiScreenManagerTest, AreScreensTouching08, TestSize.Level1)
     auto ret = MultiScreenManager::GetInstance().AreScreensTouching(mainScreenSession, secondScreenSession,
         mainScreenOptions, secondScreenOption);
     ASSERT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: DoFirstMirrorChange_SCBClient_Nullptr
+ * @tc.desc: DoFirstMirrorChange_SCBClient_Nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(MultiScreenManagerTest, DoFirstMirrorChange_SCBClient_Nullptr, TestSize.Level1)
+{
+    sptr<ScreenSession> firstSession = new ScreenSession();
+    sptr<ScreenSession> secondarySession = new ScreenSession();
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenSessionManager::GetInstance().clientProxy_ = nullptr;
+    MultiScreenManager::GetInstance().DoFirstMirrorChange(firstSession, secondarySession, "test");
+    EXPECT_TRUE(g_logMsg.find("scbClient null") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 } // namespace Rosen

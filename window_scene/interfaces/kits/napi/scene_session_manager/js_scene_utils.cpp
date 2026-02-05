@@ -2123,12 +2123,8 @@ napi_value CreateJsSessionSizeChangeReason(napi_env env)
         static_cast<int32_t>(SizeChangeReason::DRAG_END)));
     napi_set_named_property(env, objValue, "RESIZE", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::RESIZE)));
-    napi_set_named_property(env, objValue, "RESIZE_WITH_ANIMATION", CreateJsValue(env,
-        static_cast<int32_t>(SizeChangeReason::RESIZE_WITH_ANIMATION)));
     napi_set_named_property(env, objValue, "MOVE", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::MOVE)));
-    napi_set_named_property(env, objValue, "MOVE_WITH_ANIMATION", CreateJsValue(env,
-        static_cast<int32_t>(SizeChangeReason::MOVE_WITH_ANIMATION)));
     napi_set_named_property(env, objValue, "HIDE", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::HIDE)));
     napi_set_named_property(env, objValue, "TRANSFORM", CreateJsValue(env,
@@ -2420,23 +2416,6 @@ napi_value CreateJsSessionRect(napi_env env, const T& rect)
     napi_set_named_property(env, objValue, "posY_", CreateJsValue(env, rect.posY_));
     napi_set_named_property(env, objValue, "width_", CreateJsValue(env, rect.width_));
     napi_set_named_property(env, objValue, "height_", CreateJsValue(env, rect.height_));
-    return objValue;
-}
-
-napi_value CreateJsRectAnimationConfig(napi_env env, const RectAnimationConfig& rectAnimationConfig)
-{
-    napi_value objValue = nullptr;
-    napi_create_object(env, &objValue);
-    if (objValue == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to create object!");
-        return NapiGetUndefined(env);
-    }
-
-    napi_set_named_property(env, objValue, "duration", CreateJsValue(env, rectAnimationConfig.duration));
-    napi_set_named_property(env, objValue, "x1", CreateJsValue(env, rectAnimationConfig.x1));
-    napi_set_named_property(env, objValue, "y1", CreateJsValue(env, rectAnimationConfig.y1));
-    napi_set_named_property(env, objValue, "x2", CreateJsValue(env, rectAnimationConfig.x2));
-    napi_set_named_property(env, objValue, "y2", CreateJsValue(env, rectAnimationConfig.y2));
     return objValue;
 }
 
@@ -3065,6 +3044,10 @@ MainThreadScheduler::MainThreadScheduler(napi_env env)
 {
     GetMainEventHandler();
     envChecker_ = std::make_shared<int>(0);
+    auto nativeEngine = reinterpret_cast<NativeEngine*>(env);
+    if (!nativeEngine->IsMainThread()) {
+        TLOGE(WmsLogTag::DEFAULT, "Only support main thread env");
+    }
 }
 
 inline void MainThreadScheduler::GetMainEventHandler()

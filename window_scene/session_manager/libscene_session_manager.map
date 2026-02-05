@@ -21,6 +21,15 @@
             OHOS::Rosen::ExtensionSessionManager::RequestExtensionSessionDestruction*;
             OHOS::Rosen::ExtensionSessionManager::RequestExtensionSessionDestructionDone*;
             OHOS::Rosen::PipChangeListenerStub::OnRemoteRequest*;
+            OHOS::Rosen::PipController::ClearPipChgListenerMap*;
+            OHOS::Rosen::PipController::ClearPipEnabledMap*;
+            OHOS::Rosen::PipController::GetPipDeviceCollaborationPolicy*;
+            OHOS::Rosen::PipController::NotifyMulScreenPipStart*;
+            OHOS::Rosen::PipController::PipController*;
+            OHOS::Rosen::PipController::RegisterPipChgListenerByScreenId*;
+            OHOS::Rosen::PipController::SetPipEnableByScreenId*;
+            OHOS::Rosen::PipController::UnregisterPipChgListenerByScreenId*;
+            OHOS::Rosen::PipController::UnsetPipEnableByScreenId*;
             OHOS::Rosen::SceneSessionManager::AddRequestTaskInfo*;
             OHOS::Rosen::SceneSessionManager::AddWindowDragHotArea*;
             OHOS::Rosen::SceneSessionManager::ApplyFeatureConfig*;
@@ -136,6 +145,7 @@
             OHOS::Rosen::SceneSessionManager::RequestSceneSessionByCall*;
             OHOS::Rosen::SceneSessionManager::RequestSceneSessionDestruction*;
             OHOS::Rosen::SceneSessionManager::SendTouchEvent*;
+            OHOS::Rosen::SceneSessionManager::SendAxisEvent*;
             OHOS::Rosen::SceneSessionManager::SetAbilityManagerCollaboratorRegisteredFunc*;
             OHOS::Rosen::SceneSessionManager::SetAlivePersistentIds*;
             OHOS::Rosen::SceneSessionManager::SetAppDragResizeTypeInner*;
