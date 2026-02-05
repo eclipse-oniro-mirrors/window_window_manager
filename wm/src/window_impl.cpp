@@ -3836,7 +3836,8 @@ void WindowImpl::UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk:
 
 void WindowImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type)
 {
-    WLOGI("Update AvoidArea, id: %{public}u", property_->GetWindowId());
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u type %{public}d area %{public}s",
+          property_->GetWindowId(), type, avoidArea->ToString().c_str());
     auto display = SingletonContainer::IsDestroyed() ? nullptr :
         SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
     UpdateViewportConfig(GetRect(), display, WindowSizeChangeReason::AVOID_AREA_CHANGE, nullptr, {{type, *avoidArea}});
