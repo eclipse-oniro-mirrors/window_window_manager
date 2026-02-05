@@ -1992,6 +1992,14 @@ WMError WindowManager::GetMainWindowSnapshot(const std::vector<int32_t>& windowI
     return ret;
 }
 
+WMError WindowManager::SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+{
+    WMError ret = WindowAdapter::GetInstance(userId_).SetWindowSnapshotSkip(windowId, isSkip);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "userId=%{public}d, winId=%{public}d, isSkip=%{public}d, retCode=%{public}d",
+        userId_, windowId, isSkip, static_cast<int32_t>(ret));
+    return ret;
+}
+
 WMError WindowManager::GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode) const
 {
     return WindowAdapter::GetInstance(userId_).GetGlobalWindowMode(displayId, globalWinMode);

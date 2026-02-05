@@ -151,6 +151,10 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
