@@ -9116,16 +9116,16 @@ void WindowSessionImpl::SwitchSubWindow(bool freeMultiWindowEnable, int32_t pare
 
 void WindowSessionImpl::SwitchSystemWindow(bool freeMultiWindowEnable, int32_t parentId)
 {
-    std::lock_guard<std::shared_mutex> lock(windowSessionMutex_);
+    std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
     if (windowSessionMap_.empty()) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap is empty.");
+        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty.");
         return;
     }
     for (const auto& winPair : windowSessionMap_) {
-        auto systemWindowSession = winPair.second.second;
-        if (systemWindowSession && WindowHelper::IsSystemWindow(systemWindowSession->GetType())) {
-            systemWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
-            systemWindowSession->NotifyFreeWindowModeChange(freeMultiWindowEnable);
+        if (winPair.second.second && WindowHelper::IsSystemWindow(winPair.second.second->GetType())) {
+            auto sysWindowSession = winPair.second.second;
+            sysWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
+            sysWindowSession->NotifyFreeWindowModeChange(freeMultiWindowEnable);
         }
     }
 }

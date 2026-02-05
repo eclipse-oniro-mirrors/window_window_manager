@@ -727,6 +727,9 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
     if (zLevel != NORMAL_SUB_WINDOW_Z_LEVEL) {
         property_->SetSubWindowZLevel(zLevel);
     }
+    if (IsSubWindowMaximizeSupported()) {
+        proeprty_->SetDecorEnable(windowOption_->GetSubWindowDecorEnable());
+    }
 
     bool isSpecificSession = false;
     const auto& initRect = GetRequestRect();
@@ -3947,7 +3950,7 @@ WMError WindowSceneSessionImpl::Maximize()
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    if (WindowHelper::IsMainWindow(GetType())) {
+    if (WindowHelper::IsMainWindow(GetType()) || IsSubWindowMaximizeSupported()) {
         UpdateIsShowDecorInFreeMultiWindow(true);
         SetLayoutFullScreen(enableImmersiveMode_);
     }
@@ -6297,6 +6300,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
         UpdateImmersiveBySwitchMode(enable);
     }
     SwitchSubWindow(enable, GetPersistentId());
+    SwitchSystemWindow(enable, GetPersistentId());
     return WSError::WS_OK;
 }
 

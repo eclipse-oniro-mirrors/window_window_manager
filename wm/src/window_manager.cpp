@@ -2268,7 +2268,7 @@ WMError WindowManager::RegisterVisibleWindowNumChangedListener(const sptr<IVisib
         TLOGE(WmsLogTag::WMS_MAIN, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->visibleWindowNumChangedListenerAgent_ == nullptr) {
         pImpl_->visibleWindowNumChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
@@ -2302,7 +2302,7 @@ WMError WindowManager::UnregisterVisibleWindowNumChangedListener(const sptr<IVis
         TLOGE(WmsLogTag::WMS_MAIN, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     auto iter = std::find(pImpl_->visibleWindowNumChangedListeners_.begin(),
         pImpl_->visibleWindowNumChangedListeners_.end(), listener);
     if (iter == pImpl_->visibleWindowNumChangedListeners_.end()) {
