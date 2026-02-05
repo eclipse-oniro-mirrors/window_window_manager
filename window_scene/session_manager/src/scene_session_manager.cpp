@@ -12680,8 +12680,10 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     ProcessWindowModeType();
 #ifdef MEMMGR_WINDOW_ENABLE
     if (memMgrWindowInfos.size() != 0) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
-        Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
+        taskScheduler_->PostAsyncTaskToExportHandler([memMgrWindowInfos = std::move(memMgrWindowInfos)]() {
+            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
+            Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
+        }, "notifyMemMgr");
     }
 #endif
 }
@@ -12994,8 +12996,10 @@ void SceneSessionManager::WindowDestroyNotifyVisibility(const sptr<SceneSession>
         CheckAndNotifyWaterMarkChangedResult();
         SessionManagerAgentController::GetInstance().UpdateWindowVisibilityInfo(windowVisibilityInfos);
 #ifdef MEMMGR_WINDOW_ENABLE
-        TLOGD(WmsLogTag::DEFAULT, "Notify memMgrWindowInfos changed start");
-        Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
+        taskScheduler_->PostAsyncTaskToExportHandler([memMgrWindowInfos = std::move(memMgrWindowInfos)]() {
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "Notify memMgrWindowInfos when destroy");
+            Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
+        }, "notifyDestroyMemMgr");
 #endif
     }
 }
