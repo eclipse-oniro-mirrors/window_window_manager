@@ -33,11 +33,6 @@ namespace {
     {
         g_errLog = msg;
     }
-#if (defined(__aarch64__) || defined(__x86_64__))
-const std::string PLUGIN_AOD_SO_PATH = "/system/lib64/libaod_native.z.so";
-#else
-const std::string PLUGIN_AOD_SO_PATH = "/system/lib/libaod_native.z.so";
-#endif
 }
 class IsInAodTest : public testing::Test {
 public:

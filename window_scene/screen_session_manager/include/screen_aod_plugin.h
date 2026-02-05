@@ -24,6 +24,7 @@
 
 namespace OHOS {
 namespace Rosen {
+
 #if (defined(__aarch64__) || defined(__x86_64__))
 extern const std::string PLUGIN_SO_PATH;
 #else
