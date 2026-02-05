@@ -3729,6 +3729,7 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
 {
     // fallback to system default property
     auto prop = GetSystemBarPropertyByType(type);
+    auto owner = SystemBarPropertyOwner::APPLICATION;
     {
         std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
         if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
@@ -3746,6 +3747,7 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
                 prop.contentColor_ = pair.second.contentColor_;
                 flag.contentColorFlag = true;
                 prop.settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
+                owner = pair.first;
             }
             if (!flag.enableFlag && pair.second.flag_.enableFlag) {
                 prop.enable_ = pair.second.enable_;
@@ -3762,6 +3764,9 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
             }
         }
     }
+    // Consistent systemBarStyle api behavior.
+    prop.settingFlag_ =
+        owner == SystemBarPropertyOwner::ARKUI_NAVIGATION ? SystemBarSettingFlag::COLOR_SETTING : prop.settingFlag_;
     TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u "
         "prop [%{public}u %{public}x %{public}x %{public}u %{public}u]",
         GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type),
