@@ -14844,6 +14844,17 @@ void ScreenSessionManager::SetFirstSCBConnect(bool firstSCBConnect)
     firstSCBConnect_ = firstSCBConnect;
 }
 
+bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid) const
+{
+    std::shared_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
+    auto iter = uidAndPidMap_.find(uid);
+    if (iter == uidAndPidMap_.end() || iter->second != agentPid) {
+        TLOGNI(WmsLogTag::DMS, "no notify");
+        return true;
+    }
+    return false;
+}
+
 DMError ScreenSessionManager::SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty)
 {
     if (!SessionPermission::IsSystemCalling()) {
@@ -14883,17 +14894,6 @@ void ScreenSessionManager::SetPropertyChangedCallback(
     TLOGNFI(WmsLogTag::DMS, "set callback is valid: %{public}s",callback ? "true" : "false");
     std::lock_guard<std::mutex> lock(callbackMutex_);
     propertyChangedCallback_ = callback;
-}
-
-bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid) const
-{
-    std::shared_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
-    auto iter = uidAndPidMap_.find(uid);
-    if (iter == uidAndPidMap_.end() || iter->second != agentPid) {
-        TLOGNI(WmsLogTag::DMS, "no notify");
-        return true;
-    }
-    return false;
 }
 
 void ScreenSessionManager::NotifyAodOpCompletion(AodOP operation, int32_t result)
