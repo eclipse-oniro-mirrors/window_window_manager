@@ -728,7 +728,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
         property_->SetSubWindowZLevel(zLevel);
     }
     if (IsSubWindowMaximizeSupported()) {
-        proeprty_->SetDecorEnable(windowOption_->GetSubWindowDecorEnable());
+        property_->SetDecorEnable(windowOption_->GetSubWindowDecorEnable());
     }
 
     bool isSpecificSession = false;
