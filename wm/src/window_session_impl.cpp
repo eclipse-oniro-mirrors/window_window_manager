@@ -5430,13 +5430,13 @@ static void RequestInputMethodCloseKeyboard(bool isNeedKeyboard, bool keepKeyboa
             hostWindowId = uiContent->GetUIContentWindowID(uiContent->GetInstanceId());
         }
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Notify InputMethod framework close keyboard start. id: %{public}d, "
-              "isUIEProc: %{public}d, hostWindowId: %{public}d", windowId, isUIEProc, hostWindowId);
+            "isUIEProc: %{public}d, hostWindowId: %{public}d", windowId, isUIEProc, hostWindowId);
         auto inputMethodController = MiscServices::InputMethodController::GetInstance();
         if (inputMethodController) {
             inputMethodController->RequestHideInput(static_cast<uint32_t>(hostWindowId));
             MiscServices::ClientType clientType = MiscServices::CLIENT_TYPE_END;
-            if (inputMethodController->GetClientType(clientType) == MiscServices::ErrorCode::NO_ERROR
-                && clientType == MiscServices::INNER_KIT_ARKUI) {
+            if (inputMethodController->GetClientType(clientType) == MiscServices::ErrorCode::NO_ERROR &&
+                clientType == MiscServices::INNER_KIT_ARKUI) {
                 inputMethodController->Close();
             }
             TLOGD(WmsLogTag::WMS_KEYBOARD, "Notify InputMethod framework close keyboard end.");
