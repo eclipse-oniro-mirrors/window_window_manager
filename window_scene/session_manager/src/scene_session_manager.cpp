@@ -2888,7 +2888,6 @@ void SceneSessionManager::SetBufferAvailable(sptr<SceneSession>& sceneSession)
         type == WindowType::WINDOW_TYPE_WALLPAPER) {
         TLOGI(WmsLogTag::WMS_SCB, "enter buffer available callback");
         auto surfaceNode = sceneSession->GetSurfaceNode();
-        
         if (!surfaceNode) {
             TLOGE(WmsLogTag::WMS_SCB, "surface node is nullptr");
             return;
