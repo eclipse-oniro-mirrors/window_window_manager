@@ -5713,7 +5713,6 @@ WSError SceneSessionManager::InitUserInfo(int32_t userId, std::string& fileDir)
         return WSError::WS_DO_NOTHING;
     }
     TLOGI(WmsLogTag::WMS_MAIN, "userId: %{public}d, path: %{public}s", userId, fileDir.c_str());
-    InitStartingWindowRdb(fileDir + "/StartingWindowRdb/");
     return taskScheduler_->PostSyncTask([this, userId, &fileDir]() {
         if (!ScenePersistence::CreateSnapshotDir(fileDir)) {
             TLOGND(WmsLogTag::WMS_MAIN, "Create snapshot directory failed");
@@ -6267,8 +6266,7 @@ void SceneSessionManager::GetStartupPage(const SessionInfo& sessionInfo, Startin
             sessionInfo.bundleName_, sessionInfo.moduleName_, sessionInfo.abilityName_, startingWindowInfo, isDark);
         uint32_t updateRes = UpdateCachedColorToAppSet(
             sessionInfo.bundleName_, sessionInfo.moduleName_, sessionInfo.abilityName_, startingWindowInfo);
-        TLOGI(WmsLogTag::WMS_PATTERN, "updateRes %{public}u, %{public}x",
-            updateRes, startingWindowInfo.backgroundColor_);
+        TLOGI(WmsLogTag::WMS_PATTERN, "update%{public}u,%{public}x", updateRes, startingWindowInfo.backgroundColor_);
         return;
     }
     AAFwk::Want want;
@@ -6295,7 +6293,7 @@ void SceneSessionManager::GetStartupPage(const SessionInfo& sessionInfo, Startin
         isDark = GetStartWindowColorFollowApp(sessionInfo) ? isAppDark : isSystemDark;
         CacheStartingWindowInfo(
             sessionInfo.bundleName_, sessionInfo.moduleName_, sessionInfo.abilityName_, startingWindowInfo, isDark);
-        if (startingWindowRdbMgr_ != nullptr) {	
+        if (startingWindowRdbMgr_ != nullptr) {
             StartingWindowRdbItemKey itemKey = {
                 .bundleName = sessionInfo.bundleName_,
                 .moduleName = sessionInfo.moduleName_,
@@ -6308,8 +6306,7 @@ void SceneSessionManager::GetStartupPage(const SessionInfo& sessionInfo, Startin
         }
         uint32_t updateRes = UpdateCachedColorToAppSet(
             sessionInfo.bundleName_, sessionInfo.moduleName_, sessionInfo.abilityName_, startingWindowInfo);
-        TLOGI(WmsLogTag::WMS_PATTERN, "updateRes %{public}u, %{public}x",
-            updateRes, startingWindowInfo.backgroundColor_);
+        TLOGI(WmsLogTag::WMS_PATTERN, "update%{public}u,%{public}x", updateRes, startingWindowInfo.backgroundColor_);
     }
     TLOGW(WmsLogTag::WMS_PATTERN, "%{public}d, %{public}x", startingWindowInfo.configFileEnabled_,
         startingWindowInfo.configFileEnabled_ ? startingWindowInfo.backgroundColor_ :
