@@ -126,6 +126,7 @@ const std::string EVENT_NAME_CLOSE = "win_close_event";
 const std::string MOUSE_HOVER = "mouseHover";
 const std::string TOUCH_HOVER = "touchHover";
 const std::string EXIT_HOVER = "exitHover";
+const std::string IS_ANCO_SUPPORT_FREE_WINDOW = "hmos_fusion.container.pc.freemode.captionbar";
 constexpr char SCENE_BOARD_UE_DOMAIN[] = "SCENE_BOARD_UE";
 constexpr char HOVER_MAXIMIZE_MENU[] = "PC_HOVER_MAXIMIZE_MENU";
 constexpr char CLICK_TITLE_MINIMIZE[] = "PC_CLICK_TITLE_MINIMIZE";
@@ -1444,12 +1445,11 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
         }
         property_->SetWindowModeSupportType(windowModeSupportType);
         // anco support multiWindow config
-        const bool isAncoSupportMultiWindow =
-            system::GetIntParameter("hmos_fusion.container.pc.freemode.captionbar", 0) == 1;
+        static const bool isAncoSupportFreeWindow = system::GetIntParameter(IS_ANCO_SUPPORT_FREE_WINDOW, 0) == 1;
         bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "windowId: %{public}u, windowModeSupportType: %{public}u, "
-            "isAncoSupportMultiWindow: %{public}d, isAncoInPcOrPcMode:%{public}d",
-            GetWindowId(), windowModeSupportType, isAncoSupportMultiWindow, isAncoInPcOrPcMode);
+            "isAncoSupportFreeWindow: %{public}d, isAncoInPcOrPcMode:%{public}d",
+            GetWindowId(), windowModeSupportType, isAncoSupportFreeWindow, isAncoInPcOrPcMode);
         // update windowModeSupportType to server
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
         bool isWindowModeSupportFullscreen = GetTargetAPIVersion() < 15 ? // 15: isolated version
@@ -1459,7 +1459,7 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
         bool isAncoInPhoneFreeMultiWindowMode = IsAnco() && IsFreeMultiWindowMode() &&
             windowSystemConfig_.IsPhoneWindow();
         bool onlySupportFullScreen = (isWindowModeSupportFullscreen ||
-            (isAncoInPcOrPcMode && !isAncoSupportMultiWindow)) || isAncoInPhoneFreeMultiWindowMode;
+            (isAncoInPcOrPcMode && !isAncoSupportFreeWindow)) || isAncoInPhoneFreeMultiWindowMode;
         bool compatibleDisableFullScreen = property_->IsFullScreenDisabled();
         if ((onlySupportFullScreen || property_->GetFullScreenStart()) && !compatibleDisableFullScreen) {
             TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d fullScreenStart:%{public}d",
