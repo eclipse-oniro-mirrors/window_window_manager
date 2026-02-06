@@ -3761,7 +3761,7 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
                 break;
             }
         }
-        // consistent systemBarStyle api behavior.
+        // keep the systemBarStyle api behavior consistent.
         auto iter = ownPropList.begin();
         bool isUseNavigationColor = (iter != ownPropList.end()) &&
             (iter->first == SystemBarPropertyOwner::ARKUI_NAVIGATION);
