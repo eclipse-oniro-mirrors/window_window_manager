@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "screen_session_manager_adapter.h"
+#include "scene_board_judgemend"
 
 using namespace testing;
 using namespace testing::ext;
@@ -26,7 +27,7 @@ namespace {
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
-        g_errLog = msg;
+        g_errLog += msg;
     }
 }
 class ScreenSessionManagerAdapterTest : public testing::Test {
@@ -57,6 +58,24 @@ HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange01_DisplayInfo_Nullptr,
     ScreenSessionManagerAdapter adapter;
     adapter.OnDisplayChange(displayInfo, event, uid);
     EXPECT_TRUE(g_errLog.find("Invalid display info") != std::string::npos);
+}
+
+/**
+ * @tc.name: OnDisplayChange01_Agents_Null
+ * @tc.desc: OnDisplayChange01_Agents_Null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange01_Agents_Null, TestSize.Level1)
+{
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
+    sptr<DisplayInfo> displayInfo = new DisplayInfo();
+    DisplayChangeEvent event = DisplayChangeEvent::UNKNOWN;
+    int32_t uid = 1000;
+    ScreenSessionManagerAdapter adapter;
+    adapter.OnDisplayChange(displayInfo, event, uid);
+    EXPECT_TRUE(g_errLog.find("agents is empty") != std::string::npos);
 }
 
 /**
@@ -168,6 +187,22 @@ HWTEST_F(ScreenSessionManagerAdapterTest, OnScreenChange_ScreenInfos_Nullptr, Te
     ScreenSessionManagerAdapter adapter;
     adapter.OnScreenChange(screenInfo, event);
     EXPECT_TRUE(g_errLog.find("error, screenInfo is nullptr") != std::string::npos);
+}
+
+/**
+ * @tc.name: OnDisplayCreate_DisplayInfo_Nullptr
+ * @tc.desc: OnDisplayCreate_DisplayInfo_Nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayCreate_DisplayInfo_Nullptr, TestSize.Level1)
+{
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
+    sptr<DisplayInfo> displayInfo = nullptr;
+    ScreenSessionManagerAdapter adapter;
+    adapter.OnDisplayCreate(displayInfo);
+    EXPECT_TRUE(g_errLog.find("displayInfo nullptr") != std::string::npos);
 }
 
 /**
