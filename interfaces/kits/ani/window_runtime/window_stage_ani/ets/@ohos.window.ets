@@ -357,7 +357,7 @@ namespace window {
     /**
      * The visibility of system bar
      *
-     * @type { ?boolean }
+     * @type { boolean }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -367,7 +367,7 @@ namespace window {
     /**
      * The region of system bar
      *
-     * @type { ?Rect }
+     * @type { Rect }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -377,7 +377,7 @@ namespace window {
     /**
      * The background color of the system bar.
      *
-     * @type { ?string }
+     * @type { string }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -387,7 +387,7 @@ namespace window {
     /**
      * The content color of the system bar.
      *
-     * @type { ?string }
+     * @type { string }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
