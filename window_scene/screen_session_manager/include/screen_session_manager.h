@@ -190,7 +190,8 @@ public:
     void NotifyDisplayDestroy(DisplayId displayId);
     void NotifyAndPublishEvent(sptr<DisplayInfo> displayInfo, ScreenId screenId, sptr<ScreenSession> screenSession);
     void NotifyDisplayChanged(sptr<DisplayInfo> displayInfo, DisplayChangeEvent event);
-    void CheckAttributeChange(sptr<DisplayInfo> displayInfo, int32_t uid = INVALID_UID);
+    void CheckAttributeChange(sptr<DisplayInfo> displayInfo);
+    void CheckAttributeChangeWithUid(sptr<DisplayInfo> displayInfo, int32_t uid);
     void NotifyDisplayAttributeChanged(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes,
         int32_t uid = INVALID_UID);
     void GetChangedListenableAttribute(sptr<DisplayInfo> displayInfo1, sptr<DisplayInfo> displayInfo2,
@@ -1035,6 +1036,8 @@ private:
 
     std::mutex lastDisplayInfoMapMutex_;
     std::map<DisplayId, sptr<DisplayInfo>> lastDisplayInfoMap_;
+    std::mutex lastDisplayInfoHookMapMutex_;
+    std::map<int32_t, std::map<DisplayId, sptr<DisplayInfo>>> lastDisplayInfoHookMap_;
 
     std::atomic<PowerStateChangeReason> prePowerStateChangeReason_ =
         PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN;
