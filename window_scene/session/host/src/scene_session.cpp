@@ -5463,14 +5463,15 @@ void SceneSession::SetPrivacyMode(bool isPrivacy)
 
 void SceneSession::NotifyPrivacyModeChange()
 {
-    bool isPrivacyMode = GetSessionProperty()->GetPrivacyMode();
-    bool currExtPrivacyMode = combinedExtWindowFlags_.privacyModeFlag;
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win:[%{public}d, %{public}s], currExtPrivacyMode:%{public}d, "
+    bool curExtPrivacyMode = combinedExtWindowFlags_.privacyModeFlag;
+    bool curPrivacyMode = curExtPrivacyMode || GetSessionProperty()->GetPrivacyMode();
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win:[%{public}d, %{public}s], curExtPrivacyMode:%{public}d, "
         "session property privacyMode:%{public}d, last privacyMode:%{public}d",
-        GetPersistentId(), GetWindowName().c_str(), currExtPrivacyMode, isPrivacyMode, isPrivacyMode_);
-    bool mixedPrivacyMode = currExtPrivacyMode || isPrivacyMode;
-    if (mixedPrivacyMode != isPrivacyMode_) {
-        isPrivacyMode_ = mixedPrivacyMode;
+        GetPersistentId(), GetWindowName().c_str(), curExtPrivacyMode, GetSessionProperty()->GetPrivacyMode(),
+        isPrivacyMode_);
+
+    if (curPrivacyMode != isPrivacyMode_) {
+        isPrivacyMode_ = curPrivacyMode;
         if (privacyModeChangeNotifyFunc_) {
             privacyModeChangeNotifyFunc_(isPrivacyMode_);
         }
