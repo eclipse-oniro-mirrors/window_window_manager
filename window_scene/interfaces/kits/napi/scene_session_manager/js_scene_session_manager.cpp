@@ -240,6 +240,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "handleUserSwitch", moduleName, JsSceneSessionManager::HandleUserSwitch);
     BindNativeFunction(env, exportObj, "notifySessionRecoverStatus", moduleName,
         JsSceneSessionManager::NotifySessionRecoverStatus);
+    BindNativeFunction(env, exportObj, "handlePcAppStatus", moduleName, JsSceneSessionManager::HandlePcAppStatus);
     BindNativeFunction(env, exportObj, "setStatusBarDefaultVisibilityPerDisplay", moduleName,
         JsSceneSessionManager::SetStatusBarDefaultVisibilityPerDisplay);
     BindNativeFunction(env, exportObj, "notifyStatusBarShowStatus", moduleName,
@@ -1271,6 +1272,13 @@ napi_value JsSceneSessionManager::HandleUserSwitch(napi_env env, napi_callback_i
     TLOGD(WmsLogTag::WMS_MULTI_USER, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnHandleUserSwitch(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::HandlePcAppStatus(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnHandlePcAppStatus(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::SetStatusBarDefaultVisibilityPerDisplay(napi_env env, napi_callback_info info)
@@ -3566,6 +3574,39 @@ napi_value JsSceneSessionManager::OnHandleUserSwitch(napi_env env, napi_callback
         return NapiGetUndefined(env);
     }
     SceneSessionManager::GetInstance().HandleUserSwitch(eventType, isUserActive);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::OnHandlePcAppStatus(napi_env env, napi_callback_info info)
+{
+    size_t argc = DEFAULT_ARG_COUNT;
+    napi_value argv[DEFAULT_ARG_COUNT] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    bool isBackground = false;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_ZERO], isBackground)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to isBackground");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    int32_t persistentId = 0;
+    if (argc > ARGC_ONE && !ConvertFromJsValue(env, argv[1], persistentId)) {
+        TLOGE(WmsLogTag::WMS_IMMS, "Failed to convert parameter to persistentId");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    if (persistentId <= 0) {
+        SceneSessionManager::GetInstance().SchedulePcAppInPadLifecycle(isBackground);
+    } else {
+        SceneSessionManager::GetInstance().SchedulePcAppInPadLifecycleByPersistentId(isBackground, persistentId);
+    }
     return NapiGetUndefined(env);
 }
 

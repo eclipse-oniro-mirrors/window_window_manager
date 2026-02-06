@@ -1922,6 +1922,39 @@ HWTEST_F(SceneSessionManagerTest3, SchedulePcAppInPadLifecycle, TestSize.Level1)
     ssm_->sceneSessionMap_.erase(4);
     ssm_->SetTrayAppList(std::move(trayAppListOld));
 }
+
+/**
+ * @tc.name: SchedulePcAppInPadLifecycleByPersistentId
+ * @tc.desc: call SchedulePcAppInPadLifecycleByPersistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, SchedulePcAppInPadLifecycleByPersistentId, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    info.persistentId_ = 808;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(true);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    int32_t persistentId = 808;
+    std::string bundleName = "testBundleName";
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ssm_->sceneSessionMap_.insert({ 808, sceneSession });
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, -1);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, persistentId);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(false);
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, persistentId);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(true);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, persistentId);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    sleep(1);
+    ssm_->sceneSessionMap_.erase(persistentId);
+}
  
 /**
  * @tc.name: StartOrMinimizePcAppInPadUIAbilityBySCB
@@ -1957,6 +1990,7 @@ HWTEST_F(SceneSessionManagerTest3, StartOrMinimizePcAppInPadUIAbilityBySCB, Test
     std::vector<std::string> trayAppList;
     trayAppList.push_back("test2");
     ssm_->SetTrayAppList(std::move(trayAppList));
+    ssm_->isSupportPcAppInPhone_ = false;
     EXPECT_EQ(WSError::WS_DO_NOTHING, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, true));
     EXPECT_EQ(WSError::WS_DO_NOTHING, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, false));
     EXPECT_EQ(WSError::WS_DO_NOTHING, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession2, true));
