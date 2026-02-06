@@ -133,7 +133,6 @@ HWTEST_F(WindowPatternStartingWindowTest, SetAndGetStartWindowPersistencePath01,
     ASSERT_NE(ssm_, nullptr);
 
     const std::string bundleName = "testBundle";
-    // 替换原bool isDark为字符串类型的saveStartWindowKey
     const std::string darkKey = "DarkStartWindow";
     const std::string lightKey = "LightStartWindow";
     const std::string darkPath = "/data/testBundle/dark_start_window.png";
