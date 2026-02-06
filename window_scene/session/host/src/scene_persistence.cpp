@@ -77,8 +77,8 @@ bool ScenePersistence::CreateStartWindowDir(const std::string& directory)
 }
 
 void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap,
-        const std::string& saveStartWindowkey,
-        const std::function<void(std::string, std::string)>& saveStartWindowCallback);
+                                       const std::string& saveStartWindowKey,
+                                       const std::function<void(std::string, std::string)>& saveStartWindowCallback);
 {
     std::string startWindowPath = startWindowDirectory_ + saveStartWindowKey + IMAGE_SUFFIX;
     auto task = [weakThis = wptr(this), pixelMap, startWindowPath, saveStartWindowKey, saveStartWindowCallback]() {
