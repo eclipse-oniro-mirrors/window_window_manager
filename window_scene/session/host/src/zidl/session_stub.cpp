@@ -1178,9 +1178,9 @@ int SessionStub::HandleRaiseMainWindowAboveTarget(MessageParcel& data, MessagePa
     }
     WSError errCode = RaiseMainWindowAboveTarget(targetId);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "write errCode failed");
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "write errCode failed.");
         return ERR_INVALID_DATA;
-    };
+    }
     return ERR_NONE;
 }
 

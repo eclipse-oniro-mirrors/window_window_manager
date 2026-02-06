@@ -254,10 +254,10 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleNotifyScreenshotEvent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_START_WINDOW_BACKGROUND_COLOR):
             return HandleSetStartWindowBackgroundColor(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_BY_WINDOW_ID):
-            return HandleMinimizeByWindowId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_PARENT_WINDOW):
             return HandleSetParentWindow(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_BY_WINDOW_ID):
+            return HandleMinimizeByWindowId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_FOREGROUND_WINDOW_NUM):
             return HandleSetForegroundWindowNum(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_USE_IMPLICIT_ANIMATION):
@@ -288,10 +288,10 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUpdateOutline(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SPECIFIC_WINDOW_ZINDEX):
             return HandleSetSpecificWindowZIndex(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SUPPORT_ROTATION_REGISTERED):
-            return HandleNotifySupportRotationRegistered(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RESET_SPECIFIC_WINDOW_ZINDEX):
             return HandleResetSpecificWindowZIndex(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SUPPORT_ROTATION_REGISTERED):
+            return HandleNotifySupportRotationRegistered(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -2627,6 +2627,36 @@ int SceneSessionManagerStub::HandleCreateUIEffectController(MessageParcel& data,
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply)
+{
+    bool switchStatus = false;
+    WMError errCode = GetPiPSettingSwitchStatus(switchStatus);
+    if (!reply.WriteBool(switchStatus)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write switchStatus fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply)
+{
+    bool isPipEnabled = false;
+    WMError errCode = GetIsPipEnabled(isPipEnabled);
+    if (!reply.WriteBool(isPipEnabled)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write isPipEnabled fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleAddSessionBlackList(MessageParcel& data, MessageParcel& reply)
 {
     uint64_t size = 0;
@@ -2716,37 +2746,6 @@ int SceneSessionManagerStub::HandleRemoveSessionBlackList(MessageParcel& data, M
     WMError errCode = RemoveSessionBlackList(bundleNames, privacyWindowTags);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write errCode failed");
-        return ERR_INVALID_DATA;
-    }
-    return ERR_NONE;
-}
-// LCOV_EXCL_STOP
-
-int SceneSessionManagerStub::HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply)
-{
-    bool switchStatus = false;
-    WMError errCode = GetPiPSettingSwitchStatus(switchStatus);
-    if (!reply.WriteBool(switchStatus)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write switchStatus fail.");
-        return ERR_INVALID_DATA;
-    }
-    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
-        return ERR_INVALID_DATA;
-    }
-    return ERR_NONE;
-}
-
-int SceneSessionManagerStub::HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply)
-{
-    bool isPipEnabled = false;
-    WMError errCode = GetIsPipEnabled(isPipEnabled);
-    if (!reply.WriteBool(isPipEnabled)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write isPipEnabled fail.");
-        return ERR_INVALID_DATA;
-    }
-    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

@@ -94,7 +94,7 @@ private:
     void NotifyMissionEvent(ISessionLifecycleListener::SessionLifecycleEvent event, int32_t persistentId);
 
     template<typename F, typename... Args>
-    void CallListeners(F func, Args&&... args);
+    void CallListeners(F func, Args&& ... args);
 
     class ListenerDeathRecipient : public IRemoteObject::DeathRecipient {
     public:
