@@ -30,12 +30,6 @@
 
 namespace OHOS {
 namespace Rosen {
-#if (defined(__aarch64__) || defined(__x86_64__))
-const std::string INTENTION_EVENT_SO_PATH = "/system/lib64/libintention_event.z.so";
-#else
-const std::string INTENTION_EVENT_SO_PATH = "/system/lib/libintention_event.z.so";
-#endif
-
 bool LoadIntentionEvent(void);
 void UnloadIntentionEvent(void);
 bool EnableInputEventListener(
