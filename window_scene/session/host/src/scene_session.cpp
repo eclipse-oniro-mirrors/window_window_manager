@@ -3138,11 +3138,11 @@ void SceneSession::PatchAINavigationBarArea(AvoidArea& avoidArea)
         avoidArea.bottomRect_ = avoidArea.leftRect_;
         avoidArea.leftRect_ = areaEmpty;
     } else if (!avoidArea.topRect_.IsUninitializedRect()) {
-        avoidArea.bottomRect_ = avoidArea.topRect_;
-        avoidArea.topRect_ = areaEmpty;
-    } else if (!avoidArea.topRect_.IsUninitializedRect()) {
         avoidArea.bottomRect_ = avoidArea.rightRect_;
         avoidArea.rightRect_ = areaEmpty;
+    } else if (!avoidArea.topRect_.IsUninitializedRect()) {
+        avoidArea.bottomRect_ = avoidArea.topRect_;
+        avoidArea.topRect_ = areaEmpty;
     }
 }
 
@@ -8224,7 +8224,6 @@ void SceneSession::SetSkipSelfWhenShowOnVirtualScreen(bool isSkip)
             TLOGNE(WmsLogTag::WMS_SCB, "%{public}s surfaceNode_ is null", where);
             return;
         }
-        std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode = session->GetLeashWinSurfaceNode();
         if (session->specificCallback_ != nullptr &&
             session->specificCallback_->onSetSkipSelfWhenShowOnVirtualScreen_ != nullptr) {
             if (WindowHelper::IsPipWindow(session->GetWindowType())) {
@@ -8501,14 +8500,7 @@ void SceneSession::SetNotifyVisibleChangeFunc(const NotifyVisibleChangeFunc& fun
 
 void SceneSession::SetPrivacyModeChangeNotifyFunc(NotifyPrivacyModeChangeFunc&& func)
 {
-    PostTask([weakThis = wptr(this), func = std::move(func), where = __func__] {
-        auto session = weakThis.promote();
-        if (!session) {
-            TLOGNE(WmsLogTag::WMS_SCB, "%{public}s session is null", where);
-            return;
-        }
-        session->privacyModeChangeNotifyFunc_ = std::move(func);
-    }, __func__);
+    privacyModeChangeNotifyFunc_ = func;
 }
 
 void SceneSession::SetHighlightChangeNotifyFunc(const NotifyHighlightChangeFunc& func)
