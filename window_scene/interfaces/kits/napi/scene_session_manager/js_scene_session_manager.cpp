@@ -4642,12 +4642,16 @@ napi_value JsSceneSessionManager::OnNotifyHookOrientationChange(napi_env env, na
         return NapiGetUndefined(env);
     }
 
-    int32_t persistentId = 0;
+    uint32_t persistentId = 0;
     if (!ConvertFromJsValue(env, argv[0], persistentId)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to persistentId");
         return NapiGetUndefined(env);
     }
-    SceneSessionManager::GetInstance().NotifyHookOrientationChange(persistentId);
+    if (persistentId > INT32_MAX) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Invalid persistentId: %{public}u", persistentId);
+        return NapiGetUndefined(env);
+    }
+    SceneSessionManager::GetInstance().NotifyHookOrientationChange(static_cast<int32_t>(persistentId));
     return NapiGetUndefined(env);
 }
 

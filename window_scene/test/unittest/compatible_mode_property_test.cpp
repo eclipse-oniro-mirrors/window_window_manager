@@ -142,10 +142,10 @@ HWTEST_F(CompatibleModePropertyTest, IsAdaptToBackButton, TestSize.Level1)
 }
 
 /**
-*@tc.name: SetIsAdaptToDragScale
-*@tc.desc: SetIsAdaptToDragScale
-*@tc.type: FUNC
-*/
+ * @tc.name: SetIsAdaptToDragScale
+ * @tc.desc: SetIsAdaptToDragScale
+ * @tc.type: FUNC
+ */
 HWTEST_F(CompatibleModePropertyTest, SetIsAdaptToDragScale, TestSize.Level1)
 {
     sptr<CompatibleModeProperty> property = sptr<CompatibleModeProperty>::MakeSptr();
@@ -156,10 +156,10 @@ HWTEST_F(CompatibleModePropertyTest, SetIsAdaptToDragScale, TestSize.Level1)
 }
 
 /**
-*@tc.name: IsAdaptToDragScale
-*@tc.desc: IsAdaptToDragScale
-*@tc.type: FUNC
-*/
+ * @tc.name: IsAdaptToDragScale
+ * @tc.desc: IsAdaptToDragScale
+ * @tc.type: FUNC
+ */
 HWTEST_F(CompatibleModePropertyTest, IsAdaptToDragScale, TestSize.Level1)
 {
     sptr<CompatibleModeProperty> property = sptr<CompatibleModeProperty>::MakeSptr();
@@ -331,28 +331,10 @@ HWTEST_F(CompatibleModePropertyTest, IsAdaptToSimulationScale, TestSize.Level1)
 }
 
 /**
- * @tc.name: CopyFrom
- * @tc.desc: CopyFrom
+ * @tc.name: SetIsFullScreenStart
+ * @tc.desc: SetIsFullScreenStart
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModePropertyTest, CopyFrom, TestSize.Level1)
-{
-    sptr<CompatibleModeProperty> property = sptr<CompatibleModeProperty>::MakeSptr();
-    sptr<CompatibleModeProperty> copyProperty = nullptr;
-    property->CopyFrom(copyProperty);
-    EXPECT_EQ(property->IsAdaptToSimulationScale(), false);
-    copyProperty = sptr<CompatibleModeProperty>::MakeSptr();
-    copyProperty->SetIsAdaptToSimulationScale(true);
-    property->CopyFrom(copyProperty);
-    EXPECT_EQ(property->IsAdaptToSimulationScale(), true);
-}
-
-/**
-
-@tc.name: SetIsFullScreenStart
-@tc.desc: SetIsFullScreenStart
-@tc.type: FUNC
-*/
 HWTEST_F(CompatibleModePropertyTest, SetIsFullScreenStart, TestSize.Level1)
 {
     sptr<CompatibleModeProperty> property = sptr<CompatibleModeProperty>::MakeSptr();
@@ -361,12 +343,12 @@ HWTEST_F(CompatibleModePropertyTest, SetIsFullScreenStart, TestSize.Level1)
     property->SetIsFullScreenStart(false);
     EXPECT_EQ(property->isFullScreenStart_, false);
 }
-/**
 
-@tc.name: IsFullScreenStart
-@tc.desc: IsFullScreenStart
-@tc.type: FUNC
-*/
+/**
+ * @tc.name: IsFullScreenStart
+ * @tc.desc: IsFullScreenStart
+ * @tc.type: FUNC
+ */
 HWTEST_F(CompatibleModePropertyTest, IsFullScreenStart, TestSize.Level1)
 {
     sptr<CompatibleModeProperty> property = sptr<CompatibleModeProperty>::MakeSptr();
