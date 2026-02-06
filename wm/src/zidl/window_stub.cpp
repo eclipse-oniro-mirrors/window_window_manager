@@ -382,6 +382,6 @@ int WindowStub::ParseAvoidAreas(MessageParcel& data, std::map<AvoidAreaType, Avo
         avoidAreas[static_cast<AvoidAreaType>(type)] = *area;
     }
     return ERR_NONE;
-}    
+}
 } // namespace Rosen
 } // namespace OHOS
