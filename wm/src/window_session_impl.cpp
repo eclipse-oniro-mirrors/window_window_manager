@@ -6757,7 +6757,7 @@ WMError WindowSessionImpl::RegisterAcrossDisplaysChangeListener(
     return ret;
 }
 
-WMError WindowSessionImpl::UnRegisterAcrossDisplaysChangeListener(
+WMError WindowSessionImpl::UnregisterAcrossDisplaysChangeListener(
     const IAcrossDisplaysChangeListenerSptr& listener)
 {
     if (IsWindowSessionInvalid()) {

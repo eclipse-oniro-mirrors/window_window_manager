@@ -318,7 +318,7 @@ public:
     WMError RegisterSystemDensityChangeListener(const ISystemDensityChangeListenerSptr& listener) override;
     WMError UnregisterSystemDensityChangeListener(const ISystemDensityChangeListenerSptr& listener) override;
     WMError RegisterAcrossDisplaysChangeListener(const IAcrossDisplaysChangeListenerSptr& listener) override;
-    WMError UnRegisterAcrossDisplaysChangeListener(const IAcrossDisplaysChangeListenerSptr& listener) override;
+    WMError UnregisterAcrossDisplaysChangeListener(const IAcrossDisplaysChangeListenerSptr& listener) override;
     WMError RegisterWindowNoInteractionListener(const IWindowNoInteractionListenerSptr& listener) override;
     WMError UnregisterWindowNoInteractionListener(const IWindowNoInteractionListenerSptr& listener) override;
     WMError RegisterWindowStageLifeCycleListener(const sptr<IWindowStageLifeCycle>& listener) override;
