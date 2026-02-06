@@ -2523,6 +2523,8 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
         if ((config.mode_ == FORCE_SPLIT_MODE || config.mode_ == NAV_FORCE_SPLIT_MODE) &&
             GetAppForceLandscapeConfigEnable(enableForceSplit) == WMError::WM_OK) {
                 SetForceSplitConfigEnable(enableForceSplit);
+        } else {
+            SetForceSplitConfigEnable(false);
         }
     }
 
