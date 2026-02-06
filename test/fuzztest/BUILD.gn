@@ -26,5 +26,6 @@ group("fuzztest") {
     "dms:fuzztest",
     "window_scene:fuzztest",
     "wms:fuzztest",
+    "sa_parallelization:fuzztest",
   ]
 }
