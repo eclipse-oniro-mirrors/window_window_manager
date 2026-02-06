@@ -1136,6 +1136,32 @@ HWTEST_F(WindowSessionImplTest5, BeginRSTransaction, Function | SmallTest | Leve
 }
 
 /**
+ * @tc.name: GetDeviceType()
+ * @tc.desc: GetDeviceType()
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetDeviceType, Function | SmallTest | Level2)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest5: GetDeviceType start";
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetDisplayId(0);
+    option->SetWindowName("GetDeviceType");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_CREATED;
+
+    window->GetDeviceType();
+    EXPECT_TRUE(g_errLog.find("The device type is") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest5: GetDeviceType end";
+}
+
+/**
  * @tc.name: IsUserPageOrientation()
  * @tc.desc: IsUserPageOrientation()
  * @tc.type: FUNC
