@@ -4197,7 +4197,7 @@ ani_object AniWindow::SetWindowLimits(ani_env* env, ani_object inWindowLimits, a
                 "[window][setWindowLimits]msg: device not support");
         }
         ani_boolean aniIsForcible;
-        ani_status aniRet = env->Object_CallMethodByName_Boolean(forcible, "toBoolean", ":Z", &aniIsForcible);
+        ani_status aniRet = env->Object_CallMethodByName_Boolean(forcible, "toBoolean", ":z", &aniIsForcible);
         if (aniRet != ANI_OK) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] failed to convert parameter to isForcible");
             return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
@@ -4848,13 +4848,13 @@ void AniWindow::SetFollowParentWindowLayoutEnabled(ani_env* env, ani_boolean ena
 
     const uint32_t windowId = windowToken_->GetWindowId();
     if (errorCode != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_SUB, "[ANI] failed, windowId: %{public}u, enable: %{public}u, ret: %{public}d",
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] failed, windowId: %{public}u, enable: %{public}u, ret: %{public}d",
             windowId, isFollow, static_cast<int32_t>(ret));
         AniWindowUtils::AniThrowError(env, errorCode);
         return;
     }
 
-    TLOGD(WmsLogTag::WMS_SUB, "[ANI] success, windowId: %{public}u, enable: %{public}u", windowId, isFollow);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI] success, windowId: %{public}u, enable: %{public}u", windowId, isFollow);
 }
 
 /** @note @window.layout */
@@ -4880,13 +4880,13 @@ void AniWindow::SetFollowParentMultiScreenPolicy(ani_env* env, ani_boolean enabl
 
     const uint32_t windowId = windowToken_->GetWindowId();
     if (errorCode != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_SUB, "[ANI] failed, windowId: %{public}u, enable: %{public}u, ret: %{public}d",
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] failed, windowId: %{public}u, enable: %{public}u, ret: %{public}d",
             windowId, boEnabled, static_cast<int32_t>(ret));
         AniWindowUtils::AniThrowError(env, errorCode);
         return;
     }
 
-    TLOGD(WmsLogTag::WMS_SUB, "[ANI] success, windowId: %{public}u, enable: %{public}u", windowId, boEnabled);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI] success, windowId: %{public}u, enable: %{public}u", windowId, boEnabled);
 }
 
 /** @note @window.layout */
@@ -5651,7 +5651,7 @@ static ani_int WindowSetWindowBackgroundColor(ani_env* env, ani_object obj, ani_
     OHOS::Rosen::AniWindowUtils::GetStdString(env, color, colorStr);
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] SetWindowBackgroundColor %{public}s", colorStr.c_str());
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
-    if (aniWindow == nullptr) {
+    if (aniWindow == nullptr || aniWindow->GetWindow() == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] aniWindow is nullptr");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return ANI_ERROR;
