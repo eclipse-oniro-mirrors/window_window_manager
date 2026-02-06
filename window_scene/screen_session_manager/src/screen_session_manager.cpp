@@ -5997,15 +5997,17 @@ void ScreenSessionManager::WaitForCoordinationReady(std::unique_lock<std::mutex>
     SetWaitingForCoordinationReady(true);
     bool isCoordinationReady = isCoordinationReady_.load();
     TLOGI(WmsLogTag::DMS, "begin wait coordination ready. need wait: %{public}d", isCoordinationReady);
-    lock.unlock();
-    {
-        std::unique_lock<std::mutex> cvLock(coordinationReadyMutex_);
-        if (DmUtils::safe_wait_for(coordinationReadyCV_, cvLock,
-            std::chrono::milliseconds(waitCoordinationReadyMaxTime_.load())) == std::cv_status::timeout) {
-            TLOGW(WmsLogTag::DMS, "Wait dual display ready timeout, still enter coordination mode.");
+    if (!isCoordinationReady) {
+        lock.unlock();
+        {
+            std::unique_lock<std::mutex> cvLock(coordinationReadyMutex_);
+            if (DmUtils::safe_wait_for(coordinationReadyCV_, cvLock,
+                std::chrono::milliseconds(waitCoordinationReadyMaxTime_.load())) == std::cv_status::timeout) {
+                TLOGW(WmsLogTag::DMS, "Wait dual display ready timeout, still enter coordination mode.");
+            }
         }
+        lock.lock();
     }
-    lock.lock();
     SetWaitingForCoordinationReady(false);
 }
 
