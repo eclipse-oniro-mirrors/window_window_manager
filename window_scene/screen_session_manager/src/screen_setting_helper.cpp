@@ -1327,9 +1327,11 @@ bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& json,
 
 FoldDisplayMode ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(const std::string& str)
 {
-    auto it = STRING_TO_FOLD_DISPLAY_MODE.find(str);
-    if (it != STRING_TO_FOLD_DISPLAY_MODE.end()) {
-        return it->second;
+    int32_t displayMode = 0;
+    if (ConvertStrToInt32(str, displayMode) &&
+        static_cast<FoldDisplayMode>(displayMode) >= FoldDisplayMode::UNKNOWN &&
+        static_cast<FoldDisplayMode>(displayMode) <= FoldDisplayMode::GLOBAL_FULL) {
+        return static_cast<FoldDisplayMode>(displayMode);
     }
     TLOGW(WmsLogTag::DEFAULT, "[DMS] Unknown str: %{public}s", str.c_str());
     return FoldDisplayMode::UNKNOWN;
