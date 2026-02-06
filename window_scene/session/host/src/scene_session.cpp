@@ -5211,6 +5211,7 @@ void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool need
     // immediately to avoid affecting the next drag operation.
     if (!needFlush) {
         needFlush = moveDragController_ && !moveDragController_->IsWindowCrossScreenOnDragEnd();
+        TLOGD(WmsLogTag::WMS_KEYBOARD, "On drag end, needFlush: %{public}d", needFlush);
     }
 
     auto leashWinSurfaceNode = GetLeashWinSurfaceNode();
@@ -5224,6 +5225,7 @@ void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool need
         return;
     }
 
+    // NOTE: This judgment might be redundant and can be removed later.
     const bool isDraggableSpecialWindow = WindowHelper::IsPipWindow(windowType) ||
                                           WindowHelper::IsSubWindow(windowType) ||
                                           WindowHelper::IsDialogWindow(windowType) ||
@@ -5233,6 +5235,10 @@ void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool need
         surfaceNode->SetGlobalPositionEnabled(isGlobal);
         surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
         surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
+    } else {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+              "id: %{public}d, type: %{public}u, unsupported to set bounds",
+              windowId, windowType);
     }
 }
 
