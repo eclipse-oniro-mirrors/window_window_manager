@@ -75,17 +75,6 @@ const std::map<int32_t, int32_t> TOUCH_ACTION_MAP = {
     { (int32_t)AceTouchType::HOVER_CANCEL, MMI::PointerEvent::POINTER_ACTION_HOVER_CANCEL }
 };
 
-const std::map<int32_t, int32_t> MOUSE_ACTION_MAP = {
-    { (int32_t)AceTouchType::DOWN, MMI::PointerEvent::POINTER_ACTION_DOWN },
-    { (int32_t)AceTouchType::UP, MMI::PointerEvent::POINTER_ACTION_UP },
-    { (int32_t)AceTouchType::MOVE, MMI::PointerEvent::POINTER_ACTION_MOVE },
-    { (int32_t)AceTouchType::CANCEL, MMI::PointerEvent::POINTER_ACTION_CANCEL },
-    { (int32_t)AceTouchType::HOVER_ENTER, MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER },
-    { (int32_t)AceTouchType::HOVER_MOVE, MMI::PointerEvent::POINTER_ACTION_HOVER_MOVE },
-    { (int32_t)AceTouchType::HOVER_EXIT, MMI::PointerEvent::POINTER_ACTION_HOVER_EXIT },
-    { (int32_t)AceTouchType::HOVER_CANCEL, MMI::PointerEvent::POINTER_ACTION_HOVER_CANCEL }
-};
-
 int32_t GetMMITouchType(int32_t aceType)
 {
     auto it = TOUCH_ACTION_MAP.find(aceType);
