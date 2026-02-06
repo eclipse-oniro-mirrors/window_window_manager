@@ -18639,33 +18639,6 @@ void SceneSessionManager::ConfigSupportFunctionType(SupportFunctionType funcType
     systemConfig_.supportFunctionType_ = funcType;
 }
 
-WMError SceneSessionManager::HasFloatingWindowForeground(const sptr<IRemoteObject>& abilityToken, bool& hasOrNot)
-{
-    if (!abilityToken) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "AbilityToken is null");
-        return WMError::WM_ERROR_NULLPTR;
-    }
-    if (!SessionPermission::IsSACalling() && !SessionPermission::IsShellCall()) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Permission denied, only for SA");
-        return WMError::WM_ERROR_INVALID_PERMISSION;
-    }
-
-    return taskScheduler_->PostSyncTask([this, &abilityToken, &hasOrNot, where = __func__] {
-        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        for (const auto& [_, session] : sceneSessionMap_) {
-            if (session && session->GetAbilityToken() == abilityToken &&
-                session->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT && session->IsSessionForeground()) {
-                TLOGNI(WmsLogTag::WMS_SYSTEM, "%{public}s found", where);
-                hasOrNot = true;
-                return WMError::WM_OK;
-            }
-        }
-        TLOGNI(WmsLogTag::WMS_SYSTEM, "%{public}s not found", where);
-        hasOrNot = false;
-        return WMError::WM_OK;
-    }, __func__);
-}
-
 WMError SceneSessionManager::GetFbPanelWindowId(uint32_t& windowId)
 {
     std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
@@ -18702,6 +18675,33 @@ WSError SceneSessionManager::CloneWindow(int32_t fromPersistentId, int32_t toPer
     toSceneSession->CloneWindow(nodeId, needOffScreen);
     TLOGI(WmsLogTag::WMS_PC, "fromSurfaceId: %{public}" PRIu64, nodeId);
     return WSError::WS_OK;
+}
+
+WMError SceneSessionManager::HasFloatingWindowForeground(const sptr<IRemoteObject>& abilityToken, bool& hasOrNot)
+{
+    if (!abilityToken) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "AbilityToken is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    if (!SessionPermission::IsSACalling() && !SessionPermission::IsShellCall()) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Permission denied, only for SA");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+
+    return taskScheduler_->PostSyncTask([this, &abilityToken, &hasOrNot, where = __func__] {
+        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+        for (const auto& [_, session] : sceneSessionMap_) {
+            if (session && session->GetAbilityToken() == abilityToken &&
+                session->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT && session->IsSessionForeground()) {
+                TLOGNI(WmsLogTag::WMS_SYSTEM, "%{public}s found", where);
+                hasOrNot = true;
+                return WMError::WM_OK;
+            }
+        }
+        TLOGNI(WmsLogTag::WMS_SYSTEM, "%{public}s not found", where);
+        hasOrNot = false;
+        return WMError::WM_OK;
+    }, __func__);
 }
 
 void SceneSessionManager::SetStatusBarAvoidHeight(DisplayId displayId, int32_t height)

@@ -7106,7 +7106,6 @@ bool WindowSceneSessionImpl::IsLandscape(uint64_t displayId)
     if (display != nullptr) {
         displayWidth = display->GetWidth();
         displayHeight = display->GetHeight();
-        dispName = display->GetName();
     } else {
         auto defaultDisplayInfo = DisplayManager::GetInstance().GetDefaultDisplay();
         if (defaultDisplayInfo != nullptr) {

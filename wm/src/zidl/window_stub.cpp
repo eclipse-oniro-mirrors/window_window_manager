@@ -204,36 +204,7 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "Rect value read failed.");
                 return ERR_INVALID_DATA;
             }
-            Rect rect { posX, posY, width, height };
-            std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
-            uint32_t size = 0;
-            if (!data.ReadUint32(size)) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
-                return ERR_INVALID_VALUE;
-            }
-            constexpr uint32_t AVOID_AREA_TYPE_MAX_SIZE = 100;
-            if (size > AVOID_AREA_TYPE_MAX_SIZE) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Avoid area size: %{public}d is invalid", size);
-                return ERR_INVALID_VALUE;
-            }
-            for (uint32_t i = 0; i < size; i++) {
-                uint32_t type = static_cast<uint32_t>(AvoidAreaType::TYPE_START);
-                if (!data.ReadUint32(type)) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
-                    return ERR_INVALID_VALUE;
-                }
-                if (type < static_cast<uint32_t>(AvoidAreaType::TYPE_START) ||
-                    type >= static_cast<uint32_t>(AvoidAreaType::TYPE_END)) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "invalid avoid area type: %{public}d", type);
-                    return ERR_INVALID_VALUE;
-                }
-                sptr<AvoidArea> area = data.ReadParcelable<AvoidArea>();
-                if (area == nullptr) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area failed");
-                    return ERR_INVALID_VALUE;
-                }
-                avoidAreas[static_cast<AvoidAreaType>(type)] = *area;
-            }
+            struct Rect rect { posX, posY, width, height };
             bool hasRSTransaction = false;
             if (!data.ReadBool(hasRSTransaction)) {
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "hasRSTransaction value read failed.");
