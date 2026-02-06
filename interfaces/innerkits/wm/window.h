@@ -3531,7 +3531,6 @@ public:
      */
     virtual WMError EnableDrag(bool enableDrag) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-
     /**
      * @brief Set window container color.
      *
