@@ -40,7 +40,7 @@ int32_t SnapshotProxy::GetSnapshot(const sptr<IRemoteObject>& token, AAFwk::Snap
         return static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED);
     }
 
-    if (remote->SendRequest(TRANS_ID_GET_SNAPSHOT, data, reply, option) != ERR_NONE) {
+    if (Remote()->SendRequest(TRANS_ID_GET_SNAPSHOT, data, reply, option) != ERR_NONE) {
         return static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED);
     }
 

@@ -308,7 +308,7 @@ napi_value WindowTransitionTypeInit(napi_env env)
 napi_value WindowAnimationCurveInit(napi_env env)
 {
     CHECK_NAPI_ENV_RETURN_IF_NULL(env);
-    napi_value objValue = nullptr; 
+    napi_value objValue = nullptr;
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
     napi_set_named_property(env, objValue, "LINEAR",
         CreateJsValue(env, static_cast<uint32_t>(WindowAnimationCurve::LINEAR)));

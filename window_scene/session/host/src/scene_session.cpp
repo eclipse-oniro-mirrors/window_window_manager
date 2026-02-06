@@ -3625,7 +3625,7 @@ void SceneSession::GetSystemBarAvoidAreaByRotation(Rotation rotation, AvoidAreaT
 {
     DisplayId displayId = GetSessionProperty()->GetDisplayId();
     std::pair<WSRect, WSRect> nextSystemBarAvoidAreaRectInfo;
-    if (specificCallback_ == nullptr ||
+    if (specificCallback_ == nullptr || specificCallback_->onGetNextAvoidAreaRectInfo_ == nullptr ||
         specificCallback_->onGetNextAvoidAreaRectInfo_(
             displayId, type, nextSystemBarAvoidAreaRectInfo) != WSError::WS_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "get nextSystemBarAvoidAreaRectInfo failed.");
@@ -9716,8 +9716,7 @@ WSError SceneSession::ConvertWindowOrientationToDisplayRotation(const int32_t va
 
 WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, uint32_t height)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "rotation:%{public}u, width:%{public}u, height:%{public}u",
-        rotation, width, height);
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation:%{public}u, width:%{public}u, height:%{public}u", rotation, width, height);
     if (width == 0 || height == 0) {
         return WSError::WS_ERROR_INVALID_PARAM;
     }
@@ -9725,7 +9724,7 @@ WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, 
         TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s sessionStage is null", __func__);
         return WSError::WS_ERROR_NULLPTR;
     }
-    WSRect wsrect = { 0, 0, width, height };
+    WSRect wsrect = {0, 0, width, height};
     auto properties = GetSystemBarPropertyForRotation();
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
     uint32_t orientation = 0;
@@ -9736,16 +9735,16 @@ WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, 
     }
     // Orientation type is required here
     GetAvoidAreasByRotation(static_cast<Rotation>(orientation), wsrect, properties, avoidAreas);
-    Rect rect = { wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_ };
-    OrientationInfo info = { orientation, rect, avoidAreas };
+    Rect rect = {wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_};
+    OrientationInfo info = {orientation, rect, avoidAreas};
 
     WSRect currentWsrect = GetSessionRect();
     auto currentProperties = GetCurrentSystemBarPropertyForRotation();
     std::map<AvoidAreaType, AvoidArea> currentAvoidAreas;
     uint32_t currentOrientation = 0;
     uint32_t currentRotation = static_cast<uint32_t>(GetCurrentRotation());
-    WSError currentRet = ConvertRotationToOrientation(currentRotation,
-        currentWsrect.width_, currentWsrect.height_, currentOrientation);
+    WSError currentRet = 
+        ConvertRotationToOrientation(currentRotation, currentWsrect.width_, currentWsrect.height_, currentOrientation);
     if (currentRet != WSError::WS_OK) {
         TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert currentWsrect Rotation to Orientation");
         return currentRet;
@@ -9990,7 +9989,7 @@ RotationChangeResult SceneSession::NotifyRotationChange(const RotationChangeInfo
             where = __func__]() -> RotationChangeResult {
             auto session = weakThis.promote();
             if (!session) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
+                TLOGNE(WmsLogTag::DEFAULT, "%{public}s session is null", where);
                 return { RectType::RELATIVE_TO_SCREEN, { 0, 0, 0, 0 } };
             }
             if (!session->sessionStage_ || !session->isRotationChangeCallbackRegistered) {
