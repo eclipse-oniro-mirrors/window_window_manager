@@ -1541,7 +1541,10 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     property->SetPersistentId(GetPersistentId());
     property->SetAppIndex(GetSessionInfo().appIndex_);
     property->SetFullScreenStart(GetSessionInfo().fullScreenStart_);
-    property->SetSupportedWindowModes(GetSessionInfo().supportedWindowModes);
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes =
+        IsAnco() && GetSessionInfo().abilityInfo != nullptr ?
+        GetSessionInfo().abilityInfo->windowModes : GetSessionInfo().supportedWindowModes;
+    property->SetSupportedWindowModes(supportedWindowModes);
     property->SetWindowSizeLimits(GetSessionInfo().windowSizeLimits);
     property->SetIsAtomicService(GetSessionInfo().isAtomicService_);
     property->SetRequestedOrientation(GetSessionProperty()->GetRequestedOrientation());
