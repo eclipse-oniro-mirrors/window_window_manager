@@ -88,6 +88,9 @@ const std::string APP_CAST_SCREEN_NAME = "HwCast_AppModeDisplay";
 constexpr float BLUR_SNAPSHOT_SCALE = 0.5f;
 } // namespace
 
+const std::string ATTACH_EVENT_NAME { "wms::ReportWindowTimeout_Attach" };
+const std::string DETACH_EVENT_NAME { "wms::ReportWindowTimeout_Detach" };
+
 std::shared_ptr<AppExecFwk::EventHandler> Session::mainHandler_;
 bool Session::isScbCoreEnabled_ = false;
 
