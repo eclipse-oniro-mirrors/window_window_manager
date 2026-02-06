@@ -396,6 +396,7 @@ public:
     SessionInfo& EditSessionInfo();
     DisplayId GetScreenId() const;
     virtual void SetScreenId(uint64_t screenId);
+    void SetScreenIdOnServer(uint64_t screenId);
     WindowType GetWindowType() const;
     float GetAspectRatio() const;
     WSError SetAspectRatio(float ratio) override;
@@ -666,6 +667,7 @@ public:
         return !this->operator==(session);
     }
 
+    virtual void HandleStyleEvent(MMI::WindowArea area) {};
     const char* DumpPointerWindowArea(MMI::WindowArea area) const;
     WSRectF UpdateHotRect(const WSRect& rect);
     WSError RaiseToAppTopForPointDown();
