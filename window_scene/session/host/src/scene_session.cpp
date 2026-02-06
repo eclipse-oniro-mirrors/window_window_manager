@@ -2103,9 +2103,11 @@ void SceneSession::SetUpdatePiPTemplateInfoCallback(NotifyUpdatePiPTemplateInfoF
 
 WSError SceneSession::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
-        "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d", pipTemplateInfo.pipTemplateType,
-        pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType, pipTemplateInfo.cornerAdsorptionEnabled);
+    TLOGI(WmsLogTag::WMS_PIP,
+        "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
+        "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d",
+        pipTemplateInfo.pipTemplateType, pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,
+        pipTemplateInfo.cornerAdsorptionEnabled);
     auto task = [weakThis = wptr(this), pipTemplateInfo = std::move(pipTemplateInfo), where = __func__]() mutable {
         auto session = weakThis.promote();
         if (!session || session->isTerminating_) {
@@ -2502,7 +2504,7 @@ void SceneSession::RegisterRaiseAboveTargetCallback(NotifyRaiseAboveTargetFunc&&
     PostTask([weakThis = wptr(this), callback = std::move(callback), where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
+            TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return;
         }
         session->onRaiseAboveTarget_ = std::move(callback);
@@ -2901,7 +2903,7 @@ void SceneSession::PrintAvoidAreaInfo(DisplayId displayId,
     if (iter != lastAvoidAreaInputParamtersMap_.end() && iter->second == inputParamters) {
         return;
     }
-    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d dispaly %{public}" PRIu64 ""
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d dispaly %{public}" PRIu64
         "type %{public}d rect %{public}s bar %{public}s",
         GetPersistentId(), displayId, type, rect.ToString().c_str(), avoidRect.ToString().c_str());
 }
