@@ -2287,6 +2287,10 @@ HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo02, TestSiz
     window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
     window->GetConfigurationFromAbilityInfo();
     EXPECT_EQ(window->enableImmersiveMode_, false);
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->GetConfigurationFromAbilityInfo();
+    EXPECT_EQ(window->enableImmersiveMode_, false);
 }
 
 /**

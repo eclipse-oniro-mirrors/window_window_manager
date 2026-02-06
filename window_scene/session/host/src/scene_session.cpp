@@ -141,6 +141,11 @@ bool isMainOrExtendScreenMode(const ScreenSourceMode& screenSourceMode)
 }
 } // namespace
 
+namespace PARAM_KEY {
+const std::string PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missionAffinity";
+const std::string PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
+const std::string PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
+}
 MaximizeMode SceneSession::maximizeMode_ = MaximizeMode::MODE_RECOVER;
 std::shared_mutex SceneSession::windowDragHotAreaMutex_;
 std::map<uint64_t, std::map<uint32_t, WSRect>> SceneSession::windowDragHotAreaMap_;
@@ -5517,6 +5522,30 @@ WMError SceneSession::SetSnapshotSkip(bool isSkip)
             leashWinSurfaceNode->SetSkipLayer(isSkip);
         }
     }
+    return WMError::WM_OK;
+}
+
+WMError SceneSession::SetWindowSnapshotSkip(bool isSkip)
+{
+    auto surfaceNode = GetShadowSurfaceNode();
+    if (!surfaceNode) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null, win=[%{public}d, %{public}s], isSkip=%{public}d",
+            GetPersistentId(), GetWindowName().c_str(), isSkip);
+        return WMError::WM_ERROR_DESTROYED_OBJECT;
+    }
+    bool hasLeashSurfaceNode = false;
+    {
+        AutoRSTransaction trans(GetRSShadowContext());
+        surfaceNode->SetSnapshotSkipLayer(isSkip);
+        auto leashWinSurfaceNode = GetLeashWinShadowSurfaceNode();
+        hasLeashSurfaceNode = leashWinSurfaceNode != nullptr;
+        if (hasLeashSurfaceNode) {
+            AutoRSTransaction leashTrans(GetRSLeashWinShadowContext());
+            leashWinSurfaceNode->SetSnapshotSkipLayer(isSkip);
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], isSkip=%{public}d, hasLeashSurfaceNode=%{public}d",
+        GetPersistentId(), GetWindowName().c_str(), isSkip, hasLeashSurfaceNode);
     return WMError::WM_OK;
 }
 

@@ -1276,7 +1276,7 @@ ani_object AniWindowUtils::CreateAniFrameMetrics(ani_env* env, const FrameMetric
         return AniWindowUtils::CreateAniUndefined(env);
     }
     ret = CallAniMethodVoid(env, frameMetrics, aniClass, "<set>firstDrawFrame", nullptr,
-        CreateOptionalBool(env, static_cast<ani_boolean>(metrics.firstDrawFrame_)));
+        static_cast<ani_boolean>(metrics.firstDrawFrame_));
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] failed to set firstDrawFrame");
         return AniWindowUtils::CreateAniUndefined(env);
@@ -2389,6 +2389,7 @@ bool AniWindowUtils::ParseWindowMask(ani_env* env, ani_array windowMaskArray,
         windowMask.emplace_back(elementArray);
     }
     aniRet = env->GlobalReference_Delete(g_longCls);
+    g_longCls = nullptr;
     if (aniRet != ANI_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]Failed to delete g_longCls ref, ret: %{public}u", aniRet);
     }

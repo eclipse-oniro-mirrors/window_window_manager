@@ -397,7 +397,7 @@ void WindowManager::Impl::NotifyDisplayInfoChanged(const sptr<IRemoteObject>& to
         std::unique_lock<std::shared_mutex> lock(listenerMutex_);
         iter = displayInfoChangedListeners_.find(token);
         if (iter == displayInfoChangedListeners_.end()) {
-            TLOGE_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES, "can not find token in listener list");
+            TLOGI_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES, "can not find token in listener list");
             return;
         }
         displayInfoChangedListeners = iter->second;
@@ -1989,6 +1989,14 @@ WMError WindowManager::GetMainWindowSnapshot(const std::vector<int32_t>& windowI
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LIFE, "failed");
     }
+    return ret;
+}
+
+WMError WindowManager::SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+{
+    WMError ret = WindowAdapter::GetInstance(userId_).SetWindowSnapshotSkip(windowId, isSkip);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "userId=%{public}d, winId=%{public}d, isSkip=%{public}d, retCode=%{public}d",
+        userId_, windowId, isSkip, static_cast<int32_t>(ret));
     return ret;
 }
 

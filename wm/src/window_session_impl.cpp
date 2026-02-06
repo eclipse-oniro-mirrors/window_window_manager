@@ -142,7 +142,6 @@ Ace::ViewportConfig FillViewportConfig(
 }
 }
 
-std::map<int32_t, std::vector<sptr<ISystemBarPropertyListener>>> WindowSessionImpl::systemBarPropertyListeners_;
 std::map<int32_t, std::vector<sptr<IWindowLifeCycle>>> WindowSessionImpl::lifecycleListeners_;
 std::map<int32_t, std::vector<sptr<IWindowStageLifeCycle>>> WindowSessionImpl::windowStageLifecycleListeners_;
 std::map<int32_t, std::vector<sptr<IDisplayMoveListener>>> WindowSessionImpl::displayMoveListeners_;
@@ -228,7 +227,6 @@ std::mutex WindowSessionImpl::switchFreeMultiWindowListenerMutex_;
 std::mutex WindowSessionImpl::preferredOrientationChangeListenerMutex_;
 std::mutex WindowSessionImpl::windowOrientationChangeListenerMutex_;
 std::mutex WindowSessionImpl::highlightChangeListenerMutex_;
-std::mutex WindowSessionImpl::systemBarPropertyListenerMutex_;
 std::mutex WindowSessionImpl::waterfallModeChangeListenerMutex_;
 std::unordered_map<int32_t, std::vector<sptr<IWaterfallModeChangeListener>>>
     WindowSessionImpl::waterfallModeChangeListeners_;
@@ -1523,12 +1521,12 @@ void WindowSessionImpl::FlushLayoutSize(int32_t width, int32_t height)
 
 void WindowSessionImpl::FlushVsync()
 {
-    if (!WindowHelper::IsMainWindow(GetType())) {
+    if (!property_->IsPrelaunch()) {
+        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch is false");
         return;
     }
 
-    if (!property_->IsPrelaunch()) {
-        TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch is false");
+    if (!WindowHelper::IsMainWindow(GetType())) {
         return;
     }
 
@@ -1537,7 +1535,7 @@ void WindowSessionImpl::FlushVsync()
         return;
     }
 
-    if (hasNotifyPrelaunchStartingwindow_) {
+    if (hasNotifyPrelaunchStartingWindow_) {
         TLOGD(WmsLogTag::WMS_PATTERN, "prelaunch startingwindow has notify");
         return;
     }
@@ -1549,7 +1547,7 @@ void WindowSessionImpl::FlushVsync()
     if (vsyncCount_ >= property_->GetFrameNum()) {
         if (auto session = GetHostSession()) {
             session->NotifyRemovePrelaunchStartingWindow();
-            hasNotifyPrelaunchStartingwindow_ = true;
+            hasNotifyPrelaunchStartingWindow_ = true;
         }
     }
 }
@@ -2646,10 +2644,10 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
 {
     if (auto uiContent = GetUIContentSharedPtr()) {
         WindowMode mode = GetWindowMode();
+        bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
         bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
             mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
-            (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !(IsAnco() &&
-            IsPcOrPadFreeMultiWindowMode()));
+            (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !isAncoInPcOrPcMode);
         TLOGD(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d", decorVisible);
         if (windowSystemConfig_.freeMultiWindowSupport_) {
             auto isSubWindow = WindowHelper::IsSubWindow(GetType());
@@ -2660,6 +2658,7 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
         if (mode == WindowMode::WINDOW_MODE_FULLSCREEN && property_->IsDecorFullscreenDisabled()) {
             decorVisible = false;
         }
+        decorVisible = NeedShowDecorInOtherDisplay(decorVisible);
         uiContent->UpdateDecorVisible(decorVisible, isDecorEnable);
         return;
     }
@@ -2680,10 +2679,11 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
     }
     if (needNotify) {
         if (auto uiContent = GetUIContentSharedPtr()) {
+            bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
             bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
                 mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
-                (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !(IsAnco() &&
-                IsPcOrPadFreeMultiWindowMode()));
+                (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() &&
+                !isAncoInPcOrPcMode);
             if (windowSystemConfig_.freeMultiWindowSupport_) {
                 auto isSubWindow = WindowHelper::IsSubWindow(GetType());
                 decorVisible = decorVisible && (windowSystemConfig_.freeMultiWindowEnable_ ||
@@ -2693,12 +2693,24 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
             if (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN && property_->IsDecorFullscreenDisabled()) {
                 decorVisible = false;
             }
+            decorVisible = NeedShowDecorInOtherDisplay(decorVisible);
             TLOGI(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d, id: %{public}d", decorVisible, GetPersistentId());
             uiContent->UpdateDecorVisible(decorVisible, IsDecorEnable());
             uiContent->NotifyWindowMode(mode);
         }
         NotifyModeChange(mode, IsDecorEnable());
     }
+}
+
+bool WindowSessionImpl::NeedShowDecorInOtherDisplay(bool decorVisible)
+{
+    DisplayId displayId = property_->GetDisplayId();
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(displayId);
+    if (display != nullptr && (display->GetName() == "HiCar" || display->GetName() == "SuperLauncher" ||
+        display->GetName() == "PadWithCar")) {
+        return false;
+    }
+    return decorVisible;
 }
 
 /** @note @window.layout */
@@ -4366,40 +4378,6 @@ EnableIfSame<T, IMainWindowCloseListener, sptr<IMainWindowCloseListener>> Window
     return mainWindowCloseListeners_[GetPersistentId()];
 }
 
-template<typename T>
-EnableIfSame<T, ISystemBarPropertyListener,
-    std::vector<sptr<ISystemBarPropertyListener>>> WindowSessionImpl::GetListeners()
-{
-    std::vector<sptr<ISystemBarPropertyListener>> listeners;
-    for (auto& listener : systemBarPropertyListeners_[GetPersistentId()]) {
-        listeners.push_back(listener);
-    }
-    return listeners;
-}
-
-WMError WindowSessionImpl::RegisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-{
-    std::lock_guard<std::mutex> lockListener(systemBarPropertyListenerMutex_);
-    return RegisterListener(systemBarPropertyListeners_[GetPersistentId()], listener);
-}
-
-WMError WindowSessionImpl::UnregisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-{
-    std::lock_guard<std::mutex> lockListener(systemBarPropertyListenerMutex_);
-    return UnregisterListener(systemBarPropertyListeners_[GetPersistentId()], listener);
-}
-
-void WindowSessionImpl::NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property)
-{
-    std::lock_guard<std::mutex> lockListener(systemBarPropertyListenerMutex_);
-    auto listeners = GetListeners<ISystemBarPropertyListener>();
-    for (auto& listener : listeners) {
-        if (listener != nullptr) {
-            listener->OnSystemBarPropertyUpdate(type, property);
-        }
-    }
-}
-
 WMError WindowSessionImpl::RegisterMainWindowCloseListeners(const sptr<IMainWindowCloseListener>& listener)
 {
     if (IsWindowSessionInvalid()) {
@@ -4615,6 +4593,16 @@ void WindowSessionImpl::RecoverSessionListener()
             if (auto hostSession = GetHostSession()) {
                 hostSession->UpdateRotationChangeRegistered(persistentId, true);
             }
+        }
+    }
+    {
+        bool hasListener = false;
+        {
+            std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+            hasListener = screenshotListeners_.count(persistentId) > 0 && !screenshotListeners_[persistentId].empty();
+        }
+        if (hasListener) {
+            SingletonContainer::Get<WindowAdapter>().UpdateSessionScreenshotListener(persistentId, true);
         }
     }
     {
@@ -5736,16 +5724,59 @@ WMError WindowSessionImpl::UnregisterDialogTargetTouchListener(const sptr<IDialo
 
 WMError WindowSessionImpl::RegisterScreenshotListener(const sptr<IScreenshotListener>& listener)
 {
-    WLOGFD("in");
-    std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
-    return RegisterListener(screenshotListeners_[GetPersistentId()], listener);
+    auto persistentId = GetPersistentId();
+    bool isFirstRegister = false;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        auto ret = RegisterListener(screenshotListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
+            return ret;
+        }
+        isFirstRegister = screenshotListeners_[persistentId].size() == 1;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isFirstRegister=%{public}d", persistentId, isFirstRegister);
+    if (!isFirstRegister) {
+        return WMError::WM_OK;
+    }
+    auto ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionScreenshotListener(persistentId, true);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
+            persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        ret = UnregisterListener(screenshotListeners_[persistentId], listener);
+    }
+    return ret;
 }
 
 WMError WindowSessionImpl::UnregisterScreenshotListener(const sptr<IScreenshotListener>& listener)
 {
-    WLOGFD("in");
-    std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
-    return UnregisterListener(screenshotListeners_[GetPersistentId()], listener);
+    auto persistentId = GetPersistentId();
+    bool isLastUnregister = false;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        auto ret = UnregisterListener(screenshotListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
+            return ret;
+        }
+        if (screenshotListeners_[persistentId].empty()) {
+            screenshotListeners_.erase(persistentId);
+            isLastUnregister = true;
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isLastUnregister=%{public}d", persistentId, isLastUnregister);
+    if (!isLastUnregister) {
+        return WMError::WM_OK;
+    }
+    auto ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionScreenshotListener(persistentId, false);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
+            persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        ret = RegisterListener(screenshotListeners_[persistentId], listener);
+    }
+    return ret;
 }
 
 WMError WindowSessionImpl::RegisterScreenshotAppEventListener(const IScreenshotAppEventListenerSptr& listener)
@@ -6728,7 +6759,7 @@ WMError WindowSessionImpl::RegisterAcrossDisplaysChangeListener(
     return ret;
 }
 
-WMError WindowSessionImpl::UnRegisterAcrossDisplaysChangeListener(
+WMError WindowSessionImpl::UnregisterAcrossDisplaysChangeListener(
     const IAcrossDisplaysChangeListenerSptr& listener)
 {
     if (IsWindowSessionInvalid()) {

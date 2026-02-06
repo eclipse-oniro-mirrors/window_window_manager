@@ -532,6 +532,7 @@ public:
     void NotifyUpdateRectAfterLayout();
     void FlushUIParams(ScreenId screenId, std::unordered_map<int32_t, SessionUIParam>&& uiParams);
     WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener) override;
+    WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener) override;
     WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener) override;
     WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
     WMError SetSystemAnimatedScenes(SystemAnimatedSceneType sceneType, bool isRegularAnimation = false);
@@ -657,6 +658,7 @@ public:
         uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override;
     WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags) override;
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos) override;
+    WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip) override;
     WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode) override;
     WMError GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName) override;
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
@@ -848,6 +850,7 @@ public:
         const uint32_t resultCode, const uint64_t fromScreenid, const uint64_t toScreenId,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
     void RefreshAllAppUseControlMap(const AppUseControlInfo& appUseControlInfo, ControlAppType type);
+
     WSError GetRecentMainSessionInfoList(std::vector<RecentSessionInfo>& recentSessionInfoList);
     void UpdateRecentMainSessionInfos(const std::vector<int32_t>& recentMainSessionIdList);
     sptr<SceneSession> GetMainSessionByPersistentId(int32_t persistentId) const;
@@ -1727,6 +1730,7 @@ private:
     uint32_t observedFlags_ = 0;
     uint32_t interestedFlags_ = 0;
     std::unordered_map<uint64_t, DrawingSessionInfo> lastDrawingSessionInfoMap_;
+    std::unordered_set<int32_t> screenshotListenerSessionSet_;
     std::unordered_set<int32_t> screenshotAppEventListenerSessionSet_;
     void NotifyWindowPropertyChangeByWindowInfoKey(
         const sptr<SceneSession>& sceneSession, WindowInfoKey windowInfoKey);

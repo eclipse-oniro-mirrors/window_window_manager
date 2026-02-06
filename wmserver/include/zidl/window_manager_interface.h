@@ -151,6 +151,10 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -215,6 +219,10 @@ public:
     virtual WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener)
     {
         return WSError::WS_OK;
+    }
+    virtual WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener)
+    {
+        return WMError::WM_OK;
     }
     virtual WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener)
     {

@@ -143,13 +143,15 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
 
 void ScreenSession::ReuseDisplayNode(const RSDisplayNodeConfig& config)
 {
-    if (displayNode_) {
+    {
         std::unique_lock<std::shared_mutex> lock(displayNodeMutex_);
-        displayNode_->SetDisplayNodeMirrorConfig(config);
-        RSTransactionAdapter::FlushImplicitTransaction(displayNode_);
-    } else {
-        CreateDisplayNode(config);
+        if (displayNode_) {
+            displayNode_->SetDisplayNodeMirrorConfig(config);
+            RSTransactionAdapter::FlushImplicitTransaction(displayNode_);
+            return;
+        }
     }
+    CreateDisplayNode(config);
 }
 
 ScreenSession::~ScreenSession()
@@ -3072,7 +3074,7 @@ void ScreenSession::SetExtendPhysicalScreenResolution(bool offScreenRenderValue)
         offHeight = property_.GetPhyBounds().rect_.GetHeight();
     }
     if (GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
-        TLOGD(WmsLogTag::DMS, "screen mirror change.");
+        TLOGW(WmsLogTag::DMS, "screen mirror change.");
         offWidth = property_.GetScreenRealWidth();
         offHeight = property_.GetScreenRealHeight();
     }

@@ -2795,22 +2795,6 @@ CompatibleModeProperty* CompatibleModeProperty::Unmarshalling(Parcel& parcel)
     return property;
 }
 
-void CompatibleModeProperty::CopyFrom(const sptr<CompatibleModeProperty>& property)
-{
-    if (property == nullptr) {
-        return;
-    }
-    isAdaptToImmersive_ = property->isAdaptToImmersive_;
-    isAdaptToEventMapping_ = property->isAdaptToEventMapping_;
-    isAdaptToProportionalScale_ = property->isAdaptToProportionalScale_;
-    isAdaptToBackButton_ = property->isAdaptToBackButton_;
-    disableDragResize_ = property->disableDragResize_;
-    disableResizeWithDpi_ = property->disableResizeWithDpi_;
-    disableFullScreen_ = property->disableFullScreen_;
-    disableWindowLimit_ = property->disableWindowLimit_;
-    isAdaptToSimulationScale_= property->isAdaptToSimulationScale_;
-}
-
 bool WindowSessionProperty::MarshallingWindowAnchorInfo(Parcel& parcel) const
 {
     return parcel.WriteParcelable(&windowAnchorInfo_);

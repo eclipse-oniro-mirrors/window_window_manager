@@ -94,6 +94,7 @@ public:
     virtual WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos);
     virtual WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds,
         const WindowSnapshotConfiguration& config, const sptr<IRemoteObject>& callback);
+    virtual WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip);
     virtual WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode);
     virtual WMError GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName);
     virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos);
@@ -121,6 +122,7 @@ public:
     virtual WMError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener);
     virtual WMError NotifyWindowExtensionVisibilityChange(int32_t pid, int32_t uid, bool visible);
     virtual WMError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener);
+    virtual WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener);
     virtual WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener);
     virtual WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr);
     virtual WMError RaiseWindowToTop(int32_t persistentId);

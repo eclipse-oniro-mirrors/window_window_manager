@@ -75,17 +75,6 @@ const std::map<int32_t, int32_t> TOUCH_ACTION_MAP = {
     { (int32_t)AceTouchType::HOVER_CANCEL, MMI::PointerEvent::POINTER_ACTION_HOVER_CANCEL }
 };
 
-const std::map<int32_t, int32_t> MOUSE_ACTION_MAP = {
-    { (int32_t)AceTouchType::DOWN, MMI::PointerEvent::POINTER_ACTION_DOWN },
-    { (int32_t)AceTouchType::UP, MMI::PointerEvent::POINTER_ACTION_UP },
-    { (int32_t)AceTouchType::MOVE, MMI::PointerEvent::POINTER_ACTION_MOVE },
-    { (int32_t)AceTouchType::CANCEL, MMI::PointerEvent::POINTER_ACTION_CANCEL },
-    { (int32_t)AceTouchType::HOVER_ENTER, MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER },
-    { (int32_t)AceTouchType::HOVER_MOVE, MMI::PointerEvent::POINTER_ACTION_HOVER_MOVE },
-    { (int32_t)AceTouchType::HOVER_EXIT, MMI::PointerEvent::POINTER_ACTION_HOVER_EXIT },
-    { (int32_t)AceTouchType::HOVER_CANCEL, MMI::PointerEvent::POINTER_ACTION_HOVER_CANCEL }
-};
-
 int32_t GetMMITouchType(int32_t aceType)
 {
     auto it = TOUCH_ACTION_MAP.find(aceType);
@@ -1078,53 +1067,54 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
     napi_get_named_property(env, jsObject, "enableHookDisplayOrientation", &jsEnableHookDisplayOrientation);
 
     uint32_t width = 0;
-    if (!ConvertFromJsValue(env, jsWidth, width)) {
+    if (jsWidth == nullptr || !ConvertFromJsValue(env, jsWidth, width)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to width");
         return false;
     }
     hookInfo.width_ = width;
 
     uint32_t height = 0;
-    if (!ConvertFromJsValue(env, jsHeight, height)) {
+    if (jsHeight == nullptr || !ConvertFromJsValue(env, jsHeight, height)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to height");
         return false;
     }
     hookInfo.height_ = height;
 
     double_t density = 1.0;
-    if (!ConvertFromJsValue(env, jsDensity, density)) {
+    if (jsDensity == nullptr || !ConvertFromJsValue(env, jsDensity, density)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to density");
         return false;
     }
     hookInfo.density_ = static_cast<float_t>(density);
 
     uint32_t rotation = 0;
-    if (!ConvertFromJsValue(env, jsRotation, rotation)) {
+    if (jsRotation == nullptr || !ConvertFromJsValue(env, jsRotation, rotation)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to rotation");
         return false;
     }
     hookInfo.rotation_ = rotation;
 
     bool enableHookRotation = false;
-    if (!ConvertFromJsValue(env, jsEnableHookRotation, enableHookRotation)) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to enableHookRotation");
-        return false;
+    if (jsEnableHookRotation == nullptr || !ConvertFromJsValue(env, jsEnableHookRotation, enableHookRotation)) {
+        hookInfo.enableHookRotation_ = enableHookRotation;
+    } else {
+        hookInfo.enableHookRotation_ = false;
     }
-    hookInfo.enableHookRotation_ = enableHookRotation;
 
     uint32_t displayOrientation = 0;
-    if (!ConvertFromJsValue(env, jsDisplayOrientation, displayOrientation)) {
+    if (jsDisplayOrientation == nullptr || !ConvertFromJsValue(env, jsDisplayOrientation, displayOrientation)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to displayOrientation");
         return false;
     }
     hookInfo.displayOrientation_ = displayOrientation;
 
     bool enableHookDisplayOrientation = false;
-    if (!ConvertFromJsValue(env, jsEnableHookDisplayOrientation, enableHookDisplayOrientation)) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to enableHookDisplayOrientation");
-        return false;
+    if (jsEnableHookDisplayOrientation != nullptr &&
+        ConvertFromJsValue(env, jsEnableHookDisplayOrientation, enableHookDisplayOrientation)) {
+        hookInfo.enableHookDisplayOrientation_ = enableHookDisplayOrientation;
+    } else {
+        hookInfo.enableHookDisplayOrientation_ = false;
     }
-    hookInfo.enableHookDisplayOrientation_ = enableHookDisplayOrientation;
     return true;
 }
 

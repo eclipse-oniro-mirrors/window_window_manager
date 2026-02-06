@@ -542,9 +542,9 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         reply.WriteBool(property->GetUseControlState());
         reply.WriteString(property->GetAncoRealBundleName());
         reply.WriteBool(property->GetIsShowDecorInFreeMultiWindow());
+        reply.WriteString(property->GetLogicalDeviceConfig());
         MissionInfo missionInfo = property->GetMissionInfo();
         reply.WriteParcelable(&missionInfo);
-        reply.WriteString(property->GetLogicalDeviceConfig());
         reply.WriteBool(property->IsPrelaunch());
         reply.WriteInt32(property->GetFrameNum());
     }

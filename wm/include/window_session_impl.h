@@ -318,16 +318,13 @@ public:
     WMError RegisterSystemDensityChangeListener(const ISystemDensityChangeListenerSptr& listener) override;
     WMError UnregisterSystemDensityChangeListener(const ISystemDensityChangeListenerSptr& listener) override;
     WMError RegisterAcrossDisplaysChangeListener(const IAcrossDisplaysChangeListenerSptr& listener) override;
-    WMError UnRegisterAcrossDisplaysChangeListener(const IAcrossDisplaysChangeListenerSptr& listener) override;
+    WMError UnregisterAcrossDisplaysChangeListener(const IAcrossDisplaysChangeListenerSptr& listener) override;
     WMError RegisterWindowNoInteractionListener(const IWindowNoInteractionListenerSptr& listener) override;
     WMError UnregisterWindowNoInteractionListener(const IWindowNoInteractionListenerSptr& listener) override;
     WMError RegisterWindowStageLifeCycleListener(const sptr<IWindowStageLifeCycle>& listener) override;
     WMError UnregisterWindowStageLifeCycleListener(const sptr<IWindowStageLifeCycle>& listener) override;
-    WMError RegisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener) override;
-    WMError UnregisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener) override;
     WMError RegisterFreeWindowModeChangeListener(const sptr<IFreeWindowModeChangeListener>& listener) override;
     WMError UnregisterFreeWindowModeChangeListener(const sptr<IFreeWindowModeChangeListener>& listener) override;
-    void NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) override;
     void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func) override;
     void UnregisterWindowDestroyedListener() override { notifyNativeFunc_ = nullptr; }
     WMError RegisterScreenshotListener(const sptr<IScreenshotListener>& listener) override;
@@ -667,6 +664,7 @@ protected:
     void ClearVsyncStation();
     WMError WindowSessionCreateCheck();
     void UpdateDecorEnableToAce(bool isDecorEnable);
+    bool NeedShowDecorInOtherDisplay(bool decorVisible);
     void NotifyModeChange(WindowMode mode, bool hasDeco = true);
     void NotifyFreeWindowModeChange(bool isInFreeWindowMode);
     WMError UpdateProperty(WSPropertyChangeAction action);
@@ -1012,8 +1010,6 @@ private:
     template<typename T>
     EnableIfSame<T, IWindowHighlightChangeListener, std::vector<sptr<IWindowHighlightChangeListener>>> GetListeners();
     template<typename T>
-    EnableIfSame<T, ISystemBarPropertyListener, std::vector<sptr<ISystemBarPropertyListener>>> GetListeners();
-    template<typename T>
     EnableIfSame<T, IWindowRotationChangeListener, std::vector<sptr<IWindowRotationChangeListener>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IFreeWindowModeChangeListener, std::vector<sptr<IFreeWindowModeChangeListener>>> GetListeners();
@@ -1123,7 +1119,6 @@ private:
     static std::mutex preferredOrientationChangeListenerMutex_;
     static std::mutex windowOrientationChangeListenerMutex_;
     static std::mutex highlightChangeListenerMutex_;
-    static std::mutex systemBarPropertyListenerMutex_;
     static std::mutex windowRotationChangeListenerMutex_;
     static std::mutex freeWindowModeChangeListenerMutex_;
     static std::mutex occlusionStateChangeListenerMutex_;
@@ -1131,7 +1126,6 @@ private:
         std::vector<sptr<IOcclusionStateChangedListener>>> occlusionStateChangeListeners_;
     static std::mutex frameMetricsChangeListenerMutex_;
     static std::unordered_map<int32_t, std::vector<sptr<IFrameMetricsChangedListener>>> frameMetricsChangeListeners_;
-    static std::map<int32_t, std::vector<sptr<ISystemBarPropertyListener>>> systemBarPropertyListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowLifeCycle>>> lifecycleListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowStageLifeCycle>>> windowStageLifecycleListeners_;
     static std::map<int32_t, std::vector<sptr<IDisplayMoveListener>>> displayMoveListeners_;
@@ -1192,7 +1186,7 @@ private:
     WSRect layoutRect_;
     std::atomic_bool windowSizeChanged_ = false;
     std::atomic_bool enableFrameLayoutFinishCb_ = false;
-    bool hasNotifyPrelaunchStartingwindow_ = false;
+    bool hasNotifyPrelaunchStartingWindow_ = false;
     std::atomic_bool dragActivated_ = true;
     WindowSizeChangeReason lastSizeChangeReason_ = WindowSizeChangeReason::END;
     std::atomic<bool> postTaskDone_ = false;

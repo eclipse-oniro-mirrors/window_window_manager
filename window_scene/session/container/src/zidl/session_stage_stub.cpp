@@ -902,26 +902,18 @@ int SessionStageStub::HandleNotifyKeyboardPanelInfoChange(MessageParcel& data, M
     return ERR_NONE;
 }
 
-int SessionStageStub::HandlePcAppInPadNormalClose(MessageParcel& data, MessageParcel& reply)
-{
-    WSError errCode = PcAppInPadNormalClose();
-    return ERR_NONE;
-}
-
-int SessionStageStub::HandleNotifyCompatibleModePropertyChange(MessageParcel& data, MessageParcel& reply)
-{
-    sptr<CompatibleModeProperty> property = data.ReadParcelable<CompatibleModeProperty>();
-    WSError errCode = NotifyCompatibleModePropertyChange(property);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
-    return ERR_NONE;
-}
-
 int SessionStageStub::HandleSetUniqueVirtualPixelRatio(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "HandleSetUniqueVirtualPixelRatio!");
     bool useUniqueDensity = data.ReadBool();
     float densityValue = data.ReadFloat();
     SetUniqueVirtualPixelRatio(useUniqueDensity, densityValue);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandlePcAppInPadNormalClose(MessageParcel& data, MessageParcel& reply)
+{
+    WSError errCode = PcAppInPadNormalClose();
     return ERR_NONE;
 }
 
@@ -934,6 +926,14 @@ int SessionStageStub::HandleUpdateAnimationSpeed(MessageParcel& data, MessagePar
         return ERR_INVALID_DATA;
     }
     UpdateAnimationSpeed(speed);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyCompatibleModePropertyChange(MessageParcel& data, MessageParcel& reply)
+{
+    sptr<CompatibleModeProperty> property = data.ReadParcelable<CompatibleModeProperty>();
+    WSError errCode = NotifyCompatibleModePropertyChange(property);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
 
