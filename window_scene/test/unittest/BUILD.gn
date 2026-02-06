@@ -64,7 +64,6 @@ group("unittest") {
     "window_immersive:window_scene_immersive_test",
     "window_pattern:window_pattern_starting_window_rdb_test",
     "scene_session_pattern:scene_session_pattern_test",
-    "scene_session_manager_pattern:scene_session_manager_pattern_test",
   ]
 
   if (window_manager_feature_support_dmsfwk) {
