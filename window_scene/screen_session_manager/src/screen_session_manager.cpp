@@ -712,7 +712,7 @@ DMError ScreenSessionManager::RegisterDisplayManagerAgent(
         auto uid = IPCSkeleton::GetCallingUid();
         auto pid = IPCSkeleton::GetCallingPid();
         {
-            std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+            std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
             uidAndPidMap_[uid] = pid;
         }
     }
@@ -741,7 +741,7 @@ DMError ScreenSessionManager::RegisterDisplayAttributeAgent(std::vector<std::str
     auto uid = IPCSkeleton::GetCallingUid();
     auto pid = IPCSkeleton::GetCallingPid();
     {
-        std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+        std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
         uidAndPidMap_[uid] = pid;
     }
     uintptr_t key = reinterpret_cast<uintptr_t>(displayManagerAgent->AsObject().GetRefPtr());
@@ -14897,6 +14897,17 @@ void ScreenSessionManager::SetFirstSCBConnect(bool firstSCBConnect)
     firstSCBConnect_ = firstSCBConnect;
 }
 
+bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid)
+{
+    std::shared_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
+    auto iter = uidAndPidMap_.find(uid);
+    if (iter == uidAndPidMap_.end() || iter->second != agentPid) {
+        TLOGNI(WmsLogTag::DMS, "no notify");
+        return true;
+    }
+    return false;
+}
+
 DMError ScreenSessionManager::SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty)
 {
     if (!SessionPermission::IsSystemCalling()) {
@@ -14936,16 +14947,6 @@ void ScreenSessionManager::SetPropertyChangedCallback(
     TLOGNFI(WmsLogTag::DMS, "set callback is valid: %{public}s",callback ? "true" : "false");
     std::lock_guard<std::mutex> lock(callbackMutex_);
     propertyChangedCallback_ = callback;
-}
-
-bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid) const
-{
-    auto iter = uidAndPidMap_.find(uid);
-    if (iter == uidAndPidMap_.end() || iter->second != agentPid) {
-        TLOGNI(WmsLogTag::DMS, "no notify");
-        return true;
-    }
-    return false;
 }
 
 void ScreenSessionManager::NotifyAodOpCompletion(AodOP operation, int32_t result)
