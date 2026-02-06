@@ -495,10 +495,6 @@ public:
     void OnFoldStatusChange(bool isSwitching);
     void SetCoordinationFlag(bool isCoordinationFlag);
     bool GetCoordinationFlag();
-    void WaitForCoordinationReady(std::unique_lock<std::mutex>& lock);
-    void SetWaitingForCoordinationReady(bool isWaitingForCoordinationReady);
-    bool GetWaitingForCoordinationReady() const;
-    void NotifyCoordinationReadyCV();
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
     void OnScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent) override;
