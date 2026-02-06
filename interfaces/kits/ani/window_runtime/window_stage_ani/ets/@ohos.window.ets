@@ -5933,11 +5933,6 @@ function runWindowDialogTargetCallback(cb: object): void {
   func();
 }
 
-function runWindowDialogDeathRecipientCallback(cb: object): void {
-  const func = cb as () => void;
-  func();
-}
-
 function runWindowNoInteractionCallback(cb: object): void {
   const func = cb as () => void;
   func();

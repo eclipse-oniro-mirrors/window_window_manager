@@ -434,21 +434,6 @@ void AniWindowListener::OnScreenshot()
 
 void AniWindowListener::OnDialogDeathRecipient() const
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_] () {
-        auto thisListener = self.promote();
-        if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
-            TLOGE(WmsLogTag::WMS_EVENT, "[ANI]thisListener, eng or callback is nullptr!");
-            return;
-        }
-        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowDialogDeathRecipientCallback",
-            nullptr, thisListener->aniCallback_);
-    };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_EVENT, "get main event handler failed!");
-        return;
-    }
-    eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::HIGH);
 }
 
 void AniWindowListener::OnGestureNavigationEnabledUpdate(bool enable)
