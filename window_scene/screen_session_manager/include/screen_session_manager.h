@@ -1130,6 +1130,7 @@ private:
     std::atomic<bool> firstSCBConnect_ = false;
     std::atomic<bool> isCoordinationReady_ = false;
     std::condition_variable coordinationReadyCV_;
+    std::mutex coordinationReadyMutex_;
     std::atomic<bool> isWaitingForCoordinationReady_ = false;
     std::atomic<int32_t> waitCoordinationReadyMaxTime_ = 1500; // ms
 
