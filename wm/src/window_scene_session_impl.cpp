@@ -3729,11 +3729,13 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
 {
     // fallback to system default property
     auto prop = GetSystemBarPropertyByType(type);
+    prop.settingFlag_ = SystemBarSettingFlag::DEFAULT_SETTING;
     {
         std::lock_guard<std::mutex> lock(ownSystemBarPropertyMapMutex_);
         if (ownSystemBarPropertyMap_.find(type) == ownSystemBarPropertyMap_.end()) {
             return prop;
         }
+        bool isUseNavigationColor = false;
         auto& ownPropList = ownSystemBarPropertyMap_[type];
         SystemBarPropertyFlag flag;
         for (auto& pair : ownPropList) {
@@ -3746,6 +3748,9 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
                 prop.contentColor_ = pair.second.contentColor_;
                 flag.contentColorFlag = true;
                 prop.settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
+                isUseNavigationColor = !(static_cast<uint32_t>(prop.settingFlag_) &
+                    static_cast<uint32_t>(SystemBarSettingFlag::ENABLE_SETTING)) &&
+                    (pair.first == SystemBarPropertyOwner::ARKUI_NAVIGATION);
             }
             if (!flag.enableFlag && pair.second.flag_.enableFlag) {
                 prop.enable_ = pair.second.enable_;
@@ -3755,16 +3760,12 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
             if (!flag.enableAnimationFlag && pair.second.flag_.enableAnimationFlag) {
                 prop.enableAnimation_= pair.second.enableAnimation_;
                 flag.enableAnimationFlag = true;
-                prop.settingFlag_ |= SystemBarSettingFlag::ENABLE_SETTING;
             }
             if (flag.backgroundColorFlag && flag.contentColorFlag && flag.enableFlag && flag.enableAnimationFlag) {
                 break;
             }
         }
         // keep the systemBarStyle api behavior consistent.
-        auto iter = ownPropList.begin();
-        bool isUseNavigationColor = (iter != ownPropList.end()) &&
-            (iter->first == SystemBarPropertyOwner::ARKUI_NAVIGATION);
         prop.settingFlag_ = isUseNavigationColor ? SystemBarSettingFlag::COLOR_SETTING : prop.settingFlag_;
     }
     TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u "
