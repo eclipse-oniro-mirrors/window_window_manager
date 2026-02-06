@@ -118,7 +118,7 @@
 namespace OHOS::Rosen {
 namespace {
 const std::string SCENE_BOARD_BUNDLE_NAME = "com.ohos.sceneboard";
-const std::string SCENE_BOARD_APP_IDENTIFIER = "";
+const std::string SCENE_BOARD_APP_IDENTIFIER = "5765880207853062833";
 const std::string SCENE_SESSION_MANAGER_THREAD = "OS_SceneSessionManager";
 const std::string WINDOW_INFO_REPORT_THREAD = "OS_WindowInfoReportThread";
 const std::string SUPER_LAUNCHER = "SuperLauncher";
@@ -1200,7 +1200,6 @@ void SceneSessionManager::SetEnableInputEvent(bool enabled)
     } else {
         recoverStateChangeFunc_(RecoverState::RECOVER_INITIAL);
     }
-
 }
 
 bool SceneSessionManager::IsInputEventEnabled() const
@@ -7372,12 +7371,12 @@ WSError SceneSessionManager::SendPointerEventForHover(const std::shared_ptr<MMI:
         TLOGE(WmsLogTag::WMS_EVENT, "pointer event is not hover down");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
-    return taskScheduler_->PostSyncTask([this, &pointerEvent]() {
+    return taskScheduler_->PostSyncTask([this, &pointerEvent, where = __func__]() {
         int32_t windowId = pointerEvent->GetAgentWindowId();
-        TLOGNI(WmsLogTag::WMS_EVENT, "windowId: %{public}d", windowId);
+        TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s windowId: %{public}d", where, windowId);
         auto sceneSession = GetSceneSession(windowId);
         if (sceneSession == nullptr) {
-            TLOGNE(WmsLogTag::WMS_EVENT, "session is nullptr");
+            TLOGNE(WmsLogTag::WMS_EVENT, "%{public}s session is nullptr", where);
             return WSError::WS_ERROR_INVALID_SESSION;
         }
         return sceneSession->SendPointerEventForHover(pointerEvent);
@@ -8442,10 +8441,13 @@ bool SceneSessionManager::CheckLastFocusedAppSessionFocus(const sptr<SceneSessio
     }
 
     auto mode = nextSession->GetWindowMode();
-    // only when next session is app, and in split or floation
-    if (nextSession->IsAppSession() &&
-        (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
-         mode == WindowMode::WINDOW_MODE_FLOATING)) {
+    if ((systemConfig_.IsPcWindow() &&
+         (nextSession->GetSessionProperty()->IsTopmost() ||
+          nextSession->GetSessionProperty()->IsMainWindowTopmost())) ||
+        (nextSession->IsAppSession() &&
+         (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+          mode == WindowMode::WINDOW_MODE_FLOATING) &&
+         (systemConfig_.IsPadWindow() || systemConfig_.IsPhoneWindow()))) {
         if (RequestSessionFocus(lastFocusedAppSessionId, false, FocusChangeReason::LAST_FOCUSED_APP) ==
             WSError::WS_OK) {
             return true;
@@ -9007,8 +9009,9 @@ WSError SceneSessionManager::ShiftFocus(DisplayId displayId, const sptr<SceneSes
             notifyDiffSCBAfterUnfocusedFunc_(focusedSessionDisplayId, nextSessionDisplayId);
         }
     }
-    TLOGI(WmsLogTag::WMS_FOCUS, "[%{public}" PRIu64 ",%{public}d,%{public}d,%{public}d",
-        displayId, focusedId, nextId, reason);
+    FlushWindowInfoToMMI(true);
+    TLOGI(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64
+        ", focusedId: %{public}d, nextId: %{public}d, reason: %{public}d", displayId, focusedId, nextId, reason);
     return WSError::WS_OK;
 }
 
@@ -9053,6 +9056,54 @@ void SceneSessionManager::UpdateFocusStatus(DisplayId displayId, const sptr<Scen
     }
     if ((isFocused && !needBlockNotifyFocusStatusUntilForeground) || (!isFocused && !needBlockNotifyUnfocusStatus)) {
         NotifyFocusStatus(sceneSession, isFocused, focusGroup, focusNotifyInfo);
+    }
+}
+
+void SceneSessionManager::NotifyFocusStatus(const sptr<SceneSession>& sceneSession, bool isFocused,
+    const sptr<FocusGroup>& focusGroup, const sptr<FocusNotifyInfo>& focusNotifyInfo)
+{
+    if (focusGroup == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr");
+        return;
+    }
+    if (focusNotifyInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is nullptr");
+        return;
+    }
+    int32_t persistentId = sceneSession->GetPersistentId();
+
+    TLOGI(WmsLogTag::WMS_FOCUS,
+        "name: %{public}s/%{public}s/%{public}s, id: %{public}d, isFocused: %{public}d",
+        sceneSession->GetSessionInfo().bundleName_.c_str(),
+        sceneSession->GetSessionInfo().abilityName_.c_str(),
+        sceneSession->GetWindowNameAllType().c_str(),
+        persistentId, isFocused);
+    if (isFocused) {
+        if (IsSessionVisibleForeground(sceneSession)) {
+            NotifyWindowInfoChange(persistentId, WindowUpdateType::WINDOW_UPDATE_FOCUSED);
+        }
+        UpdateBrightness(focusGroup->GetFocusedSessionId());
+        FocusIDChange(sceneSession->GetPersistentId(), sceneSession);
+    }
+    DisplayId focusGroupId = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID ? DEFAULT_DISPLAY_ID : sceneSession->GetDisplayId();
+    // notify window manager
+    sptr<FocusChangeInfo> focusChangeInfo = sptr<FocusChangeInfo>::MakeSptr(
+        sceneSession->GetWindowId(),
+        focusGroupId,
+        sceneSession->GetDisplayId(),
+        focusGroup->GetDisplayGroupId(),
+        sceneSession->GetCallingPid(),
+        sceneSession->GetCallingUid(),
+        sceneSession->GetWindowType(),
+        sceneSession->GetAbilityToken()
+    );
+    SceneSessionManager::NotifyRssThawApp(focusChangeInfo->uid_, "", "THAW_BY_FOCUS_CHANGED");
+    SessionManagerAgentController::GetInstance().UpdateFocusChangeInfo(focusChangeInfo, isFocused);
+    sceneSession->NotifyFocusStatus(focusNotifyInfo, isFocused);
+    // notify listenerController focused
+    auto prevSession = GetSceneSession(focusGroup->GetLastFocusedSessionId());
+    if (isFocused && MissionChanged(prevSession, sceneSession)) {
+        NotifyFocusedByMission(sceneSession);
     }
 }
 
@@ -9195,54 +9246,6 @@ std::string SceneSessionManager::GetHighlightIdsStr()
 
     }
     return oss.str();
-}
-
-void SceneSessionManager::NotifyFocusStatus(const sptr<SceneSession>& sceneSession, bool isFocused,
-    const sptr<FocusGroup>& focusGroup, const sptr<FocusNotifyInfo>& focusNotifyInfo)
-{
-    if (focusGroup == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr");
-        return;
-    }
-    if (focusNotifyInfo == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is nullptr");
-        return;
-    }
-    int32_t persistentId = sceneSession->GetPersistentId();
-
-    TLOGI(WmsLogTag::WMS_FOCUS,
-        "name: %{public}s/%{public}s/%{public}s, id: %{public}d, isFocused: %{public}d",
-        sceneSession->GetSessionInfo().bundleName_.c_str(),
-        sceneSession->GetSessionInfo().abilityName_.c_str(),
-        sceneSession->GetWindowNameAllType().c_str(),
-        persistentId, isFocused);
-    if (isFocused) {
-        if (IsSessionVisibleForeground(sceneSession)) {
-            NotifyWindowInfoChange(persistentId, WindowUpdateType::WINDOW_UPDATE_FOCUSED);
-        }
-        UpdateBrightness(focusGroup->GetFocusedSessionId());
-        FocusIDChange(sceneSession->GetPersistentId(), sceneSession);
-    }
-    DisplayId focusGroupId = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID ? DEFAULT_DISPLAY_ID : sceneSession->GetDisplayId();
-    // notify window manager
-    sptr<FocusChangeInfo> focusChangeInfo = sptr<FocusChangeInfo>::MakeSptr(
-        sceneSession->GetWindowId(),
-        focusGroupId,
-        sceneSession->GetDisplayId(),
-        focusGroup->GetDisplayGroupId(),
-        sceneSession->GetCallingPid(),
-        sceneSession->GetCallingUid(),
-        sceneSession->GetWindowType(),
-        sceneSession->GetAbilityToken()
-    );
-    SceneSessionManager::NotifyRssThawApp(focusChangeInfo->uid_, "", "THAW_BY_FOCUS_CHANGED");
-    SessionManagerAgentController::GetInstance().UpdateFocusChangeInfo(focusChangeInfo, isFocused);
-    sceneSession->NotifyFocusStatus(focusNotifyInfo, isFocused);
-    // notify listenerController focused
-    auto prevSession = GetSceneSession(focusGroup->GetLastFocusedSessionId());
-    if (isFocused && MissionChanged(prevSession, sceneSession)) {
-        NotifyFocusedByMission(sceneSession);
-    }
 }
 
 int32_t SceneSessionManager::NotifyRssThawApp(const int32_t uid, const std::string& bundleName,
@@ -14750,7 +14753,8 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
                     continue;
                 }
                 if (auto iter = uiParams.find(sceneSession->GetPersistentId()); iter != uiParams.end()) {
-                    if (sceneSession->IsAppSession()) {
+                    if ((systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) &&
+                        sceneSession->IsAppSession()) {
                         if (!sceneSession->IsVisible()) {
                             appZOrderList.push_back(std::make_pair(0, iter->second.zOrder_));
                         }
@@ -19031,6 +19035,15 @@ void SceneSessionManager::RegisterHookSceneSessionActivationFunc(const sptr<Scen
     });
 }
 
+void SceneSessionManager::ConfigSupportZLevel()
+{
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "support zLevel");
+    auto task = [this] {
+        systemConfig_.supportZLevel_ = true;
+    };
+    taskScheduler_->PostAsyncTask(task, "ConfigSupportZLevel");
+}
+
 void SceneSessionManager::ReportKeyboardCreateException(sptr<SceneSession>& keyboardSession) {
     std::string msg = "UITYPE:" + std::to_string(static_cast<int32_t>(systemConfig_.windowUIType_)) + ",PanelId:[";
     for (const auto& session : GetSceneSessionVectorByType(WindowType::WINDOW_TYPE_KEYBOARD_PANEL)) {
@@ -19098,15 +19111,6 @@ WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t pers
     }
     NotifyWindowPropertyChangeByWindowInfoKey(sceneSession, windowInfoKey);
     return WSError::WS_OK;
-}
-
-void SceneSessionManager::ConfigSupportZLevel()
-{
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "support zLevel");
-    auto task = [this] {
-        systemConfig_.supportZLevel_ = true;
-    };
-    taskScheduler_->PostAsyncTask(task, "ConfigSupportZLevel");
 }
 
 void SceneSessionManager::NotifyWindowPropertyChangeByWindowInfoKey(

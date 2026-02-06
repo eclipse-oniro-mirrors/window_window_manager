@@ -358,12 +358,6 @@ WMError WindowProxy::UpdateOccupiedAreaAndRect(const sptr<OccupiedAreaChangeInfo
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
-    if (!(data.WriteInt32(rect.posX_) && data.WriteInt32(rect.posY_) &&
-        data.WriteUint32(rect.width_) && data.WriteUint32(rect.height_))) {
-        WLOGFE("Write WindowRect failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-
     if (!(data.WriteUint32(avoidAreas.size()))) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Write avoid area size failed");
         return WMError::WM_ERROR_IPC_FAILED;
@@ -378,6 +372,12 @@ WMError WindowProxy::UpdateOccupiedAreaAndRect(const sptr<OccupiedAreaChangeInfo
             TLOGE(WmsLogTag::WMS_KEYBOARD, "Write avoid area failed");
             return WMError::WM_ERROR_IPC_FAILED;
         }
+    }
+
+    if (!(data.WriteInt32(rect.posX_) && data.WriteInt32(rect.posY_) &&
+        data.WriteUint32(rect.width_) && data.WriteUint32(rect.height_))) {
+        WLOGFE("Write WindowRect failed");
+        return WMError::WM_ERROR_IPC_FAILED;
     }
 
     bool hasRSTransaction = rsTransaction != nullptr;
