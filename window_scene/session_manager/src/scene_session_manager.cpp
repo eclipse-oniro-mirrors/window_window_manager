@@ -6768,8 +6768,7 @@ static void GetTopWindowByTraverseSessionTree(const sptr<SceneSession>& session,
     const auto& subVec = session->GetSubSession();
     for (const auto& subSession : subVec) {
         if (subSession == nullptr || subSession->GetCallingPid() != session->GetCallingPid()) {
-            TLOGW(WmsLogTag::WMS_SUB,
-                "subSession is null or subWin's callingPid is not equal to mainWin's callingPid");
+            TLOGW(WmsLogTag::WMS_SUB, "Failed");
             continue;
         }
         if ((subSession->GetSessionState() == SessionState::STATE_FOREGROUND ||
