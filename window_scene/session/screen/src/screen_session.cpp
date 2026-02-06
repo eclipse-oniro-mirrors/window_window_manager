@@ -3074,7 +3074,7 @@ void ScreenSession::SetExtendPhysicalScreenResolution(bool offScreenRenderValue)
         offHeight = property_.GetPhyBounds().rect_.GetHeight();
     }
     if (GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
-        TLOGD(WmsLogTag::DMS, "screen mirror change.");
+        TLOGW(WmsLogTag::DMS, "screen mirror change.");
         offWidth = property_.GetScreenRealWidth();
         offHeight = property_.GetScreenRealHeight();
     }

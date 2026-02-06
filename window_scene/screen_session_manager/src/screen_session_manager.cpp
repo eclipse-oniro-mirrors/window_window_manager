@@ -176,8 +176,6 @@ constexpr int32_t EXTEND_SCREEN_DPI_OPTIONS_COUNT { 16 }; // The number of suppo
 constexpr float EXTEND_SCREEN_DPI_MIN_VALUE { 136.0f }; // Minimum value supported by independent dpi
 constexpr float EXTEND_SCREEN_DPI_INCREASE_STEP { 24.0f }; // The difference in adjacent gears supported by independent dpi
 constexpr float EXTEND_SCREEN_DPI_BASELINE { 160.0f };
-const bool SUPPORT_COMPATIBLE_MODE =
-    (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
 const std::string SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY = "off_screen_rendering_switch";
 constexpr float PHYSICAL_MASS = 1.6f;
 const std::vector<std::string> ROTATION_DEFAULT = {"0", "1", "2", "3"};
@@ -272,6 +270,9 @@ const int32_t RESOLUTION_EFFECT_OS_MODE_RECOVER =
     system::GetIntParameter("const.product.os_mode_restore_resolution", 0);
 const int32_t RESOLUTION_EFFECT_FEATURE_MASK = 2;
 const int32_t RESOLUTION_EFFECT_OS_SWITCH_PAD_RECOVER_MASK = 1;
+const int32_t SUPPORT_COMPATIBLE_MODE_MASK = 4;
+const bool SUPPORT_COMPATIBLE_MODE =
+    (EXTEND_DISPLAY_FUNCTIONS & SUPPORT_COMPATIBLE_MODE_MASK) == SUPPORT_COMPATIBLE_MODE_MASK;
 const bool RESOLUTION_EFFECT_FEATURE_EN = EXTEND_DISPLAY_FUNCTIONS & RESOLUTION_EFFECT_FEATURE_MASK;
 const bool RESOLUTION_EFFECT_OS_SWITCH_PAD_RECOVER =
     RESOLUTION_EFFECT_OS_MODE_RECOVER & RESOLUTION_EFFECT_OS_SWITCH_PAD_RECOVER_MASK;
@@ -4471,7 +4472,7 @@ void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenS
         TLOGNFI(WmsLogTag::DMS, "Not Support.");
         return;
     }
-    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
+    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);
     if (it == dpiMap.end()) {
@@ -13716,7 +13717,7 @@ void ScreenSessionManager::SetExtendScreenIndepDpi()
         TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
         return;
     }
-    const std::map<std::string, std::string>& dpiMap = ScreenSettingHelper::GetDpiMode();
+    std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = externalSession->GetSerialNumber();
     ScreenId screenId = externalSession->GetScreenId();
     auto it = dpiMap.find(serialNumber);
