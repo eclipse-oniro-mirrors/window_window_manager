@@ -11357,6 +11357,7 @@ void ScreenSessionManager::SetClient(const sptr<IScreenSessionManagerClient>& cl
         SwitchScbNodeHandle(userId, newScbPid, true);
     }
     AddScbClientDeathRecipient(client, IPCSkeleton::GetCallingPid());
+    SwitchUserResetDisplayNodeScreenId();
 }
 
 void ScreenSessionManager::SwitchUserResetDisplayNodeScreenId()
@@ -14460,7 +14461,6 @@ void ScreenSessionManager::SwitchUserDealUserDisplayNode(int32_t newUserId)
         }
     }
     SetUserDisplayNodePositionZ(newUserId, POSITION_Z_LOW);
-    SwitchUserResetDisplayNodeScreenId();
     MakeMirrorAfterSwitchUser();
 }
 

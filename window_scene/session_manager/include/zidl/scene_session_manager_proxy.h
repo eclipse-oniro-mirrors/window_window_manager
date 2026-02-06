@@ -97,6 +97,7 @@ public:
     WSError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener) override;
     WSError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener) override;
     WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener) override;
+    WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener) override;
     WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener) override;
     virtual WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
     WSError GetSessionSnapshot(const std::string& deviceId, int32_t persistentId,

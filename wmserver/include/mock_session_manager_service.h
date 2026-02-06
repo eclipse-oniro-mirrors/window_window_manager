@@ -61,7 +61,7 @@ public:
      * Window Recover
      */
     ErrCode NotifySceneBoardAvailable() override;
-    ErrCode RegisterSMSRecoverListener(const sptr<IRemoteObject>& listener, int32_t userId, bool isLite) override;
+    ErrCode RegisterSMSRecoverListener(int32_t userId, bool isLite, const sptr<IRemoteObject>& listener) override;
     ErrCode UnregisterSMSRecoverListener(int32_t userId, bool isLite) override;
     void UnregisterSMSRecoverListenerInner(int32_t clientUserId, DisplayId displayId, int32_t pid, bool isLite);
 

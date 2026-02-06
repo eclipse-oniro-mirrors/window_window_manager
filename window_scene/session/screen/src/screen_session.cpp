@@ -143,13 +143,15 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
 
 void ScreenSession::ReuseDisplayNode(const RSDisplayNodeConfig& config)
 {
-    if (displayNode_) {
+    {
         std::unique_lock<std::shared_mutex> lock(displayNodeMutex_);
-        displayNode_->SetDisplayNodeMirrorConfig(config);
-        RSTransactionAdapter::FlushImplicitTransaction(displayNode_);
-    } else {
-        CreateDisplayNode(config);
+        if (displayNode_) {
+            displayNode_->SetDisplayNodeMirrorConfig(config);
+            RSTransactionAdapter::FlushImplicitTransaction(displayNode_);
+            return;
+        }
     }
+    CreateDisplayNode(config);
 }
 
 ScreenSession::~ScreenSession()

@@ -3717,10 +3717,10 @@ WMError WindowSceneSessionImpl::RemoveOwnSystemBarProperty(WindowType type, cons
             ownSystemBarPropertyMap_.erase(type);
         }
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u "
-            "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}u",
+            "flag [%{public}u%{public}u%{public}u%{public}u]",
             GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), static_cast<uint32_t>(owner),
             flag.enableFlag, flag.backgroundColorFlag,
-            flag.contentColorFlag, flag.enableAnimationFlag, static_cast<uint32_t>(ownPropList.size()));
+            flag.contentColorFlag, flag.enableAnimationFlag);
     }
     return UpdateSystemBarProperty(type, GetCurrentActiveSystemBarProperty(type));
 }
@@ -6735,6 +6735,12 @@ std::unique_ptr<Media::PixelMap> WindowSceneSessionImpl::HandleWindowMask(
         return nullptr;
     }
     uint32_t maskWidth = windowMask[0].size();
+    for (uint32_t i = 0; i < maskHeight; i++) {
+        if (windowMask[i].size() != maskWidth) {
+            TLOGE(WmsLogTag::WMS_PC, "WindowMask row size mismatch, row:%{public}d", i);
+            return nullptr;
+        }
+    }
     if ((windowRect.height_ > 0 && windowRect.height_ != maskHeight) ||
         (windowRect.width_ > 0 && windowRect.width_ != maskWidth)) {
         WLOGFE("WindowMask is invalid");
