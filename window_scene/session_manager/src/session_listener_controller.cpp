@@ -105,7 +105,8 @@ void SessionListenerController::NotifySessionDestroyed(int32_t persistentId)
 
 void SessionListenerController::NotifySessionBackground(int32_t persistentId)
 {
-    if (persistentId == -1) {
+    if (persistentId <= INVALID_SESSION_ID) {
+        TLOGE(WmsLogTag::WMS_LIFE, "invalid persistentId!");
         return;
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Id:%{public}d", persistentId);
@@ -422,7 +423,7 @@ void SessionListenerController::NotifySessionLifecycleEvent(ISessionLifecycleLis
         [weakThis = weak_from_this(), event, payload, bundleName, persistentId, where = __func__] {
             auto controller = weakThis.lock();
             if (controller == nullptr) {
-                TLOGE(WmsLogTag::WMS_LIFE, "controller is null.");
+                TLOGNE(WmsLogTag::WMS_LIFE, "controller is null.");
                 return;
             }
             TLOGI(WmsLogTag::WMS_LIFE, "start notify listeners, bundleName:%{public}s, Id:%{public}d, event:%{public}d"
