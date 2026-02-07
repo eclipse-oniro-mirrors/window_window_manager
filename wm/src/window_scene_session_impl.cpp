@@ -3848,6 +3848,10 @@ WMError WindowSceneSessionImpl::SetWindowTitle(const std::string& title)
         TLOGE(WmsLogTag::WMS_DECOR, "Session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    if (GetUIContentSharedPtr() == nullptr) {
+        TLOGE(WmsLogTag::WMS_DECOR, "uicontent is empty");
+        return WMError::WM_OK;
+    }
     if (!IsDecorEnable()) {
         TLOGE(WmsLogTag::WMS_DECOR, "DecorEnable is false");
         return WMError::WM_OK;
