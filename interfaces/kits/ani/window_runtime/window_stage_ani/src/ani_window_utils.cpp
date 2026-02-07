@@ -24,8 +24,8 @@
 #include "ani_err_utils.h"
 #include "ani_window.h"
 #include "bundle_constants.h"
+#include "foundation/arkui/ace_engine/interfaces/inner_api/ace/ui_content.h"
 #include "ipc_skeleton.h"
-#include "ui_content.h"
 #include "window_manager_hilog.h"
 #include "pixel_map_taihe_ani.h"
 
@@ -2068,10 +2068,9 @@ bool AniWindowUtils::SetWindowNavigationBarContentColor(ani_env* env,
             propertyFlags[WindowType::WINDOW_TYPE_NAVIGATION_BAR].contentColorFlag,
             aniObject);
     } else if (!isIconUndefined) {
-        ani_boolean isNavigationIcon;
-        env->Object_CallMethodByName_Boolean(static_cast<ani_object>(aniNavigationIcon),
-            "toBoolean", ":z", &isNavigationIcon);
-        if (static_cast<bool>(isNavigationIcon)) {
+        ani_boolean isStatusIcon;
+        env->Object_CallMethodByName_Boolean(static_cast<ani_object>(aniNavigationIcon), "toBoolean", ":z", &isStatusIcon);
+        if (static_cast<bool>(isStatusIcon)) {
             properties[WindowType::WINDOW_TYPE_NAVIGATION_BAR].contentColor_ = SYSTEM_COLOR_WHITE;
         } else {
             properties[WindowType::WINDOW_TYPE_NAVIGATION_BAR].contentColor_ = SYSTEM_COLOR_BLACK;
