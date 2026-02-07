@@ -729,8 +729,6 @@ public:
     bool Marshalling(Parcel& parcel) const override;
     static CompatibleModeProperty* Unmarshalling(Parcel& parcel);
 
-    void CopyFrom(const sptr<CompatibleModeProperty>& property);
-
     std::string ToString() const
     {
         std::stringstream ss;
