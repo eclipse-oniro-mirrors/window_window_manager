@@ -2806,6 +2806,10 @@ void AniWindow::SetDecorButtonStyle(ani_env* env, ani_object decorStyle)
 
     DecorButtonStyle decorButtonStyle;
     WMError res = windowToken_->GetDecorButtonStyle(decorButtonStyle);
+    if (res == WMError::WM_ERROR_DEVICE_NOT_SUPPORT) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+        return;
+     }
     if (res != WMError::WM_OK) {
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
         return;
