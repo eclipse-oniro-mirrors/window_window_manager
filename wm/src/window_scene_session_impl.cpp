@@ -6482,7 +6482,7 @@ void WindowSceneSessionImpl::UpdateNewSize()
 {
     if (GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING || property_->IsWindowLimitDisabled()) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "fullscreen or compatible mode could not update new size, Id: %{public}u",
- 	        GetPersistentId());
+            GetPersistentId());
         return;
     }
     bool needResize = false;
