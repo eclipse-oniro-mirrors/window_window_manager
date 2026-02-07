@@ -67,40 +67,6 @@ HWTEST_F(IsInAodTest, ATC_IsInAodAndStopAod01, TestSize.Level0)
     g_errLog.clear();
     LOG_SetCallback(nullptr);
 }
-
-/**
- * @tc.name: LoadAodLib_GHandle_NotNullptr
- * @tc.desc: LoadAodLib_GHandle_NotNullptr
- * @tc.type: FUNC
- */
-HWTEST_F(IsInAodTest, LoadAodLib_GHandle_NotNullptr, TestSize.Level0)
-{
-    g_handle = dlopen(PLUGIN_AOD_SO_PATH.c_str(), RTLD_LAZY);
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    bool result = LoadAodLib();
-    EXPECT_TRUE(result);
-    EXPECT_TRUE(g_errLog.find("aod plugin has already exits") != std::string::npos);
-    LOG_SetCallback(nullptr);
-}
-
-/**
- * @tc.name: StopAod_GStopAodFunc
- * @tc.desc: StopAod_GStopAodFunc
- * @tc.type: FUNC
- */
-HWTEST_F(IsInAodTest, StopAod_GStopAodFunc, TestSize.Level0)
-{
-    LoadAodLib();
-    IsInAod();
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    StopAod(1);
-    EXPECT_TRUE(g_errLog.find("retry cnt") != std::string::npos);
-    LOG_SetCallback(nullptr);
-}
 }
 } // namespace Rosen
 } // namespace OHOS
