@@ -5419,19 +5419,6 @@ void AniWindow::OnRestoreMainWindow(ani_env* env, ani_object wantParameters)
 }  // namespace Rosen
 }  // namespace OHOS
 
-static void Restore(ani_env* env, ani_object obj, ani_long nativeObj)
-{
-    using namespace OHOS::Rosen;
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "[ANI] start");
-    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
-    if (aniWindow == nullptr || aniWindow->GetWindow() == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] windowToken is null");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-    aniWindow->Restore(env);
-}
-
 static void SetWindowTopmost(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isWindowTopmost)
 {
     using namespace OHOS::Rosen;
@@ -5444,6 +5431,19 @@ static void SetWindowTopmost(ani_env* env, ani_object obj, ani_long nativeObj, a
         return;
     }
     aniWindow->SetWindowTopmost(env, isWindowTopmost);
+}
+
+static void Restore(ani_env* env, ani_object obj, ani_long nativeObj)
+{
+    using namespace OHOS::Rosen;
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "[ANI] start");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (aniWindow == nullptr || aniWindow->GetWindow() == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] windowToken is null");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->Restore(env);
 }
 
 static void WindowResize(ani_env* env, ani_object obj, ani_long nativeObj, ani_int width, ani_int height)
