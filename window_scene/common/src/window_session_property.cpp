@@ -897,6 +897,11 @@ uint32_t WindowSessionProperty::GetCallingSessionId() const
     return callingSessionId_;
 }
 
+void WindowSessionProperty::SetSessionPropertyChangeCallback(std::function<void()>&& callback)
+{
+    touchHotAreasChangeCallback_ = std::move(callback);
+}
+
 void WindowSessionProperty::SetPiPTemplateInfo(const PiPTemplateInfo& pipTemplateInfo)
 {
     pipTemplateInfo_ = pipTemplateInfo;
@@ -2127,11 +2132,6 @@ double WindowSessionProperty::GetTextFieldPositionY() const
 double WindowSessionProperty::GetTextFieldHeight() const
 {
     return textFieldHeight_;
-}
-
-void WindowSessionProperty::SetSessionPropertyChangeCallback(std::function<void()>&& callback)
-{
-    touchHotAreasChangeCallback_ = std::move(callback);
 }
 
 bool WindowSessionProperty::IsLayoutFullScreen() const

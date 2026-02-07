@@ -662,7 +662,7 @@ bool MainSession::IsFullScreenInForceSplit()
 
 void MainSession::RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback)
 {
-    compatibleModeChangeCallback_ = callback;
+    compatibleModeChangeCallback_ = std::move(callback);
 }
 
 WSError MainSession::NotifyCompatibleModeChange(CompatibleStyleMode mode)

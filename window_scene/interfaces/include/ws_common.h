@@ -388,7 +388,9 @@ struct AtomicServiceInfo {
 };
 
 struct PendingSessionActivationConfig {
-    bool forceStart = false; // is compulsion open
+    // is compulsion open
+    bool forceStart = false;
+    // is execute new want callback
     bool forceNewWant = true;
 };
 

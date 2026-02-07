@@ -1502,7 +1502,11 @@ napi_value JsSceneSessionManager::GetWindowPid(napi_env env, napi_callback_info 
 napi_value JsSceneSessionManager::UpdatePcFoldScreenStatus(napi_env env, napi_callback_info info)
 {
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnUpdatePcFoldScreenStatus(env, info) : nullptr;
+    if (me == nullptr) {
+        TLOGW(WmsLogTag::WMS_SCB, "me is null");
+        return nullptr;
+    }
+    return me->OnUpdatePcFoldScreenStatus(env, info);
 }
 
 napi_value JsSceneSessionManager::UpdateSystemKeyboardStatus(napi_env env, napi_callback_info info)
@@ -2367,19 +2371,16 @@ napi_value JsSceneSessionManager::OnRequestSceneSessionBackground(napi_env env, 
     bool isDelegator = false;
     if (argc >= ARGC_TWO && GetType(env, argv[ARGC_ONE]) == napi_boolean) {
         ConvertFromJsValue(env, argv[ARGC_ONE], isDelegator);
-        TLOGI(WmsLogTag::WMS_LIFE, "isDelegator: %{public}u", isDelegator);
     }
 
     bool isToDesktop = false;
     if (argc >= ARGC_THREE && GetType(env, argv[ARGC_TWO]) == napi_boolean) {
         ConvertFromJsValue(env, argv[ARGC_TWO], isToDesktop);
-        TLOGI(WmsLogTag::WMS_LIFE, "isToDesktop: %{public}u", isToDesktop);
     }
 
     bool isSaveSnapshot = true;
     if (argc >= ARGC_FOUR && GetType(env, argv[ARGC_THREE]) == napi_boolean) {
         ConvertFromJsValue(env, argv[ARGC_THREE], isSaveSnapshot);
-        TLOGI(WmsLogTag::WMS_LIFE, "isSaveSnapshot: %{public}u", isSaveSnapshot);
     }
 
     LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT;
@@ -5863,7 +5864,7 @@ static napi_value CreateUpdateKioskAppList(napi_env env, const std::vector<std::
 void JsSceneSessionManager::OnUpdateKioskAppListCallback(const std::vector<std::string>& kioskAppList)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "in");
-    taskScheduler_->PostMainThreadTask([this, kioskAppList,
+    taskScheduler_->PostMainThreadTask([kioskAppList,
         jsCallBack = GetJSCallback(UPDATE_KIOSK_APP_LIST_CB), env = env_] {
             if (jsCallBack == nullptr) {
                 TLOGNE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
