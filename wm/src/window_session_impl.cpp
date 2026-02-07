@@ -7938,9 +7938,11 @@ void WindowSessionImpl::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
         TLOGE(WmsLogTag::WMS_PIP, "session is invalid");
         return;
     }
-    TLOGI(WmsLogTag::WMS_PIP, "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
-        "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d", pipTemplateInfo.pipTemplateType,
-        pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,  pipTemplateInfo.cornerAdsorptionEnabled);
+    TLOGI(WmsLogTag::WMS_PIP,
+          "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
+          "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d",
+          pipTemplateInfo.pipTemplateType, pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,
+          pipTemplateInfo.cornerAdsorptionEnabled);
     if (auto hostSession = GetHostSession()) {
         hostSession->UpdatePiPTemplateInfo(pipTemplateInfo);
     }
