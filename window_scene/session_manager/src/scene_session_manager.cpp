@@ -19018,7 +19018,7 @@ WMError SceneSessionManager::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
             return WMError::WM_OK;
         }
     }
-    return WMError::WM_OK;
+    return WMError::WM_DO_NOTHING;
 }
 
 void SceneSessionManager::RegisterHookSceneSessionActivationFunc(const sptr<SceneSession>& sceneSession)

@@ -1628,7 +1628,7 @@ void WindowSessionImpl::UpdateAnimationSpeed(float speed)
     auto task = [weakThis = wptr(this), speed, where] {
         auto window = weakThis.promote();
         if (window == nullptr) {
-            TLOGW(WmsLogTag::WMS_ANIMATION, "%{public}s: window is nullptr", where);
+            TLOGNE(WmsLogTag::WMS_ANIMATION, "%{public}s: window is nullptr", where);
             return;
         }
         window->UpdateAllWindowSpeed(speed);
@@ -1649,7 +1649,7 @@ void WindowSessionImpl::UpdateAllWindowSpeed(float speed)
         auto rsUIContext = WindowSession->GetRSUIContext();
         auto implicitAnimator = rsUIContext ? rsUIContext->GetRSImplicitAnimator() : nullptr;
         if (implicitAnimator == nullptr) {
-            TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to open implicit animation");
+            TLOGNE(WmsLogTag::WMS_ANIMATION, "Failed to open implicit animation");
             continue;
         }
         implicitAnimator->ApplyAnimationSpeedMultiplier(speed);

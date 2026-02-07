@@ -812,6 +812,8 @@ void WindowSceneSessionImpl::UpdateAnimationSpeedIfEnabled()
     if (implicitAnimator != nullptr) {
         implicitAnimator->ApplyAnimationSpeedMultiplier(animationSpeed_.load());
         TLOGI(WmsLogTag::WMS_ANIMATION, "update animation speed success");
+    } else {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "implicitAnimator is nullptr");
     }
 }
 
