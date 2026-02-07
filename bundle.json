@@ -13,8 +13,7 @@
       "name": "window_manager",
       "subsystem": "window",
       "syscap": [
-        "SystemCapability.WindowManager.WindowManager.Core",
-        "SystemCapability.Window.SessionManager"
+        "SystemCapability.WindowManager.WindowManager.Core"
       ],
       "features": [
         "window_manager_use_sceneboard",
