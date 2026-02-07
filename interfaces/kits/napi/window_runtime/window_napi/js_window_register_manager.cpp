@@ -430,7 +430,7 @@ WmErrorCode JsWindowRegisterManager::ProcessAcrossDisplaysChangeRegister(const s
     }
     return isRegister ?
         MappingWmErrorCodeSafely(window->RegisterAcrossDisplaysChangeListener(listener)) :
-        MappingWmErrorCodeSafely(window->UnRegisterAcrossDisplaysChangeListener(listener));
+        MappingWmErrorCodeSafely(window->UnregisterAcrossDisplaysChangeListener(listener));
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessWindowNoInteractionRegister(sptr<JsWindowListener> listener,

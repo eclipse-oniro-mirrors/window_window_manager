@@ -3263,7 +3263,7 @@ public:
      * @param listener IAcrossDisplaysChangeListener.
      * @return WM_OK means unregister success, others means unregister failed.
      */
-    virtual WMError UnRegisterAcrossDisplaysChangeListener(
+    virtual WMError UnregisterAcrossDisplaysChangeListener(
         const IAcrossDisplaysChangeListenerSptr& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
