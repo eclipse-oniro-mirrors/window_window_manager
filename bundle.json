@@ -14,7 +14,7 @@
       "subsystem": "window",
       "syscap": [
         "SystemCapability.WindowManager.WindowManager.Core",
-        "SystemCapability.Window.SessionManager = false"
+        "SystemCapability.Window.SessionManager"
       ],
       "features": [
         "window_manager_use_sceneboard",
