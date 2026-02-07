@@ -106,6 +106,10 @@ const std::string SCB_COMPATIBLE_MAXIMIZE_BTN_RES = "scb_compatible_maximize_btn
 const std::string SCB_COMPATIBLE_MENU_VISIBILITY = "scb_set_compatible_menu";
 const std::string SCB_GET_COMPATIBLE_PRIMARY_MODE = "scb_get_compatible_primary_mode";
 
+// pip_content
+const std::string PIP_CONTENT_PATH = "/system/framework/pipcontent_ani.abc";
+const std::string PIP_CONTENT_ETS_FILE_NAME = "PiPContent";
+
 Ace::ContentInfoType GetAceContentInfoType(BackupAndRestoreType type)
 {
     auto contentInfoType = Ace::ContentInfoType::NONE;
@@ -2200,6 +2204,14 @@ WMError WindowSessionImpl::SetUIContentByAbc(
         BackupAndRestoreType::NONE, ability);
 }
 
+WMError WindowSessionImpl::AniSetUIContentByAbc(
+    const std::string& contentInfo, ani_env* env, ani_object storage, AppExecFwk::Ability* ability)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "AniSetUIContentByAbc.");
+    return SetUIContentInner(contentInfo, env, storage, WindowSetUIContentType::BY_ABC,
+        BackupAndRestoreType::NONE, ability, 1);
+}
+
 WMError WindowSessionImpl::AniReleaseUIContent()
 {
     ReleaseUIContent();
@@ -2219,7 +2231,9 @@ void WindowSessionImpl::ReleaseUIContent()
 
 void WindowSessionImpl::DestroyExistUIContent()
 {
-    if (auto uiContent = GetUIContentSharedPtr()) {
+    TLOGNI(WmsLogTag::WMS_LIFE, "DestroyExistUIContent start");
+    std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
+    if (uiContent) {
         uiContent->Destroy();
     }
 }
@@ -2227,6 +2241,7 @@ void WindowSessionImpl::DestroyExistUIContent()
 std::unique_ptr<Ace::UIContent> WindowSessionImpl::UIContentCreate(AppExecFwk::Ability* ability, void* env, int isAni)
 {
     if (isAni) {
+        TLOGNI(WmsLogTag::WMS_LIFE, "UIContentCreate start");
         return  ability != nullptr ? Ace::UIContent::Create(ability) :
             Ace::UIContent::CreateWithAniEnv(GetContext().get(), reinterpret_cast<ani_env*>(env));
     } else {
@@ -2234,6 +2249,7 @@ std::unique_ptr<Ace::UIContent> WindowSessionImpl::UIContentCreate(AppExecFwk::A
             Ace::UIContent::Create(GetContext().get(), reinterpret_cast<NativeEngine*>(env));
     }
 }
+
 Ace::UIContentErrorCode WindowSessionImpl::UIContentInitByName(Ace::UIContent* uiContent,
     const std::string& contentInfo, void* storage, int isAni)
 {
@@ -2269,6 +2285,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
     WindowSetUIContentType setUIContentType, BackupAndRestoreType restoreType, AppExecFwk::Ability* ability,
     OHOS::Ace::UIContentErrorCode& aceRet, int isAni)
 {
+    TLOGNI(WmsLogTag::WMS_LIFE, "InitUIContent start");
     DestroyExistUIContent();
     std::unique_ptr<Ace::UIContent> uiContent = UIContentCreate(ability, (void*)env, isAni);
     if (uiContent == nullptr) {
@@ -2317,6 +2334,12 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
             navDestinationInfo_ = "";
             break;
         case WindowSetUIContentType::BY_ABC:
+            if (contentInfo == PIP_CONTENT_PATH) {
+                TLOGI(WmsLogTag::WMS_LIFE, "PIP_CONTENT_PATH, using InitializeWithAniStorage with contentName");
+                aceRet = uiContent->InitializeWithAniStorage(this, GetAbcContent(contentInfo), (ani_object)storage,
+                    PIP_CONTENT_ETS_FILE_NAME);
+                break;
+            }
             aceRet = UIContentInit(uiContent.get(), GetAbcContent(contentInfo), storage, isAni);
             break;
     }
@@ -2341,6 +2364,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
 
 void WindowSessionImpl::RegisterUIContenCallback()
 {
+    TLOGNI(WmsLogTag::WMS_LIFE, "RegisterUIContenCallback start");
     RegisterWatchFocusActiveChangeCallback();
     RegisterKeyFrameCallback();
 }
@@ -2611,6 +2635,7 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
 
 std::shared_ptr<std::vector<uint8_t>> WindowSessionImpl::GetAbcContent(const std::string& abcPath)
 {
+    TLOGNI(WmsLogTag::WMS_LIFE, "GetAbcContent start");
     std::filesystem::path abcFile { abcPath };
     if (abcFile.empty() || !abcFile.is_absolute() || !std::filesystem::exists(abcFile)) {
         WLOGFE("abc file path is not valid");
@@ -7934,6 +7959,7 @@ void WindowSessionImpl::SetAutoStartPiP(bool isAutoStart, uint32_t priority, uin
 
 void WindowSessionImpl::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_PIP, "session is invalid");
         return;
@@ -8439,6 +8465,7 @@ void WindowSessionImpl::AddSetUIContentTimeoutCheck()
 
 void WindowSessionImpl::NotifySetUIContentComplete()
 {
+    TLOGNI(WmsLogTag::WMS_LIFE, "start");
     if (WindowHelper::IsSubWindow(GetType()) || WindowHelper::IsSystemWindow(GetType())) {
         // created by UIExtension
         auto extWindow = FindExtensionWindowWithContext();

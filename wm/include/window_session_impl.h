@@ -125,6 +125,8 @@ public:
         AppExecFwk::Ability* ability) override;
     WMError SetUIContentByAbc(const std::string& abcPath, napi_env env, napi_value storage,
         AppExecFwk::Ability* ability) override;
+    WMError AniSetUIContentByAbc(const std::string& abcPath, ani_env* env, ani_object storage,
+        AppExecFwk::Ability* ability) override;
     std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const override;
     const std::shared_ptr<AbilityRuntime::Context> GetContext() const override;
     void SetContext(const std::shared_ptr<AbilityRuntime::Context>& context);
@@ -1038,6 +1040,9 @@ private:
     Ace::UIContentErrorCode UIContentInitByName(Ace::UIContent*, const std::string&, void* storage, int isAni);
     template<typename T>
     Ace::UIContentErrorCode UIContentInit(Ace::UIContent*, T contentInfo, void* storage, int isAni);
+    template<typename T>
+    Ace::UIContentErrorCode UIContentInit(Ace::UIContent*, T contentInfo, void* storage,
+        const std::string& contentName, int isAni);
     Ace::UIContentErrorCode UIContentRestore(Ace::UIContent*, const std::string& contentInfo, void* storage,
         Ace::ContentInfoType infoType, int isAni);
     WMError InitUIContent(const std::string& contentInfo, void* env, void* storage,

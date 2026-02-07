@@ -5115,6 +5115,12 @@ public:
      */
     virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
 
+    virtual WMError AniSetUIContentByAbc(const std::string& abcPath, ani_env* env, ani_object storage,
+        AppExecFwk::Ability* ability = nullptr)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief register a listener to listen the window title bar and window hot areas.
      *

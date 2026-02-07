@@ -44,6 +44,7 @@
       ],
       "deps": {
         "components": [
+          "ace_ets2bundle",
           "sensor",
           "ability_base",
           "graphic_2d",

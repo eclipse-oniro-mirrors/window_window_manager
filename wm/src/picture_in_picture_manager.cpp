@@ -50,8 +50,8 @@ const std::map<std::string, std::function<void()>> PIP_ACTION_MAP {
 }
 
 sptr<PictureInPictureControllerBase> PictureInPictureManager::activeController_ = nullptr;
-wptr<PictureInPictureController> PictureInPictureManager::autoStartController_ = nullptr;
-std::map<int32_t, wptr<PictureInPictureController>> PictureInPictureManager::autoStartControllerMap_ = {};
+wptr<PictureInPictureControllerBase> PictureInPictureManager::autoStartController_ = nullptr;
+std::map<int32_t, wptr<PictureInPictureControllerBase>> PictureInPictureManager::autoStartControllerMap_ = {};
 std::map<int32_t, sptr<PictureInPictureControllerBase>> PictureInPictureManager::windowToControllerMap_ = {};
 std::shared_ptr<NativeReference> PictureInPictureManager::innerCallbackRef_ = nullptr;
 
@@ -127,7 +127,7 @@ void PictureInPictureManager::RemoveActiveController(wptr<PictureInPictureContro
 }
 
 void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
-    wptr<PictureInPictureController> pipController)
+    wptr<PictureInPictureControllerBase> pipController)
 {
     TLOGD(WmsLogTag::WMS_PIP, "handleId: %{public}u", handleId);
     if (pipController == nullptr) {
@@ -138,7 +138,7 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
 }
 
 void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
-    wptr<PictureInPictureController> pipController)
+    wptr<PictureInPictureControllerBase> pipController)
 {
     TLOGI(WmsLogTag::WMS_PIP, "handleId: %{public}u", handleId);
     if (autoStartController_ == nullptr) {

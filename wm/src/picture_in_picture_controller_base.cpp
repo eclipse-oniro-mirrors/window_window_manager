@@ -14,7 +14,6 @@
  */
 
 #include "picture_in_picture_controller_base.h"
-
 #include <transaction/rs_sync_transaction_controller.h>
 #include "parameters.h"
 #include "picture_in_picture_manager.h"
@@ -112,12 +111,13 @@ WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType 
             pipOption_->GetPipTemplate(), PipConst::FAILED, "window is nullptr");
         return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
     }
-    NotifyStateChangeInner(env_, PiPState::ABOUT_TO_START);
+    NotifyStateChangeInner(PiPState::ABOUT_TO_START);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
             continue;
         }
+        TLOGI(WmsLogTag::WMS_PIP, "notify statechange: ABOUT_TO_START");
         listener->OnPreparePictureInPictureStart(GetStateChangeReason());
         listener->OnPreparePictureInPictureStart(controllerId_);
     }
@@ -149,6 +149,7 @@ WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType 
 
 WMError PictureInPictureControllerBase::StartPictureInPictureInner(StartPipType startType)
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     WMError errCode = CreatePictureInPictureWindow(startType);
     if (errCode != WMError::WM_OK) {
         curState_ = PiPWindowState::STATE_UNDEFINED;
@@ -218,7 +219,7 @@ WMError PictureInPictureControllerBase::StopPictureInPicture(bool destroyWindow,
         return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
     }
     curState_ = PiPWindowState::STATE_STOPPING;
-    NotifyStateChangeInner(env_, PiPState::ABOUT_TO_STOP);
+    NotifyStateChangeInner(PiPState::ABOUT_TO_STOP);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
@@ -230,7 +231,7 @@ WMError PictureInPictureControllerBase::StopPictureInPicture(bool destroyWindow,
     if (!destroyWindow) {
         ResetExtController();
         curState_ = PiPWindowState::STATE_STOPPED;
-        NotifyStateChangeInner(env_, PiPState::STOPPED);
+        NotifyStateChangeInner(PiPState::STOPPED);
         for (auto& listener : pipLifeCycleListeners_) {
             if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
@@ -316,7 +317,7 @@ WMError PictureInPictureControllerBase::DestroyPictureInPictureWindow()
     mainWindowLifeCycleListener_ = nullptr;
     PictureInPictureManager::RemovePipControllerInfo(window_->GetWindowId());
     window_ = nullptr;
-    NotifyStateChangeInner(env_, PiPState::STOPPED);
+    NotifyStateChangeInner(PiPState::STOPPED);
     PictureInPictureManager::RemoveActiveController(this);
     return WMError::WM_OK;
 }
@@ -408,7 +409,7 @@ void PictureInPictureControllerBase::PreRestorePictureInPicture()
 {
     TLOGI(WmsLogTag::WMS_PIP, "called");
     curState_ = PiPWindowState::STATE_RESTORING;
-    NotifyStateChangeInner(env_, PiPState::ABOUT_TO_RESTORE);
+    NotifyStateChangeInner(PiPState::ABOUT_TO_RESTORE);
     SetStateChangeReason(PiPStateChangeReason::PANEL_ACTION_RESTORE);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
@@ -484,7 +485,7 @@ void PictureInPictureControllerBase::ActiveStatusChange(bool status)
 
 void PictureInPictureControllerBase::OnPictureInPictureStart()
 {
-    NotifyStateChangeInner(env_, PiPState::STARTED);
+    NotifyStateChangeInner(PiPState::STARTED);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
