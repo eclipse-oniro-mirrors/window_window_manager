@@ -8063,7 +8063,7 @@ WMError WindowSceneSessionImpl::RestoreMainWindow(const std::shared_ptr<AAFwk::W
     
     auto hostSession = GetHostSession();
     if (!hostSession) {
-        TLOGI(WmsLogTag::WMS_LIFE, "session is nullptr");
+        TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     WMError ret = hostSession->RestoreFloatMainWindow(wantParams);

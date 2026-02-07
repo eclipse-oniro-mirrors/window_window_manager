@@ -1473,8 +1473,8 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(subWindowOutlineEnabled_) &&
         parcel.WriteUint32(windowModeSupportType_) &&
         MarshallingShadowsInfo(parcel) &&
-        MarshallingFbTemplateInfo(parcel) &&
         MarshallingWindowAnchorInfo(parcel) &&
+        MarshallingFbTemplateInfo(parcel) &&
         parcel.WriteBool(isPcAppInpadSpecificSystemBarInvisible_) &&
         parcel.WriteBool(isPcAppInpadOrientationLandscape_) &&
         parcel.WriteBool(isPcAppInpadCompatibleMode_) &&
@@ -1595,8 +1595,8 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetSubWindowOutlineEnabled(parcel.ReadBool());
     property->SetWindowModeSupportType(parcel.ReadUint32());
     UnmarshallingShadowsInfo(parcel, property);
-    UnmarshallingFbTemplateInfo(parcel, property);
     UnmarshallingWindowAnchorInfo(parcel, property);
+    UnmarshallingFbTemplateInfo(parcel, property);
     property->SetPcAppInpadSpecificSystemBarInvisible(parcel.ReadBool());
     property->SetPcAppInpadOrientationLandscape(parcel.ReadBool());
     property->SetPcAppInpadCompatibleMode(parcel.ReadBool());
