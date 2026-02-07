@@ -1833,7 +1833,7 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         session->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
-        TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, session->GetPersistentId(), WmsLogTag::WMS_LAYOUT,
+        TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, session->GetPersistentId(), WmsLogTag::WMS_LAYOUT,
             "%{public}s: id:%{public}d, reason:%{public}d %{public}s rect:win=%{public}s "
             "client=%{public}s", where, session->GetPersistentId(), session->GetSizeChangeReason(),
             updateReason.c_str(), rect.ToString().c_str(), session->GetClientRect().ToString().c_str());

@@ -157,6 +157,32 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
         }                                                                                         \
     } while (0)
 
+/**
+ * usually use for client-side which not need to distinguish
+ */
+#define TLOGNI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                         \
+    do {                                                                                          \
+        uintptr_t functionAddress = GET_PACKED_ADDR_LINE();                                       \
+        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+            RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
+            timeWindowMs, maxCount)) {                                                            \
+            TLOGNI(tag, fmt, ##__VA_ARGS__);                                                      \
+        }                                                                                         \
+    } while (0)
+
+/**
+ * usually use for server-side to distinguish between different screens
+ */
+#define TLOGNI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                \
+    do {                                                                                          \
+        uintptr_t functionAddress = GET_PACKED_ADDR_LINE_WID(wid);                                \
+        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+            RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
+            timeWindowMs, maxCount)) {                                                            \
+            TLOGNI(tag, fmt, ##__VA_ARGS__);                                                      \
+        }                                                                                         \
+    } while (0)
+
 } // namespace Rosen
 } // namespace OHOS
 #endif // RATE_LIMITED_LOGGER_H
