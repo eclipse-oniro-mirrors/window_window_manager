@@ -8528,7 +8528,7 @@ void SceneSession::SetNotifyVisibleChangeFunc(const NotifyVisibleChangeFunc& fun
     notifyVisibleChangeFunc_ = func;
 }
 
-void SceneSession::SetPrivacyModeChangeNotifyFunc(const NotifyPrivacyModeChangeFunc& func)
+void SceneSession::SetPrivacyModeChangeNotifyFunc(
 {
     PostTask([weakThis = wptr(this), func = std::move(func), where = __func__] {
         auto session = weakThis.promote();
