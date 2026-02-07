@@ -10998,6 +10998,8 @@ WSError SceneSessionManager::GetAbilityInfosFromBundleInfo(const std::vector<App
         }
         if (WindowHelper::IsNumber(bundleInfo.applicationInfo.codePath) &&
             CheckCollaboratorType(std::stoi(bundleInfo.applicationInfo.codePath))) {
+            TLOGI(WmsLogTag::DEFAULT, "collaborator bundleName:%{public}s type:%{public}s",
+                bundleInfo.name.c_str(), bundleInfo.applicationInfo.codePath.c_str());
             collaboratorBundleInfos.emplace_back(bundleInfo);
             continue;
         }
