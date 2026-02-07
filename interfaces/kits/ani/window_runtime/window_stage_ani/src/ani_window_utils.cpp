@@ -893,6 +893,24 @@ ani_object AniWindowUtils::CreateAniWindowArray(ani_env* env, std::vector<ani_re
     return windowArray;
 }
 
+ani_object AniWindowUtils::CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
+    ani_array windowArray = nullptr;
+
+    if (env->Array_New(windows.size(), CreateAniUndefined(env), &windowArray) != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] create array fail");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    for (size_t i = 0; i < windows.size(); i++) {
+        if (env->Array_Set(windowArray, i, windows[i]) != ANI_OK) {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] set window array failed");
+            return AniWindowUtils::CreateAniUndefined(env);
+        }
+    }
+    return windowArray;
+}
+
 ani_object AniWindowUtils::CreateAniRect(ani_env* env, const Rect& rect)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
@@ -1154,24 +1172,6 @@ bool AniWindowUtils::GetColorMode(ani_env* env, const ani_object& decorStyle, in
     }
     colorMode = static_cast<int32_t>(colorModeValue);
     return true;
-}
-
-ani_object AniWindowUtils::CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows)
-{
-    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    ani_array windowArray = nullptr;
-
-    if (env->Array_New(windows.size(), CreateAniUndefined(env), &windowArray) != ANI_OK) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] create array fail");
-        return AniWindowUtils::CreateAniUndefined(env);
-    }
-    for (size_t i = 0; i < windows.size(); i++) {
-        if (env->Array_Set(windowArray, i, windows[i]) != ANI_OK) {
-            TLOGE(WmsLogTag::DEFAULT, "[ANI] set window array failed");
-            return AniWindowUtils::CreateAniUndefined(env);
-        }
-    }
-    return windowArray;
 }
 
 ani_object AniWindowUtils::CreateAniSystemBarTintState(ani_env* env, DisplayId displayId,
@@ -2782,7 +2782,7 @@ bool AniWindowUtils::ParseSubWindowOption(ani_env* env, ani_object jsObject, con
     }
     return ParseZLevelParams(env, jsObject, windowOption);
 }
-
+ 
 bool AniWindowUtils::ParseModalityParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_boolean isModal { false };
@@ -2822,7 +2822,7 @@ bool AniWindowUtils::ParseModalityParams(ani_env* env, ani_object jsObject, cons
         isModal, isTopmost, windowOption->GetWindowFlags());
     return true;
 }
-
+ 
 bool AniWindowUtils::ParseZLevelParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_int zLevel { 0 };
@@ -2845,7 +2845,7 @@ bool AniWindowUtils::ParseZLevelParams(ani_env* env, ani_object jsObject, const 
     TLOGI(WmsLogTag::WMS_SUB, "zLevel: %{public}d", zLevel);
     return true;
 }
-
+ 
 bool AniWindowUtils::ParseRectParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_ref rectRef;
@@ -2870,6 +2870,6 @@ bool AniWindowUtils::ParseRectParams(ani_env* env, ani_object jsObject, const sp
     windowOption->SetWindowRect(windowRect);
     return true;
 }
-
+ 
 } // namespace Rosen
 } // namespace OHOS
