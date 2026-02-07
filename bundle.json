@@ -13,7 +13,8 @@
       "name": "window_manager",
       "subsystem": "window",
       "syscap": [
-        "SystemCapability.WindowManager.WindowManager.Core"
+        "SystemCapability.WindowManager.WindowManager.Core",
+        "SystemCapability.Window.SessionManager = false"
       ],
       "features": [
         "window_manager_use_sceneboard",
@@ -43,7 +44,6 @@
       ],
       "deps": {
         "components": [
-          "ace_ets2bundle",
           "sensor",
           "ability_base",
           "graphic_2d",
@@ -135,9 +135,7 @@
           "service_group": [
             "//foundation/window/window_manager/sa_profile:wms_sa_profile",
             "//foundation/window/window_manager/dmserver:libdms",
-            "//foundation/window/window_manager/wmserver:libwms",
-            "//foundation/window/window_manager/window_scene/screen_session_manager/src/param_update:version.txt",
-            "//foundation/window/window_manager/window_scene/screen_session_manager/src/param_update:hwkey_param"
+            "//foundation/window/window_manager/wmserver:libwms"
           ]
         },
         "inner_kits": [
