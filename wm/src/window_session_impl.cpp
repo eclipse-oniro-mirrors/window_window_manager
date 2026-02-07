@@ -101,6 +101,7 @@ const std::string DECOR_BUTTON_STYLE_CHANGE = "decor_button_style_change";
 constexpr int64_t SET_UIEXTENSION_DESTROY_TIMEOUT_TIME_MS = 4000;
 
 const std::string SCB_BACK_VISIBILITY = "scb_back_visibility";
+const std::string EVENT_NAME_FLOAT_BAR_VISIBILITY = "scb_float_bar_visibility";
 const std::string SCB_COMPATIBLE_MAXIMIZE_VISIBILITY = "scb_compatible_maximize_visibility";
 const std::string SCB_COMPATIBLE_MAXIMIZE_BTN_RES = "scb_compatible_maximize_btn_res";
 const std::string SCB_COMPATIBLE_MENU_VISIBILITY = "scb_set_compatible_menu";
