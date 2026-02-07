@@ -28,7 +28,7 @@
 
 #include <parcel.h>
 
-#include "dm_common.h"
+#include "../dm/dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
 #include "wm_math.h"
