@@ -136,7 +136,9 @@
           "service_group": [
             "//foundation/window/window_manager/sa_profile:wms_sa_profile",
             "//foundation/window/window_manager/dmserver:libdms",
-            "//foundation/window/window_manager/wmserver:libwms"
+            "//foundation/window/window_manager/wmserver:libwms",
+            "//foundation/window/window_manager/window_scene/screen_session_manager/src/param_update:version.txt",
+            "//foundation/window/window_manager/window_scene/screen_session_manager/src/param_update:hwkey_param"
           ]
         },
         "inner_kits": [
