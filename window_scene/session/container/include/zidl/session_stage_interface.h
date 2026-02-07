@@ -136,7 +136,7 @@ public:
     virtual WSError UpdateWindowMode(WindowMode mode) = 0;
     virtual WSError GetTopNavDestinationName(std::string& topNavDestName) = 0;
     virtual WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) = 0;
-    virtual WMError UpdateWindowModeForUITest(int32_t updateMode) { return WMError::WM_OK; }
+    virtual WMError UpdateWindowModeForUITest(int32_t updateMode) { return WMError::WM_OK; };
     virtual void NotifyForegroundInteractiveStatus(bool interactive) = 0;
     virtual void NotifyLifecyclePausedStatus() = 0;
     virtual void NotifyAppUseControlStatus(bool isUseControl) = 0;
@@ -211,7 +211,6 @@ public:
     virtual WSError UpdateDisplayId(uint64_t displayId) = 0;
     virtual void NotifyDisplayMove(DisplayId from, DisplayId to) = 0;
     virtual WSError SwitchFreeMultiWindow(bool enable) = 0;
-    virtual WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) = 0;
     virtual WSError PcAppInPadNormalClose()
     {
         return WSError::WS_OK;
@@ -223,6 +222,7 @@ public:
     virtual void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) = 0;
     virtual void UpdateAnimationSpeed(float speed) = 0;
     virtual void NotifySessionFullScreen(bool fullScreen) {}
+    virtual WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) = 0;
 
     // **Non** IPC interface
     virtual void NotifyBackpressedEvent(bool& isConsumed) {}
