@@ -4124,8 +4124,8 @@ WMError WindowSceneSessionImpl::Recover()
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (property_->IsFullScreenDisabled()) {
- 	    TLOGE(WmsLogTag::WMS_COMPAT, "diable recover in compatibleMode window ,id:%{public}d", GetPersistentId());
- 	    return WMError::WM_ERROR_INVALID_WINDOW;
+        TLOGE(WmsLogTag::WMS_COMPAT, "diable recover in compatibleMode window ,id:%{public}d", GetPersistentId());
+        return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (!WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "not support floating, can not Recover");
