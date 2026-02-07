@@ -58,7 +58,6 @@
 #include "window_helper.h"
 #include "color_parser.h"
 #include "singleton_container.h"
-#include "sys_cap_util.h"
 #include "perform_reporter.h"
 #include "picture_in_picture_manager.h"
 #include "parameters.h"
@@ -5535,7 +5534,7 @@ void WindowSessionImpl::NotifyUIContentHighlightStatus(bool isHighlighted)
     }
 }
 
-void WindowSessionImpl::NotifyUIContentDestroy()
+void WindowSessionImpl::NotifyBeforeDestroy(std::string windowName)
 {
     auto task = [this]() {
         if (auto uiContent = GetUIContentSharedPtr()) {
@@ -5556,13 +5555,6 @@ void WindowSessionImpl::NotifyUIContentDestroy()
         task();
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Release uicontent successfully, id: %{public}d.", GetPersistentId());
-}
-
-void WindowSessionImpl::NotifyBeforeDestroy(const std::string& windowName)
-{
-    if (!isAttachedOnFrameNode_ || (!WindowHelper::IsSubWindow(GetType()) || property_->GetIsUIExtFirstSubWindow())) {
-        NotifyUIContentDestroy();
-    }
     if (notifyNativeFunc_) {
         notifyNativeFunc_(windowName);
     }
