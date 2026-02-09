@@ -169,6 +169,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetAllMainWindowInfo(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_MAIN_WINDOW_SNAPSHOT):
             return HandleGetMainWindowSnapshot(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_WINDOW_SNAPSHOT_SKIP):
+            return HandleSetWindowSnapshotSkip(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_GLOBAL_WINDOW_MODE):
             return HandleGetGlobalWindowMode(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_TOP_NAV_DEST_NAME):
@@ -1579,6 +1581,26 @@ int SceneSessionManagerStub::HandleGetMainWindowSnapshot(MessageParcel& data, Me
     WMError errCode = GetMainWindowSnapshot(windowIds, config, callback);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write errCode fail");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleSetWindowSnapshotSkip(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t windowId = 0;
+    if (!data.ReadInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read windowId fail");
+        return ERR_INVALID_DATA;
+    }
+    bool isSkip = false;
+    if (!data.ReadBool(isSkip)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read isSkip failed");
+        return ERR_INVALID_DATA;
+    }
+    auto errCode = SetWindowSnapshotSkip(windowId, isSkip);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write errCode failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
