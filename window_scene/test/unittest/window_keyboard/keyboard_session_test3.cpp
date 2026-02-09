@@ -316,13 +316,14 @@ HWTEST_F(KeyboardSessionTest3, SetSurfaceBounds01, TestSize.Level1)
     info1.abilityName_ = "BindKeyboardPanelSession";
     info1.bundleName_ = "BindKeyboardPanelSession";
     sptr<SceneSession> panelSession = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    struct RSSurfaceNodeConfig config;
+    panelSession->surfaceNode_ = RSSurfaceNode::Create(config);
     keyboardSession->BindKeyboardPanelSession(panelSession);
     keyboardSession->SetSurfaceBounds(rect, false);
     ASSERT_NE(keyboardSession->GetKeyboardPanelSession(), nullptr);
 
-    struct RSSurfaceNodeConfig config;
     keyboardSession->surfaceNode_ = RSSurfaceNode::Create(config);
-    keyboardSession->SetSurfaceBounds(rect, false);
+    keyboardSession->SetSurfaceBounds(rect, false, false);
     ASSERT_NE(keyboardSession->surfaceNode_, nullptr);
 }
 

@@ -28,7 +28,7 @@ namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "MainSession" };
 constexpr int32_t MAX_LABEL_SIZE = 1024;
-const uint64_t PRELAUNCH_DONE_TIME = system::GetIntParameter<int>("window.prelaunchDoneTime", 6000);
+const uint64_t PRELAUNCH_DONE_TIME_MS = system::GetIntParameter<int>("window.prelaunchDoneTime", 6000);
 } // namespace
 
 MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
@@ -327,8 +327,7 @@ WSError MainSession::OnRestoreMainWindow()
     int32_t callingPid = IPCSkeleton::GetCallingPid();
     uint32_t callingToken = IPCSkeleton::GetCallingTokenID();
     std::string appInstanceKey = GetSessionProperty()->GetAppInstanceKey();
-    bool isAppBoundSystemTray = (SceneSession::isAppBoundSystemTrayCallback_ &&
-                                SceneSession::isAppBoundSystemTrayCallback_(callingPid, callingToken, appInstanceKey));
+    bool isAppBoundSystemTray = GetSessionBoundedSystemTray(callingPid, callingToken, appInstanceKey);
     TLOGI(WmsLogTag::WMS_MAIN,
         "isAppSupportPhoneInPc: %{public}d callingPid: %{public}d callingTokenId: %{public}u appInstanceKey: "
         "%{public}s isAppBoundSystemTray: %{public}d",
@@ -705,6 +704,13 @@ WSError MainSession::NotifyAppForceLandscapeConfigEnableUpdated()
     return sessionStage_->NotifyAppForceLandscapeConfigEnableUpdated();
 }
 
+bool MainSession::GetSessionBoundedSystemTray(
+    int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) const
+{
+    return (isSessionBoundedSystemTrayCallback_ &&
+            isSessionBoundedSystemTrayCallback_(callingPid, callingToken, instanceKey));
+}
+
 void MainSession::RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func)
 {
     forceSplitEnableFunc_ = std::move(func);
@@ -738,6 +744,6 @@ bool MainSession::IsPrelaunch() const
     }
 
     int64_t timeDiff = nowTimeStamp - prelaunchStart_;
-    return sessionInfo_.isPrelaunch_ && timeDiff > 0 && timeDiff > PRELAUNCH_DONE_TIME;
+    return sessionInfo_.isPrelaunch_ && sessionInfo_.frameNum_ > 0 && timeDiff > PRELAUNCH_DONE_TIME_MS;
 }
 } // namespace OHOS::Rosen

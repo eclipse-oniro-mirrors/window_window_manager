@@ -48,11 +48,21 @@ namespace OHOS {
 namespace Rosen {
 constexpr Rect g_emptyRect = {0, 0, 0, 0};
 
+enum class WindowStageLifecycleEventType : uint32_t {
+    FOREGROUND = 1,
+    RESUMED,
+    PAUSED,
+    BACKGROUND,
+};
+
 class AniVm {
 public:
     explicit AniVm(ani_vm* vm) : vm_(vm) {}
     ~AniVm()
     {
+        if (env_ != nullptr) {
+            env_->DestroyLocalScope();
+        }
         if (vm_ == nullptr || !needDetach_) {
             return;
         }
@@ -60,7 +70,7 @@ public:
         TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] detach: ret=%{public}d", static_cast<int32_t>(ret));
     }
  
-    ani_env* GetAniEnv()
+    ani_env* GetAniEnv(ani_size nrRefs = 50)
     {
         if (vm_ == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] vm is null");
@@ -74,10 +84,15 @@ public:
             TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] attach: ret=%{public}d, needDetach=%{public}d",
                 static_cast<int32_t>(ret), needDetach_);
         }
-        return env;
+        if (env != nullptr && env->CreateLocalScope(nrRefs) == ANI_OK) {
+            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] CreateLocalScope ok");
+            env_ = env;
+        }
+        return env_;
     }
 
 private:
+    ani_env* env_ = nullptr;
     ani_vm* vm_ = nullptr;
     bool needDetach_ = false;
 };
@@ -105,6 +120,7 @@ public:
         ani_env* env, const char* propertyName, ani_object object, std::optional<EnumType>& optEnumProp);
     static bool GetIntObject(ani_env* env, const char* propertyName, ani_object object, int32_t& result);
     static ani_status GetDoubleObject(ani_env* env, ani_object double_object, double& result);
+    static ani_status GetIntInObject(ani_env* env, ani_object int_object, int32_t& result);
     static ani_status GetBooleanObject(ani_env* env, ani_object boolean_object, bool& result);
     static bool GetPropertyUIntObject(ani_env* env, const char* propertyName, ani_object object, uint32_t& result);
     static ani_status GetIntVector(ani_env* env, ani_object ary, std::vector<int32_t>& result);
@@ -123,6 +139,7 @@ public:
     static ani_object CreateAniWindowInfo(ani_env* env, const WindowVisibilityInfo& info);
     static ani_object CreateAniWindowInfoArray(ani_env* env, const std::vector<sptr<WindowVisibilityInfo>>& infos);
     static ani_object CreateAniWindowArray(ani_env* env, std::vector<ani_ref>& windows);
+    static ani_object CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows);
     static ani_object CreateAniSize(ani_env* env, int32_t width, int32_t height);
     static ani_object CreateAniRect(ani_env* env, const Rect& rect);
     static ani_object CreateAniTitleButtonRect(ani_env* env, const TitleButtonRect& rect);
@@ -135,7 +152,6 @@ public:
     static ani_object CreateAniWindowLimits(ani_env* env, const WindowLimits& windowLimits);
     static ani_object CreateAniAvoidArea(ani_env* env, const AvoidArea& avoidArea,
         AvoidAreaType type, bool useActualVisibility = false);
-    static ani_object CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows);
     static ani_object CreateAniFrameMetrics(ani_env* env, const FrameMetrics& metrics);
     static ani_object CreateAniSystemBarTintState(ani_env* env, DisplayId displayId, const SystemBarRegionTints& tints);
     static ani_object CreateAniSystemBarRegionTint(ani_env* env, const SystemBarRegionTint& tint);

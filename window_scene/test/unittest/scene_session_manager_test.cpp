@@ -97,7 +97,7 @@ void SceneSessionManagerTest::TearDown()
     MockAccesstokenKit::ChangeMockStateToInit();
     usleep(WAIT_SYNC_IN_NS);
     ssm_->sceneSessionMap_.clear();
-    ssm_->screenPipEnabledMap_.clear();
+    ssm_->pipController_->ClearPipEnabledMap();
 }
 
 void SceneSessionManagerTest::SetVisibleForAccessibility(sptr<SceneSession>& sceneSession)

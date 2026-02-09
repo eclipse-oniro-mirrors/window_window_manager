@@ -222,7 +222,7 @@ public:
      * @return true if the window was dragged to a different monitor (cross-screen),
      *         false if the drag operation stayed within the same monitor.
      */
-    bool IsWindowCrossScreenOnDragEnd() const { return moveDragEndDisplayId_ != moveDragStartDisplayId_; };
+    bool IsWindowCrossScreenOnDragEnd() const;
 
     /*
      * Monitor screen connection status
@@ -448,6 +448,8 @@ private:
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
 
     bool EventDownInit(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    float GetVirtualPixelRatio(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const;
+    WSRect CalcFirstOriginalRectPos(const WSRect& windowRect) const;
     bool CalcMoveInputBarRect(
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const WSRect& originalRect, SizeChangeReason reason);
     void ModifyWindowCoordinates(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
@@ -741,7 +743,8 @@ private:
     MoveTempProperty moveTempProperty_;
 
     void UpdateHotAreaType(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
-    void ProcessWindowDragHotAreaFunc(bool flag, SizeChangeReason reason);
+    void ProcessWindowDragHotAreaFunc(uint32_t lastWindowDragHotAreaType, DisplayId lastHotAreaDisplayId,
+        SizeChangeReason reason);
     uint32_t windowDragHotAreaType_ = WINDOW_HOT_AREA_TYPE_UNDEFINED;
     NotifyWindowDragHotAreaFunc windowDragHotAreaFunc_;
     NotifyWindowPidChangeCallback pidChangeCallback_;

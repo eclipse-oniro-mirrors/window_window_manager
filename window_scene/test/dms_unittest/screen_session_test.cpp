@@ -31,6 +31,8 @@ namespace Rosen {
 namespace {
     constexpr uint32_t SLEEP_TIME_IN_US = 100000; // 100ms
     std::string g_errLog;
+    const bool SUPPORT_COMPATIBLE_MODE =
+        (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
@@ -2189,6 +2191,43 @@ HWTEST_F(ScreenSessionTest, screen_session_test012, TestSize.Level1)
     session->SetDisplayBoundary(rect, offsetY);
     ASSERT_EQ(screenProperty.GetOffsetY(), offsetY);
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test012 end";
+}
+
+/**
+ * @tc.name: SetExtendPhysicalScreenResolution
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetExtendPhysicalScreenResolution, TestSize.Level1)
+{
+    if (!SUPPORT_COMPATIBLE_MODE) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    LOG_SetCallback(MyLogCallbackWithAllLog);
+    g_errLog.clear();
+    session->SetIsInternal(true);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen is internal") != std::string::npos);
+    g_errLog.clear();
+ 
+    session->SetIsInternal(false);
+    session->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") != std::string::npos);
+    g_errLog.clear();
+    session->SetExtendPhysicalScreenResolution(false);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") != std::string::npos);
+    g_errLog.clear();
+ 
+    session->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") == std::string::npos);
+    g_errLog.clear();
+    session->SetExtendPhysicalScreenResolution(false);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") == std::string::npos);
+    g_errLog.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -5138,6 +5177,21 @@ HWTEST_F(ScreenSessionTest, ClearPropertyChangeReasonAndEvent, TestSize.Level1)
     auto proeperty = session->GetScreenProperty();
     EXPECT_EQ(proeperty.GetPropertyChangeReason(), ScreenPropertyChangeReason::UNDEFINED);
     EXPECT_EQ(proeperty.GetSuperFoldStatusChangeEvent(), SuperFoldStatusChangeEvents::UNDEFINED);
+}
+
+/**
+ * @tc.name  : ProcPropertyChange
+ * @tc.desc  : ProcPropertyChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ProcPropertyChange, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty, eventPara;
+    eventPara.SetPropertyChangeReason(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->ProcPropertyChange(screenProperty, eventPara);
+    EXPECT_EQ(screenProperty.GetPropertyChangeReason(), eventPara.GetPropertyChangeReason());
 }
 } // namespace
 } // namespace Rosen

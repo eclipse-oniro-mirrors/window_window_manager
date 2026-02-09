@@ -80,7 +80,7 @@ std::function<void()> TaskSequenceProcess::PopFromQueue()
     }
     uint64_t queueId = DEFAULT_QUEUE_ID;
     if (!FindMinSnTaskQueueId(queueId)) {
-        TLOGE(WmsLogTag::DMS, "TaskSequenceProcess is empty");
+        TLOGE(WmsLogTag::DMS, "queue is empty");
         return nullptr;
     }
     std::function<void()> task = taskQueueMap_[queueId].front().task;
@@ -155,7 +155,7 @@ void TaskSequenceProcess::StartSysTimer()
     cacheTimer_ = std::make_unique<FfrtTimer>();
     cacheTimer_->StartOneShotTimer(maxTimeInterval_, this, [](void *taskSequencePtr) -> void {
         if (taskSequencePtr != nullptr) {
-            TaskSequenceProcess *taskSequenceProcess = reinterpret_cast<TaskSequenceProcess*>(&taskSequenceProcess);
+            TaskSequenceProcess *taskSequenceProcess = reinterpret_cast<TaskSequenceProcess*>(taskSequencePtr);
             taskSequenceProcess->OnTimerTask();
             TLOGW(WmsLogTag::DMS, "startTimer time out");
         } else {

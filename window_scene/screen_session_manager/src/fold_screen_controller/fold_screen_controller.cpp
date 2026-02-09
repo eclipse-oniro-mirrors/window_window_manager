@@ -441,4 +441,9 @@ void FoldScreenController::SetIsClearingBootAnimation(bool isClearingBootAnimati
     }
     foldScreenPolicy_->SetIsClearingBootAnimation(isClearingBootAnimation);
 }
+
+float FoldScreenController::GetSpecialVirtualPixelRatio()
+{
+    return foldScreenPolicy_->GetSpecialVirtualPixelRatio();
+}
 } // namespace OHOS::Rosen

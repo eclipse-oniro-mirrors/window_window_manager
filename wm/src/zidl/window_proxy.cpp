@@ -327,6 +327,21 @@ WMError WindowProxy::UpdateOccupiedAreaChangeInfo(const sptr<OccupiedAreaChangeI
     return WMError::WM_OK;
 }
 
+WMError WindowProxy::SendOccupiedAreaAndRectRequest(MessageParcel& data, MessageParcel& reply, MessageOption& option)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        WLOGFE("remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(WindowMessage::TRANS_ID_UPDATE_OCCUPIED_AREA_AND_RECT),
+        data, reply, option) != ERR_NONE) {
+        WLOGFE("SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return WMError::WM_OK;
+}
+
 WMError WindowProxy::UpdateOccupiedAreaAndRect(const sptr<OccupiedAreaChangeInfo>& info, const Rect& rect,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
     const std::shared_ptr<RSTransaction>& rsTransaction)
@@ -340,12 +355,6 @@ WMError WindowProxy::UpdateOccupiedAreaAndRect(const sptr<OccupiedAreaChangeInfo
     }
     if (!data.WriteParcelable(info)) {
         WLOGFE("Write OccupiedAreaChangeInfo failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-
-    if (!(data.WriteInt32(rect.posX_) && data.WriteInt32(rect.posY_) &&
-        data.WriteUint32(rect.width_) && data.WriteUint32(rect.height_))) {
-        WLOGFE("Write WindowRect failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
@@ -365,6 +374,12 @@ WMError WindowProxy::UpdateOccupiedAreaAndRect(const sptr<OccupiedAreaChangeInfo
         }
     }
 
+    if (!(data.WriteInt32(rect.posX_) && data.WriteInt32(rect.posY_) &&
+        data.WriteUint32(rect.width_) && data.WriteUint32(rect.height_))) {
+        WLOGFE("Write WindowRect failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
     bool hasRSTransaction = rsTransaction != nullptr;
     if (!data.WriteBool(hasRSTransaction)) {
         WLOGFE("Write transaction sync Id failed");
@@ -377,15 +392,9 @@ WMError WindowProxy::UpdateOccupiedAreaAndRect(const sptr<OccupiedAreaChangeInfo
         }
     }
 
-    sptr<IRemoteObject> remote = Remote();
-    if (remote == nullptr) {
-        WLOGFE("remote is null");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-    if (remote->SendRequest(static_cast<uint32_t>(WindowMessage::TRANS_ID_UPDATE_OCCUPIED_AREA_AND_RECT),
-        data, reply, option) != ERR_NONE) {
-        WLOGFE("SendRequest failed");
-        return WMError::WM_ERROR_IPC_FAILED;
+    WMError sendRequestResult = SendOccupiedAreaAndRectRequest(data, reply, option);
+    if (sendRequestResult != WMError::WM_OK) {
+        return sendRequestResult;
     }
     return WMError::WM_OK;
 }

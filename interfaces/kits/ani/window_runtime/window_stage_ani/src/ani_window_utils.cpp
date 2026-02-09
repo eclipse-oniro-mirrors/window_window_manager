@@ -545,6 +545,29 @@ ani_status AniWindowUtils::GetDoubleObject(ani_env* env, ani_object double_objec
     return ret;
 }
 
+ani_status AniWindowUtils::GetIntInObject(ani_env* env, ani_object int_object, int32_t& result)
+{
+    ani_boolean isUndefined;
+    ani_status isUndefinedRet = env->Reference_IsUndefined(int_object, &isUndefined);
+    if (ANI_OK != isUndefinedRet) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Check int_object isUndefined fail");
+        return isUndefinedRet;
+    }
+    if (isUndefined) {
+        TLOGI(WmsLogTag::DEFAULT, "[ANI] CallMeWithOptionalInt Not Pass Value");
+        return ANI_INVALID_ARGS;
+    }
+    ani_int int_value;
+    ani_status ret = env->Object_CallMethodByName_Int(int_object, "intValue", nullptr, &int_value);
+    if (ANI_OK != ret) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_CallMethodByName_Int Failed!");
+        return ret;
+    }
+    result = static_cast<int32_t>(int_value);
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] int result is: %{public}d", result);
+    return ret;
+}
+
 ani_status AniWindowUtils::GetIntVector(ani_env* env, ani_object ary, std::vector<int32_t>& result)
 {
     ani_size size = 0;
@@ -870,6 +893,24 @@ ani_object AniWindowUtils::CreateAniWindowArray(ani_env* env, std::vector<ani_re
     return windowArray;
 }
 
+ani_object AniWindowUtils::CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
+    ani_array windowArray = nullptr;
+
+    if (env->Array_New(windows.size(), CreateAniUndefined(env), &windowArray) != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] create array fail");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    for (size_t i = 0; i < windows.size(); i++) {
+        if (env->Array_Set(windowArray, i, windows[i]) != ANI_OK) {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] set window array failed");
+            return AniWindowUtils::CreateAniUndefined(env);
+        }
+    }
+    return windowArray;
+}
+
 ani_object AniWindowUtils::CreateAniRect(ani_env* env, const Rect& rect)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
@@ -1133,24 +1174,6 @@ bool AniWindowUtils::GetColorMode(ani_env* env, const ani_object& decorStyle, in
     return true;
 }
 
-ani_object AniWindowUtils::CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows)
-{
-    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    ani_array windowArray = nullptr;
-
-    if (env->Array_New(windows.size(), CreateAniUndefined(env), &windowArray) != ANI_OK) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] create array fail");
-        return AniWindowUtils::CreateAniUndefined(env);
-    }
-    for (size_t i = 0; i < windows.size(); i++) {
-        if (env->Array_Set(windowArray, i, windows[i]) != ANI_OK) {
-            TLOGE(WmsLogTag::DEFAULT, "[ANI] set window array failed");
-            return AniWindowUtils::CreateAniUndefined(env);
-        }
-    }
-    return windowArray;
-}
-
 ani_object AniWindowUtils::CreateAniSystemBarTintState(ani_env* env, DisplayId displayId,
     const SystemBarRegionTints& tints)
 {
@@ -1253,7 +1276,7 @@ ani_object AniWindowUtils::CreateAniFrameMetrics(ani_env* env, const FrameMetric
         return AniWindowUtils::CreateAniUndefined(env);
     }
     ret = CallAniMethodVoid(env, frameMetrics, aniClass, "<set>firstDrawFrame", nullptr,
-        CreateOptionalBool(env, static_cast<ani_boolean>(metrics.firstDrawFrame_)));
+        static_cast<ani_boolean>(metrics.firstDrawFrame_));
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] failed to set firstDrawFrame");
         return AniWindowUtils::CreateAniUndefined(env);
@@ -1811,9 +1834,9 @@ ani_object AniWindowUtils::CreateAniMainWindowInfo(ani_env* env, const MainWindo
         TLOGE(WmsLogTag::WMS_LIFE, "[ANI] create string failed");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
     }
-    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>displayId", nullptr, ani_double(info.displayId_));
+    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>displayId", nullptr, ani_long(info.displayId_));
     CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>showing", nullptr, ani_boolean(info.showing_));
-    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>windowId", nullptr, ani_double(info.persistentId_));
+    CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>windowId", nullptr, ani_int(info.persistentId_));
     CallAniMethodVoid(env, mainWindowInfo, aniClass, "<set>label", nullptr, label);
     return mainWindowInfo;
 }
@@ -2366,6 +2389,7 @@ bool AniWindowUtils::ParseWindowMask(ani_env* env, ani_array windowMaskArray,
         windowMask.emplace_back(elementArray);
     }
     aniRet = env->GlobalReference_Delete(g_longCls);
+    g_longCls = nullptr;
     if (aniRet != ANI_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]Failed to delete g_longCls ref, ret: %{public}u", aniRet);
     }
@@ -2758,7 +2782,7 @@ bool AniWindowUtils::ParseSubWindowOption(ani_env* env, ani_object jsObject, con
     }
     return ParseZLevelParams(env, jsObject, windowOption);
 }
-
+ 
 bool AniWindowUtils::ParseModalityParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_boolean isModal { false };
@@ -2798,7 +2822,7 @@ bool AniWindowUtils::ParseModalityParams(ani_env* env, ani_object jsObject, cons
         isModal, isTopmost, windowOption->GetWindowFlags());
     return true;
 }
-
+ 
 bool AniWindowUtils::ParseZLevelParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_int zLevel { 0 };
@@ -2821,7 +2845,7 @@ bool AniWindowUtils::ParseZLevelParams(ani_env* env, ani_object jsObject, const 
     TLOGI(WmsLogTag::WMS_SUB, "zLevel: %{public}d", zLevel);
     return true;
 }
-
+ 
 bool AniWindowUtils::ParseRectParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_ref rectRef;
@@ -2846,6 +2870,6 @@ bool AniWindowUtils::ParseRectParams(ani_env* env, ani_object jsObject, const sp
     windowOption->SetWindowRect(windowRect);
     return true;
 }
-
+ 
 } // namespace Rosen
 } // namespace OHOS

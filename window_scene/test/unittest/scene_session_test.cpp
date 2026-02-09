@@ -298,89 +298,6 @@ HWTEST_F(SceneSessionTest, UpdateWindowAnimationFlag02, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetRequestedOrientation
- * @tc.desc: SetRequestedOrientation
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, SetRequestedOrientation01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "SetRequestedOrientation01";
-    info.bundleName_ = "SetRequestedOrientation01";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
-    Orientation ori = Orientation::UNSPECIFIED;
-    sceneSession->SetRequestedOrientation(ori);
-    Orientation ret = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ori, ret);
-
-    sceneSession->SetRequestedOrientation(Orientation::AUTO_ROTATION_UNSPECIFIED);
-    Orientation ret1 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret1, Orientation::AUTO_ROTATION_UNSPECIFIED);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_PORTRAIT);
-    Orientation ret2 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret2, Orientation::USER_ROTATION_PORTRAIT);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_LANDSCAPE);
-    Orientation ret3 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret3, Orientation::USER_ROTATION_LANDSCAPE);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_PORTRAIT_INVERTED);
-    Orientation ret4 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret4, Orientation::USER_ROTATION_PORTRAIT_INVERTED);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_LANDSCAPE_INVERTED);
-    Orientation ret5 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret5, Orientation::USER_ROTATION_LANDSCAPE_INVERTED);
-
-    sceneSession->SetRequestedOrientation(Orientation::FOLLOW_DESKTOP);
-    Orientation ret6 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret6, Orientation::FOLLOW_DESKTOP);
-}
-
-/**
- * @tc.name: GetRequestedOrientation
- * @tc.desc: GetRequestedOrientation
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest, GetRequestedOrientation, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "GetRequestedOrientation";
-    info.bundleName_ = "GetRequestedOrientation";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    Orientation ori = Orientation::HORIZONTAL;
-    sceneSession->SetRequestedOrientation(ori);
-    Orientation ret = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ori, ret);
-
-    sceneSession->SetRequestedOrientation(Orientation::AUTO_ROTATION_UNSPECIFIED);
-    Orientation ret1 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret1, Orientation::AUTO_ROTATION_UNSPECIFIED);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_PORTRAIT);
-    Orientation ret2 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret2, Orientation::USER_ROTATION_PORTRAIT);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_LANDSCAPE);
-    Orientation ret3 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret3, Orientation::USER_ROTATION_LANDSCAPE);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_PORTRAIT_INVERTED);
-    Orientation ret4 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret4, Orientation::USER_ROTATION_PORTRAIT_INVERTED);
-
-    sceneSession->SetRequestedOrientation(Orientation::USER_ROTATION_LANDSCAPE_INVERTED);
-    Orientation ret5 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret5, Orientation::USER_ROTATION_LANDSCAPE_INVERTED);
-
-    sceneSession->SetRequestedOrientation(Orientation::FOLLOW_DESKTOP);
-    Orientation ret6 = sceneSession->GetRequestedOrientation();
-    ASSERT_EQ(ret6, Orientation::FOLLOW_DESKTOP);
-}
-
-/**
  * @tc.name: SetKeepScreenOn01
  * @tc.desc: SetKeepScreenOn true
  * @tc.type: FUNC
@@ -1112,10 +1029,9 @@ HWTEST_F(SceneSessionTest, NotifySessionRectChange, TestSize.Level1)
     WSRect overlapRect = { 0, 0, 0, 0 };
     sceneSession->NotifySessionRectChange(overlapRect, SizeChangeReason::ROTATION, -1);
     sceneSession->NotifySessionRectChange(overlapRect, SizeChangeReason::ROTATION, 11);
-    sceneSession->sessionRectChangeFunc_ = [](const WSRect& rect,
-                                              SizeChangeReason reason,
-                                              DisplayId displayId,
-                                              const RectAnimationConfig& rectAnimationConfig) { return; };
+    sceneSession->sessionRectChangeFunc_ = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
     sceneSession->NotifySessionRectChange(overlapRect, SizeChangeReason::ROTATION, -1);
     sceneSession->NotifySessionRectChange(overlapRect, SizeChangeReason::ROTATION, 11);
 

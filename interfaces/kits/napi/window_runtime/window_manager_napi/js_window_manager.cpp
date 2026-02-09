@@ -1051,7 +1051,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
             if (lists->ability->GetWindow() == nullptr) {
                 lists->errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
-                lists->errMsg = "[window][getLatsWindow]msg: FA mode can not get ability window";
+                lists->errMsg = "[window][getLastWindow]msg: FA mode can not get ability window";
                 return;
             }
             lists->window = Window::GetTopWindowWithId(lists->ability->GetWindow()->GetWindowId());
@@ -1060,23 +1060,13 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
             if (contextPtr == nullptr || context == nullptr) {
                 lists->errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
-                lists->errMsg = "[window][getLatsWindow]msg: Stage mode without context";
+                lists->errMsg = "[window][getLastWindow]msg: Stage mode without context";
                 return;
             }
             lists->window = Window::GetTopWindowWithContext(context->lock());
         }
     };
     NapiAsyncTask::CompleteCallback complete = [lists, newApi](napi_env env, NapiAsyncTask& task, int32_t status) {
-        if (lists == nullptr) {
-            if (newApi) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: NAPI abnormal"));
-            } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: NAPI abnormal"));
-            }
-            return;
-        }
         if (lists->errorCode != 0) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, static_cast<WmErrorCode>(lists->errorCode),
@@ -1091,10 +1081,10 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         if (lists->window == nullptr || lists->window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Get top window failed"));
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Get top window failed"));
             }
             return;
         }

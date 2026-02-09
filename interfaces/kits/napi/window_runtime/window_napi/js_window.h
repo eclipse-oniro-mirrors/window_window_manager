@@ -66,7 +66,6 @@ public:
     static napi_value Resize(napi_env env, napi_callback_info info);
     static napi_value ResizeWindow(napi_env env, napi_callback_info info);
     static napi_value ResizeWindowAsync(napi_env env, napi_callback_info info);
-    static napi_value ResizeWindowWithAnimation(napi_env env, napi_callback_info info);
     static napi_value ClientToGlobalDisplay(napi_env env, napi_callback_info info);
     static napi_value GlobalDisplayToClient(napi_env env, napi_callback_info info);
 
@@ -301,7 +300,6 @@ private:
     napi_value OnResize(napi_env env, napi_callback_info info);
     napi_value OnResizeWindow(napi_env env, napi_callback_info info);
     napi_value OnResizeWindowAsync(napi_env env, napi_callback_info info);
-    napi_value OnResizeWindowWithAnimation(napi_env env, napi_callback_info info);
     template <typename PositionTransformFunc>
     napi_value HandlePositionTransform(
         napi_env env, napi_callback_info info, PositionTransformFunc transformFunc, const char* caller);
@@ -329,8 +327,7 @@ private:
     napi_value OnSetContentAspectRatio(napi_env env, napi_callback_info info);
     napi_value OnResetAspectRatio(napi_env env, napi_callback_info info);
     napi_value OnMinimize(napi_env env, napi_callback_info info);
-    WmErrorCode CheckRaiseMainWindowParams(napi_env env, size_t argc, napi_value argv[],
-                                           int32_t sourceId, int32_t& targetId);
+    WmErrorCode CheckRaiseMainWindowParams(napi_env env, size_t argc, napi_value argv[], int32_t& targetId);
     napi_value OnRaiseAboveTarget(napi_env env, napi_callback_info info);
     napi_value OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_info info);
     napi_value OnKeepKeyboardOnFocus(napi_env env, napi_callback_info info);

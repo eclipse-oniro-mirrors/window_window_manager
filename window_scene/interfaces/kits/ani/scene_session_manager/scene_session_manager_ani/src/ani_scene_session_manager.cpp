@@ -36,7 +36,7 @@ ani_status AniSceneSessionManager::Init(ani_env* env, ani_namespace nsp)
         return ret;
     }
     std::unique_ptr<AniSceneSessionManager> aniSceneSessionManager = std::make_unique<AniSceneSessionManager>();
-    ret = env->Function_Call_Void(setObjFunc, aniSceneSessionManager.get());
+    ret = env->Function_Call_Void(setObjFunc, aniSceneSessionManager.release());
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] find setSceneSessionManagerRef func fail %{public}u", ret);
         return ret;

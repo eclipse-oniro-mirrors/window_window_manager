@@ -129,18 +129,15 @@ HWTEST_F(WindowSessionImplTest5, NotifyBeforeDestroy, TestSize.Level1)
 {
     auto window = GetTestWindowImpl("NotifyBeforeDestroy");
     ASSERT_NE(window, nullptr);
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     window->NotifyBeforeDestroy(window->GetWindowName());
     EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
 
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetIsUIExtFirstSubWindow(false);
     window->NotifyBeforeDestroy(window->GetWindowName());
     EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
 
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetIsUIExtFirstSubWindow(true);
     window->NotifyBeforeDestroy(window->GetWindowName());
@@ -2714,6 +2711,24 @@ HWTEST_F(WindowSessionImplTest5, IsHitHotAreas02, TestSize.Level1)
     pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
     isHitHotAreas = window->IsHitHotAreas(pointerEvent);
     EXPECT_EQ(isHitHotAreas, false);
+}
+
+/**
+ * @tc.name: ReleaseUIContent
+ * @tc.desc: ReleaseUIContent
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, ReleaseUIContentTest, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ReleaseUIContent");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->ReleaseUIContent();
+    EXPECT_TRUE(window->isNeedReleaseUIContent_);
+
+    window->attachState_ = AttachState::DETACH;
+    window->ReleaseUIContent();
+    EXPECT_FALSE(window->isNeedReleaseUIContent_);
 }
 } // namespace
 } // namespace Rosen

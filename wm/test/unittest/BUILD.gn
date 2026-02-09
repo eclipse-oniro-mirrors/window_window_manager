@@ -89,6 +89,7 @@ group("unittest") {
       "attribute:wm_window_scene_session_impl_attribute_test",
       "attribute:wm_window_manager_attribute_test",
       "event_distribution:wm_oh_window_event_test",
+      "event_distribution:wm_window_event_test",
       "event_distribution:wm_window_impl_event_test",
       "event_distribution:wm_window_scene_session_impl_event_test",
       "event_distribution:wm_window_session_impl_event_test",
@@ -428,7 +429,12 @@ ohos_unittest("wm_window_stub_test") {
 
 ohos_unittest("wm_window_scene_session_impl_test") {
   module_out_path = module_out_path
-
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
   sources = [ "window_scene_session_impl_test.cpp" ]
 
   deps = [

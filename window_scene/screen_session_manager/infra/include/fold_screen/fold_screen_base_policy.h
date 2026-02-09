@@ -27,7 +27,7 @@
 
 namespace OHOS::Rosen::DMS {
 namespace {
-    static const uint32_t FOLD_TASK_NUM = 3;
+    static const uint32_t FOLD_TASK_NUM = 4;
     static const uint32_t FOLD_TASK_NUM_ONBOOTANIMATION = 1;
 }
 class FoldScreenBasePolicy {
@@ -116,6 +116,7 @@ public:
     virtual FoldStatus GetPhysicalFoldStatus();
     bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
         FoldStatus targetFoldStatus) const;
+    virtual float GetSpecialVirtualPixelRatio();
 
 protected:
     FoldScreenBasePolicy();

@@ -147,9 +147,8 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError UpdateSessionRect(
-        const WSRect& rect, SizeChangeReason reason, bool isGlobal = false,
-        bool isFromMoveToGlobal = false, const MoveConfiguration& moveConfiguration = {},
-        const RectAnimationConfig& rectAnimationConfig = {}) { return WSError::WS_OK; }
+        const WSRect& rect, SizeChangeReason reason, bool isGlobal = false, bool isFromMoveToGlobal = false,
+        MoveConfiguration moveConfiguration = {}) { return WSError::WS_OK; }
     virtual WSError UpdateClientRect(const WSRect& rect) { return WSError::WS_OK; }
     virtual void NotifyWindowStatusDidChangeAfterShowWindow() {}
 
@@ -243,11 +242,11 @@ public:
      * @brief Raise main window above another.
      *
      * @param targetId Indicates the {@link int32_t} id of the target main window.
-     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     * @return Returns WSError::WS_ERROR_DEVICE_NOT_SUPPORT if called failed, means the device is not supported.
      * @permission Make sure the caller has system permission.
      */
-    virtual WSError RaiseMainWindowAboveTarget(int32_t targetId) { return WSError::WS_OK; }
-
+    virtual WSError RaiseMainWindowAboveTarget(int32_t targetId) { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }
+    
     /**
      * @brief Raise the application main window to the top layer of the application.
      *
@@ -384,7 +383,7 @@ public:
     /**
      * @brief get is pip active
      *
-     * @return WSError
+     * @return WMError
      */
     virtual WMError IsPiPActive(bool& status) { return WMError::WM_OK; }
 
@@ -393,7 +392,7 @@ public:
         bool isExecuteDelayRaise = false) { return WSError::WS_OK; }
     virtual bool IsStartMoving() { return false; }
     virtual WSError ChangeSessionVisibilityWithStatusBar(const sptr<AAFwk::SessionInfo> abilitySessionInfo,
-        bool isShow) { return WSError::WS_OK; }
+        bool visible) { return WSError::WS_OK; }
 
     /**
      * @brief Instruct the application to update the listening flag for registering rect changes.
@@ -429,6 +428,7 @@ public:
     virtual WSError SetDialogSessionBackGestureEnabled(bool isEnabled) { return WSError::WS_OK; }
     virtual void NotifyExtensionDetachToDisplay() {}
     virtual int32_t GetStatusBarHeight() { return 0; }
+
     /**
      * @brief Request to get focus or lose focus.
      *
@@ -477,7 +477,7 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError OnSetImageForRecent(uint32_t imgResourceId, ImageFit ImageFit) { return WSError::WS_OK; }
-
+    
     /**
      * @brief Callback for set image for recent.
      *
@@ -536,15 +536,6 @@ public:
     virtual WSError GetWaterfallMode(bool& isWaterfallMode) { return WSError::WS_OK; }
 
     /**
-     * @brief Callback for setting the window support modes.
-     *
-     * @param supportedWindowModes Indicates the {@link AppExecFwk::SupportWindowMode}.
-     * @return Returns WSError::WS_OK if called success, otherwise failed.
-     */
-    virtual WSError NotifySupportWindowModesChange(
-        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) { return WSError::WS_OK; }
-
-    /**
      * @brief set session label and icon
      *
      * @param label
@@ -557,6 +548,15 @@ public:
         const std::shared_ptr<Media::PixelMap>& icon) { return WSError::WS_OK; }
 
     virtual WSError ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption) { return WSError::WS_OK; };
+
+    /**
+     * @brief Callback for setting the window support modes.
+     *
+     * @param supportedWindowModes Indicates the {@link AppExecFwk::SupportWindowMode}.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError NotifySupportWindowModesChange(
+        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) { return WSError::WS_OK; }
 
     /**
      * @brief Start Moving window with coordinate.
@@ -573,9 +573,9 @@ public:
     virtual WSError GetCrossAxisState(CrossAxisState& state) { return WSError::WS_OK; };
     virtual WSError SetFollowParentWindowLayoutEnabled(bool isFollow) { return WSError::WS_OK; };
     virtual WSError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) { return WSError::WS_OK; };
-    virtual WSError UpdateFlag(const std::string& flag) { return WSError::WS_OK; };
     virtual WSError UpdateRotationChangeRegistered(int32_t persistentId, bool isRegister) { return WSError::WS_OK; }
     virtual WMError UpdateScreenshotAppEventRegistered(int32_t persistentId, bool isRegister) { return WMError::WM_OK; }
+    virtual WSError UpdateFlag(const std::string& flag) { return WSError::WS_OK; };
     virtual WMError UpdateAcrossDisplaysChangeRegistered(bool isRegister) { return WMError::WM_OK; }
     virtual WMError OnUpdateColorMode(const std::string& colorMode, bool hasDarkRes) { return WMError::WM_OK; }
     virtual WMError IsMainWindowFullScreenAcrossDisplays(bool& isAcrossDisplays) { return WMError::WM_OK; }
@@ -585,9 +585,6 @@ public:
      * @brief Notify when disableDelegator change to true
      *
      * This function is used to notify disableDelegator change.
-     *
-     * @caller SA
-     * @permission SA permission
      *
      * @return Successful call returns WMError::WS_OK, otherwise it indicates failure
      */
@@ -627,7 +624,7 @@ public:
     * @param source source
     * @return Returns WSError::WS_OK if called success, otherwise failed.
     */
-    virtual WSError SetSubWindowSource(SubWindowSource source) { return WSError::WS_OK; }
+    virtual WSError SetSubWindowSource(SubWindowSource source) { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
      * @brief Set the frameRect in a partial zoom-in scene.
@@ -646,19 +643,19 @@ public:
     {
         return WMError::WM_OK;
     }
-
+ 
     virtual WMError GetFloatingBallWindowId(uint32_t& windowId)
     {
         return WMError::WM_OK;
     }
-
+ 
     /**
      * @brief Close flating ball window while stopFb is called.
      *
      * Notify system that flating ball window is stopping and execute animation.
      */
     virtual void NotifyFloatingBallPrepareClose() {}
-
+ 
     /**
      * @brief Notify prepare to close window
      */
@@ -666,7 +663,7 @@ public:
     {
         return WSError::WS_OK;
     }
-
+ 
     virtual WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want)
     {
         return WMError::WM_OK;
@@ -703,7 +700,7 @@ public:
     {
         return WSError::WS_OK;
     }
-    
+
     /*
      * Window event
      */

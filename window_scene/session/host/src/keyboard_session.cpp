@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-#include "perform_reporter.h"
 #include "session/host/include/keyboard_session.h"
 
 #include <hitrace_meter.h>
+#include "perform_reporter.h"
 #include "rs_adapter.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
 #include "session_helper.h"
@@ -24,18 +24,19 @@
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 
-#define RETURN_IF_PARAM_IS_NULL(param, ...)                                   \
+#define RETURN_IF_NULL(param, ...)                                            \
     do {                                                                      \
         if (!param) {                                                         \
             TLOGE(WmsLogTag::WMS_KEYBOARD, "The %{public}s is null", #param); \
             return __VA_ARGS__;                                               \
         }                                                                     \
-    } while (false)                                                           \
+    } while (false)
 
 namespace OHOS::Rosen {
 namespace {
     constexpr float MOVE_DRAG_POSITION_Z = 100.5f;
     constexpr int32_t INSERT_TO_THE_END = -1;
+    const std::string KEYBOARD_ANIM_SYNC_EVENT_NAME { "KeyboardAnimationSyncException" };
 }
 KeyboardSession::KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
     const sptr<KeyboardSessionCallback>& keyboardCallback)
@@ -790,12 +791,12 @@ void KeyboardSession::CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRe
         }
         // The callingId may change in WindowManager.
         // Use scb's callingId to properly handle callingWindow raise/restore.
+        bool isLayoutFinished = true;
         sptr<SceneSession> callingSession = session->GetSceneSession(callingId);
         if (callingSession != nullptr && animationInfo.animated) {
             callingSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo.beginRect,
                 animationInfo.endRect, animationInfo.animated, rsTransaction);
         }
-        bool isLayoutFinished = true;
         if (isKeyboardShow) {
             // When the keyboard shows/hides rapidly in succession,
             // the attributes aren't refreshed but occupied area info recalculation needs to be triggered.
@@ -916,6 +917,22 @@ void KeyboardSession::RecalculatePanelRectForAvoidArea(WSRect& panelRect)
     TLOGI(WmsLogTag::WMS_KEYBOARD, "IsLandscape %{public}d, avoidHeight %{public}d", isLandscape, panelRect.height_);
 }
 
+void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info)
+{
+    ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
+    auto displayId = GetSessionProperty()->GetDisplayId();
+    if (displayId != defaultScreenId) {
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "displayId: %{public}" PRIu64", defaultScreenId: %{public}" PRIu64"",
+            displayId, defaultScreenId);
+        return;
+    }
+    if (keyboardCallback_ == nullptr || keyboardCallback_->onNotifyOccupiedAreaChange == nullptr) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "callback is nullptr");
+        return;
+    }
+    keyboardCallback_->onNotifyOccupiedAreaChange(info);
+}
+
 WSError KeyboardSession::ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption)
 {
     PostTask([weakThis = wptr(this), effectOption]() {
@@ -933,22 +950,6 @@ WSError KeyboardSession::ChangeKeyboardEffectOption(const KeyboardEffectOption& 
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
-}
-
-void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info)
-{
-    ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
-    auto displayId = GetSessionProperty()->GetDisplayId();
-    if (displayId != defaultScreenId) {
-        TLOGI(WmsLogTag::WMS_KEYBOARD, "DisplayId: %{public}" PRIu64", defaultScreenId: %{public}" PRIu64"",
-            displayId, defaultScreenId);
-        return;
-    }
-    if (keyboardCallback_ == nullptr || keyboardCallback_->onNotifyOccupiedAreaChange == nullptr) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "Callback is null");
-        return;
-    }
-    keyboardCallback_->onNotifyOccupiedAreaChange(info);
 }
 
 bool KeyboardSession::IsNeedRaiseSubWindow(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect)
@@ -971,7 +972,10 @@ bool KeyboardSession::IsNeedRaiseSubWindow(const sptr<SceneSession>& callingSess
 
 void KeyboardSession::HandleCrossScreenChild(bool isMoveOrDrag)
 {
-    RETURN_IF_PARAM_IS_NULL(moveDragController_);
+    RETURN_IF_NULL(keyboardPanelSession_);
+    auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
+    RETURN_IF_NULL(keyboardPanelSurfaceNode);
+    RETURN_IF_NULL(moveDragController_);
     auto displayIds = isMoveOrDrag ?
         moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag() :
         moveDragController_->GetDisplayIdsDuringMoveDrag();
@@ -988,12 +992,9 @@ void KeyboardSession::HandleCrossScreenChild(bool isMoveOrDrag)
             TLOGI(WmsLogTag::WMS_KEYBOARD, "virtual screen, no need to add cross parent child");
             continue;
         }
-        RETURN_IF_PARAM_IS_NULL(keyboardPanelSession_);
-        auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
-        RETURN_IF_PARAM_IS_NULL(keyboardPanelSurfaceNode);
         auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
         if (dragMoveMountedNode == nullptr) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "dragMoveMountedNode is null");
             continue;
         }
         if (isMoveOrDrag) {
@@ -1027,27 +1028,61 @@ void KeyboardSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     }
 }
 
+WSError KeyboardSession::UpdateSizeChangeReason(SizeChangeReason reason)
+{
+    PostTask([weakThis = wptr(this), reason, where = __func__]() {
+        auto keyboardSession = weakThis.promote();
+        if (keyboardSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "%{public}s session is null", where);
+            return WSError::WS_ERROR_DESTROYED_OBJECT;
+        }
+        if (reason == SizeChangeReason::DRAG_START || reason == SizeChangeReason::DRAG_MOVE ||
+            reason == SizeChangeReason::DRAG_END || reason == SizeChangeReason::UNDEFINED) {
+            auto panelSession = keyboardSession->GetKeyboardPanelSession();
+            if (panelSession != nullptr) {
+                panelSession->UpdateSizeChangeReason(reason);
+            }
+        }
+        TLOGD(WmsLogTag::WMS_KEYBOARD, "%{public}s Id: %{public}d, reason: %{public}d",
+            where, keyboardSession->GetPersistentId(), static_cast<int32_t>(reason));
+        keyboardSession->SceneSession::UpdateSizeChangeReason(reason);
+        return WSError::WS_OK;
+    }, __func__);
+    return WSError::WS_OK;
+}
+
 void KeyboardSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool needFlush)
 {
+    auto gravity = GetKeyboardGravity();
+    if (gravity != SessionGravity::SESSION_GRAVITY_FLOAT) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "only float mode supports moving, gravity: %{public}d", gravity);
+        return;
+    }
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
         "KeyboardSession::SetSurfaceBounds id:%d [%d, %d, %d, %d] reason:%u",
         GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_, GetSizeChangeReason());
     TLOGD(WmsLogTag::WMS_KEYBOARD, "id: %{public}d, rect: %{public}s isGlobal: %{public}d needFlush: %{public}d",
         GetPersistentId(), rect.ToString().c_str(), isGlobal, needFlush);
+
+    RETURN_IF_NULL(keyboardPanelSession_);
+    auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
+    RETURN_IF_NULL(keyboardPanelSurfaceNode);
+
+    // When drag ends (needFlush == false) and the window is crossing screens,
+    // surface node property changes will be committed together with the ArkUI
+    // relayout triggered on the next vsync, so no explicit flush is required here.
+    // If the window is NOT crossing screens, the changes should be flushed
+    // immediately to avoid affecting the next drag operation.
+    if (!needFlush) {
+        needFlush = moveDragController_ && !moveDragController_->IsWindowCrossScreenOnDragEnd();
+        TLOGD(WmsLogTag::WMS_KEYBOARD, "On drag end, needFlush: %{public}d", needFlush);
+    }
+
     {
-        AutoRSTransaction trans(GetRSUIContext(), needFlush);
-        if (keyboardPanelSession_ == nullptr) {
-            TLOGE(WmsLogTag::WMS_KEYBOARD, "keyboard panel session is null");
-            return;
-        }
-        auto surfaceNode = keyboardPanelSession_->GetSurfaceNode();
-        if (surfaceNode == nullptr) {
-            TLOGE(WmsLogTag::WMS_KEYBOARD, "keyboard panel surfacenode is null");
-            return;
-        }
-        surfaceNode->SetGlobalPositionEnabled(isGlobal);
-        surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
+        AutoRSTransaction trans(keyboardPanelSurfaceNode, needFlush);
+        keyboardPanelSurfaceNode->SetGlobalPositionEnabled(isGlobal);
+        keyboardPanelSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
+        keyboardPanelSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
     }
 }
 
@@ -1143,29 +1178,6 @@ void KeyboardSession::SetSkipEventOnCastPlus(bool isSkip)
     }, __func__);
 }
 
-WSError KeyboardSession::UpdateSizeChangeReason(SizeChangeReason reason)
-{
-    PostTask([weakThis = wptr(this), reason, where = __func__]() {
-        auto keyboardSession = weakThis.promote();
-        if (keyboardSession == nullptr) {
-            TLOGE(WmsLogTag::WMS_KEYBOARD, "%{public}s session is null", where);
-            return WSError::WS_ERROR_DESTROYED_OBJECT;
-        }
-        if (reason == SizeChangeReason::DRAG_START || reason == SizeChangeReason::DRAG_MOVE ||
-            reason == SizeChangeReason::DRAG_END || reason == SizeChangeReason::UNDEFINED) {
-            auto panelSession = keyboardSession->GetKeyboardPanelSession();
-            if (panelSession != nullptr) {
-                panelSession->UpdateSizeChangeReason(reason);
-            }
-        }
-        TLOGD(WmsLogTag::WMS_KEYBOARD, "%{public}s Id: %{public}d, reason: %{public}d",
-            where, keyboardSession->GetPersistentId(), static_cast<int32_t>(reason));
-        keyboardSession->SceneSession::UpdateSizeChangeReason(reason);
-        return WSError::WS_OK;
-    }, __func__);
-    return WSError::WS_OK;
-}
-
 void KeyboardSession::CalculateOccupiedAreaAfterUIRefresh()
 {
     bool needRecalculateOccupiedArea = false;
@@ -1247,7 +1259,7 @@ WMError KeyboardSession::IsLandscape(uint64_t displayId, bool& isLandscape)
     } else {
         ScreenId screenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Use default screenId: %{public}" PRIu64
-            ",invalid displayId: %{public}" PRIu64"", screenId, displayId);
+            ", invalid displayId: %{public}" PRIu64"", screenId, displayId);
         if (screensProperties.find(screenId) != screensProperties.end()) {
             screenProperty = screensProperties[screenId];
             displayId = screenId;
@@ -1268,10 +1280,7 @@ WMError KeyboardSession::IsLandscape(uint64_t displayId, bool& isLandscape)
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
-    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
-    std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
-    TLOGI(WmsLogTag::WMS_KEYBOARD, "s-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d|%{public}s",
-        displayId, displayWidth, displayHeight, isLandscape, dispName.c_str());
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "%{public}d|%{public}d|%{public}d", displayWidth, displayHeight, isLandscape);
     return WMError::WM_OK;
 }
 

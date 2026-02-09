@@ -52,9 +52,10 @@ namespace OHOS::Rosen {
 class RSSurfaceNode;
 class RSUIContext;
 class RSTransaction;
+class RSSyncTransactionController;
 class Session;
 using NotifySessionRectChangeFunc = std::function<void(const WSRect& rect,
-    SizeChangeReason reason, DisplayId displayId, const RectAnimationConfig& rectAnimationConfig)>;
+    SizeChangeReason reason, DisplayId displayId)>;
 using NotifySessionWindowLimitsChangeFunc = std::function<void(const WindowLimits& windowLimits)>;
 using NotifySessionDisplayIdChangeFunc = std::function<void(uint64_t displayId)>;
 using NotifyUpdateFloatingBallFunc = std::function<void(const FloatingBallTemplateInfo& fbTemplateInfo)>;
@@ -136,7 +137,7 @@ public:
     virtual void OnDisconnect() {}
     virtual void OnLayoutFinished() {}
     virtual void OnRemoveBlank() {}
-    virtual void OnAddSnapshot() {}
+    virtual void OnAddSnapshot(std::function<void()>&& callback = nullptr) {}
     virtual void OnRemoveSnapshot() {}
     virtual void OnDrawingCompleted() {}
     virtual void OnExtensionDied() {}
@@ -156,6 +157,12 @@ enum class LifeCycleTaskType : uint32_t {
     STOP
 };
 
+enum class SessionType : uint32_t {
+    Session,
+    SceneSession,
+    ExtensionSession
+};
+
 enum class DetectTaskState : uint32_t {
     NO_TASK,
     ATTACH_TASK,
@@ -172,8 +179,8 @@ struct ControlInfo {
     bool isControlRecentOnly;
 };
 
-const std::string ATTACH_EVENT_NAME { "wms::ReportWindowTimeout_Attach" };
-const std::string DETACH_EVENT_NAME { "wms::ReportWindowTimeout_Detach" };
+extern const std::string ATTACH_EVENT_NAME;
+extern const std::string DETACH_EVENT_NAME;
 
 class Session : public SessionStub {
 public:
@@ -191,6 +198,10 @@ public:
     };
     explicit Session(const SessionInfo& info);
     virtual ~Session();
+    virtual SessionType GetSessionType() const
+    {
+        return SessionType::Session;
+    };
     bool isKeyboardPanelEnabled_ = false;
     virtual void SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
         const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler = nullptr);
@@ -256,7 +267,8 @@ public:
     void NotifyDisconnect();
     void NotifyLayoutFinished();
     void NotifyRemoveBlank();
-    void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true);
+    void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true,
+        std::function<void()>&& callback = nullptr);
     void NotifyRemoveSnapshot();
     void NotifyUpdateSnapshotWindow();
     void NotifyPreLoadStartingWindowFinished();
@@ -395,6 +407,7 @@ public:
     SessionInfo& EditSessionInfo();
     DisplayId GetScreenId() const;
     virtual void SetScreenId(uint64_t screenId);
+    void SetScreenIdOnServer(uint64_t screenId);
     WindowType GetWindowType() const;
     float GetAspectRatio() const;
     WSError SetAspectRatio(float ratio) override;
@@ -410,8 +423,6 @@ public:
     void SetSessionGlobalRect(const WSRect& rect);
     void SetSessionRequestRect(const WSRect& rect);
     WSRect GetSessionRequestRect() const;
-    void SetRequestRectAnimationConfig(const RectAnimationConfig& rectAnimationConfig);
-    RectAnimationConfig GetRequestRectAnimationConfig() const;
     std::string GetWindowName() const;
     WSRect GetLastLayoutRect() const;
     WSRect GetLayoutRect() const;
@@ -504,10 +515,10 @@ public:
     bool GetStateFromManager(const ManagerState key);
     virtual void PresentFocusIfNeed(int32_t pointerAcrion, int32_t sourceType = 0);
     virtual WSError UpdateWindowMode(WindowMode mode);
-    WSError SetAppSupportPhoneInPc(bool isSupportPhone);
-    WSError SetCompatibleModeProperty(const sptr<CompatibleModeProperty> compatibleModeProperty);
-    WSError PcAppInPadNormalClose();
     WSError SetIsPcAppInPad(bool enable);
+    WSError SetCompatibleModeProperty(const sptr<CompatibleModeProperty> compatibleModeProperty);
+    WSError SetAppSupportPhoneInPc(bool isSupportPhone);
+    WSError PcAppInPadNormalClose();
     WSError SetPcAppInpadCompatibleMode(bool enabled);
     WSError SetPcAppInpadSpecificSystemBarInvisible(bool isPcAppInpadSpecificSystemBarInvisible);
     WSError SetPcAppInpadOrientationLandscape(bool isPcAppInpadOrientationLandscape);
@@ -536,11 +547,6 @@ public:
     void SetContextTransparentFunc(const NotifyContextTransparentFunc& func);
     void NotifyContextTransparent();
     bool NeedCheckContextTransparent() const;
-
-    /*
-     * Window Layout
-     */
-    bool UpdateWindowModeSupportType(const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo);
 
     /*
      * Window Rotate Animation
@@ -672,6 +678,7 @@ public:
         return !this->operator==(session);
     }
 
+    virtual void HandleStyleEvent(MMI::WindowArea area) {};
     const char* DumpPointerWindowArea(MMI::WindowArea area) const;
     WSRectF UpdateHotRect(const WSRect& rect);
     WSError RaiseToAppTopForPointDown();
@@ -688,10 +695,10 @@ public:
     /*
      * Window Lifecycle
      */
-    bool GetIsPendingToBackgroundState() const;
-    void SetIsPendingToBackgroundState(bool isPendingToBackgroundState);
     bool IsActivatedAfterScreenLocked() const;
     void SetIsActivatedAfterScreenLocked(bool isActivatedAfterScreenLocked);
+    bool GetIsPendingToBackgroundState() const;
+    void SetIsPendingToBackgroundState(bool isPendingToBackgroundState);
     void SetAttachState(bool isAttach, WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED);
     bool GetAttachState() const;
     void RegisterDetachCallback(const sptr<IPatternDetachCallback>& callback);
@@ -720,11 +727,14 @@ public:
     bool GetUIStateDirty() const;
     static bool IsScbCoreEnabled();
     static void SetScbCoreEnabled(bool enabled);
-    bool IsVisible() const;
     virtual bool IsNeedSyncScenePanelGlobalPosition() { return true; }
+    bool IsVisible() const;
     void SetAppInstanceKey(const std::string& appInstanceKey);
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
+    bool GetNeedBackgroundAfterConnect() const;
+    void SetNeedBackgroundAfterConnect(bool isNeed);
+    void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
 
     /*
      * Starting Window
@@ -741,16 +751,8 @@ public:
     WSError SetLeashWindowAlpha(bool hidingStartWindow);
 
     /*
-     * Window Hierarchy
-     */
-    void ProcessClickModalWindowOutside(int32_t posX, int32_t posY);
-    void SetClickModalWindowOutsideListener(NotifyClickModalWindowOutsideFunc&& func);
-
-    /*
      * Window Layout
      */
-    static bool IsBackgroundUpdateRectNotifyEnabled();
-    static void SetBackgroundUpdateRectNotifyEnabled(const bool enabled);
     void SetClientRect(const WSRect& rect);
     WSRect GetClientRect() const;
     void ResetDirtyFlags();
@@ -791,6 +793,12 @@ public:
      * Screen Lock
      */
     bool IsScreenLockWindow() const;
+
+    /*
+     * Window Hierarchy
+     */
+    void ProcessClickModalWindowOutside(int32_t posX, int32_t posY);
+    void SetClickModalWindowOutsideListener(NotifyClickModalWindowOutsideFunc&& func);
 
     /*
      * Free Multi Window
@@ -853,13 +861,13 @@ public:
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);
     bool GetPreloadingStartingWindow() const;
+    void PreloadSnapshot();
+    void ResetPreloadSnapshot();
     void SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap);
     void SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo);
     void GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
         std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo);
     void ResetPreloadStartingWindow();
-    void PreloadSnapshot();
-    void ResetPreloadSnapshot();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
@@ -1023,11 +1031,6 @@ protected:
     float snapshotScale_ = 0.5;
     sptr<ScenePersistence> scenePersistence_ = nullptr;
 
-    /*
-     * Window Layout
-     */
-    static bool isBackgroundUpdateRectNotifyEnabled_;
-
     /**
      * @brief Vsync service entry used to schedule callbacks on vsync and
      *        query display vsync information (e.g. VSync period or FPS).
@@ -1094,6 +1097,21 @@ protected:
     bool rectChangeListenerRegistered_ = false;
 
     /*
+     * Window Pipeline
+     */
+    uint32_t dirtyFlags_ = 0; // only accessed on SSM thread
+    bool isNeedSyncSessionRect_ { true }; // where need sync to session rect,  currently use in split drag
+    bool isStarting_ = false;   // when start app, session is starting state until foreground
+    std::atomic_bool mainUIStateDirty_ = false;
+    static bool isScbCoreEnabled_;
+
+    /*
+     * CompatibleMode Window Scale
+     * Resize When DragEnd
+     */
+    std::atomic_bool needNotifyDragEventOnNextVsync_ = false;
+
+    /*
      * Window Hierarchy
      */
     NotifyRaiseMainWindowAboveTargetFunc onRaiseMainWindowAboveTarget_;
@@ -1108,20 +1126,6 @@ protected:
     std::atomic<bool> needNotifyAttachState_ = { false };
     int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
     SnapshotStatus capacity_ = defaultCapacity;
-
-    /*
-     * Window Pipeline
-     */
-    uint32_t dirtyFlags_ = 0; // only accessed on SSM thread
-    bool isNeedSyncSessionRect_ { true }; // where need sync to session rect,  currently use in split drag
-    bool isStarting_ = false;   // when start app, session is starting state until foreground
-    std::atomic_bool mainUIStateDirty_ = false;
-    static bool isScbCoreEnabled_;
-
-    /*
-     *CompatibleMode Window scale
-     */
-    uint32_t needNotifyDragEventOnNextVsync_ = 0;
 
     /*
      * Keyboard Window
@@ -1231,8 +1235,8 @@ private:
     void RecordWindowStateAttachExceptionEvent(bool isAttached);
     bool SetLifeCycleTaskRunning(const sptr<SessionLifeCycleTask>& lifeCycleTask);
 
-    std::atomic<bool> isPendingToBackgroundState_ { false };
     std::atomic<bool> isActivatedAfterScreenLocked_ { true };
+    std::atomic<bool> isPendingToBackgroundState_ { false };
     sptr<IPatternDetachCallback> detachCallback_ = nullptr;
 
     std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode_;
@@ -1240,6 +1244,7 @@ private:
     mutable std::mutex leashWinSurfaceNodeMutex_;
     DetectTaskInfo detectTaskInfo_;
     mutable std::shared_mutex detectTaskInfoMutex_;
+    bool needBackgroundAfterConnect_ { false };
 
     /*
      * Starting Window
@@ -1310,12 +1315,6 @@ private:
     bool isOutlineEnabled_ = false;
     OutlineStyleParams outlineStyleParams_;
     OutlineParamsChangeCallbackFunc outlineParamsChangeCallback_;
-
-    /*
-     * Prelaunch check
-     */
-    uint64_t prelaunchStart_ = 0;
-    bool prelaunchEnable_ = false;
 };
 } // namespace OHOS::Rosen
 

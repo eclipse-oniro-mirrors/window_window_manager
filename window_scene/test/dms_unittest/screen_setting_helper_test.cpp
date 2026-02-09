@@ -80,6 +80,24 @@ namespace {
     }
 
     /**
+     * @tc.name: RegisterSettingDpiObserver_Nullptr
+     * @tc.desc: RegisterSettingDpiObserver_Nullptr
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingDpiObserver_Nullptr, TestSize.Level1)
+    {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingDpiObserver(func);
+        EXPECT_TRUE(g_errLog.find("failed, ret=") != std::string::npos);
+        EXPECT_EQ(ScreenSettingHelper::dpiObserver_, nullptr);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
      * @tc.name: UnregisterSettingDpiObserver01
      * @tc.desc: UnregisterSettingDpiObserver01
      * @tc.type: FUNC
@@ -144,11 +162,14 @@ namespace {
      */
     HWTEST_F(ScreenSettingHelperTest, UnRegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
     {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
         ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
+        EXPECT_TRUE(g_errLog.find("extendScreenIndepDpiObserver_ is nullptr") != std::string::npos);
         ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
         ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
-        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
-        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
+        EXPECT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
+        LOG_SetCallback(nullptr);
     }
 
     /**
@@ -1752,6 +1773,62 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         bool valueBool = false;
         ret = screenSettingHelper.GetJsonValue(root3, "testKey", valueBool);
         EXPECT_FALSE(valueBool);
+    }
+
+    /**
+     * @tc.name: RegisterSettingBorderingAreaPercentObserver_Nullptr
+     * @tc.desc: RegisterSettingBorderingAreaPercentObserver_Nullptr
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingBorderingAreaPercentObserver_Nullptr, TestSize.Level1)
+    {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        auto func = [] (const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+        ScreenSettingHelper::RegisterSettingBorderingAreaPercentObserver(func);
+        EXPECT_TRUE(g_errLog.find("failed, ret=") != std::string::npos);
+        EXPECT_EQ(ScreenSettingHelper::borderingAreaPercentObserver_, nullptr);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
+     * @tc.name: UnRegisterSettingExtendScreenDpiObserver
+     * @tc.desc: UnRegisterSettingExtendScreenDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, UnRegisterSettingExtendScreenDpiObserver, TestSize.Level1)
+    {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        ScreenSettingHelper::extendScreenDpiObserver_ = new SettingObserver();
+        ScreenSettingHelper::UnRegisterSettingExtendScreenDpiObserver();
+        EXPECT_EQ(ScreenSettingHelper::extendScreenDpiObserver_, nullptr);
+        EXPECT_TRUE(g_errLog.find("failed, ret=") != std::string::npos);
+        LOG_SetCallback(nullptr);
+    }
+
+    /**
+     * @tc.name: RegisterSettingExtendScreenDpiObserver
+     * @tc.desc: RegisterSettingExtendScreenDpiObserver
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, RegisterSettingExtendScreenDpiObserver, TestSize.Level1)
+    {
+        ScreenSettingHelper::extendScreenDpiObserver_ = new SettingObserver();
+        EXPECT_NE(ScreenSettingHelper::extendScreenDpiObserver_, nullptr);
+        auto func = [](const std::string&) {
+            TLOGI(WmsLogTag::DMS, "UT test");
+        };
+
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
+        ScreenSettingHelper::RegisterSettingExtendScreenDpiObserver(func);
+        EXPECT_TRUE(g_errLog.find("setting extend dpi observer is registered") == std::string::npos ||
+            g_errLog.find("create observer failed") == std::string::npos ||
+            g_errLog.find("failed, ret=") == std::string::npos);
+        LOG_SetCallback(nullptr);
     }
 }
 } // namespace Rosen

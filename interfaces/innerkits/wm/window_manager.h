@@ -644,7 +644,6 @@ public:
 };
 
 class WindowManagerAgent;
-
 /**
  * @class WindowManager
  *
@@ -947,7 +946,7 @@ public:
      * @brief Global coordinate to relative coordinate conversion in Extension
      *
      * @param rect Rect relative to the default display
-     * @param newRect Rect relative to the current display
+     * @param newRect Converted relative coordinates
      * @param newDisplayId Current displayID
      * @return WM_OK means converted, others means not converted.
      */
@@ -1015,6 +1014,15 @@ public:
      */
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) const;
+
+    /**
+     * @brief Set skip flag of window snapshot.
+     *
+     * @param windowId Window id which want to set.
+     * @param isSkip True means skip the snapshot, false means the opposite.
+     * @return WM_OK means set success, others means set failed.
+     */
+    WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip);
 
     /**
      * @brief Get the name of the top page.
@@ -1339,7 +1347,7 @@ public:
      * @brief Notify screenshot event.
      *
      * @param type screenshot event type.
-     * @return WM_OK means set success, others means set failed.
+     * @return WM_OK means notify success, others means notify failed.
      */
     WMError NotifyScreenshotEvent(ScreenshotEventType type);
 

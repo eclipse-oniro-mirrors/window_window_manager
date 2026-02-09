@@ -97,6 +97,7 @@ public:
         TRANS_ID_GET_UI_CONTENT_REMOTE_OBJ,
         TRANS_ID_GET_ROOT_UI_CONTENT_REMOTE_OBJ,
         TRANS_ID_UPDATE_WINDOW_VISIBILITY_LISTENER,
+        TRANS_ID_UPDATE_SESSION_SCREENSHOT_LISTENER,
         TRANS_ID_UPDATE_SESSION_OCCLUSION_STATE_LISTENER,
         TRANS_ID_GET_WINDOW_STATE_SNAPSHOT,
         TRANS_ID_SHIFT_APP_WINDOW_FOCUS,
@@ -104,6 +105,7 @@ public:
         TRANS_ID_GET_WINDOW_LAYOUT_INFO,
         TRANS_ID_GET_ALL_MAIN_WINDOW_INFO,
         TRANS_ID_GET_MAIN_WINDOW_SNAPSHOT,
+        TRANS_ID_SET_WINDOW_SNAPSHOT_SKIP,
         TRANS_ID_GET_GLOBAL_WINDOW_MODE,
         TRANS_ID_GET_TOP_NAV_DEST_NAME,
         TRANS_ID_SET_APP_WATERMARK_IMAGE,
@@ -142,11 +144,11 @@ public:
         TRANS_ID_SET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_GET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_SET_APP_KEY_FRAME_POLICY,
-        TRANS_ID_WATCH_GESTURE_CONSUME_RESULT,
-        TRANS_ID_WATCH_FOCUS_ACTIVE_CHANGE,
         TRANS_ID_SHIFT_APP_WINDOW_POINTER_EVENT,
         TRANS_ID_NOTIFY_SCREEN_SHOT_EVENT,
         TRANS_ID_SET_START_WINDOW_BACKGROUND_COLOR,
+        TRANS_ID_WATCH_GESTURE_CONSUME_RESULT,
+        TRANS_ID_WATCH_FOCUS_ACTIVE_CHANGE,
         TRANS_ID_REQUEST_FOCUS_STATUS_BY_SA,
         TRANS_ID_SET_PARENT_WINDOW,
         TRANS_ID_MINIMIZE_BY_WINDOW_ID,
@@ -157,20 +159,20 @@ public:
         TRANS_ID_REMOVE_IMAGE_FOR_RECENT,
         TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
         TRANS_ID_UNREGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
+        TRANS_ID_GLOBAL_COORDINATE_TO_RELATIVE_COORDINATE,
         TRANS_ID_GET_HOST_GLOBAL_SCALE_RECT,
         TRANS_ID_ANIMATE_TO_WINDOW,
-        TRANS_ID_CREATE_UI_EFFECT_CONTROLLER,
         TRANS_ID_ADD_SESSION_BLACK_LIST,
         TRANS_ID_REMOVE_SESSION_BLACK_LIST,
+        TRANS_ID_CREATE_UI_EFFECT_CONTROLLER,
         TRANS_ID_GET_PIP_SWITCH_STATUS,
         TRANS_ID_GET_PIP_IS_PIP_ENABLED,
         TRANS_ID_RECOVER_WINDOW_PROPERTY_CHANGE_FLAG,
         TRANS_ID_MINIMIZE_ALL_WINDOW,
-        TRANS_ID_GLOBAL_COORDINATE_TO_RELATIVE_COORDINATE,
         TRANS_ID_UPDATE_OUTLINE,
         TRANS_ID_SET_SPECIFIC_WINDOW_ZINDEX,
-        TRANS_ID_SUPPORT_ROTATION_REGISTERED,
         TRANS_ID_RESET_SPECIFIC_WINDOW_ZINDEX,
+        TRANS_ID_SUPPORT_ROTATION_REGISTERED,
         TRANS_ID_GET_FOCUS_SESSION_INFO_BY_ABILITY_TOKEN,
     };
 
@@ -294,12 +296,17 @@ public:
     WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
         uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override { return WMError::WM_OK; }
     WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-        uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override { return WMError::WM_OK;}
+        uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override { return WMError::WM_OK; }
     WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags) override
     {
         return WMError::WM_OK;
     }
     WMError GetAccessibilityWindowInfo(std::vector<sptr<AccessibilityWindowInfo>>& infos) override
+    {
+        return WMError::WM_OK;
+    }
+    WMError ConvertToRelativeCoordinateExtended(
+        const Rect& rect, Rect& newRect, DisplayId& newDisplayId) override
     {
         return WMError::WM_OK;
     }
@@ -348,7 +355,7 @@ public:
     MaximizeMode GetMaximizeMode() override { return MaximizeMode::MODE_AVOID_SYSTEM_BAR; }
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override {}
     void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
-        const sptr<IRemoteObject>& abilityToken) override {};
+        const sptr<IRemoteObject>& abilityToken) override {}
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                          std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override {}
     WMError MinimizeByWindowId(const std::vector<int32_t>& windowIds) override { return WMError::WM_OK; }
@@ -419,6 +426,7 @@ public:
 
     WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName,
         bool isEnabled) override { return WMError::WM_OK; }
+
     WMError GetWindowIdsByCoordinate(DisplayId displayId, int32_t windowNumber, int32_t x, int32_t y,
         std::vector<int32_t>& windowIds) override { return WMError::WM_OK; }
 
@@ -468,17 +476,12 @@ public:
         const WindowAnimationOption& animationOption) override { return WMError::WM_OK; }
     WMError CreateUIEffectController(const sptr<IUIEffectControllerClient>& controllerClient,
         sptr<IUIEffectController>& controller, int32_t& controllerId) override { return WMError::WM_OK; };
+    WMError GetPiPSettingSwitchStatus(bool& switchStatus) override { return WMError::WM_OK; }
+    WMError GetIsPipEnabled(bool& isPipEnabled) override { return WMError::WM_OK; }
     WMError AddSessionBlackList(const std::unordered_set<std::string>& bundleNames,
         const std::unordered_set<std::string>& privacyWindowTags) override { return WMError::WM_OK; }
     WMError RemoveSessionBlackList(const std::unordered_set<std::string>& bundleNames,
         const std::unordered_set<std::string>& privacyWindowTags) override { return WMError::WM_OK; }
-    WMError GetPiPSettingSwitchStatus(bool& switchStatus) override { return WMError::WM_OK; }
-    WMError GetIsPipEnabled(bool& isPipEnabled) override { return WMError::WM_OK; }
-    WMError ConvertToRelativeCoordinateExtended(
-        const Rect& rect, Rect& newRect, DisplayId& newDisplayId) override
-    {
-        return WMError::WM_OK;
-    }
     WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams) override
     {
         return WMError::WM_OK;

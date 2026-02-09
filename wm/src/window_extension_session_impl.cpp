@@ -153,7 +153,7 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     isUIExtensionAbilityProcess_ = true;
     property_->SetIsUIExtensionAbilityProcess(true);
     UpdateDefaultStatusBarColor();
-    TLOGI(WmsLogTag::WMS_LIFE, "Created name:%{public}s %{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "Created name:%{public}s %{public}d success.",
         property_->GetWindowName().c_str(), GetPersistentId());
     AddSetUIContentTimeoutCheck();
     return WMError::WM_OK;
@@ -363,8 +363,7 @@ WMError WindowExtensionSessionImpl::MoveTo(int32_t x, int32_t y,
     return static_cast<WMError>(error);
 }
 
-WMError WindowExtensionSessionImpl::Resize(uint32_t width, uint32_t height,
-    const RectAnimationConfig& rectAnimationConfig)
+WMError WindowExtensionSessionImpl::Resize(uint32_t width, uint32_t height)
 {
     WLOGFD("Id:%{public}d wh %{public}u %{public}u", property_->GetPersistentId(), width, height);
     if (IsWindowSessionInvalid()) {
