@@ -18799,6 +18799,7 @@ WMError SceneSessionManager::HasFloatingWindowForeground(const sptr<IRemoteObjec
         hasOrNot = false;
         return WMError::WM_OK;
     }, __func__);
+}
 
 void SceneSessionManager::RemoveLifeCycleTaskByPersistentId(int32_t persistentId,
     const LifeCycleTaskType taskType)

@@ -166,7 +166,7 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
             std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
             int res = ParseAvoidAreas(data, avoidAreas);
             if (res != ERR_NONE) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Parse avoid area failed, code: %{public}d", res);
+                TLOGE(WmsLogTag::WMS_KEYBOARD, "Parse avoid areas failed, code: %{public}d", res);
                 return res;
             }
             bool hasRSTransaction = data.ReadBool();
@@ -192,7 +192,7 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
             std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
             int res = ParseAvoidAreas(data, avoidAreas);
             if (res != ERR_NONE) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Parse avoid area failed, code: %{public}d", res);
+                TLOGE(WmsLogTag::WMS_KEYBOARD, "Parse avoid areas failed, code: %{public}d", res);
                 return res;
             }
             int32_t posX = 0;
