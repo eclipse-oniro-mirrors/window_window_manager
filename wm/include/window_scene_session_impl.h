@@ -394,6 +394,7 @@ protected:
     std::pair<WindowLimits, WindowLimits> GetSystemSizeLimits(uint32_t displayWidth,
         uint32_t displayHeight, float vpr);
     void GetConfigurationFromAbilityInfo();
+    uint32_t GetSupportedWindowModesConfiguration(const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo);
     std::vector<AppExecFwk::SupportWindowMode> ExtractSupportWindowModeFromMetaData(
         const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo);
     std::vector<AppExecFwk::SupportWindowMode> ParseWindowModeFromMetaData(

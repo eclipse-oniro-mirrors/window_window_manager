@@ -250,7 +250,6 @@ public:
     virtual WMError SetTitleAndDockHoverShown(bool titleHoverShowEnabled = true,
         bool dockHoverShowEnabled = true) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError Destroy() = 0;
-    virtual void SetShowWithOptions(bool showWithOptions) {}
     virtual bool IsShowWithOptions() const { return false; }
     virtual WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) = 0;
     virtual WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) = 0;
