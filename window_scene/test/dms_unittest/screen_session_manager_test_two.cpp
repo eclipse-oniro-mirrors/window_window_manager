@@ -45,7 +45,7 @@ constexpr ScreenId SCREEN_ID_MAIN = 5;
 const bool CORRECTION_ENABLE = system::GetIntParameter<int32_t>("const.system.sensor_correction_enable", 0) == 1;
 const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
 const bool SUPPORT_COMPATIBLE_MODE =
-    system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 7) == 4;
+    (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
 bool g_isPcDevice = ScreenSceneConfig::GetExternalScreenDefaultMode() == "none";
 const int32_t EXTEND_DISPLAY_FUNCTIONS = system::GetIntParameter("const.settings.extend_display_function_list", 0);
 const int32_t RESOLUTION_EFFECT_OS_MODE_RECOVER =
@@ -118,6 +118,7 @@ HWTEST_F(ScreenSessionManagerTest, CalDefaultExtendScreenDensity, TestSize.Level
     ssm->InitExtendScreenDpiOptions();
     ScreenProperty property = ScreenProperty();
     property.screenRealPPI_ = 0.0f;
+    ssm->densityDpi_ = 1.0f;
     EXPECT_EQ(ssm->CalDefaultExtendScreenDensity(property), 1.0f);
     property.screenRealPPI_ = 160.0f;
     EXPECT_EQ(ssm->CalDefaultExtendScreenDensity(property), 1.6f);

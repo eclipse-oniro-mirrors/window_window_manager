@@ -32,7 +32,7 @@ namespace {
     constexpr uint32_t SLEEP_TIME_IN_US = 100000; // 100ms
     std::string g_errLog;
     const bool SUPPORT_COMPATIBLE_MODE =
-        system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 7) == 4;
+        (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {

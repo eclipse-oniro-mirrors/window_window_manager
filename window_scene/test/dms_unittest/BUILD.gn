@@ -1134,6 +1134,7 @@ ohos_unittest("ws_screen_session_manager_adapter_test") {
   module_out_path = module_out_path
 
   sources = [ "screen_session_manager_adapter_test.cpp" ]
+  include_dirs = [ "${window_base_path}/window_scene/interfaces/innerkits/include" ]
 
   deps = [ ":ws_unittest_common" ]
 

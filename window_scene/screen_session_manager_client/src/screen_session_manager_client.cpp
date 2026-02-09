@@ -36,6 +36,7 @@ WM_IMPLEMENT_SINGLE_INSTANCE(ScreenSessionManagerClient)
 
 void ScreenSessionManagerClient::ConnectToServer()
 {
+    std::lock_guard<std::mutex> lock(connectToServerMutex_);
     if (screenSessionManager_) {
         TLOGI(WmsLogTag::DMS, "Success to get screen session manager proxy");
         return;

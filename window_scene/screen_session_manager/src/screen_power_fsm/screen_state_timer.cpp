@@ -25,7 +25,10 @@ void ScreenStateTimer::StartTimer(int32_t state, uint32_t delayMs, TaskScheduler
     }
 
     auto ffrtQueueHelper = ScreenSessionManager::GetInstance().GetFfrtQueueHelper();
-    stateCancelMap_[state] = task;
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        stateCancelMap_[state] = task;
+    }
     auto expectTime = std::chrono::steady_clock::now();
     if (ffrtQueueHelper == nullptr) {
         TLOGNFI(WmsLogTag::DMS, "[ScreenPower FSM] ffrtQueueHelper is nullptr");

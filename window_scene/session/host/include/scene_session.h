@@ -37,9 +37,9 @@ class RunningLock;
 
 namespace OHOS::Rosen {
 namespace PARAM_KEY {
-const std::string PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missionAffinity";
-const std::string PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
-const std::string PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
+extern const std::string PARAM_MISSION_AFFINITY_KEY;
+extern const std::string PARAM_DMS_CONTINUE_SESSION_ID_KEY;
+extern const std::string PARAM_DMS_PERSISTENT_ID_KEY;
 }
 class SceneSession;
 class ScreenSession;
@@ -93,7 +93,7 @@ using NotifyLandscapeMultiWindowSessionFunc = std::function<void(bool isLandscap
 using NotifyKeyboarEffectOptionChangeFunc = std::function<void(const KeyboardEffectOption& mode)>;
 using SessionChangeByActionNotifyManagerFunc = std::function<void(const sptr<SceneSession>& sceneSession,
     const sptr<WindowSessionProperty>& property, WSPropertyChangeAction action)>;
-    using NotifyKeyboardLayoutAdjustFunc = std::function<void(const KeyboardLayoutParams& params)>;
+using NotifyKeyboardLayoutAdjustFunc = std::function<void(const KeyboardLayoutParams& params)>;
 using NotifyLayoutFullScreenChangeFunc = std::function<void(bool isLayoutFullScreen)>;
 using NotifyDefaultDensityEnabledFunc = std::function<void(bool isDefaultDensityEnabled)>;
 using NotifyTitleAndDockHoverShowChangeFunc = std::function<void(bool isTitleHoverShown,
@@ -417,6 +417,7 @@ public:
     WSError SetTurnScreenOn(bool turnScreenOn);
     void SetPrivacyMode(bool isPrivacy);
     WMError SetSnapshotSkip(bool isSkip);
+    virtual WMError SetWindowSnapshotSkip(bool isSkip);
     void SetSystemSceneOcclusionAlpha(double alpha);
     void ResetOcclusionAlpha();
     void SetSystemSceneForceUIFirst(bool forceUIFirst);
@@ -706,10 +707,10 @@ public:
     bool UpdateInteractiveInner(bool interactive);
     void UpdateLifecyclePausedInner();
     void HookSceneSessionActivation(NotifyHookSceneSessionActivationFunc&& func);
-    void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func);
-    void SetIsUserRequestedExit(bool isUserRequestedExit);
+    virtual void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func) {}
+    virtual void SetIsUserRequestedExit(bool isUserRequestedExit) {}
     void SetGetAllAppUseControlMapFunc(GetAllAppUseControlMapFunc&& callback);
-    void CalculatedStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
+    void CalculateStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
     void NotifyPendingSessionActivation(SessionInfo& info);
     bool isRemoving_ = false;
 
@@ -745,10 +746,10 @@ public:
     WMError NotifyDisableDelegatorChange() override;
     virtual void SetRecentSessionState(RecentSessionInfo& info, const SessionState& state) {}
     void RegisterGetStartWindowConfigFunc(GetStartWindowTypeFunc&& func);
-    void RegisterIsAppBoundSystemTrayCallback(
+    void RegisterIsSessionBoundedSystemTrayCallback(
         const std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>& callback);
     std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>
-        isAppBoundSystemTrayCallback_;
+        isSessionBoundedSystemTrayCallback_;
 
     /*
      * Window Decor
@@ -980,7 +981,7 @@ public:
     */
     void SetWindowCornerRadiusCallback(NotifySetWindowCornerRadiusFunc&& func);
     WSError SetWindowCornerRadius(float cornerRadius) override;
-    void SetPrivacyModeChangeNotifyFunc(NotifyPrivacyModeChangeFunc&& func);
+    void SetPrivacyModeChangeNotifyFunc(const NotifyPrivacyModeChangeFunc& func);
     void SetIsAncoForFloatingWindow(bool isAncoForFloatingWindow);
     bool GetIsAncoForFloatingWindow() const;
     void SetWindowShadowsCallback(NotifySetWindowShadowsFunc&& func);
@@ -1255,7 +1256,6 @@ private:
     /*
      * Window Lifecycle
      */
-    NotifySceneSessionDestructFunc notifySceneSessionDestructFunc_;
     bool CheckIdentityTokenIfMatched(const std::string& identityToken);
     bool CheckPidIfMatched();
     GetStartWindowTypeFunc getStartWindowConfigFunc_;
@@ -1650,7 +1650,6 @@ private:
     * Window Lifecycle
     */
     NotifyHookSceneSessionActivationFunc hookSceneSessionActivationFunc_;
-    bool isUserRequestedExit_ = false;
 
     /**
      * Window Transition Animation For PC

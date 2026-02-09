@@ -36,7 +36,6 @@ constexpr size_t MAX_LENGTH_STRING = 64;
 constexpr int32_t MIN_POSITION = -10000;
 constexpr int32_t MAX_POSITION = 10000;
 constexpr uint32_t MAX_RESOLUTION = 8192;
-const int BYTES_PER_VALUE = 8;
 static constexpr std::array<uint32_t, 181> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DEFAULT_DISPLAY_INFO),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID),
@@ -461,8 +460,9 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteBool(isSurfaceValid);
             if (isSurfaceValid) {
                 parcel.WriteRemoteObject(remote);
+            } else {
+                parcel.WriteRemoteObject(nullptr);
             }
-            parcel.WriteRemoteObject(nullptr);
             parcel.WriteString(name);
             parcel.WriteUint32(width);
             parcel.WriteUint32(height);

@@ -3329,17 +3329,17 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
         case static_cast<uint32_t>(ListenerFuncType::KEYBOARD_EFFECT_OPTION_CHANGE_CB):
             ProcessKeyboardEffectOptionChangeRegister();
             break;
-        case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
-            ProcessSetHighlightChangeRegister();
-            break;
         case static_cast<uint32_t>(ListenerFuncType::WINDOW_ANCHOR_INFO_CHANGE_CB):
             ProcessWindowAnchorInfoChangeRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
+            ProcessSetHighlightChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::SET_WINDOW_CORNER_RADIUS_CB):
             ProcessSetWindowCornerRadiusRegister();
             break;
-        case static_cast<uint32_t>(ListenerFuncType::SESSION_LOCK_STATE_CHANGE_CB):
-            ProcessSessionLockStateChangeRegister();
+        case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
+            ProcessSetHighlightChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::FOLLOW_PARENT_RECT_CB):
             ProcessFollowParentRectRegister();
@@ -6873,8 +6873,16 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
     std::shared_ptr<NativeReference> jsCallBack = nullptr;
     if (argc >= ARGC_THREE) {
         napi_value value = argv[2];
-        if (value == nullptr || !NapiIsCallable(env, value)) {
+        if (value == nullptr || GetType(env, value) == napi_undefined || GetType(env, value) == napi_null) {
+            TLOGD(WmsLogTag::WMS_PATTERN, "Callback null");
+        } else if (NapiIsCallable(env, value)) {
+            napi_ref result = nullptr;
+            napi_create_reference(env, value, 1, &result);
+            jsCallBack.reset(reinterpret_cast<NativeReference*>(result));
+        } else {
             TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to callback");
+            napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                "Input parameter is missing or invalid"));
             return NapiGetUndefined(env);
         }
     }
@@ -6886,7 +6894,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
             return;
         }
         if (!jsCallBack) {
-            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s: jsCallBack is nullptr", where);
+            TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s: jsCallBack is nullptr", where);
             return;
         }
         napi_value argv[] = {};
@@ -6894,7 +6902,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
     };
 
     TLOGI(WmsLogTag::WMS_PATTERN, "argc: %{public}zu, useFfrt: %{public}d, needPersist: %{public}d, "
-        "callback: %{public}d", argc, useFfrt, needPersist, jsCallBack == nullptr);
+        "callback: %{public}d", argc, useFfrt, needPersist, jsCallBack != nullptr);
     auto session = weakSession_.promote();
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_PATTERN, "session is null, id:%{public}d", persistentId_);
@@ -7045,7 +7053,7 @@ napi_value JsSceneSession::OnSetPcAppInpadSpecificSystemBarInvisible(napi_env en
     }
     bool isPcAppInpadSpecificSystemBarInvisible = false;
     if (!ConvertFromJsValue(env, argv[0], isPcAppInpadSpecificSystemBarInvisible)) {
-        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to enable");
+        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to isPcAppInpadSpecificSystemBarInvisible");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);

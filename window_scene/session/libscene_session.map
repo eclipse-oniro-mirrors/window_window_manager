@@ -349,6 +349,7 @@
             OHOS::Rosen::SessionStub::OnRemoteRequest*;
             OHOS::Rosen::Session::*;
             OHOS::Rosen::ExtensionSession::*;
+            OHOS::Rosen::PARAM_KEY::*;
             
             virtual?thunk?to?OHOS::Rosen::Session::~Session*;
             non-virtual?thunk?to?OHOS::Rosen::Session::*;

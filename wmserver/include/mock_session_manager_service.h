@@ -21,10 +21,10 @@
 
 #include "dm_common.h"
 #include "mock_session_manager_interface_stub.h"
+#include "scene_session_manager_interface.h"
+#include "scene_session_manager_lite_interface.h"
 #include "wm_single_instance.h"
 #include "zidl/session_manager_service_recover_interface.h"
-#include "scene_session_manager_lite_interface.h"
-#include "scene_session_manager_interface.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -61,7 +61,7 @@ public:
      * Window Recover
      */
     ErrCode NotifySceneBoardAvailable() override;
-    ErrCode RegisterSMSRecoverListener(const sptr<IRemoteObject>& listener, int32_t userId, bool isLite) override;
+    ErrCode RegisterSMSRecoverListener(int32_t userId, bool isLite, const sptr<IRemoteObject>& listener) override;
     ErrCode UnregisterSMSRecoverListener(int32_t userId, bool isLite) override;
     void UnregisterSMSRecoverListenerInner(int32_t clientUserId, DisplayId displayId, int32_t pid, bool isLite);
 

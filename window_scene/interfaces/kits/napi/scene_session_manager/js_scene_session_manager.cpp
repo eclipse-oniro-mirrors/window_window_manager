@@ -1517,6 +1517,13 @@ napi_value JsSceneSessionManager::ResetPcFoldScreenArrangeRule(napi_env env, nap
     return (me != nullptr) ? me->OnResetPcFoldScreenArrangeRule(env, info) : nullptr;
 }
 
+napi_value JsSceneSessionManager::CloneWindow(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_PC, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnCloneWindow(env, info) : nullptr;
+}
+
 napi_value JsSceneSessionManager::RefreshPcZOrder(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
@@ -1545,13 +1552,6 @@ napi_value JsSceneSessionManager::SetStatusBarAvoidHeight(napi_env env, napi_cal
 {
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnSetStatusBarAvoidHeight(env, info) : nullptr;
-}
-
-napi_value JsSceneSessionManager::CloneWindow(napi_env env, napi_callback_info info)
-{
-    TLOGD(WmsLogTag::WMS_PC, "[NAPI]");
-    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnCloneWindow(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::RegisterSingleHandContainerNode(napi_env env, napi_callback_info info)
@@ -2231,6 +2231,9 @@ napi_value JsSceneSessionManager::OnRequestSceneSession(napi_env env, napi_callb
             WLOGFE("jsSceneSessionObj is nullptr");
             napi_throw(env, CreateJsError(
                 env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY), "System is abnormal"));
+        }
+        if (!sessionInfo.pageConfig.empty()) {
+            sceneSession->EditSessionInfo().pageConfig = sessionInfo.pageConfig;
         }
         return jsSceneSessionObj;
     }
@@ -4643,12 +4646,16 @@ napi_value JsSceneSessionManager::OnNotifyHookOrientationChange(napi_env env, na
         return NapiGetUndefined(env);
     }
 
-    int32_t persistentId = 0;
+    uint32_t persistentId = 0;
     if (!ConvertFromJsValue(env, argv[0], persistentId)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to persistentId");
         return NapiGetUndefined(env);
     }
-    SceneSessionManager::GetInstance().NotifyHookOrientationChange(persistentId);
+    if (persistentId > INT32_MAX) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Invalid persistentId: %{public}u", persistentId);
+        return NapiGetUndefined(env);
+    }
+    SceneSessionManager::GetInstance().NotifyHookOrientationChange(static_cast<int32_t>(persistentId));
     return NapiGetUndefined(env);
 }
 

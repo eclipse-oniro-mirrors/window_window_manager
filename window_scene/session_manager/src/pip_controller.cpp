@@ -70,8 +70,7 @@ void PipController::RemoveListenerAndEnabledFlag(const sptr<IRemoteObject>& targ
 void PipController::OnPipChangeListenerDied(const wptr<IRemoteObject>& remote)
 {
     TLOGI(WmsLogTag::WMS_PIP, "in");
-    taskScheduler_->PostAsyncTask(
-        [weakThis = weak_from_this(), remote, where = __func__] {
+    taskScheduler_->PostAsyncTask([weakThis = weak_from_this(), remote, where = __func__] {
             auto controller = weakThis.lock();
             if (controller == nullptr) {
                 TLOGNE(WmsLogTag::WMS_PIP, "controller is null");

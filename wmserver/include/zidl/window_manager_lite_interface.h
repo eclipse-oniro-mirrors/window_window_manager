@@ -48,13 +48,13 @@ public:
         AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid) = 0;
     virtual WMError GetWindowModeType(WindowModeType& windowModeType) { return WMError::WM_OK; }
     virtual WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed) { return WMError::WM_OK; }
+    virtual WSError RaiseWindowToTop(int32_t persistentId) { return WSError::WS_OK; }
     virtual WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo) = 0;
     virtual WMError GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo) = 0;
     virtual WMError GetAllMainWindowInfos(std::vector<MainWindowInfo>& infos) = 0;
     virtual WMError GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken, MainWindowInfo& windowInfo) = 0;
     virtual WMError ClearMainSessions(const std::vector<int32_t>& persistentIds,
         std::vector<int32_t>& clearFailedIds) = 0;
-    virtual WSError RaiseWindowToTop(int32_t persistentId) { return WSError::WS_OK; }
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType) = 0;
     virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
     {

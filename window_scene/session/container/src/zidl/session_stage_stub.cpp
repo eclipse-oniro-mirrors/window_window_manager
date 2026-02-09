@@ -908,14 +908,6 @@ int SessionStageStub::HandlePcAppInPadNormalClose(MessageParcel& data, MessagePa
     return ERR_NONE;
 }
 
-int SessionStageStub::HandleNotifyCompatibleModePropertyChange(MessageParcel& data, MessageParcel& reply)
-{
-    sptr<CompatibleModeProperty> property = data.ReadParcelable<CompatibleModeProperty>();
-    WSError errCode = NotifyCompatibleModePropertyChange(property);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
-    return ERR_NONE;
-}
-
 int SessionStageStub::HandleUpdateAnimationSpeed(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_ANIMATION, "HandleUpdateAnimationSpeed!");
@@ -925,6 +917,14 @@ int SessionStageStub::HandleUpdateAnimationSpeed(MessageParcel& data, MessagePar
         return ERR_INVALID_DATA;
     }
     UpdateAnimationSpeed(speed);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyCompatibleModePropertyChange(MessageParcel& data, MessageParcel& reply)
+{
+    sptr<CompatibleModeProperty> property = data.ReadParcelable<CompatibleModeProperty>();
+    WSError errCode = NotifyCompatibleModePropertyChange(property);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
 

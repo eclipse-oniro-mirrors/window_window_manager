@@ -28,7 +28,7 @@
 
 #include <parcel.h>
 
-#include "dm_common.h"
+#include "../dm/dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
 #include "wm_math.h"
@@ -94,6 +94,11 @@ constexpr float COMPACT_SIMULATION_SCALE_DPI = 3.25f;
 constexpr float COMPACT_NORMAL_SCALE = 1.0f;
 
 /*
+ * Sub Window
+ */
+constexpr uint32_t MAX_SUB_WINDOW_LEVEL = 10;
+
+/*
  * Window outline
  */
 constexpr uint32_t OUTLINE_COLOR_DEFAULT = 0xff64bb5c; // Default color, ARGB format.
@@ -103,11 +108,6 @@ constexpr uint32_t OUTLINE_WIDTH_MAX = 8; // vp
 constexpr uint32_t OUTLINE_FOR_WINDOW_MAX_NUM = 256; // Up to 256 windows can show simultaneously.
 constexpr uint32_t OUTLINE_COLOR_OPAQUE_OFFSET = 24; // Shift right 24 bits.
 constexpr uint32_t OUTLINE_COLOR_OPAQUE = 0xff; // Color opaque byte.
-
-/*
- * Sub Window
- */
-constexpr uint32_t MAX_SUB_WINDOW_LEVEL = 10;
 }
 
 /**
@@ -1204,10 +1204,10 @@ enum class SystemBarPropertyOwner {
  * @brief Window Rect
  */
 struct Rect {
-    int32_t posX_;
-    int32_t posY_;
-    uint32_t width_;
-    uint32_t height_;
+    int32_t posX_ = 0;
+    int32_t posY_ = 0;
+    uint32_t width_ = 0;
+    uint32_t height_ = 0;
 
     bool operator==(const Rect& a) const
     {
@@ -3016,21 +3016,6 @@ enum DefaultSpecificZIndex {
 };
 
 /**
- * @brief Enumerates support function type
- */
-enum SupportFunctionType : uint32_t {
-    /**
-     * Supports callbacks triggered before the keyboard show/hide animations begin.
-     */
-    ALLOW_KEYBOARD_WILL_ANIMATION_NOTIFICATION = 1 << 0,
-
-    /**
-     * Supports callbacks triggered after the keyboard show/hide animations complete.
-     */
-    ALLOW_KEYBOARD_DID_ANIMATION_NOTIFICATION = 1 << 1,
-};
-
-/**
  * @struct ShadowsInfo
  *
  * @brief window shadows info
@@ -3238,14 +3223,6 @@ struct RecentSessionInfo : public Parcelable {
 };
 
 /**
- * @brief Enumerates source of sub session.
- */
-enum class SubWindowSource : uint32_t {
-    SUB_WINDOW_SOURCE_UNKNOWN = 0,
-    SUB_WINDOW_SOURCE_ARKUI = 1,
-};
-
-/**
  * @brief Screenshot event type.
  */
 enum class ScreenshotEventType : int32_t {
@@ -3277,6 +3254,29 @@ enum class ScreenshotEventType : int32_t {
     SCROLL_SHOT_ABORT = 4,
 
     END,
+};
+
+/**
+ * @brief Enumerates support function type
+ */
+enum SupportFunctionType : uint32_t {
+    /**
+     * Supports callbacks triggered before the keyboard show/hide animations begin.
+     */
+    ALLOW_KEYBOARD_WILL_ANIMATION_NOTIFICATION = 1 << 0,
+
+    /**
+     * Supports callbacks triggered after the keyboard show/hide animations complete.
+     */
+    ALLOW_KEYBOARD_DID_ANIMATION_NOTIFICATION = 1 << 1,
+};
+
+/**
+ * @brief Enumerates source of sub session.
+ */
+enum class SubWindowSource : uint32_t {
+    SUB_WINDOW_SOURCE_UNKNOWN = 0,
+    SUB_WINDOW_SOURCE_ARKUI = 1,
 };
 
 enum class RequestResultCode: uint32_t {
@@ -3514,6 +3514,9 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+
+    /** Disable the resident state but keep the current waterfall layout state unchanged. */
+    CANCEL = 3,
 };
 
 /**

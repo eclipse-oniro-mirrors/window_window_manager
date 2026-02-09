@@ -594,7 +594,7 @@ public:
     bool HandleResolutionEffectChange();
     bool HandleCastVirtualScreenMirrorRegion();
     bool RecoveryResolutionEffect();
-    bool GetStoredPidFromUid(int32_t uid, int32_t& agentPid) const;
+    bool GetStoredPidFromUid(int32_t uid, int32_t& agentPid);
     bool IsFreezed(const int32_t& agentPid, const DisplayManagerAgentType& agentType);
     bool isScreenShot_ = false;
     void NotifyAodOpCompletion(AodOP operation, int32_t result) override;
@@ -948,6 +948,7 @@ private:
     std::recursive_mutex mutex_;
     std::recursive_mutex displayInfoMutex_;
     std::shared_mutex hookInfoMutex_;
+    std::shared_mutex uidAndPidMapMutex_;
     std::mutex shareProtectMutex_;
 
     ScreenId defaultScreenId_ = SCREEN_ID_INVALID;
@@ -1130,6 +1131,7 @@ private:
     std::atomic<bool> firstSCBConnect_ = false;
     std::atomic<bool> isCoordinationReady_ = false;
     std::condition_variable coordinationReadyCV_;
+    std::mutex coordinationReadyMutex_;
     std::atomic<bool> isWaitingForCoordinationReady_ = false;
     std::atomic<int32_t> waitCoordinationReadyMaxTime_ = 1500; // ms
 
