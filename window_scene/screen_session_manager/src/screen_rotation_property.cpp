@@ -30,7 +30,7 @@ void ScreenRotationProperty::HandleSensorEventInput(DeviceRotation deviceRotatio
     static DeviceRotation lastSensorRotationConverted_ = DeviceRotation::INVALID;
     if (deviceRotation != DeviceRotation::INVALID && lastSensorRotationConverted_ != deviceRotation) {
         lastSensorRotationConverted_ = deviceRotation;
-        TLOGI(WmsLogTag::DMS, "DeviceRotation: %{public}d, RotationConverted: %{public}d", 
+        TLOGI(WmsLogTag::DMS, "DeviceRotation: %{public}d, RotationConverted: %{public}d",
             deviceRotation, lastSensorRotationConverted_);
     }
     auto screenSession = ScreenSessionManager::GetInstance().GetDefaultScreenSession();

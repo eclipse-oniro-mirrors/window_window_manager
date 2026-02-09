@@ -2791,7 +2791,7 @@ std::shared_ptr<Media::PixelMap> ScreenSession::GetScreenSnapshot(float scaleX, 
 void ScreenSession::SetStartPosition(uint32_t startX, uint32_t startY)
 {
     property_.SetStartPosition(startX, startY);
-    TLOGI(WmsLogTag::DMS, 
+    TLOGI(WmsLogTag::DMS,
         "screenId: %{public}" PRIu64",rsId: %{public}" PRIu64", startX= %{public}d, startY= %{public}d",
         GetScreenId(), GetRSScreenId(), startX, startY);
 }

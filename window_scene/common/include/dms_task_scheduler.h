@@ -21,7 +21,7 @@
 
 namespace OHOS::Rosen {
 
-class SafeTaskScheduler:public TaskScheduler {
+class SafeTaskScheduler : public TaskScheduler {
 public:
     explicit SafeTaskScheduler(const std::string& threadName): TaskScheduler(threadName) {};
     ~SafeTaskScheduler() {};

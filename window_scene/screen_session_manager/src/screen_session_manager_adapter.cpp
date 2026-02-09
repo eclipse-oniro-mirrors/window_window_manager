@@ -513,4 +513,4 @@ void ScreenSessionManagerAdapter::NotifyAbnormalScreenConnectChange(ScreenId scr
     }
 }
 } // namespace Rosen
-} // namespace OHOS 
+} // namespace OHOS

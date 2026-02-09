@@ -613,7 +613,6 @@ void SingleDisplayPocketFoldPolicy::BootAnimationFinishPowerInit()
     int64_t timeStamp = 50;
     auto bootPowerTask = [=] {
         if (screenId_ == SCREEN_ID_FULL) {
-            // ÇÐÄÚÆÁ
             TLOGI(WmsLogTag::DMS, "ScreenSessionManager Fold Screen Power Full animation Init 1.");
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL,
                 ScreenPowerStatus::POWER_STATUS_OFF_FAKE);
@@ -631,7 +630,6 @@ void SingleDisplayPocketFoldPolicy::BootAnimationFinishPowerInit()
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL,
                 ScreenPowerStatus::POWER_STATUS_ON);
         } else if (screenId_ == SCREEN_ID_MAIN) {
-            // ÇÐÍâÆÁ
             TLOGI(WmsLogTag::DMS, "ScreenSessionManager Fold Screen Power Main animation Init 3.");
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
                 ScreenPowerStatus::POWER_STATUS_OFF_FAKE);

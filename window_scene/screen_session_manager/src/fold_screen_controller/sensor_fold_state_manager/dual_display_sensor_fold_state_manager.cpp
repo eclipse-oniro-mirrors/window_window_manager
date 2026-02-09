@@ -76,10 +76,8 @@ constexpr int32_t TENT_MODE_ON = 1;
 } // namespace
 
 DualDisplaySensorFoldStateManager::DualDisplaySensorFoldStateManager(
-    const std::shared_ptr<TaskScheduler>& screenPowerTaskScheduler) :
-    screenPowerTaskScheduler_(screenPowerTaskScheduler),
-    currentAngle_(0),
-    currentHall_(0)
+    const std::shared_ptr<TaskScheduler>& screenPowerTaskScheduler)
+    : screenPowerTaskScheduler_(screenPowerTaskScheduler), currentAngle_(0), currentHall_(0)
 {
     auto stringListConfig = ScreenSceneConfig::GetStringListConfig();
     if (stringListConfig.count("hallSwitchApp") != 0) {

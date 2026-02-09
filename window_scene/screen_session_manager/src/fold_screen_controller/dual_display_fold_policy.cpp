@@ -313,7 +313,7 @@ void DualDisplayFoldPolicy::RecoverWhenBootAnimationExit()
 {
     TLOGI(WmsLogTag::DMS, "CurrentScreen(%{public}" PRIu64 ")", screenId_);
     FoldDisplayMode displayMode = GetModeMatchStatus();
-    if(currentDisplayMode_ != displayMode) {
+    if (currentDisplayMode_ != displayMode) {
         ChangeScreenDisplayMode(displayMode);
         return;
     }

@@ -259,7 +259,7 @@ void SecondaryDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode display
     }
     TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayMode enter, mode: %{public}d, reason: %{public}d", displayMode, reason);
     SetLastCacheDisplayMode(displayMode);
-    if(GetModeChangeRunningStatus()) {
+    if (GetModeChangeRunningStatus()) {
         TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
         return;
     }
@@ -598,7 +598,7 @@ void SecondaryDisplayFoldPolicy::HandlePropertyChange(sptr<ScreenSession> screen
             screenSession->SetRotationAndScreenRotationOnly(Rotation::ROTATION_0);
         }
 
-        TLOGI(WmsLogTag::DMS, 
+        TLOGI(WmsLogTag::DMS,
             "screenBounds : width_= %{public}f, height_= %{public}f",
             screenSession->GetScreenProperty().GetBounds().rect_.width_,
             screenSession->GetScreenProperty().GetBounds().rect_.height_);

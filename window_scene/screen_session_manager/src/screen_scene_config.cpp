@@ -754,7 +754,7 @@ bool ScreenSceneConfig::IsSupportRotateWithSensor()
     return false;
 }
 
-bool ScreenSceneConfig:: IsSupportTentMode() 
+bool ScreenSceneConfig::IsSupportTentMode()
 {
     if (enableConfig_.count("supportTentMode") != 0) {
         return static_cast<bool>(enableConfig_["supportTentMode"]);

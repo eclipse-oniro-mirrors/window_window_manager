@@ -60,8 +60,6 @@ namespace {
     };
 } // namespace
 
-
-
 FoldScreenBasePolicy::FoldScreenBasePolicy() {}
 
 FoldScreenBasePolicy::~FoldScreenBasePolicy() = default;

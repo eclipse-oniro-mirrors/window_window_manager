@@ -45,7 +45,8 @@ DMError BaseAdapterLite::RegisterDisplayManagerAgent(const sptr<IDisplayManagerA
     return displayManagerServiceProxy_->RegisterDisplayManagerAgent(displayManagerAgent, type);
 }
 
-bool BaseAdapterLite::RegisterClientDeathListener() {
+bool BaseAdapterLite::RegisterClientDeathListener()
+{
     return true;
 }
 

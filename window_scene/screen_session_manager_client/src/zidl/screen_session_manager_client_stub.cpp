@@ -205,7 +205,8 @@ int ScreenSessionManagerClientStub::HandleSwitchUserCallback(MessageParcel& data
     return ERR_NONE;
 }
 
-int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParcel& data, MessageParcel& reply) {
+int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParcel& data, MessageParcel& reply)
+{
     TLOGD(WmsLogTag::DMS, "HandleOnScreenConnectionChanged");
     auto rsId = static_cast<ScreenId>(data.ReadUint64());
     auto name = data.ReadString();

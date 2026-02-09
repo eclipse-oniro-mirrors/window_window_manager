@@ -689,7 +689,7 @@ DMError DisplayManagerService::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& 
 }
 
 DMError DisplayManagerService::MakeExpand(std::vector<ScreenId> expandScreenIds, std::vector<Point> startPoints,
-                                        ScreenId& screenGroupId)
+    ScreenId& screenGroupId)
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::DMS, "make expand permission denied!");
