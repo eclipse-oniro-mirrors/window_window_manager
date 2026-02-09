@@ -338,6 +338,32 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError SetSidebarBlurStyleWithType(SidebarBlurType type) { return WSError::WS_DO_NOTHING; }
+
+    /**
+     * @brief Update window UIType when recover.
+     *
+     * Update window UIType when recover.
+     *
+     * @param windowUIType Window UIType.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError UpdateWindowUIType(WindowUIType windowUIType)
+    {
+        return WSError::WS_OK;
+    }
+
+    /**
+     * @brief Update session property when trigger mode.
+     *
+     * Update session property when trigger mode.
+     *
+     * @param property Window session property.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty> property)
+    {
+        return WSError::WS_OK;
+    }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_INTERFACE_H

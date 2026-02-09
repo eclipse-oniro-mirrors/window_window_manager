@@ -493,6 +493,11 @@ public:
     {
         return WMError::WM_ERROR_INVALID_PARAM;
     }
+    WSError UpdateWindowUIType(WindowUIType windowUIType) override
+    {
+        windowSystemConfig_.windowUIType_ = windowUIType;
+        return WSError::WS_OK;
+    }
 
     /*
      * Multi Window

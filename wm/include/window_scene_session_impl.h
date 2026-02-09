@@ -301,6 +301,7 @@ public:
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
     WMError SetRotationLocked(bool locked) override;
     WMError GetRotationLocked(bool& locked) override;
+    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty> property) override;
 
     /*
      * Window Decor

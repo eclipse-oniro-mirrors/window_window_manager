@@ -2125,6 +2125,7 @@ WMError WindowSceneSessionImpl::NotifyRemoveStartingWindow()
                   static_cast<WMError>(hostSession->RemoveStartingWindow()) :
                   WMError::WM_ERROR_INVALID_WINDOW;
     if (res == WMError::WM_OK) {
+        property_->SetAppBufferReady(true);
         TLOGI(WmsLogTag::WMS_STARTUP_PAGE, "success id:%{public}d", GetPersistentId());
     }
     return res;
@@ -7957,6 +7958,16 @@ WMError WindowSceneSessionImpl::GetRotationLocked(bool& locked)
     locked = property_->GetRotationLocked();
     TLOGI(WmsLogTag::WMS_ROTATION, "get id %{public}u rotation lock %{public}d.", GetWindowId(), locked);
     return WMError::WM_OK;
+}
+
+WSError WindowSceneSessionImpl::UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty> property)
+{
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_PC, "property invalid!");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    property_->SetMobileAppInPadLayoutFullScreen(property->GetMobileAppInPadLayoutFullScreen());
+    return WSError::WS_OK;
 }
 
 WMError WindowSceneSessionImpl::SetHookTargetElementInfo(const AppExecFwk::ElementName& elementName)

@@ -2618,6 +2618,25 @@ HWTEST_F(WindowSessionImplTest5, ReleaseUIContentTest, TestSize.Level1)
     window->ReleaseUIContent();
     EXPECT_FALSE(window->isNeedReleaseUIContent_);
 }
+
+/**
+ * @tc.name: UpdateWindowUIType
+ * @tc.desc: UpdateWindowUIType
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, UpdateWindowUIType, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateWindowUIType");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    WSError ret = window->UpdateWindowUIType(WindowUIType::PC_WINDOW);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(window->windowSystemConfig_.windowUIType_, WindowUIType::PC_WINDOW);
+    ret = window->UpdateWindowUIType(WindowUIType::PAD_WINDOW);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(window->windowSystemConfig_.windowUIType_, WindowUIType::PAD_WINDOW);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

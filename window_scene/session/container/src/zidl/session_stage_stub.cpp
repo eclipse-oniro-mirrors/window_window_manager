@@ -256,6 +256,10 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleAddSidebarBlur(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_SIDEBAR_BLUR_STYLE):
             return HandleSetSidebarBlurStyleWithType(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_WINDOW_UI_TYPE):
+            return HandleUpdateWindowUIType(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_PROPERTY_WHEN_TRIGGER_MODE):
+            return HandleUpdatePropertyWhenTriggerMode(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1416,4 +1420,31 @@ int SessionStageStub::HandleSetSidebarBlurStyleWithType(MessageParcel& data, Mes
     SetSidebarBlurStyleWithType(type);
     return ERR_NONE;
 }
+
+int SessionStageStub::HandleUpdateWindowUIType(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_RECOVER, "called!");
+    uint8_t typeValue;
+    if (!data.ReadUint8(typeValue)) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "typeValue is nullptr!");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = UpdateWindowUIType(static_cast<WindowUIType>(typeValue));
+    reply.WriteInt32(static_cast<int32_t>(errCode));
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleUpdatePropertyWhenTriggerMode(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "called!");
+    sptr<WindowSessionProperty> property = data.ReadParcelable<WindowSessionProperty>();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "property is nullptr!");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = UpdatePropertyWhenTriggerMode(property);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
+    return ERR_NONE;
+}
+//
 } // namespace OHOS::Rosen

@@ -295,6 +295,39 @@ WSError SceneSession::ReconnectInner(sptr<WindowSessionProperty> property)
     return ret;
 }
 
+void SceneSession::NotifyModeSwitchInfo()
+{
+    if (sessionStage_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "no stage, id: %{public}u, winName: %{public}s", GetPersistentId(),
+              GetWindowName().c_str());
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    sessionStage_->UpdateWindowUIType(systemConfig_.windowUIType_);
+}
+
+void SceneSession::ClearAllModifiers()
+{
+    TLOGI(WmsLogTag::WMS_RECOVER, "in, id: %{public}u, winName: %{public}s", GetPersistentId(),
+        GetWindowName().c_str());
+    auto surfaceNode = GetSurfaceNode();
+    if (!surfaceNode) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "surfaceNode_ is null");
+        return;
+    }
+    AutoRSTransaction trans(GetRSShadowContext());
+    surfaceNode->SetRotation(0, 0, 0);
+    surfaceNode->SetScale(1);
+    surfaceNode->SetScaleZ(1);
+    surfaceNode->SetSkew(0);
+    surfaceNode->SetTranslate(0, 0, 0);
+    surfaceNode->SetCornerRadius(0);
+    surfaceNode->SetAlpha(1);
+    surfaceNode->SetPivot(0.5, 0.5);
+    surfaceNode->SetPivotZ(0);
+    surfaceNode->SetMask(nullptr);
+    surfaceNode->SetBackgroundFilter(nullptr);
+}
+
 bool SceneSession::IsShowOnLockScreen(uint32_t lockScreenZOrder)
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "UIExtOnLock: lockScreenZOrder: %{public}d, zOrder_: %{public}d", lockScreenZOrder,
@@ -1618,6 +1651,17 @@ void SceneSession::RegisterSnapshotSkipChangeCallback(NotifySnapshotSkipChangeFu
         session->onSnapshotSkipChangeFunc_ = std::move(callback);
         session->onSnapshotSkipChangeFunc_(session->GetSessionProperty()->GetSnapshotSkip());
     }, __func__);
+}
+
+void SceneSession::UpdatePropertyWhenTriggerMode()
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "in, id: %{public}u, winName: %{public}s", GetPersistentId(),
+            GetWindowName().c_str());
+    if (sessionStage_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "stage is null");
+        return;
+    }
+    sessionStage_->UpdatePropertyWhenTriggerMode(GetSessionProperty());
 }
 
 WSError SceneSession::SetGlobalMaximizeMode(MaximizeMode mode)

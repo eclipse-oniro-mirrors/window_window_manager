@@ -26,6 +26,7 @@ public:
     static void SetWriteBoolErrorFlag(bool flag);
     static void SetWriteInt32ErrorFlag(bool flag);
     static void SetWriteInt64ErrorFlag(bool flag);
+    static void SetWriteUint8ErrorFlag(bool flag);
     static void SetWriteUint32ErrorFlag(bool flag);
     static void SetWriteUint64ErrorFlag(bool flag);
     static void SetWriteFloatErrorFlag(bool flag);

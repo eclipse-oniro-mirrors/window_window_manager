@@ -973,6 +973,24 @@ HWTEST_F(WindowSceneSessionImplTest6, maximizeWhenSwitchMultiWindowIfOnlySupport
     maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     EXPECT_EQ(window->IsLayoutFullScreen(), true);
 }
+
+/**
+ * @tc.name: UpdatePropertyWhenTriggerMode
+ * @tc.desc: UpdatePropertyWhenTriggerMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, UpdatePropertyWhenTriggerMode, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ModifySidebarBlurProperty9");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    WSError ret = window->UpdatePropertyWhenTriggerMode(nullptr);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ret = window->UpdatePropertyWhenTriggerMode(property);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

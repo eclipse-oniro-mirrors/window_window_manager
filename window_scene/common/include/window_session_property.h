@@ -394,6 +394,8 @@ public:
     bool IsPrelaunch() const;
     void SetFrameNum(int32_t frameNum);
     int32_t GetFrameNum() const;
+    void SetAppBufferReady(bool isAppBufferReady);
+    bool IsAppBufferReady() const;
 
 private:
     void setTouchHotAreasInner(const std::vector<Rect>& rects, std::vector<Rect>& touchHotAreas);
@@ -672,6 +674,7 @@ private:
      */
     bool isPrelaunch_ = false;
     int32_t frameNum_ = 0;
+    bool isAppBufferReady_ = false;
 };
 
 class CompatibleModeProperty : public Parcelable {

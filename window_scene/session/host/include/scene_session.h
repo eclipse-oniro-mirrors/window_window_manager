@@ -265,6 +265,8 @@ public:
     WSError ReconnectInner(sptr<WindowSessionProperty> property) REQUIRES(SCENE_GUARD);
     bool IsRecovered() const { return isRecovered_; }
     void SetRecovered(bool isRecovered) { isRecovered_ = isRecovered; }
+    void NotifyModeSwitchInfo();
+    void ClearAllModifiers();
 
     /*
      * Window Layout
@@ -1000,6 +1002,7 @@ public:
     std::string GetAbilityColorMode() const;
     void SetSecurityLayerWhenEnterForeground();
     void RegisterSnapshotSkipChangeCallback(NotifySnapshotSkipChangeFunc&& callback);
+    void UpdatePropertyWhenTriggerMode();
 
     /*
      * Window Focus
