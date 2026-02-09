@@ -1478,8 +1478,8 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(subWindowOutlineEnabled_) &&
         parcel.WriteUint32(windowModeSupportType_) &&
         MarshallingShadowsInfo(parcel) &&
-        MarshallingFbTemplateInfo(parcel) &&
         MarshallingWindowAnchorInfo(parcel) &&
+        MarshallingFbTemplateInfo(parcel) &&
         parcel.WriteBool(isPcAppInpadSpecificSystemBarInvisible_) &&
         parcel.WriteBool(isPcAppInpadOrientationLandscape_) &&
         parcel.WriteBool(isPcAppInpadCompatibleMode_) &&
@@ -1600,8 +1600,8 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetSubWindowOutlineEnabled(parcel.ReadBool());
     property->SetWindowModeSupportType(parcel.ReadUint32());
     UnmarshallingShadowsInfo(parcel, property);
-    UnmarshallingFbTemplateInfo(parcel, property);
     UnmarshallingWindowAnchorInfo(parcel, property);
+    UnmarshallingFbTemplateInfo(parcel, property);
     property->SetPcAppInpadSpecificSystemBarInvisible(parcel.ReadBool());
     property->SetPcAppInpadOrientationLandscape(parcel.ReadBool());
     property->SetPcAppInpadCompatibleMode(parcel.ReadBool());
@@ -2792,22 +2792,6 @@ CompatibleModeProperty* CompatibleModeProperty::Unmarshalling(Parcel& parcel)
     property->realTimeSwitchInfo_.isNeedChange_ = parcel.ReadBool();
     property->realTimeSwitchInfo_.showTypes_ = parcel.ReadUint32();
     return property;
-}
-
-void CompatibleModeProperty::CopyFrom(const sptr<CompatibleModeProperty>& property)
-{
-    if (property == nullptr) {
-        return;
-    }
-    isAdaptToImmersive_ = property->isAdaptToImmersive_;
-    isAdaptToEventMapping_ = property->isAdaptToEventMapping_;
-    isAdaptToProportionalScale_ = property->isAdaptToProportionalScale_;
-    isAdaptToBackButton_ = property->isAdaptToBackButton_;
-    disableDragResize_ = property->disableDragResize_;
-    disableResizeWithDpi_ = property->disableResizeWithDpi_;
-    disableFullScreen_ = property->disableFullScreen_;
-    disableWindowLimit_ = property->disableWindowLimit_;
-    isAdaptToSimulationScale_= property->isAdaptToSimulationScale_;
 }
 
 bool WindowSessionProperty::MarshallingWindowAnchorInfo(Parcel& parcel) const

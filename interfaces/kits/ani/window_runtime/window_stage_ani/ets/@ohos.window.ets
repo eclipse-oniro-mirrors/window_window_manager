@@ -401,7 +401,7 @@ namespace window {
     /**
      * The visibility of system bar
      *
-     * @type { ?boolean }
+     * @type { boolean }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -411,7 +411,7 @@ namespace window {
     /**
      * The region of system bar
      *
-     * @type { ?Rect }
+     * @type { Rect }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -421,7 +421,7 @@ namespace window {
     /**
      * The background color of the system bar.
      *
-     * @type { ?string }
+     * @type { string }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -431,7 +431,7 @@ namespace window {
     /**
      * The content color of the system bar.
      *
-     * @type { ?string }
+     * @type { string }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -878,7 +878,7 @@ export enum Orientation {
     FOLLOW_DESKTOP = 17
 }
 
-export enum  RotationInfoType {
+export enum RotationInfoType {
     WINDOW_ORIENTATION = 0,
     DISPLAY_ORIENTATION = 1,
     DISPLAY_ROTATION = 2,
@@ -1162,49 +1162,49 @@ export interface WindowProperties {
 }
 
 export class WindowPropertiesInternal implements WindowProperties {
-    windowRect: Rect;
-    drawableRect: Rect;
-    isFullScreen: boolean;
-    isLayoutFullScreen: boolean;
-    focusable: boolean;
-    touchable: boolean;
-    brightness: double;
-    dimBehindValue: number;
-    isKeepScreenOn: boolean;
-    isPrivacyMode: boolean;
-    isRoundCorner: boolean;
-    isTransparent: boolean;
-    type: WindowType;
-    id: int;
-    displayId?: long;
-    name?: string;
-    globalDisplayRect?: Rect;
+  windowRect: Rect;
+  drawableRect: Rect;
+  isFullScreen: boolean;
+  isLayoutFullScreen: boolean;
+  focusable: boolean;
+  touchable: boolean;
+  brightness: double;
+  dimBehindValue: number;
+  isKeepScreenOn: boolean;
+  isPrivacyMode: boolean;
+  isRoundCorner: boolean;
+  isTransparent: boolean;
+  type: WindowType;
+  id: int;
+  displayId?: long;
+  name?: string;
+  globalDisplayRect?: Rect;
 
-    constructor(windowRect: Rect, drawableRect: Rect, isFullScreen: boolean, isLayoutFullScreen: boolean,
-      focusable: boolean, touchable: boolean, brightness: double, dimBehindValue: number, isKeepScreenOn: boolean,
-      isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, id: int,
-      displayId: long, name: string, globalDisplayRect: Rect)
-    {
-      this.windowRect = windowRect;
-      this.drawableRect = drawableRect;
-      this.globalDisplayRect = globalDisplayRect;
-      this.isFullScreen = isFullScreen;
-      this.isLayoutFullScreen = isLayoutFullScreen;
-      this.focusable = focusable;
-      this.touchable = touchable;
-      this.brightness = brightness;
-      this.dimBehindValue = dimBehindValue;
-      this.isKeepScreenOn = isKeepScreenOn;
-      this.isPrivacyMode = isPrivacyMode;
-      this.isRoundCorner = isRoundCorner;
-      this.isTransparent = isTransparent;
-      this.type = typeInternal as WindowType;
-      this.id = id;
-      this.displayId = displayId;
-      this.name = name;
-    }
+  constructor(windowRect: Rect, drawableRect: Rect, isFullScreen: boolean, isLayoutFullScreen: boolean,
+    focusable: boolean, touchable: boolean, brightness: double, dimBehindValue: number, isKeepScreenOn: boolean,
+    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, id: int,
+    displayId: long, name: string, globalDisplayRect: Rect)
+  {
+    this.windowRect = windowRect;
+    this.drawableRect = drawableRect;
+    this.globalDisplayRect = globalDisplayRect;
+    this.isFullScreen = isFullScreen;
+    this.isLayoutFullScreen = isLayoutFullScreen;
+    this.focusable = focusable;
+    this.touchable = touchable;
+    this.brightness = brightness;
+    this.dimBehindValue = dimBehindValue;
+    this.isKeepScreenOn = isKeepScreenOn;
+    this.isPrivacyMode = isPrivacyMode;
+    this.isRoundCorner = isRoundCorner;
+    this.isTransparent = isTransparent;
+    this.type = typeInternal as WindowType;
+    this.id = id;
+    this.displayId = displayId;
+    this.name = name;
+  }
 
-    constructor() {}
+  constructor() {}
 }
 
 /**

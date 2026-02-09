@@ -64,6 +64,8 @@ constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_ONECE = 1;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_TWICE = 2;
 constexpr double KILOBYTE = 1024.0;
 
+constexpr int32_t SNAP_SHOT_RECOVER_KEY = 10;
+
 const std::map<SessionState, bool> ATTACH_MAP = {
     { SessionState::STATE_DISCONNECT, false },
     { SessionState::STATE_CONNECT, false },
@@ -87,6 +89,9 @@ const uint32_t ROTATION_LANDSCAPE_INVERTED = 3;
 const std::string APP_CAST_SCREEN_NAME = "HwCast_AppModeDisplay";
 constexpr float BLUR_SNAPSHOT_SCALE = 0.5f;
 } // namespace
+
+const std::string ATTACH_EVENT_NAME { "wms::ReportWindowTimeout_Attach" };
+const std::string DETACH_EVENT_NAME { "wms::ReportWindowTimeout_Detach" };
 
 std::shared_ptr<AppExecFwk::EventHandler> Session::mainHandler_;
 bool Session::isScbCoreEnabled_ = false;

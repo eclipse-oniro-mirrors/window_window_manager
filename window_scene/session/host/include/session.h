@@ -177,8 +177,8 @@ struct ControlInfo {
     bool isControlRecentOnly;
 };
 
-const std::string ATTACH_EVENT_NAME { "wms::ReportWindowTimeout_Attach" };
-const std::string DETACH_EVENT_NAME { "wms::ReportWindowTimeout_Detach" };
+extern const std::string ATTACH_EVENT_NAME;
+extern const std::string DETACH_EVENT_NAME;
 
 class Session : public SessionStub {
 public:

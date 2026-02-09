@@ -681,8 +681,8 @@ public:
 /**
  * @class IExtensionSecureLimitChangeListener
  *
- * @brief IExtensionSecureLimitChangeListener is used to observe the window secure limit and
- *        its change when limit changed.
+ * @brief IExtensionSecureLimitChangeListener is used to observe the window secure limit
+ * and its change when limit changed.
  */
 class IExtensionSecureLimitChangeListener : virtual public RefBase {
 public:
@@ -880,19 +880,6 @@ public:
     virtual void OnOrientationChange() {}
 };
 
-/**
- * @class ISystemBarPropertyListener
- *
- * @brief ISystemBarPropertyListener is used to notify while developer set SystemBarProperty.
- */
-class ISystemBarPropertyListener : virtual public RefBase {
-public:
-    /**
-     * @brief Innerapi, notify caller when developer set SystemBarProperty.
-     */
-    virtual void OnSystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
-};
-
 /*
  * @class IWindowRotationChangeListener
  *
@@ -1067,8 +1054,9 @@ public:
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
 
     /**
-     * @brief Update theme configuration for all windows
-     * @param configuration configuration for app
+     * @brief Update configuration synchronously for all windows.
+     *
+     * @param configuration configuration for app.
      */
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
 
@@ -2084,7 +2072,8 @@ public:
         const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager) {}
 
     /**
-     * @brief Update theme configuration.
+     * @brief Update configuration synchronously.
+     *
      * @param configuration Window configuration.
      */
     virtual void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) {}
@@ -2557,36 +2546,6 @@ public:
      * @param orientation Requested orientation.
      */
     virtual bool isNeededForciblySetOrientation(Orientation orientation) { return false; }
-
-    /**
-     * @brief Register SystemBarProperty listener.
-     *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    virtual WMError RegisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
-    /**
-     * @brief Unregister SystemBarProperty listener.
-     *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means unregister success, others means unregister failed.
-     */
-    virtual WMError UnregisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
-    /**
-     * @brief Notify SystemBarProperty listener.
-     *
-     * @param type The WindowType.
-     * @param property new property value setted by developer.
-     */
-    virtual void NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 
     /**
      * @brief Convert orientation and rotation between window and display
@@ -3071,7 +3030,7 @@ public:
 
     /**
      * @brief get compatible mode in pc.
-     * @deprecated use IsAdaptToImmersive instead
+     * @deprecated use IsAdaptToCompatibleImmersive instead
      *
      * @return True means window is compatible mode in pc, false means the opposite.
      */
@@ -3261,7 +3220,7 @@ public:
      * @param listener IAcrossDisplaysChangeListener.
      * @return WM_OK means unregister success, others means unregister failed.
      */
-    virtual WMError UnRegisterAcrossDisplaysChangeListener(
+    virtual WMError UnregisterAcrossDisplaysChangeListener(
         const IAcrossDisplaysChangeListenerSptr& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
@@ -3534,10 +3493,10 @@ public:
     }
 
     /**
-     * @brief Set main window container color.
+     * @brief Set window container modal color.
      *
      * @param activeColor Background active color.
-     * @param inactiveColor Background active color.
+     * @param inactiveColor Background inactive color.
      * @return Errorcode of window.
      */
     virtual WMError SetWindowContainerModalColor(const std::string& activeColor, const std::string& inactiveColor)
@@ -3739,7 +3698,10 @@ public:
      * @param isModal bool.
      * @return WMError
      */
-    virtual WMError SetWindowModal(bool isModal) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetWindowModal(bool isModal)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set the modality of sub window.
@@ -4293,13 +4255,13 @@ public:
         bool& isAcrossDisplays) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
-     * @brief Get the type of window.
+     * @brief Get the type of Window.
      *
-     * @return The string corresponding to the window.
+     * @return The string corresponding to the Window.
      */
     virtual std::string GetClassType() const { return "Window"; }
 
-    /**
+    /*
      * @brief Enable or disable window delay raise
      *
      * @param isEnabled Enable or disable window delay raise
@@ -4761,10 +4723,10 @@ public:
      */
     virtual void HookCompatibleModeAvoidAreaNotify() {}
 
-    /**
+     /**
      * @brief The comaptible mode app adapt to immersive or not.
      *
-     * @return true comptbleMode adapt to immersive, others means not.
+     * @return true means compatible app adapt to immersive, others means not.
      */
     virtual bool IsAdaptToCompatibleImmersive() const { return false; }
 
@@ -4776,8 +4738,8 @@ public:
      */
     virtual WMError UseImplicitAnimation(bool useImplicit) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-    /** 
-    * @brief Set intent param to arkui.
+    /**
+     * @brief Set intent param to arkui.
      *
      * @param intentParam intent param from ams.
      * @param loadPageCallback load page callback after send intent.

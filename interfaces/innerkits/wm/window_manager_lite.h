@@ -158,6 +158,13 @@ public:
      * @return WM_OK means unregister success, others means unregister failed.
      */
     WMError UnregisterWindowModeChangedListener(const sptr<IWindowModeChangedListener>& listener);
+    /**
+     * @brief Get window mode type.
+     *
+     * @param void
+     * @return WM_OK means get success, others means get failed.
+     */
+    WMError GetWindowModeType(WindowModeType& windowModeType) const;
 
     /**
      * @brief Register camera window changed listener.
@@ -183,15 +190,6 @@ public:
      * @return WM_OK means unregister success, others means unregister failed.
      */
     WMError UnregisterCameraWindowChangedListener(const sptr<ICameraWindowChangedListener>& listener);
-
-    /**
-     * @brief Get window mode type.
-     *
-     * @param void
-     * @return WM_OK means get success, others means get failed.
-     */
-    WMError GetWindowModeType(WindowModeType& windowModeType) const;
-
     /**
      * @brief Get top num main window info.
      *
@@ -250,7 +248,6 @@ public:
      * @return WM_OK if raise success
      */
     WMError RaiseWindowToTop(int32_t persistentId);
-
     /**
      * @brief Register WMS connection status changed listener.
      * @attention Callable only by u0 system user. A process only supports successful registration once.

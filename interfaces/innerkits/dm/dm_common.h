@@ -504,15 +504,6 @@ enum class FoldDisplayMode: uint32_t {
     GLOBAL_FULL = 5,
 };
 
-const std::unordered_map<std::string, FoldDisplayMode> STRING_TO_FOLD_DISPLAY_MODE = {
-    {"0", FoldDisplayMode::UNKNOWN},
-    {"1", FoldDisplayMode::FULL},
-    {"2", FoldDisplayMode::MAIN},
-    {"3", FoldDisplayMode::SUB},
-    {"4", FoldDisplayMode::COORDINATION},
-    {"5", FoldDisplayMode::GLOBAL_FULL}
-};
-
 struct RotationCorrectionWhiteConfig {
     std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
     std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;

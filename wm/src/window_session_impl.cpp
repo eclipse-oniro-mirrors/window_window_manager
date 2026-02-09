@@ -101,6 +101,7 @@ const std::string DECOR_BUTTON_STYLE_CHANGE = "decor_button_style_change";
 constexpr int64_t SET_UIEXTENSION_DESTROY_TIMEOUT_TIME_MS = 4000;
 
 const std::string SCB_BACK_VISIBILITY = "scb_back_visibility";
+const std::string EVENT_NAME_FLOAT_BAR_VISIBILITY = "scb_float_bar_visibility";
 const std::string SCB_COMPATIBLE_MAXIMIZE_VISIBILITY = "scb_compatible_maximize_visibility";
 const std::string SCB_COMPATIBLE_MAXIMIZE_BTN_RES = "scb_compatible_maximize_btn_res";
 const std::string SCB_COMPATIBLE_MENU_VISIBILITY = "scb_set_compatible_menu";
@@ -141,7 +142,6 @@ Ace::ViewportConfig FillViewportConfig(
 }
 }
 
-std::map<int32_t, std::vector<sptr<ISystemBarPropertyListener>>> WindowSessionImpl::systemBarPropertyListeners_;
 std::map<int32_t, std::vector<sptr<IWindowLifeCycle>>> WindowSessionImpl::lifecycleListeners_;
 std::map<int32_t, std::vector<sptr<IWindowStageLifeCycle>>> WindowSessionImpl::windowStageLifecycleListeners_;
 std::map<int32_t, std::vector<sptr<IDisplayMoveListener>>> WindowSessionImpl::displayMoveListeners_;
@@ -227,7 +227,6 @@ std::mutex WindowSessionImpl::switchFreeMultiWindowListenerMutex_;
 std::mutex WindowSessionImpl::preferredOrientationChangeListenerMutex_;
 std::mutex WindowSessionImpl::windowOrientationChangeListenerMutex_;
 std::mutex WindowSessionImpl::highlightChangeListenerMutex_;
-std::mutex WindowSessionImpl::systemBarPropertyListenerMutex_;
 std::mutex WindowSessionImpl::waterfallModeChangeListenerMutex_;
 std::unordered_map<int32_t, std::vector<sptr<IWaterfallModeChangeListener>>>
     WindowSessionImpl::waterfallModeChangeListeners_;
@@ -2108,32 +2107,42 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
 void WindowSessionImpl::HideTitleButton(bool& hideSplitButton, bool& hideMaximizeButton,
     bool& hideMinimizeButton, bool& hideCloseButton)
 {
-    std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
-    if (uiContent == nullptr || !IsDecorEnable()) {
-        return;
-    }
-    RealTimeSwitchInfo switchInfo = property_->GetRealTimeSwitchInfo();
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
-    uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
-    hideMaximizeButton = hideMaximizeButton || property_->IsFullScreenDisabled();
-    bool isLayoutFullScreen = property_->IsLayoutFullScreen();
-    bool hideSplitBtn = hideSplitButton || property_->IsSplitDisabled();
-    if (property_->IsAdaptToImmersive() && !property_->GetIsAtomicService()) {
-        uiContent->HideWindowTitleButton(hideSplitBtn, !isLayoutFullScreen && hideMaximizeButton,
-            hideMinimizeButton, hideCloseButton);
-    } else {
-        uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeButton, hideMinimizeButton, hideCloseButton);
-    }
-    // compatible mode adapt to proportional scale, will show its button
-    bool showScaleBtn = property_->IsAdaptToProportionalScale() && !property_->GetIsAtomicService();
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_VISIBILITY,
-        !isLayoutFullScreen && showScaleBtn  ? "true" : "false");
-    // compatible mode adapt to back, will show its button
-    bool isAdaptToBackButton = property_->IsAdaptToBackButton();
-    uiContent->OnContainerModalEvent(SCB_BACK_VISIBILITY, isAdaptToBackButton ? "true" : "false");
-    bool fullScreenStart = property_->IsFullScreenStart() &&
-        (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN);
-    uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_BTN_RES, fullScreenStart ? "true" : "false");
+    handler_->PostTask([weakThis = wptr(this), hideSplitButton, hideMaximizeButton,
+        hideMinimizeButton, hideCloseButton, where = __func__] {
+        auto window = weakThis.promote();
+        if (!window) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s window is null", where);
+            return;
+        }
+        std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
+        if (uiContent == nullptr || !window->IsDecorEnable()) {
+            return;
+        }
+        auto property = window->GetProperty();
+        RealTimeSwitchInfo switchInfo = property->GetRealTimeSwitchInfo();
+        uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
+        uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
+        bool isFullScreenStart = property->IsFullScreenStart();
+        bool hideMaximizeBtn = (hideMaximizeButton || property->IsFullScreenDisabled());
+        bool hideSplitBtn = hideSplitButton || property->IsSplitDisabled();
+        if (property->IsAdaptToImmersive() && !property->GetIsAtomicService()) {
+            uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeBtn, hideMinimizeButton, hideCloseButton);
+            uiContent->OnContainerModalEvent(EVENT_NAME_FLOAT_BAR_VISIBILITY, "true");
+        } else {
+            uiContent->HideWindowTitleButton(hideSplitBtn, hideMaximizeBtn, hideMinimizeButton, hideCloseButton);
+            uiContent->OnContainerModalEvent(EVENT_NAME_FLOAT_BAR_VISIBILITY, "false");
+        }
+        // compatible mode adapt to proportional scale, will show its button
+        bool showScaleBtn = property->IsAdaptToProportionalScale() && !property->GetIsAtomicService();
+        uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_VISIBILITY, showScaleBtn ? "true" : "false");
+        bool fullScreenStart = isFullScreenStart && (window->GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN);
+        if (fullScreenStart) {
+            uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MAXIMIZE_BTN_RES, "true");
+        }
+        // compatible mode adapt to back, will show its button
+        bool isAdaptToBackButton = property->IsAdaptToBackButton();
+        uiContent->OnContainerModalEvent(SCB_BACK_VISIBILITY, isAdaptToBackButton ? "true" : "false");
+        }, __func__);
 }
 
 WMError WindowSessionImpl::NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
@@ -2523,6 +2532,8 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
         if ((config.mode_ == FORCE_SPLIT_MODE || config.mode_ == NAV_FORCE_SPLIT_MODE) &&
             GetAppForceLandscapeConfigEnable(enableForceSplit) == WMError::WM_OK) {
                 SetForceSplitConfigEnable(enableForceSplit);
+        } else {
+            SetForceSplitConfigEnable(false);
         }
     }
 
@@ -3281,7 +3292,7 @@ void WindowSessionImpl::SetRequestedOrientation(Orientation orientation, bool ne
         return;
     }
     if (property_->IsSupportRotateFullScreen()) {
-        TLOGI(WmsLogTag::WMS_COMPAT, "compatible request horizontal orientation %{public}u", orientation);
+        TLOGI(WmsLogTag::WMS_COMPAT, "compatible request orientation %{public}u", orientation);
         property_->SetIsLayoutFullScreen(IsHorizontalOrientation(orientation));
     }
     if (needAnimation) {
@@ -4325,40 +4336,6 @@ template<typename T>
 EnableIfSame<T, IMainWindowCloseListener, sptr<IMainWindowCloseListener>> WindowSessionImpl::GetListeners()
 {
     return mainWindowCloseListeners_[GetPersistentId()];
-}
-
-template<typename T>
-EnableIfSame<T, ISystemBarPropertyListener,
-    std::vector<sptr<ISystemBarPropertyListener>>> WindowSessionImpl::GetListeners()
-{
-    std::vector<sptr<ISystemBarPropertyListener>> listeners;
-    for (auto& listener : systemBarPropertyListeners_[GetPersistentId()]) {
-        listeners.push_back(listener);
-    }
-    return listeners;
-}
-
-WMError WindowSessionImpl::RegisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-{
-    std::lock_guard<std::mutex> lockListener(systemBarPropertyListenerMutex_);
-    return RegisterListener(systemBarPropertyListeners_[GetPersistentId()], listener);
-}
-
-WMError WindowSessionImpl::UnregisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-{
-    std::lock_guard<std::mutex> lockListener(systemBarPropertyListenerMutex_);
-    return UnregisterListener(systemBarPropertyListeners_[GetPersistentId()], listener);
-}
-
-void WindowSessionImpl::NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property)
-{
-    std::lock_guard<std::mutex> lockListener(systemBarPropertyListenerMutex_);
-    auto listeners = GetListeners<ISystemBarPropertyListener>();
-    for (auto& listener : listeners) {
-        if (listener != nullptr) {
-            listener->OnSystemBarPropertyUpdate(type, property);
-        }
-    }
 }
 
 WMError WindowSessionImpl::RegisterMainWindowCloseListeners(const sptr<IMainWindowCloseListener>& listener)
@@ -6689,7 +6666,7 @@ WMError WindowSessionImpl::RegisterAcrossDisplaysChangeListener(
     return ret;
 }
 
-WMError WindowSessionImpl::UnRegisterAcrossDisplaysChangeListener(
+WMError WindowSessionImpl::UnregisterAcrossDisplaysChangeListener(
     const IAcrossDisplaysChangeListenerSptr& listener)
 {
     if (IsWindowSessionInvalid()) {
@@ -7888,9 +7865,11 @@ void WindowSessionImpl::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
         TLOGE(WmsLogTag::WMS_PIP, "session is invalid");
         return;
     }
-    TLOGI(WmsLogTag::WMS_PIP, "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
-        "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d", pipTemplateInfo.pipTemplateType,
-        pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,  pipTemplateInfo.cornerAdsorptionEnabled);
+    TLOGI(WmsLogTag::WMS_PIP,
+          "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
+          "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d",
+          pipTemplateInfo.pipTemplateType, pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,
+          pipTemplateInfo.cornerAdsorptionEnabled);
     if (auto hostSession = GetHostSession()) {
         hostSession->UpdatePiPTemplateInfo(pipTemplateInfo);
     }

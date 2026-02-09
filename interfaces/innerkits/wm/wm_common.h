@@ -28,7 +28,7 @@
 
 #include <parcel.h>
 
-#include "dm_common.h"
+#include "../dm/dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
 #include "wm_math.h"
@@ -94,6 +94,11 @@ constexpr float COMPACT_SIMULATION_SCALE_DPI = 3.25f;
 constexpr float COMPACT_NORMAL_SCALE = 1.0f;
 
 /*
+ * Sub Window
+ */
+constexpr uint32_t MAX_SUB_WINDOW_LEVEL = 10;
+
+/*
  * Window outline
  */
 constexpr uint32_t OUTLINE_COLOR_DEFAULT = 0xff64bb5c; // Default color, ARGB format.
@@ -103,11 +108,6 @@ constexpr uint32_t OUTLINE_WIDTH_MAX = 8; // vp
 constexpr uint32_t OUTLINE_FOR_WINDOW_MAX_NUM = 256; // Up to 256 windows can show simultaneously.
 constexpr uint32_t OUTLINE_COLOR_OPAQUE_OFFSET = 24; // Shift right 24 bits.
 constexpr uint32_t OUTLINE_COLOR_OPAQUE = 0xff; // Color opaque byte.
-
-/*
- * Sub Window
- */
-constexpr uint32_t MAX_SUB_WINDOW_LEVEL = 10;
 }
 
 /**
@@ -924,7 +924,7 @@ struct WindowSnapshotConfiguration : public Parcelable {
 /**
  * @struct MainWindowState.
  *
- * @brief main window state info.
+ * @brief Main window state info.
  */
 struct MainWindowState : public Parcelable {
     bool Marshalling(Parcel& parcel) const override

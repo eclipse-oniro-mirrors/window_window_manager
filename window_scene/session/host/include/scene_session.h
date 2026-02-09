@@ -36,9 +36,9 @@ class RunningLock;
 
 namespace OHOS::Rosen {
 namespace PARAM_KEY {
-const std::string PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missionAffinity";
-const std::string PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
-const std::string PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
+extern const std::string PARAM_MISSION_AFFINITY_KEY;
+extern const std::string PARAM_DMS_CONTINUE_SESSION_ID_KEY;
+extern const std::string PARAM_DMS_PERSISTENT_ID_KEY;
 }
 class SceneSession;
 class ScreenSession;
@@ -976,7 +976,7 @@ public:
     */
     void SetWindowCornerRadiusCallback(NotifySetWindowCornerRadiusFunc&& func);
     WSError SetWindowCornerRadius(float cornerRadius) override;
-    void SetPrivacyModeChangeNotifyFunc(NotifyPrivacyModeChangeFunc&& func);
+    void SetPrivacyModeChangeNotifyFunc(const NotifyPrivacyModeChangeFunc& func);
     void SetIsAncoForFloatingWindow(bool isAncoForFloatingWindow);
     bool GetIsAncoForFloatingWindow() const;
     void SetWindowShadowsCallback(NotifySetWindowShadowsFunc&& func);
@@ -1585,7 +1585,6 @@ private:
     virtual void UpdateCrossAxisOfLayout(const WSRect& rect);
     CrossPlaneState UpdateCrossPlaneState(const WSRect& rect);
     void UpdatePrivateStateOfLayout(const WSRect& rect);
-    NotifyLayoutFullScreenChangeFunc onLayoutFullScreenChangeFunc_;
     WSRect requestRectWhenFollowParent_;
     MoveConfiguration requestMoveConfiguration_;
     virtual void NotifySubAndDialogFollowRectChange(const WSRect& rect, bool isGlobal, bool needFlush) {};
@@ -1605,6 +1604,11 @@ private:
     IsLastFrameLayoutFinishedFunc isLastFrameLayoutFinishedFunc_;
     IsAINavigationBarAvoidAreaValidFunc isAINavigationBarAvoidAreaValid_;
     std::unordered_map<AvoidAreaType, std::tuple<DisplayId, WSRect, WSRect>> lastAvoidAreaInputParamtersMap_;
+
+    /**
+     * Window Layout
+     */
+    NotifyLayoutFullScreenChangeFunc onLayoutFullScreenChangeFunc_;
 
     /*
      * PC Window Layout

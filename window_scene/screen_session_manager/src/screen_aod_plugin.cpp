@@ -21,6 +21,11 @@ namespace {
     constexpr uint32_t RETRY_TIMES = 3;
 }
 
+#if (defined(__aarch64__) || defined(__x86_64__))
+const std::string PLUGIN_AOD_SO_PATH = "/system/lib64/libaod_native.z.so";
+#else
+const std::string PLUGIN_AOD_SO_PATH = "/system/lib/libaod_native.z.so";
+#endif
 static void *g_handle = nullptr;
 using IsInAodFunc = bool (*)();
 using StopAodFunc = bool (*)(int32_t);

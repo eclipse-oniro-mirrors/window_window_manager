@@ -7044,7 +7044,7 @@ napi_value JsSceneSession::OnSetPcAppInpadSpecificSystemBarInvisible(napi_env en
     }
     bool isPcAppInpadSpecificSystemBarInvisible = false;
     if (!ConvertFromJsValue(env, argv[0], isPcAppInpadSpecificSystemBarInvisible)) {
-        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to enable");
+        TLOGE(WmsLogTag::WMS_SCB, "Failed to convert parameter to isPcAppInpadSpecificSystemBarInvisible");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
@@ -7835,7 +7835,7 @@ napi_value JsSceneSession::OnSendContainerModalEvent(napi_env env, napi_callback
         TLOGE(WmsLogTag::WMS_EVENT, "session is nullptr, id:%{public}d", persistentId_);
         return NapiGetUndefined(env);
     }
-    if (!session->IsPcWindow()) {
+    if (!session->IsPcWindow() && !session->IsFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_EVENT, "device type not support");
         return NapiGetUndefined(env);
     }
