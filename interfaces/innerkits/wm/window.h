@@ -2555,12 +2555,12 @@ public:
      */
     virtual bool isNeededForciblySetOrientation(Orientation orientation) { return false; }
 
-    /** 
-      * @brief Get requested orientation. 
-      * 
-      * @return Orientation screen orientation. 
-      */ 
-     virtual Orientation GetRequestedOrientation() { return Orientation::UNSPECIFIED; }
+    /**
+     * @brief Get requested orientation.
+     *
+     * @return Orientation screen orientation.
+     */
+    virtual Orientation GetRequestedOrientation() { return Orientation::UNSPECIFIED; }
 
     /**
      * @brief Convert orientation and rotation between window and display
