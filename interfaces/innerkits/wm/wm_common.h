@@ -3508,9 +3508,6 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_SPLIT = 5,
 };
 
-/**
- * @brief Enumerates type of window manager agent.
- */
 enum class WindowManagerAgentType : uint32_t {
     WINDOW_MANAGER_AGENT_TYPE_FOCUS,
     WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR,
