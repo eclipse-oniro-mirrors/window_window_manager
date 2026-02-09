@@ -587,7 +587,6 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::NotifyPageRotationIsIgnored);
     BindNativeFunction(env, objValue, "setCurrentRotation", moduleName, JsSceneSession::SetCurrentRotation);
     BindNativeFunction(env, objValue, "setSidebarBlurMaximize", moduleName, JsSceneSession::SetSidebarBlurMaximize);
-    BindNativeFunction(env, objValue, "toggleCompatibleMode", moduleName, JsSceneSession::ToggleCompatibleMode);
     BindNativeFunction(env, objValue, "requestSpecificSessionClose", moduleName,
         JsSceneSession::RequestSpecificSessionClose);
     BindNativeFunction(env, objValue, "sendFbActionEvent", moduleName, JsSceneSession::SendFbActionEvent);
@@ -621,8 +620,8 @@ void JsSceneSession::BindNativeMethodForKeyboard(napi_env env, napi_value objVal
 
 void JsSceneSession::BindNativeMethodForCompatiblePcMode(napi_env env, napi_value objValue, const char* moduleName)
 {
-    BindNativeFunction(env, objValue, "setAppSupportPhoneInPc", moduleName,
-        JsSceneSession::SetAppSupportPhoneInPc);
+    BindNativeFunction(env, objValue, "setAppSupportPhoneInPc", moduleName, JsSceneSession::SetAppSupportPhoneInPc);
+ 	BindNativeFunction(env, objValue, "toggleCompatibleMode", moduleName, JsSceneSession::ToggleCompatibleMode);
 }
 
 void JsSceneSession::BindNativeMethodForPcAppInPadNormal(napi_env env, napi_value objValue, const char* moduleName)
