@@ -105,6 +105,7 @@ const std::string SCB_COMPATIBLE_MAXIMIZE_VISIBILITY = "scb_compatible_maximize_
 const std::string SCB_COMPATIBLE_MAXIMIZE_BTN_RES = "scb_compatible_maximize_btn_res";
 const std::string SCB_COMPATIBLE_MENU_VISIBILITY = "scb_set_compatible_menu";
 const std::string SCB_GET_COMPATIBLE_PRIMARY_MODE = "scb_get_compatible_primary_mode";
+const std::string DEVICE_TYPE = system::GetParameter("const.product.devicetype", "unknown");
 
 Ace::ContentInfoType GetAceContentInfoType(BackupAndRestoreType type)
 {
@@ -3368,7 +3369,8 @@ WMError WindowSessionImpl::ConvertOrientationAndRotation(
         TLOGE(WmsLogTag::WMS_ROTATION, "windowSession is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    if (!windowSystemConfig_.IsPadWindow() && !windowSystemConfig_.IsPhoneWindow()) {
+    std::string deviceType = GetDeviceType();
+    if (deviceType != "phone" && deviceType != "tablet") {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     if (value < MIN_ROTATION_VALUE || value > MAX_ROTATION_VALUE) {
@@ -3384,6 +3386,14 @@ WMError WindowSessionImpl::ConvertOrientationAndRotation(
     WSError ret = hostSession->ConvertOrientationAndRotation(from, to, value, convertedValue);
     TLOGI(WmsLogTag::WMS_ROTATION, "convertedValue:%{public}d", convertedValue);
     return static_cast<WMError>(ret);
+}
+
+std::string WindowSessionImpl::GetDeviceType() const
+{
+    std::string deviceType = DEVICE_TYPE;
+    std::transform(deviceType.begin(), deviceType.end(), deviceType.begin(), ::tolower);
+    TLOGI(WmsLogTag::WMS_ROTATION, "The device type is:%{public}s", deviceType.c_str());
+    return deviceType;
 }
 
 Orientation WindowSessionImpl::ConvertUserOrientationToUserPageOrientation(Orientation Orientation) const

@@ -611,6 +611,7 @@ public:
     bool isNeededForciblySetOrientation(Orientation orientation) override;
     void BeginRSTransaction(const std::shared_ptr<RSTransaction>& rsTransaction) const;
     WSError NotifyPageRotationIsIgnored() override;
+    std::string GetDeviceType() const;
     WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
         const int32_t value, int32_t& convertedValue) override;
 
