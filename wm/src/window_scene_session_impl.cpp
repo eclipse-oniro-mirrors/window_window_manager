@@ -509,6 +509,10 @@ WMError WindowSceneSessionImpl::CreateSystemWindow(WindowType type)
         // set parent persistentId
         property_->SetParentPersistentId(parentSession->GetPersistentId());
         property_->SetDisplayId(parentSession->GetDisplayId());
+    } else if (WindowHelper::IsInputWindow(type)) {
+        TLOGD(WmsLogTag::WMS_LIFE, "input method need default displayId");
+    } else { // normal system window in specific scenePanel
+        return WMError::WM_OK;
     }
     SetDefaultDisplayIdIfNeed();
     return WMError::WM_OK;
