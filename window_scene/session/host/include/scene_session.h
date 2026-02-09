@@ -265,7 +265,7 @@ public:
     WSError ReconnectInner(sptr<WindowSessionProperty> property) REQUIRES(SCENE_GUARD);
     bool IsRecovered() const { return isRecovered_; }
     void SetRecovered(bool isRecovered) { isRecovered_ = isRecovered; }
-    void NotifyModeSwitchInfo();
+    WSError NotifyModeSwitchInfo();
     void ClearAllModifiers();
 
     /*

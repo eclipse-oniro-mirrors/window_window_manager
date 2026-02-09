@@ -295,14 +295,14 @@ WSError SceneSession::ReconnectInner(sptr<WindowSessionProperty> property)
     return ret;
 }
 
-void SceneSession::NotifyModeSwitchInfo()
+WSError SceneSession::NotifyModeSwitchInfo()
 {
     if (sessionStage_ == nullptr) {
         TLOGE(WmsLogTag::WMS_RECOVER, "no stage, id: %{public}u, winName: %{public}s", GetPersistentId(),
               GetWindowName().c_str());
         return WSError::WS_ERROR_NULLPTR;
     }
-    sessionStage_->UpdateWindowUIType(systemConfig_.windowUIType_);
+    return sessionStage_->UpdateWindowUIType(systemConfig_.windowUIType_);
 }
 
 void SceneSession::ClearAllModifiers()
