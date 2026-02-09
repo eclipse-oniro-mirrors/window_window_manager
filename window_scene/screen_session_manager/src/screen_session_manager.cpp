@@ -4475,7 +4475,7 @@ void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenS
     std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);
-    if (it == dpiMap.end()) {
+    if (it == dpiMap.end() || !WindowHelper::IsFloatingNumber(it->second)) {
         float density_ = CalDefaultExtendScreenDensity(property);
         float dpi = GetOptionalDpi(density_ * EXTEND_SCREEN_DPI_BASELINE);
         extendDefaultDensity_ = dpi / EXTEND_SCREEN_DPI_BASELINE;
@@ -13722,7 +13722,7 @@ void ScreenSessionManager::SetExtendScreenIndepDpi()
     std::string serialNumber = externalSession->GetSerialNumber();
     ScreenId screenId = externalSession->GetScreenId();
     auto it = dpiMap.find(serialNumber);
-    if (it == dpiMap.end()) {
+    if (it == dpiMap.end() || !WindowHelper::IsFloatingNumber(it->second)) {
         TLOGNFW(WmsLogTag::DMS, "get setting extend screen density fail,"
             "use default density: %{public}f", extendDefaultDensity_);
         SetVirtualPixelRatio(screenId, extendDefaultDensity_);
