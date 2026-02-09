@@ -1517,6 +1517,13 @@ napi_value JsSceneSessionManager::ResetPcFoldScreenArrangeRule(napi_env env, nap
     return (me != nullptr) ? me->OnResetPcFoldScreenArrangeRule(env, info) : nullptr;
 }
 
+napi_value JsSceneSessionManager::CloneWindow(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_PC, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnCloneWindow(env, info) : nullptr;
+}
+
 napi_value JsSceneSessionManager::RefreshPcZOrder(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
@@ -1545,13 +1552,6 @@ napi_value JsSceneSessionManager::SetStatusBarAvoidHeight(napi_env env, napi_cal
 {
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnSetStatusBarAvoidHeight(env, info) : nullptr;
-}
-
-napi_value JsSceneSessionManager::CloneWindow(napi_env env, napi_callback_info info)
-{
-    TLOGD(WmsLogTag::WMS_PC, "[NAPI]");
-    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnCloneWindow(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::RegisterSingleHandContainerNode(napi_env env, napi_callback_info info)

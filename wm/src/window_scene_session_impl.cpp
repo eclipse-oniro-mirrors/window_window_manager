@@ -728,6 +728,9 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
     if (zLevel != NORMAL_SUB_WINDOW_Z_LEVEL) {
         property_->SetSubWindowZLevel(zLevel);
     }
+    if (IsSubWindowMaximizeSupported()) {
+        property_->SetDecorEnable(windowOption_->GetSubWindowDecorEnable());
+    }
 
     bool isSpecificSession = false;
     const auto& initRect = GetRequestRect();
@@ -3943,7 +3946,7 @@ WMError WindowSceneSessionImpl::Maximize()
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    if (WindowHelper::IsMainWindow(GetType())) {
+    if (WindowHelper::IsMainWindow(GetType()) || IsSubWindowMaximizeSupported()) {
         UpdateIsShowDecorInFreeMultiWindow(true);
         SetLayoutFullScreen(enableImmersiveMode_);
     }
@@ -3999,10 +4002,7 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
               GetWindowId(), static_cast<uint32_t>(state));
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-    if (!WindowHelper::IsMainWindow(GetType())) {
-        if (IsSubWindowMaximizeSupported()) {
-            return MaximizeFloating();
-        }
+    if (!WindowHelper::IsMainWindow(GetType()) && !IsSubWindowMaximizeSupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "maximize fail, not main or sub window");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
@@ -6123,13 +6123,6 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(WindowMode mode)
                 TLOGE(WmsLogTag::WMS_IMMS, "SetLayoutFullScreenByApiVersion errCode:%{public}d winId:%{public}u",
                     static_cast<int32_t>(ret), GetWindowId());
             }
-            SystemBarProperty statusProperty = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
-            statusProperty.enable_ = false;
-            ret = SetSystemBarProperty(WindowType::WINDOW_TYPE_STATUS_BAR, statusProperty);
-            if (ret != WMError::WM_OK) {
-                WLOGFE("SetSystemBarProperty errCode:%{public}d winId:%{public}u",
-                    static_cast<int32_t>(ret), GetWindowId());
-            }
         }
     }
     return static_cast<WSError>(ret);
@@ -6297,6 +6290,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
         UpdateImmersiveBySwitchMode(enable);
     }
     SwitchSubWindow(enable, GetPersistentId());
+    SwitchSystemWindow(enable, GetPersistentId());
     return WSError::WS_OK;
 }
 
