@@ -31,7 +31,6 @@
 #include "ffrt_serial_queue_helper.h"
 #include "parameter.h"
 #include "publish/scb_dump_subscriber.h"
-#include "resource_manager.h"
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "uea_list_config.h"
 #include "wm_common.h"
