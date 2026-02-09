@@ -615,7 +615,7 @@ WSError SessionProxy::BatchPendingSessionsActivation(
         TLOGE(WmsLogTag::WMS_LIFE, "Write ability session info list size failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    for (auto abilitySessionInfo : abilitySessionInfos) {
+    for (const auto& abilitySessionInfo : abilitySessionInfos) {
         WSError writeRet = WriteOneSessionInfo(data, abilitySessionInfo);
         if (writeRet != WSError::WS_OK) {
             return writeRet;

@@ -134,6 +134,7 @@ public:
     static ani_object CreateAniWindow(ani_env* env, OHOS::sptr<OHOS::Rosen::Window>& window);
     static ani_int GetWindowStatus(ani_env* env, ani_object obj, ani_long nativeObj);
     static void Minimize(ani_env* env, ani_object obj, ani_long nativeObj);
+    void HideWindowFunction(ani_env* env, WmErrorCode errCode);
     static void Maximize(ani_env* env, ani_object obj, ani_long nativeObj,
                          ani_object aniPresentation, ani_object aniAcrossDisplay);
     static void StartMoving(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -169,7 +170,6 @@ public:
     void SetParentWindow(ani_env* env, ani_int windowId);
     void SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost);
     void Restore(ani_env* env);
-    void HideWindowFunction(ani_env* env, WmErrorCode errCode);
 
     /*
      * Multi Window
