@@ -478,8 +478,8 @@ void AniWindow::OnScale(ani_env* env, ani_object scaleOptions)
         AniWindowUtils::AniThrowError(env, ret);
         return;
     }
-    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Scale end ",
-        "scaleX=%{public}f, scaleY=%{public}f, pivotX=%{public}f pivotY=%{public}f"
+    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Scale end, "
+        "scaleX=%{public}f, scaleY=%{public}f, pivotX=%{public}f pivotY=%{public}f",
         window->GetWindowId(), window->GetWindowName().c_str(),
         trans.scaleX_, trans.scaleY_, trans.pivotX_, trans.pivotY_);
 }
@@ -644,7 +644,7 @@ void AniWindow::OnRotate(ani_env* env, ani_object rotateOptions)
         AniWindowUtils::AniThrowError(env, ret);
         return;
     }
-    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Rotate end",
+    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Rotate end, "
         " rotateX=%{public}f, rotateY=%{public}f, rotateZ=%{public}f pivotX=%{public}f pivotY=%{public}f",
         window->GetWindowId(), window->GetWindowName().c_str(),
         trans.rotationX_, trans.rotationY_, trans.rotationZ_, trans.pivotX_, trans.pivotY_);

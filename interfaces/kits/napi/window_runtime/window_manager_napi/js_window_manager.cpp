@@ -1093,7 +1093,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
     };
     napi_value result = nullptr;
     NapiAsyncTask::Schedule("JsWindowManager::OnGetTopWindow",
-        env, CreateAsyncTaskWithLastParam(env, callback, std::move(execute), std::move(complete), $result));
+        env, CreateAsyncTaskWithLastParam(env, callback, std::move(execute), std::move(complete), &result));
     auto asyncTask = CreateAsyncTask(env, callback,
         std::make_unique<NapiAsyncTask::ExecuteCallback>(std::move(execute)),
         std::make_unique<NapiAsyncTask::CompleteCallback>(std::move(complete)), &result);
