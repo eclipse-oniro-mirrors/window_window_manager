@@ -24,13 +24,13 @@
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 
-#define RETURN_IF_PARAM_IS_NULL(param, ...)                                   \
+#define RETURN_IF_NULL(param, ...)                                            \
     do {                                                                      \
         if (!param) {                                                         \
             TLOGE(WmsLogTag::WMS_KEYBOARD, "The %{public}s is null", #param); \
             return __VA_ARGS__;                                               \
         }                                                                     \
-    } while (false)                                                           \
+    } while (false)
 
 namespace OHOS::Rosen {
 namespace {
@@ -972,7 +972,10 @@ bool KeyboardSession::IsNeedRaiseSubWindow(const sptr<SceneSession>& callingSess
 
 void KeyboardSession::HandleCrossScreenChild(bool isMoveOrDrag)
 {
-    RETURN_IF_PARAM_IS_NULL(moveDragController_);
+    RETURN_IF_NULL(keyboardPanelSession_);
+    auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
+    RETURN_IF_NULL(keyboardPanelSurfaceNode);
+    RETURN_IF_NULL(moveDragController_);
     auto displayIds = isMoveOrDrag ?
         moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag() :
         moveDragController_->GetDisplayIdsDuringMoveDrag();
@@ -989,9 +992,6 @@ void KeyboardSession::HandleCrossScreenChild(bool isMoveOrDrag)
             TLOGI(WmsLogTag::WMS_KEYBOARD, "virtual screen, no need to add cross parent child");
             continue;
         }
-        RETURN_IF_PARAM_IS_NULL(keyboardPanelSession_);
-        auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
-        RETURN_IF_PARAM_IS_NULL(keyboardPanelSurfaceNode);
         auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
         if (dragMoveMountedNode == nullptr) {
             TLOGE(WmsLogTag::WMS_KEYBOARD, "dragMoveMountedNode is null");
@@ -1063,20 +1063,26 @@ void KeyboardSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool n
         GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_, GetSizeChangeReason());
     TLOGD(WmsLogTag::WMS_KEYBOARD, "id: %{public}d, rect: %{public}s isGlobal: %{public}d needFlush: %{public}d",
         GetPersistentId(), rect.ToString().c_str(), isGlobal, needFlush);
+
+    RETURN_IF_NULL(keyboardPanelSession_);
+    auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
+    RETURN_IF_NULL(keyboardPanelSurfaceNode);
+
+    // When drag ends (needFlush == false) and the window is crossing screens,
+    // surface node property changes will be committed together with the ArkUI
+    // relayout triggered on the next vsync, so no explicit flush is required here.
+    // If the window is NOT crossing screens, the changes should be flushed
+    // immediately to avoid affecting the next drag operation.
+    if (!needFlush) {
+        needFlush = moveDragController_ && !moveDragController_->IsWindowCrossScreenOnDragEnd();
+        TLOGD(WmsLogTag::WMS_KEYBOARD, "On drag end, needFlush: %{public}d", needFlush);
+    }
+
     {
-        AutoRSTransaction trans(GetRSUIContext(), needFlush);
-        if (keyboardPanelSession_ == nullptr) {
-            TLOGE(WmsLogTag::WMS_KEYBOARD, "keyboard panel session is null");
-            return;
-        }
-        auto surfaceNode = keyboardPanelSession_->GetSurfaceNode();
-        if (surfaceNode == nullptr) {
-            TLOGE(WmsLogTag::WMS_KEYBOARD, "keyboard panel surfacenode is null");
-            return;
-        }
-        surfaceNode->SetGlobalPositionEnabled(isGlobal);
-        surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
+        AutoRSTransaction trans(keyboardPanelSurfaceNode, needFlush);
+        keyboardPanelSurfaceNode->SetGlobalPositionEnabled(isGlobal);
+        keyboardPanelSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
+        keyboardPanelSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
     }
 }
 

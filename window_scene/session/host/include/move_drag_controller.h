@@ -222,7 +222,7 @@ public:
      * @return true if the window was dragged to a different monitor (cross-screen),
      *         false if the drag operation stayed within the same monitor.
      */
-    bool IsWindowCrossScreenOnDragEnd() const { return moveDragEndDisplayId_ != moveDragStartDisplayId_; };
+    bool IsWindowCrossScreenOnDragEnd() const;
 
     /*
      * Monitor screen connection status
