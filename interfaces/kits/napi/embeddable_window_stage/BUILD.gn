@@ -111,7 +111,7 @@ ohos_shared_library("embeddablewindowstage_kit") {
     "ace_engine:ace_uicontent",
     "c_utils:utils",
     "hilog:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "napi:ace_napi",
   ]
 

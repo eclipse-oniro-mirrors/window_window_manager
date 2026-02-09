@@ -1374,7 +1374,7 @@ std::vector<AppExecFwk::SupportWindowMode> WindowSceneSessionImpl::ExtractSuppor
     std::vector<AppExecFwk::SupportWindowMode> updateWindowModes = {};
     if (windowSystemConfig_.IsPcWindow() || IsFreeMultiWindowMode()) {
         auto metadata = abilityInfo->metadata;
-        for (const auto item : metadata) {
+        for (const auto& item : metadata) {
             if (item.name == "ohos.ability.window.supportWindowModeInFreeMultiWindow") {
                 updateWindowModes = ParseWindowModeFromMetaData(item.value);
             }
@@ -6112,7 +6112,6 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(WindowMode mode)
     uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
     TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, windowModeSupportType: %{public}u, mode: %{public}u",
         GetWindowId(), property_->GetWindowModeSupportType(), static_cast<uint32_t>(mode));
-    uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
     if (!WindowHelper::IsWindowModeSupported(windowModeSupportType, mode) &&
         !ShouldSkipSupportWindowModeCheck(windowModeSupportType, mode)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "%{public}u do not support mode: %{public}u",
