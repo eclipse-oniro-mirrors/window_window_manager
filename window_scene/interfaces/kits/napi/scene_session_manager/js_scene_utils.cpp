@@ -3002,6 +3002,8 @@ napi_value CreateWaterfallResidentState(napi_env env)
         CreateJsValue(env, static_cast<uint32_t>(WaterfallResidentState::OPEN)));
     napi_set_named_property(env, objValue, "CLOSE",
         CreateJsValue(env, static_cast<uint32_t>(WaterfallResidentState::CLOSE)));
+    napi_set_named_property(env, objValue, "CANCEL",
+        CreateJsValue(env, static_cast<uint32_t>(WaterfallResidentState::CANCEL)));
     return objValue;
 }
 

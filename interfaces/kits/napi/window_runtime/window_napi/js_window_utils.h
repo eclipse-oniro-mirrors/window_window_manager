@@ -191,7 +191,7 @@ public:
 class WsNapiAsyncTask final {
 public:
     using ExecuteCallback = std::function<void()>;
-    using CompleteCallback = std::function<void(napi_env, WsNapiAsyncTask&, int32_t)>;
+    using CompleteCallback = std::function<void(napi_env, WsNapiAsyncTask&,  )>;
  
     WsNapiAsyncTask(napi_deferred deferred, std::unique_ptr<ExecuteCallback>&& execute,
         std::unique_ptr<CompleteCallback>&& complete);
