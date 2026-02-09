@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,8 +15,8 @@
 
 #include <gtest/gtest.h>
 
-#include "iremote_window_manager_mocker.h"
 #include "mock_RSIWindowAnimationController.h"
+#include "mock_window_manager_service.h"
 #include "remote_animation.h"
 #include "scene_board_judgement.h"
 #include "session_manager.h"
@@ -375,6 +375,7 @@ HWTEST_F(WindowAdapterTest, WindowManagerAndSessionRecover, TestSize.Level1)
     auto testFunc4 = [] {
         return WMError::WM_DO_NOTHING;
     };
+    windowAdapter.RegisterSessionRecoverCallbackFunc(100, nullptr);
     windowAdapter.RegisterSessionRecoverCallbackFunc(persistentId, testFunc);
     windowAdapter.RegisterUIEffectRecoverCallbackFunc(persistentId, testFunc3);
     windowAdapter.RegisterOutlineRecoverCallbackFunc(testFunc3);
@@ -622,7 +623,7 @@ HWTEST_F(WindowAdapterTest, ReregisterWindowManagerAgent, TestSize.Level1)
 
     // branch 3: mock send ipc success
     g_errLog.clear();
-    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
 
     auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
@@ -1269,7 +1270,7 @@ HWTEST_F(WindowAdapterTest, RegisterWindowPropertyChangeAgent, TestSize.Level1)
     instance_->windowManagerServiceProxy_ = nullptr;
 
     // use mock window manager service proxy.
-    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     EXPECT_CALL(*remoteObject, RegisterWindowPropertyChangeAgent(_, _, _)).Times(1).WillOnce(Return(WMError::WM_OK));
     auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
     instance_->windowManagerServiceProxy_ = wmsProxy;
@@ -1567,7 +1568,7 @@ HWTEST_F(WindowAdapterTest, RegisterWindowManagerAgent, TestSize.Level1)
     instance_->isProxyValid_ = true;
     instance_->windowManagerServiceProxy_ = nullptr;
 
-    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
     auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
     instance_->windowManagerServiceProxy_ = wmsProxy;
@@ -1592,7 +1593,7 @@ HWTEST_F(WindowAdapterTest, UnregisterWindowManagerAgent, TestSize.Level1)
     instance_->windowManagerServiceProxy_ = nullptr;
 
     // mock window manager service proxy
-    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _)).Times(3)
         .WillOnce(Return(WMError::WM_ERROR_SAMGR))
         .WillRepeatedly(Return(WMError::WM_OK));
@@ -1641,7 +1642,7 @@ HWTEST_F(WindowAdapterTest, ReregisterWindowManagerFaultAgent, TestSize.Level1)
     // use mock window manager service proxy
     instance_->isProxyValid_ = true;
     instance_->windowManagerServiceProxy_ = nullptr;
-    auto remoteObject = sptr<IRemoteWindowManagerMocker>::MakeSptr();
+    auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).Times(2)
         .WillOnce(Return(WMError::WM_ERROR_SAMGR))
         .WillRepeatedly(Return(WMError::WM_OK));

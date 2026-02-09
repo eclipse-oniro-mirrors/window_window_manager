@@ -77,7 +77,7 @@ void WMSDeathRecipient::OnRemoteDied(const wptr<IRemoteObject>& wptrDeath)
         TLOGE(WmsLogTag::WMS_RECOVER, "invalid user: %d", userId_);
         return;
     }
-    WindowAdapter::GetInstance(userId_).ClearWindowAdapter();
+    WindowAdapter::GetInstance(userId_).ClearWMSProxy();
 }
 
 WindowAdapter::WindowAdapter(const int32_t userId) : userId_(userId) {}
@@ -383,7 +383,7 @@ WMError WindowAdapter::RecoverWatermarkImageForApp()
     if (appWatermarkName_.empty()) {
         return WMError::WM_OK;
     }
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (!windowManagerServiceProxy_ || !windowManagerServiceProxy_->AsObject()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "proxy is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -488,7 +488,7 @@ WMError WindowAdapter::GetModeChangeHotZones(DisplayId displayId, ModeChangeHotZ
 
 bool WindowAdapter::InitWMSProxy()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (!isProxyValid_) {
         sptr<ISystemAbilityManager> systemAbilityManager =
             SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
@@ -527,7 +527,7 @@ void WindowAdapter::RegisterSessionRecoverCallbackFunc(
     int32_t persistentId, const SessionRecoverCallbackFunc& callbackFunc)
 {
     TLOGI(WmsLogTag::WMS_RECOVER, "persistentId=%{public}d", persistentId);
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(sessionRecoverCallbackMapMutex_);
     sessionRecoverCallbackFuncMap_[persistentId] = callbackFunc;
 }
 
@@ -537,6 +537,7 @@ void WindowAdapter::RegisterUIEffectRecoverCallbackFunc(int32_t id,
     std::lock_guard<std::mutex> lock(effectMutex_);
     uiEffectRecoverCallbackFuncMap_[id] = callbackFunc;
 }
+
 void WindowAdapter::UnregisterUIEffectRecoverCallbackFunc(int32_t id)
 {
     std::lock_guard<std::mutex> lock(effectMutex_);
@@ -554,7 +555,7 @@ WMError WindowAdapter::GetSnapshotByWindowId(int32_t windowId, std::shared_ptr<M
 
 void WindowAdapter::UnregisterSessionRecoverCallbackFunc(int32_t persistentId)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(sessionRecoverCallbackMapMutex_);
     auto it = sessionRecoverCallbackFuncMap_.find(persistentId);
     if (it != sessionRecoverCallbackFuncMap_.end()) {
         sessionRecoverCallbackFuncMap_.erase(it);
@@ -575,42 +576,43 @@ WMError WindowAdapter::UnregisterWMSConnectionChangedListener()
 
 void WindowAdapter::WindowManagerAndSessionRecover()
 {
-    ClearWindowAdapter();
+    ClearWMSProxy();
     if (!InitSSMProxy()) {
         TLOGE(WmsLogTag::WMS_RECOVER, "InitSSMProxy failed");
         return;
     }
-
     ReregisterWindowManagerAgent();
     RecoverWindowPropertyChangeFlag();
     RecoverWatermarkImageForApp();
     RecoverSpecificZIndexSetByApp();
 
-    std::map<int32_t, SessionRecoverCallbackFunc> sessionRecoverCallbackFuncMap;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        sessionRecoverCallbackFuncMap = sessionRecoverCallbackFuncMap_;
-    }
-    for (const auto& it : sessionRecoverCallbackFuncMap) {
-        TLOGD(WmsLogTag::WMS_RECOVER, "Session recover callback, persistentId=%{public}" PRId32, it.first);
-        auto ret = it.second();
-        if (ret != WMError::WM_OK) {
-            TLOGE(WmsLogTag::WMS_RECOVER, "Session recover callback, persistentId=%{public}" PRId32 " is error",
-                it.first);
+    // Avoid directly copying maps to improve performance and thread lock problem.
+    auto HandleRecoverCallback = [](auto& map, std::mutex& mapMutex, const char* name) {
+        using CallbackType = std::function<WMError()>;
+        std::vector<std::pair<int32_t, CallbackType>> recoverCallbacks;
+        {
+            std::lock_guard<std::mutex> lock(mapMutex);
+            recoverCallbacks.reserve(map.size());
+            for (const auto& [id, func] : map) {
+                recoverCallbacks.emplace_back(id, func);
+            }
         }
-    }
-    std::map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap;
-    {
-        std::lock_guard<std::mutex> lock(effectMutex_);
-        uiEffectRecoverCallbackFuncMap = uiEffectRecoverCallbackFuncMap_;
-    }
-    for (const auto& it : uiEffectRecoverCallbackFuncMap) {
-        TLOGD(WmsLogTag::WMS_RECOVER, "ui effect recover callback, id: %{public}d", it.first);
-        auto ret = it.second();
-        if (ret != WMError::WM_OK) {
-            TLOGE(WmsLogTag::WMS_RECOVER, "ui effect create failed, id: %{public}d, reason %{public}d", it.first, ret);
+        for (const auto& [id, func] : recoverCallbacks) {
+            TLOGD(WmsLogTag::WMS_RECOVER, "Run %{public}s callback, id=%{public}d", name, id);
+            if (!func) {
+                TLOGW(WmsLogTag::WMS_RECOVER, "%{public}s callback is null, id=%{public}d", name, id);
+                continue;
+            }
+            auto ret = func();
+            if (ret != WMError::WM_OK) {
+                TLOGE(WmsLogTag::WMS_RECOVER, "%{public}s callback failed, id=%{public}d, ret=%{public}d",
+                    name, id, ret);
+            }
         }
-    }
+    };
+
+    HandleRecoverCallback(sessionRecoverCallbackFuncMap_, sessionRecoverCallbackMapMutex_, "Session recover");
+    HandleRecoverCallback(uiEffectRecoverCallbackFuncMap_, effectMutex_, "UI effect recover");
 
     OutlineRecoverCallbackFunc outlineRecoverCallbackFunc;
     {
@@ -637,16 +639,20 @@ void WindowAdapter::RecoverSpecificZIndexSetByApp()
     }
 }
 
-WMError  WindowAdapter::RecoverWindowPropertyChangeFlag()
+WMError WindowAdapter::RecoverWindowPropertyChangeFlag()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!windowManagerServiceProxy_ || !windowManagerServiceProxy_->AsObject()) {
-        TLOGE(WmsLogTag::WMS_RECOVER, "proxy is null");
-        return WMError::WM_ERROR_NULLPTR;
+    sptr<IWindowManager> wmsProxy = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(wmsProxyMutex_);
+        if (!windowManagerServiceProxy_ || !windowManagerServiceProxy_->AsObject()) {
+            TLOGE(WmsLogTag::WMS_RECOVER, "proxy is null");
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        wmsProxy = windowManagerServiceProxy_;
     }
-    auto ret = windowManagerServiceProxy_->RecoverWindowPropertyChangeFlag(observedFlags_, interestedFlags_);
+    auto ret = wmsProxy->RecoverWindowPropertyChangeFlag(observedFlags_, interestedFlags_);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_RECOVER, "failed, ret=%{public}d", static_cast<int32_t>(ret));
+        TLOGE(WmsLogTag::WMS_RECOVER, "IPC failed, ret=%{public}d", static_cast<int32_t>(ret));
     }
     return ret;
 }
@@ -708,17 +714,18 @@ void WindowAdapter::ReregisterWindowManagerFaultAgent(const sptr<IWindowManager>
 
 void WindowAdapter::OnUserSwitch()
 {
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "User switched");
-    ClearWindowAdapter();
+    ClearWMSProxy();
     InitSSMProxy();
     ReregisterWindowManagerAgent();
     RecoverWindowPropertyChangeFlag();
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "End user switched");
 }
 
 bool WindowAdapter::InitSSMProxy()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (isProxyValid_) {
+        TLOGI(WmsLogTag::WMS_SCB, "proxy has been inited");
         return true;
     }
     windowManagerServiceProxy_ = SessionManager::GetInstance(userId_).GetSceneSessionManagerProxy();
@@ -729,11 +736,15 @@ bool WindowAdapter::InitSSMProxy()
     sptr<IRemoteObject> remoteObject = windowManagerServiceProxy_->AsObject();
     if (!remoteObject) {
         TLOGE(WmsLogTag::WMS_SCB, "remoteObject is null");
+        windowManagerServiceProxy_ = nullptr;
         return false;
     }
-    wmsDeath_ = sptr<WMSDeathRecipient>::MakeSptr(userId_);
+    if (!wmsDeath_) {
+        wmsDeath_ = sptr<WMSDeathRecipient>::MakeSptr(userId_);
+    }
     if (remoteObject->IsProxyObject() && !remoteObject->AddDeathRecipient(wmsDeath_)) {
         TLOGE(WmsLogTag::WMS_SCB, "Failed to add death recipient");
+        windowManagerServiceProxy_ = nullptr;
         return false;
     }
     if (!recoverInitialized_) {
@@ -747,9 +758,9 @@ bool WindowAdapter::InitSSMProxy()
         });
         recoverInitialized_ = true;
     }
-    // U0 system user needs to subscribe OnUserSwitch event
+    // Only u0 system user needs to register user switch listener.
     int32_t clientUserId = GetUserIdByUid(getuid());
-    if (clientUserId == SYSTEM_USERID && !isRegisteredUserSwitchListener_) {
+    if (clientUserId == SYSTEM_USERID) {
         SessionManager::GetInstance(userId_).RegisterUserSwitchListener([weakThis = wptr(this)] {
             auto instance = weakThis.promote();
             if (!instance) {
@@ -758,16 +769,15 @@ bool WindowAdapter::InitSSMProxy()
             }
             instance->OnUserSwitch();
         });
-        isRegisteredUserSwitchListener_ = true;
     }
     isProxyValid_ = true;
     return true;
 }
 
-void WindowAdapter::ClearWindowAdapter()
+void WindowAdapter::ClearWMSProxy()
 {
     TLOGI(WmsLogTag::WMS_RECOVER, "begin clear");
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if ((windowManagerServiceProxy_ != nullptr) && (windowManagerServiceProxy_->AsObject() != nullptr)) {
         windowManagerServiceProxy_->AsObject()->RemoveDeathRecipient(wmsDeath_);
     }
@@ -1353,7 +1363,7 @@ WMError WindowAdapter::GetWindowIdsByCoordinate(DisplayId displayId, int32_t win
 
 sptr<IWindowManager> WindowAdapter::GetWindowManagerServiceProxy() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     return windowManagerServiceProxy_;
 }
 
