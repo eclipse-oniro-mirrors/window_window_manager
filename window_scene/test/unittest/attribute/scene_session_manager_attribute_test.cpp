@@ -119,9 +119,10 @@ HWTEST_F(SceneSessionManagerAttributeTest, IsNeedNotifyScreenshotEvent, TestSize
     ASSERT_NE(nullptr, ssm_);
     auto oldSceneSessionMap = ssm_->sceneSessionMap_;
     auto oldScreenshotEventListenerSessionSet = ssm_->screenshotAppEventListenerSessionSet_;
+    auto oldScreenshotListenerSessionSet = ssm_->screenshotListenerSessionSet_;
+    ssm_->screenshotListenerSessionSet_.clear();
     ssm_->sceneSessionMap_.clear();
     ssm_->screenshotAppEventListenerSessionSet_.clear();
-
     EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(nullptr), false);
 
     SessionInfo sessionInfo;
@@ -129,10 +130,8 @@ HWTEST_F(SceneSessionManagerAttributeTest, IsNeedNotifyScreenshotEvent, TestSize
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->property_->SetPersistentId(100);
     ssm_->sceneSessionMap_.insert(std::make_pair(sceneSession->GetPersistentId(), sceneSession));
-
     sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
     EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(sceneSession), false);
-
     sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
     EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(sceneSession), true);
 
@@ -147,13 +146,20 @@ HWTEST_F(SceneSessionManagerAttributeTest, IsNeedNotifyScreenshotEvent, TestSize
 
     subSession->SetSessionState(SessionState::STATE_DISCONNECT);
     sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(subSession), true);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    EXPECT_NE(ssm_->UpdateSessionScreenshotListener(1100, false), WMError::WM_OK);
+    EXPECT_EQ(ssm_->UpdateSessionScreenshotListener(sceneSession->GetPersistentId(), true), WMError::WM_OK);
     ssm_->OnScreenshot(0);
     auto ret = ssm_->NotifyScreenshotEvent(ScreenshotEventType::SCROLL_SHOT_START);
     EXPECT_NE(ret, WMError::WM_ERROR_INVALID_CALLING);
     EXPECT_EQ(ssm_->IsNeedNotifyScreenshotEvent(subSession), true);
+    EXPECT_EQ(ssm_->UpdateSessionScreenshotListener(sceneSession->GetPersistentId(), false), WMError::WM_OK);
 
     ssm_->sceneSessionMap_.clear();
     ssm_->screenshotAppEventListenerSessionSet_.clear();
+    ssm_->screenshotListenerSessionSet_.clear();
+    ssm_->screenshotListenerSessionSet_ = oldScreenshotListenerSessionSet;
     ssm_->sceneSessionMap_ = oldSceneSessionMap;
     ssm_->screenshotAppEventListenerSessionSet_ = oldScreenshotEventListenerSessionSet;
 }
