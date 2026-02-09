@@ -75,6 +75,8 @@ public:
     void NotifySessionLockStateChange(bool isLockedState) override;
     void SetSessionLockState(bool isLockedState);
     bool GetSessionLockState() const;
+    void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func) override;
+    void SetIsUserRequestedExit(bool isUserRequestedExit) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) const override;
     void SetRecentSessionState(RecentSessionInfo& info, const SessionState& state) override;
 

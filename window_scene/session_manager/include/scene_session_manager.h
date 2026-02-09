@@ -1030,7 +1030,7 @@ private:
     void RegisterHookSceneSessionActivationFunc(const sptr<SceneSession>& sceneSession);
     void SetSessionInfoStartWindowType(const sptr<SceneSession>& sceneSession);
     void RegisterSceneSessionDestructNotifyManagerFunc(const sptr<SceneSession>& sceneSession);
-    void UpdateAbilityHookState(sptr<SceneSession>& sceneSession, bool isAbilityHook);
+    void UpdateAbilityHookState(const sptr<SceneSession>& sceneSession, bool isAbilityHook);
     void ResetSceneMissionInfo(const sptr<AAFwk::SessionInfo>& abilitySessionInfo);
     void CloseAllFd(std::shared_ptr<AAFwk::Want>& want);
     WMError CheckWindowIds(
