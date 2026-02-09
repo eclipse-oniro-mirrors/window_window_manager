@@ -1066,6 +1066,25 @@ HWTEST_F(WindowPatternSnapshotTest, SetHasSnapshot, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HasPersistentSnapshot
+ * @tc.desc: HasPersistentSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, HasPersistentSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->scenePersistence_ = nullptr;
+    bool res = session_->HasPersistentSnapshot();
+    EXPECT_EQ(res, false);
+
+    session_->scenePersistence_ =
+        sptr<ScenePersistence>::MakeSptr(session_->sessionInfo_.bundleName_, session_->persistentId_);
+    session_->scenePersistence_->SetIsSavingSnapshot(true);
+    res = session_->HasPersistentSnapshot();
+    EXPECT_EQ(res, true);
+}
+
+/**
  * @tc.name: CheckSurfaceNodeForSnapshot
  * @tc.desc: CheckSurfaceNodeForSnapshot Test
  * @tc.type: FUNC
