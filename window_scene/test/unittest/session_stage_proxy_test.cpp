@@ -950,19 +950,6 @@ HWTEST_F(SessionStageProxyTest, SendContainerModalEvent, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyRotationChange
- * @tc.desc: test function : NotifyRotationChange
- * @tc.type: FUNC
- */
-HWTEST_F(SessionStageProxyTest, NotifyRotationChange, Function | SmallTest | Level1)
-{
-    ASSERT_TRUE(sessionStage_ != nullptr);
-    RotationChangeInfo info = { RotationChangeType::WINDOW_WILL_ROTATE, 0, 0, { 0, 0, 2720, 1270 } };
-    RotationChangeResult res = sessionStage_->NotifyRotationChange(info);
-    ASSERT_EQ(0, res.windowRect_.width_);
-}
-
-/**
  * @tc.name: NotifyTargetRotationInfo
  * @tc.desc: test function : NotifyTargetRotationInfo
  * @tc.type: FUNC

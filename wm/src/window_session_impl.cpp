@@ -2122,10 +2122,13 @@ void WindowSessionImpl::HideTitleButton(bool& hideSplitButton, bool& hideMaximiz
         }
         std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
         if (uiContent == nullptr || !window->IsDecorEnable()) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "isDecorEnable: %{public}d", window->IsDecorEnable());
             return;
         }
         auto property = window->GetProperty();
         RealTimeSwitchInfo switchInfo = property->GetRealTimeSwitchInfo();
+        TLOGNI(WmsLogTag::WMS_LAYOUT_PC, "isNeedChange_: %{public}d, showTypes_: %{public}u",
+            switchInfo.isNeedChange_, switchInfo.showTypes_);
         uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
         uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
         bool isFullScreenStart = property->IsFullScreenStart();
@@ -5468,13 +5471,13 @@ static void RequestInputMethodCloseKeyboard(bool isNeedKeyboard, bool keepKeyboa
             hostWindowId = uiContent->GetUIContentWindowID(uiContent->GetInstanceId());
         }
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Notify InputMethod framework close keyboard start. id: %{public}d, "
-              "isUIEProc: %{public}d, hostWindowId: %{public}d", windowId, isUIEProc, hostWindowId);
+            "isUIEProc: %{public}d, hostWindowId: %{public}d", windowId, isUIEProc, hostWindowId);
         auto inputMethodController = MiscServices::InputMethodController::GetInstance();
         if (inputMethodController) {
             inputMethodController->RequestHideInput(static_cast<uint32_t>(hostWindowId));
             MiscServices::ClientType clientType = MiscServices::CLIENT_TYPE_END;
-            if (inputMethodController->GetClientType(clientType) == MiscServices::ErrorCode::NO_ERROR
-                && clientType == MiscServices::INNER_KIT_ARKUI) {
+            if (inputMethodController->GetClientType(clientType) == MiscServices::ErrorCode::NO_ERROR &&
+                clientType == MiscServices::INNER_KIT_ARKUI) {
                 inputMethodController->Close();
             }
             TLOGD(WmsLogTag::WMS_KEYBOARD, "Notify InputMethod framework close keyboard end.");
@@ -6839,7 +6842,7 @@ template<typename T>
 EnableIfSame<T, IWindowRotationChangeListener, std::vector<sptr<IWindowRotationChangeListener>>> WindowSessionImpl::GetListeners()
 {
     std::vector<sptr<IWindowRotationChangeListener>> windowRotationChangeListener;
-    for (auto& listener : windowRotationChangeListeners_[GetPersistentId()]) {
+    for (const auto& listener : windowRotationChangeListeners_[GetPersistentId()]) {
         windowRotationChangeListener.push_back(listener);
     }
     return windowRotationChangeListener;
@@ -9138,16 +9141,16 @@ void WindowSessionImpl::SwitchSubWindow(bool freeMultiWindowEnable, int32_t pare
 
 void WindowSessionImpl::SwitchSystemWindow(bool freeMultiWindowEnable, int32_t parentId)
 {
-    std::lock_guard<std::shared_mutex> lock(windowSessionMutex_);
+    std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
     if (windowSessionMap_.empty()) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap is empty.");
+        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty.");
         return;
     }
     for (const auto& winPair : windowSessionMap_) {
-        auto systemWindowSession = winPair.second.second;
-        if (systemWindowSession && WindowHelper::IsSystemWindow(systemWindowSession->GetType())) {
-            systemWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
-            systemWindowSession->NotifyFreeWindowModeChange(freeMultiWindowEnable);
+        if (winPair.second.second && WindowHelper::IsSystemWindow(winPair.second.second->GetType())) {
+            auto sysWindowSession = winPair.second.second;
+            sysWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
+            sysWindowSession->NotifyFreeWindowModeChange(freeMultiWindowEnable);
         }
     }
 }

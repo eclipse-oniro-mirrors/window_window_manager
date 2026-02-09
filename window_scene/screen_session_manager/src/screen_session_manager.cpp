@@ -6048,6 +6048,12 @@ void ScreenSessionManager::RegisterOffScreenRenderingSettingSwitchObserver()
 void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
 {
 #ifdef WM_MULTI_SCREEN_ENABLE
+    sptr<ScreenSession> externalSession = GetExternalSession();
+    if (externalSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS, "activate mode change mask");
     OnScreenModeChange(ScreenModeChangeEvent::BEGIN);
     {
         std::unique_lock<std::mutex> lock(screenMaskMutex_);
@@ -6058,11 +6064,6 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
     }
     ScreenSettingHelper::GetSettingOffScreenRenderValue(g_offScreenRenderValue,
         SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY); 
-    sptr<ScreenSession> externalSession = GetExternalSession();
-    if (externalSession == nullptr) {
-        TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
-        return;
-    }
     auto externalScreenProperty = externalSession->GetScreenProperty();
     RRect previousScreenBounds = externalScreenProperty.GetBounds();
     sptr<ScreenSession> phyScreenSession = GetPhysicalScreenSession(externalSession->GetRSScreenId());

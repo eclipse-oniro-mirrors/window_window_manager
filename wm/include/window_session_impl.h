@@ -510,8 +510,8 @@ public:
     WSError SetDragActivated(bool dragActivated) override;
     WSError SetEnableDragBySystem(bool enableDrag) override;
     bool IsWindowDraggable();
-    float GetVirtualPixelRatio() override;
     CrossAxisState GetCrossAxisState() override;
+    float GetVirtualPixelRatio() override;
     void RegisterKeyFrameCallback();
     WSError LinkKeyFrameNode() override;
     WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
@@ -597,11 +597,12 @@ public:
     /*
      * Window Rotation
      */
+    WSError SetCurrentRotation(int32_t currentRotation) override;
     WMError RegisterWindowRotationChangeListener(const sptr<IWindowRotationChangeListener>& listener) override;
     WMError UnregisterWindowRotationChangeListener(const sptr<IWindowRotationChangeListener>& listener) override;
     RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo) override;
     WMError CheckMultiWindowRect(uint32_t& width, uint32_t& height);
-    WSError SetCurrentRotation(int32_t currentRotation) override;
+    WMError SetFollowScreenChange(bool isFollowScreenChange) override;
     void UpdateCurrentWindowOrientation(DisplayOrientation displayOrientation);
     DisplayOrientation GetCurrentWindowOrientation() const;
     Orientation ConvertUserOrientationToUserPageOrientation(Orientation orientation) const;
@@ -610,7 +611,6 @@ public:
     bool IsUserOrientation(Orientation orientation) const;
     bool IsUserPageOrientation(Orientation orientation) const;
     bool isNeededForciblySetOrientation(Orientation orientation) override;
-    WMError SetFollowScreenChange(bool isFollowScreenChange) override;
     void BeginRSTransaction(const std::shared_ptr<RSTransaction>& rsTransaction) const;
     WSError NotifyPageRotationIsIgnored() override;
     WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
@@ -1079,8 +1079,8 @@ private:
     WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
     void SetFrameLayoutCallbackEnable(bool enable);
     void UpdateFrameLayoutCallbackIfNeeded(WindowSizeChangeReason wmReason);
-    bool IsNotifyInteractiveDuplicative(bool interactive);
     void SetUniqueVirtualPixelRatioForSub(bool useUniqueDensity, float virtualPixelRatio);
+    bool IsNotifyInteractiveDuplicative(bool interactive);
     bool IsWindowShouldDrag();
     bool CheckCanDragWindowType();
 
@@ -1126,8 +1126,8 @@ private:
     static std::mutex preferredOrientationChangeListenerMutex_;
     static std::mutex windowOrientationChangeListenerMutex_;
     static std::mutex highlightChangeListenerMutex_;
-    static std::mutex windowRotationChangeListenerMutex_;
     static std::mutex freeWindowModeChangeListenerMutex_;
+    static std::mutex windowRotationChangeListenerMutex_;
     static std::mutex occlusionStateChangeListenerMutex_;
     static std::unordered_map<int32_t,
         std::vector<sptr<IOcclusionStateChangedListener>>> occlusionStateChangeListeners_;
