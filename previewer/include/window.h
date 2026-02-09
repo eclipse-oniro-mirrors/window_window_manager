@@ -110,10 +110,6 @@ public:
     virtual void AnimationForShown() = 0;
     virtual void AnimationForHidden() = 0;
 };
-class ISystemBarPropertyListener : virtual public RefBase {
-public:
-    virtual void OnSystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
-};
 class IScreenshotListener : virtual public RefBase {
 };
 class IScreenshotAppEventListener : virtual public RefBase {
@@ -743,36 +739,6 @@ public:
      * @param WindowType of the root host window.
      */
     virtual void SetRootHostWindowType(WindowType& rootHostWindowType) {}
-
-    /**
-     * @brief Register SystemBarProperty listener.
-     *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    virtual WMError RegisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
-    /**
-     * @brief Unregister SystemBarProperty listener.
-     *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means unregister success, others means unregister failed.
-     */
-    virtual WMError UnregisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
-    /**
-     * @brief Notify SystemBarProperty listener.
-     *
-     * @param type The WindowType.
-     * @param property new property value setted by developer.
-     */
-    virtual void NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 
     /**
      * @brief Get window state snapshot.
