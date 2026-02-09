@@ -1633,7 +1633,7 @@ bool ConvertRealTimeSwitchInfoFromJs(napi_env env, napi_value value, RealTimeSwi
     return true;
 }
 
-bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, CompatibleModeProperty& compatibleModeProperty)
+bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, CompatibleModeProperty& property)
 {
     std::map<std::string, void (CompatibleModeProperty::*)(bool)> funcs = {
         {"isAdaptToImmersive", &CompatibleModeProperty::SetIsAdaptToImmersive},
@@ -1660,16 +1660,15 @@ bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, Compati
         bool ret = false;
         if (ParseJsValue(env, value, paramStr, ret)) {
             void (CompatibleModeProperty::*func)(bool) = iter->second;
-            (compatibleModeProperty.*func)(ret);
+            (property.*func)(ret);
             atLeastOneParam = true;
         }
     }
     RealTimeSwitchInfo realTimeSwitchInfo;
     if (ConvertRealTimeSwitchInfoFromJs(env, value, realTimeSwitchInfo)) {
-        compatibleModeProperty.SetRealTimeSwitchInfo(realTimeSwitchInfo);
+        property.SetRealTimeSwitchInfo(realTimeSwitchInfo);
         atLeastOneParam = true;
     }
-    TLOGI(WmsLogTag::WMS_COMPAT, "property: %{public}s", compatibleModeProperty.ToString().c_str());
     return atLeastOneParam;
 }
 

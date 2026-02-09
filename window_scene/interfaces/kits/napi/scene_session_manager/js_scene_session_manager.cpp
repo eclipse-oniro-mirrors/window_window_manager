@@ -5190,14 +5190,14 @@ napi_value JsSceneSessionManager::OnSetIsWindowRectAutoSave(napi_env env, napi_c
     }
     std::string abilityKey;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_TWO], abilityKey)) {
-        TLOGE(WmsLogTag::WMS_MAIN, "Failed to convert abilityKey to %{public}s", abilityKey.c_str());
+        TLOGE(WmsLogTag::WMS_MAIN, "[NAPI]Failed to convert key to %{public}s", abilityKey.c_str());
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     bool isSaveBySpecifiedFlag = false;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_THREE], isSaveBySpecifiedFlag)) {
-        TLOGE(WmsLogTag::WMS_MAIN, "Failed to convert isSaveBySpecifiedFlag to %{public}d", isSaveBySpecifiedFlag);
+        TLOGE(WmsLogTag::WMS_MAIN, "[NAPI]Failed to convert enabled to %{public}d", isSaveBySpecifiedFlag);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
