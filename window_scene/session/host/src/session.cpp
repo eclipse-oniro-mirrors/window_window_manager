@@ -2978,11 +2978,9 @@ bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surface
     if (IsPersistentImageFit()) {
         return false;
     }
-    auto key = GetSessionSnapshotStatus();
     if (!surfaceNode || !surfaceNode->IsBufferAvailable()) {
-        DeleteHasSnapshot(key);
-        scenePersistence_->SetHasSnapshot(false, key);
-        scenePersistence_->SetHasSnapshotFreeMultiWindow(false);
+        DeleteHasSnapshot();
+        scenePersistence_->ClearSnapshot();
         return false;
     }
     return true;
@@ -3444,7 +3442,7 @@ bool Session::HasPersistentSnapshot()
     if (!scenePersistence_) {
         return false;
     }
-    return scenePersistence_->IsSavingSnapshot() || scenePersistence_->HasSnapshot() || HasSnapshot();
+    return scenePersistence_->IsSavingSnapshot() || scenePersistence_->HasSnapshot();
 }
 
 bool Session::HasSnapshot()
