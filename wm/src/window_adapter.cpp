@@ -343,6 +343,14 @@ WMError WindowAdapter::GetMainWindowSnapshot(const std::vector<int32_t>& windowI
     return wmsProxy->GetMainWindowSnapshot(windowIds, config, callback);
 }
 
+WMError WindowAdapter::SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetWindowSnapshotSkip(windowId, isSkip);
+}
+
 WMError WindowAdapter::GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);

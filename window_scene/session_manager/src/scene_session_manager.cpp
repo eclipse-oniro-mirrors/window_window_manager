@@ -15466,6 +15466,20 @@ bool SceneSessionManager::IsGetWindowLayoutInfoNeeded(const sptr<SceneSession>& 
     return !session->GetSessionInfo().isSystem_ || LAYOUT_INFO_WHITELIST.find(name) != LAYOUT_INFO_WHITELIST.end();
 }
 
+WMError SceneSessionManager::SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied: winId=%{public}d, isSkip=%{public}d", windowId, isSkip);
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+    auto session = GetSceneSession(windowId);
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no session: winId=%{public}d, isSkip=%{public}d", windowId, isSkip);
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    return session->SetWindowSnapshotSkip(isSkip);
+}
+
 WMError SceneSessionManager::GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode)
 {
     return taskScheduler_->PostSyncTask([this, displayId, &globalWinMode, where = __func__] {
