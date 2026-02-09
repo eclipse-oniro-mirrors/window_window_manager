@@ -28,7 +28,7 @@
 
 namespace OHOS {
 namespace Rosen {
-using SMSRecoverListenerMap = std::map<int32_t, sptr<ISessionManagerServiceRecoverListener>>;
+using SMSRecoverListenerMap = std::unordered_map<int32_t, sptr<ISessionManagerServiceRecoverListener>>;
 class MockSessionManagerService : public SystemAbility, public MockSessionManagerInterfaceStub {
 DECLARE_SYSTEM_ABILITY(MockSessionManagerService);
 WM_DECLARE_SINGLE_INSTANCE_BASE(MockSessionManagerService);
@@ -47,7 +47,7 @@ public:
     /*
      * Multi User
      */
-    bool SetSessionManagerService(const sptr<IRemoteObject>& sessionManagerService);
+    bool SetSessionManagerService(sptr<IRemoteObject> sessionManagerService);
     ErrCode GetSessionManagerService(sptr<IRemoteObject>& sessionManagerService) override;
     ErrCode GetSessionManagerServiceByUserId(int32_t userId, sptr<IRemoteObject>& sessionManagerService) override;
     void NotifyWMSConnected(int32_t userId, DisplayId screenId, bool isColdStart);
@@ -104,7 +104,7 @@ private:
     virtual sptr<IRemoteObject> GetSessionManagerServiceInner(int32_t userId);
     void RemoveSessionManagerServiceByUserId(int32_t userId);
     bool RegisterMockSessionManagerService();
-    ErrCode GetForegroundOsAccountDisplayId(int32_t userId, DisplayId& displayId) const;
+    virtual ErrCode GetForegroundOsAccountDisplayId(int32_t userId, DisplayId& displayId) const;
     ErrCode NotifyWMSConnectionStatus(int32_t userId, const sptr<ISessionManagerServiceRecoverListener>& smsListener);
     virtual int32_t GetUserIdByCallingUid();
 
@@ -168,14 +168,14 @@ private:
     /*
      * Window Recover
      */
-    std::map<int32_t, SMSRecoverListenerMap> recoverListenerMap_;
+    std::unordered_map<int32_t, SMSRecoverListenerMap> recoverListenerMap_;
     std::mutex recoverListenerMutex_;
-    std::map<int32_t, SMSRecoverListenerMap> liteRecoverListenerMap_;
+    std::unordered_map<int32_t, SMSRecoverListenerMap> liteRecoverListenerMap_;
     std::mutex liteRecoverListenerMutex_;
 
-    std::map<DisplayId, SMSRecoverListenerMap> systemAppRecoverListenerMap_;
+    std::unordered_map<DisplayId, SMSRecoverListenerMap> systemAppRecoverListenerMap_;
     std::mutex systemAppRecoverListenerMutex_;
-    std::map<DisplayId, SMSRecoverListenerMap> liteSystemAppRecoverListenerMap_;
+    std::unordered_map<DisplayId, SMSRecoverListenerMap> liteSystemAppRecoverListenerMap_;
     std::mutex liteSystemAppRecoverListenerMutex_;
 
     /*

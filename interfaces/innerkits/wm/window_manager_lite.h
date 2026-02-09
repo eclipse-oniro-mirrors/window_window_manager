@@ -165,7 +165,7 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError GetWindowModeType(WindowModeType& windowModeType) const;
-    
+
     /**
      * @brief Register camera window changed listener.
      *
@@ -205,6 +205,25 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo);
+
+    /**
+     * @brief Register WMS connection status changed listener.
+     * @attention Callable only by u0 system user. A process only supports successful registration once.
+     * When the foundation service restarts, you need to re-register the listener.
+     * If you want to re-register, please call UnregisterWMSConnectionChangedListener first.
+     *
+     * @param listener IWMSConnectionChangedListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    WMError RegisterWMSConnectionChangedListener(const sptr<IWMSConnectionChangedListener>& listener);
+
+    /**
+     * @brief Unregister WMS connection status changed listener.
+     * @attention Callable only by u0 system user.
+     *
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    WMError UnregisterWMSConnectionChangedListener();
 
     /**
      * @brief Get keyboard calling window information.
@@ -247,25 +266,6 @@ public:
      * @return WM_OK means clear session success, others means clear failed.
      */
     WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds);
-
-    /**
-     * @brief Register WMS connection status changed listener.
-     * @attention Callable only by u0 system user. A process only supports successful registration once.
-     * When the foundation service restarts, you need to re-register the listener.
-     * If you want to re-register, please call UnregisterWMSConnectionChangedListener first.
-     *
-     * @param listener IWMSConnectionChangedListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    WMError RegisterWMSConnectionChangedListener(const sptr<IWMSConnectionChangedListener>& listener);
-
-    /**
-     * @brief Unregister WMS connection status changed listener.
-     * @attention Callable only by u0 system user.
-     *
-     * @return WM_OK means unregister success, others means unregister failed.
-     */
-    WMError UnregisterWMSConnectionChangedListener();
 
     /**
      * @brief Register WindowStyle changed listener.
