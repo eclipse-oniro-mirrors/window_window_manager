@@ -2627,7 +2627,8 @@ napi_value ConvertResultToJsValue(napi_env env, RotationChangeResult& rotationCh
 napi_value CreateJsRotationChangeResultMapObject(napi_env env, const int32_t persistentId,
     const RotationChangeResult& rotationChangeResult)
 {
-    TLOGD(WmsLogTag::WMS_ROTATION, "CreateJsRotationChangeResultMapObject persistentId %{public}d, ")
+    TLOGD(WmsLogTag::WMS_ROTATION, "CreateJsRotationChangeResultMapObject persistentId %{public}d, "
+        "rejectType: %{public}d", persistentId, rotationChangeResult.rectType_);
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
     if (objValue == nullptr) {
