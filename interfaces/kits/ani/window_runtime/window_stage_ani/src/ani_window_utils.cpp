@@ -1253,7 +1253,7 @@ ani_object AniWindowUtils::CreateAniFrameMetrics(ani_env* env, const FrameMetric
         return AniWindowUtils::CreateAniUndefined(env);
     }
     ret = CallAniMethodVoid(env, frameMetrics, aniClass, "<set>firstDrawFrame", nullptr,
-        CreateOptionalBool(env, static_cast<ani_boolean>(metrics.firstDrawFrame_)));
+        static_cast<ani_boolean>(metrics.firstDrawFrame_));
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] failed to set firstDrawFrame");
         return AniWindowUtils::CreateAniUndefined(env);
