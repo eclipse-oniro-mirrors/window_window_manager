@@ -16856,17 +16856,17 @@ void SceneSessionManager::ChangeWindowRectYInVirtualDisplay(DisplayId& displayId
     }
     int32_t defaultScreenPhysicalHeight = defaultScreenDisplayInfo->GetPhysicalHeight();
     auto screenDisplay = DisplayManager::GetInstance().GetDisplayById(displayId);
-    int32_t screenHightByDisplayId = defaultScreenPhysicalHeight;
+    int32_t screenHeightByDisplayId = defaultScreenPhysicalHeight;
     if (screenDisplay != nullptr) {
         if (screenDisplay->GetDisplayInfo() != nullptr) {
-            screenHightByDisplayId = screenDisplay->GetDisplayInfo()->GetHeight();
+            screenHeightByDisplayId = screenDisplay->GetDisplayInfo()->GetHeight();
         }
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "defaultScreenPhysicalHeight %{public}d screenHightByDisplayId %{public}d",
-        defaultScreenPhysicalHeight, screenHightByDisplayId);
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "defaultScreenPhysicalHeight %{public}d screenHeightByDisplayId %{public}d",
+        defaultScreenPhysicalHeight, screenHeightByDisplayId);
     if (displayId == VIRTUAL_DISPLAY_ID) {
         displayId = DEFAULT_DISPLAY_ID;
-        y = y + defaultScreenPhysicalHeight - screenHightByDisplayId;
+        y = y + defaultScreenPhysicalHeight - screenHeightByDisplayId;
     }
 }
 
@@ -17094,7 +17094,7 @@ WMError SceneSessionManager::UpdateDisplayHookInfo(int32_t uid, uint32_t width, 
 
 WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInfo& hookInfo, bool enable)
 {
-    TLOGI(WmsLogTag::WMS_COMPAT, "hookInfo: [%{public}s], enable: %{public}d", hookInfo.ToString().c_str(), enable);
+    TLOGI(WmsLogTag::WMS_COMPAT, "hookInfo: [%{private}s], enable: %{public}d", hookInfo.ToString().c_str(), enable);
     if (enable && (uid <= 0 || hookInfo.width_ <= 0 || hookInfo.height_ <= 0 || hookInfo.density_ <= 0)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "App hookInfo param error.");
         return WMError::WM_ERROR_INVALID_PARAM;
@@ -17104,9 +17104,9 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
     dmHookInfo.height_ = hookInfo.height_;
     dmHookInfo.density_ = hookInfo.density_;
     dmHookInfo.rotation_ = hookInfo.rotation_;
-    dmHookInfo.enableHookRotation_ = hookInfo.enableHookRotation_;
+    dmHookInfo.enableHookRotation_ = enable ? hookInfo.enableHookRotation_ : false;
     dmHookInfo.displayOrientation_ = hookInfo.displayOrientation_;
-    dmHookInfo.enableHookDisplayOrientation_ = hookInfo.enableHookDisplayOrientation_;
+    dmHookInfo.enableHookDisplayOrientation_ = enable ? hookInfo.enableHookDisplayOrientation_ : false;
     {
         std::shared_lock lock(appHookWindowInfoMapMutex_);
         dmHookInfo.isFullScreenInForceSplit_ = fullScreenInForceSplitUidSet_.find(uid) != fullScreenInForceSplitUidSet_.end();
@@ -17234,13 +17234,15 @@ int32_t SceneSessionManager::GetOrResetRsCmdBlockingCount()
 
 WMError SceneSessionManager::NotifyHookOrientationChange(int32_t persistentId)
 {
-    auto sceneSession = GetSceneSession(persistentId);
-    if (sceneSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "session id:%{public}d is not found", persistentId);
-        return WMError::WM_ERROR_INVALID_PARAM;
-    }
-    sceneSession->UpdateOrientation();
-    return WMError::WM_OK;
+    return taskScheduler_->PostSyncTask([this, persistentId] {
+        auto sceneSession = GetSceneSession(persistentId);
+        if (sceneSession == nullptr) {
+            TLOGNE(WmsLogTag::WMS_COMPAT, "session id:%{public}d is not found", persistentId);
+            return WMError::WM_ERROR_INVALID_PARAM;
+        }
+        sceneSession->UpdateOrientation();
+        return WMError::WM_OK;
+    }, __func__);
 }
 
 void DisplayChangeListener::OnScreenFoldStatusChanged(const std::vector<std::string>& screenFoldInfo)
@@ -18189,10 +18191,11 @@ WSError SceneSessionManager::IsLastFrameLayoutFinished(bool& isLayoutFinished)
 
 WMError SceneSessionManager::IsWindowRectAutoSave(const std::string& key, bool& enabled, int persistentId)
 {
-    return taskScheduler_->PostSyncTask([key, &enabled, persistentId, this] {
+    const char* const where = __func__;
+    return taskScheduler_->PostSyncTask([key, &enabled, persistentId, this, where] {
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
-            TLOGNE(WmsLogTag::WMS_MAIN, "sceneSession %{public}d is nullptr", persistentId);
+            TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s sceneSession %{public}d is nullptr", where, persistentId);
             return WMError::WM_ERROR_INVALID_SESSION;
         }
         std::string specifiedKey = key;
@@ -18202,7 +18205,8 @@ WMError SceneSessionManager::IsWindowRectAutoSave(const std::string& key, bool& 
                 specifiedKey = key + sceneSession->GetSessionInfo().specifiedFlag_;
             }
         }
-        TLOGND(WmsLogTag::WMS_MAIN, "windowId: %{public}d, specifiedKey: %{public}s", persistentId, specifiedKey.c_str());
+        TLOGND(WmsLogTag::WMS_MAIN, "%{public}s windowId: %{public}d, specifiedKey: %{public}s", where,
+            persistentId, specifiedKey.c_str());
         if (auto iter = this->isWindowRectAutoSaveMap_.find(specifiedKey);
             iter != this->isWindowRectAutoSaveMap_.end()) {
             enabled = iter->second;
@@ -18210,8 +18214,7 @@ WMError SceneSessionManager::IsWindowRectAutoSave(const std::string& key, bool& 
             enabled = false;
         }
         return WMError::WM_OK;
-    });
-
+    }, __func__);
 }
 
 WMError SceneSessionManager::SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit, int32_t persistentId)
@@ -18412,7 +18415,7 @@ void SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& image
 void SceneSessionManager::SetIsWindowRectAutoSave(const std::string& key, bool enabled,
     const std::string& abilityKey, bool isSaveBySpecifiedFlag)
 {
-    taskScheduler_->PostSyncTask([key, enabled, abilityKey, isSaveBySpecifiedFlag ,this] {
+    taskScheduler_->PostSyncTask([key, enabled, abilityKey, isSaveBySpecifiedFlag, this] {
         if (auto iter = this->isSaveBySpecifiedFlagMap_.find(abilityKey);
             iter != this->isSaveBySpecifiedFlagMap_.end()) {
             if (!isSaveBySpecifiedFlag) {
@@ -18425,8 +18428,7 @@ void SceneSessionManager::SetIsWindowRectAutoSave(const std::string& key, bool e
                 this->isSaveBySpecifiedFlagMap_.insert({abilityKey, isSaveBySpecifiedFlag});
             }
         }
-        if (auto iter = this->isWindowRectAutoSaveMap_.find(key);
-            iter != this->isWindowRectAutoSaveMap_.end()) {
+        if (auto iter = this->isWindowRectAutoSaveMap_.find(key); iter != this->isWindowRectAutoSaveMap_.end()) {
             if (!enabled) {
                 this->isWindowRectAutoSaveMap_.erase(key);
             } else {
