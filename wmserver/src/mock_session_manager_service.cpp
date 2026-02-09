@@ -271,6 +271,26 @@ void MockSessionManagerService::RemoveSMSDeathRecipientByUserId(int32_t userId)
     }
 }
 
+ErrCode MockSessionManagerService::GetSessionManagerService(sptr<IRemoteObject>& sessionManagerService)
+{
+    int32_t clientUserId = GetUserIdByCallingUid();
+    if (clientUserId <= INVALID_USER_ID) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "userId is illegal: %{public}d", clientUserId);
+        return ERR_INVALID_VALUE;
+    }
+    if (clientUserId == SYSTEM_USERID) {
+        std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
+        clientUserId = defaultWMSUserId_;
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "use default sessionManagerService with %{public}d", clientUserId);
+    }
+    sessionManagerService = GetSessionManagerServiceInner(clientUserId);
+    if (!sessionManagerService) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "sessionManagerService is null");
+        return ERR_INVALID_VALUE;
+    }
+    return ERR_OK;
+}
+
 ErrCode MockSessionManagerService::GetSessionManagerServiceByUserId(int32_t userId,
                                                                     sptr<IRemoteObject>& sessionManagerService)
 {
