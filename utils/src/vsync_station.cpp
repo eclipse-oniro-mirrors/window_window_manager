@@ -41,7 +41,7 @@ constexpr int32_t DEFAULT_ANIMATOR_EXPECTED_FRAME_RATE = -1;
 VsyncStation::VsyncStation(NodeId nodeId, const std::shared_ptr<AppExecFwk::EventHandler>& vsyncHandler)
     : nodeId_(nodeId),
       vsyncHandler_(vsyncHandler),
-      vsyncTimeoutTaskName_(VSYNC_TIME_OUT_TASK + std::to_string(nodeId)),
+      vsyncTimeoutTaskName_(VSYNC_TIME_OUT_TASK + std::to_string(nodeId_)),
       frameRateLinker_(RSFrameRateLinker::Create())
 {
     if (!vsyncHandler_) {
