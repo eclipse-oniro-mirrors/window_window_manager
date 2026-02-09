@@ -720,20 +720,20 @@ sptr<IRemoteObject> MockSessionManagerService::GetSceneSessionManager()
         std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
         defaultWMSUserId = defaultWMSUserId_;
     }
-    TLOGI(WmsLogTag::WMS_SCB, "defaultWMSUserId=%{public}d", defaultWMSUserId);
+    TLOGI(WmsLogTag::DEFAULT, "defaultWMSUserId=%{public}d", defaultWMSUserId);
     auto sessionManagerService = GetSessionManagerServiceInner(defaultWMSUserId);
     if (sessionManagerService == nullptr) {
-        TLOGE(WmsLogTag::WMS_SCB, "Get session mgr service remote failed");
+        TLOGE(WmsLogTag::DEFAULT, "Get session mgr service remote failed");
         return nullptr;
     }
     auto sessionManagerServiceProxy = iface_cast<ISessionManagerService>(sessionManagerService);
     if (!sessionManagerServiceProxy) {
-        TLOGE(WmsLogTag::WMS_SCB, "Get session mgr service proxy failed");
+        TLOGE(WmsLogTag::DEFAULT, "Get session mgr service proxy failed");
         return nullptr;
     }
     sptr<IRemoteObject> remoteObject = sessionManagerServiceProxy->GetSceneSessionManager();
     if (!remoteObject) {
-        TLOGE(WmsLogTag::WMS_SCB, "Get scene session mgr remote failed");
+        TLOGE(WmsLogTag::DEFAULT, "Get scene session mgr remote failed");
         return nullptr;
     }
     UpdateSceneSessionManagerFromCache(defaultWMSUserId, false, remoteObject);
