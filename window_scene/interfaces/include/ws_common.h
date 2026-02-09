@@ -1338,6 +1338,8 @@ enum class LifeCycleChangeReason {
      */
     QUICK_BATCH_BACKGROUND,
 
+    SCREEN_ROTATION,
+
     REASON_END,
 };
 

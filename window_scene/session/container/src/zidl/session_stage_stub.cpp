@@ -902,6 +902,15 @@ int SessionStageStub::HandleNotifyKeyboardPanelInfoChange(MessageParcel& data, M
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleSetUniqueVirtualPixelRatio(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "HandleSetUniqueVirtualPixelRatio!");
+    bool useUniqueDensity = data.ReadBool();
+    float densityValue = data.ReadFloat();
+    SetUniqueVirtualPixelRatio(useUniqueDensity, densityValue);
+    return ERR_NONE;
+}
+
 int SessionStageStub::HandlePcAppInPadNormalClose(MessageParcel& data, MessageParcel& reply)
 {
     WSError errCode = PcAppInPadNormalClose();
@@ -925,15 +934,6 @@ int SessionStageStub::HandleNotifyCompatibleModePropertyChange(MessageParcel& da
     sptr<CompatibleModeProperty> property = data.ReadParcelable<CompatibleModeProperty>();
     WSError errCode = NotifyCompatibleModePropertyChange(property);
     reply.WriteInt32(static_cast<int32_t>(errCode));
-    return ERR_NONE;
-}
-
-int SessionStageStub::HandleSetUniqueVirtualPixelRatio(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "HandleSetUniqueVirtualPixelRatio!");
-    bool useUniqueDensity = data.ReadBool();
-    float densityValue = data.ReadFloat();
-    SetUniqueVirtualPixelRatio(useUniqueDensity, densityValue);
     return ERR_NONE;
 }
 

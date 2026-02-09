@@ -8208,6 +8208,52 @@ void JsSceneSession::OnSetWindowShadows(const ShadowsInfo& shadowsInfo)
     }, __func__);
 }
 
+void JsSceneSession::ProcessRecoverWindowEffectRegister() 
+ { 
+     auto session = weakSession_.promote(); 
+     if (session == nullptr) { 
+         TLOGE(WmsLogTag::WMS_PC, "session is nullptr, id:%{public}d", persistentId_); 
+         return; 
+     } 
+     const char* const where = __func__; 
+     session->RegisterRecoverWindowEffectCallback([weakThis = wptr(this), where](bool recoverCorner, 
+         bool recoverShadow) { 
+         auto jsSceneSession = weakThis.promote(); 
+         if (!jsSceneSession) { 
+             TLOGNE(WmsLogTag::WMS_PC, "%{public}s: jsSceneSession is null", where); 
+             return; 
+         } 
+         jsSceneSession->OnRecoverWindowEffect(recoverCorner, recoverShadow); 
+     }); 
+     TLOGD(WmsLogTag::WMS_PC, "success"); 
+ } 
+ 
+ 
+ void JsSceneSession::OnRecoverWindowEffect(bool recoverCorner, bool recoverShadow) 
+ { 
+     const char* const where = __func__; 
+     taskScheduler_->PostMainThreadTask([weakThis = wptr(this), persistentId = persistentId_, 
+         recoverCorner, recoverShadow, env = env_, where] { 
+         auto jsSceneSession = weakThis.promote(); 
+         if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) { 
+             TLOGNE(WmsLogTag::WMS_PC, "%{public}s: jsSceneSession id:%{public}d has been destroyed", 
+                 where, persistentId); 
+             return; 
+         } 
+         TLOGND(WmsLogTag::WMS_PC, "%{public}s: recoverCorner: %{public}d, recoverShadow: %{public}d", where, 
+             recoverCorner, recoverShadow); 
+         auto jsCallBack = jsSceneSession->GetJSCallback(RECOVER_WINDOW_EFFECT_CB); 
+         if (!jsCallBack) { 
+             TLOGNE(WmsLogTag::WMS_PC, "%{public}s: jsCallBack is nullptr", where); 
+             return; 
+         } 
+         napi_value jsRecoverCorner = CreateJsValue(env, recoverCorner); 
+         napi_value jsRecoverShadow = CreateJsValue(env, recoverShadow); 
+         napi_value argv[] = { jsRecoverCorner, jsRecoverShadow }; 
+         napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr); 
+     }, __func__); 
+ }
+
 void JsSceneSession::ProcessSetHighlightChangeRegister()
 {
     NotifyHighlightChangeFunc func = [weakThis = wptr(this), where = __func__](bool isHighlight) {
