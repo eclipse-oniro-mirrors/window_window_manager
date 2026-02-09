@@ -54,6 +54,13 @@ void ScreenAniListener::AddCallback(const std::string& type, ani_ref callback)
 void ScreenAniListener::RemoveAllCallback()
 {
     std::lock_guard<std::mutex> lock(mtx_);
+    for (const auto& [typeString, callbacks] : aniCallback_) {
+        for (auto callback : callbacks) {
+            if (env_) {
+                env_->GlobalReference_Delete(callback);
+            }
+        }
+    }
     aniCallback_.clear();
 }
 void ScreenAniListener::RemoveCallback(ani_env* env, const std::string& type, ani_ref callback)
@@ -96,7 +103,7 @@ void ScreenAniListener::OnConnect(ScreenId id)
         return;
     }
     std::vector<ani_ref> vec = it->second;
-    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}d", vec.size());
+    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}zu", vec.size());
     // find callbacks in vector
     for (auto oneAniCallback : vec) {
         if (env_ == nullptr) {
@@ -106,8 +113,8 @@ void ScreenAniListener::OnConnect(ScreenId id)
         ani_boolean undefRes = 0;
         env_->Reference_IsUndefined(oneAniCallback, &undefRes);
         // judge is null or undefined
-        if (undefRes) {
-            TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback is undef");
+        if (undefRes != 0) {
+            TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback is undefRes or null");
             continue;
         }
 
@@ -143,7 +150,7 @@ void ScreenAniListener::OnDisconnect(ScreenId id)
         return;
     }
     std::vector<ani_ref> vec = it->second;
-    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}d", vec.size());
+    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}zu", vec.size());
     // find callbacks in vector
     for (auto oneAniCallback : vec) {
         if (env_ == nullptr) {
@@ -153,8 +160,8 @@ void ScreenAniListener::OnDisconnect(ScreenId id)
         ani_boolean undefRes = 0;
         env_->Reference_IsUndefined(oneAniCallback, &undefRes);
         // judge is null or undefined
-        if (undefRes) {
-            TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback is undef");
+        if (undefRes != 0) {
+            TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback is undefRes or null");
             continue;
         }
 
@@ -180,7 +187,7 @@ void ScreenAniListener::OnChange(ScreenId id)
         TLOGE(WmsLogTag::DMS, "[ANI] this listener is nullptr");
         return;
     }
-    TLOGI(WmsLogTag::DMS, "[ANI] OnChange is called, displayId: %{public}" PRIu64, id);
+    TLOGI(WmsLogTag::DMS, "[ANI] OnChange is called, displayId: %{public}d", static_cast<uint32_t>(id));
     if (aniCallback_.empty()) {
         TLOGE(WmsLogTag::DMS, "[ANI] OnChange not register!");
         return;
@@ -197,7 +204,7 @@ void ScreenAniListener::OnChange(ScreenId id)
             TLOGE(WmsLogTag::DMS, "[ANI] null env");
             return;
         }
-        ani_boolean undefRes = 0;
+        ani_boolean undefRes;
         env_->Reference_IsUndefined(oneAniCallback, &undefRes);
         if (undefRes) {
             TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback undefRes, continue");

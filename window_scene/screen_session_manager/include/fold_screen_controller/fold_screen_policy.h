@@ -20,15 +20,15 @@
 #include <mutex>
 
 #include "dm_common.h"
+#include "window_manager_hilog.h"
+#include "session/screen/include/screen_property.h"
 #include "fold_screen_info.h"
 #include "screen_power_fsm/screen_state_machine.h"
-#include "session/screen/include/screen_property.h"
-#include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
 namespace {
     const uint32_t FOLD_TO_EXPAND_ONBOOTANIMATION_TASK_NUM = 1;
-    const uint32_t FOLD_TO_EXPAND_TASK_NUM = 3;
+    const uint32_t FOLD_TO_EXPAND_TASK_NUM = 4;
     constexpr uint32_t SECONDARY_FOLD_TO_EXPAND_TASK_NUM = 3;
 }
 
@@ -59,12 +59,12 @@ public:
     virtual void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const;
     virtual void ChangeScreenPowerOnFold(
         const std::vector<std::pair<ScreenId, ScreenPowerStatus>>& screenPowerTaskList);
-    virtual const std::unordered_set<FoldStatus>& GetSupportedFoldStatus() const;
+    virtual const std::unordered_set<FoldStatus>& GetSupportedFoldStates() const;
     virtual bool GetPhysicalFoldLockFlag() const;
-    virtual FoldStatus GetForceFoldStatus() const;
+    virtual FoldStatus GetForcedFoldStatus() const;
     virtual DMError SetFoldStatusAndLockControl(bool isLocked, FoldStatus targetFoldStatus = FoldStatus::UNKNOWN);
     virtual void SetFoldLockFlagAndFoldStatus(bool physicalFoldLockFlag, FoldStatus targetFoldStatus);
-    virtual bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
+    virtual bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStates,
         FoldStatus targetFoldStatus) const;
     FoldDisplayMode GetScreenDisplayMode();
     virtual FoldStatus GetFoldStatus();
@@ -87,7 +87,7 @@ public:
     FoldCreaseRegion liveCreaseRegion_ = FoldCreaseRegion(0, {});
     bool lockDisplayStatus_ = false;
     std::atomic<bool> physicalFoldLockFlag_ = false;
-    std::atomic<FoldStatus> forceFoldStatus_ = FoldStatus::UNKNOWN;
+    std::atomic<FoldStatus> forcedFoldStatus_ = FoldStatus::UNKNOWN;
     bool onBootAnimation_ = false;
     std::atomic<bool> isClearingBootAnimation_ = false;
     bool isFirstFrameCommitReported_ = false;

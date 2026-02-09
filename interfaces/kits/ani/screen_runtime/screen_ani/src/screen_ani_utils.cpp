@@ -199,44 +199,6 @@ ani_status ScreenAniUtils::CallAniFunctionVoid(ani_env *env, const char* ns,
     return ret;
 }
 
-template <typename T>
-DmErrorCode ScreenAniUtils::GetOptionalFieldFromAni(ani_env* env, ani_object obj, T& value, const char* field)
-{
-    ani_ref valueRef = nullptr;
-    if (env->Object_GetPropertyByName_Ref(obj, Builder::BuildPropertyName(field).c_str(), &valueRef) != ANI_OK) {
-        TLOGE(WmsLogTag::DMS, "[ANI]Failed to get %{public}s", field);
-        return DmErrorCode::DM_ERROR_INVALID_PARAM;
-    }
-    ani_boolean isUndefined;
-    env->Reference_IsUndefined(valueRef, &isUndefined);
-    if (isUndefined) {
-        TLOGD(WmsLogTag::DMS, "[ANI]field %{public}s is undefined", field);
-    } else {
-        CastDefinedFieldToValue(env, obj, value);
-        TLOGD(WmsLogTag::DMS, "Convert %{public}s success", field);
-    }
-    return DmErrorCode::DM_OK;
-}
-
-template <typename T>
-void ScreenAniUtils::CastDefinedFieldToValue(ani_env* env, ani_object obj, T& value)
-{
-    if constexpr (std::is_same_v<T, int32_t>) {
-        env->Object_CallMethodByName_Int(obj, "toInt", ":i", &value);
-    } else if constexpr (std::is_same_v<T, bool>) {
-        env->Object_CallMethodByName_Boolean(obj, "toBoolean", ":z", &value);
-    } else if constexpr (std::is_same_v<T, int64_t>) {
-        env->Object_CallMethodByName_Long(obj, "toLong", ":l", &value);
-    } else if constexpr (std::is_same_v<T, double>) {
-        env->Object_CallMethodByName_Double(obj, "toDouble", ":d", &value);
-    } else if constexpr (std::is_same_v<T, float>) {
-        // not float type in static
-        ani_double doubleVal;
-        env->Object_CallMethodByName_Double(obj, "toDouble", ":d", &doubleVal);
-        value = static_cast<float>(doubleVal);
-    }
-}
-
 ani_enum_item ScreenAniUtils::CreateAniEnum(ani_env* env, const char* enum_descriptor, ani_size index)
 {
     ani_enum enumType;
@@ -254,13 +216,13 @@ static DmErrorCode GetScreenFocusFromAni(ani_env* env, ani_object virtualScreenO
 {
     ani_ref focus = nullptr;
     if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "%%property-supportsFocus", &focus) != ANI_OK) {
-        TLOGE(WmsLogTag::DMS, "Failed to get supportsFocus.");
+        TLOGE(WmsLogTag::DMS, "[ANI]Failed to get supportsFocus");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
     ani_boolean isUndefined;
     env->Reference_IsUndefined(focus, &isUndefined);
     if (isUndefined) {
-        TLOGD(WmsLogTag::DMS, "supportsFocus is undefined.");
+        TLOGD(WmsLogTag::DMS, "supportsFocus is undefined");
     } else {
         ani_boolean result;
         env->Object_CallMethodByName_Boolean(static_cast<ani_object>(focus), "toBoolean", ":z", &result);
@@ -424,8 +386,7 @@ ani_status ScreenAniUtils::GetRectFromAni(ani_env* env, ani_object mainScreenReg
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
     ani_long left = 0;
-    auto ret = env->Object_GetFieldByName_Long(mainScreenRegionAni,
-        Builder::BuildPropertyName("left").c_str(), &left);
+    auto ret = env->Object_GetFieldByName_Long(mainScreenRegionAni, Builder::BuildPropertyName("left").c_str(), &left);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get left, ret:%{public}d", ret);
         return ret;
@@ -433,8 +394,7 @@ ani_status ScreenAniUtils::GetRectFromAni(ani_env* env, ani_object mainScreenReg
     mainScreenRegion.posX_ = static_cast<int32_t>(left);
 
     ani_long top = 0;
-    ret = env->Object_GetFieldByName_Long(mainScreenRegionAni,
-        Builder::BuildPropertyName("top").c_str(), &top);
+    ret = env->Object_GetFieldByName_Long(mainScreenRegionAni, Builder::BuildPropertyName("top").c_str(), &top);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get top, ret:%{public}d", ret);
         return ret;
@@ -442,8 +402,7 @@ ani_status ScreenAniUtils::GetRectFromAni(ani_env* env, ani_object mainScreenReg
     mainScreenRegion.posY_ = static_cast<int32_t>(top);
 
     ani_long width = 0;
-    ret = env->Object_GetFieldByName_Long(mainScreenRegionAni,
-        Builder::BuildPropertyName("width").c_str(), &width);
+    ret = env->Object_GetFieldByName_Long(mainScreenRegionAni, Builder::BuildPropertyName("width").c_str(), &width);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get width, ret:%{public}d", ret);
         return ret;
@@ -451,8 +410,7 @@ ani_status ScreenAniUtils::GetRectFromAni(ani_env* env, ani_object mainScreenReg
     mainScreenRegion.width_ = static_cast<uint32_t>(width);
 
     ani_long height = 0;
-    ret = env->Object_GetFieldByName_Long(mainScreenRegionAni,
-        Builder::BuildPropertyName("height").c_str(), &height);
+    ret = env->Object_GetFieldByName_Long(mainScreenRegionAni, Builder::BuildPropertyName("height").c_str(), &height);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get height, ret:%{public}d", ret);
         return ret;

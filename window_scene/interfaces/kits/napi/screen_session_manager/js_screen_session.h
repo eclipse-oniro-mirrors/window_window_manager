@@ -82,7 +82,6 @@ private:
     sptr<ScreenScene> screenScene_ = nullptr;
     std::map<std::string, std::shared_ptr<NativeReference>> mCallback_;
     std::shared_mutex jsCbMapMutex_;
-    std::mutex callbackMutex_;
 };
 } // namespace OHOS::Rosen
 

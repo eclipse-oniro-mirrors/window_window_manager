@@ -80,7 +80,9 @@ ohos_shared_library("screen_kit") {
     cfi_vcall_icall_only = true
     debug = false
   }
-  sources = [ "napi/js_screen.cpp" ]
+  sources = [
+    "napi/js_screen.cpp",
+  ]
 
   configs = [
     ":screen_runtime_config",

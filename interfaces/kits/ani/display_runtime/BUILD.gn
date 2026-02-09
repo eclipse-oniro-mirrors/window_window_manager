@@ -61,9 +61,9 @@ ohos_shared_library("displayani_kit") {
 
   deps = [
     "../../../../dm:libdm",
-    "../../../../interfaces/kits/napi/display_runtime:display_kit",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
+    "../../../../interfaces/kits/napi/display_runtime:display_kit"
   ]
 
   external_deps = [
@@ -77,8 +77,8 @@ ohos_shared_library("displayani_kit") {
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "ipc:ipc_single",
-    "napi:ace_napi",
     "runtime_core:ani",
+    "napi:ace_napi",
     "runtime_core:ani_helpers",
   ]
 

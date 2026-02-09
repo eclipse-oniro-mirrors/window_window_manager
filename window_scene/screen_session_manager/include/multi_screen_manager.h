@@ -18,7 +18,7 @@
 
 #include <hitrace_meter.h>
 #include <transaction/rs_interfaces.h>
-
+#include <transaction/rs_transaction.h>
 #include "dm_common.h"
 #include "screen_session_manager.h"
 #include "wm_single_instance.h"
@@ -42,18 +42,11 @@ public:
 
     void MultiScreenModeChange(ScreenId mainScreenId, ScreenId secondaryScreenId, const std::string& operateType);
 
-    void SetLastScreenMode(ScreenId mainScreenId, MultiScreenMode secondaryScreenMode);
-
-    void InternalScreenOnChange(sptr<ScreenSession> internalSession, sptr<ScreenSession> externalSession);
-
-    void InternalScreenOffChange(sptr<ScreenSession> internalSession, sptr<ScreenSession> externalSession);
-
-    void ExternalScreenDisconnectChange(sptr<ScreenSession> internalSession, sptr<ScreenSession> externalSession);
-
     bool AreScreensTouching(sptr<ScreenSession> mainScreenSession, sptr<ScreenSession> secondScreenSession,
         MultiScreenPositionOptions mainScreenOptions, MultiScreenPositionOptions secondScreenOption);
 
     void MultiScreenReportDataToRss(std::string multiScreenType, std::string status);
+
     void NotifyScreenConnectCompletion(ScreenId screenId);
 private:
     MultiScreenManager();
@@ -93,7 +86,22 @@ private:
     void DoFirstExtendChangeExtend(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession);
     void DoFirstExtendChangeMirror(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession);
 
-    std::pair<ScreenId, MultiScreenMode> lastScreenMode_;  // main screen id & secondary screen mode
+    DMError DoMultiScreenModeChange(sptr<ScreenSession>& mainSession, sptr<ScreenSession>& extendSession,
+        const std::string& operateType);
+
+    DMError ChangeScreenDisplayNode(sptr<ScreenSession>& mainSession, sptr<ScreenSession>& extendSession,
+        const std::string& operateType);
+
+    DMError ChangeScreenSessionsInfo(sptr<ScreenSession>& mainSession, sptr<ScreenSession>& extendSession,
+        const std::string& operateType);
+
+    DMError RefreshScreenInfos(sptr<ScreenSession>& mainSession, sptr<ScreenSession>& extendSession);
+
+    void NotifyDisplayAndScreenInfoChanges(sptr<ScreenSession>& mainSession, sptr<ScreenSession>& extendSession,
+        const std::string& operateType);
+
+    void SwitchScreenWithPowerStatusChange(sptr<ScreenSession>& innerScreen, sptr<ScreenSession>& externalSession,
+        const ScreenPowerStatus powerStatus);
 
     void BlockScreenConnect(sptr<ScreenSession>& screenSession, ScreenId screenId);
     std::mutex uniqueScreenMutex_;

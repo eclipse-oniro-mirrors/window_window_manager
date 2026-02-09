@@ -142,7 +142,7 @@ void JsDisplayListener::OnCreate(DisplayId id)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnCreate");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(id))};
@@ -175,7 +175,7 @@ void JsDisplayListener::OnDestroy(DisplayId id)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnDestroy");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(id))};
@@ -208,7 +208,7 @@ void JsDisplayListener::OnChange(DisplayId id)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnChange");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(id))};
@@ -319,7 +319,7 @@ void JsDisplayListener::OnPrivateWindow(bool hasPrivate)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnPrivateWindow");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, hasPrivate)};
@@ -352,7 +352,7 @@ void JsDisplayListener::OnFoldStatusChanged(FoldStatus foldStatus)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnFoldStatusChanged");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, foldStatus)};
@@ -384,7 +384,7 @@ void JsDisplayListener::OnFoldAngleChanged(std::vector<float> foldAngles)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnFoldAngleChanged");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateNativeArray(env, foldAngles)};
@@ -416,7 +416,7 @@ void JsDisplayListener::OnCaptureStatusChanged(bool isCapture)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnCaptureStatusChanged");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, isCapture)};
@@ -449,7 +449,7 @@ void JsDisplayListener::OnDisplayModeChanged(FoldDisplayMode displayMode)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnDisplayModeChanged");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, displayMode)};
@@ -482,7 +482,7 @@ void JsDisplayListener::OnAvailableAreaChanged(DMRect area)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayListener::OnAvailableAreaChanged");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsRectObject(env, area)};
@@ -521,11 +521,11 @@ void JsDisplayListener::OnBrightnessInfoChanged(DisplayId id, const ScreenBright
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(id)), CreateJsBrightnessInfo(env, info)};
         thisListener->CallJsMethod(EVENT_BRIGHTNESS_INFO_CHANGED, argv, ArraySize(argv));
     };
-    
+
     if (env_ != nullptr) {
         napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnBrightnessInfoChanged");
         if (ret != napi_status::napi_ok) {
-            TLOGE(WmsLogTag::DMS, "Failed to sendEvent.");
+            TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
         }
     } else {
         TLOGE(WmsLogTag::DMS, "env is nullptr");

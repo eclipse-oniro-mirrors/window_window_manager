@@ -66,9 +66,9 @@ private:
     int HandleOnExtendDisplayNodeChange(MessageParcel& data, MessageParcel& reply);
     int HandleOnCreateScreenSessionOnly(MessageParcel& data, MessageParcel& reply);
     int HandleOnMainDisplayNodeChange(MessageParcel& data, MessageParcel& reply);
+    int HandleOnBeforeScreenPropertyChange(MessageParcel& data, MessageParcel& reply);
     int HandleSyncScreenCombination(MessageParcel& data, MessageParcel& reply);
     int HandleOnDumperClientScreenSessions(MessageParcel& data, MessageParcel& reply);
-    int HandleOnBeforeScreenPropertyChange(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenModeChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnAnimationFinish(MessageParcel& data, MessageParcel& reply);
     int HandleSetInternalClipToBounds(MessageParcel& data, MessageParcel& reply);

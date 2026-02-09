@@ -59,7 +59,7 @@ bool ScreenGroupInfo::InnerUnmarshalling(Parcel& parcel)
         !parcel.ReadUInt64Vector(&children_)) {
         return false;
     }
-    combination_ = static_cast<ScreenCombination>(combination);
+    combination_ = (ScreenCombination) combination;
     uint32_t size;
     if (!parcel.ReadUint32(size)) {
         return false;

@@ -101,9 +101,6 @@ public:
     void SetRefreshRate(uint32_t refreshRate);
     uint32_t GetRefreshRate() const;
 
-    void SetRsId(ScreenId rsId);
-    ScreenId GetRsId() const;
-
     void SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason);
     ScreenPropertyChangeReason GetPropertyChangeReason() const;
 
@@ -115,7 +112,6 @@ public:
     float GetVirtualPixelRatio() const;
 
     void SetScreenDensityProperties(float screenDpi);
-
     void SetScreenRotation(Rotation rotation);
     void SetRotationAndScreenRotationOnly(Rotation rotation);
     Rotation GetScreenRotation() const;
@@ -143,8 +139,11 @@ public:
     void SetScreenComponentRotation(float rotation);
     float GetScreenComponentRotation() const;
 
-    float GetXDpi() const;
-    float GetYDpi() const;
+    float GetXDpi();
+    float GetYDpi();
+
+    void SetRsId(ScreenId rsScreenId);
+    ScreenId GetRsId() const;
 
     void SetOffsetX(int32_t offsetX);
     int32_t GetOffsetX() const;
@@ -223,10 +222,10 @@ public:
     void SetPhysicalTouchBoundsDirectly(RRect physicalTouchBounds);
 
     int32_t GetInputOffsetX() const;
-
     int32_t GetInputOffsetY() const;
 
     void SetInputOffset(int32_t x, int32_t y);
+
     void SetMirrorWidth(uint32_t mirrorWidth);
     uint32_t GetMirrorWidth() const;
     void SetMirrorHeight(uint32_t mirrorHeight);
@@ -244,11 +243,11 @@ public:
         return changeEvent_;
     }
 
-    void SetCurrentValidHeight(uint32_t currentValidHeight)
+    void SetCurrentValidHeight(int32_t currentValidHeight)
     {
         currentValidHeight_ = currentValidHeight;
     }
-    uint32_t GetCurrentValidHeight() const
+    int32_t GetCurrentValidHeight() const
     {
         return currentValidHeight_;
     }
@@ -319,6 +318,8 @@ private:
     RRect bounds_;
     RRect phyBounds_;
     RRect fakeBounds_;
+    ScreenId rsId_ = SCREEN_ID_INVALID;
+
     bool isFakeInUse_ = false;  // is fakeBounds can be used
     bool isDestroyDisplay_ = false;  // is fakeBounds can be used
 
@@ -338,9 +339,7 @@ private:
     uint32_t refreshRate_ { 0 };
     uint32_t defaultDeviceRotationOffset_ { 0 };
 
-    ScreenId rsId_ = SCREEN_ID_INVALID;
-
-    ScreenPropertyChangeReason propertyChangeReason_;
+    ScreenPropertyChangeReason propertyChangeReason_ { ScreenPropertyChangeReason::UNDEFINED };
 
     float virtualPixelRatio_ { 1.0f };
     float defaultDensity_ { 1.0f };
@@ -363,6 +362,8 @@ private:
     uint32_t startX_ { 0 };
     uint32_t startY_ { 0 };
 
+    ScreenShape screenShape_ { ScreenShape::RECTANGLE };
+
     int32_t x_ { 0 };
     int32_t y_ { 0 };
 
@@ -375,15 +376,14 @@ private:
     uint32_t pointerActiveWidth_ { 0 };
     uint32_t pointerActiveHeight_ { 0 };
 
-    ScreenShape screenShape_ { ScreenShape::RECTANGLE };
     SuperFoldStatus foldStatus_ { SuperFoldStatus::UNKNOWN };
 
     ScreenType type_ { ScreenType::REAL };
-
     void UpdateXDpi();
     void UpdateYDpi();
-    DMRect availableArea_;  // can be used for all devices
-    DMRect expandAvailableArea_;  // only used for 2in1 device
+
+    DMRect availableArea_;
+    DMRect expandAvailableArea_;
     DMRect creaseRect_;
 
     RRect physicalTouchBounds_;
@@ -406,7 +406,7 @@ private:
     uint32_t mirrorWidth_ { 0 };
     uint32_t mirrorHeight_ { 0 };
 
-    FoldDisplayMode displayMode_;
+    FoldDisplayMode displayMode_ { FoldDisplayMode::UNKNOWN };
 };
 } // namespace OHOS::Rosen
 

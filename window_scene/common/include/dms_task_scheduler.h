@@ -12,18 +12,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef OHOS_ROSEN_DMS_TASK_SCHEDULER_H
 #define OHOS_ROSEN_DMS_TASK_SCHEDULER_H
 
+#include <unistd.h>
 #include "task_scheduler.h"
 
 namespace OHOS::Rosen {
-class SafeTaskScheduler : public TaskScheduler {
+
+class SafeTaskScheduler:public TaskScheduler {
 public:
-    explicit SafeTaskScheduler(const std::string& threadName) : TaskScheduler(threadName) {};
+    explicit SafeTaskScheduler(const std::string& threadName): TaskScheduler(threadName) {};
     ~SafeTaskScheduler() {};
+
     void PostAsyncTask(Task&& task, const std::string& name, int64_t delayTime = 0) override;
     void PostVoidSyncTask(Task&& task, const std::string& name) override;
 };
+
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_DMS_TASK_SCHEDULER_H

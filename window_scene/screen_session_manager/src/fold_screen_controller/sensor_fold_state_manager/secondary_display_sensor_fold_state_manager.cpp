@@ -266,8 +266,8 @@ void SecondaryDisplaySensorFoldStateManager::SendReflexionResult(bool isSecondar
 FoldStatus SecondaryDisplaySensorFoldStateManager::HandleSecondaryOneStep(FoldStatus currentStatus,
     FoldStatus nextStatus, const std::vector<float>& angles, const std::vector<uint16_t>& halls)
 {
-    bool isPowerOn = PowerMgr::PowerMgrClient::GetInstance().IsScreenOn();
-    if (!isPowerOn || currentStatus != FoldStatus::FOLDED ||
+    bool isFoldScreenOn = PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn();
+    if (!isFoldScreenOn || currentStatus != FoldStatus::FOLDED ||
         (nextStatus != FoldStatus::HALF_FOLD && nextStatus != FoldStatus::EXPAND)) {
         return nextStatus;
     }

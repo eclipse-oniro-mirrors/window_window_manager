@@ -20,7 +20,6 @@
 #include "display_manager_service.h"
 #include "dm_common.h"
 #include "rs_adapter.h"
-#include "screen_rotation_controller.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -71,44 +70,6 @@ sptr<ScreenInfo> AbstractScreen::ConvertToScreenInfo() const
     }
     FillScreenInfo(info);
     return info;
-}
-
-sptr<DisplayInfo> AbstractScreen::ConvertScreenInfoToDisplayInfo(const sptr<ScreenInfo>& info) const
-{
-    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
-    if (displayInfo == nullptr) {
-        return nullptr;
-    }
-    FillDisplayInfoByScreenInfo(displayInfo, info);
-    return displayInfo;
-}
-
-void AbstractScreen::FillDisplayInfoByScreenInfo(sptr<DisplayInfo> displayInfo, const sptr<ScreenInfo>& info) const
-{
-    if (displayInfo == nullptr || info == nullptr) {
-        TLOGE(WmsLogTag::DMS, "displayInfo is nullptr");
-        return;
-    }
-    sptr<SupportedScreenModes> abstractScreenMode = GetActiveScreenMode();
-    if (abstractScreenMode != nullptr) {
-        displayInfo->SetRefreshRate(abstractScreenMode->refreshRate_);
-        std::vector<uint32_t> supportedRefreshRate;
-        supportedRefreshRate.push_back(abstractScreenMode->refreshRate_);
-        displayInfo->SetSupportedRefreshRate(supportedRefreshRate);
-    }
-
-    displayInfo->SetName(info->name_);
-    displayInfo->SetDisplayId(info->id_);
-    displayInfo->SetWidth(info->virtualWidth_);
-    displayInfo->SetHeight(info->virtualHeight_);
-    displayInfo->SetScreenId(info->id_);
-    displayInfo->SetVirtualPixelRatio(info->virtualPixelRatio_);
-    displayInfo->SetDpi(info->virtualPixelRatio_ * DOT_PER_INCH);
-    displayInfo->SetRotation(info->rotation_);
-    displayInfo->SetOrientation(info->orientation_);
-    displayInfo->SetDisplayOrientation(
-        ScreenRotationController::ConvertRotationToDisplayOrientation(info->rotation_));
-    displayInfo->SetDisplaySourceMode(GetDisplaySourceMode());
 }
 
 void AbstractScreen::UpdateRSTree(std::shared_ptr<RSSurfaceNode>& surfaceNode, bool isAdd, bool needToUpdate)
@@ -246,7 +207,7 @@ void AbstractScreen::InitRSDisplayNode(const RSDisplayNodeConfig& config, const 
         RSAdapterUtil::SetSkipCheckInMultiInstance(rsDisplayNode, true);
         rsDisplayNode_ = rsDisplayNode;
         TLOGD(WmsLogTag::WMS_SCB,
-              "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(rsDisplayNode_).c_str());
+            "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(rsDisplayNode_).c_str());
     }
     SetPropertyForDisplayNode(rsDisplayNode_, config, startPoint);
 
@@ -270,7 +231,7 @@ void AbstractScreen::InitRSDefaultDisplayNode(const RSDisplayNodeConfig& config,
     RSAdapterUtil::SetSkipCheckInMultiInstance(rsDisplayNode, true);
     rsDisplayNode_ = rsDisplayNode;
     TLOGD(WmsLogTag::WMS_SCB,
-          "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(rsDisplayNode_).c_str());
+        "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(rsDisplayNode_).c_str());
     SetPropertyForDisplayNode(rsDisplayNode_, config, startPoint);
 
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -295,7 +256,7 @@ void AbstractScreen::UpdateRSDisplayNode(Point startPoint, const sptr<AbstractSc
         TLOGD(WmsLogTag::DMS, "rsDisplayNode_ is nullptr");
         return;
     }
-    
+
     startPoint_ = startPoint;
     if (absScreen == nullptr) {
         TLOGD(WmsLogTag::DMS, "absScreen is nullptr");
@@ -344,8 +305,8 @@ DMError AbstractScreen::SetScreenColorGamut(int32_t colorGamutIdx)
         return res;
     }
     if (colorGamutIdx < 0 || colorGamutIdx >= static_cast<int32_t>(colorGamuts.size())) {
-        TLOGE(WmsLogTag::DMS, "SetScreenColorGamut fail! rsId %{public}" PRIu64" colorGamutIdx %{public}d invalid.",
-            rsId_, colorGamutIdx);
+        TLOGE(WmsLogTag::DMS, "SetScreenColorGamut fail! rsId %{public}" PRIu64" colorGamutIdx"
+            " %{public}d invalid.", rsId_, colorGamutIdx);
         return DMError::DM_ERROR_INVALID_PARAM;
     }
     auto ret = RSInterfaces::GetInstance().SetScreenColorGamut(rsId_, colorGamutIdx);
@@ -750,43 +711,5 @@ size_t AbstractScreenGroup::GetChildCount() const
 ScreenCombination AbstractScreenGroup::GetScreenCombination() const
 {
     return combination_;
-}
-
-DisplaySourceMode AbstractScreen::GetDisplaySourceMode() const
-{
-    TLOGI(WmsLogTag::DMS, "in");
-    sptr<AbstractScreenGroup> abstractScreenGroup = GetGroup();
-    if (abstractScreenGroup == nullptr || screenController_ == nullptr) {
-        TLOGW(WmsLogTag::DMS, "default NONE");
-        return DisplaySourceMode::NONE;
-    }
-    ScreenId defaultId = screenController_->GetDefaultAbstractScreenId();
-    if (dmsId_ == defaultId) {
-        TLOGW(WmsLogTag::DMS, "err MAIN");
-        return DisplaySourceMode::MAIN;
-    }
-    ScreenCombination combination = abstractScreenGroup->GetScreenCombination();
-    switch (combination) {
-        case ScreenCombination::SCREEN_MAIN: {
-            return DisplaySourceMode::MAIN;
-        }
-        case ScreenCombination::SCREEN_MIRROR: {
-            return DisplaySourceMode::MIRROR;
-        }
-        case ScreenCombination::SCREEN_EXPAND:
-        case ScreenCombination::SCREEN_EXTEND: {
-            return DisplaySourceMode::EXTEND;
-        }
-        case ScreenCombination::SCREEN_UNIQUE: {
-            return DisplaySourceMode::ALONE;
-        }
-        case ScreenCombination::SCREEN_ALONE: {
-            return DisplaySourceMode::NONE;
-        }
-        default: {
-            TLOGW(WmsLogTag::DMS, "default NONE");
-            return DisplaySourceMode::NONE;
-        }
-    }
 }
 } // namespace OHOS::Rosen

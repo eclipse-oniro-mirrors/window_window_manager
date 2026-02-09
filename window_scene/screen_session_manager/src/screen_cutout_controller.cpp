@@ -139,8 +139,6 @@ void ScreenCutoutController::CheckBoundaryRectsWithRotation(std::vector<DMRect>&
 void ScreenCutoutController::GetWaterfallArea(uint32_t width, uint32_t height, Rotation rotation,
                                               WaterfallDisplayAreaRects& waterfallArea) const
 {
-    TLOGI(WmsLogTag::DMS, "display:[W: %{public}u, H: %{public}u, R: %{public}u]", width, height, rotation);
-
     std::vector<int> numberVec = ScreenSceneConfig::GetCurvedScreenBoundaryConfig();
     if (ScreenSceneConfig::IsWaterfallDisplay() && !numberVec.empty()) {
         CalcWaterfallRects(numberVec, width, height, rotation, waterfallArea);

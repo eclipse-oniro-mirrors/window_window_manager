@@ -12,9 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #include <hitrace_meter.h>
- 
+
 #include "ani.h"
 #include <ani_signature_builder.h>
 #include "screenshot_ani_utils.h"
@@ -22,7 +22,7 @@
 #include "window_manager_hilog.h"
 #include "dm_common.h"
 #include "refbase.h"
- 
+
 namespace OHOS::Rosen {
 
 static const uint32_t PIXMAP_VECTOR_ONLY_SDR_SIZE = 1;
@@ -49,7 +49,7 @@ ani_status ScreenshotAniUtils::GetStdString(ani_env* env, ani_string ani_str, st
     result = std::string(utf8_buffer);
     return ret;
 }
- 
+
 ani_object ScreenshotAniUtils::CreateAniUndefined(ani_env* env)
 {
     ani_ref aniRef;
@@ -112,12 +112,12 @@ ani_object ScreenshotAniUtils::CreateScreenshotPickInfo(ani_env* env, std::uniqu
     }
     ani_object rectObj = ScreenshotAniUtils::CreateRectObject(env);
     ScreenshotAniUtils::ConvertRect(env, param->imageRect, rectObj);
-    env->Object_SetFieldByName_Ref(
-        pickInfoObj, Builder::BuildPropertyName("pickRect").c_str(), static_cast<ani_ref>(rectObj));
+    env->Object_SetFieldByName_Ref(pickInfoObj, Builder::BuildPropertyName("pickRect").c_str(),
+        static_cast<ani_ref>(rectObj));
 
     auto nativePixelMap = Media::PixelMapTaiheAni::CreateEtsPixelMap(env, param->image);
-    env->Object_SetFieldByName_Ref(
-        pickInfoObj, Builder::BuildPropertyName("pixelMap").c_str(), static_cast<ani_ref>(nativePixelMap));
+    env->Object_SetFieldByName_Ref(pickInfoObj, Builder::BuildPropertyName("pixelMap").c_str(),
+        static_cast<ani_ref>(nativePixelMap));
     return pickInfoObj;
 }
 
@@ -125,16 +125,16 @@ ani_status ScreenshotAniUtils::GetAniString(ani_env* env, const std::string& str
 {
     return env->String_NewUTF8(str.c_str(), static_cast<ani_size>(str.size()), result);
 }
- 
+
 void ScreenshotAniUtils::ConvertScreenshot(ani_env* env, std::shared_ptr<Media::PixelMap> image, ani_object obj)
 {
     return;
 }
- 
+
 ani_status ScreenshotAniUtils::CallAniFunctionVoid(ani_env* env, const char* ns,
     const char* fn, const char* signature, ...)
 {
-    TLOGI(WmsLogTag::DEFAULT, "[ANI] begin");
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]CallAniFunctionVoid begin");
     ani_status ret = ANI_OK;
     ani_namespace aniNamespace{};
     if ((ret = env->FindNamespace(ns, &aniNamespace)) != ANI_OK) {
@@ -147,7 +147,7 @@ ani_status ScreenshotAniUtils::CallAniFunctionVoid(ani_env* env, const char* ns,
         return ret;
     }
     if (func == nullptr) {
-        TLOGI(WmsLogTag::DEFAULT, "[ANI] null func ani.");
+        TLOGI(WmsLogTag::DEFAULT, "[ANI] null func ani");
         return ret;
     }
     va_list args;
@@ -161,7 +161,7 @@ ani_status ScreenshotAniUtils::CallAniFunctionVoid(ani_env* env, const char* ns,
     }
     return ret;
 }
- 
+
 ani_status ScreenshotAniUtils::GetScreenshotParam(ani_env* env, const std::unique_ptr<Param>& param,
     ani_object options)
 {
@@ -210,7 +210,7 @@ ani_status ScreenshotAniUtils::GetScreenshotParam(ani_env* env, const std::uniqu
 }
 
 ani_object ScreenshotAniUtils::CreateArrayPixelMap(
-    ani_env* env, std::vector<std::shared_ptr<Media::PixelMap>> imageVec)
+    ani_env* env, std::vector<std::shared_ptr<Media::PixelMap>>& imageVec)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_class cls;
@@ -343,13 +343,13 @@ ani_status ScreenshotAniUtils::ReadOptionalField(ani_env* env, ani_object obj, c
 {
     ani_status ret = env->Object_GetPropertyByName_Ref(obj, fieldName, &ref);
     if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::DMS, "Failed to get property %{public}s, ret %{public}d", fieldName, ret);
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to get property %{public}s, ret %{public}d", fieldName, ret);
         return ret;
     }
     ani_boolean isUndefRes;
     ret = env->Reference_IsUndefined(ref, &isUndefRes);
     if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::DMS, "Failed to check ref is undefined, ret %{public}d", ret);
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to check ref is undefined, ret %{public}d", ret);
         ref = nullptr;
         return ret;
     }
@@ -369,7 +369,6 @@ ani_status ScreenshotAniUtils::ReadOptionalLongField(ani_env* env, ani_object ob
     }
     return result;
 }
-
 
 ani_status ScreenshotAniUtils::ReadOptionalIntField(ani_env* env, ani_object obj, const char* fieldName, int& value)
 {
@@ -393,5 +392,83 @@ ani_status ScreenshotAniUtils::ReadOptionalBoolField(ani_env* env, ani_object ob
         }
     }
     return result;
+}
+
+ani_method unboxInt {};
+
+ani_ref g_intCls {};
+
+template<typename T>
+ani_status unbox(ani_env *env, ani_object obj, T *result)
+{
+    return ANI_INVALID_TYPE;
+}
+
+template<>
+ani_status unbox<ani_int>(ani_env *env, ani_object obj, ani_int *result)
+{
+    if (g_intCls == nullptr) {
+        ani_class intCls {};
+        auto status = env->FindClass("std.core.Int", &intCls);
+        if (status != ANI_OK) {
+            return status;
+        }
+        status = env->GlobalReference_Create(intCls, &g_intCls);
+        if (status != ANI_OK) {
+            return status;
+        }
+        status = env->Class_FindMethod(intCls, "toInt", ":i", &unboxInt);
+        if (status != ANI_OK) {
+            return status;
+        }
+    }
+    return env->Object_CallMethod_Int(obj, unboxInt, result);
+}
+
+ani_status ScreenshotAniUtils::GetBlackWindowIds(ani_env* env, ani_object optionsObj, std::vector<uint64_t>& result)
+{
+    ani_ref blackWindowIdsAni = nullptr;
+    ani_status ret = env->Object_GetFieldByName_Ref(
+        optionsObj, Builder::BuildPropertyName("blackWindowIds").c_str(), &blackWindowIdsAni);
+    if (ANI_OK != ret) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to get property blackWindowIds");
+        result = {};
+        return ret;
+    }
+    ani_boolean optionsUndefined = 0;
+    env->Reference_IsUndefined(blackWindowIdsAni, &optionsUndefined);
+    if (optionsUndefined) {
+        result = {};
+        return ANI_OK;
+    }
+    ani_int length;
+    ret = env->Object_GetPropertyByName_Int(reinterpret_cast<ani_object>(blackWindowIdsAni), "length", &length);
+    if (ANI_OK != ret) {
+        TLOGE(WmsLogTag::DMS, "[ANI] get ani_array len fail");
+        return ret;
+    }
+    auto array = reinterpret_cast<ani_array>(blackWindowIdsAni);
+    std::vector<ani_int> nativeArray(length);
+
+    for (auto i = 0; i < length; i++) {
+        ani_ref intRef {};
+        ani_int intValue {};
+        auto status = env->Array_Get(array, i, &intRef);
+        if (status != ANI_OK) {
+            TLOGE(WmsLogTag::DMS, "[ANI] Array_Get failed, status: %{public}d", status);
+            return status;
+        }
+        status = unbox(env, static_cast<ani_object>(intRef), &intValue);
+        if (status != ANI_OK) {
+            TLOGE(WmsLogTag::DMS, "[ANI] Unbox failed, status: %{public}d", status);
+            return status;
+        }
+        nativeArray[i] = intValue;
+    }
+    result.resize(length);
+    for (ani_int i = 0; i < length; i++) {
+        result[i] = static_cast<uint64_t>(nativeArray[i]);
+    }
+    return ret;
 }
 }

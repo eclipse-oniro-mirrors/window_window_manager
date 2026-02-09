@@ -52,4 +52,4 @@ extern const std::string ANI_EVENT_DISCONNECT;
 extern const std::string ANI_EVENT_CHANGE;
 }  // namespace Rosen
 }  // namespace OHOS
-#endif /* OHOS_JS_SCREEN_LISTENER_H */
+#endif /* OHOS_ANI_SCREEN_LISTENER_H */

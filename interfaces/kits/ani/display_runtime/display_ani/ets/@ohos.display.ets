@@ -82,7 +82,7 @@ export interface CutoutInfo {
 
 export class CutoutInfoImpl implements CutoutInfo {
     constructor() {
-        this.boundingRects = new Array<Rect>(CUTO_ARRAY_LENGTH);
+        this.boundingRects = new Array<Rect>(5);
         for (let i = 0; i < this.boundingRects.length; i++) {
             this.boundingRects[i] = new RectImpl();
         }
@@ -1015,7 +1015,7 @@ export function brightnessInfoChangeCallback(cb: object, cbArg: long, cbArgBrigh
     func(cbArg, cbArgBrightness);
 }
 
-export native function getBrightnessInfoNative(display: long, displayMgrRef: long): BrightnessInfo;
+export native function getBrightnessInfoNative(displayId: long, displayMgrRef: long): BrightnessInfo;
 
 export let displayMgrRef: long;
 

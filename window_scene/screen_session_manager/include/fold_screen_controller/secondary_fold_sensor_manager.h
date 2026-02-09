@@ -31,13 +31,11 @@
 
 namespace OHOS {
 namespace Rosen {
-
 class SecondaryFoldSensorManager : public RefBase {
     WM_DECLARE_SINGLE_INSTANCE_BASE(SecondaryFoldSensorManager);
 public:
     void SetFoldScreenPolicy(sptr<FoldScreenPolicy> foldScreenPolicy);
     void SetSensorFoldStateManager(sptr<SensorFoldStateManager> sensorFoldStateManager);
-    void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
     void RegisterPostureCallback();
     void RegisterHallCallback();
     void UnRegisterPostureCallback();

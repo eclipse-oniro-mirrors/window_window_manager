@@ -383,7 +383,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMainExternalExtendToInnerMainEx
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner main external extend change to inner main external mirror";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMainExternalExtendToInnerMainExternalMirrorChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -422,7 +422,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMainExternalExtendToInnerExtend
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner main external extend change to inner extend external main";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMainExternalExtendToInnerExtendExternalMainChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -475,7 +475,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMainExternalExtendToInnerMirror
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner main external extend change to inner mirror external main";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMainExternalExtendToInnerMirrorExternalMainChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -531,7 +531,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMainExternalMirrorToInnerMainEx
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner main external mirror change to inner main external extend";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMainExternalMirrorToInnerMainExternalExtendChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -569,7 +569,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMainExternalMirrorToInnerMirror
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner main external mirror change to inner mirror external main";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMainExternalMirrorToInnerMirrorExternalMainChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -623,7 +623,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMainExternalMirrorToInnerExtend
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner main external mirror change to inner extend external main";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMainExternalMirrorToInnerExtendExternalMainChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -681,7 +681,7 @@ DMError MultiScreenModeChangeManager::HandleInnerExtendExternalMainToInnerMirror
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner extend external main change to inner mirror external main";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerExtendExternalMainToInnerMirrorExternalMainChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -721,7 +721,7 @@ DMError MultiScreenModeChangeManager::HandleInnerExtendExternalMainToInnerMainEx
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner extend external main change to inner main external extend";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerExtendExternalMainToInnerMainExternalExtendChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -775,7 +775,7 @@ DMError MultiScreenModeChangeManager::HandleInnerExtendExternalMainToInnerMainEx
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner extend external main change to inner main external mirror";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerExtendExternalMainToInnerMainExternalMirrorChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -832,7 +832,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMirrorExternalMainToInnerExtend
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner mirror external main change to inner extend external main";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMirrorExternalMainToInnerExtendExternalMainChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -871,7 +871,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMirrorExternalMainToInnerMainEx
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner mirror external main change to inner main external mirror";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMirrorExternalMainToInnerMainExternalMirrorChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     std::ostringstream oss;
     oss << "innerScreen screenId: " << innerScreen->GetScreenId()
@@ -926,7 +926,7 @@ DMError MultiScreenModeChangeManager::HandleInnerMirrorExternalMainToInnerMainEx
         return DMError::DM_OK;
     }
     std::string trackInfo = "inner mirror external main change to inner main external extend";
-    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker("InnerMirrorExternalMainToInnerMainExternalExtendChange");
+    MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
 
     /* step2: create client inner session only */
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "modeChange[%s]", trackInfo.c_str());

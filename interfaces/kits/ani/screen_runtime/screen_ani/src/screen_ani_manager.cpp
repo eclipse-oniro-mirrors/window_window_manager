@@ -104,9 +104,26 @@ void ScreenManagerAni::OnRegisterCallback(ani_env* env, ani_string type, ani_ref
     jsCbMap_[typeString][cbRef] = screenAniListener;
 }
 
-DmErrorCode ScreenManagerAni::ProcessRegisterCallback(ani_env* env,
-                                                      std::string& typeStr,
-                                                      sptr<ScreenAniListener> screenAniListener)
+bool ScreenManagerAni::IsCallbackRegistered(ani_env* env, const std::string& type, ani_ref callback)
+{
+    if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
+        TLOGI(WmsLogTag::DMS, "method %{public}s not registered!", type.c_str());
+        return false;
+    }
+
+    for (const auto& iter : jsCbMap_[type]) {
+        ani_boolean isEquals = false;
+        env->Reference_StrictEquals(callback, iter.first, &isEquals);
+        if (isEquals) {
+            TLOGE(WmsLogTag::DMS, "callback already registered!");
+            return true;
+        }
+    }
+    return false;
+}
+
+DmErrorCode ScreenManagerAni::ProcessRegisterCallback(ani_env* env, std::string& typeStr,
+    sptr<ScreenAniListener> screenAniListener)
 {
     DmErrorCode ret = DmErrorCode::DM_ERROR_INVALID_PARAM;
     if (typeStr == ANI_EVENT_CHANGE || typeStr == ANI_EVENT_CONNECT || typeStr == ANI_EVENT_DISCONNECT) {
@@ -126,17 +143,17 @@ void ScreenManagerAni::OnUnRegisterCallback(ani_env* env, ani_string type, ani_r
     ani_boolean callbackUndefined = 0;
     env->Reference_IsUndefined(callback, &callbackUndefined);
     ani_ref cbRef{};
-    if (ANI_OK != env->GlobalReference_Create(callback, &cbRef)) {
+    if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
         env->GlobalReference_Delete(cbRef);
         TLOGE(WmsLogTag::DMS, "[ANI]create global ref fail");
         return;
     }
     DmErrorCode ret;
     if (callbackUndefined) {
-        TLOGI(WmsLogTag::DMS, "[ANI] OnUnRegisterCallback for all");
+        TLOGI(WmsLogTag::DMS, "[ANI] for all");
         ret = DM_JS_TO_ERROR_CODE_MAP.at(UnRegisterAllScreenListenerWithType(typeString));
     } else {
-        TLOGI(WmsLogTag::DMS, "[ANI] OnUnRegisterCallback with type");
+        TLOGI(WmsLogTag::DMS, "[ANI] with type");
         ret = DM_JS_TO_ERROR_CODE_MAP.at(UnRegisterScreenListenerWithType(typeString, env, cbRef));
     }
 
@@ -146,23 +163,6 @@ void ScreenManagerAni::OnUnRegisterCallback(ani_env* env, ani_string type, ani_r
         AniErrUtils::ThrowBusinessError(env, ret, errMsg);
     }
     env->GlobalReference_Delete(cbRef);
-}
-
-bool ScreenManagerAni::IsCallbackRegistered(ani_env* env, const std::string& type, ani_ref callback)
-{
-    if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
-        TLOGI(WmsLogTag::DMS, "method %{public}s not registered!", type.c_str());
-        return false;
-    }
-    for (const auto& iter : jsCbMap_[type]) {
-        ani_boolean isEquals = false;
-        env->Reference_StrictEquals(callback, iter.first, &isEquals);
-        if (isEquals) {
-            TLOGE(WmsLogTag::DMS, "callback already registered!");
-            return true;
-        }
-    }
-    return false;
 }
 
 DMError ScreenManagerAni::UnRegisterScreenListenerWithType(std::string type, ani_env* env, ani_ref callback)
@@ -184,7 +184,8 @@ DMError ScreenManagerAni::UnRegisterScreenListenerWithType(std::string type, ani
         if (isEquals) {
             it->second->RemoveCallback(env, type, callback);
             if (type == ANI_EVENT_CONNECT || type == ANI_EVENT_DISCONNECT || type == ANI_EVENT_CHANGE) {
-                TLOGI(WmsLogTag::DMS, "[ANI] start to unregis screen event listener! event = %{public}s", type.c_str());
+                TLOGI(WmsLogTag::DMS, "[ANI] start to unregis screen event listener! event = %{public}s",
+                    type.c_str());
                 sptr<ScreenManager::IScreenListener> thisListener(it->second);
                 ret = SingletonContainer::Get<ScreenManager>().UnregisterScreenListener(thisListener);
             }
@@ -215,7 +216,10 @@ DMError ScreenManagerAni::UnRegisterAllScreenListenerWithType(std::string type)
             sptr<ScreenManager::IScreenListener> thisListener(it->second);
             ret = SingletonContainer::Get<ScreenManager>().UnregisterScreenListener(thisListener);
         }
+        jsCbMap_[type].erase(it++);
+        TLOGI(WmsLogTag::DMS, "[ANI] UnregisterAllScreenListenerWithType end");
     }
+    jsCbMap_.erase(type);
     return ret;
 }
 
@@ -519,10 +523,8 @@ ani_object ScreenManagerAni::MakeUnique(ani_env* env, ani_object uniqueScreenIds
     return ScreenAniUtils::CreateDisplayIdVectorAniObject(env, displayIds);
 }
 
-ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env,
-                                                ani_long mainScreen,
-                                                ani_object mirrorScreen,
-                                                ani_object mainScreenRegionAni)
+ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env, ani_long mainScreen, ani_object mirrorScreen,
+    ani_object mainScreenRegionAni)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] start");
     if (env == nullptr) {

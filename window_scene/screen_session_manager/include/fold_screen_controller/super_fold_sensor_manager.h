@@ -61,6 +61,7 @@ public:
     void SetStateMachineToActived();
     void HandleFoldStatusLockedToExpand();
     void HandleFoldStatusUnlocked();
+    void HandleOnehopDeviceDown();
     void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
 
 private:
@@ -84,6 +85,14 @@ private:
     ~SuperFoldSensorManager();
 
     std::shared_ptr<TaskScheduler> taskScheduler_ = nullptr;
+
+    std::mutex oneHopDeviceDownMutex_;
+
+    std::condition_variable oneHopDeviceDownEventCV_;
+
+    std::chrono::steady_clock::time_point oneHopDeviceDownTime_ = std::chrono::steady_clock::now();
+
+    uint32_t waitMilliSeconds_ = 250;
 };
 }
 }

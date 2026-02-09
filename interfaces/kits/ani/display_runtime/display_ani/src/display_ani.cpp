@@ -18,8 +18,8 @@
 #include <hitrace_meter.h>
 
 #include "ani.h"
-#include <ani_signature_builder.h>
 #include "ani_err_utils.h"
+#include <ani_signature_builder.h>
 #include "display.h"
 #include "display_ani_manager.h"
 #include "display_ani_utils.h"
@@ -38,7 +38,6 @@
 namespace OHOS {
 namespace Rosen {
 using namespace arkts::ani_signature;
-
 namespace {
     static std::map<DisplayId, sptr<DisplayInfo>> localObjs;
 }
@@ -53,7 +52,7 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_long displayInfoRef = 0;
     if (ANI_OK != env->Object_GetFieldByName_Long(obj, "displayInfoRef", &displayInfoRef)) {
-        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo failed");
+        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo failed %{public}ld", displayInfoRef);
     }
     DisplayInfo* displayInfo = reinterpret_cast<DisplayInfo*>(displayInfoRef);
     if (display == nullptr) {
@@ -63,6 +62,7 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
     sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo(displayInfo);
     if (cutoutInfo == nullptr) {
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN, "");
+        return;
     }
     std::vector<DMRect> rects = cutoutInfo->GetBoundingRects();
     // bounding rects
@@ -124,12 +124,12 @@ void DisplayAni::GetDisplayInfoRef(ani_env* env, ani_object displayObj)
 {
     ani_long displayRef = 0;
     if (env->Object_GetFieldByName_Long(displayObj, "displayRef", &displayRef)) {
-        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo begin");
+        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo begin %{public}ld", displayRef);
     }
     DisplayAni* displayAni = reinterpret_cast<DisplayAni*>(displayRef);
     if (displayAni != nullptr) {
-        ani_status ret = ANI_OK;
         sptr<DisplayInfo> displayInfo = displayAni->GetDisplay()->GetDisplayInfo();
+        ani_status ret = ANI_OK;
         ani_class displayCls = nullptr;
         if ((ret = env->FindClass("@ohos.display.display.DisplayImpl", &displayCls)) != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] null env %{public}u", ret);
@@ -144,7 +144,8 @@ void DisplayAni::GetDisplayInfoRef(ani_env* env, ani_object displayObj)
             reinterpret_cast<ani_long>(displayInfo.GetRefPtr()));
         localObjs[displayInfo->GetDisplayId()] = displayInfo;
     } else {
-        TLOGE(WmsLogTag::DMS, "[ANI] displayAni not found");
+        TLOGI(WmsLogTag::DMS, "[ANI] displayAni not found");
+        return;
     }
 }
 ani_string DisplayAni::GetDisplayCapability(ani_env* env)
@@ -207,7 +208,7 @@ void DisplayAni::GetLiveCreaseRegion(ani_env* env, ani_object obj, ani_object fo
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] can not find display.");
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN,
-            "JsDisplay::GetAvailableArea failed, can not find display.");
+            "JsDisplay::GetLiveCreaseRegion failed, can not find display.");
         return;
     }
     FoldCreaseRegion region;
@@ -216,10 +217,13 @@ void DisplayAni::GetLiveCreaseRegion(ani_env* env, ani_object obj, ani_object fo
     if (errorCodeMapping == DM_JS_TO_ERROR_CODE_MAP.end()) {
         TLOGE(WmsLogTag::DMS, "Unrecognized DMError: %{public}d", static_cast<int32_t>(nativeErrorCode));
         AniErrUtils::ThrowBusinessError(env,
-            DmErrorCode::DM_ERROR_INVALID_PARAM, "JsDisplay::GetAvailableArea failed.");
+            DmErrorCode::DM_ERROR_INVALID_PARAM, "JsDisplay::GetLiveCreaseRegion failed.");
         return;
     }
-    DisplayAniUtils::SetFoldCreaseRegion(env, region, foldCreaseRegionObj);
+    DmErrorCode result = DisplayAniUtils::SetFoldCreaseRegion(env, region, foldCreaseRegionObj);
+    if (result != DmErrorCode::DM_OK) {
+        AniErrUtils::ThrowBusinessError(env, result, "JsDisplay::GetLiveCreaseRegion failed.");
+    }
 }
 
 ani_boolean DisplayAni::HasImmersiveWindow(ani_env* env, ani_object obj)
@@ -248,14 +252,14 @@ bool DisplayAni::IsCallbackRegistered(ani_env* env, const std::string& type, ani
 {
     std::lock_guard<std::mutex> lock(mtx_);
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
-        TLOGI(WmsLogTag::DMS, "method %{public}s not registered.", type.c_str());
+        TLOGI(WmsLogTag::DMS, "[ANI] Method %{public}s has not been registerted", type.c_str());
         return false;
     }
     for (const auto& iter : jsCbMap_[type]) {
         ani_boolean isEquals = false;
         env->Reference_StrictEquals(callback, iter.first, &isEquals);
         if (isEquals) {
-            TLOGE(WmsLogTag::DMS, "callback is already registered!");
+            TLOGE(WmsLogTag::DMS, "callback is already registered");
             return true;
         }
     }
@@ -267,11 +271,12 @@ void DisplayAni::RegisterCallback(ani_env* env, ani_object obj, ani_string type,
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_long displayRef;
     env->Object_GetFieldByName_Long(obj, "displayRef", &displayRef);
+    TLOGI(WmsLogTag::DMS, "[ANI] RegisterCallback begin %{public}ld", displayRef);
     DisplayAni* displayAni = reinterpret_cast<DisplayAni*>(displayRef);
     if (displayAni != nullptr) {
         displayAni->OnRegisterCallback(env, obj, type, callback);
     } else {
-        TLOGE(WmsLogTag::DMS, "[ANI] displayAni not found");
+        TLOGI(WmsLogTag::DMS, "[ANI] displayAni not found");
     }
 }
 
@@ -283,12 +288,12 @@ void DisplayAni::OnRegisterCallback(ani_env* env, ani_object obj, ani_string typ
     env->Reference_IsUndefined(callback, &callbackUndefined);
     if (callbackUndefined) {
         std::string errMsg = "[ANI] failed to register display listener with type, cbk null or undefined";
-        TLOGE(WmsLogTag::DMS, "callback undef");
+        TLOGE(WmsLogTag::DMS, "callback undefined");
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg);
         return;
     }
     ani_ref cbRef{};
-    if (ANI_OK != env->GlobalReference_Create(callback, &cbRef)) {
+    if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
         env->GlobalReference_Delete(cbRef);
         TLOGE(WmsLogTag::DMS, "[ANI]create global ref fail");
         return;
@@ -299,7 +304,13 @@ void DisplayAni::OnRegisterCallback(ani_env* env, ani_object obj, ani_string typ
         return;
     }
 
-    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env);
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get vm failed, aniRet: %{public}u", aniRet);
+        return;
+    }
+    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env, vm);
     if (displayAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI]displayListener is nullptr");
         env->GlobalReference_Delete(cbRef);
@@ -322,7 +333,7 @@ void DisplayAni::OnRegisterCallback(ani_env* env, ani_object obj, ani_string typ
         TLOGI(WmsLogTag::DMS, "Failed to register display listener with type");
         env->GlobalReference_Delete(cbRef);
         std::string errMsg = "Failed to register display listener with type";
-        AniErrUtils::ThrowBusinessError(env, DMError::DM_ERROR_INVALID_PARAM, errMsg);
+        AniErrUtils::ThrowBusinessError(env, retCode, errMsg);
         return;
     }
     jsCbMap_[typeString][cbRef] = displayAniListener;
@@ -337,7 +348,7 @@ void DisplayAni::UnRegisterCallback(ani_env* env, ani_object obj, ani_string typ
     if (displayAni != nullptr) {
         displayAni->OnUnRegisterCallback(env, obj, type, callback);
     } else {
-        TLOGE(WmsLogTag::DMS, "[ANI] DisplayAni null");
+        TLOGI(WmsLogTag::DMS, "[ANI] DisplayAni null");
     }
 }
 
@@ -349,7 +360,7 @@ void DisplayAni::OnUnRegisterCallback(ani_env* env, ani_object obj, ani_string t
     ani_boolean callbackUndefined = 0;
     env->Reference_IsUndefined(callback, &callbackUndefined);
     ani_ref cbRef{};
-    if (ANI_OK != env->GlobalReference_Create(callback, &cbRef)) {
+    if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI]create global ref fail");
         env->GlobalReference_Delete(cbRef);
         return;
@@ -363,6 +374,10 @@ void DisplayAni::OnUnRegisterCallback(ani_env* env, ani_object obj, ani_string t
         ret = DM_JS_TO_ERROR_CODE_MAP.at(UnregisterDisplayListenerWithType(typeString, env, cbRef));
     }
     if (ret != DmErrorCode::DM_OK) {
+        DmErrorCode errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+        if (ret == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) {
+            errCode = ret;
+        }
         std::string errMsg = "[ANI] failed to unregister display listener with type";
         TLOGE(WmsLogTag::DMS, "[ANI] failed to unregister display listener with type");
         AniErrUtils::ThrowBusinessError(env, DMError::DM_ERROR_INVALID_PARAM, errMsg);
@@ -504,12 +519,14 @@ ani_object DisplayAni::TransferDynamic(ani_env* env, ani_object obj, ani_long na
     hybridgref ref = nullptr;
     if (!hybridgref_create_from_napi(napiEnv, jsDisplay, &ref)) {
         TLOGE(WmsLogTag::DMS, "hybridgref_create_from_napi failed");
+        arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
         return nullptr;
     }
     ani_object result = nullptr;
     if (!hybridgref_get_esvalue(env, ref, &result)) {
         hybridgref_delete_from_napi(napiEnv, ref);
         TLOGE(WmsLogTag::DMS, "hybridgref_get_esvalue failed");
+        arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
         return nullptr;
     }
     hybridgref_delete_from_napi(napiEnv, ref);
@@ -555,10 +572,10 @@ ani_status DisplayAni::NspBindNativeFunctions(ani_env* env, ani_namespace nsp)
             reinterpret_cast<void *>(DisplayManagerAni::GetDisplayByIdSyncAni)},
         ani_native_function {"getDefaultDisplaySyncNative", "C{std.core.Object}:",
             reinterpret_cast<void *>(DisplayManagerAni::GetDefaultDisplaySyncAni)},
-        ani_native_function {"getBrightnessInfoNative", nullptr,
-            reinterpret_cast<void *>(DisplayManagerAni::GetBrightnessInfoAni)},
         ani_native_function {"getAllDisplaysSyncNative", "C{std.core.Array}:",
             reinterpret_cast<void *>(DisplayManagerAni::GetAllDisplaysAni)},
+        ani_native_function {"getBrightnessInfoNative", nullptr,
+            reinterpret_cast<void *>(DisplayManagerAni::GetBrightnessInfoAni)},
         ani_native_function {"syncOn", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::RegisterCallback)},
         ani_native_function {"syncOff", nullptr,

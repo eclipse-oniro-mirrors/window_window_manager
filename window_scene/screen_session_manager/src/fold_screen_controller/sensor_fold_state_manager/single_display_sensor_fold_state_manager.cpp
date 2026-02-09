@@ -91,7 +91,7 @@ FoldStatus SingleDisplaySensorFoldStateManager::GetNextFoldState(float angle, in
         return state;
     }
 
-    if (hall == HALL_THRESHOLD && angle == OPEN_HALF_FOLDED_MIN_THRESHOLD) {
+    if (hall == HALL_THRESHOLD && (std::fabs(angle - OPEN_HALF_FOLDED_MIN_THRESHOLD) < 1e-3)) {
         state = currentState;
     } else if (std::islessequal(angle, CLOSE_HALF_FOLDED_MIN_THRESHOLD)) {
         state = FoldStatus::FOLDED;

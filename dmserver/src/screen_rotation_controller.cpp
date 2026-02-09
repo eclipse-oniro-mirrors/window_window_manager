@@ -186,8 +186,8 @@ void ScreenRotationController::SetScreenRotation(Rotation targetRotation, bool w
     }
     DisplayManagerServiceInner::GetInstance().GetDefaultDisplay()->SetRotation(targetRotation);
     DisplayManagerServiceInner::GetInstance().SetRotationFromWindow(defaultDisplayId_, targetRotation, withAnimation);
-    TLOGI(WmsLogTag::DMS, "dms: Set screen rotation: %{public}u withAnimation: %{public}u", targetRotation,
-        withAnimation);
+    TLOGI(WmsLogTag::DMS, "dms: Set screen rotation: %{public}u withAnimation: %{public}u",
+        targetRotation, withAnimation);
 }
 
 DeviceRotation ScreenRotationController::CalcDeviceRotation(SensorRotation sensorRotation)

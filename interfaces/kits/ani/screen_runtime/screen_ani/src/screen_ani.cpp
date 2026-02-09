@@ -33,7 +33,7 @@ namespace Rosen {
 ScreenAni::ScreenAni(const sptr<Screen>& screen) : screen_(screen)
 {
 }
- 
+
 void ScreenAni::SetDensityDpi(ani_env* env, ani_object obj, ani_double densityDpi)
 {
     ani_long screenNativeRef;
@@ -48,7 +48,7 @@ void ScreenAni::SetDensityDpi(ani_env* env, ani_object obj, ani_double densityDp
     }
     screenAni->OnSetDensityDpi(env, obj, densityDpi);
 }
- 
+
 void ScreenAni::OnSetDensityDpi(ani_env* env, ani_object obj, ani_double densityDpi)
 {
     DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(screen_->SetDensityDpi(static_cast<uint32_t>(densityDpi)));
@@ -104,12 +104,14 @@ ani_object ScreenAni::TransferDynamic(ani_env* env, ani_object obj, ani_long nat
     hybridgref ref = nullptr;
     if (!hybridgref_create_from_napi(napiEnv, jsScreen, &ref)) {
         TLOGE(WmsLogTag::DMS, "hybridgref_create_from_napi failed");
+        arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
         return nullptr;
     }
     ani_object result = nullptr;
     if (!hybridgref_get_esvalue(env, ref, &result)) {
         hybridgref_delete_from_napi(napiEnv, ref);
         TLOGE(WmsLogTag::DMS, "hybridgref_get_esvalue failed");
+        arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
         return nullptr;
     }
     hybridgref_delete_from_napi(napiEnv, ref);

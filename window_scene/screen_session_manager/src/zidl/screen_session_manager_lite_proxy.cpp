@@ -38,7 +38,6 @@ DMError ScreenSessionManagerLiteProxy::RegisterDisplayManagerAgent(
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
-    TLOGD(WmsLogTag::DMS, "enter!");
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
@@ -79,7 +78,6 @@ DMError ScreenSessionManagerLiteProxy::UnregisterDisplayManagerAgent(
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
-    TLOGD(WmsLogTag::DMS, "enter!");
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
@@ -100,8 +98,8 @@ DMError ScreenSessionManagerLiteProxy::UnregisterDisplayManagerAgent(
         return DMError::DM_ERROR_IPC_FAILED;
     }
 
-    if (remote->SendRequest(static_cast<uint32_t>(ScreenManagerLiteMessage::TRANS_ID_UNREGISTER_DISPLAY_MANAGER_AGENT),
-        data, reply, option) != ERR_NONE) {
+    if (remote->SendRequest(static_cast<uint32_t>(
+        ScreenManagerLiteMessage::TRANS_ID_UNREGISTER_DISPLAY_MANAGER_AGENT), data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::DMS, "SendRequest failed");
         return DMError::DM_ERROR_IPC_FAILED;
     }
@@ -244,12 +242,12 @@ sptr<DisplayInfo> ScreenSessionManagerLiteProxy::GetDisplayInfoById(DisplayId di
         return nullptr;
     }
     if (!data.WriteUint64(displayId)) {
-        TLOGW(WmsLogTag::DMS, "WriteUint64 displayId failed");
+        TLOGE(WmsLogTag::DMS, "WriteUint64 displayId failed");
         return nullptr;
     }
     if (remote->SendRequest(static_cast<uint32_t>(ScreenManagerLiteMessage::TRANS_ID_GET_DISPLAY_BY_ID),
         data, reply, option) != ERR_NONE) {
-        TLOGW(WmsLogTag::DMS, "SendRequest failed");
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
         return nullptr;
     }
 

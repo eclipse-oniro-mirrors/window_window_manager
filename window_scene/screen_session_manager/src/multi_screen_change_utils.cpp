@@ -289,7 +289,7 @@ void MultiScreenChangeUtils::ExchangeScreenSupportedRefreshRate(sptr<ScreenSessi
     sptr<ScreenSession> externalPhyScreen =
         ScreenSessionManager::GetInstance().GetPhysicalScreenSession(externalScreen->GetRSScreenId());
 
-    if (innerPhyScreen == nullptr || externalPhyScreen == nullptr) {
+    if (!innerPhyScreen || !externalPhyScreen) {
         TLOGE(WmsLogTag::DMS, "physicalScreen is null!");
         return;
     }
@@ -348,13 +348,14 @@ void MultiScreenChangeUtils::ScreenPhysicalInfoChange(sptr<ScreenSession>& inner
 
     /* set notify flag */
     SetScreenNotifyFlag(innerScreen, externalScreen);
+
     oss.str("");
     oss << "after innerScreen screenId: " << innerScreen->GetScreenId()
         << ", rsId: " << innerScreen->GetRSScreenId()
         << ", name: " << innerScreen->GetName()
         << ", externalScreen screenId: " << externalScreen->GetScreenId()
         << ", rsId: " << externalScreen->GetRSScreenId()
-        << ", name: " << externalScreen->GetName();
+        << ", name: " << innerScreen->GetName();
     oss << std::endl;
     TLOGW(WmsLogTag::DMS, "%{public}s", oss.str().c_str());
 }
@@ -378,8 +379,8 @@ void MultiScreenChangeUtils::CreateMirrorSession(sptr<ScreenSession>& mainSessio
         SuperFoldStateManager::GetInstance().RefreshExternalRegion();
     } else {
 #endif
-        RSDisplayNodeConfig config = { screenSession->rsId_, true, displayNode->GetId() };
-        screenSession->ReuseDisplayNode(config);
+    RSDisplayNodeConfig config = { screenSession->rsId_, true, displayNode->GetId() };
+    screenSession->ReuseDisplayNode(config);
 #ifdef FOLD_ABILITY_ENABLE
     }
 #endif

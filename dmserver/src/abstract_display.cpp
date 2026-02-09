@@ -25,7 +25,6 @@ namespace {
 constexpr int32_t PAD_SCREEN_WIDTH = 2560;
 constexpr int32_t PHONE_SCREEN_WIDTH = 2160;
 constexpr float INCH_2_MM = 25.4f;
-constexpr ScreenId DEFAULT_DISPLAY_ID = 0;
 }
 
 AbstractDisplay::AbstractDisplay(DisplayId id, sptr<SupportedScreenModes>& info, sptr<AbstractScreen>& absScreen)
@@ -192,8 +191,8 @@ void AbstractDisplay::SetDisplayOrientation(DisplayOrientation displayOrientatio
 
 bool AbstractDisplay::RequestRotation(Rotation rotation)
 {
-    TLOGD(WmsLogTag::DMS, "request rotation from %{public}u to %{public}u, display %{public}" PRIu64"", rotation_,
-        rotation, id_);
+    TLOGD(WmsLogTag::DMS, "request rotation from %{public}u to %{public}u, display %{public}" PRIu64"",
+        rotation_, rotation, id_);
     if (rotation_ == rotation) {
         TLOGE(WmsLogTag::DMS, "rotation not change %{public}u", rotation);
         return false;
@@ -251,8 +250,8 @@ bool AbstractDisplay::BindAbstractScreen(sptr<AbstractScreen> abstractScreen)
     height_ = static_cast<int32_t>(info->height_);
     refreshRate_ = info->refreshRate_;
     screenId_ = dmsScreenId;
-    TLOGD(WmsLogTag::DMS, "display bind to screen. display:%{public}" PRIu64", screen:%{public}" PRIu64"", id_,
-        dmsScreenId);
+    TLOGD(WmsLogTag::DMS, "display bind to screen. display:%{public}" PRIu64", screen:%{public}" PRIu64"",
+        id_, dmsScreenId);
     return true;
 }
 
@@ -292,11 +291,6 @@ sptr<DisplayInfo> AbstractDisplay::ConvertToDisplayInfo() const
     displayInfo->SetWaterfallDisplayCompressionStatus(waterfallDisplayCompressionStatus_);
     displayInfo->SetDisplayOrientation(displayOrientation_);
     displayInfo->SetIsDefaultVertical(isDefaultVertical_);
-    if (id_ == DEFAULT_DISPLAY_ID) {
-        displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
-    } else {
-        displayInfo->SetDisplaySourceMode(DisplaySourceMode::NONE);
-    }
     return displayInfo;
 }
 } // namespace OHOS::Rosen

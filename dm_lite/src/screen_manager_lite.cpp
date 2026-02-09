@@ -218,7 +218,7 @@ DMError ScreenManagerLite::Impl::RegisterScreenListener(sptr<IScreenListener> li
 DMError ScreenManagerLite::RegisterScreenListener(sptr<IScreenListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "RegisterScreenListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->RegisterScreenListener(listener);
@@ -239,7 +239,7 @@ DMError ScreenManagerLite::Impl::UnregisterScreenListener(sptr<IScreenListener> 
 DMError ScreenManagerLite::UnregisterScreenListener(sptr<IScreenListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "UnregisterScreenListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterScreenListener(listener);
@@ -293,7 +293,7 @@ DMError ScreenManagerLite::Impl::RegisterScreenModeChangeListener(sptr<IScreenMo
 DMError ScreenManagerLite::RegisterScreenModeChangeListener(sptr<IScreenModeChangeListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "RegisterScreenListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->RegisterScreenModeChangeListener(listener);
@@ -314,7 +314,7 @@ DMError ScreenManagerLite::Impl::UnregisterScreenModeChangeListener(sptr<IScreen
 DMError ScreenManagerLite::UnregisterScreenModeChangeListener(sptr<IScreenModeChangeListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "UnregisterScreenListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterScreenModeChangeListener(listener);

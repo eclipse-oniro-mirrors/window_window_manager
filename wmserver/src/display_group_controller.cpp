@@ -229,12 +229,6 @@ void DisplayGroupController::UpdateWindowDisplayIdIfNeeded(const sptr<WindowNode
 
 void DisplayGroupController::ChangeToRectInDisplayGroup(const sptr<WindowNode>& node, DisplayId displayId)
 {
-    auto displays = node->GetShowingDisplays();
-    if (std::find(displays.begin(), displays.end(), displayId) != displays.end()) {
-        WLOGFD("Alreedy show in display %{public}" PRIu64 "", displayId);
-        return;
-    }
-
     Rect requestRect = node->GetRequestRect();
     const Rect& displayRect = DisplayGroupInfo::GetInstance().GetDisplayRect(displayId);
     requestRect.posX_ += displayRect.posX_;

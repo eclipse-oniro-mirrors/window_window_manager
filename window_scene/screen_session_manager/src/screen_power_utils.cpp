@@ -15,7 +15,9 @@
 
 #include "screen_power_utils.h"
 #include "power_mgr_client.h"
+#ifdef WM_SCREENLOCK_MANAGER_ENABLED
 #include "screenlock_manager.h"
+#endif
 #include "screen_session_manager.h"
 #include "window_manager_hilog.h"
 
@@ -25,7 +27,9 @@ namespace OHOS {
 namespace Rosen {
 
 std::mutex ScreenPowerUtils::powerTimingMutex_;
+#ifdef WM_SCREENLOCK_MANAGER_ENABLED
 std::mutex ScreenPowerUtils::powerLockMutex_;
+#endif
 bool ScreenPowerUtils::isEnablePowerForceTimingOut_ = false;
 
 void ScreenPowerUtils::EnablePowerForceTimingOut()
@@ -77,6 +81,9 @@ void ScreenPowerUtils::DisablePowerForceTimingOut()
 
 void ScreenPowerUtils::LightAndLockScreen(const std::string& detail)
 {
+#ifndef WM_SCREENLOCK_MANAGER_ENABLED
+    return;
+#else
     std::lock_guard<std::mutex> lock(powerLockMutex_);
     auto& powerMgrClient = PowerMgrClient::GetInstance();
     auto lockManager = OHOS::ScreenLock::ScreenLockManager::GetInstance();
@@ -95,6 +102,7 @@ void ScreenPowerUtils::LightAndLockScreen(const std::string& detail)
         IPCSkeleton::SetCallingIdentity(identity);
         TLOGI(WmsLogTag::DMS, "wakeupRet: %{public}d, lockRet: %{public}d", wakeupRet, lockRet);
     }
+#endif
 }
 bool ScreenPowerUtils::GetEnablePowerForceTimingOut()
 {

@@ -46,10 +46,10 @@ ohos_shared_library("screenani_kit") {
   }
   sources = [
     "screen_ani/src/ani_err_utils.cpp",
-    "screen_ani/src/screen_ani.cpp",
     "screen_ani/src/screen_ani_listener.cpp",
     "screen_ani/src/screen_ani_manager.cpp",
     "screen_ani/src/screen_ani_utils.cpp",
+    "screen_ani/src/screen_ani.cpp",
   ]
 
   configs = [
@@ -62,9 +62,9 @@ ohos_shared_library("screenani_kit") {
 
   deps = [
     "../../../../dm:libdm",
-    "../../../../interfaces/kits/napi/screen_runtime:screen_kit",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
+    "../../../../interfaces/kits/napi/screen_runtime:screen_kit",
   ]
 
   external_deps = [

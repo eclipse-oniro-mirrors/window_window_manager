@@ -37,10 +37,7 @@ idl_gen_interface("display_manager_interface") {
   subsystem_name = "window"
   target_type = "source_set"
   configs = [ ":libdms_private_config" ]
-  sequenceable_ext_deps = [
-    "graphic_2d:librender_service_client",
-    "hilog:libhilog",
-  ]
+  sequenceable_ext_deps = [ "graphic_2d:librender_service_client" ]
   sanitize = {
     cfi = true
     cfi_cross_dso = true
@@ -91,6 +88,7 @@ ohos_shared_library("libdms") {
   ]
 
   external_deps = [
+    "bundle_framework:appexecfwk_core",
     "c_utils:utils",
     "config_policy:configpolicy_util",
     "eventhandler:libeventhandler",

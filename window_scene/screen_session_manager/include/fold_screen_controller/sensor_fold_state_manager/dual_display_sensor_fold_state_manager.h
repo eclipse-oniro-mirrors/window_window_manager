@@ -28,8 +28,10 @@
 
 namespace OHOS {
 namespace Rosen {
+using OHOS::AppExecFwk::AbilityStateData;
 using OHOS::AppExecFwk::AppStateData;
 using OHOS::AppExecFwk::IApplicationStateObserver;
+using OHOS::AppExecFwk::ProcessData;
 enum class ReportDualTentModeStatus : int32_t {
     NORMAL_EXIT_TENT_MODE = 0,
     NORMAL_ENTER_TENT_MODE = 1,
@@ -41,11 +43,11 @@ public:
     ApplicationStateObserver();
     virtual ~ApplicationStateObserver() = default;
     void OnForegroundApplicationChanged(const AppStateData &appStateData) override;
-    void OnAbilityStateChanged(const AppExecFwk::AbilityStateData &abilityStateData) override {};
-    void OnExtensionStateChanged(const AppExecFwk::AbilityStateData &abilityStateData) override {};
-    void OnProcessCreated(const AppExecFwk::ProcessData &processData) override {};
-    void OnProcessDied(const AppExecFwk::ProcessData &processData) override {};
-    void OnApplicationStateChanged(const AppExecFwk::AppStateData &appStateData) override {};
+    void OnAbilityStateChanged(const AbilityStateData &abilityStateData) override {};
+    void OnExtensionStateChanged(const AbilityStateData &abilityStateData) override {};
+    void OnProcessCreated(const ProcessData &processData) override {};
+    void OnProcessDied(const ProcessData &processData) override {};
+    void OnApplicationStateChanged(const AppStateData &appStateData) override {};
     sptr<IRemoteObject> AsObject() override { return nullptr; };
     std::string GetForegroundApp();
 
@@ -62,12 +64,14 @@ public:
     void HandleHallChange(float angle, int hall, sptr<FoldScreenPolicy> foldScreenPolicy) override;
     void RegisterApplicationStateObserver() override;
     void HandleTentChange(int tentType, sptr<FoldScreenPolicy> foldScreenPolicy, int hall = -1) override;
+    void HandleTentChangeInner(int tentType, sptr<FoldScreenPolicy> foldScreenPolicy, int hall = -1);
     bool TriggerTentExit(float angle, int hall);
     void TentModeHandleSensorChange(float angle, int hall, sptr<FoldScreenPolicy> foldScreenPolicy);
     void ReportTentStatusChange(ReportDualTentModeStatus tentStatus);
 
 private:
     FoldStatus GetNextFoldState(float angle, int hall);
+    void ProcessHalfFoldState(FoldStatus& state, float angle, float halfFoldMinThreshold, float halfFoldMaxThreshold);
     void UpdateHallSwitchAppInfo(FoldStatus foldStatus);
     void HandleHallChangeInner(float angle, int hall, const sptr<FoldScreenPolicy>& foldScreenPolicy);
     void SensorReportTimeOutPro(float angle, int hall, const sptr<FoldScreenPolicy>& foldScreenPolicy);
@@ -75,12 +79,12 @@ private:
     void HandleAngleChangeInTask(float angle, int hall, const sptr<FoldScreenPolicy>& foldScreenPolicy);
     sptr<ApplicationStateObserver> applicationStateObserver_;
     bool isHallSwitchApp_ = true;
-    std::vector<std::string> packageNames_;
-    int tentModeType_ = 0;
-    float currentAngle_ = -1.0F;
-    int32_t currentHall_ = -1;
     std::atomic_bool isInTask_ = false;
+    std::vector<std::string> hallSwitchPackageNameList_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
+    int tentModeType_ = 0;
+    std::atomic<int32_t> currentAngle_;
+    std::atomic<int32_t> currentHall_;
 };
 } // namespace Rosen
 } // namespace OHOS

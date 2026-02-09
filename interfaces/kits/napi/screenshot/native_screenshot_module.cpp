@@ -122,36 +122,36 @@ static void GetScreenRect(napi_env env, std::unique_ptr<Param> &param, napi_valu
         NAPI_CALL_RETURN_VOID(env, napi_get_named_property(env, screenRect, "left", &left));
         if (left != nullptr && GetType(env, left) == napi_number) {
             NAPI_CALL_RETURN_VOID(env, napi_get_value_int32(env, left, &param->option.rect.left));
-            TLOGI(WmsLogTag::DMS, "left success, left = %{public}d", param->option.rect.left);
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.left success, left = %{public}d", param->option.rect.left);
         } else {
-            TLOGI(WmsLogTag::DMS, "left failed, invalid param, use default left = 0");
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.left failed, invalid param, use default left = 0");
         }
 
         napi_value top;
         NAPI_CALL_RETURN_VOID(env, napi_get_named_property(env, screenRect, "top", &top));
         if (top != nullptr && GetType(env, top) == napi_number) {
             NAPI_CALL_RETURN_VOID(env, napi_get_value_int32(env, top, &param->option.rect.top));
-            TLOGI(WmsLogTag::DMS, "top success, top = %{public}d", param->option.rect.top);
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.top success, top = %{public}d", param->option.rect.top);
         } else {
-            TLOGI(WmsLogTag::DMS, "top failed, invalid param, use default top = 0");
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.top failed, invalid param, use default top = 0");
         }
 
         napi_value width;
         NAPI_CALL_RETURN_VOID(env, napi_get_named_property(env, screenRect, "width", &width));
         if (width != nullptr && GetType(env, width) == napi_number) {
             NAPI_CALL_RETURN_VOID(env, napi_get_value_int32(env, width, &param->option.rect.width));
-            TLOGI(WmsLogTag::DMS, "width success, width = %{public}d", param->option.rect.width);
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.width success, width = %{public}d", param->option.rect.width);
         } else {
-            TLOGI(WmsLogTag::DMS, "width failed, invalid param, use default width = 0");
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.width failed, invalid param, use default width = 0");
         }
 
         napi_value height;
         NAPI_CALL_RETURN_VOID(env, napi_get_named_property(env, screenRect, "height", &height));
         if (height != nullptr && GetType(env, height) == napi_number) {
             NAPI_CALL_RETURN_VOID(env, napi_get_value_int32(env, height, &param->option.rect.height));
-            TLOGI(WmsLogTag::DMS, "height success, height = %{public}d", param->option.rect.height);
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.height success, height = %{public}d", param->option.rect.height);
         } else {
-            TLOGI(WmsLogTag::DMS, "height failed, invalid param, use default height = 0");
+            TLOGI(WmsLogTag::DMS, "get ScreenRect.height failed, invalid param, use default height = 0");
         }
     } else {
         TLOGI(WmsLogTag::DMS, "get ScreenRect failed, use default ScreenRect param");
@@ -168,18 +168,18 @@ static void GetImageSize(napi_env env, std::unique_ptr<Param> &param, napi_value
         NAPI_CALL_RETURN_VOID(env, napi_get_named_property(env, imageSize, "width", &width));
         if (width != nullptr && GetType(env, width) == napi_number) {
             NAPI_CALL_RETURN_VOID(env, napi_get_value_int32(env, width, &param->option.size.width));
-            TLOGI(WmsLogTag::DMS, "width success, width = %{public}d", param->option.size.width);
+            TLOGI(WmsLogTag::DMS, "get ImageSize.width success, width = %{public}d", param->option.size.width);
         } else {
-            TLOGI(WmsLogTag::DMS, "width failed, invalid param, use default width = 0");
+            TLOGI(WmsLogTag::DMS, "get ImageSize.width failed, invalid param, use default width = 0");
         }
 
         napi_value height;
         NAPI_CALL_RETURN_VOID(env, napi_get_named_property(env, imageSize, "height", &height));
         if (height != nullptr && GetType(env, height) == napi_number) {
             NAPI_CALL_RETURN_VOID(env, napi_get_value_int32(env, height, &param->option.size.height));
-            TLOGI(WmsLogTag::DMS, "height success, height = %{public}d", param->option.size.height);
+            TLOGI(WmsLogTag::DMS, "get ImageSize.height success, height = %{public}d", param->option.size.height);
         } else {
-            TLOGI(WmsLogTag::DMS, "height failed, invalid param, use default height = 0");
+            TLOGI(WmsLogTag::DMS, "get ImageSize.height failed, invalid param, use default height = 0");
         }
     }
 }
@@ -241,8 +241,8 @@ static void ConvertWindowIdList(napi_env env, std::unique_ptr<Param>& param, nap
             return;
         }
         if (persistentId < 0) {
-            TLOGE(WmsLogTag::DMS, "window id is negative: %{public}" PRId64, persistentId);
-            continue;
+            TLOGE(WmsLogTag::DMS, "window id is negative:  %{public}" PRId64, persistentId);
+            return;
         }
         param->option.blackWindowIds.push_back(static_cast<uint64_t>(persistentId));
     }
@@ -306,7 +306,7 @@ static void AsyncGetScreenshot(napi_env env, std::unique_ptr<Param> &param)
             snapConfig.imageRect_ = param->option.rect;
             snapConfig.imageSize_ = param->option.size;
             snapConfig.rotation_ = param->option.rotation;
-            snapConfig.isCaptureFullOfScreen_ = param->option.isCaptureFullOfScreen;
+            snapConfig.isCaptureFullOfScreen = param->option.isCaptureFullOfScreen;
             param->image = DisplayManager::GetInstance().GetScreenshotwithConfig(snapConfig, &param->wret, true);
         } else if (param->isPick) {
             TLOGI(WmsLogTag::DMS, "Get Screenshot by picker");
@@ -553,7 +553,7 @@ static void AsyncGetScreenCapture(napi_env env, std::unique_ptr<Param> &param)
 {
     if (!param->validInputParam) {
         TLOGE(WmsLogTag::DMS, "screen capture failed!");
-        param->wret = DmErrorCode::DM_ERROR_SYSTEM_INNORMAL;
+        param->wret = DmErrorCode::DM_ERROR_INVALID_PARAM;
         param->errMessage = "[screenshot][capture]msg: Parameter error. Possible causes: "
             "1. Mandatory parameters are left unspecified; "
             "2. Incorrect parameter types.";
@@ -745,7 +745,6 @@ napi_value ScreenshotModuleInit(napi_env env, napi_value exports)
     napi_create_object(env, &dmErrorCode);
     SetDmErrorObjectProperty(env, errorCode);
     SetDmErrorCodeObjectProperty(env, dmErrorCode);
-
     napi_property_descriptor properties[] = {
         DECLARE_NAPI_FUNCTION("save", save::MainFunc),
         DECLARE_NAPI_FUNCTION("saveHdrPicture", save::SaveHDRFunc),

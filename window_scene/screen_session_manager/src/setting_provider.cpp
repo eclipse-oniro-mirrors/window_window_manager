@@ -28,32 +28,39 @@
 
 namespace OHOS {
 namespace Rosen {
-sptr<SettingProvider> SettingProvider::instance_ = nullptr;
-std::mutex SettingProvider::instanceMutex_;
-sptr<IRemoteObject> SettingProvider::remoteObj_ = nullptr;
+SettingProvider* SettingProvider::instance_;
+std::mutex SettingProvider::mutex_;
+sptr<IRemoteObject> SettingProvider::remoteObj_;
 namespace {
 const std::string SETTING_COLUMN_KEYWORD = "KEYWORD";
 const std::string SETTING_COLUMN_VALUE = "VALUE";
 const std::string SETTING_URI_PROXY = "datashare:///com.ohos.settingsdata/entry/settingsdata/SETTINGSDATA?Proxy=true";
+const std::string SETTING_WALL_URI =
+    "datashare:///com.ohos.settingsdata/entry/settingsdata/USER_SETTINGSDATA_SECURE_100?Proxy=true";
 const std::string WALL_KEY = "wallpaperAodDisplay";
 const std::string SETTING_RESOLUTION_EFFECT_KEY = "user_set_resolution_effect_select";
 const std::string SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY  = "bordering_area_percent";
-const std::string SETTING_DISPLY_WIRED_SCREEN_GAMUT_KEY = "settings.display.wired_screen_gamut";
-const std::string DURING_CALL_KEY = "during_call_state";
 const std::string SETTING_MULTI_USER_URI = "datashare:///com.ohos.settingsdata/entry/settingsdata/";
 const std::string SETTING_MULTI_USER_TABLE = "USER_SETTINGSDATA_";
+const std::string DURING_CALL_KEY = "during_call_state";
 const std::string SETTING_SECURE_MULTI_USER_TABLE = "USER_SETTINGSDATA_SECURE_";
 const std::string SETTING_MULTI_USER_PROXY = "?Proxy=true";
 constexpr const char *SETTINGS_DATA_EXT_URI = "datashare:///com.ohos.settingsdata.DataAbility";
 constexpr int32_t PARAM_NUM_TEN = 10;
 } // namespace
 
+SettingProvider::~SettingProvider()
+{
+    instance_ = nullptr;
+    remoteObj_ = nullptr;
+}
+
 SettingProvider& SettingProvider::GetInstance(int32_t systemAbilityId)
 {
     if (instance_ == nullptr) {
-        std::lock_guard<std::mutex> lock(instanceMutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         if (instance_ == nullptr) {
-            instance_ = sptr<SettingProvider>::MakeSptr();
+            instance_ = new SettingProvider();
             Initialize(systemAbilityId);
         }
     }
@@ -141,8 +148,7 @@ ErrCode SettingProvider::RegisterObserver(const sptr<SettingObserver>& observer)
     std::string callingIdentity = IPCSkeleton::ResetCallingIdentity();
     Uri uri = ((observer->GetKey() == DURING_CALL_KEY ||
         observer->GetKey() == SETTING_RESOLUTION_EFFECT_KEY ||
-        observer->GetKey() == SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY ||
-        observer->GetKey() == SETTING_DISPLY_WIRED_SCREEN_GAMUT_KEY)) ?
+        observer->GetKey() == SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY)) ?
         AssembleUriMultiUser(observer->GetKey()) : AssembleUri(observer->GetKey());
     auto helper = CreateDataShareHelper();
     if (helper == nullptr) {
@@ -309,7 +315,7 @@ std::shared_ptr<DataShare::DataShareHelper> SettingProvider::CreateDataShareHelp
 {
     auto helper = DataShare::DataShareHelper::Creator(remoteObj_, SETTING_URI_PROXY, SETTINGS_DATA_EXT_URI);
     if (helper == nullptr) {
-        TLOGW(WmsLogTag::DMS, "helper is nullptr, uri=%{public}s", SETTING_URI_PROXY.c_str());
+        TLOGW(WmsLogTag::DMS, "helper is nullptr");
         return nullptr;
     }
     return helper;
@@ -330,7 +336,7 @@ std::shared_ptr<DataShare::DataShareHelper> SettingProvider::CreateDataShareHelp
     }
     auto helper = DataShare::DataShareHelper::Creator(remoteObj_, uriString, SETTINGS_DATA_EXT_URI);
     if (helper == nullptr) {
-        TLOGW(WmsLogTag::DMS, "helper is nullptr, uri=%{public}s", uriString.c_str());
+        TLOGW(WmsLogTag::DMS, "helper is nullptr");
         return nullptr;
     }
     return helper;
@@ -360,13 +366,16 @@ Uri SettingProvider::AssembleUriMultiUser(const std::string& key)
         std::string userIdString = std::to_string(userId);
         uriString = SETTING_MULTI_USER_URI + SETTING_MULTI_USER_TABLE + userIdString +
             SETTING_MULTI_USER_PROXY + "&key=" + key;
-        if (key == WALL_KEY || key == DURING_CALL_KEY) {
+        if (key == DURING_CALL_KEY || key == WALL_KEY) {
             uriString = SETTING_MULTI_USER_URI + SETTING_SECURE_MULTI_USER_TABLE +
                 userIdString + SETTING_MULTI_USER_PROXY + "&key=" + key;
         }
     } else {
         TLOGE(WmsLogTag::DMS, "invalid userId: %{public}d, use default uri", userId);
         uriString = SETTING_URI_PROXY + "&key=" + key;
+        if (key == WALL_KEY) {
+            uriString = SETTING_WALL_URI + "&key=" + key;
+        }
     }
     Uri uri(uriString);
     return uri;
@@ -493,7 +502,7 @@ std::shared_ptr<DataShare::DataShareHelper> SettingProvider::CreateDataShareHelp
     }
     auto helper = DataShare::DataShareHelper::Creator(remoteObj_, address, SETTINGS_DATA_EXT_URI);
     if (helper == nullptr) {
-        TLOGW(WmsLogTag::DMS, "helper is nullptr, uri=%{public}s", address.c_str());
+        TLOGW(WmsLogTag::DMS, "helper is nullptr");
         return nullptr;
     }
     return helper;

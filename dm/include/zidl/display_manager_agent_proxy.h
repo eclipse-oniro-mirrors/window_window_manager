@@ -27,32 +27,32 @@ public:
     explicit DisplayManagerAgentProxy(const sptr<IRemoteObject>& impl) : IRemoteProxy<IDisplayManagerAgent>(impl) {};
     ~DisplayManagerAgentProxy() = default;
 
-    void NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status) override;
-    void NotifyDisplayStateChanged(DisplayId id, DisplayState state) override;
-    void OnScreenConnect(sptr<ScreenInfo>) override;
-    void OnScreenDisconnect(ScreenId) override;
-    void OnScreenChange(const sptr<ScreenInfo>&, ScreenChangeEvent) override;
-    void OnScreenGroupChange(const std::string& trigger,
+    virtual void NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status) override;
+    virtual void NotifyDisplayStateChanged(DisplayId id, DisplayState state) override;
+    virtual void OnScreenConnect(sptr<ScreenInfo>) override;
+    virtual void OnScreenDisconnect(ScreenId) override;
+    virtual void OnScreenChange(const sptr<ScreenInfo>&, ScreenChangeEvent) override;
+    virtual void OnScreenGroupChange(const std::string& trigger,
         const std::vector<sptr<ScreenInfo>>&, ScreenGroupChangeEvent) override;
-    void OnDisplayCreate(sptr<DisplayInfo>) override;
-    void OnDisplayDestroy(DisplayId) override;
-    void OnDisplayChange(sptr<DisplayInfo>, DisplayChangeEvent) override;
-    void OnScreenshot(sptr<ScreenshotInfo>) override;
-    void NotifyPrivateWindowStateChanged(bool hasPrivate) override;
-    void NotifyPrivateStateWindowListChanged(DisplayId id, std::vector<std::string> privacyWindowList) override;
-    void NotifyFoldStatusChanged(FoldStatus) override;
-    void NotifyFoldAngleChanged(std::vector<float> foldAngles) override;
-    void NotifyCaptureStatusChanged(bool isCapture) override;
-    void NotifyDisplayChangeInfoChanged(const sptr<DisplayChangeInfo>& info) override;
-    void NotifyDisplayModeChanged(FoldDisplayMode) override;
-    void NotifyAvailableAreaChanged(DMRect, DisplayId displayId) override;
-    void NotifyScreenMagneticStateChanged(bool isMagneticState) override;
-    void NotifyScreenModeChange(const std::vector<sptr<ScreenInfo>>& screenInfos) override;
-    void NotifyAbnormalScreenConnectChange(ScreenId screenId) override;
-    void NotifyBrightnessInfoChanged(ScreenId screenId, const ScreenBrightnessInfo& info) override;
-    virtual void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds) override;
-    void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes)
+    virtual void OnDisplayCreate(sptr<DisplayInfo>) override;
+    virtual void OnDisplayDestroy(DisplayId) override;
+    virtual void OnDisplayChange(sptr<DisplayInfo>, DisplayChangeEvent) override;
+    virtual void OnScreenshot(sptr<ScreenshotInfo>) override;
+    virtual void NotifyPrivateWindowStateChanged(bool hasPrivate) override;
+    virtual void NotifyPrivateStateWindowListChanged(DisplayId id, std::vector<std::string> privacyWindowList) override;
+    virtual void NotifyFoldStatusChanged(FoldStatus) override;
+    virtual void NotifyFoldAngleChanged(std::vector<float> foldAngles) override;
+    virtual void NotifyCaptureStatusChanged(bool isCapture) override;
+    virtual void NotifyDisplayChangeInfoChanged(const sptr<DisplayChangeInfo>& info) override;
+    virtual void NotifyDisplayModeChanged(FoldDisplayMode) override;
+    virtual void NotifyAvailableAreaChanged(DMRect, DisplayId displayId) override;
+    virtual void NotifyScreenMagneticStateChanged(bool isMagneticState) override;
+    virtual void NotifyScreenModeChange(const std::vector<sptr<ScreenInfo>>& screenInfos) override;
+    virtual void NotifyAbnormalScreenConnectChange(ScreenId screenId) override;
+    virtual void NotifyBrightnessInfoChanged(ScreenId screenId, const ScreenBrightnessInfo& info) override;
+    virtual void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes)
         override;
+    virtual void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds) override;
 private:
     static inline BrokerDelegator<DisplayManagerAgentProxy> delegator_;
 };

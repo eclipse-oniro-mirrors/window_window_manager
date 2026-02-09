@@ -73,7 +73,6 @@ public:
 
     virtual FoldDisplayMode GetFoldDisplayMode() { return FoldDisplayMode::UNKNOWN; }
     virtual void SetFoldDisplayMode(const FoldDisplayMode) {}
-    virtual void SetFoldDisplayModeAsync(const FoldDisplayMode) {}
     virtual bool IsFoldable() { return false; };
     virtual FoldStatus GetFoldStatus() { return FoldStatus::UNKNOWN; };
     virtual sptr<DisplayInfo> GetDefaultDisplayInfo() { return nullptr; }

@@ -82,4 +82,4 @@ private:
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
 };
 } // namespace OHOS::Rosen
-#endif //OHOS_ROSEN_WINDOW_SCENE_SINGLE_DISPLAY_DEVICE_POLICY_H
+#endif //OHOS_ROSEN_WINDOW_SCENE_SINGLE_DISPLAY_SUPER_FOLD_POLICY_H

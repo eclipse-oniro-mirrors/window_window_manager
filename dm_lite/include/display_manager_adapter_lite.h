@@ -36,11 +36,13 @@ public:
     virtual void Clear();
     virtual bool IsScreenLessDevice();
 protected:
-    bool InitDMSProxy();
+    virtual bool InitDMSProxy();
+    virtual bool RegisterClientDeathListener();
     std::recursive_mutex mutex_;
     sptr<DisplayManagerLiteProxy> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;
     bool isProxyValid_ { false };
+    sptr<ReverseDeathStub> reverseDeathStub_ = nullptr;
 };
 
 class DMSDeathRecipientLite : public IRemoteObject::DeathRecipient {
@@ -60,7 +62,6 @@ public:
     virtual FoldStatus GetFoldStatus();
     virtual FoldDisplayMode GetFoldDisplayMode();
     virtual void SetFoldDisplayMode(const FoldDisplayMode);
-    virtual void SetFoldDisplayModeAsync(const FoldDisplayMode);
     virtual sptr<DisplayInfo> GetDisplayInfo(DisplayId displayId);
     virtual sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId);
     virtual VirtualScreenFlag GetVirtualScreenFlag(ScreenId screenId);
@@ -83,6 +84,8 @@ public:
     virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
 private:
     static inline SingletonDelegator<DisplayManagerAdapterLite> delegator;
+protected:
+    bool RegisterClientDeathListener() override;
 };
 
 class ScreenManagerAdapterLite : public BaseAdapterLite {

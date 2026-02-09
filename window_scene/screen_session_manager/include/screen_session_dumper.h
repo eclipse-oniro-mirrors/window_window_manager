@@ -53,23 +53,20 @@ private:
     void ShowVisibleAreaDisplayInfo();
     void DumpFoldStatus();
     void DumpForceFoldLockStatus();
-    std::string ConvertFoldStatusToString(FoldStatus foldStatus);
+    std::string ConvertFoldStatusToString(FoldStatus foldStatus) const;
     void DumpTentMode();
     void DumpFoldCreaseRegion();
     void OutputDumpInfo();
     void DumpScreenSessionById(ScreenId id);
     void DumpRsInfoById(ScreenId id);
     void DumpRsInfoById01(sptr<ScreenSession> screenSession);
-    void DumpCutoutInfoPrint(std::ostringstream& oss,
-        const OHOS::Rosen::DMRect& areaRect, const std::string& label);
     void DumpCutoutInfoById(ScreenId id);
     void DumpScreenInfoById(ScreenId id);
     void DumpVisibleAreaDisplayInfoById(DisplayId id);
     void DumpScreenPropertyById(ScreenId id);
-    void DumpScreenUserRelation(ScreenId id);
+    void DumpDisplayUserRelation(DisplayId id);
     void ExecuteInjectCmd();
     void ExecuteInjectCmd2();
-
     void ShowNotifyFoldStatusChangedInfo();
     void ShowIllegalArgsInfo();
     void SetMotionSensorValue(std::string input);
@@ -87,6 +84,7 @@ private:
     void SetHallAndPostureStatus(std::string input);
     void SetSecondaryStatusChange(const std::string &input);
     void SetLandscapeLock(std::string input);
+    void SetEnableOuterOnlyMode(std::string input);
     bool IsAllCharDigit(const std::string &firstPostureStr);
     bool GetPostureAndHall(std::vector<std::string> strVec,
         std::vector<float> &postures, std::vector<uint16_t> &halls);

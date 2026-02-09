@@ -65,7 +65,7 @@ void FoldScreenStateMachine::TransitionTo(FoldScreenState state)
     }
     auto previous = currState_;
     currState_ = state;
-    TLOGI(WmsLogTag::DMS, "state transition from %{public}d to %{public}d",
+    TLOGI(WmsLogTag::DMS, "state transition from %{public}u to %{public}u",
           static_cast<int32_t>(currState_), static_cast<int32_t>(state));
     for (const auto &callback : callbacks_) {
         if (callback) {

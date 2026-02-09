@@ -12,11 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#include "fold_screen_controller/single_display_fold_policy.h"
 #include <hisysevent.h>
 #include <hitrace_meter.h>
 #include <transaction/rs_interfaces.h>
-#include "fold_screen_controller/single_display_fold_policy.h"
 #include "session/screen/include/screen_session.h"
 #include "screen_session_manager.h"
 #include "fold_screen_state_internel.h"
@@ -31,9 +30,6 @@ namespace OHOS::Rosen {
 namespace {
 const ScreenId SCREEN_ID_FULL = 0;
 const ScreenId SCREEN_ID_MAIN = 5;
-const int32_t CREASE_REGION_POS_Y = 994;
-const int32_t CREASE_REGION_POS_WIDTH = 1320;
-const int32_t CREASE_REGION_POS_HEIGHT = 132;
 constexpr int32_t FOLD_CREASE_RECT_SIZE = 4; //numbers of parameter on the current device is 4
 const std::string g_FoldScreenRect = system::GetParameter("const.display.foldscreen.crease_region", "");
 const std::string FOLD_CREASE_DELIMITER = ",;";
@@ -56,9 +52,9 @@ SingleDisplayFoldPolicy::SingleDisplayFoldPolicy(std::recursive_mutex& displayIn
 
     ScreenId screenIdFull = 0;
     int32_t foldCreaseRegionPosX = 0;
-    int32_t foldCreaseRegionPosY = CREASE_REGION_POS_Y;
-    int32_t foldCreaseRegionPosWidth = CREASE_REGION_POS_WIDTH;
-    int32_t foldCreaseRegionPosHeight = CREASE_REGION_POS_HEIGHT;
+    int32_t foldCreaseRegionPosY = 1064;
+    int32_t foldCreaseRegionPosWidth = 2496;
+    int32_t foldCreaseRegionPosHeight = 171;
 
     std::vector<DMRect> rect = {
         {
@@ -78,7 +74,7 @@ FoldCreaseRegion SingleDisplayFoldPolicy::GetFoldCreaseRegion(bool isVertical) c
         return FoldCreaseRegion(0, {});
     }
 
-    ScreenId screenIdFull = 0;
+    ScreenId screenIdFull = SCREEN_ID_FULL;
     std::vector<DMRect> foldCreaseRect;
     GetFoldCreaseRect(isVertical, foldRect, foldCreaseRect);
     return FoldCreaseRegion(screenIdFull, foldCreaseRect);
@@ -125,7 +121,6 @@ void SingleDisplayFoldPolicy::SetdisplayModeChangeStatus(bool status, bool isOnB
             return;
         }
         displayModeChangeRunning_ = false;
-        ScreenSessionManager::GetInstance().RunFinishTask();
         endTimePoint_ = std::chrono::steady_clock::now();
         if (lastCachedisplayMode_.load() != GetScreenDisplayMode()) {
             ScreenSessionManager::GetInstance().TriggerDisplayModeUpdate(lastCachedisplayMode_.load());
@@ -138,6 +133,7 @@ bool SingleDisplayFoldPolicy::CheckDisplayModeChange(FoldDisplayMode displayMode
 {
     if (isForce) {
         TLOGI(WmsLogTag::DMS, "force change displayMode");
+        SetLastCacheDisplayMode(displayMode);
         return true;
     }
     if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
@@ -149,6 +145,10 @@ bool SingleDisplayFoldPolicy::CheckDisplayModeChange(FoldDisplayMode displayMode
         return false;
     }
     SetLastCacheDisplayMode(displayMode);
+    if (GetModeChangeRunningStatus()) {
+        TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
+        return false;
+    }
     TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, lastElapsedMs: %{public}" PRId64 "ms",
         displayMode, getFoldingElapsedMs());
 
@@ -166,13 +166,14 @@ bool SingleDisplayFoldPolicy::CheckDisplayModeChange(FoldDisplayMode displayMode
 void SingleDisplayFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason)
 {
     if (!CheckDisplayModeChange(displayMode, false, reason)) {
+        TLOGE(WmsLogTag::DMS, "check display mode change failed");
         return;
     }
     TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, reason: %{public}d", displayMode, reason);
     ChangeScreenDisplayModeInner(displayMode, reason);
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
     ScreenSessionManager::GetInstance().SwitchScrollParam(displayMode);
-    TLOGD(WmsLogTag::DMS, "end change displaymode: %{public}d, reason: %{public}d", displayMode, reason);
+    TLOGD(WmsLogTag::DMS, "End change displaymode: %{public}d, reason: %{public}d", displayMode, reason);
     return;
 }
 
@@ -210,11 +211,11 @@ void SingleDisplayFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displ
             break;
         }
         case FoldDisplayMode::UNKNOWN: {
-            TLOGI(WmsLogTag::DMS, "displayMode is unknown");
+            TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayMode displayMode is unknown");
             break;
         }
         default: {
-            TLOGI(WmsLogTag::DMS, "displayMode is invalid");
+            TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayMode displayMode is invalid");
             break;
         }
     }
@@ -265,6 +266,7 @@ FoldCreaseRegion SingleDisplayFoldPolicy::GetLiveCreaseRegion()
             }
             default: {
                 TLOGE(WmsLogTag::DMS, "displayOrientation is invalid");
+                return FoldCreaseRegion(0, {});
             }
         }
     }
@@ -292,10 +294,10 @@ void SingleDisplayFoldPolicy::LockDisplayStatus(bool locked)
 
 void SingleDisplayFoldPolicy::SetOnBootAnimation(bool onBootAnimation)
 {
-    TLOGI(WmsLogTag::DMS, "onBootAnimation: %{public}d", onBootAnimation);
+    TLOGI(WmsLogTag::DMS, "SetOnBootAnimation onBootAnimation: %{public}d", onBootAnimation);
     onBootAnimation_ = onBootAnimation;
     if (!onBootAnimation_) {
-        TLOGI(WmsLogTag::DMS, "when boot animation finished, change display mode");
+        TLOGI(WmsLogTag::DMS, "SetOnBootAnimation when boot animation finished, change display mode");
         RecoverWhenBootAnimationExit();
     }
 }
@@ -304,7 +306,7 @@ void SingleDisplayFoldPolicy::RecoverWhenBootAnimationExit()
 {
     TLOGI(WmsLogTag::DMS, "CurrentScreen(%{public}" PRIu64 ")", screenId_);
     FoldDisplayMode displayMode = GetModeMatchStatus();
-    ChangeScreenDisplayMode(displayMode);
+    ChangeScreenDisplayMode(displayMode, true);
 }
 
 void SingleDisplayFoldPolicy::UpdateForPhyScreenPropertyChange()
@@ -347,20 +349,20 @@ FoldDisplayMode SingleDisplayFoldPolicy::GetModeMatchStatus(FoldStatus targetFol
 void SingleDisplayFoldPolicy::ReportFoldDisplayModeChange(FoldDisplayMode displayMode)
 {
     int32_t mode = static_cast<int32_t>(displayMode);
-    TLOGI(WmsLogTag::DMS, "displayMode: %{public}d", mode);
+    TLOGI(WmsLogTag::DMS, "ReportFoldDisplayModeChange displayMode: %{public}d", mode);
     int32_t ret = HiSysEventWrite(
         OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
         "DISPLAY_MODE",
         OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
         "FOLD_DISPLAY_MODE", mode);
     if (ret != 0) {
-        TLOGE(WmsLogTag::DMS, "Write HiSysEvent error, ret: %{public}d", ret);
+        TLOGE(WmsLogTag::DMS, "ReportFoldDisplayModeChange Write HiSysEvent error, ret: %{public}d", ret);
     }
 }
 
 void SingleDisplayFoldPolicy::ReportFoldStatusChangeBegin(int32_t offScreen, int32_t onScreen)
 {
-    TLOGI(WmsLogTag::DMS, "offScreen: %{public}d, onScreen: %{public}d",
+    TLOGI(WmsLogTag::DMS, "ReportFoldStatusChangeBegin offScreen: %{public}d, onScreen: %{public}d",
         offScreen, onScreen);
     int32_t ret = HiSysEventWrite(
         OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
@@ -369,24 +371,29 @@ void SingleDisplayFoldPolicy::ReportFoldStatusChangeBegin(int32_t offScreen, int
         "POWER_OFF_SCREEN", offScreen,
         "POWER_ON_SCREEN", onScreen);
     if (ret != 0) {
-        TLOGE(WmsLogTag::DMS, "Write HiSysEvent error, ret: %{public}d", ret);
+        TLOGE(WmsLogTag::DMS, "ReportFoldStatusChangeBegin Write HiSysEvent error, ret: %{public}d", ret);
     }
 }
 
 void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToMainWhenFoldScreenOn(sptr<ScreenSession> screenSession)
 {
     TLOGI(WmsLogTag::DMS, "IsFoldScreenOn is true, begin.");
-    ReportFoldStatusChangeBegin(static_cast<int32_t>(SCREEN_ID_FULL),
-        static_cast<int32_t>(SCREEN_ID_MAIN));
+    ReportFoldStatusChangeBegin((int32_t)SCREEN_ID_FULL, (int32_t)SCREEN_ID_MAIN);
     auto taskScreenOnMainON = [=] {
         std::vector<std::pair<ScreenId, ScreenPowerStatus>> screenPowerTaskList;
         screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF));
         screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_ON));
         ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
-        screenPowerTaskScheduler_->PostAsyncTask(taskScreenOnMainON, __func__);
-    });
+    auto task = [=] {
+        ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
+            PostAsyncTask(taskScreenOnMainON, __func__);
+    };
+    if (!ScreenSessionManager::GetInstance().IsInRecoveryProcess()) {
+        ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, task);
+    } else {
+        task();
+    }
     SendPropertyChangeResult(screenSession, SCREEN_ID_MAIN, ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING);
 }
 
@@ -399,9 +406,15 @@ void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToMainWhenFoldScreenOff(spt
         screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF));
         ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
-        screenPowerTaskScheduler_->PostAsyncTask(taskScreenOffMainON, __func__);
-    });
+    auto task = [=] {
+        ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
+            PostAsyncTask(taskScreenOffMainON, __func__);
+    };
+    if (!ScreenSessionManager::GetInstance().IsInRecoveryProcess()) {
+        ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, task);
+    } else {
+        task();
+    }
     SendPropertyChangeResult(screenSession, SCREEN_ID_MAIN, ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING);
     auto taskScreenOnMainChangeScreenId = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToMain: IsFoldScreenOn is false, Change ScreenId to Main.");
@@ -423,9 +436,9 @@ void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToMain(sptr<ScreenSession> 
         return;
     }
     RSInterfaces::GetInstance().NotifyScreenSwitched();
-#ifdef TP_FEATURE_ENABLE
+    #ifdef TP_FEATURE_ENABLE
     RSInterfaces::GetInstance().SetTpFeatureConfig(TP_TYPE, MAIN_TP.c_str());
-#endif
+    #endif
     if (PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn() ||
         ScreenSessionManager::GetInstance().GetCancelSuspendStatus()) {
         ChangeScreenDisplayModeToMainWhenFoldScreenOn(screenSession);
@@ -438,16 +451,21 @@ void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToMain(sptr<ScreenSession> 
 void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToFullWhenFoldScreenOn(sptr<ScreenSession> screenSession)
 {
     TLOGI(WmsLogTag::DMS, "IsFoldScreenOn is true, begin.");
-    // 调用到状态机
     auto taskScreenOnFullON = [=] {
         std::vector<std::pair<ScreenId, ScreenPowerStatus>> screenPowerTaskList;
         screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_OFF));
         screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_ON));
         ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
-        screenPowerTaskScheduler_->PostAsyncTask(taskScreenOnFullON, __func__);
-    });
+    auto task = [=] {
+        ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
+            PostAsyncTask(taskScreenOnFullON, __func__);
+    };
+    if (!ScreenSessionManager::GetInstance().IsInRecoveryProcess()) {
+        ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, task);
+    } else {
+        task();
+    }
     SendPropertyChangeResult(screenSession, SCREEN_ID_FULL, ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND);
 }
 
@@ -455,15 +473,20 @@ void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToFullWhenFoldScreenOff(spt
     DisplayModeChangeReason reason)
 {
     TLOGI(WmsLogTag::DMS, "IsFoldScreenOn is false, begin.");
-    // off main screen
     auto taskScreenOffFullON = [=] {
         std::vector<std::pair<ScreenId, ScreenPowerStatus>> screenPowerTaskList;
         screenPowerTaskList.emplace_back(std::make_pair(SCREEN_ID_MAIN, ScreenPowerStatus::POWER_STATUS_OFF));
         ChangeScreenPowerOnFold(screenPowerTaskList);
     };
-    ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, [=] () {
-        screenPowerTaskScheduler_->PostAsyncTask(taskScreenOffFullON, __func__);
-    });
+    auto task = [=] {
+        ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
+            PostAsyncTask(taskScreenOffFullON, __func__);
+    };
+    if (!ScreenSessionManager::GetInstance().IsInRecoveryProcess()) {
+        ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::FOLD_SCREEN_SET_POWER, task);
+    } else {
+        task();
+    }
     SendPropertyChangeResult(screenSession, SCREEN_ID_FULL, ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND);
     // on full screen
     auto taskScreenOnFullOn = [=] {
@@ -491,9 +514,9 @@ void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToFull(sptr<ScreenSession> 
     }
     RSInterfaces::GetInstance().NotifyScreenSwitched();
     ReportFoldStatusChangeBegin((int32_t)SCREEN_ID_MAIN, (int32_t)SCREEN_ID_FULL);
-#ifdef TP_FEATURE_ENABLE
+    #ifdef TP_FEATURE_ENABLE
     RSInterfaces::GetInstance().SetTpFeatureConfig(TP_TYPE, FULL_TP.c_str());
-#endif
+    #endif
     if (PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn()) {
         ChangeScreenDisplayModeToFullWhenFoldScreenOn(screenSession);
     } else { //AOD scene
@@ -518,9 +541,8 @@ void SingleDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> scree
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
     screenSession->SetPhyScreenId(screenId);
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
-        ScreenProperty property = screenSession->UpdatePropertyByFoldControl(screenProperty_);
-
-        screenSession->PropertyChange(property, reason);
+        screenSession->UpdatePropertyByFoldControl(screenProperty_);
+        screenSession->PropertyChange(screenSession->GetScreenProperty(), reason);
 
         // To avoid the app get an incorrect and unready property after a display mode change notification, we
         // temporarily modify the rotation value. The rotation will be corrected to its accurate value after SCB's
@@ -538,9 +560,11 @@ void SingleDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> scree
 
 void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToMainOnBootAnimation(sptr<ScreenSession> screenSession)
 {
-    TLOGI(WmsLogTag::DMS, "enter!");
+    TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayModeToMainOnBootAnimation");
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(SCREEN_ID_MAIN);
     screenSession->UpdatePropertyByFoldControl(screenProperty_);
+    screenSession->SetValidWidth(screenProperty_.GetBounds().rect_.width_);
+    screenSession->SetValidHeight(screenProperty_.GetBounds().rect_.height_);
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
         ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING);
     TLOGI(WmsLogTag::DMS, "screenBounds : width_= %{public}f, height_= %{public}f",
@@ -551,9 +575,11 @@ void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToMainOnBootAnimation(sptr<
 
 void SingleDisplayFoldPolicy::ChangeScreenDisplayModeToFullOnBootAnimation(sptr<ScreenSession> screenSession)
 {
-    TLOGI(WmsLogTag::DMS, "enter!");
+    TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayModeToFullOnBootAnimation");
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(SCREEN_ID_FULL);
     screenSession->UpdatePropertyByFoldControl(screenProperty_);
+    screenSession->SetValidWidth(screenProperty_.GetBounds().rect_.width_);
+    screenSession->SetValidHeight(screenProperty_.GetBounds().rect_.height_);
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
         ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND);
     TLOGI(WmsLogTag::DMS, "screenBounds : width_= %{public}f, height_= %{public}f",
