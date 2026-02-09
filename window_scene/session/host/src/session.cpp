@@ -4010,15 +4010,16 @@ WSError Session::SetCompatibleModeProperty(const sptr<CompatibleModeProperty> co
     if (compatibleModeProperty && compatibleModeProperty->IsDragResizeDisabled()) {
         property->SetDragEnabled(false);
     }
-    PostTask(
-        [weakThis = wptr(this), where = __func__, weakProperty = wptr(compatibleModeProperty)]() {
-        auto session = weakThis.promote();
-        auto property = weakProperty.promote();
-        if (!session || !session->sessionStage_) {
-            TLOGNE(WmsLogTag::WMS_COMPAT, "session or sessionStage is null");
-            return;
-        }
-        session->sessionStage_->NotifyCompatibleModePropertyChange(property);
+    PostSyncTask(
+        [weakThis = wptr(this), weakProperty = wptr(compatibleModeProperty)] {
+            auto session = weakThis.promote();
+            auto property = weakProperty.promote();
+            if (!session || !session->sessionStage_ || !property) {
+                TLOGNE(WmsLogTag::WMS_COMPAT, "session, sessionStage or property is null");
+                return WSError::WS_ERROR_INVALID_SESSION;
+            }
+            session->sessionStage_->NotifyCompatibleModePropertyChange(property);
+            return WSError::WS_OK;
         }, __func__);
     return WSError::WS_OK;
 }

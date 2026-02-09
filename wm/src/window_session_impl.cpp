@@ -2118,10 +2118,13 @@ void WindowSessionImpl::HideTitleButton(bool& hideSplitButton, bool& hideMaximiz
         }
         std::shared_ptr<Ace::UIContent> uiContent = window->GetUIContentSharedPtr();
         if (uiContent == nullptr || !window->IsDecorEnable()) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "isDecorEnable: %{public}d", window->IsDecorEnable());
             return;
         }
         auto property = window->GetProperty();
         RealTimeSwitchInfo switchInfo = property->GetRealTimeSwitchInfo();
+        TLOGNI(WmsLogTag::WMS_LAYOUT_PC, "isNeedChange_: %{public}d, showTypes_: %{public}u",
+            switchInfo.isNeedChange_, switchInfo.showTypes_);
         uiContent->OnContainerModalEvent(SCB_COMPATIBLE_MENU_VISIBILITY, switchInfo.isNeedChange_ ? "true" : "false");
         uiContent->OnContainerModalEvent(SCB_GET_COMPATIBLE_PRIMARY_MODE, std::to_string(switchInfo.showTypes_));
         bool isFullScreenStart = property->IsFullScreenStart();
