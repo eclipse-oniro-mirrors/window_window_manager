@@ -495,8 +495,9 @@ bool MoveDragController::HandleMoving(const std::shared_ptr<MMI::PointerEvent>& 
     }
     uint32_t oldWindowDragHotAreaType = windowDragHotAreaType_;
     moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
+    DisplayId lastHotAreaDisplayId = hotAreaDisplayId_;
     UpdateHotAreaType(pointerEvent);
-    ProcessWindowDragHotAreaFunc(oldWindowDragHotAreaType != windowDragHotAreaType_, SizeChangeReason::DRAG_MOVE);
+    ProcessWindowDragHotAreaFunc(oldWindowDragHotAreaType, lastHotAreaDisplayId, SizeChangeReason::DRAG_MOVE);
     ProcessMoveRectUpdate(pointerEvent, SizeChangeReason::DRAG_MOVE);
     return true;
 }
@@ -513,8 +514,9 @@ bool MoveDragController::HandleMoveEnd(const std::shared_ptr<MMI::PointerEvent>&
     SetStartMoveFlag(false);
     hasPointDown_ = false;
     moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
+    DisplayId lastHotAreaDisplayId = hotAreaDisplayId_;
     UpdateHotAreaType(pointerEvent);
-    ProcessWindowDragHotAreaFunc(windowDragHotAreaType_ != WINDOW_HOT_AREA_TYPE_UNDEFINED, SizeChangeReason::DRAG_END);
+    ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, lastHotAreaDisplayId, SizeChangeReason::DRAG_END);
     ProcessMoveRectUpdate(pointerEvent, SizeChangeReason::DRAG_END);
     // The Pointer up event sent to the ArkUI.
     return false;
@@ -579,8 +581,11 @@ void MoveDragController::ModifyWindowCoordinates(const std::shared_ptr<MMI::Poin
 }
 
 /** @note @window.drag */
-void MoveDragController::ProcessWindowDragHotAreaFunc(bool isSendHotAreaMessage, SizeChangeReason reason)
+void MoveDragController::ProcessWindowDragHotAreaFunc(uint32_t lastWindowDragHotAreaType,
+    DisplayId lastHotAreaDisplayId, SizeChangeReason reason)
 {
+    bool isSendHotAreaMessage = lastWindowDragHotAreaType != windowDragHotAreaType_
+        || lastHotAreaDisplayId != hotAreaDisplayId_;
     if (isSendHotAreaMessage) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "start, isSendHotAreaMessage:%{public}u, reason:%{public}d",
             isSendHotAreaMessage, reason);
@@ -808,7 +813,7 @@ void MoveDragController::MoveDragInterrupted(bool resetPosition)
     };
     if (GetStartMoveFlag()) {
         SetStartMoveFlag(false);
-        ProcessWindowDragHotAreaFunc(windowDragHotAreaType_ != WINDOW_HOT_AREA_TYPE_UNDEFINED, reason);
+        ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, hotAreaDisplayId_, reason);
     };
     if (resetPosition) {
         moveDragEndDisplayId_ = moveDragStartDisplayId_;
@@ -826,7 +831,7 @@ void MoveDragController::StopMoving()
     hasPointDown_ = false;
     if (GetStartMoveFlag()) {
         SetStartMoveFlag(false);
-        ProcessWindowDragHotAreaFunc(windowDragHotAreaType_ != WINDOW_HOT_AREA_TYPE_UNDEFINED, reason);
+        ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, hotAreaDisplayId_, reason);
     };
     UpdateTargetRect(reason);
     OnMoveDragCallback(reason, TargetRectUpdateMode::UPDATED_IMMEDIATELY);

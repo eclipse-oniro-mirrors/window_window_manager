@@ -1004,15 +1004,49 @@ HWTEST_F(MoveDragControllerTest, TestConsumeMoveEventWithStartMove, TestSize.Lev
  */
 HWTEST_F(MoveDragControllerTest, ProcessWindowDragHotAreaFunc, TestSize.Level1)
 {
-    bool isSendHotAreaMessage = true;
-    bool isDragHotAreaFuncCalled = false;
+    bool isCalled = false;
+    DisplayId displayId = 0;
+    uint32_t type = 0;
     SizeChangeReason reason = SizeChangeReason::UNDEFINED;
-    auto dragHotAreaFunc = [&isDragHotAreaFuncCalled](DisplayId displayId, int32_t type, SizeChangeReason reason) {
-        isDragHotAreaFuncCalled = true;
+
+    moveDragController->windowDragHotAreaFunc_ = [&](DisplayId d, uint32_t t, SizeChangeReason r) {
+        isCalled = true;
+        displayId = d;
+        type = t;
+        reason = r;
     };
-    moveDragController->windowDragHotAreaFunc_ = dragHotAreaFunc;
-    moveDragController->ProcessWindowDragHotAreaFunc(isSendHotAreaMessage, reason);
-    EXPECT_TRUE(isDragHotAreaFuncCalled);
+
+    // Test Case 1: Callback should be called when hot area type change
+    moveDragController->windowDragHotAreaType_ = 1;
+    moveDragController->hotAreaDisplayId_ = 100;
+    moveDragController->ProcessWindowDragHotAreaFunc(0, 100, SizeChangeReason::DRAG_MOVE);
+    EXPECT_TRUE(isCalled);
+    EXPECT_EQ(displayId, 100);
+    EXPECT_EQ(type, 1);
+    EXPECT_EQ(reason, SizeChangeReason::DRAG_MOVE);
+
+    // Test Case 2: Callback should be called when display ID changes
+    isCalled = false;
+    moveDragController->windowDragHotAreaType_ = 1;
+    moveDragController->hotAreaDisplayId_ = 200;
+    moveDragController->ProcessWindowDragHotAreaFunc(1, 100, SizeChangeReason::DRAG_END);
+    EXPECT_TRUE(isCalled);
+
+    // Test Case 3: Callback should NOT be called when nothing changes
+    isCalled = false;
+    moveDragController->hotAreaDisplayId_ = 100;
+    moveDragController->windowDragHotAreaType_ = 1;
+    moveDragController->ProcessWindowDragHotAreaFunc(1, 100, SizeChangeReason::DRAG_MOVE);
+    EXPECT_FALSE(isCalled);
+
+    // Test Case 5: Callback with WINDOW_HOT_AREA_TYPE_UNDEFINED
+    isCalled = false;
+    type = 0;
+    moveDragController->windowDragHotAreaType_ = WINDOW_HOT_AREA_TYPE_UNDEFINED;
+    moveDragController->hotAreaDisplayId_ = 100;
+    moveDragController->ProcessWindowDragHotAreaFunc(1, 100, SizeChangeReason::DRAG_END);
+    EXPECT_TRUE(isCalled);
+    EXPECT_EQ(type, WINDOW_HOT_AREA_TYPE_UNDEFINED);
 }
 
 /**
