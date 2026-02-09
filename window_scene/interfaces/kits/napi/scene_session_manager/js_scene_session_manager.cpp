@@ -5442,7 +5442,7 @@ napi_value JsSceneSessionManager::OnNotifyRotationChange(napi_env env, napi_call
         rotationChangeInfo.displayRect_.posY_, rotationChangeInfo.displayRect_.width_,
         rotationChangeInfo.displayRect_.height_, isRestrictNotify);
 
-    std::vector<sptr<SceneSession>> activeSceneSessionMapCopy =
+    const std::vector<sptr<SceneSession>> activeSceneSessionMapCopy =
         SceneSessionManager::GetInstance().GetActiveSceneSessionCopy();
     if (activeSceneSessionMapCopy.empty()) {
         TLOGE(WmsLogTag::WMS_ROTATION, "activeSceneSessionMapCopy empty");

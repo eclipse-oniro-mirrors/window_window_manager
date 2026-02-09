@@ -19,9 +19,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
-#ifdef RESOURCE_SCHEDULE_SERVICE_ENABLE
 #include "res_sched_client.h"
-#endif
 
 namespace OHOS::Rosen {
 constexpr uint32_t RES_TYPE_SHOW_REMOTE_ANIMATION = 33;
