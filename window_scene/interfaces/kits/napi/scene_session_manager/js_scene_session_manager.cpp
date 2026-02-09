@@ -3151,7 +3151,7 @@ napi_value JsSceneSessionManager::OnAddWindowDragHotArea(napi_env env, napi_call
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    int64_t displayId;
+    int64_t displayId; // The input parameter of convertFromJSValue only supports the int64_t type.
     if (!ConvertFromJsValue(env, argv[0], displayId)) {
         WLOGFE("Failed to convert parameter to displayId");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
