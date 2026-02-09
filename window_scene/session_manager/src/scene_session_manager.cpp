@@ -1899,7 +1899,7 @@ void SceneSessionManager::RegisterWindowStateErrorCallbackToMMI()
         this->NotifyWindowStateErrorFromMMI(pid, persistentId);
     });
     TLOGW(WmsLogTag::WMS_EVENT, "register WindowStateError callback to MMI with ret: %{public}d", retCode);
-}    
+}
 
 sptr<RootSceneSession> SceneSessionManager::GetRootSceneSession()
 {
@@ -1983,14 +1983,14 @@ sptr<SceneSession> SceneSessionManager::GetMainSessionByPersistentId(int32_t per
 }
 
 void SceneSessionManager::GetMainSessionByBundleNameAndAppIndex(
-    const std::string& bundleName, int32_t appIndex, std::vector<sptr<SceneSession>>& mainSessions)
+    const std::string& bundleName, int32_t appIndex, std::vector<sptr<SceneSession>>& mainSessionVec)
 {
     std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
     for (const auto& [_, sceneSession] : sceneSessionMap_) {
         if (sceneSession && sceneSession->GetSessionInfo().bundleName_ == bundleName &&
             sceneSession->GetSessionInfo().appIndex_ == appIndex &&
             SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
-            mainSessions.push_back(sceneSession);
+            mainSessionVec.push_back(sceneSession);
         }
     }
 }
@@ -3118,7 +3118,7 @@ sptr<SceneSession> SceneSessionManager::GetHookedSessionByModuleName(const Sessi
     return session;
 }
 
-void SceneSessionManager::UpdateAbilityHookState(sptr<SceneSession>& sceneSession, bool isAbilityHook)
+void SceneSessionManager::UpdateAbilityHookState(const sptr<SceneSession>& sceneSession, bool isAbilityHook)
 {
     if (!sceneSession || !isAbilityHook)  {
         TLOGE(WmsLogTag::WMS_LIFE, "sceneSession is null or isAbilityHook is false");
@@ -3227,7 +3227,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
         sceneSession->SetAbilityToken(rootContext != nullptr ? rootContext->GetToken() : nullptr);
     } else {
         TLOGD(WmsLogTag::WMS_LIFE, "id: %{public}d, bundleName: %{public}s, "
-            "moduleName: %{public}s, abilityName: %{public}s want: %{public}s", sceneSession->GetPersistentId(),
+            "moduleName: %{public}s, abilityName: %{public}s want: %{private}s", sceneSession->GetPersistentId(),
             sessionInfo.bundleName_.c_str(), sessionInfo.moduleName_.c_str(), sessionInfo.abilityName_.c_str(),
             sessionInfo.want == nullptr ? "nullptr" : sessionInfo.want->ToString().c_str());
     }
@@ -3585,6 +3585,7 @@ int32_t SceneSessionManager::ChangeUIAbilityVisibilityBySCB(const sptr<SceneSess
     }
     if(visibility) {
         abilitySessionInfo->isNewWant = isNewWant;
+        abilitySessionInfo->scenarios = SHOWABILITY_SCENARIOS;
         TLOGI(WmsLogTag::WMS_MAIN, "ChangUIAbilityVisibility isNewActive:%{public}d, isVisibility: %{public}d",
             abilitySessionInfo->isNewWant, visibility);
     }
@@ -3640,11 +3641,10 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         sceneSessionInfo->collaboratorType = sceneSession->GetCollaboratorType();
     }
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] want-ability: %{public}s, bundle: %{public}s, "
-        "module: %{public}s, uri: %{public}s, appIndex: %{public}d, requestId:%{public}d", persistentId,
+        "module: %{public}s, appIndex: %{public}d, requestId:%{public}d", persistentId,
         sceneSessionInfo->want.GetElement().GetAbilityName().c_str(),
         sceneSessionInfo->want.GetElement().GetBundleName().c_str(),
         sceneSessionInfo->want.GetElement().GetModuleName().c_str(),
-        sceneSessionInfo->want.GetElement().GetURI().c_str(),
         sceneSessionInfo->want.GetIntParam(AAFwk::Want::PARAM_APP_CLONE_INDEX_KEY, 0),
         sceneSessionInfo->requestId);
     int32_t errCode = ERR_OK;
@@ -3741,7 +3741,7 @@ void SceneSessionManager::AddRequestTaskInfo(sptr<SceneSession> sceneSession, in
     requestIdToWantMap[requestId] = wantTmp;
     requestIdToWantMapSize = requestIdToWantMap.size();
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d, "
-        "infoMap size:%{public}u, wantMap size:%{public}u",
+        "infoMap size:%{public}zu, wantMap size:%{public}zu",
         persistentId, requestId, requestTaskInfoMap.size(), requestIdToWantMapSize);
 }
  
@@ -3755,7 +3755,7 @@ void SceneSessionManager::RemoveRequestTaskInfo(int32_t persistentId, int32_t re
     }
     requestTaskInfoMap[persistentId]->requestIdToWantMap.erase(requestId);
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d, "
-        "infoMap size:%{public}u, wantMap size:%{public}u",
+        "infoMap size:%{public}zu, wantMap size:%{public}zu",
         persistentId, requestId, requestTaskInfoMap.size(),
         requestTaskInfoMap[persistentId]->requestIdToWantMap.size());
 }
@@ -3908,7 +3908,7 @@ void SceneSessionManager::RegisterIsSessionBoundedSystemTrayFunc(const sptr<Scen
         return;
     }
     if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
-        TLOGE(WmsLogTag::WMS_MAIN, "id: %{public}d is not main window", sceneSession->GetPersistentId());
+        TLOGW(WmsLogTag::WMS_MAIN, "id: %{public}d is not main window", sceneSession->GetPersistentId());
         return;
     }
     sceneSession->RegisterIsSessionBoundedSystemTrayCallback(
