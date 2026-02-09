@@ -86,6 +86,7 @@
 #include "dms_task_scheduler.h"
 #include "screen_session_manager_adapter.h"
 #include "zidl/idisplay_manager_agent.h"
+#include "window_helper.h"
 #include "wm_common.h"
 #include "screen_sensor_mgr.h"
 #include "sensor_fold_state_mgr.h"
