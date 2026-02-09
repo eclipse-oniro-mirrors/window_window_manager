@@ -535,6 +535,7 @@ public:
     void NotifyUpdateRectAfterLayout();
     void FlushUIParams(ScreenId screenId, std::unordered_map<int32_t, SessionUIParam>&& uiParams);
     WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener) override;
+    WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener) override;
     WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener) override;
     WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
     WMError SetSystemAnimatedScenes(SystemAnimatedSceneType sceneType, bool isRegularAnimation = false);
@@ -1728,6 +1729,7 @@ private:
     uint32_t observedFlags_ = 0;
     uint32_t interestedFlags_ = 0;
     std::unordered_map<uint64_t, DrawingSessionInfo> lastDrawingSessionInfoMap_;
+    std::unordered_set<int32_t> screenshotListenerSessionSet_;
     std::unordered_set<int32_t> screenshotAppEventListenerSessionSet_;
     void NotifyWindowPropertyChangeByWindowInfoKey(
         const sptr<SceneSession>& sceneSession, WindowInfoKey windowInfoKey);
