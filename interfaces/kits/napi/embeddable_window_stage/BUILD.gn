@@ -107,14 +107,14 @@ ohos_shared_library("embeddablewindowstage_kit") {
   ]
 
   external_deps = [
-    "ability_base:session_info", 
-     "ability_runtime:runtime",	 
-     "ace_engine:ace_uicontent",	 
-     "bundle_framework:appexecfwk_base", 
-     "c_utils:utils",	 
-     "hilog:libhilog",	 
-     "ipc:ipc_core",	 
-     "napi:ace_napi",
+    "ability_base:session_info",
+    "ability_runtime:runtime",
+    "ace_engine:ace_uicontent",
+    "bundle_framework:appexecfwk_base",
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_core",
+    "napi:ace_napi",
   ]
 
   innerapi_tags = [ "platformsdk" ]
