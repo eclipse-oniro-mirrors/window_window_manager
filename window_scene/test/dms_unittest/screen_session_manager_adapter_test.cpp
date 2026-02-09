@@ -15,7 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "screen_session_manager_adapter.h"
-#include "scene_board_judgemend"
+#include "scene_board_judgement.h"
 
 using namespace testing;
 using namespace testing::ext;
