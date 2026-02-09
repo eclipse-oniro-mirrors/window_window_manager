@@ -2126,7 +2126,7 @@ HWTEST_F(WindowSessionPropertyTest, SetAppBufferReady, TestSize.Level1)
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     bool appBufferReady = true;
     property->SetAppBufferReady(appBufferReady);
-    auto result = property->GetAppBufferReady();
+    auto result = property->IsAppBufferReady();
     ASSERT_EQ(result, appBufferReady);
 }
 } // namespace
