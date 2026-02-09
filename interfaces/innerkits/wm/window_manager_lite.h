@@ -534,7 +534,6 @@ private:
     WMError NotifyWindowStyleChange(WindowStyleType type);
     void NotifyAccessibilityWindowInfo(const std::vector<sptr<AccessibilityWindowInfo>>& infos,
         WindowUpdateType type) const;
-    WMError NotifyCallingWindowDisplayChanged(const CallingWindowInfo& callingWindowInfo);
     WMError ProcessRegisterWindowInfoChangeCallback(WindowInfoKey observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
     WMError ProcessUnregisterWindowInfoChangeCallback(WindowInfoKey observedInfo,
@@ -543,6 +542,7 @@ private:
     WMError UnregisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+    WMError NotifyCallingWindowDisplayChanged(const CallingWindowInfo& callingWindowInfo);
 };
 } // namespace Rosen
 } // namespace OHOS

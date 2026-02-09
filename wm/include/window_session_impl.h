@@ -139,10 +139,11 @@ public:
     bool IsTopmost() const override;
     WMError SetMainWindowTopmost(bool isTopmost) override;
     bool IsMainWindowTopmost() const override;
+    WMError SetSubWindowModal(bool isModal, ModalityType modalityType = ModalityType::WINDOW_MODALITY) override;
+    WMError SetWindowModal(bool isModal) override;
     void SetSubWindowZLevelToProperty();
     int32_t GetSubWindowZLevelByFlags(WindowType type, uint32_t windowFlags, bool isTopmost);
     WMError RaiseToAppTopOnDrag();
-    bool IsApplicationModalSubWindowShowing(int32_t parentId);
 
     WMError SetResizeByDragEnabled(bool dragEnabled) override;
     WMError SetRaiseByClickEnabled(bool raiseEnabled) override;
@@ -169,8 +170,6 @@ public:
     bool IsWindowDelayRaiseEnabled() const override;
     WMError SetTitleButtonVisible(bool isMaximizeVisible, bool isMinimizeVisible, bool isSplitVisible,
         bool isCloseVisible) override;
-    WMError SetSubWindowModal(bool isModal, ModalityType modalityType = ModalityType::WINDOW_MODALITY) override;
-    WMError SetWindowModal(bool isModal) override;
     void SetTargetAPIVersion(uint32_t targetAPIVersion);
     uint32_t GetTargetAPIVersion() const;
     void NotifyClientWindowSize();

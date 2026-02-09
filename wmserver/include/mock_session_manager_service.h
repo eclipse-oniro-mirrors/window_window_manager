@@ -21,10 +21,10 @@
 
 #include "dm_common.h"
 #include "mock_session_manager_interface_stub.h"
+#include "scene_session_manager_interface.h"
+#include "scene_session_manager_lite_interface.h"
 #include "wm_single_instance.h"
 #include "zidl/session_manager_service_recover_interface.h"
-#include "scene_session_manager_lite_interface.h"
-#include "scene_session_manager_interface.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -126,7 +126,7 @@ private:
     sptr<IRemoteObject> GetSceneSessionManagerFromCache(int32_t userId, bool isLite);
     void UpdateSceneSessionManagerFromCache(int32_t userId, bool isLite, sptr<IRemoteObject>& sceneSessionManager);
     template <typename T>
-    ErrCode GetSceneSessionManagerByUserIdImpl(int32_t userId, sptr<T>& result, bool isLite, bool checkClient);
+    ErrCode GetSceneSessionManagerByUserIdImpl(int32_t userId, bool isLite, bool checkClient, sptr<T>& result);
     void RemoveFromMap(std::map<int32_t, sptr<IRemoteObject>>& map, std::mutex& mutex, int32_t userId);
 
     /*

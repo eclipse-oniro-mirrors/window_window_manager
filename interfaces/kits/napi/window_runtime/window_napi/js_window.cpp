@@ -4788,13 +4788,7 @@ napi_value JsWindow::OnGetSubWindowZLevel(napi_env env, napi_callback_info info)
     if (ret != WmErrorCode::WM_OK) {
         return NapiThrowError(env, ret, "[window][getSubWindowZLevel]msg: Get sub window zLevel failed");
     }
-    napi_value objValue = nullptr;
-    napi_set_named_property(env, objValue, "zLevel", CreateJsValue(env, zLevel));
-    if (objValue != nullptr) {
-        return objValue;
-    } else {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
+    return CreateJsValue(env, zLevel);
 }
 
 napi_value JsWindow::OnSetWindowDelayRaiseOnDrag(napi_env env, napi_callback_info info)
@@ -5578,18 +5572,18 @@ napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_in
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     int32_t targetId = static_cast<int32_t>(INVALID_WINDOW_ID);
-    errCode == WmErrorCode::WM_OK ?
-        CheckRaiseMainWindowParams(env, argc, argv, windowToken_->GetWindowId(), targetId) : errCode;
+    errCode = (errCode == WmErrorCode::WM_OK ?
+        CheckRaiseMainWindowParams(env, argc, argv, windowToken_->GetWindowId(), targetId) : errCode);
     napi_value lastParam = nullptr;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [weakToken = wptr<Window>(windowToken_), targetId, env, task = napiAsyncTask, errCode] {
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_), targetId, env, task = napiAsyncTask, errCode] {
         if (errCode != WmErrorCode::WM_OK) {
             task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
                 "[window][raiseMainWindowAboveTarget]msg: Invalidate params."));
             return;
         }
-        auto window = weakToken.promote();
+        auto window = windowToken.promote();
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_HIERARCHY, "window is nullptr");
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
@@ -5603,9 +5597,8 @@ napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_in
             task->Reject(env, JsErrUtils::CreateJsError(env, ret,
                 "[window][raiseMainWindowAboveTarget]msg: Raise main window above target failed"));
         }
-        TLOGNI(WmsLogTag::WMS_HIERARCHY,
-               "source window: %{public}u, target window: %{public}u, ret = %{public}d",
-               window->GetWindowId(), targetId, ret);
+        TLOGNI(WmsLogTag::WMS_HIERARCHY, "source window: %{public}u, target window: %{public}u, ret = %{public}d",
+            window->GetWindowId(), targetId, ret);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnRaiseMainWindowAboveTarget") != napi_status::napi_ok) {
         napiAsyncTask->Reject(

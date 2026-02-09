@@ -244,7 +244,7 @@ void VsyncStation::VsyncCallbackInner(int64_t timestamp, int64_t frameCount)
             TLOGI(WmsLogTag::WMS_MAIN, "First vsync has come back, nodeId: %{public}" PRIu64, nodeId_);
         }
     }
-    for (const auto& callback: vsyncCallbacks) {
+    for (const auto& callback : vsyncCallbacks) {
         if (callback && callback->onCallback) {
             callback->onCallback(timestamp, frameCount);
         }
