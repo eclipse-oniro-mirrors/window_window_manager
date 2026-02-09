@@ -276,7 +276,7 @@ bool Parcel::WriteInt64(int64_t value)
     return true;
 }
 
-bool Parcel::WriteUint8(uint64_t value)
+bool Parcel::WriteUint8(uint8_t value)
 {
     (void)value;
     if (g_setWriteUint8ErrorFlag) {
