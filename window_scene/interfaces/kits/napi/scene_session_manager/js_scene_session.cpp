@@ -3395,6 +3395,9 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
         case static_cast<uint32_t>(ListenerFuncType::COMPATIBLE_MODE_CHANGE_CB):
             ProcessCompatibleModeChangeRegister();
             break;
+        case static_cast<uint32_t>(ListenerFuncType::RECOVER_WINDOW_EFFECT_CB):
+            ProcessRecoverWindowEffectRegister();
+            break;
         default:
             break;
     }
