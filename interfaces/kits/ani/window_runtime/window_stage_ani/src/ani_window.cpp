@@ -3555,8 +3555,8 @@ void AniWindow::Finalizer(ani_env* env, ani_long nativeObj)
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
         auto window = aniWindow->GetWindow();
-        std::lock_guard<std::mutex> lock(g_aniWindowMap_mutex);
         if (window != nullptr) {
+            std::lock_guard<std::mutex> lock(g_aniWindowMap_mutex);
             g_aniWindowMap.erase(window->GetWindowName());
         }
         DropWindowObjectByAni(aniWindow->GetAniRef());
