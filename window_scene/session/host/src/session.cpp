@@ -316,7 +316,7 @@ void Session::SetSessionInfoSupportedWindowModes(const std::vector<AppExecFwk::S
 void Session::SetSessionInfoWant(const std::shared_ptr<AAFwk::Want>& want)
 {
     std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
-    sessionInfo_.setWantSafely(want);
+    sessionInfo_.SetWantSafely(want);
 }
 
 void Session::ResetSessionInfoResultCode()
@@ -2008,7 +2008,7 @@ void Session::SetAttachState(bool isAttach, WindowMode windowMode)
             TLOGND(WmsLogTag::WMS_LIFE, "session is null");
             return;
         }
-        if (ssession->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
+        if (session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
             TLOGNI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
                 session->GetPersistentId());
             session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
