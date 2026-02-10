@@ -1044,31 +1044,33 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callback, &result);
     auto asyncTask = [env, task = napiAsyncTask, ability, isOldApi, newApi, contextPtr, ctxRef, where = __func__] {
         sptr<Window> window = nullptr;
+        int32_t errorCode = 0;
+        std::string errMsg = "";
         if (isOldApi) {
             if (ability->GetWindow() == nullptr) {
-                if (newApi) {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                        "[window][getLastWindow]msg: FA mode can not get ability window"));
-                } else {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                        "[window][getLastWindow]msg: FA mode can not get ability window"));
-                }
+                errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
+                    static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
+                errMsg = "[window][getLastWindow]msg: FA mode can not get ability window";
                 return;
             }
             window = Window::GetTopWindowWithId(ability->GetWindow()->GetWindowId());
         } else {
             auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
             if (contextPtr == nullptr || context == nullptr) {
-                if (newApi) {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                        "[window][getLastWindow]msg: Stage mode without context"));
-                } else {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                        "[window][getLastWindow]msg: Stage mode without context"));
-                }
+                errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
+                    static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
+                errMsg = "[window][getLastWindow]msg: Stage mode without context";
                 return;
             }
             window = Window::GetTopWindowWithContext(context->lock());
+        }
+        if (errorCode != 0) {
+                if (newApi) {
+                    task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WmErrorCode>(errorCode), errMsg));
+                } else {
+                    task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WMError>(errorCode), errMsg));
+                }
+                return;
         }
         if (window == nullptr || window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
