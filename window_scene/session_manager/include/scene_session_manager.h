@@ -301,7 +301,7 @@ public:
     void CloseSyncTransaction(std::function<void()> func);
     const std::vector<sptr<SceneSession>> GetActiveSceneSessionCopy();
 
-    WSError ProcessBackEvent();
+    WSError ProcessBackEvent(DisplayId displayId = DEFAULT_DISPLAY_ID);
     WSError BindDialogSessionTarget(uint64_t persistentId, sptr<IRemoteObject> targetToken) override;
     WMError SetGestureNavigationEnabled(bool enable) override;
     WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
@@ -425,9 +425,6 @@ public:
         bool isNewWant, bool isFromClient = true);
     WMError ShiftAppWindowPointerEvent(int32_t sourcePersistentId, int32_t targetPersistentId,
         int32_t fingerId) override;
-    void SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>& newSession);
-    WSError StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground);
-    std::vector<std::string> trayAppList_;
     WMError GetWindowLimits(int32_t windowId, WindowLimits& windowLimits);
     void RegisterVirtualPixelChangeCallback(NotifyVirtualPixelChangeFunc&& func);
     NotifyVirtualPixelChangeFunc onVirtualPixelChangeCallback_;
@@ -535,6 +532,7 @@ public:
     void NotifyUpdateRectAfterLayout();
     void FlushUIParams(ScreenId screenId, std::unordered_map<int32_t, SessionUIParam>&& uiParams);
     WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener) override;
+    WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener) override;
     WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener) override;
     WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
     WMError SetSystemAnimatedScenes(SystemAnimatedSceneType sceneType, bool isRegularAnimation = false);
@@ -660,6 +658,7 @@ public:
         uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override;
     WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags) override;
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos) override;
+    WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip) override;
     WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode) override;
     WMError GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName) override;
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
@@ -1128,6 +1127,9 @@ private:
      */
     WMError ShiftAppWindowPointerEventInner(
         int32_t sourceWindowId, int32_t targetWindowId, DisplayId targetDisplayId, int32_t fingerId);
+    void SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>& newSession);
+    WSError StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground);
+    std::vector<std::string> trayAppList_;
 
     /*
      * Window Animation
@@ -1728,6 +1730,7 @@ private:
     uint32_t observedFlags_ = 0;
     uint32_t interestedFlags_ = 0;
     std::unordered_map<uint64_t, DrawingSessionInfo> lastDrawingSessionInfoMap_;
+    std::unordered_set<int32_t> screenshotListenerSessionSet_;
     std::unordered_set<int32_t> screenshotAppEventListenerSessionSet_;
     void NotifyWindowPropertyChangeByWindowInfoKey(
         const sptr<SceneSession>& sceneSession, WindowInfoKey windowInfoKey);

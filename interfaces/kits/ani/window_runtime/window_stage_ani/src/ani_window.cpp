@@ -326,8 +326,8 @@ ani_int AniWindow::OnConvertOrientationAndRotation(ani_env* env, ani_int from, a
         return ANI_ERROR;
     }
     TLOGNI(WmsLogTag::WMS_ROTATION,
-           "[ANI] ConvertOrientationAndRotation end, Window [%{public}u, %{public}s] convertedValue=%{public}u",
-           window->GetWindowId(), window->GetWindowName().c_str(), convertedValue);
+        "[ANI] ConvertOrientationAndRotation end, window [%{public}u, %{public}s] convertedValue=%{public}u",
+        window->GetWindowId(), window->GetWindowName().c_str(), convertedValue);
     return static_cast<ani_int>(convertedValue);
 }
 
@@ -478,10 +478,9 @@ void AniWindow::OnScale(ani_env* env, ani_object scaleOptions)
         AniWindowUtils::AniThrowError(env, ret);
         return;
     }
-    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Scale end",
-        window->GetWindowId(), window->GetWindowName().c_str());
-    TLOGNI(WmsLogTag::WMS_ANIMATION,
-        "[ANI] scaleX=%{public}f, scaleY=%{public}f, pivotX=%{public}f pivotY=%{public}f",
+    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Scale end, "
+        "scaleX=%{public}f, scaleY=%{public}f, pivotX=%{public}f pivotY=%{public}f",
+        window->GetWindowId(), window->GetWindowName().c_str(),
         trans.scaleX_, trans.scaleY_, trans.pivotX_, trans.pivotY_);
 }
 
@@ -645,10 +644,9 @@ void AniWindow::OnRotate(ani_env* env, ani_object rotateOptions)
         AniWindowUtils::AniThrowError(env, ret);
         return;
     }
-    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Rotate end",
-        window->GetWindowId(), window->GetWindowName().c_str());
-    TLOGNI(WmsLogTag::WMS_ANIMATION,
-        "[ANI] rotateX=%{public}f, rotateY=%{public}f, rotateZ=%{public}f pivotX=%{public}f pivotY=%{public}f",
+    TLOGNI(WmsLogTag::WMS_ANIMATION, "[ANI] Window [%{public}u, %{public}s] Rotate end, "
+        " rotateX=%{public}f, rotateY=%{public}f, rotateZ=%{public}f pivotX=%{public}f pivotY=%{public}f",
+        window->GetWindowId(), window->GetWindowName().c_str(),
         trans.rotationX_, trans.rotationY_, trans.rotationZ_, trans.pivotX_, trans.pivotY_);
 }
 
@@ -3473,10 +3471,10 @@ ani_object AniWindow::SnapshotSync(ani_env* env)
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
     auto retCode = windowToken_->Snapshot(pixelMap);
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
-    if (ret != WmErrorCode::WM_OK || pixelMap == nullptr) {
+    if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] winId: %{public}u snapshot end, retCode: %{public}d",
             windowToken_->GetWindowId(), static_cast<int32_t>(retCode));
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return AniWindowUtils::AniThrowError(env, ret);
     }
     auto nativePixelMap = Media::PixelMapTaiheAni::CreateEtsPixelMap(env, pixelMap);
     if (nativePixelMap == nullptr) {
@@ -3521,8 +3519,8 @@ void AniWindow::Finalizer(ani_env* env, ani_long nativeObj)
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
         auto window = aniWindow->GetWindow();
-        std::lock_guard<std::mutex> lock(g_aniWindowMap_mutex);
         if (window != nullptr) {
+            std::lock_guard<std::mutex> lock(g_aniWindowMap_mutex);
             g_aniWindowMap.erase(window->GetWindowName());
         }
         DropWindowObjectByAni(aniWindow->GetAniRef());

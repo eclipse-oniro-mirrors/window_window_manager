@@ -1796,7 +1796,21 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
 
 napi_value JsSceneSessionManager::OnProcessBackEvent(napi_env env, napi_callback_info info)
 {
-    SceneSessionManager::GetInstance().ProcessBackEvent();
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    int64_t displayIdValue = -1;
+    if (argc == 1 && !ConvertFromJsValue(env, argv[0], displayIdValue)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Failed to convert parameter to displayId");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    if (displayIdValue < 0) {
+        SceneSessionManager::GetInstance().ProcessBackEvent();
+    } else {
+        SceneSessionManager::GetInstance().ProcessBackEvent(static_cast<DisplayId>(displayIdValue));
+    }
     return NapiGetUndefined(env);
 }
 
@@ -5149,14 +5163,14 @@ napi_value JsSceneSessionManager::OnSetIsWindowRectAutoSave(napi_env env, napi_c
     }
     std::string abilityKey;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_TWO], abilityKey)) {
-        TLOGE(WmsLogTag::WMS_MAIN, "Failed to convert abilityKey to %{public}s", abilityKey.c_str());
+        TLOGE(WmsLogTag::WMS_MAIN, "[NAPI]Failed to convert key to %{public}s", abilityKey.c_str());
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     bool isSaveBySpecifiedFlag = false;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_THREE], isSaveBySpecifiedFlag)) {
-        TLOGE(WmsLogTag::WMS_MAIN, "Failed to convert isSaveBySpecifiedFlag to %{public}d", isSaveBySpecifiedFlag);
+        TLOGE(WmsLogTag::WMS_MAIN, "[NAPI]Failed to convert enabled to %{public}d", isSaveBySpecifiedFlag);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
@@ -5437,7 +5451,7 @@ napi_value JsSceneSessionManager::OnNotifyRotationChange(napi_env env, napi_call
         rotationChangeInfo.displayRect_.posY_, rotationChangeInfo.displayRect_.width_,
         rotationChangeInfo.displayRect_.height_, isRestrictNotify);
 
-    std::vector<sptr<SceneSession>> activeSceneSessionMapCopy =
+    const std::vector<sptr<SceneSession>> activeSceneSessionMapCopy =
         SceneSessionManager::GetInstance().GetActiveSceneSessionCopy();
     if (activeSceneSessionMapCopy.empty()) {
         TLOGE(WmsLogTag::WMS_ROTATION, "activeSceneSessionMapCopy empty");

@@ -42,7 +42,7 @@ public:
         const std::string& bundleName, bool isRelease) { return WMError::WM_OK; }
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
     virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
-                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) = 0;
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) {};
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid) = 0;
     virtual WMError CheckUIExtensionCreation(int32_t windowId, uint32_t tokenId, const AppExecFwk::ElementName& element,
         AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid) = 0;

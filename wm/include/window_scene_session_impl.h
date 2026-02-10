@@ -118,6 +118,7 @@ public:
     virtual WMError RemoveWindowFlag(WindowFlag flag) override;
     virtual WMError SetWindowFlags(uint32_t flags) override;
     virtual uint32_t GetWindowFlags() const override;
+    bool IsApplicationModalSubWindowShowing(int32_t parentId);
 
     virtual WMError SetTransparent(bool isTransparent) override;
     virtual WMError SetTurnScreenOn(bool turnScreenOn) override;
