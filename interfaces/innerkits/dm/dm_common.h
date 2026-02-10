@@ -29,7 +29,7 @@ using ScreenId = uint64_t;
 using NodeId = uint64_t;
 using DisplayGroupId = uint64_t;
 
-namespace{
+namespace {
 constexpr DisplayId DISPLAY_ID_INVALID = -1ULL;
 constexpr ScreenId SCREEN_ID_INVALID = -1ULL;
 constexpr DisplayGroupId DISPLAY_GROUP_ID_INVALID = -1ULL;
