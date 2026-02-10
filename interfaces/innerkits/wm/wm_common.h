@@ -247,8 +247,8 @@ struct HookInfo {
         oss << "width: " << width_ << ", height: " << height_ << ", density: " << density_
             << ", rotation: " << rotation_
             << ", enableHookRotation: " << (enableHookRotation_ ? "true" : "false")
-            << ", orientation: " << displayOrientation_
-            << ", enableHookOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false");
+            << ", displayOrientation: " << displayOrientation_
+            << ", enableHookDisplayOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false");
         return oss.str();
     }
 };
