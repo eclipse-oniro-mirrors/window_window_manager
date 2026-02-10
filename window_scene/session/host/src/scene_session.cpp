@@ -314,7 +314,7 @@ void SceneSession::ClearAllModifiers()
         TLOGE(WmsLogTag::WMS_RECOVER, "surfaceNode_ is null");
         return;
     }
-    AutoRSTransaction trans(GetRSShadowContext());
+    AutoRSTransaction trans(GetRSUIContext());
     surfaceNode->SetRotation(0, 0, 0);
     surfaceNode->SetScale(1);
     surfaceNode->SetScaleZ(1);
