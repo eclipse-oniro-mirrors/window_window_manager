@@ -478,7 +478,13 @@ void SceneSessionManager::Init()
     InitWindowPattern();
     WSSnapshotHelper::GetInstance()->SetWindowScreenStatus(DisplayManager::GetInstance().GetFoldStatus());
 
-    //Subscribe power manager service
+    // Kiosk
+    AAFwk::KioskStatus kioskStatus;
+    auto res = AAFwk::AbilityManagerClient::GetInstance()->GetKioskStatus(kioskStatus);
+    if (res == ERR_OK && kioskStatus.isKioskMode_) {
+        EnterKioskMode(kioskStatus.kioskToken_);
+    }
+    // Subscribe power manager service
     #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
         SubscribePowerManagerServiceSa();
     #endif
@@ -19491,7 +19497,7 @@ WMError SceneSessionManager::EnterKioskMode(const sptr<IRemoteObject>& token)
         TLOGE(WmsLogTag::WMS_LIFE, "The caller is neither a system app nor an SA.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
-    taskScheduler_->PostAsyncTask([this, token, where = __func__] {
+    return taskScheduler_->PostSyncTask([this, token, where = __func__] {
         auto session = FindSessionByToken(token, WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
         if (session == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "token is invalid");
@@ -19505,7 +19511,6 @@ WMError SceneSessionManager::EnterKioskMode(const sptr<IRemoteObject>& token)
         kioskAppPersistentId_ = session->GetPersistentId();
         return WMError::WM_OK;
     }, __func__);
-    return WMError::WM_OK;
 }
 
 WMError SceneSessionManager::ExitKioskMode()
