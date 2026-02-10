@@ -928,7 +928,7 @@ napi_value JsWindowManager::OnMinimizeAllWithExclusion(napi_env env, napi_callba
 
 napi_value JsWindowManager::OnToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info)
 {
-    WLOGFI("[NAPI]");
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -941,7 +941,7 @@ napi_value JsWindowManager::OnToggleShownStateForAllAppWindows(napi_env env, nap
             SingletonContainer::Get<WindowManager>().ToggleShownStateForAllAppWindows());
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
-            WLOGI("%{public}s success", where);
+            TLOGD(WmsLogTag::WMS_LIFE, "%{public}s success", where);
         } else {
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "OnToggleShownStateForAllAppWindows failed"));
         }

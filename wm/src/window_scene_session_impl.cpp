@@ -2106,13 +2106,13 @@ WMError WindowSceneSessionImpl::NotifyDrawingCompleted()
         TLOGE(WmsLogTag::WMS_LIFE, "session is invalid, id:%{public}d", GetPersistentId());
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    auto hostSession = GetHostSession();
-    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
-    WMError res = WindowHelper::IsMainWindow(GetType()) ?
-                  static_cast<WMError>(hostSession->DrawingCompleted()) :
+    const auto type = GetType();
+    WMError res = WindowHelper::IsMainWindow(type) ?
+                  static_cast<WMError>(hostSession_->DrawingCompleted()) :
                   WMError::WM_ERROR_INVALID_WINDOW;
     if (res == WMError::WM_OK) {
-        TLOGI(WmsLogTag::WMS_LIFE, "success id:%{public}d", GetPersistentId());
+        TLOGI(WmsLogTag::WMS_LIFE, "success id:%{public}d, type:%{public}d", 
+            GetPersistentId(), type);
     }
     return res;
 }
