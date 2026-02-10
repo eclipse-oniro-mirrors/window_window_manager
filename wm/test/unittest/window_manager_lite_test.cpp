@@ -104,6 +104,11 @@ public:
     {
         return WMError::WM_OK;
     }
+
+    WMError GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo) override
+    {
+        return WMError::WM_OK;
+    }
 };
 
 class TestCameraWindowChangedListener : public ICameraWindowChangedListener {
@@ -1470,6 +1475,8 @@ HWTEST_F(WindowManagerLiteTest, NotifyCallingWindowDisplayChanged, Function | Sm
     instance_->pImpl_->callingDisplayChangedListeners_.insert(listener);
     instance_->NotifyCallingWindowDisplayChanged(callingWindowInfo);
     EXPECT_TRUE(g_errLog.find("CallingWindowDisplay changed") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1911,6 +1918,21 @@ HWTEST_F(WindowManagerLiteTest, UnregisterAllGroupInfoChangedListener, TestSize.
     mockInstance_->pImpl_->allGroupInfoChangedListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr();
     mockInstance_->pImpl_->allGroupInfoChangedListeners_.emplace_back(listener);
     ret = mockInstance_->UnregisterAllGroupInfoChangedListener(listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: GetCallingWindowInfo
+ * @tc.desc: check GetCallingWindowInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, GetCallingWindowInfo, TestSize.Level1)
+{
+    WMError ret;
+    CallingWindowInfo info = {0, -1, 0, 0};
+
+    // Mock window adapter and return ok.
+    ret = mockInstance_->GetCallingWindowInfo(info);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 }

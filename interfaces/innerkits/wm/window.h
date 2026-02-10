@@ -738,6 +738,7 @@ public:
      */
     virtual void OnWindowWillClose(sptr<Window> window) {}
 };
+
 /**
  * @class IWindowHighlightChangeListener
  *
@@ -2556,6 +2557,13 @@ public:
     virtual bool isNeededForciblySetOrientation(Orientation orientation) { return false; }
 
     /**
+     * @brief Get requested orientation.
+     *
+     * @return Orientation screen orientation.
+     */
+    virtual Orientation GetRequestedOrientation() { return Orientation::UNSPECIFIED; }
+
+    /**
      * @brief Convert orientation and rotation between window and display
      *
      * @param from The type of the value to be converted.
@@ -2569,13 +2577,6 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-
-    /**
-     * @brief Get requested orientation.
-     *
-     * @return Orientation screen orientation.
-     */
-    virtual Orientation GetRequestedOrientation() { return Orientation::UNSPECIFIED; }
 
     /**
      * @brief Set requested mode support info.
@@ -4741,10 +4742,10 @@ public:
      */
     virtual void HookCompatibleModeAvoidAreaNotify() {}
 
-    /**
+     /**
      * @brief The comaptible mode app adapt to immersive or not.
      *
-     * @return true comptbleMode adapt to immersive, others means not.
+     * @return true means compatible app adapt to immersive, others means not.
      */
     virtual bool IsAdaptToCompatibleImmersive() const { return false; }
 

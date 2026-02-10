@@ -33,6 +33,11 @@ enum class WindowTransitionType : uint32_t {
      * Window destroy.
      */
     DESTROY = 0,
+
+    /**
+     * window start.
+     */
+    START = 1,
     
     /**
      * end type.

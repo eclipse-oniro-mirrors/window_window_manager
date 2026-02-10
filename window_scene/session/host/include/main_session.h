@@ -75,6 +75,8 @@ public:
     void NotifySessionLockStateChange(bool isLockedState) override;
     void SetSessionLockState(bool isLockedState);
     bool GetSessionLockState() const;
+    void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func) override;
+    void SetIsUserRequestedExit(bool isUserRequestedExit) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) const override;
     void SetRecentSessionState(RecentSessionInfo& info, const SessionState& state) override;
 
@@ -114,6 +116,10 @@ private:
     WSError SetSessionLabelAndIconInner(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon);
     NotifySessionLockStateChangeCallback onSessionLockStateChangeCallback_;
     bool isLockedState_ = false;
+    NotifySceneSessionDestructFunc notifySceneSessionDestructFunc_;
+    bool isUserRequestedExit_ = false;
+    bool GetSessionBoundedSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) const;
+
     /*
      * Window Layout
      */
