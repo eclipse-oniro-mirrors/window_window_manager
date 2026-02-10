@@ -211,24 +211,28 @@ bool MockSessionManagerService::SetSessionManagerService(sptr<IRemoteObject> ses
         TLOGE(WmsLogTag::WMS_SCB, "sessionManagerService is null");
         return false;
     }
-    int32_t clientUserId = GetUserIdByCallingUid();
-    if (clientUserId <= INVALID_USER_ID) {
-        TLOGE(WmsLogTag::WMS_MULTI_USER, "userId is illegal: %{public}d", clientUserId);
+    // Get default window manager service userId when sceneboard is started, normally is 100/101 and so on.
+    int32_t currentWMSUserId = GetUserIdByCallingUid();
+    if (currentWMSUserId <= INVALID_USER_ID) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "userId is illegal: %{public}d", currentWMSUserId);
         return false;
     }
     {
+        // Note: Adapt to multi user and multi screen. The defaultWMSUserId_ is assigned here only after the
+        // sceneboard is started for the first time. Then, DMS will call NotifyWMSConnected to assign
+        // defaultWMSUserId_ by wms userId which in default screen.
         std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
         if (defaultWMSUserId_ == INVALID_USER_ID) {
-            defaultWMSUserId_ = clientUserId;
-            TLOGI(WmsLogTag::WMS_MULTI_USER, "defaultWMSUserId_: %{public}d", defaultWMSUserId_);
+            defaultWMSUserId_ = currentWMSUserId;
+            TLOGI(WmsLogTag::WMS_MULTI_USER, "Set defaultWMSUserId_=%{public}d", defaultWMSUserId_);
         }
     }
-    RecoverSCBSnapshotSkipByUserId(clientUserId);
-    auto smsDeathRecipient = GetSMSDeathRecipientByUserId(clientUserId);
+    RecoverSCBSnapshotSkipByUserId(currentWMSUserId);
+    auto smsDeathRecipient = GetSMSDeathRecipientByUserId(currentWMSUserId);
     if (!smsDeathRecipient) {
-        smsDeathRecipient = sptr<SMSDeathRecipient>::MakeSptr(clientUserId);
+        smsDeathRecipient = sptr<SMSDeathRecipient>::MakeSptr(currentWMSUserId);
         std::unique_lock<std::shared_mutex> lock(smsDeathRecipientMapLock_);
-        smsDeathRecipientMap_[clientUserId] = smsDeathRecipient;
+        smsDeathRecipientMap_[currentWMSUserId] = smsDeathRecipient;
     }
     if (sessionManagerService->IsProxyObject() && !sessionManagerService->AddDeathRecipient(smsDeathRecipient)) {
         TLOGE(WmsLogTag::WMS_MULTI_USER, "Failed to add death recipient");
@@ -236,12 +240,12 @@ bool MockSessionManagerService::SetSessionManagerService(sptr<IRemoteObject> ses
     }
     {
         std::lock_guard<std::mutex> lock(sessionManagerServiceMapMutex_);
-        sessionManagerServiceMap_[clientUserId] = sessionManagerService;
+        sessionManagerServiceMap_[currentWMSUserId] = sessionManagerService;
     }
     RegisterMockSessionManagerService();
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "sessionManagerService set success!");
     system::SetParameter(BOOTEVENT_WMS_READY.c_str(), "true");
     GetSceneSessionManager();
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "Session manager service set success");
     return true;
 }
 
@@ -250,13 +254,7 @@ sptr<MockSessionManagerService::SMSDeathRecipient> MockSessionManagerService::Ge
 {
     std::shared_lock<std::shared_mutex> lock(smsDeathRecipientMapLock_);
     auto iter = smsDeathRecipientMap_.find(userId);
-    if (iter != smsDeathRecipientMap_.end()) {
-        TLOGD(WmsLogTag::WMS_MULTI_USER, "Get SMS death recipient with userId=%{public}d", userId);
-        return iter->second;
-    } else {
-        TLOGW(WmsLogTag::WMS_MULTI_USER, "Get SMS death recipient failed with userId=%{public}d", userId);
-        return nullptr;
-    }
+    return (iter != smsDeathRecipientMap_.end()) ? iter->second : nullptr;
 }
 
 void MockSessionManagerService::RemoveSMSDeathRecipientByUserId(int32_t userId)
@@ -297,11 +295,17 @@ ErrCode MockSessionManagerService::GetSessionManagerServiceByUserId(int32_t user
                                                                     sptr<IRemoteObject>& sessionManagerService)
 {
     int32_t clientUserId = GetUserIdByCallingUid();
-    if (clientUserId <= INVALID_USER_ID || clientUserId != SYSTEM_USERID) {
-        TLOGE(WmsLogTag::WMS_MULTI_USER, "illegal clientUserId: %{public}d, userId: %{public}d", clientUserId, userId);
+    if (clientUserId <= INVALID_USER_ID) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "userId is illegal: %{public}d", clientUserId);
         return ERR_INVALID_VALUE;
     }
-    sessionManagerService = GetSessionManagerServiceInner(userId);
+    if (clientUserId == SYSTEM_USERID) {
+        std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
+        clientUserId = defaultWMSUserId_;
+        TLOGI(WmsLogTag::WMS_MULTI_USER,
+            "System user, use current default session mgr service, userId=%{public}d", clientUserId);
+    }
+    sessionManagerService = GetSessionManagerServiceInner(clientUserId);
     if (!sessionManagerService) {
         TLOGE(WmsLogTag::WMS_MULTI_USER, "sessionManagerService is null");
         return ERR_INVALID_VALUE;
@@ -342,33 +346,44 @@ void MockSessionManagerService::RemoveFromMap(std::map<int32_t, sptr<IRemoteObje
     }
 }
 
+// Adapt to multi user and multi screen.
+ErrCode MockSessionManagerService::InitDisplayIdAndUserIdByClient(int32_t clientUserId,
+    int32_t& userId, DisplayId& displayId)
+{
+    if (clientUserId == SYSTEM_USERID) {
+        if (userId == INVALID_USER_ID) {
+            // Note: When system user calling and the userId transferred from the SessionManager
+            // is -1 by default, change the userId to defaultWMSUserId_ which provided by DMS.
+            std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
+            TLOGI(WmsLogTag::WMS_RECOVER, "Set userId=%{public}d", defaultWMSUserId_);
+            userId = defaultWMSUserId_;
+        }
+        return GetForegroundOsAccountDisplayId(userId, displayId);
+    }
+    displayId = DEFAULT_SCREEN_ID;
+    return ERR_OK;
+}
+
 ErrCode MockSessionManagerService::RegisterSMSRecoverListener(int32_t userId,
-                                                              bool isLite,
-                                                              const sptr<IRemoteObject>& listener)
+    bool isLite, const sptr<IRemoteObject>& listener)
 {
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_RECOVER, "listener is null");
         return ERR_INVALID_VALUE;
     }
-    DisplayId displayId = DISPLAY_ID_INVALID;
     int32_t clientUserId = GetUserIdByCallingUid();
     if (clientUserId <= INVALID_USER_ID) {
         TLOGE(WmsLogTag::WMS_RECOVER, "illegal clientUserId: %{public}d", clientUserId);
         return ERR_INVALID_VALUE;
     }
-    if (clientUserId == SYSTEM_USERID) {
-        if (userId == INVALID_USER_ID) {
-            std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
-            userId = defaultWMSUserId_;
-        }
-        auto ret = GetForegroundOsAccountDisplayId(userId, displayId);
-        if (ret != ERR_OK) {
-            return ret;
-        }
-    } else {
-        displayId = DEFAULT_SCREEN_ID;
+    // Adapt to multi user and multi screen, init displayId.
+    DisplayId displayId;
+    auto ret = InitDisplayIdAndUserIdByClient(clientUserId, userId, displayId);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "Init display id failed");
+        return ret;
     }
-
+    // Init session manager service listener.
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     auto clientDeathListener = sptr<ClientListenerDeathRecipient>::MakeSptr(clientUserId, displayId, pid, isLite);
     if (listener->IsProxyObject() && !listener->AddDeathRecipient(clientDeathListener)) {
@@ -376,6 +391,10 @@ ErrCode MockSessionManagerService::RegisterSMSRecoverListener(int32_t userId,
         return ERR_INVALID_VALUE;
     }
     auto smsListener = iface_cast<ISessionManagerServiceRecoverListener>(listener);
+    if (!smsListener) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "IPC convert failed");
+        return ERR_INVALID_VALUE;
+    }
 
     TLOGI(WmsLogTag::WMS_RECOVER, "clientUserId: %{public}d, userId: %{public}d, pid: %{public}d,"
         "isLite: %{public}d, displayId: %{public}" PRIu64, clientUserId, userId, pid, isLite, displayId);
@@ -423,19 +442,11 @@ ErrCode MockSessionManagerService::UnregisterSMSRecoverListener(int32_t userId, 
         TLOGE(WmsLogTag::WMS_RECOVER, "illegal clientUserId: %{public}d", clientUserId);
         return ERR_INVALID_VALUE;
     }
-    DisplayId displayId = DISPLAY_ID_INVALID;
-    if (clientUserId == SYSTEM_USERID) {
-        // When SYSTEM_USERID calling and userId is INVALID_USER_ID, set userId to defaultWMSUserId_
-        if (userId == INVALID_USER_ID) {
-            TLOGI(WmsLogTag::WMS_MULTI_USER, "use default wmsUserId: %{public}d", defaultWMSUserId_);
-            userId = defaultWMSUserId_;
-        }
-        auto ret = GetForegroundOsAccountDisplayId(userId, displayId);
-        if (ret != ERR_OK) {
-            return ret;
-        }
-    } else {
-        displayId = DEFAULT_SCREEN_ID;
+    DisplayId displayId;
+    auto ret = InitDisplayIdAndUserIdByClient(clientUserId, userId, displayId);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "Init display id failed");
+        return ret;
     }
 
     int32_t pid = IPCSkeleton::GetCallingRealPid();
@@ -608,9 +619,11 @@ void MockSessionManagerService::NotifyWMSConnected(int32_t userId, DisplayId scr
     TLOGI(WmsLogTag::WMS_MULTI_USER, "userId: %{public}d, screenId: [%{public}" PRIu64"], isColdStart: %{public}d",
         userId, screenId, isColdStart);
     if (screenId == defaultScreenId_) {
+        // Note: Adapt to multi user and multi screen. When default screen notified by DMS,
+        // set defaultWMSUserId_ to current sceneboard wms userId.
         std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
         defaultWMSUserId_ = userId;
-        TLOGI(WmsLogTag::WMS_MULTI_USER, "set defaultWMSUserId_ = %{public}d", defaultWMSUserId_);
+        TLOGI(WmsLogTag::WMS_MULTI_USER, "Set defaultWMSUserId_=%{public}d", defaultWMSUserId_);
     }
     {
         std::lock_guard<std::mutex> lock(userId2ScreenIdMapMutex_);
@@ -619,6 +632,8 @@ void MockSessionManagerService::NotifyWMSConnected(int32_t userId, DisplayId scr
     auto smsDeathRecipient = GetSMSDeathRecipientByUserId(userId);
     if (smsDeathRecipient != nullptr) {
         smsDeathRecipient->SetScreenId(screenId);
+    } else {
+        TLOGW(WmsLogTag::WMS_MULTI_USER, "failed to set screenId");
     }
     if (!isColdStart) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "User switched");
@@ -692,23 +707,28 @@ void MockSessionManagerService::ShowIllegalArgsInfo(std::string& dumpInfo)
 
 sptr<IRemoteObject> MockSessionManagerService::GetSceneSessionManager()
 {
-    auto sessionManagerService = GetSessionManagerServiceInner(defaultWMSUserId_);
+    int32_t defaultWMSUserId;
+    {
+        std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
+        defaultWMSUserId = defaultWMSUserId_;
+    }
+    TLOGI(WmsLogTag::DEFAULT, "defaultWMSUserId=%{public}d", defaultWMSUserId);
+    auto sessionManagerService = GetSessionManagerServiceInner(defaultWMSUserId);
     if (sessionManagerService == nullptr) {
-        WLOGFE("SessionManagerService is null");
+        TLOGE(WmsLogTag::DEFAULT, "Get session mgr service remote failed");
         return nullptr;
     }
-    sptr<ISessionManagerService> sessionManagerServiceProxy = iface_cast<ISessionManagerService>(sessionManagerService);
+    auto sessionManagerServiceProxy = iface_cast<ISessionManagerService>(sessionManagerService);
     if (!sessionManagerServiceProxy) {
-        WLOGFE("sessionManagerServiceProxy is nullptr");
+        TLOGE(WmsLogTag::DEFAULT, "Get session mgr service proxy failed");
         return nullptr;
     }
     sptr<IRemoteObject> remoteObject = sessionManagerServiceProxy->GetSceneSessionManager();
     if (!remoteObject) {
-        WLOGFW("Get scene session manager proxy failed, scene session manager service is null");
-        return sptr<IRemoteObject>(nullptr);
+        TLOGE(WmsLogTag::DEFAULT, "Get scene session mgr remote failed");
+        return nullptr;
     }
-    UpdateSceneSessionManagerFromCache(defaultWMSUserId_, false, remoteObject);
-
+    UpdateSceneSessionManagerFromCache(defaultWMSUserId, false, remoteObject);
     std::lock_guard<std::mutex> lock(defaultSceneSessionManagerMutex_);
     defaultSceneSessionManager_ = remoteObject;
     return defaultSceneSessionManager_;
@@ -719,20 +739,22 @@ int MockSessionManagerService::DumpSessionInfo(const std::vector<std::string>& a
     if (args.empty()) {
         return -1;  // WMError::WM_ERROR_INVALID_PARAM;
     }
-    auto sessionManagerService = GetSessionManagerServiceInner(defaultWMSUserId_);
+    int32_t defaultWMSUserId;
+    {
+        std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
+        defaultWMSUserId = defaultWMSUserId_;
+    }
+    auto sessionManagerService = GetSessionManagerServiceInner(defaultWMSUserId);
     if (sessionManagerService == nullptr) {
-        WLOGFE("sessionManagerService is nullptr");
+        TLOGE(WmsLogTag::DEFAULT, "sessionManagerService is null");
         return -1;
     }
-    if (!defaultSceneSessionManager_) {
-        WLOGFW("Get scene session manager ...");
-        GetSceneSessionManager();
-        if (!defaultSceneSessionManager_) {
-            WLOGFW("Get scene session manager proxy failed, nullptr");
-            return -1;
-        }
+    sptr<IRemoteObject> defaultSSMRemote = GetSceneSessionManager();
+    if (!defaultSSMRemote) {
+        TLOGE(WmsLogTag::DEFAULT, "Get scene session mgr remote failed");
+        return -1;
     }
-    sptr<ISceneSessionManager> sceneSessionManagerProxy = iface_cast<ISceneSessionManager>(defaultSceneSessionManager_);
+    auto sceneSessionManagerProxy = iface_cast<ISceneSessionManager>(defaultSSMRemote);
     if (sceneSessionManagerProxy == nullptr) {
         WLOGFW("sessionManagerServiceProxy is nullptr");
         return -1;
@@ -811,18 +833,20 @@ bool MockSessionManagerService::SMSDeathRecipient::IsSceneBoardTestMode()
 void MockSessionManagerService::GetProcessSurfaceNodeIdByPersistentId(const int32_t pid,
     const std::vector<uint64_t>& windowIdList, std::vector<uint64_t>& surfaceNodeIds)
 {
-    auto sessionManagerService = GetSessionManagerServiceInner(defaultWMSUserId_);
+    int32_t defaultUserId;
+    {
+        std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
+        defaultUserId = defaultWMSUserId_;
+    }
+    auto sessionManagerService = GetSessionManagerServiceInner(defaultUserId);
     if (sessionManagerService == nullptr) {
-        WLOGFE("sessionManagerService is nullptr");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Get session manager remote failed");
         return;
     }
-    if (!defaultSceneSessionManager_) {
-        WLOGFW("Get scene session manager ...");
-        GetSceneSessionManager();
-        if (!defaultSceneSessionManager_) {
-            WLOGFW("Get scene session manager proxy failed, nullptr");
-            return;
-        }
+    sptr<IRemoteObject> defaultSSMRemote = GetSceneSessionManager();
+    if (!defaultSSMRemote) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Get scene session manager remote failed");
+        return;
     }
     if (windowIdList.empty()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowIdList is null, no need to get surfaceNodeId");
@@ -831,9 +855,9 @@ void MockSessionManagerService::GetProcessSurfaceNodeIdByPersistentId(const int3
     std::vector<int32_t> persistentIds(windowIdList.size());
     std::transform(windowIdList.begin(), windowIdList.end(),
         persistentIds.begin(), [](uint64_t id) { return static_cast<int32_t>(id); });
-    sptr<ISceneSessionManager> sceneSessionManagerProxy = iface_cast<ISceneSessionManager>(defaultSceneSessionManager_);
+    auto sceneSessionManagerProxy = iface_cast<ISceneSessionManager>(defaultSSMRemote);
     if (sceneSessionManagerProxy == nullptr) {
-        WLOGFW("sessionManagerServiceProxy is nullptr");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Get session mgr proxy failed");
         return;
     }
     WMError ret = sceneSessionManagerProxy->GetProcessSurfaceNodeIdByPersistentId(

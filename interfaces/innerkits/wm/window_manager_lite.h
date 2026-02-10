@@ -511,10 +511,10 @@ private:
      * Multi user and multi screen
      */
     friend class sptr<WindowManagerLite>;
-    WindowManagerLite(const int32_t userId = INVALID_USER_ID);
+    explicit WindowManagerLite(const int32_t userId = INVALID_USER_ID);
     ~WindowManagerLite() override;
 
-    int32_t userId_;
+    const int32_t userId_;
     static std::unordered_map<int32_t, sptr<WindowManagerLite>> windowManagerLiteMap_;
     static std::mutex windowManagerLiteMapMutex_;
 

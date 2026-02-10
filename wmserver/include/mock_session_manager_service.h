@@ -34,7 +34,7 @@ DECLARE_SYSTEM_ABILITY(MockSessionManagerService);
 WM_DECLARE_SINGLE_INSTANCE_BASE(MockSessionManagerService);
 public:
     ErrCode GetScreenSessionManagerLite(sptr<IRemoteObject>& screenSessionManagerLite) override;
-    sptr<IRemoteObject> GetSceneSessionManager();
+    virtual sptr<IRemoteObject> GetSceneSessionManager();
     void OnStart() override;
     int Dump(int fd, const std::vector<std::u16string>& args) override;
     void GetProcessSurfaceNodeIdByPersistentId(const int32_t pid,
@@ -51,7 +51,6 @@ public:
     ErrCode GetSessionManagerService(sptr<IRemoteObject>& sessionManagerService) override;
     ErrCode GetSessionManagerServiceByUserId(int32_t userId, sptr<IRemoteObject>& sessionManagerService) override;
     void NotifyWMSConnected(int32_t userId, DisplayId screenId, bool isColdStart);
-    void NotifyNotKillService() {}
     ErrCode GetSceneSessionManagerLiteByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManagerLite) override;
     ErrCode GetSceneSessionManagerByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManager) override;
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteBySA(int32_t userId);
@@ -64,6 +63,7 @@ public:
     ErrCode RegisterSMSRecoverListener(int32_t userId, bool isLite, const sptr<IRemoteObject>& listener) override;
     ErrCode UnregisterSMSRecoverListener(int32_t userId, bool isLite) override;
     void UnregisterSMSRecoverListenerInner(int32_t clientUserId, DisplayId displayId, int32_t pid, bool isLite);
+    virtual ErrCode InitDisplayIdAndUserIdByClient(int32_t clientUserId, int32_t& userId, DisplayId& displayId);
 
     /*
      * Window Hierarchy

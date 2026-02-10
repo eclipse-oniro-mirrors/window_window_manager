@@ -34,7 +34,7 @@ public:
     virtual void OnRemoteDied(const wptr<IRemoteObject>& wptrDeath) override;
 
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class WindowAdapter : public RefBase {
@@ -84,7 +84,7 @@ public:
     virtual WMError SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller);
     virtual WMError NotifyWindowTransition(sptr<WindowTransitionInfo> from, sptr<WindowTransitionInfo> to);
     virtual WMError UpdateAvoidAreaListener(uint32_t windowId, bool haveListener);
-    virtual void ClearWindowAdapter();
+    virtual void ClearWMSProxy();
 
     virtual WMError GetAccessibilityWindowInfo(std::vector<sptr<AccessibilityWindowInfo>>& infos);
     virtual WMError ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId);
@@ -265,7 +265,7 @@ private:
      * Multi user and multi screen
      */
     void OnUserSwitch();
-    int32_t userId_;
+    const int32_t userId_;
     static std::unordered_map<int32_t, sptr<WindowAdapter>> windowAdapterMap_;
     static std::mutex windowAdapterMapMutex_;
 
@@ -282,14 +282,15 @@ private:
     std::string appWatermarkName_;
     std::unordered_map<WindowType, int32_t> specificZIndexMap_;
 
-    mutable std::mutex mutex_;
+    mutable std::mutex wmsProxyMutex_;
     sptr<IWindowManager> windowManagerServiceProxy_ = nullptr;
     sptr<WMSDeathRecipient> wmsDeath_ = nullptr;
     bool isProxyValid_ = false;
-    bool isRegisteredUserSwitchListener_ = false;
     bool recoverInitialized_ = false;
-    std::map<int32_t, SessionRecoverCallbackFunc> sessionRecoverCallbackFuncMap_;
-    // above guarded by mutex_
+    // above guarded by wmsProxyMutex_
+
+    std::unordered_map<int32_t, SessionRecoverCallbackFunc> sessionRecoverCallbackFuncMap_;
+    std::mutex sessionRecoverCallbackMapMutex_;
 
     // Note: Currently, sptr does not support unordered_map<T, unordered_set<sptr<T>>>.
     std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentMap_;
@@ -298,7 +299,7 @@ private:
     // Agent map both locked by wmAgentMapMutex_
 
     std::mutex effectMutex_;
-    std::map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap_;
+    std::unordered_map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap_;
 
     std::mutex outlineMutex_;
     OutlineRecoverCallbackFunc outlineRecoverCallbackFunc_;

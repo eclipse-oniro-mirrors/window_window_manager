@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef OHOS_ROSEN_TEST_COMMON_MOCK_IREMOTE_WINDOW_MANAGER_MOCKER
-#define OHOS_ROSEN_TEST_COMMON_MOCK_IREMOTE_WINDOW_MANAGER_MOCKER
+#ifndef OHOS_ROSEN_TEST_COMMON_MOCK_MOCK_WINDOW_MANAGER_SERVICE
+#define OHOS_ROSEN_TEST_COMMON_MOCK_MOCK_WINDOW_MANAGER_SERVICE
 
 #include <gmock/gmock.h>
 #include <iremote_object.h>
@@ -23,12 +23,16 @@
 #include "wm_common.h"
 #include "zidl/window_manager_agent_interface.h"
 #include "zidl/window_manager_interface.h"
+#include "zidl/window_manager_lite_interface.h"
 
 namespace OHOS::Rosen {
-class IRemoteWindowManagerMocker : public IRemoteStub<IWindowManager> {
+/**
+ * To mock windowManagerServiceProxy_ in WindowAdapter for TDD.
+ */
+class WindowManagerServiceMocker : public IRemoteStub<IWindowManager> {
 public:
-    IRemoteWindowManagerMocker() = default;
-    ~IRemoteWindowManagerMocker() = default;
+    WindowManagerServiceMocker() = default;
+    ~WindowManagerServiceMocker() = default;
 
     // virtual (func) = 0 in IWindowManager
     MOCK_METHOD(WMError, CreateWindow, (sptr<IWindow>&, sptr<WindowProperty>&, const std::shared_ptr<RSSurfaceNode>&,
@@ -43,7 +47,7 @@ public:
         sptr<MoveDragProperty>&), (override));
     MOCK_METHOD(void, ProcessPointDown, (uint32_t windowId, bool isPointDown), (override));
     MOCK_METHOD(void, ProcessPointUp, (uint32_t windowId), (override));
-    MOCK_METHOD(WMError, MinimizeAllAppWindows, (DisplayId displayId), (override));
+    MOCK_METHOD(WMError, MinimizeAllAppWindows, (DisplayId displayId, int32_t excludeWindowId), (override));
     MOCK_METHOD(WMError, ToggleShownStateForAllAppWindows, (), (override));
     MOCK_METHOD(WMError, SetWindowLayoutMode, (WindowLayoutMode mode), (override));
     MOCK_METHOD(WMError, NotifyScreenshotEvent, (ScreenshotEventType type), (override));
@@ -75,6 +79,8 @@ public:
     MOCK_METHOD(void, SetAnchorAndScale, (int32_t x, int32_t y, float scale), (override));
     MOCK_METHOD(void, SetAnchorOffset, (int32_t deltaX, int32_t deltaY), (override));
     MOCK_METHOD(void, OffWindowZoom, (), (override));
+    MOCK_METHOD(void, GetAllGroupInfo,
+        ((std::unordered_map<DisplayId, DisplayGroupId>&), std::vector<sptr<FocusChangeInfo>>&), (override));
 
     // func mocked and will be tested
     MOCK_METHOD(WMError, RegisterWindowManagerAgent, (WindowManagerAgentType type,
@@ -83,6 +89,40 @@ public:
         const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
     MOCK_METHOD(WMError, RegisterWindowPropertyChangeAgent, (WindowInfoKey windowInfoKey, uint32_t interestInfo,
         const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
+};
+
+/**
+ * To mock windowManagerServiceProxy_ in WindowAdapterLite for TDD.
+ */
+class WindowManagerLiteServiceMocker : public IRemoteStub<IWindowManagerLite> {
+public:
+    WindowManagerLiteServiceMocker() = default;
+    ~WindowManagerLiteServiceMocker() = default;
+
+    // Virtual function must be wrapped with MOCK_METHOD and placed below.
+    MOCK_METHOD(WMError, RegisterWindowManagerAgent,
+        (WindowManagerAgentType, const sptr<IWindowManagerAgent>&), (override));
+    MOCK_METHOD(WMError, UnregisterWindowManagerAgent,
+        (WindowManagerAgentType, const sptr<IWindowManagerAgent>&), (override));
+    MOCK_METHOD(void, GetFocusWindowInfo, (FocusChangeInfo&, DisplayId), (override));
+    MOCK_METHOD(WMError, CheckWindowId, (int32_t, int32_t&), (override));
+    MOCK_METHOD(WMError, CheckUIExtensionCreation,
+        (int32_t, uint32_t, const AppExecFwk::ElementName&, AppExecFwk::ExtensionAbilityType, int32_t&), (override));
+    MOCK_METHOD(WMError, GetMainWindowInfos, (int32_t, std::vector<MainWindowInfo>&), (override));
+    MOCK_METHOD(WMError, GetCallingWindowInfo, (CallingWindowInfo&), (override));
+    MOCK_METHOD(WMError, GetAllMainWindowInfos, (std::vector<MainWindowInfo>&), (override));
+    MOCK_METHOD(WMError, GetMainWindowInfoByToken, (const sptr<IRemoteObject>&, MainWindowInfo&), (override));
+    MOCK_METHOD(WMError, ClearMainSessions, (const std::vector<int32_t>&, std::vector<int32_t>&), (override));
+    MOCK_METHOD(WMError, GetWindowStyleType, (WindowStyleType&), (override));
+    MOCK_METHOD(WMError, TerminateSessionByPersistentId, (int32_t), (override));
+    MOCK_METHOD(WMError, CloseTargetFloatWindow, (const std::string&), (override));
+    MOCK_METHOD(WMError, CloseTargetPiPWindow, (const std::string&), (override));
+    MOCK_METHOD(WMError, GetCurrentPiPWindowInfo, (std::string&), (override));
+    MOCK_METHOD(WMError, GetRootMainWindowId, (int32_t, int32_t&), (override));
+    MOCK_METHOD(WMError, GetAccessibilityWindowInfo, (std::vector<sptr<AccessibilityWindowInfo>>&), (override));
+    MOCK_METHOD(WMError, GetDisplayIdByWindowId,
+        (const std::vector<uint64_t>&, (std::unordered_map<uint64_t, DisplayId>&)), (override));
+    MOCK_METHOD(WMError, RecoverWindowPropertyChangeFlag, (uint32_t, uint32_t), (override));
 };
 } // namespace OHOS::Rosen
 #endif

@@ -27,7 +27,7 @@ public:
         std::shared_ptr<RSSurfaceNode> surfaceNode, uint32_t& windowId, const sptr<IRemoteObject>& token));
     MOCK_METHOD1(AddWindow, WMError(sptr<WindowProperty>& windowProperty));
     MOCK_METHOD2(RemoveWindow, WMError(uint32_t windowId, bool isFromInnerkits));
-    MOCK_METHOD0(ClearWindowAdapter, void());
+    MOCK_METHOD0(ClearWMSProxy, void());
     MOCK_METHOD1(DestroyWindow, WMError(uint32_t windowId));
     MOCK_METHOD2(UpdateProperty, WMError(sptr<WindowProperty>& windowProperty, PropertyChangeAction action));
     MOCK_METHOD2(GetTopWindowId, WMError(uint32_t mainWinId, uint32_t& topWinId));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "iremote_object_mocker.h"
+#include "mock_window_manager_service.h"
 #include "pointer_event.h"
 #include "window_adapter_lite.h"
 #include "window_manager_hilog.h"
@@ -85,7 +86,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent01, TestSize.Level1)
 {
     instance_->ReregisterWindowManagerLiteAgent();
     instance_->OnUserSwitch();
-    instance_->ClearWindowAdapter();
+    instance_->ClearWMSProxy();
 
     sptr<WMSDeathRecipient> wmSDeathRecipient = sptr<WMSDeathRecipient>::MakeSptr();
     ASSERT_NE(wmSDeathRecipient, nullptr);
@@ -284,17 +285,28 @@ HWTEST_F(WindowAdapterLiteTest, ListWindowInfo01, Function | SmallTest | Level2)
  * @tc.desc: test RecoverWindowPropertyChangeFlag
  * @tc.type: FUNC
  */
-HWTEST_F(WindowAdapterLiteTest, RecoverWindowPropertyChangeFlag01, TestSize.Level1)
+HWTEST_F(WindowAdapterLiteTest, RecoverWindowPropertyChangeFlag, TestSize.Level1)
 {
-    ASSERT_NE(instance_, nullptr);
-    auto ret = instance_->RecoverWindowPropertyChangeFlag();
-    EXPECT_EQ(ret, WMError::WM_OK);
+    WMError ret;
 
-    auto oldProxy = instance_->windowManagerServiceProxy_;
+    // branch 1: windowManagerServiceProxy_ is null
     instance_->windowManagerServiceProxy_ = nullptr;
     ret = instance_->RecoverWindowPropertyChangeFlag();
     EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
-    instance_->windowManagerServiceProxy_ = oldProxy;
+
+    // branch 2: Mock wms proxy return failed
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RecoverWindowPropertyChangeFlag(_, _)).Times(1).WillOnce(Return(WMError::WM_DO_NOTHING));
+
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    ret = instance_->RecoverWindowPropertyChangeFlag();
+    EXPECT_EQ(ret, WMError::WM_DO_NOTHING);
+
+    // branch 3: Mock wms proxy return ok
+    EXPECT_CALL(*remoteObject, RecoverWindowPropertyChangeFlag(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+    ret = instance_->RecoverWindowPropertyChangeFlag();
+    EXPECT_EQ(ret, WMError::WM_OK);
 }
 
 /**
