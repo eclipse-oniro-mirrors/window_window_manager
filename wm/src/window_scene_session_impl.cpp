@@ -3058,9 +3058,9 @@ WMError WindowSceneSessionImpl::RaiseMainWindowAboveTarget(int32_t targetId)
     }
     std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
     auto targetIter = std::find_if(windowSessionMap_.begin(), windowSessionMap_.end(),
-        [targetId](const auto& windowInfoPair) {return windowInfoPair.second.first == targetId;});
+        [targetId](const auto& windowInfoPair) {return windowInfoPair.second.first == targetId; });
     if (targetIter == windowSessionMap_.end()) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "target id invalid or pid inconsistent with source window pid");
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "target not found, id invalid or pid inconsistent with source window pid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     auto targetSessionImpl = targetIter->second.second;
@@ -3145,7 +3145,7 @@ WMError WindowSceneSessionImpl::GetSubWindowZLevel(int32_t& zLevel)
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
-    if (!WindowHelper::IsSubWindow(GetType()) || !WindowHelper::IsDialogWindow(GetType())) {
+    if (!WindowHelper::IsSubWindow(GetType()) && !WindowHelper::IsDialogWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "must be app sub window!");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
@@ -4931,6 +4931,17 @@ WMError WindowSceneSessionImpl::SetWindowFlags(uint32_t flags)
 uint32_t WindowSceneSessionImpl::GetWindowFlags() const
 {
     return property_->GetWindowFlags();
+}
+
+bool WindowSceneSessionImpl::IsApplicationModalSubWindowShowing(int32_t parentId)
+{
+    auto subMap = GetSubWindow(parentId);
+    auto applicationModalIndex = std::find_if(subMap.begin(), subMap.end(),
+        [](const auto& subWindow) {
+            return WindowHelper::IsApplicationModalSubWindow(subWindow->GetType(), subWindow->GetWindowFlags()) &&
+                   subWindow->GetWindowState() != WindowState::STATE_SHOWN;
+        });
+    return applicationModalIndex != subMap.end();
 }
 
 void WindowSceneSessionImpl::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration)
@@ -6999,7 +7010,7 @@ WSError WindowSceneSessionImpl::UpdateOrientation()
 
 void WindowSceneSessionImpl::NotifyDisplayInfoChange(const sptr<DisplayInfo>& info)
 {
-    TLOGD(WmsLogTag::DMS, "id: %{public}d", GetPersistentId());
+    TLOGD(WmsLogTag::DMS, "wid: %{public}d", GetPersistentId());
     sptr<DisplayInfo> displayInfo = nullptr;
     DisplayId displayId = 0;
     if (info == nullptr) {
@@ -7043,13 +7054,11 @@ bool WindowSceneSessionImpl::IsLandscape(uint64_t displayId)
 {
     int32_t displayWidth = 0;
     int32_t displayHeight = 0;
-    std::string dispName = "UNKNOWN";
     displayId = (displayId == DISPLAY_ID_INVALID) ? property_->GetDisplayId() : displayId;
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(displayId);
     if (display != nullptr) {
         displayWidth = display->GetWidth();
         displayHeight = display->GetHeight();
-        dispName = display->GetName();
     } else {
         auto defaultDisplayInfo = DisplayManager::GetInstance().GetDefaultDisplay();
         if (defaultDisplayInfo != nullptr) {
@@ -7071,8 +7080,8 @@ bool WindowSceneSessionImpl::IsLandscape(uint64_t displayId)
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
-    TLOGI(WmsLogTag::WMS_KEYBOARD, "c-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d, %{public}s",
-        displayId, displayWidth, displayHeight, isLandscape, dispName.c_str());
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "c-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d",
+        displayId, displayWidth, displayHeight, isLandscape);
     return isLandscape;
 }
 

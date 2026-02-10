@@ -450,7 +450,7 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
      * Only system applications or services with a userId of 0 are allowed to communicate
      * with multiple WMS-Servers and are permitted to listen for WMS connection status.
      */
-    static int32_t clientUserId = GetUserIdByUid(getuid());
+    int32_t clientUserId = GetUserIdByUid(getuid());
     if (clientUserId != SYSTEM_USERID || userId <= INVALID_USER_ID) {
         return GetInstance();
     }
@@ -1139,8 +1139,7 @@ WMError WindowManagerLite::GetAllMainWindowInfos(std::vector<MainWindowInfo>& in
     return WindowAdapterLite::GetInstance(userId_).GetAllMainWindowInfos(infos);
 }
 
-WMError WindowManagerLite::GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken,
-    MainWindowInfo& windowInfo)
+WMError WindowManagerLite::GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken, MainWindowInfo& windowInfo)
 {
     return WindowAdapterLite::GetInstance(userId_).GetMainWindowInfoByToken(abilityToken, windowInfo);
 }

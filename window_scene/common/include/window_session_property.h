@@ -620,13 +620,6 @@ private:
     uint32_t avoidAreaOption_ = 0;
 
     int32_t statusBarHeightInImmersive_ = 0;
-    
-    /*
-     * Window Focus
-     */
-    bool focusable_ { true };
-    bool focusableOnShow_ { true };
-    bool isExclusivelyHighlighted_ { true };
 
     /*
      * Window Lifecycle
@@ -651,6 +644,13 @@ private:
     bool isPcAppInpadOrientationLandscape_ = false;
     bool isMobileAppInPadLayoutFullScreen_ = false;
     bool isRotationLock_ = false;
+
+    /*
+     * Window Focus
+     */
+    bool focusable_ { true };
+    bool focusableOnShow_ { true };
+    bool isExclusivelyHighlighted_ { true };
 
     sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
 
@@ -1100,7 +1100,7 @@ struct SystemSessionConfig : public Parcelable {
         return IsPcWindow() || (IsPadWindow() && IsFreeMultiWindowMode());
     }
 
-    bool isSupportPCMode() const
+    bool IsSupportPCMode() const
     {
         return IsPcWindow() || IsFreeMultiWindowMode();
     }

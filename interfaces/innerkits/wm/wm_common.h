@@ -111,32 +111,6 @@ constexpr uint32_t OUTLINE_COLOR_OPAQUE = 0xff; // Color opaque byte.
 }
 
 /**
- * @brief Enumerates type of window manager agent.
- */
-enum class WindowManagerAgentType : uint32_t {
-    WINDOW_MANAGER_AGENT_TYPE_FOCUS,
-    WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
-    WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
-    WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
-    WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM = 7,
-    WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
-    WINDOW_MANAGER_AGENT_TYPE_CAMERA_WINDOW,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
-    WINDOW_MANAGER_AGENT_TYPE_PIP,
-    WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY,
-    WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
-    WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
-    WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
-    WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
-    WINDOW_MANAGER_AGENT_TYPE_END,
-};
-
-/**
  * @brief Enumerates type of window.
  */
 enum class WindowType : uint32_t {
@@ -3016,21 +2990,6 @@ enum DefaultSpecificZIndex {
 };
 
 /**
- * @brief Enumerates support function type
- */
-enum SupportFunctionType : uint32_t {
-    /**
-     * Supports callbacks triggered before the keyboard show/hide animations begin.
-     */
-    ALLOW_KEYBOARD_WILL_ANIMATION_NOTIFICATION = 1 << 0,
-
-    /**
-     * Supports callbacks triggered after the keyboard show/hide animations complete.
-     */
-    ALLOW_KEYBOARD_DID_ANIMATION_NOTIFICATION = 1 << 1,
-};
-
-/**
  * @struct ShadowsInfo
  *
  * @brief window shadows info
@@ -3238,14 +3197,6 @@ struct RecentSessionInfo : public Parcelable {
 };
 
 /**
- * @brief Enumerates source of sub session.
- */
-enum class SubWindowSource : uint32_t {
-    SUB_WINDOW_SOURCE_UNKNOWN = 0,
-    SUB_WINDOW_SOURCE_ARKUI = 1,
-};
-
-/**
  * @brief Screenshot event type.
  */
 enum class ScreenshotEventType : int32_t {
@@ -3277,6 +3228,29 @@ enum class ScreenshotEventType : int32_t {
     SCROLL_SHOT_ABORT = 4,
 
     END,
+};
+
+/**
+ * @brief Enumerates support function type
+ */
+enum SupportFunctionType : uint32_t {
+    /**
+     * Supports callbacks triggered before the keyboard show/hide animations begin.
+     */
+    ALLOW_KEYBOARD_WILL_ANIMATION_NOTIFICATION = 1 << 0,
+
+    /**
+     * Supports callbacks triggered after the keyboard show/hide animations complete.
+     */
+    ALLOW_KEYBOARD_DID_ANIMATION_NOTIFICATION = 1 << 1,
+};
+
+/**
+ * @brief Enumerates source of sub session.
+ */
+enum class SubWindowSource : uint32_t {
+    SUB_WINDOW_SOURCE_UNKNOWN = 0,
+    SUB_WINDOW_SOURCE_ARKUI = 1,
 };
 
 enum class RequestResultCode: uint32_t {
@@ -3532,6 +3506,29 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_2_3 = 4,
     // split aspect ratio
     LANDSCAPE_SPLIT = 5,
+};
+
+enum class WindowManagerAgentType : uint32_t {
+    WINDOW_MANAGER_AGENT_TYPE_FOCUS,
+    WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
+    WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
+    WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
+    WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM = 7,
+    WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
+    WINDOW_MANAGER_AGENT_TYPE_CAMERA_WINDOW,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
+    WINDOW_MANAGER_AGENT_TYPE_PIP,
+    WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY,
+    WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
+    WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
+    WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
+    WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
+    WINDOW_MANAGER_AGENT_TYPE_END, // 17
 };
 
 struct StateChangeOption {

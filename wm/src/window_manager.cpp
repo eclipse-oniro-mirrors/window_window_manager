@@ -168,6 +168,7 @@ void WindowManager::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChange
         std::shared_lock<std::shared_mutex> lock(listenerMutex_);
         focusChangeListeners = focusChangedListeners_;
     }
+    WLOGFD("NotifyFocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnFocused(focusChangeInfo);
     }
@@ -183,6 +184,7 @@ void WindowManager::Impl::NotifyUnfocused(const sptr<FocusChangeInfo>& focusChan
         std::shared_lock<std::shared_mutex> lock(listenerMutex_);
         focusChangeListeners = focusChangedListeners_;
     }
+    WLOGFD("NotifyUnfocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnUnfocused(focusChangeInfo);
     }
@@ -603,7 +605,7 @@ WindowManager& WindowManager::GetInstance(const int32_t userId)
      * Only system applications or services with a userId of 0 are allowed to communicate
      * with multiple WMS-Servers and are permitted to listen for WMS connection status.
      */
-    static int32_t clientUserId = GetUserIdByUid(getuid());
+    int32_t clientUserId = GetUserIdByUid(getuid());
     if (clientUserId != SYSTEM_USERID || userId <= INVALID_USER_ID) {
         return GetInstance();
     }

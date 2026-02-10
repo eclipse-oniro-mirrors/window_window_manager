@@ -118,8 +118,8 @@ const int32_t ROTATE_POLICY_WINDOW = 0;
 const int32_t ROTATE_POLICY_SCREEN = 1;
 constexpr int32_t MIN_ROTATION_VALUE = 0;
 constexpr int32_t MAX_ROTATION_VALUE = 3;
-const int32_t SCREEN_LOCK_Z_ORDER = 2000;
 const std::string OPTIONAL_SHOW = "OPTIONAL_SHOW"; // startWindowType can be changed by startAbility option.
+const int32_t SCREEN_LOCK_Z_ORDER = 2000;
 constexpr uint8_t MAX_DOWN_TIMES = 100;
 
 bool CheckIfRectElementIsTooLarge(const WSRect& rect)
@@ -2107,9 +2107,11 @@ void SceneSession::SetUpdatePiPTemplateInfoCallback(NotifyUpdatePiPTemplateInfoF
 
 WSError SceneSession::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
-        "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d", pipTemplateInfo.pipTemplateType,
-        pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType, pipTemplateInfo.cornerAdsorptionEnabled);
+    TLOGI(WmsLogTag::WMS_PIP,
+        "UpdatePiPTemplateInfo, pipTemplateType: %{public}u, priority: %{public}d, "
+        "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d",
+        pipTemplateInfo.pipTemplateType, pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,
+        pipTemplateInfo.cornerAdsorptionEnabled);
     auto task = [weakThis = wptr(this), pipTemplateInfo = std::move(pipTemplateInfo), where = __func__]() mutable {
         auto session = weakThis.promote();
         if (!session || session->isTerminating_) {
@@ -2501,7 +2503,7 @@ void SceneSession::RegisterRaiseAboveTargetCallback(NotifyRaiseAboveTargetFunc&&
     PostTask([weakThis = wptr(this), callback = std::move(callback), where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
+            TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return;
         }
         session->onRaiseAboveTarget_ = std::move(callback);
@@ -2900,7 +2902,7 @@ void SceneSession::PrintAvoidAreaInfo(DisplayId displayId,
     if (iter != lastAvoidAreaInputParamtersMap_.end() && iter->second == inputParamters) {
         return;
     }
-    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d dispaly %{public}" PRIu64 ""
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d dispaly %{public}" PRIu64
         "type %{public}d rect %{public}s bar %{public}s",
         GetPersistentId(), displayId, type, rect.ToString().c_str(), avoidRect.ToString().c_str());
 }
@@ -8311,7 +8313,6 @@ WMError SceneSession::UpdateAnimationSpeed(float speed)
         TLOGW(WmsLogTag::WMS_ANIMATION, "Session is invalid");
         return WMError::WM_ERROR_INVALID_SESSION;
     }
-
     if (!sessionStage_) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "sessionStage_ is nullptr");
         return WMError::WM_ERROR_NULLPTR;
@@ -8515,6 +8516,17 @@ void SceneSession::NotifyWindowStatusDidChangeAfterShowWindow()
 void SceneSession::SetUpdatePrivateStateAndNotifyFunc(const UpdatePrivateStateAndNotifyFunc& func)
 {
     updatePrivateStateAndNotifyFunc_ = func;
+}
+
+bool SceneSession::CheckPermissionWithPropertyAnimation(const sptr<WindowSessionProperty>& property) const
+{
+    if (property && property->GetAnimationFlag() == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
+        if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Not system app, no permission");
+            return false;
+        }
+    }
+    return true;
 }
 
 void SceneSession::SetNotifyScreenshotAppEventRegisteredFunc(UpdateScreenshotAppEventRegisteredFunc&& func)
@@ -8818,17 +8830,6 @@ int32_t SceneSession::GetDockHeight()
         }
     }
     return height;
-}
-
-bool SceneSession::CheckPermissionWithPropertyAnimation(const sptr<WindowSessionProperty>& property) const
-{
-    if (property && property->GetAnimationFlag() == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
-        if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Not system app, no permission");
-            return false;
-        }
-    }
-    return true;
 }
 
 void SceneSession::UpdatePCZOrderAndMarkDirty(const uint32_t zOrder)
@@ -9169,6 +9170,37 @@ void SceneSession::SetDefaultDisplayIdIfNeed()
     }
 }
 
+void SceneSession::UpdateGestureBackEnabled()
+{
+    if (specificCallback_ != nullptr &&
+        specificCallback_->onUpdateGestureBackEnabled_ != nullptr) {
+        specificCallback_->onUpdateGestureBackEnabled_(GetPersistentId());
+    }
+}
+
+bool SceneSession::CheckIdentityTokenIfMatched(const std::string& identityToken)
+{
+    if (!identityToken.empty() && !clientIdentityToken_.empty() && identityToken != clientIdentityToken_) {
+        TLOGW(WmsLogTag::WMS_LIFE,
+            "failed, clientIdentityToken: %{public}s, identityToken: %{public}s, bundleName: %{public}s",
+            clientIdentityToken_.c_str(), identityToken.c_str(), GetSessionInfo().bundleName_.c_str());
+        return false;
+    }
+    return true;
+}
+
+bool SceneSession::CheckPidIfMatched()
+{
+    int32_t callingPid = IPCSkeleton::GetCallingPid();
+    if (callingPid != -1 && callingPid != GetCallingPid()) {
+        TLOGW(WmsLogTag::WMS_LIFE,
+            "failed, callingPid_: %{public}d, callingPid: %{public}d, bundleName: %{public}s",
+            GetCallingPid(), callingPid, GetSessionInfo().bundleName_.c_str());
+        return false;
+    }
+    return true;
+}
+
 int32_t SceneSession::GetCustomDecorHeight() const
 {
     std::lock_guard lock(customDecorHeightMutex_);
@@ -9224,37 +9256,6 @@ WindowDecoration SceneSession::GetWindowDecoration() const
     WindowDecoration decoration{0, getTopDecorInPx(), 0, 0};
     TLOGD(WmsLogTag::WMS_DECOR, "decoration: %{public}s", decoration.ToString().c_str());
     return decoration;
-}
-
-void SceneSession::UpdateGestureBackEnabled()
-{
-    if (specificCallback_ != nullptr &&
-        specificCallback_->onUpdateGestureBackEnabled_ != nullptr) {
-        specificCallback_->onUpdateGestureBackEnabled_(GetPersistentId());
-    }
-}
-
-bool SceneSession::CheckIdentityTokenIfMatched(const std::string& identityToken)
-{
-    if (!identityToken.empty() && !clientIdentityToken_.empty() && identityToken != clientIdentityToken_) {
-        TLOGW(WmsLogTag::WMS_LIFE,
-            "failed, clientIdentityToken: %{public}s, identityToken: %{public}s, bundleName: %{public}s",
-            clientIdentityToken_.c_str(), identityToken.c_str(), GetSessionInfo().bundleName_.c_str());
-        return false;
-    }
-    return true;
-}
-
-bool SceneSession::CheckPidIfMatched()
-{
-    int32_t callingPid = IPCSkeleton::GetCallingPid();
-    if (callingPid != -1 && callingPid != GetCallingPid()) {
-        TLOGW(WmsLogTag::WMS_LIFE,
-            "failed, callingPid_: %{public}d, callingPid: %{public}d, bundleName: %{public}s",
-            GetCallingPid(), callingPid, GetSessionInfo().bundleName_.c_str());
-        return false;
-    }
-    return true;
 }
 
 void SceneSession::SetNeedSyncSessionRect(bool needSync)

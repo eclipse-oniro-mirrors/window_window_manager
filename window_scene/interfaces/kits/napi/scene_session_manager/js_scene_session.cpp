@@ -3330,14 +3330,14 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
         case static_cast<uint32_t>(ListenerFuncType::KEYBOARD_EFFECT_OPTION_CHANGE_CB):
             ProcessKeyboardEffectOptionChangeRegister();
             break;
-        case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
-            ProcessSetHighlightChangeRegister();
-            break;
         case static_cast<uint32_t>(ListenerFuncType::WINDOW_ANCHOR_INFO_CHANGE_CB):
             ProcessWindowAnchorInfoChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::SET_WINDOW_CORNER_RADIUS_CB):
             ProcessSetWindowCornerRadiusRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
+            ProcessSetHighlightChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::FOLLOW_PARENT_RECT_CB):
             ProcessFollowParentRectRegister();
