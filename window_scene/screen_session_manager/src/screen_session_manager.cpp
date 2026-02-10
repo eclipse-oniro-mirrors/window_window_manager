@@ -86,6 +86,7 @@
 #include "dms_task_scheduler.h"
 #include "screen_session_manager_adapter.h"
 #include "zidl/idisplay_manager_agent.h"
+#include "window_helper.h"
 #include "wm_common.h"
 #include "screen_sensor_mgr.h"
 #include "sensor_fold_state_mgr.h"
@@ -4475,7 +4476,7 @@ void ScreenSessionManager::GetOrCalExtendScreenDefaultDensity(const sptr<ScreenS
     std::map<std::string, std::string> dpiMap = ScreenSettingHelper::GetDpiMode();
     std::string serialNumber = session->GetSerialNumber();
     auto it = dpiMap.find(serialNumber);
-    if (it == dpiMap.end()) {
+    if (it == dpiMap.end() || !WindowHelper::IsFloatingNumber(it->second)) {
         float density_ = CalDefaultExtendScreenDensity(property);
         float dpi = GetOptionalDpi(density_ * EXTEND_SCREEN_DPI_BASELINE);
         extendDefaultDensity_ = dpi / EXTEND_SCREEN_DPI_BASELINE;
@@ -6053,15 +6054,6 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
         TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
         return;
     }
-    TLOGNFI(WmsLogTag::DMS, "activate mode change mask");
-    OnScreenModeChange(ScreenModeChangeEvent::BEGIN);
-    {
-        std::unique_lock<std::mutex> lock(screenMaskMutex_);
-        if (DmUtils::safe_wait_for(screenMaskCV_, lock,
-            std::chrono::milliseconds(CV_WAIT_SCREEN_MASK_MS)) == std::cv_status::timeout) {
-            TLOGNFI(WmsLogTag::DMS, "wait screenMaskMutex_ timeout");
-        }
-    }
     ScreenSettingHelper::GetSettingOffScreenRenderValue(g_offScreenRenderValue,
         SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY); 
     auto externalScreenProperty = externalSession->GetScreenProperty();
@@ -6087,7 +6079,6 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
     }
     externalSession->SetExtendPhysicalScreenResolution(g_offScreenRenderValue);
     CheckAndNotifyChangeMode(previousScreenBounds, externalSession);
-    OnScreenModeChange(ScreenModeChangeEvent::END);
 #endif
 }
 
@@ -13722,7 +13713,7 @@ void ScreenSessionManager::SetExtendScreenIndepDpi()
     std::string serialNumber = externalSession->GetSerialNumber();
     ScreenId screenId = externalSession->GetScreenId();
     auto it = dpiMap.find(serialNumber);
-    if (it == dpiMap.end()) {
+    if (it == dpiMap.end() || !WindowHelper::IsFloatingNumber(it->second)) {
         TLOGNFW(WmsLogTag::DMS, "get setting extend screen density fail,"
             "use default density: %{public}f", extendDefaultDensity_);
         SetVirtualPixelRatio(screenId, extendDefaultDensity_);
