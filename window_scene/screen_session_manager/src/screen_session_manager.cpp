@@ -6054,15 +6054,6 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
         TLOGNFE(WmsLogTag::DMS, "extend screen session is null.");
         return;
     }
-    TLOGNFI(WmsLogTag::DMS, "activate mode change mask");
-    OnScreenModeChange(ScreenModeChangeEvent::BEGIN);
-    {
-        std::unique_lock<std::mutex> lock(screenMaskMutex_);
-        if (DmUtils::safe_wait_for(screenMaskCV_, lock,
-            std::chrono::milliseconds(CV_WAIT_SCREEN_MASK_MS)) == std::cv_status::timeout) {
-            TLOGNFI(WmsLogTag::DMS, "wait screenMaskMutex_ timeout");
-        }
-    }
     ScreenSettingHelper::GetSettingOffScreenRenderValue(g_offScreenRenderValue,
         SETTING_OFF_SCREEN_RENDERING_SWITCH_KEY); 
     auto externalScreenProperty = externalSession->GetScreenProperty();
@@ -6088,7 +6079,6 @@ void ScreenSessionManager::SetExtendScreenDpiFromSettingData()
     }
     externalSession->SetExtendPhysicalScreenResolution(g_offScreenRenderValue);
     CheckAndNotifyChangeMode(previousScreenBounds, externalSession);
-    OnScreenModeChange(ScreenModeChangeEvent::END);
 #endif
 }
 
