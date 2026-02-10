@@ -1843,16 +1843,16 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     if (sessionInfo.want != nullptr) {
         napi_set_named_property(env, objValue, "want", AppExecFwk::WrapWant(env, sessionInfo.GetWantSafely()));
     }
-    if (sessionInfo.startAnimationOptions != nullptr) {
+    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->animationParams) {
         napi_status status = napi_set_named_property(env, objValue, "startAnimationOptions",
-            ConvertStartAnimationOptionsToJsValue(env, sessionInfo.startAnimationOptions));
+            ConvertStartAnimationOptionsToJsValue(env, sessionInfo.windowCreateParams->animationParams));
         if (status != napi_ok) {
             TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to set startAnimationOptions");
         }
     }
-    if (sessionInfo.startAnimationSystemOptions != nullptr) {
+    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->animationSystemParams) {
         napi_status status = napi_set_named_property(env, objValue, "startAnimationSystemOptions",
-            ConvertStartAnimationSystemOptionsToJsValue(env, sessionInfo.startAnimationSystemOptions));
+            ConvertStartAnimationSystemOptionsToJsValue(env, sessionInfo.windowCreateParams->animationSystemParams));
         if (status != napi_ok) {
             TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to set startAnimationSystemOptions");
         }
