@@ -12180,7 +12180,7 @@ WMError SceneSessionManager::ConvertToRelativeCoordinateExtended(const Rect& rec
         newRect.posY_ = rect.posY_ - defaultDisplayRect.height_ - foldCreaseRect.height_;
         newDisplayId = VIRTUAL_DISPLAY_ID;
         return WMError::WM_OK;
-    } 
+    }
     return WMError::WM_DO_NOTHING;
 }
 
@@ -14762,11 +14762,9 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
     if (onFlushUIParamsFunc_ != nullptr) {
         onFlushUIParamsFunc_();
     }
-    const char* const where = __func__;
-    taskScheduler_->PostAsyncTask([this, screenId, where,
-        uiParams = std::move(uiParams)]() THREAD_SAFETY_GUARD(SCENE_GUARD) {
+    taskScheduler_->PostAsyncTask([this, screenId, uiParams = std::move(uiParams)]() THREAD_SAFETY_GUARD(SCENE_GUARD) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::FlushUIParams");
-        TLOGND(WmsLogTag::WMS_PIPELINE, "%{public}s", where);
+        TLOGND(WmsLogTag::WMS_PIPELINE, "FlushUIParams");
         {
             std::unique_lock<std::mutex> lock(nextFlushCompletedMutex_);
             nextFlushCompletedCV_.notify_all();
@@ -14785,7 +14783,11 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
                     continue;
                 }
                 if (auto iter = uiParams.find(sceneSession->GetPersistentId()); iter != uiParams.end()) {
-                    if (sceneSession->IsAppSession()) {
+                    if (sceneSession->GetSessionInfo().screenId_ != SCREEN_ID_INVALID) {
+                        sceneSession->SetScreenIdOnServer(screenId);
+                    }
+                    if ((systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) &&
+                        sceneSession->IsAppSession()) {
                         if (!sceneSession->IsVisible()) {
                             appZOrderList.push_back(std::make_pair(0, iter->second.zOrder_));
                         }
@@ -14805,7 +14807,7 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
         // post process if dirty
         if ((sessionMapDirty_ & (~static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA))) !=
             static_cast<uint32_t>(SessionUIDirtyFlag::NONE)) {
-            TLOGND(WmsLogTag::WMS_PIPELINE, "%{public}s found dirty: %{public}d", where, sessionMapDirty_);
+            TLOGND(WmsLogTag::WMS_PIPELINE, "FlushUIParams found dirty: %{public}d", sessionMapDirty_);
             for (const auto& item : uiParams) {
                 TLOGND(WmsLogTag::WMS_PIPELINE, "id: %{public}d, zOrder: %{public}d, rect: %{public}s, transX:%{public}f,"
                     " transY:%{public}f, needSync:%{public}d, interactive:%{public}d", item.first, item.second.zOrder_,
