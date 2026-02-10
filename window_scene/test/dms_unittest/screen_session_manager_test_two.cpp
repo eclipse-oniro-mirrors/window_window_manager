@@ -3695,7 +3695,7 @@ HWTEST_F(ScreenSessionManagerTest, CheckAttributeChangeWithUid02, TestSize.Level
     ASSERT_NE(ssm_, nullptr);
  
     DisplayId displayId = 985;
-    int32_t uid = 123456
+    int32_t uid = 123456;
     ssm_->lastDisplayInfoHookMap_[uid][displayId] = new DisplayInfo();
     sptr<DisplayInfo> displayInfo1 = ssm_->lastDisplayInfoHookMap_[uid][displayId];
     displayInfo1->SetDisplayId(displayId);
@@ -3717,7 +3717,7 @@ HWTEST_F(ScreenSessionManagerTest, CheckAttributeChangeWithUid03, TestSize.Level
     ASSERT_NE(ssm_, nullptr);
  
     DisplayId displayId = 985;
-    int32_t uid = 123456
+    int32_t uid = 123456;
     ssm_->lastDisplayInfoHookMap_[uid][displayId] = new DisplayInfo();
     sptr<DisplayInfo> displayInfo1 = ssm_->lastDisplayInfoHookMap_[uid][displayId];
     displayInfo1->SetDisplayId(displayId);
