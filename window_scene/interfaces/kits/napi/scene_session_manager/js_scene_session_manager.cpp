@@ -1865,7 +1865,7 @@ static napi_value CreateWindowSize(napi_env env, const AppExecFwk::AbilityInfo& 
     return objValue;
 }
 
-static napi_value CreateAbilityItemInfo(napi_env env, const AppExecFwk::AbilityInfo& abilityInfo)
+static napi_value CreateAbilityItemInfo(napi_env env, const SCBAbilityInfo& scbabilityInfo)
 {
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
