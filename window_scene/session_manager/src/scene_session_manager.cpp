@@ -2449,30 +2449,21 @@ void SceneSessionManager::ConfigDockAutoHide(bool isDockAutoHide) {
     return taskScheduler_->PostAsyncTask(task, "ConfigDockAutoHide");
 }
 
-void SceneSessionManager::SchedulePcAppInPadLifecycle(bool isBackground)
+void SceneSessionManager::SchedulePcAppInPadLifecycle(bool isBackground, int32_t persistentId)
 {
-    auto task = [this, isBackground] {
-        std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
-        {
-            std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-            sceneSessionMapCopy = sceneSessionMap_;
-        }
-        for (const auto& [_, sceneSession] : sceneSessionMapCopy) {
-            if (sceneSession == nullptr) {
-                TLOGE(WmsLogTag::WMS_LIFE, "session is null");
-                continue;
-            }
-            if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
-                continue;
-            }
-            bool isPcAppInPad = sceneSession->GetSessionProperty()->GetIsPcAppInPad();
-            if (!isPcAppInPad) {
-                continue;
-            }
-            StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground);
-        }
-    };
-    return taskScheduler_->PostAsyncTask(task, "SchedulePcAppInPadLifecycle");
+    if (persistentId != INVALID_SESSION_ID) {
+        SchedulePcAppInPadLifecycleByPersistentId(isBackground, persistentId);
+        return;
+    }
+    std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
+    std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+    {
+        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+        sceneSessionMapCopy = sceneSessionMap_;
+    }
+    for (const auto& [persistentId, sceneSession] : sceneSessionMapCopy) {
+        SchedulePcAppInPadLifecycleByPersistentId(isBackground, persistentId);
+    }
 }
 
 void SceneSessionManager::SchedulePcAppInPadLifecycleByPersistentId(bool isBackground, int32_t persistentId)
@@ -2493,7 +2484,7 @@ void SceneSessionManager::SchedulePcAppInPadLifecycleByPersistentId(bool isBackg
         }
         StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground);
     };
-    return taskScheduler_->PostAsyncTask(task, "SchedulePcAppInPadLifecycleByPersistentId");
+    return taskScheduler_->PostAsyncTask(task, __func__);
 }
 
 WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground)

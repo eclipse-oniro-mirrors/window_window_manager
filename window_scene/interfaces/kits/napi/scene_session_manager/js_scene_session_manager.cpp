@@ -3579,34 +3579,30 @@ napi_value JsSceneSessionManager::OnHandleUserSwitch(napi_env env, napi_callback
 
 napi_value JsSceneSessionManager::OnHandlePcAppStatus(napi_env env, napi_callback_info info)
 {
-    size_t argc = DEFAULT_ARG_COUNT;
-    napi_value argv[DEFAULT_ARG_COUNT] = {nullptr};
+    size_t argc = ARGC_TWO;
+    napi_value argv[ARGC_TWO] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-                                      "Input parameter is missing or invalid"));
+            "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     bool isBackground = false;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_ZERO], isBackground)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to isBackground");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-                                      "Input parameter is missing or invalid"));
+            "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    int32_t persistentId = 0;
-    if (argc > ARGC_ONE && !ConvertFromJsValue(env, argv[1], persistentId)) {
-        TLOGE(WmsLogTag::WMS_IMMS, "Failed to convert parameter to persistentId");
+    int32_t persistentId = INVALID_SESSION_ID;
+    if (argc > ARGC_ONE && !ConvertFromJsValue(env, argv[ARG_INDEX_ONE], persistentId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to persistentId");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    if (persistentId <= 0) {
-        SceneSessionManager::GetInstance().SchedulePcAppInPadLifecycle(isBackground);
-    } else {
-        SceneSessionManager::GetInstance().SchedulePcAppInPadLifecycleByPersistentId(isBackground, persistentId);
-    }
+    SceneSessionManager::GetInstance().SchedulePcAppInPadLifecycle(isBackground, persistentId);
     return NapiGetUndefined(env);
 }
 

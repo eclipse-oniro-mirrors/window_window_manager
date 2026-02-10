@@ -432,7 +432,7 @@ public:
     void RegisterVirtualPixelChangeCallback(NotifyVirtualPixelChangeFunc&& func);
     NotifyVirtualPixelChangeFunc onVirtualPixelChangeCallback_;
     void ConfigDockAutoHide(bool isDockAutoHide);
-    void SchedulePcAppInPadLifecycle(bool isBackground);
+    void SchedulePcAppInPadLifecycle(bool isBackground, int32_t persistentId = INVALID_SESSION_ID);
     void SchedulePcAppInPadLifecycleByPersistentId(bool isBackground, int32_t persistentId);
     void SetTrayAppList(std::vector<std::string>&& trayAppList);
 

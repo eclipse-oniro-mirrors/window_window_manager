@@ -145,7 +145,6 @@
             OHOS::Rosen::SceneSessionManager::RequestSceneSessionByCall*;
             OHOS::Rosen::SceneSessionManager::RequestSceneSessionDestruction*;
             OHOS::Rosen::SceneSessionManager::SchedulePcAppInPadLifecycle*;
-            OHOS::Rosen::SceneSessionManager::SchedulePcAppInPadLifecycleByPersistentId*;
             OHOS::Rosen::SceneSessionManager::SendTouchEvent*;
             OHOS::Rosen::SceneSessionManager::SendAxisEvent*;
             OHOS::Rosen::SceneSessionManager::SetAbilityManagerCollaboratorRegisteredFunc*;
