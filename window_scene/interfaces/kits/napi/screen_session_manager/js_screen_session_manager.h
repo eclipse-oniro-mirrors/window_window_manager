@@ -82,8 +82,8 @@ private:
     static napi_value RegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
 
     napi_value OnRegisterCallback(napi_env env, const napi_callback_info info);
-    void RegisterScreenConnectionCallback(napi_env env, const std::string& callbackType, napi_ref& callbackRef);
-    void RegisterTentModeCallback(napi_env env, const std::string& callbackType, napi_ref& callbackRef);
+    void RegisterScreenConnectionCallback(napi_env env, napi_ref& callbackRef);
+    void RegisterTentModeCallback(napi_env env, napi_ref& callbackRef);
     napi_value OnUpdateScreenRotationProperty(napi_env env, const napi_callback_info info);
     napi_value OnUpdateServerScreenProperty(napi_env env, const napi_callback_info info);
     napi_value OnGetCurvedCompressionArea(napi_env env, const napi_callback_info info);
@@ -123,7 +123,7 @@ private:
 
     napi_value OnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
     bool ObtainCallBackInfo(napi_env env, const napi_callback_info info,
-        std::string& callbackType, napi_ref& callbackRef);
+        const std::string& callbackType, napi_ref& callbackRef);
     bool CheckAndTransState(ScbScreenPowerState state, ScreenPowerState& screenState);
 
     std::shared_ptr<NativeReference> screenConnectionCallback_;

@@ -60,7 +60,7 @@ void UnloadEdidPlugin(void)
     }
 }
 
-bool GetEdid(ScreenId rsScreenId, struct BaseEdid &edid)
+bool GetEdid(ScreenId rsScreenId, const struct BaseEdid &edid)
 {
     std::vector<uint8_t> edidData;
     uint8_t outPort;
