@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
-#include "js_runtime_utils.h"
 #include "picture_in_picture_option.h"
+
+#include "js_runtime_utils.h"
+
 #include "window_manager_hilog.h"
 
 namespace OHOS {

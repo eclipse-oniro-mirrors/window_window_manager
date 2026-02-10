@@ -21,5 +21,6 @@ group("ani_packages") {
     "screenshot_runtime:screenshot_ani",
     "window_runtime:window_stage_ani_pack",
     "floating_ball:fbwindow_ani_pack",
+    "picture_in_picture_runtime:pipwindow_ani_pack",
   ]
 }

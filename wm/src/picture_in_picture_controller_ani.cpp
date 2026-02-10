@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,42 +13,65 @@
  * limitations under the License.
  */
 
-#include "picture_in_picture_controller.h"
-#include "picture_in_picture_manager.h"
+#include "picture_in_picture_controller_ani.h"
+
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
+#include "picture_in_picture_option_ani.h"
+#include "picture_in_picture_manager.h"
 
 namespace OHOS {
 namespace Rosen {
 namespace {
-    const std::string PIP_CONTENT_PATH = "/system/etc/window/resources/pip_content.abc";
+    const char* ETS_NS = "@ohos.PiPWindow.PiPManager";
+    const char* RUN_UPDATE_NODE_CALLBACK = "runUpdateNodeCallback";
+    const char* RUN_STATE_CHANGE_CALLBACK = "runStateChangeCallback";
+    const std::string PIP_CONTENT_PATH = "/system/framework/pipcontent_ani.abc";
     const std::string DESTROY_TIMEOUT_TASK = "PipDestroyTimeout";
     const std::string STATE_CHANGE = "stateChange";
     const std::string UPDATE_NODE = "nodeUpdate";
     const int32_t INVALID_HANDLE_ID = -1;
 }
 
-PictureInPictureController::PictureInPictureController(sptr<PipOption> pipOption, sptr<Window> mainWindow,
-    uint32_t windowId, napi_env env)
+PictureInPictureControllerAni::PictureInPictureControllerAni(sptr<PipOptionAni> pipOption,
+                                                             sptr<Window> mainWindow,
+                                                             uint32_t windowId,
+                                                             ani_env* env)
 {
+    PictureInPictureControllerBase::pipOption_ = pipOption;  // base class use the same pipOption_
     pipOption_ = pipOption;
     mainWindow_ = mainWindow;
     mainWindowId_ = windowId;
-    env_ = env;
     curState_ = PiPWindowState::STATE_UNDEFINED;
+    if (env->GetVM(&vm_) != ANI_OK || !vm_) {
+        TLOGE(WmsLogTag::WMS_PIP, "PictureInPictureControllerAni Get VM failed");
+    }
     weakRef_ = this;
+    TLOGI(WmsLogTag::WMS_PIP, "PictureInPictureControllerAni created");
 }
 
-PictureInPictureController::~PictureInPictureController()
+PictureInPictureControllerAni::~PictureInPictureControllerAni()
 {
+    TLOGI(WmsLogTag::WMS_PIP, "~PictureInPictureControllerAni start");
     if (!isAutoStartEnabled_) {
         return;
     }
     PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
 }
 
-WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
+ani_env* PictureInPictureControllerAni::GetEnv() const
 {
+    ani_env* env_ = nullptr;
+    ani_status ret = vm_->GetEnv(ANI_VERSION_1, &env_);
+    if (ret != ANI_OK || !env_) {
+        TLOGE(WmsLogTag::WMS_PIP, "PictureInPictureControllerAni Get Env failed ret:%{public}u", ret);
+    }
+    return env_;
+}
+
+WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType startType)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Create pip failed, invalid pipOption");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
@@ -60,7 +83,7 @@ WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType st
     }
     TLOGI(WmsLogTag::WMS_PIP, "mainWindow:%{public}u, mainWindowState:%{public}u",
         mainWindowId_, mainWindow_->GetWindowState());
-    mainWindowLifeCycleListener_ = sptr<PictureInPictureController::WindowLifeCycleListener>::MakeSptr();
+    mainWindowLifeCycleListener_ = sptr<PictureInPictureControllerAni::WindowLifeCycleListener>::MakeSptr();
     mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     if (startType != StartPipType::AUTO_START && mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
@@ -91,9 +114,9 @@ WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType st
     return WMError::WM_OK;
 }
 
-WMError PictureInPictureController::StartPictureInPicture(StartPipType startType)
+WMError PictureInPictureControllerAni::StartPictureInPicture(StartPipType startType)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "called");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption is null or Get PictureInPictureOption failed");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
@@ -111,10 +134,9 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
     }
     curState_ = PiPWindowState::STATE_STARTING;
     if (PictureInPictureManager::HasActiveController() && !PictureInPictureManager::IsActiveController(weakRef_)) {
-        // if current controller is not the active one, but belongs to the same mainWindow, reserve pipWindow
         if (PictureInPictureManager::IsAttachedToSameWindow(mainWindowId_)) {
             window_ = PictureInPictureManager::GetCurrentWindow();
-            if (window_ == nullptr) {
+            if (!window_) {
                 TLOGE(WmsLogTag::WMS_PIP, "Reuse pipWindow failed");
                 curState_ = PiPWindowState::STATE_UNDEFINED;
                 return WMError::WM_ERROR_PIP_CREATE_FAILED;
@@ -134,10 +156,8 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
             }
             return err;
         }
-        // otherwise, stop the previous one
         PictureInPictureManager::DoClose(true, true);
     }
-
     WMError errCode = StartPictureInPictureInner(startType);
     if (errCode != WMError::WM_OK) {
         DeletePIPMode();
@@ -145,9 +165,9 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
     return errCode;
 }
 
-void PictureInPictureController::SetAutoStartEnabled(bool enable)
+void PictureInPictureControllerAni::SetAutoStartEnabled(bool enable)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "enable: %{public}u, mainWindow: %{public}u", enable, mainWindowId_);
+    TLOGI(WmsLogTag::WMS_PIP, "start %{public}u, mainWindow: %{public}u", enable, mainWindowId_);
     isAutoStartEnabled_ = enable;
     if (mainWindow_ == nullptr) {
         return;
@@ -188,24 +208,26 @@ void PictureInPictureController::SetAutoStartEnabled(bool enable)
     }
 }
 
-void PictureInPictureController::IsAutoStartEnabled(bool& enable) const
+void PictureInPictureControllerAni::IsAutoStartEnabled(bool& enable) const
 {
     enable = isAutoStartEnabled_;
+    TLOGI(WmsLogTag::WMS_PIP, "IsAutoStartEnabled: %{public}u", enable);
 }
 
-void PictureInPictureController::SetUIContent() const
+void PictureInPictureControllerAni::SetUIContent() const
 {
-    napi_value storage = nullptr;
-    std::shared_ptr<NativeReference> storageRef = pipOption_->GetStorageRef();
-    if (storageRef != nullptr) {
-        storage = storageRef->GetNapiValue();
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    ani_object storage = static_cast<ani_object>(pipOption_->GetStorageRef());
+    if (storage) {
         TLOGI(WmsLogTag::WMS_PIP, "startPiP with localStorage");
     }
-    window_->SetUIContentByAbc(PIP_CONTENT_PATH, env_, storage, nullptr);
+    ani_env* env_ = GetEnv();
+    window_->AniSetUIContentByAbc(PIP_CONTENT_PATH, env_, storage, nullptr);
 }
 
-void PictureInPictureController::UpdateContentSize(int32_t width, int32_t height)
+void PictureInPictureControllerAni::UpdateContentSize(int32_t width, int32_t height)
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (width <= 0 || height <= 0) {
         TLOGE(WmsLogTag::WMS_PIP, "invalid size");
         return;
@@ -251,10 +273,10 @@ void PictureInPictureController::UpdateContentSize(int32_t width, int32_t height
     SingletonContainer::Get<PiPReporter>().ReportPiPRatio(width, height);
 }
 
-void PictureInPictureController::UpdateContentNodeRef(std::shared_ptr<NativeReference> nodeRef)
+void PictureInPictureControllerAni::UpdateContentNodeRef(ani_ref nodeRef)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "in");
-    if (pipOption_ == nullptr) {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!pipOption_) {
         TLOGE(WmsLogTag::WMS_PIP, "option is null");
         SingletonContainer::Get<PiPReporter>().ReportPiPUpdateContent(static_cast<int32_t>(IsTypeNodeEnabled()),
             0, PipConst::FAILED, "option is null");
@@ -280,34 +302,49 @@ void PictureInPictureController::UpdateContentNodeRef(std::shared_ptr<NativeRefe
     pipOption_->SetTypeNodeEnabled(true);
 }
 
-void PictureInPictureController::NotifyNodeUpdate(std::shared_ptr<NativeReference> nodeRef)
+void PictureInPictureControllerAni::NotifyNodeUpdate(ani_ref nodeRef)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "in");
-    if (nodeRef == nullptr) {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    ani_env* env_ = GetEnv();
+
+    if (!nodeRef) {
         TLOGE(WmsLogTag::WMS_PIP, "invalid nodeRef");
         SingletonContainer::Get<PiPReporter>().ReportPiPUpdateContent(static_cast<int32_t>(IsTypeNodeEnabled()),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "invalid nodeRef");
         return;
     }
     if (PictureInPictureManager::IsActiveController(weakRef_)) {
-        std::shared_ptr<NativeReference> updateNodeCallbackRef = GetPipContentCallbackRef(UPDATE_NODE);
-        if (updateNodeCallbackRef == nullptr) {
+        ani_ref updateNodeCallbackRef = GetANIPipContentCallbackRef(UPDATE_NODE);
+        if (!updateNodeCallbackRef) {
             TLOGE(WmsLogTag::WMS_PIP, "updateNodeCallbackRef is null");
             SingletonContainer::Get<PiPReporter>().ReportPiPUpdateContent(static_cast<int32_t>(IsTypeNodeEnabled()),
                 pipOption_->GetPipTemplate(), PipConst::FAILED, "updateNodeCallbackRef is null");
             return;
         }
-        napi_value typeNode = nodeRef->GetNapiValue();
-        napi_value value[] = { typeNode };
-        CallJsFunction(env_, updateNodeCallbackRef->GetNapiValue(), value, 1);
+
+        ani_status ret {};
+        ani_function fn {};
+        ani_namespace ns {};
+        if ((ret = env_->FindNamespace(ETS_NS, &ns)) != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_PIP, "Find namespace failed, ret: %{public}u", ret);
+            return;
+        }
+        if ((ret = env_->Namespace_FindFunction(ns, RUN_UPDATE_NODE_CALLBACK, nullptr, &fn)) != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_PIP, "Find function failed, ret: %{public}u", ret);
+            return;
+        }
+
+        ani_object typeNode = static_cast<ani_object>(nodeRef);
+        env_->Function_Call_Void(fn, updateNodeCallbackRef, typeNode);
         SingletonContainer::Get<PiPReporter>().ReportPiPUpdateContent(static_cast<int32_t>(IsTypeNodeEnabled()),
             pipOption_->GetPipTemplate(), PipConst::PIP_SUCCESS, "updateNode success");
     }
+    TLOGI(WmsLogTag::WMS_PIP, "finish");
 }
 
-void PictureInPictureController::PrepareSource()
+void PictureInPictureControllerAni::PrepareSource()
 {
-    TLOGI(WmsLogTag::WMS_PIP, "in");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (IsTypeNodeEnabled()) {
         TLOGI(WmsLogTag::WMS_PIP, "typeNode enabled");
         return;
@@ -328,15 +365,17 @@ void PictureInPictureController::PrepareSource()
     }
 }
 
-void PictureInPictureController::RestorePictureInPictureWindow()
+void PictureInPictureControllerAni::RestorePictureInPictureWindow()
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     StopPictureInPicture(true, StopPipType::NULL_STOP, true);
     SingletonContainer::Get<PiPReporter>().ReportPiPRestore();
     TLOGI(WmsLogTag::WMS_PIP, "restore pip main window finished");
 }
 
-void PictureInPictureController::UpdateWinRectByComponent()
+void PictureInPictureControllerAni::UpdateWinRectByComponent()
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (IsTypeNodeEnabled()) {
         uint32_t contentWidth = 0;
         uint32_t contentHeight = 0;
@@ -376,8 +415,9 @@ void PictureInPictureController::UpdateWinRectByComponent()
         windowRect_.width_, windowRect_.height_, windowRect_.posX_, windowRect_.posY_);
 }
 
-void PictureInPictureController::UpdatePiPSourceRect() const
+void PictureInPictureControllerAni::UpdatePiPSourceRect() const
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (IsTypeNodeEnabled() && window_ != nullptr) {
         Rect rect = {0, 0, 0, 0};
         TLOGI(WmsLogTag::WMS_PIP, "use typeNode, unable to locate source rect");
@@ -400,14 +440,14 @@ void PictureInPictureController::UpdatePiPSourceRect() const
     window_->UpdatePiPRect(rect, WindowSizeChangeReason::PIP_RESTORE);
 }
 
-void PictureInPictureController::ResetExtController()
+void PictureInPictureControllerAni::ResetExtController()
 {
-    TLOGI(WmsLogTag::WMS_PIP, "called");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (IsTypeNodeEnabled()) {
         TLOGI(WmsLogTag::WMS_PIP, "skip resetExtController as nodeController enabled");
         return;
     }
-    if (mainWindowXComponentController_ == nullptr || pipXComponentController_ == nullptr) {
+    if (!mainWindowXComponentController_ || !pipXComponentController_) {
         TLOGE(WmsLogTag::WMS_PIP, "error when resetExtController, one of the xComponentController is null");
         return;
     }
@@ -418,9 +458,10 @@ void PictureInPictureController::ResetExtController()
     }
 }
 
-WMError PictureInPictureController::SetXComponentController(std::shared_ptr<XComponentController> xComponentController)
+WMError PictureInPictureControllerAni::SetXComponentController(
+    std::shared_ptr<XComponentController> xComponentController)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "called");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (IsTypeNodeEnabled()) {
         TLOGI(WmsLogTag::WMS_PIP, "skip as nodeController enabled");
         return WMError::WM_OK;
@@ -444,8 +485,8 @@ WMError PictureInPictureController::SetXComponentController(std::shared_ptr<XCom
     return WMError::WM_OK;
 }
 
-WMError PictureInPictureController::RegisterPipContentListenerWithType(const std::string& type,
-    std::shared_ptr<NativeReference> callbackRef)
+WMError PictureInPictureControllerAni::RegisterPipContentListenerWithType(const std::string& type,
+    ani_ref callbackRef)
 {
     TLOGI(WmsLogTag::WMS_PIP, "Register type:%{public}s", type.c_str());
     if (pipOption_ == nullptr) {
@@ -456,7 +497,7 @@ WMError PictureInPictureController::RegisterPipContentListenerWithType(const std
     return WMError::WM_OK;
 }
 
-WMError PictureInPictureController::UnRegisterPipContentListenerWithType(const std::string& type)
+WMError PictureInPictureControllerAni::UnRegisterPipContentListenerWithType(const std::string& type)
 {
     TLOGI(WmsLogTag::WMS_PIP, "Unregister type:%{public}s", type.c_str());
     if (pipOption_ == nullptr) {
@@ -467,39 +508,51 @@ WMError PictureInPictureController::UnRegisterPipContentListenerWithType(const s
     return WMError::WM_OK;
 }
 
-std::shared_ptr<NativeReference> PictureInPictureController::GetPipContentCallbackRef(const std::string& type)
+ani_ref PictureInPictureControllerAni::GetANIPipContentCallbackRef(const std::string& type)
 {
-    return pipOption_ == nullptr ? nullptr : pipOption_->GetPipContentCallbackRef(type);
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    return pipOption_ == nullptr ? nullptr : pipOption_->GetANIPipContentCallbackRef(type);
 }
 
-void PictureInPictureController::NotifyStateChangeInner(PiPState state)
+void PictureInPictureControllerAni::NotifyStateChangeInner(PiPState state)
 {
+    ani_env* env_ = GetEnv();
     NotifyStateChangeInner(env_, state);
 }
 
-void PictureInPictureController::NotifyStateChangeInner(napi_env env, PiPState state)
+void PictureInPictureControllerAni::NotifyStateChangeInner(ani_env* env, PiPState state)
 {
-    std::shared_ptr<NativeReference> innerCallbackRef = GetPipContentCallbackRef(STATE_CHANGE);
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    ani_ref innerCallbackRef = GetANIPipContentCallbackRef(STATE_CHANGE);
     if (innerCallbackRef == nullptr) {
         return;
     }
-    napi_handle_scope scope = nullptr;
-    napi_open_handle_scope(env, &scope);
-    if (scope == nullptr) {
+
+    ani_status ret {};
+    ani_function fn {};
+    ani_namespace ns {};
+    if ((ret = env->FindNamespace(ETS_NS, &ns)) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_PIP, "Find namespace failed, ret: %{public}u", ret);
         return;
     }
-    napi_value value[] = {AbilityRuntime::CreateJsValue(env, static_cast<uint32_t>(state))};
-    CallJsFunction(env, innerCallbackRef->GetNapiValue(), value, 1);
-    napi_close_handle_scope(env, scope);
+    if ((ret = env->Namespace_FindFunction(ns, RUN_STATE_CHANGE_CALLBACK, nullptr, &fn)) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_PIP, "Find function failed, ret: %{public}u", ret);
+        return;
+    }
+    
+    env->Function_Call_Void(fn, innerCallbackRef, state);
+    TLOGI(WmsLogTag::WMS_PIP, "end");
 }
 
-bool PictureInPictureController::IsTypeNodeEnabled() const
+bool PictureInPictureControllerAni::IsTypeNodeEnabled() const
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     return pipOption_ != nullptr ? pipOption_->IsTypeNodeEnabled() : false;
 }
 
-bool PictureInPictureController::IsPullPiPAndHandleNavigation()
+bool PictureInPictureControllerAni::IsPullPiPAndHandleNavigation()
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (IsTypeNodeEnabled()) {
         TLOGI(WmsLogTag::WMS_PIP, "App use typeNode");
         return true;
@@ -508,14 +561,14 @@ bool PictureInPictureController::IsPullPiPAndHandleNavigation()
         TLOGI(WmsLogTag::WMS_PIP, "App not use navigation");
         return true;
     }
-    if (mainWindow_ == nullptr) {
+    if (!mainWindow_) {
         TLOGE(WmsLogTag::WMS_PIP, "Main window init error");
         return false;
     }
     std::string navId = pipOption_->GetNavigationId();
     int32_t pipOptionHandleId = pipOption_->GetHandleId();
     auto navController = GetNavigationController(navId);
-    if (navController == nullptr) {
+    if (!navController) {
         TLOGE(WmsLogTag::WMS_PIP, "Get navController error");
         return false;
     }
@@ -551,28 +604,33 @@ bool PictureInPictureController::IsPullPiPAndHandleNavigation()
     return true;
 }
 
-std::string PictureInPictureController::GetPiPNavigationId() const
+std::string PictureInPictureControllerAni::GetPiPNavigationId() const
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     return (pipOption_ != nullptr && !IsTypeNodeEnabled()) ? pipOption_->GetNavigationId() : "";
 }
 
-std::shared_ptr<NativeReference> PictureInPictureController::GetCustomNodeController()
+ani_ref PictureInPictureControllerAni::GetANICustomNodeController()
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     return pipOption_ == nullptr ? nullptr : pipOption_->GetNodeControllerRef();
 }
 
-std::shared_ptr<NativeReference> PictureInPictureController::GetTypeNode() const
+ani_ref PictureInPictureControllerAni::GetANITypeNode() const
 {
+    TLOGI(WmsLogTag::WMS_PIP, "GetTypeNode start");
     return pipOption_ == nullptr ? nullptr : pipOption_->GetTypeNodeRef();
 }
 
-NavigationController* PictureInPictureController::GetNavigationController(const std::string& navId)
+NavigationController* PictureInPictureControllerAni::GetNavigationController(const std::string& navId)
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     return NavigationController::GetNavigationController(mainWindow_->GetUIContent(), navId);
 }
 
-void PictureInPictureController::DeletePIPMode()
+void PictureInPictureControllerAni::DeletePIPMode()
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Main window is null");
         return;
@@ -586,6 +644,5 @@ void PictureInPictureController::DeletePIPMode()
         }
     }
 }
-
 } // namespace Rosen
 } // namespace OHOS

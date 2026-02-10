@@ -29,6 +29,7 @@ class PipOption : virtual public RefBase {
 public:
     explicit PipOption();
     virtual ~PipOption() = default;
+
     void SetContext(void* contextPtr);
     void SetNavigationId(const std::string& navigationId);
     void SetPipTemplate(uint32_t templateType);
@@ -65,7 +66,7 @@ public:
     void SetHandleId(const int32_t handleId);
     int32_t GetHandleId() const;
 
-private:
+protected:
     void* contextPtr_ = nullptr;
     uint32_t templateType_  = 0;
     std::string navigationId_ = "";
@@ -76,14 +77,16 @@ private:
     std::vector<PiPControlEnableInfo> pipControlEnableInfoList_;
     std::vector<std::uint32_t> controlGroup_;
     std::shared_ptr<XComponentController> xComponentController_ = nullptr;
+    bool useTypeNode_ = false;
+    int32_t handleId_ = -1;
+    bool cornerAdsorptionEnabled_ = true;
+
+private:
     std::map<std::string, std::shared_ptr<NativeReference>> pipContentlistenerMap_;
     std::shared_ptr<NativeReference> customNodeController_ = nullptr;
     std::shared_ptr<NativeReference> typeNode_ = nullptr;
-    bool useTypeNode_ = false;
-    bool cornerAdsorptionEnabled_ = true;
     std::shared_ptr<NativeReference> storage_ = nullptr;
-    int32_t handleId_ = -1;
 };
 }
 }
-#endif //OHOS_PIP_OPTION_H
+#endif // OHOS_PIP_OPTION_H
