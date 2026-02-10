@@ -1873,6 +1873,7 @@ static napi_value CreateAbilityItemInfo(napi_env env, const AppExecFwk::AbilityI
         WLOGFE("CreateObject failed");
         return NapiGetUndefined(env);
     }
+    auto abilityInfo = scbAbilityInfo.abilityInfo_;
     napi_set_named_property(env, objValue, "appIconId", CreateJsValue(env, abilityInfo.iconId));
     napi_set_named_property(env, objValue, "appLabelId", CreateJsValue(env, abilityInfo.labelId));
     napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, abilityInfo.bundleName));
@@ -1891,8 +1892,12 @@ static napi_value CreateAbilityItemInfo(napi_env env, const AppExecFwk::AbilityI
         CreateJsValue(env, abilityInfo.removeMissionAfterTerminate));
     napi_set_named_property(env, objValue, "preferMultiWindowOrientation",
         CreateJsValue(env, abilityInfo.preferMultiWindowOrientation));
-    napi_set_named_property(env, objValue, "isForceRotate",
-        CreateJsValue(env, abilityInfo.applicationInfo.isForceRotate));
+
+    // supplement of AbilityItemInfo which is not in abilityInfo
+    napi_set_named_property(env, objValue, "supportWindowModesInFreeMultiWindow",
+        CreateWindowModes(env, scbAbilityInfo.supportedWindowModesInFreeMultiWindowMode));
+    // forceRotate for anco
+    napi_set_named_property(env, objValue, "isForceRotate", CreateJsValue(env, scbAbilityInfo.isForceRotate));
     napi_set_named_property(env, objValue, "applicationInfo", CreateApplicationInfo(env, abilityInfo));
     return objValue;
 }
