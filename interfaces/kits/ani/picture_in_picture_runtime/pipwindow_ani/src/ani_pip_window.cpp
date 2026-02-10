@@ -138,7 +138,7 @@ ani_status AniPiPWindow::DelAniPiPControllerObj(AniPipController* aniPipControll
 
 void AniPiPWindow::Finalizer(ani_env* env, ani_long nativeObj)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "Finalizer start");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController) {
         AniThrowError(env, WMError::WM_ERROR_NULLPTR, "aniPipController is nullptr, skip");
@@ -147,13 +147,13 @@ void AniPiPWindow::Finalizer(ani_env* env, ani_long nativeObj)
     AniPipController::DelListener(env);
     ani_status ret = DelAniPiPControllerObj(aniPipController);
     if (ret == ANI_OK) {
-        TLOGI(WmsLogTag::WMS_SYSTEM, "Finalizer finish");
+        TLOGI(WmsLogTag::WMS_SYSTEM, "finish");
     }
 }
 
 static bool checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32_t> controlGroups)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "checkControlsRules");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     auto iter = TEMPLATE_CONTROL_MAP.find(static_cast<PiPTemplateType>(pipTemplateType));
     auto controls = iter->second;
     if (controlGroups.size() > MAX_CONTROL_GROUP_NUM) {
@@ -184,7 +184,7 @@ static bool checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32
 
 static bool checkOptionParams(PipOptionAni& option)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "checkOptionParams");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (option.GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "PipOptionAni param error, context is nullptr.");
         return false;
@@ -439,7 +439,7 @@ bool GetPiPOption(ani_env* env, ani_object optionObject, PipOptionAni& option)
 
 ani_ref AniPiPWindow::CreatePiPController(ani_env* env, PipOptionAni pipOption)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "CreatePiPController");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (!PictureInPictureManager::IsSupportPiP()) {
         return AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT, "device not support pip");
     }

@@ -67,13 +67,13 @@ void AniPipController::StartPiPAni(ani_env* env, ani_object obj, ani_long native
 
 void AniPipController::OnstartPiPAni(ani_env* env)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "OnstartPiPAni start");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipController is nullptr");
         AniThrowError(env, WMError::WM_ERROR_NULLPTR, "start PiP failed, A null pointer occurs");
         return;
     }
-    TLOGI(WmsLogTag::WMS_PIP, "startPiPAni next");
+    TLOGI(WmsLogTag::WMS_PIP, "next");
     pipController_->SetStateChangeReason(PiPStateChangeReason::REQUEST_START);
     WMError error = pipController_->StartPictureInPicture(StartPipType::USER_START);
     if (error != WMError::WM_OK) {
@@ -87,7 +87,7 @@ void AniPipController::OnstartPiPAni(ani_env* env)
 
 void AniPipController::StopPiPAni(ani_env* env, ani_object obj, ani_long nativeObj)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "stopPiPAni start");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (aniPipController != nullptr) {
         aniPipController->OnstopPiPAni(env);
@@ -300,7 +300,7 @@ bool AniPipController::GetPiPSettingSwitchAni(ani_env* env, ani_object obj, ani_
         return false;
     }
     bool status = aniPipController->pipController_->GetPiPSettingSwitchStatus();
-    TLOGI(WmsLogTag::WMS_PIP, "GetPiPSettingSwitchAni: %{public}d", status);
+    TLOGI(WmsLogTag::WMS_PIP, "PiPSettingSwitch: %{public}d", status);
     return status;
 }
 

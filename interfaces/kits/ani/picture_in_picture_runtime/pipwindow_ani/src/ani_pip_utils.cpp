@@ -132,7 +132,7 @@ std::string GetErrorMsg(WmErrorCode errorCode)
 
 ani_status GetStdString(ani_env *env, ani_string ani_str, std::string &result)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "GetStdString");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     ani_size strSize;
     ani_status ret = env->String_GetUTF8Size(ani_str, &strSize);
     if (ret != ANI_OK) {

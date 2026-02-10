@@ -2234,7 +2234,7 @@ void WindowSessionImpl::ReleaseUIContent()
 
 void WindowSessionImpl::DestroyExistUIContent()
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "DestroyExistUIContent start");
+    TLOGNI(WmsLogTag::WMS_LIFE, "start");
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
     if (uiContent) {
         uiContent->Destroy();
@@ -2244,7 +2244,7 @@ void WindowSessionImpl::DestroyExistUIContent()
 std::unique_ptr<Ace::UIContent> WindowSessionImpl::UIContentCreate(AppExecFwk::Ability* ability, void* env, int isAni)
 {
     if (isAni) {
-        TLOGNI(WmsLogTag::WMS_LIFE, "UIContentCreate start");
+        TLOGNI(WmsLogTag::WMS_LIFE, "start");
         return  ability != nullptr ? Ace::UIContent::Create(ability) :
             Ace::UIContent::CreateWithAniEnv(GetContext().get(), reinterpret_cast<ani_env*>(env));
     } else {
@@ -2288,7 +2288,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
     WindowSetUIContentType setUIContentType, BackupAndRestoreType restoreType, AppExecFwk::Ability* ability,
     OHOS::Ace::UIContentErrorCode& aceRet, int isAni)
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "InitUIContent start");
+    TLOGNI(WmsLogTag::WMS_LIFE, "start");
     DestroyExistUIContent();
     std::unique_ptr<Ace::UIContent> uiContent = UIContentCreate(ability, (void*)env, isAni);
     if (uiContent == nullptr) {
@@ -2367,7 +2367,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
 
 void WindowSessionImpl::RegisterUIContenCallback()
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "RegisterUIContenCallback start");
+    TLOGNI(WmsLogTag::WMS_LIFE, "start");
     RegisterWatchFocusActiveChangeCallback();
     RegisterKeyFrameCallback();
 }
@@ -2638,7 +2638,7 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
 
 std::shared_ptr<std::vector<uint8_t>> WindowSessionImpl::GetAbcContent(const std::string& abcPath)
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "GetAbcContent start");
+    TLOGNI(WmsLogTag::WMS_LIFE, "start");
     std::filesystem::path abcFile { abcPath };
     if (abcFile.empty() || !abcFile.is_absolute() || !std::filesystem::exists(abcFile)) {
         WLOGFE("abc file path is not valid");

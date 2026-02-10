@@ -29,7 +29,7 @@ PipOptionAni::PipOptionAni()
 
 void PipOptionAni::ClearAniRefs(ani_env* env)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "ClearAniRefs start");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (customNodeController_) {
         env->GlobalReference_Delete(customNodeController_);
         customNodeController_ = nullptr;
