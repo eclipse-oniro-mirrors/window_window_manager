@@ -94,17 +94,17 @@ const std::string TITLE_DOCK_HOVER_SHOW_CB = "titleAndDockHoverShowChange";
 const std::string RESTORE_MAIN_WINDOW_CB = "restoreMainWindow";
 const std::string RESTORE_FLOAT_MAIN_WINDOW_CB = "restoreFloatMainWindow";
 const std::string NEXT_FRAME_LAYOUT_FINISH_CB = "nextFrameLayoutFinish";
+const std::string PRIVACY_MODE_CHANGE_CB = "privacyModeChange";
 const std::string MAIN_WINDOW_TOP_MOST_CHANGE_CB = "mainWindowTopmostChange";
 const std::string SET_WINDOW_RECT_AUTO_SAVE_CB = "setWindowRectAutoSave";
 const std::string UPDATE_APP_USE_CONTROL_CB = "updateAppUseControl";
-const std::string PRIVACY_MODE_CHANGE_CB = "privacyModeChange";
 const std::string SESSION_DISPLAY_ID_CHANGE_CB = "sessionDisplayIdChange";
 const std::string SET_SUPPORT_WINDOW_MODES_CB = "setSupportWindowModes";
-const std::string SESSION_LOCK_STATE_CHANGE_CB = "sessionLockStateChange";
 const std::string UPDATE_SESSION_LABEL_AND_ICON_CB = "updateSessionLabelAndIcon";
 const std::string SESSION_GET_TARGET_ORIENTATION_CONFIG_INFO_CB = "sessionGetTargetOrientationConfigInfo";
 const std::string KEYBOARD_STATE_CHANGE_CB = "keyboardStateChange";
 const std::string KEYBOARD_EFFECT_OPTION_CHANGE_CB = "keyboardEffectOptionChange";
+const std::string SESSION_LOCK_STATE_CHANGE_CB = "sessionLockStateChange";
 const std::string SET_WINDOW_CORNER_RADIUS_CB = "setWindowCornerRadius";
 const std::string HIGHLIGHT_CHANGE_CB = "highlightChange";
 const std::string SET_PARENT_SESSION_CB = "setParentSession";
@@ -118,8 +118,8 @@ const std::string ANIMATE_TO_CB = "animateToTargetProperty";
 const std::string BATCH_PENDING_SCENE_ACTIVE_CB = "batchPendingSceneSessionsActivation";
 const std::string SCENE_OUTLINE_PARAMS_CHANGE_CB = "sceneOutlineParamsChange";
 const std::string RESTART_APP_CB = "restartApp";
-const std::string CALLING_SESSION_ID_CHANGE_CB = "callingWindowIdChange";
 const std::string ROTATION_LOCK_CHANGE_CB = "rotationLockChange";
+const std::string CALLING_SESSION_ID_CHANGE_CB = "callingWindowIdChange";
 const std::string SNAPSHOT_SKIP_CHANGE_CB = "snapshotSkipChange";
 const std::string COMPATIBLE_MODE_CHANGE_CB = "compatibleModeChange";
 const std::string RECOVER_WINDOW_EFFECT_CB = "recoverWindowEffect";
@@ -197,8 +197,8 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {WINDOW_SHADOW_ENABLE_CHANGE_CB,        ListenerFuncType::WINDOW_SHADOW_ENABLE_CHANGE_CB},
     {TITLE_DOCK_HOVER_SHOW_CB,              ListenerFuncType::TITLE_DOCK_HOVER_SHOW_CB},
     {NEXT_FRAME_LAYOUT_FINISH_CB,           ListenerFuncType::NEXT_FRAME_LAYOUT_FINISH_CB},
-    {PRIVACY_MODE_CHANGE_CB,                ListenerFuncType::PRIVACY_MODE_CHANGE_CB},
     {RESTORE_MAIN_WINDOW_CB,                ListenerFuncType::RESTORE_MAIN_WINDOW_CB},
+    {PRIVACY_MODE_CHANGE_CB,           ListenerFuncType::PRIVACY_MODE_CHANGE_CB},
     {RESTORE_FLOAT_MAIN_WINDOW_CB,          ListenerFuncType::RESTORE_FLOAT_MAIN_WINDOW_CB},
     {MAIN_WINDOW_TOP_MOST_CHANGE_CB,        ListenerFuncType::MAIN_WINDOW_TOP_MOST_CHANGE_CB},
     {SET_WINDOW_RECT_AUTO_SAVE_CB,          ListenerFuncType::SET_WINDOW_RECT_AUTO_SAVE_CB},
@@ -209,10 +209,10 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {SESSION_GET_TARGET_ORIENTATION_CONFIG_INFO_CB,
         ListenerFuncType::SESSION_GET_TARGET_ORIENTATION_CONFIG_INFO_CB},
     {WINDOW_MOVING_CB,                      ListenerFuncType::WINDOW_MOVING_CB},
-    {SESSION_LOCK_STATE_CHANGE_CB,          ListenerFuncType::SESSION_LOCK_STATE_CHANGE_CB},
     {UPDATE_SESSION_LABEL_AND_ICON_CB,      ListenerFuncType::UPDATE_SESSION_LABEL_AND_ICON_CB},
     {KEYBOARD_STATE_CHANGE_CB,              ListenerFuncType::KEYBOARD_STATE_CHANGE_CB},
     {KEYBOARD_EFFECT_OPTION_CHANGE_CB,          ListenerFuncType::KEYBOARD_EFFECT_OPTION_CHANGE_CB},
+    {SESSION_LOCK_STATE_CHANGE_CB,          ListenerFuncType::SESSION_LOCK_STATE_CHANGE_CB},
     {SET_WINDOW_CORNER_RADIUS_CB,           ListenerFuncType::SET_WINDOW_CORNER_RADIUS_CB},
     {HIGHLIGHT_CHANGE_CB,                   ListenerFuncType::HIGHLIGHT_CHANGE_CB},
     {FOLLOW_PARENT_RECT_CB,                 ListenerFuncType::FOLLOW_PARENT_RECT_CB},
@@ -233,8 +233,8 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {FLOATING_BALL_RESTORE_MAIN_WINDOW_CB,      ListenerFuncType::FLOATING_BALL_RESTORE_MAIN_WINDOW_CB},
     {SCENE_OUTLINE_PARAMS_CHANGE_CB,        ListenerFuncType::SCENE_OUTLINE_PARAMS_CHANGE_CB},
     {RESTART_APP_CB,                        ListenerFuncType::RESTART_APP_CB},
-    {CALLING_SESSION_ID_CHANGE_CB,          ListenerFuncType::CALLING_SESSION_ID_CHANGE_CB},
     {ROTATION_LOCK_CHANGE_CB,               ListenerFuncType::ROTATION_LOCK_CHANGE_CB},
+    {CALLING_SESSION_ID_CHANGE_CB,          ListenerFuncType::CALLING_SESSION_ID_CHANGE_CB},
     {SNAPSHOT_SKIP_CHANGE_CB,               ListenerFuncType::SNAPSHOT_SKIP_CHANGE_CB},
     {COMPATIBLE_MODE_CHANGE_CB,             ListenerFuncType::COMPATIBLE_MODE_CHANGE_CB},
     {RECOVER_WINDOW_EFFECT_CB,              ListenerFuncType::RECOVER_WINDOW_EFFECT_CB},
@@ -560,10 +560,10 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::SetWindowEnableDragBySystem);
     BindNativeFunction(env, objValue, "setNeedSyncSessionRect", moduleName,
         JsSceneSession::SetNeedSyncSessionRect);
-    BindNativeFunction(env, objValue, "setIsPendingToBackgroundState", moduleName,
-        JsSceneSession::SetIsPendingToBackgroundState);
     BindNativeFunction(env, objValue, "setIsActivatedAfterScreenLocked", moduleName,
         JsSceneSession::SetIsActivatedAfterScreenLocked);
+    BindNativeFunction(env, objValue, "setIsPendingToBackgroundState", moduleName,
+        JsSceneSession::SetIsPendingToBackgroundState);
     BindNativeFunction(env, objValue, "setLabel", moduleName, JsSceneSession::SetLabel);
     BindNativeFunction(env, objValue, "setFrameGravity", moduleName,
         JsSceneSession::SetFrameGravity);
@@ -584,12 +584,11 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
     BindNativeFunction(env, objValue, "setSnapshotSkip", moduleName, JsSceneSession::SetSnapshotSkip);
     BindNativeFunction(env, objValue, "addSidebarBlur", moduleName, JsSceneSession::AddSidebarBlur);
     BindNativeFunction(env, objValue, "setSidebarBlur", moduleName, JsSceneSession::SetSidebarBlur);
+    BindNativeFunction(env, objValue, "setCurrentRotation", moduleName, JsSceneSession::SetCurrentRotation);
     BindNativeFunction(env, objValue, "notifyRotationProperty", moduleName, JsSceneSession::NotifyRotationProperty);
     BindNativeFunction(env, objValue, "notifyPageRotationIsIgnored", moduleName,
         JsSceneSession::NotifyPageRotationIsIgnored);
-    BindNativeFunction(env, objValue, "setCurrentRotation", moduleName, JsSceneSession::SetCurrentRotation);
     BindNativeFunction(env, objValue, "setSidebarBlurMaximize", moduleName, JsSceneSession::SetSidebarBlurMaximize);
-    BindNativeFunction(env, objValue, "toggleCompatibleMode", moduleName, JsSceneSession::ToggleCompatibleMode);
     BindNativeFunction(env, objValue, "requestSpecificSessionClose", moduleName,
         JsSceneSession::RequestSpecificSessionClose);
     BindNativeFunction(env, objValue, "sendFbActionEvent", moduleName, JsSceneSession::SendFbActionEvent);
@@ -623,8 +622,8 @@ void JsSceneSession::BindNativeMethodForKeyboard(napi_env env, napi_value objVal
 
 void JsSceneSession::BindNativeMethodForCompatiblePcMode(napi_env env, napi_value objValue, const char* moduleName)
 {
-    BindNativeFunction(env, objValue, "setAppSupportPhoneInPc", moduleName,
-        JsSceneSession::SetAppSupportPhoneInPc);
+    BindNativeFunction(env, objValue, "setAppSupportPhoneInPc", moduleName, JsSceneSession::SetAppSupportPhoneInPc);
+    BindNativeFunction(env, objValue, "toggleCompatibleMode", moduleName, JsSceneSession::ToggleCompatibleMode);
 }
 
 void JsSceneSession::BindNativeMethodForPcAppInPadNormal(napi_env env, napi_value objValue, const char* moduleName)
@@ -3317,9 +3316,6 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
         case static_cast<uint32_t>(ListenerFuncType::SET_SUPPORT_WINDOW_MODES_CB):
             ProcessSetSupportedWindowModesRegister();
             break;
-        case static_cast<uint32_t>(ListenerFuncType::SESSION_LOCK_STATE_CHANGE_CB):
-            ProcessSessionLockStateChangeRegister();
-            break;
         case static_cast<uint32_t>(ListenerFuncType::UPDATE_SESSION_LABEL_AND_ICON_CB):
             ProcessUpdateSessionLabelAndIconRegister();
             break;
@@ -3332,14 +3328,14 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
         case static_cast<uint32_t>(ListenerFuncType::KEYBOARD_EFFECT_OPTION_CHANGE_CB):
             ProcessKeyboardEffectOptionChangeRegister();
             break;
-        case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
-            ProcessSetHighlightChangeRegister();
-            break;
         case static_cast<uint32_t>(ListenerFuncType::WINDOW_ANCHOR_INFO_CHANGE_CB):
             ProcessWindowAnchorInfoChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::SET_WINDOW_CORNER_RADIUS_CB):
             ProcessSetWindowCornerRadiusRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
+            ProcessSetHighlightChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::FOLLOW_PARENT_RECT_CB):
             ProcessFollowParentRectRegister();
@@ -3383,11 +3379,11 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
         case static_cast<uint32_t>(ListenerFuncType::RESTART_APP_CB):
             ProcessRestartAppRegister();
             break;
-        case static_cast<uint32_t>(ListenerFuncType::CALLING_SESSION_ID_CHANGE_CB):
-            ProcessCallingSessionIdChangeRegister();
-            break;
         case static_cast<uint32_t>(ListenerFuncType::ROTATION_LOCK_CHANGE_CB):
             ProcessRotationLockChangeRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::CALLING_SESSION_ID_CHANGE_CB):
+            ProcessCallingSessionIdChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::SNAPSHOT_SKIP_CHANGE_CB):
             ProcessSnapshotSkipChangeRegister();
@@ -4474,8 +4470,8 @@ void JsSceneSession::OnUpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
 {
     TLOGI(WmsLogTag::WMS_PIP, "pipTemplateType: %{public}u, priority: %{public}d, "
         "defaultWindowSizeType: %{public}d, cornerAdsorptionEnabled: %{public}d",
-        pipTemplateInfo.pipTemplateType, pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,
-        pipTemplateInfo.cornerAdsorptionEnabled);
+          pipTemplateInfo.pipTemplateType, pipTemplateInfo.priority, pipTemplateInfo.defaultWindowSizeType,
+          pipTemplateInfo.cornerAdsorptionEnabled);
     auto task = [weakThis = wptr(this), persistentId = persistentId_,
         pipTemplateInfo = std::move(pipTemplateInfo), env = env_] {
         auto jsSceneSession = weakThis.promote();
@@ -4999,6 +4995,10 @@ void JsSceneSession::PendingSessionActivation(SessionInfo& info)
         return;
     }
 
+    if (info.startWindowType_ == StartWindowType::RETAIN_AND_INVISIBLE) {
+        sceneSession->SetHidingStartingWindow(true);
+    }
+
     if (info.want != nullptr) {
         auto focusedOnShow = info.want->GetBoolParam(AAFwk::Want::PARAM_RESV_WINDOW_FOCUSED, true);
         sceneSession->SetFocusedOnShow(focusedOnShow);
@@ -5158,6 +5158,17 @@ void JsSceneSession::BatchPendingSessionsActivation(const std::vector<std::share
             "appIndex %{public}d, reuse %{public}d, requestId %{public}d, specifiedFlag %{public}s",
             info->bundleName_.c_str(), info->moduleName_.c_str(),
             info->abilityName_.c_str(), info->appIndex_, info->reuse, info->requestId, info->specifiedFlag_.c_str());
+        auto sceneSession = GenSceneSession(*info);
+        if (sceneSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "GenSceneSession failed");
+            return;
+        }
+        if (info->want != nullptr) {
+            auto focusedOnShow = info->want->GetBoolParam(AAFwk::Want::PARAM_RESV_WINDOW_FOCUSED, true);
+            sceneSession->SetFocusedOnShow(focusedOnShow);
+        } else {
+            sceneSession->SetFocusedOnShow(true);
+        }
         auto callerSession = SceneSessionManager::GetInstance().GetSceneSession(info->callerPersistentId_);
         if (callerSession != nullptr) {
             info->isCalledRightlyByCallerId_ = (info->callerToken_ == callerSession->GetAbilityToken()) &&
@@ -5167,6 +5178,10 @@ void JsSceneSession::BatchPendingSessionsActivation(const std::vector<std::share
             TLOGI(WmsLogTag::WMS_SCB,
                 "isCalledRightlyByCallerId result is: %{public}d", info->isCalledRightlyByCallerId_);
         }
+        if (info->fullScreenStart_) {
+            sceneSession->NotifySessionFullScreen(true);
+        }
+        sceneSessions.emplace_back(sceneSession);
     }
     BatchPendingSessionsActivationInner(sessionInfos, configs);
 }
@@ -5662,6 +5677,7 @@ void JsSceneSession::OnShowWhenLocked(bool showWhenLocked)
 
 void JsSceneSession::OnReuqestedOrientationChange(uint32_t orientation, bool needAnimation)
 {
+    TLOGNI(WmsLogTag::WMS_ROTATION, "orientaion=%{public}u, needAnimation=%{public}d", orientation, needAnimation);
     auto task =
     [weakThis = wptr(this), persistentId = persistentId_, rotation = orientation, needAnimation, env = env_] {
         auto jsSceneSession = weakThis.promote();
@@ -7307,6 +7323,33 @@ napi_value JsSceneSession::OnUnSyncScenePanelGlobalPosition(napi_env env, napi_c
     return NapiGetUndefined(env);
 }
 
+napi_value JsSceneSession::OnSetIsActivatedAfterScreenLocked(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_FOUR;
+    napi_value argv[ARGC_FOUR] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM), "InputInvalid"));
+        return NapiGetUndefined(env);
+    }
+    bool isActivatedAfterScreenLocked = false;
+    if (!ConvertFromJsValue(env, argv[0], isActivatedAfterScreenLocked)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to isActivatedAfterScreenLocked");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    TLOGD(WmsLogTag::WMS_LIFE, "isActivatedAfterScreenLocked: %{public}u", isActivatedAfterScreenLocked);
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is null, id: %{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->SetIsActivatedAfterScreenLocked(isActivatedAfterScreenLocked);
+    return NapiGetUndefined(env);
+}
+
 napi_value JsSceneSession::OnSetIsPendingToBackgroundState(napi_env env, napi_callback_info info)
 {
     auto session = weakSession_.promote();
@@ -7319,7 +7362,7 @@ napi_value JsSceneSession::OnSetIsPendingToBackgroundState(napi_env env, napi_ca
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM), "InputInvalid"));
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM), "Input Invalid"));
         return NapiGetUndefined(env);
     }
     bool isPendingToBackgroundState = false;
@@ -7360,33 +7403,6 @@ napi_value JsSceneSession::OnSetLabel(napi_env env, napi_callback_info info)
     }
     TLOGI(WmsLogTag::WMS_LIFE, "label:%{public}s, id:%{public}d", label.c_str(), persistentId_);
     session->UpdateSessionLabel(label);
-    return NapiGetUndefined(env);
-}
-
-napi_value JsSceneSession::OnSetIsActivatedAfterScreenLocked(napi_env env, napi_callback_info info)
-{
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = {nullptr};
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != ARGC_ONE) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM), "InputInvalid"));
-        return NapiGetUndefined(env);
-    }
-    bool isActivatedAfterScreenLocked = false;
-    if (!ConvertFromJsValue(env, argv[0], isActivatedAfterScreenLocked)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to isActivatedAfterScreenLocked");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    TLOGD(WmsLogTag::WMS_LIFE, "isActivatedAfterScreenLocked: %{public}u", isActivatedAfterScreenLocked);
-    auto session = weakSession_.promote();
-    if (session == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "session is null, id: %{public}d", persistentId_);
-        return NapiGetUndefined(env);
-    }
-    session->SetIsActivatedAfterScreenLocked(isActivatedAfterScreenLocked);
     return NapiGetUndefined(env);
 }
 
@@ -7864,10 +7880,10 @@ napi_value JsSceneSession::OnNotifyRotationProperty(napi_env env, napi_callback_
         return NapiGetUndefined(env);
     }
     TLOGNI(WmsLogTag::WMS_ROTATION,
-        "call NotifyRotationProperty rotation:%{public}d, width=%{public}d, height=%{pubilc}d",
+        "call NotifyRotationProperty rotation:%{public}d, width=%{public}d, height=%{public}d",
         rotation, width, height);
-    WMError ret = SceneSessionManager::GetInstance().NotifyRotationProperty(persistentId_,
-        rotation, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    WMError ret = SceneSessionManager::GetInstance().NotifyRotationProperty(
+        persistentId_, rotation, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ROTATION, "notify failed");
     }
@@ -8481,7 +8497,7 @@ napi_value JsSceneSession::OnSetSidebarBlur(napi_env env, napi_callback_info inf
     size_t argc = ARGC_FOUR;
     napi_value argv[ARGC_FOUR] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARGC_ONE) {
+    if (argc < ARGC_TWO) {
         TLOGE(WmsLogTag::WMS_PC, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));

@@ -61,6 +61,19 @@ HWTEST_F(SessionStageProxyRotationTest, SetCurrentRotation, TestSize.Level1)
     WSError res = sessionStage_->SetCurrentRotation(currentRotation);
     ASSERT_EQ(WSError::WS_OK, res);
 }
+
+/**
+ * @tc.name: NotifyRotationChange
+ * @tc.desc: test function : NotifyRotationChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyRotationTest, NotifyRotationChange, Function | SmallTest | Level1)
+{
+    ASSERT_TRUE(sessionStage_ != nullptr);
+    RotationChangeInfo info = { RotationChangeType::WINDOW_WILL_ROTATE, 0, 0, { 0, 0, 2720, 1270 } };
+    RotationChangeResult res = sessionStage_->NotifyRotationChange(info);
+    ASSERT_EQ(0, res.windowRect_.width_);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

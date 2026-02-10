@@ -1790,6 +1790,8 @@ napi_value WindowTransitionTypeInit(napi_env env)
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
     napi_set_named_property(env, objValue, "DESTROY",
         CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::DESTROY)));
+    napi_set_named_property(env, objValue, "START",
+        CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::START)));
     return objValue;
 }
 

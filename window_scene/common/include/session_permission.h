@@ -51,10 +51,10 @@ public:
     static bool IsStartedByUIExtension();
     static bool CheckCallingIsUserTestMode(pid_t pid);
     static bool IsBetaVersion();
-    static bool IsSystemAppCall();
     static bool IsSystemAppCallByCallingTokenID(uint32_t callingTokenId);
     static bool IsFoundationCall();
     static std::string GetCallingBundleName();
+    static bool IsSystemAppCall();
     static bool IsTokenNativeOrShellType(uint32_t tokenId);
 };
 } // Rosen

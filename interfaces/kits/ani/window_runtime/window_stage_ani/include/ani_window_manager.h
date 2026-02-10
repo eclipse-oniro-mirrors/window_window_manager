@@ -86,6 +86,7 @@ private:
     void OnNotifyScreenshotEvent(ani_env* env, ani_enum_item eventType);
     void OnRegisterWindowManagerCallback(ani_env* env, ani_string type, ani_ref callback);
     void OnUnregisterWindowManagerCallback(ani_env* env, ani_string type, ani_ref callback);
+    void OnSetSpecificSystemWindowZIndex(ani_env* env, ani_enum_item windowType, ani_int zIndex);
     void OnSetWindowLayoutMode(ani_env* env, ani_enum_item mode);
     void OnToggleShownStateForAllAppWindows(ani_env* env);
     ani_object OnGetAllWindowLayoutInfo(ani_env* env, ani_long displayId);
@@ -94,7 +95,6 @@ private:
     void OnSetGestureNavigationEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWaterMarkImage(ani_env* env, ani_object nativePixelMap, ani_boolean enabled);
     ani_object OnGetWindowsByCoordinate(ani_env* env, ani_object getWindowsParam);
-    void OnSetSpecificSystemWindowZIndex(ani_env* env, ani_enum_item windowType, ani_int zIndex);
 
     std::unique_ptr<AniWindowRegisterManager> registerManager_ = nullptr;
 };

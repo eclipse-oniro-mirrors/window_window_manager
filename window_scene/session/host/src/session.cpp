@@ -3184,6 +3184,44 @@ bool Session::GetPreloadingStartingWindow() const
     return preloadingStartingWindow_.load();
 }
 
+void Session::PreloadSnapshot()
+{
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "PreloadSnapshot[%d]", persistentId_);
+    if (snapshot_ != nullptr) {
+        std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
+        preloadSnapshot_ = snapshot_;
+        return;
+    }
+    if (scenePersistence_ == nullptr) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "scene persistence is null: %{public}d", GetPersistentId());
+        return;
+    }
+    auto key = GetScreenSnapshotStatus();
+    auto freeMultiWindow = freeMultiWindow_.load();
+    auto hasSnapshot = scenePersistence_->HasSnapshot(key, freeMultiWindow);
+    auto isSavingSnapshot = scenePersistence_->IsSavingSnapshot();
+    const bool matchSnapshot = isSavingSnapshot || hasSnapshot;
+    auto filePath = scenePersistence_->GetSnapshotFilePath(key, matchSnapshot, freeMultiWindow);
+    Media::SourceOptions opts;
+    uint32_t errorCode = 0;
+    auto imageSource = Media::ImageSource::CreateImageSource(filePath, opts, errorCode);
+    if (errorCode != 0 || imageSource == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "image source failed err %{public}d", errorCode);
+        return;
+    }
+    Media::ImageInfo imageInfo;
+    imageSource->GetImageInfo(imageInfo);
+    TLOGI(WmsLogTag::WMS_PATTERN, "image size: %{public}d, %{public}d", imageInfo.size.width, imageInfo.size.height);
+    Media::DecodeOptions decodeOpts;
+    auto uniquePixelMap = imageSource->CreatePixelMap(decodeOpts, errorCode);
+    if (errorCode != 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "pixelMap failed err %{public}d", errorCode);
+        return;
+    }
+    std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
+    preloadSnapshot_ = std::move(uniquePixelMap);
+}
+
 void Session::SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap)
 {
     std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
@@ -3233,44 +3271,6 @@ void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMa
         return;
     }
     return;
-}
-
-void Session::PreloadSnapshot()
-{
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "PreloadSnapshot[%d]", persistentId_);
-    if (snapshot_ != nullptr) {
-        std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
-        preloadSnapshot_ = snapshot_;
-        return;
-    }
-    if (scenePersistence_ == nullptr) {
-        TLOGW(WmsLogTag::WMS_PATTERN, "scene persistence is null: %{public}d", GetPersistentId());
-        return;
-    }
-    auto key = GetScreenSnapshotStatus();
-    auto freeMultiWindow = freeMultiWindow_.load();
-    auto hasSnapshot = scenePersistence_->HasSnapshot(key, freeMultiWindow);
-    auto isSavingSnapshot = scenePersistence_->IsSavingSnapshot();
-    const bool matchSnapshot = isSavingSnapshot || hasSnapshot;
-    auto filePath = scenePersistence_->GetSnapshotFilePath(key, matchSnapshot, freeMultiWindow);
-    Media::SourceOptions opts;
-    uint32_t errorCode = 0;
-    auto imageSource = Media::ImageSource::CreateImageSource(filePath, opts, errorCode);
-    if (errorCode != 0 || imageSource == nullptr) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "image source failed err %{public}d", errorCode);
-        return;
-    }
-    Media::ImageInfo imageInfo;
-    imageSource->GetImageInfo(imageInfo);
-    TLOGI(WmsLogTag::WMS_PATTERN, "image size: %{public}d, %{public}d", imageInfo.size.width, imageInfo.size.height);
-    Media::DecodeOptions decodeOpts;
-    auto uniquePixelMap = imageSource->CreatePixelMap(decodeOpts, errorCode);
-    if (errorCode != 0) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "pixelMap failed err %{public}d", errorCode);
-        return;
-    }
-    std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
-    preloadSnapshot_ = std::move(uniquePixelMap);
 }
 
 void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media::PixelMap> persistentPixelMap,
@@ -4010,15 +4010,16 @@ WSError Session::SetCompatibleModeProperty(const sptr<CompatibleModeProperty> co
     if (compatibleModeProperty && compatibleModeProperty->IsDragResizeDisabled()) {
         property->SetDragEnabled(false);
     }
-    PostTask(
-        [weakThis = wptr(this), where = __func__, weakProperty = wptr(compatibleModeProperty)]() {
-        auto session = weakThis.promote();
-        auto property = weakProperty.promote();
-        if (!session || !session->sessionStage_) {
-            TLOGNE(WmsLogTag::WMS_COMPAT, "session or sessionStage is null");
-            return;
-        }
-        session->sessionStage_->NotifyCompatibleModePropertyChange(property);
+    PostSyncTask(
+        [weakThis = wptr(this), weakProperty = wptr(compatibleModeProperty)] {
+            auto session = weakThis.promote();
+            auto property = weakProperty.promote();
+            if (!session || !session->sessionStage_ || !property) {
+                TLOGNE(WmsLogTag::WMS_COMPAT, "session, sessionStage or property is null");
+                return WSError::WS_ERROR_INVALID_SESSION;
+            }
+            session->sessionStage_->NotifyCompatibleModePropertyChange(property);
+            return WSError::WS_OK;
         }, __func__);
     return WSError::WS_OK;
 }

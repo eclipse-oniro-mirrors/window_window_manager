@@ -269,7 +269,7 @@ bool ScenePersistence::FindClosestFormSnapshot(SnapshotStatus& key)
         }
         return false;
     }
-    for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < capacity_; screenStatus++) {
+    for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
         if (hasSnapshot_[screenStatus]) {
             key = screenStatus;
             return true;
