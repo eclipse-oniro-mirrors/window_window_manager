@@ -289,6 +289,8 @@ napi_value WindowTransitionTypeInit(napi_env env)
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
     napi_set_named_property(env, objValue, "DESTROY",
         CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::DESTROY)));
+    napi_set_named_property(env, objValue, "START",
+        CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::START)));
     return objValue;
 }
 
@@ -301,6 +303,8 @@ napi_value WindowAnimationCurveInit(napi_env env)
         CreateJsValue(env, static_cast<uint32_t>(WindowAnimationCurve::LINEAR)));
     napi_set_named_property(env, objValue, "INTERPOLATION_SPRING",
         CreateJsValue(env, static_cast<uint32_t>(WindowAnimationCurve::INTERPOLATION_SPRING)));
+    napi_set_named_property(env, objValue, "CUBIC_BEZIER",
+        CreateJsValue(env, static_cast<uint32_t>(WindowAnimationCurve::CUBIC_BEZIER)));
     return objValue;
 }
 
@@ -479,6 +483,32 @@ bool IsJsIsPersistentRecoverUndefined(napi_env env, napi_value jsIsPersistentRec
     return true;
 }
 
+static bool IsJsRequestIdUndefind(napi_env env, napi_value jsRequestId, SessionInfo& sessionInfo)
+{
+    if (GetType(env, jsRequestId) != napi_undefined) {
+        int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID;
+        if (!ConvertFromJsValue(env, jsRequestId, requestId)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to requestId");
+            return false;
+        }
+        sessionInfo.requestId = requestId;
+    }
+    return true;
+}
+
+bool IsJsSpecifiedReasonUndefined(napi_env env, napi_value jsSpecifiedReason, SessionInfo& sessionInfo)
+{
+    if (GetType(env, jsSpecifiedReason) != napi_undefined) {
+        int32_t specifiedReason = static_cast<int32_t>(SpecifiedReason::DEFAULT);
+        if (!ConvertFromJsValue(env, jsSpecifiedReason, specifiedReason)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to specifiedReason");
+            return false;
+        }
+        sessionInfo.specifiedReason_ = static_cast<SpecifiedReason>(specifiedReason);
+    }
+    return true;
+}
+
 bool IsJsIsRotatableUndefined(napi_env env, napi_value jsIsRotatable, SessionInfo& sessionInfo)
 {
     if (GetType(env, jsIsRotatable) != napi_undefined) {
@@ -488,19 +518,6 @@ bool IsJsIsRotatableUndefined(napi_env env, napi_value jsIsRotatable, SessionInf
             return false;
         }
         sessionInfo.isRotable_ = isRotable;
-    }
-    return true;
-}
-
-bool IsJsSpecifiedReasonUndefined(napi_env env, napi_value jsSpecifiedReason, SessionInfo& sessionInfo)
-{
-    if (GetType(env, jsSpecifiedReason) != napi_undefined) {
-        int32_t specifiedReason = static_cast<int32_t>(SpecifiedReason::BY_SCB);
-        if (!ConvertFromJsValue(env, jsSpecifiedReason, specifiedReason)) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to specifiedReason");
-            return false;
-        }
-        sessionInfo.specifiedReason_ = static_cast<SpecifiedReason>(specifiedReason);
     }
     return true;
 }
@@ -641,19 +658,6 @@ napi_value CreateJsAtomicServiceInfo(napi_env env, const AtomicServiceInfo& atom
         CreateJsValueFromStringArray(env, atomicServiceInfo.supportWindowMode_));
 
     return objValue;
-}
-
-static bool IsJsRequestIdUndefind(napi_env env, napi_value jsRequestId, SessionInfo& sessionInfo)
-{
-    if (GetType(env, jsRequestId) != napi_undefined) {
-        int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID;
-        if (!ConvertFromJsValue(env, jsRequestId, requestId)) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to requestId");
-            return false;
-        }
-        sessionInfo.requestId = requestId;
-    }
-    return true;
 }
 
 bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sessionInfo)
@@ -1438,7 +1442,7 @@ bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect
     napi_get_named_property(env, jsObject, "width_", &jsWidth_);
     napi_get_named_property(env, jsObject, "height_", &jsHeight_);
     if (GetType(env, jsPosX_) != napi_undefined) {
-        int32_t posX;
+        int32_t posX = 0;
         if (!ConvertFromJsValue(env, jsPosX_, posX)) {
             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to posX_");
             return false;
@@ -1446,7 +1450,7 @@ bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect
         displayRect.posX_ = posX;
     }
     if (GetType(env, jsPosY_) != napi_undefined) {
-        int32_t posY;
+        int32_t posY = 0;
         if (!ConvertFromJsValue(env, jsPosY_, posY)) {
             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to posY_");
             return false;
@@ -1483,7 +1487,7 @@ bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInf
     napi_get_named_property(env, jsObject, "displayId", &jsDisplayId);
     napi_get_named_property(env, jsObject, "displayRect", &jsDisplayRect);
     if (GetType(env, jsType) != napi_undefined) {
-        uint32_t type;
+        uint32_t type = 0;
         if (!ConvertFromJsValue(env, jsType, type)) {
             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to type");
             return false;
@@ -1491,7 +1495,7 @@ bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInf
         rotationChangeInfo.type_ = static_cast<RotationChangeType>(type);
     }
     if (GetType(env, jsOrientation) != napi_undefined) {
-        uint32_t orientation;
+        uint32_t orientation = 0;
         if (!ConvertFromJsValue(env, jsOrientation, orientation)) {
             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to orientation");
             return false;
@@ -1499,7 +1503,7 @@ bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInf
         rotationChangeInfo.orientation_ = orientation;
     }
     if (GetType(env, jsDisplayId) != napi_undefined) {
-        int32_t displayId;
+        int32_t displayId = 0;
         if (!ConvertFromJsValue(env, jsDisplayId, displayId)) {
             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to displayId");
             return false;
@@ -1507,7 +1511,7 @@ bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInf
         rotationChangeInfo.displayId_ = static_cast<uint64_t>(displayId);
     }
     if (GetType(env, jsDisplayRect) != napi_undefined) {
-        Rect displayRect;
+        Rect displayRect = { 0, 0, 0, 0};
         if (!ConvertRectFromJsValue(env, jsDisplayRect, displayRect)) {
             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to displayRect");
             return false;
@@ -1629,7 +1633,7 @@ bool ConvertRealTimeSwitchInfoFromJs(napi_env env, napi_value value, RealTimeSwi
     return true;
 }
 
-bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, CompatibleModeProperty& compatibleModeProperty)
+bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, CompatibleModeProperty& property)
 {
     std::map<std::string, void (CompatibleModeProperty::*)(bool)> funcs = {
         {"isAdaptToImmersive", &CompatibleModeProperty::SetIsAdaptToImmersive},
@@ -1656,16 +1660,15 @@ bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, Compati
         bool ret = false;
         if (ParseJsValue(env, value, paramStr, ret)) {
             void (CompatibleModeProperty::*func)(bool) = iter->second;
-            (compatibleModeProperty.*func)(ret);
+            (property.*func)(ret);
             atLeastOneParam = true;
         }
     }
     RealTimeSwitchInfo realTimeSwitchInfo;
     if (ConvertRealTimeSwitchInfoFromJs(env, value, realTimeSwitchInfo)) {
-        compatibleModeProperty.SetRealTimeSwitchInfo(realTimeSwitchInfo);
+        property.SetRealTimeSwitchInfo(realTimeSwitchInfo);
         atLeastOneParam = true;
     }
-    TLOGI(WmsLogTag::WMS_COMPAT, "property: %{public}s", compatibleModeProperty.ToString().c_str());
     return atLeastOneParam;
 }
 
@@ -1803,6 +1806,8 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         CreateJsValue(env, static_cast<uint32_t>(GetApiType(static_cast<WindowType>(sessionInfo.windowType_)))));
     napi_set_named_property(env, objValue, "sessionState",
         CreateJsValue(env, static_cast<int32_t>(sessionInfo.sessionState_)));
+    napi_set_named_property(env, objValue, "specifiedReason",
+        CreateJsValue(env, sessionInfo.specifiedReason_));
     napi_set_named_property(env, objValue, "startWindowType",
         CreateJsValue(env, sessionInfo.startWindowType_));
     napi_set_named_property(env, objValue, "requestOrientation",
@@ -1815,8 +1820,6 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         CreateJsValue(env, sessionInfo.isBackTransition_));
     napi_set_named_property(env, objValue, "requestId",
         CreateJsValue(env, sessionInfo.requestId));
-    napi_set_named_property(env, objValue, "specifiedReason",
-        CreateJsValue(env, sessionInfo.specifiedReason_));
     napi_set_named_property(env, objValue, "needClearInNotShowRecent",
         CreateJsValue(env, sessionInfo.needClearInNotShowRecent_));
     if (sessionInfo.processOptions != nullptr) {
@@ -1827,7 +1830,6 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         CreateJsValue(env, sessionInfo.errorReason));
     napi_set_named_property(env, objValue, "shouldSkipKillInStartup",
         CreateJsValue(env, sessionInfo.shouldSkipKillInStartup));
-
     SetJsSessionInfoByWant(env, sessionInfo, objValue);
     napi_set_named_property(env, objValue, "supportWindowModes",
         CreateSupportWindowModes(env, sessionInfo.supportedWindowModes));
@@ -2401,7 +2403,6 @@ napi_value CreateJsSessionRect(napi_env env, const T& rect)
         WLOGFE("Failed to create object!");
         return NapiGetUndefined(env);
     }
-
     napi_set_named_property(env, objValue, "posX_", CreateJsValue(env, rect.posX_));
     napi_set_named_property(env, objValue, "posY_", CreateJsValue(env, rect.posY_));
     napi_set_named_property(env, objValue, "width_", CreateJsValue(env, rect.width_));
@@ -2623,6 +2624,8 @@ napi_value ConvertResultToJsValue(napi_env env, RotationChangeResult& rotationCh
 napi_value CreateJsRotationChangeResultMapObject(napi_env env, const int32_t persistentId,
     const RotationChangeResult& rotationChangeResult)
 {
+    TLOGD(WmsLogTag::WMS_ROTATION, "CreateJsRotationChangeResultMapObject persistentId %{public}d, "
+        "rejectType: %{public}d", persistentId, rotationChangeResult.rectType_);
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
     if (objValue == nullptr) {

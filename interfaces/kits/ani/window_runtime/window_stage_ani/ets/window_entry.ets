@@ -97,7 +97,7 @@ function main() {
     try {
       let ctx = w.getUIContext();
       console.println('[ANI] getUIContext ctx:'+ctx);
-    } catch (e: Error) {
+    } catch (e) {
       console.println('[ANI] in e:' + e);
     }
     let avoidArea = w.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);

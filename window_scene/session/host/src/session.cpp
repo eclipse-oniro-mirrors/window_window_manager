@@ -64,6 +64,8 @@ constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_ONECE = 1;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_TWICE = 2;
 constexpr double KILOBYTE = 1024.0;
 
+constexpr int32_t SNAP_SHOT_RECOVER_KEY = 10;
+
 const std::map<SessionState, bool> ATTACH_MAP = {
     { SessionState::STATE_DISCONNECT, false },
     { SessionState::STATE_CONNECT, false },
@@ -539,6 +541,37 @@ const SessionInfo& Session::GetSessionInfo() const
 SessionInfo& Session::EditSessionInfo()
 {
     return sessionInfo_;
+}
+
+bool Session::GetNeedBackgroundAfterConnect() const
+{
+    return needBackgroundAfterConnect_;
+}
+
+void Session::SetNeedBackgroundAfterConnect(bool isNeed)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, need background after connect:%{public}d",
+        GetPersistentId(), isNeed);
+    needBackgroundAfterConnect_ = isNeed;
+}
+
+void Session::RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const
+{
+    std::ostringstream oss;
+    oss << "[Event]Session lifecycle scheduling error, expect session state:" << static_cast<uint32_t>(expectState)
+        << ", current session state:" << static_cast<uint32_t>(currentState)
+        << ", id:" << GetWindowId()
+        << ", name:" << GetWindowName().c_str();
+    int32_t ret = HiSysEventWrite(
+        OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
+        "WINDOW_LIFE_CYCLE_EXCEPTION",
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+        "PID", getpid(),
+        "UID", getuid(),
+        "MSG", oss.str());
+    if (ret != 0) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
+    }
 }
 
 bool Session::RegisterLifecycleListener(const std::shared_ptr<ILifecycleListener>& listener)
@@ -1647,26 +1680,12 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     if ((state == SessionState::STATE_DISCONNECT || state == SessionState::STATE_END) &&
         SessionHelper::IsMainWindow(GetWindowType())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
-        std::ostringstream oss;
-        oss << "[Event]lifecycle to:" << static_cast<uint32_t>(SessionState::STATE_FOREGROUND)
-            << ", id:" << GetWindowId()
-            << ", name:" << GetWindowName().c_str()
-            << "[Msg]foreground from client error, when server closed.";
-        std::string info = oss.str();
-        int32_t ret = HiSysEventWrite(
-            OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
-            "WINDOW_LIFE_CYCLE_EXCEPTION",
-            OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
-            "PID", getpid(),
-            "UID", getuid(),
-            "MSG", info);
-        if (ret != 0) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Write HiSysEvent error! ret:%{public}d", ret);
-        }
+        RecordLifecycleSessionStateError(SessionState::STATE_FOREGROUND, state);
     }
     if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
         state != SessionState::STATE_INACTIVE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
+        SetNeedBackgroundAfterConnect(false);
         return WSError::WS_ERROR_INVALID_SESSION;
     }
 
@@ -1750,6 +1769,9 @@ WSError Session::Background(bool isFromClient, const std::string& identityToken)
     if (state != SessionState::STATE_INACTIVE) {
         TLOGW(WmsLogTag::WMS_LIFE, "[id: %{public}d] Background state invalid! state: %{public}u",
             GetPersistentId(), state);
+        if (state == SessionState::STATE_DISCONNECT) {
+            SetNeedBackgroundAfterConnect(true);
+        }
         return WSError::WS_ERROR_INVALID_SESSION;
     }
     UpdateSessionState(SessionState::STATE_BACKGROUND);
@@ -3162,6 +3184,44 @@ bool Session::GetPreloadingStartingWindow() const
     return preloadingStartingWindow_.load();
 }
 
+void Session::PreloadSnapshot()
+{
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "PreloadSnapshot[%d]", persistentId_);
+    if (snapshot_ != nullptr) {
+        std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
+        preloadSnapshot_ = snapshot_;
+        return;
+    }
+    if (scenePersistence_ == nullptr) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "scene persistence is null: %{public}d", GetPersistentId());
+        return;
+    }
+    auto key = GetScreenSnapshotStatus();
+    auto freeMultiWindow = freeMultiWindow_.load();
+    auto hasSnapshot = scenePersistence_->HasSnapshot(key, freeMultiWindow);
+    auto isSavingSnapshot = scenePersistence_->IsSavingSnapshot();
+    const bool matchSnapshot = isSavingSnapshot || hasSnapshot;
+    auto filePath = scenePersistence_->GetSnapshotFilePath(key, matchSnapshot, freeMultiWindow);
+    Media::SourceOptions opts;
+    uint32_t errorCode = 0;
+    auto imageSource = Media::ImageSource::CreateImageSource(filePath, opts, errorCode);
+    if (errorCode != 0 || imageSource == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "image source failed err %{public}d", errorCode);
+        return;
+    }
+    Media::ImageInfo imageInfo;
+    imageSource->GetImageInfo(imageInfo);
+    TLOGI(WmsLogTag::WMS_PATTERN, "image size: %{public}d, %{public}d", imageInfo.size.width, imageInfo.size.height);
+    Media::DecodeOptions decodeOpts;
+    auto uniquePixelMap = imageSource->CreatePixelMap(decodeOpts, errorCode);
+    if (errorCode != 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "pixelMap failed err %{public}d", errorCode);
+        return;
+    }
+    std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
+    preloadSnapshot_ = std::move(uniquePixelMap);
+}
+
 void Session::SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap)
 {
     std::unique_lock<std::shared_mutex> lock(preloadStartingWindowMutex_);
@@ -3211,44 +3271,6 @@ void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMa
         return;
     }
     return;
-}
-
-void Session::PreloadSnapshot()
-{
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "PreloadSnapshot[%d]", persistentId_);
-    if (snapshot_ != nullptr) {
-        std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
-        preloadSnapshot_ = snapshot_;
-        return;
-    }
-    if (scenePersistence_ == nullptr) {
-        TLOGW(WmsLogTag::WMS_PATTERN, "scene persistence is null: %{public}d", GetPersistentId());
-        return;
-    }
-    auto key = GetScreenSnapshotStatus();
-    auto freeMultiWindow = freeMultiWindow_.load();
-    auto hasSnapshot = scenePersistence_->HasSnapshot(key, freeMultiWindow);
-    auto isSavingSnapshot = scenePersistence_->IsSavingSnapshot();
-    const bool matchSnapshot = isSavingSnapshot || hasSnapshot;
-    auto filePath = scenePersistence_->GetSnapshotFilePath(key, matchSnapshot, freeMultiWindow);
-    Media::SourceOptions opts;
-    uint32_t errorCode = 0;
-    auto imageSource = Media::ImageSource::CreateImageSource(filePath, opts, errorCode);
-    if (errorCode != 0 || imageSource == nullptr) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "image source failed err %{public}d", errorCode);
-        return;
-    }
-    Media::ImageInfo imageInfo;
-    imageSource->GetImageInfo(imageInfo);
-    TLOGI(WmsLogTag::WMS_PATTERN, "image size: %{public}d, %{public}d", imageInfo.size.width, imageInfo.size.height);
-    Media::DecodeOptions decodeOpts;
-    auto uniquePixelMap = imageSource->CreatePixelMap(decodeOpts, errorCode);
-    if (errorCode != 0) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "pixelMap failed err %{public}d", errorCode);
-        return;
-    }
-    std::lock_guard<std::mutex> lock(preloadSnapshotMutex_);
-    preloadSnapshot_ = std::move(uniquePixelMap);
 }
 
 void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media::PixelMap> persistentPixelMap,
@@ -3988,15 +4010,16 @@ WSError Session::SetCompatibleModeProperty(const sptr<CompatibleModeProperty> co
     if (compatibleModeProperty && compatibleModeProperty->IsDragResizeDisabled()) {
         property->SetDragEnabled(false);
     }
-    PostTask(
-        [weakThis = wptr(this), where = __func__, weakProperty = wptr(compatibleModeProperty)]() {
-        auto session = weakThis.promote();
-        auto property = weakProperty.promote();
-        if (!session || !session->sessionStage_) {
-            TLOGNE(WmsLogTag::WMS_COMPAT, "session or sessionStage is null");
-            return;
-        }
-        session->sessionStage_->NotifyCompatibleModePropertyChange(property);
+    PostSyncTask(
+        [weakThis = wptr(this), weakProperty = wptr(compatibleModeProperty)] {
+            auto session = weakThis.promote();
+            auto property = weakProperty.promote();
+            if (!session || !session->sessionStage_ || !property) {
+                TLOGNE(WmsLogTag::WMS_COMPAT, "session, sessionStage or property is null");
+                return WSError::WS_ERROR_INVALID_SESSION;
+            }
+            session->sessionStage_->NotifyCompatibleModePropertyChange(property);
+            return WSError::WS_OK;
         }, __func__);
     return WSError::WS_OK;
 }

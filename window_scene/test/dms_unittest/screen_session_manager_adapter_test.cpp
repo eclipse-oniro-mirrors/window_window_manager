@@ -67,7 +67,7 @@ HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange01_DisplayInfo_Nullptr,
  */
 HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange01_Agents_Null, TestSize.Level1)
 {
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
         GTEST_SKIP();
     }
     sptr<DisplayInfo> displayInfo = new DisplayInfo();
@@ -196,7 +196,7 @@ HWTEST_F(ScreenSessionManagerAdapterTest, OnScreenChange_ScreenInfos_Nullptr, Te
  */
 HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayCreate_DisplayInfo_Nullptr, TestSize.Level1)
 {
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
         GTEST_SKIP();
     }
     sptr<DisplayInfo> displayInfo = nullptr;

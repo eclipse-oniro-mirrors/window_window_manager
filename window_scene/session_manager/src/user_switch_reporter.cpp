@@ -64,9 +64,9 @@ bool UserSwitchReporter::ReportSwitchDuration() const
     // Convert timestamp to YYYY-MM-DD-HH-MM-SS format.
     auto convertToReadableTime = [](uint64_t utc_timestamp) -> uint64_t {
         // Second-level timestamp converted to Beijing Time (UTC+8)
-        time_t beijing_seconds = (utc_timestamp / 1000) + 8 * 3600;
+        time_t to_seconds = static_cast<time_t>(utc_timestamp / 1000ULL);
         std::tm beijing_tm = {};
-        gmtime_r(&beijing_seconds, &beijing_tm);
+        localtime_r(&to_seconds, &beijing_tm);
 
         // Format as a readable string (YYYY-MM-DD HH:MM:SS)
         char buffer[50];

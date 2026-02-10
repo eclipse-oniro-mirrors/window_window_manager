@@ -721,6 +721,9 @@ public:
     void SetAppInstanceKey(const std::string& appInstanceKey);
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
+    bool GetNeedBackgroundAfterConnect() const;
+    void SetNeedBackgroundAfterConnect(bool isNeed);
+    void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
 
     /*
      * Starting Window
@@ -847,13 +850,13 @@ public:
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);
     bool GetPreloadingStartingWindow() const;
+    void PreloadSnapshot();
+    void ResetPreloadSnapshot();
     void SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap);
     void SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo);
     void GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
         std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo);
     void ResetPreloadStartingWindow();
-    void PreloadSnapshot();
-    void ResetPreloadSnapshot();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
@@ -1230,6 +1233,7 @@ private:
     mutable std::mutex leashWinSurfaceNodeMutex_;
     DetectTaskInfo detectTaskInfo_;
     mutable std::shared_mutex detectTaskInfoMutex_;
+    bool needBackgroundAfterConnect_ { false };
 
     /*
      * Starting Window
