@@ -1865,7 +1865,7 @@ static napi_value CreateWindowSize(napi_env env, const AppExecFwk::AbilityInfo& 
     return objValue;
 }
 
-static napi_value CreateAbilityItemInfo(napi_env env, const SCBAbilityInfo& scbabilityInfo)
+static napi_value CreateAbilityItemInfo(napi_env env, const SCBAbilityInfo& scbAbilityInfo)
 {
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
@@ -1873,7 +1873,7 @@ static napi_value CreateAbilityItemInfo(napi_env env, const SCBAbilityInfo& scba
         WLOGFE("CreateObject failed");
         return NapiGetUndefined(env);
     }
-    auto abilityInfo = scbabilityInfo.abilityInfo_;
+    auto abilityInfo = scbAbilityInfo.abilityInfo_;
     napi_set_named_property(env, objValue, "appIconId", CreateJsValue(env, abilityInfo.iconId));
     napi_set_named_property(env, objValue, "appLabelId", CreateJsValue(env, abilityInfo.labelId));
     napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, abilityInfo.bundleName));
