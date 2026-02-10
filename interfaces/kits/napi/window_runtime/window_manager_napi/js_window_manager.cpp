@@ -1065,12 +1065,12 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
             window = Window::GetTopWindowWithContext(context->lock());
         }
         if (errorCode != 0) {
-                if (newApi) {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WmErrorCode>(errorCode), errMsg));
-                } else {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WMError>(errorCode), errMsg));
-                }
-                return;
+            if (newApi) {
+                task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WmErrorCode>(errorCode), errMsg));
+            } else {
+                task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WMError>(errorCode), errMsg));
+            }
+            return;
         }
         if (window == nullptr || window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
