@@ -4208,7 +4208,7 @@ napi_value JsWindow::OnConvertOrientationAndRotation(napi_env env, napi_callback
         windowToken_->ConvertOrientationAndRotation(fromRotationInfoType, toRotationInfoType, value, convertedValue));
     if (ret != WmErrorCode::WM_OK) {
         return NapiThrowError(env, ret,
-            "[window][convertOrientationAndRotation]msg: Failed to convert Orientation adn Rotation");
+            "[window][convertOrientationAndRotation]msg: Failed to convert Orientation and Rotation");
     }
     TLOGD(WmsLogTag::WMS_ROTATION, "end, convertRotationValue : %{public}d", convertedValue);
     return CreateJsValue(env, convertedValue);
@@ -6819,7 +6819,7 @@ napi_value JsWindow::OnSetShadow(napi_env env, napi_callback_info info)
 
     WmErrorCode syncShadowsRet = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SyncShadowsToComponent(*shadowsInfo));
     if (syncShadowsRet != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Sync shadows to component failed! ret:  %{public}u",
+        TLOGE(WmsLogTag::WMS_ANIMATION, "Sync shadows to component failed! ret: %{public}u",
             static_cast<int32_t>(syncShadowsRet));
     }
     return NapiGetUndefined(env);
@@ -8018,7 +8018,8 @@ napi_value JsWindow::OnSetWindowTransitionAnimation(napi_env env, napi_callback_
             "[window][setWindowTransitionAnimation]msg: Incorrect number of parameters. Expected 2.");
     }
     uint32_t type = 0;
-    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) || type >= static_cast<uint32_t>(WindowTransitionType::END)) {
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) ||
+        type >= static_cast<uint32_t>(WindowTransitionType::START)) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to type");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
             "[window][setWindowTransitionAnimation]msg: Failed to convert parameter to type,");
@@ -8079,7 +8080,7 @@ napi_value JsWindow::OnGetWindowTransitionAnimation(napi_env env, napi_callback_
             "[window][getWindowTransitionAnimation]msg: Exactly one parameter is required.");
     }
     WindowTransitionType type = WindowTransitionType::DESTROY;
-    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) || type >= WindowTransitionType::END) {
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) || type >= WindowTransitionType::START) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to type");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][getWindowTransitionAnimation]msg: Failed to convert parameter to type.");

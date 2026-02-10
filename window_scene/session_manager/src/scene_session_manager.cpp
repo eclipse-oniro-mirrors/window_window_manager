@@ -680,7 +680,7 @@ void SceneSessionManager::UpdateSessionWithFoldStateChange(DisplayId displayId, 
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (const auto& [_, sceneSession] : sceneSessionMap_) {
             if (sceneSession == nullptr) {
-                TLOGE(WmsLogTag::WMS_MAIN, "session is nullptr");
+                TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is nullptr");
                 continue;
             }
             sceneSession->UpdateCrossAxis();
@@ -4433,7 +4433,7 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         return WSError::WS_ERROR_INVALID_OPERATION;
     }
 
-    if (property->GetWindowType() == WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
+    if (property->GetWindowType() == WindowType::WINDOW_TYPE_APP_SUB_WINDOW && property->GetIsUIExtFirstSubWindow()) {
         WSError err = CheckSubSessionStartedByExtension(token, property);
         if (err != WSError::WS_OK) {
             return err;
@@ -5244,7 +5244,7 @@ void SceneSessionManager::SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>&
         DisplayId displayId = defaultDisplayId;
         if (focusedSession != nullptr && focusedSession->GetSessionProperty()->GetDisplayId() != DISPLAY_ID_INVALID) {
             displayId = focusedSession->GetSessionProperty()->GetDisplayId();
-            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d, focus id %{public}d, display id: %{public}" PRIu64,
+            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d, focus id: %{public}d, display id: %{public}" PRIu64,
                 newSession->GetPersistentId(), focusedSession->GetPersistentId(), displayId);
         } else {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get focus id failed, use default displayId %{public}" PRIu64, displayId);

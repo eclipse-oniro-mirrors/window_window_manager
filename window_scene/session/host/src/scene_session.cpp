@@ -2242,6 +2242,9 @@ void SceneSession::UpdateSessionRectPosYFromClient(SizeChangeReason reason, Disp
     TLOGI(WmsLogTag::WMS_LAYOUT, "winId: %{public}d, input: %{public}s, screenId: %{public}" PRIu64
         ", clientDisplayId: %{public}" PRIu64 ", configDisplayId: %{public}" PRIu64,
         GetPersistentId(), rect.ToString().c_str(), GetScreenId(), clientDisplayId, configDisplayId_);
+    if (configDisplayId_ == DEFAULT_DISPLAY_ID) {
+        return;
+    }
     if (configDisplayId_ != VIRTUAL_DISPLAY_ID && clientDisplayId != VIRTUAL_DISPLAY_ID) {
         return;
     }
@@ -3623,7 +3626,7 @@ void SceneSession::GetSystemBarAvoidAreaByRotation(Rotation rotation, AvoidAreaT
 {
     DisplayId displayId = GetSessionProperty()->GetDisplayId();
     std::pair<WSRect, WSRect> nextSystemBarAvoidAreaRectInfo;
-    if (specificCallback_ == nullptr ||
+    if (specificCallback_ == nullptr || specificCallback_->onGetNextAvoidAreaRectInfo_ == nullptr ||
         specificCallback_->onGetNextAvoidAreaRectInfo_(
             displayId, type, nextSystemBarAvoidAreaRectInfo) != WSError::WS_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "get nextSystemBarAvoidAreaRectInfo failed.");
@@ -6534,6 +6537,12 @@ WMError SceneSession::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
         TLOGE(WmsLogTag::DEFAULT, "get session property failed");
         return WMError::WM_ERROR_NULLPTR;
     }
+    if (action == WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED) {
+        if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_WINDOW_TRANSPARENT) &&
+            containerColorList_.count(GetSessionInfo().bundleName_) == 0) {
+            return WMError::WM_ERROR_INVALID_PERMISSION;
+        }
+    }
     if (action == WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE) {
         if (!SessionPermission::VerifyCallingPermission("ohos.permission.PRIVACY_WINDOW")) {
             return WMError::WM_ERROR_INVALID_PERMISSION;
@@ -6647,7 +6656,7 @@ void SceneSession::SetFullScreenWaterfallMode(bool isFullScreenWaterfallMode)
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d pcFoldScreenController is null", GetPersistentId());
         return;
     }
-    return pcFoldScreenController_->SetFullScreenWaterfallMode(isFullScreenWaterfallMode);
+    pcFoldScreenController_->SetFullScreenWaterfallMode(isFullScreenWaterfallMode);
 }
 
 WSError SceneSession::GetWaterfallMode(bool& isWaterfallMode)
@@ -6947,11 +6956,6 @@ WMError SceneSession::HandleActionUpdateWindowShadowEnabled(const sptr<WindowSes
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d, enabled: %{public}u",
         GetPersistentId(), property->GetWindowShadowEnabled());
-    if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_WINDOW_TRANSPARENT) &&
-        containerColorList_.count(GetSessionInfo().bundleName_) == 0) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d: permission denied", GetPersistentId());
-        return WMError::WM_ERROR_INVALID_PERMISSION;
-    }
     if (!WindowHelper::IsMainWindow(GetWindowType())) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, type is not supported", GetPersistentId());
         return WMError::WM_ERROR_INVALID_CALLING;
@@ -8542,7 +8546,6 @@ void SceneSession::RegisterNotifySurfaceBoundsChangeFunc(int32_t sessionId, Noti
     }
     std::lock_guard lock(registerNotifySurfaceBoundsChangeMutex_);
     notifySurfaceBoundsChangeFuncMap_[sessionId] = func;
-    NotifyFollowedParentWindowAcrossDisplaysChange(IsFullScreenWaterfallMode());
 }
 
 void SceneSession::UnregisterNotifySurfaceBoundsChangeFunc(int32_t sessionId)
@@ -9731,8 +9734,7 @@ WSError SceneSession::ConvertWindowOrientationToDisplayRotation(const int32_t va
 
 WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, uint32_t height)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "rotation:%{public}u, width:%{public}u, height:%{public}u",
-        rotation, width, height);
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation:%{public}u, width:%{public}u, height:%{public}u", rotation, width, height);
     if (width == 0 || height == 0) {
         return WSError::WS_ERROR_INVALID_PARAM;
     }
@@ -9740,7 +9742,7 @@ WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, 
         TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s sessionStage is null", __func__);
         return WSError::WS_ERROR_NULLPTR;
     }
-    WSRect wsrect = { 0, 0, width, height };
+    WSRect wsrect = {0, 0, width, height};
     auto properties = GetSystemBarPropertyForRotation();
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
     uint32_t orientation = 0;
@@ -9751,16 +9753,16 @@ WSError SceneSession::NotifyRotationProperty(uint32_t rotation, uint32_t width, 
     }
     // Orientation type is required here
     GetAvoidAreasByRotation(static_cast<Rotation>(orientation), wsrect, properties, avoidAreas);
-    Rect rect = { wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_ };
-    OrientationInfo info = { orientation, rect, avoidAreas };
+    Rect rect = {wsrect.posX_, wsrect.posY_, wsrect.width_, wsrect.height_};
+    OrientationInfo info = {orientation, rect, avoidAreas};
 
     WSRect currentWsrect = GetSessionRect();
     auto currentProperties = GetCurrentSystemBarPropertyForRotation();
     std::map<AvoidAreaType, AvoidArea> currentAvoidAreas;
     uint32_t currentOrientation = 0;
     uint32_t currentRotation = static_cast<uint32_t>(GetCurrentRotation());
-    WSError currentRet = ConvertRotationToOrientation(currentRotation,
-        currentWsrect.width_, currentWsrect.height_, currentOrientation);
+    WSError currentRet = 
+        ConvertRotationToOrientation(currentRotation, currentWsrect.width_, currentWsrect.height_, currentOrientation);
     if (currentRet != WSError::WS_OK) {
         TLOGNE(WmsLogTag::WMS_ROTATION, "failed to convert currentWsrect Rotation to Orientation");
         return currentRet;
@@ -10007,7 +10009,7 @@ RotationChangeResult SceneSession::NotifyRotationChange(const RotationChangeInfo
             where = __func__]() -> RotationChangeResult {
             auto session = weakThis.promote();
             if (!session) {
-                TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
+                TLOGNE(WmsLogTag::DEFAULT, "%{public}s session is null", where);
                 return { RectType::RELATIVE_TO_SCREEN, { 0, 0, 0, 0 } };
             }
             if (!session->sessionStage_ || !session->isRotationChangeCallbackRegistered) {
