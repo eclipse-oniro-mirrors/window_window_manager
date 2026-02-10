@@ -1399,11 +1399,6 @@ enum class CrossPlaneState : uint32_t {
     CROSS_ALL_PLANE,
 };
 
-enum class SendTouchAction : uint32_t {
-    ACTION_NORMAL = 0,
-    ACTION_NOT_RECEIVE_PULL_CANCEL = 1,
-};
-
 /**
  * @brief Sidebar blur type
  */
