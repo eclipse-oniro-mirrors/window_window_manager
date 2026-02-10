@@ -311,12 +311,12 @@ HWTEST(MockSessionManagerServiceTest, UnregisterSMSRecoverListener, TestSize.Lev
     ErrCode ret;
 
     // branch 1
-    EXPECT_CALL(mockMockSms, GetUserIdByCallingUid()).Times(1).WillOnce(Return(-1));
+    EXPECT_CALL(mockMockSms, GetUserIdByCallingUid()).WillOnce(Return(-1));
     ret = mockMockSms.UnregisterSMSRecoverListener(userId, isLite);
     EXPECT_EQ(ret, ERR_INVALID_VALUE);
 
     // branch 2: mock InitDisplayIdAndUserIdByClient return ERR_INVALID_VALUE
-    EXPECT_CALL(mockMockSms, GetUserIdByCallingUid()).Times(2).WillOnce(Return(0));
+    EXPECT_CALL(mockMockSms, GetUserIdByCallingUid()).WillRepeatedly(Return(0));
     EXPECT_CALL(mockMockSms, InitDisplayIdAndUserIdByClient(_, _, _)).Times(1).WillOnce(Return(ERR_INVALID_VALUE));
     ret = mockMockSms.UnregisterSMSRecoverListener(userId, isLite);
     EXPECT_EQ(ret, ERR_INVALID_VALUE);

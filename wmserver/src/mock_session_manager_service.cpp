@@ -442,19 +442,11 @@ ErrCode MockSessionManagerService::UnregisterSMSRecoverListener(int32_t userId, 
         TLOGE(WmsLogTag::WMS_RECOVER, "illegal clientUserId: %{public}d", clientUserId);
         return ERR_INVALID_VALUE;
     }
-    DisplayId displayId = DISPLAY_ID_INVALID;
-    if (clientUserId == SYSTEM_USERID) {
-        // When SYSTEM_USERID calling and userId is INVALID_USER_ID, set userId to defaultWMSUserId_
-        if (userId == INVALID_USER_ID) {
-            TLOGI(WmsLogTag::WMS_MULTI_USER, "use default wmsUserId: %{public}d", defaultWMSUserId_);
-            userId = defaultWMSUserId_;
-        }
-        auto ret = GetForegroundOsAccountDisplayId(userId, displayId);
-        if (ret != ERR_OK) {
-            return ret;
-        }
-    } else {
-        displayId = DEFAULT_SCREEN_ID;
+    DisplayId displayId;
+    auto ret = InitDisplayIdAndUserIdByClient(clientUserId, userId, displayId);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "Init display id failed");
+        return ret;
     }
 
     int32_t pid = IPCSkeleton::GetCallingRealPid();
