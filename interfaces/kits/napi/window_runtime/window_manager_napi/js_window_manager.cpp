@@ -1086,7 +1086,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         TLOGD(WmsLogTag::WMS_FOCUS, "%{public}s: Get top window success", where);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnGetTopWindow") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env,JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getLastWindow]msg: Failed to send event"));
     }
     return result;
