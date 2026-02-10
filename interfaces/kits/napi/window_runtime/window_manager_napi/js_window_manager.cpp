@@ -1042,15 +1042,15 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
 
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callback, &result);
-    auto asyncTask = [env, task = napiAsyncTask, isOldApi, newApi, contextPtr, ctxRef, where = __func__] {
+    auto asyncTask = [env, task = napiAsyncTask, ability, isOldApi, newApi, contextPtr, ctxRef, where = __func__] {
         sptr<Window> window = nullptr;
         if (isOldApi) {
             if (ability->GetWindow() == nullptr) {
                 if (newApi) {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+                    task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                         "[window][getLastWindow]msg: FA mode can not get ability window"));
                 } else {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, MError::WM_ERROR_NULLPTR),
+                    task->Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
                         "[window][getLastWindow]msg: FA mode can not get ability window"));
                 }
                 return;
@@ -1060,10 +1060,10 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
             auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
             if (contextPtr == nullptr || context == nullptr) {
                 if (newApi) {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+                    task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                         "[window][getLastWindow]msg: Stage mode without context"));
                 } else {
-                    task->Reject(env, JsErrUtils::CreateJsError(env, MError::WM_ERROR_NULLPTR),
+                    task->Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
                         "[window][getLastWindow]msg: Stage mode without context"));
                 }
                 return;
@@ -1085,7 +1085,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnGetTopWindow") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env,
-            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY, "failed to send event"));
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "failed to send event"));
     }
     return result;
 }
