@@ -1833,6 +1833,9 @@ private:
     std::unordered_map<int32_t, int32_t> visibleWindowCountMap_ GUARDED_BY(SCENE_GUARD);
     std::unordered_set<std::string> sessionLockedStateCacheSet_;
     std::shared_ptr<FfrtQueueHelper> ffrtQueueHelper_ = nullptr;
+    std::unordered_map<std::string, std::unordered_map<std::string, bool>> isModuleAbilityHookMap_;
+    void SetIsAbilityHookToMap(sptr<SceneSession> sceneSession, bool isAbilityHook);
+    WMError GetIsAbilityHookFromMap(sptr<SceneSession> sceneSession);
     std::vector<RecentSessionInfo> recentMainSessionInfoList_;
     UpdateKioskAppListFunc updateKioskAppListFunc_;
     KioskModeChangeFunc kioskModeChangeFunc_;

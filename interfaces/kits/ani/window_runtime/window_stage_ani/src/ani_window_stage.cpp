@@ -39,7 +39,7 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 /* used for free, ani has no destructor right now, only free when aniObj freed */
-static std::map<ani_object, AniWindowStage*> g_localObjs;
+static std::map<ani_object, AniWindowStage*> localObjs;
 const uint32_t MIN_RESOURCE_ID = 0x1000000;
 const uint32_t MAX_RESOURCE_ID = 0xffffffff;
 } // namespace
@@ -197,26 +197,6 @@ void AniWindowStage::OnReleaseUIContent(ani_env* env)
     }
 }
 
-ani_ref AniWindowStage::GetMainWindow(ani_env* env)
-{
-    TLOGI(WmsLogTag::DEFAULT, "[ANI] Get main window");
-    std::shared_ptr<WindowScene> weakScene = windowScene_.lock();
-    if (weakScene == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] WindowScene_ is nullptr");
-        return AniWindowUtils::CreateAniUndefined(env);
-    }
-
-    sptr<Window> windowScene = weakScene->GetMainWindow();
-    if (windowScene == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] Get main window failed");
-        return AniWindowUtils::CreateAniUndefined(env);
-    }
-    TLOGI(WmsLogTag::DEFAULT, "[ANI] Get main window [%{public}u, %{public}s]",
-        windowScene->GetWindowId(), windowScene->GetWindowName().c_str());
-
-    return CreateAniWindowObject(env, windowScene);
-}
-
 ani_object AniWindowStage::GetSubWindow(ani_env* env, ani_object obj, ani_long nativeObj)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "[ANI]");
@@ -305,19 +285,39 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
     return static_cast<ani_object>(CreateAniWindowObject(env, window));
 }
 
+ani_ref AniWindowStage::GetMainWindow(ani_env* env)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] Get main window");
+    std::shared_ptr<WindowScene> weakScene = windowScene_.lock();
+    if (weakScene == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] WindowScene_ is nullptr");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+
+    sptr<Window> windowScene = weakScene->GetMainWindow();
+    if (windowScene == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Get main window failed");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] Get main window [%{public}u, %{public}s]",
+        windowScene->GetWindowId(), windowScene->GetWindowName().c_str());
+
+    return CreateAniWindowObject(env, windowScene);
+}
+
 void DropWindowStageByAni(ani_object aniObj)
 {
-    auto obj = g_localObjs.find(reinterpret_cast<ani_object>(aniObj));
-    if (obj != g_localObjs.end()) {
+    auto obj = localObjs.find(reinterpret_cast<ani_object>(aniObj));
+    if (obj != localObjs.end()) {
         delete obj->second;
-        g_localObjs.erase(obj);
+        localObjs.erase(obj);
     }
 }
 
 AniWindowStage* GetWindowStageFromAni(void* aniObj)
 {
-    auto obj = g_localObjs.find(reinterpret_cast<ani_object>(aniObj));
-    if (obj == g_localObjs.end()) {
+    auto obj = localObjs.find(reinterpret_cast<ani_object>(aniObj));
+    if (obj == localObjs.end()) {
         return nullptr;
     }
     return obj->second;
@@ -357,7 +357,7 @@ __attribute__((no_sanitize("cfi")))
         return nullptr;
     }
     env->Object_CallMethod_Void(obj, setObjFunc, reinterpret_cast<ani_long>(windowStage.get()));
-    g_localObjs.insert(std::pair(obj, windowStage.release()));
+    localObjs.insert(std::pair(obj, windowStage.release()));
     return obj;
 }
 
