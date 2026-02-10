@@ -2469,7 +2469,6 @@ void SceneSessionManager::SchedulePcAppInPadLifecycle(bool isBackground, int32_t
 void SceneSessionManager::SchedulePcAppInPadLifecycleByPersistentId(bool isBackground, int32_t persistentId)
 {
     auto task = [this, isBackground, persistentId] {
-        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "session is null");
