@@ -29,7 +29,6 @@
 namespace OHOS {
 namespace Rosen {
 namespace {
-const std::unordered_set<WmsLogTag> TAG_WHITE_LIST = {WmsLogTag::WMS_LAYOUT};
 constexpr uint32_t TEN_SECONDS = 10 * 1000;
 constexpr uint32_t ONE_MINUTE  = 60 * 1000;
 constexpr uint32_t ONE_HOUR    = 60 * 60 * 1000;
@@ -46,6 +45,7 @@ constexpr uint32_t ADDR_SHIFT_32 = 32;
 constexpr uint32_t BITS_PER_BYTE = 8;
 constexpr uint32_t LINE_SHIFT_16 = 16;
 }
+extern const std::unordered_set<WmsLogTag> TAG_WHITE_LIST;
 
 class RateLimitedLogger {
 private:

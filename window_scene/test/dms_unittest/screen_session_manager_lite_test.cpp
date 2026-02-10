@@ -58,7 +58,7 @@ namespace {
 
 /**
  * @tc.name: ConnectToServer
- * @tc.desc: ConnectToServer
+ * @tc.desc: test ConnectToServer
  * @tc.type: FUNC
  */
 HWTEST_F(ScreenSessionManagerLiteTest, ConnectToServer, TestSize.Level1)

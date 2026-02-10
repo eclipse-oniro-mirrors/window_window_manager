@@ -70,6 +70,30 @@ HWTEST_F(SceneSessionAttributeTest, SetWindowShadowEnabled01, TestSize.Level1)
     EXPECT_EQ(WSError::WS_OK, sceneSession->SetWindowShadowEnabled(isEnabled));
     EXPECT_EQ(isEnabled, sceneSession->GetWindowShadowEnabled());
 }
+
+/**
+ * @tc.name: SetWindowSnapshotSkip01
+ * @tc.desc: SetWindowSnapshotSkip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionAttributeTest, SetWindowSnapshotSkip01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetWindowSnapshotSkip";
+    info.bundleName_ = "SetWindowSnapshotSkip";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSurfaceNode(nullptr);
+    EXPECT_NE(session->SetWindowSnapshotSkip(true), WMError::WM_OK);
+    struct RSSurfaceNodeConfig config;
+    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
+    session->SetSurfaceNode(surfaceNode);
+    session->SetLeashWinSurfaceNode(nullptr);
+    EXPECT_EQ(session->SetWindowSnapshotSkip(true), WMError::WM_OK);
+    std::shared_ptr<RSSurfaceNode> leashSurfaceNode = RSSurfaceNode::Create(config);
+    session->SetLeashWinSurfaceNode(leashSurfaceNode);
+    EXPECT_EQ(session->SetWindowSnapshotSkip(true), WMError::WM_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

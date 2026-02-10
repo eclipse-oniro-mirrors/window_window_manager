@@ -3524,7 +3524,6 @@ napi_value JsWindow::OnSetSpecificSystemBarEnabled(napi_env env, napi_callback_i
         auto errCode =
             WM_JS_TO_ERROR_CODE_MAP.at(window->UpdateSystemBarPropertyForPage(systemBarType, property, propertyFlag));
         if (errCode == WmErrorCode::WM_OK) {
-            window->NotifySystemBarPropertyUpdate(systemBarType, property);
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s failed, ret %{public}d", where, errCode);
@@ -4216,7 +4215,7 @@ napi_value JsWindow::OnConvertOrientationAndRotation(napi_env env, napi_callback
         windowToken_->ConvertOrientationAndRotation(fromRotationInfoType, toRotationInfoType, value, convertedValue));
     if (ret != WmErrorCode::WM_OK) {
         return NapiThrowError(env, ret,
-            "[window][convertOrientationAndRotation]msg: Failed to convert Orientation adn Rotation");
+            "[window][convertOrientationAndRotation]msg: Failed to convert Orientation and Rotation");
     }
     TLOGD(WmsLogTag::WMS_ROTATION, "end, convertRotationValue : %{public}d", convertedValue);
     return CreateJsValue(env, convertedValue);
@@ -5550,8 +5549,7 @@ napi_value JsWindow::OnRaiseAboveTarget(napi_env env, napi_callback_info info)
     return result;
 }
 
-WmErrorCode JsWindow::CheckRaiseMainWindowParams(napi_env env, size_t argc, napi_value argv[],
-                                                 int32_t sourceId, int32_t& targetId)
+WmErrorCode JsWindow::CheckRaiseMainWindowParams(napi_env env, size_t argc, napi_value argv[], int32_t& targetId)
 {
     if (argc != ONE_PARAMS_SIZE || argv[0] == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "argc is invalid: %{public}zu", argc);
@@ -5561,8 +5559,8 @@ WmErrorCode JsWindow::CheckRaiseMainWindowParams(napi_env env, size_t argc, napi
         TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert parameter to target window id");
         return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
-    if (targetId <= static_cast<int32_t>(INVALID_WINDOW_ID) || targetId == sourceId) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "target window id is invalid or equals to source window id");
+    if (targetId <= static_cast<int32_t>(INVALID_WINDOW_ID)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "target window id is invalid");
         return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
     return WmErrorCode::WM_OK;
@@ -5579,22 +5577,26 @@ napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_in
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     int32_t targetId = static_cast<int32_t>(INVALID_WINDOW_ID);
-    errCode = (errCode == WmErrorCode::WM_OK ?
-        CheckRaiseMainWindowParams(env, argc, argv, windowToken_->GetWindowId(), targetId) : errCode);
+    errCode = (errCode == WmErrorCode::WM_OK ? CheckRaiseMainWindowParams(env, argc, argv, targetId) : errCode);
     napi_value lastParam = nullptr;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [windowToken = wptr<Window>(windowToken_), targetId, env, task = napiAsyncTask, errCode] {
-        if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
-                "[window][raiseMainWindowAboveTarget]msg: Invalidate params."));
-            return;
-        }
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_), targetId, env,
+                      task = napiAsyncTask, errCode]() mutable {
         auto window = windowToken.promote();
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_HIERARCHY, "window is nullptr");
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                 "[window][raiseMainWindowAboveTarget]msg: Window is nullptr"));
+            return;
+        }
+        if (targetId == static_cast<int32_t>(window->GetWindowId())) {
+            TLOGNE(WmsLogTag::WMS_HIERARCHY, "target window id equals to source window id");
+            errCode = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+        }
+        if (errCode != WmErrorCode::WM_OK) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
+                "[window][raiseMainWindowAboveTarget]msg: Invalidate params."));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RaiseMainWindowAboveTarget(targetId));
@@ -6820,7 +6822,7 @@ napi_value JsWindow::OnSetShadow(napi_env env, napi_callback_info info)
 
     WmErrorCode syncShadowsRet = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SyncShadowsToComponent(*shadowsInfo));
     if (syncShadowsRet != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Sync shadows to component failed! ret:  %{public}u",
+        TLOGE(WmsLogTag::WMS_ANIMATION, "Sync shadows to component failed! ret: %{public}u",
             static_cast<int32_t>(syncShadowsRet));
     }
     return NapiGetUndefined(env);
@@ -8019,7 +8021,8 @@ napi_value JsWindow::OnSetWindowTransitionAnimation(napi_env env, napi_callback_
             "[window][setWindowTransitionAnimation]msg: Incorrect number of parameters. Expected 2.");
     }
     uint32_t type = 0;
-    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) || type >= static_cast<uint32_t>(WindowTransitionType::END)) {
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) ||
+        type >= static_cast<uint32_t>(WindowTransitionType::START)) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to type");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
             "[window][setWindowTransitionAnimation]msg: Failed to convert parameter to type,");
@@ -8080,7 +8083,7 @@ napi_value JsWindow::OnGetWindowTransitionAnimation(napi_env env, napi_callback_
             "[window][getWindowTransitionAnimation]msg: Exactly one parameter is required.");
     }
     WindowTransitionType type = WindowTransitionType::DESTROY;
-    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) || type >= WindowTransitionType::END) {
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], type) || type >= WindowTransitionType::START) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to type");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][getWindowTransitionAnimation]msg: Failed to convert parameter to type.");

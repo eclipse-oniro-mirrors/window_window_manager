@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -335,6 +335,50 @@ namespace window {
     bottomRect: Rect;
   }
 
+  export interface UIEnvAvoidAreaVP {
+    visible: boolean;
+    leftRect: RectInVP;
+    topRect: RectInVP;
+    rightRect: RectInVP;
+    bottomRect: RectInVP;
+  }
+
+  export class UIEnvAvoidAreaVPInternal implements UIEnvAvoidAreaVP {
+    visible: boolean;
+    leftRect: RectInVP;
+    topRect: RectInVP;
+    rightRect: RectInVP;
+    bottomRect: RectInVP;
+  }
+
+  export interface UIEnvWindowAvoidAreaInfoPX {
+    statusBar: AvoidArea;
+    cutout: AvoidArea;
+    keyboard: AvoidArea;
+    navigationIndicator: AvoidArea;
+  }
+
+  export class UIEnvWindowAvoidAreaInfoPXInternal implements UIEnvWindowAvoidAreaInfoPX {
+    statusBar: AvoidArea;
+    cutout: AvoidArea;
+    keyboard: AvoidArea;
+    navigationIndicator: AvoidArea;
+  }
+
+  export interface UIEnvWindowAvoidAreaInfoVP {
+    statusBar: UIEnvAvoidAreaVP;
+    cutout: UIEnvAvoidAreaVP;
+    keyboard: UIEnvAvoidAreaVP;
+    navigationIndicator: UIEnvAvoidAreaVP;
+  }
+
+  export class UIEnvWindowAvoidAreaInfoVPInternal implements UIEnvWindowAvoidAreaInfoVP {
+    statusBar: UIEnvAvoidAreaVP;
+    cutout: UIEnvAvoidAreaVP;
+    keyboard: UIEnvAvoidAreaVP;
+    navigationIndicator: UIEnvAvoidAreaVP;
+  }
+
   /**
    * System bar tint of region
    *
@@ -357,7 +401,7 @@ namespace window {
     /**
      * The visibility of system bar
      *
-     * @type { ?boolean }
+     * @type { boolean }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -367,7 +411,7 @@ namespace window {
     /**
      * The region of system bar
      *
-     * @type { ?Rect }
+     * @type { Rect }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -377,7 +421,7 @@ namespace window {
     /**
      * The background color of the system bar.
      *
-     * @type { ?string }
+     * @type { string }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -387,7 +431,7 @@ namespace window {
     /**
      * The content color of the system bar.
      *
-     * @type { ?string }
+     * @type { string }
      * @syscap SystemCapability.WindowManager.WindowManager.Core
      * @systemapi Hide this for inner system use.
      * @since 8
@@ -625,6 +669,20 @@ namespace window {
     }
   }
 
+  export interface RectInVP {
+    left: double;
+    top: double;
+    width: double;
+    height: double;
+  }
+
+  export class RectInVPInternal implements RectInVP {
+    left: double;
+    top: double;
+    width: double;
+    height: double;
+  }
+
   export interface RectChangeOptions {
     rect: Rect;
     reason: RectChangeReason;
@@ -633,6 +691,16 @@ namespace window {
   export class SizeInternal implements Size {
     width: int;
     height: int;
+  }
+
+  export interface SizeInVP {
+    width: double;
+    height: double;
+  }
+
+  export class SizeInVPInternal implements SizeInVP {
+    width: double;
+    height: double;
   }
 
   export interface Position {
@@ -2492,7 +2560,7 @@ export class WindowStageInternal implements WindowStage {
       try {
         this.loadContentSync(this.nativeObj, path, storage);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -2502,7 +2570,7 @@ export class WindowStageInternal implements WindowStage {
         try {
           this.loadContentSync(this.nativeObj, path, storage);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -2512,7 +2580,7 @@ export class WindowStageInternal implements WindowStage {
       try {
         this.loadContentSync(this.nativeObj, path, undefined);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -2521,7 +2589,7 @@ export class WindowStageInternal implements WindowStage {
       try {
         this.loadContentByNameSync(this.nativeObj, name, storage);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -2531,7 +2599,7 @@ export class WindowStageInternal implements WindowStage {
         try {
           this.loadContentByNameSync(this.nativeObj, name, storage);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -2541,7 +2609,7 @@ export class WindowStageInternal implements WindowStage {
       try {
         this.loadContentByNameSync(this.nativeObj, name, undefined);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -2551,7 +2619,7 @@ export class WindowStageInternal implements WindowStage {
         try {
           this.releaseUIContentSync(this.nativeObj);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -2756,7 +2824,7 @@ export class WindowStageInternal implements WindowStage {
         try {
           this.removeImageForRecentSync(this.nativeObj);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -3196,7 +3264,7 @@ export class WindowInternal implements Window {
             try {
                 this.setWindowTitle(this.nativeObj, titleName);
                 resolve(undefined);
-            } catch (err: Error) {
+            } catch (err) {
                 reject(err as BusinessError);
             }
         });
@@ -3680,7 +3748,7 @@ export class WindowInternal implements Window {
         try {
           this.setUIContentSync(this.nativeObj, path);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -3690,7 +3758,7 @@ export class WindowInternal implements Window {
       try {
         this.setUIContentSync(this.nativeObj, path);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -3700,7 +3768,7 @@ export class WindowInternal implements Window {
         try {
           this.loadContentSync(this.nativeObj, path, storage);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -3710,7 +3778,7 @@ export class WindowInternal implements Window {
       try {
         this.loadContentSync(this.nativeObj, path, storage);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -3720,7 +3788,7 @@ export class WindowInternal implements Window {
         try {
           this.loadContentSync(this.nativeObj, path, undefined);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -3730,7 +3798,7 @@ export class WindowInternal implements Window {
       try {
         this.loadContentSync(this.nativeObj, path, undefined);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -3739,7 +3807,7 @@ export class WindowInternal implements Window {
       try {
         this.loadContentByNameSync(this.nativeObj, name, storage);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }
@@ -3749,7 +3817,7 @@ export class WindowInternal implements Window {
         try {
           this.loadContentByNameSync(this.nativeObj, name, storage);
           resolve(undefined);
-        } catch (err: Error) {
+        } catch (err) {
           reject(err as BusinessError);
         }
       });
@@ -3759,7 +3827,7 @@ export class WindowInternal implements Window {
       try {
         this.loadContentByNameSync(this.nativeObj, name, undefined);
         callback(new BusinessError(), undefined);
-      } catch (err: Error) {
+      } catch (err) {
         callback(err as BusinessError, undefined);
       }
     }

@@ -344,13 +344,13 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
         property->SetUseControlState(reply.ReadBool());
         property->SetAncoRealBundleName(reply.ReadString());
         property->SetIsShowDecorInFreeMultiWindow(reply.ReadBool());
+        property->SetLogicalDeviceConfig(reply.ReadString());
         sptr<MissionInfo> missionInfo = reply.ReadParcelable<MissionInfo>();
         if (missionInfo == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "read missionInfo is nullptr.");
             return WSError::WS_ERROR_IPC_FAILED;
         }
         property->SetMissionInfo(*missionInfo);
-        property->SetLogicalDeviceConfig(reply.ReadString());
         property->SetPrelaunch(reply.ReadBool());
         property->SetFrameNum(reply.ReadInt32());
     }
@@ -615,7 +615,7 @@ WSError SessionProxy::BatchPendingSessionsActivation(
         TLOGE(WmsLogTag::WMS_LIFE, "Write ability session info list size failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    for (auto abilitySessionInfo : abilitySessionInfos) {
+    for (const auto& abilitySessionInfo : abilitySessionInfos) {
         WSError writeRet = WriteOneSessionInfo(data, abilitySessionInfo);
         if (writeRet != WSError::WS_OK) {
             return writeRet;

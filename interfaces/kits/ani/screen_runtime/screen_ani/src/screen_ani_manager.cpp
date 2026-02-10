@@ -717,6 +717,8 @@ ani_status ScreenManagerAni::NspBindNativeFunctions(ani_env* env, ani_namespace 
                              reinterpret_cast<void*>(ScreenManagerAni::SetScreenPrivacyMaskImage) },
         ani_native_function{ "makeUniqueInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeUnique) },
         ani_native_function{
+            "resizeVirtualScreenInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::ResizeVirtualScreen) },
+        ani_native_function{
             "makeMirrorWithRegionInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeMirrorWithRegion) },
         ani_native_function{ "stopMirrorInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::StopMirror) },
         ani_native_function{ "makeExpandInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeExpand) },

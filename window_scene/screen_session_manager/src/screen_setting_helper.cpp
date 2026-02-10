@@ -130,7 +130,7 @@ void ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(SettingObserver
     }
 }
  
-bool ScreenSettingHelper::GetSettingOffScreenRenderValue(bool& offScreenRenderValue_, const std::string& key)
+bool ScreenSettingHelper::GetSettingOffScreenRenderValue(bool& offScreenRenderValue, const std::string& key)
 {
     SettingProvider& provider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
     int32_t value;
@@ -139,7 +139,7 @@ bool ScreenSettingHelper::GetSettingOffScreenRenderValue(bool& offScreenRenderVa
         TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
         return false;
     }
-    offScreenRenderValue_ = (value == 1);
+    offScreenRenderValue = (value == 1);
     return true;
 }
 
@@ -951,16 +951,15 @@ void ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(SettingObs
 void ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver()
 {
     if (extendScreenIndepDpiObserver_ == nullptr) {
-        TLOGD(WmsLogTag::DMS, "extendScreenIndepDpiObserver_ is nullptr");
+        TLOGW(WmsLogTag::DMS, "extendScreenIndepDpiObserver_ is nullptr");
         return;
     }
     SettingProvider& extendScreenProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
     ErrCode ret = extendScreenProvider.UnregisterObserver(extendScreenIndepDpiObserver_);
     if (ret != ERR_OK) {
         TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
-    } else {
-        extendScreenIndepDpiObserver_ = nullptr;
     }
+    extendScreenIndepDpiObserver_ = nullptr;
 }
 
 bool ScreenSettingHelper::GetSettingExtendScreenDpi(float& coef, const std::string& key)
@@ -1328,9 +1327,11 @@ bool ScreenSettingHelper::ParseJsonObjectToEnumMap(const nlohmann::json& json,
 
 FoldDisplayMode ScreenSettingHelper::ConvertStringToFoldDisplayModeSafely(const std::string& str)
 {
-    auto it = STRING_TO_FOLD_DISPLAY_MODE.find(str);
-    if (it != STRING_TO_FOLD_DISPLAY_MODE.end()) {
-        return it->second;
+    int32_t displayMode = 0;
+    if (ConvertStrToInt32(str, displayMode) &&
+        static_cast<FoldDisplayMode>(displayMode) >= FoldDisplayMode::UNKNOWN &&
+        static_cast<FoldDisplayMode>(displayMode) <= FoldDisplayMode::GLOBAL_FULL) {
+        return static_cast<FoldDisplayMode>(displayMode);
     }
     TLOGW(WmsLogTag::DEFAULT, "[DMS] Unknown str: %{public}s", str.c_str());
     return FoldDisplayMode::UNKNOWN;

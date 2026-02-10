@@ -179,6 +179,7 @@ bool ClientAgentContainer<T1, T2>::UnRegisterAttribute(uintptr_t key, const sptr
 template<typename T1, typename T2>
 std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> ClientAgentContainer<T1, T2>::GetAttributeAgentsMap()
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return attributeAgentMap_;
 }
 

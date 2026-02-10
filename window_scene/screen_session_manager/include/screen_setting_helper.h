@@ -35,7 +35,7 @@ public:
     static void RegisterSettingDpiObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingDpiObserver();
     static void RegisterSettingOffScreenRenderObserver(SettingObserver::UpdateFunc func);
-    static bool GetSettingOffScreenRenderValue(bool& offerRenderValue_, const std::string& key);
+    static bool GetSettingOffScreenRenderValue(bool& offerRenderValue, const std::string& key);
     static bool GetSettingDpi(uint32_t& dpi, const std::string& key = SETTING_DPI_KEY);
     static bool SetSettingDefaultDpi(uint32_t& dpi, const std::string& key);
     static bool GetSettingValue(uint32_t& value, const std::string& key);

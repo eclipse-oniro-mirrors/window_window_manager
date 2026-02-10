@@ -17,6 +17,7 @@
 
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
+#include "mock_scene_session.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
@@ -168,6 +169,30 @@ HWTEST_F(SceneSessionManagerAnimationTest, TestUpdateRotateAnimationConfig_02, T
     ssm_->UpdateRotateAnimationConfig(config);
     usleep(WAIT_SYNC_IN_NS);
     ASSERT_EQ(ssm_->rotateAnimationConfig_.duration_, 600);
+}
+
+/**
+ * @tc.name: GetActiveSceneSessionCopy
+ * @tc.desc: test function : GetActiveSceneSessionCopy
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAnimationTest, GetActiveSceneSessionCopy, Function | SmallTest | Level2)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info;
+    info.abilityName_ = "GetActiveSceneSessionCopy";
+    info.bundleName_ = "GetActiveSceneSessionCopy";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sceneSession->state_ = SessionState::STATE_FOREGROUND;
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+
+    std::vector<sptr<SceneSession>> activeSession = ssm_->GetActiveSceneSessionCopy();
+    EXPECT_EQ(activeSession.empty(), false);
+
+    ssm_->sceneSessionMap_.clear();
 }
 } // namespace
 } // namespace Rosen

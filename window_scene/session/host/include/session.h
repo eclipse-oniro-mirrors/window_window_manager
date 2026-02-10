@@ -177,8 +177,8 @@ struct ControlInfo {
     bool isControlRecentOnly;
 };
 
-const std::string ATTACH_EVENT_NAME { "wms::ReportWindowTimeout_Attach" };
-const std::string DETACH_EVENT_NAME { "wms::ReportWindowTimeout_Detach" };
+extern const std::string ATTACH_EVENT_NAME;
+extern const std::string DETACH_EVENT_NAME;
 
 class Session : public SessionStub {
 public:
@@ -396,6 +396,7 @@ public:
     SessionInfo& EditSessionInfo();
     DisplayId GetScreenId() const;
     virtual void SetScreenId(uint64_t screenId);
+    void SetScreenIdOnServer(uint64_t screenId);
     WindowType GetWindowType() const;
     float GetAspectRatio() const;
     WSError SetAspectRatio(float ratio) override;
@@ -666,6 +667,7 @@ public:
         return !this->operator==(session);
     }
 
+    virtual void HandleStyleEvent(MMI::WindowArea area) {};
     const char* DumpPointerWindowArea(MMI::WindowArea area) const;
     WSRectF UpdateHotRect(const WSRect& rect);
     WSError RaiseToAppTopForPointDown();
@@ -719,6 +721,9 @@ public:
     void SetAppInstanceKey(const std::string& appInstanceKey);
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
+    bool GetNeedBackgroundAfterConnect() const;
+    void SetNeedBackgroundAfterConnect(bool isNeed);
+    void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
 
     /*
      * Starting Window
@@ -845,13 +850,13 @@ public:
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);
     bool GetPreloadingStartingWindow() const;
+    void PreloadSnapshot();
+    void ResetPreloadSnapshot();
     void SetPreloadStartingWindow(std::shared_ptr<Media::PixelMap> pixelMap);
     void SetPreloadStartingWindow(std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo);
     void GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMap,
         std::pair<std::shared_ptr<uint8_t[]>, size_t>& bufferInfo);
     void ResetPreloadStartingWindow();
-    void PreloadSnapshot();
-    void ResetPreloadSnapshot();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
@@ -1228,6 +1233,7 @@ private:
     mutable std::mutex leashWinSurfaceNodeMutex_;
     DetectTaskInfo detectTaskInfo_;
     mutable std::shared_mutex detectTaskInfoMutex_;
+    bool needBackgroundAfterConnect_ { false };
 
     /*
      * Starting Window
@@ -1296,12 +1302,6 @@ private:
     bool isOutlineEnabled_ = false;
     OutlineStyleParams outlineStyleParams_;
     OutlineParamsChangeCallbackFunc outlineParamsChangeCallback_;
-
-    /*
-     * Prelaunch check
-     */
-    uint64_t prelaunchStart_ = 0;
-    bool prelaunchEnable_ = false;
 };
 } // namespace OHOS::Rosen
 

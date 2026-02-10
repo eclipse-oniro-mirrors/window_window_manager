@@ -899,14 +899,14 @@ std::string WindowImpl::GetContentInfo(BackupAndRestoreType type)
 
 WMError WindowImpl::SetRestoredRouterStack(const std::string& routerStack)
 {
-    TLOGD(WmsLogTag::WMS_LIFE, "Set restored router stack.");
+    TLOGI(WmsLogTag::WMS_LIFE, "Set restored router stack.");
     restoredRouterStack_ = routerStack;
     return WMError::WM_OK;
 }
 
 std::string WindowImpl::GetRestoredRouterStack()
 {
-    TLOGD(WmsLogTag::WMS_LIFE, "Get restored router stack.");
+    TLOGI(WmsLogTag::WMS_LIFE, "Get restored router stack.");
     return std::move(restoredRouterStack_);
 }
 
@@ -3836,8 +3836,7 @@ void WindowImpl::UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk:
 
 void WindowImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type)
 {
-    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u type %{public}d area %{public}s",
-          property_->GetWindowId(), type, avoidArea->ToString().c_str());
+    WLOGI("Update AvoidArea, id: %{public}u", property_->GetWindowId());
     auto display = SingletonContainer::IsDestroyed() ? nullptr :
         SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
     UpdateViewportConfig(GetRect(), display, WindowSizeChangeReason::AVOID_AREA_CHANGE, nullptr, {{type, *avoidArea}});
@@ -4092,6 +4091,10 @@ void WindowImpl::UpdateOccupiedAreaChangeInfo(const sptr<OccupiedAreaChangeInfo>
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
     const std::shared_ptr<RSTransaction>& rsTransaction)
 {
+    if (info == nullptr) {
+        WLOGFE("Occupied area info is null");
+        return;
+    }
     WLOGFD("Update OccupiedArea, id: %{public}u", property_->GetWindowId());
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);

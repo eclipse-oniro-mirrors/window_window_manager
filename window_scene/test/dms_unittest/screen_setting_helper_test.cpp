@@ -162,11 +162,14 @@ namespace {
      */
     HWTEST_F(ScreenSettingHelperTest, UnRegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
     {
+        g_errLog.clear();
+        LOG_SetCallback(MyLogCallback);
         ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
+        EXPECT_TRUE(g_errLog.find("extendScreenIndepDpiObserver_ is nullptr") != std::string::npos);
         ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
         ScreenSettingHelper::UnRegisterSettingExtendScreenIndepDpiObserver();
-        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
-        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
+        EXPECT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
+        LOG_SetCallback(nullptr);
     }
 
     /**
