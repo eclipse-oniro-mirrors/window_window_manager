@@ -2456,7 +2456,6 @@ void SceneSessionManager::SchedulePcAppInPadLifecycle(bool isBackground, int32_t
         return;
     }
     std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
-    std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
     {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         sceneSessionMapCopy = sceneSessionMap_;
