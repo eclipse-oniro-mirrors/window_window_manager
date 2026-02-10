@@ -4091,10 +4091,6 @@ void WindowImpl::UpdateOccupiedAreaChangeInfo(const sptr<OccupiedAreaChangeInfo>
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
     const std::shared_ptr<RSTransaction>& rsTransaction)
 {
-    if (info == nullptr) {
-        WLOGFE("Occupied area info is null");
-        return;
-    }
     WLOGFD("Update OccupiedArea, id: %{public}u", property_->GetWindowId());
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);

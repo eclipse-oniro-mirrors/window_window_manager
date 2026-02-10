@@ -85,8 +85,6 @@ ani_status AniWindowManager::AniWindowManagerInit(ani_env* env, ani_namespace wi
             reinterpret_cast<void *>(AniWindowManager::SetStartWindowBackgroundColor)},
         ani_native_function {"notifyScreenshotEventSync", "lC{@ohos.window.window.ScreenshotEventType}:",
             reinterpret_cast<void *>(AniWindowManager::NotifyScreenshotEvent)},
-        ani_native_function {"setSpecificSystemWindowZIndexSync", "lC{@ohos.window.window.WindowType}i:",
-            reinterpret_cast<void *>(AniWindowManager::SetSpecificSystemWindowZIndex)},
         ani_native_function {"getAllWindowLayoutInfo", "ll:C{std.core.Array}",
             reinterpret_cast<void *>(AniWindowManager::GetAllWindowLayoutInfo)},
         ani_native_function {"getSnapshot", "li:C{@ohos.multimedia.image.image.PixelMap}",
@@ -102,6 +100,8 @@ ani_status AniWindowManager::AniWindowManagerInit(ani_env* env, ani_namespace wi
             reinterpret_cast<void *>(AniWindowManager::GetWindowsByCoordinate)},
         ani_native_function {"toggleShownStateForAllAppWindowsSync", "l:",
             reinterpret_cast<void *>(AniWindowManager::ToggleShownStateForAllAppWindows)},
+        ani_native_function {"setSpecificSystemWindowZIndexSync", "lC{@ohos.window.window.WindowType}i:",
+            reinterpret_cast<void *>(AniWindowManager::SetSpecificSystemWindowZIndex)},
     };
     for (auto method : functions) {
         if ((ret = env->Namespace_BindNativeFunctions(ns, &method, 1u)) != ANI_OK) {
