@@ -885,7 +885,7 @@ void ScreenSettingHelper::RegisterSettingWiredScreenGamutObserver(SettingObserve
 void ScreenSettingHelper::UnregisterSettingWiredScreenGamutObserver()
 {
     if (wiredScreenGamutObserver_ == nullptr) {
-        TLOGD(WmsLogTag::DMS, "setting observer is nullptr");
+        TLOGW(WmsLogTag::DMS, "setting observer is nullptr");
         return;
     }
     SettingProvider& wiredScreenGamutProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
