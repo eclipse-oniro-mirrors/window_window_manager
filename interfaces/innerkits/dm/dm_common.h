@@ -29,7 +29,7 @@ using ScreenId = uint64_t;
 using NodeId = uint64_t;
 using DisplayGroupId = uint64_t;
 
- namespace {
+namespace {
 constexpr DisplayId DISPLAY_ID_INVALID = -1ULL;
 constexpr ScreenId SCREEN_ID_INVALID = -1ULL;
 constexpr DisplayGroupId DISPLAY_GROUP_ID_INVALID = -1ULL;
@@ -61,7 +61,7 @@ constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
 constexpr uint32_t DISPLAY_A_WIDTH = 2472;
 constexpr float DEFAULT_SNAPSHOT_SCALE = 1.0f;
- 
+
 /**
  * @struct HookInfo.
  *
