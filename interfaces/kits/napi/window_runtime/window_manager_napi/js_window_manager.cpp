@@ -1047,7 +1047,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         int32_t errorCode = 0;
         std::string errMsg = "";
         if (isOldApi) {
-            if (ability->GetWindow() == nullptr) {
+            if (ability == nullptr || ability->GetWindow() == nullptr) {
                 errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
                 errMsg = "[window][getLastWindow]msg: FA mode can not get ability window";
