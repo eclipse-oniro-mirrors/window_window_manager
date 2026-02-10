@@ -43,3 +43,10 @@ ohos_unittest("wm_window_extension_session_impl_rotation_test") {
   deps = [ wm_unittest_common ]
   external_deps = test_external_deps
 }
+
+ohos_unittest("wm_window_scene_session_impl_rotation_test") {
+  module_out_path = module_out_path
+  sources = [ "window_scene_session_impl_rotation_test.cpp" ]
+  deps = [ wm_unittest_common ]
+  external_deps = test_external_deps
+}

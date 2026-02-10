@@ -130,6 +130,8 @@ ohos_unittest("ws_window_session_property_rotation_test") {
 ohos_unittest("ws_scene_session_manager_rotation_test") {
   module_out_path = module_out_path
 
+  include_dirs = [ "${window_base_path}/window_scene/test/mock" ]
+
   sources = [ "scene_session_manager_rotation_test.cpp" ]
 
   deps = [ ws_unittest_common ]
@@ -153,4 +155,41 @@ ohos_unittest("ws_scene_session_manager_rotation_test") {
     "image_framework:image_native",
     "input:libmmi-napi",
   ]
+}
+
+ohos_unittest("ws_session_proxy_rotation_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/window_scene/session/host/include/zidl",
+    "${window_base_path}/window_scene/test/mock",
+  ]
+
+  sources = [ "session_proxy_rotation_test.cpp" ]
+
+  deps = [
+    ws_unittest_common,
+    "${window_base_path}/window_scene/session:screen_session",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:session_info",
+    "ability_base:want",
+  ]
+}
+
+ohos_unittest("ws_session_stub_rotation_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/window_scene/session/host/include/zidl",
+    "${window_base_path}/window_scene/test/mock",
+  ]
+
+  sources = [ "session_stub_rotation_test.cpp" ]
+
+  deps = [ ws_unittest_common ]
+
+  external_deps = test_external_deps
 }

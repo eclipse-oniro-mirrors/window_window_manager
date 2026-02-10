@@ -401,7 +401,7 @@ HWTEST_F(SceneSessionTest5, SetSurfaceBounds01, TestSize.Level1)
         return 0;
     });
     session->surfaceNode_ = surfaceNode;
-    session->SetSurfaceBounds(rect, false);
+    session->SetSurfaceBounds(rect, false, false);
     EXPECT_EQ(preRect, session->GetSessionRect());
 }
 

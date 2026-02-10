@@ -19,6 +19,7 @@
 #include "rate_limited_logger.h"
 namespace OHOS {
 namespace Rosen {
+const std::unordered_set<WmsLogTag> TAG_WHITE_LIST = {WmsLogTag::WMS_LAYOUT};
 RateLimitedLogger& RateLimitedLogger::getInstance()
 {
     static RateLimitedLogger instance_;

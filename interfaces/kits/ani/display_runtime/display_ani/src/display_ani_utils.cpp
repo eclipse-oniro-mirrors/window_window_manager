@@ -141,7 +141,7 @@ void DisplayAniUtils::ConvertRoundedCorner(const std::vector<RoundedCorner>& rou
     env->Object_GetPropertyByName_Int(arrayObj, "length", &arrayObjLen);
     for (uint32_t i = 0; i < roundedCornerArray.size() && i < static_cast<uint32_t>(arrayObjLen); i++) {
         ani_ref obj;
-        env->Object_CallMethodByName_Ref(arrayObj, "$_get", "I:Lstd/core/Object;", &obj, (ani_int)i);
+        env->Object_CallMethodByName_Ref(arrayObj, "$_get", "i:Y", &obj, (ani_int)i);
         env->Object_SetFieldByName_Ref(static_cast<ani_object>(obj), Builder::BuildPropertyName("type").c_str(),
             DisplayAniUtils::CreateAniEnum(env, "@ohos.display.display.CornerType",
             static_cast<ani_size>(roundedCornerArray[i].type)));
@@ -848,7 +848,7 @@ ani_status DisplayAniUtils::GetStdStringVector(ani_env* env, ani_object arryObj,
     }
     for (int32_t i = 0; i< static_cast<int32_t>(length); i++) {
         ani_ref stringRef;
-        ret = env->Object_CallMethodByName_Ref(arryObj, "$_get", "I:Lstd/core/Object;", &stringRef, (ani_int)i);
+        ret = env->Object_CallMethodByName_Ref(arryObj, "$_get", "i:Y", &stringRef, (ani_int)i);
         if (ret != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] Get index: %{public}d element failed, status: %{public}d", (ani_int)i, ret);
             return ret;

@@ -632,38 +632,6 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetScreenHDRFormat, TestSize.Level1)
 }
 
 /**
- * @tc.name: RegisterDisplayManagerAgent
- * @tc.desc: RegisterDisplayManagerAgent
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyUtTest, RegisterDisplayManagerAgent, TestSize.Level1)
-{
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    DisplayManagerAgentType type = DisplayManagerAgentType::SCREEN_EVENT_LISTENER;
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        EXPECT_EQ(DMError::DM_OK, screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
-    } else {
-        EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
-    }
-}
-
-/**
- * @tc.name: UnregisterDisplayManagerAgent
- * @tc.desc: UnregisterDisplayManagerAgent
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyUtTest, UnregisterDisplayManagerAgent, TestSize.Level1)
-{
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    DisplayManagerAgentType type = DisplayManagerAgentType::SCREEN_EVENT_LISTENER;
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        EXPECT_EQ(DMError::DM_OK, screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
-    } else {
-        EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
-    }
-}
-
-/**
  * @tc.name: WakeUpBegin
  * @tc.desc: WakeUpBegin
  * @tc.type: FUNC

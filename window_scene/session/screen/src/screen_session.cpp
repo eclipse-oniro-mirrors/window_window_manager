@@ -143,13 +143,15 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
 
 void ScreenSession::ReuseDisplayNode(const RSDisplayNodeConfig& config)
 {
-    if (displayNode_) {
+    {
         std::unique_lock<std::shared_mutex> lock(displayNodeMutex_);
-        displayNode_->SetDisplayNodeMirrorConfig(config);
-        RSTransactionAdapter::FlushImplicitTransaction(displayNode_);
-    } else {
-        CreateDisplayNode(config);
+        if (displayNode_) {
+            displayNode_->SetDisplayNodeMirrorConfig(config);
+            RSTransactionAdapter::FlushImplicitTransaction(displayNode_);
+            return;
+        }
     }
+    CreateDisplayNode(config);
 }
 
 ScreenSession::~ScreenSession()
@@ -3042,6 +3044,39 @@ void ScreenSession::SetScreenOffScreenRendering()
         TLOGD(WmsLogTag::DMS, "screen mirror change.");
         offWidth = GetScreenProperty().GetScreenRealWidth();
         offHeight = GetScreenProperty().GetScreenRealHeight();
+    }
+    int32_t res = RSInterfaces::GetInstance().SetPhysicalScreenResolution(rsId_, offWidth, offHeight);
+    if (GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
+        SetFrameGravity(Rosen::Gravity::TOP_LEFT);
+    } else {
+        SetFrameGravity(Rosen::Gravity::RESIZE);
+        PropertyChange(GetScreenProperty(), ScreenPropertyChangeReason::UNDEFINED);
+    }
+    std::string offScreenResult = (res == StatusCode::SUCCESS) ? "success" : "failed";
+    TLOGW(WmsLogTag::DMS, "rsId=%{public}" PRIu64" offScreen width=%{public}u height=%{public}u %{public}s",
+        rsId_, offWidth, offHeight, offScreenResult.c_str());
+}
+
+void ScreenSession::SetExtendPhysicalScreenResolution(bool offScreenRenderValue)
+{
+    TLOGD(WmsLogTag::DMS, "screen extend Physical Screen Resolution come in.");
+    if (GetIsInternal()) {
+        TLOGW(WmsLogTag::DMS, "screen is internal");
+        return;
+    }
+    uint32_t offWidth = 0;
+    uint32_t offHeight = 0;
+    if (offScreenRenderValue) {
+        offWidth = property_.GetBounds().rect_.GetWidth();
+        offHeight = property_.GetBounds().rect_.GetHeight();
+    } else {
+        offWidth = property_.GetPhyBounds().rect_.GetWidth();
+        offHeight = property_.GetPhyBounds().rect_.GetHeight();
+    }
+    if (GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
+        TLOGW(WmsLogTag::DMS, "screen mirror change.");
+        offWidth = property_.GetScreenRealWidth();
+        offHeight = property_.GetScreenRealHeight();
     }
     int32_t res = RSInterfaces::GetInstance().SetPhysicalScreenResolution(rsId_, offWidth, offHeight);
     if (GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
