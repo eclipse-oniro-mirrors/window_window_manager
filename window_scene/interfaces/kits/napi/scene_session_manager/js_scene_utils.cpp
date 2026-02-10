@@ -724,6 +724,8 @@ bool ConvertProcessOptionFromJs(napi_env env, napi_value jsObject,
     napi_get_named_property(env, jsObject, "processMode", &jsProcessMode);
     napi_value jsStartupVisibility = nullptr;
     napi_get_named_property(env, jsObject, "startupVisibility", &jsStartupVisibility);
+    napi_value jsIsPreloadStart = nullptr;
+    napi_get_named_property(env, jsObject, "isPreloadStart", &jsIsPreloadStart);
 
     int32_t processMode;
     if (!ConvertFromJsValue(env, jsProcessMode, processMode)) {
@@ -736,8 +738,15 @@ bool ConvertProcessOptionFromJs(napi_env env, napi_value jsObject,
         WLOGFE("Failed to convert parameter to startupVisibility");
         return false;
     }
+
+    bool isPreloadStart;
+    if (!ConvertFromJsValue(env, jsIsPreloadStart, isPreloadStart)) {
+        WLOGFE("Failed to convert parameter to isPreloadStart");
+        return false;
+    }
     processOptions->processMode = static_cast<AAFwk::ProcessMode>(processMode);
     processOptions->startupVisibility = static_cast<AAFwk::StartupVisibility>(startupVisibility);
+    processOptions->isPreloadStart = isPreloadStart;
 
     return true;
 }
@@ -816,9 +825,11 @@ napi_value CreateJsProcessOption(napi_env env, std::shared_ptr<AAFwk::ProcessOpt
 
     int32_t processMode = static_cast<int32_t>(processOptions->processMode);
     int32_t startupVisibility = static_cast<int32_t>(processOptions->startupVisibility);
+    bool isPreloadStart = processOptions->isPreloadStart;
 
     napi_set_named_property(env, objValue, "processMode", CreateJsValue(env, processMode));
     napi_set_named_property(env, objValue, "startupVisibility", CreateJsValue(env, startupVisibility));
+    napi_set_named_property(env, objValue, "isPreloadStart", CreateJsValue(env, isPreloadStart));
 
     return objValue;
 }
