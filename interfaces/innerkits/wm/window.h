@@ -4777,7 +4777,7 @@ public:
      * @param source 0 - default, 1 - arkui.
      * @return WM_OK means set success.
      */
-    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_OK; }
 
     /**
      * @brief Set the frameRect in a partial zoom-in scene.
