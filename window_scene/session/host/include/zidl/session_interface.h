@@ -618,7 +618,7 @@ public:
     * @param source source
     * @return Returns WSError::WS_OK if called success, otherwise failed.
     */
-    virtual WSError SetSubWindowSource(SubWindowSource source) { return WSError::WS_OK; }
+    virtual WSError SetSubWindowSource(SubWindowSource source) { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
      * @brief Set the frameRect in a partial zoom-in scene.

@@ -10233,7 +10233,7 @@ WSError SceneSession::SetSubWindowSource(SubWindowSource source)
         } else {
             TLOGNE(WmsLogTag::WMS_SUB, "func is null");
         }
-    }, __func__);
+        }, __func__);
     return WSError::WS_OK;
 }
 
