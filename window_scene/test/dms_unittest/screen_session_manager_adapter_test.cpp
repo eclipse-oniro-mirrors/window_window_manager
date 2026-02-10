@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "screen_session_manager_adapter.h"
+#include "scene_board_judgement.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -26,7 +27,7 @@ namespace {
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
-        g_errLog = msg;
+        g_errLog += msg;
     }
 }
 class ScreenSessionManagerAdapterTest : public testing::Test {
@@ -66,6 +67,9 @@ HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange01_DisplayInfo_Nullptr,
  */
 HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange01_Agents_Null, TestSize.Level1)
 {
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     sptr<DisplayInfo> displayInfo = new DisplayInfo();
     DisplayChangeEvent event = DisplayChangeEvent::UNKNOWN;
     int32_t uid = 1000;
@@ -192,6 +196,9 @@ HWTEST_F(ScreenSessionManagerAdapterTest, OnScreenChange_ScreenInfos_Nullptr, Te
  */
 HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayCreate_DisplayInfo_Nullptr, TestSize.Level1)
 {
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     sptr<DisplayInfo> displayInfo = nullptr;
     ScreenSessionManagerAdapter adapter;
     adapter.OnDisplayCreate(displayInfo);
