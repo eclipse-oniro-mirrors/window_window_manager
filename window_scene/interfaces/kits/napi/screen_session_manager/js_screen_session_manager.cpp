@@ -705,7 +705,7 @@ void JsScreenSessionManager::RegisterTentModeCallback(napi_env env, napi_ref& ca
 }
 
 bool JsScreenSessionManager::ObtainCallBackInfo(napi_env env, const napi_callback_info info,
-    const std::string& callbackType, napi_ref& callbackRef)
+    std::string& callbackType, napi_ref& callbackRef)
 {
     TLOGI(WmsLogTag::DMS, "[NAPI] begin");
     size_t argc = 4;

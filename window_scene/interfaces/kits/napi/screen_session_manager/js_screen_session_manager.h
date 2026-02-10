@@ -123,7 +123,7 @@ private:
 
     napi_value OnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
     bool ObtainCallBackInfo(napi_env env, const napi_callback_info info,
-        const std::string& callbackType, napi_ref& callbackRef);
+        std::string& callbackType, napi_ref& callbackRef);
     bool CheckAndTransState(ScbScreenPowerState state, ScreenPowerState& screenState);
 
     std::shared_ptr<NativeReference> screenConnectionCallback_;
