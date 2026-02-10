@@ -631,23 +631,6 @@ void JsWindowListener::OnWaterMarkFlagUpdate(bool showWaterMark)
     }
 }
 
-void JsWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
-{
-    auto jsCallback = [self = weakRef_, isVisible, eng = env_] {
-        auto thisListener = self.promote();
-        if (thisListener == nullptr || eng == nullptr) {
-            WLOGFE("This listener or eng is nullptr");
-            return;
-        }
-        napi_value argv[] = { CreateJsValue(eng, isVisible) };
-        thisListener->CallJsMethod(WINDOW_VISIBILITY_CHANGE_CB.c_str(), argv, ArraySize(argv));
-    };
-    napi_status status = napi_send_event(env_, jsCallback, napi_eprio_high, "OnWindowVisibilityChangedCallback");
-    if (status != napi_status::napi_ok) {
-        TLOGE(WmsLogTag::WMS_IMMS, "Failed to send event");
-    }
-}
-
 void JsWindowListener::SetTimeout(int64_t timeout)
 {
     noInteractionTimeout_ = timeout;
@@ -764,6 +747,23 @@ void JsWindowListener::OnAcrossDisplaysChanged(bool isAcrossDisplays)
     };
     if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnAcrossDisplaysChanged") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to send event");
+    }
+}
+
+void JsWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
+{
+    auto jsCallback = [self = weakRef_, isVisible, eng = env_] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || eng == nullptr) {
+            WLOGFE("This listener or eng is nullptr");
+            return;
+        }
+        napi_value argv[] = { CreateJsValue(eng, isVisible) };
+        thisListener->CallJsMethod(WINDOW_VISIBILITY_CHANGE_CB.c_str(), argv, ArraySize(argv));
+    };
+    napi_status status = napi_send_event(env_, jsCallback, napi_eprio_high, "OnWindowVisibilityChangedCallback");
+    if (status != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_IMMS, "Failed to send event");
     }
 }
 

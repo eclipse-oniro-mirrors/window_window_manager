@@ -47,8 +47,8 @@ CutoutInfo *CutoutInfo::Unmarshalling(Parcel& parcel)
 {
     WaterfallDisplayAreaRects waterfallDisplayAreaRects;
     std::vector<DMRect> boundingRects;
-    ReadWaterfallDisplayAreaRects(waterfallDisplayAreaRects, parcel);
-    ReadBoundingRectsVector(boundingRects, parcel);
+    static_cast<void>(ReadWaterfallDisplayAreaRects(waterfallDisplayAreaRects, parcel));
+    static_cast<void>(ReadBoundingRectsVector(boundingRects, parcel));
     CutoutInfo *cutoutInfo = new CutoutInfo(boundingRects, waterfallDisplayAreaRects);
     return cutoutInfo;
 }
