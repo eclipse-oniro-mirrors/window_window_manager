@@ -437,7 +437,7 @@ struct AbilityInfoBase : public Parcelable {
                parcel.WriteString(abilityName) &&
                parcel.WriteInt32(appIndex);
     }
-
+ 
     /**
      * @brief Unmarshalling AbilityInfoBase.
      *
@@ -456,17 +456,17 @@ struct AbilityInfoBase : public Parcelable {
         }
         return info;
     }
-
+ 
     bool IsValid() const
     {
         return !bundleName.empty() && !moduleName.empty() && !abilityName.empty() && appIndex >= 0;
     }
-
+ 
     std::string ToKeyString() const
     {
         return bundleName + "_" + moduleName + "_" + abilityName + "_" + std::to_string(appIndex);
     }
-
+ 
     std::string bundleName;
     std::string moduleName;
     std::string abilityName;
