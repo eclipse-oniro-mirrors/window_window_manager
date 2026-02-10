@@ -523,7 +523,7 @@ bool MoveDragController::HandleMoveEnd(const std::shared_ptr<MMI::PointerEvent>&
     moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
     DisplayId lastHotAreaDisplayId = hotAreaDisplayId_;
     UpdateHotAreaType(pointerEvent);
-    ProcessWindowDragHotAreaFunc(windowDragHotAreaType_ != WINDOW_HOT_AREA_TYPE_UNDEFINED, SizeChangeReason::DRAG_END);
+    ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, lastHotAreaDisplayId, SizeChangeReason::DRAG_END);
     windowDragHotAreaType_ = WINDOW_HOT_AREA_TYPE_UNDEFINED;
     ProcessMoveRectUpdate(pointerEvent, SizeChangeReason::DRAG_END);
     // The Pointer up event sent to the ArkUI.
