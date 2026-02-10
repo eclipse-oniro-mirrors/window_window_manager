@@ -271,10 +271,7 @@ void MainSession::ClearSnapshotPersistence()
         }
         TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s, %{public}d", where, session->GetPersistentId());
         session->DeletePersistentImageFit();
-        for (uint32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
-            session->DeleteHasSnapshot(screenStatus);
-        }
-        session->DeleteHasSnapshotFreeMultiWindow();
+        session->DeleteHasSnapshot();
     };
     auto snapshotFfrtHelper = scenePersistence_->GetSnapshotFfrtHelper();
     std::string taskName = "ClearSnapshotPersistence" + std::to_string(GetPersistentId());
