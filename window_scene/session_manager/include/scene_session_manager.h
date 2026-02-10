@@ -789,7 +789,7 @@ public:
         sptr<WindowSessionProperty> property = nullptr);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
     WSError RequestSceneSessionActivation(const sptr<SceneSession>& sceneSession, bool isNewActive,
-        int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID);
+        bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID);
     WSError RequestSceneSessionBackground(const sptr<SceneSession>& sceneSession, const bool isDelegator = false,
         const bool isToDesktop = false, const bool isSaveSnapshot = true,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
@@ -1170,7 +1170,7 @@ private:
 
     void PerformRegisterInRequestSceneSession(sptr<SceneSession>& sceneSession);
     WSError RequestSceneSessionActivationInner(sptr<SceneSession>& sceneSession, bool isNewActive,
-        int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID) REQUIRES(SCENE_GUARD);
+        bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID) REQUIRES(SCENE_GUARD);
     WSError SetBrightness(const sptr<SceneSession>& sceneSession, float brightness);
     void PostBrightnessTask(float brightness);
     WSError UpdateBrightness(int32_t persistentId);

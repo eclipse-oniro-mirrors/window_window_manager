@@ -332,17 +332,17 @@ napi_value JsRootSceneSession::CreatePendingInfosNapiValue(
     napi_env env, const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
     const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs)
 {
+    if (configs.empty()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "configs is empty");
+        return CreateSessionInfosNapiValue(env, sessionInfos);
+    }
+
     napi_value arrayValue = nullptr;
     napi_create_array_with_length(env, sessionInfos.size(), &arrayValue);
  
     if (arrayValue == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi array");
         return NapiGetUndefined(env);
-    }
-
-    if (configs.empty()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "configs is empty");
-        return CreateSessionInfosNapiValue(env, sessionInfos);
     }
 
     if (sessionInfos.size() != configs.size()) {

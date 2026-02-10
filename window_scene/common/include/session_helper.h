@@ -147,7 +147,7 @@ public:
         int32_t bottomCornerTouch = rect.height_ - insideCornerTouch;
         int32_t bottomIn = rect.height_ - insideEdge;
         int32_t bottomOut = rect.height_ + outside;
-
+ 
         auto isInRange = [](int32_t min, int32_t max, int32_t value) { return min <= value && value <= max; };
         auto isInRect = [pointWinX, pointWinY, &isInRange](int32_t xMin, int32_t xMax, int32_t yMin, int32_t yMax) {
             return isInRange(xMin, xMax, pointWinX) && isInRange(yMin, yMax, pointWinY);
@@ -207,9 +207,9 @@ public:
         int32_t rightOut = rect.width_ + outside;
         int32_t topOut = -outside;
         int32_t bottomOut = rect.height_ + outside;
-
+ 
         auto isInRange = [](int32_t min, int32_t max, int32_t value) { return min <= value && value <= max; };
-
+ 
         AreaType type;
         if (isInRange(leftOut, rightOut / HALF, pointWinX) &&
             isInRange(topOut, bottomOut / HALF, pointWinY)) {

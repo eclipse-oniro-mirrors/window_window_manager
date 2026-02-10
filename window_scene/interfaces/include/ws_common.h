@@ -26,8 +26,8 @@
 
 #include <iremote_broker.h>
 #include <want.h>
-#include "pixel_map.h"
 #include "wm_animation_common.h"
+#include "pixel_map.h"
 
 namespace OHOS::AAFwk {
 class AbilityStartSetting;
@@ -374,8 +374,8 @@ enum class StartWindowType : uint32_t {
 
 enum class SpecifiedReason : int32_t {
     DEFAULT = 0,
-    BY_SCB,
-    FROM_RENCENT,
+    FROM_ICON,
+    FROM_RECENT,
 };
 
 struct AtomicServiceInfo {
@@ -1319,9 +1319,6 @@ enum class SnapShotRecoverType : uint32_t {
     EXIT_SPLIT_ON_BACKGROUND = 1,
 };
 
-/**
- * Adding or modifying enumeration values requires corresponding changes on the sceneboard side.
- */
 enum class LifeCycleChangeReason {
     DEFAULT = 0,
 
