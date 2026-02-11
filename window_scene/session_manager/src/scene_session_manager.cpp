@@ -446,6 +446,7 @@ void SceneSessionManager::Init()
     openDebugTrace_ = std::atoi((system::GetParameter("persist.sys.graphic.openDebugTrace", "0")).c_str()) != 0;
     isKeyboardPanelEnabled_ = system::GetParameter("persist.sceneboard.keyboardPanel.enabled", "1")  == "1";
     isTrayAppForeground_ = system::GetParameter("persist.window.tray_foreground", "") == "true";
+    isSupportPcAppInPhone_ = system::GetParameter("const.window.device_feature_support_type", "0") == "1";
 
     // window recover
     RegisterSessionRecoverStateChangeListener();
@@ -2454,30 +2455,40 @@ void SceneSessionManager::ConfigDockAutoHide(bool isDockAutoHide) {
     return taskScheduler_->PostAsyncTask(task, "ConfigDockAutoHide");
 }
 
-void SceneSessionManager::SchedulePcAppInPadLifecycle(bool isBackground)
+void SceneSessionManager::SchedulePcAppInPadLifecycle(bool isBackground, int32_t persistentId)
 {
-    auto task = [this, isBackground] {
-        std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
-        {
-            std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-            sceneSessionMapCopy = sceneSessionMap_;
+    if (persistentId != INVALID_SESSION_ID) {
+        SchedulePcAppInPadLifecycleByPersistentId(isBackground, persistentId);
+        return;
+    }
+    std::map<int32_t, sptr<SceneSession>> sceneSessionMapCopy;
+    {
+        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+        sceneSessionMapCopy = sceneSessionMap_;
+    }
+    for (const auto& [persistentId, sceneSession] : sceneSessionMapCopy) {
+        SchedulePcAppInPadLifecycleByPersistentId(isBackground, persistentId);
+    }
+}
+
+void SceneSessionManager::SchedulePcAppInPadLifecycleByPersistentId(bool isBackground, int32_t persistentId)
+{
+    auto task = [this, isBackground, persistentId] {
+        auto sceneSession = GetSceneSession(persistentId);
+        if (sceneSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "session is null");
+            return;
         }
-        for (const auto& [_, sceneSession] : sceneSessionMapCopy) {
-            if (sceneSession == nullptr) {
-                TLOGE(WmsLogTag::WMS_LIFE, "session is null");
-                continue;
-            }
-            if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
-                continue;
-            }
-            bool isPcAppInPad = sceneSession->GetSessionProperty()->GetIsPcAppInPad();
-            if (!isPcAppInPad) {
-                continue;
-            }
-            StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground);
+        if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
+            return;
         }
+        bool isPcAppInPad = sceneSession->GetSessionProperty()->GetIsPcAppInPad();
+        if (!isPcAppInPad) {
+            return;
+        }
+        StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground);
     };
-    return taskScheduler_->PostAsyncTask(task, "SchedulePcAppInPadLifecycle");
+    return taskScheduler_->PostAsyncTask(task, __func__);
 }
 
 WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground)
@@ -2491,7 +2502,7 @@ WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<
     bool isTrayApp = !trayAppList_.empty() && 
                      std::find(trayAppList_.begin(), trayAppList_.end(), sceneSession->GetSessionInfo().bundleName_) !=
                      trayAppList_.end();
-    if (isTrayApp) {
+    if (isTrayApp && !isSupportPcAppInPhone_) {
         return WSError::WS_DO_NOTHING;
     }
     auto persistentId = sceneSession->GetPersistentId();
@@ -3823,7 +3834,7 @@ bool SceneSessionManager::IsPcSceneSessionLifecycle(const sptr<SceneSession>& sc
         (isPcAppInPad && !isScreenLock && !systemConfig_.IsPhoneWindow())) {
         return true;
     }
-    if (isTrayAppForeground_ && isPcAppInPad) {
+    if ((isTrayAppForeground_ || isSupportPcAppInPhone_) && isPcAppInPad) {
         TLOGI(WmsLogTag::WMS_PC, "isPcAppInPad check trayApp success");
         return true;
     }

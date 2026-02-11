@@ -154,6 +154,7 @@ public:
     static napi_value GetWindowLimits(napi_env env, napi_callback_info info);
     static napi_value SetIsDockAutoHide(napi_env env, napi_callback_info info);
     static napi_value SetTrayAppListInfo(napi_env env, napi_callback_info info);
+    static napi_value HandlePcAppStatus(napi_env env, napi_callback_info info);
 
     /*
      * Multi Instance
@@ -327,6 +328,7 @@ private:
      */
     napi_value OnInitUserInfo(napi_env env, napi_callback_info info);
     napi_value OnHandleUserSwitch(napi_env env, napi_callback_info info);
+    napi_value OnHandlePcAppStatus(napi_env env, napi_callback_info info);
 
     void OnRootSceneBackEvent();
     void OnStatusBarEnabledUpdate(bool enable, const std::string& bundleName);
