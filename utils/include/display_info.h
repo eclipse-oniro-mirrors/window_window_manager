@@ -33,7 +33,7 @@ public:
     ~DisplayInfo() = default;
     WM_DISALLOW_COPY_AND_MOVE(DisplayInfo);
 
-    bool Marshalling(Parcel& parcel) const override;
+    virtual bool Marshalling(Parcel& parcel) const override;
     static DisplayInfo *Unmarshalling(Parcel& parcel);
 
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(std::string, Name, name, "");
