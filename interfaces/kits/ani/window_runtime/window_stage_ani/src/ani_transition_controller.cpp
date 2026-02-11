@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <ani_signature_builder.h>
 #include "ani_transition_controller.h"
 #include "ani_window_utils.h"
 #include "window_helper.h"
@@ -23,6 +24,7 @@
 namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
+using namespace arkts::ani_signature;
 
 AniTransitionContext::AniTransitionContext(sptr<Window> window, bool isShownTransContext)
     : windowToken_(window), isShownTransContext_(isShownTransContext)
@@ -131,7 +133,8 @@ ani_object AniTransitionContext::CreateAniObj(ani_env* env, ani_ref aniWindowObj
     }
     env->Object_CallMethod_Void(obj, objFunc, reinterpret_cast<ani_long>(transContext.release()));
     if (aniWindowObj != nullptr) {
-        ret = AniWindowUtils::CallAniMethodVoid(env, obj, cls, "<set>toWindow", nullptr, aniWindowObj);
+        ret = AniWindowUtils::CallAniMethodVoid(env, obj, cls, Builder::BuildSetterName("toWindow").c_str(),
+            nullptr, aniWindowObj);
         if (ret != ANI_OK) {
             TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Set toWindow value failed %{public}u", ret);
             return nullptr;
