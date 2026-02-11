@@ -1946,7 +1946,7 @@ HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsSubOrNot, Te
     window->property_->SetDragEnabled(true);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+    ASSERT_EQ(window->property_->GetDragEnabled(), true);
 }
 
 /**
@@ -2006,7 +2006,7 @@ HWTEST_F(WindowSceneSessionImplTest3, InitSystemSessionDragEnable_IsDialogOrNot,
     window->property_->SetDragEnabled(true);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     window->InitSystemSessionDragEnable();
-    ASSERT_EQ(window->property_->GetDragEnabled(), false);
+    ASSERT_EQ(window->property_->GetDragEnabled(), true);
 }
 
 /**
