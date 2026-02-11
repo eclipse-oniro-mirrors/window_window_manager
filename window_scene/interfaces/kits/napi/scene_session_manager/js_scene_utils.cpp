@@ -729,19 +729,19 @@ bool ConvertProcessOptionFromJs(napi_env env, napi_value jsObject,
 
     int32_t processMode;
     if (!ConvertFromJsValue(env, jsProcessMode, processMode)) {
-        WLOGFE("Failed to convert parameter to processMode");
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert parameter to processMode");
         return false;
     }
 
     int32_t startupVisibility;
     if (!ConvertFromJsValue(env, jsStartupVisibility, startupVisibility)) {
-        WLOGFE("Failed to convert parameter to startupVisibility");
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert parameter to startupVisibility");
         return false;
     }
 
     bool isPreloadStart;
     if (!ConvertFromJsValue(env, jsIsPreloadStart, isPreloadStart)) {
-        WLOGFE("Failed to convert parameter to isPreloadStart");
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert parameter to isPreloadStart");
         return false;
     }
     processOptions->processMode = static_cast<AAFwk::ProcessMode>(processMode);
