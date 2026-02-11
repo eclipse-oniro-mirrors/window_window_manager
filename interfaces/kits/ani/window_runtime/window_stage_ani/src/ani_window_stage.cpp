@@ -192,7 +192,7 @@ ani_object AniWindowStage::GetSubWindow(ani_env* env, ani_object obj, ani_long n
     }
     return aniWindowStage->OnGetSubWindow(env);
 }
-
+ 
 ani_object AniWindowStage::OnGetSubWindow(ani_env* env)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");
@@ -203,14 +203,14 @@ ani_object AniWindowStage::OnGetSubWindow(ani_env* env)
     }
     std::vector<sptr<Window>> subWindowVec = windowScene->GetSubWindow();
     TLOGI(WmsLogTag::WMS_LIFE, "Get sub windows, size = %{public}zu", subWindowVec.size());
-
+ 
     std::vector<ani_ref> windows(subWindowVec.size());
     for (size_t i = 0; i < subWindowVec.size(); i++) {
         windows[i] = CreateAniWindowObject(env, subWindowVec[i]);
     }
     return AniWindowUtils::CreateAniWindowsArray(env, windows);
 }
-
+ 
 ani_object AniWindowStage::CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
     ani_string name, ani_object options)
 {
@@ -223,7 +223,7 @@ ani_object AniWindowStage::CreateSubWindowWithOptions(ani_env* env, ani_object o
         return AniWindowUtils::CreateAniUndefined(env);
     }
 }
-
+ 
 ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string name, ani_object options)
 {
     auto windowScene = GetWindowScene().lock();
@@ -251,7 +251,7 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         return AniWindowUtils::CreateAniUndefined(env);
     }
-
+ 
     if (windowOption->GetWindowTopmost() && !Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::WMS_SUB, "Modal subWindow has topmost, but no system permission");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);

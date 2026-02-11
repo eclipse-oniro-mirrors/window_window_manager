@@ -871,9 +871,9 @@ public:
     void RegisterGetStartWindowConfigCallback(const sptr<SceneSession>& sceneSession);
     void RegisterUpdateKioskAppListCallback(UpdateKioskAppListFunc&& func);
     void RegisterKioskModeChangeCallback(KioskModeChangeFunc&& func);
-    bool IsAppBoundSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey);
-    void UpdateAppBoundSystemTrayStatus(const std::string &key, int32_t pid, bool enabled);
-    void RegisterIsAppBoundSystemTrayFunc(const sptr<SceneSession>& sceneSession);
+    bool IsSessionBoundedSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey);
+    void UpdateAppBoundSystemTrayStatus(const std::string &callingTokenInstanceKey, int32_t pid, bool enabled);
+    void RegisterIsSessionBoundedSystemTrayFunc(const sptr<SceneSession>& sceneSession);
     void RegisterMinimizeAllCallback(MinimizeAllFunc&& func);
 
     /*
@@ -1037,6 +1037,7 @@ private:
         const std::vector<int32_t>& windowIds, const sptr<IRemoteObject>& callback);
     void RegisterWindowStateErrorCallbackToMMI();
     void MoveStartLifeCycleTask(const sptr<SceneSession>& sceneSession);
+    std::mutex appsWithBoundSystemTrayMapMutex_;
     std::unordered_map<std::string, std::unordered_set<int32_t>> appsWithBoundSystemTrayMap_;
     MinimizeAllFunc minimizeAllFunc_;
 
@@ -1463,8 +1464,8 @@ private:
     void ProcessFocusWhenForegroundScbCore(sptr<SceneSession>& sceneSession);
     void ProcessSubSessionForeground(sptr<SceneSession>& sceneSession);
     void ProcessSubSessionBackground(sptr<SceneSession>& sceneSession);
-    sptr<SceneSession> FindSessionByToken(const sptr<IRemoteObject>& token,
-        WindowType type = WindowType::APP_MAIN_WINDOW_BASE);
+    sptr<SceneSession> FindSessionByToken(
+        const sptr<IRemoteObject>& token, WindowType type = WindowType::APP_MAIN_WINDOW_BASE);
 
     void CheckAndNotifyWaterMarkChangedResult();
     WSError NotifyWaterMarkFlagChangedResult(bool hasWaterMark);

@@ -129,18 +129,15 @@ HWTEST_F(WindowSessionImplTest5, NotifyBeforeDestroy, TestSize.Level1)
 {
     auto window = GetTestWindowImpl("NotifyBeforeDestroy");
     ASSERT_NE(window, nullptr);
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     window->NotifyBeforeDestroy(window->GetWindowName());
     EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
 
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetIsUIExtFirstSubWindow(false);
     window->NotifyBeforeDestroy(window->GetWindowName());
     EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
 
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetIsUIExtFirstSubWindow(true);
     window->NotifyBeforeDestroy(window->GetWindowName());

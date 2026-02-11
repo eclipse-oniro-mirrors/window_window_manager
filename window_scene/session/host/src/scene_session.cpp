@@ -166,10 +166,6 @@ SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCa
 SceneSession::~SceneSession()
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
-    // exclude when user deletes session in recent.
-    if (SessionHelper::IsMainWindow(GetWindowType()) && notifySceneSessionDestructFunc_ && !isUserRequestedExit_) {
-        notifySceneSessionDestructFunc_(GetPersistentId());
-    }
 }
 
 WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
@@ -1491,7 +1487,6 @@ bool SceneSession::HasChildSessionInPrivacyMode()
 {
     for (const auto& subSession : GetSubSession()) {
         if (subSession == nullptr) {
-            TLOGW(WmsLogTag::WMS_LIFE, "subSession is nullptr");
             continue;
         }
         auto property = subSession->GetSessionProperty();
@@ -6155,7 +6150,7 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
 static void SetAtomicServiceInfo(SessionInfo& sessionInfo)
 {
 #ifdef ACE_ENGINE_PLUGIN_PATH
-    AtomicServiceInfo* atomicServiceInfo = AtomicServiceBasicEnginePlugin::GetInstance().
+    auto atomicServiceInfo = AtomicServiceBasicEnginePlugin::GetInstance().
         GetParamsFromAtomicServiceBasicEngine(sessionInfo.bundleName_);
     if (atomicServiceInfo == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Get atomicService info failed, bundleName:%{public}s.",
@@ -6207,7 +6202,6 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
     info.canStartAbilityFromBackground_ = abilitySessionInfo->canStartAbilityFromBackground;
     info.isFoundationCall_ = isFoundationCall;
     info.specifiedFlag_ = abilitySessionInfo->specifiedFlag;
-    info.reuseDelegatorWindow = abilitySessionInfo->reuseDelegatorWindow;
     info.isTargetPlugin = abilitySessionInfo->isTargetPlugin;
     info.hostBundleName = abilitySessionInfo->hostBundleName;
     info.hostAppIndex = session->GetSessionInfo().appIndex_;
@@ -6244,36 +6238,25 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         info.fullScreenStart_ = true;
     }
     info.scenarios = abilitySessionInfo->scenarios;
-    session->CalculatedStartWindowType(info, abilitySessionInfo->hideStartWindow);
-    if (abilitySessionInfo->windowCreateParams) {
-        if (abilitySessionInfo->windowCreateParams->animationSystemParams &&
-            SessionPermission::IsSystemAppCallByCallingTokenID(info.callingTokenId_)) {
-            info.startAnimationSystemOptions = abilitySessionInfo->windowCreateParams->animationSystemParams;
-        }
-        info.startAnimationOptions = abilitySessionInfo->windowCreateParams->animationParams;
-    }
-    info.isPrelaunch_ = abilitySessionInfo->isPrelaunch;
-    info.frameNum_ = abilitySessionInfo->frameNum;
+    session->CalculateStartWindowType(info, abilitySessionInfo->hideStartWindow);
+    info.windowCreateParams = abilitySessionInfo->windowCreateParams;
     TLOGI(WmsLogTag::WMS_LIFE, "bundleName:%{public}s, moduleName:%{public}s, abilityName:%{public}s,"
         "appIndex:%{public}d, affinity:%{public}s. callState:%{public}d, want persistentId:%{public}d,"
         "uiAbilityId:%{public}" PRIu64 ", windowMode:%{public}d, callerId:%{public}d,"
         "needClearInNotShowRecent:%{public}u, appInstanceKey: %{public}s,"
         "supportedWindowModes.size:%{public}zu, requestId:%{public}d,"
-        "maxWindowWidth:%{public}d, minWindowWidth:%{public}d, maxWindowHeight:%{public}d, minWindowHeight:%{public}d,"
-        "reuseDelegatorWindow:%{public}d, startWindowType:%{public}d, isPrelaunch:%{public}d, frameNum:%{public}d,"
-        "isTargetPlugin:%{public}d, hostBundleName:%{public}s",
+        "maxWindowWidth:%{public}d, minWindowWidth:%{public}d, maxWindowHeight:%{public}d, minWindowHeight:%{public}d, "
+        "startWindowType:%{public}d",
         info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(), info.appIndex_,
         info.sessionAffinity.c_str(), info.callState_, info.persistentId_, info.uiAbilityId_, info.windowMode,
         info.callerPersistentId_, info.needClearInNotShowRecent_, info.appInstanceKey_.c_str(),
         info.supportedWindowModes.size(), info.requestId,
         info.windowSizeLimits.maxWindowWidth, info.windowSizeLimits.minWindowWidth,
-        info.windowSizeLimits.maxWindowHeight, info.windowSizeLimits.minWindowHeight,
-        info.reuseDelegatorWindow, info.startWindowType_, info.isPrelaunch_, info.frameNum_,
-        info.isTargetPlugin, info.hostBundleName.c_str());
+        info.windowSizeLimits.maxWindowHeight, info.windowSizeLimits.minWindowHeight, info.startWindowType_);
     return info;
 }
 
-void SceneSession::CalculatedStartWindowType(SessionInfo& info, bool hideStartWindow)
+void SceneSession::CalculateStartWindowType(SessionInfo& info, bool hideStartWindow)
 {
     if (getStartWindowConfigFunc_ == nullptr || GetSessionInfo().bundleName_ != info.bundleName_) {
         TLOGI(WmsLogTag::WMS_LIFE, "only same app in pc or pcMode.");
@@ -6328,6 +6311,9 @@ WSError SceneSession::PendingSessionActivation(const sptr<AAFwk::SessionInfo> ab
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
         session->sessionInfo_.startMethod = StartMethod::START_CALL;
+        session->sessionInfo_.reuseDelegatorWindow = abilitySessionInfo->reuseDelegatorWindow;
+        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s set reuseDelegatorWindow %{public}d", where,
+            session->sessionInfo_.reuseDelegatorWindow);
         SessionInfo info = MakeSessionInfoDuringPendingActivation(abilitySessionInfo, session, isFoundationCall);
         if (MultiInstanceManager::IsSupportMultiInstance(session->systemConfig_) &&
             MultiInstanceManager::GetInstance().IsMultiInstance(info.bundleName_)) {
@@ -6339,12 +6325,14 @@ WSError SceneSession::PendingSessionActivation(const sptr<AAFwk::SessionInfo> ab
             }
         }
         session->HandleCastScreenConnection(info, session);
-        if (info.reuseDelegatorWindow) {
+        if (session->sessionInfo_.reuseDelegatorWindow) {
             if (!session->hookSceneSessionActivationFunc_) {
                 TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s hookSceneSessionActivationFunc is null, id: %{public}d",
                     where, session->persistentId_);
                 return WSError::WS_ERROR_NULLPTR;
             }
+            TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s hookSceneSessionActivationFunc execute, id: %{public}d",
+                where, session->persistentId_);
             session->hookSceneSessionActivationFunc_(session, false);
             return WSError::WS_OK;
         }
@@ -6433,6 +6421,10 @@ WSError SceneSession::BatchPendingSessionsActivation(const std::vector<sptr<AAFw
         if (abilitySessionInfos.empty()) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s abilitySessionInfo is null", where);
             return WSError::WS_ERROR_NULLPTR;
+        }
+        if (session->sessionInfo_.reuseDelegatorWindow) {
+            TLOGE(WmsLogTag::WMS_LIFE, "%{public}s not support hook", where);
+            return WSError::WS_ERROR_INVALID_PARAM;
         }
         return session->DoBatchPendingSessionsActivation(abilitySessionInfos, session, isFoundationCall, configs);
     }, __func__);
@@ -9144,11 +9136,11 @@ void SceneSession::UnregisterSessionChangeListeners()
     PostTask([weakThis = wptr(this), where = __func__] {
         auto session = weakThis.promote();
         if (session == nullptr) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
+            WLOGFE("UnregisterSessionChangeListeners session is null");
             return;
         }
         session->Session::UnregisterSessionChangeListeners();
-    }, __func__);
+    }, "UnregisterSessionChangeListeners");
 }
 
 void SceneSession::SetVisibilityChangedDetectFunc(VisibilityChangedDetectFunc&& func)
@@ -10071,13 +10063,19 @@ WMError SceneSession::UpdateAcrossDisplaysChangeRegistered(bool isRegister)
 
 WMError SceneSession::NotifyDisableDelegatorChange()
 {
-    PostTask([weakThis = wptr(this), where = __func__] {
+    int32_t callingPid = IPCSkeleton::GetCallingPid();
+    PostTask([weakThis = wptr(this), callingPid, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return;
         }
-        TLOGNI(WmsLogTag::WMS_LIFE, "set session id %{public}d disableDelegator true", session->persistentId_);
+        if (callingPid != session->GetCallingPid()) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s premission denied, not call by the same process", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s set session id %{public}d disableDelegator true",
+            where, session->persistentId_);
         session->sessionInfo_.disableDelegator = true;
     }, __func__);
     return WMError::WM_OK;
@@ -10110,16 +10108,6 @@ void SceneSession::SetSidebarBlurMaximize(bool isMaximize)
     }
     sessionStage_->SetSidebarBlurStyleWithType(isMaximize ? SidebarBlurType::DEFAULT_MAXIMIZE :
         SidebarBlurType::DEFAULT_FLOAT);
-}
-
-void SceneSession::SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func)
-{
-    notifySceneSessionDestructFunc_ = std::move(func);
-}
-
-void SceneSession::SetIsUserRequestedExit(bool isUserRequestedExit)
-{
-    isUserRequestedExit_ = isUserRequestedExit;
 }
 
 void SceneSession::SetIsAncoForFloatingWindow(bool isAncoForFloatingWindow)
@@ -10511,10 +10499,10 @@ WMError SceneSession::SetSeparationTouchEnabled(const std::vector<int32_t>& para
     return WMError::WM_OK;
 }
 
-void SceneSession::RegisterIsAppBoundSystemTrayCallback(
+void SceneSession::RegisterIsSessionBoundedSystemTrayCallback(
     const std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>& callback)
 {
-    isAppBoundSystemTrayCallback_ = callback;
+    isSessionBoundedSystemTrayCallback_ = callback;
 }
 /*
  * Window Event end

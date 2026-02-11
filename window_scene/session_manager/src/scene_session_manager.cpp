@@ -3234,7 +3234,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     RegisterSessionExceptionFunc(sceneSession);
     RegisterVisibilityChangedDetectFunc(sceneSession);
     RegisterSaveSnapshotFunc(sceneSession);
-    RegisterIsAppBoundSystemTrayFunc(sceneSession);
+    RegisterIsSessionBoundedSystemTrayFunc(sceneSession);
     if (systemConfig_.IsPcOrPcMode()) {
         RegisterGetStartWindowConfigCallback(sceneSession);
     }
@@ -3658,10 +3658,8 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
  	    sceneSessionInfo->scenarios = SHOWABILITY_SCENARIOS;
  	}
     if (!systemConfig_.backgroundswitch || sceneSession->GetSessionProperty()->GetIsAppSupportPhoneInPc()) {
-        TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d] Begin StartUIAbility, system: %{public}u,"
- 	             "reuseDelegatorWindow %{public}d isShowAbility %{public}d", persistentId,
- 	        static_cast<uint32_t>(sceneSession->GetSessionInfo().isSystem_),
- 	        sceneSession->GetSessionInfo().reuseDelegatorWindow, isShowAbility);
+        TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d] Begin StartUIAbility, system: %{public}u", persistentId,
+            static_cast<uint32_t>(sceneSession->GetSessionInfo().isSystem_));
         if (sceneSession->GetSessionInfo().want != nullptr) {
             sceneSession->GetSessionInfo().want->RemoveParam("targetGrantBundleName");
         }
@@ -3902,7 +3900,7 @@ WSError SceneSessionManager::RegisterSaveSnapshotFunc(const sptr<SceneSession>& 
     return WSError::WS_OK;
 }
 
-void SceneSessionManager::RegisterIsAppBoundSystemTrayFunc(const sptr<SceneSession> &sceneSession)
+void SceneSessionManager::RegisterIsSessionBoundedSystemTrayFunc(const sptr<SceneSession> &sceneSession)
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "session is nullptr");
@@ -3912,9 +3910,9 @@ void SceneSessionManager::RegisterIsAppBoundSystemTrayFunc(const sptr<SceneSessi
         TLOGE(WmsLogTag::WMS_MAIN, "id: %{public}d is not main window", sceneSession->GetPersistentId());
         return;
     }
-    sceneSession->RegisterIsAppBoundSystemTrayCallback(
+    sceneSession->RegisterIsSessionBoundedSystemTrayCallback(
         [this](int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) {
-            return IsAppBoundSystemTray(callingPid, callingToken, instanceKey);
+            return IsSessionBoundedSystemTray(callingPid, callingToken, instanceKey);
         });
 }
 
@@ -19876,7 +19874,8 @@ void SceneSessionManager::UpdateAppBoundSystemTrayStatus(const std::string &key,
     }
 }
 
-bool SceneSessionManager::IsAppBoundSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)
+bool SceneSessionManager::IsSessionBoundedSystemTray(
+    int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)
 {
     std::string combinedKey = std::to_string(callingToken) + "-" + instanceKey;
     auto it = appsWithBoundSystemTrayMap_.find(combinedKey);

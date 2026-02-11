@@ -103,7 +103,7 @@ union WSColorParam {
 
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowSceneSessionImpl"};
-constexpr int32_t WINDOW_DETACH_TIMEOUT = 300;
+constexpr int32_t WINDOW_DETACH_TIMEOUT = 3000;
 constexpr int32_t WINDOW_LAYOUT_TIMEOUT = 30;
 constexpr int32_t WINDOW_PAGE_ROTATION_TIMEOUT = 2000;
 const std::string PARAM_DUMP_HELP = "-h";
@@ -361,7 +361,7 @@ WMError WindowSceneSessionImpl::GetParentSessionAndVerify(bool isToast, sptr<Win
             property_->GetWindowName().c_str(), GetType());
         return WMError::WM_ERROR_NULLPTR;
     }
-    return WindowSceneSessionImpl::VerifySubWindowLevel(false, parentSession);
+    return WindowSceneSessionImpl::VerifySubWindowLevel(isToast, parentSession);
 }
 
 WMError WindowSceneSessionImpl::VerifySubWindowLevel(bool isToast, const sptr<WindowSessionImpl>& parentSession)
@@ -2195,27 +2195,6 @@ void WindowSceneSessionImpl::SetDefaultProperty()
     }
 }
 
-void WindowSceneSessionImpl::ReleaseUIContentTimeoutCheck()
-{
-    handler_->PostTask(
-        [weakThis = wptr(this), where = __func__] {
-            auto window = weakThis.promote();
-            if (!window) {
-                TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s window is nullptr", where);
-                return;
-            }
-            auto uiContent = window->GetUIContentSharedPtr();
-            if (uiContent == nullptr) {
-                TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s id:%{public}d, uiContent is already destroy.",
-                    where, window->GetProperty()->GetPersistentId());
-                return;
-            }
-            TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s Destroy window timeout, id:%{public}d",
-                where, window->GetProperty()->GetPersistentId());
-            window->NotifyUIContentDestroy();
-        }, __func__, WINDOW_DETACH_TIMEOUT);
-}
-
 WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer)
 {
     WMError ret = WMError::WM_OK;
@@ -2228,9 +2207,7 @@ WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer)
             if (parentSession == nullptr || parentSession->GetHostSession() == nullptr) {
                 return WMError::WM_ERROR_NULLPTR;
             }
-            ret = SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSession(
-                property_->GetPersistentId());
-            ReleaseUIContentTimeoutCheck();
+            ret = SyncDestroyAndDisconnectSpecificSession(property_->GetPersistentId());
         } else if (property_->GetIsUIExtFirstSubWindow()) {
             ret = SyncDestroyAndDisconnectSpecificSession(property_->GetPersistentId());
         }
@@ -2372,6 +2349,7 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
     ClearVsyncStation();
     SetUIContentComplete();
     surfaceNode_ = nullptr;
+    RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
     TLOGI(WmsLogTag::WMS_LIFE, "Destroy success, id: %{public}d", property_->GetPersistentId());
     return WMError::WM_OK;
 }
@@ -6939,12 +6917,6 @@ WSError WindowSceneSessionImpl::NotifyWindowAttachStateChange(bool isAttach)
                 auto window = weakThis.promote();
                 if (!window) {
                     return;
-                }
-                window->isAttachedOnFrameNode_ = isAttach;
-                if (window->state_ == WindowState::STATE_DESTROYED && !isAttach &&
-                    WindowHelper::IsSubWindow(window->GetType()) &&
-                    !window->property_->GetIsUIExtFirstSubWindow()) {
-                    window->NotifyUIContentDestroy();
                 }
             }, __func__);
     }
