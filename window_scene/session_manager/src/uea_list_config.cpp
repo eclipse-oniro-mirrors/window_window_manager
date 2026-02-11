@@ -58,7 +58,7 @@ std::optional<std::string> UeaListConfig::GenUeaConfigPath()
     char buf[MAX_PATH_LEN + 1] = {0};
     char realPathBuf[PATH_MAX] = {0};
     char* configPath = GetOneCfgFile(DEFAULT_UEA_CONFIG_FILE_PATH.c_str(), buf, MAX_PATH_LEN);
-    if (strlen(configPath) == 0 || strlen(configPath) >= MAX_PATH_LEN ||
+    if (configPath == nullptr || strlen(configPath) == 0 || strlen(configPath) >= MAX_PATH_LEN ||
         realpath(configPath, realPathBuf) == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to get UEA configuration file path");
         return std::nullopt;
