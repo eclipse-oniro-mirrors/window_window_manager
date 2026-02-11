@@ -7960,10 +7960,10 @@ WMError WindowSceneSessionImpl::GetRotationLocked(bool& locked)
     return WMError::WM_OK;
 }
 
-WSError WindowSceneSessionImpl::UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty> property)
+WSError WindowSceneSessionImpl::UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property)
 {
     if (property == nullptr) {
-        TLOGE(WmsLogTag::WMS_PC, "property invalid!");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "property invalid!");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
     property_->SetMobileAppInPadLayoutFullScreen(property->GetMobileAppInPadLayoutFullScreen());

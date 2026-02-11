@@ -103,7 +103,7 @@ public:
     MOCK_METHOD0(AddSidebarBlur, WSError(void));
     MOCK_METHOD1(SetSidebarBlurStyleWithType, WSError(SidebarBlurType type));
     MOCK_METHOD1(UpdateWindowUIType, WSError(WindowUIType windowUIType));
-    MOCK_METHOD1(UpdatePropertyWhenTriggerMode, WSError(sptr<WindowSessionProperty> property));
+    MOCK_METHOD1(UpdatePropertyWhenTriggerMode, WSError(const sptr<WindowSessionProperty>& property));
 };
 } // namespace Rosen
 } // namespace OHOS

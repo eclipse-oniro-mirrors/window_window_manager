@@ -360,7 +360,7 @@ public:
      * @param property Window session property.
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
-    virtual WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty> property)
+    virtual WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property)
     {
         return WSError::WS_OK;
     }

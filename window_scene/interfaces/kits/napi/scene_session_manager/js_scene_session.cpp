@@ -3446,10 +3446,6 @@ napi_value JsSceneSession::OnUpdateNativeVisibility(napi_env env, napi_callback_
 
 napi_value JsSceneSession::OnClearAllModifiers(napi_env env, napi_callback_info info)
 {
-    size_t argc = 4;
-    napi_value argv[4] = {nullptr};
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-
     auto session = weakSession_.promote();
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_RECOVER, "session is nullptr, id:%{public}d", persistentId_);
@@ -3462,10 +3458,6 @@ napi_value JsSceneSession::OnClearAllModifiers(napi_env env, napi_callback_info 
  
 napi_value JsSceneSession::OnUpdatePropertyWhenTriggerMode(napi_env env, napi_callback_info info)
 {
-    size_t argc = 4;
-    napi_value argv[4] = {nullptr};
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-
     auto session = weakSession_.promote();
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr, id:%{public}d", persistentId_);

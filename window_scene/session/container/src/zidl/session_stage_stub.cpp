@@ -1429,8 +1429,7 @@ int SessionStageStub::HandleUpdateWindowUIType(MessageParcel& data, MessageParce
         TLOGE(WmsLogTag::WMS_RECOVER, "typeValue is nullptr!");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = UpdateWindowUIType(static_cast<WindowUIType>(typeValue));
-    reply.WriteInt32(static_cast<int32_t>(errCode));
+    UpdateWindowUIType(static_cast<WindowUIType>(typeValue));
     return ERR_NONE;
 }
 
@@ -1442,8 +1441,7 @@ int SessionStageStub::HandleUpdatePropertyWhenTriggerMode(MessageParcel& data, M
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "property is nullptr!");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = UpdatePropertyWhenTriggerMode(property);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
+    UpdatePropertyWhenTriggerMode(property);
     return ERR_NONE;
 }
 //

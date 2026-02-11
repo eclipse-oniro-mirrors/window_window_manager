@@ -129,7 +129,7 @@ public:
     WSError AddSidebarBlur() override;
     WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
     WSError UpdateWindowUIType(WindowUIType windowUIType) override;
-    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty> property) override;
+    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;

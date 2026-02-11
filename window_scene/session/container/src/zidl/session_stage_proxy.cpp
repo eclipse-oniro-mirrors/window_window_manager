@@ -2601,7 +2601,7 @@ WSError SessionStageProxy::UpdateWindowUIType(WindowUIType windowUIType)
     return WSError::WS_OK;
 }
 
-WSError SessionStageProxy::UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty> property)
+WSError SessionStageProxy::UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property)
 {
     MessageParcel data;
     MessageParcel reply;
