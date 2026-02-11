@@ -879,9 +879,9 @@ export enum Orientation {
 }
 
 export enum RotationInfoType {
-    WINDOW_ORIENTATION = 0,
-    DISPLAY_ORIENTATION = 1,
-    DISPLAY_ROTATION = 2,
+  WINDOW_ORIENTATION = 0,
+  DISPLAY_ORIENTATION = 1,
+  DISPLAY_ROTATION = 2
 }
 
 export enum WindowEventType {
