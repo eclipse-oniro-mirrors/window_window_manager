@@ -2051,7 +2051,7 @@ napi_value JsWindowManager::OnSetSpecificSystemWindowZIndex(napi_env env, napi_c
 
 napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
 {
-    WLOGFD("[NAPI]");
+    WLOGFD("JsWindowManagerInit");
 
     if (env == nullptr || exportObj == nullptr) {
         WLOGFE("JsWindowManagerInit env or exportObj is nullptr");

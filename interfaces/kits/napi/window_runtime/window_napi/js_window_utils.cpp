@@ -1536,6 +1536,7 @@ bool GetAPI7Ability(napi_env env, AppExecFwk::Ability* &ability)
     }
     return true;
 }
+
 bool GetWindowMaskFromJsValue(napi_env env, napi_value jsObject, std::vector<std::vector<uint32_t>>& windowMask)
 {
     if (jsObject == nullptr) {
