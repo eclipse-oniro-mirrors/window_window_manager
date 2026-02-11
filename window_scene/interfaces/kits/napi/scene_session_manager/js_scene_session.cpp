@@ -2286,7 +2286,7 @@ void JsSceneSession::OnForceHideChange(bool hide)
         }
         auto jsCallBack = jsSceneSession->GetJSCallback(FORCE_HIDE_CHANGE_CB);
         if (!jsCallBack) {
-            WLOGFE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
+            WLOGFE("jsCallBack is nullptr");
             return;
         }
         napi_value jsSessionForceHideObj = CreateJsValue(env, hide);
@@ -4049,7 +4049,7 @@ void JsSceneSession::OnCreateSubSession(const sptr<SceneSession>& sceneSession)
         }
         auto jsCallBack = jsSceneSession->GetJSCallback(CREATE_SUB_SESSION_CB);
         if (jsCallBack == nullptr) {
-            WLOGFE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
+            WLOGFE("jsCallBack is nullptr");
             return;
         }
         auto specificSession = weakSession.promote();
@@ -4597,7 +4597,7 @@ void JsSceneSession::OnRaiseAboveTarget(int32_t subWindowId)
         }
         napi_value jsSceneSessionObj = CreateJsValue(env, subWindowId);
         if (jsSceneSessionObj == nullptr) {
-            WLOGFE(WmsLogTag::WMS_LIFE, "jsSceneSessionObj is nullptr");
+            WLOGFE("jsSceneSessionObj is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsError(env, 0), jsSceneSessionObj};
