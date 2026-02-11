@@ -3137,7 +3137,7 @@ void SceneSession::PatchAINavigationBarArea(AvoidArea& avoidArea)
     if (!avoidArea.leftRect_.IsUninitializedRect()) {
         avoidArea.bottomRect_ = avoidArea.leftRect_;
         avoidArea.leftRect_ = areaEmpty;
-    } else if (!avoidArea.topRect_.IsUninitializedRect()) {
+    } else if (!avoidArea.rightRect_.IsUninitializedRect()) {
         avoidArea.bottomRect_ = avoidArea.rightRect_;
         avoidArea.rightRect_ = areaEmpty;
     } else if (!avoidArea.topRect_.IsUninitializedRect()) {
