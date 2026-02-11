@@ -15237,6 +15237,8 @@ WSError SceneSessionManager::GetAppMainSceneSession(int32_t persistentId, sptr<S
 std::shared_ptr<Media::PixelMap> SceneSessionManager::GetSessionSnapshotPixelMap(const int32_t persistentId,
     const float scaleParam, SnapshotNodeType snapshotNode, bool needSnapshot)
 {
+    TLOGI(WmsLogTag::WMS_PATTERN, "id:%{public}d, scale:%{public}f, snapshotNode:%{public}d, needSnapshot:%{public}d",
+        persistentId, scaleParam, snapshotNode, needSnapshot);
     auto sceneSession = GetSceneSession(persistentId);
     if (!sceneSession) {
         TLOGE(WmsLogTag::WMS_MAIN, "get scene session is nullptr");
