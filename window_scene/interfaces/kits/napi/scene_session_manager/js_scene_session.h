@@ -485,10 +485,10 @@ private:
     void OnSessionRectChange(const WSRect& rect,
         SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID);
     void OnSessionWindowLimitsChange(const WindowLimits& windowlimits);
+    void OnSessionDisplayIdChange(uint64_t displayId);
     void OnFloatingBallUpdate(const FloatingBallTemplateInfo& fbTemplateInfo);
     void OnFloatingBallStop();
     void OnFloatingBallRestoreMainWindow(const std::shared_ptr<AAFwk::Want>& want);
-    void OnSessionDisplayIdChange(uint64_t displayId);
     void OnSessionPiPControlStatusChange(WsPiPControlType controlType, WsPiPControlStatus status);
     void OnAutoStartPiPStatusChange(bool isAutoStart, uint32_t priority, uint32_t width, uint32_t height);
     void OnRaiseToTop();
