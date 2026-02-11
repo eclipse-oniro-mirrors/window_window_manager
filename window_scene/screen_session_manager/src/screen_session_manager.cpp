@@ -2378,7 +2378,8 @@ sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> d
             << " hO: " << info.displayOrientation_ << ", hEO: " << info.enableHookDisplayOrientation_
             << ", dW: " << displayInfo->GetHeight() << ", dH: " << displayInfo->GetHeight()
             << ", dR: " << static_cast<uint32_t>(displayInfo->GetRotation())
-            << ", dO: " << static_cast<uint32_t>(displayInfo->GetDisplayOrientation());
+            << ", dO: " << static_cast<uint32_t>(displayInfo->GetDisplayOrientation())
+            << ", uid: " << uid << ", pid: " << IPCSkeleton::GetCallingPid();
         TLOGNFI(WmsLogTag::DMS, "%{public}s", oss.str().c_str());
 
         displayInfo->SetWidth(info.width_);
@@ -3312,7 +3313,7 @@ void ScreenSessionManager::NotifyDisplayChangedByUidInner(sptr<DisplayInfo> disp
         ScreenSessionManagerAdapter::GetInstance().OnDisplayChange(displayInfo, event, uid);
     };
     taskScheduler_->PostAsyncTask(task, "NotifyDisplayChanged");
-    CheckAttributeChange(displayInfo, uid);
+    CheckAttributeChangeWithUid(displayInfo, uid);
     TLOGNFI(WmsLogTag::DMS, "notify end");
 }
 
@@ -6485,21 +6486,17 @@ void ScreenSessionManager::NotifyDisplayChanged(sptr<DisplayInfo> displayInfo, D
     taskScheduler_->PostAsyncTask(task, "NotifyDisplayChanged");
 }
 
-void ScreenSessionManager::CheckAttributeChange(sptr<DisplayInfo> displayInfo, int32_t uid)
+void ScreenSessionManager::CheckAttributeChange(sptr<DisplayInfo> displayInfo)
 {
     if (displayInfo == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "DisplayInfo is nullptr");
         return;
     }
     DisplayId displayId = displayInfo->GetDisplayId();
-    if (uid != INVALID_UID) {
-        sptr<ScreenSession> screenSession = GetScreenSession(displayId);
-        HookDisplayInfoByUid(displayInfo, screenSession, uid);
-    }
     std::vector<std::string> attributes;
     std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
     if (lastDisplayInfoMap_.find(displayId) == lastDisplayInfoMap_.end()) {
-        lastDisplayInfoMap_.insert({displayId, std::move(new DisplayInfo())});
+        lastDisplayInfoMap_.insert({displayId, sptr<DisplayInfo>::MakeSptr()});
     }
     auto lastDisplayInfo = lastDisplayInfoMap_[displayId];
     if (lastDisplayInfo == nullptr) {
@@ -6520,12 +6517,47 @@ void ScreenSessionManager::CheckAttributeChange(sptr<DisplayInfo> displayInfo, i
     }
     TLOGD(WmsLogTag::DMS, "%{public}s]", oss.str().c_str());
 
-    if (uid != INVALID_UID) {
-        NotifyDisplayAttributeChanged(displayInfo, attributes, uid);
-    } else {
-        NotifyDisplayAttributeChanged(displayInfo, attributes);
-    }
+    NotifyDisplayAttributeChanged(displayInfo, attributes);
     lastDisplayInfoMap_[displayId] = displayInfo;
+}
+
+void ScreenSessionManager::CheckAttributeChangeWithUid(sptr<DisplayInfo> displayInfo, int32_t uid)
+{
+    if (displayInfo == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "DisplayInfo is nullptr");
+        return;
+    }
+    DisplayId displayId = displayInfo->GetDisplayId();
+    sptr<ScreenSession> screenSession = GetScreenSession(displayId);
+    HookDisplayInfoByUid(displayInfo, screenSession, uid);
+
+    std::lock_guard<std::mutex> lock(lastDisplayInfoHookMapMutex_);
+    if (lastDisplayInfoHookMap_.find(uid) == lastDisplayInfoHookMap_.end() ||
+        lastDisplayInfoHookMap_[uid].find(displayId) == lastDisplayInfoHookMap_[uid].end()) {
+        lastDisplayInfoHookMap_[uid][displayId] = sptr<DisplayInfo>::MakeSptr();
+    }
+    auto lastDisplayInfo = lastDisplayInfoHookMap_[uid][displayId];
+    if (lastDisplayInfo == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "LastDisplayInfo of displayId: %{public}" PRIu64 "is nullptr", displayId);
+        return;
+    }
+    std::vector<std::string> attributes;
+    GetChangedListenableAttribute(lastDisplayInfo, displayInfo, attributes);
+    if (attributes.empty()) {
+        TLOGNFW(WmsLogTag::DMS, "No attribute changed");
+        return;
+    }
+
+    std::ostringstream oss;
+    oss << "current changed attributes:[";
+    for (const auto& attribute : attributes) {
+        oss << attribute << ",";
+    }
+    std::string logStr = oss.str();
+    TLOGD(WmsLogTag::DMS, "uid is: %{public}d, %{public}s]", uid, logStr.c_str());
+
+    NotifyDisplayAttributeChanged(displayInfo, attributes, uid);
+    lastDisplayInfoHookMap_[uid][displayId] = displayInfo;
 }
  
 void ScreenSessionManager::GetChangedListenableAttribute(sptr<DisplayInfo> displayInfo1, sptr<DisplayInfo> displayInfo2,

@@ -3668,6 +3668,70 @@ HWTEST_F(ScreenSessionManagerTest, VirtualScreenWhiteList_UniqueScreen, TestSize
 }
 
 /**
+ * @tc.name: CheckAttributeChangeWithUid01
+ * @tc.desc: CheckAttributeChangeWithUid01 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CheckAttributeChangeWithUid01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+
+    ssm_->CheckAttributeChangeWithUid(nullptr, 0);
+    EXPECT_TRUE(g_errLog.find("DisplayInfo is nullptr") != std::string::npos);
+    g_errLog.clear();
+}
+
+/**
+ * @tc.name: CheckAttributeChangeWithUid02
+ * @tc.desc: CheckAttributeChangeWithUid02 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CheckAttributeChangeWithUid02, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+ 
+    DisplayId displayId = 985;
+    int32_t uid = 123456;
+    ssm_->lastDisplayInfoHookMap_[uid][displayId] = new DisplayInfo();
+    sptr<DisplayInfo> displayInfo1 = ssm_->lastDisplayInfoHookMap_[uid][displayId];
+    displayInfo1->SetDisplayId(displayId);
+    ssm_->CheckAttributeChangeWithUid(displayInfo1, uid);
+    EXPECT_TRUE(g_errLog.find("No attribute changed") != std::string::npos);
+    ssm_->lastDisplayInfoHookMap_[uid].erase(displayId);
+    g_errLog.clear();
+}
+
+/**
+ * @tc.name: CheckAttributeChangeWithUid03
+ * @tc.desc: CheckAttributeChangeWithUid03 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CheckAttributeChangeWithUid03, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+ 
+    DisplayId displayId = 985;
+    int32_t uid = 123456;
+    ssm_->lastDisplayInfoHookMap_[uid][displayId] = new DisplayInfo();
+    sptr<DisplayInfo> displayInfo1 = ssm_->lastDisplayInfoHookMap_[uid][displayId];
+    displayInfo1->SetDisplayId(displayId);
+    displayInfo1->SetRotation(Rotation::ROTATION_180);
+    sptr<DisplayInfo> displayInfo2 = new DisplayInfo();
+    displayInfo2->SetRotation(Rotation::ROTATION_270);
+    displayInfo2->SetDisplayId(displayId);
+    ssm_->CheckAttributeChangeWithUid(displayInfo2, uid);
+    EXPECT_TRUE(g_errLog.find("No attribute changed") == std::string::npos);
+    ssm_->lastDisplayInfoHookMap_[uid].erase(displayId);
+    g_errLog.clear();
+}
+
+/**
  * @tc.name: NotifyDisplayAttributeChanged
  * @tc.desc: NotifyDisplayAttributeChanged test
  * @tc.type: FUNC
