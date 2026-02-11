@@ -2721,16 +2721,13 @@ void WindowManager::SetIsModuleHookOffToSet(const std::string& moduleName)
 
 bool WindowManager::GetIsModuleHookOffFromSet(const std::string& moduleName)
 {
-    auto iter = isModuleHookOffSet_.find(moduleName);
-    if (iter != isModuleHookOffSet_.end()) {
-        return true;
-    }
-    return false;
+    return isModuleHookOffSet_.find(moduleName) != isModuleHookOffSet_.end();
 }
 
 bool WindowManager::IsModuleHookOff(bool isModuleAbilityHookEnd, const std::string& moduleName)
 {
     if (isModuleAbilityHookEnd) {
+        TLOGI(WmsLogTag::WMS_MAIN, "set IsModuleHookOff to set");
         SetIsModuleHookOffToSet(moduleName);
     }
     if (GetIsModuleHookOffFromSet(moduleName)) {
