@@ -41,6 +41,10 @@ constexpr int32_t MAX_ABILITY_SESSION_INFOS = 4;
 
 int ReadBasicAbilitySessionInfo(MessageParcel& data, sptr<AAFwk::SessionInfo> abilitySessionInfo)
 {
+    if (abilitySessionInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "abilitySessionInfo is nullptr");
+        return ERR_INVALID_DATA;
+    }
     sptr<AAFwk::Want> localWant = data.ReadParcelable<AAFwk::Want>();
     if (localWant == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "localWant is nullptr");
@@ -387,7 +391,7 @@ int SessionStub::HandleForeground(MessageParcel& data, MessageParcel& reply)
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
-    const WSError errCode = Foreground(property, true, identityToken);
+    const WSError errCode = Foreground(property, isFromClient, identityToken);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }
@@ -401,7 +405,7 @@ int SessionStub::HandleBackground(MessageParcel& data, MessageParcel& reply)
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
-    const WSError errCode = Background(true, identityToken);
+    const WSError errCode = Background(isFromClient, identityToken);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }
@@ -415,7 +419,7 @@ int SessionStub::HandleDisconnect(MessageParcel& data, MessageParcel& reply)
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = Disconnect(true, identityToken);
+    WSError errCode = Disconnect(isFromClient, identityToken);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }

@@ -704,10 +704,10 @@ public:
     bool UpdateInteractiveInner(bool interactive);
     void UpdateLifecyclePausedInner();
     void HookSceneSessionActivation(NotifyHookSceneSessionActivationFunc&& func);
-    void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func);
-    void SetIsUserRequestedExit(bool isUserRequestedExit);
+    virtual void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func) {}
+    virtual void SetIsUserRequestedExit(bool isUserRequestedExit) {}
     void SetGetAllAppUseControlMapFunc(GetAllAppUseControlMapFunc&& callback);
-    void CalculatedStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
+    void CalculateStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
     void NotifyPendingSessionActivation(SessionInfo& info);
     bool isRemoving_ = false;
 
@@ -743,10 +743,10 @@ public:
     WMError NotifyDisableDelegatorChange() override;
     virtual void SetRecentSessionState(RecentSessionInfo& info, const SessionState& state) {}
     void RegisterGetStartWindowConfigFunc(GetStartWindowTypeFunc&& func);
-    void RegisterIsAppBoundSystemTrayCallback(
+    void RegisterIsSessionBoundedSystemTrayCallback(
         const std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>& callback);
     std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>
-        isAppBoundSystemTrayCallback_;
+        isSessionBoundedSystemTrayCallback_;
 
     /*
      * Window Decor
@@ -1253,7 +1253,6 @@ private:
     /*
      * Window Lifecycle
      */
-    NotifySceneSessionDestructFunc notifySceneSessionDestructFunc_;
     bool CheckIdentityTokenIfMatched(const std::string& identityToken);
     bool CheckPidIfMatched();
     GetStartWindowTypeFunc getStartWindowConfigFunc_;
@@ -1647,7 +1646,6 @@ private:
     * Window Lifecycle
     */
     NotifyHookSceneSessionActivationFunc hookSceneSessionActivationFunc_;
-    bool isUserRequestedExit_ = false;
 
     /**
      * Window Transition Animation For PC

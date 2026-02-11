@@ -620,15 +620,18 @@ public:
     /*
      * Window LifeCycle
      */
+    WMError GetRouterStackInfo(std::string& routerStackInfo) override;
+
+    /*
+     * Window LifeCycle
+     */
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     void NotifyAfterLifecycleForeground();
     void NotifyAfterLifecycleBackground();
     void NotifyAfterLifecycleResumed();
     void NotifyAfterLifecyclePaused();
-    WMError GetRouterStackInfo(std::string& routerStackInfo) override;
     void SetNavDestinationInfo(const std::string& navDestinationInfo) override;
-    void NotifyUIContentDestroy();
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
 
@@ -639,7 +642,7 @@ protected:
     void NotifyWindowAfterFocused();
     void NotifyAfterActive();
     void NotifyAfterInactive();
-    void NotifyBeforeDestroy(const std::string& windowName);
+    void NotifyBeforeDestroy(std::string windowName);
     void NotifyAfterDestroy();
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
     template<typename T> WMError UnregisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
@@ -826,7 +829,6 @@ protected:
     bool isIntentColdStart_ = true;
     std::string navDestinationInfo_;
     sptr<LifecycleFutureCallback> lifecycleCallback_ = nullptr;
-    bool isAttachedOnFrameNode_ = true;
 
     /*
      * Window Layout
@@ -1187,11 +1189,11 @@ private:
     KeyFramePolicy keyFramePolicy_;
     std::atomic<WindowStatus> lastWindowStatus_ = WindowStatus::WINDOW_STATUS_UNDEFINED;
     std::atomic<WindowStatus> lastStatusWhenNotifyWindowStatusDidChange_ = WindowStatus::WINDOW_STATUS_UNDEFINED;
-    std::atomic<bool> isFirstValidLayoutUpdate_ = true;
     SizeChangeReason globalDisplayRectSizeChangeReason_ = SizeChangeReason::END;
     std::shared_mutex hookWindowInfoMutex_;
     HookWindowInfo hookWindowInfo_;
     std::atomic_bool notifySizeChangeFlag_ = false;
+    std::atomic<bool> isFirstValidLayoutUpdate_ = true;
     mutable std::mutex globalScaledRectMutex_;
     Rect globalScaledRect_;
 

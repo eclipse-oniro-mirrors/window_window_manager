@@ -119,16 +119,16 @@ void FutureCallback::ResetRotationResultLock()
 {
     getRotationResultFuture_.ResetLock({});
 }
-// LCOV_EXCL_STOP
 
-int32_t FutureCallback::GetUpdateRectResult(long timeoutMs)
+int32_t FutureCallback::GetUpdateRectResult(long timeOut)
 {
-    return updateRectFuture_.GetResult(timeoutMs);
+    return updateRectFuture_.GetResult(timeOut);
 }
-
+ 
 void FutureCallback::OnFirstValidRectUpdate(int32_t persistentId)
 {
     updateRectFuture_.SetValue(persistentId);
 }
+// LCOV_EXCL_STOP
 } // namespace Rosen
 } // namespace OHOS

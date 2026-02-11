@@ -1949,18 +1949,6 @@ bool Session::GetForegroundInteractiveStatus() const
     return foregroundInteractiveStatus_.load();
 }
 
-bool Session::GetIsPendingToBackgroundState() const
-{
-    return isPendingToBackgroundState_.load();
-}
-
-void Session::SetIsPendingToBackgroundState(bool isPendingToBackgroundState)
-{
-    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d isPendingToBackgroundState:%{public}d",
-        GetPersistentId(), isPendingToBackgroundState);
-    return isPendingToBackgroundState_.store(isPendingToBackgroundState);
-}
-
 bool Session::IsActivatedAfterScreenLocked() const
 {
     return isActivatedAfterScreenLocked_.load();
@@ -1968,9 +1956,21 @@ bool Session::IsActivatedAfterScreenLocked() const
 
 void Session::SetIsActivatedAfterScreenLocked(bool isActivatedAfterScreenLocked)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, isActivatedAfterScreenLocked:%{public}d",
-        GetPersistentId(), isActivatedAfterScreenLocked);
+    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, isLocked:%{public}d",
+          GetPersistentId(), isActivatedAfterScreenLocked);
     isActivatedAfterScreenLocked_.store(isActivatedAfterScreenLocked);
+}
+
+bool Session::GetIsPendingToBackgroundState() const
+{
+    return isPendingToBackgroundState_.load();
+}
+
+void Session::SetIsPendingToBackgroundState(bool isPendingToBackgroundState)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d State:%{public}d",
+        GetPersistentId(), isPendingToBackgroundState);
+    return isPendingToBackgroundState_.store(isPendingToBackgroundState);
 }
 
 void Session::SetAttachState(bool isAttach, WindowMode windowMode)

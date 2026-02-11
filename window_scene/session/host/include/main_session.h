@@ -114,6 +114,10 @@ private:
     WSError SetSessionLabelAndIconInner(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon);
     NotifySessionLockStateChangeCallback onSessionLockStateChangeCallback_;
     bool isLockedState_ = false;
+    NotifySceneSessionDestructFunc notifySceneSessionDestructFunc_;
+    bool isUserRequestedExit_ = false;
+    bool GetSessionBoundedSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) const;
+
     /*
      * Window Layout
      */
