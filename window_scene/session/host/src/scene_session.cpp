@@ -4075,7 +4075,13 @@ bool SceneSession::IsDraggable() const
         (GetSessionProperty()->GetIsPcAppInPad() && !isMainWindow));
     bool isPhoneWindowCanDrag = isFloatingDragAccessible && (isSystemWindow || isSubWindow) &&
         (systemConfig_.IsPhoneWindow() || (systemConfig_.IsPadWindow() && !IsFreeMultiWindowMode()));
-    return isPcOrFreeMultiWindowCanDrag || isPhoneWindowCanDrag;
+    bool isDraggable = isPcOrFreeMultiWindowCanDrag || isPhoneWindowCanDrag;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "IsDraggable: %{public}d, isPcOrFreeMultiWindowCanDrag: %{public}d, "
+        "isPhoneWindowCanDrag: %{public}d, isFloatingDragAccessible: %{public}d, "
+        "isDragAccessibleSystemWindow: %{public}d, id: %{public}d",
+        isDraggable, isPcOrFreeMultiWindowCanDrag, isPhoneWindowCanDrag,
+        isFloatingDragAccessible, isDragAccessibleSystemWindow, GetPersistentId());
+    return isDraggable;
 }
 
 WSError SceneSession::RequestSessionBack(bool needMoveToBackground)
