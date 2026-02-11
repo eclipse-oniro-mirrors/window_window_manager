@@ -2388,7 +2388,7 @@ WMError WindowManager::SkipSnapshotForAppProcess(int32_t pid, bool skip)
 {
     WMError ret = WindowAdapter::GetInstance(userId_).SkipSnapshotForAppProcess(pid, skip);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "skip failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "set process snapshot skip failed");
     }
     return ret;
 }
