@@ -157,7 +157,6 @@ ohos_shared_library("sms") {
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/window_scene/session:ui_effect_controller_client",
-    "../utils:libwmutil",
   ]
   external_deps = [
     "ability_base:session_info",
