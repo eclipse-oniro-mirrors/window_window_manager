@@ -1843,7 +1843,7 @@ void ScreenSessionManagerStub::ProcGetDisplayHDRSnapshotWithOption(MessageParcel
     DmErrorCode errCode = DmErrorCode::DM_OK;
     std::vector<std::shared_ptr<Media::PixelMap>> captureVec = GetDisplayHDRSnapshotWithOption(option, errCode);
     if (captureVec.size() != PIXMAP_VECTOR_SIZE) {
-        TLOGE(WmsLogTag::DMS, "captureVec size: %{public}lu", captureVec.size());
+        TLOGE(WmsLogTag::DMS, "captureVec size: %{public}u", captureVec.size());
         reply.WriteParcelable(nullptr);
         reply.WriteParcelable(nullptr);
     } else {

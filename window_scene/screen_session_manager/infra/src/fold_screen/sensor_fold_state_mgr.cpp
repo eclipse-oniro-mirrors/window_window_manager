@@ -340,7 +340,7 @@ bool SensorFoldStateMgr::IsSupportTentMode()
 bool SensorFoldStateMgr::CheckInputSensorStatus(const SensorStatus& sensorStatus)
 {
     if (sensorStatus.axis_.size() != DEFAULT_AXIS_SIZE) {
-        TLOGI(WmsLogTag::DMS, "invalid sensor status, axis size: %{public}lu", sensorStatus.axis_.size());
+        TLOGI(WmsLogTag::DMS, "invalid sensor status, axis size: %{public}u", sensorStatus.axis_.size());
         return false;
     }
     return true;

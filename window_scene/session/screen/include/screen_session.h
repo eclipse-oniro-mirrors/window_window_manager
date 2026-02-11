@@ -368,7 +368,7 @@ public:
     void ExtendScreenConnectStatusChange(ScreenId screenId, ExtendScreenConnectStatus extendScreenConnectStatus);
     void BeforeScreenPropertyChange(FoldStatus foldStatus);
     void ScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent);
-    void FreezeScreen(bool isFreeze, bool needSync = false);
+    void FreezeScreen(bool isFreeze);
     std::shared_ptr<Media::PixelMap> GetScreenSnapshotWithAllWindows(float scaleX, float scaleY,
         bool isNeedCheckDrmAndSurfaceLock);
 

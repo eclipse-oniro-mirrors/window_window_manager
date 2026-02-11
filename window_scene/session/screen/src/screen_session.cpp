@@ -2904,7 +2904,7 @@ void ScreenSession::ScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent
     }
 }
 
-void ScreenSession::FreezeScreen(bool isFreeze, bool needSync)
+void ScreenSession::FreezeScreen(bool isFreeze)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ss:FreezeScreen");
     std::shared_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
@@ -2912,7 +2912,7 @@ void ScreenSession::FreezeScreen(bool isFreeze, bool needSync)
         TLOGE(WmsLogTag::DMS, "displayNode is null");
         return;
     }
-    RSInterfaces::GetInstance().FreezeScreen(displayNode_, isFreeze, needSync);
+    RSInterfaces::GetInstance().FreezeScreen(displayNode_, isFreeze);
 }
 
 std::shared_ptr<Media::PixelMap> ScreenSession::GetScreenSnapshotWithAllWindows(float scaleX, float scaleY,

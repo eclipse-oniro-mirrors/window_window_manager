@@ -19,6 +19,9 @@
 #include <map>
 #include <mutex>
 
+#include <iremote_stub.h>
+#include <iremote_proxy.h>
+#include <iremote_object.h>
 #include "display_lite.h"
 #include "display_manager_lite_proxy.h"
 #include "dm_common.h"
@@ -26,6 +29,20 @@
 #include "zidl/idisplay_manager_agent.h"
 
 namespace OHOS::Rosen {
+
+class IReverseDeathAgent : public IRemoteBroker {
+public:
+    DECLARE_INTERFACE_DESCRIPTOR(u"ReverseDeathAgent");
+};
+
+class ReverseDeathStub : public IRemoteStub<IReverseDeathAgent> {
+public:
+};
+
+class ReverseDeathProxy : public IRemoteProxy<IReverseDeathAgent> {
+public:
+};
+
 class BaseAdapterLite {
 public:
     virtual ~BaseAdapterLite();

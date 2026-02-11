@@ -19,6 +19,9 @@
 #include <mutex>
 #include <surface.h>
 
+#include <iremote_stub.h>
+#include <iremote_proxy.h>
+#include <iremote_object.h>
 #include "display.h"
 #include "dm_common.h"
 #include "fold_screen_info.h"
@@ -30,6 +33,20 @@
 #include "zidl/screen_session_manager_interface.h"
 
 namespace OHOS::Rosen {
+
+class IReverseDeathAgent : public IRemoteBroker {
+public:
+    DECLARE_INTERFACE_DESCRIPTOR(u"ReverseDeathAgent");
+};
+
+class ReverseDeathStub : public IRemoteStub<IReverseDeathAgent> {
+public:
+};
+
+class ReverseDeathProxy : public IRemoteProxy<IReverseDeathAgent> {
+public:
+};
+
 class BaseAdapter {
 public:
     virtual ~BaseAdapter();

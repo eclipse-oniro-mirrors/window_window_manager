@@ -780,7 +780,7 @@ export function offFoldDisplayModeChange(callback?: Callback<FoldDisplayMode>): 
     syncOff('foldDisplayModeChange', displayMgrRef, callback);
 }
 
-export function offBrightnessInfoChange<T1, T2>(callback?: BrightnessCallback<T1, T2>): void {	
+export function offBrightnessInfoChange<T1, T2>(callback?: BrightnessCallback<T1, T2>): void {
     syncOff('brightnessInfoChange', displayMgrRef, callback);
 }
 

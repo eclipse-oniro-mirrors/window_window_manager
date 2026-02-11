@@ -106,6 +106,7 @@ ohos_shared_library("display_kit") {
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "napi:ace_napi",
+    "image_framework:image_native",
   ]
 
   innerapi_tags = [ "platformsdk" ]

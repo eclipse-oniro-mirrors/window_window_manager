@@ -16,17 +16,31 @@
 #ifndef WM_SYS_CAP_UTIL_H
 #define WM_SYS_CAP_UTIL_H
 
+#include <bundle_mgr_interface.h>
+#include <shared_mutex>
 #include <string>
 
 namespace OHOS {
 namespace Rosen {
+struct BundleInfo {
+    std::string name_;
+    int32_t apiVersion_;
+};
+
 class SysCapUtil {
 public:
     static std::string GetClientName();
     static std::string GetBundleName();
     static uint32_t GetApiCompatibleVersion();
+    static std::shared_ptr<BundleInfo> GetBundleInfo(uint32_t pid);
+    static std::shared_ptr<BundleInfo> UpdateBundleInfo(uint32_t pid);
+    static std::shared_ptr<BundleInfo> UpdateBundleInfo(uint32_t pid, sptr<IRemoteObject> agent);
+    static void RemoveBundleInfo(sptr<IRemoteObject> agent);
 private:
     static std::string GetProcessName();
+    static std::shared_mutex pidBundleNameMutex_;
+    static std::map<uint32_t, std::shared_ptr<BundleInfo>> pidBundleInfoMap_;
+    static std::map<sptr<IRemoteObject>, uint32_t> agentPidMap_;
 };
 } // Rosen
 } // OHOS

@@ -66,7 +66,6 @@
 #include "connection/screen_snapshot_picker_connection.h"
 #include "connection/screen_cast_connection.h"
 #include "publish/screen_session_publish.h"
-#include "param_update/param_update_helper.h"
 #include "dms_xcollie.h"
 #include "screen_scene_config.h"
 #include "screen_sensor_plugin.h"
@@ -632,11 +631,6 @@ void ScreenSessionManager::OnStart()
     TLOGNFI(WmsLogTag::DMS, "DMS SA AddSystemAbilityListener");
     (void)AddSystemAbilityListener(SENSOR_SERVICE_ABILITY_ID);
     (void)AddSystemAbilityListener(COMMON_EVENT_SERVICE_ID);
-    auto task = [=] {
-        TLOGNFI(WmsLogTag::DMS, "DMS SA InitParam");
-        ParamUpdateHelper::GetInstance().InitParam();
-    };
-    taskScheduler_->PostAsyncTask(task, "InitParam");
     screenEventTracker_.RecordEvent("Dms AddSystemAbilityListener finished.");
     TLOGNFI(WmsLogTag::DMS, "DMS SA OnStart end");
     screenEventTracker_.RecordEvent("Dms onstart end.");
@@ -3452,10 +3446,10 @@ DMError ScreenSessionManager::SetResolution(ScreenId screenId, uint32_t width, u
         TLOGNFE(WmsLogTag::DMS, "Get ScreenSession failed");
         return DMError::DM_ERROR_NULLPTR;
     }
-    screenSession->FreezeScreen(true, true);
+    screenSession->FreezeScreen(true);
     if (rsInterface_.SetRogScreenResolution(screenId, width, height) != 0) {
         TLOGNFE(WmsLogTag::DMS, "Failed to SetRogScreenResolution");
-        screenSession->FreezeScreen(false, true);
+        screenSession->FreezeScreen(false);
         rsInterface_.ForceRefreshOneFrameWithNextVSync();
         return DMError::DM_ERROR_IPC_FAILED;
     }
@@ -6997,7 +6991,7 @@ DMError ScreenSessionManager::AddVirtualScreenWhiteList(ScreenId screenId, const
     }
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     if (screenSession == nullptr) {
-		TLOGE(WmsLogTag::DMS, "screensession is nullptr");
+        TLOGE(WmsLogTag::DMS, "screensession is nullptr");
         return DMError::DM_ERROR_INVALID_PARAM;
     }
     if (screenSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
@@ -7023,7 +7017,7 @@ DMError ScreenSessionManager::RemoveVirtualScreenWhiteList(ScreenId screenId, co
     }
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     if (screenSession == nullptr) {
-		TLOGE(WmsLogTag::DMS, "screensession is nullptr");
+        TLOGE(WmsLogTag::DMS, "screensession is nullptr");
         return DMError::DM_ERROR_INVALID_PARAM;
     }
     if (screenSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
@@ -9990,7 +9984,7 @@ SuperFoldStatus ScreenSessionManager::GetSuperFoldStatus()
 float ScreenSessionManager::GetSuperRotation()
 {
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
-		std::string clientName = SysCapUtil::GetClientName();
+        std::string clientName = SysCapUtil::GetClientName();
         TLOGNFE(WmsLogTag::DMS, "Permission denied! calling: %{public}s, pid: %{public}d",
             clientName.c_str(), IPCSkeleton::GetCallingPid());
         return -1.f;
@@ -11975,7 +11969,7 @@ void ScreenSessionManager::NotifyUnfreezedAttributeAgents(const int32_t& pid, co
             continue;
         }
         agent->OnDisplayAttributeChange(displayInfo, attributes);
-		pidAgentTypeMap_[pid].erase(DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER);
+        pidAgentTypeMap_[pid].erase(DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER);
         std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
         lastDisplayInfoMap_[displayId] = displayInfo;
     }
@@ -13511,7 +13505,7 @@ void ScreenSessionManager::SetForceCloseHdr(ScreenId screenId, bool isForceClose
 void ScreenSessionManager::UpdateParam(std::set<std::string> packageNames)
 {
     std::lock_guard<std::mutex> lock(packageNamesMutex_);
-    TLOGNFI(WmsLogTag::DMS, "mutex acquired, pkg size before: %{public}lu, after: %{public}lu",
+    TLOGNFI(WmsLogTag::DMS, "mutex acquired, pkg size before: %{public}zu, after: %{public}zu",
         g_packageNames_.size(), packageNames.size());
     for (std::string packageName : g_packageNames_) {
         TLOGNFI(WmsLogTag::DMS, "whitelist pkgs before: %{public}s", packageName.c_str());
@@ -13909,11 +13903,11 @@ bool ScreenSessionManager::SetRSScreenPowerStatusExt(ScreenId screenId, ScreenPo
             rsScreenId = screenId;
        }
     }
-	DoSetScreenPowerStatus(rsScreenId, status);
+    DoSetScreenPowerStatus(rsScreenId, status);
     if (status == ScreenPowerStatus::POWER_STATUS_ON) {
 #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
         int32_t ret = DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().NotifyBrightnessManagerScreenPowerStatus(
-            static_cast<uint32_t>(screenId), static_cast<uint32_t>(status), static_cast<uint32_t>(reason));
+            static_cast<uint32_t>(screenId), static_cast<uint32_t>(status));
         TLOGNFI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", status:%{public}u, "\
             "reason:%{public}u, ret = %{public}d",
             screenId, static_cast<uint32_t>(status), static_cast<uint32_t>(reason), ret);
@@ -15136,7 +15130,7 @@ void ScreenSessionManager::BootFinishedUnfreezeCallback(const char *key, const c
             return;
         }
         screenSession->PropertyChange(screenSession->GetScreenProperty(), ScreenPropertyChangeReason::CHANGE_MODE);
-        screenSession->FreezeScreen(false, true);
+        screenSession->FreezeScreen(false);
         that.rsInterface_.ForceRefreshOneFrameWithNextVSync();
     }
 }
@@ -15150,13 +15144,13 @@ void ScreenSessionManager::AddScreenUnfreezeTask(const sptr<ScreenSession>& scre
     // maximum boot time can reach 5 minutes, 300s = 150 * 2s
     if (freezeCount >= FREEZE_SCREEN_MAX_COUNT) {
         TLOGNFE(WmsLogTag::DMS, "boot error and freeze screen over 5 minutes");
-        screenSession->FreezeScreen(false, true);
+        screenSession->FreezeScreen(false);
         rsInterface_.ForceRefreshOneFrameWithNextVSync();
         return;
     }
     if (system::GetBoolParameter(BOOTEVENT_BOOT_COMPLETED, false)) {
         auto unfreezeTask = [this, screenSession]() {
-            screenSession->FreezeScreen(false, true);
+            screenSession->FreezeScreen(false);
             rsInterface_.ForceRefreshOneFrameWithNextVSync();
         };
         // delay 2000ms to wait app layout and send to display completed
@@ -15164,7 +15158,7 @@ void ScreenSessionManager::AddScreenUnfreezeTask(const sptr<ScreenSession>& scre
         return;
     }
     freezeCount++;
-    screenSession->FreezeScreen(true, true);
+    screenSession->FreezeScreen(true);
     auto task = [this, screenSession, freezeCount]() {
         AddScreenUnfreezeTask(screenSession, freezeCount);
     };

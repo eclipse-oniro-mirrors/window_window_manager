@@ -37,11 +37,6 @@ config("libdm_public_config") {
   ]
 }
 
-config("for_libdm_public_config") {
-  include_dirs =
-    [ "../../../multimedia/image_framework/interfaces/innerkits/include" ]
-}
-
 ## Build libdm_static.a
 ohos_static_library("libdm_static") {
   branch_protector_ret = "pac_ret"
@@ -128,7 +123,6 @@ ohos_shared_library("libdm") {
   ]
 
   public_configs = [
-    ":for_libdm_public_config",
     ":libdm_public_config",
   ]
 
@@ -139,7 +133,10 @@ ohos_shared_library("libdm") {
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 
-  public_external_deps = [ "graphic_2d:color_manager" ]
+  public_external_deps = [ 
+    "graphic_2d:color_manager",
+    "image_framework:pixelconvertadapter",
+  ]
 
   external_deps = [
     "ability_runtime:ability_manager",

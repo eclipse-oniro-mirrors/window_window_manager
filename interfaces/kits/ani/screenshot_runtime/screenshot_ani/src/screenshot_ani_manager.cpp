@@ -203,7 +203,7 @@ ani_object ScreenshotManagerAni::Capture(ani_env* env, ani_object options)
     if (!optionsUndefined) {
         ani_long displayId = 0;
         ani_status ret = ScreenshotAniUtils::ReadOptionalLongField(env, options, "displayId", displayId);
-        TLOGI(WmsLogTag::DMS, "[ANI] displayId %{public}lu", static_cast<DisplayId>(displayId));
+        TLOGI(WmsLogTag::DMS, "[ANI] displayId %{public}llu", static_cast<DisplayId>(displayId));
         if (ret != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] get displayId failed");
             return nullptr;

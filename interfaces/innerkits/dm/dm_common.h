@@ -16,9 +16,6 @@
 #ifndef OHOS_ROSEN_DM_COMMON_H
 #define OHOS_ROSEN_DM_COMMON_H
 
-#include <iremote_stub.h>
-#include <iremote_proxy.h>
-#include <iremote_object.h>
 #include <map>
 #include <string>
 #include <sstream>
@@ -171,19 +168,6 @@ enum class ScreenPropertyChangeType : uint32_t {
     SINGLE_HAND_SWITCH,
     /* Undefined. */
     UNDEFINED,
-};
-
-class IReverseDeathAgent : public IRemoteBroker {
-public:
-    DECLARE_INTERFACE_DESCRIPTOR(u"ReverseDeathAgent");
-};
-
-class ReverseDeathStub : public IRemoteStub<IReverseDeathAgent> {
-public:
-};
-
-class ReverseDeathProxy : public IRemoteProxy<IReverseDeathAgent> {
-public:
 };
 
 /**
