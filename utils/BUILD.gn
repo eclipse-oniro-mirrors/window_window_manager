@@ -249,7 +249,6 @@ ohos_shared_library("libwmutil") {
 
   external_deps = [
     "ability_base:want",
-    "ability_runtime:wantagent_innerkits",
     "ability_runtime:ability_start_setting",
     "access_token:libaccesstoken_sdk",
     "access_token:libtokenid_sdk",
@@ -272,6 +271,7 @@ ohos_shared_library("libwmutil") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "time_service:time_client",
+    "ability_runtime:wantagent_innerkits",
   ]
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
