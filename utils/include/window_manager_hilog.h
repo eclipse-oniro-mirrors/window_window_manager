@@ -77,7 +77,7 @@ enum class WmsLogTag : uint8_t {
     WMS_ROTATION,              // C0421D
     WMS_ANIMATION,             // C0421E
     END,                       // Last one, do not use
-};
+}; // NOTICE: g_domainContents should be modified at the same time, and the order should be consistent!
 
 extern const char* g_domainContents[static_cast<uint32_t>(WmsLogTag::END)];
 #ifdef IS_RELEASE_VERSION
@@ -194,7 +194,7 @@ PRINT_TLOG(LOG_ERROR, tag, FMT_PREFIX fmt, WMS_NO_FILE_NAME, C_W_FUNC, ##__VA_AR
 #define TLOGI_LIMITN_MIN(tag, freq, fmt, ...)                                                            \
     do {                                                                                                 \
         bool can = true;                                                                                 \
-        OGD(tag, fmt, ##__VA_ARGS__);                                                                    \
+        TLOGD(tag, fmt, ##__VA_ARGS__);                                                                  \
         WIN_PRINT_LIMIT(tag, LOG_INFO, WIN_LOG_LIMIT_MINUTE, can, freq);                                 \
         if (can) {                                                                                       \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                              \
