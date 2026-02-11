@@ -501,6 +501,9 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
     BindNativeFunction(env, objValue, "activateDragBySystem", moduleName, JsSceneSession::ActivateDragBySystem);
     BindNativeFunction(env, objValue, "on", moduleName, JsSceneSession::RegisterCallback);
     BindNativeFunction(env, objValue, "updateNativeVisibility", moduleName, JsSceneSession::UpdateNativeVisibility);
+    BindNativeFunction(env, objValue, "clearAllModifiers", moduleName, JsSceneSession::ClearAllModifiers);
+    BindNativeFunction(env, objValue, "updatePropertyWhenTriggerMode", moduleName,
+        JsSceneSession::UpdatePropertyWhenTriggerMode);
     BindNativeFunction(env, objValue, "setShowRecent", moduleName, JsSceneSession::SetShowRecent);
     BindNativeFunction(env, objValue, "setZOrder", moduleName, JsSceneSession::SetZOrder);
     BindNativeFunction(env, objValue, "getZOrder", moduleName, JsSceneSession::GetZOrder);
@@ -2444,6 +2447,20 @@ napi_value JsSceneSession::UpdateNativeVisibility(napi_env env, napi_callback_in
     return (me != nullptr) ? me->OnUpdateNativeVisibility(env, info) : nullptr;
 }
 
+napi_value JsSceneSession::ClearAllModifiers(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnClearAllModifiers(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::UpdatePropertyWhenTriggerMode(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnUpdatePropertyWhenTriggerMode(env, info) : nullptr;
+}
+
 napi_value JsSceneSession::SetPrivacyMode(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
@@ -3420,6 +3437,30 @@ napi_value JsSceneSession::OnUpdateNativeVisibility(napi_env env, napi_callback_
     }
     session->UpdateNativeVisibility(visible);
     TLOGD(WmsLogTag::DEFAULT, "end");
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnClearAllModifiers(napi_env env, napi_callback_info info)
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->ClearAllModifiers();
+    TLOGD(WmsLogTag::WMS_RECOVER, "end");
+    return NapiGetUndefined(env);
+}
+ 
+napi_value JsSceneSession::OnUpdatePropertyWhenTriggerMode(napi_env env, napi_callback_info info)
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->UpdatePropertyWhenTriggerMode();
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "end");
     return NapiGetUndefined(env);
 }
 

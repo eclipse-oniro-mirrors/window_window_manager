@@ -1492,7 +1492,8 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteFloat(aspectRatio_) &&
         parcel.WriteBool(isRotationLock_) &&
         parcel.WriteInt32(frameNum_) &&
-        parcel.WriteBool(isPrelaunch_);
+        parcel.WriteBool(isPrelaunch_) &&
+        parcel.WriteBool(isAppBufferReady_);
 }
 
 WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
@@ -1615,6 +1616,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetRotationLocked(parcel.ReadBool());
     property->SetFrameNum(parcel.ReadInt32());
     property->SetPrelaunch(parcel.ReadBool());
+    property->SetAppBufferReady(parcel.ReadBool());
     return property;
 }
 
@@ -2890,6 +2892,16 @@ void WindowSessionProperty::SetFrameNum(int32_t frameNum)
 int32_t WindowSessionProperty::GetFrameNum() const
 {
     return frameNum_;
+}
+
+void WindowSessionProperty::SetAppBufferReady(bool isAppBufferReady)
+{
+    isAppBufferReady_ = isAppBufferReady;
+}
+
+bool WindowSessionProperty::IsAppBufferReady() const
+{
+    return isAppBufferReady_;
 }
 } // namespace Rosen
 } // namespace OHOS

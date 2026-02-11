@@ -1972,6 +1972,74 @@ HWTEST_F(SceneSessionTest6, SetSidebarBlurMaximize2, Function | SmallTest | Leve
     EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_MAXIMIZE)).Times(1);
     session->SetSidebarBlurMaximize(true);
 }
+
+/**
+ * @tc.name: NotifyModeSwitchInfo
+ * @tc.desc: NotifyModeSwitchInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifyModeSwitchInfo, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    EXPECT_CALL(*sessionStageMocker, UpdateWindowUIType(session->systemConfig_.windowUIType_)).Times(1);
+    session->NotifyModeSwitchInfo();
+    session->sessionStage_ = nullptr;
+    EXPECT_EQ(session->NotifyModeSwitchInfo(), WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: ClearAllModifiers
+ * @tc.desc: ClearAllModifiers
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, ClearAllModifiers, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    g_errlog.clear();
+    LOG_SetCallback(ScreenSessionLogCallback);
+    session->ClearAllModifiers();
+    EXPECT_TRUE(g_errlog.find("surfaceNode_ is null") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ClearAllModifiers1
+ * @tc.desc: ClearAllModifiers
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, ClearAllModifiers1, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    struct RSSurfaceNodeConfig config;
+    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
+    EXPECT_NE(surfaceNode, nullptr);
+    session->surfaceNode_ = surfaceNode;
+    session->ClearAllModifiers();
+    EXPECT_NE(session->surfaceNode_, nullptr);
+}
+
+/**
+ * @tc.name: UpdatePropertyWhenTriggerMode
+ * @tc.desc: UpdatePropertyWhenTriggerMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, UpdatePropertyWhenTriggerMode, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = nullptr;
+    EXPECT_CALL(*sessionStageMocker, UpdatePropertyWhenTriggerMode(session->property_)).Times(0);
+    session->UpdatePropertyWhenTriggerMode();
+    session->sessionStage_ = sessionStageMocker;
+    EXPECT_CALL(*sessionStageMocker, UpdatePropertyWhenTriggerMode(session->property_)).Times(1);
+    session->UpdatePropertyWhenTriggerMode();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

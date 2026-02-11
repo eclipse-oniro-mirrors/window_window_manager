@@ -575,10 +575,13 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
             if (sceneSession == nullptr) {
                 break;
             }
+            sceneSession->NotifyIsFullScreenInForceSplitMode(property->IsFullScreenInForceSplitMode());
+            sceneSession->NotifyModeSwitchInfo();
             if (SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
                 sceneSession->SetRecovered(true);
                 recoverSceneSessionFunc_(sceneSession, sessionInfo);
                 sceneSession->SetWindowShadowEnabled(property->GetWindowShadowEnabled());
+                sceneSession->SetAppBufferReady(property->IsAppBufferReady());
             } else {
                 sceneSession->NotifyFollowParentMultiScreenPolicy(sessionInfo.isFollowParentMultiScreenPolicy);
                 NotifyCreateSpecificSession(sceneSession, property, property->GetWindowType());
@@ -5144,7 +5147,6 @@ WSError SceneSessionManager::RecoverAndReconnectSceneSession(const sptr<ISession
             sessionRecoverStateChangeFunc_(SessionRecoverState::SESSION_NOT_RECONNECT, property);
             return ret;
         }
-        sceneSession->NotifyIsFullScreenInForceSplitMode(property->IsFullScreenInForceSplitMode());
         sessionRecoverStateChangeFunc_(SessionRecoverState::SESSION_FINISH_RECONNECT, property);
         session = sceneSession;
         return WSError::WS_OK;

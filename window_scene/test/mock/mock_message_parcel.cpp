@@ -22,6 +22,7 @@ namespace {
 bool g_setWriteBoolErrorFlag = false;
 bool g_setWriteInt32ErrorFlag = false;
 bool g_setWriteInt64ErrorFlag = false;
+bool g_setWriteUint8ErrorFlag = false;
 bool g_setWriteUint32ErrorFlag = false;
 bool g_setWriteUint64ErrorFlag = false;
 bool g_setWriteFloatErrorFlag = false;
@@ -60,6 +61,7 @@ void MockMessageParcel::ClearAllErrorFlag()
     g_setWriteBoolErrorFlag = false;
     g_setWriteInt32ErrorFlag = false;
     g_setWriteInt64ErrorFlag = false;
+    g_setWriteUint8ErrorFlag = false;
     g_setWriteUint32ErrorFlag = false;
     g_setWriteUint64ErrorFlag = false;
     g_setWriteFloatErrorFlag = false;
@@ -92,6 +94,11 @@ void MockMessageParcel::SetWriteInt32ErrorFlag(bool flag)
 void MockMessageParcel::SetWriteInt64ErrorFlag(bool flag)
 {
     g_setWriteInt64ErrorFlag = flag;
+}
+
+void MockMessageParcel::SetWriteUint8ErrorFlag(bool flag)
+{
+    g_setWriteUint8ErrorFlag = flag;
 }
 
 void MockMessageParcel::SetWriteUint32ErrorFlag(bool flag)
@@ -264,6 +271,15 @@ bool Parcel::WriteInt64(int64_t value)
 {
     (void)value;
     if (g_setWriteInt64ErrorFlag || value == ERROR_INT) {
+        return false;
+    }
+    return true;
+}
+
+bool Parcel::WriteUint8(uint8_t value)
+{
+    (void)value;
+    if (g_setWriteUint8ErrorFlag) {
         return false;
     }
     return true;
