@@ -509,6 +509,10 @@ void WindowController::NotifyInputCallingWindowRectAndOccupiedAreaChange(const s
 
     FlushWindowInfo(callingWindow->GetWindowId());
     accessibilityConnection_->NotifyAccessibilityWindowInfo(callingWindow, WindowUpdateType::WINDOW_UPDATE_PROPERTY);
+    WLOGFD("Calling windowId: %{public}u, calling winRect: [%{public}d, %{public}d, %{public}u, %{public}u], "
+ 	    "occupiedArea: [%{public}d, %{public}d, %{public}u, %{public}u], safeHeight: %{public}u",
+ 	    callingWindow->GetWindowId(), rect.posX_, rect.posY_, rect.width_, rect.height_,
+ 	    occupiedArea.posX_, occupiedArea.posY_, occupiedArea.width_, occupiedArea.height_, safeRect.height_);
 }
 
 void WindowController::ResizeSoftInputCallingWindowIfNeed(const sptr<WindowNode>& node)
