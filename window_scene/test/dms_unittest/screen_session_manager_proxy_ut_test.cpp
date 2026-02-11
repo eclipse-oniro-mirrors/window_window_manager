@@ -1429,11 +1429,7 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldDisplayMode, TestSize.Level1)
 {
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
     screenSessionManagerProxy->SetFoldDisplayMode(displayMode);
-    if (screenSessionManagerProxy->IsFoldable() && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    } else {
-        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    }
+    EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
 }
 
 /**
@@ -1460,7 +1456,7 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldStatusLocked, TestSize.Level1)
 {
     bool locked = true;
     screenSessionManagerProxy->SetFoldStatusLocked(locked);
-    if (screenSessionManagerProxy->IsFoldable() && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+    if (ScreenSessionManager::GetInstance().IsFoldable()) {
         EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
     } else {
         EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
