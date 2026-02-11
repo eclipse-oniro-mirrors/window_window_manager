@@ -198,18 +198,12 @@ void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
         surfaceNode_->CreateShadowSurfaceNode() : nullptr;
 }
 
-std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode() const
-{
-    std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
-    return surfaceNode_;
-}
-
 std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode(bool isUpdateContextBeforeGet)
 {
     std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
     if (isUpdateContextBeforeGet) {
         TLOGI(WmsLogTag::WMS_SCB,
-              "id: %{public}d, surfaceNode: %{public}s, original %{public}s",
+              "id: %{public}d, surfaceNode: %{public}s, original: %{public}s",
               GetPersistentId(),
               RSAdapterUtil::RSNodeToStr(surfaceNode_).c_str(),
               RSAdapterUtil::RSUIContextToStr(GetRSUIContext()).c_str());
@@ -217,6 +211,12 @@ std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode(bool isUpdateContextBefor
             RSAdapterUtil::SetRSUIContext(surfaceNode_, GetRSUIContext(), true);
         }
     }
+    return surfaceNode_;
+}
+
+std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode() const
+{
+    std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
     return surfaceNode_;
 }
 
@@ -871,7 +871,12 @@ void Session::UpdateSessionTouchable(bool touchable)
 WSError Session::SetFocusable(bool isFocusable)
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "id: %{public}d, focusable: %{public}d", GetPersistentId(), isFocusable);
-    GetSessionProperty()->SetFocusable(isFocusable);
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "property is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    property->SetFocusable(isFocusable);
     if (isFocused_ && !GetFocusable()) {
         FocusChangeReason reason = FocusChangeReason::FOCUSABLE;
         NotifyRequestFocusStatusNotifyManager(false, true, reason);
@@ -891,10 +896,10 @@ void Session::SetSystemFocusable(bool systemFocusable)
 
 WSError Session::SetFocusableOnShow(bool isFocusableOnShow)
 {
-    PostTask([weakThis = wptr(this), isFocusableOnShow]() {
+    PostTask([weakThis = wptr(this), isFocusableOnShow] {
         auto session = weakThis.promote();
         if (session == nullptr) {
-            TLOGNE(WmsLogTag::WMS_FOCUS, "session is null");
+            TLOGNE(WmsLogTag::WMS_FOCUS, "session is invalid");
             return;
         }
         TLOGND(WmsLogTag::WMS_FOCUS, "id: %{public}d, focusableOnShow: %{public}d",
@@ -4536,7 +4541,11 @@ bool Session::UseStartingWindowAboveLocked() const
 
 WindowType Session::GetWindowType() const
 {
-    return GetSessionProperty()->GetWindowType();
+    auto property = GetSessionProperty();
+    if (property) {
+        return property->GetWindowType();
+    }
+    return WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
 }
 
 std::string Session::GetWindowName() const

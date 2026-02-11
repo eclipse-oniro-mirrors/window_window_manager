@@ -168,7 +168,7 @@ void WindowManager::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChange
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         focusChangeListeners = focusChangedListeners_;
     }
-    WLOGD("NotifyFocused listeners: %{public}zu", focusChangeListeners.size());
+    WLOGFD("NotifyFocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnFocused(focusChangeInfo);
     }
@@ -184,7 +184,7 @@ void WindowManager::Impl::NotifyUnfocused(const sptr<FocusChangeInfo>& focusChan
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         focusChangeListeners = focusChangedListeners_;
     }
-    WLOGD("NotifyUnfocused listeners: %{public}zu", focusChangeListeners.size());
+    WLOGFD("NotifyUnfocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnUnfocused(focusChangeInfo);
     }
