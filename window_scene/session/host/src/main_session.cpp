@@ -43,7 +43,7 @@ MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCall
 MainSession::~MainSession()
 {
     WLOGD("~MainSession, id: %{public}d", GetPersistentId());
-     // exclude when user deletes session in recent.
+    // exclude when user deletes session in recent.
     if (SessionHelper::IsMainWindow(GetWindowType()) && notifySceneSessionDestructFunc_ && !isUserRequestedExit_) {
         notifySceneSessionDestructFunc_(GetPersistentId());
     }
@@ -605,7 +605,7 @@ void MainSession::SetSceneSessionDestructNotificationFunc(NotifySceneSessionDest
 {
     notifySceneSessionDestructFunc_ = std::move(func);
 }
- 	 
+
 void MainSession::SetIsUserRequestedExit(bool isUserRequestedExit)
 {
     isUserRequestedExit_ = isUserRequestedExit;

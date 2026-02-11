@@ -151,10 +151,10 @@ napi_value CreateJsSessionRect(napi_env env, const T& rect);
 napi_value CreateJsSessionEventParam(napi_env env, const SessionEventParam& param);
 napi_value CreateRotationChangeType(napi_env env);
 napi_value CreateRectType(napi_env env);
+napi_value CreateSupportType(napi_env env);
 napi_value CreateWindowAnchorType(napi_env env);
 napi_value CreatePixelUnitType(napi_env env);
 napi_value CreateJsWindowAnchorInfo(napi_env env, const WindowAnchorInfo& windowAnchorInfo);
-napi_value CreateSupportType(napi_env env);
 napi_value SubWindowModalTypeInit(napi_env env);
 napi_value CreateJsSystemBarPropertyArrayObject(
     napi_env env, const std::unordered_map<WindowType, SystemBarProperty>& propertyMap);
@@ -214,7 +214,7 @@ bool ParseJsValue(napi_env env, napi_value jsObject, const std::string& name, T&
     napi_valuetype type = napi_undefined;
     napi_typeof(env, value, &type);
     if (type != napi_undefined) {
-        return AbilityRuntime::ConvertFromJsValue(env, value, data);
+       return AbilityRuntime::ConvertFromJsValue(env, value, data);
     }
     return false;
 }
