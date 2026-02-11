@@ -522,7 +522,7 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d want is empty", sceneSession->GetPersistentId());
             sceneSession->SetFocusedOnShow(true);
         }
-        if (configs.size() != 0 && !(configs[index++]->forceStart) && info->persistentId_ != INVALID_SESSION_ID ) {
+        if (configs.size() != 0 && !(configs[index++]->forceStart) && info->persistentId_ != INVALID_SESSION_ID) {
             TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d is Terminate", sceneSession->GetPersistentId());
         } else {
             sceneSession->SetSessionInfo(*info);

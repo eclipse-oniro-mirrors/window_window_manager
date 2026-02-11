@@ -214,7 +214,7 @@ bool ParseJsValue(napi_env env, napi_value jsObject, const std::string& name, T&
     napi_valuetype type = napi_undefined;
     napi_typeof(env, value, &type);
     if (type != napi_undefined) {
-       return AbilityRuntime::ConvertFromJsValue(env, value, data);
+        return AbilityRuntime::ConvertFromJsValue(env, value, data);
     }
     return false;
 }

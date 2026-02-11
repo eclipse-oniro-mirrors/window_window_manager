@@ -1212,7 +1212,7 @@ void JsSceneSession::OnSessionInfoLockedStateChange(bool lockedState)
     auto task = [weakThis = wptr(this), persistentId = persistentId_, lockedState, env = env_, where] {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
-            TLOGE(WmsLogTag::WMS_LIFE, "OnsessionInfoLockedStateChange: jsSceneSession id:%{public}d has been destroyed",
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public} jsSceneSession id:%{public}d has been destroyed",
                 where, persistentId);
             return;
         }
