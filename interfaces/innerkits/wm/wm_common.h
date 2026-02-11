@@ -3516,7 +3516,7 @@ enum class WaterfallResidentState : uint32_t {
     CLOSE = 2,
 
     /** Disable the resident state but keep the current waterfall layout state unchanged. */
-    CANCEL = 3,
+    CANCEL = 3, 
 };
 
 /**
