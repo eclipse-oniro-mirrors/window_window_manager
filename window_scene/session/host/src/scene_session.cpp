@@ -5509,10 +5509,6 @@ void SceneSession::NotifyExtensionSecureLimitChange(bool isLimit)
 
 WMError SceneSession::SetSnapshotSkip(bool isSkip)
 {
-    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}d, permission denied!", GetPersistentId());
-        return WMError::WM_ERROR_NOT_SYSTEM_APP;
-    }
     auto property = GetSessionProperty();
     if (!property) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "property is null");
@@ -6292,7 +6288,6 @@ void SceneSession::CalculateStartWindowType(SessionInfo& info, bool hideStartWin
         info.startWindowType_ = StartWindowType::DEFAULT;
         if (hideStartWindow) {
             info.startWindowType_ = StartWindowType::RETAIN_AND_INVISIBLE;
-            SetHidingStartingWindow(true);
         }
         info.isSetStartWindowType_ = true;
     }
