@@ -113,8 +113,7 @@ std::shared_ptr<VSyncReceiver> VsyncStation::GetOrCreateVsyncReceiverLocked()
 }
 
 // LCOV_EXCL_START
-__attribute__((no_sanitize("cfi"))) void VsyncStation::RequestVsync(
-    const std::shared_ptr<VsyncCallback>& vsyncCallback)
+void VsyncStation::RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback)
 {
     std::shared_ptr<VSyncReceiver> receiver;
     {
