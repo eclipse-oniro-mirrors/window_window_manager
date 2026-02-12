@@ -377,7 +377,7 @@ napi_value JsPipWindowManager::OnCreatePipController(napi_env env, napi_callback
         return NapiThrowInvalidParam(env, "[PiPWindow][create]msg: Missing args when creating pipController");
     }
     napi_value config = argv[0];
-    if (config == nullptr) {
+    if (config == nullptr || GetType(env, config) == napi_undefined || GetType(env, config) == napi_null) {
         TLOGE(WmsLogTag::WMS_PIP, "config is null");
         return NapiThrowInvalidParam(env,
             "[PiPWindow][create]msg: The pipConfiguration is null");
