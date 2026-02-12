@@ -158,7 +158,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
  * @attention: only use for wms-layout
  */
 #define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
-    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE(wid), timeWindowMs, maxCount, tag, fmt, __VA_ARGS__)
+    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, __VA_ARGS__)
 
 /**
  * @brief: limit printing log
@@ -187,7 +187,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
  * @attention: only use for wms-layout
  */
 #define TLOGNI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                \
-    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(wid), timeWindowMs, maxCount, tag, fmt, __VA_ARGS__)
+    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, __VA_ARGS__)
 
 } // namespace Rosen
 } // namespace OHOS
