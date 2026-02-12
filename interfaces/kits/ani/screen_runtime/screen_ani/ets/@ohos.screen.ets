@@ -643,6 +643,8 @@ export interface VirtualScreenOption {
     surfaceId: string;
 
     supportsFocus?: boolean;
+
+    userId?: int;
 }
 
 class VirtualScreenOptionImpl implements VirtualScreenOption {
