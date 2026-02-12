@@ -43,7 +43,7 @@ MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCall
 MainSession::~MainSession()
 {
     WLOGD("~MainSession, id: %{public}d", GetPersistentId());
-     // exclude when user deletes session in recent.
+    // exclude when user deletes session in recent.
     if (SessionHelper::IsMainWindow(GetWindowType()) && notifySceneSessionDestructFunc_ && !isUserRequestedExit_) {
         notifySceneSessionDestructFunc_(GetPersistentId());
     }
@@ -285,9 +285,8 @@ void MainSession::NotifyClientToUpdateInteractive(bool interactive)
         return;
     }
     const auto state = GetSessionState();
-    TLOGI(WmsLogTag::WMS_LIFE, "state: %{public}d", state);
     if (state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND) {
-        TLOGI(WmsLogTag::WMS_LIFE, "interactive: %{public}d", interactive);
+        WLOGFI("%{public}d", interactive);
         sessionStage_->NotifyForegroundInteractiveStatus(interactive);
         isClientInteractive_ = interactive;
     }
@@ -328,17 +327,17 @@ WSError MainSession::OnRestoreMainWindow()
     int32_t callingPid = IPCSkeleton::GetCallingPid();
     uint32_t callingToken = IPCSkeleton::GetCallingTokenID();
     std::string appInstanceKey = GetSessionProperty()->GetAppInstanceKey();
-    bool isSessionBoundSystemTray = GetSessionBoundedSystemTray(callingPid, callingToken, appInstanceKey);
+    bool isSessionBoundedSystemTray = GetSessionBoundedSystemTray(callingPid, callingToken, appInstanceKey);
     TLOGI(WmsLogTag::WMS_MAIN,
-        "isAppSupportPhoneInPc: %{public}d callingPid: %{public}d callingTokenId: %{public}u appInstanceKey: "
-        "%{public}s isSessionBoundSystemTray: %{public}d",
+        "isAppSupportPhoneInPc: %{public}d callingPid: %{public}d callingId: %{private}u appInstanceKey: "
+        "%{public}s isSessionBoundedSystemTray: %{public}d",
         isAppSupportPhoneInPc,
         callingPid,
         callingToken,
         appInstanceKey.c_str(),
-        isSessionBoundSystemTray);
+        isSessionBoundedSystemTray);
     // check if the application is bound to the system tray
-    if (isAppSupportPhoneInPc && !isSessionBoundSystemTray) {
+    if (isAppSupportPhoneInPc && !isSessionBoundedSystemTray) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The application is not bound to the system tray.");
         return WSError::WS_ERROR_INVALID_CALLING;
     }
@@ -602,7 +601,7 @@ void MainSession::SetSceneSessionDestructNotificationFunc(NotifySceneSessionDest
 {
     notifySceneSessionDestructFunc_ = std::move(func);
 }
- 	 
+
 void MainSession::SetIsUserRequestedExit(bool isUserRequestedExit)
 {
     isUserRequestedExit_ = isUserRequestedExit;
