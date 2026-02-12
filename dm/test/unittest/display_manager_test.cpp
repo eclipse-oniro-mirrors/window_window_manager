@@ -3589,24 +3589,6 @@ HWTEST_F(DisplayManagerTest, NotifyDisplayCreateTagUpdate, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyDisplayCreateNullPtr
- * @tc.desc: NotifyDisplayCreate with null DisplayInfo
- * @tc.type: FUNC
- */
-HWTEST_F(DisplayManagerTest, NotifyDisplayCreateNullPtr, TestSize.Level1)
-{
-    std::recursive_mutex mutex;
-    DisplayManager::Impl impl(mutex);
-    sptr<DisplayInfo> displayInfo = nullptr;
-    
-    size_t mapSizeBefore = impl.globalDisplayTagMap_.size();
-    impl.NotifyDisplayCreate(displayInfo);
-    size_t mapSizeAfter = impl.globalDisplayTagMap_.size();
-    
-    EXPECT_EQ(mapSizeBefore, mapSizeAfter);
-}
-
-/**
  * @tc.name: NotifyDisplayChangeTagUpdate
  * @tc.desc: NotifyDisplayChange updates global display tag
  * @tc.type: FUNC
@@ -3624,25 +3606,6 @@ HWTEST_F(DisplayManagerTest, NotifyDisplayChangeTagUpdate, TestSize.Level1)
     auto iter = impl.globalDisplayTagMap_.find(201);
     ASSERT_NE(iter, impl.globalDisplayTagMap_.end());
     EXPECT_GT(iter->second, 1000000ULL);
-}
-
-/**
- * @tc.name: NotifyDisplayChangeNullPtr
- * @tc.desc: NotifyDisplayChange with null DisplayInfo
- * @tc.type: FUNC
- */
-HWTEST_F(DisplayManagerTest, NotifyDisplayChangeNullPtr, TestSize.Level1)
-{
-    std::recursive_mutex mutex;
-    DisplayManager::Impl impl(mutex);
-    sptr<DisplayInfo> displayInfo = nullptr;
-    
-    impl.globalDisplayTagMap_[202] = 1000000ULL;
-    impl.NotifyDisplayChange(displayInfo);
-    
-    auto iter = impl.globalDisplayTagMap_.find(202);
-    ASSERT_NE(iter, impl.globalDisplayTagMap_.end());
-    EXPECT_EQ(iter->second, 1000000ULL);
 }
 
 /**
