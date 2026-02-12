@@ -80,9 +80,9 @@ public:
     WSError SwitchFreeMultiWindow(bool enable) override;
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
     void NotifyKeyboardPanelInfoChange(const KeyboardPanelInfo& keyboardPanelInfo) override;
+    void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     WSError PcAppInPadNormalClose() override;
     WSError NotifyCompatibleModePropertyChange(const sptr<CompatibleModeProperty> property) override;
-    void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     void UpdateAnimationSpeed(float speed) override;
     void NotifySessionFullScreen(bool fullScreen) override;
     WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo) override;
