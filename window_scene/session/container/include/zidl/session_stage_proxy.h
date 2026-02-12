@@ -122,6 +122,8 @@ public:
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
     WSError AddSidebarBlur() override;
     WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
+    WSError UpdateWindowUIType(WindowUIType windowUIType) override; 
+    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
 
     // Window Property
     WSError UpdateBrightness(float brightness) override;
