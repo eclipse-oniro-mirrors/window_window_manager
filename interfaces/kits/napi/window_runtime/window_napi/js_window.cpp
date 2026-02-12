@@ -8175,10 +8175,6 @@ napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info
         return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
             "[window][setDecorButtonStyle]msg: Device not support.");
     }
-    if (res != WMError::WM_OK) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setDecorButtonStyle]msg: Called by invalid window type.");
-    }
     if (argv[INDEX_ZERO] == nullptr || !ConvertDecorButtonStyleFromJs(env, argv[INDEX_ZERO], decorButtonStyle)) {
         TLOGE(WmsLogTag::WMS_DECOR, "Argc is invalid");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
