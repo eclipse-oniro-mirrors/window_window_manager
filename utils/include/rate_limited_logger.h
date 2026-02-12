@@ -137,7 +137,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
  */
 #define TLOGI_LMT_INNER(functionAddress, timeWindowMs, maxCount, wid, tag, fmt, ...)              \
     do {                                                                                          \
-	    if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
             RateLimitedLogger::getInstance()                                                      \
                 .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
