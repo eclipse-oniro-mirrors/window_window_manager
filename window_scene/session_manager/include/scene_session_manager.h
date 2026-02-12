@@ -87,6 +87,8 @@ namespace AncoConsts {
     constexpr const char* ANCO_SESSION_ID = "ohos.anco.param.sessionId";
 }
 constexpr const char* IS_CALL_BY_SCB = "isCallBySCB";
+constexpr const char* LIGHT_MODE = "light";
+constexpr const char* DARK_MODE = "dark";
 
 struct SCBAbilityInfo {
     AppExecFwk::AbilityInfo abilityInfo_;
@@ -886,12 +888,17 @@ public:
     void VisitSnapshotFromCache(int32_t persistentId);
     void PutSnapshotToCache(int32_t persistentId);
     void RemoveSnapshotFromCache(int32_t persistentId);
+    void SetStartWindowPersistencePath(const std::string& bundleName, const std::string& saveStartWindowKey,
+        const std::string& path);
+    std::string GetStartWindowPersistencePath(const std::string& bundleName, const std::string& saveStartWindowKey);
+    void ClearStartWindowPersistencePath(const std::string& bundleName);
     void UpdateAllStartingWindowRdb();
     void GetStartupPage(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo);
     bool CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo, uint32_t& outResId, bool& outIsSvg);
     WSError RegisterSaveSnapshotFunc(const sptr<SceneSession>& sceneSession);
+    WSError RegisterSaveStartWindowFunc(const sptr<SceneSession>& sceneSession);
     std::shared_ptr<Media::PixelMap> GetPixelMap(uint32_t resourceId,
-        std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop = false);
+        std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop, bool& isCropped);
     std::pair<std::shared_ptr<uint8_t[]>, size_t> GetSvgBufferInfo(uint32_t resourceId,
         std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo);
     WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
@@ -900,6 +907,7 @@ public:
     void ConfigSupportCacheLockedSessionSnapshot();
     void ConfigSupportPreloadStartingWindow();
     void PreLoadStartingWindow(sptr<SceneSession> sceneSession);
+    bool IsStartWindowDark(const SessionInfo& sessionInfo);
     bool IsSyncLoadStartingWindow() { return syncLoadStartingWindow_; };
     bool IsDmaReclaimEnabled() { return enableDmaReclaim_; };
     WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl);
@@ -1856,6 +1864,8 @@ private:
     bool syncLoadStartingWindow_ = false;
     bool enableDmaReclaim_ = false;
     std::unordered_map<DisplayId, bool> appUseControlDisplayMap_;
+    std::mutex startWindowPersistencePathMutex_;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> startWindowPersistencePathMap_;
     void InitWindowPattern();
     void InitStartingWindow();
     void InitDmaReclaimParam();
@@ -1891,7 +1901,7 @@ private:
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId) override;
     WMError RemoveImageForRecent(int32_t persistentId) override;
-    void GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts);
+    bool GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts);
     void InitSnapshotBlurConfig();
     float GetBlurRadiusFromParam(const std::string& blurRadiusColorStr) const;
     uint32_t GetBlurBackgroundColorFromParam(const std::string& blurBackgroundColorStr) const;

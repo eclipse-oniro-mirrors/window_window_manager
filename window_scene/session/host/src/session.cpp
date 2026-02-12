@@ -3271,6 +3271,19 @@ void Session::GetPreloadStartingWindow(std::shared_ptr<Media::PixelMap>& pixelMa
     return;
 }
 
+void Session::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& persistentPixelMap,
+    const std::string& saveStartWindowKey)
+{
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Session::SaveStartWindow[%d][%s]",
+        persistentId_, sessionInfo_.bundleName_.c_str());
+    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d", GetPersistentId());
+    if (scenePersistence_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "failed %{public}d", GetPersistentId());
+        return;
+    }
+    scenePersistence_->SaveStartWindow(persistentPixelMap, saveStartWindowKey, saveStartWindowCallback_);
+}
+
 void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media::PixelMap> persistentPixelMap,
     bool updateSnapshot, LifeCycleChangeReason reason)
 {

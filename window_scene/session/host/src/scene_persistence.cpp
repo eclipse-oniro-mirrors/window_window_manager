@@ -43,6 +43,7 @@ constexpr uint8_t SUCCESS = 0;
 
 std::string ScenePersistence::snapshotDirectory_;
 std::string ScenePersistence::updatedIconDirectory_;
+std::string ScenePersistence::startWindowDirectory_;
 std::shared_ptr<WSFFRTHelper> ScenePersistence::snapshotFfrtHelper_;
 bool ScenePersistence::isAstcEnabled_ = false;
 
@@ -64,6 +65,60 @@ bool ScenePersistence::CreateUpdatedIconDir(const std::string& directory)
         return false;
     }
     return true;
+}
+
+bool ScenePersistence::CreateStartWindowDir(const std::string& directory)
+{
+    startWindowDirectory_ = directory + "/StartWindow/";
+    if (mkdir(startWindowDirectory_.c_str(), S_IRWXU)) {
+        TLOGD(WmsLogTag::DEFAULT, "mkdir failed or the start window directory already exists");
+        return false;
+    }
+    return true;
+}
+
+void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap,
+                                       const std::string& saveStartWindowKey,
+                                       const std::function<void(std::string, std::string)>& saveStartWindowCallback)
+{
+    std::string startWindowPath = startWindowDirectory_ + saveStartWindowKey + IMAGE_SUFFIX;
+    auto task = [weakThis = wptr(this), pixelMap, startWindowPath, saveStartWindowKey, saveStartWindowCallback]() {
+        auto scenePersistence = weakThis.promote();
+        if (scenePersistence == nullptr || pixelMap == nullptr || startWindowPath.find('/') == std::string::npos) {
+            TLOGNE(WmsLogTag::WMS_PATTERN,
+                "SaveStartWindow scenePersistence %{public}s nullptr or pixelMap %{public}s null",
+                scenePersistence == nullptr ? "" : "not", pixelMap == nullptr ? "" : "not");
+            return;
+        }
+        OHOS::Media::ImagePacker imagePacker;
+        OHOS::Media::PackOption option;
+        option.format = IMAGE_FORMAT;
+        option.quality = IMAGE_QUALITY;
+        if (remove(startWindowPath.c_str())) {
+            TLOGND(WmsLogTag::WMS_PATTERN, "SaveStartWindow remove old file failed");
+        }
+        TLOGNI(WmsLogTag::WMS_PATTERN, "SaveStartWindow begin");
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ScenePersistence::SaveStartWindow %s", startWindowPath.c_str());
+        std::lock_guard lock(scenePersistence->savingStartWindowMutex_);
+        if (imagePacker.StartPacking(startWindowPath, option)) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "SaveStartWindow failed, start packing error");
+            return;
+        }
+        if (imagePacker.AddImage(*pixelMap)) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "SaveStartWindow failed, add image error");
+            return;
+        }
+        int64_t packedSize = 0;
+        if (imagePacker.FinalizePacking(packedSize)) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "SaveStartWindow failed, finish packing error, size: %{public}" PRIu64,
+                packedSize);
+            return;
+        }
+        saveStartWindowCallback(startWindowPath, saveStartWindowKey);
+        TLOGNI(WmsLogTag::WMS_PATTERN, "SaveStartWindow success, size: %{public}" PRIu64,
+            packedSize);
+    };
+    snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
 }
 
 void ScenePersistence::SetSnapshotCapacity(SnapshotStatus capacity)

@@ -337,6 +337,8 @@
             OHOS::Rosen::ScenePersistence::HasSnapshot*;
             OHOS::Rosen::ScenePersistence::GetSnapshotSize*;
             OHOS::Rosen::ScenePersistence::ScenePersistence*;
+            OHOS::Rosen::ScenePersistence::CreateStartWindowDir*;
+            OHOS::Rosen::ScenePersistence::SaveStartWindow*;
             OHOS::Rosen::SceneSession::SetVsyncStation*;
             OHOS::Rosen::PcFoldScreenManager::IsHalfFolded*;
             OHOS::Rosen::PcFoldScreenManager::GetDisplayRects*;

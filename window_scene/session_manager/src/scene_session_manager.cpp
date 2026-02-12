@@ -3254,6 +3254,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     RegisterSessionExceptionFunc(sceneSession);
     RegisterVisibilityChangedDetectFunc(sceneSession);
     RegisterSaveSnapshotFunc(sceneSession);
+    RegisterSaveStartWindowFunc(sceneSession);
     RegisterIsSessionBoundedSystemTrayFunc(sceneSession);
     if (systemConfig_.IsPcOrPcMode()) {
         RegisterGetStartWindowConfigCallback(sceneSession);
@@ -3892,6 +3893,37 @@ void SceneSessionManager::RemoveSnapshotFromCache(int32_t persistentId)
     }
 }
 
+void SceneSessionManager::SetStartWindowPersistencePath(const std::string& bundleName,
+    const std::string& saveStartWindowKey, const std::string& path)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
+    std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
+    startWindowPersistencePathMap_[bundleName][saveStartWindowKey] = path;
+}
+
+std::string SceneSessionManager::GetStartWindowPersistencePath(const std::string& bundleName,
+    const std::string& saveStartWindowKey)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
+    std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
+    auto outerIt = startWindowPersistencePathMap_.find(bundleName);
+    if (outerIt == startWindowPersistencePathMap_.end()) {
+        return "";
+    }
+    auto innerIt = outerIt->second.find(saveStartWindowKey);
+    if (innerIt == outerIt->second.end()) {
+        return "";
+    }
+    return innerIt->second;
+}
+
+void SceneSessionManager::ClearStartWindowPersistencePath(const std::string& bundleName)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "session:%{public}s", bundleName.c_str());
+    std::lock_guard<std::mutex> lock(startWindowPersistencePathMutex_);
+    startWindowPersistencePathMap_.erase(bundleName);
+}
+
 WSError SceneSessionManager::NotifyAppUseControlDisplay(DisplayId displayId, bool useControl)
 {
     TLOGI(WmsLogTag::WMS_PATTERN, "displayId: %{public}" PRIu64 ", useControl: %{public}d", displayId, useControl);
@@ -3917,6 +3949,22 @@ WSError SceneSessionManager::RegisterSaveSnapshotFunc(const sptr<SceneSession>& 
     auto persistentId = sceneSession->GetPersistentId();
     sceneSession->SetSaveSnapshotCallback([this, persistentId]() {
         this->PutSnapshotToCache(persistentId);
+    });
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::RegisterSaveStartWindowFunc(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "session is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    const auto& sessionInfo = sceneSession->GetSessionInfo();
+    sceneSession->SetSaveStartWindowCallback([this, sessionInfo](std::string path, std::string saveStartWindowKey) {
+        this->SetStartWindowPersistencePath(sessionInfo.bundleName_, saveStartWindowKey, path);
     });
     return WSError::WS_OK;
 }
@@ -5747,6 +5795,9 @@ WSError SceneSessionManager::InitUserInfo(int32_t userId, std::string& fileDir)
         if (!ScenePersistence::CreateUpdatedIconDir(fileDir)) {
             TLOGND(WmsLogTag::WMS_MAIN, "Create icon directory failed");
         }
+        if (!ScenePersistence::CreateStartWindowDir(fileDir)) {
+            TLOGND(WmsLogTag::WMS_MAIN, "Create start window directory failed");
+        }
         currentUserId_ = userId;
         SceneInputManager::GetInstance().SetCurrentUserId(currentUserId_);
         if (MultiInstanceManager::IsSupportMultiInstance(systemConfig_)) {
@@ -6269,6 +6320,13 @@ bool SceneSessionManager::GetStartWindowColorFollowApp(const SessionInfo& sessio
     return false;
 }
 
+bool SceneSessionManager::IsStartWindowDark(const SessionInfo& sessionInfo)
+{
+    bool isAppDark = GetIsDarkFromConfiguration(GetCallerSessionColorMode(sessionInfo));
+    bool isSystemDark = GetIsDarkFromConfiguration(std::string(AppExecFwk::ConfigurationInner::COLOR_MODE_AUTO));
+    return GetStartWindowColorFollowApp(sessionInfo) ? isAppDark : isSystemDark;
+}
+
 void SceneSessionManager::GetStartupPage(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo)
 {
     if (GetIconFromDesk(sessionInfo, startingWindowInfo.iconPathEarlyVersion_)) {
@@ -6501,13 +6559,21 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             }
             sceneSession->SetPreloadStartingWindow(svgBufferInfo);
         } else {
-            auto pixelMap = GetPixelMap(resId, abilityInfo, true);
+            bool isCropped = false;
+            auto pixelMap = GetPixelMap(resId, abilityInfo, true, isCropped);
             if (pixelMap == nullptr) {
                 TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s pixelMap is nullptr", where);
                 return;
             }
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
+            std::string darkMode = IsStartWindowDark(sessionInfo) ? DARK_MODE : LIGHT_MODE;
+            std::string saveStartWindowKey = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +
+                sessionInfo.abilityName_ + '_' + darkMode;
+            std::string persistencePath = GetStartWindowPersistencePath(sessionInfo.bundleName_, saveStartWindowKey);
+            if (isCropped && persistencePath.empty()) {
+                sceneSession->SaveStartWindow(pixelMap, saveStartWindowKey);
+            }
         }
         TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s session %{public}d, isSvg %{public}d",
             where, sceneSession->GetPersistentId(), isIconSvg);
@@ -6563,6 +6629,7 @@ void SceneSessionManager::OnBundleUpdated(const std::string& bundleName, int use
 {
     taskScheduler_->PostAsyncTask([this, bundleName]() {
         ClearStartWindowColorFollowApp(bundleName);
+        ClearStartWindowPersistencePath(bundleName);
     }, __func__);
     auto task = [this, bundleName, where = __func__] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:OnBundleUpdated [%s]", bundleName.c_str());
@@ -18318,7 +18385,8 @@ WMError SceneSessionManager::SetImageForRecent(uint32_t imgResourceId, ImageFit 
         TLOGE(WmsLogTag::WMS_PATTERN, "%{public}d is not a systemApp", persistentId);
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
-    std::shared_ptr<Media::PixelMap> pixelMap = GetPixelMap(imgResourceId, abilityInfo);
+    bool isCropped;
+    std::shared_ptr<Media::PixelMap> pixelMap = GetPixelMap(imgResourceId, abilityInfo, false, isCropped);
     if (!pixelMap) {
         TLOGE(WmsLogTag::WMS_PATTERN, "get pixelMap failed");
         return WMError::WM_ERROR_NULLPTR;
@@ -18401,7 +18469,7 @@ WMError SceneSessionManager::RemoveImageForRecent(int32_t persistentId)
 }
 
 std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resourceId,
-    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop)
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo, bool needCrop, bool& isCropped)
 {
     auto resourceMgr = GetResourceManager(*abilityInfo.get());
     if (resourceMgr == nullptr) {
@@ -18433,11 +18501,12 @@ std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resou
     }
 
     Media::DecodeOptions decodeOpts;
+    isCropped = false;
     if (needCrop) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetCropInfoByDisplaySize");
         Media::ImageInfo imageInfo;
         imageSource->GetImageInfo(imageInfo);
-        GetCropInfoByDisplaySize(imageInfo, decodeOpts);
+        isCropped = GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     }
     auto pixelMapPtr = imageSource->CreatePixelMap(decodeOpts, errorCode);
     if (errorCode != 0) {
@@ -18468,14 +18537,15 @@ std::pair<std::shared_ptr<uint8_t[]>, size_t> SceneSessionManager::GetSvgBufferI
     return {sharedBuffer, len};
 }
 
-void SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts)
+bool SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& imageInfo, Media::DecodeOptions& decodeOpts)
 {
     int32_t displayWidth = 0;
     int32_t displayHeight = 0;
+    bool isCropped = false;
     ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
     if (!GetDisplaySizeById(defaultScreenId, displayWidth, displayHeight)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "get display size failed");
-        return;
+        return isCropped;
     }
     int32_t cropSize = std::max(displayWidth, displayHeight);
     if (imageInfo.size.width > cropSize || imageInfo.size.height > cropSize) {
@@ -18486,9 +18556,11 @@ void SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& image
             .height = std::min(imageInfo.size.height, cropSize),
         };
         decodeOpts.cropAndScaleStrategy = Media::CropAndScaleStrategy::CROP_FIRST;
+        isCropped = true;
         TLOGI(WmsLogTag::WMS_PATTERN, "crop: %{public}d, %{public}d, %{public}d, %{public}d",
             decodeOpts.CropRect.left, decodeOpts.CropRect.top, decodeOpts.CropRect.width, decodeOpts.CropRect.height);
     }
+    return isCropped;
 }
 
 void SceneSessionManager::SetIsWindowRectAutoSave(const std::string& key, bool enabled,

@@ -20,6 +20,9 @@
 
 #include "context.h"
 #include "interfaces/include/ws_common.h"
+#include "session_info.h"
+#include "session/host/include/scene_persistence.h"
+#include "session/host/include/scene_persistent_storage.h"
 #include "session_manager/include/rdb/starting_window_rdb_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_manager_hilog.h"
@@ -57,15 +60,25 @@ private:
 };
 
 sptr<SceneSessionManager> WindowPatternStartingWindowTest::ssm_ = nullptr;
+static sptr<ScenePersistence> scenePersistence =
+    sptr<ScenePersistence>::MakeSptr("WindowPatternStartingWindowTest", 1423);
 
 void WindowPatternStartingWindowTest::SetUpTestCase()
 {
     ssm_ = new SceneSessionManager();
     ssm_->Init();
+    if (ssm_ != nullptr) {
+        ssm_->ClearStartWindowPersistencePath("testBundle");
+        ssm_->ClearStartWindowPersistencePath("emptyBundle");
+    }
 }
 
 void WindowPatternStartingWindowTest::TearDownTestCase()
 {
+    if (ssm_ != nullptr) {
+        ssm_->ClearStartWindowPersistencePath("testBundle");
+        ssm_->ClearStartWindowPersistencePath("emptyBundle");
+    }
     ssm_ = nullptr;
     NativeRdb::RdbHelper::DeleteRdbStore(TEST_RDB_PATH + TEST_RDB_NAME);
 }
@@ -96,6 +109,116 @@ void WindowPatternStartingWindowTest::CreateSession(SessionInfo sessionInfo, int
 }
 
 namespace {
+/**
+ * @tc.name: CreateStartWindowDir
+ * @tc.desc: test function : CreateStartWindowDir
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, CreateStartWindowDir, TestSize.Level1)
+{
+    std::string directory = "0/Storage";
+    ASSERT_NE(nullptr, scenePersistence);
+    bool result = scenePersistence->CreateStartWindowDir(directory);
+    ASSERT_EQ(result, false);
+}
+
+/**
+ * @tc.name: SetAndGetStartWindowPersistencePath01
+ * @tc.desc: Test setting and getting the path corresponding to an existing bundleName and saveStartWindowKey
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, SetAndGetStartWindowPersistencePath01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    const std::string bundleName = "testBundle";
+    const std::string darkKey = "DarkStartWindow";
+    const std::string lightKey = "LightStartWindow";
+    const std::string darkPath = "/data/testBundle/dark_start_window.png";
+    const std::string lightPath = "/data/testBundle/light_start_window.png";
+
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, darkPath);
+    std::string retDarkPath = ssm_->GetStartWindowPersistencePath(bundleName, darkKey);
+    ASSERT_EQ(retDarkPath, darkPath);
+
+    ssm_->SetStartWindowPersistencePath(bundleName, lightKey, lightPath);
+    std::string retLightPath = ssm_->GetStartWindowPersistencePath(bundleName, lightKey);
+    ASSERT_EQ(retLightPath, lightPath);
+
+    const std::string emptyPath = "";
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, emptyPath);
+    std::string retEmptyPath = ssm_->GetStartWindowPersistencePath(bundleName, darkKey);
+    ASSERT_EQ(retEmptyPath, emptyPath);
+
+    const std::string customKey = "CustomStartWindow";
+    const std::string customPath = "/data/testBundle/custom_start_window.png";
+    ssm_->SetStartWindowPersistencePath(bundleName, customKey, customPath);
+    std::string retCustomPath = ssm_->GetStartWindowPersistencePath(bundleName, customKey);
+    ASSERT_EQ(retCustomPath, customPath);
+}
+
+/**
+ * @tc.name: GetStartWindowPersistencePath02
+ * @tc.desc: Test getting the path for non-existent bundleName or saveStartWindowKey (boundary scenario)
+ * @tc.type: FUNC
+ * @tc.level: Level2
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowPersistencePath02, TestSize.Level2)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    const std::string nonExistBundle = "nonExistBundle";
+    const std::string testKey = "DarkStartWindow";
+    std::string retPath = ssm_->GetStartWindowPersistencePath(nonExistBundle, testKey);
+    ASSERT_EQ(retPath, "");
+
+    const std::string existBundle = "emptyBundle";
+    const std::string validKey = "LightStartWindow";
+    const std::string invalidKey = "InvalidStartWindow";
+    const std::string lightPath = "/data/emptyBundle/light.png";
+    ssm_->SetStartWindowPersistencePath(existBundle, validKey, lightPath);
+    retPath = ssm_->GetStartWindowPersistencePath(existBundle, invalidKey);
+    ASSERT_EQ(retPath, "");
+
+    const std::string emptyBundle = "";
+    const std::string emptyKey = "";
+    retPath = ssm_->GetStartWindowPersistencePath(emptyBundle, emptyKey);
+    ASSERT_EQ(retPath, "");
+
+    ssm_->SetStartWindowPersistencePath(existBundle, emptyKey, "/data/emptyBundle/empty_key.png");
+    retPath = ssm_->GetStartWindowPersistencePath(existBundle, emptyKey);
+    ASSERT_EQ(retPath, "/data/emptyBundle/empty_key.png");
+}
+
+/**
+ * @tc.name: ClearStartWindowPersistencePath01
+ * @tc.desc: Test clearing all path configurations for the specified bundleName
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, ClearStartWindowPersistencePath01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    const std::string bundleName = "testBundle";
+    const std::string darkKey = "DarkStartWindow";
+    const std::string lightKey = "LightStartWindow";
+    const std::string darkPath = "/data/testBundle/dark.png";
+    const std::string lightPath = "/data/testBundle/light.png";
+
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, darkPath);
+    ssm_->SetStartWindowPersistencePath(bundleName, lightKey, lightPath);
+
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, darkKey), darkPath);
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, lightKey), lightPath);
+
+    ssm_->ClearStartWindowPersistencePath(bundleName);
+
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, darkKey), "");
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, lightKey), "");
+}
+
 /**
  * @tc.name: GetStartupPage01
  * @tc.desc: GetStartupPage from want

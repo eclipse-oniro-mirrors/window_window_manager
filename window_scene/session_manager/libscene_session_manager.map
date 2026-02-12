@@ -81,6 +81,7 @@
             OHOS::Rosen::SceneSessionManager::GetSingleHandModeEnable*;
             OHOS::Rosen::SceneSessionManager::GetSingleHandBackgroundLayoutConfig*;
             OHOS::Rosen::SceneSessionManager::GetStartupPage*;
+            OHOS::Rosen::SceneSessionManager::GetStartWindowPersistencePath*;
             OHOS::Rosen::SceneSessionManager::GetSystemSessionConfig*;
             OHOS::Rosen::SceneSessionManager::GetWindowLimits*;
             OHOS::Rosen::SceneSessionManager::GetWindowSceneConfig*;
@@ -92,6 +93,7 @@
             OHOS::Rosen::SceneSessionManager::InitWithRenderServiceAdded*;
             OHOS::Rosen::SceneSessionManager::IsInputEventEnabled*;
             OHOS::Rosen::SceneSessionManager::IsScreenLocked*;
+            OHOS::Rosen::SceneSessionManager::IsStartWindowDark*;
             OHOS::Rosen::SceneSessionManager::NotifyAINavigationBarShowStatus*;
             OHOS::Rosen::SceneSessionManager::NotifyAmsPendingSessionWhenFail*;
             OHOS::Rosen::SceneSessionManager::NotifyCompleteFirstFrameDrawing*;
