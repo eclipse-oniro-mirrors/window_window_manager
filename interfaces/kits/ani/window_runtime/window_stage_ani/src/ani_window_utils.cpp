@@ -25,8 +25,8 @@
 #include <ani_signature_builder.h>
 #include "ani_window.h"
 #include "bundle_constants.h"
-#include "foundation/arkui/ace_engine/interfaces/inner_api/ace/ui_content.h"
 #include "ipc_skeleton.h"
+#include "ui_content.h"
 #include "window_manager_hilog.h"
 #include "pixel_map_taihe_ani.h"
 
