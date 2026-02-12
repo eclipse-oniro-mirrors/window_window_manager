@@ -1919,7 +1919,9 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display1 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
@@ -1933,7 +1935,9 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display2 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display2));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
@@ -1947,7 +1951,9 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display3 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display3));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
@@ -1961,7 +1967,9 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display4 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display4));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
@@ -1986,7 +1994,9 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalNotMainMod, TestSi
     sptr<Display> display1 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     std::cout << "start convert" << std::endl;
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
@@ -2068,7 +2078,9 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeNotMainMode, TestS
     EXPECT_CALL(m->Mock(),
         GetAllDisplayIds(defaultUserId)).Times(1).WillOnce(Return(std::vector<DisplayId>{displayId}));
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelative(globalPosition,
         relativePosition);
@@ -2150,7 +2162,9 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     sptr<Display> display1 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(
         globalPosition, displayId, relativePosition);
@@ -2164,7 +2178,9 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     sptr<Display> display2 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display2));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
         displayId, relativePosition);
@@ -2189,7 +2205,9 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdNotMa
     sptr<Display> display1 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
     
     DMError errorCode =
         DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
