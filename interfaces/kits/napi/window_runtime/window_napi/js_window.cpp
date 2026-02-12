@@ -39,7 +39,6 @@
 #include "request_info.h"
 #include "ui_content.h"
 
-
 namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
