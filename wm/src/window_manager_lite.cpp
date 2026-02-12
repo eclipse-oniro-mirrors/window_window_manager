@@ -1035,7 +1035,7 @@ WMError WindowManagerLite::UnregisterCameraWindowChangedListener(const sptr<ICam
     auto iter = std::find(pImpl_->cameraWindowChangedListeners_.begin(),
         pImpl_->cameraWindowChangedListeners_.end(), listener);
     if (iter == pImpl_->cameraWindowChangedListeners_.end()) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "could not find this listener");
+        TLOGE(WmsLogTag::WMS_PIP, "could not find this listener");
         return WMError::WM_OK;
     }
     pImpl_->cameraWindowChangedListeners_.erase(iter);
