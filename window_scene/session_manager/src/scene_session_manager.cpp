@@ -6548,7 +6548,7 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             }
             sceneSession->SetBufferNameForPixelMap(where, pixelMap);
             sceneSession->SetPreloadStartingWindow(pixelMap);
-            std::string darkMode = IsStartWindowDark(sessionInfo) ? "dark" : "light";
+            std::string darkMode = IsStartWindowDark(sessionInfo) ? DARK_MODE : LIGHT_MODE;
             std::string saveStartWindowKey = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +
                 sessionInfo.abilityName_ + '_' + darkMode;
             std::string persistencePath = GetStartWindowPersistencePath(sessionInfo.bundleName_, saveStartWindowKey);

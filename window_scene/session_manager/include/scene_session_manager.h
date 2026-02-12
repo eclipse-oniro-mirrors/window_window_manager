@@ -87,6 +87,8 @@ namespace AncoConsts {
     constexpr const char* ANCO_SESSION_ID = "ohos.anco.param.sessionId";
 }
 constexpr const char* IS_CALL_BY_SCB = "isCallBySCB";
+constexpr const char* LIGHT_MODE = "light";
+constexpr const char* DARK_MODE = "dark";
 
 struct SCBAbilityInfo {
     AppExecFwk::AbilityInfo abilityInfo_;
