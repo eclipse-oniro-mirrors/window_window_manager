@@ -2663,6 +2663,47 @@ HWTEST_F(WindowSessionImplTest5, UpdateWindowUIType, TestSize.Level1)
     EXPECT_EQ(ret, WSError::WS_OK);
     EXPECT_EQ(window->windowSystemConfig_.windowUIType_, WindowUIType::PAD_WINDOW);
 }
+
+/**
+ * @tc.name: RecordWindowLifecycleChange
+ * @tc.desc: Test RecordWindowLifecycleChange function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, RecordWindowLifecycleChange, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecordWindowLifecycleChange");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(6001);
+    window->property_->SetDisplayId(0);
+    window->property_->SetWindowName("PageSwitchTestWindow");
+
+    // Test should not crash
+    window->RecordWindowLifecycleChange("create");
+    window->RecordWindowLifecycleChange("destroy");
+    window->RecordWindowLifecycleChange("foreground");
+    window->RecordWindowLifecycleChange("background");
+    window->RecordWindowLifecycleChange("status: FULLSCREEN");
+    window->RecordWindowLifecycleChange("status: FLOATING");
+}
+
+/**
+ * @tc.name: WindowStatusToString
+ * @tc.desc: Test WindowStatusToString function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, WindowStatusToString, TestSize.Level1)
+{
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_UNDEFINED), "UNDEFINED");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_FULLSCREEN), "FULLSCREEN");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_MAXIMIZE), "MAXIMIZE");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_MINIMIZE), "MINIMIZE");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_FLOATING), "FLOATING");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_SPLITSCREEN), "SPLITSCREEN");
+
+    WindowStatus invalidStatus = static_cast<WindowStatus>(999);
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(invalidStatus), "UNKNOWN");
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

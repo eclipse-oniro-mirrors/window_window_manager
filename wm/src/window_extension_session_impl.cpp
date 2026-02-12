@@ -156,6 +156,7 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     TLOGI(WmsLogTag::WMS_LIFE, "Created name:%{public}s %{public}d success.",
         property_->GetWindowName().c_str(), GetPersistentId());
     AddSetUIContentTimeoutCheck();
+    RecordWindowLifecycleChange("create");
     return WMError::WM_OK;
 }
 
@@ -344,6 +345,7 @@ WMError WindowExtensionSessionImpl::Destroy(bool needNotifyServer, bool needClea
     RemoveExtensionWindowStageFromSCB(property_->IsConstrainedModal());
     dataHandler_->SetRemoteProxyObject(nullptr);
     TLOGI(WmsLogTag::WMS_LIFE, "Destroyed success, id: %{public}d.", GetPersistentId());
+    RecordWindowLifecycleChange("destroy");
     return WMError::WM_OK;
 }
 
@@ -1371,7 +1373,11 @@ WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bo
 {
     CheckAndAddExtWindowFlags();
     UpdateSystemViewportConfig();
-    return WindowSessionImpl::Show(reason, withAnimation, withFocus, waitAttach);
+    WMError ret = WindowSessionImpl::Show(reason, withAnimation, withFocus, waitAttach);
+    if (ret == WMError::WM_OK) {
+        RecordWindowLifecycleChange("show");
+    }
+    return ret;
 }
 
 WMError WindowExtensionSessionImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits)
@@ -1405,6 +1411,7 @@ WMError WindowExtensionSessionImpl::Hide(uint32_t reason, bool withAnimation, bo
         state_ = WindowState::STATE_HIDDEN;
         requestState_ = WindowState::STATE_HIDDEN;
         NotifyAfterBackground();
+        RecordWindowLifecycleChange("hide");
     } else {
         TLOGD(WmsLogTag::WMS_LIFE, "window extension session Hide to Background error");
     }
