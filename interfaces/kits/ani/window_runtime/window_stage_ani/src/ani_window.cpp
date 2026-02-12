@@ -2718,6 +2718,14 @@ ani_object AniWindow::OnGetDecorButtonStyle(ani_env* env)
         TLOGE(WmsLogTag::WMS_DECOR, "[ANI] window is nullptr");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
+    if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "[ANI]This is PcAppInPad, not support");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    if (!windowToken_->IsPcOrPadFreeMultiWindowMode()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "[ANI] device not support");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+    }
     DecorButtonStyle decorButtonStyle;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->GetDecorButtonStyle(decorButtonStyle));
     if (ret != WmErrorCode::WM_OK) {
@@ -2842,6 +2850,15 @@ void AniWindow::SetDecorButtonStyle(ani_env* env, ani_object decorStyle)
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "[ANI] WindowToken is null");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "[ANI]This is PcAppInPad, not support");
+        return;
+    }
+    if (!windowToken_->IsPcOrPadFreeMultiWindowMode()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "[ANI] device not support");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         return;
     }
 
