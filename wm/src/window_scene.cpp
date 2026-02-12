@@ -100,11 +100,7 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
     if (context != nullptr) {
         option->SetBundleName(context->GetBundleName());
         std::string moduleName = context->GetHapModuleInfo() ? context->GetHapModuleInfo()->moduleName : "";
-<<<<<<< HEAD
-        TLOGI(WmsLogTag::WMS_MAIN, "set isModuleAbilityHookEnd!");
-=======
         TLOGI(WmsLogTag::WMS_MAIN, "set isModuleAbilityHookEnd");
->>>>>>> origin/master
         isModuleAbilityHookEnd =
             SingletonContainer::Get<WindowManager>().IsModuleHookOff(isModuleAbilityHookEnd, moduleName);
     }

@@ -713,11 +713,7 @@ WMError WindowSessionImpl::Connect()
     if (token) {
         property_->SetTokenState(GetTargetAPIVersion());
     }
-<<<<<<< HEAD
-    property_->SetApiVersion(true);
-=======
     property_->SetApiVersion(GetTargetAPIVersion());
->>>>>>> origin/master
     auto ret = hostSession->Connect(
         iSessionStage, iWindowEventChannel, surfaceNode_, windowSystemConfig_, property_,
         token, identityToken_);
