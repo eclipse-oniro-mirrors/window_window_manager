@@ -13,11 +13,9 @@
  * limitations under the License.
  */
 
-#include "ability_info_manager.h"
-
+#include "session/host/include/ability_info_manager.h"
 #include <bundlemgr/launcher_service.h>
-
-#include "ws_common.h"
+#include "interfaces/include/ws_common.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -78,6 +76,9 @@ bool AbilityInfoManager::IsAnco(const std::string& bundleName, const std::string
         AAFwk::Want want;
         want.SetElementName("", bundleName, abilityName, moduleName);
         auto abilityInfoFlag = AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_APPLICATION;
+        TLOGI(WmsLogTag::WMS_LIFE, "bundleName: %{public}s, abilityName: %{public}s, moduleName: %{public}s, "
+            "userId: %{public}d, abilityInfoFlag: %{public}d", bundleName.c_str(), abilityName.c_str(),
+            moduleName.c_str(), userId_, abilityInfoFlag);
         AppExecFwk::AbilityInfo abilityInfo;
         bool ret = bundleMgr_->QueryAbilityInfo(want, abilityInfoFlag, userId_, abilityInfo);
         if (!ret) {
@@ -85,17 +86,14 @@ bool AbilityInfoManager::IsAnco(const std::string& bundleName, const std::string
             return isAnco;
         }
         applicationInfoMap_[bundleName] = abilityInfo.applicationInfo.codePath;
-        TLOGI(WmsLogTag::WMS_LIFE, "bundleName: %{public}s, abilityName: %{public}s, moduleName: %{public}s, "
-            "userId: %{public}d, abilityInfoFlag: %{public}d, codePath: %{public}s", bundleName.c_str(),
-            abilityName.c_str(), moduleName.c_str(), userId_, abilityInfoFlag,
-            abilityInfo.applicationInfo.codePath.c_str());
+        TLOGI(WmsLogTag::WMS_LIFE, "codePath: %{public}s", abilityInfo.applicationInfo.codePath.c_str());
         isAnco = abilityInfo.applicationInfo.codePath == std::to_string(CollaboratorType::RESERVE_TYPE) ||
-                 abilityInfo.applicationInfo.codePath == std::to_string(CollaboratorType::OTHERS_TYPE);
+            abilityInfo.applicationInfo.codePath == std::to_string(CollaboratorType::OTHERS_TYPE);
     } else {
         TLOGI(WmsLogTag::WMS_LIFE, "applicationInfo already in applicationInfoMap_, codePath: %{public}s",
             iter->second.c_str());
         isAnco = iter->second == std::to_string(CollaboratorType::RESERVE_TYPE) ||
-                 iter->second == std::to_string(CollaboratorType::OTHERS_TYPE);
+            iter->second == std::to_string(CollaboratorType::OTHERS_TYPE);
     }
     return isAnco;
 }

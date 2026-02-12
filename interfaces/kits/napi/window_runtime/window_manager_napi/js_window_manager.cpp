@@ -928,7 +928,7 @@ napi_value JsWindowManager::OnMinimizeAllWithExclusion(napi_env env, napi_callba
 
 napi_value JsWindowManager::OnToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info)
 {
-    WLOGFI("[NAPI]");
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -941,7 +941,7 @@ napi_value JsWindowManager::OnToggleShownStateForAllAppWindows(napi_env env, nap
             SingletonContainer::Get<WindowManager>().ToggleShownStateForAllAppWindows());
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
-            WLOGI("%{public}s success", where);
+            TLOGD(WmsLogTag::WMS_LIFE, "%{public}s success", where);
         } else {
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "OnToggleShownStateForAllAppWindows failed"));
         }
@@ -1081,10 +1081,10 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         if (lists->window == nullptr || lists->window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Get top window failed"));
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Get top window failed"));
             }
             return;
         }
@@ -1092,6 +1092,8 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         WLOGD("Get top window success");
     };
     napi_value result = nullptr;
+    NapiAsyncTask::Schedule("JsWindowManager::OnGetTopWindow",
+        env, CreateAsyncTaskWithLastParam(env, callback, std::move(execute), std::move(complete), &result));
     auto asyncTask = CreateAsyncTask(env, callback,
         std::make_unique<NapiAsyncTask::ExecuteCallback>(std::move(execute)),
         std::make_unique<NapiAsyncTask::CompleteCallback>(std::move(complete)), &result);

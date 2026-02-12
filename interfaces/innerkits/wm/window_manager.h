@@ -437,7 +437,7 @@ struct AbilityInfoBase : public Parcelable {
                parcel.WriteString(abilityName) &&
                parcel.WriteInt32(appIndex);
     }
-
+ 
     /**
      * @brief Unmarshalling AbilityInfoBase.
      *
@@ -456,17 +456,17 @@ struct AbilityInfoBase : public Parcelable {
         }
         return info;
     }
-
+ 
     bool IsValid() const
     {
         return !bundleName.empty() && !moduleName.empty() && !abilityName.empty() && appIndex >= 0;
     }
-
+ 
     std::string ToKeyString() const
     {
         return bundleName + "_" + moduleName + "_" + abilityName + "_" + std::to_string(appIndex);
     }
-
+ 
     std::string bundleName;
     std::string moduleName;
     std::string abilityName;
@@ -1014,6 +1014,15 @@ public:
      */
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) const;
+
+    /**
+     * @brief Set skip flag of window snapshot.
+     *
+     * @param windowId Window id which want to set.
+     * @param isSkip True means skip the snapshot, false means the opposite.
+     * @return WM_OK means set success, others means set failed.
+     */
+    WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip);
 
     /**
      * @brief Get the name of the top page.

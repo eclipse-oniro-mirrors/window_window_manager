@@ -17,15 +17,16 @@
 
 #include <functional>
 
+#include <feature/hyper_graphic_manager/rs_ui_display_soloist.h>
 #include <hitrace_meter.h>
 #include <transaction/rs_interfaces.h>
 #include <ui/rs_display_node.h>
 #include <ui/rs_ui_context.h>
-#include <feature/hyper_graphic_manager/rs_ui_display_soloist.h>
+#include <vsync_receiver.h>
+
 
 #include "window_frame_trace.h"
 #include "window_manager_hilog.h"
-#include <vsync_receiver.h>
 
 using namespace FRAME_TRACE;
 
@@ -41,7 +42,7 @@ constexpr int32_t DEFAULT_ANIMATOR_EXPECTED_FRAME_RATE = -1;
 VsyncStation::VsyncStation(NodeId nodeId, const std::shared_ptr<AppExecFwk::EventHandler>& vsyncHandler)
     : nodeId_(nodeId),
       vsyncHandler_(vsyncHandler),
-      vsyncTimeoutTaskName_(VSYNC_TIME_OUT_TASK + std::to_string(nodeId)),
+      vsyncTimeoutTaskName_(VSYNC_TIME_OUT_TASK + std::to_string(nodeId_)),
       frameRateLinker_(RSFrameRateLinker::Create())
 {
     if (!vsyncHandler_) {
@@ -244,7 +245,7 @@ void VsyncStation::VsyncCallbackInner(int64_t timestamp, int64_t frameCount)
             TLOGI(WmsLogTag::WMS_MAIN, "First vsync has come back, nodeId: %{public}" PRIu64, nodeId_);
         }
     }
-    for (const auto& callback: vsyncCallbacks) {
+    for (const auto& callback : vsyncCallbacks) {
         if (callback && callback->onCallback) {
             callback->onCallback(timestamp, frameCount);
         }

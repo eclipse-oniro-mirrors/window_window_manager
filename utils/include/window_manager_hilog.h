@@ -77,7 +77,7 @@ enum class WmsLogTag : uint8_t {
     WMS_ROTATION,              // C0421D
     WMS_ANIMATION,             // C0421E
     END,                       // Last one, do not use
-};
+}; // NOTICE: g_domainContents should be modified at the same time, and the order should be consistent!
 
 extern const char* g_domainContents[static_cast<uint32_t>(WmsLogTag::END)];
 #ifdef IS_RELEASE_VERSION

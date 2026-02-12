@@ -26,8 +26,8 @@
 
 #include <iremote_broker.h>
 #include <want.h>
-#include "pixel_map.h"
 #include "wm_animation_common.h"
+#include "pixel_map.h"
 
 namespace OHOS::AAFwk {
 class AbilityStartSetting;
@@ -374,8 +374,8 @@ enum class StartWindowType : uint32_t {
 
 enum class SpecifiedReason : int32_t {
     DEFAULT = 0,
-    BY_SCB,
-    FROM_RENCENT,
+    FROM_ICON,
+    FROM_RECENT,
 };
 
 struct AtomicServiceInfo {
@@ -402,7 +402,7 @@ struct SessionInfo {
     uint32_t windowType_ = 1; // WINDOW_TYPE_APP_MAIN_WINDOW
     sptr<IRemoteObject> callerToken_ = nullptr;
     sptr<IRemoteObject> rootToken_ = nullptr;
-    uint64_t screenId_ = -1;
+    uint64_t screenId_ = -1ULL; // -1ULL: SCREEN_ID_INVALID
     bool isPersistentRecover_ = false;
     AtomicServiceInfo atomicServiceInfo_;
 
@@ -546,8 +546,6 @@ struct SessionInfo {
         *want = newWant;
     }
 
-    std::shared_ptr<StartAnimationOptions> startAnimationOptions = nullptr;
-    std::shared_ptr<StartAnimationSystemOptions> startAnimationSystemOptions = nullptr;
     std::shared_ptr<WindowCreateParams> windowCreateParams = nullptr;
 };
 
@@ -1029,6 +1027,7 @@ struct WindowImmersive {
 
 struct AppWindowSceneConfig {
     float floatCornerRadius_ = 0.0f;
+    std::string uiType_ = "phone";
     std::string multiWindowUIType_ = "HandsetSmartWindow";
     bool backgroundScreenLock_ = false;
     std::string rotationMode_ = "windowRotation";
@@ -1319,9 +1318,6 @@ enum class SnapShotRecoverType : uint32_t {
     EXIT_SPLIT_ON_BACKGROUND = 1,
 };
 
-/**
- * Adding or modifying enumeration values requires corresponding changes on the sceneboard side.
- */
 enum class LifeCycleChangeReason {
     DEFAULT = 0,
 
@@ -1397,11 +1393,6 @@ enum class CrossPlaneState : uint32_t {
     CROSS_VIRTUAL_CREASE_PLANE,
     CROSS_VIRTUAL_PLANE,
     CROSS_ALL_PLANE,
-};
-
-enum class SendTouchAction : uint32_t {
-    ACTION_NORMAL = 0,
-    ACTION_NOT_RECEIVE_PULL_CANCEL = 1,
 };
 
 /**

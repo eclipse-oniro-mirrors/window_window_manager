@@ -1427,7 +1427,7 @@ void WindowNodeContainer::NotifyIfKeyboardRegionChanged(const sptr<WindowNode>& 
             avoidAreas[avoidAreaType] = area;
         }
         if (callingWindow->GetWindowType() == WindowType::WINDOW_TYPE_DESKTOP ||
-            callingWindow->GetWindowType() == WindowType::WINDOW_TYPE_KEYGUARD) {
+ 	        callingWindow->GetWindowType() == WindowType::WINDOW_TYPE_KEYGUARD) {
             avoidAreas = {};
             TLOGD(WmsLogTag::WMS_KEYBOARD, "No need to update immersive avoidarea");
         }
@@ -1438,7 +1438,7 @@ void WindowNodeContainer::NotifyIfKeyboardRegionChanged(const sptr<WindowNode>& 
             callingWindow->GetWindowToken()->UpdateOccupiedAreaChangeInfo(info, avoidAreas);
         }
 
-        WLOGI("keyboard size change callingWindow: [%{public}s, %{public}u], "
+        WLOGD("keyboard size change callingWindow: [%{public}s, %{public}u], "
             "overlap rect: [%{public}d, %{public}d, %{public}u, %{public}u]",
             callingWindow->GetWindowName().c_str(), callingWindow->GetWindowId(),
             overlapRect.posX_, overlapRect.posY_, overlapRect.width_, overlapRect.height_);

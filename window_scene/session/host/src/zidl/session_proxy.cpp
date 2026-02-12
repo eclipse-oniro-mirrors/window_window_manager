@@ -615,7 +615,7 @@ WSError SessionProxy::BatchPendingSessionsActivation(
         TLOGE(WmsLogTag::WMS_LIFE, "Write ability session info list size failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    for (auto abilitySessionInfo : abilitySessionInfos) {
+    for (const auto& abilitySessionInfo : abilitySessionInfos) {
         WSError writeRet = WriteOneSessionInfo(data, abilitySessionInfo);
         if (writeRet != WSError::WS_OK) {
             return writeRet;
@@ -2923,12 +2923,12 @@ int32_t SessionProxy::GetStatusBarHeight()
     MessageOption option(MessageOption::TF_SYNC);
     int32_t height = 0;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_IMMS, "WriteInterfaceToken failed");
+        TLOGE(WmsLogTag::DEFAULT, "WriteInterfaceToken failed");
         return height;
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_IMMS, "remote is null");
+        TLOGE(WmsLogTag::DEFAULT, "remote is null");
         return height;
     }
     int sendCode = remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_STATUSBAR_HEIGHT),

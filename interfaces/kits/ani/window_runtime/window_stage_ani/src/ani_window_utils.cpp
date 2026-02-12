@@ -22,6 +22,7 @@
 
 #include "ani.h"
 #include "ani_err_utils.h"
+#include <ani_signature_builder.h>
 #include "ani_window.h"
 #include "bundle_constants.h"
 #include "ipc_skeleton.h"
@@ -63,6 +64,8 @@ std::string GetHexColor(uint32_t color)
     return finalColor;
 }
 }
+
+using namespace arkts::ani_signature;
 
 template<typename T>
 ani_status unbox(ani_env* env, ani_object obj, T* result)
@@ -676,7 +679,8 @@ ani_object AniWindowUtils::CreateAniStatusBarProperty(ani_env* env, const System
         TLOGE(WmsLogTag::WMS_IMMS, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, statusBarProperty, cls, "<set>contentColor", nullptr, contentColor);
+    CallAniMethodVoid(env, statusBarProperty, cls, Builder::BuildSetterName("contentColor").c_str(),
+        nullptr, contentColor);
     return statusBarProperty;
 }
 
@@ -697,11 +701,11 @@ ani_object AniWindowUtils::CreateAniWindowDensityInfo(ani_env* env, const Window
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] fail to new obj");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, windowDensityInfo, cls, "<set>systemDensity", nullptr,
+    CallAniMethodVoid(env, windowDensityInfo, cls, Builder::BuildSetterName("systemDensity").c_str(), nullptr,
         static_cast<double>(info.systemDensity));
-    CallAniMethodVoid(env, windowDensityInfo, cls, "<set>defaultDensity", nullptr,
+    CallAniMethodVoid(env, windowDensityInfo, cls, Builder::BuildSetterName("defaultDensity").c_str(), nullptr,
         static_cast<double>(info.defaultDensity));
-    CallAniMethodVoid(env, windowDensityInfo, cls, "<set>customDensity", nullptr,
+    CallAniMethodVoid(env, windowDensityInfo, cls, Builder::BuildSetterName("customDensity").c_str(), nullptr,
         static_cast<double>(info.customDensity));
     return windowDensityInfo;
 }
@@ -729,34 +733,48 @@ ani_object AniWindowUtils::CreateAniWindowSystemBarProperties(ani_env* env,
         TLOGE(WmsLogTag::WMS_IMMS, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>statusBarColor", nullptr, backgroundColor);
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("statusBarColor").c_str(),
+        nullptr, backgroundColor);
     ani_string statusBarContentColor;
     if (GetAniString(env, GetHexColor(status.contentColor_), &statusBarContentColor) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>statusBarContentColor", nullptr, statusBarContentColor);
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>isStatusBarLightIcon", nullptr,
-        status.contentColor_ == SYSTEM_COLOR_WHITE);
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("statusBarContentColor").c_str(),
+        nullptr, statusBarContentColor);
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("isStatusBarLightIcon").c_str(),
+        nullptr, status.contentColor_ == SYSTEM_COLOR_WHITE);
+
+    if (!CreateNavBarColorProperties(env, navi, cls, systemBarProperties, status)) {
+        TLOGE(WmsLogTag::WMS_IMMS, "[ANI] create string failed");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+
+    return systemBarProperties;
+}
+
+bool AniWindowUtils::CreateNavBarColorProperties(ani_env* env, const SystemBarProperty& navi, ani_class cls,
+    ani_object systemBarProperties, const SystemBarProperty& status)
+{
     ani_string navigationBarColor;
     if (GetAniString(env, GetHexColor(navi.backgroundColor_), &navigationBarColor) != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_IMMS, "[ANI] create string failed");
-        return AniWindowUtils::CreateAniUndefined(env);
+        return false;
     }
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>navigationBarColor", nullptr, navigationBarColor);
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("navigationBarColor").c_str(),
+        nullptr, navigationBarColor);
     ani_string navigationBarContentColor;
     if (GetAniString(env, GetHexColor(navi.contentColor_), &navigationBarContentColor) != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_IMMS, "[ANI] create string failed");
-        return AniWindowUtils::CreateAniUndefined(env);
+        return false;
     }
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>navigationBarContentColor",
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("navigationBarContentColor").c_str(),
         nullptr, navigationBarContentColor);
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>isNavigationBarLightIcon", nullptr,
-        navi.contentColor_ == SYSTEM_COLOR_WHITE);
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>enableStatusBarAnimation", nullptr, status.enableAnimation_);
-    CallAniMethodVoid(env, systemBarProperties, cls, "<set>enableNavigationBarAnimation", nullptr,
-        navi.enableAnimation_);
-    return systemBarProperties;
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("isNavigationBarLightIcon").c_str(),
+        nullptr, navi.contentColor_ == SYSTEM_COLOR_WHITE);
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("enableStatusBarAnimation").c_str(),
+        nullptr, status.enableAnimation_);
+    CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("enableNavigationBarAnimation").c_str(),
+        nullptr, navi.enableAnimation_);
+    return true;
 }
 
 ani_object AniWindowUtils::CreateAniWindowLayoutInfo(ani_env* env, const WindowLayoutInfo& info)
@@ -776,7 +794,8 @@ ani_object AniWindowUtils::CreateAniWindowLayoutInfo(ani_env* env, const WindowL
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] fail to new obj");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, windowLayoutInfo, cls, "<set>windowRect", nullptr, CreateAniRect(env, info.rect));
+    CallAniMethodVoid(env, windowLayoutInfo, cls, Builder::BuildSetterName("windowRect").c_str(),
+        nullptr, CreateAniRect(env, info.rect));
     return windowLayoutInfo;
 }
 
@@ -814,22 +833,23 @@ ani_object AniWindowUtils::CreateAniWindowInfo(ani_env* env, const WindowVisibil
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] fail to new obj");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, windowInfo, cls, "<set>rect", nullptr, CreateAniRect(env, info.GetRect()));
-    CallAniMethodVoid(env, windowInfo, cls, "<set>globalDisplayRect", nullptr,
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("rect").c_str(), nullptr,
+        CreateAniRect(env, info.GetRect()));
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("globalDisplayRect").c_str(), nullptr,
         CreateAniRect(env, info.GetGlobalDisplayRect()));
     ani_string bundleName;
     if (GetAniString(env, info.GetBundleName(), &bundleName) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, windowInfo, cls, "<set>bundleName", nullptr, bundleName);
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("bundleName").c_str(), nullptr, bundleName);
     ani_string abilityName;
     if (GetAniString(env, info.GetAbilityName(), &abilityName) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, windowInfo, cls, "<set>abilityName", nullptr, abilityName);
-    CallAniMethodVoid(env, windowInfo, cls, "<set>windowId", nullptr, info.GetWindowId());
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("abilityName").c_str(), nullptr, abilityName);
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("windowId").c_str(), nullptr, info.GetWindowId());
     env->Object_SetFieldByName_Int(windowInfo, "windowStatusTypeInternal", ani_int(info.GetWindowStatus()));
     env->Object_SetFieldByName_Boolean(windowInfo, "isFocusedInternal", ani_boolean(info.IsFocused()));
     return windowInfo;
@@ -870,6 +890,24 @@ ani_object AniWindowUtils::CreateAniWindowArray(ani_env* env, std::vector<ani_re
     return windowArray;
 }
 
+ani_object AniWindowUtils::CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
+    ani_array windowArray = nullptr;
+
+    if (env->Array_New(windows.size(), CreateAniUndefined(env), &windowArray) != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] create array fail");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    for (size_t i = 0; i < windows.size(); i++) {
+        if (env->Array_Set(windowArray, i, windows[i]) != ANI_OK) {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] set window array failed");
+            return AniWindowUtils::CreateAniUndefined(env);
+        }
+    }
+    return windowArray;
+}
+
 ani_object AniWindowUtils::CreateAniRect(ani_env* env, const Rect& rect)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
@@ -891,10 +929,14 @@ ani_object AniWindowUtils::CreateAniRect(ani_env* env, const Rect& rect)
         TLOGE(WmsLogTag::DEFAULT, "[ANI] fail to create new obj");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, aniRect, aniClass, "<set>left", nullptr, ani_int(rect.posX_));
-    CallAniMethodVoid(env, aniRect, aniClass, "<set>top", nullptr, ani_int(rect.posY_));
-    CallAniMethodVoid(env, aniRect, aniClass, "<set>width", nullptr, ani_int(rect.width_));
-    CallAniMethodVoid(env, aniRect, aniClass, "<set>height", nullptr, ani_int(rect.height_));
+    CallAniMethodVoid(env, aniRect, aniClass, Builder::BuildSetterName("left").c_str(), nullptr,
+        ani_int(rect.posX_));
+    CallAniMethodVoid(env, aniRect, aniClass, Builder::BuildSetterName("top").c_str(), nullptr,
+        ani_int(rect.posY_));
+    CallAniMethodVoid(env, aniRect, aniClass, Builder::BuildSetterName("width").c_str(), nullptr,
+        ani_int(rect.width_));
+    CallAniMethodVoid(env, aniRect, aniClass, Builder::BuildSetterName("height").c_str(), nullptr,
+        ani_int(rect.height_));
     return aniRect;
 }
 
@@ -980,11 +1022,11 @@ ani_object AniWindowUtils::CreateAniAvoidArea(ani_env* env, const AvoidArea& avo
     }
     CallAniMethodVoid(env, aniAvoidArea, aniClass, "<set>leftRect", nullptr,
         CreateAniRect(env, avoidArea.leftRect_));
-    CallAniMethodVoid(env, aniAvoidArea, aniClass, "<set>topRect", nullptr,
+    CallAniMethodVoid(env, aniAvoidArea, aniClass, Builder::BuildSetterName("topRect").c_str(), nullptr,
         CreateAniRect(env, avoidArea.topRect_));
-    CallAniMethodVoid(env, aniAvoidArea, aniClass, "<set>rightRect", nullptr,
+    CallAniMethodVoid(env, aniAvoidArea, aniClass, Builder::BuildSetterName("rightRect").c_str(), nullptr,
         CreateAniRect(env, avoidArea.rightRect_));
-    CallAniMethodVoid(env, aniAvoidArea, aniClass, "<set>bottomRect", nullptr,
+    CallAniMethodVoid(env, aniAvoidArea, aniClass, Builder::BuildSetterName("bottomRect").c_str(), nullptr,
         CreateAniRect(env, avoidArea.bottomRect_));
     return aniAvoidArea;
 }
@@ -1133,24 +1175,6 @@ bool AniWindowUtils::GetColorMode(ani_env* env, const ani_object& decorStyle, in
     return true;
 }
 
-ani_object AniWindowUtils::CreateAniWindowsArray(ani_env* env, std::vector<ani_ref>& windows)
-{
-    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    ani_array windowArray = nullptr;
-
-    if (env->Array_New(windows.size(), CreateAniUndefined(env), &windowArray) != ANI_OK) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] create array fail");
-        return AniWindowUtils::CreateAniUndefined(env);
-    }
-    for (size_t i = 0; i < windows.size(); i++) {
-        if (env->Array_Set(windowArray, i, windows[i]) != ANI_OK) {
-            TLOGE(WmsLogTag::DEFAULT, "[ANI] set window array failed");
-            return AniWindowUtils::CreateAniUndefined(env);
-        }
-    }
-    return windowArray;
-}
-
 ani_object AniWindowUtils::CreateAniSystemBarTintState(ani_env* env, DisplayId displayId,
     const SystemBarRegionTints& tints)
 {
@@ -1170,7 +1194,8 @@ ani_object AniWindowUtils::CreateAniSystemBarTintState(ani_env* env, DisplayId d
         TLOGE(WmsLogTag::DEFAULT, "[ANI] fail to new obj");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, state, aniClass, "<set>displayId", nullptr, static_cast<ani_long>(displayId));
+    CallAniMethodVoid(env, state, aniClass, Builder::BuildSetterName("displayId").c_str(), nullptr,
+        static_cast<ani_long>(displayId));
     ani_array regionTintArray = nullptr;
     ani_class regionTintCls;
     if (env->FindClass("@ohos.window.window.SystemBarRegionTintInternal", &regionTintCls) != ANI_OK) {
@@ -1187,7 +1212,7 @@ ani_object AniWindowUtils::CreateAniSystemBarTintState(ani_env* env, DisplayId d
             return AniWindowUtils::CreateAniUndefined(env);
         }
     }
-    CallAniMethodVoid(env, state, aniClass, "<set>regionTint", nullptr, regionTintArray);
+    CallAniMethodVoid(env, state, aniClass, Builder::BuildSetterName("regionTint").c_str(), nullptr, regionTintArray);
     return state;
 }
 
@@ -1209,25 +1234,30 @@ ani_object AniWindowUtils::CreateAniSystemBarRegionTint(ani_env* env, const Syst
         return AniWindowUtils::CreateAniUndefined(env);
     }
     if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(tint.type_) != 0) {
-        CallAniMethodVoid(env, regionTint, regionTintCls, "<set>type", nullptr,
+        CallAniMethodVoid(env, regionTint, regionTintCls, Builder::BuildSetterName("type").c_str(), nullptr,
             ani_long(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(tint.type_)));
     } else {
-        CallAniMethodVoid(env, regionTint, regionTintCls, "<set>type", nullptr, ani_long(tint.type_));
+        CallAniMethodVoid(env, regionTint, regionTintCls, Builder::BuildSetterName("type").c_str(), nullptr,
+            ani_long(tint.type_));
     }
-    CallAniMethodVoid(env, regionTint, regionTintCls, "<set>isEnable", nullptr, ani_boolean(tint.prop_.enable_));
+    CallAniMethodVoid(env, regionTint, regionTintCls, Builder::BuildSetterName("isEnable").c_str(), nullptr,
+        ani_boolean(tint.prop_.enable_));
     ani_string backgroundColor;
     if (GetAniString(env, GetHexColor(tint.prop_.backgroundColor_), &backgroundColor) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, regionTint, regionTintCls, "<set>backgroundColor", nullptr, backgroundColor);
+    CallAniMethodVoid(env, regionTint, regionTintCls, Builder::BuildSetterName("backgroundColor").c_str(), nullptr,
+        backgroundColor);
     ani_string contentColor;
     if (GetAniString(env, GetHexColor(tint.prop_.contentColor_), &contentColor) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, regionTint, regionTintCls, "<set>contentColor", nullptr, contentColor);
-    CallAniMethodVoid(env, regionTint, regionTintCls, "<set>region", nullptr, CreateAniRect(env, tint.region_));
+    CallAniMethodVoid(env, regionTint, regionTintCls, Builder::BuildSetterName("contentColor").c_str(), nullptr,
+        contentColor);
+    CallAniMethodVoid(env, regionTint, regionTintCls, Builder::BuildSetterName("region").c_str(), nullptr,
+        CreateAniRect(env, tint.region_));
     return regionTint;
 }
 
@@ -1253,7 +1283,7 @@ ani_object AniWindowUtils::CreateAniFrameMetrics(ani_env* env, const FrameMetric
         return AniWindowUtils::CreateAniUndefined(env);
     }
     ret = CallAniMethodVoid(env, frameMetrics, aniClass, "<set>firstDrawFrame", nullptr,
-        CreateOptionalBool(env, static_cast<ani_boolean>(metrics.firstDrawFrame_)));
+        static_cast<ani_boolean>(metrics.firstDrawFrame_));
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] failed to set firstDrawFrame");
         return AniWindowUtils::CreateAniUndefined(env);
@@ -1314,13 +1344,13 @@ ani_object AniWindowUtils::CreateAniRotationChangeInfo(ani_env* env, const Rotat
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] Enum_GetEnumItemByName failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    CallAniMethodVoid(env, RotationChangeInfo, aniClass, "<set>type", nullptr,
+    CallAniMethodVoid(env, RotationChangeInfo, aniClass, Builder::BuildSetterName("type").c_str(), nullptr,
         rotationChangeTypeItem);
-    CallAniMethodVoid(env, RotationChangeInfo, aniClass, "<set>orientation", nullptr,
+    CallAniMethodVoid(env, RotationChangeInfo, aniClass, Builder::BuildSetterName("orientation").c_str(), nullptr,
         ani_int(info.orientation_));
-    CallAniMethodVoid(env, RotationChangeInfo, aniClass, "<set>displayId", nullptr,
+    CallAniMethodVoid(env, RotationChangeInfo, aniClass, Builder::BuildSetterName("displayId").c_str(), nullptr,
         ani_long(info.displayId_));
-    CallAniMethodVoid(env, RotationChangeInfo, aniClass, "<set>displayRect", nullptr,
+    CallAniMethodVoid(env, RotationChangeInfo, aniClass, Builder::BuildSetterName("displayRect").c_str(), nullptr,
         CreateAniRect(env, info.displayRect_));
     return RotationChangeInfo;
 }
@@ -2102,7 +2132,7 @@ bool AniWindowUtils::SetSystemBarPropertiesFromAni(ani_env* env,
     if (!isStatusAnimationUndefined) {
         ani_boolean isStatusAnimation;
         env->Object_CallMethodByName_Boolean(static_cast<ani_object>(aniEnableStatusBarAnimation),
-            "toBoolean", "z", &isStatusAnimation);
+            "toBoolean", ":z", &isStatusAnimation);
         windowBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR].enableAnimation_ =
             static_cast<bool>(isStatusAnimation);
         windowPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR].enableAnimationFlag = true;
@@ -2116,7 +2146,7 @@ bool AniWindowUtils::SetSystemBarPropertiesFromAni(ani_env* env,
     if (!isNavigationAnimationUndefined) {
         ani_boolean isNavigationAnimation;
         env->Object_CallMethodByName_Boolean(static_cast<ani_object>(aniEnableNavigationBarAnimation),
-            "toBoolean", "z", &isNavigationAnimation);
+            "toBoolean", ":z", &isNavigationAnimation);
         windowBarProperties[WindowType::WINDOW_TYPE_NAVIGATION_BAR].enableAnimation_ =
             static_cast<bool>(isNavigationAnimation);
         windowPropertyFlags[WindowType::WINDOW_TYPE_NAVIGATION_BAR].enableAnimationFlag = true;
@@ -2758,7 +2788,7 @@ bool AniWindowUtils::ParseSubWindowOption(ani_env* env, ani_object jsObject, con
     }
     return ParseZLevelParams(env, jsObject, windowOption);
 }
-
+ 
 bool AniWindowUtils::ParseModalityParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_boolean isModal { false };
@@ -2798,7 +2828,7 @@ bool AniWindowUtils::ParseModalityParams(ani_env* env, ani_object jsObject, cons
         isModal, isTopmost, windowOption->GetWindowFlags());
     return true;
 }
-
+ 
 bool AniWindowUtils::ParseZLevelParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_int zLevel { 0 };
@@ -2821,7 +2851,7 @@ bool AniWindowUtils::ParseZLevelParams(ani_env* env, ani_object jsObject, const 
     TLOGI(WmsLogTag::WMS_SUB, "zLevel: %{public}d", zLevel);
     return true;
 }
-
+ 
 bool AniWindowUtils::ParseRectParams(ani_env* env, ani_object jsObject, const sptr<WindowOption>& windowOption)
 {
     ani_ref rectRef;
@@ -2846,6 +2876,6 @@ bool AniWindowUtils::ParseRectParams(ani_env* env, ani_object jsObject, const sp
     windowOption->SetWindowRect(windowRect);
     return true;
 }
-
+ 
 } // namespace Rosen
 } // namespace OHOS

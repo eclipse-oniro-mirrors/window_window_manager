@@ -151,6 +151,10 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -200,7 +204,7 @@ public:
     virtual void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
         const sptr<IRemoteObject>& abilityToken) {}
     virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
-                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) = 0;
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) {};
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid) { return WMError::WM_OK; }
     virtual WSError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener) { return WSError::WS_OK; }
     virtual WSError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener)
@@ -215,6 +219,10 @@ public:
     virtual WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener)
     {
         return WSError::WS_OK;
+    }
+    virtual WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener)
+    {
+        return WMError::WM_OK;
     }
     virtual WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener)
     {

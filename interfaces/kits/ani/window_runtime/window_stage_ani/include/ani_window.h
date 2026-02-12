@@ -133,6 +133,7 @@ public:
     static ani_object CreateAniWindow(ani_env* env, OHOS::sptr<OHOS::Rosen::Window>& window);
     static ani_int GetWindowStatus(ani_env* env, ani_object obj, ani_long nativeObj);
     static void Minimize(ani_env* env, ani_object obj, ani_long nativeObj);
+    void HideWindowFunction(ani_env* env, WmErrorCode errCode);
     static void Maximize(ani_env* env, ani_object obj, ani_long nativeObj,
                          ani_object aniPresentation, ani_object aniAcrossDisplay);
     static void StartMoving(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -156,7 +157,6 @@ public:
     static bool IsImmersiveLayout(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_object GetTransitionController(ani_env* env, ani_object obj, ani_long nativeObj);
     static void KeepKeyboardOnFocus(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean keepKeyboardFlag);
-
     static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_string name, ani_object options);
     static void Hide(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -168,7 +168,7 @@ public:
     void SetDecorButtonStyle(ani_env* env, ani_object decorStyle);
     void SetWindowTitleButtonVisible(ani_env* env, ani_object visibleParam);
     void Restore(ani_env* env);
-    void HideWindowFunction(ani_env* env, WmErrorCode errCode);
+
     /*
      * Window Layout
      */

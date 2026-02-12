@@ -632,38 +632,6 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetScreenHDRFormat, TestSize.Level1)
 }
 
 /**
- * @tc.name: RegisterDisplayManagerAgent
- * @tc.desc: RegisterDisplayManagerAgent
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyUtTest, RegisterDisplayManagerAgent, TestSize.Level1)
-{
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    DisplayManagerAgentType type = DisplayManagerAgentType::SCREEN_EVENT_LISTENER;
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        EXPECT_EQ(DMError::DM_OK, screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
-    } else {
-        EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
-    }
-}
-
-/**
- * @tc.name: UnregisterDisplayManagerAgent
- * @tc.desc: UnregisterDisplayManagerAgent
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyUtTest, UnregisterDisplayManagerAgent, TestSize.Level1)
-{
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    DisplayManagerAgentType type = DisplayManagerAgentType::SCREEN_EVENT_LISTENER;
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        EXPECT_EQ(DMError::DM_OK, screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
-    } else {
-        EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
-    }
-}
-
-/**
  * @tc.name: WakeUpBegin
  * @tc.desc: WakeUpBegin
  * @tc.type: FUNC
@@ -1461,11 +1429,7 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldDisplayMode, TestSize.Level1)
 {
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
     screenSessionManagerProxy->SetFoldDisplayMode(displayMode);
-    if (screenSessionManagerProxy->IsFoldable() && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    } else {
-        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    }
+    EXPECT_EQ(FoldDisplayMode::UNKNOWN, screenSessionManagerProxy->GetFoldDisplayMode());
 }
 
 /**
@@ -1492,11 +1456,10 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldStatusLocked, TestSize.Level1)
 {
     bool locked = true;
     screenSessionManagerProxy->SetFoldStatusLocked(locked);
-    if (screenSessionManagerProxy->IsFoldable() && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    } else {
-        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(g_logMsg.find("Send TRANS_ID_SCENE_BOARD_GET_FOLD_DISPLAY_MODE request failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**

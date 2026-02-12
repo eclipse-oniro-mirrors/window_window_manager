@@ -392,7 +392,7 @@ public:
         bool isExecuteDelayRaise = false) { return WSError::WS_OK; }
     virtual bool IsStartMoving() { return false; }
     virtual WSError ChangeSessionVisibilityWithStatusBar(const sptr<AAFwk::SessionInfo> abilitySessionInfo,
-        bool isShow) { return WSError::WS_OK; }
+        bool visible) { return WSError::WS_OK; }
 
     /**
      * @brief Instruct the application to update the listening flag for registering rect changes.
@@ -564,9 +564,9 @@ public:
     virtual WSError GetCrossAxisState(CrossAxisState& state) { return WSError::WS_OK; };
     virtual WSError SetFollowParentWindowLayoutEnabled(bool isFollow) { return WSError::WS_OK; };
     virtual WSError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) { return WSError::WS_OK; };
-    virtual WSError UpdateFlag(const std::string& flag) { return WSError::WS_OK; };
     virtual WSError UpdateRotationChangeRegistered(int32_t persistentId, bool isRegister) { return WSError::WS_OK; }
     virtual WMError UpdateScreenshotAppEventRegistered(int32_t persistentId, bool isRegister) { return WMError::WM_OK; }
+    virtual WSError UpdateFlag(const std::string& flag) { return WSError::WS_OK; };
     virtual WMError UpdateAcrossDisplaysChangeRegistered(bool isRegister) { return WMError::WM_OK; }
     virtual WMError OnUpdateColorMode(const std::string& colorMode, bool hasDarkRes) { return WMError::WM_OK; }
     virtual WMError IsMainWindowFullScreenAcrossDisplays(bool& isAcrossDisplays) { return WMError::WM_OK; }
@@ -576,9 +576,6 @@ public:
      * @brief Notify when disableDelegator change to true
      *
      * This function is used to notify disableDelegator change.
-     *
-     * @caller SA
-     * @permission SA permission
      *
      * @return Successful call returns WMError::WS_OK, otherwise it indicates failure
      */
@@ -618,7 +615,7 @@ public:
     * @param source source
     * @return Returns WSError::WS_OK if called success, otherwise failed.
     */
-    virtual WSError SetSubWindowSource(SubWindowSource source) { return WSError::WS_OK; }
+    virtual WSError SetSubWindowSource(SubWindowSource source) { return WSError::WS_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
      * @brief Set the frameRect in a partial zoom-in scene.

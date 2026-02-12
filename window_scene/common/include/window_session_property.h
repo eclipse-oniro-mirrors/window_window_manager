@@ -111,7 +111,7 @@ public:
     void SetWindowMask(const std::shared_ptr<Media::PixelMap>& windowMask);
     void SetIsShaped(bool isShaped);
     void SetIsAppSupportPhoneInPc(bool isSupportPhone);
-    void SetIsPcAppInPad(bool isPcAppInLargeScreenDevice);
+    void SetIsPcAppInPad(bool isPcAppInPad);
     void SetIsAtomicService(bool isAtomicService);
 
     /*
@@ -219,7 +219,6 @@ public:
 
     double GetTextFieldPositionY() const;
     double GetTextFieldHeight() const;
-
     void SetSessionPropertyChangeCallback(std::function<void()>&& callback);
     bool IsLayoutFullScreen() const;
     void SetIsLayoutFullScreen(bool isLayoutFullScreen);
@@ -542,6 +541,7 @@ private:
 
     double textFieldPositionY_ = 0.0;
     double textFieldHeight_ = 0.0;
+
     bool isNeedUpdateWindowMode_ = false;
     std::function<void()> touchHotAreasChangeCallback_;
     bool isLayoutFullScreen_ = false;
@@ -553,7 +553,7 @@ private:
     static const std::map<uint64_t, HandlWritePropertyFunc> writeFuncMap_;
     static const std::map<uint64_t, HandlReadPropertyFunc> readFuncMap_;
     bool isAppSupportPhoneInPc_ = false;
-    bool isPcAppInLargeScreenDevice_ = false;
+    bool isPcAppInPad_ = false;
     mutable std::mutex compatibleModeMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
@@ -620,13 +620,6 @@ private:
     uint32_t avoidAreaOption_ = 0;
 
     int32_t statusBarHeightInImmersive_ = 0;
-    
-    /*
-     * Window Focus
-     */
-    bool focusable_ { true };
-    bool focusableOnShow_ { true };
-    bool isExclusivelyHighlighted_ { true };
 
     /*
      * Window Lifecycle
@@ -634,6 +627,7 @@ private:
     mutable std::mutex lifecycleUseControlMutex_;
     bool isUseControlState_ = false;
     std::string ancoRealBundleName_  = "";
+
     MissionInfo missionInfo_;
     mutable std::mutex missionInfoMutex_;
 
@@ -651,6 +645,13 @@ private:
     bool isPcAppInpadOrientationLandscape_ = false;
     bool isMobileAppInPadLayoutFullScreen_ = false;
     bool isRotationLock_ = false;
+
+    /*
+     * Window Focus
+     */
+    bool focusable_ { true };
+    bool focusableOnShow_ { true };
+    bool isExclusivelyHighlighted_ { true };
 
     sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
 
@@ -960,9 +961,9 @@ struct SystemSessionConfig : public Parcelable {
         }
 
         bool parcelWriteFail = !parcel.WriteUint32(miniWidthOfMainWindow_) ||
-                !parcel.WriteUint32(miniHeightOfMainWindow_) || !parcel.WriteUint32(miniWidthOfSubWindow_) ||
-                !parcel.WriteUint32(miniHeightOfSubWindow_) || !parcel.WriteUint32(miniWidthOfDialogWindow_) ||
-                !parcel.WriteUint32(miniHeightOfDialogWindow_);
+            !parcel.WriteUint32(miniHeightOfMainWindow_) || !parcel.WriteUint32(miniWidthOfSubWindow_) ||
+            !parcel.WriteUint32(miniHeightOfSubWindow_) || !parcel.WriteUint32(miniWidthOfDialogWindow_) ||
+            !parcel.WriteUint32(miniHeightOfDialogWindow_);
         if (parcelWriteFail) {
             return false;
         }
@@ -1100,7 +1101,7 @@ struct SystemSessionConfig : public Parcelable {
         return IsPcWindow() || (IsPadWindow() && IsFreeMultiWindowMode());
     }
 
-    bool isSupportPCMode() const
+    bool IsSupportPCMode() const
     {
         return IsPcWindow() || IsFreeMultiWindowMode();
     }

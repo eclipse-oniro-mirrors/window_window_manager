@@ -738,6 +738,7 @@ public:
      */
     virtual void OnWindowWillClose(sptr<Window> window) {}
 };
+
 /**
  * @class IWindowHighlightChangeListener
  *
@@ -2548,6 +2549,13 @@ public:
     virtual bool isNeededForciblySetOrientation(Orientation orientation) { return false; }
 
     /**
+     * @brief Get requested orientation.
+     *
+     * @return Orientation screen orientation.
+     */
+    virtual Orientation GetRequestedOrientation() { return Orientation::UNSPECIFIED; }
+
+    /**
      * @brief Convert orientation and rotation between window and display
      *
      * @param from The type of the value to be converted.
@@ -2561,13 +2569,6 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-
-    /**
-     * @brief Get requested orientation.
-     *
-     * @return Orientation screen orientation.
-     */
-    virtual Orientation GetRequestedOrientation() { return Orientation::UNSPECIFIED; }
 
     /**
      * @brief Set requested mode support info.
@@ -4124,6 +4125,14 @@ public:
     virtual WMError IsImmersiveLayout(bool& isImmersiveLayout) const { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Set the ContinueState of window.
+     *
+     * @param continueState of the window.
+     * @return Errorcode of window.
+     */
+    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
+
+    /**
      * @brief Get the height of status bar.
      *
      * @return the height of status bar.
@@ -4144,14 +4153,6 @@ public:
      * @return WMError.
      */
     virtual WMError GetWindowStatus(WindowStatus& windowStatus) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-
-    /**
-     * @brief Set the ContinueState of window.
-     *
-     * @param continueState of the window.
-     * @return Errorcode of window.
-     */
-    virtual WMError SetContinueState(int32_t continueState) { return WMError::WM_DO_NOTHING; }
 
     /**
      * @brief Notify host that UIExtension timeout
@@ -4755,10 +4756,10 @@ public:
     /**
      * @brief Set the source of subwindow.
      *
-     * @param source 0 - defalut, 1 - arkui.
+     * @param source 0 - default, 1 - arkui.
      * @return WM_OK means set success.
      */
-    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_OK; }
 
     /**
      * @brief Set the frameRect in a partial zoom-in scene.

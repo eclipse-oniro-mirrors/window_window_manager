@@ -53,6 +53,9 @@ public:
     explicit AniVm(ani_vm* vm) : vm_(vm) {}
     ~AniVm()
     {
+        if (env_ != nullptr) {
+            env_->DestroyLocalScope();
+        }
         if (vm_ == nullptr || !needDetach_) {
             return;
         }
@@ -60,7 +63,7 @@ public:
         TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] detach: ret=%{public}d", static_cast<int32_t>(ret));
     }
  
-    ani_env* GetAniEnv()
+    ani_env* GetAniEnv(ani_size nrRefs = 50)
     {
         if (vm_ == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] vm is null");
@@ -74,10 +77,15 @@ public:
             TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] attach: ret=%{public}d, needDetach=%{public}d",
                 static_cast<int32_t>(ret), needDetach_);
         }
-        return env;
+        if (env != nullptr && env->CreateLocalScope(nrRefs) == ANI_OK) {
+            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI] CreateLocalScope ok");
+            env_ = env;
+        }
+        return env_;
     }
 
 private:
+    ani_env* env_ = nullptr;
     ani_vm* vm_ = nullptr;
     bool needDetach_ = false;
 };
@@ -118,6 +126,8 @@ public:
     static ani_object CreateAniWindowDensityInfo(ani_env* env, const WindowDensityInfo& info);
     static ani_object CreateAniWindowSystemBarProperties(ani_env* env, const SystemBarProperty& status,
         const SystemBarProperty& navigation);
+    static bool CreateNavBarColorProperties(ani_env* env, const SystemBarProperty& navigation, ani_class cls,
+        ani_object systemBarProperties, const SystemBarProperty& status);
     static ani_object CreateAniWindowLayoutInfo(ani_env* env, const WindowLayoutInfo& info);
     static ani_object CreateAniWindowLayoutInfoArray(ani_env* env, const std::vector<sptr<WindowLayoutInfo>>& infos);
     static ani_object CreateAniWindowInfo(ani_env* env, const WindowVisibilityInfo& info);
