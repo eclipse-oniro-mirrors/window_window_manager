@@ -6869,6 +6869,7 @@ napi_value JsWindow::OnSetWindowShadowRadius(napi_env env, napi_callback_info in
     }
 
     double result = 0.0;
+    std::shared_ptr<ShadowsInfo> shadowsInfo = std::make_shared<ShadowsInfo>();
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], result)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Napi get radius value failed.");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
@@ -6880,7 +6881,6 @@ napi_value JsWindow::OnSetWindowShadowRadius(napi_env env, napi_callback_info in
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setWindowShadowRadius]msg: The shadow radius is less than zero.");
     }
-    std::shared_ptr<ShadowsInfo> shadowsInfo = std::make_shared<ShadowsInfo>();
     shadowsInfo->radius_ = result;
     shadowsInfo->hasRadiusValue_ = true;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetWindowShadowRadius(radius));
@@ -6890,7 +6890,7 @@ napi_value JsWindow::OnSetWindowShadowRadius(napi_env env, napi_callback_info in
     }
     WmErrorCode syncShadowsRet = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SyncShadowsToComponent(*shadowsInfo));
     if (syncShadowsRet != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Sync shadows to component fail! ret:  %{public}u",
+        TLOGE(WmsLogTag::WMS_ANIMATION, "Sync shadows to component fail! ret: %{public}u",
             static_cast<int32_t>(syncShadowsRet));
         return NapiThrowError(env, syncShadowsRet,
             "[window][setWindowShadowRadius]msg: Sync shadows to component failed.");

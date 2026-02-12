@@ -9472,10 +9472,6 @@ void SceneSession::SetWindowShadowsCallback(NotifySetWindowShadowsFunc&& func)
 
 WSError SceneSession::SetWindowShadows(const ShadowsInfo& shadowsInfo)
 {
-    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
-        WLOGFE("RaiseAboveTarget permission denied!");
-        return WSError::WS_ERROR_NOT_SYSTEM_APP;
-    }
     const char* const where = __func__;
     PostTask([weakThis = wptr(this), shadowsInfo, where] {
         auto session = weakThis.promote();
