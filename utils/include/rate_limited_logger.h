@@ -136,8 +136,8 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
  * @details TLOGI_LMT inner function
  */
 #define TLOGI_LMT_INNER(functionAddress, timeWindowMs, maxCount, wid, tag, fmt, ...)              \
-	do {                                                                                          \
-		if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+    do {                                                                                          \
+	    if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
             RateLimitedLogger::getInstance()                                                      \
                 .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
@@ -165,13 +165,13 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
  * @details TLOGNI_LMT inner function
  */
 #define TLOGNI_LMT_INNER(functionAddress, timeWindowMs, maxCount, wid, tag, fmt, ...)             \
-	do {                                                                                          \
-		if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
-			RateLimitedLogger::getInstance()                                                      \
-				.logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
-			TLOGNI(tag, fmt, ##__VA_ARGS__);                                                      \
-		}                                                                                         \
-	} while (0)
+    do {                                                                                          \
+	    if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+		    RateLimitedLogger::getInstance()                                                      \
+			    .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
+		    TLOGNI(tag, fmt, ##__VA_ARGS__);                                                      \
+	    }                                                                                         \
+    } while (0)
 
 /**
  * @brief limit printing log
@@ -179,7 +179,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
  * @attention: only use for wms-layout
  */
 #define TLOGNI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                         \
-	TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, __VA_ARGS__)
+    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, __VA_ARGS__)
 
 /**
  * @brief limit printing log
@@ -187,7 +187,7 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
  * @attention: only use for wms-layout
  */
 #define TLOGNI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                \
-	TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(wid), timeWindowMs, maxCount, tag, __VA_ARGS__)
+    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(wid), timeWindowMs, maxCount, tag, __VA_ARGS__)
 
 } // namespace Rosen
 } // namespace OHOS
