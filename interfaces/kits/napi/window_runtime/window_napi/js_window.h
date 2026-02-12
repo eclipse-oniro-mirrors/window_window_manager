@@ -407,8 +407,8 @@ private:
     napi_value OnSetBlur(napi_env env, napi_callback_info info);
     napi_value OnSetBackdropBlur(napi_env env, napi_callback_info info);
     napi_value OnSetBackdropBlurStyle(napi_env env, napi_callback_info info);
-    napi_value OnSetWaterMarkFlag(napi_env env, napi_callback_info info);
     napi_value OnSetHandwritingFlag(napi_env env, napi_callback_info info);
+    napi_value OnSetWaterMarkFlag(napi_env env, napi_callback_info info);
     napi_value OnSetWindowGrayScale(napi_env env, napi_callback_info info);
     napi_value OnEnableDrag(napi_env env, napi_callback_info info);
     napi_value OnStartMoving(napi_env env, napi_callback_info info);
