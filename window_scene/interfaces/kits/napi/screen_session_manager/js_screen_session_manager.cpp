@@ -681,9 +681,9 @@ napi_value JsScreenSessionManager::OnRegisterCallback(napi_env env, const napi_c
         return NapiGetUndefined(env);
     }
     if (callbackType == ON_SCREEN_CONNECTION_CHANGE_CALLBACK) {
-        RegisterScreenConnectionCallback(env, callbackType, callbackRef);
+        RegisterScreenConnectionCallback(env, callbackRef);
     } else if (callbackType == ON_TENT_MODE_CHANGE_CALLBACK) {
-        RegisterTentModeCallback(env, callbackType, callbackRef);
+        RegisterTentModeCallback(env, callbackRef);
     } else {
         TLOGE(WmsLogTag::DMS, "Unsupported callback type: %{public}s.", callbackType.c_str());
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
@@ -691,8 +691,7 @@ napi_value JsScreenSessionManager::OnRegisterCallback(napi_env env, const napi_c
     return NapiGetUndefined(env);
 }
 
-void JsScreenSessionManager::RegisterScreenConnectionCallback(napi_env env,
-    const std::string& callbackType, napi_ref& callback)
+void JsScreenSessionManager::RegisterScreenConnectionCallback(napi_env env, napi_ref& callback)
 {
     TLOGI(WmsLogTag::DMS, "[NAPI] begin");
     if (screenConnectionCallback_ != nullptr) {
@@ -703,8 +702,7 @@ void JsScreenSessionManager::RegisterScreenConnectionCallback(napi_env env,
     ScreenSessionManagerClient::GetInstance().RegisterScreenConnectionListener(this);
 }
 
-void JsScreenSessionManager::RegisterTentModeCallback(napi_env env,
-    const std::string& callbackType, napi_ref& callback)
+void JsScreenSessionManager::RegisterTentModeCallback(napi_env env, napi_ref& callback)
 {
     TLOGI(WmsLogTag::DMS, "[NAPI] begin");
     std::shared_ptr<NativeReference> callbackRef(reinterpret_cast<NativeReference*>(callback));

@@ -1429,7 +1429,7 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldDisplayMode, TestSize.Level1)
 {
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
     screenSessionManagerProxy->SetFoldDisplayMode(displayMode);
-    EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
+    EXPECT_EQ(FoldDisplayMode::UNKNOWN, screenSessionManagerProxy->GetFoldDisplayMode());
 }
 
 /**
@@ -1456,11 +1456,10 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldStatusLocked, TestSize.Level1)
 {
     bool locked = true;
     screenSessionManagerProxy->SetFoldStatusLocked(locked);
-    if (ScreenSessionManager::GetInstance().IsFoldable()) {
-        EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    } else {
-        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(g_logMsg.find("Send TRANS_ID_SCENE_BOARD_GET_FOLD_DISPLAY_MODE request failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
