@@ -634,6 +634,9 @@ public:
     static bool GetScreenSessionMngSystemAbility();
     void RunFinishTask();
 
+    void SetOnBootAnimation(const bool onBootAnimation);
+    bool IsOnBootAnimation() const;
+
 protected:
     ScreenSessionManager();
     virtual ~ScreenSessionManager() = default;
@@ -1193,6 +1196,7 @@ private:
     std::mutex callbackMutex_;
     bool isSupportCapture_ = false;
     std::atomic<FoldDisplayMode> foldDisplayModeAfterRotation_ = FoldDisplayMode::UNKNOWN;
+    std::atomic<bool> onBootAnimation_ = false;
 
 private:
     class ScbClientListenerDeathRecipient : public IRemoteObject::DeathRecipient {

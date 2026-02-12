@@ -139,6 +139,10 @@ bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(const SessionOptio
             return false;
         }
     }
+    if (!data.WriteBool(sessionOption.isBooting_)) {
+        TLOGE(WmsLogTag::DMS, "Write isBooting failed");
+        return false;
+    }
     return true;
 }
 

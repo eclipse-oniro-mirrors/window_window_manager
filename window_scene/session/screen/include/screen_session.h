@@ -458,6 +458,9 @@ public:
     void AddRotationCorrection(Rotation& rotation, FoldDisplayMode displayMode);
     void ClearPropertyChangeReasonAndEvent();
 
+    void SetBootingConnect(const bool bootingConnect);
+    bool IsBootingConnect() const;
+
 private:
     bool IsVertical(Rotation rotation) const;
     Orientation CalcDisplayOrientationToOrientation(DisplayOrientation displayOrientation) const;
@@ -540,6 +543,8 @@ private:
     std::atomic<bool> supportsFocus_ { true };
     std::atomic<bool> supportsInput_ { true };
     std::string bundleName_ = "";
+
+    std::atomic<bool> bootingConnect_ { false };
 };
 
 class ScreenSessionGroup : public ScreenSession {

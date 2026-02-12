@@ -1107,14 +1107,15 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     screenSession->SetSupportsFocus(option.supportsFocus_);
     screenSession->SetUniqueRotationLock(option.isRotationLocked_);
     screenSession->SetUniqueRotation(option.rotation_);
+    screenSession->SetBootingConnect(option.isBooting_);
     if (screenSession->GetUniqueRotationOrientationMap().size() != ROTATION_NUM) {
         screenSession->SetUniqueRotationOrientationMap(option.rotationOrientationMap_);
     }
     TLOGD(WmsLogTag::DMS, "Set unique screen rotation property in screenSession,"
           "isUniqueRotationLocked: %{public}d, uniqueRotation: %{public}d"
-          "uniqueRotationOrientationMap: %{public}s",
+          "uniqueRotationOrientationMap: %{public}s, isBooting: %{public}d",
           screenSession->GetUniqueRotationLock(), screenSession->GetUniqueRotation(),
-          MapToString(screenSession->GetUniqueRotationOrientationMap()).c_str());
+          MapToString(screenSession->GetUniqueRotationOrientationMap()).c_str(), option.isBooting_);
 
     NotifyClientScreenConnect(screenSession);
     return true;

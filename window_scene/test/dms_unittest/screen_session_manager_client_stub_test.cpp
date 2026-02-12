@@ -538,7 +538,7 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnScreenConnectionChanged, Te
     data.WriteInt32(2);
     data.WriteInt32(3);
     data.WriteInt32(3);
-
+    data.WriteBool(false);
     int ret = screenSessionManagerClientStub_->HandleOnScreenConnectionChanged(data, reply);
     EXPECT_EQ(ret, 0);
 }
