@@ -869,17 +869,17 @@ public:
      /**
      * @brief The comaptible mode app adapt to immersive or not.
      *
-     * @return true comptbleMode adapt to immersive, others means not.
+     * @return true means compatible app adapt to immersive, others means not.
      */
     virtual bool IsAdaptToCompatibleImmersive() const { return false; }
 
     /**
      * @brief Set the source of subwindow.
      *
-     * @param source 0 - defalut, 1 - arkui.
-     * @return WM_OK means set success.
+     * @param source 0 - default, 1 - arkui.
+     * @return WM_OK means set success, others means failed.
      */
-    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_OK; }
 
     /**
      * @brief Set whether this window limits screen rotation when this window is shown.
