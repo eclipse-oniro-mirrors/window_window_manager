@@ -132,64 +132,62 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 }
 
 /**
- * effect: limit printing log
- * scope: usually use for client-side which not need to distinguish
- * attention: only use for wms-layout
+ * @brief: limit printing log
+ * @details TLOGI_LMT inner function
+ */
+#define TLOGI_LMT_INNER(functionAddress, timeWindowMs, maxCount, wid, tag, fmt, ...)              \
+	do {                                                                                          \
+		if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+            RateLimitedLogger::getInstance()                                                      \
+                .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
+            TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
+        }                                                                                         \
+	} while (0)
+
+/**
+ * @brief: limit printing log
+ * @details: usually use for client-side which not need to distinguish
+ * @attention: only use for wms-layout
  */
 #define TLOGI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                          \
-    do {                                                                                          \
-        uintptr_t functionAddress = GET_PACKED_ADDR_LINE();                                       \
-        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
-            RateLimitedLogger::getInstance()                                                      \
-                .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
-            TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
-        }                                                                                         \
-    } while (0)
+    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, __VA_ARGS__)
 
 /**
- * effect: limit printing log
- * usually use for server-side to distinguish between different windows
- * attention: only use for wms-layout
+ * @brief: limit printing log
+ * @details usually use for server-side to distinguish between different windows
+ * @attention: only use for wms-layout
  */
 #define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
-    do {                                                                                          \
-        uintptr_t functionAddress = GET_PACKED_ADDR_LINE_WID(wid);                                \
-        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
-            RateLimitedLogger::getInstance()                                                      \
-                .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
-            TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
-        }                                                                                         \
-    } while (0)
+    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE(wid), timeWindowMs, maxCount, tag, __VA_ARGS__)
 
 /**
- * effect: limit printing log
- * usually use for client-side which not need to distinguish
- * attention: only use for wms-layout
+ * @brief: limit printing log
+ * @details TLOGNI_LMT inner function
+ */
+#define TLOGNI_LMT_INNER(functionAddress, timeWindowMs, maxCount, wid, tag, fmt, ...)             \
+	do {                                                                                          \
+		if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+			RateLimitedLogger::getInstance()                                                      \
+				.logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
+			TLOGNI(tag, fmt, ##__VA_ARGS__);                                                      \
+		}                                                                                         \
+	} while (0)
+
+/**
+ * @brief limit printing log
+ * @details usually use for client-side which not need to distinguish
+ * @attention: only use for wms-layout
  */
 #define TLOGNI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                         \
-    do {                                                                                          \
-        uintptr_t functionAddress = GET_PACKED_ADDR_LINE();                                       \
-        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
-            RateLimitedLogger::getInstance()                                                      \
-                .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
-            TLOGNI(tag, fmt, ##__VA_ARGS__);                                                      \
-        }                                                                                         \
-    } while (0)
+	TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, __VA_ARGS__)
 
 /**
- * effect: limit printing log
- * usually use for server-side to distinguish between different windows
- * attention: only use for wms-layout
+ * @brief limit printing log
+ * @details use for server-side to distinguish between different windows
+ * @attention: only use for wms-layout
  */
 #define TLOGNI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                \
-    do {                                                                                          \
-        uintptr_t functionAddress = GET_PACKED_ADDR_LINE_WID(wid);                                \
-        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
-            RateLimitedLogger::getInstance()                                                      \
-                .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
-            TLOGNI(tag, fmt, ##__VA_ARGS__);                                                      \
-        }                                                                                         \
-    } while (0)
+	TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(wid), timeWindowMs, maxCount, tag, __VA_ARGS__)
 
 } // namespace Rosen
 } // namespace OHOS

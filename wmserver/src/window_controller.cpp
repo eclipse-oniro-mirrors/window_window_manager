@@ -1111,11 +1111,14 @@ WMError WindowController::ChangeMouseStyle(uint32_t windowId, sptr<MoveDragPrope
         }
         return WMError::WM_OK;
     }
-    pointerStyle.id = STYLEID_MAP.at(moveDragProperty->dragType_);
-    int32_t res = MMI::InputManager::GetInstance()->SetPointerStyle(windowId, pointerStyle);
-    if (res != 0) {
-        WLOGFE("set pointer style failed");
-        return WMError::WM_ERROR_INVALID_OPERATION;
+    auto it = STYLEID_MAP.find(moveDragProperty->dragType_);
+    if (it != STYLEID_MAP.end()) {
+        pointerStyle.id = STYLEID_MAP.at(moveDragProperty->dragType_);
+        int32_t res = MMI::InputManager::GetInstance()->SetPointerStyle(windowId, pointerStyle);
+        if (res != 0) {
+            WLOGFE("set pointer style failed");
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
     }
     return WMError::WM_OK;
 }
