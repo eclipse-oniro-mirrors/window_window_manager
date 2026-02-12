@@ -4164,9 +4164,9 @@ napi_value JsSceneSessionManager::OnGetSessionSnapshotPixelMap(napi_env env, nap
             persistentId, scaleParam, snapshotNode, useNewSnapshot);
     };
     NapiAsyncTask::CompleteCallback complete =
-        [persistentId, scaleParam, pixelPtr](napi_env env, NapiAsyncTask& task, int32_t status) {
+        [persistentId, scaleParam, pixelPtr, where = __func__](napi_env env, NapiAsyncTask& task, int32_t status) {
             if (pixelPtr == nullptr) {
-                WLOGE("pixelMap ptr not exist");
+                TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s id:%{public}d pixelMap ptr not exist", where, persistentId);
                 task.Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
                 return;
             }
@@ -4175,10 +4175,12 @@ napi_value JsSceneSessionManager::OnGetSessionSnapshotPixelMap(napi_env env, nap
                 nativeData = Media::PixelMapNapi::CreatePixelMap(env, *pixelPtr);
             }
             if (nativeData) {
-                WLOGD("pixelmap W x H=%{public}d x %{public}d", (*pixelPtr)->GetWidth(), (*pixelPtr)->GetHeight());
+                TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s id:%{public}d pixelMap W x H=%{public}d x %{public}d",
+                    where, persistentId, (*pixelPtr)->GetWidth(), (*pixelPtr)->GetHeight());
                 task.Resolve(env, nativeData);
             } else {
-                WLOGE("Create native pixelmap fail");
+                TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s id:%{public}d Create native pixelMap fail",
+                    where, persistentId);
                 task.Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
             }
         };

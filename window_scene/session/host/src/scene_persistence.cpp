@@ -247,6 +247,7 @@ std::string ScenePersistence::GetSnapshotFilePath(SnapshotStatus& key, bool useK
         return snapshotPath_[key];
     }
     if (FindClosestFormSnapshot(key)) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "FindClosestFormSnapshot:%{public}d", key);
         return snapshotPath_[key];
     }
     TLOGW(WmsLogTag::WMS_PATTERN, "Failed");

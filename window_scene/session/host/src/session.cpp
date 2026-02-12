@@ -2954,6 +2954,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Snapshot[%d][%s]", persistentId_, sessionInfo_.bundleName_.c_str());
     auto surfaceNode = GetSurfaceNode();
     if (!CheckSurfaceNodeForSnapshot(surfaceNode)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "SurfaceNode invalid %{public}d", persistentId_);
         return nullptr;
     }
     bool needBlurSnapshot = GetNeedUseBlurSnapshot();
@@ -2977,22 +2978,23 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(bool runInFfrt, float scalePa
         ret = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode, callback, config);
     }
     if (!ret) {
-        TLOGE(WmsLogTag::WMS_MAIN, "TakeSurfaceCapture failed");
+        TLOGE(WmsLogTag::WMS_PATTERN, "TakeSurfaceCapture failed %{public}d", persistentId_);
         return nullptr;
     }
     constexpr int32_t FFRT_SNAPSHOT_TIMEOUT_MS = 5000;
     auto pixelMap = callback->GetResult(runInFfrt ? FFRT_SNAPSHOT_TIMEOUT_MS : SNAPSHOT_TIMEOUT_MS);
     if (pixelMap != nullptr) {
         bool isCropped = CropSnapshotPixelMap(pixelMap, lastLayoutRect_, scaleValue);
-        TLOGI(WmsLogTag::WMS_MAIN, "Save snapshot WxH=%{public}dx%{public}d, "
-            "id: %{public}d, uniqueId: %{public}d, isCropped: %{public}d",
-            pixelMap->GetWidth(), pixelMap->GetHeight(), persistentId_, pixelMap->GetUniqueId(), isCropped);
+        TLOGI(WmsLogTag::WMS_PATTERN, "Save snapshot WxH=%{public}dx%{public}d, "
+            "id: %{public}d, uniqueId: %{public}d, isValid:%{public}d, isCropped: %{public}d",
+            pixelMap->GetWidth(), pixelMap->GetHeight(), persistentId_, pixelMap->GetUniqueId(),
+            pixelMap->GetPixels() != nullptr, isCropped);
         if (notifySessionSnapshotFunc_) {
             notifySessionSnapshotFunc_(persistentId_);
         }
         return pixelMap;
     }
-    TLOGE(WmsLogTag::WMS_MAIN, "Save snapshot failed, id: %{public}d", persistentId_);
+    TLOGE(WmsLogTag::WMS_PATTERN, "Save snapshot failed, id: %{public}d", persistentId_);
     return nullptr;
 }
 
