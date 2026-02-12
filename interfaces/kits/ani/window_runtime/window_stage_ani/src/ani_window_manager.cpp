@@ -567,7 +567,7 @@ bool ParseOptionalConfigOption(ani_env* env, ani_object configuration, WindowOpt
     if (!isPropUndefined) {
         ani_int intValue;
         if (ANI_OK !=
-            env->Object_CallMethodByName_Int(static_cast<ani_object>(result), "intValue", nullptr, &intValue)) {
+            env->Object_CallMethodByName_Int(static_cast<ani_object>(result), "toInt", nullptr, &intValue)) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_CallMethodByName_Int parentId Failed");
             return false;
         }
