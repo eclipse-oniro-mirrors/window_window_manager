@@ -319,8 +319,8 @@ ohos_shared_library("scene_session") {
     "samgr:samgr_proxy",
     "zlib:shared_libz",
   ]
-  if (!(host_os == "linux" && host_cpu == "arm64")) { 
-      external_deps += [ "preferences:native_preferences" ] 
+  if (!(host_os == "linux" && host_cpu == "arm64")) {
+    external_deps += [ "preferences:native_preferences" ]
   }
   public_external_deps = [
     "ability_base:base",
