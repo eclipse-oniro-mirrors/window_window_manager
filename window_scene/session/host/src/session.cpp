@@ -316,7 +316,7 @@ void Session::SetSessionInfoSupportedWindowModes(const std::vector<AppExecFwk::S
 void Session::SetSessionInfoWant(const std::shared_ptr<AAFwk::Want>& want)
 {
     std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
-    sessionInfo_.want = want;
+    sessionInfo_.SetWantSafely(want);
 }
 
 void Session::ResetSessionInfoResultCode()
@@ -2008,9 +2008,7 @@ void Session::SetAttachState(bool isAttach, WindowMode windowMode)
             TLOGND(WmsLogTag::WMS_LIFE, "session is null");
             return;
         }
-        auto mainSession = session->GetMainSession();
-        if ((!mainSession || !mainSession->GetShowRecent()) &&
-            session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
+        if (session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
             TLOGNI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
                 session->GetPersistentId());
             session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
@@ -2153,9 +2151,7 @@ void Session::RemoveLifeCycleTask(const LifeCycleTaskType& taskType)
             return;
         }
         frontLifeCycleTask = lifeCycleTaskQueue_.front();
-        if (!SetLifeCycleTaskRunning(frontLifeCycleTask)) {
-            return;
-        }
+        SetLifeCycleTaskRunning(frontLifeCycleTask);
     }
     PostTask(std::move(frontLifeCycleTask->task), frontLifeCycleTask->name);
 }
@@ -2232,10 +2228,11 @@ WSError Session::TerminateSessionNew(
         TLOGE(WmsLogTag::WMS_LIFE, "abilitySessionInfo is null");
         return WSError::WS_ERROR_INVALID_SESSION;
     }
-    auto task = [weakThis = wptr(this), abilitySessionInfo, needStartCaller, isFromBroker]() {
+    const char* const where = __func__;
+    auto task = [weakThis = wptr(this), abilitySessionInfo, needStartCaller, isFromBroker, where]() {
         auto session = weakThis.promote();
-        if (session == nullptr) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "session is null.");
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is nullptr", where);
             return;
         }
         session->isTerminating_ = true;
@@ -2253,8 +2250,8 @@ WSError Session::TerminateSessionNew(
             session->terminateSessionFuncNew_(info, needStartCaller, isFromBroker, false);
         }
         TLOGNI(WmsLogTag::WMS_LIFE,
-            "TerminateSessionNew, id: %{public}d, needStartCaller: %{public}d, isFromBroker: %{public}d",
-            session->GetPersistentId(), needStartCaller, isFromBroker);
+            "%{public}s, id: %{public}d, needStartCaller: %{public}d, isFromBroker: %{public}d",
+            where, session->GetPersistentId(), needStartCaller, isFromBroker);
     };
     PostLifeCycleTask(task, "TerminateSessionNew", LifeCycleTaskType::STOP);
     return WSError::WS_OK;
@@ -3040,10 +3037,9 @@ bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surface
     if (IsPersistentImageFit()) {
         return false;
     }
-    auto key = GetSessionSnapshotStatus();
     if (!surfaceNode || !surfaceNode->IsBufferAvailable()) {
-        scenePersistence_->SetHasSnapshot(false, key);
-        scenePersistence_->SetHasSnapshotFreeMultiWindow(false);
+        DeleteHasSnapshot();
+        scenePersistence_->ClearSnapshot();
         return false;
     }
     return true;
@@ -3436,7 +3432,7 @@ void Session::SetFreeMultiWindow()
     }
 }
 
-void Session::DeleteHasSnapshot()
+void Session::DeleteHasSnapshot() const
 {
     for (int32_t screenStatus = SCREEN_UNKNOWN; screenStatus < SCREEN_COUNT; screenStatus++) {
         DeleteHasSnapshot(screenStatus);
@@ -3444,7 +3440,7 @@ void Session::DeleteHasSnapshot()
     DeleteHasSnapshotFreeMultiWindow();
 }
 
-void Session::DeleteHasSnapshot(SnapshotStatus key)
+void Session::DeleteHasSnapshot(SnapshotStatus key) const
 {
     auto hasSnapshot = ScenePersistentStorage::HasKey("Snapshot_" + sessionInfo_.bundleName_ +
         "_" + std::to_string(persistentId_) + "_" + std::to_string(key), ScenePersistentStorageType::MAXIMIZE_STATE);
@@ -3454,7 +3450,7 @@ void Session::DeleteHasSnapshot(SnapshotStatus key)
     }
 }
 
-void Session::DeleteHasSnapshotFreeMultiWindow()
+void Session::DeleteHasSnapshotFreeMultiWindow() const
 {
     auto hasSnapshotFreeMultiWindow = ScenePersistentStorage::HasKey("Snapshot_" + sessionInfo_.bundleName_ +
         "_" + std::to_string(persistentId_), ScenePersistentStorageType::MAXIMIZE_STATE);
@@ -3498,6 +3494,14 @@ bool Session::HasSnapshotFreeMultiWindow()
         SetExitSplitOnBackground(isExitSplitOnBackgroundRecover);
     }
     return hasSnapshotFreeMultiWindow;
+}
+
+bool Session::HasPersistentSnapshot()
+{
+    if (!scenePersistence_) {
+        return false;
+    }
+    return scenePersistence_->IsSavingSnapshot() || scenePersistence_->HasSnapshot();
 }
 
 bool Session::HasSnapshot()

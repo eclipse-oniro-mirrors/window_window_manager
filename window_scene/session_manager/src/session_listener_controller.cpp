@@ -335,7 +335,7 @@ WMError SessionListenerController::RegisterSessionLifecycleListener(const sptr<I
     }
     if (bundleNameList.empty()) {
         listenersOfAllBundles_.emplace_back(listener);
-        TLOGI(WmsLogTag::WMS_LIFE, "Register SessionLifecycleListener By All Bundles Finished.");
+        TLOGI(WmsLogTag::WMS_LIFE, "register sessionLifecycleListener by all bundles finished.");
         return WMError::WM_OK;
     }
     for (const std::string& bundleName : bundleNameList) {
@@ -356,7 +356,7 @@ WMError SessionListenerController::RegisterSessionLifecycleListener(const sptr<I
             listenerMapByBundle_.emplace(bundleName, newListenerList);
         }
     }
-    TLOGI(WmsLogTag::WMS_LIFE, "Register SessionLifecycleListener By Bundle Finished.");
+    TLOGI(WmsLogTag::WMS_LIFE, "register sessionLifecycleListener by bundle finished.");
     return WMError::WM_OK;
 }
 
@@ -372,7 +372,7 @@ WMError SessionListenerController::UnregisterSessionLifecycleListener(const sptr
         return WMError::WM_ERROR_INVALID_PARAM;
     }
     RemoveSessionLifecycleListener(target);
-    TLOGI(WmsLogTag::WMS_LIFE, "Session Lifecycle Listener Unregister Finished.");
+    TLOGI(WmsLogTag::WMS_LIFE, "session lifecycle listener unregister finished.");
     return WMError::WM_OK;
 }
 

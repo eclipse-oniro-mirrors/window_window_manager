@@ -25,7 +25,6 @@ namespace {
     const std::string DESTROY_TIMEOUT_TASK = "PipDestroyTimeout";
     const std::string STATE_CHANGE = "stateChange";
     const std::string UPDATE_NODE = "nodeUpdate";
-
     const int32_t INVALID_HANDLE_ID = -1;
 }
 
@@ -473,6 +472,11 @@ std::shared_ptr<NativeReference> PictureInPictureController::GetPipContentCallba
     return pipOption_ == nullptr ? nullptr : pipOption_->GetPipContentCallbackRef(type);
 }
 
+void PictureInPictureController::NotifyStateChangeInner(PiPState state)
+{
+    NotifyStateChangeInner(env_, state);
+}
+
 void PictureInPictureController::NotifyStateChangeInner(napi_env env, PiPState state)
 {
     std::shared_ptr<NativeReference> innerCallbackRef = GetPipContentCallbackRef(STATE_CHANGE);
@@ -547,7 +551,7 @@ bool PictureInPictureController::IsPullPiPAndHandleNavigation()
     return true;
 }
 
-std::string PictureInPictureController::GetPiPNavigationId()
+std::string PictureInPictureController::GetPiPNavigationId() const
 {
     return (pipOption_ != nullptr && !IsTypeNodeEnabled()) ? pipOption_->GetNavigationId() : "";
 }

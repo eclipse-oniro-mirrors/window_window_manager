@@ -187,13 +187,19 @@ WMError WindowAdapterLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey win
 
 WMError WindowAdapterLite::RecoverWindowPropertyChangeFlag()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!windowManagerServiceProxy_ || !windowManagerServiceProxy_->AsObject()) {
-        TLOGE(WmsLogTag::WMS_RECOVER, "proxy is null");
-        return WMError::WM_ERROR_NULLPTR;
+    sptr<IWindowManagerLite> wmsProxy = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(wmsProxyMutex_);
+        if (!windowManagerServiceProxy_ || !windowManagerServiceProxy_->AsObject()) {
+            TLOGE(WmsLogTag::WMS_RECOVER, "proxy is null");
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        wmsProxy = windowManagerServiceProxy_;
     }
-    auto ret = windowManagerServiceProxy_->RecoverWindowPropertyChangeFlag(observedFlags_, interestedFlags_);
-    TLOGI(WmsLogTag::WMS_RECOVER, "ret=%{public}d", static_cast<int32_t>(ret));
+    auto ret = wmsProxy->RecoverWindowPropertyChangeFlag(observedFlags_, interestedFlags_);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "IPC failed, ret=%{public}d", static_cast<int32_t>(ret));
+    }
     return ret;
 }
 
@@ -243,7 +249,7 @@ WMError WindowAdapterLite::UpdateScreenLockStatusForApp(const std::string& bundl
 
 bool WindowAdapterLite::InitSSMProxy()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (isProxyValid_) {
         return true;
     }
@@ -255,23 +261,27 @@ bool WindowAdapterLite::InitSSMProxy()
     sptr<IRemoteObject> remoteObject = windowManagerServiceProxy_->AsObject();
     if (!remoteObject) {
         TLOGE(WmsLogTag::WMS_SCB, "remoteObject is null");
+        windowManagerServiceProxy_ = nullptr;
         return false;
     }
-    wmsDeath_ = sptr<WMSDeathRecipient>::MakeSptr(userId_);
+    if (!wmsDeath_) {
+        wmsDeath_ = sptr<WMSDeathRecipient>::MakeSptr(userId_);
+    }
     if (remoteObject->IsProxyObject() && !remoteObject->AddDeathRecipient(wmsDeath_)) {
         TLOGE(WmsLogTag::WMS_SCB, "Failed to add death recipient");
+        windowManagerServiceProxy_ = nullptr;
         return false;
     }
     // U0 system user needs to subscribe OnUserSwitch event
     int32_t clientUserId = GetUserIdByUid(getuid());
     if (clientUserId == SYSTEM_USERID && !isRegisteredUserSwitchListener_) {
         SessionManagerLite::GetInstance(userId_).RegisterUserSwitchListener([weakThis = wptr(this)] {
-            auto windowAdapter = weakThis.promote();
-            if (!windowAdapter) {
-                TLOGE(WmsLogTag::WMS_SCB, "window adapter is null");
+            auto windowAdapterLite = weakThis.promote();
+            if (!windowAdapterLite) {
+                TLOGE(WmsLogTag::WMS_SCB, "window adapter lite is null");
                 return;
             }
-            windowAdapter->OnUserSwitch();
+            windowAdapterLite->OnUserSwitch();
         });
         isRegisteredUserSwitchListener_ = true;
     }
@@ -281,22 +291,22 @@ bool WindowAdapterLite::InitSSMProxy()
 
 void WindowAdapterLite::OnUserSwitch()
 {
-    TLOGD(WmsLogTag::WMS_MULTI_USER, "User switched lite");
-    ClearWindowAdapter();
+    ClearWMSProxy();
     InitSSMProxy();
     ReregisterWindowManagerLiteAgent();
     RecoverWindowPropertyChangeFlag();
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "End user switch");
 }
 
-void WindowAdapterLite::ClearWindowAdapter()
+void WindowAdapterLite::ClearWMSProxy()
 {
-    WLOGD("ClearWindowAdapter");
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (windowManagerServiceProxy_ != nullptr && windowManagerServiceProxy_->AsObject() != nullptr) {
         windowManagerServiceProxy_->AsObject()->RemoveDeathRecipient(wmsDeath_);
     }
     isProxyValid_ = false;
     windowManagerServiceProxy_ = nullptr;
+    TLOGI(WmsLogTag::WMS_SCB, "Clear end");
 }
 
 WMSDeathRecipient::WMSDeathRecipient(int32_t userId) : userId_(userId) {}
@@ -313,7 +323,7 @@ void WMSDeathRecipient::OnRemoteDied(const wptr<IRemoteObject>& wptrDeath)
         return;
     }
     TLOGI(WmsLogTag::WMS_SCB, "wms lite OnRemoteDied");
-    WindowAdapterLite::GetInstance(userId_).ClearWindowAdapter();
+    WindowAdapterLite::GetInstance(userId_).ClearWMSProxy();
     SessionManagerLite::GetInstance(userId_).ClearSessionManagerProxy();
 }
 
@@ -462,7 +472,7 @@ WMError WindowAdapterLite::SetProcessWatermark(int32_t pid, const std::string& w
 
 sptr<IWindowManagerLite> WindowAdapterLite::GetWindowManagerServiceProxy() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     return windowManagerServiceProxy_;
 }
 

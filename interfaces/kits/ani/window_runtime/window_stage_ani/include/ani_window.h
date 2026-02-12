@@ -158,7 +158,6 @@ public:
     static bool IsImmersiveLayout(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_object GetTransitionController(ani_env* env, ani_object obj, ani_long nativeObj);
     static void KeepKeyboardOnFocus(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean keepKeyboardFlag);
-
     static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_string name, ani_object options);
     static void Hide(ani_env* env, ani_object obj, ani_long nativeObj);

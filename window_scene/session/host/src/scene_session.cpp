@@ -337,12 +337,11 @@ void SceneSession::RemoveExtensionTokenInfo(const sptr<IRemoteObject>& abilityTo
 {
     std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
     auto persistentId = GetPersistentId();
-    auto itr = std::remove_if(
+    extensionTokenInfos_.erase(std::remove_if(
         extensionTokenInfos_.begin(), extensionTokenInfos_.end(),
         [&abilityToken, persistentId](const auto& tokenInfo) {
             return tokenInfo.abilityToken == abilityToken;
-        });
-    extensionTokenInfos_.erase(itr, extensionTokenInfos_.end());
+        }), extensionTokenInfos_.end());
 }
 
 bool SceneSession::HasExtensionTokenInfoWithTokenID(uint32_t callingTokenId)
@@ -1538,7 +1537,7 @@ void SceneSession::RegisterDefaultDensityEnabledCallback(NotifyDefaultDensityEna
     PostTask([weakThis = wptr(this), callback = std::move(callback), where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
+            TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s session is null", where);
             return;
         }
         session->onDefaultDensityEnabledFunc_ = std::move(callback);
@@ -6271,13 +6270,15 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         "needClearInNotShowRecent:%{public}u, appInstanceKey: %{public}s,"
         "supportedWindowModes.size:%{public}zu, requestId:%{public}d,"
         "maxWindowWidth:%{public}d, minWindowWidth:%{public}d, maxWindowHeight:%{public}d, minWindowHeight:%{public}d, "
-        "startWindowType:%{public}d",
+        "startWindowType:%{public}d, isPrelaunch:%{public}d, frameNum:%{public}d,"
+        "isTargetPlugin:%{public}d, hostBundleName:%{public}s",
         info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(), info.appIndex_,
         info.sessionAffinity.c_str(), info.callState_, info.persistentId_, info.uiAbilityId_, info.windowMode,
         info.callerPersistentId_, info.needClearInNotShowRecent_, info.appInstanceKey_.c_str(),
         info.supportedWindowModes.size(), info.requestId,
         info.windowSizeLimits.maxWindowWidth, info.windowSizeLimits.minWindowWidth,
-        info.windowSizeLimits.maxWindowHeight, info.windowSizeLimits.minWindowHeight, info.startWindowType_);
+        info.windowSizeLimits.maxWindowHeight, info.windowSizeLimits.minWindowHeight, info.startWindowType_,
+        info.isPrelaunch_, info.frameNum_, info.isTargetPlugin, info.hostBundleName.c_str());
     return info;
 }
 
@@ -9502,10 +9503,6 @@ void SceneSession::SetWindowShadowsCallback(NotifySetWindowShadowsFunc&& func)
 
 WSError SceneSession::SetWindowShadows(const ShadowsInfo& shadowsInfo)
 {
-    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
-        WLOGFE("RaiseAboveTarget permission denied!");
-        return WSError::WS_ERROR_NOT_SYSTEM_APP;
-    }
     const char* const where = __func__;
     PostTask([weakThis = wptr(this), shadowsInfo, where] {
         auto session = weakThis.promote();

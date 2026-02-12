@@ -700,7 +700,12 @@ HWTEST_F(WindowPatternStartingWindowTest, PreLoadStartingWindow, TestSize.Level1
     sceneSession->SetSessionProperty(property);
     ssm_->PreLoadStartingWindow(sceneSession);
     usleep(WAIT_SLEEP_TIME);
-    sceneSession->state_ = SessionState::STATE_CONNECT;
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
+    ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
+    sceneSession->scenePersistence_ =
+        sptr<ScenePersistence>::MakeSptr(sceneSession->sessionInfo_.bundleName_, sceneSession->persistentId_);
+    sceneSession->scenePersistence_->SetIsSavingSnapshot(true);
     ssm_->PreLoadStartingWindow(sceneSession);
     usleep(WAIT_SLEEP_TIME);
     sceneSession->state_ = SessionState::STATE_DISCONNECT;

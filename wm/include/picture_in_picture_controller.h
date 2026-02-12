@@ -26,6 +26,7 @@ class PictureInPictureController : public PictureInPictureControllerBase {
 public:
     PictureInPictureController(sptr<PipOption> pipOption, sptr<Window> mainWindow, uint32_t mainWindowId, napi_env env);
     ~PictureInPictureController();
+    
     WMError StartPictureInPicture(StartPipType startType) override;
     void SetAutoStartEnabled(bool enable) override;
     void IsAutoStartEnabled(bool& enable) const override;
@@ -42,7 +43,7 @@ public:
     std::shared_ptr<NativeReference> GetTypeNode() const override;
     bool IsTypeNodeEnabled() const override;
     bool IsPullPiPAndHandleNavigation();
-    std::string GetPiPNavigationId();
+    std::string GetPiPNavigationId() const override;
 
 protected:
     WMError CreatePictureInPictureWindow(StartPipType startType) override;
@@ -51,6 +52,7 @@ protected:
     void SetUIContent() const override;
     void ResetExtController() override;
     void NotifyNodeUpdate(std::shared_ptr<NativeReference> nodeRef) override;
+    void NotifyStateChangeInner(PiPState state) override;
     void NotifyStateChangeInner(napi_env env, PiPState state) override;
 
     wptr<PictureInPictureController> weakRef_ = nullptr;

@@ -834,6 +834,7 @@ public:
     SnapshotStatus GetSessionSnapshotStatus(LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT) const;
     uint32_t GetWindowSnapshotOrientation() const;
     uint32_t GetLastOrientation() const;
+    bool HasPersistentSnapshot();
     bool HasSnapshotFreeMultiWindow();
     bool HasSnapshot(SnapshotStatus key);
     bool HasSnapshot();
@@ -843,9 +844,9 @@ public:
     void SetHasSnapshot(SnapshotStatus key, DisplayOrientation rotate);
     std::string GetSnapshotPersistentKey(int32_t id);
     std::string GetSnapshotPersistentKey(int32_t id, SnapshotStatus key);
-    void DeleteHasSnapshot();
-    void DeleteHasSnapshot(SnapshotStatus key);
-    void DeleteHasSnapshotFreeMultiWindow();
+    void DeleteHasSnapshot() const;
+    void DeleteHasSnapshot(SnapshotStatus key) const;
+    void DeleteHasSnapshotFreeMultiWindow() const;
     void SetFreeMultiWindow();
     void SetBufferNameForPixelMap(const char* functionName, const std::shared_ptr<Media::PixelMap>& pixelMap);
     void SetPreloadingStartingWindow(bool preloading);

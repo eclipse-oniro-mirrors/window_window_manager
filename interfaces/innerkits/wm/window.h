@@ -4774,10 +4774,10 @@ public:
     /**
      * @brief Set the source of subwindow.
      *
-     * @param source 0 - defalut, 1 - arkui.
+     * @param source 0 - default, 1 - arkui.
      * @return WM_OK means set success.
      */
-    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_OK; }
 
     /**
      * @brief Set the frameRect in a partial zoom-in scene.
@@ -5115,6 +5115,12 @@ public:
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetStatusBarColorForExtension(uint32_t color) { return WMError::WM_OK; }
+
+    virtual WMError AniSetUIContentByAbc(const std::string& abcPath, ani_env* env, ani_object storage,
+        AppExecFwk::Ability* ability = nullptr)
+    {
+        return WMError::WM_OK;
+    }
 
     /**
      * @brief register a listener to listen the window title bar and window hot areas.
