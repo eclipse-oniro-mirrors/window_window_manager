@@ -85,6 +85,10 @@ public:
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(bool, SupportsFocus, supportsFocus, true);
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(bool, SupportsInput, supportsInput, true);
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(std::string, BundleName, bundleName, "");
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(int32_t, ActualPosX, actualPosX, 1.0f);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(int32_t, ActualPosY, actualPosY, 1.0f);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(uint32_t, ActualWidth, actualWidth, 0);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(uint32_t, ActualHeight, actualHeight, 0);
 };
 } // namespace OHOS::Rosen
 #endif // FOUNDATION_DMSERVER_DISPLAY_INFO_H
