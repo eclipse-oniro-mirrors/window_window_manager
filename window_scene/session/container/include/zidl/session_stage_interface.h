@@ -211,7 +211,6 @@ public:
     virtual WSError UpdateDisplayId(uint64_t displayId) = 0;
     virtual void NotifyDisplayMove(DisplayId from, DisplayId to) = 0;
     virtual WSError SwitchFreeMultiWindow(bool enable) = 0;
-    virtual WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) = 0;
     virtual WSError PcAppInPadNormalClose()
     {
         return WSError::WS_OK;
@@ -223,6 +222,7 @@ public:
     virtual void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) = 0;
     virtual void UpdateAnimationSpeed(float speed) = 0;
     virtual void NotifySessionFullScreen(bool fullScreen) {}
+    virtual WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) = 0;
 
     // **Non** IPC interface
     virtual void NotifyBackpressedEvent(bool& isConsumed) {}
@@ -282,6 +282,7 @@ public:
     virtual void NotifyWindowCrossAxisChange(CrossAxisState state) = 0;
     virtual WSError NotifyWindowAttachStateChange(bool isAttach) { return WSError::WS_DO_NOTHING; }
     virtual void NotifyKeyboardAnimationCompleted(const KeyboardPanelInfo& keyboardPanelInfo) {}
+    virtual WSError SetCurrentRotation(int32_t currentRotation) = 0;
     virtual void NotifyKeyboardAnimationWillBegin(const KeyboardAnimationInfo& keyboardAnimationInfo,
         const std::shared_ptr<RSTransaction>& rsTransaction) {};
     virtual WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo)
@@ -293,7 +294,6 @@ public:
     {
         return { RectType::RELATIVE_TO_SCREEN, { 0, 0, 0, 0, } };
     }
-    virtual WSError SetCurrentRotation(int32_t currentRotation) = 0;
     virtual WSError NotifyAppForceLandscapeConfigUpdated() = 0;
     virtual WSError NotifyAppForceLandscapeConfigEnableUpdated() = 0;
     virtual WSError NotifyAppHookWindowInfoUpdated() = 0;

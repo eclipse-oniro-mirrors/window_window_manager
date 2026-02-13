@@ -475,7 +475,7 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             sessionInfos.size(), configs.size());
         return;
     }
-
+    
     for (auto& info : sessionInfos) {
         if (info == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "sessionInfo is null");
@@ -490,7 +490,7 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             TLOGE(WmsLogTag::WMS_LIFE, "GenSceneSession failed");
             return;
         }
-
+ 
         if (info->want != nullptr) {
             bool isNeedBackToOther = info->want->GetBoolParam(AAFwk::Want::PARAM_BACK_TO_OTHER_MISSION_STACK, false);
             TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d isNeedBackToOther: %{public}d",
@@ -501,10 +501,10 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             } else {
                 info->callerPersistentId_ = INVALID_SESSION_ID;
             }
-
+ 
             auto focusedOnShow = info->want->GetBoolParam(AAFwk::Want::PARAM_RESV_WINDOW_FOCUSED, true);
             sceneSession->SetFocusedOnShow(focusedOnShow);
-
+ 
             std::string continueSessionId =
                 info->want->GetStringParam(Rosen::PARAM_KEY::PARAM_DMS_CONTINUE_SESSION_ID_KEY);
             if (!continueSessionId.empty()) {

@@ -317,10 +317,10 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::SetIsWindowRectAutoSave);
     BindNativeFunction(env, exportObj, "notifyAboveLockScreen", moduleName,
         JsSceneSessionManager::NotifyAboveLockScreen);
-    BindNativeFunction(env, exportObj, "setStatusBarAvoidHeight", moduleName,
-        JsSceneSessionManager::SetStatusBarAvoidHeight);
     BindNativeFunction(env, exportObj, "cloneWindow", moduleName,
         JsSceneSessionManager::CloneWindow);
+    BindNativeFunction(env, exportObj, "setStatusBarAvoidHeight", moduleName,
+        JsSceneSessionManager::SetStatusBarAvoidHeight);
     BindNativeFunction(env, exportObj, "registerSingleHandContainerNode", moduleName,
         JsSceneSessionManager::RegisterSingleHandContainerNode);
     BindNativeFunction(env, exportObj, "notifyRotationChange", moduleName,
@@ -335,12 +335,12 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::UpdateRsCmdBlockingCount);
     BindNativeFunction(env, exportObj, "supportZLevel", moduleName,
         JsSceneSessionManager::SupportZLevel);
-    BindNativeFunction(env, exportObj, "setSupportFunctionType", moduleName,
-        JsSceneSessionManager::SetSupportFunctionType);
     BindNativeFunction(env, exportObj, "supportCreateFloatWindow", moduleName,
         JsSceneSessionManager::SupportCreateFloatWindow);
     BindNativeFunction(env, exportObj, "updateRecentMainSessionList", moduleName,
         JsSceneSessionManager::UpdateRecentMainSessionInfos);
+    BindNativeFunction(env, exportObj, "setSupportFunctionType", moduleName,
+        JsSceneSessionManager::SetSupportFunctionType);
     BindNativeFunction(env, exportObj, "supportSnapshotAllSessionStatus", moduleName,
         JsSceneSessionManager::SupportSnapshotAllSessionStatus);
     BindNativeFunction(env, exportObj, "supportCacheLockedSessionSnapshot", moduleName,
@@ -355,18 +355,18 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::SetPiPSettingSwitchStatus);
     BindNativeFunction(env, exportObj, "setIsPipEnabled", moduleName,
         JsSceneSessionManager::SetIsPipEnabled);
-    BindNativeFunction(env, exportObj, "applyFeatureConfig", moduleName,
-        JsSceneSessionManager::ApplyFeatureConfig);
     BindNativeFunction(env, exportObj, "notifySessionTransferToTargetScreenEvent", moduleName,
         JsSceneSessionManager::NotifySessionTransferToTargetScreenEvent);
     BindNativeFunction(env, exportObj, "updateAppBoundSystemTrayStatus", moduleName,
         JsSceneSessionManager::UpdateAppBoundSystemTrayStatus);
     BindNativeFunction(env, exportObj, "getPipDeviceCollaborationPolicy", moduleName,
         JsSceneSessionManager::GetPipDeviceCollaborationPolicy);
-    BindNativeFunction(env, exportObj, "notifySupportRotationChange", moduleName,
-        JsSceneSessionManager::NotifySupportRotationChange);
+    BindNativeFunction(env, exportObj, "applyFeatureConfig", moduleName,
+        JsSceneSessionManager::ApplyFeatureConfig);
     BindNativeFunction(env, exportObj, "setTrayAppListInfo", moduleName,
         JsSceneSessionManager::SetTrayAppListInfo);
+    BindNativeFunction(env, exportObj, "notifySupportRotationChange", moduleName,
+        JsSceneSessionManager::NotifySupportRotationChange);
     BindNativeFunction(env, exportObj, "getAllJsonProfile", moduleName,
         JsSceneSessionManager::GetAllJsonProfile);
     BindNativeFunction(env, exportObj, "getJsonProfile", moduleName,
@@ -2331,6 +2331,7 @@ napi_value JsSceneSessionManager::OnRequestSceneSessionActivation(napi_env env, 
     ConvertFromJsValue(env, argv[2], isShowAbility);
     int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID;
     ConvertFromJsValue(env, argv[ARG_INDEX_THREE], requestId);
+
     SceneSessionManager::GetInstance().RequestSceneSessionActivation(sceneSession, isNewActive, isShowAbility,
         requestId);
     return NapiGetUndefined(env);
@@ -4984,8 +4985,8 @@ napi_value JsSceneSessionManager::OnGetLastInstanceKey(napi_env env, napi_callba
 
 napi_value JsSceneSessionManager::OnRefreshAppInfo(napi_env env, napi_callback_info info)
 {
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = { nullptr };
+    size_t argc = 4;
+    napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
@@ -5168,33 +5169,6 @@ void JsSceneSessionManager::ProcessCloseTargetFloatWindow()
     SceneSessionManager::GetInstance().SetCloseTargetFloatWindowFunc(func);
 }
 
-static napi_value CreateAppUseControlInfos(
-    napi_env env, const std::vector<AppUseControlInfo>& controlList)
-{
-    napi_value arrayValue = nullptr;
-    napi_create_array_with_length(env, controlList.size(), &arrayValue);
-    if (arrayValue == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi array");
-        return NapiGetUndefined(env);
-    }
-    int32_t index = 0;
-    for (const auto& appUseControlInfo : controlList) {
-        napi_value objValue = nullptr;
-        napi_create_object(env, &objValue);
-        if (objValue == nullptr) {
-            TLOGE(WmsLogTag::WMS_LIFE, "failed to create napi object");
-            return NapiGetUndefined(env);
-        }
-        napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, appUseControlInfo.bundleName_));
-        napi_set_named_property(env, objValue, "appIndex", CreateJsValue(env, appUseControlInfo.appIndex_));
-        napi_set_named_property(env, objValue, "isNeedControl", CreateJsValue(env, appUseControlInfo.isNeedControl_));
-        napi_set_named_property(env, objValue, "isControlRecentOnly",
-            CreateJsValue(env, appUseControlInfo.isControlRecentOnly_));
-        napi_set_element(env, arrayValue, index++, objValue);
-    }
-    return arrayValue;
-}
-
 void JsSceneSessionManager::RegisterNotifyAppUseControlListCallback()
 {
     TLOGI(WmsLogTag::WMS_LIFE, "in");
@@ -5245,6 +5219,33 @@ napi_value JsSceneSessionManager::OnSetIsWindowRectAutoSave(napi_env env, napi_c
     }
     SceneSessionManager::GetInstance().SetIsWindowRectAutoSave(key, enabled, abilityKey, isSaveBySpecifiedFlag);
     return NapiGetUndefined(env);
+}
+
+static napi_value CreateAppUseControlInfos(
+    napi_env env, const std::vector<AppUseControlInfo>& controlList)
+{
+    napi_value arrayValue = nullptr;
+    napi_create_array_with_length(env, controlList.size(), &arrayValue);
+    if (arrayValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi array");
+        return NapiGetUndefined(env);
+    }
+    int32_t index = 0;
+    for (const auto& appUseControlInfo : controlList) {
+        napi_value objValue = nullptr;
+        napi_create_object(env, &objValue);
+        if (objValue == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "failed to create napi object");
+            return NapiGetUndefined(env);
+        }
+        napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, appUseControlInfo.bundleName_));
+        napi_set_named_property(env, objValue, "appIndex", CreateJsValue(env, appUseControlInfo.appIndex_));
+        napi_set_named_property(env, objValue, "isNeedControl", CreateJsValue(env, appUseControlInfo.isNeedControl_));
+        napi_set_named_property(env, objValue, "isControlRecentOnly",
+            CreateJsValue(env, appUseControlInfo.isControlRecentOnly_));
+        napi_set_element(env, arrayValue, index++, objValue);
+    }
+    return arrayValue;
 }
 
 void JsSceneSessionManager::OnNotifyAppUseControlList(
@@ -5386,7 +5387,7 @@ napi_value JsSceneSessionManager::OnSetStatusBarAvoidHeight(napi_env env, napi_c
     size_t argc = ARGC_FOUR;
     napi_value argv[ARGC_FOUR] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARGC_ONE) {
+    if (argc < ARGC_TWO) {
         TLOGE(WmsLogTag::WMS_IMMS, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
