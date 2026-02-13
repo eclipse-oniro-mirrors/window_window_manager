@@ -1434,26 +1434,26 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
         UpdateWindowSizeLimits();
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
         // get support modes configuration
-        uint32_t windowModeSupportType = 0;	 
-        std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes; 
-        property_->GetSupportedWindowModes(supportedWindowModes); 
-        auto size = supportedWindowModes.size(); 
-        if (size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) { 
-            windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes); 
-        } else { 
-            std::vector<AppExecFwk::SupportWindowMode> updateWindowModes = 
-                ExtractSupportWindowModeFromMetaData(abilityInfo); 
-            if (auto hostSession = GetHostSession()) { 
-                hostSession->NotifySupportWindowModesChange(updateWindowModes); 
-            }; 
-            windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes); 
-        } 
-        if (windowModeSupportType == 0) { 
-            TLOGI(WmsLogTag::WMS_LAYOUT_PC, "mode config param is 0, all modes is supported"); 
-            windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL; 
-        } else { 
-            TLOGI(WmsLogTag::WMS_LAYOUT_PC, "winId: %{public}u, windowModeSupportType: %{public}u", 
-                GetWindowId(), windowModeSupportType); 
+        uint32_t windowModeSupportType = 0;
+        std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+        property_->GetSupportedWindowModes(supportedWindowModes);
+        auto size = supportedWindowModes.size();
+        if (size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
+            windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes);
+        } else {
+            std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
+                ExtractSupportWindowModeFromMetaData(abilityInfo);
+            if (auto hostSession = GetHostSession()) {
+                hostSession->NotifySupportWindowModesChange(updateWindowModes);
+            };
+            windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
+        }
+        if (windowModeSupportType == 0) {
+            TLOGI(WmsLogTag::WMS_LAYOUT_PC, "mode config param is 0, all modes is supported");
+            windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL;
+        } else {
+            TLOGI(WmsLogTag::WMS_LAYOUT_PC, "winId: %{public}u, windowModeSupportType: %{public}u",
+                GetWindowId(), windowModeSupportType);
         }
         property_->SetWindowModeSupportType(windowModeSupportType);
         // anco support multiWindow config
