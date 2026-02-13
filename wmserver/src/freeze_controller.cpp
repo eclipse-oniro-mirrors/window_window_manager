@@ -53,6 +53,7 @@ bool FreezeController::FreezeDisplay(DisplayId displayId)
 
 bool FreezeController::UnfreezeDisplay(DisplayId displayId)
 {
+    std::lock_guard<std::mutex> lock(coverWindowMapMutex_);
     auto iter = coverWindowMap_.find(displayId);
     if (iter == coverWindowMap_.end()) {
         WLOGW("unfreeze fail, no cover window. display %{public}" PRIu64"", displayId);
@@ -83,6 +84,7 @@ sptr<Window> FreezeController::CreateCoverWindow(DisplayId displayId)
         WLOGFE("cover window is null");
         return nullptr;
     }
+    std::lock_guard<std::mutex> lock(coverWindowMapMutex_);
     coverWindowMap_[displayId] = window;
     return window;
 }
