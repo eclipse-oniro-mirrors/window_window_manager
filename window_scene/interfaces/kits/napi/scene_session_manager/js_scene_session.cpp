@@ -7589,7 +7589,7 @@ void JsSceneSession::OnUpdateAppUseControl(ControlAppType type, bool isNeedContr
     const char* const where = __func__;
     auto task =
         [weakThis = wptr(this), persistentId = persistentId_, type, isNeedControl, isControlRecentOnly,
-                    env = env_, where] {
+            env = env_, where] {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s: jsSceneSession id:%{public}d has been destroyed",
