@@ -27,11 +27,13 @@ const std::string COMMON_EVENT_CAST_PLUGGED_CHANGED = "usual.event.dms.cast_plug
 const std::string COMMON_EVENT_SMART_NOTIFICATION = "hicare.event.SMART_NOTIFICATION";
 const std::string COMMON_EVENT_LOW_TEMP_WARNING = "usual.event.thermal.LOW_TEMP_WARNING";
 const std::string COMMON_EVENT_USER_SWITCHED = "usual.event.USER_SWITCHED";
+const std::string COMMON_EVENT_ONEHOP_DEVICE_DOWN = "onehop.event.ONEHOP_DEVICE_DOWN_EVENT";
 constexpr int32_t PUBLISH_SUCCESS = 0;
 constexpr int32_t PUBLISH_FAILURE = -1;
 constexpr int32_t TRANS_CODE_CAST_PLUGGED_CHANGED = 0;
 constexpr int32_t TRANS_CODE_ROTATION_CHANGED = 1005;
 constexpr int32_t lOW_TEMP_UID = 1096;
+constexpr int32_t ONEHOP_UID = 5520;
 constexpr int32_t RECEIVE_FAILURE = -1;
 
 std::map<std::string, sptr<EventFwk::Want>> ScreenSessionPublish::cesWantMap_ = {
@@ -45,6 +47,9 @@ ScreenSessionPublish::~ScreenSessionPublish()
     TLOGI(WmsLogTag::DMS, "destory");
     UnRegisterLowTempSubscriber();
     UnRegisterUserSwitchedSubscriber();
+#ifdef FOLD_ABILITY_ENABLE
+    UnRegisterOnehopDeviceDownSubscriber();
+#endif
 }
 
 ScreenSessionPublish &ScreenSessionPublish::GetInstance()
@@ -87,10 +92,10 @@ int32_t ScreenSessionPublish::PublishEvents(
     }
     bool ret = EventFwk::CommonEventManager::PublishCommonEvent(eventData, *publishInfo_, nullptr);
     if (!ret) {
-        TLOGE(WmsLogTag::DMS, "PublishCommonEvent failed");
+        TLOGE(WmsLogTag::DMS, "failed");
         return PUBLISH_FAILURE;
     }
-    TLOGI(WmsLogTag::DMS, "PublishCommonEvent succeed");
+    TLOGI(WmsLogTag::DMS, "succeed");
     return PUBLISH_SUCCESS;
 }
 
@@ -150,7 +155,7 @@ void ScreenSessionPublish::PublishDisplayRotationEvent(
         TLOGE(WmsLogTag::DMS, "PublishEvents failed");
         return;
     }
-    TLOGI(WmsLogTag::DMS, "end event");
+    TLOGD(WmsLogTag::DMS, "end event");
 }
 
 void ScreenSessionPublish::PublishSmartNotificationEvent(const std::string& faultDesc, const std::string& faultSuggest)
@@ -242,6 +247,42 @@ bool ScreenSessionPublish::UnRegisterUserSwitchedSubscriber()
     return true;
 }
 
+bool ScreenSessionPublish::RegisterOnehopDeviceDownSubscriber()
+{
+    if (oneHopDeviceDownSubscriber_ != nullptr) {
+        TLOGE(WmsLogTag::DMS, "oneHopDeviceDownSubscriber_ is registered");
+        return false;
+    }
+    EventFwk::MatchingSkills skills = EventFwk::MatchingSkills();
+    skills.AddEvent(COMMON_EVENT_ONEHOP_DEVICE_DOWN);
+    EventFwk::CommonEventSubscribeInfo info(skills);
+    info.SetPublisherUid(ONEHOP_UID);
+    info.SetThreadMode(EventFwk::CommonEventSubscribeInfo::COMMON);
+    oneHopDeviceDownSubscriber_ = std::make_shared<EventSubscriber>(info);
+    if (!EventFwk::CommonEventManager::SubscribeCommonEvent(oneHopDeviceDownSubscriber_)) {
+        oneHopDeviceDownSubscriber_ = nullptr;
+        TLOGE(WmsLogTag::DMS, "subscribe common event:%{public}s failed!", COMMON_EVENT_ONEHOP_DEVICE_DOWN.c_str());
+        return false;
+    }
+    TLOGI(WmsLogTag::DMS, "subscribe common event:%{public}s success.", COMMON_EVENT_ONEHOP_DEVICE_DOWN.c_str());
+    return true;
+}
+
+bool ScreenSessionPublish::UnRegisterOnehopDeviceDownSubscriber()
+{
+    if (oneHopDeviceDownSubscriber_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "oneHopDeviceDownSubscriber_ is nullptr");
+        return false;
+    }
+    if (!EventFwk::CommonEventManager::UnSubscribeCommonEvent(oneHopDeviceDownSubscriber_)) {
+        TLOGE(WmsLogTag::DMS, "unsubscribe common event:%{public}s failed!", COMMON_EVENT_ONEHOP_DEVICE_DOWN.c_str());
+        return false;
+    }
+    oneHopDeviceDownSubscriber_ = nullptr;
+    TLOGI(WmsLogTag::DMS, "unsubscribe common event:%{public}s success.", COMMON_EVENT_ONEHOP_DEVICE_DOWN.c_str());
+    return true;
+}
+
 void ScreenSessionPublish::EventSubscriber::OnReceiveEvent(const EventFwk::CommonEventData& data)
 {
     std::string action = data.GetWant().GetAction();
@@ -253,6 +294,9 @@ void ScreenSessionPublish::EventSubscriber::OnReceiveEvent(const EventFwk::Commo
     } else if (action == COMMON_EVENT_USER_SWITCHED) {
         TLOGI(WmsLogTag::DMS, "receive common event:%{public}s sucess", COMMON_EVENT_USER_SWITCHED.c_str());
         ScreenSessionManager::GetInstance().NotifyCastWhenSwitchScbNode();
+    } else if (action == COMMON_EVENT_ONEHOP_DEVICE_DOWN) {
+        TLOGI(WmsLogTag::DMS, "receive common event:%{public}s sucess", COMMON_EVENT_ONEHOP_DEVICE_DOWN.c_str());
+        ScreenSessionManager::GetInstance().NotifyOnehopDeviceDown();
     }
 }
 } // namespace OHOS::Rosen

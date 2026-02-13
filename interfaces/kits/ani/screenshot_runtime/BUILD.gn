@@ -71,8 +71,8 @@ ohos_shared_library("screenshotani_kit") {
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "image_framework:image",
-    "image_framework:image_native",
     "image_framework:image_taihe",
+    "image_framework:image_native",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
   ]

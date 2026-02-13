@@ -26,6 +26,7 @@ namespace OHOS::Rosen {
 
 namespace {
 // moving
+constexpr float MOVING_RECORD_RESPONSE = 50.0f;
 constexpr int32_t MOVING_RECORDS_SIZE_LIMIT = 5;
 constexpr int32_t MOVING_RECORDS_TIME_LIMIT = 100;
 constexpr float MOVING_DIRECTLY_BUFF = 2.0f;
@@ -115,10 +116,6 @@ bool PcFoldScreenController::IsSupportEnterWaterfallMode(SuperFoldStatus status,
 void PcFoldScreenController::FoldStatusChangeForSupportEnterWaterfallMode(
     DisplayId displayId, SuperFoldStatus status, SuperFoldStatus prevStatus)
 {
-    if (!PcFoldScreenManager::GetInstance().IsPcFoldScreen(GetDisplayId())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "only main screen support water fall mode.");
-        return;
-    }
     lastSupportEnterWaterfallMode_ = supportEnterWaterfallMode_;
     supportEnterWaterfallMode_ = IsSupportEnterWaterfallMode(status,
         PcFoldScreenManager::GetInstance().HasSystemKeyboard());
@@ -133,26 +130,9 @@ void PcFoldScreenController::FoldStatusChangeForSupportEnterWaterfallMode(
     UpdateSupportEnterWaterfallMode();
 }
 
-void PcFoldScreenController::UpdateSupportEnterWaterfallMode(bool isSupportEnterWaterfallMode)
-{
-    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "isSupportEnterWaterfallMode: %{public}d", isSupportEnterWaterfallMode);
-    auto sceneSession = weakSceneSession_.promote();
-    if (sceneSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session unavailable, id: %{public}d", GetPersistentId());
-        return;
-    }
-    lastSupportEnterWaterfallMode_ = isSupportEnterWaterfallMode;
-    supportEnterWaterfallMode_ = isSupportEnterWaterfallMode;
-    sceneSession->SetSupportEnterWaterfallMode(isSupportEnterWaterfallMode);
-}
-
 void PcFoldScreenController::SystemKeyboardStatusChangeForSupportEnterWaterfallMode(
     DisplayId displayId, bool hasSystemKeyboard)
 {
-    if (!PcFoldScreenManager::GetInstance().IsPcFoldScreen(GetDisplayId())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "only main screen support water fall mode.");
-        return;
-    }
     lastSupportEnterWaterfallMode_ = supportEnterWaterfallMode_;
     supportEnterWaterfallMode_ = IsSupportEnterWaterfallMode(
         PcFoldScreenManager::GetInstance().GetScreenFoldStatus(displayId), hasSystemKeyboard);
@@ -188,7 +168,9 @@ bool PcFoldScreenController::NeedFollowHandAnimation()
     static bool needFollowHandAnimation =
         system::GetParameter("persist.window.throw_slip_follow_animation.enabled", "1") == "1";
     std::unique_lock<std::mutex> lock(moveMutex_);
-    return needFollowHandAnimation && (!isStartFullScreen_ || movingRectRecords_.size() > 0);
+    const auto& time = std::chrono::high_resolution_clock::now();
+    return needFollowHandAnimation && (!isStartFullScreen_ ||
+        MathHelper::GreatNotEqual(TimeHelper::GetDuration(startMoveTime_, time), MOVING_RECORD_RESPONSE));
 }
 
 void PcFoldScreenController::RecordStartMoveRect(const WSRect& rect, bool isStartFullScreen)
@@ -200,6 +182,7 @@ void PcFoldScreenController::RecordStartMoveRect(const WSRect& rect, bool isStar
     isStartFullScreen_ = isStartFullScreen;
     isStartWaterfallMode_ = isFullScreenWaterfallMode_;
     movingRectRecords_.clear();
+    startMoveTime_ = std::chrono::high_resolution_clock::now();
     startThrowSlipMode_ = ThrowSlipMode::MOVE;
 }
 
@@ -217,7 +200,7 @@ void PcFoldScreenController::RecordStartMoveRectDirectly(const WSRect& rect, Thr
 
 void PcFoldScreenController::ResetRecords()
 {
-    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "in");
+    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "begin");
     std::unique_lock<std::mutex> lock(moveMutex_);
     startMoveRect_ = ZERO_RECT;
     isStartFullScreen_ = false;
@@ -248,7 +231,7 @@ void PcFoldScreenController::RecordMoveRects(const WSRect& rect)
         TimeHelper::GetDuration(movingRectRecords_[0].first, movingRectRecords_[movingRectRecords_.size() - 1].first));
 }
 
-/**
+/*
  * if move fast, window can be throwed to other side
  * @param rect: current rect. if throwed, move it to other side
  * @param topAvoidHeight: avoid status bar
@@ -546,10 +529,6 @@ void PcFoldScreenController::UpdateRect()
     auto sceneSession = weakSceneSession_.promote();
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is nullptr, id: %{public}d", GetPersistentId());
-        return;
-    }
-    if (!PcFoldScreenManager::GetInstance().IsPcFoldScreen(GetDisplayId())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "only main screen need update rect.");
         return;
     }
     auto ret = sceneSession->NotifyClientToUpdateRect("ScreenFoldStatusChanged", nullptr);

@@ -139,7 +139,7 @@ napi_value JsScreen::OnSetOrientation(napi_env env, napi_callback_info info)
 
 napi_value JsScreen::SetScreenActiveMode(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::DMS, "called");
+    TLOGI(WmsLogTag::DMS, "SetScreenActiveMode is called");
     JsScreen* me = CheckParamsAndGetThis<JsScreen>(env, info);
 #ifdef XPOWER_EVENT_ENABLE
     if (me != nullptr) {
@@ -179,6 +179,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
         GetType(env, argv[ARGC_TWO - 1]) == napi_function) {
         lastParam = argv[ARGC_TWO - 1];
     }
+
     napi_value result = nullptr;
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, modeId, env, task = napiAsyncTask.get()]() {
@@ -200,7 +201,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
 
 napi_value JsScreen::SetDensityDpi(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::DMS, "called");
+    TLOGI(WmsLogTag::DMS, "SetDensityDpi is called");
     JsScreen* me = CheckParamsAndGetThis<JsScreen>(env, info);
     return (me != nullptr) ? me->OnSetDensityDpi(env, info) : nullptr;
 }

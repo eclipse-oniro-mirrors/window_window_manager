@@ -60,6 +60,7 @@ public:
     static std::vector<int> GetCurvedScreenBoundaryConfig();
     static uint32_t GetCurvedCompressionAreaInLandscape();
     static bool IsSupportRotateWithSensor();
+    static bool IsSupportTentMode();
     static std::string GetExternalScreenDefaultMode();
     static std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalConfig();
     static FoldDisplayMode GetFoldDisplayMode(uint32_t width, uint32_t height);
@@ -70,6 +71,7 @@ public:
     static bool IsSupportDuringCall();
     static uint32_t GetNumberConfigValue(const std::string& name, const uint32_t& default_value);
     static bool IsConcurrentUser();
+    static void SetConcurrentUserState(bool state) { isConcurrentUser_ = state; };
     static void UpdateCutoutBoundRect(uint64_t displayId, float rogRatio);
 
 private:

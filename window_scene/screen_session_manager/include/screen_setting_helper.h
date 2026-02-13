@@ -35,7 +35,7 @@ public:
     static void RegisterSettingDpiObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingDpiObserver();
     static void RegisterSettingOffScreenRenderObserver(SettingObserver::UpdateFunc func);
-    static bool GetSettingOffScreenRenderValue(bool& offerRenderValue_, const std::string& key);
+    static bool GetSettingOffScreenRenderValue(bool& offerRenderValue, const std::string& key);
     static bool GetSettingDpi(uint32_t& dpi, const std::string& key = SETTING_DPI_KEY);
     static bool SetSettingDefaultDpi(uint32_t& dpi, const std::string& key);
     static bool GetSettingValue(uint32_t& value, const std::string& key);
@@ -51,7 +51,7 @@ public:
     static void SetSettingRotation(int32_t rotation);
     static void SetSettingRotationScreenId(int32_t screenId);
     static bool GetSettingRotation(int32_t& rotation, const std::string& key = SETTING_ROTATION_KEY);
-    static bool GetSettingRotationScreenID(int32_t& screenId, const std::string& key = SETTING_ROTATION_SCREEN_ID_KEY);
+    static bool GetSettingRotationScreenId(int32_t& screenId, const std::string& key = SETTING_ROTATION_SCREEN_ID_KEY);
     static std::string RemoveInvalidChar(const std::string& input);
     static bool SplitString(std::vector<std::string>& splitValues, const std::string& input, char delimiter = ',');
     static bool IsNumber(const std::string& str);
@@ -62,19 +62,19 @@ public:
         SETTING_EXTEND_INDEP_DPI_KEY);
     static std::map<std::string, uint32_t> GetBorderingAreaPercent(const std::string& key =
         SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY);
-    static std::string GetWiredScreenGamut(const std::string& key = SETTING_DISPLAY_WIRED_SCREEN_GAMUT);
     static bool GetScreenMode(MultiScreenInfo& info, const std::string& inputString);
-    static bool UpdateScreenMode(MultiScreenInfo& info, uint32_t mode, bool isExternal);
+    static bool UpdateScreenMode(MultiScreenInfo& info, uint32_t internalMode, uint32_t externalMode);
     static bool GetScreenActiveMode(SupportedScreenModes& info, const std::string& inputString);
     static bool GetAreaPercent(uint32_t& borderingAreaPercent, const std::string& inputString);
     static bool GetScreenRelativePosition(MultiScreenInfo& info, const std::string& inputString);
     static ScreenShape GetScreenShape(ScreenId screenId);
+    static void RegisterSettingHalfScreenObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingHalfScreenObserver();
+    static bool GetHalfScreenSwitchState(const std::string& key = SETTING_HALF_SCREEN_SWITCH_KEY);
     static void RegisterSettingWireCastObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingWireCastObserver();
     static void RegisterSettingBorderingAreaPercentObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingBorderingAreaPercentObserver();
-    static void RegisterSettingWiredScreenGamutObserver(SettingObserver::UpdateFunc func);
-    static void UnregisterSettingWiredScreenGamutObserver();
     static void RegisterSettingExtendScreenDpiObserver(SettingObserver::UpdateFunc func);
     static void UnRegisterSettingExtendScreenDpiObserver();
     static void RegisterSettingExtendScreenIndepDpiObserver(SettingObserver::UpdateFunc func);
@@ -84,7 +84,6 @@ public:
     static bool GetSettingDuringCallState(bool& enable, const std::string& key = SETTING_DURING_CALL_KEY);
     static bool SetSettingDuringCallState(const std::string& key, bool value);
     static bool GetSettingExtendScreenDpi(float& coef, const std::string& key = SETTING_EXTEND_DPI_KEY);
-    static bool ConvertStrToUint64(const std::string& str, uint64_t& num);
     static bool ConvertStrToInt32(const std::string& str, int32_t& num);
     static bool GetResolutionEffect(bool& enable, const std::string& serialNumber,
         const std::string& key = SETTING_RESOLUTION_EFFECT_KEY);
@@ -116,9 +115,9 @@ public:
                 result = payload[key].get<bool>();
                 return true;
             }
-        } else if constexpr (std::is_arithmetic_v<T>) {
-            if (payload[key].is_number()) {
-                result = payload[key].get<int32_t>();
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+            if (payload[key].is_number_integer()) {
+                result = payload[key].get<int64_t>();
                 return true;
             }
         }
@@ -142,6 +141,7 @@ private:
     static const constexpr char* SETTING_ROTATION_KEY {"screen_rotation_value"};
     static const constexpr char* SETTING_ROTATION_SCREEN_ID_KEY {"screen_rotation_screen_id_value"};
     static const constexpr char* SETTING_SCREEN_MODE_KEY {"user_set_screen_mode_edid"};
+    static const constexpr char* SETTING_HALF_SCREEN_SWITCH_KEY {"half_screen_display"};
     static const constexpr char* SETTING_EXTEND_DPI_KEY {"user_set_dpi_extend"};
     static const constexpr char* SETTING_EXTEND_INDEP_DPI_KEY {"user_set_indep_dpi_extend"};
     static const constexpr char* SETTING_DURING_CALL_KEY {"during_call_state"};
@@ -151,12 +151,11 @@ private:
     static const constexpr char* SETTING_SCREEN_RESOLUTION_MODE_KEY {"user_set_resolution_mode"};
     static const constexpr char* SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY {"bordering_area_percent"};
     static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"settings.display.dual_display_ready"};
-    static const constexpr char* SETTING_DISPLAY_WIRED_SCREEN_GAMUT {"settings.display.wired_screen_gamut"};
-    static const constexpr uint32_t BASE_TEN = 10;
     static sptr<SettingObserver> dpiObserver_;
     static sptr<SettingObserver> offScreenRenderObserver_;
     static sptr<SettingObserver> castObserver_;
     static sptr<SettingObserver> rotationObserver_;
+    static sptr<SettingObserver> halfScreenObserver_;
     static sptr<SettingObserver> wireCastObserver_;
     static sptr<SettingObserver> extendScreenDpiObserver_;
     static sptr<SettingObserver> extendScreenIndepDpiObserver_;
@@ -166,7 +165,6 @@ private:
     static sptr<SettingObserver> correctionWhiteListObserver_;
     static sptr<SettingObserver> borderingAreaPercentObserver_;
     static sptr<SettingObserver> coordinationReadyObserver_;
-    static sptr<SettingObserver> wiredScreenGamutObserver_;
 };
 } // namespace Rosen
 } // namespace OHOS

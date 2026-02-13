@@ -16,28 +16,32 @@
 #ifndef OHOS_ROSEN_FOLD_SCREEN_STATE_INTERNEL_H
 #define OHOS_ROSEN_FOLD_SCREEN_STATE_INTERNEL_H
 
+#include <charconv>
 #include <sstream>
 #include <parameters.h>
 #include <regex>
 
+#include "dm_common.h"
+
 namespace OHOS {
 namespace Rosen {
 namespace {
-static const std::string INVALID_DEVICE = "-1";
 static const std::string g_foldScreenType = system::GetParameter("const.window.foldscreen.type", "0,0,0,0");
 static const std::string PHY_ROTATION_OFFSET = system::GetParameter("const.window.phyrotation.offset", "0");
-static const  std::string SINGLE_DISPLAY = "1";
+static const std::string INVALID_DEVICE = "-1";
+static const std::string PORTRAIT_DEVICE = "0";
+static const std::string DEFAULT_OFFSET = "0";
+static const std::string SINGLE_DISPLAY = "1";
 static const std::string DUAL_DISPLAY = "2";
 static const std::string SINGLE_POCKET_DISPLAY = "4";
 static const std::string SUPER_FOLD_DISPLAY = "5";
 static const std::string SECONDARY_FOLD_DISPLAY = "6";
 static const std::string SINGLE_SUPER_DISPLAY = "7";
-static const std::string DEFAULT_OFFSET = "0";
 static const size_t THIRD_ANGLE = 2;
 }
 class FoldScreenStateInternel {
 public:
-    static std::string GetFoldType()
+    static std::string getFoldType()
     {
         if (!IsValidFoldType(g_foldScreenType)) {
             return INVALID_DEVICE;
@@ -51,66 +55,30 @@ public:
 
     static bool IsFoldScreenDevice()
     {
-        return g_foldScreenType != "";
+        std::string foldType = getFoldType();
+        return foldType != INVALID_DEVICE && foldType != PORTRAIT_DEVICE;
     }
 
+    // is two logic screen device
     static bool IsDualDisplayFoldDevice()
     {
-        return GetFoldType() == DUAL_DISPLAY;
+        return getFoldType() == DUAL_DISPLAY;
     }
 
+    // only one logic screen device
     static bool IsSingleDisplayFoldDevice()
     {
-        return GetFoldType() == SINGLE_DISPLAY;
+        return getFoldType() == SINGLE_DISPLAY;
     }
 
     static bool IsSingleDisplayPocketFoldDevice()
     {
-        return GetFoldType() == SINGLE_POCKET_DISPLAY;
+        return getFoldType() == SINGLE_POCKET_DISPLAY;
     }
 
     static bool IsSingleDisplaySuperFoldDevice()
     {
-        return GetFoldType() == SINGLE_SUPER_DISPLAY;
-    }
-
-    static bool IsSuperFoldDisplayDevice()
-    {
-        return GetFoldType() == SUPER_FOLD_DISPLAY;
-    }
-
-    static bool IsSecondaryDisplayFoldDevice()
-    {
-        return GetFoldType() == SECONDARY_FOLD_DISPLAY;
-    }
-
-    static bool IsOuterScreen(FoldDisplayMode foldDisplayMode)
-    {
-        if (IsDualDisplayFoldDevice()) {
-            return foldDisplayMode == FoldDisplayMode::SUB;
-        }
-        if (IsSingleDisplayFoldDevice() || IsSingleDisplayPocketFoldDevice() || IsSingleDisplaySuperFoldDevice()) {
-            return foldDisplayMode == FoldDisplayMode::MAIN;
-        }
-        return false;
-    }
-
-    static std::vector<std::string> StringSplit(const std::string& str, char delim)
-    {
-        std::size_t previous = 0;
-        std::size_t current = str.find(delim);
-        std::vector<std::string> elems;
-        while (current != std::string::npos) {
-            if (current > previous) {
-                elems.push_back(str.substr(previous, current - previous));
-            }
-            previous = current + 1;
-            current = str.find(delim, previous);
-        }
-        if (previous != str.size()) {
-            elems.push_back(str.substr(previous));
-        }
-        return elems;
+        return getFoldType() == SINGLE_SUPER_DISPLAY;
     }
 
     static std::vector<std::string> GetPhyRotationOffset()
@@ -141,6 +109,48 @@ public:
             }
         }
         return true;
+    }
+
+    static bool IsSuperFoldDisplayDevice()
+    {
+        return getFoldType() == SUPER_FOLD_DISPLAY;
+    }
+
+    static bool IsOuterScreen(FoldDisplayMode foldDisplayMode)
+    {
+        if (FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
+            return foldDisplayMode == FoldDisplayMode::SUB;
+        }
+
+        if (FoldScreenStateInternel::IsSingleDisplayFoldDevice() ||
+            FoldScreenStateInternel::IsSingleDisplayPocketFoldDevice() ||
+            FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+            return foldDisplayMode == FoldDisplayMode::MAIN;
+        }
+        return false;
+    }
+
+    static bool IsSecondaryDisplayFoldDevice()
+    {
+        return getFoldType() == SECONDARY_FOLD_DISPLAY;
+    }
+
+    static std::vector<std::string> StringSplit(const std::string& str, char delim)
+    {
+        std::size_t previous = 0;
+        std::size_t current = str.find(delim);
+        std::vector<std::string> elems;
+        while (current != std::string::npos) {
+            if (current > previous) {
+                elems.push_back(str.substr(previous, current - previous));
+            }
+            previous = current + 1;
+            current = str.find(delim, previous);
+        }
+        if (previous != str.size()) {
+            elems.push_back(str.substr(previous));
+        }
+        return elems;
     }
 
     static bool IsValidFoldType(const std::string& foldTypeStr)
@@ -176,7 +186,12 @@ public:
             return {};
         }
         for (const auto& token : tokens) {
-            numbers.push_back(std::stoi(token));
+            int32_t value = 0;
+            auto result = std::from_chars(token.data(), token.data() + token.size(), value);
+            if (result.ec != std::errc()) {
+                return {};
+            }
+            numbers.push_back(value);
         }
         return numbers;
     }
@@ -221,7 +236,6 @@ public:
         if (epsilon < 0) {
             return false;
         }
-
         return std::fabs(a-b) < epsilon;
     }
 };

@@ -52,7 +52,8 @@ void SingleDisplaySensorSuperFoldStateManager::HandleAngleChange(float angle, in
 {
     currentAngle_ = angle;
     if (IsTentMode()) {
-        return TentModeHandleSensorChange(angle, hall, foldScreenPolicy);
+        TentModeHandleSensorChange(angle, hall, foldScreenPolicy);
+        return;
     }
     FoldStatus nextState = GetNextFoldState(angle, hall);
     HandleSensorChange(nextState, angle, foldScreenPolicy);
@@ -63,7 +64,8 @@ void SingleDisplaySensorSuperFoldStateManager::HandleHallChange(float angle, int
 {
     currentHall_ = hall;
     if (IsTentMode()) {
-        return TentModeHandleSensorChange(angle, hall, foldScreenPolicy);
+        TentModeHandleSensorChange(angle, hall, foldScreenPolicy);
+        return;
     }
     FoldStatus nextState = GetNextFoldState(angle, hall);
     HandleSensorChange(nextState, angle, foldScreenPolicy);
@@ -134,20 +136,17 @@ void SingleDisplaySensorSuperFoldStateManager::HandleTentChange(int tentType,
         TLOGI(WmsLogTag::DMS, "Repeat reporting tent mode:%{public}d, no processing", tentModeType_);
         return;
     }
-
     SetTentMode(tentType);
     if (foldScreenPolicy == nullptr) {
         TLOGE(WmsLogTag::DMS, "foldScreenPolicy is nullptr");
         return;
     }
-    if (tentType != TENT_MODE_OFF) {
+    if (tentType == TENT_MODE_ON) {
         ReportTentStatusChange(ReportTentModeStatus::NORMAL_ENTER_TENT_MODE);
         HandleSensorChange(FoldStatus::FOLDED, currentAngle_, foldScreenPolicy);
         foldScreenPolicy->ChangeOnTentMode(FoldStatus::FOLDED);
-        if (tentType == TENT_MODE_ON) {
-            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
-            ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS);
-        }
+        SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
+        ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS);
     } else {
         if (hall == HALL_FOLDED_THRESHOLD) {
             currentAngle_ = ANGLE_MIN_VAL;

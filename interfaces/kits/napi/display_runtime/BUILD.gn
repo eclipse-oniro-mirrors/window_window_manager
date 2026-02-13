@@ -45,22 +45,21 @@ ohos_shared_library("display_napi") {
   ]
 
   deps = [
-    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "../../../../dm:libdm",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
-    "../common:wm_napi_util",
+    "../common:dm_napi_common",
   ]
 
   external_deps = [
     "ability_runtime:runtime",
     "c_utils:utils",
-    "graphic_2d:librender_service_base",
-    "graphic_2d:librender_service_client",
-    "graphic_surface:surface",
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "napi:ace_napi",
+    "graphic_2d:librender_service_client",
+    "graphic_2d:librender_service_base",
+    "graphic_surface:surface",
   ]
 
   public_external_deps = [ "image_framework:image_native" ]
@@ -74,7 +73,6 @@ ohos_shared_library("display_napi") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
 }
-
 ## Build display_napi.so }}}
 
 ohos_shared_library("display_kit") {
@@ -99,7 +97,7 @@ ohos_shared_library("display_kit") {
     "../../../../dm:libdm",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
-    "../common:wm_napi_util",
+    "../common:dm_napi_common",
   ]
 
   external_deps = [
@@ -108,6 +106,7 @@ ohos_shared_library("display_kit") {
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "napi:ace_napi",
+    "image_framework:image_native",
   ]
 
   innerapi_tags = [ "platformsdk" ]

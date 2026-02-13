@@ -71,25 +71,6 @@ HWTEST_F(DmsGlobalMutexTest, HoldLock_MultiThread_Counter, TestSize.Level1)
  * @tc.desc: DmsGlobalMutexTest test
  * @tc.type: FUNC
  */
-HWTEST_F(DmsGlobalMutexTest, VipPriorityEvent_LockTime, TestSize.Level1)
-{
-    EXPECT_FALSE(DmUtils::HoldLock::lockStatus);
-    auto threadFunc = []() {
-        DmUtils::HoldLock holdLock(IPCPriority::VIP);
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    };
-    std::thread t1(threadFunc);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    DmUtils::HoldLock holdLock(IPCPriority::VIP);
-    EXPECT_FALSE(DmUtils::HoldLock::lockStatus);
-    t1.join();
-}
-
-/**
- * @tc.name: DmsGlobalMutexTest
- * @tc.desc: DmsGlobalMutexTest test
- * @tc.type: FUNC
- */
 HWTEST_F(DmsGlobalMutexTest, DropLock_NoLock, TestSize.Level1)
 {
     EXPECT_FALSE(DmUtils::HoldLock::lockStatus);

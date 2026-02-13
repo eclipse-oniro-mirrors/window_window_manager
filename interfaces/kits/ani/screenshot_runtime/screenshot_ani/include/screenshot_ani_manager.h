@@ -14,16 +14,16 @@
  */
 #ifndef SCREENSHOT_MANAGER_ANI_H
 #define SCREENSHOT_MANAGER_ANI_H
- 
+
 #include <mutex>
 #include "dm_common.h"
 #include "refbase.h"
 #include "pixel_map.h"
- 
+
 #include "ani.h"
- 
+
 namespace OHOS::Rosen {
- 
+
 struct Option {
     Media::Rect rect;
     Media::Size size;
@@ -32,8 +32,9 @@ struct Option {
     bool isNeedNotify = true;
     bool isNeedPointer = true;
     bool isCaptureFullOfScreen = true;
+    std::vector<uint64_t> blackWindowIds = {};
 };
- 
+
 struct Param {
     DmErrorCode wret;
     Option option;

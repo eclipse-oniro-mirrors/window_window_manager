@@ -56,6 +56,7 @@ ohos_shared_library("pipwindow_napi") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "image_framework:image_native",
   ]
 
   relative_install_dir = "module"

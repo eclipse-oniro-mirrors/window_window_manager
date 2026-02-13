@@ -68,10 +68,10 @@ enum class ScreenPowerEvent {
     WAKEUP_BEGIN,
     SUSPEND_BEGIN,
     WAKEUP_BEGIN_ADVANCED,
-    SET_SCREEN_POWER_FOR_ALL_DOZE,
-    SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND,
     FOLD_SCREEN_SET_POWER,
     SYNC_POWER_ON, //Special scenario, PMS force synchronization ON state
+    SET_SCREEN_POWER_FOR_ALL_DOZE,
+    SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND,
     SCREEN_POWER_EVENT_MAX,
 };
 
@@ -135,7 +135,7 @@ private:
     static bool ActionScreenPowerOff(ScreenPowerEvent event, const ScreenPowerInfoType& type);
     static bool DoSetScreenFoldPowerFunc(ScreenPowerEvent event, const ScreenPowerInfoType& type);
 
-    ScreenStateTimer timer_;
+    sptr<ScreenStateTimer> timer_;
     std::mutex mtx;
     bool isForceTrans_ = false;
     uint32_t initRefCnt_ = 0;

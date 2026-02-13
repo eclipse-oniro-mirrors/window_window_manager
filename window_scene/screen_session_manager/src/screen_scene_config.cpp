@@ -68,6 +68,7 @@ enum XmlNodeElement {
     IS_SUPPORT_OFFSCREEN_RENDERING,
     OFF_SCREEN_PPI_THRESHOLD,
     PC_MODE_DPI,
+    SUPPORT_TENT_MODE,
     SUPPORT_DURING_CALL,
     HALF_FOLDED_MAX_THRESHOLD,
     CLOSE_HALF_FOLDED_MIN_THRESHOLD,
@@ -117,6 +118,7 @@ std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {SCREEN_SNAPSHOT_ABILITY_NAME, "screenSnapshotAbilityName"},
     {IS_RIGHT_POWER_BUTTON, "isRightPowerButton"},
     {SUPPORT_ROTATE_WITH_SCREEN, "supportRotateWithSensor"},
+    {SUPPORT_TENT_MODE, "supportTentMode"},
     {EXTERNAL_SCREEN_DEFAULT_MODE, "externalScreenDefaultMode"},
     {CAST_BUNDLE_NAME, "castBundleName"},
     {CAST_ABILITY_NAME, "castAbilityName"},
@@ -204,7 +206,6 @@ bool ScreenSceneConfig::LoadConfigXml()
             TLOGE(WmsLogTag::DMS, ":invalid node!");
             continue;
         }
-        ParseNodeConfig(curNodePtr);
         if (xmlStrcmp(curNodePtr->name, reinterpret_cast<const xmlChar*>("displays")) != 0) {
             ParseNodeConfig(curNodePtr);
         } else {
@@ -226,6 +227,7 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
         (xmlNodeMap_[IS_CONCURRENT_USER] == nodeName) ||
         (xmlNodeMap_[SUPPORT_ROTATE_WITH_SCREEN] == nodeName)||
         (xmlNodeMap_[IS_SUPPORT_OFFSCREEN_RENDERING] == nodeName) ||
+        (xmlNodeMap_[SUPPORT_TENT_MODE] == nodeName) ||
         (xmlNodeMap_[SUPPORT_DURING_CALL] == nodeName);
     bool numberConfigCheck = (xmlNodeMap_[DPI] == nodeName) ||
         (xmlNodeMap_[SUB_DPI] == nodeName) ||
@@ -277,11 +279,8 @@ uint64_t ScreenSceneConfig::ParseStrToUll(const std::string& contentStr)
     }
     uint64_t num;
     auto result = std::from_chars(contentStr.data(), contentStr.data() + contentStr.size(), num);
-    if (result.ec == std::errc::invalid_argument) {
-        TLOGE(WmsLogTag::DMS, "Invalid value: %{public}s", contentStr.c_str());
-        return 0;
-    } else if (result.ec == std::errc::result_out_of_range) {
-        TLOGE(WmsLogTag::DMS, "Value out of range: %{public}s", contentStr.c_str());
+    if (result.ec != std::errc() || result.ptr != contentStr.data() + contentStr.size()) {
+        TLOGE(WmsLogTag::DMS, "Invalid value or out of range: %{public}s", contentStr.c_str());
         return 0;
     }
     return num;
@@ -754,6 +753,15 @@ bool ScreenSceneConfig::IsSupportRotateWithSensor()
     }
     return false;
 }
+
+bool ScreenSceneConfig::IsSupportTentMode()
+{
+    if (enableConfig_.count("supportTentMode") != 0) {
+        return static_cast<bool>(enableConfig_["supportTentMode"]);
+    }
+    return false;
+}
+
 std::string ScreenSceneConfig::GetExternalScreenDefaultMode()
 {
     if (stringConfig_.count("externalScreenDefaultMode") != 0) {
@@ -794,7 +802,7 @@ bool ScreenSceneConfig::IsConcurrentUser()
 
 uint32_t ScreenSceneConfig::GetNumberConfigValue(const std::string& name, const uint32_t& default_value)
 {
-    if (intNumbersConfig_.count(name) != 0) {
+    if (intNumbersConfig_.count(name) != 0 && !intNumbersConfig_[name].empty()) {
         return static_cast<uint32_t>(intNumbersConfig_[name][0]);
     }
     TLOGI(WmsLogTag::DMS, "default %{public}s = %{public}u", name.c_str(), default_value);

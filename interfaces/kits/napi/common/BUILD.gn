@@ -13,8 +13,8 @@
 
 import("//build/ohos.gni")
 
-## Build wm_napi_util.a {{{
-config("wm_napi_util_config") {
+## Build dm_napi_common.a {{{
+config("dm_napi_common_config") {
   visibility = [ ":*" ]
 
   cflags = [
@@ -24,14 +24,14 @@ config("wm_napi_util_config") {
   ]
 }
 
-config("wm_napi_util_public_config") {
+config("dm_napi_common_public_config") {
   include_dirs = [
     ".",
     "../../../innerkits/dm",
   ]
 }
 
-ohos_static_library("wm_napi_util") {
+ohos_static_library("dm_napi_common") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
@@ -48,11 +48,11 @@ ohos_static_library("wm_napi_util") {
   ]
 
   configs = [
-    ":wm_napi_util_config",
+    ":dm_napi_common_config",
     "../../../../resources/config/build:coverage_flags",
   ]
 
-  public_configs = [ ":wm_napi_util_public_config" ]
+  public_configs = [ ":dm_napi_common_public_config" ]
 
   deps = [
     "../../../../utils:libwmutil",
@@ -72,4 +72,4 @@ ohos_static_library("wm_napi_util") {
   subsystem_name = "window"
   part_name = "window_manager"
 }
-## Build wm_napi_util.a }}}
+## Build dm_napi_common.a }}}

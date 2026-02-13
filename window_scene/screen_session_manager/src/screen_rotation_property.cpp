@@ -28,11 +28,10 @@ bool ScreenRotationProperty::isDeviceHorizontal()
 void ScreenRotationProperty::HandleSensorEventInput(DeviceRotation deviceRotation)
 {
     static DeviceRotation lastSensorRotationConverted_ = DeviceRotation::INVALID;
-    TLOGI(WmsLogTag::DMS, "DeviceRotation: %{public}d, "
-        "lastSensorRotationConverted: %{public}d", deviceRotation, lastSensorRotationConverted_);
-
     if (deviceRotation != DeviceRotation::INVALID && lastSensorRotationConverted_ != deviceRotation) {
         lastSensorRotationConverted_ = deviceRotation;
+        TLOGI(WmsLogTag::DMS, "DeviceRotation: %{public}d, RotationConverted: %{public}d",
+            deviceRotation, lastSensorRotationConverted_);
     }
     auto screenSession = ScreenSessionManager::GetInstance().GetDefaultScreenSession();
     if (!screenSession) {

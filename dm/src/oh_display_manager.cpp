@@ -265,7 +265,7 @@ public:
             TLOGI(WmsLogTag::DMS, "[DMNDK] callback is null");
             return;
         }
-        TLOGD(WmsLogTag::DMS, "[DMNDK] callback displayId=%{public}" PRIu64, displayId);
+        TLOGD(WmsLogTag::DMS, "[DMNDK]displayId=%{public}" PRIu64, displayId);
         innerDisplayChangeFunc_(static_cast<uint64_t>(displayId));
     }
 private:
@@ -728,32 +728,32 @@ bool CheckDisplayChangeHasRegistered(OH_NativeDisplayManager_DisplayChangeCallba
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayChangeListener(
     OH_NativeDisplayManager_DisplayChangeCallback displayChangeCallback, uint32_t *listenerIndex)
 {
-    TLOGI(WmsLogTag::DMS, "[DMNDK] register display change listener.");
+    TLOGD(WmsLogTag::DMS, "[DMNDK] register display change listener.");
     if (displayChangeCallback == NULL || listenerIndex == NULL) {
-        TLOGE(WmsLogTag::DMS, "[DMNDK] register fail(input params null).");
+        TLOGE(WmsLogTag::DMS, "[DMNDK]input params null");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     std::unique_lock<std::shared_mutex> lock(displayChangeMutex);
     if (CheckDisplayChangeHasRegistered(displayChangeCallback)) {
-        TLOGE(WmsLogTag::DMS, "[DMNDK] input params error (has registered).");
+        TLOGE(WmsLogTag::DMS, "[DMNDK]already registered");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     sptr<DisplayManager::IDisplayListener> displayListener =
         sptr<OH_DisplayChangeListener>::MakeSptr(displayChangeCallback);
     if (displayListener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "[DMNDK] register display change MakeSptr fail.");
+        TLOGE(WmsLogTag::DMS, "[DMNDK]MakeSptr fail");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     static std::atomic<uint32_t> registerCount = 1;
     DMError ret = DisplayManager::GetInstance().RegisterDisplayListener(displayListener);
     if (ret != DMError::DM_OK) {
-        TLOGE(WmsLogTag::DMS, "[DMNDK] register failed ret=%{public}d.", ret);
+        TLOGE(WmsLogTag::DMS, "[DMNDK]failed ret=%{public}d", ret);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *listenerIndex = registerCount++;
     g_displayChangeCallbackMap.emplace(*listenerIndex, displayChangeCallback);
     g_displayChangeListenerMap.emplace(*listenerIndex, displayListener);
-    TLOGI(WmsLogTag::DMS, "[DMNDK] register listenerIndex= %{public}d.", *listenerIndex);
+    TLOGI(WmsLogTag::DMS, "[DMNDK]listenerIndex= %{public}d", *listenerIndex);
     return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_OK;
 }
 
@@ -924,13 +924,8 @@ static NativeDisplayManager_ErrorCode NativeDisplayManager_SetDisplaysInfo(const
             TLOGE(WmsLogTag::DMS, "[DMNDK] get display id[%{public}" PRIu64"] info null.", display->GetId());
             continue;
         }
-        auto errCode = memset_s(displaysInfo[i].name, sizeof(displaysInfo[i].name), 0, sizeof(displaysInfo[i].name));
-        if (errCode != EOK) {
-            TLOGE(WmsLogTag::DMS, "[DMNDK] memset display info fail.");
-            return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
-        }
-        int ret = memcpy_s(displaysInfo[i].name, sizeof(displaysInfo[i].name) - 1, info->GetName().c_str(),
-                           info->GetName().size());
+        int ret = memcpy_s(displaysInfo[i].name, OH_DISPLAY_NAME_LENGTH + 1, info->GetName().c_str(),
+            OH_DISPLAY_NAME_LENGTH);
         if (ret != EOK) {
             TLOGE(WmsLogTag::DMS, "[DMNDK] failed to memcpy name.");
             return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
@@ -1056,8 +1051,7 @@ static NativeDisplayManager_DisplayInfo* NativeDisplayManager_FillDisplayInfo(sp
         *errCode = NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
         return nullptr;
     }
-    int ret = memcpy_s(displayInner->name, sizeof(displayInner->name) - 1, info->GetName().c_str(),
-                       info->GetName().size());
+    int ret = memcpy_s(displayInner->name, OH_DISPLAY_NAME_LENGTH + 1, info->GetName().c_str(), OH_DISPLAY_NAME_LENGTH);
     if (ret != EOK) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] memcpy display name failed.");
         DISPLAY_MANAGER_FREE_MEMORY(displayInner);
@@ -1309,15 +1303,15 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAvailableArea(
         TLOGE(WmsLogTag::DMS, "[DMNDK] input availableArea null.");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
-    int64_t displayCheck = static_cast<int64_t>(displayId);
-    if (displayCheck < 0) {
+    int64_t displayIdCheck = static_cast<int64_t>(displayId);
+    if (displayIdCheck < 0) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input display illegal.");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(static_cast<DisplayId>(displayId));
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] display is  null, id %{public}" PRIu64" ", displayId);
-        return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
+        return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     NativeDisplayManager_Rect* availableAreaInfo =
         static_cast<NativeDisplayManager_Rect*>(malloc(sizeof(NativeDisplayManager_Rect)));
@@ -1337,7 +1331,7 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAvailableArea(
 
     DMRect displayAvailableArea = DMRect::NONE();
     display->GetAvailableArea(displayAvailableArea);
-    TLOGI(WmsLogTag::DMS, "[DMNDK] posX_=%{public}d posY_=%{public}d width_=%{public}d height_=%{public}d",
+    TLOGI(WmsLogTag::DMS, "[DMNDK] posX_ = %{public}d posY_ = %{public}d width_ = %{public}d  height_ = %{public}d",
         displayAvailableArea.posX_, displayAvailableArea.posY_,
         displayAvailableArea.width_, displayAvailableArea.height_);
     OH_SetDisplayRect(displayAvailableArea, availableAreaInfo);
@@ -1364,15 +1358,15 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDisplaySourceMode(
         TLOGE(WmsLogTag::DMS, "[DMNDK] input sourceMode null.");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
-    int64_t displayCheck = static_cast<int64_t>(displayId);
-    if (displayCheck < 0) {
+    int64_t displayIdCheck = static_cast<int64_t>(displayId);
+    if (displayIdCheck < 0) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input display illegal.");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(static_cast<DisplayId>(displayId));
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] display is  null, id %{public}" PRIu64" ", displayId);
-        return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
+        return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<DisplayInfo> displayInfo = display->GetDisplayInfo();
     if (displayInfo == nullptr) {
@@ -1391,8 +1385,8 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDisplayPosition(uint64
         TLOGE(WmsLogTag::DMS, "[DMNDK] input x or y is null.");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
-    int64_t displayCheck = static_cast<int64_t>(displayId);
-    if (displayCheck < 0) {
+    int64_t displayIdCheck = static_cast<int64_t>(displayId);
+    if (displayIdCheck < 0) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input display illegal.");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }

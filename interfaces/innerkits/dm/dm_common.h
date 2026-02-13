@@ -45,7 +45,6 @@ constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr int32_t CONCURRENT_USER_ID_DEFAULT = -1;
 constexpr int32_t INVALID_UID = -1;
-constexpr int32_t INVALID_USERID = -1;
 constexpr int32_t USER_ID_DEFAULT = 0;
 constexpr int32_t ROTATION_UNSET = -1;
 constexpr int32_t ROTATION_MIN = 0;
@@ -58,6 +57,8 @@ constexpr uint32_t DISPLAY_B_HEIGHT = 1608;
 constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
 constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
+const float DEFAULT_HEADROOM = 1.0f;
+const float DEFAULT_SDR_NITS = 500.0f;
 constexpr uint32_t DISPLAY_A_WIDTH = 2472;
 constexpr float DEFAULT_SNAPSHOT_SCALE = 1.0f;
 
@@ -285,9 +286,6 @@ enum class TentMode : uint32_t {
 extern const std::map<DMError, DmErrorCode> DM_JS_TO_ERROR_CODE_MAP;
 
 extern const std::map<DMError, std::string> DM_ERROR_JS_TO_ERROR_MESSAGE_MAP;
-
-constexpr float DEFAULT_HEADROOM = 1.0f;
-constexpr float DEFAULT_SDR_NITS = 500.0f;
 
 using DisplayStateCallback = std::function<void(DisplayState)>;
 
@@ -805,7 +803,7 @@ struct SessionOption {
     std::string innerName_;
     ScreenId screenId_;
     std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
-    bool supportsFocus_ {true};
+    bool supportsFocus_ { true };
     bool isRotationLocked_;
     int32_t rotation_;
     std::map<int32_t, int32_t> rotationOrientationMap_;
@@ -820,7 +818,8 @@ enum class DMDeviceStatus: uint32_t {
     STATUS_TENT_HOVER,
     STATUS_TENT,
     STATUS_GLOBAL_FULL,
-    STATUS_EXPAND
+    STATUS_EXPAND,
+    STATUS_COORDINATION
 };
 
 /**
@@ -914,7 +913,7 @@ enum class DisplayModeChangeReason : uint32_t {
     RECOVER,
     INVALID,
     SETMODE,
-    FORCE_SET
+    FORCE_SET,
 };
 }
 #endif // OHOS_ROSEN_DM_COMMON_H

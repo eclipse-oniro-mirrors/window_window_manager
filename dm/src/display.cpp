@@ -30,7 +30,6 @@
 #include "concurrency_helpers.h"
 #include <event_handler.h>
 #include <event_runner.h>
-
 namespace OHOS::Rosen {
 std::shared_ptr<OHOS::AppExecFwk::EventHandler> g_eventHandler;
 std::once_flag g_onceFlagForInitEventHandler;
@@ -111,6 +110,7 @@ Display::Display(const std::string& name, sptr<DisplayInfo> info)
 
 Display::~Display()
 {
+    TLOGI(WmsLogTag::DMS, "~Display");
 }
 
 DisplayId Display::GetId() const
@@ -232,7 +232,6 @@ void Display::UpdateDisplayInfo(sptr<DisplayInfo> displayInfo) const
         TLOGE(WmsLogTag::DMS, "displayInfo or pImpl_ is nullptr");
         return;
     }
-
     pImpl_->SetDisplayInfo(displayInfo);
 }
 
@@ -267,7 +266,7 @@ void Display::UpdateDisplayInfo() const
     }
 
     if (pImpl_->GetValidFlag()) {
-        TLOGD(WmsLogTag::DMS, "do nothing PID %{public}d TID %{public}d ENV", getpid(), gettid());
+        TLOGD(WmsLogTag::DMS, "do nothing PID %{public}d TID %{public}d", getpid(), gettid());
         return;
     }
 
@@ -275,24 +274,25 @@ void Display::UpdateDisplayInfo() const
     if (displayInfo == nullptr) {
             return;
     }
+
     UpdateDisplayInfo(displayInfo);
     EnvType type = pImpl_->GetEnvType();
     void* env = pImpl_->GetDisplayInfoEnv();
     if (type == EnvType::NAPI) {
         DisplayNapiEnv nenv = static_cast<DisplayNapiEnv>(env);
         pImpl_->SetValidFlag(true);
-        TLOGD(WmsLogTag::DMS, "set validFlag true PID %{public}d TID %{public}d", getpid(), gettid());
+        TLOGD(WmsLogTag::DMS, "Nset validFlag true PID %{public}d TID %{public}d", getpid(), gettid());
 
         // post task to current thread, the task will be executed after current task
         // the task is used to presented current task is finish
         auto asyncTask = [this]() {
             pImpl_->SetValidFlag(false);
-            TLOGD(WmsLogTag::DMS, "set validFlag false PID %{public}d TID %{public}d", getpid(), gettid());
+            TLOGD(WmsLogTag::DMS, "Nset validFlag false PID %{public}d TID %{public}d", getpid(), gettid());
         };
         napi_status ret = napi_send_event(nenv, asyncTask, napi_eprio_vip, "UpdateDisplayValid");
         if (ret != napi_status::napi_ok) {
             pImpl_->SetValidFlag(false);
-            TLOGD(WmsLogTag::DMS, "Failed to SendEvent");
+            TLOGI(WmsLogTag::DMS, "Failed to SendEvent");
         }
     } else if (type == EnvType::ANI) {
         pImpl_->SetValidFlag(true);
@@ -393,9 +393,9 @@ DMError Display::GetLiveCreaseRegion(FoldCreaseRegion& region) const
 {
     ScreenId screenId = GetScreenId();
     ScreenId rsScreenId;
-    bool ret = SingletonContainer::Get<DisplayManagerAdapter>().ConvertScreenIdToRsScreenId(screenId, rsScreenId);
-    if (!ret) {
-        TLOGE(WmsLogTag::DMS, "convertScreenIdToRsScreenId falied");
+    bool res = SingletonContainer::Get<DisplayManagerAdapter>().ConvertScreenIdToRsScreenId(screenId, rsScreenId);
+    if (!res) {
+        TLOGE(WmsLogTag::DMS, "convertScreenIdToRsScreenId failed");
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
     // when rsScreenId is not 0, there is no crease region in the current screen

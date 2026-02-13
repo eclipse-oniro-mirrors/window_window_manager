@@ -20,6 +20,7 @@
 #include <ipc_skeleton.h>
 #include "transaction/rs_marshalling_helper.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "dms_global_mutex.h"
 #include "marshalling_helper.h"
 
 namespace OHOS::Rosen {
@@ -31,15 +32,12 @@ const static float INVALID_DEFAULT_DENSITY = 1.0f;
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
 constexpr uint32_t  MAX_CREASE_REGION_SIZE = 20;
 constexpr uint32_t MAP_SIZE_MAX_NUM = 100;
-const std::map<DisplayManagerMessage, IPCPriority> EVENT_PRIORITY_MAP{
-    { DisplayManagerMessage::TRANS_ID_GET_DEFAULT_DISPLAY_INFO,  IPCPriority::VIP },
-};
 }
 
 int32_t ScreenSessionManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply,
     MessageOption& option)
 {
-    DmUtils::HoldLock callbackLock(GetIPCPriority(code));
+    DmUtils::HoldLock callbackLock;
     int32_t result = OnRemoteRequestInner(code, data, reply, option);
     return result;
 }
@@ -70,7 +68,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             auto type = static_cast<DisplayManagerAgentType>(data.ReadUint32());
             DMError ret = RegisterDisplayManagerAgent(agent, type);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_UNREGISTER_DISPLAY_MANAGER_AGENT: {
@@ -80,7 +78,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             auto type = static_cast<DisplayManagerAgentType>(data.ReadUint32());
             DMError ret = UnregisterDisplayManagerAgent(agent, type);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_WAKE_UP_BEGIN: {
@@ -132,7 +130,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         }
         case DisplayManagerMessage::TRANS_ID_GET_DISPLAY_STATE: {
             DisplayState state = GetDisplayState(data.ReadUint64());
-            static_cast<void>(reply.WriteUint32(static_cast<uint32_t>(state)));
+            reply.WriteUint32(static_cast<uint32_t>(state));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_NOTIFY_DISPLAY_EVENT: {
@@ -146,7 +144,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::DMS, "fail to read dmsScreenId.");
                 return ERR_INVALID_DATA;
             }
-            static_cast<void>(reply.WriteUint32(static_cast<uint32_t>(GetScreenPower(dmsScreenId))));
+            reply.WriteUint32(static_cast<uint32_t>(GetScreenPower(dmsScreenId)));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_SCREEN_POWER_AUTO: {
@@ -205,7 +203,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_GET_ALL_SCREEN_INFOS: {
             std::vector<sptr<ScreenInfo>> screenInfos;
             DMError ret  = GetAllScreenInfos(screenInfos);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (!MarshallingHelper::MarshallingVectorParcelableObj<ScreenInfo>(reply, screenInfos)) {
                 TLOGE(WmsLogTag::DMS, "fail to marshalling screenInfos in stub.");
             }
@@ -230,7 +228,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             std::vector<ScreenColorGamut> colorGamuts;
             DMError ret = GetScreenSupportedColorGamuts(screenId, colorGamuts);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
@@ -246,22 +244,22 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenBrightnessInfo brightnessInfo;
             DMError ret = GetBrightnessInfo(displayId, brightnessInfo);
             if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
-                TLOGE(WmsLogTag::DMS, "write ret failed!");
+                TLOGE(WmsLogTag::DMS, "write ret failed");
                 break;
             }
             if (ret != DMError::DM_OK) {
                 break;
             }
             if (!reply.WriteFloat(brightnessInfo.currentHeadroom)) {
-                TLOGE(WmsLogTag::DMS, "write currentHeadroom failed!");
+                TLOGE(WmsLogTag::DMS, "write currentHeadroom failed");
                 break;
             }
             if (!reply.WriteFloat(brightnessInfo.maxHeadroom)) {
-                TLOGE(WmsLogTag::DMS, "write maxHeadroom failed!");
+                TLOGE(WmsLogTag::DMS, "write maxHeadroom failed");
                 break;
             }
             if (!reply.WriteFloat(brightnessInfo.sdrNits)) {
-                TLOGE(WmsLogTag::DMS, "write sdrNits failed!");
+                TLOGE(WmsLogTag::DMS, "write sdrNits failed");
                 break;
             }
             break;
@@ -277,7 +275,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             if (ret != DMError::DM_OK) {
                 break;
             }
-            if (!reply.WriteFloat(supportsInput)) {
+            if (!reply.WriteBool(supportsInput)) {
                 TLOGE(WmsLogTag::DMS, "write supportsInput failed!");
             }
             break;
@@ -333,7 +331,6 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             bool supportsInput = data.ReadBool();
             std::string serialNumber = data.ReadString();
             std::string bundleName = data.ReadString();
-            int32_t userId = data.ReadInt32();
             uint32_t phyWidth = data.ReadUint32();
             uint32_t phyHeight = data.ReadUint32();
             bool isSurfaceValid = data.ReadBool();
@@ -358,14 +355,20 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .virtualScreenFlag_ = virtualScreenFlag,
                 .supportsFocus_ = supportsFocus,
                 .supportsInput_ = supportsInput,
-                .bundleName_ = bundleName,
                 .serialNumber_ = serialNumber,
+                .bundleName_ = bundleName,
                 .phyWidth_ = phyWidth,
-                .phyHeight_ = phyHeight,
-                .userId_ = userId
+                .phyHeight_ = phyHeight
             };
             ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
-            static_cast<void>(reply.WriteUint64(static_cast<uint64_t>(screenId)));
+            reply.WriteUint64(static_cast<uint64_t>(screenId));
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_REGISTER_DEATH_LISTENER: {
+            TLOGW(WmsLogTag::DMS, "enter!");
+            sptr<IRemoteObject> reverseDeathObject = data.ReadRemoteObject();
+            bool res = RegisterClientDeathListener(reverseDeathObject);
+            reply.WriteBool(static_cast<bool>(res));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_SURFACE: {
@@ -377,7 +380,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 bp = iface_cast<IBufferProducer>(surfaceObject);
             }
             DMError result = SetVirtualScreenSurface(screenId, bp);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(result)));
+            reply.WriteInt32(static_cast<int32_t>(result));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_BLOCK_LIST: {
@@ -478,7 +481,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             bool autoRotate = data.ReadBool();
             DMError result = SetVirtualMirrorScreenCanvasRotation(screenId, autoRotate);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(result)));
+            reply.WriteInt32(static_cast<int32_t>(result));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_IS_ON_BOARD_DISPLAY: {
@@ -500,24 +503,22 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_SCALE_MODE: {
-            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
-            ScreenScaleMode scaleMode = static_cast<ScreenScaleMode>(data.ReadUint32());
-            DMError result = SetVirtualMirrorScreenScaleMode(screenId, scaleMode);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(result)));
+            ProcSetVirtualScreenScaleMode(data, reply);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_DESTROY_VIRTUAL_SCREEN: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             bool isCallingByThirdParty = data.ReadBool();
             DMError result = DestroyVirtualScreen(screenId, isCallingByThirdParty);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(result)));
+            reply.WriteInt32(static_cast<int32_t>(result));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_MAKE_MIRROR: {
             ScreenId mainScreenId = static_cast<ScreenId>(data.ReadUint64());
             std::vector<ScreenId> mirrorScreenId;
             if (!data.ReadUInt64Vector(&mirrorScreenId)) {
-                TLOGE(WmsLogTag::DMS, "fail to receive mirror screen in stub. screen:%{public}" PRIu64"", mainScreenId);
+                TLOGE(WmsLogTag::DMS, "fail to receive mirror screen in stub. screen:%{public}" PRIu64"",
+                    mainScreenId);
                 break;
             }
             ScreenId screenGroupId = INVALID_SCREEN_ID;
@@ -525,8 +526,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             bool needSetRotation = data.ReadBool();
             RotationOption rotationOption = {rotation, needSetRotation};
             DMError ret = MakeMirror(mainScreenId, mirrorScreenId, screenGroupId, rotationOption);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
-            static_cast<void>(reply.WriteUint64(static_cast<uint64_t>(screenGroupId)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
+            reply.WriteUint64(static_cast<uint64_t>(screenGroupId));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_MAKE_MIRROR_FOR_RECORD: {
@@ -550,7 +551,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId mainScreenId = static_cast<ScreenId>(data.ReadUint64());
             std::vector<ScreenId> mirrorScreenId;
             if (!data.ReadUInt64Vector(&mirrorScreenId)) {
-                TLOGE(WmsLogTag::DMS, "fail to receive mirror screen in stub. screen:%{public}" PRIu64"", mainScreenId);
+                TLOGE(WmsLogTag::DMS, "fail to receive mirror screen in stub. screen:%{public}" PRIu64"",
+                    mainScreenId);
                 break;
             }
             int32_t posX = data.ReadInt32();
@@ -569,7 +571,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId secondaryScreenId = static_cast<ScreenId>(data.ReadUint64());
             MultiScreenMode screenMode = static_cast<MultiScreenMode>(data.ReadUint32());
             DMError ret = SetMultiScreenMode(mainScreenId, secondaryScreenId, screenMode);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_MULTI_SCREEN_POSITION: {
@@ -590,7 +592,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .startY_ = secondaryScreenY,
             };
             DMError ret = SetMultiScreenRelativePosition(mainScreenOptions, secondScreenOption);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_STOP_MIRROR: {
@@ -600,12 +602,12 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 break;
             }
             DMError ret = StopMirror(mirrorScreenIds);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_DISABLE_MIRROR: {
             DMError ret = DisableMirror(data.ReadBool());
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_MAKE_EXPAND: {
@@ -623,8 +625,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             ScreenId screenGroupId = INVALID_SCREEN_ID;
             DMError ret = MakeExpand(screenId, startPoint, screenGroupId);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
-            static_cast<void>(reply.WriteUint64(static_cast<uint64_t>(screenGroupId)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
+            reply.WriteUint64(static_cast<uint64_t>(screenGroupId));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_STOP_EXPAND: {
@@ -634,7 +636,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 break;
             }
             DMError ret = StopExpand(expandScreenIds);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_SCREEN_GROUP_INFO_BY_ID: {
@@ -660,7 +662,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             std::shared_ptr<Media::PixelMap> displaySnapshot = GetDisplaySnapshot(displayId, &errCode, isUseDma,
                 isCaptureFullOfScreen);
             reply.WriteParcelable(displaySnapshot == nullptr ? nullptr : displaySnapshot.get());
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(errCode)));
+            reply.WriteInt32(static_cast<int32_t>(errCode));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_DISPLAY_HDR_SNAPSHOT: {
@@ -670,15 +672,15 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             DmErrorCode errCode = DmErrorCode::DM_OK;
             if (!data.ReadUint64(displayId)) {
                 TLOGE(WmsLogTag::DMS, "Read displayId failed");
-                return ERR_INVALID_DATA;
+                break;
             }
             if (!data.ReadBool(isUseDma)) {
                 TLOGE(WmsLogTag::DMS, "Read isUseDma failed");
-                return ERR_INVALID_DATA;
+                break;
             }
             if (!data.ReadBool(isCaptureFullOfScreen)) {
                 TLOGE(WmsLogTag::DMS, "Read isCaptureFullOfScreen failed");
-                return ERR_INVALID_DATA;
+                break;
             }
             std::vector<std::shared_ptr<Media::PixelMap>> displaySnapshotVec = GetDisplayHDRSnapshot(
                 displayId, errCode, isUseDma, isCaptureFullOfScreen);
@@ -702,28 +704,28 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             uint32_t modeId = data.ReadUint32();
             DMError ret = SetScreenActiveMode(screenId, modeId);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_PIXEL_RATIO: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             float virtualPixelRatio = data.ReadFloat();
             DMError ret = SetVirtualPixelRatio(screenId, virtualPixelRatio);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_PIXEL_RATIO_SYSTEM: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             float virtualPixelRatio = data.ReadFloat();
             DMError ret = SetVirtualPixelRatioSystem(screenId, virtualPixelRatio);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_DEFAULT_DENSITY_DPI: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             float virtualPixelRatio = data.ReadFloat();
             DMError ret = SetDefaultDensityDpi(screenId, virtualPixelRatio);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_RESOLUTION: {
@@ -732,7 +734,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             uint32_t height = data.ReadUint32();
             float virtualPixelRatio = data.ReadFloat();
             DMError ret = SetResolution(screenId, width, height, virtualPixelRatio);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_DENSITY_IN_CURRENT_RESOLUTION: {
@@ -740,74 +742,74 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             float virtualPixelRatio;
             DMError ret = GetDensityInCurResolution(screenId, virtualPixelRatio);
             reply.WriteFloat(virtualPixelRatio);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_GET_COLOR_GAMUT: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             ScreenColorGamut colorGamut;
             DMError ret = GetScreenColorGamut(screenId, colorGamut);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
-            static_cast<void>(reply.WriteUint32(static_cast<uint32_t>(colorGamut)));
+            reply.WriteUint32(static_cast<uint32_t>(colorGamut));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_SET_COLOR_GAMUT: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             int32_t colorGamutIdx = data.ReadInt32();
             DMError ret = SetScreenColorGamut(screenId, colorGamutIdx);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_GET_GAMUT_MAP: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             ScreenGamutMap gamutMap;
             DMError ret = GetScreenGamutMap(screenId, gamutMap);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
-            static_cast<void>(reply.WriteInt32(static_cast<uint32_t>(gamutMap)));
+            reply.WriteInt32(static_cast<uint32_t>(gamutMap));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_SET_GAMUT_MAP: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             ScreenGamutMap gamutMap = static_cast<ScreenGamutMap>(data.ReadUint32());
             DMError ret = SetScreenGamutMap(screenId, gamutMap);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_SET_COLOR_TRANSFORM: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             DMError ret = SetScreenColorTransform(screenId);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_GET_PIXEL_FORMAT: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             GraphicPixelFormat pixelFormat;
             DMError ret = GetPixelFormat(screenId, pixelFormat);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
-            static_cast<void>(reply.WriteInt32(static_cast<uint32_t>(pixelFormat)));
+            reply.WriteInt32(static_cast<uint32_t>(pixelFormat));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_SET_PIXEL_FORMAT: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             GraphicPixelFormat pixelFormat = static_cast<GraphicPixelFormat>(data.ReadUint32());
             DMError ret = SetPixelFormat(screenId, pixelFormat);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTED_HDR_FORMAT: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             std::vector<ScreenHDRFormat> hdrFormats;
             DMError ret = GetSupportedHDRFormats(screenId, hdrFormats);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
@@ -822,25 +824,25 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             ScreenHDRFormat hdrFormat;
             DMError ret = GetScreenHDRFormat(screenId, hdrFormat);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
-            static_cast<void>(reply.WriteInt32(static_cast<uint32_t>(hdrFormat)));
+            reply.WriteInt32(static_cast<uint32_t>(hdrFormat));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_SET_HDR_FORMAT: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             int32_t modeIdx = data.ReadInt32();
             DMError ret = SetScreenHDRFormat(screenId, modeIdx);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTED_COLOR_SPACE: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             std::vector<GraphicCM_ColorSpaceType> colorSpaces;
             DMError ret = GetSupportedColorSpaces(screenId, colorSpaces);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
@@ -855,18 +857,18 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             GraphicCM_ColorSpaceType colorSpace;
             DMError ret = GetScreenColorSpace(screenId, colorSpace);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             if (ret != DMError::DM_OK) {
                 break;
             }
-            static_cast<void>(reply.WriteInt32(static_cast<uint32_t>(colorSpace)));
+            reply.WriteInt32(static_cast<uint32_t>(colorSpace));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_SET_COLOR_SPACE: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             GraphicCM_ColorSpaceType colorSpace = static_cast<GraphicCM_ColorSpaceType>(data.ReadUint32());
             DMError ret = SetScreenColorSpace(screenId, colorSpace);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_ORIENTATION: {
@@ -874,25 +876,25 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             Orientation orientation = static_cast<Orientation>(data.ReadUint32());
             bool isFromNapi = data.ReadBool();
             DMError ret = SetOrientation(screenId, orientation, isFromNapi);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED: {
             bool isLocked = static_cast<bool>(data.ReadBool());
             DMError ret = SetScreenRotationLocked(isLocked);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED_FROM_JS: {
             bool isLocked = static_cast<bool>(data.ReadBool());
             DMError ret = SetScreenRotationLockedFromJs(isLocked);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_IS_SCREEN_ROTATION_LOCKED: {
             bool isLocked = false;
             DMError ret = IsScreenRotationLocked(isLocked);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             reply.WriteBool(isLocked);
             break;
         }
@@ -923,7 +925,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             DisplayId id = static_cast<DisplayId>(data.ReadUint64());
             bool hasPrivateWindow = false;
             DMError ret = HasPrivateWindow(id, hasPrivateWindow);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             reply.WriteBool(hasPrivateWindow);
             break;
         }
@@ -932,28 +934,28 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId rsId = SCREEN_ID_INVALID;
             bool ret = ConvertScreenIdToRsScreenId(screenId, rsId);
             reply.WriteBool(ret);
-            static_cast<void>(reply.WriteUint64(rsId));
+            reply.WriteUint64(rsId);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_HAS_IMMERSIVE_WINDOW: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             bool immersive = false;
             DMError ret = HasImmersiveWindow(screenId, immersive);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             reply.WriteBool(immersive);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_DUMP_ALL_SCREEN: {
             std::string dumpInfo;
             DumpAllScreensInfo(dumpInfo);
-            static_cast<void>(reply.WriteString(dumpInfo));
+            reply.WriteString(dumpInfo);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_DUMP_SPECIAL_SCREEN: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             std::string dumpInfo;
             DumpSpecialScreenInfo(screenId, dumpInfo);
-            static_cast<void>(reply.WriteString(dumpInfo));
+            reply.WriteString(dumpInfo);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE: {
@@ -970,7 +972,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             FoldDisplayMode displayMode = static_cast<FoldDisplayMode>(data.ReadUint32());
             std::string reason = data.ReadString();
             DMError ret = SetFoldDisplayModeFromJs(displayMode, reason);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_LOCK_FOLD_DISPLAY_STATUS: {
@@ -981,7 +983,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_SET_LOCK_FOLD_DISPLAY_STATUS_FROM_JS: {
             bool lockDisplayStatus = static_cast<bool>(data.ReadUint32());
             DMError ret = SetFoldStatusLockedFromJs(lockDisplayStatus);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_TARGET_FOLD_STATUS_AND_LOCK: {
@@ -1017,7 +1019,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         }
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_GET_FOLD_DISPLAY_MODE: {
             FoldDisplayMode displayMode = GetFoldDisplayMode();
-            static_cast<void>(reply.WriteUint32(static_cast<uint32_t>(displayMode)));
+            reply.WriteUint32(static_cast<uint32_t>(displayMode));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_IS_FOLDABLE: {
@@ -1025,7 +1027,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_GET_FOLD_STATUS: {
-            static_cast<void>(reply.WriteUint32(static_cast<uint32_t>(GetFoldStatus())));
+            reply.WriteUint32(static_cast<uint32_t>(GetFoldStatus()));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_GET_SUPER_FOLD_STATUS: {
@@ -1052,17 +1054,20 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_GET_LIVE_CREASE_REGION: {
             FoldCreaseRegion region;
             DMError ret = GetLiveCreaseRegion(region);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             if (ret != DMError::DM_OK) {
+                static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
                 break;
             }
-            static_cast<void>(reply.WriteUint64(region.GetDisplayId()));
             const auto& creaseRects = region.GetCreaseRects();
             uint32_t size = static_cast<uint32_t>(creaseRects.size());
-            if (size > MAX_CREASE_REGION_SIZE) {
+            if (creaseRects.size() > MAX_CREASE_REGION_SIZE) {
                 TLOGE(WmsLogTag::DMS, "CreaseRects size exceeds max limit");
+                ret = DMError::DM_ERROR_IPC_FAILED;
+                static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
                 break;
             }
+            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            static_cast<void>(reply.WriteUint64(region.GetDisplayId()));
             static_cast<void>(reply.WriteUint32(size));
             for (const auto& rect : creaseRects) {
                 static_cast<void>(reply.WriteInt32(rect.posX_));
@@ -1165,7 +1170,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         }
         case DisplayManagerMessage::TRANS_ID_GET_CURVED_SCREEN_COMPRESSION_AREA: {
             auto area = GetCurvedCompressionArea();
-            static_cast<void>(reply.WriteUint32(area));
+            reply.WriteUint32(area);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_PHY_SCREEN_PROPERTY: {
@@ -1216,7 +1221,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             uint32_t width = data.ReadUint32();
             uint32_t height = data.ReadUint32();
             DMError ret = ResizeVirtualScreen(screenId, width, height);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_UPDATE_AVAILABLE_AREA: {
@@ -1257,7 +1262,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_OFF_DELAY_TIME: {
             int32_t delay = data.ReadInt32();
             int32_t ret = SetScreenOffDelayTime(delay);
-            static_cast<void>(reply.WriteInt32(ret));
+            reply.WriteInt32(ret);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_AVAILABLE_AREA: {
@@ -1320,21 +1325,30 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ProcSetVirtualScreenFlag(data, reply);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_REFRESH_RATE: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            uint32_t refreshInterval = data.ReadUint32();
+            DMError ret = SetVirtualScreenRefreshRate(screenId, refreshInterval);
+            reply.WriteInt32(static_cast<int32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_GET_DEVICE_SCREEN_CONFIG: {
             if (!RSMarshallingHelper::Marshalling(reply, GetDeviceScreenConfig())) {
                 TLOGE(WmsLogTag::DMS, "Write deviceScreenConfig failed");
             }
             break;
         }
-        case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_REFRESH_RATE: {
-            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
-            uint32_t refreshInterval = data.ReadUint32();
-            DMError ret = SetVirtualScreenRefreshRate(screenId, refreshInterval);
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
-            break;
-        }
         case DisplayManagerMessage::TRANS_ID_SWITCH_USER: {
             SwitchUser();
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_PROXY_FOR_FREEZE: {
+            ProcProxyForFreeze(data, reply);
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_RESET_ALL_FREEZE_STATUS: {
+            DMError ret = ResetAllFreezeStatus();
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_BLACK_LIST: {
@@ -1360,15 +1374,6 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_DISABLE_POWEROFF_RENDER_CONTROL: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             DisablePowerOffRenderControl(screenId);
-            break;
-        }
-        case DisplayManagerMessage::TRANS_ID_PROXY_FOR_FREEZE: {
-            ProcProxyForFreeze(data, reply);
-            break;
-        }
-        case DisplayManagerMessage::TRANS_ID_RESET_ALL_FREEZE_STATUS: {
-            DMError ret = ResetAllFreezeStatus();
-            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_NOTIFY_DISPLAY_HOOK_INFO: {
@@ -1401,15 +1406,15 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ProcGetAllDisplayPhysicalResolution(data, reply);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_SECURITY_EXEMPTION: {
+            ProcSetVirtualScreenSecurityExemption(data, reply);
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_STATUS: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             VirtualScreenStatus screenStatus = static_cast<VirtualScreenStatus>(data.ReadInt32());
             bool res = SetVirtualScreenStatus(screenId, screenStatus);
             reply.WriteBool(res);
-            break;
-        }
-        case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_SECURITY_EXEMPTION: {
-            ProcSetVirtualScreenSecurityExemption(data, reply);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_MAX_REFRESHRATE: {
@@ -1452,7 +1457,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_ON_DELAY_TIME: {
             int32_t delay = data.ReadInt32();
             int32_t ret = SetScreenOnDelayTime(delay);
-            static_cast<void>(reply.WriteInt32(ret));
+            reply.WriteInt32(ret);
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_SKIP_PROTECTED_WINDOW: {
@@ -1536,6 +1541,20 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ProcSetVirtualScreenAutoRotation(data, reply);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SYNCHRONIZED_POWER_STATUS: {
+            uint32_t stateTemp = 0;
+            if (!data.ReadUint32(stateTemp)) {
+                TLOGE(WmsLogTag::DMS, "Read state failed");
+                return ERR_INVALID_DATA;
+            }
+            ScreenPowerState state = static_cast<ScreenPowerState>(stateTemp);
+            bool res = SynchronizePowerStatus(state);
+            if (!reply.WriteBool(res)) {
+                TLOGE(WmsLogTag::DMS, "Write res failed");
+                return ERR_INVALID_DATA;
+            }
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_PRIVACY_WINDOW_TAG_SWITCH: {
             ScreenId screenId = SCREEN_ID_INVALID;
             if (!data.ReadUint64(screenId)) {
@@ -1554,21 +1573,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             DMError ret = SetScreenPrivacyWindowTagSwitch(screenId, privacyWindowTag, enable);
             if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
-                TLOGE(WmsLogTag::DMS, "Write reault failed");
-                return ERR_INVALID_DATA;
-            }
-            break;
-        }
-        case DisplayManagerMessage::TRANS_ID_SYNCHRONIZED_POWER_STATUS: {
-            uint32_t stateTemp = 0;
-            if (!data.ReadUint32(stateTemp)) {
-                TLOGE(WmsLogTag::DMS, "Read state failed");
-                return ERR_INVALID_DATA;
-            }
-            ScreenPowerState state = static_cast<ScreenPowerState>(stateTemp);
-            bool res = SynchronizePowerStatus(state);
-            if (!reply.WriteBool(res)) {
-                TLOGE(WmsLogTag::DMS, "Write res failed");
+                TLOGE(WmsLogTag::DMS, "Write result failed");
                 return ERR_INVALID_DATA;
             }
             break;
@@ -1599,7 +1604,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             ScreenProperty screenProperty;
             if (!RSMarshallingHelper::Unmarshalling(data, screenProperty)) {
-                TLOGE(WmsLogTag::DMS, "read screenSession failed");
+                TLOGE(WmsLogTag::DMS, "read screenProperty failed");
                 return ERR_INVALID_DATA;
             }
             DMError ret = SyncScreenPropertyChangedToServer(screenId, screenProperty);
@@ -1665,11 +1670,11 @@ void ScreenSessionManagerStub::ProcGetAvailableArea(MessageParcel& data, Message
     DisplayId displayId = static_cast<DisplayId>(data.ReadUint64());
     DMRect area;
     DMError ret = GetAvailableArea(displayId, area);
-    static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
-    static_cast<void>(reply.WriteInt32(area.posX_));
-    static_cast<void>(reply.WriteInt32(area.posY_));
-    static_cast<void>(reply.WriteUint32(area.width_));
-    static_cast<void>(reply.WriteUint32(area.height_));
+    reply.WriteInt32(static_cast<int32_t>(ret));
+    reply.WriteInt32(area.posX_);
+    reply.WriteInt32(area.posY_);
+    reply.WriteUint32(area.width_);
+    reply.WriteUint32(area.height_);
 }
 
 void ScreenSessionManagerStub::ProcGetSnapshotByPicker(MessageParcel& reply)
@@ -1678,11 +1683,11 @@ void ScreenSessionManagerStub::ProcGetSnapshotByPicker(MessageParcel& reply)
     Media::Rect imgRect { 0, 0, 0, 0 };
     std::shared_ptr<Media::PixelMap> snapshot = GetSnapshotByPicker(imgRect, &errCode);
     reply.WriteParcelable(snapshot == nullptr ? nullptr : snapshot.get());
-    static_cast<void>(reply.WriteInt32(static_cast<int32_t>(errCode)));
-    static_cast<void>(reply.WriteInt32(imgRect.left));
-    static_cast<void>(reply.WriteInt32(imgRect.top));
-    static_cast<void>(reply.WriteInt32(imgRect.width));
-    static_cast<void>(reply.WriteInt32(imgRect.height));
+    reply.WriteInt32(static_cast<int32_t>(errCode));
+    reply.WriteInt32(imgRect.left);
+    reply.WriteInt32(imgRect.top);
+    reply.WriteInt32(imgRect.width);
+    reply.WriteInt32(imgRect.height);
 }
 
 void ScreenSessionManagerStub::ProcSetVirtualScreenFlag(MessageParcel& data, MessageParcel& reply)
@@ -1690,14 +1695,22 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenFlag(MessageParcel& data, Mes
     ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
     VirtualScreenFlag screenFlag = static_cast<VirtualScreenFlag>(data.ReadUint32());
     DMError setRet = SetVirtualScreenFlag(screenId, screenFlag);
-    static_cast<void>(reply.WriteInt32(static_cast<int32_t>(setRet)));
+    reply.WriteInt32(static_cast<int32_t>(setRet));
 }
 
 void ScreenSessionManagerStub::ProcGetVirtualScreenFlag(MessageParcel& data, MessageParcel& reply)
 {
     ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
     VirtualScreenFlag screenFlag = GetVirtualScreenFlag(screenId);
-    static_cast<void>(reply.WriteUint32(static_cast<uint32_t>(screenFlag)));
+    reply.WriteUint32(static_cast<uint32_t>(screenFlag));
+}
+
+void ScreenSessionManagerStub::ProcSetVirtualScreenScaleMode(MessageParcel& data, MessageParcel& reply)
+{
+    ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+    ScreenScaleMode scaleMode = static_cast<ScreenScaleMode>(data.ReadUint32());
+    DMError result = SetVirtualMirrorScreenScaleMode(screenId, scaleMode);
+    reply.WriteInt32(static_cast<int32_t>(result));
 }
 
 void ScreenSessionManagerStub::ProcProxyForFreeze(MessageParcel& data, MessageParcel& reply)
@@ -1713,7 +1726,7 @@ void ScreenSessionManagerStub::ProcProxyForFreeze(MessageParcel& data, MessagePa
     }
     bool isProxy = data.ReadBool();
     DMError ret = ProxyForFreeze(pidList, isProxy);
-    static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+    reply.WriteInt32(static_cast<int32_t>(ret));
 }
 
 void ScreenSessionManagerStub::ProcGetAllDisplayPhysicalResolution(MessageParcel& data, MessageParcel& reply)
@@ -1751,7 +1764,7 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenSecurityExemption(MessageParc
     std::vector<uint64_t> windowIdList;
     data.ReadUInt64Vector(&windowIdList);
     DMError ret = SetVirtualScreenSecurityExemption(screenId, pid, windowIdList);
-    static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
+    reply.WriteInt32(static_cast<int32_t>(ret));
 }
 
 void ScreenSessionManagerStub::ProcGetScreenCapture(MessageParcel& data, MessageParcel& reply)
@@ -1766,7 +1779,7 @@ void ScreenSessionManagerStub::ProcGetScreenCapture(MessageParcel& data, Message
         return;
     }
     if (!data.ReadBool(option.isNeedPointer_)) {
-        TLOGE(WmsLogTag::DMS, "Read isCaptureFullOfScreen failed");
+        TLOGE(WmsLogTag::DMS, "Read isNeedPointer_ failed");
         return;
     }
     if (!data.ReadUInt64Vector(&option.blackWindowIdList_)) {
@@ -1830,7 +1843,7 @@ void ScreenSessionManagerStub::ProcGetDisplayHDRSnapshotWithOption(MessageParcel
     DmErrorCode errCode = DmErrorCode::DM_OK;
     std::vector<std::shared_ptr<Media::PixelMap>> captureVec = GetDisplayHDRSnapshotWithOption(option, errCode);
     if (captureVec.size() != PIXMAP_VECTOR_SIZE) {
-        TLOGE(WmsLogTag::DMS, "captureVec size: %{public}zu", captureVec.size());
+        TLOGE(WmsLogTag::DMS, "captureVec size: %{public}u", captureVec.size());
         reply.WriteParcelable(nullptr);
         reply.WriteParcelable(nullptr);
     } else {
@@ -1896,14 +1909,5 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenAutoRotation(MessageParcel& d
     }
     DMError ret = SetVirtualScreenAutoRotation(screenId, enable);
     reply.WriteInt32(static_cast<int32_t>(ret));
-}
-
-IPCPriority ScreenSessionManagerStub::GetIPCPriority(uint32_t code)
-{
-    auto it = EVENT_PRIORITY_MAP.find(static_cast<DisplayManagerMessage>(code));
-    if (it == EVENT_PRIORITY_MAP.end()) {
-        return IPCPriority::LOW;
-    }
-    return it->second;
 }
 } // namespace OHOS::Rosen

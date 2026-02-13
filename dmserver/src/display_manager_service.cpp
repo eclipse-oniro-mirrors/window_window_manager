@@ -69,14 +69,14 @@ int DisplayManagerService::Dump(int fd, const std::vector<std::u16string>& args)
 
 bool DisplayManagerService::Init()
 {
-    TLOGI(WmsLogTag::DMS, "DisplayManagerService::Init start");
+    TLOGI(WmsLogTag::DMS, "start");
     if (DisplayManagerConfig::LoadConfigXml()) {
         DisplayManagerConfig::DumpConfig();
         ConfigureDisplayManagerService();
     }
     abstractScreenController_->Init();
     abstractDisplayController_->Init(abstractScreenController_);
-    TLOGI(WmsLogTag::DMS, "DisplayManagerService::Init success");
+    TLOGI(WmsLogTag::DMS, "success");
     return true;
 }
 
@@ -185,12 +185,7 @@ sptr<DisplayInfo> DisplayManagerService::GetDisplayInfoById(DisplayId displayId)
 {
     sptr<AbstractDisplay> display = abstractDisplayController_->GetAbstractDisplay(displayId);
     if (display == nullptr) {
-        TLOGI(WmsLogTag::DMS, "fail to get displayInfo by id: %{public}" PRIu64 " invalid display", displayId);
-        sptr<DisplayInfo> displayInfo = GetDisplayInfoByScreenId(displayId);
-        if (displayInfo != nullptr) {
-            return displayInfo;
-        }
-        TLOGW(WmsLogTag::DMS, "fail to get displayInfo by screen id: %{public}" PRIu64 " invalid screen", displayId);
+        TLOGE(WmsLogTag::DMS, "fail to get displayInfo by id: invalid display");
         return nullptr;
     }
     return display->ConvertToDisplayInfo();
@@ -219,10 +214,6 @@ sptr<DisplayInfo> DisplayManagerService::GetDisplayInfoByScreen(ScreenId screenI
 ScreenId DisplayManagerService::CreateVirtualScreen(VirtualScreenOption option,
     const sptr<IRemoteObject>& displayManagerAgent)
 {
-    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd() &&
-        !Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION)) {
-        return ERROR_ID_NOT_SYSTEM_APP;
-    }
     if (displayManagerAgent == nullptr) {
         TLOGE(WmsLogTag::DMS, "displayManagerAgent invalid");
         return SCREEN_ID_INVALID;
@@ -254,7 +245,7 @@ DMError DisplayManagerService::DestroyVirtualScreen(ScreenId screenId)
         return DMError::DM_ERROR_INVALID_CALLING;
     }
 
-    TLOGI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64, screenId);
+    TLOGI(WmsLogTag::DMS, "DestroyVirtualScreen::ScreenId: %{public}" PRIu64, screenId);
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
 
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "dms:DestroyVirtualScreen(%" PRIu64 ")", screenId);
@@ -263,7 +254,7 @@ DMError DisplayManagerService::DestroyVirtualScreen(ScreenId screenId)
 
 DMError DisplayManagerService::SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
 {
-    TLOGI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64, screenId);
+    TLOGI(WmsLogTag::DMS, "SetVirtualScreenSurface::ScreenId: %{public}" PRIu64, screenId);
     bool isCallingByThirdParty = Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION);
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
     if (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
@@ -445,7 +436,8 @@ bool DisplayManagerService::SetSpecifiedScreenPower(ScreenId screenId, ScreenPow
     PowerStateChangeReason reason)
 {
     TLOGE(WmsLogTag::DMS, "[UL_POWER]DMS not support SetSpecifiedScreenPower: screen:%{public}" PRIu64
-        ", state:%{public}u", screenId, state);
+        ", "
+        "state:%{public}u", screenId, state);
     return false;
 }
 
@@ -482,7 +474,7 @@ ScreenId DisplayManagerService::GetScreenIdByDisplayId(DisplayId displayId) cons
 {
     sptr<AbstractDisplay> abstractDisplay = abstractDisplayController_->GetAbstractDisplay(displayId);
     if (abstractDisplay == nullptr) {
-        TLOGE(WmsLogTag::DMS, "GetScreenIdByDisplayId: GetAbstractDisplay failed");
+        TLOGE(WmsLogTag::DMS, "GetAbstractDisplay failed");
         return SCREEN_ID_INVALID;
     }
     return abstractDisplay->GetAbstractScreenId();
@@ -513,7 +505,8 @@ bool DisplayManagerService::SetScreenBrightness(uint64_t screenId, uint32_t leve
 uint32_t DisplayManagerService::GetScreenBrightness(uint64_t screenId)
 {
     uint32_t level = static_cast<uint32_t>(RSInterfaces::GetInstance().GetScreenBacklight(screenId));
-    TLOGI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", level:%{public}u,", screenId, level);
+    TLOGD(WmsLogTag::DMS, "GetScreenBrightness screenId:%{public}" PRIu64 ", level:%{public}u,",
+        screenId, level);
     return level;
 }
 
@@ -543,7 +536,7 @@ DMError DisplayManagerService::MakeMirror(ScreenId mainScreenId, std::vector<Scr
         TLOGE(WmsLogTag::DMS, "make mirror permission denied!");
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
-    TLOGI(WmsLogTag::DMS, "mainScreenId :%{public}" PRIu64, mainScreenId);
+    TLOGI(WmsLogTag::DMS, "MakeMirror. mainScreenId :%{public}" PRIu64, mainScreenId);
     auto allMirrorScreenIds = abstractScreenController_->GetAllValidScreenIds(mirrorScreenIds);
     auto iter = std::find(allMirrorScreenIds.begin(), allMirrorScreenIds.end(), mainScreenId);
     if (iter != allMirrorScreenIds.end()) {
@@ -652,21 +645,6 @@ sptr<ScreenInfo> DisplayManagerService::GetScreenInfoById(ScreenId screenId)
     return screen->ConvertToScreenInfo();
 }
 
-sptr<DisplayInfo> DisplayManagerService::GetDisplayInfoByScreenId(ScreenId screenId) const
-{
-    auto screen = abstractScreenController_->GetAbstractScreen(screenId);
-    if (screen == nullptr) {
-        TLOGE(WmsLogTag::DMS, "cannot find screenInfo: %{public}" PRIu64, screenId);
-        return nullptr;
-    }
-    sptr<ScreenInfo> screenInfo = screen->ConvertToScreenInfo();
-    if (screenInfo == nullptr) {
-        TLOGE(WmsLogTag::DMS, "cannot get screenInfo: %{public}" PRIu64, screenId);
-        return nullptr;
-    }
-    return screen->ConvertScreenInfoToDisplayInfo(screenInfo);
-}
-
 sptr<ScreenGroupInfo> DisplayManagerService::GetScreenGroupInfoById(ScreenId screenId)
 {
     auto screenGroup = abstractScreenController_->GetAbstractScreenGroup(screenId);
@@ -711,7 +689,7 @@ DMError DisplayManagerService::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& 
 }
 
 DMError DisplayManagerService::MakeExpand(std::vector<ScreenId> expandScreenIds, std::vector<Point> startPoints,
-                                          ScreenId& screenGroupId)
+    ScreenId& screenGroupId)
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::DMS, "make expand permission denied!");
@@ -883,7 +861,7 @@ std::vector<DisplayPhysicalResolution> DisplayManagerService::GetAllDisplayPhysi
 
 bool DisplayManagerService::SetVirtualScreenAsDefault(ScreenId screenId)
 {
-    TLOGI(WmsLogTag::DMS, "Enter, screenId: %{public}" PRIu64 "", screenId);
+    TLOGI(WmsLogTag::DMS, "Enter, screenId: %{public}" PRIu64, screenId);
     return abstractScreenController_->SetVirtualScreenAsDefault(screenId);
 }
 } // namespace OHOS::Rosen

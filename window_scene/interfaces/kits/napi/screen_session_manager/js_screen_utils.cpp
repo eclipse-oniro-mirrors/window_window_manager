@@ -59,10 +59,6 @@ napi_value JsScreenUtils::CreateJsScreenProperty(napi_env env, const ScreenPrope
     napi_set_named_property(env, objValue, "bounds", CreateJsRRect(env, screenProperty.GetBounds()));
     napi_set_named_property(env, objValue, "fakeBounds", CreateJsRRect(env, screenProperty.GetFakeBounds()));
     napi_set_named_property(env, objValue, "isFakeInUse", CreateJsValue(env, screenProperty.GetIsFakeInUse()));
-    napi_set_named_property(env, objValue, "accessTranslateX", CreateJsValue(env, screenProperty.GetTranslateX()));
-    napi_set_named_property(env, objValue, "accessTranslateY", CreateJsValue(env, screenProperty.GetTranslateY()));
-    napi_set_named_property(env, objValue, "scaleX", CreateJsValue(env, screenProperty.GetScaleX()));
-    napi_set_named_property(env, objValue, "scaleY", CreateJsValue(env, screenProperty.GetScaleY()));
     napi_set_named_property(env, objValue, "rsId", CreateJsValue(env, static_cast<int64_t>(screenProperty.GetRsId())));
     return objValue;
 }
@@ -127,14 +123,18 @@ napi_value JsScreenUtils::CreateJsScreenPropertyChangeReason(napi_env env)
         static_cast<int32_t>(ScreenPropertyChangeReason::RELATIVE_POSITION_CHANGE)));
     napi_set_named_property(env, objValue, "SUPER_FOLD_STATUS_CHANGE", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeReason::SUPER_FOLD_STATUS_CHANGE)));
-    napi_set_named_property(env, objValue, "ACCESS_INFO_CHANGE", CreateJsValue(env,
-        static_cast<int32_t>(ScreenPropertyChangeReason::ACCESS_INFO_CHANGE)));
     napi_set_named_property(env, objValue, "VIRTUAL_PIXEL_RATIO_CHANGE", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeReason::VIRTUAL_PIXEL_RATIO_CHANGE)));
     napi_set_named_property(env, objValue, "FOLD_SCREEN_EXPAND_SWITCH_USER", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND_SWITCH_USER)));
     napi_set_named_property(env, objValue, "FOLD_SCREEN_FOLDING_SWITCH_USER", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING_SWITCH_USER)));
+    napi_set_named_property(env, objValue, "SCREEN_MODE_CHANGE", CreateJsValue(env,
+        static_cast<int32_t>(ScreenPropertyChangeReason::SCREEN_MODE_CHANGE)));
+    napi_set_named_property(env, objValue, "ACTIVE_MODE_CHANGE", CreateJsValue(env,
+        static_cast<int32_t>(ScreenPropertyChangeReason::ACTIVE_MODE_CHANGE)));
+    napi_set_named_property(env, objValue, "RESOLUTION_EFFECT_CHANGE", CreateJsValue(env,
+        static_cast<int32_t>(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE)));
     return objValue;
 }
 

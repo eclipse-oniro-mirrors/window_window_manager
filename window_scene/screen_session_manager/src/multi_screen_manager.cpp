@@ -41,8 +41,7 @@ constexpr uint32_t SCREEN_CONNECT_TIMEOUT = 500;
 }
 MultiScreenManager::MultiScreenManager()
 {
-    TLOGI(WmsLogTag::DMS, "init");
-    lastScreenMode_ = std::make_pair(SCREEN_ID_INVALID, MultiScreenMode::SCREEN_MIRROR);
+    TLOGI(WmsLogTag::DMS, "init multi screen manager");
 }
 
 MultiScreenManager::~MultiScreenManager()
@@ -144,6 +143,7 @@ DMError MultiScreenManager::PhysicalScreenMirrorSwitch(const ScreenId mainScreen
         }
         screenSession->ReuseDisplayNode(config);
         screenSession->SetMirrorScreenRegion(defaultSession->GetRSScreenId(), mirrorRegion);
+        screenSession->EnableMirrorScreenRegion();
         screenSession->SetIsPhysicalMirrorSwitch(true);
         screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
         ScreenSessionManager::GetInstance().SetScreenCastInfo(
@@ -171,6 +171,7 @@ DMError MultiScreenManager::PhysicalScreenUniqueSwitch(const std::vector<ScreenI
         TLOGW(WmsLogTag::DMS, "switch to unique physical ScreenId: %{public}" PRIu64, physicalScreenId);
         RSDisplayNodeConfig config = { screenSession->rsId_, false, INVALID_NODEID };
         screenSession->ReuseDisplayNode(config);
+        screenSession->SetScreenCombination(ScreenCombination::SCREEN_UNIQUE);
         screenSession->SetVirtualPixelRatio(screenSession->GetScreenProperty().GetDefaultDensity());
         {
             std::unique_lock<std::mutex> lock(uniqueScreenMutex_);
@@ -227,7 +228,6 @@ DMError MultiScreenManager::VirtualScreenUniqueSwitch(sptr<ScreenSession> screen
             ScreenSessionManager::GetInstance().NotifyScreenChanged(uniqueScreen->ConvertToScreenInfo(),
                 ScreenChangeEvent::SCREEN_SWITCH_CHANGE);
         }
-        ScreenSessionManager::GetInstance().RemoveScreenCastInfo(uniqueScreenId);
         {
             std::unique_lock<std::mutex> lock(uniqueScreenMutex_);
             if (uniqueScreen != nullptr && (uniqueScreen->GetInnerName() == CUSTOM_SCB_SCREEN_NAME ||
@@ -235,6 +235,7 @@ DMError MultiScreenManager::VirtualScreenUniqueSwitch(sptr<ScreenSession> screen
                     uniqueScreenTimeoutMap_.insert_or_assign(uniqueScreenId, false);
                 }
         }
+        ScreenSessionManager::GetInstance().RemoveScreenCastInfo(uniqueScreenId);
         // virtual screen create callback to notify scb
         ScreenSessionManager::GetInstance().OnVirtualScreenChange(uniqueScreenId, ScreenEvent::CONNECTED,
             rotationOptions);
@@ -251,7 +252,9 @@ void MultiScreenManager::BlockScreenConnect(sptr<ScreenSession>& screenSession, 
     if (screenSession != nullptr && (screenSession->GetInnerName() == CUSTOM_SCB_SCREEN_NAME ||
         screenSession->GetName() == CELIA_VIEW_NAME)) {
         auto func = [this, screenId] {
-            return uniqueScreenTimeoutMap_[screenId];
+            auto it = uniqueScreenTimeoutMap_.find(screenId);
+            return (it == uniqueScreenTimeoutMap_.end()) ? true :
+                uniqueScreenTimeoutMap_[screenId];
         };
         if (!DmUtils::safe_wait_for(uniqueScreenCV_, lock, std::chrono::milliseconds(SCREEN_CONNECT_TIMEOUT), func)) {
             TLOGE(WmsLogTag::DMS, "wait for screen connect timeout, screenId:%{public}" PRIu64,
@@ -436,7 +439,7 @@ void MultiScreenManager::DoFirstMainChange(sptr<ScreenSession> firstSession, spt
     }
     firstSession->SetScreenCombination(ScreenCombination::SCREEN_MAIN);
     ScreenCombination secondaryCombination = secondarySession->GetScreenCombination();
-    TLOGW(WmsLogTag::DMS, "current secondary screen mode:%{public}d", secondaryCombination);
+    TLOGI(WmsLogTag::DMS, "current secondary screen mode: %{public}d", secondaryCombination);
     if (operateType == SCREEN_EXTEND) {
         TLOGW(WmsLogTag::DMS, "exec switch extend");
         if (secondaryCombination == ScreenCombination::SCREEN_MIRROR) {
@@ -466,12 +469,10 @@ void MultiScreenManager::DoFirstMirrorChangeExtend(sptr<IScreenSessionManagerCli
     secondarySession->SetIsExtend(true);
     secondarySession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
 
-    /* change firstSession from mirror to main */
     firstSession->SetScreenCombination(ScreenCombination::SCREEN_MAIN);
     RSDisplayNodeConfig config = { firstSession->screenId_ };
     firstSession->SetIsExtend(false);
     firstSession->ReuseDisplayNode(config);
-    ScreenSessionManager::GetInstance().SetDefaultScreenId(firstSession->GetScreenId());
     SessionOption firstOption = ScreenSessionManager::GetInstance().GetSessionOption(firstSession);
     scbClient->OnScreenConnectionChanged(firstOption, ScreenEvent::CONNECTED);
     /* move secondarySession windows to firstSession */
@@ -490,7 +491,6 @@ void MultiScreenManager::DoFirstMirrorChangeMirror(sptr<IScreenSessionManagerCli
     RSDisplayNodeConfig config = { firstSession->screenId_ };
     firstSession->SetIsExtend(false);
     firstSession->ReuseDisplayNode(config);
-    ScreenSessionManager::GetInstance().SetDefaultScreenId(firstSession->GetScreenId());
     SessionOption firstOption = ScreenSessionManager::GetInstance().GetSessionOption(firstSession);
     scbClient->OnScreenConnectionChanged(firstOption, ScreenEvent::CONNECTED);
 
@@ -516,7 +516,7 @@ void MultiScreenManager::DoFirstMirrorChange(sptr<ScreenSession> firstSession, s
         return;
     }
     if (operateType == SCREEN_EXTEND) {
-        // 1, 7
+        // 1 7
         DoFirstMirrorChangeExtend(scbClient, firstSession, secondarySession);
     } else if (operateType == SCREEN_MIRROR) {
         // 2 3 5 8
@@ -533,7 +533,6 @@ void MultiScreenManager::DoFirstExtendChangeExtend(sptr<ScreenSession> firstSess
     TLOGW(WmsLogTag::DMS, "exec switch extend");
     firstSession->SetIsExtend(false);
     firstSession->SetScreenCombination(ScreenCombination::SCREEN_MAIN);
-    ScreenSessionManager::GetInstance().SetDefaultScreenId(firstSession->GetScreenId());
     /* set secondarySession extend */
     secondarySession->SetIsExtend(true);
     secondarySession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
@@ -556,8 +555,7 @@ void MultiScreenManager::DoFirstExtendChangeMirror(sptr<ScreenSession> firstSess
     TLOGW(WmsLogTag::DMS, "exec switch mirror");
     firstSession->SetIsExtend(false);
     firstSession->SetScreenCombination(ScreenCombination::SCREEN_MAIN);
-    ScreenSessionManager::GetInstance().SetDefaultScreenId(firstSession->GetScreenId());
-    TLOGW(WmsLogTag::DMS, "mainScreenId:%{public}" PRIu64", extendScreenId=%{public}" PRIu64,
+    TLOGI(WmsLogTag::DMS, "mainScreenId:%{public}" PRIu64", extendScreenId=%{public}" PRIu64,
         firstSession->GetScreenId(), secondarySession->GetScreenId());
     firstSession->ScreenExtendChange(firstSession->GetScreenId(), secondarySession->GetScreenId());
     /* move secondarySession windows to firstSession => join two screens window to firstSession */
@@ -585,103 +583,6 @@ void MultiScreenManager::DoFirstExtendChange(sptr<ScreenSession> firstSession, s
         DoFirstExtendChangeMirror(firstSession, secondarySession);
     } else {
         TLOGE(WmsLogTag::DMS, "param error!");
-    }
-}
-
-void MultiScreenManager::SetLastScreenMode(ScreenId mainScreenId, MultiScreenMode secondaryScreenMode)
-{
-    lastScreenMode_.first = mainScreenId;
-    lastScreenMode_.second = secondaryScreenMode;
-    TLOGW(WmsLogTag::DMS, "success, mainScreenId = %{public}" PRIu64
-        ", secondaryScreenMode = %{public}d", lastScreenMode_.first, lastScreenMode_.second);
-}
-
-void MultiScreenManager::InternalScreenOnChange(sptr<ScreenSession> internalSession,
-    sptr<ScreenSession> externalSession)
-{
-    if (internalSession == nullptr || externalSession == nullptr) {
-        TLOGE(WmsLogTag::DMS, "internal or external screen is null!");
-        return;
-    }
-    ScreenId mainScreenId = lastScreenMode_.first;
-    MultiScreenMode secondaryScreenMode = lastScreenMode_.second;
-    if (mainScreenId == SCREEN_ID_INVALID) {
-        TLOGW(WmsLogTag::DMS, "mode not restored, reset last screen mode");
-        ScreenSessionManager::GetInstance().SetLastScreenMode(internalSession, externalSession);
-        return;
-    }
-    ScreenId internalScreenId = ScreenSessionManager::GetInstance().GetInternalScreenId();
-    if (mainScreenId == internalScreenId && secondaryScreenMode == MultiScreenMode::SCREEN_MIRROR) {
-        DoFirstMirrorChange(internalSession, externalSession, SCREEN_MIRROR);
-        TLOGW(WmsLogTag::DMS, "5: external mirror to internal mirror");
-    } else if (mainScreenId == internalScreenId && secondaryScreenMode == MultiScreenMode::SCREEN_EXTEND) {
-        DoFirstMirrorChange(internalSession, externalSession, SCREEN_EXTEND);
-        TLOGW(WmsLogTag::DMS, "7: external mirror to internal extend");
-    } else if (mainScreenId != internalScreenId && secondaryScreenMode == MultiScreenMode::SCREEN_EXTEND) {
-        DoFirstMainChange(externalSession, internalSession, SCREEN_EXTEND);
-        TLOGW(WmsLogTag::DMS, "6: external mirror to external extend");
-    } else {
-        TLOGE(WmsLogTag::DMS, "no need to change or paramater error!");
-    }
-    if (secondaryScreenMode == MultiScreenMode::SCREEN_MIRROR) {
-        MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_ENTER_STR);
-    } else if (secondaryScreenMode == MultiScreenMode::SCREEN_EXTEND) {
-        MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_ENTER_STR);
-    }
-}
-
-void MultiScreenManager::InternalScreenOffChange(sptr<ScreenSession> internalSession,
-    sptr<ScreenSession> externalSession)
-{
-    if (internalSession == nullptr || externalSession == nullptr) {
-        TLOGE(WmsLogTag::DMS, "internal or external screen is null!");
-        return;
-    }
-    ScreenSessionManager::GetInstance().SetLastScreenMode(internalSession, externalSession);
-    ScreenId mainScreenId = lastScreenMode_.first;
-    MultiScreenMode secondaryScreenMode = lastScreenMode_.second;
-    ScreenId internalScreenId = ScreenSessionManager::GetInstance().GetInternalScreenId();
-    if (mainScreenId == internalScreenId && secondaryScreenMode == MultiScreenMode::SCREEN_MIRROR) {
-        DoFirstMirrorChange(externalSession, internalSession, SCREEN_MIRROR);
-        MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_EXIT_STR);
-        TLOGW(WmsLogTag::DMS, "3: internal mirror to external mirror");
-    } else if (mainScreenId == internalScreenId && secondaryScreenMode == MultiScreenMode::SCREEN_EXTEND) {
-        DoFirstExtendChange(externalSession, internalSession, SCREEN_MIRROR);
-        MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_EXIT_STR);
-        TLOGW(WmsLogTag::DMS, "10: internal extend to external mirror");
-    } else if (mainScreenId != internalScreenId && secondaryScreenMode == MultiScreenMode::SCREEN_EXTEND) {
-        DoFirstMainChange(externalSession, internalSession, SCREEN_MIRROR);
-        MultiScreenReportDataToRss(SCREEN_EXTEND, MULTI_SCREEN_EXIT_STR);
-        TLOGW(WmsLogTag::DMS, "14: external extend to external mirror");
-    } else {
-        MultiScreenReportDataToRss(SCREEN_MIRROR, MULTI_SCREEN_EXIT_STR);
-        TLOGE(WmsLogTag::DMS, "no need to change or paramater error!");
-    }
-}
-
-void MultiScreenManager::ExternalScreenDisconnectChange(sptr<ScreenSession> internalSession,
-    sptr<ScreenSession> externalSession)
-{
-    if (internalSession == nullptr || externalSession == nullptr) {
-        TLOGE(WmsLogTag::DMS, "internal or external screen is null!");
-        return;
-    }
-    ScreenCombination internalCombination = internalSession->GetScreenCombination();
-    ScreenCombination externalCombination = externalSession->GetScreenCombination();
-    if (externalCombination != ScreenCombination::SCREEN_MAIN) {
-        DoFirstMainChange(internalSession, externalSession, SCREEN_MIRROR);
-        TLOGW(WmsLogTag::DMS, "12: internal extend to internal mirror");
-        return;
-    }
-    if (internalCombination == ScreenCombination::SCREEN_MIRROR) {
-        DoFirstMirrorChange(internalSession, externalSession, SCREEN_MIRROR);
-        TLOGW(WmsLogTag::DMS, "8: external mirror to internal mirror");
-    } else if (internalCombination == ScreenCombination::SCREEN_EXTEND) {
-        DoFirstExtendChange(internalSession, externalSession, SCREEN_MIRROR);
-        TLOGW(WmsLogTag::DMS, "16: external extend to internal mirror");
-    } else {
-        TLOGE(WmsLogTag::DMS, "paramater error!");
-        return;
     }
 }
 

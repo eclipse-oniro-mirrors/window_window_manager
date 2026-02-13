@@ -76,7 +76,6 @@ private:
     std::set<sptr<IVirtualScreenGroupListener>> virtualScreenGroupListeners_;
     std::set<sptr<IRecordDisplayListener>> recordDisplayListeners_;
     sptr<IDisplayManagerAgent> virtualScreenAgent_ = nullptr;
-    std::mutex virtualScreenAgentMutex_;
 };
 
 class ScreenManager::Impl::ScreenManagerListener : public DisplayManagerAgentDefault {
@@ -88,11 +87,11 @@ public:
     void OnScreenConnect(sptr<ScreenInfo> screenInfo)
     {
         if (screenInfo == nullptr || screenInfo->GetScreenId() == SCREEN_ID_INVALID) {
-            TLOGE(WmsLogTag::DMS, "screenInfo is invalid.");
+            TLOGE(WmsLogTag::DMS, "OnScreenConnect, screenInfo is invalid.");
             return;
         }
         if (pImpl_ == nullptr) {
-            TLOGE(WmsLogTag::DMS, "impl is nullptr.");
+            TLOGE(WmsLogTag::DMS, "OnScreenConnect, impl is nullptr.");
             return;
         }
         pImpl_->NotifyScreenConnect(screenInfo);
@@ -105,11 +104,11 @@ public:
     void OnScreenDisconnect(ScreenId screenId)
     {
         if (screenId == SCREEN_ID_INVALID) {
-            TLOGE(WmsLogTag::DMS, "screenId is invalid.");
+            TLOGE(WmsLogTag::DMS, "OnScreenDisconnect, screenId is invalid.");
             return;
         }
         if (pImpl_ == nullptr) {
-            TLOGE(WmsLogTag::DMS, "impl is nullptr.");
+            TLOGE(WmsLogTag::DMS, "OnScreenDisconnect, impl is nullptr.");
             return;
         }
         pImpl_->NotifyScreenDisconnect(screenId);
@@ -122,14 +121,14 @@ public:
     void OnScreenChange(const sptr<ScreenInfo>& screenInfo, ScreenChangeEvent event)
     {
         if (screenInfo == nullptr) {
-            TLOGE(WmsLogTag::DMS, "screenInfo is null.");
+            TLOGE(WmsLogTag::DMS, "OnScreenChange, screenInfo is null.");
             return;
         }
         if (pImpl_ == nullptr) {
-            TLOGE(WmsLogTag::DMS, "impl is nullptr.");
+            TLOGE(WmsLogTag::DMS, "OnScreenChange, impl is nullptr.");
             return;
         }
-        TLOGD(WmsLogTag::DMS, "event %{public}u", event);
+        TLOGD(WmsLogTag::DMS, "OnScreenChange. event %{public}u", event);
         pImpl_->NotifyScreenChange(screenInfo);
         std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
         for (auto listener: pImpl_->screenListeners_) {
@@ -165,7 +164,10 @@ public:
 
     void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds)
     {
-        TLOGD(WmsLogTag::DMS, "begin");
+        std::string displayIdsString = "";
+        if (StringUtil::VectorToString(displayIds, displayIdsString)) {
+            TLOGW(WmsLogTag::DMS, "displayIds: %{public}s", displayIdsString.c_str());
+        }
         for (auto listener: pImpl_->recordDisplayListeners_) {
             listener->OnChange(displayIds);
         }
@@ -175,10 +177,6 @@ private:
     void NotifyVirtualScreenGroupChanged(sptr<ScreenInfo> screenInfo,
         const std::string trigger, std::vector<ScreenId>& ids, ScreenGroupChangeEvent groupEvent)
     {
-        if (screenInfo == nullptr) {
-            TLOGE(WmsLogTag::DMS, "screenInfo is nullptr");
-            return;
-        }
         // check for invalid scene
         if (pImpl_->virtualScreenGroupListeners_.size() <= 0) {
             TLOGW(WmsLogTag::DMS, "no virtual screen group listeners");
@@ -315,7 +313,7 @@ DMError ScreenManager::Impl::RegisterScreenListener(sptr<IScreenListener> listen
 DMError ScreenManager::RegisterScreenListener(sptr<IScreenListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "RegisterScreenListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->RegisterScreenListener(listener);
@@ -336,7 +334,7 @@ DMError ScreenManager::Impl::UnregisterScreenListener(sptr<IScreenListener> list
 DMError ScreenManager::UnregisterScreenListener(sptr<IScreenListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "UnregisterScreenListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterScreenListener(listener);
@@ -355,7 +353,7 @@ DMError ScreenManager::Impl::RegisterScreenGroupListener(sptr<IScreenGroupListen
 DMError ScreenManager::RegisterScreenGroupListener(sptr<IScreenGroupListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "RegisterScreenGroupListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->RegisterScreenGroupListener(listener);
@@ -376,7 +374,7 @@ DMError ScreenManager::Impl::UnregisterScreenGroupListener(sptr<IScreenGroupList
 DMError ScreenManager::UnregisterScreenGroupListener(sptr<IScreenGroupListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "UnregisterScreenGroupListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterScreenGroupListener(listener);
@@ -435,7 +433,7 @@ DMError ScreenManager::Impl::RegisterVirtualScreenGroupListener(sptr<IVirtualScr
 DMError ScreenManager::RegisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "RegisterVirtualScreenGroupListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->RegisterVirtualScreenGroupListener(listener);
@@ -456,7 +454,7 @@ DMError ScreenManager::Impl::UnregisterVirtualScreenGroupListener(sptr<IVirtualS
 DMError ScreenManager::UnregisterVirtualScreenGroupListener(sptr<IVirtualScreenGroupListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "UnregisterVirtualScreenGroupListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterVirtualScreenGroupListener(listener);
@@ -701,7 +699,6 @@ ScreenId ScreenManager::CreateVirtualScreen(VirtualScreenOption option)
 ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
 {
     //  After the process creating the virtual screen is killed, DMS needs to delete the virtual screen
-    std::lock_guard<std::mutex> agentLock(virtualScreenAgentMutex_);
     if (virtualScreenAgent_ == nullptr) {
         virtualScreenAgent_ = new DisplayManagerAgentDefault();
     }
@@ -876,13 +873,9 @@ bool ScreenManager::Impl::isAllListenersRemoved() const
 void ScreenManager::Impl::OnRemoteDied()
 {
     TLOGD(WmsLogTag::DMS, "dms is died");
-    {
-        std::lock_guard<std::mutex> agentLock(virtualScreenAgentMutex_);
-        virtualScreenAgent_ = nullptr;
-    }
-
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     screenManagerListener_ = nullptr;
+    virtualScreenAgent_ = nullptr;
 }
 
 void ScreenManager::OnRemoteDied()

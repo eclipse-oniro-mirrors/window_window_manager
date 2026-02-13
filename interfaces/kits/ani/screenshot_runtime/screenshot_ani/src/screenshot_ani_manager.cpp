@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 #include "screenshot_ani_manager.h"
- 
+
 #include <hitrace_meter.h>
 #include <algorithm>
- 
+
 #include "ani.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
@@ -26,21 +26,21 @@
 #include "refbase.h"
 #include "screenshot_ani_utils.h"
 #include "ani_err_utils.h"
- 
+
 namespace OHOS::Rosen {
 
 static const uint32_t PIXMAP_VECTOR_SIZE = 2;
 static const uint32_t SDR_PIXMAP = 0;
 static const uint32_t HDR_PIXMAP = 1;
- 
+
 ScreenshotManagerAni::ScreenshotManagerAni()
 {
 }
- 
+
 void ScreenshotManagerAni::InitScreenshotManagerAni(ani_namespace nsp, ani_env* env)
 {
 }
- 
+
 ani_object ScreenshotManagerAni::Save(ani_env* env, ani_object options)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
@@ -73,7 +73,7 @@ ani_object ScreenshotManagerAni::Save(ani_env* env, ani_object options)
     auto nativePixelMap = Media::PixelMapTaiheAni::CreateEtsPixelMap(env, param->image);
     return nativePixelMap;
 }
- 
+
 void ScreenshotManagerAni::GetScreenshot(ani_env *env, std::unique_ptr<Param> &param)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
@@ -101,7 +101,7 @@ void ScreenshotManagerAni::GetScreenshot(ani_env *env, std::unique_ptr<Param> &p
             snapConfig.imageRect_ = param->option.rect;
             snapConfig.imageSize_ = param->option.size;
             snapConfig.rotation_ = param->option.rotation;
-            snapConfig.isCaptureFullOfScreen_ = param->option.isCaptureFullOfScreen;
+            snapConfig.isCaptureFullOfScreen = param->option.isCaptureFullOfScreen;
             param->image = DisplayManager::GetInstance().GetScreenshotwithConfig(snapConfig, &param->wret, true);
         } else if (param->isPick) {
             TLOGI(WmsLogTag::DMS, "Get Screenshot by picker");
@@ -156,7 +156,7 @@ ani_object ScreenshotManagerAni::SaveHdrPicture(ani_env* env, ani_object options
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_SYSTEM_INNORMAL, "findclass system abnormally");
         return nullptr;
     }
-    return ScreenshotAniUtils::CreateArrayPixelMap(env, param->imageVec);
+    return PixelMapAniObject;
 }
 
 void ScreenshotManagerAni::GetHdrScreenshot(ani_env *env, std::unique_ptr<HdrParam> &param)
@@ -209,6 +209,13 @@ ani_object ScreenshotManagerAni::Capture(ani_env* env, ani_object options)
             return nullptr;
         }
         param->option.displayId = static_cast<DisplayId>(displayId);
+        std::vector<uint64_t> blackWindowIds = {};
+        ret = ScreenshotAniUtils::GetBlackWindowIds(env, options, blackWindowIds);
+        if (ANI_OK != ret) {
+            TLOGE(WmsLogTag::DMS, "[ANI] get blackWindowIds failed");
+            return nullptr;
+        }
+        param->option.blackWindowIds = blackWindowIds;
     }
     GetScreenshotCapture(param);
     if (param->wret != DmErrorCode::DM_OK) {
@@ -230,6 +237,7 @@ void ScreenshotManagerAni::GetScreenshotCapture(std::unique_ptr<Param>& param)
     captureOption.displayId_ = param->option.displayId;
     captureOption.isNeedNotify_ = param->option.isNeedNotify;
     captureOption.isNeedPointer_ = param->option.isNeedPointer;
+    captureOption.blackWindowIdList_ = param->option.blackWindowIds;
     TLOGI(WmsLogTag::DMS, "capture option isNeedNotify=%{public}d isNeedPointer=%{public}d",
         captureOption.isNeedNotify_, captureOption.isNeedPointer_);
     param->image = DisplayManager::GetInstance().GetScreenCapture(captureOption, &param->wret);

@@ -43,7 +43,6 @@ ohos_shared_library("screensessionmanager_napi") {
   ]
 
   external_deps = [
-    "ability_runtime:ability_context_native",
     "ability_runtime:app_manager",
     "ability_runtime:runtime",
     "ace_engine:ace_uicontent",

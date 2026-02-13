@@ -1010,13 +1010,6 @@ DmErrorCode GetVirtualScreenOptionFromJs(napi_env env, napi_value optionObject, 
     if (!ConvertFromJsValue(env, supportsFocus, option.supportsFocus_)) {
         TLOGE(WmsLogTag::DMS, "No supportsFocus parameter to convert");
     }
-    napi_value userIdNapiValue = nullptr;
-    if (napi_get_named_property(env, optionObject, "userId", &userIdNapiValue) == napi_ok) {
-        if (!ConvertFromJsValue(env, userIdNapiValue, option.userId_)) {
-            TLOGE(WmsLogTag::DMS, "No userId parameter to convert");
-            return DmErrorCode::DM_ERROR_INVALID_PARAM;
-        }
-    }
     return DmErrorCode::DM_OK;
 }
 

@@ -136,8 +136,8 @@ DMRect DisplayCutoutController::CalcCutoutBoundingRect(std::string svgPath)
     int32_t top = static_cast<int32_t>(skiRect.top());
     uint32_t width = static_cast<uint32_t>(skiRect.width());
     uint32_t height = static_cast<uint32_t>(skiRect.height());
-    TLOGI(WmsLogTag::DMS, "calc rect from path,[%{public}d, %{public}d, %{public}u, %{public}u]", left, top, width,
-        height);
+    TLOGI(WmsLogTag::DMS, "calc rect from path,[%{public}d, %{public}d, %{public}u, %{public}u]",
+        left, top, width, height);
     DMRect cutoutMinOuterRect = {.posX_ = left, .posY_ = top, .width_ = width, .height_ = height};
     return cutoutMinOuterRect;
 }

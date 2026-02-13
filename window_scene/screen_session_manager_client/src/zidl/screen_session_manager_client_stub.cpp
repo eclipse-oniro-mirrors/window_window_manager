@@ -18,6 +18,9 @@
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
+namespace {
+constexpr uint64_t ROTATION_CORRECTION_MAP_MAX_SIZE = 20;
+}  // namespace
 
 void ScreenSessionManagerClientStub::InitScreenChangeMap()
 {
@@ -194,7 +197,7 @@ int ScreenSessionManagerClientStub::OnRemoteRequest(uint32_t code, MessageParcel
 
 int ScreenSessionManagerClientStub::HandleSwitchUserCallback(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleSwitchUserCallback");
     std::vector<int32_t> oldScbPids;
     data.ReadInt32Vector(&oldScbPids);
     int32_t currentScbPid = data.ReadInt32();
@@ -204,7 +207,7 @@ int ScreenSessionManagerClientStub::HandleSwitchUserCallback(MessageParcel& data
 
 int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnScreenConnectionChanged");
     auto rsId = static_cast<ScreenId>(data.ReadUint64());
     auto name = data.ReadString();
     bool isExtend = data.ReadBool();
@@ -216,11 +219,13 @@ int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParce
     if (ReadRotationCorrectionMap(data, rotationCorrectionMap) != ERR_NONE) {
         return ERR_INVALID_DATA;
     }
+
     bool supportsFocus = data.ReadBool();
     UniqueScreenRotationOptions rotationOptions;
     if (ReadRotationOptions(data, rotationOptions) != ERR_NONE) {
         return ERR_INVALID_DATA;
     }
+
     std::map<int32_t, int32_t> rotationOrientationMap;
     if (ReadRotationOrientationMap(data, rotationOrientationMap) != ERR_NONE) {
         return ERR_INVALID_DATA;
@@ -238,8 +243,8 @@ int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParce
         .rotation_ = rotationOptions.rotation_,
         .rotationOrientationMap_ = rotationOrientationMap
     };
-    TLOGD(WmsLogTag::DMS,
-        "ClientStub received callback parameters, isRotationLocked: %{public}d, rotation: %{public}d, "
+
+    TLOGD(WmsLogTag::DMS, "ClientStub received callback parameters, isRotationLocked: %{public}d, rotation: %{public}d,"
         "rotationOrientationMap: %{public}s",
         option.isRotationLocked_, option.rotation_, MapToString(option.rotationOrientationMap_).c_str());
     OnScreenConnectionChanged(option, screenEvent);
@@ -252,6 +257,10 @@ int ScreenSessionManagerClientStub::ReadRotationCorrectionMap(MessageParcel& dat
     uint64_t size = 0;
     if (!data.ReadUint64(size)) {
         TLOGE(WmsLogTag::DMS, "Failed to read size");
+        return ERR_INVALID_DATA;
+    }
+    if (size > ROTATION_CORRECTION_MAP_MAX_SIZE) {
+        TLOGE(WmsLogTag::DMS, "Size exceeds the upper bound");
         return ERR_INVALID_DATA;
     }
     for (uint64_t i = 0; i < size; i++) {
@@ -306,7 +315,7 @@ int ScreenSessionManagerClientStub::ReadRotationOrientationMap(MessageParcel& da
 
 int ScreenSessionManagerClientStub::HandleOnPropertyChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnPropertyChanged");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     ScreenProperty property;
     if (!RSMarshallingHelper::Unmarshalling(data, property)) {
@@ -344,7 +353,7 @@ int ScreenSessionManagerClientStub::HandleOnFoldPropertyChanged(MessageParcel& d
 
 int ScreenSessionManagerClientStub::HandleOnPowerStatusChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnPowerStatusChanged");
     auto event = static_cast<DisplayPowerEvent>(data.ReadUint32());
     auto status = static_cast<EventStatus>(data.ReadUint32());
     auto reason = static_cast<PowerStateChangeReason>(data.ReadUint32());
@@ -354,7 +363,7 @@ int ScreenSessionManagerClientStub::HandleOnPowerStatusChanged(MessageParcel& da
 
 int ScreenSessionManagerClientStub::HandleOnSensorRotationChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnSensorRotationChanged");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto sensorRotation = data.ReadFloat();
     auto isSwitchUser = data.ReadBool();
@@ -366,15 +375,15 @@ int ScreenSessionManagerClientStub::HandleOnScreenExtendChanged(MessageParcel& d
 {
     auto mainScreenId = static_cast<ScreenId>(data.ReadUint64());
     auto extendScreenId = static_cast<ScreenId>(data.ReadUint64());
-    TLOGI(WmsLogTag::DMS, "mainScreenId=%{public}" PRIu64" extendScreenId=%{public}" PRIu64, mainScreenId,
-        extendScreenId);
+    TLOGI(WmsLogTag::DMS, "mainScreenId=%{public}" PRIu64" extendScreenId=%{public}" PRIu64,
+        mainScreenId, extendScreenId);
     OnScreenExtendChanged(mainScreenId, extendScreenId);
     return ERR_NONE;
 }
 
 int ScreenSessionManagerClientStub::HandleOnScreenOrientationChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnScreenOrientationChanged");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto screenOrientation = data.ReadFloat();
     OnScreenOrientationChanged(screenId, screenOrientation);
@@ -383,7 +392,7 @@ int ScreenSessionManagerClientStub::HandleOnScreenOrientationChanged(MessageParc
 
 int ScreenSessionManagerClientStub::HandleOnScreenRotationLockedChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnScreenRotationLockedChanged");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto isLocked = data.ReadBool();
     OnScreenRotationLockedChanged(screenId, isLocked);
@@ -392,7 +401,7 @@ int ScreenSessionManagerClientStub::HandleOnScreenRotationLockedChanged(MessageP
 
 int ScreenSessionManagerClientStub::HandleOnDisplayStateChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnDisplayStateChanged");
     auto defaultDisplayId = static_cast<DisplayId>(data.ReadUint64());
     auto displayInfo = data.ReadStrongParcelable<DisplayInfo>();
     auto mapSize = data.ReadUint32();
@@ -409,7 +418,7 @@ int ScreenSessionManagerClientStub::HandleOnDisplayStateChanged(MessageParcel& d
 
 int ScreenSessionManagerClientStub::HandleOnUpdateFoldDisplayMode(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnUpdateFoldDisplayMode");
     auto foldDisplayMode = static_cast<FoldDisplayMode>(data.ReadUint32());
     OnUpdateFoldDisplayMode(foldDisplayMode);
     return ERR_NONE;
@@ -451,7 +460,7 @@ int ScreenSessionManagerClientStub::HandleOnVirtualScreenDisconnected(MessagePar
 
 int ScreenSessionManagerClientStub::HandleOnScreenshot(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnScreenshot");
     auto displayId = static_cast<DisplayId>(data.ReadUint64());
     OnScreenshot(displayId);
     return ERR_NONE;
@@ -467,7 +476,7 @@ int ScreenSessionManagerClientStub::HandleTentModeChange(MessageParcel& data, Me
 
 int ScreenSessionManagerClientStub::HandleOnImmersiveStateChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnImmersiveStateChanged");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     bool immersive = false;
     OnImmersiveStateChanged(screenId, immersive);
@@ -480,7 +489,7 @@ int ScreenSessionManagerClientStub::HandleOnImmersiveStateChanged(MessageParcel&
 
 int ScreenSessionManagerClientStub::HandleOnSetDisplayNodeScreenId(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnSetDisplayNodeScreenId");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto displayNodeScreenId = static_cast<ScreenId>(data.ReadUint64());
     SetDisplayNodeScreenId(screenId, displayNodeScreenId);
@@ -489,7 +498,7 @@ int ScreenSessionManagerClientStub::HandleOnSetDisplayNodeScreenId(MessageParcel
 
 int ScreenSessionManagerClientStub::HandleSetVirtualPixelRatioSystem(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleSetVirtualPixelRatioSystem");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     float virtualPixelRatio = data.ReadFloat();
     SetVirtualPixelRatioSystem(screenId, virtualPixelRatio);
@@ -506,7 +515,7 @@ int ScreenSessionManagerClientStub::HandleOnFoldStatusChangedReportUE(MessagePar
 
 int ScreenSessionManagerClientStub::HandleOnHoverStatusChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnHoverStatusChanged");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto hoverStatus = data.ReadInt32();
     auto needRotate = data.ReadBool();
@@ -526,7 +535,7 @@ int ScreenSessionManagerClientStub::HandleScreenCaptureNotify(MessageParcel& dat
 
 int ScreenSessionManagerClientStub::HandleOnCameraBackSelfieChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "HandleOnCameraBackSelfieChanged");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     bool isCameraBackSelfie = data.ReadBool();
     OnCameraBackSelfieChanged(screenId, isCameraBackSelfie);
@@ -546,9 +555,9 @@ int ScreenSessionManagerClientStub::HandleOnSuperFoldStatusChanged(MessageParcel
 int ScreenSessionManagerClientStub::HandleOnSecondaryReflexionChanged(MessageParcel& data, MessageParcel& reply)
 {
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
-    auto isSecondaryReflexion = static_cast<bool>(data.ReadUint32());
-    TLOGI(WmsLogTag::DMS, "secondary reflexion screenId=%{public}" PRIu64", isSecondaryReflexion=%{public}d.",
-        screenId, static_cast<uint32_t>(isSecondaryReflexion));
+    auto isSecondaryReflexion = data.ReadBool();
+    TLOGI(WmsLogTag::DMS, "secondary reflexion screenId=%{public}" PRIu64", isSecondaryReflexion="
+        "%{public}d.", screenId, static_cast<uint32_t>(isSecondaryReflexion));
     OnSecondaryReflexionChanged(screenId, isSecondaryReflexion);
     return ERR_NONE;
 }

@@ -34,7 +34,7 @@ public:
     virtual ~ClientAgentContainer() = default;
 
     bool RegisterAgent(const sptr<T1>& agent, T2 type);
-    bool RegisterAttributeAgent(uintptr_t key, const sptr<T1>& agent, std::vector<T2>& attributes);
+    bool RegisterAttributeAgent(uintptr_t key, const sptr<T1>& agent, const std::vector<T2>& attributes);
     bool UnregisterAgent(const sptr<T1>& agent, T2 type);
     bool UnRegisterAllAttributeAgent(uintptr_t key, const sptr<T1>& agent);
     bool UnRegisterAttribute(uintptr_t key, const sptr<T1>& agent, const std::vector<T2>& attributesOff);
@@ -94,7 +94,7 @@ bool ClientAgentContainer<T1, T2>::RegisterAgent(const sptr<T1>& agent, T2 type)
 
 template<typename T1, typename T2>
 bool ClientAgentContainer<T1, T2>::RegisterAttributeAgent(uintptr_t key, const sptr<T1>& agent,
-    std::vector<T2>& attributes)
+    const std::vector<T2>& attributes)
 {
     TLOGI(WmsLogTag::DMS, "called");
     std::lock_guard<std::recursive_mutex> lock(mutex_);

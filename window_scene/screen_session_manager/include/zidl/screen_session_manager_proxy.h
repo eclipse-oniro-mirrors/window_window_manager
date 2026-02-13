@@ -58,7 +58,7 @@ public:
     virtual DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type) override;
 
-    virtual DMError RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+    virtual DMError RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent>& displayManagerAgent) override;
     virtual DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent>& displayManagerAgent) override;
@@ -79,6 +79,7 @@ public:
     virtual bool TryToCancelScreenOff() override;
     ScreenId CreateVirtualScreen(VirtualScreenOption option,
         const sptr<IRemoteObject>& displayManagerAgent) override;
+    virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) override;
 
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false) override;
 
@@ -165,7 +166,6 @@ public:
     virtual void DumpSpecialScreenInfo(ScreenId id, std::string& dumpInfo) override;
     //Fold Screen
     void SetFoldDisplayMode(const FoldDisplayMode displayMode) override;
-    void SetFoldDisplayModeAsync(const FoldDisplayMode displayMode) override;
     DMError SetFoldDisplayModeFromJs(const FoldDisplayMode displayMode, std::string reason = "") override;
 
     void SetDisplayScale(ScreenId screenId, float scaleX, float scaleY,
@@ -224,22 +224,21 @@ public:
     void SetPowerStateForAod(ScreenPowerState state) override;
     void RecordEventFromScb(std::string description, bool needRecordEvent) override;
     void SwitchUser() override;
-
     VirtualScreenFlag GetVirtualScreenFlag(ScreenId screenId) override;
     DMError SetVirtualScreenFlag(ScreenId screenId, VirtualScreenFlag screenFlag) override;
-    DeviceScreenConfig GetDeviceScreenConfig() override;
     DMError SetVirtualScreenRefreshRate(ScreenId screenId, uint32_t refreshInterval) override;
+    DeviceScreenConfig GetDeviceScreenConfig() override;
+    DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy) override;
+    DMError ResetAllFreezeStatus() override;
     void SetVirtualScreenBlackList(ScreenId screenId, std::vector<uint64_t>& windowIdList,
         std::vector<uint64_t> surfaceIdList = {}, std::vector<uint8_t> typeBlackList = {}) override;
     void SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag) override;
     void DisablePowerOffRenderControl(ScreenId screenId) override;
-    DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy) override;
-    DMError ResetAllFreezeStatus() override;
     std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution() override;
     DMError GetDisplayCapability(std::string& capabilitInfo) override;
-    bool SetVirtualScreenStatus(ScreenId screenId, VirtualScreenStatus screenStatus) override;
     DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
         std::vector<uint64_t>& windowIdList) override;
+    bool SetVirtualScreenStatus(ScreenId screenId, VirtualScreenStatus screenStatus) override;
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
     std::shared_ptr<Media::PixelMap> GetScreenCapture(const CaptureOption& captureOption,

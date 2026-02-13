@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef OHOS_ROSEN_WINDOW_SCENE_DUAL_DISPLAY_FOLD_POLICY_H
-#define OHOS_ROSEN_WINDOW_SCENE_DUAL_DISPLAY_FOLD_POLICY_H
+#ifndef OHOS_ROSEN_WINDOW_SCENE_DUAL_DISPLAY_POLICY_H
+#define OHOS_ROSEN_WINDOW_SCENE_DUAL_DISPLAY_POLICY_H
 
 #include <refbase.h>
 
@@ -50,7 +50,6 @@ private:
     void ChangeScreenDisplayModeToCoordination();
     void ChangeScreenDisplayModeProc(sptr<ScreenSession> screenSession, FoldDisplayMode displayMode);
     void RecoverWhenBootAnimationExit();
-    void TriggerScreenDisplayModeUpdate(FoldDisplayMode displayMode);
     void ReportFoldDisplayModeChange(FoldDisplayMode displayMode);
     void ReportFoldStatusChangeBegin(int32_t offScreen, int32_t onScreen);
     void ChangeOnTentMode(FoldStatus currentState) override;
@@ -64,4 +63,4 @@ private:
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
 };
 } // namespace OHOS::Rosen
-#endif //OHOS_ROSEN_WINDOW_SCENE_DUAL_DISPLAY_FOLD_POLICY_H
+#endif //OHOS_ROSEN_WINDOW_SCENE_DUAL_DISPLAY_DEVICE_POLICY_H

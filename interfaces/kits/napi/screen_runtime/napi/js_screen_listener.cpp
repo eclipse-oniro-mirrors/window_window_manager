@@ -132,7 +132,7 @@ void JsScreenListener::OnConnect(ScreenId id)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreenListener::OnConnect");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(id))};
@@ -165,7 +165,7 @@ void JsScreenListener::OnDisconnect(ScreenId id)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreenListener::OnDisconnect");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(id))};
@@ -198,7 +198,7 @@ void JsScreenListener::OnChange(ScreenId id)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreenListener::OnChange");
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGNE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
+            TLOGE(WmsLogTag::DMS, "[NAPI]this listener or env is nullptr");
             return;
         }
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(id))};

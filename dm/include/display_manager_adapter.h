@@ -19,6 +19,9 @@
 #include <mutex>
 #include <surface.h>
 
+#include <iremote_stub.h>
+#include <iremote_proxy.h>
+#include <iremote_object.h>
 #include "display.h"
 #include "dm_common.h"
 #include "fold_screen_info.h"
@@ -30,6 +33,20 @@
 #include "zidl/screen_session_manager_interface.h"
 
 namespace OHOS::Rosen {
+
+class IReverseDeathAgent : public IRemoteBroker {
+public:
+    DECLARE_INTERFACE_DESCRIPTOR(u"ReverseDeathAgent");
+};
+
+class ReverseDeathStub : public IRemoteStub<IReverseDeathAgent> {
+public:
+};
+
+class ReverseDeathProxy : public IRemoteProxy<IReverseDeathAgent> {
+public:
+};
+
 class BaseAdapter {
 public:
     virtual ~BaseAdapter();
@@ -39,13 +56,15 @@ public:
         DisplayManagerAgentType type);
     virtual void Clear();
 protected:
-    bool InitDMSProxy();
+    virtual bool InitDMSProxy();
+    virtual bool RegisterClientDeathListener();
     std::recursive_mutex mutex_;
     sptr<IScreenSessionManager> screenSessionManagerServiceProxy_ = nullptr;
     sptr<IDisplayManager> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;
     bool isProxyValid_ = false;
     static inline DMError ConvertToDMError(ErrCode errCode, int32_t dmError);
+    sptr<ReverseDeathStub> reverseDeathStub_ = nullptr;
 };
 
 class DMSDeathRecipient : public IRemoteObject::DeathRecipient {
@@ -94,7 +113,6 @@ public:
     virtual FoldStatus GetFoldStatus();
     virtual FoldDisplayMode GetFoldDisplayMode();
     virtual void SetFoldDisplayMode(const FoldDisplayMode);
-    virtual void SetFoldDisplayModeAsync(const FoldDisplayMode);
     virtual DMError SetFoldDisplayModeFromJs(const FoldDisplayMode, std::string reason = "");
     virtual void SetDisplayScale(ScreenId screenId, float scaleX, float scaleY, float pivotX, float pivotY);
     virtual void SetFoldStatusLocked(bool locked);
@@ -102,14 +120,14 @@ public:
     virtual DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus);
     virtual DMError RestorePhysicalFoldStatus();
     virtual sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
+    virtual DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy);
+    virtual DMError ResetAllFreezeStatus();
     virtual DMError GetLiveCreaseRegion(FoldCreaseRegion& region);
     virtual void SetVirtualScreenBlackList(ScreenId screenId, std::vector<uint64_t>& windowIdList,
         std::vector<uint64_t> surfaceIdList = {}, std::vector<uint8_t> typeBlackList = {});
     virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
     virtual void SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag);
     virtual void DisablePowerOffRenderControl(ScreenId screenId);
-    virtual DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy);
-    virtual DMError ResetAllFreezeStatus();
     virtual std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution();
     virtual DMError GetDisplayCapability(std::string& capabilitInfo);
     virtual DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
@@ -131,11 +149,12 @@ public:
     virtual DMError GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner, DisplayId displayId,
         int32_t width, int32_t height);
     virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName);
-    virtual DMError RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+    virtual DMError RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent> displayManagerAgent);
     virtual DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent> displayManagerAgent);
-    
+protected:
+    bool RegisterClientDeathListener() override;
 private:
     static inline SingletonDelegator<DisplayManagerAdapter> delegator;
 };

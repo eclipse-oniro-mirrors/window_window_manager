@@ -168,7 +168,7 @@ public:
      * @return DM error codes.
      */
     DMError HasImmersiveWindow(bool& immersive);
-    
+
     /**
      * @brief get available area of the display.(the screen area without dock and statusbar)
      * @param area available area of the screen.
@@ -207,9 +207,9 @@ public:
     DMError GetLiveCreaseRegion(FoldCreaseRegion& region) const;
 
     /**
-     * @brief Set the display info env
+     * @brief Set the display info env.
      * @param env Pointer to the display environment configuration data.
-     * @param type Type of the enviroment configuration, determines how env is interpreted.
+     * @param type Type of the environment configuration, determines how env is interpreted.
      */
     void SetDisplayInfoEnv(void* env, EnvType type);
 

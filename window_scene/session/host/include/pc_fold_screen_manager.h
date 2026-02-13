@@ -60,9 +60,9 @@ public:
         const WSRect& defaultDisplayRect, const WSRect& virtualDisplayRect, const WSRect& foldCreaseRect);
     SuperFoldStatus GetScreenFoldStatus() const;
     SuperFoldStatus GetScreenFoldStatus(DisplayId displayId) const;
+    bool IsPcFoldScreen(DisplayId displayId) const;
     bool IsHalfFolded(DisplayId displayId) const;
     bool IsHalfFoldedOnMainDisplay(DisplayId displayId) const;
-    bool IsPcFoldScreen(DisplayId displayId) const;
     
     void UpdateSystemKeyboardStatus(bool hasSystemKeyboard);
     bool HasSystemKeyboard() const;

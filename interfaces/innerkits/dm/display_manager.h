@@ -38,7 +38,7 @@ struct SnapShotConfig {
     Media::Size imageSize_;
     Media::Rect imageRect_;
     int rotation_;
-    bool isCaptureFullOfScreen_ = false;
+    bool isCaptureFullOfScreen = false;
 };
 
 class DisplayManager {
@@ -477,7 +477,7 @@ public:
      * @param listener IDisplayAttributeListener.
      * @return DM_OK means register success, others means register failed.
      */
-    DMError RegisterDisplayAttributeListener(std::vector<std::string>& attributes,
+    DMError RegisterDisplayAttributeListener(const std::vector<std::string>& attributes,
         sptr<IDisplayAttributeListener> listener);
 
     /**
@@ -731,7 +731,7 @@ public:
     /**
      * @brief Get the current fold status of the foldable device.
      *
-     * @return locked fold status if set; otherwise, return the current(actual) fold status.
+     * @return locked fold status if set; otherwise, return the current (actual) fold status.
      */
     FoldStatus GetFoldStatus();
 
@@ -755,13 +755,6 @@ public:
      * @param mode target display mode to change.
      */
     void SetFoldDisplayMode(const FoldDisplayMode mode);
-
-    /**
-     * @brief Change the display mode of the foldable device asynchronously.
-     *
-     * @param mode target display mode to change.
-     */
-    void SetFoldDisplayModeAsync(const FoldDisplayMode mode);
 
     /**
      * @brief Change the display mode of the foldable device from js.
@@ -802,14 +795,14 @@ public:
      * @brief Locked fold and set to target fold status
      *
      * @param foldstatus specify fold status to switch to
-     * @return DM_OK means set success, others means set failed
+     * @return DM_OK means set success, others means set failed.
      */
     DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus);
 
     /**
-     * @brief Unlock fold status and restore display mode to actual physical fold status
+     * @brief Unlock the fold status and restore the display mode to the actual physical fold status
      *
-     * @return DM_OK means set success, others means set failed
+     * @return DM_OK means set success, others means set failed.
      */
     DMError RestorePhysicalFoldStatus();
 
@@ -1043,8 +1036,8 @@ public:
     /**
      * @brief Get supportsInput of display
      *
-     * @param DisplayId displayId.
-     * @param bool supportsInput.
+     * @param displayId DisplayId.
+     * @param supportsInput bool.
      * @return DM_OK means the get operation succeeds.
      */
     DMError GetSupportsInput(DisplayId displayId, bool& supportsInput);
@@ -1052,8 +1045,8 @@ public:
     /**
      * @brief Set supportsInput of display
      *
-     * @param DisplayId displayId.
-     * @param bool supportsInput.
+     * @param displayId DisplayId.
+     * @param supportsInput bool.
      * @return DM_OK means the set operation succeeds.
      */
     DMError SetSupportsInput(DisplayId displayId, bool supportsInput);

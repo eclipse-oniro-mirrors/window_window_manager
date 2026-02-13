@@ -19,7 +19,6 @@
 
 #include <vector>
 #include <map>
-
 #include <refbase.h>
 #include <screen_manager/screen_types.h>
 #include <ui/rs_display_node.h>
@@ -27,7 +26,6 @@
 #include <ui/rs_ui_context.h>
 #include <ui/rs_ui_director.h>
 
-#include "display_info.h"
 #include "noncopyable.h"
 #include "screen.h"
 #include "screen_group.h"
@@ -53,7 +51,6 @@ public:
     float GetVirtualPixelRatio() const;
     bool SetSourceMode(ScreenSourceMode sourceMode);
     ScreenSourceMode GetSourceMode() const;
-    DisplaySourceMode GetDisplaySourceMode() const;
 
     void UpdateRSTree(std::shared_ptr<RSSurfaceNode>& surfaceNode, bool isAdd, bool needToUpdate = true);
     DMError AddSurfaceNode(std::shared_ptr<RSSurfaceNode>& surfaceNode, bool onTop, bool needToRecord = true);
@@ -64,8 +61,6 @@ public:
     void InitRSDefaultDisplayNode(const RSDisplayNodeConfig& config, const Point& startPoint);
     void UpdateRSDisplayNode(Point startPoint, const sptr<AbstractScreen>& absScreen);
     ScreenId GetScreenGroupId() const;
-    sptr<DisplayInfo> ConvertScreenInfoToDisplayInfo(const sptr<ScreenInfo>& info) const;
-    void FillDisplayInfoByScreenInfo(sptr<DisplayInfo> displayInfo, const sptr<ScreenInfo>& info) const;
 
     // colorspace, gamut
     DMError GetScreenSupportedColorGamuts(std::vector<ScreenColorGamut>& colorGamuts);
