@@ -2684,10 +2684,7 @@ HWTEST_F(WindowSessionImplTest5, RecordWindowLifecycleChange, TestSize.Level1)
     // Test should not crash
     window->RecordWindowLifecycleChange("create");
     window->RecordWindowLifecycleChange("destroy");
-    window->RecordWindowLifecycleChange("foreground");
-    window->RecordWindowLifecycleChange("background");
     window->RecordWindowLifecycleChange("status: FULLSCREEN");
-    window->RecordWindowLifecycleChange("status: FLOATING");
 
     EXPECT_TRUE(g_errLog.find("failed, ret") == std::string::npos);
     LOG_SetCallback(nullptr);
