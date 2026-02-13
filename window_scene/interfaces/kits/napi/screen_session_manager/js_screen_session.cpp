@@ -577,8 +577,8 @@ void JsScreenSession::CallJsCallback(const std::string& callbackType)
                     callbackType.c_str());
                 return;
             }
-            napi_value argv[] = { JsScreenUtils::CreateJsScreenProperty(
-                env, screenSession->GetScreenProperty()), CreateJsValue(env, screenSession->IsBootingConnect()) };
+            napi_value argv[] = { JsScreenUtils::CreateJsScreenProperty(env, screenSession->GetScreenProperty()),
+                CreateJsValue(env, screenSession->IsBootingConnect()) };
             napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
         } else {
             napi_value argv[] = {};
