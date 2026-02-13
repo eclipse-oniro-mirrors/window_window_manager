@@ -681,13 +681,13 @@ bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sess
     napi_value jsIsNewAppInstance = nullptr;
     napi_get_named_property(env, jsObject, "isNewAppInstance", &jsIsNewAppInstance);
     napi_value jsInstanceKey = nullptr;
-    napi_get_named_property(env, jsObject, "instanceKey", &jsInstanceKey);
+    napi_get_named_property(env, jsObject, "appInstanceKey", &jsInstanceKey);
     napi_value jsIsAbilityHook = nullptr;
     napi_get_named_property(env, jsObject, "isAbilityHook", &jsIsAbilityHook);
     napi_value jsRequestId = nullptr;
     napi_get_named_property(env, jsObject, "requestId", &jsRequestId);
     napi_value jsSpecifiedReason = nullptr;
-    napi_get_named_property(env, jsObject, "specifiedReason", &jsRequestId);
+    napi_get_named_property(env, jsObject, "specifiedReason", &jsSpecifiedReason);
     napi_value jsIsAncoApplication = nullptr;
     napi_get_named_property(env, jsObject, "isAncoApplication", &jsIsAncoApplication);
     if (!IsJsBundleNameUndefind(env, jsBundleName, sessionInfo)) {
