@@ -2681,8 +2681,8 @@ void ScreenSessionManager::HandleSuperFoldDisplayInfoWhenKeyboardOn(
     const sptr<ScreenSession>& screenSession, sptr<DisplayInfo>& displayInfo)
 {
 #ifdef FOLD_ABILITY_ENABLE
-    if (screenSession == nullptr) {
-        TLOGNFI(WmsLogTag::DMS, "screenSession is nullptr");
+    if (screenSession == nullptr || !screenSession->GetIsInternal()) {
+        TLOGNFI(WmsLogTag::DMS, "screenSession is nullptr or is not internal");
         return;
     }
     if (displayInfo == nullptr) {
