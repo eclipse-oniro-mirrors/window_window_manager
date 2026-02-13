@@ -1637,7 +1637,7 @@ bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, Compati
 {
     std::map<std::string, void (CompatibleModeProperty::*)(bool)> funcs = {
         {"isAdaptToImmersive", &CompatibleModeProperty::SetIsAdaptToImmersive},
-        {"isAdaptToEventMapping", &CompatibleModeProperty::SetIsAdaptToProportionalScale},
+        {"isAdaptToEventMapping", &CompatibleModeProperty::SetIsAdaptToEventMapping},
         {"isAdaptToProportionalScale", &CompatibleModeProperty::SetIsAdaptToProportionalScale},
         {"isAdaptToBackButton", &CompatibleModeProperty::SetIsAdaptToBackButton},
         {"isAdaptToDragScale", &CompatibleModeProperty::SetIsAdaptToDragScale},
