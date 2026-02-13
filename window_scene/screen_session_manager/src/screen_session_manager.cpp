@@ -3317,7 +3317,7 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
                     << " , hAW: " << hookInfo.actualRect_.width_ << ", hAH: " << hookInfo.actualRect_.height_;
                 std::regex pattern("%");
                 TLOGD(WmsLogTag::DMS, "update hookinfo %{public}s",
-                    std::regex_replace(oss.str(), pattern, "%%").c_str())
+                    std::regex_replace(oss.str(), pattern, "%%").c_str());
             }
         } else {
             displayHookMap_.erase(uid);
