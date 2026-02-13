@@ -1270,7 +1270,7 @@ struct HookInfo {
     uint32_t displayOrientation_;
     bool enableHookDisplayOrientation_;
     Rect actualRect_ = { 0, 0, 0, 0};
-
+    
     std::string ToString() const
     {
         std::ostringstream oss;
