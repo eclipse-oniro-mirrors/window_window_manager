@@ -2671,6 +2671,9 @@ HWTEST_F(WindowSessionImplTest5, UpdateWindowUIType, TestSize.Level1)
  */
 HWTEST_F(WindowSessionImplTest5, RecordWindowLifecycleChange, TestSize.Level1)
 {
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("RecordWindowLifecycleChange");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
@@ -2685,6 +2688,9 @@ HWTEST_F(WindowSessionImplTest5, RecordWindowLifecycleChange, TestSize.Level1)
     window->RecordWindowLifecycleChange("background");
     window->RecordWindowLifecycleChange("status: FULLSCREEN");
     window->RecordWindowLifecycleChange("status: FLOATING");
+
+    EXPECT_TRUE(g_errLog.find("failed, ret") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
