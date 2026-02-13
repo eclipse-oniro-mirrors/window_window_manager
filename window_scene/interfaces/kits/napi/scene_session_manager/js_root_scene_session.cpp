@@ -469,6 +469,15 @@ void JsRootSceneSession::PendingSessionActivation(SessionInfo& info)
 void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
     const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs)
 {
+    std::vector<sptr<SceneSession>> sceneSessions;
+    size_t index = 0;
+    if (!configs.empty() && sessionInfos.size() != configs.size()) {
+        TLOGE(WmsLogTag::WMS_LIFE,
+            "The caller Param is illegal parameters. sessionInfos: %{public}zu configs: %{public}zu",
+            sessionInfos.size(), configs.size());
+        return;
+    }
+    
     for (auto& info : sessionInfos) {
         if (info == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "sessionInfo is null");
@@ -478,7 +487,26 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             "appIndex %{public}d, reuse %{public}d, requestId %{public}d, specifiedFlag %{public}s",
             info->bundleName_.c_str(), info->moduleName_.c_str(),
             info->abilityName_.c_str(), info->appIndex_, info->reuse, info->requestId, info->specifiedFlag_.c_str());
+        auto sceneSession = GenSceneSession(*info);
+        if (sceneSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "GenSceneSession failed");
+            return;
+        }
+ 
         if (info->want != nullptr) {
+            bool isNeedBackToOther = info->want->GetBoolParam(AAFwk::Want::PARAM_BACK_TO_OTHER_MISSION_STACK, false);
+            TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d isNeedBackToOther: %{public}d",
+                  sceneSession->GetPersistentId(), isNeedBackToOther);
+            if (isNeedBackToOther) {
+                info->callerPersistentId_ = GetRealCallerSessionId(sceneSession);
+                VerifyCallerToken(*info);
+            } else {
+                info->callerPersistentId_ = INVALID_SESSION_ID;
+            }
+ 
+            auto focusedOnShow = info->want->GetBoolParam(AAFwk::Want::PARAM_RESV_WINDOW_FOCUSED, true);
+            sceneSession->SetFocusedOnShow(focusedOnShow);
+ 
             std::string continueSessionId =
                 info->want->GetStringParam(Rosen::PARAM_KEY::PARAM_DMS_CONTINUE_SESSION_ID_KEY);
             if (!continueSessionId.empty()) {

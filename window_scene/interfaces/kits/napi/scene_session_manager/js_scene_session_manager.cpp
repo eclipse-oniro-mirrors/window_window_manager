@@ -316,10 +316,10 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::SetIsWindowRectAutoSave);
     BindNativeFunction(env, exportObj, "notifyAboveLockScreen", moduleName,
         JsSceneSessionManager::NotifyAboveLockScreen);
-    BindNativeFunction(env, exportObj, "setStatusBarAvoidHeight", moduleName,
-        JsSceneSessionManager::SetStatusBarAvoidHeight);
     BindNativeFunction(env, exportObj, "cloneWindow", moduleName,
         JsSceneSessionManager::CloneWindow);
+    BindNativeFunction(env, exportObj, "setStatusBarAvoidHeight", moduleName,
+        JsSceneSessionManager::SetStatusBarAvoidHeight);
     BindNativeFunction(env, exportObj, "registerSingleHandContainerNode", moduleName,
         JsSceneSessionManager::RegisterSingleHandContainerNode);
     BindNativeFunction(env, exportObj, "notifyRotationChange", moduleName,
@@ -334,12 +334,12 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::UpdateRsCmdBlockingCount);
     BindNativeFunction(env, exportObj, "supportZLevel", moduleName,
         JsSceneSessionManager::SupportZLevel);
-    BindNativeFunction(env, exportObj, "setSupportFunctionType", moduleName,
-        JsSceneSessionManager::SetSupportFunctionType);
     BindNativeFunction(env, exportObj, "supportCreateFloatWindow", moduleName,
         JsSceneSessionManager::SupportCreateFloatWindow);
     BindNativeFunction(env, exportObj, "updateRecentMainSessionList", moduleName,
         JsSceneSessionManager::UpdateRecentMainSessionInfos);
+    BindNativeFunction(env, exportObj, "setSupportFunctionType", moduleName,
+        JsSceneSessionManager::SetSupportFunctionType);
     BindNativeFunction(env, exportObj, "supportSnapshotAllSessionStatus", moduleName,
         JsSceneSessionManager::SupportSnapshotAllSessionStatus);
     BindNativeFunction(env, exportObj, "supportCacheLockedSessionSnapshot", moduleName,
@@ -354,18 +354,18 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::SetPiPSettingSwitchStatus);
     BindNativeFunction(env, exportObj, "setIsPipEnabled", moduleName,
         JsSceneSessionManager::SetIsPipEnabled);
-    BindNativeFunction(env, exportObj, "applyFeatureConfig", moduleName,
-        JsSceneSessionManager::ApplyFeatureConfig);
     BindNativeFunction(env, exportObj, "notifySessionTransferToTargetScreenEvent", moduleName,
         JsSceneSessionManager::NotifySessionTransferToTargetScreenEvent);
     BindNativeFunction(env, exportObj, "updateAppBoundSystemTrayStatus", moduleName,
         JsSceneSessionManager::UpdateAppBoundSystemTrayStatus);
     BindNativeFunction(env, exportObj, "getPipDeviceCollaborationPolicy", moduleName,
         JsSceneSessionManager::GetPipDeviceCollaborationPolicy);
-    BindNativeFunction(env, exportObj, "notifySupportRotationChange", moduleName,
-        JsSceneSessionManager::NotifySupportRotationChange);
+    BindNativeFunction(env, exportObj, "applyFeatureConfig", moduleName,
+        JsSceneSessionManager::ApplyFeatureConfig);
     BindNativeFunction(env, exportObj, "setTrayAppListInfo", moduleName,
         JsSceneSessionManager::SetTrayAppListInfo);
+    BindNativeFunction(env, exportObj, "notifySupportRotationChange", moduleName,
+        JsSceneSessionManager::NotifySupportRotationChange);
     BindNativeFunction(env, exportObj, "getAllJsonProfile", moduleName,
         JsSceneSessionManager::GetAllJsonProfile);
     BindNativeFunction(env, exportObj, "getJsonProfile", moduleName,
@@ -4978,8 +4978,8 @@ napi_value JsSceneSessionManager::OnGetLastInstanceKey(napi_env env, napi_callba
 
 napi_value JsSceneSessionManager::OnRefreshAppInfo(napi_env env, napi_callback_info info)
 {
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = { nullptr };
+    size_t argc = 4;
+    napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
@@ -5131,6 +5131,15 @@ void JsSceneSessionManager::ProcessCloseTargetFloatWindow()
     SceneSessionManager::GetInstance().SetCloseTargetFloatWindowFunc(func);
 }
 
+void JsSceneSessionManager::RegisterNotifyAppUseControlListCallback()
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    SceneSessionManager::GetInstance().RegisterNotifyAppUseControlListCallback(
+        [this](ControlAppType type, int32_t userId, const std::vector<AppUseControlInfo>& controlList) {
+            this->OnNotifyAppUseControlList(type, userId, controlList);
+        });
+}
+
 napi_value JsSceneSessionManager::OnSetIsWindowRectAutoSave(napi_env env, napi_callback_info info)
 {
     size_t argc = DEFAULT_ARG_COUNT;
@@ -5199,15 +5208,6 @@ static napi_value CreateAppUseControlInfos(
         napi_set_element(env, arrayValue, index++, objValue);
     }
     return arrayValue;
-}
-
-void JsSceneSessionManager::RegisterNotifyAppUseControlListCallback()
-{
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
-    SceneSessionManager::GetInstance().RegisterNotifyAppUseControlListCallback(
-        [this](ControlAppType type, int32_t userId, const std::vector<AppUseControlInfo>& controlList) {
-            this->OnNotifyAppUseControlList(type, userId, controlList);
-        });
 }
 
 void JsSceneSessionManager::OnNotifyAppUseControlList(
