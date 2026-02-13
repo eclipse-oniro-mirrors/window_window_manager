@@ -546,6 +546,12 @@ struct SessionInfo {
         *want = newWant;
     }
 
+    void SetWantSafely(const std::shared_ptr<AAFwk::Want>& newWant) const
+    {
+        std::lock_guard<std::mutex> lock(*wantMutex_);
+        want = newWant;
+    }
+
     std::shared_ptr<WindowCreateParams> windowCreateParams = nullptr;
 };
 

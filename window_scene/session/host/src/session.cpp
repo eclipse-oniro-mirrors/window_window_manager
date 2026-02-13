@@ -316,7 +316,7 @@ void Session::SetSessionInfoSupportedWindowModes(const std::vector<AppExecFwk::S
 void Session::SetSessionInfoWant(const std::shared_ptr<AAFwk::Want>& want)
 {
     std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
-    sessionInfo_.want = want;
+    sessionInfo_.SetWantSafely(want);
 }
 
 void Session::ResetSessionInfoResultCode()
@@ -1985,9 +1985,7 @@ void Session::SetAttachState(bool isAttach, WindowMode windowMode)
             TLOGND(WmsLogTag::WMS_LIFE, "session is null");
             return;
         }
-        auto mainSession = session->GetMainSession();
-        if ((!mainSession || !mainSession->GetShowRecent()) &&
-            session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
+        if (session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
             TLOGNI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
                 session->GetPersistentId());
             session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
@@ -2130,9 +2128,7 @@ void Session::RemoveLifeCycleTask(const LifeCycleTaskType& taskType)
             return;
         }
         frontLifeCycleTask = lifeCycleTaskQueue_.front();
-        if (!SetLifeCycleTaskRunning(frontLifeCycleTask)) {
-            return;
-        }
+        SetLifeCycleTaskRunning(frontLifeCycleTask);
     }
     PostTask(std::move(frontLifeCycleTask->task), frontLifeCycleTask->name);
 }
@@ -2209,10 +2205,11 @@ WSError Session::TerminateSessionNew(
         TLOGE(WmsLogTag::WMS_LIFE, "abilitySessionInfo is null");
         return WSError::WS_ERROR_INVALID_SESSION;
     }
-    auto task = [weakThis = wptr(this), abilitySessionInfo, needStartCaller, isFromBroker]() {
+    const char* const where = __func__;
+    auto task = [weakThis = wptr(this), abilitySessionInfo, needStartCaller, isFromBroker, where]() {
         auto session = weakThis.promote();
-        if (session == nullptr) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "session is null.");
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is nullptr", where);
             return;
         }
         session->isTerminating_ = true;
@@ -2230,8 +2227,8 @@ WSError Session::TerminateSessionNew(
             session->terminateSessionFuncNew_(info, needStartCaller, isFromBroker, false);
         }
         TLOGNI(WmsLogTag::WMS_LIFE,
-            "TerminateSessionNew, id: %{public}d, needStartCaller: %{public}d, isFromBroker: %{public}d",
-            session->GetPersistentId(), needStartCaller, isFromBroker);
+            "%{public}s, id: %{public}d, needStartCaller: %{public}d, isFromBroker: %{public}d",
+            where, session->GetPersistentId(), needStartCaller, isFromBroker);
     };
     PostLifeCycleTask(task, "TerminateSessionNew", LifeCycleTaskType::STOP);
     return WSError::WS_OK;
