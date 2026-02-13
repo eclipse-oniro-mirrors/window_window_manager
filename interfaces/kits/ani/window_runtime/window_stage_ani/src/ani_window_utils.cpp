@@ -2075,10 +2075,10 @@ bool AniWindowUtils::SetWindowNavigationBarContentColor(ani_env* env,
             propertyFlags[WindowType::WINDOW_TYPE_NAVIGATION_BAR].contentColorFlag,
             aniObject);
     } else if (!isIconUndefined) {
-        ani_boolean isNavigationIcon;
+        ani_boolean isStatusIcon;
         env->Object_CallMethodByName_Boolean(static_cast<ani_object>(aniNavigationIcon),
-            "toBoolean", ":z", &isNavigationIcon);
-        if (static_cast<bool>(isNavigationIcon)) {
+            "toBoolean", ":z", &isStatusIcon);
+        if (static_cast<bool>(isStatusIcon)) {
             properties[WindowType::WINDOW_TYPE_NAVIGATION_BAR].contentColor_ = SYSTEM_COLOR_WHITE;
         } else {
             properties[WindowType::WINDOW_TYPE_NAVIGATION_BAR].contentColor_ = SYSTEM_COLOR_BLACK;

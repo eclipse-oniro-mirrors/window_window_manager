@@ -93,15 +93,15 @@ public:
     static void SetCustomDensity(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_double density, ani_boolean applyToSubWindow);
     static void SetDefaultDensityEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
-    static ani_object GetSubWindow(ani_env* env, ani_object obj, ani_long nativeObj);
-    static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
-        ani_string name, ani_object options);
     static void RemoveStartingWindow(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetSupportedWindowModes(
         ani_env* env, ani_object obj, ani_long nativeObj, ani_object aniSupportedWindowModes);
     static void SetSupportedWindowModesWithGrayOutMaximizeButton(
         ani_env* env, ani_object obj, ani_long nativeObj,
         ani_object aniSupportedWindowModes, ani_boolean grayOutMaximizeButton);
+    static ani_object GetSubWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+    static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_string name, ani_object options);
     std::weak_ptr<WindowScene> GetWindowScene() { return windowScene_; }
     ani_ref GetMainWindow(ani_env* env);
     ani_boolean WindowIsWindowSupportWideGamut(ani_env* env, ani_class cls, ani_object obj);
