@@ -1922,7 +1922,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1938,7 +1938,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1954,7 +1954,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1970,7 +1970,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1997,7 +1997,7 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalNotMainMod, TestSi
     uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     std::cout << "start convert" << std::endl;
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
@@ -2081,7 +2081,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeNotMainMode, TestS
     uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelative(globalPosition,
         relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_OK);
@@ -2165,7 +2165,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+ 
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(
         globalPosition, displayId, relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -2181,7 +2181,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
         displayId, relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -2208,7 +2208,7 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdNotMa
     uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
     DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
     DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
-    
+
     DMError errorCode =
         DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
             displayId, relativePosition);
