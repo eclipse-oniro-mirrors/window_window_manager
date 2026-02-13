@@ -286,6 +286,7 @@ public:
     void NotifyTouchDialogTarget(int32_t posX = 0, int32_t posY = 0) override;
     void NotifyDestroy();
     void NotifyForeground();
+    void NotifyMainWindowDidForeground(uint32_t reason);
     void NotifyBackground();
     void UpdateZoomTransform(const Transform& trans, bool isDisplayZoomOn);
     void PerformBack() override;
