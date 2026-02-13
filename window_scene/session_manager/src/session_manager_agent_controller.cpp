@@ -25,7 +25,7 @@ WM_IMPLEMENT_SINGLE_INSTANCE(SessionManagerAgentController)
 WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
     WindowManagerAgentType type, int32_t pid)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "type: %{public}u", static_cast<uint32_t>(type));
+    TLOGI(WmsLogTag::WMS_PIP, "type: %{public}u", static_cast<uint32_t>(type));
     if (smAgentContainer_.RegisterAgent(windowManagerAgent, type)) {
         std::lock_guard<std::mutex> lock(windowManagerAgentPidMapMutex_);
         auto it = windowManagerPidAgentMap_.find(pid);
@@ -61,7 +61,7 @@ WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWi
 WMError SessionManagerAgentController::UnregisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
     WindowManagerAgentType type, int32_t pid)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "type: %{public}u", static_cast<uint32_t>(type));
+    TLOGI(WmsLogTag::WMS_PIP, "type: %{public}u", static_cast<uint32_t>(type));
     if (smAgentContainer_.UnregisterAgent(windowManagerAgent, type)) {
         std::lock_guard<std::mutex> lock(windowManagerAgentPidMapMutex_);
         auto it = windowManagerPidAgentMap_.find(pid);

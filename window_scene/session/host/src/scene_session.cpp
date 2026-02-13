@@ -2547,7 +2547,7 @@ void SceneSession::RegisterRaiseAboveTargetCallback(NotifyRaiseAboveTargetFunc&&
     PostTask([weakThis = wptr(this), callback = std::move(callback), where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return;
         }
         session->onRaiseAboveTarget_ = std::move(callback);
@@ -2707,7 +2707,7 @@ WSError SceneSession::RaiseAboveTarget(int32_t subWindowId)
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         if (session->onRaiseAboveTarget_) {
-            TLOGNE(WmsLogTag::WMS_HIERARCHY, "id: %{public}d, raise above target: %{public}d",
+            TLOGNI(WmsLogTag::WMS_HIERARCHY, "id: %{public}d, raise above target: %{public}d",
                 session->GetPersistentId(), subWindowId);
             session->onRaiseAboveTarget_(subWindowId);
         }
@@ -2946,8 +2946,8 @@ void SceneSession::PrintAvoidAreaInfo(DisplayId displayId,
     if (iter != lastAvoidAreaInputParamtersMap_.end() && iter->second == inputParamters) {
         return;
     }
-    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d dispaly %{public}" PRIu64
-        "type %{public}d rect %{public}s bar %{public}s",
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d display %{public}" PRIu64
+        " type %{public}d rect %{public}s bar %{public}s",
         GetPersistentId(), displayId, type, rect.ToString().c_str(), avoidRect.ToString().c_str());
 }
 
