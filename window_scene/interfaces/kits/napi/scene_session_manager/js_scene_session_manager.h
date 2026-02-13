@@ -184,19 +184,19 @@ public:
     static napi_value HandleUserSwitch(napi_env env, napi_callback_info info);
 
     /*
+     * PiP Window
+     */
+    static napi_value SetPiPSettingSwitchStatus(napi_env env, napi_callback_info info);
+    static napi_value SetIsPipEnabled(napi_env env, napi_callback_info info);
+    static napi_value GetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
+
+    /*
      * Window Pattern
      */
     static napi_value SupportSnapshotAllSessionStatus(napi_env env, napi_callback_info info);
     static napi_value SupportCacheLockedSessionSnapshot(napi_env env, napi_callback_info info);
     static napi_value SupportPreloadStartingWindow(napi_env env, napi_callback_info info);
     static napi_value PreloadStartingWindow(napi_env env, napi_callback_info info);
-
-    /*
-     * PiP Window
-     */
-    static napi_value SetPiPSettingSwitchStatus(napi_env env, napi_callback_info info);
-    static napi_value SetIsPipEnabled(napi_env env, napi_callback_info info);
-    static napi_value GetPipDeviceCollaborationPolicy(napi_env env, napi_callback_info info);
 
     /*
      * Window Event

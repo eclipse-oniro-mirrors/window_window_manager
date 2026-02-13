@@ -557,6 +557,7 @@ private:
     static const std::map<uint64_t, HandlReadPropertyFunc> readFuncMap_;
     bool isAppSupportPhoneInPc_ = false;
     bool isPcAppInPad_ = false;
+    sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
     mutable std::mutex compatibleModeMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
@@ -633,7 +634,7 @@ private:
 
     MissionInfo missionInfo_;
     mutable std::mutex missionInfoMutex_;
-
+    
     /*
      * Window Property
      */
@@ -655,9 +656,6 @@ private:
     bool focusable_ { true };
     bool focusableOnShow_ { true };
     bool isExclusivelyHighlighted_ { true };
-
-    sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
-
     /**
      * Window Transition Animation For PC
      */
@@ -1079,7 +1077,7 @@ struct SystemSessionConfig : public Parcelable {
         }
         return config;
     }
-
+        
     bool IsFreeMultiWindowMode() const
     {
         return freeMultiWindowEnable_ && freeMultiWindowSupport_;

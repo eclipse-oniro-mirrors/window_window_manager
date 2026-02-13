@@ -80,9 +80,9 @@ public:
     WSError SwitchFreeMultiWindow(bool enable) override;
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
     void NotifyKeyboardPanelInfoChange(const KeyboardPanelInfo& keyboardPanelInfo) override;
+    void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     WSError PcAppInPadNormalClose() override;
     WSError NotifyCompatibleModePropertyChange(const sptr<CompatibleModeProperty> property) override;
-    void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     void UpdateAnimationSpeed(float speed) override;
     void NotifySessionFullScreen(bool fullScreen) override;
     WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo) override;
@@ -114,20 +114,18 @@ public:
     WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
     WSError NotifyAppHookWindowInfoUpdated() override;
     WSError CloseSpecificScene() override;
-
-    // Window LifeCycle
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) override;
     WSError SendFbActionEvent(const std::string& action) override;
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
+    WSError AddSidebarBlur() override;
+    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
 
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
-    WSError AddSidebarBlur() override;
-    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
     WSError UpdateWindowUIType(WindowUIType windowUIType) override;
     WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
 

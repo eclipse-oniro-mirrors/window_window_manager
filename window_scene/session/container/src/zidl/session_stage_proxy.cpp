@@ -37,24 +37,24 @@ bool CopyBufferFromRawData(void*& buffer, size_t size, const void* data)
         TLOGE(WmsLogTag::WMS_UIEXT, "data is nullptr");
         return false;
     }
-
+ 
     if (size == 0 || size >= MAX_PARCEL_CAPACITY) {
         TLOGE(WmsLogTag::WMS_UIEXT, "size is invalid");
         return false;
     }
-
+ 
     buffer = malloc(size);
     if (buffer == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "buffer malloc failed");
         return false;
     }
-
+ 
     if (memcpy_s(buffer, size, data, size) != EOK) {
         free(buffer);
         TLOGE(WmsLogTag::WMS_UIEXT, "memcpy_s failed");
         return false;
     }
-
+ 
     return true;
 }
 
@@ -1673,7 +1673,7 @@ void SessionStageProxy::SetUniqueVirtualPixelRatio(bool useUniqueDensity, float 
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "remote is nullptr");
         return;
     }
-
+ 
     MessageParcel data;
     MessageParcel reply;
     MessageOption option(MessageOption::TF_ASYNC);
@@ -1689,7 +1689,7 @@ void SessionStageProxy::SetUniqueVirtualPixelRatio(bool useUniqueDensity, float 
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write virtualPixelRatio failed");
         return;
     }
-
+ 
     if (remote->SendRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DENSITY_UNIQUE),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SendRequest failed");
@@ -1712,7 +1712,6 @@ void SessionStageProxy::UpdateAnimationSpeed(float speed)
         TLOGE(WmsLogTag::WMS_ANIMATION, "WriteInterfaceToken failed");
         return;
     }
-
     if (!data.WriteFloat(speed)) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "Write speed failed");
         return;
@@ -2113,6 +2112,7 @@ void SessionStageProxy::NotifyKeyboardAnimationCompleted(const KeyboardPanelInfo
         data, reply, option);
     if (sendCode != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "SendRequest failed, code: %{public}d", sendCode);
+        return;
     }
 }
 
@@ -2155,23 +2155,23 @@ WSError SessionStageProxy::NotifyTargetRotationInfo(OrientationInfo& info, Orien
         TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-
+ 
     if (!data.WriteUint32(info.rotation)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "write rotation failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-
+ 
     if (!data.WriteInt32(info.rect.posX_) || !data.WriteInt32(info.rect.posY_) ||
         !data.WriteUint32(info.rect.width_) || !data.WriteUint32(info.rect.height_)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "write rect failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-
+ 
     if (!data.WriteUint32(static_cast<uint32_t>(info.avoidAreas.size()))) {
         TLOGE(WmsLogTag::WMS_ROTATION, "write avoid area size failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-
+ 
     for (const auto& [type, avoidArea] : info.avoidAreas) {
         if (!data.WriteUint32(static_cast<uint32_t>(type))) {
             TLOGE(WmsLogTag::WMS_ROTATION, "write avoid area type failed");
