@@ -1828,7 +1828,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Switch to current user, NotifyAfterForeground");
         NotifyAfterForeground(true, false);
         NotifyAfterDidForeground(reason);
-        RecordWindowLifecycleChange("show");
+        RecordWindowLifecycleChange("user switch show");
         return WMError::WM_OK;
     }
     const auto type = GetType();
@@ -1856,6 +1856,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         NotifyAfterForeground(true, false);
         NotifyAfterDidForeground(reason);
         RefreshNoInteractionTimeoutMonitor();
+        RecordWindowLifecycleChange("already show");
         return WMError::WM_OK;
     }
     auto displayInfo = GetDisplayInfo();
@@ -2032,6 +2033,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
     if (validState == WindowState::STATE_HIDDEN || state_ == WindowState::STATE_CREATED) {
         TLOGD(WmsLogTag::WMS_LIFE, "window is alreay hidden, id:%{public}d", property_->GetPersistentId());
         NotifyBackgroundFailed(WMError::WM_DO_NOTHING);
+        RecordWindowLifecycleChange("already hide");
         return WMError::WM_OK;
     }
 
