@@ -211,6 +211,7 @@ ohos_shared_library("libwmutil_base") {
 ohos_shared_library("libwmutil") {
   branch_protector_ret = "pac_ret"
   sources = [
+    "src/collaborator_dll_manager.cpp",
     "src/dm_virtual_screen_option.cpp",
     "src/dms_reporter.cpp",
     "src/dms_xcollie.cpp",

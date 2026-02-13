@@ -50,6 +50,7 @@
 #endif
 
 #include "anomaly_detection.h"
+#include "collaborator_dll_manager.h"
 #include "color_parser.h"
 #include "common/include/fold_screen_state_internel.h"
 #include "common/include/session_permission.h"
@@ -3363,6 +3364,7 @@ sptr<AAFwk::SessionInfo> SceneSessionManager::SetAbilitySessionInfo(const sptr<S
     abilitySessionInfo->uiAbilityId = sessionInfo.uiAbilityId_;
     abilitySessionInfo->startSetting = sessionInfo.startSetting;
     abilitySessionInfo->callingTokenId = sessionInfo.callingTokenId_;
+    abilitySessionInfo->callerTypeForAnco = sessionInfo.callerTypeForAnco;
     abilitySessionInfo->userId = currentUserId_;
     abilitySessionInfo->isClearSession = sessionInfo.isClearSession;
     abilitySessionInfo->processOptions = sessionInfo.processOptions;
@@ -14229,6 +14231,28 @@ bool SceneSessionManager::CheckCollaboratorType(int32_t type)
     return true;
 }
 
+bool SceneSessionManager::CheckBrokeNotAliveAndRefresh(SessionInfo& sessionInfo) {
+    sptr<AAFwk::SessionInfo> info = sptr<AAFwk::SessionInfo>::MakeSptr();
+    std::shared_ptr<AAFwk::Want> notifyWant = std::make_shared<AAFwk::Want>(sessionInfo.GetWantSafely());
+    CollaboratorDllManager::PreHandleStartAbility(*notifyWant, info, currentUserId_);
+    if (info->callerTypeForAnco == static_cast<int32_t>(AAFwk::CallerTypeForAnco::DEFAULT)) {
+        return false;
+    }
+    sessionInfo.callerTypeForAnco = info->callerTypeForAnco;
+    if (sessionInfo.callerTypeForAnco == static_cast<int32_t>(AAFwk::CallerTypeForAnco::ADD)) {
+        sessionInfo.SetWantSafely(*notifyWant);
+        sessionInfo.bundleName_ = notifyWant->GetBundle();
+        sessionInfo.abilityName_ = notifyWant->GetElement().GetAbilityName();
+        sessionInfo.moduleName_ = notifyWant->GetModuleName();
+        TLOGW(WmsLogTag::DEFAULT, "AncoBroker not start, callerTypeForAnco is %{public}d, %{public}s",
+        sessionInfo.callerTypeForAnco, sessionInfo.bundleName_.c_str());
+        return true;
+    }
+    TLOGI(WmsLogTag::DEFAULT, "callerTypeForAnco is %{public}d, %{public}s",
+        sessionInfo.callerTypeForAnco, sessionInfo.bundleName_.c_str());
+    return false;
+}
+
 BrokerStates SceneSessionManager::CheckIfReuseSession(SessionInfo& sessionInfo)
 {
     auto abilityInfo = QueryAbilityInfoFromBMS(currentUserId_, sessionInfo.bundleName_, sessionInfo.abilityName_,
@@ -14249,6 +14273,9 @@ BrokerStates SceneSessionManager::CheckIfReuseSession(SessionInfo& sessionInfo)
     }
     if (!CheckCollaboratorType(collaboratorType)) {
         TLOGW(WmsLogTag::DEFAULT, "checked not collaborator!");
+        return BrokerStates::BROKER_UNKOWN;
+    }
+    if (collaboratorType == CollaboratorType::RESERVE_TYPE && CheckBrokeNotAliveAndRefresh(sessionInfo)) {
         return BrokerStates::BROKER_UNKOWN;
     }
     BrokerStates resultValue = NotifyStartAbility(collaboratorType, sessionInfo);

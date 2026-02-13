@@ -21,6 +21,7 @@ group("unittest") {
   deps = [
     ":ws_ability_info_manager_test",
     ":ws_anomaly_detection_test",
+    ":ws_collaborator_dll_manager_test",
     ":ws_compatible_mode_main_session_test",
     ":ws_compatible_mode_property_test",
     ":ws_dfx_hisysevent_test",
@@ -657,6 +658,7 @@ ohos_unittest("ws_scene_session_manager_two_test") {
 
   sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "${window_base_path}/window_scene/test/mock/mock_collaborator_dll_manager.cpp",
     "scene_session_manager_test10.cpp",
     "scene_session_manager_test11.cpp",
     "scene_session_manager_test12.cpp",
@@ -1773,5 +1775,33 @@ ohos_unittest("ws_compatible_mode_session_stub_test") {
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps
+}
+
+ohos_unittest("ws_collaborator_dll_manager_test") {
+  module_out_path = module_out_path
+ 
+  include_dirs = [
+    "${window_base_path}/utils/include/",
+  ]
+ 
+  sources = [
+  "${window_base_path}/window_scene/test/unittest/collaborator_dll_manager_test.cpp"
+  ]
+ 
+  deps = [ ":ws_unittest_common" ]
+ 
+  external_deps = [
+  "ability_base:configuration",
+  "ability_base:session_info",
+  "ability_base:want",
+  "ability_runtime:ability_context_native",
+  "ability_runtime:ability_manager",
+  "ability_runtime:app_context",
+  "ability_runtime:mission_info",
+  "ability_runtime:runtime",
+  "hilog:libhilog",
+  "ipc:ipc_single",
+  "c_utils:utils",
+  ]
 }
 ## Build ws_unittest_common.a }}}
