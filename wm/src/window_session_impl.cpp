@@ -706,8 +706,9 @@ WMError WindowSessionImpl::Connect()
     sptr<IRemoteObject> token = context ? context->GetToken() : nullptr;
     uint64_t originDisplayId = GetDisplayId();
     if (token) {
-        property_->SetTokenState(GetTargetAPIVersion());
+        property_->SetTokenState(true);
     }
+    property_->SetApiVersion(GetTargetAPIVersion());
     auto ret = hostSession->Connect(
         iSessionStage, iWindowEventChannel, surfaceNode_, windowSystemConfig_, property_,
         token, identityToken_);
