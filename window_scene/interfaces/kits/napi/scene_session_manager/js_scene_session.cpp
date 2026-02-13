@@ -7587,7 +7587,7 @@ void JsSceneSession::RegisterUpdateAppUseControlCallback()
 void JsSceneSession::OnUpdateAppUseControl(ControlAppType type, bool isNeedControl, bool isControlRecentOnly)
 {
     const char* const where = __func__;
-    auto task = 
+    auto task =
         [weakThis = wptr(this), persistentId = persistentId_, type, isNeedControl, isControlRecentOnly,
                     env = env_, where] {
         auto jsSceneSession = weakThis.promote();
