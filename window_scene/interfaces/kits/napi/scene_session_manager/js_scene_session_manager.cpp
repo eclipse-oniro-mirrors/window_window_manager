@@ -1877,7 +1877,7 @@ static napi_value CreateWindowSize(napi_env env, const AppExecFwk::AbilityInfo& 
     return objValue;
 }
 
-static napi_value CreateAbilityItemInfo(napi_env env, const SCBAbilityInfo& scbAbilityInfo)
+static napi_value CreateAbilityItemInfo(napi_env env, const AppExecFwk::AbilityInfo& abilityInfo)
 {
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
@@ -1885,7 +1885,6 @@ static napi_value CreateAbilityItemInfo(napi_env env, const SCBAbilityInfo& scbA
         WLOGFE("CreateObject failed");
         return NapiGetUndefined(env);
     }
-    auto abilityInfo = scbAbilityInfo.abilityInfo_;
     napi_set_named_property(env, objValue, "appIconId", CreateJsValue(env, abilityInfo.iconId));
     napi_set_named_property(env, objValue, "appLabelId", CreateJsValue(env, abilityInfo.labelId));
     napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, abilityInfo.bundleName));
@@ -1904,12 +1903,8 @@ static napi_value CreateAbilityItemInfo(napi_env env, const SCBAbilityInfo& scbA
         CreateJsValue(env, abilityInfo.removeMissionAfterTerminate));
     napi_set_named_property(env, objValue, "preferMultiWindowOrientation",
         CreateJsValue(env, abilityInfo.preferMultiWindowOrientation));
-
-    // supplement of AbilityItemInfo which is not in abilityInfo
-    napi_set_named_property(env, objValue, "supportWindowModesInFreeMultiWindow",
-        CreateWindowModes(env, scbAbilityInfo.supportedWindowModesInFreeMultiWindowMode));
-    // forceRotate for anco
-    napi_set_named_property(env, objValue, "isForceRotate", CreateJsValue(env, scbAbilityInfo.isForceRotate_));
+    napi_set_named_property(env, objValue, "isForceRotate",
+        CreateJsValue(env, abilityInfo.applicationInfo.isForceRotate));
     napi_set_named_property(env, objValue, "applicationInfo", CreateApplicationInfo(env, abilityInfo));
     return objValue;
 }
@@ -1922,7 +1917,7 @@ static napi_value CreateSCBAbilityInfo(napi_env env, const SCBAbilityInfo& scbAb
         WLOGFE("CreateObject failed");
         return NapiGetUndefined(env);
     }
-    napi_set_named_property(env, objValue, "abilityItemInfo", CreateAbilityItemInfo(env, scbAbilityInfo));
+    napi_set_named_property(env, objValue, "abilityItemInfo", CreateAbilityItemInfo(env, scbAbilityInfo.abilityInfo_));
     napi_set_named_property(env, objValue, "supportWindowModesInFreeMultiWindow",
         CreateWindowModes(env, scbAbilityInfo.supportedWindowModesInFreeMultiWindowMode));
     napi_set_named_property(env, objValue, "sdkVersion", CreateJsValue(env, scbAbilityInfo.sdkVersion_));
@@ -3168,7 +3163,7 @@ napi_value JsSceneSessionManager::OnAddWindowDragHotArea(napi_env env, napi_call
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    int64_t displayId; // The input parameter of convertFromJSValue only supports the int64_t type.
+    int64_t displayId;
     if (!ConvertFromJsValue(env, argv[0], displayId)) {
         WLOGFE("Failed to convert parameter to displayId");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
