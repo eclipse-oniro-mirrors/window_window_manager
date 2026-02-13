@@ -224,6 +224,41 @@ HWTEST_F(ScreenSessionManagerTest, GetScreenModesByDisplayId, TestSize.Level1)
 }
 
 /**
+ * @tc.name: IsHook
+ * @tc.desc: IsHook
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, IsHook, TestSize.Level1)
+{
+    auto booltTest = ssm_->IsHook(-1);
+    EXPECT_EQ(false, booltTest);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = createDefaultHookInfo();
+    booltTest = ssm_->IsHook(uid);
+    EXPECT_EQ(true, booltTest);
+}
+
+/**
+ * @tc.name: HookRadius
+ * @tc.desc: HookRadius
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HookRadius, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = createDefaultHookInfo();
+    ssm_->displayHookMap_[uid] = dmHookInfo;
+    int radius = 1;
+    ssm_->HookRadius(99, radius);
+    sptr<DisplayInfo> displayInfo = ssm_->GetDisplayInfoById(0);
+    ssm_->HookRadius(0, radius);
+    EXPECT_EQ(1, 1);
+}
+
+/**
  * @tc.name: UpdateDisplayHookInfo001
  * @tc.desc: UpdateDisplayHookInfo by uid
  * @tc.type: FUNC

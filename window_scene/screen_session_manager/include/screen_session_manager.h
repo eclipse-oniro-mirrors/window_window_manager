@@ -633,6 +633,8 @@ public:
 
     static bool GetScreenSessionMngSystemAbility();
     void RunFinishTask();
+    bool IsHook(int32_t uid = INVALID_UID);
+    void HookRadius(DisplayId displayId, int& radius);
 
 protected:
     ScreenSessionManager();

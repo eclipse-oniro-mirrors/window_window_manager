@@ -1383,6 +1383,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             hookInfo.displayOrientation_ = data.ReadUint32();
             hookInfo.enableHookDisplayOrientation_ = data.ReadBool();
             hookInfo.isFullScreenInForceSplit_ = data.ReadBool();
+            hookInfo.actualRect_.posX_ = data.ReadInt32();
+            hookInfo.actualRect_.posY_ = data.ReadInt32();
+            hookInfo.actualRect_.width_ = data.ReadUint32();
+            hookInfo.actualRect_.height_ = data.ReadUint32();
             UpdateDisplayHookInfo(uid, enable, hookInfo);
             break;
         }

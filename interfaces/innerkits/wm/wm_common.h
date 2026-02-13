@@ -228,32 +228,6 @@ struct RealTimeSwitchInfo {
 };
 
 /**
- * @struct HookInfo.
- *
- * @brief hook diaplayinfo deepending on the window size.
- */
-struct HookInfo {
-    uint32_t width_;
-    uint32_t height_;
-    float_t density_;
-    uint32_t rotation_;
-    bool enableHookRotation_;
-    uint32_t displayOrientation_;
-    bool enableHookDisplayOrientation_;
-
-    std::string ToString() const
-    {
-        std::ostringstream oss;
-        oss << "width: " << width_ << ", height: " << height_ << ", density: " << density_
-            << ", rotation: " << rotation_
-            << ", enableHookRotation: " << (enableHookRotation_ ? "true" : "false")
-            << ", displayOrientation: " << displayOrientation_
-            << ", enableHookDisplayOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false");
-        return oss.str();
-    }
-};
-
-/**
  * @brief Enumerates mode of window.
  */
 enum class WindowMode : uint32_t {
@@ -1281,6 +1255,35 @@ struct Rect {
 };
 
 inline constexpr Rect Rect::EMPTY_RECT { 0, 0, 0, 0 };
+
+/**
+ * @struct HookInfo.
+ *
+ * @brief hook diaplayinfo deepending on the window size.
+ */
+struct HookInfo {
+    uint32_t width_;
+    uint32_t height_;
+    float_t density_;
+    uint32_t rotation_;
+    bool enableHookRotation_;
+    uint32_t displayOrientation_;
+    bool enableHookDisplayOrientation_;
+    Rect actualRect_ = { 0, 0, 0, 0};
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "width: " << width_ << ", height: " << height_ << ", density: " << density_
+            << ", rotation: " << rotation_
+            << ", enableHookRotation: " << (enableHookRotation_ ? "true" : "false")
+            << ", displayOrientation: " << displayOrientation_
+            << ", enableHookDisplayOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false")
+            << ", actualPosX: " << actualRect_.posX_ << ", actualPosY: " << actualRect_.posY_
+            << ", actualWidth: " << actualRect_.width_ << ", actualHeight :" << actualRect_.height_;
+        return oss.str();
+    }
+};
 
 /**
  * @brief UIExtension usage

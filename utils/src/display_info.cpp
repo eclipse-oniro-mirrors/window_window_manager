@@ -48,7 +48,11 @@ bool DisplayInfo::Marshalling(Parcel &parcel) const
         parcel.WriteUInt32Vector(supportedRefreshRate_) &&
         parcel.WriteBool(supportsFocus_) &&
         parcel.WriteBool(supportsInput_) &&
-        parcel.WriteString(bundleName_);
+        parcel.WriteString(bundleName_) &&
+        parcel.WriteInt32(actualPosX_) &&
+        parcel.WriteInt32(actualPosY_) &&
+        parcel.WriteUint32(actualWidth_) &&
+        parcel.WriteUint32(actualHeight_);
 }
 
 DisplayInfo *DisplayInfo::Unmarshalling(Parcel &parcel)

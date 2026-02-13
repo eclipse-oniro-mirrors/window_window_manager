@@ -14,7 +14,7 @@
  */
 
 #include "screen_cutout_controller.h"
-
+#include "fold_screen_state_internel.h"
 #include "screen_scene_config.h"
 #include "screen_session_manager.h"
 #include "window_manager_hilog.h"
@@ -39,29 +39,106 @@ sptr<CutoutInfo> ScreenCutoutController::GetScreenCutoutInfo(DisplayId displayId
     uint32_t height = static_cast<uint32_t>(displayInfo->GetHeight());
     Rotation rotation = displayInfo->GetOriginRotation();
 
-    return GetScreenCutoutInfo(displayId, width, height, rotation);
+    return GetScreenCutoutInfo(displayId, width, height, rotation, displayInfo);
 }
 
 sptr<CutoutInfo> ScreenCutoutController::GetScreenCutoutInfo(DisplayId displayId, uint32_t width,
-                                                             uint32_t height, Rotation rotation) const
+    uint32_t height, Rotation rotation, sptr<DisplayInfo> displayInfo) const
 {
+    if (displayInfo == nullptr) {
+        displayInfo = ScreenSessionManager::GetInstance().GetDisplayInfoById(displayId);
+    }
+    if (displayInfo == nullptr) {
+        TLOGE(WmsLogTag::DMS, "displayInfo invaild");
+    }
     std::vector<DMRect> boundaryRects;
+    uint32_t dwidth = width;
+    uint32_t dheight = height;
+    RecoverDisplayInfo(width, height, displayInfo, rotation);
     GetCutoutArea(displayId, width, height, rotation, boundaryRects);
-
+    HookCutoutInfo(dwidth, dheight, boundaryRects, displayInfo);
     WaterfallDisplayAreaRects waterfallArea = {};
-    GetWaterfallArea(width, height, rotation, waterfallArea);
+    GetWaterfallArea(dwidth, dheight, rotation, waterfallArea);
 
     return sptr<CutoutInfo>::MakeSptr(boundaryRects, waterfallArea);
 }
 
-void ScreenCutoutController::GetCutoutArea(DisplayId displayId, uint32_t width, uint32_t height,
-                                           Rotation rotation, std::vector<DMRect>& cutoutArea) const
+void ScreenCutoutController::RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dheight,
+    sptr<DisplayInfo> displayInfo, Rotation rotation) const
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() || ScreenSessionManager::GetInstance().IsHook()) {
+        TLOGD(WmsLogTag::DMS, "no need hook");
+        return;
+    }
+    if (!displayInfo) {
+        TLOGE(WmsLogTag::DMS, "displayInfo invaild");
+        return;
+    }
+    int32_t phyWidth = displayInfo->GetPhysicalWidth();
+    int32_t phyHeight = displayInfo->GetPhysicalHeight();
+    FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(phyWidth, phyHeight);
+    if (displayMode == FoldDisplayMode::FULL &&
+        (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180)) {
+        std::swap(phyWidth, phyHeight);
+    }
+    dwidth = phyWidth;
+    dheight = phyHeight;
+    TLOGI(WmsLogTag::DMS,"id: %{public}" PRIu64", pw: %{public}u, ph: %{public}u, W: %{public}u,"
+        "H: %{public}u", displayInfo->GetDisplayId(), phyWidth, phyHeight, dwidth, dheight);
+}
+
+void ScreenCutoutController::HookCutoutInfo(uint32_t& hookWidth, uint32_t& hookHeight,
+    std::vector<DMRect>& boundaryRects, sptr<DisplayInfo> displayInfo) const
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() || ScreenSessionManager::GetInstance().IsHook()) {
+        TLOGD(WmsLogTag::DMS, "no need hook");
+        return;
+    }
+    if (hookWidth == 0 || hookHeight == 0) {
+        TLOGW(WmsLogTag::DMS, "hook is zero");
+        return;
+    }
+    float scaleX = static_cast<float>(displayInfo->GetActualWidth()) / hookWidth;
+    float scaleY = static_cast<float>(displayInfo->GetActualHeight()) / hookHeight;
+    uint32_t hookLeft = displayInfo->GetActualPosX();
+    uint32_t hookTop = displayInfo->GetActualPosY();
+    if (std::fabs(scaleX - 0) < FLT_EPSILON || std::fabs(scaleY - 0) < FLT_EPSILON) {
+        TLOGW(WmsLogTag::DMS, "scale is zero");
+        return;
+    }
+    std::vector<DMRect> newBoundaryRects;
+    for (const DMRect& rect : boundaryRects) {
+        float hookBoundaryPosX = (rect.posX_ - hookLeft) / scaleX + hookLeft;
+        float hookBoundaryPosY = (rect.posY_ - hookTop) / scaleY + hookTop;
+        float hookBoundaryWidth = rect.width_ / scaleX;
+        float hookBoundaryHeight = rect.height_ / scaleY;
+
+        float absHookBoundaryWidth = hookBoundaryPosX + hookBoundaryWidth;
+        float absHookBoundaryHeight = hookBoundaryPosY + hookBoundaryHeight;
+        uint32_t absHookWidth = hookLeft + hookWidth;
+        uint32_t absHookHeight = hookTop + hookHeight;
+        if (hookBoundaryPosX >= hookLeft && hookBoundaryPosY >= hookTop && absHookBoundaryWidth <= absHookWidth &&
+            absHookBoundaryHeight <= absHookHeight) {
+            newBoundaryRects.emplace_back(
+                DMRect{ hookBoundaryPosX, hookBoundaryPosY, hookBoundaryWidth, hookBoundaryHeight });
+        }
+        TLOGI(WmsLogTag::DMS,
+            " hook boundary:[hBx: %{public}f, hBY: %{public}f, hBW: %{public}f, hBH: %{public}f],"
+            "hook display:[hL: %{public}u, hT: %{public}u, hW: %{public}u, hH: %{public}u],"
+            "sx: %{public}f, sy: %{public}f",
+            hookBoundaryPosX, hookBoundaryPosY, hookBoundaryWidth, hookBoundaryHeight,
+            hookLeft, hookTop, hookWidth, hookHeight, scaleX, scaleY);
+    }
+    boundaryRects = newBoundaryRects;
+}
+
+void ScreenCutoutController::GetCutoutArea(DisplayId displayId, uint32_t width,
+    uint32_t height, Rotation rotation, std::vector<DMRect>& cutoutArea) const
 {
     FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(width, height);
 
-    TLOGI_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES,
-        "display:[ID: %{public}" PRIu64 ", W: %{public}u, H: %{public}u, R: %{public}u,"
-        "Mode %{public}u]", displayId, width, height, rotation, displayMode);
+    TLOGW(WmsLogTag::DMS, "display:[ID: %{public}" PRIu64 ", W: %{public}u, H: %{public}u, R: %{public}u]"
+    	"Mode: %{public}u", displayId, width, height, rotation, displayMode);
 
     std::vector<DMRect> boundaryRects;
     if (ScreenSessionManager::GetInstance().IsFoldable() &&

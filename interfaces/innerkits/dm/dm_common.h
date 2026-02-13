@@ -63,22 +63,6 @@ constexpr uint32_t DISPLAY_A_WIDTH = 2472;
 constexpr float DEFAULT_SNAPSHOT_SCALE = 1.0f;
 
 /**
- * @struct HookInfo.
- *
- * @brief hook diaplayinfo deepending on the window size.
- */
-struct DMHookInfo {
-    uint32_t width_;
-    uint32_t height_;
-    float_t density_;
-    uint32_t rotation_;
-    bool enableHookRotation_;
-    uint32_t displayOrientation_;
-    bool enableHookDisplayOrientation_;
-    bool isFullScreenInForceSplit_;
-};
-
-/**
  * @brief Power state change reason.
  */
 enum class PowerStateChangeReason : uint32_t {
@@ -684,6 +668,23 @@ struct DMRect {
     {
         return {0, 0, 0, 0};
     }
+};
+
+/**
+ * @struct HookInfo.
+ *
+ * @brief hook diaplayinfo deepending on the window size.
+ */
+struct DMHookInfo {
+    uint32_t width_;
+    uint32_t height_;
+    float_t density_;
+    uint32_t rotation_;
+    bool enableHookRotation_;
+    uint32_t displayOrientation_;
+    bool enableHookDisplayOrientation_;
+    DMRect actualRect_ = { 0, 0, 0, 0};
+    bool isFullScreenInForceSplit_;
 };
 
 struct CaptureOption {
