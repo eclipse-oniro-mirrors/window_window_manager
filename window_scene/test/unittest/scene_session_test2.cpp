@@ -65,9 +65,9 @@ HWTEST_F(SceneSessionTest2, RaiseAboveTarget, TestSize.Level1)
     sptr<Rosen::ISession> session_;
     sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback_, nullptr);
+    ASSERT_NE(specificCallback_, nullptr);
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sceneSession, nullptr);
+    ASSERT__NE(sceneSession, nullptr);
     sceneSession->isActive_ = true;
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
@@ -76,7 +76,7 @@ HWTEST_F(SceneSessionTest2, RaiseAboveTarget, TestSize.Level1)
 
     sceneSession->SetSessionProperty(property);
     WSError result = sceneSession->RaiseAboveTarget(0);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sptr<SceneSession> tempSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     int32_t persistentId = 1;
@@ -86,11 +86,11 @@ HWTEST_F(SceneSessionTest2, RaiseAboveTarget, TestSize.Level1)
     sceneSession->subSession_.push_back(tempSession);
     int32_t subWindowId = 1;
     result = sceneSession->RaiseAboveTarget(subWindowId);
-    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_CALLING);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_CALLING);
 
     sceneSession->onRaiseAboveTarget_ = nullptr;
     result = sceneSession->RaiseAboveTarget(0);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -106,10 +106,10 @@ HWTEST_F(SceneSessionTest2, RaiseMainWindowAboveTarget, TestSize.Level1)
     sptr<Rosen::ISession> session_;
     sptr<SceneSession::SpecificSessionCallback> specificCallback_ =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(specificCallback_, nullptr);
+    ASSERT_NE(specificCallback_, nullptr);
 
     sptr<SceneSession> sourceSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(sourceSession, nullptr);
+    ASSERT_NE(sourceSession, nullptr);
 
     sourceSession->isActive_ = true;
     sourceSession->callingPid_ = 1;
@@ -123,7 +123,7 @@ HWTEST_F(SceneSessionTest2, RaiseMainWindowAboveTarget, TestSize.Level1)
     EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 
     sptr<SceneSession> targetSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(targetSession, nullptr);
+    ASSERT_NE(targetSession, nullptr);
 
     targetSession->isActive_ = true;
     targetSession->callingPid_ = 2;
@@ -135,7 +135,7 @@ HWTEST_F(SceneSessionTest2, RaiseMainWindowAboveTarget, TestSize.Level1)
 
     sptr<SceneSession::SpecificSessionCallback> callBack =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    EXPECT_NE(nullptr, callBack);
+    ASSERT_NE(nullptr, callBack);
     sourceSession->specificCallback_ = callBack;
     auto task = [&targetSession](int32_t persistentId) { return targetSession; };
     callBack->onGetSceneSessionByIdCallback_ = task;
