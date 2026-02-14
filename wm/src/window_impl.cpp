@@ -1808,6 +1808,7 @@ WMError WindowImpl::Destroy(bool needNotifyServer, bool needClearListener, uint3
         std::unique_lock<std::shared_mutex> lock(windowMapMutex_);
         windowMap_.erase(GetWindowName());
     }
+    NotifyAfterDestroy();
     if (needClearListener) {
         ClearListenersById(GetWindowId());
     }
@@ -4303,6 +4304,12 @@ void WindowImpl::NotifyAfterDidBackground(uint32_t reason, bool forceNotify)
         auto lifecycleListeners = window->GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterDidBackground, lifecycleListeners);
     }, where, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+}
+
+void WindowImpl::NotifyAfterDestroy()
+{
+    auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
+    CALL_LIFECYCLE_LISTENER(AfterDestroyed, lifecycleListeners);
 }
 
 void WindowImpl::NotifyAfterFocused()
