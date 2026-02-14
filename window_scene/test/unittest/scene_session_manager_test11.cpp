@@ -19,6 +19,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "mock/mock_collaborator_dll_manager.h"
 #include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
@@ -953,6 +954,45 @@ HWTEST_F(SceneSessionManagerTest11, AnimateTo01, Function | SmallTest | Level1)
     usleep(SLEEP_TIME);
     ASSERT_EQ(curve, WindowAnimationCurve::INTERPOLATION_SPRING);
     ASSERT_EQ(targetScale, animationProperty.targetScale);
+}
+
+/**
+ * @tc.name: CheckIfReuseSession06
+ * @tc.desc: Test if CollaboratorType is OTHERS_TYPE and collaboratorMap_ exist
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, CheckIfReuseSession06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    ssm_->currentUserId_ = 123;
+ 
+    SessionInfo sessionInfo;
+    sessionInfo.moduleName_ = "SceneSessionManager";
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.abilityName_ = "CheckIfReuseSession06";
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+ 
+    SceneSessionManager::SessionInfoList list = {
+        .uid_ = 123, .bundleName_ = "SceneSessionManagerTest11",
+        .abilityName_ = "CheckIfReuseSession06", .moduleName_ = "SceneSessionManager"
+    };
+ 
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(abilityInfo, nullptr);
+    abilityInfo->applicationInfo.codePath = std::to_string(CollaboratorType::RESERVE_TYPE);
+    ssm_->abilityInfoMap_[list] = abilityInfo;
+ 
+    sptr<AAFwk::IAbilityManagerCollaborator> collaborator =
+        iface_cast<AAFwk::IAbilityManagerCollaborator>(nullptr);
+    ssm_->collaboratorMap_.insert(std::make_pair(1, collaborator));
+    MockCollaboratorDllManager::MockPreHandleStartAbility(1);
+    auto ret4 = ssm_->CheckIfReuseSession(sessionInfo);
+    EXPECT_EQ((sessionInfo).callerTypeForAnco, 1);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(0);
+    ssm_->abilityInfoMap_.erase(list);
+    ssm_->collaboratorMap_.erase(1);
 }
 
 /**

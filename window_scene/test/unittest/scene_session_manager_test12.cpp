@@ -24,6 +24,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "mock/mock_collaborator_dll_manager.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_scene_session.h"
 #include "mock/mock_window_event_channel.h"
@@ -3293,6 +3294,33 @@ HWTEST_F(SceneSessionManagerTest12, DeleteAllOutline, Function | SmallTest | Lev
     EXPECT_EQ(ssm->outlineRemoteObject_, nullptr);
 }
 
+/**
+ * @tc.name: CheckBrokeNotAliveAndRefresh_01
+ * @tc.desc: test function : CheckBrokeNotAliveAndRefresh_01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckBrokeNotAliveAndRefresh01, Function | SmallTest | Level2)
+{
+    auto ssm = sptr<SceneSessionManager>::MakeSptr();
+    SessionInfo info;
+    info.abilityName_ = "CheckBrokeNotAliveAndRefresh01";
+    info.bundleName_ = "CheckBrokeNotAliveAndRefresh01";
+    std::shared_ptr<AAFwk::Want> wantPtr = std::make_shared<AAFwk::Want>();
+    info.SetWantSafely(wantPtr);
+    info.callerTypeForAnco = 0;
+    ssm->CheckBrokeNotAliveAndRefresh(info);
+    EXPECT_EQ(info.callerTypeForAnco, 0);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(1);
+    ssm->CheckBrokeNotAliveAndRefresh(info);
+    EXPECT_EQ(info.callerTypeForAnco, 1);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(2);
+    ssm->CheckBrokeNotAliveAndRefresh(info);
+    EXPECT_EQ(info.callerTypeForAnco, 2);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(0);
+}
 
 /**
  * @tc.name: RecoverOutline

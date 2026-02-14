@@ -425,6 +425,7 @@ struct SessionInfo {
     std::string callerAbilityName_ = "";
     uint32_t callState_ = 0;
     uint32_t callingTokenId_ = 0;
+    int32_t callerTypeForAnco = 0;
     bool reuse = false;
     int32_t windowMode = 0;
     StartMethod startMethod = StartMethod::START_NORMAL;

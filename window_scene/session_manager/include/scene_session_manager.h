@@ -1514,6 +1514,7 @@ private:
     sptr<AgentDeathRecipient> GetCollaboratorDeathRecipient(int32_t collaboratorType);
     void GetCollaboratorAbilityInfos(const std::vector<AppExecFwk::BundleInfo>& bundleInfos,
         std::vector<SCBAbilityInfo>& scbAbilityInfos, int32_t userId);
+    bool CheckBrokeNotAliveAndRefresh(SessionInfo& sessionInfo);
 
     std::vector<uint64_t> skipSurfaceNodeIds_;
     std::atomic_bool processingFlushUIParams_ { false };
