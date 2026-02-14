@@ -65,6 +65,7 @@
 #include "sys_cap_util.h"
 #include "wm_common_inner.h"
 #include "window_input_redistribute_impl.h"
+#include "page_switch_log.h"
 
 namespace OHOS::Accessibility {
 class AccessibilityEventInfo;
@@ -8149,6 +8150,9 @@ void WindowSessionImpl::NotifyWindowStatusDidChange(WindowMode mode)
             listener->OnWindowStatusDidChange(windowStatus);
         }
     }
+    std::ostringstream oss;
+    oss << "status: " << WindowStatusToString(windowStatus);
+    RecordWindowLifecycleChange(oss.str());
 }
 
 void WindowSessionImpl::NotifyFirstValidLayoutUpdate(const Rect& preRect, const Rect& newRect)
@@ -9287,6 +9291,42 @@ WMError WindowSessionImpl::UpdateCompatibleStyleMode(CompatibleStyleMode mode)
     property_->SetPageCompatibleMode(mode);
     hostSession->NotifyCompatibleModeChange(mode);
     return WMError::WM_OK;
+}
+
+std::string WindowSessionImpl::WindowStatusToString(WindowStatus status)
+{
+    switch (status) {
+        case WindowStatus::WINDOW_STATUS_UNDEFINED:
+            return "UNDEFINED";
+        case WindowStatus::WINDOW_STATUS_FULLSCREEN:
+            return "FULLSCREEN";
+        case WindowStatus::WINDOW_STATUS_MAXIMIZE:
+            return "MAXIMIZE";
+        case WindowStatus::WINDOW_STATUS_MINIMIZE:
+            return "MINIMIZE";
+        case WindowStatus::WINDOW_STATUS_FLOATING:
+            return "FLOATING";
+        case WindowStatus::WINDOW_STATUS_SPLITSCREEN:
+            return "SPLITSCREEN";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+void WindowSessionImpl::RecordWindowLifecycleChange(const std::string& windowEvent)
+{
+    std::ostringstream oss;
+    oss << "window " << windowEvent
+        << ", name: " << GetWindowName()
+        << ", id: " << GetWindowId()
+        << ", displayId: " << GetDisplayId();
+    // WritePageSwitchStr return 0: Success, -1: Failure; disabled by default
+    constexpr int WRITE_PAGE_SWITCH_FAIL = -1;
+    int ret = HiviewDFX::WritePageSwitchStr(oss.str());
+    if (ret == WRITE_PAGE_SWITCH_FAIL) {
+        TLOGE(WmsLogTag::WMS_MAIN, "failed, ret: %{public}d, event: %{public}s",
+            ret, windowEvent.c_str());
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

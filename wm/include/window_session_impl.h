@@ -648,6 +648,11 @@ public:
     void NotifyAfterLifecycleResumed();
     void NotifyAfterLifecyclePaused();
     void SetNavDestinationInfo(const std::string& navDestinationInfo) override;
+    /*
+     * Window Lifecycle and mode Record
+     */
+    void RecordWindowLifecycleChange(const std::string& widnowEvent);
+    static std::string WindowStatusToString(WindowStatus status);
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
 

@@ -794,6 +794,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
         SetPcAppInpadOrientationLandscape();
         SetDefaultDensityEnabledValue(IsStageDefaultDensityEnabled());
         RegisterListenerForKeyboard();
+        RecordWindowLifecycleChange("create");
     }
     UpdateAnimationSpeedIfEnabled();
     TLOGI(WmsLogTag::WMS_LIFE, "Window Create success [name:%{public}s, id:%{public}d], state:%{public}u, "
@@ -1828,6 +1829,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Switch to current user, NotifyAfterForeground");
         NotifyAfterForeground(true, false);
         NotifyAfterDidForeground(reason);
+        RecordWindowLifecycleChange("user switch show");
         return WMError::WM_OK;
     }
     const auto type = GetType();
@@ -1855,6 +1857,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         NotifyAfterForeground(true, false);
         NotifyAfterDidForeground(reason);
         RefreshNoInteractionTimeoutMonitor();
+        RecordWindowLifecycleChange("already show");
         return WMError::WM_OK;
     }
     auto displayInfo = GetDisplayInfo();
@@ -1908,6 +1911,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         RefreshNoInteractionTimeoutMonitor();
         TLOGI(WmsLogTag::WMS_LIFE, "Window show success [name:%{public}s, id:%{public}d, type:%{public}u]",
             property_->GetWindowName().c_str(), GetPersistentId(), type);
+        RecordWindowLifecycleChange("show");
     } else {
         NotifyForegroundFailed(ret);
         TLOGI(WmsLogTag::WMS_LIFE, "Window show failed with errcode: %{public}d, name:%{public}s, id:%{public}d",
@@ -2030,6 +2034,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
     if (validState == WindowState::STATE_HIDDEN || state_ == WindowState::STATE_CREATED) {
         TLOGD(WmsLogTag::WMS_LIFE, "window is alreay hidden, id:%{public}d", property_->GetPersistentId());
         NotifyBackgroundFailed(WMError::WM_DO_NOTHING);
+        RecordWindowLifecycleChange("already hide");
         return WMError::WM_OK;
     }
 
@@ -2077,6 +2082,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
         if (!interactive_) {
             hasFirstNotifyInteractive_ = false;
         }
+        RecordWindowLifecycleChange("hide");
     } else {
         TLOGI(WmsLogTag::WMS_LIFE, "Window hide failed, id:%{public}d, name:%{public}s, res:%{public}d",
             GetPersistentId(), property_->GetWindowName().c_str(), static_cast<int32_t>(res));
@@ -2347,6 +2353,7 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
 
     // delete after replace WSError with WMError
     NotifyBeforeDestroy(GetWindowName());
+    RecordWindowLifecycleChange("destroy");
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         state_ = WindowState::STATE_DESTROYED;
