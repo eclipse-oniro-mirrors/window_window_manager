@@ -126,8 +126,6 @@ public:
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
-    WSError UpdateWindowUIType(WindowUIType windowUIType) override;
-    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;
