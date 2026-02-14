@@ -477,7 +477,7 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             sessionInfos.size(), configs.size());
         return;
     }
-    
+
     for (auto& info : sessionInfos) {
         if (info == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "sessionInfo is null");
@@ -492,7 +492,7 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             TLOGE(WmsLogTag::WMS_LIFE, "GenSceneSession failed");
             return;
         }
- 
+
         if (info->want != nullptr) {
             bool isNeedBackToOther = info->want->GetBoolParam(AAFwk::Want::PARAM_BACK_TO_OTHER_MISSION_STACK, false);
             TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d isNeedBackToOther: %{public}d",
@@ -503,10 +503,10 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             } else {
                 info->callerPersistentId_ = INVALID_SESSION_ID;
             }
- 
+
             auto focusedOnShow = info->want->GetBoolParam(AAFwk::Want::PARAM_RESV_WINDOW_FOCUSED, true);
             sceneSession->SetFocusedOnShow(focusedOnShow);
- 
+
             std::string continueSessionId =
                 info->want->GetStringParam(Rosen::PARAM_KEY::PARAM_DMS_CONTINUE_SESSION_ID_KEY);
             if (!continueSessionId.empty()) {
@@ -520,7 +520,20 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
                 TLOGI(WmsLogTag::WMS_LIFE, "Continue app with persistentId: %{public}d", info->persistentId_);
                 SingletonContainer::Get<DmsReporter>().ReportContinueApp(true, static_cast<int32_t>(WSError::WS_OK));
             }
+        } else {
+            TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d want is empty", sceneSession->GetPersistentId());
+            sceneSession->SetFocusedOnShow(true);
         }
+        if (configs.size() != 0 && !(configs[index++]->forceStart) && info->persistentId_ != INVALID_SESSION_ID) {
+            TLOGI(WmsLogTag::WMS_LIFE, "session: %{public}d is Terminate", sceneSession->GetPersistentId());
+        } else {
+            sceneSession->SetSessionInfo(*info);
+        }
+        std::shared_ptr<SessionInfo> sessionInfo = std::make_shared<SessionInfo>(*info);
+        if (info->fullScreenStart_) {
+            sceneSession->NotifySessionFullScreen(true);
+        }
+        sceneSessions.emplace_back(sceneSession);
     }
     BatchPendingSessionsActivationInner(sessionInfos, configs);
 }
