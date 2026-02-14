@@ -401,7 +401,7 @@ struct SessionInfo {
     uint32_t windowType_ = 1; // WINDOW_TYPE_APP_MAIN_WINDOW
     sptr<IRemoteObject> callerToken_ = nullptr;
     sptr<IRemoteObject> rootToken_ = nullptr;
-    uint64_t screenId_ = -1ULL; // -1ULL: SCREEN_ID_INVALID
+    uint64_t screenId_ = -1ULL; // -1ULL：SCREEN_ID_INVALID
     bool isPersistentRecover_ = false;
     AtomicServiceInfo atomicServiceInfo_;
 
@@ -461,6 +461,7 @@ struct SessionInfo {
     bool disableDelegator = false;
     bool reuseDelegatorWindow = false;
     bool isAbilityHook_ = false;
+    int32_t scenarios = 0;
     bool isRestartApp_ = false;
     bool isRestartInSameProcess_ = true;
     int32_t restartCallerPersistentId_ = INVALID_SESSION_ID;
@@ -470,7 +471,6 @@ struct SessionInfo {
     SpecifiedReason specifiedReason_ = SpecifiedReason::DEFAULT;
     // only init when requestSceneSession from SCB
     bool isAncoApplication_ = false;
-    int32_t scenarios = 0;
     bool isPrelaunch_ = false;
     int32_t frameNum_ = 0;
     bool isTargetPlugin = false;
@@ -635,6 +635,7 @@ enum class SessionEvent : uint32_t {
     EVENT_COMPATIBLE_TO_RECOVER,
     EVENT_MAXIMIZE_FULLSCREEN,
     EVENT_SWITCH_COMPATIBLE_MODE = 200,
+    EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
     EVENT_END
 };
 

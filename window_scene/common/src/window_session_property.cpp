@@ -1472,7 +1472,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteUint32(avoidAreaOption_) && parcel.WriteBool(isWindowDelayRaiseEnabled_) &&
         parcel.WriteUint8(backgroundAlpha_) && parcel.WriteParcelable(&keyboardEffectOption_) &&
         parcel.WriteFloat(cornerRadius_) && parcel.WriteBool(isExclusivelyHighlighted_) &&
-        parcel.WriteBool(isAtomicService_) && parcel.WriteUint32(apiVersion_)&&
+        parcel.WriteBool(isAtomicService_) && parcel.WriteUint32(apiVersion_) &&
         parcel.WriteBool(isFullScreenWaterfallMode_) && parcel.WriteBool(isAbilityHookOff_) &&
         parcel.WriteBool(isAbilityHook_) &&
         parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(isFollowScreenChange_) &&
@@ -2837,11 +2837,6 @@ void WindowSessionProperty::UnmarshallingShadowsInfo(Parcel& parcel, WindowSessi
     property->SetWindowShadows(*shadowsInfo);
 }
 
-void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& itemValue)
-{
-    supportUIExtensionSubWindow_ = StringUtil::ConvertStringToBool(itemValue);
-}
-
 void WindowSessionProperty::SetIsShowDecorInFreeMultiWindow(bool isShow)
 {
     isShowDecorInFreeMultiWindow_ = isShow;
@@ -2870,6 +2865,11 @@ void WindowSessionProperty::SetStatusBarHeightInImmersive(int32_t statusBarHeigh
 int32_t WindowSessionProperty::GetStatusBarHeightInImmersive() const
 {
     return statusBarHeightInImmersive_;
+}
+
+void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& itemValue)
+{
+    supportUIExtensionSubWindow_ = StringUtil::ConvertStringToBool(itemValue);
 }
 
 void WindowSessionProperty::SetPrelaunch(bool isPrelaunch)

@@ -1807,7 +1807,7 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     napi_set_named_property(env, objValue, "sessionState",
         CreateJsValue(env, static_cast<int32_t>(sessionInfo.sessionState_)));
     napi_set_named_property(env, objValue, "specifiedReason",
-        CreateJsValue(env, sessionInfo.specifiedReason_));
+        CreateJsValue(env, static_cast<int32_t>(sessionInfo.specifiedReason_)));
     napi_set_named_property(env, objValue, "startWindowType",
         CreateJsValue(env, sessionInfo.startWindowType_));
     napi_set_named_property(env, objValue, "requestOrientation",
@@ -2625,7 +2625,7 @@ napi_value CreateJsRotationChangeResultMapObject(napi_env env, const int32_t per
     const RotationChangeResult& rotationChangeResult)
 {
     TLOGD(WmsLogTag::WMS_ROTATION, "CreateJsRotationChangeResultMapObject persistentId %{public}d, "
-        "rejectType: %{public}d", persistentId, rotationChangeResult.rectType_);
+        "rectType: %{public}d", persistentId, rotationChangeResult.rectType_);
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
     if (objValue == nullptr) {
@@ -3031,7 +3031,7 @@ napi_value CreateCompatibleStyleMode(napi_env env)
         CreateJsValue(env, static_cast<uint32_t>(CompatibleStyleMode::LANDSCAPE_SPLIT)));
     return objValue;
 }
- 
+
 MainThreadScheduler::MainThreadScheduler(napi_env env)
     : env_(env)
 {

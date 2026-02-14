@@ -91,17 +91,17 @@ enum class ListenerFuncType : uint32_t {
     SESSION_DISPLAY_ID_CHANGE_CB,
     SET_SUPPORT_WINDOW_MODES_CB,
     WINDOW_MOVING_CB,
-    SESSION_LOCK_STATE_CHANGE_CB,
     UPDATE_SESSION_LABEL_AND_ICON_CB,
     KEYBOARD_STATE_CHANGE_CB,
     KEYBOARD_EFFECT_OPTION_CHANGE_CB,
+    SESSION_LOCK_STATE_CHANGE_CB,
     SET_WINDOW_CORNER_RADIUS_CB,
     HIGHLIGHT_CHANGE_CB,
     FOLLOW_PARENT_RECT_CB,
     SET_PARENT_SESSION_CB,
     UPDATE_FLAG_CB,
-    Z_LEVEL_CHANGE_CB,
     SESSION_GET_TARGET_ORIENTATION_CONFIG_INFO_CB,
+    Z_LEVEL_CHANGE_CB,
     UPDATE_PIP_TEMPLATE_INFO_CB,
     SET_PIP_PARENT_WINDOWID_CB,
     UPDATE_FOLLOW_SCREEN_CHANGE_CB,
@@ -117,8 +117,8 @@ enum class ListenerFuncType : uint32_t {
     FLOATING_BALL_RESTORE_MAIN_WINDOW_CB,
     SCENE_OUTLINE_PARAMS_CHANGE_CB,
     RESTART_APP_CB,
-    CALLING_SESSION_ID_CHANGE_CB,
     ROTATION_LOCK_CHANGE_CB,
+    CALLING_SESSION_ID_CHANGE_CB,
     SNAPSHOT_SKIP_CHANGE_CB,
     COMPATIBLE_MODE_CHANGE_CB,
 };
@@ -245,8 +245,8 @@ private:
     static napi_value SetStartingWindowExitAnimationFlag(napi_env env, napi_callback_info info);
     static napi_value PcAppInPadNormalClose(napi_env env, napi_callback_info info);
     static napi_value SetWindowEnableDragBySystem(napi_env env, napi_callback_info info);
-    static napi_value SetIsPendingToBackgroundState(napi_env env, napi_callback_info info);
     static napi_value SetIsActivatedAfterScreenLocked(napi_env env, napi_callback_info info);
+    static napi_value SetIsPendingToBackgroundState(napi_env env, napi_callback_info info);
     static napi_value SetLabel(napi_env env, napi_callback_info info);
     static napi_value SetFrameGravity(napi_env env, napi_callback_info info);
     static napi_value SetUseStartingWindowAboveLocked(napi_env env, napi_callback_info info);
@@ -261,9 +261,9 @@ private:
     static napi_value ThrowSlipDirectly(napi_env env, napi_callback_info info);
     static napi_value AddSidebarBlur(napi_env env, napi_callback_info info);
     static napi_value SetSidebarBlur(napi_env env, napi_callback_info info);
+    static napi_value SetCurrentRotation(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationProperty(napi_env env, napi_callback_info info);
     static napi_value NotifyPageRotationIsIgnored(napi_env env, napi_callback_info info);
-    static napi_value SetCurrentRotation(napi_env env, napi_callback_info info);
     static napi_value SetSidebarBlurMaximize(napi_env env, napi_callback_info info);
     static napi_value RequestSpecificSessionClose(napi_env env, napi_callback_info info);
     static napi_value SendFbActionEvent(napi_env env, napi_callback_info info);

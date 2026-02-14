@@ -4443,7 +4443,7 @@ std::optional<WaterfallResidentState> ParseWaterfallResidentState(ani_env* env, 
         return std::nullopt;
     }
     if (AniWindowUtils::CheckParaIsUndefined(env, aniAcrossDisplay)) {
-        return WaterfallResidentState::CANCEL;
+        return WaterfallResidentState::UNCHANGED;
     }
     ani_boolean acrossDisplay = ANI_FALSE;
     ani_status ret = env->Object_CallMethodByName_Boolean(aniAcrossDisplay, "toBoolean", ":z", &acrossDisplay);
