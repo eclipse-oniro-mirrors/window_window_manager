@@ -53,6 +53,7 @@
 #include "scene_board_judgement.h"
 #include "session_permission.h"
 #include "screen_scene_config.h"
+#include "string_util.h"
 #include "surface_capture_future.h"
 #include "sys_cap_util.h"
 #include "permission.h"
@@ -7641,6 +7642,43 @@ DMError ScreenSessionManager::MakeMirrorForRecord(const std::vector<ScreenId>& m
 #endif
 }
 
+DMError ScreenSessionManager::QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect)
+{
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
+            SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
+    if (GetAllValidDisplayIds(displayIdList).size() != displayIdList.size()) {
+        // has invalid screenId in displayIdList
+        std::string displayIdListStr = "";
+        if (StringUtil::VectorToString(displayIdList, displayIdListStr)) {
+            TLOGE(WmsLogTag::DMS, "fail, query invalid display id: %{public}s.", displayIdListStr.c_str());
+        }
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    DMError ret = DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        ret = SuperFoldPolicy::GetInstance().QueryMultiScreenCapture(displayIdList, rect);
+    }
+#endif
+    return ret;
+}
+
+std::vector<DisplayId> ScreenSessionManager::GetAllValidDisplayIds(const std::vector<DisplayId>& displayIds)
+{
+    std::vector<DisplayId> allDisplayIds = GetAllDisplayIds();
+    std::vector<DisplayId> validDisplayIds{};
+    for (auto displayId : displayIds) {
+        auto it = std::find(allDisplayIds.begin(), allDisplayIds.end(), displayId);
+        if (it == allDisplayIds.end()) {
+            continue;
+        }
+        validDisplayIds.emplace_back(displayId);
+    }
+    return validDisplayIds;
+}
 
 DMError ScreenSessionManager::MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
                                          DMRect mainScreenRegion, ScreenId& screenGroupId)

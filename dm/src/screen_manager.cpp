@@ -590,6 +590,18 @@ DMError ScreenManager::MakeMirrorForRecord(const std::vector<ScreenId>& mainScre
     return ret;
 }
 
+DMError ScreenManager::QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect)
+{
+    if (displayIdList.empty()) {
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    std::string displayIdListStr = "";
+    if (StringUtil::VectorToString(displayIdList, displayIdListStr)) {
+        TLOGI(WmsLogTag::DMS, "display id list: %{public}s", displayIdListStr.c_str());
+    }
+    return SingletonContainer::Get<ScreenManagerAdapter>().QueryMultiScreenCapture(displayIdList, rect);
+}
+
 DMError ScreenManager::MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId, DMRect mainScreenRegion,
     ScreenId& screenGroupId)
 {

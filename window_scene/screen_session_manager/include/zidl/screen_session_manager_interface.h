@@ -223,6 +223,10 @@ public:
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
         DMRect mainScreenRegion, ScreenId& screenGroupId) { return DMError::DM_OK; }
     virtual DMError SetMultiScreenMode(ScreenId mainScreenId, ScreenId secondaryScreenId,

@@ -940,6 +940,17 @@ DMError ScreenManagerAdapter::MakeMirrorForRecord(const std::vector<ScreenId>& m
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
+DMError ScreenManagerAdapter::QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->QueryMultiScreenCapture(displayIdList, rect);
+    }
+
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError ScreenManagerAdapter::MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId,
     DMRect mainScreenRegion, ScreenId& screenGroupId)
 {

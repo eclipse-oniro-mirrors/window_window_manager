@@ -165,6 +165,7 @@ public:
         const RotationOption& rotationOption = {Rotation::ROTATION_0, false});
     virtual DMError MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,
         std::vector<ScreenId>& mirrorScreenIds, ScreenId& screenGroupId);
+    virtual DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect);
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId, DMRect mainScreenRegion,
         ScreenId& screenGroupId);
     virtual DMError SetMultiScreenMode(ScreenId mainScreenId, ScreenId secondaryScreenId,

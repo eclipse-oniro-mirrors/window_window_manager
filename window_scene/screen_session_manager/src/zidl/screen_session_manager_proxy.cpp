@@ -1654,6 +1654,38 @@ DMError ScreenSessionManagerProxy::MakeMirrorForRecord(const std::vector<ScreenI
     return ret;
 }
 
+DMError OHOS::Rosen::ScreenSessionManagerProxy::QueryMultiScreenCapture(
+    const std::vector<ScreenId>& displayIdList, DMRect& rect)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUInt64Vector(displayIdList)) {
+        TLOGE(WmsLogTag::DMS, "Write param failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_QUERY_MULTI_SCREEN_CAPTURE),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    rect.posX_ = reply.ReadInt32();
+    rect.posY_ = reply.ReadInt32();
+    rect.width_ = reply.ReadUint32();
+    rect.height_ = reply.ReadUint32();
+    return static_cast<DMError>(reply.ReadInt32());
+}
+
 DMError ScreenSessionManagerProxy::MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
                                               DMRect mainScreenRegion, ScreenId& screenGroupId)
 {

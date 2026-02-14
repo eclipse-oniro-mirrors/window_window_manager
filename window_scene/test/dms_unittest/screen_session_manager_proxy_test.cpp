@@ -205,6 +205,51 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetVirtualScreenSecurityExemption, TestS
 }
 
 /**
+ * @tc.name: QueryMultiScreenCapture
+ * @tc.desc: QueryMultiScreenCapture
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, QueryMultiScreenCapture, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    std::vector<ScreenId> displayIdList = {0};
+    DMRect rect;
+ 
+    // remote == nullptr
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    proxy->QueryMultiScreenCapture(displayIdList, rect);
+ 
+    // WriteInterfaceToken failed
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    auto ret = proxy->QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_EQ(DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED, ret);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+ 
+    // WriteVector failed
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64VectorErrorFlag(true);
+    ret = proxy->QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteUint64VectorErrorFlag(false);
+ 
+    // SendRequest failed
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(ERR_NONE);
+ 
+    // No mock reply data; parsing reply
+    MockMessageParcel::ClearAllErrorFlag();
+    ret = proxy->QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_NE(ret, DMError::DM_ERROR_IPC_FAILED);
+}
+
+/**
  * @tc.name: GetAllDisplayPhysicalResolution
  * @tc.desc: GetAllDisplayPhysicalResolution
  * @tc.type: FUNC
