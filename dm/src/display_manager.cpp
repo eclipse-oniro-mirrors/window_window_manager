@@ -177,10 +177,13 @@ private:
     void NotifyAvailableAreaChanged(DMRect rect, DisplayId displayId);
     void Clear();
     std::string GetDisplayInfoSrting(sptr<DisplayInfo> displayInfo);
-    std::atomic<bool> needUpdateDisplayFromDMS_ = false;
+    bool CheckNeedUpdateDisplayByTag(DisplayId displayId);
+    uint64_t GetCurrentTimeTagNs();
     DisplayId defaultDisplayId_ = DISPLAY_ID_INVALID;
     DisplayId primaryDisplayId_ = DISPLAY_ID_INVALID;
     static thread_local std::map<DisplayId, sptr<Display>> displayMap_;
+    std::map<DisplayId, uint64_t> globalDisplayTagMap_;
+    static thread_local std::map<DisplayId, uint64_t> currentDisplayTagMap_;
     DisplayStateCallback displayStateCallback_;
     std::recursive_mutex& mutex_;
     std::set<sptr<IDisplayListener>> displayListeners_;
@@ -233,6 +236,7 @@ private:
 };
 
 thread_local std::map<DisplayId, sptr<Display>> DisplayManager::Impl::displayMap_;
+thread_local std::map<DisplayId, uint64_t> DisplayManager::Impl::currentDisplayTagMap_;
 class DisplayManager::Impl::DisplayManagerListener : public DisplayManagerAgentDefault {
 public:
     explicit DisplayManagerListener(sptr<Impl> impl) : pImpl_(impl)
@@ -763,6 +767,7 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
         return nullptr;
     }
     TLOGD(WmsLogTag::DMS, "GetDisplayById start, displayId: %{public}" PRIu64" ", displayId);
+    uint64_t targetTag = GetCurrentTimeTagNs();
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         auto iter = displayMap_.find(displayId);
@@ -771,9 +776,10 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
                                                         ? APP_GET_DISPLAY_INTERVAL_US
                                                         : SCB_GET_DISPLAY_INTERVAL_US;
             auto interval = iter->second->GetDisplayInfoLifeTime();
-            if (interval < getDisplayIntervalUs_ && !needUpdateDisplayFromDMS_) {
+            if (interval < getDisplayIntervalUs_ && !CheckNeedUpdateDisplayByTag(displayId)) {
                     return iter->second;
             }
+            targetTag = globalDisplayTagMap_[displayId];
         }
     }
     sptr<DisplayInfo> displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(displayId);
@@ -786,8 +792,33 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
     if (!UpdateDisplayInfoLocked(displayInfo)) {
         displayMap_.erase(displayId);
     }
-    needUpdateDisplayFromDMS_ = false;
+    currentDisplayTagMap_[displayId] = targetTag;
     return displayMap_[displayId];
+}
+
+bool DisplayManager::Impl::CheckNeedUpdateDisplayByTag(DisplayId displayId)
+{
+    uint64_t globalTag = GetCurrentTimeTagNs();
+    auto iter = globalDisplayTagMap_.find(displayId);
+    if (iter != globalDisplayTagMap_.end()) {
+        globalTag = iter->second;
+    } else {
+        globalDisplayTagMap_[displayId] = globalTag;
+        return true;
+    }
+    auto iterCur = currentDisplayTagMap_.find(displayId);
+    if (iterCur != currentDisplayTagMap_.end()) {
+        return iterCur->second != globalTag;
+    }
+    return true;
+}
+
+uint64_t DisplayManager::Impl::GetCurrentTimeTagNs()
+{
+    auto now = std::chrono::system_clock::now();
+    auto duration_since_epoch = now.time_since_epoch();
+    uint64_t nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count();
+    return nanoseconds;
 }
 
 sptr<DisplayInfo> DisplayManager::Impl::GetVisibleAreaDisplayInfoById(DisplayId displayId)
@@ -2386,7 +2417,13 @@ void DisplayManager::Impl::NotifyDisplayStateChanged(DisplayId id, DisplayState 
 void DisplayManager::Impl::NotifyDisplayCreate(sptr<DisplayInfo> info)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    needUpdateDisplayFromDMS_ = true;
+    if (info == nullptr) {
+        TLOGW(WmsLogTag::DMS, "displayInfo is null");
+        return;
+    }
+    DisplayId displayId = info->GetDisplayId();
+    uint64_t currentTag = GetCurrentTimeTagNs();
+    globalDisplayTagMap_[displayId] = currentTag;
 }
 
 void DisplayManager::Impl::NotifyDisplayDestroy(DisplayId displayId)
@@ -2394,12 +2431,20 @@ void DisplayManager::Impl::NotifyDisplayDestroy(DisplayId displayId)
     TLOGD(WmsLogTag::DMS, "displayId:%{public}" PRIu64".", displayId);
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     displayMap_.erase(displayId);
+    globalDisplayTagMap_.erase(displayId);
+    currentDisplayTagMap_.erase(displayId);
 }
 
 void DisplayManager::Impl::NotifyDisplayChange(sptr<DisplayInfo> displayInfo)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    needUpdateDisplayFromDMS_ = true;
+    if (displayInfo == nullptr) {
+        TLOGW(WmsLogTag::DMS, "displayInfo is null");
+        return;
+    }
+    DisplayId displayId = displayInfo->GetDisplayId();
+    uint64_t currentTag = GetCurrentTimeTagNs();
+    globalDisplayTagMap_[displayId] = currentTag;
 }
 
 bool DisplayManager::Impl::UpdateDisplayInfoLocked(sptr<DisplayInfo> displayInfo)

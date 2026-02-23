@@ -1919,8 +1919,10 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display1 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1933,8 +1935,10 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display2 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display2));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1947,8 +1951,10 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display3 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display3));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1961,8 +1967,10 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalOverflow, TestSize
     displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
     sptr<Display> display4 = new Display("displayMock", displayInfo);
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display4));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -1986,8 +1994,10 @@ HWTEST_F(DisplayManagerTest, ConvertRelativeCoordinateToGlobalNotMainMod, TestSi
     sptr<Display> display1 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     std::cout << "start convert" << std::endl;
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertRelativeCoordinateToGlobal(relativePosition,
         globalPosition);
@@ -2068,8 +2078,10 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeNotMainMode, TestS
     EXPECT_CALL(m->Mock(),
         GetAllDisplayIds(defaultUserId)).Times(1).WillOnce(Return(std::vector<DisplayId>{displayId}));
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelative(globalPosition,
         relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_OK);
@@ -2150,8 +2162,10 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     sptr<Display> display1 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+ 
     DMError errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(
         globalPosition, displayId, relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -2164,8 +2178,10 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdOverf
     sptr<Display> display2 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display2));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     errorCode = DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
         displayId, relativePosition);
     EXPECT_EQ(errorCode, DMError::DM_ERROR_ILLEGAL_PARAM);
@@ -2189,8 +2205,10 @@ HWTEST_F(DisplayManagerTest, ConvertGlobalCoordinateToRelativeWithDisplayIdNotMa
     sptr<Display> display1 = new Display("displayMock", displayInfo);
 
     DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display1));
-    DisplayManager::GetInstance().pImpl_->needUpdateDisplayFromDMS_ = false;
-    
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
     DMError errorCode =
         DisplayManager::GetInstance().pImpl_->ConvertGlobalCoordinateToRelativeWithDisplayId(globalPosition,
             displayId, relativePosition);
@@ -3463,6 +3481,216 @@ HWTEST_F(DisplayManagerTest, IsOnboardDisplay, TestSize.Level1)
     DisplayManager::GetInstance().IsOnboardDisplay(displayId, isOnboardDisplay);
     EXPECT_TRUE(g_errLog.find("fail") == std::string::npos);
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetCurrentTimeTagNs
+ * @tc.desc: GetCurrentTimeTagNs returns valid timestamp
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetCurrentTimeTagNs, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    uint64_t timestamp1 = impl.GetCurrentTimeTagNs();
+    uint64_t timestamp2 = impl.GetCurrentTimeTagNs();
+    EXPECT_GT(timestamp1, 0ULL);
+    EXPECT_GT(timestamp2, 0ULL);
+    EXPECT_GE(timestamp2, timestamp1);
+}
+
+/**
+ * @tc.name: CheckNeedUpdateDisplayByTag01
+ * @tc.desc: CheckNeedUpdateDisplayByTag with new display (not in global map)
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, CheckNeedUpdateDisplayByTag01, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    DisplayId displayId = 100;
+    bool needUpdate = impl.CheckNeedUpdateDisplayByTag(displayId);
+    EXPECT_TRUE(needUpdate);
+    auto iter = impl.globalDisplayTagMap_.find(displayId);
+    EXPECT_NE(iter, impl.globalDisplayTagMap_.end());
+}
+
+/**
+ * @tc.name: CheckNeedUpdateDisplayByTag02
+ * @tc.desc: CheckNeedUpdateDisplayByTag with display in global map but not in current map
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, CheckNeedUpdateDisplayByTag02, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    DisplayId displayId = 101;
+    uint64_t globalTag = 123456789ULL;
+    impl.globalDisplayTagMap_[displayId] = globalTag;
+    bool needUpdate = impl.CheckNeedUpdateDisplayByTag(displayId);
+    EXPECT_TRUE(needUpdate);
+}
+
+/**
+ * @tc.name: CheckNeedUpdateDisplayByTag03
+ * @tc.desc: CheckNeedUpdateDisplayByTag with same tags in both maps
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, CheckNeedUpdateDisplayByTag03, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    DisplayId displayId = 102;
+    uint64_t tag = 987654321ULL;
+    impl.globalDisplayTagMap_[displayId] = tag;
+    impl.currentDisplayTagMap_[displayId] = tag;
+    bool needUpdate = impl.CheckNeedUpdateDisplayByTag(displayId);
+    EXPECT_FALSE(needUpdate);
+}
+
+/**
+ * @tc.name: CheckNeedUpdateDisplayByTag04
+ * @tc.desc: CheckNeedUpdateDisplayByTag with different tags in global and current maps
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, CheckNeedUpdateDisplayByTag04, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    DisplayId displayId = 103;
+    uint64_t globalTag = 111111111ULL;
+    uint64_t currentTag = 222222222ULL;
+    impl.globalDisplayTagMap_[displayId] = globalTag;
+    impl.currentDisplayTagMap_[displayId] = currentTag;
+    bool needUpdate = impl.CheckNeedUpdateDisplayByTag(displayId);
+    EXPECT_TRUE(needUpdate);
+}
+
+/**
+ * @tc.name: NotifyDisplayCreateTagUpdate
+ * @tc.desc: NotifyDisplayCreate updates global display tag
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayCreateTagUpdate, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    sptr<DisplayInfo> displayInfo = new DisplayInfo();
+    displayInfo->SetDisplayId(200);
+    
+    uint64_t timestampBefore = impl.GetCurrentTimeTagNs();
+    impl.NotifyDisplayCreate(displayInfo);
+    uint64_t timestampAfter = impl.GetCurrentTimeTagNs();
+    
+    auto iter = impl.globalDisplayTagMap_.find(200);
+    ASSERT_NE(iter, impl.globalDisplayTagMap_.end());
+    EXPECT_GE(iter->second, timestampBefore);
+    EXPECT_LE(iter->second, timestampAfter);
+}
+
+/**
+ * @tc.name: NotifyDisplayChangeTagUpdate
+ * @tc.desc: NotifyDisplayChange updates global display tag
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayChangeTagUpdate, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    sptr<DisplayInfo> displayInfo = new DisplayInfo();
+    displayInfo->SetDisplayId(201);
+    
+    impl.globalDisplayTagMap_[201] = 1000000ULL;
+    impl.NotifyDisplayChange(displayInfo);
+    
+    auto iter = impl.globalDisplayTagMap_.find(201);
+    ASSERT_NE(iter, impl.globalDisplayTagMap_.end());
+    EXPECT_GT(iter->second, 1000000ULL);
+}
+
+/**
+ * @tc.name: NotifyDisplayDestroyCleanup
+ * @tc.desc: NotifyDisplayDestroy cleans up tag maps
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayDestroyCleanup, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    DisplayId displayId = 300;
+    
+    impl.globalDisplayTagMap_[displayId] = 1000000ULL;
+    impl.currentDisplayTagMap_[displayId] = 1000000ULL;
+    impl.displayMap_[displayId] = nullptr;
+    
+    EXPECT_EQ(impl.globalDisplayTagMap_.count(displayId), 1U);
+    EXPECT_EQ(impl.currentDisplayTagMap_.count(displayId), 1U);
+    EXPECT_EQ(impl.displayMap_.count(displayId), 1U);
+    
+    impl.NotifyDisplayDestroy(displayId);
+    
+    EXPECT_EQ(impl.globalDisplayTagMap_.count(displayId), 0U);
+    EXPECT_EQ(impl.currentDisplayTagMap_.count(displayId), 0U);
+    EXPECT_EQ(impl.displayMap_.count(displayId), 0U);
+}
+
+/**
+ * @tc.name: NotifyDisplayDestroyNonExistent
+ * @tc.desc: NotifyDisplayDestroy with non-existent displayId
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayDestroyNonExistent, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    DisplayId displayId = 999;
+    
+    size_t globalSizeBefore = impl.globalDisplayTagMap_.size();
+    size_t currentSizeBefore = impl.currentDisplayTagMap_.size();
+    size_t displayMapSizeBefore = impl.displayMap_.size();
+    
+    impl.NotifyDisplayDestroy(displayId);
+    
+    EXPECT_EQ(impl.globalDisplayTagMap_.size(), globalSizeBefore);
+    EXPECT_EQ(impl.currentDisplayTagMap_.size(), currentSizeBefore);
+    EXPECT_EQ(impl.displayMap_.size(), displayMapSizeBefore);
+}
+
+/**
+ * @tc.name: NotifyDisplayChangeNullPtr
+ * @tc.desc: NotifyDisplayChange with null DisplayInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayChangeNullPtr, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    sptr<DisplayInfo> displayInfo = nullptr;
+    
+    impl.globalDisplayTagMap_[202] = 1000000ULL;
+    impl.NotifyDisplayChange(displayInfo);
+    
+    auto iter = impl.globalDisplayTagMap_.find(202);
+    ASSERT_NE(iter, impl.globalDisplayTagMap_.end());
+    EXPECT_EQ(iter->second, 1000000ULL);
+}
+
+/**
+ * @tc.name: NotifyDisplayCreateNullPtr
+ * @tc.desc: NotifyDisplayCreate with null DisplayInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayCreateNullPtr, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    sptr<DisplayInfo> displayInfo = nullptr;
+    
+    size_t mapSizeBefore = impl.globalDisplayTagMap_.size();
+    impl.NotifyDisplayCreate(displayInfo);
+    size_t mapSizeAfter = impl.globalDisplayTagMap_.size();
+    
+    EXPECT_EQ(mapSizeBefore, mapSizeAfter);
 }
 }
 } // namespace Rosen
