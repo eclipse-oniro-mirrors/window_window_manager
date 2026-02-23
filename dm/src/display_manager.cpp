@@ -2417,6 +2417,10 @@ void DisplayManager::Impl::NotifyDisplayStateChanged(DisplayId id, DisplayState 
 void DisplayManager::Impl::NotifyDisplayCreate(sptr<DisplayInfo> info)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (info == nullptr) {
+        TLOGW(WmsLogTag::DMS, "displayInfo is null");
+        return;
+    }
     DisplayId displayId = info->GetDisplayId();
     uint64_t currentTag = GetCurrentTimeTagNs();
     globalDisplayTagMap_[displayId] = currentTag;
@@ -2434,6 +2438,10 @@ void DisplayManager::Impl::NotifyDisplayDestroy(DisplayId displayId)
 void DisplayManager::Impl::NotifyDisplayChange(sptr<DisplayInfo> displayInfo)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (displayInfo == nullptr) {
+        TLOGW(WmsLogTag::DMS, "displayInfo is null");
+        return;
+    }
     DisplayId displayId = displayInfo->GetDisplayId();
     uint64_t currentTag = GetCurrentTimeTagNs();
     globalDisplayTagMap_[displayId] = currentTag;

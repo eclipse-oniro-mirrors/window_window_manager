@@ -3655,6 +3655,43 @@ HWTEST_F(DisplayManagerTest, NotifyDisplayDestroyNonExistent, TestSize.Level1)
     EXPECT_EQ(impl.currentDisplayTagMap_.size(), currentSizeBefore);
     EXPECT_EQ(impl.displayMap_.size(), displayMapSizeBefore);
 }
+
+/**
+ * @tc.name: NotifyDisplayChangeNullPtr
+ * @tc.desc: NotifyDisplayChange with null DisplayInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayChangeNullPtr, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    sptr<DisplayInfo> displayInfo = nullptr;
+    
+    impl.globalDisplayTagMap_[202] = 1000000ULL;
+    impl.NotifyDisplayChange(displayInfo);
+    
+    auto iter = impl.globalDisplayTagMap_.find(202);
+    ASSERT_NE(iter, impl.globalDisplayTagMap_.end());
+    EXPECT_EQ(iter->second, 1000000ULL);
+}
+
+/**
+ * @tc.name: NotifyDisplayCreateNullPtr
+ * @tc.desc: NotifyDisplayCreate with null DisplayInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayCreateNullPtr, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    sptr<DisplayInfo> displayInfo = nullptr;
+    
+    size_t mapSizeBefore = impl.globalDisplayTagMap_.size();
+    impl.NotifyDisplayCreate(displayInfo);
+    size_t mapSizeAfter = impl.globalDisplayTagMap_.size();
+    
+    EXPECT_EQ(mapSizeBefore, mapSizeAfter);
+}
 }
 } // namespace Rosen
 } // namespace OHOS
