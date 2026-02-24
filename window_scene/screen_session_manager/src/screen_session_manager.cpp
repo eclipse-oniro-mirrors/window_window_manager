@@ -10796,6 +10796,15 @@ void ScreenSessionManager::OnFoldPropertyChange(ScreenId screenId, const ScreenP
     bool result = clientProxy->OnFoldPropertyChange(screenId, newProperty, reason, displayMode, midProperty);
     if (!result) {
         TLOGNFE(WmsLogTag::DMS, "result is failed");
+#ifdef FOLD_ABILITY_ENABLE
+        sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+        if (screenSession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr, screenId: %{public}" PRIu64 "", screenId);
+            return;
+        }
+        SuperFoldStatusChangeEvents changeEvent = newProperty.GetSuperFoldStatusChangeEvent();
+        SuperFoldStateManager::GetInstance().HandleSuperFoldDisplayInServer(screenSession, changeEvent);
+#endif
         return;
     }
     TLOGNFI(WmsLogTag::DMS, "OnFoldPropertyChange get process data,screenId: %{public}" PRIu64
@@ -11084,6 +11093,13 @@ void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> 
             OnBeforeScreenPropertyChange(foldStatus);
             screenSession->PropertyChange(screenSession->GetScreenProperty(),
                 ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING_SWITCH_USER);
+        } else if (FoldScreenStateInternel::IsSuperFoldDisplayDevice) {
+#ifdef FOLD_ABILITY_ENABLE
+            ScreenId screenId = screenSession->GetScreenId();
+            SuperFoldStatus status = SuperFoldStateManager::GetInstance().GetCurrentStatus();
+            OnSuperFoldStatusChange(screenId, status);
+            TLOGNFI(WmsLogTag::DMS, "foldStatus: %{public}u", status);
+#endif
         } else {
             TLOGNFE(WmsLogTag::DMS, "unsupport foldStatus: %{public}u", foldStatus);
         }
@@ -11593,6 +11609,11 @@ void ScreenSessionManager::SetClientInner(int32_t newUserId, const sptr<IScreenS
         }
         if (isSuperFoldDeviceBootUp && iter.second->isInternal_) {
             iter.second->SetHorizontalRotation();
+#ifdef FOLD_ABILITY_ENABLE
+            SuperFoldStatus status = SuperFoldStateManager::GetInstance().GetCurrentStatus();
+            OnSuperFoldStatusChange(iter.first, status);
+            TLOGNFI(WmsLogTag::DMS, "foldStatus: %{public}u", status);
+#endif
         }
         if (IsConcurrentUser()) {
             if (targetDisplay != DISPLAY_ID_INVALID && targetDisplay != iter.first) {
@@ -13026,6 +13047,17 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
         }
     } else {
         TLOGNFE(WmsLogTag::DMS, "params error");
+    }
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        if (secondarySession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "session is nullptr");
+            return;
+        }
+        if (secondarySession->GetIsExtendVirtual() == false &&
+            secondarySession->GetScreenCombination == ScreenCombination::SCREEN_MIRROR &&
+            GetSuperFoldStatus() != SuperFoldStatus::HALF_FOLDED) {
+            SuperFoldStateManager::GetInstance().RefreshExternalRegion();
+        }
     }
     NotifyScreenModeChange();
     OnScreenModeChange(ScreenModeChangeEvent::END);
