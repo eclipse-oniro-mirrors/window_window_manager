@@ -6304,6 +6304,16 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
     info.scenarios = abilitySessionInfo->scenarios;
     session->CalculateStartWindowType(info, abilitySessionInfo->hideStartWindow);
     info.windowCreateParams = abilitySessionInfo->windowCreateParams;
+
+    if (abilitySessionInfo->want.HasParameter(AAFwk::Want::PARAM_RESV_WITH_ANIMATION) &&
+        (info.windowCreateParams == nullptr || info.windowCreateParams->needAnimation == nullptr)) {
+        bool withAnimation = abilitySessionInfo->want.GetBoolParam(AAFwk::Want::PARAM_RESV_WITH_ANIMATION, true);
+        if (info.windowCreateParams == nullptr) {
+            info.windowCreateParams = std::make_shared<WindowCreateParams>();
+        }
+        info.windowCreateParams->needAnimation = std::make_shared<bool>(withAnimation);
+    }
+
     TLOGI(WmsLogTag::WMS_LIFE, "bundleName:%{public}s, moduleName:%{public}s, abilityName:%{public}s,"
         "appIndex:%{public}d, affinity:%{public}s. callState:%{public}d, want persistentId:%{public}d,"
         "uiAbilityId:%{public}" PRIu64 ", windowMode:%{public}d, callerId:%{public}d,"
