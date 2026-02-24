@@ -179,6 +179,9 @@ HWTEST_F(WindowSessionImplTest4, GetDecorVisible, TestSize.Level1)
     bool isVisible = true;
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->GetDecorVisible(isVisible));
     window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->GetDecorVisible(isVisible));
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->GetDecorVisible(isVisible));
     auto uiContent = std::make_unique<Ace::UIContentMocker>();
     EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(false));
@@ -205,6 +208,10 @@ HWTEST_F(WindowSessionImplTest4, SetWindowTitleMoveEnabled, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    res = window->SetWindowTitleMoveEnabled(true);
+    EXPECT_EQ(res, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
     res = window->SetWindowTitleMoveEnabled(true);
     EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
@@ -215,6 +222,11 @@ HWTEST_F(WindowSessionImplTest4, SetWindowTitleMoveEnabled, TestSize.Level1)
     res = window->SetWindowTitleMoveEnabled(true);
     EXPECT_EQ(res, WMError::WM_OK);
     res = window->SetWindowTitleMoveEnabled(false);
+    EXPECT_EQ(res, WMError::WM_OK);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->property_->SetPcAppInpadCompatibleMode(true);
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    res = window->SetWindowTitleMoveEnabled(true);
     EXPECT_EQ(res, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetWindowTitleMoveEnabledtest01 end";
 }
@@ -1168,6 +1180,13 @@ HWTEST_F(WindowSessionImplTest4, SetTitleButtonVisible01, TestSize.Level1)
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     WMError res = window->SetTitleButtonVisible(false, false, false, true);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->property_->SetPcAppInpadCompatibleMode(true);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    res = window->SetTitleButtonVisible(false, false, false, true);
+    EXPECT_EQ(res, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetTitleButtonVisible01 end";
 }
 
