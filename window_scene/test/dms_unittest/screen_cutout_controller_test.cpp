@@ -447,8 +447,8 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo002, TestSize.Level1)
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
     ssm_.displayHookMap_[uid] = dmHookInfo;
     EXPECT_EQ(boundaryRects, boundaryRects);
-    displayInfo->SetActualPosX(0.5f);
-    displayInfo->SetActualPosY(0.5f);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
     displayInfo->SetActualWidth(100);
     displayInfo->SetActualHeight(100);
     controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
@@ -461,11 +461,11 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo002, TestSize.Level1)
 }
 
 /**
- * @tc.name: HookCutoutInfo002
- * @tc.desc: HookCutoutInfo002
+ * @tc.name: HookCutoutInfo003
+ * @tc.desc: HookCutoutInfo003
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo002, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo003, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         GTEST_SKIP();
@@ -480,16 +480,17 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo002, TestSize.Level1)
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
     ssm_.displayHookMap_[uid] = dmHookInfo;
-    displayInfo->SetActualPosX(0.5f);
-    displayInfo->SetActualPosY(0.5f);
-    displayInfo->SetActualWidth(1000);
-    displayInfo->SetActualHeight(0);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(100);
+    displayInfo->SetActualHeight(100);
     std::vector<DMRect> boundaryRects1 = { emptyRect1 };
     controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
     std::vector<DMRect> testboundaryRects1;
     EXPECT_EQ(testboundaryRects1, testboundaryRects1);
     displayInfo->SetActualPosX(0);
-    displayInfo->SetActualPosY(1000) boundaryRects1 = { emptyRect1 };
+    displayInfo->SetActualPosY(1000);
+    boundaryRects1 = { emptyRect1 };
     controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
     EXPECT_EQ(boundaryRects1, testboundaryRects1);
     emptyRect1 = { 1000, 1000, 1, 1 };
