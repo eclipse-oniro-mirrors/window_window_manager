@@ -38,7 +38,7 @@ public:
 private:
     void RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dheight, sptr<DisplayInfo> displayInfo,
         Rotation rotation) const;
-    void HookCutoutInfo(uint32_t& hookWidth, uint32_t& hookHeight, std::vector<DMRect>& boundaryRects,
+    void HookCutoutInfo(uint32_t hookWidth, uint32_t hookHeight, std::vector<DMRect>& boundaryRects,
         sptr<DisplayInfo> displayInfo) const;
     void CalcWaterfallRects(const std::vector<int>& numberVec, uint32_t displayWidth, uint32_t displayHeight,
                             Rotation rotation, WaterfallDisplayAreaRects& waterfallArea) const;

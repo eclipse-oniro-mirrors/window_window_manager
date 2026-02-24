@@ -50,6 +50,7 @@ sptr<CutoutInfo> ScreenCutoutController::GetScreenCutoutInfo(DisplayId displayId
     }
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "displayInfo invaild");
+        return nullptr;
     }
     std::vector<DMRect> boundaryRects;
     uint32_t dwidth = width;
@@ -87,7 +88,7 @@ void ScreenCutoutController::RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dhei
         "H: %{public}u", displayInfo->GetDisplayId(), phyWidth, phyHeight, dwidth, dheight);
 }
 
-void ScreenCutoutController::HookCutoutInfo(uint32_t& hookWidth, uint32_t& hookHeight,
+void ScreenCutoutController::HookCutoutInfo(uint32_t hookWidth, uint32_t hookHeight,
     std::vector<DMRect>& boundaryRects, sptr<DisplayInfo> displayInfo) const
 {
     if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() || ScreenSessionManager::GetInstance().IsHook()) {
