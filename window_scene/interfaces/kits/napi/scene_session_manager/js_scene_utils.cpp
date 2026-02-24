@@ -1076,7 +1076,8 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
     napi_get_named_property(env, jsObject, "displayOrientation", &jsDisplayOrientation);
     napi_value jsEnableHookDisplayOrientation = nullptr;
     napi_get_named_property(env, jsObject, "enableHookDisplayOrientation", &jsEnableHookDisplayOrientation);
-
+    napi_value jsActualRect = nullptr;
+    napi_get_named_property(env, jsObject, "actualRect", &jsActualRect);
     uint32_t width = 0;
     if (jsWidth == nullptr || !ConvertFromJsValue(env, jsWidth, width)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to width");
@@ -1126,6 +1127,13 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
     } else {
         hookInfo.enableHookDisplayOrientation_ = false;
     }
+
+    Rect actualRect;
+    if (jsActualRect == nullptr || !ConvertRectFromJsValue(env, jsActualRect, actualRect)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to actualRect");
+        return false;
+    }
+    hookInfo.actualRect_ = actualRect;
     return true;
 }
 

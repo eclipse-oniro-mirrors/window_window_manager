@@ -27,7 +27,7 @@
 #include "display_manager_agent_default.h"
 #include "screen_scene_config.h"
 #include "common_test_utils.h"
-
+#include "fold_screen_state_internel.h"
 using namespace testing;
 using namespace testing::ext;
 
@@ -41,10 +41,14 @@ class ScreenCutoutControllerTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
+    static ScreenSessionManager& ssm_;
     void SetUp() override;
     void TearDown() override;
     void SetAceessTokenPermission(const std::string processName);
+    DMHookInfo CreateDefaultHookInfo();
 };
+
+ScreenSessionManager& ScreenCutoutControllerTest::ssm_ = ScreenSessionManager::GetInstance();
 
 void ScreenCutoutControllerTest::SetUpTestCase()
 {
@@ -52,6 +56,17 @@ void ScreenCutoutControllerTest::SetUpTestCase()
     const char** perms = new const char *[1];
     perms[0] = "ohos.permission.CAPTURE_SCREEN";
     CommonTestUtils::SetAceessTokenPermission("foundation", perms, 1);
+}
+
+DMHookInfo ScreenCutoutControllerTest::CreateDefaultHookInfo()
+{
+    uint32_t hookWidth = 500;
+    uint32_t hookHeight = 700;
+    float_t hookDensity = 3.0;
+    uint32_t hookRotation = static_cast<uint32_t>(Rotation::ROTATION_0);
+    uint32_t hookDisplayOrientation = static_cast<uint32_t>(DisplayOrientation::PORTRAIT);
+    DMHookInfo dmHookInfo = { hookWidth, hookHeight, hookDensity, hookRotation, true, hookDisplayOrientation, true };
+    return dmHookInfo;
 }
 
 void ScreenCutoutControllerTest::TearDownTestCase()
@@ -378,6 +393,112 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation05, TestSize.
     controller->CheckBoundaryRectsWithRotation(boundaryRects, 35, 35, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 1);
     EXPECT_EQ(boundaryRects[0], emptyRect_);
+}
+/**
+ * @tc.name: HookCutoutInfo001
+ * @tc.desc: HookCutoutInfo001
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo001, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_TRUE(controller != nullptr);
+    DMRect emptyRect = { 0, 0, 0, 0 };
+    DMRect emptyRect_ = { 21, 21, 3, 3 };
+    std::vector<DMRect> boundaryRects = { emptyRect_, emptyRect };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 100;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    EXPECT_EQ(boundaryRects, boundaryRects);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(0);
+    displayInfo->SetActualHeight(0);
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    EXPECT_EQ(boundaryRects, boundaryRects);
+}
+
+/**
+ * @tc.name: HookCutoutInfo002
+ * @tc.desc: HookCutoutInfo002
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo002, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_TRUE(controller != nullptr);
+    DMRect emptyRect1 = { 50, 50, 1, 1 };
+    DMRect emptyRect2 = { 100, 100, 2, 2 };
+    std::vector<DMRect> boundaryRects = { emptyRect1, emptyRect2 };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 200;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    EXPECT_EQ(boundaryRects, boundaryRects);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(100);
+    displayInfo->SetActualHeight(100);
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    EXPECT_EQ(boundaryRects[0], emptyRect2);
+    DMRect emptyRect3 = { 200, 200, 1, 1 };
+    std::vector<DMRect> boundaryRects1 = { emptyRect3 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    std::vector<DMRect> testboundaryRects1;
+    EXPECT_EQ(testboundaryRects1, testboundaryRects1);
+}
+
+/**
+ * @tc.name: HookCutoutInfo003
+ * @tc.desc: HookCutoutInfo003
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo003, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_TRUE(controller != nullptr);
+    DMRect emptyRect1 = { 50, 50, 1, 1 };
+    std::vector<DMRect> boundaryRects = { emptyRect1 };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 200;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(100);
+    displayInfo->SetActualHeight(100);
+    std::vector<DMRect> boundaryRects1 = { emptyRect1 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    std::vector<DMRect> testboundaryRects1;
+    EXPECT_EQ(testboundaryRects1, testboundaryRects1);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(1000);
+    boundaryRects1 = { emptyRect1 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    EXPECT_EQ(boundaryRects1, testboundaryRects1);
+    emptyRect1 = { 1000, 1000, 1, 1 };
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    boundaryRects1 = { emptyRect1 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    EXPECT_EQ(boundaryRects1, testboundaryRects1);
 }
 }
 } // namespace Rosen

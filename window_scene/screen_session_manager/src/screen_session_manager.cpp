@@ -2360,6 +2360,21 @@ sptr<ScreenSession> ScreenSessionManager::GetDefaultScreenSession()
     return GetScreenSession(defaultScreenId_);
 }
 
+bool ScreenSessionManager::IsHook(int32_t uid)
+{
+    if (uid == INVALID_UID) {
+        uid = IPCSkeleton::GetCallingUid();
+    }
+    {
+        std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+        if (displayHookMap_.find(uid) != displayHookMap_.end()) {
+            TLOGNFI(WmsLogTag::DMS, "is true");
+            return true;
+        }
+    }
+    return false;
+}
+
 sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo,
     const sptr<ScreenSession>& screenSession, int32_t uid)
 {
@@ -2377,12 +2392,15 @@ sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> d
         oss << "hW: " << info.width_ << ", hH: " << info.height_ << ", hD: " << info.density_
             << ", hR: " << info.rotation_ << ", hER: " << info.enableHookRotation_
             << " hO: " << info.displayOrientation_ << ", hEO: " << info.enableHookDisplayOrientation_
+            << " , hAX: " << info.actualRect_.posX_ << ", hAY: " << info.actualRect_.posY_
+            << " , hAW: " << info.actualRect_.width_ << ", hAH: " << info.actualRect_.height_
             << ", dW: " << displayInfo->GetHeight() << ", dH: " << displayInfo->GetHeight()
             << ", dR: " << static_cast<uint32_t>(displayInfo->GetRotation())
-            << ", dO: " << static_cast<uint32_t>(displayInfo->GetDisplayOrientation())
-            << ", uid: " << uid << ", pid: " << IPCSkeleton::GetCallingPid();
-        TLOGNFI(WmsLogTag::DMS, "%{public}s", oss.str().c_str());
-
+            << ", dO: " << static_cast<uint32_t>(displayInfo->GetDisplayOrientation()) << ", uid: " << uid
+            << ", pid: " << IPCSkeleton::GetCallingPid();
+        std::regex pattern("%");
+        TLOGNFI(WmsLogTag::DMS, "%{public}s", std::regex_replace(oss.str(), pattern, "%%").c_str());
+        
         displayInfo->SetWidth(info.width_);
         displayInfo->SetHeight(info.height_);
         displayInfo->SetVirtualPixelRatio(info.density_);
@@ -2403,6 +2421,10 @@ sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> d
             info.displayOrientation_ < static_cast<uint32_t>(DisplayOrientation::UNKNOWN)) {
             displayInfo->SetDisplayOrientation(static_cast<DisplayOrientation>(info.displayOrientation_));
         }
+        displayInfo->SetActualPosX(info.actualRect_.posX_);
+        displayInfo->SetActualPosY(info.actualRect_.posY_);
+        displayInfo->SetActualWidth(info.actualRect_.width_);
+        displayInfo->SetActualHeight(info.actualRect_.height_);
     }
     return displayInfo;
 }
@@ -3274,8 +3296,6 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
         return;
     }
-    TLOGNFI(WmsLogTag::DMS, "uid:%{public}d, width:%{public}u, height:%{public}u, density:%{public}f",
-        uid, hookInfo.width_, hookInfo.height_, hookInfo.density_);
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMapCopy;
     {
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
@@ -3286,6 +3306,17 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
         if (enable) {
             if (uid != 0) {
                 displayHookMap_[uid] = hookInfo;
+                displayHookMap_[uid] = hookInfo;
+                std::ostringstream oss;
+                oss << "hW: " << hookInfo.width_ << ", hH: " << hookInfo.height_ << ", hD: " << hookInfo.density_
+                    << ", hR: " << hookInfo.rotation_ << ", hER: " << hookInfo.enableHookRotation_
+                    << " hO: " << hookInfo.displayOrientation_ 
+                    << ", hEO: " << hookInfo.enableHookDisplayOrientation_
+                    << " , hAX: " << hookInfo.actualRect_.posX_ << ", hAY: " << hookInfo.actualRect_.posY_
+                    << " , hAW: " << hookInfo.actualRect_.width_ << ", hAH: " << hookInfo.actualRect_.height_;
+                std::regex pattern("%");
+                TLOGD(WmsLogTag::DMS, "update hookinfo %{public}s",
+                    std::regex_replace(oss.str(), pattern, "%%").c_str());
             }
         } else {
             displayHookMap_.erase(uid);
@@ -4760,7 +4791,31 @@ DMError ScreenSessionManager::GetRoundedCorner(DisplayId displayId, int& radius)
     } else if (screenSession->GetPhyScreenId() == 5 && deviceRadius.size() > 1) {
         radius = deviceRadius[1];
     }
+    HookRadius(displayId, radius);
     return DMError::DM_OK;
+}
+
+void ScreenSessionManager::HookRadius(DisplayId displayId, int& radius)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() || !IsHook()) {
+        return;
+    }
+    sptr<DisplayInfo> displayInfo = GetDisplayInfoById(displayId);
+    if (!displayInfo) {
+        TLOGE(WmsLogTag::DMS, "displayInfo invaild");
+        return;
+    }
+    uint32_t hookWidth = displayInfo->GetWidth();
+    uint32_t hookHeight = displayInfo->GetHeight();
+    if (hookWidth == 0 || hookHeight == 0) {
+        TLOGE(WmsLogTag::DMS, "is zero");
+        return;
+    }
+    float scalex = static_cast<float>(displayInfo->GetActualWidth()) / hookWidth;
+    float scaley = static_cast<float>(displayInfo->GetActualHeight()) / hookHeight;
+    float scalexy = (scalex + scaley) / 2;
+    radius = static_cast<int>(radius / scalexy);
+    TLOGNFI(WmsLogTag::DMS, "radius: %{public}d", radius);
 }
 
 void ScreenSessionManager::SetSupportedRefreshRate(sptr<ScreenSession>& session)
