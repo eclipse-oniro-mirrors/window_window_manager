@@ -17254,7 +17254,7 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
     dmHookInfo.displayOrientation_ = hookInfo.displayOrientation_;
     dmHookInfo.enableHookDisplayOrientation_ = enable ? hookInfo.enableHookDisplayOrientation_ : false;
     dmHookInfo.actualRect_ = { 
-        .posX_ = hookInfo.actualRect_.posX_, .posX_ = hookInfo.actualRect_.posY_,
+        .posX_ = hookInfo.actualRect_.posX_, .posY_ = hookInfo.actualRect_.posY_,
     .width_ = hookInfo.actualRect_.width_, .height_ = hookInfo.actualRect_.height_};
     {
         std::shared_lock lock(appHookWindowInfoMapMutex_);
