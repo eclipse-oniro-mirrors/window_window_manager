@@ -366,7 +366,7 @@ public:
     bool GetIsEnableRegionRotation();
     void SetIsEnableCanvasRotation(bool isEnableCanvasRotation);
     bool GetIsEnableCanvasRotation();
-    void UpdateDisplayNodeRotation(int rotation);
+    void UpdateDisplayNodeRotation(FoldDisplayMode foldDisplayMode);
     void BeforeScreenPropertyChange(FoldStatus foldStatus);
     void ScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent);
     void FreezeScreen(bool isFreeze);
