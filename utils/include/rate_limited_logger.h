@@ -132,8 +132,41 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 }
 
 /**
+ * The TLOGI log macro with a rate limiting function which functionAddress is
+ * derived by GET_PACKED_ADDR_LINE.
+ * Usually use for client-side which not need to distinguish.
+ */
+#define TLOGI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                          \
+    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
+
+/**
+ * The TLOGI log macro with a rate limiting function. The functionAddress is derived by
+ * GET_PACKED_ADDR_LINE and the window ID is passed to distinguish different windows.
+ * Usually use for server-side to distinguish between different windows.
+ */
+#define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
+    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
+
+/**
+ * The TLOGNI log macro with a rate limiting function which functionAddress is
+ * derived by GET_PACKED_ADDR_LINE.
+ * Usually used for the client-side for thread throwing.
+ */
+#define TLOGNI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                         \
+    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
+
+/**
+ * The TLOGNI log macro with a rate limiting function. The functionAddress is derived by
+ * GET_PACKED_ADDR_LINE and the window ID is passed to distinguish different windows.
+ * Usually used to distinguish different windows on the server-side for thread throwing.
+ */
+#define TLOGNI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                \
+    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
+
+/**
  * The TLOGI log macro with a rate limiting function. The functionAddress is used to
  * distinguish between different logs, thus implementing rate limiting functionality.
+ * Not recommended to call directly!
  */
 #define TLOGI_LMT_INNER(functionAddress, timeWindowMs, maxCount, tag, fmt, ...)                   \
     do {                                                                                          \
@@ -145,22 +178,9 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 	} while (0)
 
 /**
-  * The TLOGI log macro with a rate limiting function which functionAddress is
-  * derived by GET_PACKED_ADDR_LINE.
- */
-#define TLOGI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                          \
-    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
-
-/**
- * The TLOGI log macro with a rate limiting function. The functionAddress is derived by
- * GET_PACKED_ADDR_LINE and the window ID is passed to distinguish different windows.
- */
-#define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
-    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
-
-/**
  * The TLOGNI log macro with a rate limiting function. The functionAddress is used to
  * distinguish between different logs, thus implementing rate limiting functionality.
+ * Not recommended to call directly!
  */
 #define TLOGNI_LMT_INNER(functionAddress, timeWindowMs, maxCount, tag, fmt, ...)                  \
     do {                                                                                          \
@@ -170,20 +190,6 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
                     TLOGNI(tag, fmt, ##__VA_ARGS__);                                              \
                 }                                                                                 \
     } while (0)
-
-/**
-  * The TLOGNI log macro with a rate limiting function which functionAddress is
-  * derived by GET_PACKED_ADDR_LINE.
- */
-#define TLOGNI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                         \
-    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
-
-/**
- * The TLOGNI log macro with a rate limiting function. The functionAddress is derived by
- * GET_PACKED_ADDR_LINE and the window ID is passed to distinguish different windows.
- */
-#define TLOGNI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                \
-    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
 
 } // namespace Rosen
 } // namespace OHOS
