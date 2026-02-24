@@ -1112,13 +1112,17 @@ WMError WindowController::ChangeMouseStyle(uint32_t windowId, sptr<MoveDragPrope
         return WMError::WM_OK;
     }
     auto it = STYLEID_MAP.find(moveDragProperty->dragType_);
-    if (it != STYLEID_MAP.end()) {
-        pointerStyle.id = STYLEID_MAP.at(moveDragProperty->dragType_);
-        int32_t res = MMI::InputManager::GetInstance()->SetPointerStyle(windowId, pointerStyle);
-        if (res != 0) {
-            WLOGFE("set pointer style failed");
-            return WMError::WM_ERROR_INVALID_OPERATION;
-        }
+    if (it == STYLEID_MAP.end()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid drag type, windowId: %{public}u, dragType: %{public}u",
+              windowId, moveDragProperty->dragType_);
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    pointerStyle.id = it->second;
+    int32_t res = MMI::InputManager::GetInstance()->SetPointerStyle(windowId, pointerStyle);
+    if (res != 0) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to set pointer style, windowId: %{public}u, res: %{public}d",
+              windowId, res);
+        return WMError::WM_ERROR_INVALID_OPERATION;
     }
     return WMError::WM_OK;
 }

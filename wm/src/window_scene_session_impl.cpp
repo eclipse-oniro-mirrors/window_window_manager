@@ -3602,7 +3602,7 @@ WMError WindowSceneSessionImpl::SetSystemBarPropertyForPage(WindowType type, std
             "enable:%{public}d, enableAnimation:%{public}d", prop.enable_, prop.enableAnimation_);
         return SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::ARKUI_NAVIGATION);
     } else {
-        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "%s", "clear");
+        TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS, "clear");
         SystemBarPropertyFlag mask = { .enableFlag = true, .enableAnimationFlag = true };
         return RemoveOwnSystemBarProperty(type, mask, SystemBarPropertyOwner::ARKUI_NAVIGATION);
     }
