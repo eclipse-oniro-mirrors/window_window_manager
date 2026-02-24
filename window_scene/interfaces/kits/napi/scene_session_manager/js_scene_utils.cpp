@@ -1129,7 +1129,7 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
     }
 
     Rect actualRect;
-    if (jsActualRect == nullptr || !ConvertFromJsValue(env, jsActualRect, actualRect)) {
+    if (jsActualRect == nullptr || !ConvertRectFromJsValue(env, jsActualRect, actualRect)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to actualRect");
         return false;
     }
