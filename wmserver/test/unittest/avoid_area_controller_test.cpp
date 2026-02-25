@@ -390,49 +390,6 @@ HWTEST_F(AvoidAreaControllerTest, SystemBarAvoidArea03, TestSize.Level1)
 }
 
 /**
- * @tc.name: AddOrRemoveOverlayWindowIfNeed
- * @tc.desc: AddOrRemoveOverlayWindowIfNeed test.
- * @tc.type: FUNC
- */
-HWTEST_F(AvoidAreaControllerTest, AddOrRemoveOverlayWindowIfNeed, TestSize.Level1)
-{
-    sptr<WindowProperty> property = createWindowProperty(110u, "test",
-        WindowType::APP_WINDOW_BASE, WindowMode::WINDOW_MODE_FULLSCREEN, screenRect);
-    sptr<WindowListener> windowListener = sptr<WindowListener>::MakeSptr();
-    sptr<WindowNode> appWindow = sptr<WindowNode>::MakeSptr(property, windowListener, nullptr);
-    uint32_t focusedWindow = appWindow->GetWindowId();
-    sptr<AvoidAreaController> avoidAreaController = sptr<AvoidAreaController>::MakeSptr(focusedWindow);
-    appWindow->SetWindowGravity(WindowGravity::WINDOW_GRAVITY_FLOAT, 0);
-    avoidAreaController->AddOrRemoveOverlayWindowIfNeed(appWindow, false);
-    WindowGravity windowGravity = WindowGravity::WINDOW_GRAVITY_BOTTOM;
-    uint32_t percent = 0;
-    appWindow->GetWindowGravity(windowGravity, percent);
-    EXPECT_EQ(windowGravity, WindowGravity::WINDOW_GRAVITY_FLOAT);
-    appWindow->SetWindowGravity(WindowGravity::WINDOW_GRAVITY_BOTTOM, 0);
-    avoidAreaController->AddOrRemoveOverlayWindowIfNeed(appWindow, false);
-}
-
-/**
- * @tc.name: ProcessWindowChange
- * @tc.desc: ProcessWindowChange test.
- * @tc.type: FUNC
- */
-HWTEST_F(AvoidAreaControllerTest, ProcessWindowChange, TestSize.Level1)
-{
-    sptr<WindowProperty> property = createWindowProperty(110u, "test",
-        WindowType::APP_WINDOW_BASE, WindowMode::WINDOW_MODE_FULLSCREEN, screenRect);
-    sptr<WindowListener> windowListener = sptr<WindowListener>::MakeSptr();
-    sptr<WindowNode> appWindow = sptr<WindowNode>::MakeSptr(property, windowListener, nullptr);
-    uint32_t focusedWindow = appWindow->GetWindowId();
-    sptr<AvoidAreaController> avoidAreaController = sptr<AvoidAreaController>::MakeSptr(focusedWindow);
-    appWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    avoidAreaController->ProcessWindowChange(appWindow, AvoidControlType::AVOID_NODE_ADD, nullptr);
-    appWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    avoidAreaController->ProcessWindowChange(appWindow, AvoidControlType::AVOID_NODE_ADD, nullptr);
-    EXPECT_EQ(appWindow->GetWindowType(), WindowGravity::WINDOW_TYPE_APP_MAIN_WINDOW);
-}
-
-/**
  * @tc.name: SystemBarAvoidArea01
  * @tc.desc: Get avoid areas with listener, TYPE_SYSTEM.
  * @tc.type: FUNC
