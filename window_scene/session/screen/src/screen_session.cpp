@@ -3541,4 +3541,14 @@ void ScreenSession::ClearPropertyChangeReasonAndEvent()
     property_.SetPropertyChangeReason(ScreenPropertyChangeReason::UNDEFINED);
     property_.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::UNDEFINED);
 }
+
+void ScreenSession::SetBootingConnect(const bool bootingConnect)
+{
+    bootingConnect_.store(bootingConnect);
+}
+
+bool ScreenSession::IsBootingConnect() const
+{
+    return bootingConnect_.load();
+}
 } // namespace OHOS::Rosen

@@ -5193,6 +5193,20 @@ HWTEST_F(ScreenSessionTest, ProcPropertyChange, TestSize.Level1)
     session->ProcPropertyChange(screenProperty, eventPara);
     EXPECT_EQ(screenProperty.GetPropertyChangeReason(), eventPara.GetPropertyChangeReason());
 }
+
+/**
+ * @tc.name: SetBootingConnect
+ * @tc.desc: SetBootingConnect
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetBootingConnect, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->SetBootingConnect(true);
+    EXPECT_TRUE(session->IsBootingConnect());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

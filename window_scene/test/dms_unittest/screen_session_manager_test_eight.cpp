@@ -1613,6 +1613,17 @@ HWTEST_F(ScreenSessionManagerTest, TestCalcRectsWithRotation003, TestSize.Level1
     }
     EXPECT_EQ(calcRect, res);
 }
+
+/*
+ * @tc.name: SetOnBootAnimation
+ * @tc.desc: SetOnBootAnimation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOnBootAnimation, TestSize.Level1)
+{
+    ssm_->SetOnBootAnimation(true);
+    EXPECT_TRUE(ssm_->IsOnBootAnimation());
+}
 }
 } // namespace Rosen
 } // namespace OHOS

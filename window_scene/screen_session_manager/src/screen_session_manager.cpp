@@ -383,6 +383,7 @@ ScreenSessionManager::ScreenSessionManager()
         InitSecondaryDisplayPhysicalParams();
     }
     SetFirstSCBConnect(true);
+    SetOnBootAnimation(true);
     WatchParameter(BOOTEVENT_BOOT_COMPLETED.c_str(), BootFinishedCallback, this);
     isSupportCapture_ = IsSupportCapture();
     if (SUPPORT_COMPATIBLE_MODE) {
@@ -5959,6 +5960,7 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         if (that.foldScreenPowerInit_ != nullptr) {
             that.foldScreenPowerInit_();
         }
+        that.SetOnBootAnimation(false);
         that.RegisterSettingRotationObserver();
         that.RegisterSettingResolutionEffectObserver();
         that.RegisterSettingCoordinationReadyObserver();
@@ -13566,7 +13568,8 @@ SessionOption ScreenSessionManager::GetSessionOption(sptr<ScreenSession> screenS
         .innerName_ = screenSession->GetInnerName(),
         .screenId_ = screenSession->GetScreenId(),
         .rotationCorrectionMap_ = screenSession->GetRotationCorrectionMap(),
-        .supportsFocus_ = screenSession->GetSupportsFocus()
+        .supportsFocus_ = screenSession->GetSupportsFocus(),
+        .isBooting_ = IsOnBootAnimation()
     };
     return option;
 }
@@ -13584,7 +13587,8 @@ SessionOption ScreenSessionManager::GetSessionOption(sptr<ScreenSession> screenS
         .supportsFocus_ = screenSession->GetSupportsFocus(),
         .isRotationLocked_ = rotationOptions.isRotationLocked_,
         .rotation_ = rotationOptions.rotation_,
-        .rotationOrientationMap_ = rotationOptions.rotationOrientationMap_
+        .rotationOrientationMap_ = rotationOptions.rotationOrientationMap_,
+        .isBooting_ = IsOnBootAnimation()
     };
     return option;
 }
@@ -15329,6 +15333,16 @@ void ScreenSessionManager::UpdateSwitchUser(bool userSwitching)
 {
     std::unique_lock<std::mutex> lock(switchUserMutex_);
     userSwitching_ = userSwitching;
+}
+
+void ScreenSessionManager::SetOnBootAnimation(const bool onBootAnimation)
+{
+    onBootAnimation_.store(onBootAnimation);
+}
+
+bool ScreenSessionManager::IsOnBootAnimation() const
+{
+    return onBootAnimation_.load();
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen

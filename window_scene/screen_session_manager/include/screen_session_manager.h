@@ -638,6 +638,9 @@ public:
     bool IsHook(int32_t uid = INVALID_UID);
     void HookRadius(DisplayId displayId, int& radius);
 
+    void SetOnBootAnimation(const bool onBootAnimation);
+    bool IsOnBootAnimation() const;
+
 protected:
     ScreenSessionManager();
     virtual ~ScreenSessionManager() = default;
@@ -1197,6 +1200,7 @@ private:
     std::mutex callbackMutex_;
     bool isSupportCapture_ = false;
     std::atomic<FoldDisplayMode> foldDisplayModeAfterRotation_ = FoldDisplayMode::UNKNOWN;
+    std::atomic<bool> onBootAnimation_ = false;
 
 private:
     class ScbClientListenerDeathRecipient : public IRemoteObject::DeathRecipient {

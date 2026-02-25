@@ -811,6 +811,7 @@ struct SessionOption {
     bool isRotationLocked_;
     int32_t rotation_;
     std::map<int32_t, int32_t> rotationOrientationMap_;
+    bool isBooting_ { false };
 };
 
 /**
