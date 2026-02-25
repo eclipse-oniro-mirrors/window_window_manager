@@ -4321,8 +4321,8 @@ void WindowImpl::NotifyAfterDidBackground(uint32_t reason, bool forceNotify)
 
 void WindowImpl::NotifyAfterDestroy()
 {
- 	auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
- 	CALL_LIFECYCLE_LISTENER(AfterDestroyed, lifecycleListeners);
+    auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
+    CALL_LIFECYCLE_LISTENER(AfterDestroyed, lifecycleListeners);
 }
 
 void WindowImpl::NotifyAfterFocused()
