@@ -32,8 +32,8 @@ class SceneSystemAbilityListener : public SystemAbilityStatusChangeStub {
 public:
     SceneSystemAbilityListener(const SCBThreadInfo& info) : info_(info) {}
     virtual ~SceneSystemAbilityListener() = default;
-    virtual void OnAddSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
-    virtual void OnRemoveSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override {}
+    void OnAddSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
+    void OnRemoveSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
 
 private:
     SCBThreadInfo info_;

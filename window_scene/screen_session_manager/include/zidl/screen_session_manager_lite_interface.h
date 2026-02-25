@@ -63,6 +63,7 @@ public:
         TRANS_ID_SCENE_BOARD_GET_CURRENT_FOLD_CREASE_REGION,
         TRANS_ID_GET_CUTOUT_INFO,
         TRANS_ID_GET_SCREEN_POWER_AUTO,
+        TRANS_ID_SET_RESOLUTION,
     };
 
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
@@ -78,6 +79,8 @@ public:
     virtual sptr<DisplayInfo> GetDefaultDisplayInfo() { return nullptr; }
     virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId) { return nullptr; }
     virtual sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId) { return nullptr; }
+    virtual DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height,
+        float virtualPixelRatio) { return DMError::DM_OK; }
 };
 } // namespace Rosen
 } // namespace OHOS

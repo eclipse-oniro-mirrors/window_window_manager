@@ -29,6 +29,7 @@ class RootSceneSession : public SceneSession {
 public:
     using LoadContentFunc =
         std::function<void(const std::string&, napi_env, napi_value, AbilityRuntime::Context*)>;
+    using GetUIContentFunc = std::function<Ace::UIContent*(DisplayId displayId)>;
     RootSceneSession() : SceneSession({}, nullptr) {}
     explicit RootSceneSession(const sptr<SpecificSessionCallback>& specificCallback)
         : SceneSession({}, specificCallback) {}
@@ -37,6 +38,8 @@ public:
     void SetLoadContentFunc(const LoadContentFunc& loadContentFunc);
     void LoadContent(
         const std::string& contentUrl, napi_env env, napi_value storage, AbilityRuntime::Context* context);
+    void SetGetUIContentFunc(GetUIContentFunc&& getUIContentFunc);
+    Ace::UIContent* GetUIContent(DisplayId displayId);
 
     /*
      * Window Layout
@@ -54,6 +57,7 @@ public:
 
 private:
     LoadContentFunc loadContentFunc_;
+    GetUIContentFunc getUIContentFunc_;
 
     /*
      * Window Immersive

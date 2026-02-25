@@ -17,12 +17,14 @@
 #include <bundlemgr/launcher_service.h>
 #include <gtest/gtest.h>
 #include <regex>
+
 #include "context.h"
 #include "interfaces/include/ws_common.h"
 #include "mock/mock_accesstoken_kit.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
 #include "mock/mock_ibundle_mgr.h"
+#include "pointer_event.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/main_session.h"
 #include "session_info.h"
@@ -147,19 +149,6 @@ HWTEST_F(SceneSessionManagerTest6, UpdateSecSurfaceInfo, TestSize.Level1)
 
     ssm_->currentUserId_ = 100;
     ssm_->UpdateSecSurfaceInfo(secExtData, 100);
-}
-
-/**
- * @tc.name: SetBehindWindowFilterEnabled
- * @tc.desc: SetBehindWindowFilterEnabled
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest6, SetBehindWindowFilterEnabled, TestSize.Level1)
-{
-    int ret = 0;
-    ssm_->SetBehindWindowFilterEnabled(true);
-    ssm_->SetBehindWindowFilterEnabled(false);
-    ASSERT_EQ(ret, 0);
 }
 
 /**
@@ -340,6 +329,8 @@ HWTEST_F(SceneSessionManagerTest6, DealwithVisibilityChange01, TestSize.Level0)
     ssm_->DealwithVisibilityChange(visibilityChangeInfos, currVisibleData);
     ASSERT_EQ(sceneSession1->GetRSVisible(), true);
     ASSERT_EQ(sceneSession2->GetRSVisible(), false);
+    ssm_->taskScheduler_ ->PostAsyncTaskToExportHandler([]() {}, "testNotifyMemMgr");
+    ssm_->taskScheduler_ ->PostAsyncTaskToExportHandler([]() {}, "testNotifyMemMgr", 100);
 }
 
 /**
@@ -410,37 +401,6 @@ HWTEST_F(SceneSessionManagerTest6, UpdateWindowMode, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     ret = ssm_->UpdateWindowMode(2, 0);
     EXPECT_EQ(WSError::WS_OK, ret);
-}
-
-/**
- * @tc.name: GetTopNavDestinationName
- * @tc.desc: test GetTopNavDestinationName whether get the top nav destination name.
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest6, GetTopNavDestinationName, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "SceneSessionManagerTest";
-    sessionInfo.abilityName_ = "DumpSessionWithId";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, ssm_);
-    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
-    ssm_->sceneSessionMap_.clear();
-
-    std::string topNavDestName;
-    EXPECT_EQ(ssm_->GetTopNavDestinationName(1000, topNavDestName), WMError::WM_ERROR_INVALID_WINDOW);
-
-    ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession));
-    EXPECT_EQ(ssm_->GetTopNavDestinationName(2, topNavDestName), WMError::WM_ERROR_INVALID_OPERATION);
-
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->sessionStage_ = nullptr;
-    EXPECT_EQ(ssm_->GetTopNavDestinationName(2, topNavDestName), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
-
-    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
-    EXPECT_EQ(ssm_->GetTopNavDestinationName(2, topNavDestName), WMError::WM_OK);
-    ssm_->sceneSessionMap_.clear();
-    ssm_->sceneSessionMap_ = oldSceneSessionMap;
 }
 
 /**
@@ -525,6 +485,9 @@ HWTEST_F(SceneSessionManagerTest6, RecoverWatermarkImageForApp, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     std::string watermarkName = "watermark#1";
     EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(watermarkName), WMError::WM_OK);
+    EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(""), WMError::WM_OK);
+    EXPECT_EQ(ssm_->RecoverWatermarkImageForApp(watermarkName), WMError::WM_OK);
+    ssm_->appWatermarkPidMap_.clear();
 }
 
 /**
@@ -852,7 +815,7 @@ HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles, TestSize.L
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.clear();
     DisplayId displayId = 0;
-    std::unordered_set<std::string> privacyBundles;
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundles;
     ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundles);
     SessionInfo sessionInfoFirst;
     sessionInfoFirst.bundleName_ = "";
@@ -884,7 +847,7 @@ HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles, TestSize.L
 HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles01, TestSize.Level1)
 {
     DisplayId displayId = 0;
-    std::unordered_set<std::string> privacyBundles;
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundles;
     ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundles);
     SessionInfo sessionInfoFirst;
     sessionInfoFirst.bundleName_ = "privacy.test.first";
@@ -922,7 +885,7 @@ HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles01, TestSize
 HWTEST_F(SceneSessionManagerTest6, GetSceneSessionPrivacyModeBundles02, TestSize.Level1)
 {
     DisplayId displayId = 0;
-    std::unordered_set<std::string> privacyBundles;
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundles;
     ASSERT_NE(nullptr, ssm_);
     ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundles);
     SessionInfo sessionInfoFirst;
@@ -1652,6 +1615,23 @@ HWTEST_F(SceneSessionManagerTest6, UpdateSessionOcclusionStateListener, TestSize
 }
 
 /**
+ * @tc.name: GetWindowStateSnapshot
+ * @tc.desc: get window state snapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetWindowStateSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    int32_t persistentId = 1;
+    std::string winStateSnapshotJsonStr;
+    auto result = ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(result, WMError::WM_OK);
+    winStateSnapshotJsonStr = "{";
+    result = ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(result, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+}
+
+/**
  * @tc.name: SendTouchEvent
  * @tc.desc: SendTouchEvent
  * @tc.type: FUNC
@@ -1861,6 +1841,29 @@ HWTEST_F(SceneSessionManagerTest6, GetCollaboratorByType, TestSize.Level1)
     ssm_->collaboratorMap_.insert(std::make_pair(1, collaborator));
     ret = ssm_->GetCollaboratorByType(1);
     EXPECT_EQ(nullptr, ret);
+}
+
+/**
+ * @tc.name: GetCollaboratorDeathRecipient
+ * @tc.desc: GetCollaboratorDeathRecipient
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetCollaboratorDeathRecipient, TestSize.Level1)
+{
+    EXPECT_NE(nullptr, ssm_);
+    ssm_->collaboratorDeathRecipientMap_.clear();
+    auto ret = ssm_->GetCollaboratorDeathRecipient(0);
+    EXPECT_EQ(nullptr, ret);
+    sptr<AgentDeathRecipient> collaboratorDeathRecipient = nullptr;
+    EXPECT_NE(nullptr, ssm_);
+    ssm_->collaboratorDeathRecipientMap_.insert(std::make_pair(1, collaboratorDeathRecipient));
+    ret = ssm_->GetCollaboratorDeathRecipient(1);
+    EXPECT_EQ(nullptr, ret);
+    collaboratorDeathRecipient = sptr<AgentDeathRecipient>::MakeSptr(
+        [](const sptr<IRemoteObject>& remoteObject) { ssm_->ClearCollaboratorSessionsByType(2); });
+    ssm_->collaboratorDeathRecipientMap_.insert(std::make_pair(2, collaboratorDeathRecipient));
+    ret = ssm_->GetCollaboratorDeathRecipient(2);
+    EXPECT_NE(nullptr, ret);
 }
 
 /**
@@ -2559,28 +2562,163 @@ HWTEST_F(SceneSessionManagerTest6, CheckIfReuseSession05, TestSize.Level1)
 }
 
 /**
- * @tc.name: UpdateAvoidArea
- * @tc.desc: UpdateAvoidArea
+ * @tc.name: CheckIfReuseSession06
+ * @tc.desc: Test if CollaboratorType is RESERVE_TYPE and collaboratorMap_ not exist
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest6, UpdateAvoidArea, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest6, CheckIfReuseSession06, TestSize.Level1)
 {
-    int32_t persistentId = 0;
-    ASSERT_NE(nullptr, ssm_);
-    ssm_->sceneSessionMap_.clear();
-    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
-    ssm_->UpdateAvoidArea(persistentId);
+    EXPECT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    ssm_->currentUserId_ = 123;
+
     SessionInfo sessionInfo;
+    sessionInfo.moduleName_ = "SceneSessionManager";
     sessionInfo.bundleName_ = "SceneSessionManagerTest6";
-    sessionInfo.abilityName_ = "UpdateAvoidArea";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    ssm_->sceneSessionMap_.insert(std::make_pair(persistentId, sceneSession));
-    ASSERT_NE(nullptr, sceneSession->property_);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
-    ssm_->UpdateAvoidArea(persistentId);
-    sceneSession->property_->SetWindowType(WindowType::APP_WINDOW_BASE);
-    ssm_->UpdateAvoidArea(persistentId);
+    sessionInfo.abilityName_ = "CheckIfReuseSession06";
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+
+    SceneSessionManager::SessionInfoList list = { .uid_ = 123,
+                                                  .bundleName_ = "SceneSessionManagerTest6",
+                                                  .abilityName_ = "CheckIfReuseSession06",
+                                                  .moduleName_ = "SceneSessionManager" };
+
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    EXPECT_NE(abilityInfo, nullptr);
+    abilityInfo->applicationInfo.codePath = std::to_string(CollaboratorType::REDIRECT_TYPE);
+    ssm_->abilityInfoMap_[list] = abilityInfo;
+    auto ret2 = ssm_->CheckIfReuseSession(sessionInfo);
+    EXPECT_EQ(ret2, BrokerStates::BROKER_UNKOWN);
+    ssm_->abilityInfoMap_.erase(list);
+}
+
+/**
+ * @tc.name: GetStartupPageTest
+ * @tc.desc: GetStartupPage
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetStartupPageTest, TestSize.Level1)
+{
+    EXPECT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    SessionInfo sessionInfo;
+    sessionInfo.isTargetPlugin = true;
+    StartingWindowInfo startingWindowInfo;
+    startingWindowInfo.iconPathEarlyVersion_ = "default";
+    ssm_->GetStartupPage(sessionInfo, startingWindowInfo);
+    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "default");
+
+
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+    EXPECT_NE(sessionInfo.want, nullptr);
+    const std::string pathFromDesk = "pathFromDesk";
+    sessionInfo.want->SetParam("realAppIcon", pathFromDesk);
+    ssm_->GetStartupPage(sessionInfo, startingWindowInfo);
+    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "pathFromDesk");
+}
+
+/**
+ * @tc.name: GetFreeInstalledAtomicServiceAbilityInfoTest01
+ * @tc.desc: SceneSessionManager GetFreeInstalledAtomicServiceAbilityInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetFreeInstalledAtomicServiceAbilityInfoTest01, TestSize.Level1)
+{
+    ssm_->bundleMgr_ = nullptr;
+    std::string bundleName = "bundleName01";
+    auto ret = ssm_->GetFreeInstalledAtomicServiceAbilityInfo(bundleName);
+    EXPECT_EQ(ret, nullptr);
+}
+
+/**
+ * @tc.name: GetFreeInstalledAtomicServiceAbilityInfoTest02
+ * @tc.desc: SceneSessionManager GetFreeInstalledAtomicServiceAbilityInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetFreeInstalledAtomicServiceAbilityInfoTest02, TestSize.Level1)
+{
+    sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
+    EXPECT_CALL(*bundleMgrMocker, GetBundleInfoV9(_, _, _, _)).WillOnce(Return(true));
+    ssm_->bundleMgr_ = bundleMgrMocker;
+    std::string bundleName = "bundleName02";
+    auto ret = ssm_->GetFreeInstalledAtomicServiceAbilityInfo(bundleName);
+    EXPECT_EQ(ret, nullptr);
+}
+
+/**
+ * @tc.name: GetFreeInstalledAtomicServiceAbilityInfoTest03
+ * @tc.desc: SceneSessionManager GetFreeInstalledAtomicServiceAbilityInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetFreeInstalledAtomicServiceAbilityInfoTest03, TestSize.Level1)
+{
+    sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
+    EXPECT_CALL(*bundleMgrMocker, GetBundleInfoV9(_, _, _, _))
+        .WillOnce([](const std::string& bundleName, int32_t flags, AppExecFwk::BundleInfo& bundleInfo, int32_t userId) {
+            bundleInfo.hapModuleInfos = {};
+            return 0;
+        });
+    ssm_->bundleMgr_ = bundleMgrMocker;
+    std::string bundleName = "bundleName03";
+    auto ret = ssm_->GetFreeInstalledAtomicServiceAbilityInfo(bundleName);
+    EXPECT_EQ(ret, nullptr);
+}
+
+/**
+ * @tc.name: GetFreeInstalledAtomicServiceAbilityInfoTest04
+ * @tc.desc: SceneSessionManager GetFreeInstalledAtomicServiceAbilityInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, GetFreeInstalledAtomicServiceAbilityInfoTest04, TestSize.Level1)
+{
+    sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
+    EXPECT_CALL(*bundleMgrMocker, GetBundleInfoV9(_, _, _, _))
+        .WillOnce([](const std::string& bundleName, int32_t flags, AppExecFwk::BundleInfo& bundleInfo, int32_t userId) {
+            AppExecFwk::AbilityInfo abilityInfo;
+            abilityInfo.moduleName = "moduleName";
+            abilityInfo.name = "abilityName";
+            AppExecFwk::HapModuleInfo hapModuleInfo;
+            hapModuleInfo.abilityInfos = { abilityInfo };
+            bundleInfo.hapModuleInfos = { hapModuleInfo };
+            return 0;
+        });
+    ssm_->bundleMgr_ = bundleMgrMocker;
+    std::string bundleName = "bundleName04";
+    auto ret = ssm_->GetFreeInstalledAtomicServiceAbilityInfo(bundleName);
+    EXPECT_NE(ret, nullptr);
+    EXPECT_EQ(ret->name, "abilityName");
+    EXPECT_EQ(ret->moduleName, "moduleName");
+}
+
+/**
+ * @tc.name: QueryAbilityInfoFromBMSTest
+ * @tc.desc: SceneSessionManager QueryAbilityInfoFromBMS
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, QueryAbilityInfoFromBMSTest, TestSize.Level1)
+{
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    const int32_t uId = 32;
+    SessionInfo sessionInfo_;
+    sessionInfo_.bundleName_ = "BundleNameBMS";
+    auto res = ssm_->QueryAbilityInfoFromBMS(uId, sessionInfo_.bundleName_, sessionInfo_.abilityName_,
+        sessionInfo_.moduleName_, true, sessionInfo_.isTargetPlugin, sessionInfo_.hostBundleName);
+    EXPECT_EQ(res, nullptr);
+
+    sessionInfo_.abilityName_ = "AbilityNameBMS";
+    sessionInfo_.moduleName_ = "ModuleNameBMS";
+    sessionInfo_.isTargetPlugin = true;
+    sessionInfo_.hostBundleName = "HostBundleNameBMS";
+    res = ssm_->QueryAbilityInfoFromBMS(uId, sessionInfo_.bundleName_, sessionInfo_.abilityName_,
+        sessionInfo_.moduleName_, false, sessionInfo_.isTargetPlugin, sessionInfo_.hostBundleName);
+    EXPECT_EQ(res, nullptr);
+
+    sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
+    EXPECT_CALL(*bundleMgrMocker, GetPluginAbilityInfo(_, _, _, _, _, _)).WillOnce(Return(ERR_OK));
+    ssm_->bundleMgr_ = bundleMgrMocker;
+    res = ssm_->QueryAbilityInfoFromBMS(uId, sessionInfo_.bundleName_, sessionInfo_.abilityName_,
+        sessionInfo_.moduleName_, false, sessionInfo_.isTargetPlugin, sessionInfo_.hostBundleName);
+    EXPECT_NE(res, nullptr);
 }
 
 /**

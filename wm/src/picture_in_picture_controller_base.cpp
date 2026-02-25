@@ -14,7 +14,6 @@
  */
 
 #include "picture_in_picture_controller_base.h"
-
 #include <transaction/rs_sync_transaction_controller.h>
 #include "parameters.h"
 #include "picture_in_picture_manager.h"
@@ -48,9 +47,6 @@ PictureInPictureControllerBase::PictureInPictureControllerBase(sptr<PipOption> p
 
 PictureInPictureControllerBase::~PictureInPictureControllerBase()
 {
-    if (pipOption_) {
-        pipOption_->ClearNapiRefs(env_);
-    }
     TLOGI(WmsLogTag::WMS_PIP, "Destruction");
 }
 
@@ -68,6 +64,28 @@ void PictureInPictureControllerBase::NotifyOpretationError(WMError errCode, Star
     }
     SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
         pipOption_->GetPipTemplate(), PipConst::FAILED, "window show failed");
+}
+
+napi_value PictureInPictureControllerBase::CallJsFunction(napi_env env, napi_value method,
+    napi_value const * argv, size_t argc)
+{
+    TLOGD(WmsLogTag::WMS_PIP, "called.");
+    if (env == nullptr || method == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "env nullptr or method is nullptr");
+        return nullptr;
+    }
+    napi_handle_scope scope = nullptr;
+    napi_open_handle_scope(env, &scope);
+    if (scope == nullptr) {
+        return nullptr;
+    }
+    napi_value result = nullptr;
+    napi_value callResult = nullptr;
+    napi_get_undefined(env, &result);
+    napi_get_undefined(env, &callResult);
+    napi_call_function(env, result, method, argc, argv, &callResult);
+    napi_close_handle_scope(env, scope);
+    return callResult;
 }
 
 void PictureInPictureControllerBase::SetControllerId(uint32_t controllerId)
@@ -93,12 +111,14 @@ WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType 
             pipOption_->GetPipTemplate(), PipConst::FAILED, "window is nullptr");
         return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
     }
+    NotifyStateChangeInner(PiPState::ABOUT_TO_START);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
             continue;
         }
-        listener->OnPreparePictureInPictureStart();
+        TLOGI(WmsLogTag::WMS_PIP, "notify statechange: ABOUT_TO_START");
+        listener->OnPreparePictureInPictureStart(GetStateChangeReason());
         listener->OnPreparePictureInPictureStart(controllerId_);
     }
     SetUIContent();
@@ -129,6 +149,7 @@ WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType 
 
 WMError PictureInPictureControllerBase::StartPictureInPictureInner(StartPipType startType)
 {
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     WMError errCode = CreatePictureInPictureWindow(startType);
     if (errCode != WMError::WM_OK) {
         curState_ = PiPWindowState::STATE_UNDEFINED;
@@ -198,23 +219,25 @@ WMError PictureInPictureControllerBase::StopPictureInPicture(bool destroyWindow,
         return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
     }
     curState_ = PiPWindowState::STATE_STOPPING;
+    NotifyStateChangeInner(PiPState::ABOUT_TO_STOP);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
             continue;
         }
-        listener->OnPreparePictureInPictureStop();
+        listener->OnPreparePictureInPictureStop(GetStateChangeReason());
         listener->OnPreparePictureInPictureStop(controllerId_);
     }
     if (!destroyWindow) {
         ResetExtController();
         curState_ = PiPWindowState::STATE_STOPPED;
+        NotifyStateChangeInner(PiPState::STOPPED);
         for (auto& listener : pipLifeCycleListeners_) {
             if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
             continue;
         }
-            listener->OnPictureInPictureStop();
+            listener->OnPictureInPictureStop(GetStateChangeReason());
             listener->OnPictureInPictureStop(controllerId_);
         }
         PictureInPictureManager::RemoveActiveController(weakRef_);
@@ -276,7 +299,7 @@ WMError PictureInPictureControllerBase::DestroyPictureInPictureWindow()
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
             continue;
         }
-        listener->OnPictureInPictureStop();
+        listener->OnPictureInPictureStop(GetStateChangeReason());
         listener->OnPictureInPictureStop(controllerId_);
     }
     curState_ = PiPWindowState::STATE_STOPPED;
@@ -294,6 +317,7 @@ WMError PictureInPictureControllerBase::DestroyPictureInPictureWindow()
     mainWindowLifeCycleListener_ = nullptr;
     PictureInPictureManager::RemovePipControllerInfo(window_->GetWindowId());
     window_ = nullptr;
+    NotifyStateChangeInner(PiPState::STOPPED);
     PictureInPictureManager::RemoveActiveController(this);
     return WMError::WM_OK;
 }
@@ -385,12 +409,14 @@ void PictureInPictureControllerBase::PreRestorePictureInPicture()
 {
     TLOGI(WmsLogTag::WMS_PIP, "called");
     curState_ = PiPWindowState::STATE_RESTORING;
+    NotifyStateChangeInner(PiPState::ABOUT_TO_RESTORE);
+    SetStateChangeReason(PiPStateChangeReason::PANEL_ACTION_RESTORE);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
             continue;
         }
-        listener->OnRestoreUserInterface();
+        listener->OnRestoreUserInterface(GetStateChangeReason());
         listener->OnRestoreUserInterface(controllerId_);
     }
 }
@@ -434,13 +460,23 @@ uint64_t PictureInPictureControllerBase::GetSurfaceId() const
     return surfaceId_;
 }
 
+void PictureInPictureControllerBase::SetStateChangeReason(PiPStateChangeReason reason)
+{
+    stateChangeReason_ = reason;
+}
+
+PiPStateChangeReason PictureInPictureControllerBase::GetStateChangeReason() const
+{
+    return stateChangeReason_;
+}
+
 void PictureInPictureControllerBase::ActiveStatusChange(bool status)
 {
     TLOGI(WmsLogTag::WMS_PIP, "notify active status: %{public}u", status);
     curActiveStatus_ = status;
     for (auto& listener : PiPActiveStatusObserver_) {
         if (listener == nullptr) {
-            TLOGE(WmsLogTag::WMS_PIP, "screen active listener is nullptr");
+            TLOGE(WmsLogTag::WMS_PIP, "active status listener is nullptr");
             continue;
         }
         listener->OnActiveStatusChange(status);
@@ -449,12 +485,13 @@ void PictureInPictureControllerBase::ActiveStatusChange(bool status)
 
 void PictureInPictureControllerBase::OnPictureInPictureStart()
 {
+    NotifyStateChangeInner(PiPState::STARTED);
     for (auto& listener : pipLifeCycleListeners_) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "one lifecycle listener is nullptr");
             continue;
         }
-        listener->OnPictureInPictureStart();
+        listener->OnPictureInPictureStart(GetStateChangeReason());
         listener->OnPictureInPictureStart(controllerId_);
     }
 }
@@ -477,11 +514,6 @@ WMError PictureInPictureControllerBase::RegisterPiPControlObserver(const sptr<IP
 WMError PictureInPictureControllerBase::RegisterPiPWindowSize(const sptr<IPiPWindowSize>& listener)
 {
     return RegisterListener(pipWindowSizeListeners_, listener);
-}
-
-WMError PictureInPictureControllerBase::RegisterPiPTypeNodeChange(const sptr<IPiPTypeNodeObserver>& listener)
-{
-    return RegisterListener(pipTypeNodeObserver_, listener);
 }
 
 WMError PictureInPictureControllerBase::RegisterPiPStart(const sptr<IPiPStartObserver>& listener)
@@ -512,11 +544,6 @@ WMError PictureInPictureControllerBase::UnregisterPiPControlObserver(const sptr<
 WMError PictureInPictureControllerBase::UnregisterPiPWindowSize(const sptr<IPiPWindowSize>& listener)
 {
     return UnregisterListener(pipWindowSizeListeners_, listener);
-}
-
-WMError PictureInPictureControllerBase::UnRegisterPiPTypeNodeChange(const sptr<IPiPTypeNodeObserver>& listener)
-{
-    return UnregisterListener(pipTypeNodeObserver_, listener);
 }
 
 WMError PictureInPictureControllerBase::UnregisterPiPStart(const sptr<IPiPStartObserver>& listener)
@@ -605,8 +632,9 @@ WMError PictureInPictureControllerBase::UnregisterListener(std::vector<sptr<T>>&
 
 void PictureInPictureControllerBase::GetPipPossible(bool& pipPossible)
 {
-    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
-    pipPossible = multiWindowUIType == "HandsetSmartWindow" || multiWindowUIType == "TabletSmartWindow";
+    bool isPipEnabledFlag = false;
+    SingletonContainer::Get<WindowAdapter>().GetIsPipEnabled(isPipEnabledFlag);
+    pipPossible = isPipEnabledFlag;
     return;
 }
 
@@ -638,6 +666,24 @@ bool PictureInPictureControllerBase::GetPiPSettingSwitchStatus()
     }
     TLOGI(WmsLogTag::WMS_PIP, "switchStatus: %{public}d", switchStatus);
     return switchStatus;
+}
+
+WMError PictureInPictureControllerBase::IsPiPActive(bool& status)
+{
+    if (curState_ != PiPWindowState::STATE_STARTED) {
+        return WMError::WM_OK;
+    }
+    if (window_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "window is nullptr.");
+        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+    }
+    WMError ret = window_->IsPiPActive(status);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PIP, "get switch error.");
+        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+    }
+    TLOGI(WmsLogTag::WMS_PIP, "active status: %{public}d", status);
+    return WMError::WM_OK;
 }
 // LCOV_EXCL_STOP
 } // namespace Rosen

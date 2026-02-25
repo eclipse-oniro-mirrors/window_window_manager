@@ -14,12 +14,14 @@
  */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <hisysevent.h>
 #include <parameter.h>
 #include <parameters.h>
 #include "fold_screen_controller/single_display_pocket_fold_policy.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
+#include "screen_scene_config.h"
 #include "session/screen/include/screen_session.h"
 #include "screen_session_manager.h"
 #include "fold_screen_state_internel.h"
@@ -29,6 +31,14 @@
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg = msg;
+    }
+}
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -137,6 +147,24 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, GetCurrentFoldCreaseRegion, TestSize
 }
 
 /**
+ * @tc.name: GetSupportedFoldStatus
+ * @tc.desc: GetSupportedFoldStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, GetSupportedFoldStatus, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    EXPECT_THAT(policy.GetSupportedFoldStatus(),
+        UnorderedElementsAre(
+            FoldStatus::EXPAND,
+            FoldStatus::FOLDED,
+            FoldStatus::HALF_FOLD));
+}
+
+/**
  * @tc.name: LockDisplayStatus
  * @tc.desc: test function : LockDisplayStatus
  * @tc.type: FUNC
@@ -234,11 +262,11 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, UpdateForPhyScreenPropertyChange, Te
 }
 
 /**
- * @tc.name: GetModeMatchStatus
+ * @tc.name: GetModeMatchStatus01
  * @tc.desc: test function : GetModeMatchStatus
  * @tc.type: FUNC
  */
-HWTEST_F(SingleDisplayPocketFoldPolicyTest, GetModeMatchStatus, TestSize.Level1)
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, GetModeMatchStatus01, TestSize.Level1)
 {
     std::recursive_mutex displayInfoMutex;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
@@ -263,6 +291,38 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, GetModeMatchStatus, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetModeMatchStatus02
+ * @tc.desc: test function : GetModeMatchStatus
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, GetModeMatchStatus02, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    FoldStatus targetFoldStatus = FoldStatus::EXPAND;
+    FoldDisplayMode ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::FULL, ret);
+
+    targetFoldStatus = FoldStatus::FOLDED;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::MAIN, ret);
+
+    targetFoldStatus = FoldStatus::HALF_FOLD;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::FULL, ret);
+
+    targetFoldStatus = FoldStatus::UNKNOWN;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::UNKNOWN, ret);
+
+    targetFoldStatus = FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_EXPAND;
+    ret = policy.GetModeMatchStatus(targetFoldStatus);
+    EXPECT_EQ(FoldDisplayMode::UNKNOWN, ret);
+}
+
+/**
  * @tc.name: ReportFoldDisplayModeChange
  * @tc.desc: test function : ReportFoldDisplayModeChange
  * @tc.type: FUNC
@@ -273,13 +333,18 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, ReportFoldDisplayModeChange, TestSiz
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
     SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
 
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
     policy.ReportFoldDisplayModeChange(displayMode);
-    EXPECT_EQ(FoldDisplayMode::UNKNOWN, displayMode);
-
+    EXPECT_TRUE(g_logMsg.find("Write HiSysEvent error") == std::string::npos);
+    
+    g_logMsg.clear();
     displayMode = FoldDisplayMode::FULL;
     policy.ReportFoldDisplayModeChange(displayMode);
-    EXPECT_NE(FoldDisplayMode::UNKNOWN, displayMode);
+    EXPECT_TRUE(g_logMsg.find("Write HiSysEvent error") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -418,7 +483,7 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, SetdisplayModeChangeStatus01, TestSi
 
     bool status = true;
     policy.SetdisplayModeChangeStatus(status);
-    EXPECT_EQ(policy.pengdingTask_, 3);
+    EXPECT_EQ(policy.pengdingTask_, 4);
 }
 
 /**
@@ -434,7 +499,7 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, SetdisplayModeChangeStatus02, TestSi
 
     bool status = false;
     policy.SetdisplayModeChangeStatus(status);
-    EXPECT_NE(policy.pengdingTask_, 3);
+    EXPECT_NE(policy.pengdingTask_, 4);
 }
 
 /**
@@ -567,6 +632,83 @@ HWTEST_F(SingleDisplayPocketFoldPolicyTest, ChangeOffTentMode, TestSize.Level1)
     policy.ChangeOffTentMode();
     FoldDisplayMode displayMode = policy.GetModeMatchStatus();
     EXPECT_EQ(policy.lastCachedisplayMode_, displayMode);
+}
+
+/**
+ * @tc.name: testSetFoldedAndExpandSpecialVpr
+ * @tc.desc: test fold expand special vpr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testSetFoldedAndExpandSpecialVpr, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    // set status and dpi, test special vpr is set dpi
+    policy.currentFoldStatus_ = FoldStatus::FOLDED;
+    policy.subDensityDpi_ = 2.0f;
+    EXPECT_FLOAT_EQ(policy.GetSpecialVirtualPixelRatio(), 2.0f);
+    // set status expand, test special vpr is -1.0f
+    policy.currentFoldStatus_ = FoldStatus::EXPAND;
+    EXPECT_FLOAT_EQ(policy.GetSpecialVirtualPixelRatio(), -1.0f);
+}
+
+/**
+ * @tc.name: testSetNormalNumbersConfig
+ * @tc.desc: test set normal numbers config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testSetNormalNumbersConfig, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    std::map<std::string, std::vector<int>> numbersConfig;
+    numbersConfig["subDpi"] = {120};
+    float dpiBefore = policy.subDensityDpi_;
+    policy.SetConfig(numbersConfig);
+
+    EXPECT_FLOAT_EQ(policy.subDensityDpi_, 120.0f / BASELINE_DENSITY);
+}
+
+/**
+ * @tc.name: testSetInvalidNumbersConfig
+ * @tc.desc: test invalid config that need equals before
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testSetInvalidNumbersConfig, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    std::map<std::string, std::vector<int>> numbersConfig;
+    // out normal
+    numbersConfig["subDpi"] = {2000};
+    float dpiBefore = policy.subDensityDpi_;
+    policy.SetConfig(numbersConfig);
+
+    EXPECT_FLOAT_EQ(policy.subDensityDpi_, dpiBefore);
+}
+
+/**
+ * @tc.name: testNotSetNumbersConfig
+ * @tc.desc: test not set numbers config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleDisplayPocketFoldPolicyTest, testNotSetNumbersConfig, TestSize.Level1)
+{
+    std::recursive_mutex displayInfoMutex;
+    std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = nullptr;
+    SingleDisplayPocketFoldPolicy policy(displayInfoMutex, screenPowerTaskScheduler);
+
+    std::map<std::string, std::vector<int>> numbersConfig;
+    float dpiBefore = policy.subDensityDpi_;
+    policy.SetConfig(numbersConfig);
+
+    EXPECT_FLOAT_EQ(policy.subDensityDpi_, dpiBefore);
 }
 }
 } // namespace Rosen

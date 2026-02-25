@@ -28,20 +28,26 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
-constexpr uint32_t SLEEP_TIME_US = 100000;
-const float INWARD_FOLDED_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
-    ("const.fold.folded_threshold", 85));
-const float INWARD_EXPAND_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
-    ("const.fold.expand_threshold", 145));
-const float INWARD_HALF_FOLDED_MAX_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
-    ("const.half_folded_max_threshold", 135));
-const float INWARD_HALF_FOLDED_MIN_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
-    ("const.fold.half_folded_min_threshold", 85));
-constexpr int32_t HALL_THRESHOLD = 1;
-constexpr int32_t HALL_FOLDED_THRESHOLD = 0;
-constexpr float INWARD_FOLDED_LOWER_THRESHOLD = 10.0F;
-constexpr float INWARD_FOLDED_UPPER_THRESHOLD = 20.0F;
-constexpr float ANGLE_BUFFER = 0.001F;
+    constexpr uint32_t SLEEP_TIME_US = 100000;
+    const float INWARD_FOLDED_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
+        ("const.fold.folded_threshold", 85));
+    const float INWARD_EXPAND_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
+        ("const.fold.expand_threshold", 145));
+    const float INWARD_HALF_FOLDED_MAX_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
+        ("const.half_folded_max_threshold", 135));
+    const float INWARD_HALF_FOLDED_MIN_THRESHOLD = static_cast<float>(system::GetIntParameter<int32_t>
+        ("const.fold.half_folded_min_threshold", 85));
+    constexpr int32_t HALL_THRESHOLD = 1;
+    constexpr int32_t HALL_FOLDED_THRESHOLD = 0;
+    constexpr float INWARD_FOLDED_LOWER_THRESHOLD = 10.0F;
+    constexpr float INWARD_FOLDED_UPPER_THRESHOLD = 20.0F;
+    constexpr float ANGLE_BUFFER = 0.001F;
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+        const char* msg)
+    {
+        g_logMsg += msg;
+    }
 }
 
 class DualDisplaySensorFoldStateManagerTest : public testing::Test {
@@ -387,6 +393,36 @@ namespace {
         DualDisplaySensorFoldStateManager mgr = DualDisplaySensorFoldStateManager(screenPowerTaskScheduler);
         mgr.RegisterApplicationStateObserver();
         ASSERT_NE(mgr.applicationStateObserver_, nullptr);
+    }
+    
+    /**
+    * @tc.name: ReportDualTentModeStatus
+    * @tc.desc: test function : ReportDualTentModeStatus
+    * @tc.type: FUNC
+    */
+    HWTEST_F(DualDisplaySensorFoldStateManagerTest, ReportDualTentModeStatus, TestSize.Level1)
+    {
+        g_logMsg.clear();
+        LOG_SetCallback(MyLogCallback);
+        std::shared_ptr<TaskScheduler> scheduler = nullptr;
+        DualDisplaySensorFoldStateManager stateManager(scheduler);
+        struct TestCase {
+            ReportDualTentModeStatus status;
+            int expectedValue;
+        };
+        std::vector<TestCase> cases = { { ReportDualTentModeStatus::NORMAL_EXIT_TENT_MODE, 0 },
+                                        { ReportDualTentModeStatus::NORMAL_ENTER_TENT_MODE, 1 },
+                                        { ReportDualTentModeStatus::ABNORMAL_EXIT_TENT_MODE_DUE_TO_ANGLE, 2 },
+                                        { ReportDualTentModeStatus::ABNORMAL_EXIT_TENT_MODE_DUE_TO_HALL, 3 } };
+        for (const auto& tc : cases) {
+            g_logMsg.clear();
+            stateManager.ReportTentStatusChange(tc.status);
+            std::string expected = "report tentStatus: " + std::to_string(tc.expectedValue);
+            EXPECT_TRUE(g_logMsg.find(expected) != std::string::npos)
+                << "Failed for status " << static_cast<int>(tc.status) << "; expected: " << expected
+                << ", got: " << g_logMsg;
+        }
+        LOG_SetCallback(nullptr);
     }
 }
 } // namespace Rosen

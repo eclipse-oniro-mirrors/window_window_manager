@@ -121,15 +121,16 @@ HWTEST_F(SnapshotDisplayTest, ScreenShotCmdValid01, TestSize.Level1)
 
     const std::string cmd = defaultCmd_ + " -i " + std::to_string(defaultId_) + " -f " + imgPath[0];
     (void)system(cmd.c_str());
-
+    bool isSuccess = false;
     for (i = 0; i < testTimeCount_; i++) {
-        if (CheckFileExist(imgPath[i])) {  // ok
+        isSuccess = CheckFileExist(imgPath[i]);
+        if (isSuccess) {  // ok
             remove(imgPath[i].c_str());
             ASSERT_TRUE(true);
-            return;
+            break;
         }
     }
-    ADD_FAILURE(); // fail, can't find snapshot file
+    ASSERT_TRUE(isSuccess); // fail, can't find snapshot file
 }
 
 /**
@@ -151,15 +152,16 @@ HWTEST_F(SnapshotDisplayTest, ScreenShotCmdValid02, TestSize.Level1)
 
     const std::string cmd = defaultCmd_ + " -i " + std::to_string(defaultId_) + " -f " + imgPath[0];
     (void)system(cmd.c_str());
-
+    bool isSuccess = false;
     for (i = 0; i < testTimeCount_; i++) {
-        if (CheckFileExist(imgPath[i])) {  // ok
+        isSuccess = CheckFileExist(imgPath[i]);
+        if (isSuccess) {  // ok
             remove(imgPath[i].c_str());
             ASSERT_TRUE(true);
-            return;
+            break;
         }
     }
-    ADD_FAILURE(); // fail, can't find snapshot file
+    ASSERT_TRUE(isSuccess);  // fail, can't find snapshot file
 }
 
 /**
@@ -253,15 +255,16 @@ HWTEST_F(SnapshotDisplayTest, ScreenShotCmdValid09, TestSize.Level1)
 
     const std::string cmd = defaultCmd_  + " -f " + imgPath[0] + " -t png";
     (void)system(cmd.c_str());
-
+    bool isSuccess = false;
     for (i = 0; i < testTimeCount_; i++) {
-        if (CheckFileExist(imgPath[i])) {  // ok
+        isSuccess = CheckFileExist(imgPath[i]);
+        if (isSuccess) {  // ok
             remove(imgPath[i].c_str());
             ASSERT_TRUE(true);
-            return;
+            break;
         }
     }
-    ADD_FAILURE(); // fail, can't find snapshot file
+    ASSERT_TRUE(isSuccess);  // fail, can't find snapshot file
 }
 } // namespace
 } // namespace Rosen

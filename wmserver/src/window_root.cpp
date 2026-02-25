@@ -404,6 +404,10 @@ void WindowRoot::GetUnreliableWindowInfo(int32_t windowId, std::vector<sptr<Unre
             FillUnreliableWindowInfo(windowNode, infos);
             continue;
         }
+        if (windowNode->GetWindowProperty()->GetTouchable()) {
+            TLOGND(WmsLogTag::WMS_ATTRIBUTE, "PersistentId: %{public}d is touchable", curWindowId);
+            continue;
+        }
         if (!windowNode->currentVisibility_) {
             WLOGFD("windowId: %{public}d is not visible", curWindowId);
             continue;
@@ -535,14 +539,14 @@ AvoidArea WindowRoot::GetAvoidAreaByType(uint32_t windowId, AvoidAreaType avoidA
     return container->GetAvoidAreaByType(node, avoidAreaType);
 }
 
-void WindowRoot::MinimizeAllAppWindows(DisplayId displayId)
+void WindowRoot::MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId)
 {
     auto container = GetOrCreateWindowNodeContainer(displayId);
     if (container == nullptr) {
         WLOGFE("can't find window node container, failed!");
         return;
     }
-    return container->MinimizeAllAppWindows(displayId);
+    return container->MinimizeAllAppWindows(displayId, excludeWindowId);
 }
 
 WMError WindowRoot::ToggleShownStateForAllAppWindows()

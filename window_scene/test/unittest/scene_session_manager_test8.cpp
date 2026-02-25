@@ -1179,6 +1179,30 @@ HWTEST_F(SceneSessionManagerTest8, SetScreenPrivacyWindowTagSwitch01, TestSize.L
     ASSERT_NE(nullptr, ssm_);
     MockAccesstokenKit::MockIsSACalling(false);
     uint64_t screenId = 0;
+    std::vector<std::string> privacyWindowTags = { "WMS_DEFAULT" };;
+    bool enable = false;
+    auto ret = ssm_->SetScreenPrivacyWindowTagSwitch(screenId, privacyWindowTags, enable);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, ret);
+
+    MockAccesstokenKit::MockIsSACalling(true);
+    ret = ssm_->SetScreenPrivacyWindowTagSwitch(screenId, privacyWindowTags, enable);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    enable = true;
+    ret = ssm_->SetScreenPrivacyWindowTagSwitch(screenId, privacyWindowTags, enable);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetScreenPrivacyWindowTagSwitch02
+ * @tc.desc: test function : SetScreenPrivacyWindowTagSwitch
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, SetScreenPrivacyWindowTagSwitch02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(false);
+    uint64_t screenId = 0;
     std::vector<std::string> privacyWindowTags;
     bool enable = false;
     auto ret = ssm_->SetScreenPrivacyWindowTagSwitch(screenId, privacyWindowTags, enable);
@@ -1224,10 +1248,33 @@ HWTEST_F(SceneSessionManagerTest8, AddSessionBlackList01, TestSize.Level1)
 
 /**
  * @tc.name: AddSessionBlackList02
- * @tc.desc: test function : AddSessionBlackList(sceneSession)
+ * @tc.desc: test function : AddSessionBlackList
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerTest8, AddSessionBlackList02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    std::unordered_set<std::string> bundleNames = { "test" };
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+    MockAccesstokenKit::MockIsSACalling(true);
+
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "test";
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    ssm_->sceneSessionMap_.insert({1, sceneSession1});
+    auto ret = ssm_->AddSessionBlackList(bundleNames, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: AddSessionBlackList03
+ * @tc.desc: test function : AddSessionBlackList(sceneSession)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, AddSessionBlackList03, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.clear();
@@ -1239,6 +1286,30 @@ HWTEST_F(SceneSessionManagerTest8, AddSessionBlackList02, TestSize.Level1)
     sceneSessionList.emplace_back(sceneSession1);
     std::unordered_set<std::string> privacyWindowTags;
     auto ret = ssm_->AddSessionBlackList(sceneSessionList, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: AddSessionBlackList04
+ * @tc.desc: test function : AddSessionBlackList(sceneSession)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, AddSessionBlackList04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "test";
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    std::vector<sptr<SceneSession>> sceneSessionList;
+    sceneSessionList.emplace_back(sceneSession1);
+    std::unordered_set<std::string> privacyWindowTags;
+    privacyWindowTags = { "WMS_DEFAULT" };
+    auto ret = ssm_->AddSessionBlackList(sceneSessionList, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
 
     ssm_->sceneSessionMap_.clear();
 }
@@ -1266,6 +1337,9 @@ HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList01, TestSize.Level1)
     sessionInfo1.bundleName_ = "test";
     sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
     ssm_->sceneSessionMap_.insert({1, sceneSession1});
+    std::vector<sptr<SceneSession>> sceneSessionList;
+    sceneSessionList.emplace_back(sceneSession1);
+    ssm_->AddSessionBlackList(sceneSessionList, privacyWindowTags);
     ret = ssm_->RemoveSessionBlackList(bundleNames, privacyWindowTags);
     EXPECT_EQ(WMError::WM_OK, ret);
 
@@ -1274,10 +1348,36 @@ HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList01, TestSize.Level1)
 
 /**
  * @tc.name: RemoveSessionBlackList02
- * @tc.desc: test function : RemoveSessionBlackList(sceneSession)
+ * @tc.desc: test function : RemoveSessionBlackList
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    std::unordered_set<std::string> bundleNames = { "test" };
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+    MockAccesstokenKit::MockIsSACalling(true);
+
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "test";
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    ssm_->sceneSessionMap_.insert({1, sceneSession1});
+    std::vector<sptr<SceneSession>> sceneSessionList;
+    sceneSessionList.emplace_back(sceneSession1);
+    ssm_->AddSessionBlackList(sceneSessionList, privacyWindowTags);
+    auto ret = ssm_->RemoveSessionBlackList(bundleNames, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: RemoveSessionBlackList03
+ * @tc.desc: test function : RemoveSessionBlackList(sceneSession)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList03, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.clear();
@@ -1288,6 +1388,30 @@ HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList02, TestSize.Level1)
     std::vector<sptr<SceneSession>> sceneSessionList;
     sceneSessionList.emplace_back(sceneSession1);
     std::unordered_set<std::string> privacyWindowTags;
+    ssm_->AddSessionBlackList(sceneSessionList, privacyWindowTags);
+    auto ret = ssm_->RemoveSessionBlackList(sceneSessionList, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: RemoveSessionBlackList04
+ * @tc.desc: test function : RemoveSessionBlackList(sceneSession)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "test";
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    std::vector<sptr<SceneSession>> sceneSessionList;
+    sceneSessionList.emplace_back(sceneSession1);
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+    ssm_->AddSessionBlackList(sceneSessionList, privacyWindowTags);
     auto ret = ssm_->RemoveSessionBlackList(sceneSessionList, privacyWindowTags);
     EXPECT_EQ(WMError::WM_OK, ret);
 
@@ -1420,11 +1544,11 @@ HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenAdd02, TestSi
 }
 
 /**
- * @tc.name: FlushSessionBlackListInfoMapWhenRemove01
+ * @tc.name: FlushSessionBlackListInfoMapWhenRemove011
  * @tc.desc: test function : FlushSessionBlackListInfoMapWhenRemove()
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove01, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove011, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     ssm_->screenRSBlackListConfigMap_.clear();
@@ -1436,6 +1560,30 @@ HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove01, Tes
     ssm_->screenRSBlackListConfigMap_[0].insert(*info.begin());
     ssm_->sessionRSBlackListConfigSet_.insert({ .windowId = 0, .privacyWindowTag = "test" });
     ssm_->sessionBlackListInfoMap_[0].insert({ .windowId = 0, .privacyWindowTag = "test1" });
+
+    auto ret = ssm_->FlushSessionBlackListInfoMapWhenRemove();
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+}
+
+/**
+ * @tc.name: FlushSessionBlackListInfoMapWhenRemove012
+ * @tc.desc: test function : FlushSessionBlackListInfoMapWhenRemove()
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove012, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+
+    SceneSessionManager::ScreenBlackListInfoSet info;
+    info.insert({ .privacyWindowTag = "test" });
+    ssm_->screenRSBlackListConfigMap_[0].insert(*info.begin());
     ssm_->sessionBlackListInfoMap_[0].insert({ .windowId = 1, .privacyWindowTag = "WMS_DEFAULT" });
 
     auto ret = ssm_->FlushSessionBlackListInfoMapWhenRemove();
@@ -1447,11 +1595,11 @@ HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove01, Tes
 }
 
 /**
- * @tc.name: FlushSessionBlackListInfoMapWhenRemove02
+ * @tc.name: FlushSessionBlackListInfoMapWhenRemove021
  * @tc.desc: test function : FlushSessionBlackListInfoMapWhenRemove(screenId)
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove02, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove021, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     ssm_->screenRSBlackListConfigMap_.clear();
@@ -1463,6 +1611,30 @@ HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove02, Tes
     ssm_->screenRSBlackListConfigMap_[0].insert(*info.begin());
     ssm_->sessionRSBlackListConfigSet_.insert({ .windowId = 0, .privacyWindowTag = "test" });
     ssm_->sessionBlackListInfoMap_[0].insert({ .windowId = 0, .privacyWindowTag = "test1" });
+
+    auto ret = ssm_->FlushSessionBlackListInfoMapWhenRemove(0);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+}
+
+/**
+ * @tc.name: FlushSessionBlackListInfoMapWhenRemove022
+ * @tc.desc: test function : FlushSessionBlackListInfoMapWhenRemove(screenId)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, FlushSessionBlackListInfoMapWhenRemove022, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+
+    SceneSessionManager::ScreenBlackListInfoSet info;
+    info.insert({ .privacyWindowTag = "test" });
+    ssm_->screenRSBlackListConfigMap_[0].insert(*info.begin());
     ssm_->sessionBlackListInfoMap_[0].insert({ .windowId = 1, .privacyWindowTag = "WMS_DEFAULT" });
 
     auto ret = ssm_->FlushSessionBlackListInfoMapWhenRemove(0);
@@ -1610,6 +1782,83 @@ HWTEST_F(SceneSessionManagerTest8, AddSkipSurfaceNodeWhenAttach01, TestSize.Leve
     ssm_->sessionRSBlackListConfigSet_.clear();
     ssm_->sessionBlackListInfoMap_.clear();
     ssm_->bundleRSBlackListConfigMap_.clear();
+}
+
+/**
+ * @tc.name: NotifyBrightnessModeChange01
+ * @tc.desc: test function : NotifyBrightnessModeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, NotifyBrightnessModeChange01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+
+    ssm_->SetDisplayBrightness(UNDEFINED_BRIGHTNESS);
+    EXPECT_EQ(WMError::WM_DO_NOTHING, ssm_->NotifyBrightnessModeChange(""));
+}
+
+/**
+ * @tc.name: NotifyBrightnessModeChange02
+ * @tc.desc: test function : NotifyBrightnessModeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, NotifyBrightnessModeChange02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+
+    ssm_->SetDisplayBrightness(1);
+    ssm_->brightnessSessionId_ = 1;
+
+    ssm_->sceneSessionMap_.insert({1, nullptr});
+    EXPECT_EQ(WMError::WM_DO_NOTHING, ssm_->NotifyBrightnessModeChange(""));
+
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: NotifyBrightnessModeChange03
+ * @tc.desc: test function : NotifyBrightnessModeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, NotifyBrightnessModeChange03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+
+    ssm_->SetDisplayBrightness(1);
+    ssm_->brightnessSessionId_ = 1;
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "test";
+    sessionInfo1.persistentId_ = 1;
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    sceneSession1->state_ = SessionState::STATE_FOREGROUND;
+
+    ssm_->sceneSessionMap_.insert({1, sceneSession1});
+    EXPECT_EQ(WMError::WM_OK, ssm_->NotifyBrightnessModeChange(""));
+
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: NotifyBrightnessModeChange04
+ * @tc.desc: test function : NotifyBrightnessModeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, NotifyBrightnessModeChange04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+
+    ssm_->SetDisplayBrightness(1);
+    ssm_->brightnessSessionId_ = 1;
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "test";
+    sessionInfo1.persistentId_ = 1;
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo1, nullptr);
+    sceneSession1->state_ = SessionState::STATE_DISCONNECT;
+
+    ssm_->sceneSessionMap_.insert({1, sceneSession1});
+    EXPECT_EQ(WMError::WM_DO_NOTHING, ssm_->NotifyBrightnessModeChange(""));
+
+    ssm_->sceneSessionMap_.clear();
 }
 
 /**

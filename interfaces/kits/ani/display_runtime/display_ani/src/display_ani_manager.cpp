@@ -19,6 +19,7 @@
 #include <hitrace_meter.h>
 
 #include "ani.h"
+#include <ani_signature_builder.h>
 #include "ani_err_utils.h"
 #include "display.h"
 #include "display_ani.h"
@@ -33,6 +34,7 @@
 
 namespace OHOS {
 namespace Rosen {
+using namespace arkts::ani_signature;
 
 DisplayManagerAni::DisplayManagerAni()
 {
@@ -56,9 +58,84 @@ ani_status DisplayManagerAni::InitDisplayManagerAni(ani_namespace displayNameSpa
     return ret;
 }
 
+void DisplayManagerAni::SetFoldDisplayModeReasonAni(ani_env* env, ani_int mode, ani_string reason, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI]");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnSetFoldDisplayModeReasonAni(env, mode, reason);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::SetFoldDisplayModeAni(ani_env* env, ani_int mode, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI]");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        std::string reason = "";
+        ani_string reasonAni;
+        ani_status status = DisplayAniUtils::GetAniString(env, reason, &reasonAni);
+        if (status != ANI_OK) {
+            TLOGE(WmsLogTag::DMS, "[ANI] GetAniString failed, ani_status = %{public}d", status);
+            return;
+        }
+        displayManagerAni->OnSetFoldDisplayModeReasonAni(env, mode, reasonAni);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnSetFoldDisplayModeReasonAni(ani_env* env, ani_int mode, ani_string reason)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI]");
+    std::string reasonStr;
+    DisplayAniUtils::GetStdString(env, reason, reasonStr);
+    DmErrorCode errCode = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<DisplayManager>().SetFoldDisplayModeFromJs(
+            static_cast<FoldDisplayMode>(mode), reasonStr));
+    if (errCode != DmErrorCode::DM_OK) {
+        AniErrUtils::ThrowBusinessError(env, errCode, "SetFoldDisplayModeAni failed");
+    }
+}
+
+void DisplayManagerAni::SetFoldStatusLockedAni(ani_env* env, ani_boolean locked, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI]");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnSetFoldStatusLockedAni(env, locked);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnSetFoldStatusLockedAni(ani_env* env, ani_boolean locked)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] locked: %{public}d", static_cast<bool>(locked));
+    DmErrorCode errCode = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<DisplayManager>().SetFoldStatusLockedFromJs(static_cast<bool>(locked)));
+    if (errCode != DmErrorCode::DM_OK) {
+        AniErrUtils::ThrowBusinessError(env, errCode, "SetFoldDisplayModeAni failed");
+    }
+}
+
 ani_int DisplayManagerAni::GetFoldDisplayModeAni(ani_env* env)
 {
-    auto mode = SingletonContainer::Get<DisplayManager>().GetFoldDisplayMode();
+    auto mode = SingletonContainer::Get<DisplayManager>().GetFoldDisplayModeForExternal();
     TLOGI(WmsLogTag::DMS, "[ANI]" PRIu64", getFoldDisplayMode = %{public}u", mode);
     return static_cast<ani_int>(mode);
 }
@@ -108,11 +185,13 @@ void DisplayManagerAni::OnGetCurrentFoldCreaseRegion(ani_env* env, ani_object ob
         return;
     }
     TLOGI(WmsLogTag::DMS, "[ANI] DisplayManager GetCurrentFoldCreaseRegion success %{public}d", (int)displayId);
-    if (ANI_OK != env->Object_SetFieldByName_Long(obj, "<property>displayId", (ani_long)displayId)) {
+    if (ANI_OK != env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("displayId").c_str(),
+        (ani_long)displayId)) {
         TLOGE(WmsLogTag::DMS, "[ANI] set displayId field fail");
     }
     ani_ref creaseRectsObj{};
-    if (ANI_OK != env->Object_GetFieldByName_Ref(obj, "<property>creaseRects", &creaseRectsObj)) {
+    if (ANI_OK != env->Object_GetFieldByName_Ref(obj, Builder::BuildPropertyName("creaseRects").c_str(),
+        &creaseRectsObj)) {
         TLOGE(WmsLogTag::DMS, "[ANI] get ani_array len fail");
     }
     ani_int length;
@@ -123,7 +202,7 @@ void DisplayManagerAni::OnGetCurrentFoldCreaseRegion(ani_env* env, ani_object ob
     for (int i = 0; i < std::min(int(length), static_cast<int>(rects.size())); i++) {
         ani_ref currentCrease;
         if (ANI_OK != env->Object_CallMethodByName_Ref(static_cast<ani_object>(creaseRectsObj),
-            "$_get", "i:C{std.core.Object}", &currentCrease, (ani_int)i)) {
+            "$_get", "i:Y", &currentCrease, (ani_int)i)) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail", (ani_int)i);
         }
         TLOGI(WmsLogTag::DMS, "current i: %{public}d", i);
@@ -145,7 +224,7 @@ void DisplayManagerAni::GetAllDisplaysAni(ani_env* env, ani_object arrayObj)
 
     for (int i = 0; i < std::min(int(length), static_cast<int>(displays.size())); i++) {
         ani_ref currentDisplay;
-        if (ANI_OK != env->Object_CallMethodByName_Ref(arrayObj, "$_get", "i:C{std.core.Object}",
+        if (ANI_OK != env->Object_CallMethodByName_Ref(arrayObj, "$_get", "i:Y",
             &currentDisplay, (ani_int)i)) {
             TLOGE(WmsLogTag::DMS, "[ANI] get ani_array index %{public}u fail", (ani_int)i);
         }
@@ -154,6 +233,23 @@ void DisplayManagerAni::GetAllDisplaysAni(ani_env* env, ani_object arrayObj)
         DisplayAni::CreateDisplayAni(displays[i], static_cast<ani_object>(currentDisplay), env);
     }
     TLOGI(WmsLogTag::DMS, "[ANI] GetAllDisplaysAni end");
+}
+
+void DisplayManagerAni::GetPrimaryDisplaySyncAni(ani_env* env, ani_object obj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    sptr<Display> display = SingletonContainer::Get<DisplayManager>().GetPrimaryDisplaySync();
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Display null");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_SYSTEM_INNORMAL, "");
+        return;
+    }
+    DisplayAniUtils::CvtDisplay(display, env, obj);
+    DisplayAni::CreateDisplayAni(display, static_cast<ani_object>(obj), env);
 }
 
 void DisplayManagerAni::GetDisplayByIdSyncAni(ani_env* env, ani_object obj, ani_long displayId)
@@ -296,6 +392,135 @@ DmErrorCode DisplayManagerAni::ProcessRegisterCallback(ani_env* env, std::string
     return ret;
 }
 
+void DisplayManagerAni::RegisterDisplayAttributeListener(ani_env* env,
+    ani_object displayAttributeOption, ani_ref callback, ani_long nativeObj)
+{
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnRegisterDisplayAttributeListener(env, displayAttributeOption, callback);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+ 
+void DisplayManagerAni::OnRegisterDisplayAttributeListener(ani_env* env, ani_object displayAttributeOption,
+    ani_ref callback)
+{
+    std::vector<std::string> attributes;
+    ani_status ret = DisplayAniUtils::GetStdStringVector(env, displayAttributeOption, attributes);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "Failed to convert parameter to attributes");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert attributes");
+        return;
+    }
+    FilterValidAttributes(attributes);
+    ani_ref cbRef{};
+    if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] create global ref fail");
+        return;
+    }
+    std::lock_guard<std::mutex> lock(mtx_);
+    FilterRegisteredCallback(env, attributes, cbRef);
+    if (attributes.empty()) {
+        TLOGI(WmsLogTag::DMS, "[ANI] All attributes callback have been already registered!");
+        env->GlobalReference_Delete(cbRef);
+        return;
+    }
+    ani_boolean callbackUndefined = 0;
+    env->Reference_IsUndefined(cbRef, &callbackUndefined);
+    if (callbackUndefined) {
+        TLOGE(WmsLogTag::DMS, "callback undefined");
+        env->GlobalReference_Delete(cbRef);
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "callback undefined");
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "[ANI] OnRegisterDisplayAttributeListener");
+    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env);
+    if (displayAniListener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] displayAniListener is nullptr");
+        env->GlobalReference_Delete(cbRef);
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "DisplayListener is nullptr");
+        return;
+    }
+    std::vector<std::string> attributesToServer;
+    FilterRegisteredAttribute(env, attributes, attributesToServer);
+    auto res = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<DisplayManager>().RegisterDisplayAttributeListener(
+        attributesToServer, displayAniListener));
+    if (res != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "Register display attribute listener failed, res: %{public}u", ret);
+        env->GlobalReference_Delete(cbRef);
+        AniErrUtils::ThrowBusinessError(env, res, "Register display attribute listener failed");
+        return;
+    }
+    for (auto attribute: attributes) {
+        displayAniListener->AddCallback(attribute, cbRef);
+        jsAttributeCbMap_[attribute][std::move(cbRef)] = displayAniListener;
+    }
+    displayAniListener->SetMainEventHandler();
+}
+
+void DisplayManagerAni::FilterValidAttributes(std::vector<std::string>& attributes)
+{
+    static const std::set<std::string> validAttributes = {
+        "id", "name", "alive", "state", "refreshRate",
+        "rotation", "width", "height",
+        "densityDPI", "densityPixels", "scaledDensity",
+        "orientation", "xDPI", "yDPI", "colorSpaces",
+        "hdrFormats", "availableWidth", "availableHeight",
+        "x", "y", "screenShape", "sourceMode", "supportedRefreshRates"
+    };
+    
+    attributes.erase(std::remove_if(attributes.begin(), attributes.end(),
+        [](const std::string& attr) {
+            bool invalid = validAttributes.find(attr) == validAttributes.end();
+            if (invalid) {
+                TLOGW(WmsLogTag::DMS, "Invalid attribute name: %{public}s", attr.c_str());
+            }
+            return invalid;
+        }),
+        attributes.end()
+    );
+}
+ 
+void DisplayManagerAni::FilterRegisteredAttribute(ani_env* env, std::vector<std::string>& attributes,
+    std::vector<std::string>& attributesToServer)
+{
+    for (auto attribute : attributes) {
+        auto it = jsAttributeCbMap_.find(attribute);
+        if (it == jsAttributeCbMap_.end()) {
+            attributesToServer.push_back(attribute);
+        }
+    }
+}
+void DisplayManagerAni::FilterRegisteredCallback(ani_env* env, std::vector<std::string>& attributes, ani_ref callback)
+{
+    for (auto it = attributes.begin(); it != attributes.end();) {
+        if (IsAttributeCallbackRegistered(env, *it, callback)) {
+            TLOGW(WmsLogTag::DMS, "Attribute: %{public}s current callback already registered!", it->c_str());
+            it = attributes.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+ 
+bool DisplayManagerAni::IsAttributeCallbackRegistered(ani_env* env, const std::string& type, ani_ref callback)
+{
+    if (jsAttributeCbMap_.empty() || jsAttributeCbMap_.find(type) == jsAttributeCbMap_.end()) {
+        TLOGI(WmsLogTag::DMS, "method %{public}s not registered!", type.c_str());
+        return false;
+    }
+    for (const auto& iter : jsAttributeCbMap_[type]) {
+        ani_boolean isEquals = false;
+        env->Reference_StrictEquals(callback, iter.first, &isEquals);
+        if (isEquals) {
+            TLOGE(WmsLogTag::DMS, "callback already registered!");
+            return true;
+        }
+    }
+    return false;
+}
+
 void DisplayManagerAni::UnRegisterCallback(ani_env* env, ani_string type,
     ani_long nativeObj, ani_ref callback)
 {
@@ -342,8 +567,39 @@ void DisplayManagerAni::OnUnRegisterCallback(ani_env* env, ani_string type, ani_
     env->GlobalReference_Delete(cbRef);
 }
 
+void DisplayManagerAni::UnRegisterAttributeListener(ani_env* env, ani_ref callback)
+{
+    std::vector<std::string> attributesNotListened;
+    for (auto itAttribute = jsAttributeCbMap_.begin(); itAttribute != jsAttributeCbMap_.end();) {
+        for (auto it = itAttribute->second.begin(); it != itAttribute->second.end();) {
+            ani_boolean isEquals = false;
+            env->Reference_StrictEquals(callback, it->first, &isEquals);
+            if (isEquals) {
+                it->second->RemoveCallback(env, itAttribute->first, callback);
+                sptr<DisplayManager::IDisplayAttributeListener> thisListener(it->second);
+                SingletonContainer::Get<DisplayManager>().UnRegisterDisplayAttributeListener(thisListener);
+                it = itAttribute->second.erase(it);
+                continue;
+            }
+            it++;
+        }
+        if (itAttribute->second.empty()) {
+            attributesNotListened.push_back(itAttribute->first);
+            itAttribute = jsAttributeCbMap_.erase(itAttribute);
+            continue;
+        }
+        itAttribute++;
+    }
+    if (!attributesNotListened.empty()) {
+        SingletonContainer::Get<DisplayManager>().UnRegisterDisplayAttribute(attributesNotListened);
+    }
+}
+
 DMError DisplayManagerAni::UnRegisterDisplayListenerWithType(std::string type, ani_env* env, ani_ref callback)
 {
+    if (type == ANI_EVENT_CHANGE) {
+        UnRegisterAttributeListener(env, callback);
+    }
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
         TLOGI(WmsLogTag::DMS, "[ANI] methodName %{public}s not registered!", type.c_str());
@@ -397,9 +653,25 @@ DMError DisplayManagerAni::UnRegisterDisplayListenerWithType(std::string type, a
     return ret;
 }
 
+void DisplayManagerAni::UnRegisterAllAttributeListener()
+{
+    for (auto itAttribute = jsAttributeCbMap_.begin(); itAttribute != jsAttributeCbMap_.end();) {
+        for (auto it = itAttribute->second.begin(); it != itAttribute->second.end();) {
+            sptr<DisplayManager::IDisplayAttributeListener> thisListener(it->second);
+            auto ret = SingletonContainer::Get<DisplayManager>().UnRegisterDisplayAttributeListener(thisListener);
+            itAttribute->second.erase(it++);
+            TLOGI(WmsLogTag::DMS, "attribute %{public}s  ret: %{public}u", itAttribute->first.c_str(), ret);
+        }
+        jsAttributeCbMap_.erase(itAttribute++);
+    }
+}
+
 DMError DisplayManagerAni::UnregisterAllDisplayListenerWithType(std::string type)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (type == ANI_EVENT_CHANGE) {
+        UnRegisterAllAttributeListener();
+    }
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
         TLOGI(WmsLogTag::DMS, "[ANI] methodName %{public}s not registered!",
             type.c_str());
@@ -462,7 +734,11 @@ void DisplayManagerAni::GetAllDisplayPhysicalResolution(ani_env* env, ani_object
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
-    displayManagerAni->OnGetAllDisplayPhysicalResolution(env, arrayObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnGetAllDisplayPhysicalResolution(env, arrayObj);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
 }
 
 void DisplayManagerAni::OnGetAllDisplayPhysicalResolution(ani_env* env, ani_object arrayObj)
@@ -493,7 +769,7 @@ void DisplayManagerAni::ConvertGlobalToRelativeCoordinate(
         TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
     }
 }
- 
+
 void DisplayManagerAni::OnConvertGlobalToRelativeCoordinate(
     ani_env* env, ani_object positionObj, ani_object displayId, ani_object relativePostionObj)
 {
@@ -518,7 +794,7 @@ void DisplayManagerAni::OnConvertGlobalToRelativeCoordinate(
             SingletonContainer::Get<DisplayManager>().ConvertGlobalCoordinateToRelative(
                 globalPosition, relativePosition));
     } else {
-        env->Object_CallMethodByName_Long(displayId, "unboxed", ":l", &displayIdTmp);
+        env->Object_CallMethodByName_Long(displayId, "toLong", ":l", &displayIdTmp);
         if (displayIdTmp < 0) {
             AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "displayID less than 0");
             return;
@@ -539,7 +815,7 @@ void DisplayManagerAni::OnConvertGlobalToRelativeCoordinate(
         return;
     }
 }
- 
+
 void DisplayManagerAni::ConvertRelativeToGlobalCoordinate(
     ani_env* env, ani_object relativePostionObj, ani_long nativeObj, ani_object positionObj)
 {
@@ -555,7 +831,7 @@ void DisplayManagerAni::ConvertRelativeToGlobalCoordinate(
         TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
     }
 }
- 
+
 void DisplayManagerAni::OnConvertRelativeToGlobalCoordinate(
     ani_env* env, ani_object relativePostionObj, ani_object positionObj)
 {
@@ -582,18 +858,225 @@ void DisplayManagerAni::OnConvertRelativeToGlobalCoordinate(
     }
 }
 
+void DisplayManagerAni::CreateVirtualScreen(ani_env* env, ani_object virtualScreenConfig, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnCreateVirtualScreen(env, virtualScreenConfig);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+ani_long DisplayManagerAni::OnCreateVirtualScreen(ani_env* env, ani_object virtualScreenConfig)
+{
+    ScreenId screenId = SCREEN_ID_INVALID;
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (virtualScreenConfig == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Invalid param");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "Invalid param");
+        return static_cast<ani_long>(screenId);
+    }
+    VirtualScreenOption option;
+    DmErrorCode errCode = DisplayAniUtils::GetVirtualScreenOptionFromAni(env, virtualScreenConfig, option);
+    if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get virtual screen option from ani failed");
+        AniErrUtils::ThrowBusinessError(env, errCode, "Get virtual screen option from ani failed.");
+        return static_cast<ani_long>(screenId);
+    }
+    screenId = SingletonContainer::Get<ScreenManager>().CreateVirtualScreen(option);
+    auto screen = SingletonContainer::Get<ScreenManager>().GetScreenById(screenId);
+    if (screen == nullptr) {
+        DmErrorCode ret = DmErrorCode::DM_ERROR_INVALID_SCREEN;
+        if (screenId == ERROR_ID_NOT_SYSTEM_APP) {
+            ret = DmErrorCode::DM_ERROR_NO_PERMISSION;
+        } else if (screenId == ERROR_ID_NO_PERMISSION) {
+            ret =  DmErrorCode::DM_ERROR_NO_PERMISSION;
+        }
+        AniErrUtils::ThrowBusinessError(env, ret, "Get screen by id failed.");
+        return static_cast<ani_long>(screenId);
+    }
+    return static_cast<ani_long>(screenId);
+}
+
+void DisplayManagerAni::DestroyVirtualScreen(ani_env* env, ani_long screenId, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnDestroyVirtualScreen(env, screenId);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnDestroyVirtualScreen(ani_env* env, ani_long screenId)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(static_cast<ScreenId>(screenId), true));
+    ret = (ret == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : ret;
+    if (ret != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Destroy virtual screen failed.");
+        AniErrUtils::ThrowBusinessError(env, ret, "Destroy virtual screen failed.");
+    }
+}
+
+void DisplayManagerAni::SetVirtualScreenSurface(
+    ani_env* env, ani_long screenId, ani_string surfaceId, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnSetVirtualScreenSurface(env, screenId, surfaceId);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnSetVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    std::vector<ScreenId> screenIds;
+    screenIds.emplace_back(static_cast<ScreenId>(screenId));
+    sptr<Surface> surface;
+    if (!DisplayAniUtils::GetSurfaceFromAni(env, surfaceId, surface) || surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to convert surface.");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert surface.");
+        return;
+    }
+    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().SetVirtualScreenSurface(screenId, surface));
+    ret = (ret == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : ret;
+    if (ret != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Set virtual screen surface failed.");
+        AniErrUtils::ThrowBusinessError(env, ret, "set virtual screen surface failed.");
+    }
+}
+
+void DisplayManagerAni::MakeUnique(ani_env* env, ani_long screenId, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnMakeUnique(env, screenId);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnMakeUnique(ani_env* env, ani_long screenId)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    std::vector<ScreenId> screenIds;
+    screenIds.emplace_back(static_cast<ScreenId>(screenId));
+    std::vector<DisplayId> displayIds;
+    DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().MakeUniqueScreen(screenIds, displayIds));
+    ret = (ret == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : ret;
+    if (ret != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Make unique failed.");
+        AniErrUtils::ThrowBusinessError(env, ret, "MakeUnique failed.");
+    }
+}
+
+void DisplayManagerAni::AddVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnAddVirtualScreenBlocklist(env, windowIdsObj);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnAddVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    std::vector<int32_t> persistentIds;
+    ani_status ret = DisplayAniUtils::GetAniArrayInt(env, windowIdsObj, persistentIds);
+    if (ANI_OK != ret) {
+        TLOGE(WmsLogTag::DMS, "[ANI] GetAniArrayInt fail");
+        return;
+    }
+    auto res = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().AddVirtualScreenBlockList(persistentIds));
+    if (res != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] on add virtual screen blocklist failed.");
+        AniErrUtils::ThrowBusinessError(env, res, "OnAddVirtualScreenBlocklist failed.");
+    }
+}
+
+void DisplayManagerAni::RemoveVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnRemoveVirtualScreenBlocklist(env, windowIdsObj);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnRemoveVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    std::vector<int32_t> persistentIds;
+    ani_status ret = DisplayAniUtils::GetAniArrayInt(env, windowIdsObj, persistentIds);
+    if (ANI_OK != ret) {
+        TLOGE(WmsLogTag::DMS, "[ANI] GetAniArrayInt fail");
+        return;
+    }
+    auto res = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().RemoveVirtualScreenBlockList(persistentIds));
+    if (res != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] on remove virtual screen blocklist failed.");
+        AniErrUtils::ThrowBusinessError(env, res, "OnRemoveVirtualScreenBlocklist failed.");
+    }
+}
+
 void DisplayManagerAni::FinalizerDisplay(ani_env* env, ani_object displayObj, ani_long nativeObj)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] DMS FinalizerDisplayNative begin");
     DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
-    displayManagerAni->OnFinalizerDisplay(env, displayObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnFinalizerDisplay(env, displayObj);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
 }
- 
+
 void DisplayManagerAni::OnFinalizerDisplay(ani_env* env, ani_object displayObj)
 {
     TLOGI(WmsLogTag::DMS, "[ANI] DMS FinalizerDisplayNative begin");
     ani_long displayId;
-    if (ANI_OK != env->Object_GetFieldByName_Long(displayObj, "<property>id", &displayId)) {
+    if (ANI_OK != env->Object_GetFieldByName_Long(displayObj, Builder::BuildPropertyName("id").c_str(), &displayId)) {
         TLOGE(WmsLogTag::DMS, "[ANI] DMS FinalizerDisplayNative get displayId failed");
         return;
     }
@@ -619,6 +1102,9 @@ ani_object DisplayManagerAni::OnGetBrightnessInfoAni(ani_env* env, ani_long disp
     if (ret != DMError::DM_OK) {
         if (ret == DMError::DM_ERROR_ILLEGAL_PARAM) {
             AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+                "JsDisplayManager::OnGetBrightnessInfoAni failed.");
+        } else if (ret == DMError::DM_ERROR_DEVICE_NOT_SUPPORT) {
+            AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT,
                 "JsDisplayManager::OnGetBrightnessInfoAni failed.");
         } else {
             AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_SYSTEM_INNORMAL,

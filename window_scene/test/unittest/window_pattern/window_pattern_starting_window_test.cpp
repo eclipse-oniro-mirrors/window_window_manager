@@ -20,6 +20,9 @@
 
 #include "context.h"
 #include "interfaces/include/ws_common.h"
+#include "session_info.h"
+#include "session/host/include/scene_persistence.h"
+#include "session/host/include/scene_persistent_storage.h"
 #include "session_manager/include/rdb/starting_window_rdb_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_manager_hilog.h"
@@ -57,15 +60,25 @@ private:
 };
 
 sptr<SceneSessionManager> WindowPatternStartingWindowTest::ssm_ = nullptr;
+static sptr<ScenePersistence> scenePersistence =
+    sptr<ScenePersistence>::MakeSptr("WindowPatternStartingWindowTest", 1423);
 
 void WindowPatternStartingWindowTest::SetUpTestCase()
 {
     ssm_ = new SceneSessionManager();
     ssm_->Init();
+    if (ssm_ != nullptr) {
+        ssm_->ClearStartWindowPersistencePath("testBundle");
+        ssm_->ClearStartWindowPersistencePath("emptyBundle");
+    }
 }
 
 void WindowPatternStartingWindowTest::TearDownTestCase()
 {
+    if (ssm_ != nullptr) {
+        ssm_->ClearStartWindowPersistencePath("testBundle");
+        ssm_->ClearStartWindowPersistencePath("emptyBundle");
+    }
     ssm_ = nullptr;
     NativeRdb::RdbHelper::DeleteRdbStore(TEST_RDB_PATH + TEST_RDB_NAME);
 }
@@ -84,7 +97,7 @@ void WindowPatternStartingWindowTest::InitTestStartingWindowRdb()
     WmsRdbConfig config;
     config.dbName = TEST_RDB_NAME;
     config.dbPath = TEST_RDB_PATH;
-    ssm_->startingWindowRdbMgr_ = std::make_unique<StartingWindowRdbManager>(config);
+    ssm_->startingWindowRdbMgr_ = std::make_shared<StartingWindowRdbManager>(config);
 }
 
 void WindowPatternStartingWindowTest::CreateSession(SessionInfo sessionInfo, int32_t persistentId)
@@ -96,6 +109,116 @@ void WindowPatternStartingWindowTest::CreateSession(SessionInfo sessionInfo, int
 }
 
 namespace {
+/**
+ * @tc.name: CreateStartWindowDir
+ * @tc.desc: test function : CreateStartWindowDir
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, CreateStartWindowDir, TestSize.Level1)
+{
+    std::string directory = "0/Storage";
+    ASSERT_NE(nullptr, scenePersistence);
+    bool result = scenePersistence->CreateStartWindowDir(directory);
+    ASSERT_EQ(result, false);
+}
+
+/**
+ * @tc.name: SetAndGetStartWindowPersistencePath01
+ * @tc.desc: Test setting and getting the path corresponding to an existing bundleName and saveStartWindowKey
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, SetAndGetStartWindowPersistencePath01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    const std::string bundleName = "testBundle";
+    const std::string darkKey = "DarkStartWindow";
+    const std::string lightKey = "LightStartWindow";
+    const std::string darkPath = "/data/testBundle/dark_start_window.png";
+    const std::string lightPath = "/data/testBundle/light_start_window.png";
+
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, darkPath);
+    std::string retDarkPath = ssm_->GetStartWindowPersistencePath(bundleName, darkKey);
+    ASSERT_EQ(retDarkPath, darkPath);
+
+    ssm_->SetStartWindowPersistencePath(bundleName, lightKey, lightPath);
+    std::string retLightPath = ssm_->GetStartWindowPersistencePath(bundleName, lightKey);
+    ASSERT_EQ(retLightPath, lightPath);
+
+    const std::string emptyPath = "";
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, emptyPath);
+    std::string retEmptyPath = ssm_->GetStartWindowPersistencePath(bundleName, darkKey);
+    ASSERT_EQ(retEmptyPath, emptyPath);
+
+    const std::string customKey = "CustomStartWindow";
+    const std::string customPath = "/data/testBundle/custom_start_window.png";
+    ssm_->SetStartWindowPersistencePath(bundleName, customKey, customPath);
+    std::string retCustomPath = ssm_->GetStartWindowPersistencePath(bundleName, customKey);
+    ASSERT_EQ(retCustomPath, customPath);
+}
+
+/**
+ * @tc.name: GetStartWindowPersistencePath02
+ * @tc.desc: Test getting the path for non-existent bundleName or saveStartWindowKey (boundary scenario)
+ * @tc.type: FUNC
+ * @tc.level: Level2
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowPersistencePath02, TestSize.Level2)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    const std::string nonExistBundle = "nonExistBundle";
+    const std::string testKey = "DarkStartWindow";
+    std::string retPath = ssm_->GetStartWindowPersistencePath(nonExistBundle, testKey);
+    ASSERT_EQ(retPath, "");
+
+    const std::string existBundle = "emptyBundle";
+    const std::string validKey = "LightStartWindow";
+    const std::string invalidKey = "InvalidStartWindow";
+    const std::string lightPath = "/data/emptyBundle/light.png";
+    ssm_->SetStartWindowPersistencePath(existBundle, validKey, lightPath);
+    retPath = ssm_->GetStartWindowPersistencePath(existBundle, invalidKey);
+    ASSERT_EQ(retPath, "");
+
+    const std::string emptyBundle = "";
+    const std::string emptyKey = "";
+    retPath = ssm_->GetStartWindowPersistencePath(emptyBundle, emptyKey);
+    ASSERT_EQ(retPath, "");
+
+    ssm_->SetStartWindowPersistencePath(existBundle, emptyKey, "/data/emptyBundle/empty_key.png");
+    retPath = ssm_->GetStartWindowPersistencePath(existBundle, emptyKey);
+    ASSERT_EQ(retPath, "/data/emptyBundle/empty_key.png");
+}
+
+/**
+ * @tc.name: ClearStartWindowPersistencePath01
+ * @tc.desc: Test clearing all path configurations for the specified bundleName
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, ClearStartWindowPersistencePath01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    const std::string bundleName = "testBundle";
+    const std::string darkKey = "DarkStartWindow";
+    const std::string lightKey = "LightStartWindow";
+    const std::string darkPath = "/data/testBundle/dark.png";
+    const std::string lightPath = "/data/testBundle/light.png";
+
+    ssm_->SetStartWindowPersistencePath(bundleName, darkKey, darkPath);
+    ssm_->SetStartWindowPersistencePath(bundleName, lightKey, lightPath);
+
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, darkKey), darkPath);
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, lightKey), lightPath);
+
+    ssm_->ClearStartWindowPersistencePath(bundleName);
+
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, darkKey), "");
+    ASSERT_EQ(ssm_->GetStartWindowPersistencePath(bundleName, lightKey), "");
+}
+
 /**
  * @tc.name: GetStartupPage01
  * @tc.desc: GetStartupPage from want
@@ -424,46 +547,191 @@ HWTEST_F(WindowPatternStartingWindowTest, GetBundleStartingWindowInfos, TestSize
 }
 
 /**
- * @tc.name: GetPreLoadStartingWindow
- * @tc.desc: GetPreLoadStartingWindow
+ * @tc.name: GetPreloadStartingWindow_WithoutAnyData
+ * @tc.desc: Test GetPreloadStartingWindow when neither PixelMap nor SVG buffer is set
  * @tc.type: FUNC
+ * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, GetPreLoadStartingWindow, TestSize.Level1)
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithoutAnyData, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    ssm_->preLoadStartingWindowMap_.clear();
+    
     SessionInfo sessionInfo;
-    ASSERT_EQ(nullptr, ssm_->GetPreLoadStartingWindow(sessionInfo));
+ 
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
     sessionInfo.abilityName_ = "abilityName_";
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +sessionInfo.abilityName_;
-    ssm_->preLoadStartingWindowMap_[key] = std::make_shared<Media::PixelMap>();
-    ASSERT_NE(nullptr, ssm_->GetPreLoadStartingWindow(sessionInfo));
-    ssm_->preLoadStartingWindowMap_.clear();
-    EXPECT_EQ(true, ssm_->preLoadStartingWindowMap_.empty());
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
 }
-
+ 
 /**
- * @tc.name: RemovePreLoadStartingWindowFromMap
- * @tc.desc: RemovePreLoadStartingWindowFromMap
+ * @tc.name: GetPreloadStartingWindow_WithValidPixelMap
+ * @tc.desc: Test GetPreloadStartingWindow when valid PixelMap is set (SVG buffer remains unchanged)
  * @tc.type: FUNC
+ * @tc.level: Level1
  */
-HWTEST_F(WindowPatternStartingWindowTest, RemovePreLoadStartingWindowFromMap, TestSize.Level1)
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidPixelMap, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    ssm_->preLoadStartingWindowMap_.clear();
+    
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
     sessionInfo.abilityName_ = "abilityName_";
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +sessionInfo.abilityName_;
-    ssm_->preLoadStartingWindowMap_[key] = std::make_shared<Media::PixelMap>();
-    SessionInfo anotherSessionInfo;
-    ssm_->RemovePreLoadStartingWindowFromMap(anotherSessionInfo);
-    EXPECT_EQ(false, ssm_->preLoadStartingWindowMap_.empty());
-    ssm_->RemovePreLoadStartingWindowFromMap(sessionInfo);
-    EXPECT_EQ(true, ssm_->preLoadStartingWindowMap_.empty());
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    auto validPixelMap = std::make_shared<Media::PixelMap>();
+    sceneSession->SetPreloadStartingWindow(validPixelMap);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 5};
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, validPixelMap);
+    EXPECT_EQ(bufferInfo.second, 0);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithValidSvgBuffer
+ * @tc.desc: Test GetPreloadStartingWindow when valid SVG buffer is set (PixelMap remains null)
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithValidSvgBuffer, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    auto svgBufferVec = std::make_shared<std::vector<uint8_t>>(10);
+    std::shared_ptr<uint8_t[]> validSvgBuffer(svgBufferVec->data(), [](uint8_t*) {});
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> validBufferInfo = {validSvgBuffer, 10};
+    sceneSession->SetPreloadStartingWindow(validBufferInfo);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, validBufferInfo.first);
+    EXPECT_EQ(bufferInfo.second, validBufferInfo.second);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithInvalidSvgBuffer_SizeZero
+ * @tc.desc: Test GetPreloadStartingWindow when invalid SVG buffer (size 0) is set
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_SizeZero, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    auto svgBufferVec = std::make_shared<std::vector<uint8_t>>(10);
+    std::shared_ptr<uint8_t[]> invalidSvgBuffer(svgBufferVec->data(), [](uint8_t*) {});
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> invalidBufferInfo = {invalidSvgBuffer, 0};
+    sceneSession->SetPreloadStartingWindow(invalidBufferInfo);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithInvalidSvgBuffer_Nullptr
+ * @tc.desc: Test GetPreloadStartingWindow when invalid SVG buffer is nullptr
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidSvgBuffer_Nullptr, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    std::shared_ptr<uint8_t[]> invalidSvgBuffer = nullptr;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> invalidBufferInfo = {invalidSvgBuffer, 5};
+    sceneSession->SetPreloadStartingWindow(invalidBufferInfo);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
+}
+ 
+/**
+ * @tc.name: GetPreloadStartingWindow_WithInvalidPixelMap_Nullptr
+ * @tc.desc: Test GetPreloadStartingWindow when invalid PixelMap (nullptr) is set
+ * @tc.type: FUNC
+ * @tc.level: Level1
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetPreloadStartingWindow_WithInvalidPixelMap_Nullptr, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "bundleName_";
+    sessionInfo.moduleName_ = "moduleName_";
+    sessionInfo.abilityName_ = "abilityName_";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sceneSession->ResetPreloadStartingWindow();
+    std::shared_ptr<Media::PixelMap> invalidPixelMap = nullptr;
+    sceneSession->SetPreloadStartingWindow(invalidPixelMap);
+    
+    std::shared_ptr<Media::PixelMap> pixelMap;
+    std::pair<std::shared_ptr<uint8_t[]>, size_t> bufferInfo;
+    pixelMap = nullptr;
+    bufferInfo = {nullptr, 0};
+    
+    sceneSession->GetPreloadStartingWindow(pixelMap, bufferInfo);
+    EXPECT_EQ(pixelMap, nullptr);
+    EXPECT_EQ(bufferInfo.first, nullptr);
+    EXPECT_EQ(bufferInfo.second, 0);
 }
 
 /**
@@ -471,26 +739,21 @@ HWTEST_F(WindowPatternStartingWindowTest, RemovePreLoadStartingWindowFromMap, Te
  * @tc.desc: release preload starting window when EraseSceneSessionMapById
  * @tc.type: FUNC
  */
-HWTEST_F(WindowPatternStartingWindowTest, EraseSceneSessionMapById, TestSize.Level1)
+HETEST_F(WindowPatternStartingWindowTest, EraseSceneSessionMapById, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    ssm_->preLoadStartingWindowMap_.clear();
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "bundleName_";
     sessionInfo.moduleName_ = "moduleName_";
     sessionInfo.abilityName_ = "abilityName_";
-    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' +sessionInfo.abilityName_;
-    ssm_->preLoadStartingWindowMap_[key] = std::make_shared<Media::PixelMap>();
-    EXPECT_EQ(false, ssm_->preLoadStartingWindowMap_.empty());
+    std::string key = sessionInfo.bundleName_ + '_' + sessionInfo.moduleName_ + '_' + sessionInfo.abilityName_;
     ssm_->EraseSceneSessionMapById(0);
-    EXPECT_EQ(false, ssm_->preLoadStartingWindowMap_.empty());
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     ssm_->sceneSessionMap_.insert({sceneSession->GetPersistentId(), sceneSession});
     ASSERT_NE(nullptr, ssm_->GetSceneSession(sceneSession->GetPersistentId()));
     ssm_->EraseSceneSessionMapById(sceneSession->GetPersistentId());
     ASSERT_EQ(nullptr, ssm_->GetSceneSession(sceneSession->GetPersistentId()));
-    EXPECT_EQ(true, ssm_->preLoadStartingWindowMap_.empty());
 }
 
 /**
@@ -503,22 +766,30 @@ HWTEST_F(WindowPatternStartingWindowTest, CheckAndGetPreLoadResourceId, TestSize
     ASSERT_NE(ssm_, nullptr);
     StartingWindowInfo startingWindowInfo;
     uint32_t resId = 0;
+    bool isSvg = false;
     startingWindowInfo.configFileEnabled_ = true;
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.configFileEnabled_ = false;
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.svg";
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(true, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///abc12345678.jpg";
-    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(false, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.png";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.jpg";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.webp";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
     startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.astc";
-    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId));
+    EXPECT_EQ(true, ssm_->CheckAndGetPreLoadResourceId(startingWindowInfo, resId, isSvg));
+    EXPECT_EQ(false, isSvg);
 }
 
 /**
@@ -532,8 +803,10 @@ HWTEST_F(WindowPatternStartingWindowTest, PreLoadStartingWindow, TestSize.Level1
     sptr<SceneSession> sceneSession = nullptr;
     ssm_->systemConfig_.supportPreloadStartingWindow_ = false;
     ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
     ssm_->systemConfig_.supportPreloadStartingWindow_ = true;
     ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
     SessionInfo info;
     info.bundleName_ = "bundleName_";
     info.moduleName_ = "moduleName_";
@@ -545,14 +818,82 @@ HWTEST_F(WindowPatternStartingWindowTest, PreLoadStartingWindow, TestSize.Level1
     property->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_FLOAT);
     sceneSession->SetSessionProperty(property);
     ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     ssm_->PreLoadStartingWindow(sceneSession);
-    sceneSession->state_ = SessionState::STATE_CONNECT;
+    usleep(WAIT_SLEEP_TIME);
+    sceneSession->state_ = SessionState::STATE_BACKGROUND;
     ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
+    sceneSession->scenePersistence_ =
+        sptr<ScenePersistence>::MakeSptr(sceneSession->sessionInfo_.bundleName_, sceneSession->persistentId_);
+    sceneSession->scenePersistence_->SetIsSavingSnapshot(true);
+    ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
     sceneSession->state_ = SessionState::STATE_DISCONNECT;
     ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
+
+    StartingWindowInfo startingWindowInfo;
+    startingWindowInfo.configFileEnabled_ = false;
+    startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.png";
+    std::string keyForCached = info.moduleName_ + info.abilityName_;
+    ssm_->startingWindowMap_[info.bundleName_][keyForCached + std::to_string(true)] = startingWindowInfo;
+    ssm_->startingWindowMap_[info.bundleName_][keyForCached + std::to_string(false)] = startingWindowInfo;
+    sceneSession->sessionInfo_.abilityInfo = nullptr;
+    ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(nullptr, abilityInfo);
+    sceneSession->sessionInfo_.abilityInfo = abilityInfo;
+    ssm_->PreLoadStartingWindow(sceneSession);
+    usleep(WAIT_SLEEP_TIME);
     ASSERT_NE(nullptr, sceneSession);
+}
+
+/**
+ * @tc.name: GetCropInfoByDisplaySize
+ * @tc.desc: GetCropInfoByDisplaySize
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, GetCropInfoByDisplaySize, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    Media::ImageInfo imageInfo;
+    imageInfo.size.width = 2200;
+    imageInfo.size.height = 3200;
+    Media::DecodeOptions decodeOpts;
+    ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
+    EXPECT_EQ(decodeOpts.CropRect.top, 0);
+
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
+    displayInfo->SetDisplayId(defaultScreenId);
+    displayInfo->SetWidth(5000);
+    displayInfo->SetHeight(5000);
+    ssm_->UpdateDisplayRegion(displayInfo);
+    ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
+    EXPECT_EQ(decodeOpts.CropRect.top, 0);
+
+    displayInfo->SetWidth(3000);
+    displayInfo->SetHeight(3000);
+    ssm_->UpdateDisplayRegion(displayInfo);
+    ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
+    EXPECT_EQ(decodeOpts.CropRect.top, 100);
+
+    imageInfo.size.width = 3200;
+    imageInfo.size.height = 2200;
+    ssm_->UpdateDisplayRegion(displayInfo);
+    ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
+    EXPECT_EQ(decodeOpts.CropRect.left, 100);
+
+    displayInfo->SetWidth(2000);
+    displayInfo->SetHeight(2000);
+    ssm_->UpdateDisplayRegion(displayInfo);
+    ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
+    EXPECT_EQ(decodeOpts.CropRect.left, 600);
 }
 
 /**
@@ -683,36 +1024,85 @@ HWTEST_F(WindowPatternStartingWindowTest, GetStartWindowColorFollowApp, TestSize
 }
 
 /**
- * @tc.name: InsertStartingWindowRdbTask
- * @tc.desc: SceneSessionManager insert starting window info to rdb task
+ * @tc.name: UpdateCachedColorToAppSet
+ * @tc.desc: SceneSessionManager set update cached color to app set
  * @tc.type: FUNC
  */
-HWTEST_F(WindowPatternStartingWindowTest, InsertStartingWindowRdbTask, TestSize.Level0)
+HWTEST_F(WindowPatternStartingWindowTest, UpdateCachedColorToAppSet, TestSize.Level0)
 {
     ASSERT_NE(ssm_, nullptr);
-    ssm_->insertStartingWindowRdbSet_.clear();
+    ssm_->startingWindowMap_.clear();
+    ssm_->startingWindowColorFromAppMap_.clear();
+    std::string bundleName = "testBundleName";
+    std::string moduleName = "testModuleName";
+    std::string abilityName = "testAbilityName";
+    std::string keyForCached = moduleName + abilityName + std::to_string(true);
+    std::string keyForAppSet = moduleName + abilityName;
+    StartingWindowInfo info;
+    StartingWindowInfo tempInfo;
+    info.backgroundColor_ = 0x00000000;
+    ssm_->startingWindowMap_[bundleName][keyForCached] = info;
+    ssm_->startingWindowMap_[bundleName][keyForAppSet + std::to_string(false)] = info;
+    ssm_->UpdateCachedColorToAppSet(bundleName, moduleName, abilityName, tempInfo);
+    EXPECT_EQ(0x00000000, ssm_->startingWindowMap_[bundleName][keyForCached].backgroundColor_);
+
+    ssm_->startingWindowColorFromAppMap_[bundleName][keyForAppSet] = 0xffffffff;
+    ssm_->UpdateCachedColorToAppSet(bundleName, moduleName, abilityName, tempInfo);
+    EXPECT_EQ(0xffffffff, ssm_->startingWindowMap_[bundleName][keyForCached].backgroundColor_);
+
+    ssm_->startingWindowMap_.clear();
+    ssm_->UpdateCachedColorToAppSet(bundleName, moduleName, abilityName, tempInfo);
+    EXPECT_EQ(0, ssm_->startingWindowMap_.size());
+}
+
+/**
+ * @tc.name: InitStartingWindow
+ * @tc.desc: InitStartingWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, InitStartingWindow, TestSize.Level0)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(RdbLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->syncLoadStartingWindow_ = false;
+    EXPECT_EQ(ssm_->IsSyncLoadStartingWindow(), false);
+    ssm_->InitStartingWindow();
+    EXPECT_TRUE(g_logMsg.find("Sync Load StartingWindow:") != std::string::npos);
+}
+
+/**
+ * @tc.name: IsSyncLoadStartingWindow
+ * @tc.desc: IsSyncLoadStartingWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, IsSyncLoadStartingWindow, TestSize.Level0)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->syncLoadStartingWindow_ = false;
+    EXPECT_EQ(ssm_->IsSyncLoadStartingWindow(), false);
+    ssm_->syncLoadStartingWindow_ = true;
+    EXPECT_EQ(ssm_->IsSyncLoadStartingWindow(), true);
+}
+
+/**
+ * @tc.name: SetPreloadingStartingWindow
+ * @tc.desc: SetPreloadingStartingWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, SetPreloadingStartingWindow, TestSize.Level1)
+{
     SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "bundleName";
     sessionInfo.moduleName_ = "moduleName";
     sessionInfo.abilityName_ = "abilityName";
-    bool isDark = true;
-    StartingWindowInfo info;
-    std::string keyStr = sessionInfo.bundleName_ + '_' +
-        sessionInfo.moduleName_ + '_' + sessionInfo.abilityName_ + std::to_string(isDark);
-    ssm_->insertStartingWindowRdbSet_.insert(keyStr);
-    ssm_->startingWindowRdbMgr_ = nullptr;
-    ssm_->InsertStartingWindowRdbTask(sessionInfo, info, isDark);
-    ASSERT_EQ(ssm_->startingWindowRdbMgr_, nullptr);
-    ssm_->insertStartingWindowRdbSet_.clear();
-    ssm_->InsertStartingWindowRdbTask(sessionInfo, info, isDark);
-    ASSERT_EQ(ssm_->startingWindowRdbMgr_, nullptr);
-
-    WmsRdbConfig config;
-    config.dbName = TEST_RDB_NAME;
-    config.dbPath = TEST_RDB_PATH;
-    ssm_->startingWindowRdbMgr_ = std::make_unique<StartingWindowRdbManager>(config);
-    ssm_->InsertStartingWindowRdbTask(sessionInfo, info, isDark);
-    ASSERT_NE(ssm_->startingWindowRdbMgr_, nullptr);
+    sessionInfo.bundleName_ = "bundleName";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->preloadingStartingWindow_ = false;
+    sceneSession->SetPreloadingStartingWindow(true);
+    EXPECT_EQ(sceneSession->GetPreloadingStartingWindow(), true);
+    sceneSession->SetPreloadingStartingWindow(false);
+    EXPECT_EQ(sceneSession->GetPreloadingStartingWindow(), false);
 }
 } // namespace
 } // namespace Rosen

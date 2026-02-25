@@ -30,10 +30,13 @@ public:
     ~JsWindowSceneConfig();
     static napi_value CreateWindowSceneConfig(napi_env env, const AppWindowSceneConfig& config);
     static napi_value CreateFreeMultiWindowConfig(napi_env env, const SystemSessionConfig& config);
+    static napi_value CreateSystemConfig(napi_env env, const SystemSessionConfig& config);
     static napi_value CreateWindowLimits(napi_env env, const WindowLimits& windowLimits);
     static napi_value CreateSingleHandCompatibleConfig(napi_env env, const SingleHandCompatibleModeConfig& config);
-    static napi_value CreateSystemConfig(napi_env env, const SystemSessionConfig& config);
-
+    static napi_value CreateSingleHandBackgroundLayoutConfig(napi_env env,
+        const SingleHandBackgroundLayoutConfig& config);
+    static napi_value CreateJsRect(napi_env env, const WSRect& rect);
+    static napi_value CreateSingleHandBackgroundTextConfig(napi_env env, const SingleHandBackgroundTextConfig& config);
 private:
     static napi_value CreateShadowValue(napi_env env, const AppWindowSceneConfig& config, bool focused);
     static napi_value CreateShadowDarkValue(napi_env env, const AppWindowSceneConfig& config, bool focused);

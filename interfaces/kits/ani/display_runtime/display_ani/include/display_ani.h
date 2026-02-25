@@ -27,6 +27,8 @@ public:
     explicit DisplayAni(const sptr<Display>& display);
 
     static void GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutInfoObj);
+    static void GetRoundedCorner(ani_env* env, ani_object obj, ani_object roundedCornerObj);
+    static ani_string GetDisplayCapability(ani_env* env);
     static void GetAvailableArea(ani_env* env, ani_object obj, ani_object availableAreaObj);
     static void GetLiveCreaseRegion(ani_env* env, ani_object obj, ani_object foldCreaseRegionObj);
     static ani_boolean HasImmersiveWindow(ani_env* env, ani_object obj);
@@ -39,6 +41,8 @@ public:
     static ani_status ClassBindNativeFunctions(ani_env* env, ani_class displayCls);
     static ani_boolean TransferStatic(ani_env* env, ani_object obj, ani_object input, ani_object displayAniObj);
     static ani_object TransferDynamic(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void GetDisplayInfoRef(ani_env* env, ani_object displayObj);
+    static void CleanDisplayInfoMap(ani_env* env, ani_long nativeObj);
     sptr<Display> GetDisplay() const { return display_; }
 private:
     DMError UnregisterAllDisplayListenerWithType(std::string type);

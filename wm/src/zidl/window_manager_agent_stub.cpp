@@ -23,7 +23,6 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowManagerAgentStub"};
-constexpr uint32_t MAX_VECTOR_SIZE = 10000;
 }
 
 int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
@@ -48,6 +47,25 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
                 return ERR_INVALID_DATA;
             }
             UpdateFocusChangeInfo(info, focused);
+            break;
+        }
+        case WindowManagerAgentMsg::TRANS_ID_NOTIFY_DISPLAY_GROUP_INFO_CHANGE: {
+            DisplayGroupId displayGroupId = DISPLAY_GROUP_ID_INVALID;
+            if (!data.ReadUint64(displayGroupId)) {
+                TLOGE(WmsLogTag::WMS_FOCUS, "read displayGroupId failed");
+                return ERR_INVALID_DATA;
+            }
+            DisplayId displayId = DISPLAY_ID_INVALID;
+            if (!data.ReadUint64(displayId)) {
+                TLOGE(WmsLogTag::WMS_FOCUS, "read displayId failed");
+                return ERR_INVALID_DATA;
+            }
+            bool isAdd = true;
+            if (!data.ReadBool(isAdd)) {
+                TLOGE(WmsLogTag::WMS_FOCUS, "read isAdd failed");
+                return ERR_INVALID_DATA;
+            }
+            UpdateDisplayGroupInfo(displayGroupId, displayId, isAdd);
             break;
         }
         case WindowManagerAgentMsg::TRANS_ID_NOTIFY_WINDOW_SYSTEM_BAR_PROPERTY_CHANGE: {
@@ -80,7 +98,7 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
                 return ERR_INVALID_DATA;
             }
             uint32_t settingFlag = 0;
-            uint32_t MAX_SETTINGFLAG = 7;
+            constexpr uint32_t MAX_SETTINGFLAG = 7;
             if (!data.ReadUint32(settingFlag) ||
                 settingFlag < static_cast<uint32_t>(SystemBarSettingFlag::DEFAULT_SETTING) ||
                 settingFlag > MAX_SETTINGFLAG) {
@@ -252,12 +270,21 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
                 return ERR_INVALID_DATA;
             }
 
-            std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+            WindowInfoList windowInfoList;
             if (!ReadWindowInfoList(data, windowInfoList)) {
                 TLOGE(WmsLogTag::WMS_ATTRIBUTE, "fail to read windowInfoList.");
                 return ERR_INVALID_DATA;
             }
             NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
+            break;
+        }
+        case WindowManagerAgentMsg::TRANS_ID_NOTIFY_WINDOW_SUPPORT_ROTATION_CHANGE: {
+            sptr<SupportRotationInfo> supportRotationInfo = data.ReadParcelable<SupportRotationInfo>();
+            if (supportRotationInfo == nullptr) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "fail to read supportRotationInfo.");
+                return ERR_INVALID_DATA;
+            }
+            NotifySupportRotationChange(*supportRotationInfo);
             break;
         }
         default:
@@ -268,8 +295,7 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
 }
 
 // LCOV_EXCL_START
-bool WindowManagerAgentStub::ReadWindowInfoList(MessageParcel& data,
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList)
+bool WindowManagerAgentStub::ReadWindowInfoList(MessageParcel& data, WindowInfoList& windowInfoList)
 {
     uint32_t windowInfoListLength = 0;
     if (!data.ReadUint32(windowInfoListLength)) {
@@ -277,11 +303,6 @@ bool WindowManagerAgentStub::ReadWindowInfoList(MessageParcel& data,
         return false;
     }
     size_t windowInfoListSize = static_cast<size_t>(windowInfoListLength);
-
-    if (windowInfoListSize > MAX_VECTOR_SIZE) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowInfoListSize is too large, size: %{public}zu", windowInfoListSize);
-        return false;
-    }
 
     for (size_t i = 0; i < windowInfoListSize; i++) {
         uint32_t windowInfoLength = 0;

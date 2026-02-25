@@ -21,6 +21,7 @@
 #include "singleton.h"
 #include "singleton_container.h"
 
+#include "root_scene.h"
 #include "screen_scene.h"
 #include "vsync_station.h"
 #include "window_manager_hilog.h"
@@ -251,6 +252,27 @@ HWTEST_F(ScreenSceneTest, IsAppWindow, TestSize.Level1)
     ScreenScene screenScene("UNKNOWN");
     bool res = screenScene.IsAppWindow();
     ASSERT_EQ(false, res);
+}
+
+/**
+ * @tc.name: RegisterInputEventListener
+ * @tc.desc: RegisterInputEventListener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSceneTest, RegisterInputEventListener, TestSize.Level1)
+{
+    sptr<ScreenScene> screenScene = sptr<ScreenScene>::MakeSptr("UNKNOWN");
+    auto prevStaticRootScene = RootScene::staticRootScene_;
+
+    RootScene::staticRootScene_ = nullptr;
+    screenScene->RegisterInputEventListener();
+
+    sptr<RootScene> staticRootScene = sptr<RootScene>::MakeSptr();
+    RootScene::staticRootScene_ = staticRootScene;
+    screenScene->RegisterInputEventListener();
+
+    RootScene::staticRootScene_ = prevStaticRootScene;
+    ASSERT_EQ(1, screenScene->GetWindowId());
 }
 } // namespace
 } // namespace Rosen

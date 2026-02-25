@@ -24,6 +24,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "mock/mock_collaborator_dll_manager.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_scene_session.h"
 #include "mock/mock_window_event_channel.h"
@@ -541,6 +542,23 @@ HWTEST_F(SceneSessionManagerTest12, TestCheckSystemWindowPermission_014, TestSiz
     property->SetWindowType(WindowType::WINDOW_TYPE_MAGNIFICATION_MENU);
     MockAccesstokenKit::MockIsSACalling(false);
     EXPECT_EQ(false, ssm_->CheckSystemWindowPermission(property));
+
+    MockAccesstokenKit::MockIsSACalling(true);
+    EXPECT_EQ(true, ssm_->CheckSystemWindowPermission(property));
+}
+
+/**
+ * @tc.name: TestCheckSystemWindowPermission_016
+ * @tc.desc: Test CheckSystemWindowPermission with windowType WINDOW_TYPE_MAGNIFICATION
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, TestCheckSystemWindowPermission_016, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_SELECTION);
+
+    MockAccesstokenKit::MockIsSACalling(false);
+    EXPECT_EQ(true, ssm_->CheckSystemWindowPermission(property));
 
     MockAccesstokenKit::MockIsSACalling(true);
     EXPECT_EQ(true, ssm_->CheckSystemWindowPermission(property));
@@ -1692,18 +1710,6 @@ HWTEST_F(SceneSessionManagerTest12, HasFloatingWindowForeground01, TestSize.Leve
 }
 
 /**
- * @tc.name: ConfigSupportFollowRelativePositionToParent
- * @tc.desc: test ConfigSupportFollowRelativePositionToParent
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest12, ConfigSupportFollowRelativePositionToParent01, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    ssm_->ConfigSupportFollowRelativePositionToParent();
-    EXPECT_EQ(ssm_->systemConfig_.supportFollowRelativePositionToParent_, false);
-}
-
-/**
  * @tc.name: HasFloatingWindowForeground02
  * @tc.desc: test HasFloatingWindowForeground with not existed abilityToken
  * @tc.type: FUNC
@@ -1837,7 +1843,6 @@ HWTEST_F(SceneSessionManagerTest12, HasFloatingWindowForeground05, TestSize.Leve
     bool hasFloatWindowForeground = true;
     WMError result = ssm_->HasFloatingWindowForeground(token, hasFloatWindowForeground);
     EXPECT_EQ(result, WMError::WM_OK);
-    EXPECT_EQ(hasFloatWindowForeground, false);
 }
 
 /**
@@ -2009,25 +2014,6 @@ HWTEST_F(SceneSessionManagerTest12, SetFocusedSessionDisplayIdIfNeededTest001, T
     sptr<SceneSession> sceneSession = static_cast<sptr<SceneSession>>(sceneSessionMock);
     ssm_->SetFocusedSessionDisplayIdIfNeeded(sceneSession);
 }
-
-/**
- * @tc.name: GetActiveSceneSessionCopy
- * @tc.desc: test function : GetActiveSceneSessionCopy
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest12, GetActiveSceneSessionCopy, Function | SmallTest | Level2)
-{
-    SessionInfo info;
-    info.abilityName_ = "GetActiveSceneSessionCopy";
-    info.bundleName_ = "GetActiveSceneSessionCopy";
-    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
-    std::vector<sptr<SceneSession>> activeSession = ssm_->GetActiveSceneSessionCopy();
-    EXPECT_EQ(activeSession.empty(), false);
-}
-
 /**
  * @tc.name: GetHookedSessionByModuleName
  * @tc.desc: test function : GetHookedSessionByModuleName
@@ -2333,6 +2319,8 @@ HWTEST_F(SceneSessionManagerTest12, UpdateSessionDisplayId1, TestSize.Level0)
     ConstructKeyboardCallingWindowTestData(keyboardTestData);
     EXPECT_CALL(*wmAgentLiteMocker, NotifyCallingWindowDisplayChanged(_)).Times(0);
     ssm_->UpdateSessionDisplayId(86, 12);
+    SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(
+        wmAgentLiteMocker, WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY, 12345);
 }
 
 /**
@@ -2362,6 +2350,8 @@ HWTEST_F(SceneSessionManagerTest12, UpdateSessionDisplayId2, TestSize.Level0)
     // Change display id of non-callingWindow
     EXPECT_CALL(*wmAgentLiteMocker, NotifyCallingWindowDisplayChanged(_)).Times(0);
     ssm_->UpdateSessionDisplayId(90, 12);
+    SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(
+        wmAgentLiteMocker, WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY, 12345);
 }
 
 /**
@@ -2379,6 +2369,8 @@ HWTEST_F(SceneSessionManagerTest12, UpdateSessionDisplayId3, TestSize.Level1)
     ConstructKeyboardCallingWindowTestData(keyboardTestData);
     EXPECT_CALL(*wmAgentLiteMocker, NotifyCallingWindowDisplayChanged(_)).Times(0);
     ssm_->UpdateSessionDisplayId(86, 12);
+    SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(
+        wmAgentLiteMocker, WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY, 12345);
 }
 
 /**
@@ -2396,8 +2388,8 @@ HWTEST_F(SceneSessionManagerTest12, NotifyDisplayIdChanged, TestSize.Level1)
     ConstructKeyboardCallingWindowTestData(keyboardTestData);
     EXPECT_CALL(*wmAgentLiteMocker, NotifyCallingWindowDisplayChanged(_)).Times(0);
     ssm_->NotifyDisplayIdChanged(85, 12);
-    EXPECT_CALL(*wmAgentLiteMocker, NotifyCallingWindowDisplayChanged(_)).Times(1);
-    ssm_->NotifyDisplayIdChanged(86, 12);
+    SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(
+        wmAgentLiteMocker, WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY, 12345);
 }
 
 /**
@@ -3051,6 +3043,37 @@ HWTEST_F(SceneSessionManagerTest12, GetPiPSettingSwitchStatus, Function | SmallT
 }
 
 /**
+ *@tc.name: SetIsPipEnabled
+ *@tc.desc: test function : SetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(SceneSessionManagerTest12, SetIsPipEnabled, Function | SmallTest | Level2)
+{
+    ssm_->SetIsPipEnabled(true);
+    EXPECT_EQ(ssm_->pipIsPipEnabled_, true);
+    ssm_->SetIsPipEnabled(false);
+    EXPECT_EQ(ssm_->pipIsPipEnabled_, false);
+}
+/**
+ *@tc.name: GetIsPipEnabled
+ *@tc.desc: test function : GetIsPipEnabled
+ *@tc.type: FUNC
+*/
+HWTEST_F(SceneSessionManagerTest12, GetIsPipEnabled, Function | SmallTest | Level2)
+{
+    bool isPipEnabled = false;
+    ssm_->SetIsPipEnabled(true);
+    WMError ret = ssm_->GetIsPipEnabled(isPipEnabled);
+    EXPECT_EQ(isPipEnabled, true);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    ssm_->SetIsPipEnabled(false);
+    ret = ssm_->GetIsPipEnabled(isPipEnabled);
+    EXPECT_NE(isPipEnabled, true);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
  * @tc.name: UpdateScreenLockState
  * @tc.desc: test function : UpdateScreenLockState
  * @tc.type: FUNC
@@ -3271,6 +3294,33 @@ HWTEST_F(SceneSessionManagerTest12, DeleteAllOutline, Function | SmallTest | Lev
     EXPECT_EQ(ssm->outlineRemoteObject_, nullptr);
 }
 
+/**
+ * @tc.name: CheckBrokeNotAliveAndRefresh_01
+ * @tc.desc: test function : CheckBrokeNotAliveAndRefresh_01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckBrokeNotAliveAndRefresh01, Function | SmallTest | Level2)
+{
+    auto ssm = sptr<SceneSessionManager>::MakeSptr();
+    SessionInfo info;
+    info.abilityName_ = "CheckBrokeNotAliveAndRefresh01";
+    info.bundleName_ = "CheckBrokeNotAliveAndRefresh01";
+    std::shared_ptr<AAFwk::Want> wantPtr = std::make_shared<AAFwk::Want>();
+    info.SetWantSafely(wantPtr);
+    info.callerTypeForAnco = 0;
+    ssm->CheckBrokeNotAliveAndRefresh(info);
+    EXPECT_EQ(info.callerTypeForAnco, 0);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(1);
+    ssm->CheckBrokeNotAliveAndRefresh(info);
+    EXPECT_EQ(info.callerTypeForAnco, 1);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(2);
+    ssm->CheckBrokeNotAliveAndRefresh(info);
+    EXPECT_EQ(info.callerTypeForAnco, 2);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(0);
+}
 
 /**
  * @tc.name: RecoverOutline
@@ -3286,6 +3336,146 @@ HWTEST_F(SceneSessionManagerTest12, RecoverOutline, Function | SmallTest | Level
 
     ssm->OnRecoverStateChange(RecoverState::RECOVER_ENABLE_INPUT);
     EXPECT_EQ(false, ssm->needRecoverOutline_);
+}
+
+/**
+ * @tc.name: ReportWindowProfileInfosTest
+ * @tc.desc: ReportWindowProfileInfosTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, ReportWindowProfileInfosTest, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto isScreenLocked = ssm_->isScreenLocked_;
+    ssm_->isScreenLocked_ = true;
+    ssm_->ReportWindowProfileInfos();
+    ssm_->isScreenLocked_ = isScreenLocked;
+ 
+    SessionInfo sessionInfo;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+    ssm_->isScreenLocked_ = false;
+    auto visibilityState = sceneSession->GetVisibilityState();
+    ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION), WSError::WS_OK);
+    ASSERT_EQ(sceneSession->GetVisibilityState(), WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
+    ssm_->ReportWindowProfileInfos();
+ 
+    auto state = sceneSession->GetSessionState();
+    sceneSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    ssm_->ReportWindowProfileInfos();
+    sceneSession->SetSessionState(state);
+ 
+    ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION), WSError::WS_OK);
+    ssm_->ReportWindowProfileInfos();
+ 
+    for (int id = 0; id < 51; id++) {
+        ssm_->sceneSessionMap_.insert({ id, sceneSession });
+    }
+    ssm_->ReportWindowProfileInfos();
+}
+
+
+/**
+ * @tc.name: NotifyWindowPropertyChange01
+ * @tc.desc: NotifyWindowPropertyChange01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, NotifyWindowPropertyChange01, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ScreenId screenId = 0;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "NotifyWindowPropertyChange01";
+    sessionInfo.abilityName_ = "NotifyWindowPropertyChange01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetScreenId(99);
+    sceneSession->SetPropertyDirtyFlags(1);
+    auto result = ssm_->sceneSessionMap_.insert({1001, sceneSession});
+    ssm_->NotifyWindowPropertyChange(screenId);
+    EXPECT_EQ(sceneSession->GetPropertyDirtyFlags(), 1);
+}
+
+/**
+ * @tc.name: NotifyWindowPropertyChange02
+ * @tc.desc: NotifyWindowPropertyChange02
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, NotifyWindowPropertyChange02, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ScreenId screenId = 0;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "NotifyWindowPropertyChange02";
+    sessionInfo.abilityName_ = "NotifyWindowPropertyChange02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetScreenId(screenId);
+    sceneSession->SetPropertyDirtyFlags(2);
+    ssm_->observedFlags_ = 1;
+    auto result = ssm_->sceneSessionMap_.insert({1002, sceneSession});
+    ssm_->NotifyWindowPropertyChange(screenId);
+    EXPECT_EQ(sceneSession->GetPropertyDirtyFlags(), 2);
+}
+
+/**
+ * @tc.name: NotifyWindowPropertyChange03
+ * @tc.desc: NotifyWindowPropertyChange03
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, NotifyWindowPropertyChange03, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ScreenId screenId = 0;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "NotifyWindowPropertyChange03";
+    sessionInfo.abilityName_ = "NotifyWindowPropertyChange03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetScreenId(screenId);
+    sceneSession->SetPropertyDirtyFlags(1);
+    ssm_->observedFlags_ = 1;
+    auto result = ssm_->sceneSessionMap_.insert({1003, sceneSession});
+    ssm_->NotifyWindowPropertyChange(screenId);
+    EXPECT_EQ(sceneSession->GetPropertyDirtyFlags(), 0);
+}
+
+/**
+ * @tc.name: FillWindowProfileInfoTest
+ * @tc.desc: FillWindowProfileInfoTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, FillWindowProfileInfoTest, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 1;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    auto focusWindowId = static_cast<int32_t>(sceneSession->GetWindowId());
+    ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
+ 
+    focusWindowId = 0;
+    auto state = sceneSession->GetSessionState();
+    sceneSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
+    sceneSession->SetSessionState(state);
+ 
+    auto visibilityState = sceneSession->GetVisibilityState();
+    ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
+ 
+    ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION), WSError::WS_OK);
+    ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
+ 
+    ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION), WSError::WS_OK);
+    ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
 }
 } // namespace
 } // namespace Rosen

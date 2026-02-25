@@ -36,7 +36,7 @@ public:
     void NotifyCaptureStatusChangedGlobal();
     void GetAndMergeEdidInfo(sptr<ScreenSession> screenSession);
     void OnScreenChangeDefault(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason);
-    void ScreenConnectionChanged(sptr<ScreenSession> screenSession, ScreenId screenId,
+    void ScreenConnectionChanged(sptr<ScreenSession>& screenSession, ScreenId screenId,
         ScreenEvent screenEvent, bool phyMirrorEnable);
     bool IsNeedAddInputServiceAbility();
 };

@@ -22,6 +22,7 @@
 #include "dm_common.h"
 #include "marshalling_helper.h"
 #include "window_manager_hilog.h"
+#include "display_manager_interface_code.h"
 
 namespace OHOS::Rosen {
 
@@ -285,5 +286,34 @@ sptr<CutoutInfo> ScreenSessionManagerLiteProxy::GetCutoutInfo(DisplayId displayI
     }
     sptr<CutoutInfo> info = reply.ReadParcelable<CutoutInfo>();
     return info;
+}
+
+DMError ScreenSessionManagerLiteProxy::SetResolution(ScreenId screenId, uint32_t width, uint32_t height,
+    float virtualPixelRatio)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(screenId) || !data.WriteUint32(width) ||
+        !data.WriteUint32(height) || !data.WriteFloat(virtualPixelRatio)) {
+        TLOGE(WmsLogTag::DMS, "write screenId/width/height/virtualPixelRatio failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_RESOLUTION),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(reply.ReadInt32());
 }
 } // namespace OHOS::Rosen

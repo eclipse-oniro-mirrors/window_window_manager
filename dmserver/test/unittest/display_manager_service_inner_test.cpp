@@ -16,6 +16,8 @@
 #include <gtest/gtest.h>
 
 #include "display_manager_service_inner.h"
+#include "display_manager_agent_default.h"
+#include "display_manager_agent_controller.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -210,8 +212,21 @@ HWTEST_F(DisplayManagerServiceInnerTest, NotifyPrivateWindowStateChanged, TestSi
 {
     bool hasPrivate = false;
     DisplayManagerServiceInner inner;
+    ClientAgentContainer<IDisplayManagerAgent, DisplayManagerAgentType> dmAgentContainer_;
     inner.NotifyPrivateWindowStateChanged(hasPrivate);
-    EXPECT_EQ(false, hasPrivate);
+
+    sptr<IDisplayManagerAgent> idma_ = new DisplayManagerAgentDefault();
+    std::set<sptr<IDisplayManagerAgent>> setIDisplay;
+    setIDisplay.insert(idma_);
+
+    dmAgentContainer_.agentMap_.insert(
+        {DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER, setIDisplay});
+
+    inner.NotifyPrivateWindowStateChanged(hasPrivate);
+    int result = dmAgentContainer_.
+        GetAgentsByType(DisplayManagerAgentType::SCREEN_EVENT_LISTENER).size();
+
+    ASSERT_EQ(result, 0);
 }
 }
 }

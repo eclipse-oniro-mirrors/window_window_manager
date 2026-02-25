@@ -42,6 +42,8 @@ public:
     virtual sptr<DisplayInfo> GetDefaultDisplayInfo() override;
     virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId) override;
     virtual sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId) override;
+    virtual DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height,
+        float virtualPixelRatio) override;
 private:
     static inline BrokerDelegator<ScreenSessionManagerLiteProxy> delegator_;
 };

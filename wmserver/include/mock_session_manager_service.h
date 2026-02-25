@@ -21,20 +21,20 @@
 
 #include "dm_common.h"
 #include "mock_session_manager_interface_stub.h"
+#include "scene_session_manager_interface.h"
+#include "scene_session_manager_lite_interface.h"
 #include "wm_single_instance.h"
 #include "zidl/session_manager_service_recover_interface.h"
-#include "scene_session_manager_lite_interface.h"
-#include "scene_session_manager_interface.h"
 
 namespace OHOS {
 namespace Rosen {
-using SMSRecoverListenerMap = std::map<int32_t, sptr<ISessionManagerServiceRecoverListener>>;
+using SMSRecoverListenerMap = std::unordered_map<int32_t, sptr<ISessionManagerServiceRecoverListener>>;
 class MockSessionManagerService : public SystemAbility, public MockSessionManagerInterfaceStub {
 DECLARE_SYSTEM_ABILITY(MockSessionManagerService);
 WM_DECLARE_SINGLE_INSTANCE_BASE(MockSessionManagerService);
 public:
     ErrCode GetScreenSessionManagerLite(sptr<IRemoteObject>& screenSessionManagerLite) override;
-    sptr<IRemoteObject> GetSceneSessionManager();
+    virtual sptr<IRemoteObject> GetSceneSessionManager();
     void OnStart() override;
     int Dump(int fd, const std::vector<std::u16string>& args) override;
     void GetProcessSurfaceNodeIdByPersistentId(const int32_t pid,
@@ -47,11 +47,10 @@ public:
     /*
      * Multi User
      */
-    bool SetSessionManagerService(const sptr<IRemoteObject>& sessionManagerService);
+    bool SetSessionManagerService(sptr<IRemoteObject> sessionManagerService);
     ErrCode GetSessionManagerService(sptr<IRemoteObject>& sessionManagerService) override;
     ErrCode GetSessionManagerServiceByUserId(int32_t userId, sptr<IRemoteObject>& sessionManagerService) override;
     void NotifyWMSConnected(int32_t userId, DisplayId screenId, bool isColdStart);
-    void NotifyNotKillService() {}
     ErrCode GetSceneSessionManagerLiteByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManagerLite) override;
     ErrCode GetSceneSessionManagerByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManager) override;
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteBySA(int32_t userId);
@@ -61,9 +60,16 @@ public:
      * Window Recover
      */
     ErrCode NotifySceneBoardAvailable() override;
-    ErrCode RegisterSMSRecoverListener(const sptr<IRemoteObject>& listener, int32_t userId, bool isLite) override;
+    ErrCode RegisterSMSRecoverListener(int32_t userId, bool isLite, const sptr<IRemoteObject>& listener) override;
     ErrCode UnregisterSMSRecoverListener(int32_t userId, bool isLite) override;
     void UnregisterSMSRecoverListenerInner(int32_t clientUserId, DisplayId displayId, int32_t pid, bool isLite);
+    virtual ErrCode InitDisplayIdAndUserIdByClient(int32_t clientUserId, int32_t& userId, DisplayId& displayId);
+
+    /*
+     * Window Hierarchy
+     */
+    ErrCode NotifySetSpecificWindowZIndex() override;
+    void ResetSpecificWindowZIndex(int32_t clientUserId, int32_t pid);
 
     /*
      * Window Snapshot
@@ -75,7 +81,7 @@ public:
 
 protected:
     MockSessionManagerService();
-    virtual ~MockSessionManagerService() = default;
+    virtual ~MockSessionManagerService();
 
 private:
     /*
@@ -98,7 +104,7 @@ private:
     virtual sptr<IRemoteObject> GetSessionManagerServiceInner(int32_t userId);
     void RemoveSessionManagerServiceByUserId(int32_t userId);
     bool RegisterMockSessionManagerService();
-    ErrCode GetForegroundOsAccountDisplayId(int32_t userId, DisplayId& displayId) const;
+    virtual ErrCode GetForegroundOsAccountDisplayId(int32_t userId, DisplayId& displayId) const;
     ErrCode NotifyWMSConnectionStatus(int32_t userId, const sptr<ISessionManagerServiceRecoverListener>& smsListener);
     virtual int32_t GetUserIdByCallingUid();
 
@@ -120,7 +126,7 @@ private:
     sptr<IRemoteObject> GetSceneSessionManagerFromCache(int32_t userId, bool isLite);
     void UpdateSceneSessionManagerFromCache(int32_t userId, bool isLite, sptr<IRemoteObject>& sceneSessionManager);
     template <typename T>
-    ErrCode GetSceneSessionManagerByUserIdImpl(int32_t userId, sptr<T>& result, bool isLite, bool checkClient);
+    ErrCode GetSceneSessionManagerByUserIdImpl(int32_t userId, bool isLite, bool checkClient, sptr<T>& result);
     void RemoveFromMap(std::map<int32_t, sptr<IRemoteObject>>& map, std::mutex& mutex, int32_t userId);
 
     /*
@@ -136,7 +142,9 @@ private:
         std::vector<std::string>>& userIdAndBunldeNames);
 
     sptr<IRemoteObject> screenSessionManager_;
+    std::mutex screenSessionManagerMutex_;
     sptr<IRemoteObject> defaultSceneSessionManager_;
+    std::mutex defaultSceneSessionManagerMutex_;
 
     /*
      * Multi User
@@ -145,7 +153,7 @@ private:
     std::mutex defaultWMSUserIdMutex_;
     DisplayId defaultScreenId_;
     std::mutex userId2ScreenIdMapMutex_;
-    std::map<int32_t, int32_t> userId2ScreenIdMap_;
+    std::map<int32_t, DisplayId> userId2ScreenIdMap_;
     std::shared_mutex smsDeathRecipientMapLock_;
     std::map<int32_t, sptr<SMSDeathRecipient>> smsDeathRecipientMap_;
     std::mutex sessionManagerServiceMapMutex_;
@@ -160,15 +168,21 @@ private:
     /*
      * Window Recover
      */
-    std::map<int32_t, SMSRecoverListenerMap> recoverListenerMap_;
-    std::shared_mutex recoverListenerMutex_;
-    std::map<int32_t, SMSRecoverListenerMap> liteRecoverListenerMap_;
-    std::shared_mutex liteRecoverListenerMutex_;
+    std::unordered_map<int32_t, SMSRecoverListenerMap> recoverListenerMap_;
+    std::mutex recoverListenerMutex_;
+    std::unordered_map<int32_t, SMSRecoverListenerMap> liteRecoverListenerMap_;
+    std::mutex liteRecoverListenerMutex_;
 
-    std::map<DisplayId, SMSRecoverListenerMap> systemAppRecoverListenerMap_;
-    std::shared_mutex systemAppRecoverListenerMutex_;
-    std::map<DisplayId, SMSRecoverListenerMap> liteSystemAppRecoverListenerMap_;
-    std::shared_mutex liteSystemAppRecoverListenerMutex_;
+    std::unordered_map<DisplayId, SMSRecoverListenerMap> systemAppRecoverListenerMap_;
+    std::mutex systemAppRecoverListenerMutex_;
+    std::unordered_map<DisplayId, SMSRecoverListenerMap> liteSystemAppRecoverListenerMap_;
+    std::mutex liteSystemAppRecoverListenerMutex_;
+
+    /*
+     * Window Hierarchy
+     */
+    std::unordered_map<int32_t, int32_t> specificZIndexByPidMap_;
+    std::mutex specificZIndexByPidMapMutex_;
 
     /*
      * Window Snapshot

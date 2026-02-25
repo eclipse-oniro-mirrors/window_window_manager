@@ -62,6 +62,7 @@ public:
     MOCK_METHOD1(NotifyWindowOcclusionState, WSError(const WindowVisibilityState state));
     MOCK_METHOD1(NotifyTransformChange, void(const Transform& transform));
     MOCK_METHOD1(NotifySingleHandTransformChange, void(const SingleHandTransform& singleHandTransform));
+    MOCK_METHOD(void, NotifyGlobalScaledRectChange, (const Rect& globalScaledRect), (override));
     MOCK_METHOD1(NotifyDialogStateChange, WSError(bool isForeground));
     MOCK_METHOD1(UpdateDisplayId, WSError(uint64_t displayId));
     MOCK_METHOD2(SetPipActionEvent, WSError(const std::string& action, int32_t status));
@@ -86,17 +87,23 @@ public:
     MOCK_METHOD3(NotifyPipWindowSizeChange, WSError(double width, double height, double scale));
     MOCK_METHOD1(NotifyPiPActiveStatusChange, WSError(bool status));
     MOCK_METHOD1(NotifyWindowCrossAxisChange, void(CrossAxisState state));
-    MOCK_METHOD1(LinkKeyFrameCanvasNode, WSError(std::shared_ptr<RSCanvasNode>& rsCanvasNode));
-    MOCK_METHOD1(SetKeyFramePolicy, WSError(KeyFramePolicy& keyFramePolicy));
+    MOCK_METHOD0(LinkKeyFrameNode, WSError(void));
+    MOCK_METHOD1(SetStageKeyFramePolicy, WSError(const KeyFramePolicy& keyFramePolicy));
     MOCK_METHOD1(SetCurrentRotation, WSError(int32_t currentRotation));
     MOCK_METHOD0(NotifyLifecyclePausedStatus, void(void));
     MOCK_METHOD1(NotifyAppUseControlStatus, void(bool isUseControl));
     MOCK_METHOD1(NotifyExtensionSecureLimitChange, WSError(bool isLimit));
     MOCK_METHOD0(NotifyAppForceLandscapeConfigUpdated, WSError(void));
+    MOCK_METHOD0(NotifyAppForceLandscapeConfigEnableUpdated, WSError(void));
     MOCK_METHOD0(NotifyAppHookWindowInfoUpdated, WSError(void));
     MOCK_METHOD1(GetRouterStackInfo, WMError(std::string& routerStackInfo));
     MOCK_METHOD1(SendFbActionEvent, WSError(const std::string& action));
     MOCK_METHOD1(UpdateIsShowDecorInFreeMultiWindow, WSError(bool isShow));
+    MOCK_METHOD1(UpdateBrightness, WSError(float brightness));
+    MOCK_METHOD0(AddSidebarBlur, WSError(void));
+    MOCK_METHOD1(SetSidebarBlurStyleWithType, WSError(SidebarBlurType type));
+    MOCK_METHOD1(UpdateWindowUIType, WSError(WindowUIType windowUIType));
+    MOCK_METHOD1(UpdatePropertyWhenTriggerMode, WSError(const sptr<WindowSessionProperty>& property));
 };
 } // namespace Rosen
 } // namespace OHOS

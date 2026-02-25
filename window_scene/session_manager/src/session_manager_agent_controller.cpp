@@ -25,7 +25,7 @@ WM_IMPLEMENT_SINGLE_INSTANCE(SessionManagerAgentController)
 WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
     WindowManagerAgentType type, int32_t pid)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "type: %{public}u", static_cast<uint32_t>(type));
+    TLOGI(WmsLogTag::WMS_PIP, "type: %{public}u", static_cast<uint32_t>(type));
     if (smAgentContainer_.RegisterAgent(windowManagerAgent, type)) {
         std::lock_guard<std::mutex> lock(windowManagerAgentPidMapMutex_);
         auto it = windowManagerPidAgentMap_.find(pid);
@@ -36,20 +36,16 @@ WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWi
                 smAgentContainer_.UnregisterAgent(typeAgentIter->second, type);
                 windowManagerAgentPairMap_.erase((typeAgentIter->second)->AsObject());
             }
-            typeAgentMap.insert(std::map<WindowManagerAgentType,
-                sptr<IWindowManagerAgent>>::value_type(type, windowManagerAgent));
+            typeAgentMap.emplace(type, windowManagerAgent);
         } else {
             std::map<WindowManagerAgentType, sptr<IWindowManagerAgent>> typeAgentMap;
-            typeAgentMap.insert(std::map<WindowManagerAgentType,
-                sptr<IWindowManagerAgent>>::value_type(type, windowManagerAgent));
+            typeAgentMap.emplace(type, windowManagerAgent);
             TLOGI(WmsLogTag::WMS_MAIN, "insert pid: %{public}d, type: %{public}u",
                 pid, static_cast<uint32_t>(type));
-            windowManagerPidAgentMap_.insert(std::map<int32_t,
-                std::map<WindowManagerAgentType, sptr<IWindowManagerAgent>>>::value_type(pid, typeAgentMap));
+            windowManagerPidAgentMap_.emplace(pid, typeAgentMap);
         }
         std::pair<int32_t, WindowManagerAgentType> pidPair = {pid, type};
-        windowManagerAgentPairMap_.insert(std::map<sptr<IRemoteObject>,
-            std::pair<int32_t, WindowManagerAgentType>>::value_type(windowManagerAgent->AsObject(), pidPair));
+        windowManagerAgentPairMap_.emplace(windowManagerAgent->AsObject(), pidPair);
         if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE &&
             windowManagementMode_ != WindowManagementMode::UNDEFINED) {
             NotifyWindowStyleChange(windowManagementMode_ == WindowManagementMode::FREEFORM ?
@@ -65,7 +61,7 @@ WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWi
 WMError SessionManagerAgentController::UnregisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
     WindowManagerAgentType type, int32_t pid)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "type: %{public}u", static_cast<uint32_t>(type));
+    TLOGI(WmsLogTag::WMS_PIP, "type: %{public}u", static_cast<uint32_t>(type));
     if (smAgentContainer_.UnregisterAgent(windowManagerAgent, type)) {
         std::lock_guard<std::mutex> lock(windowManagerAgentPidMapMutex_);
         auto it = windowManagerPidAgentMap_.find(pid);
@@ -105,6 +101,21 @@ void SessionManagerAgentController::UpdateFocusChangeInfo(const sptr<FocusChange
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS)) {
         if (agent != nullptr) {
             agent->UpdateFocusChangeInfo(focusChangeInfo, isFocused);
+        } else {
+            TLOGW(WmsLogTag::WMS_FOCUS, "agent is invalid");
+        }
+    }
+}
+
+void SessionManagerAgentController::UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId,
+                                                           bool isAdd)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "in");
+    for (auto& agent : smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO)) {
+        if (agent != nullptr) {
+            TLOGD(WmsLogTag::WMS_FOCUS, "Get agent for display group notification success");
+            agent->UpdateDisplayGroupInfo(displayGroupId, displayId, isAdd);
         } else {
             TLOGW(WmsLogTag::WMS_FOCUS, "agent is invalid");
         }
@@ -289,13 +300,25 @@ void SessionManagerAgentController::NotifyWindowSystemBarPropertyChange(
     }
 }
 
-void SessionManagerAgentController::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-    const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList)
+void SessionManagerAgentController::NotifyWindowPropertyChange(
+    uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
     for (const auto& agent : smAgentContainer_.GetAgentsByType(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY)) {
         if (agent != nullptr) {
             agent->NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
+        }
+    }
+}
+
+void SessionManagerAgentController::NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo)
+{
+    for (const auto& agent : smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_SUPPORT_ROTATION)) {
+        if (agent != nullptr) {
+            agent->NotifySupportRotationChange(supportRotationInfo);
+        } else {
+            TLOGE(WmsLogTag::WMS_ROTATION, "agent is nullptr");
         }
     }
 }

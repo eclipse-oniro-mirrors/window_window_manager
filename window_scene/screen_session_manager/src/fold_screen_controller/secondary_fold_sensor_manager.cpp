@@ -23,6 +23,9 @@
 #include "fold_screen_state_internel.h"
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
+#include "fold_screen_controller/fold_screen_sensor_manager.h"
+#include "fold_screen_controller/secondary_fold_sensor_manager.h"
+#include "screen_sensor_mgr.h"
 
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
@@ -45,11 +48,13 @@ constexpr uint16_t FIRST_DATA = 0;
 constexpr uint16_t SECOND_DATA = 1;
 constexpr uint16_t THIRD_DATA = 2;
 const int32_t MAIN_STATUS_WIDTH = 0;
-const int32_t FULL_STATUS_WIDTH = 1;
-const int32_t GLOBAL_FULL_STATUS_WIDTH = 2;
-const int32_t SCREEN_HEIGHT = 3;
-const int32_t FULL_STATUS_OFFSET_X = 4;
-const int32_t PARAMS_VECTOR_SIZE = 5;
+const int32_t MAIN_STATUS_HEIGHT = 1;
+const int32_t FULL_STATUS_WIDTH = 2;
+const int32_t FULL_STATUS_HEIGHT = 3;
+const int32_t GLOBAL_FULL_STATUS_WIDTH = 4;
+const int32_t SCREEN_HEIGHT = 5;
+const int32_t FULL_STATUS_OFFSET_X = 6;
+const int32_t PARAMS_VECTOR_SIZE = 9;
 } // namespace
 WM_IMPLEMENT_SINGLE_INSTANCE(SecondaryFoldSensorManager);
 
@@ -73,36 +78,52 @@ void SecondaryFoldSensorManager::SetSensorFoldStateManager(sptr<SensorFoldStateM
     sensorFoldStateManager_ = sensorFoldStateManager;
 }
 
+void SecondaryFoldSensorManager::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
+{
+    if (scheduler == nullptr) {
+        TLOGE(WmsLogTag::DMS, "scheduler is nullptr.");
+        return;
+    }
+    sensorFoldStateManager_->SetTaskScheduler(scheduler);
+}
+
 void SecondaryFoldSensorManager::RegisterPostureCallback()
 {
-    OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    int32_t ret = DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL, SecondarySensorPostureDataCallback);
+    if (ret == SENSOR_SUCCESS) {
+        registerPosture_ = true;
+        TLOGI(WmsLogTag::DMS, "RegisterPostureCallback: success.");
+    }
 }
 
 void SecondaryFoldSensorManager::UnRegisterPostureCallback()
 {
-    int32_t deactivateRet = DeactivateSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-    int32_t unsubscribeRet = UnsubscribeSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-    TLOGI(WmsLogTag::DMS, "deactivateRet: %{public}d, unsubscribeRet: %{public}d",
-        deactivateRet, unsubscribeRet);
-    if (deactivateRet == SENSOR_SUCCESS && unsubscribeRet == SENSOR_SUCCESS) {
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_POSTURE);
+    if (ret == SENSOR_SUCCESS) {
         registerPosture_ = false;
         TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "failed with ret: %{public}d", ret);
     }
 }
 
 void SecondaryFoldSensorManager::RegisterHallCallback()
 {
-    OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    int32_t ret = DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_HALL_EXT, POSTURE_INTERVAL, SecondarySensorHallDataCallbackExt);
+    if (ret == SENSOR_SUCCESS) {
+        TLOGI(WmsLogTag::DMS, "RegisterHallCallback: success.");
+    }
 }
 
 void SecondaryFoldSensorManager::UnRegisterHallCallback()
 {
-    int32_t deactivateRet = DeactivateSensor(SENSOR_TYPE_ID_HALL_EXT, &hallUser);
-    int32_t unsubscribeRet = UnsubscribeSensor(SENSOR_TYPE_ID_HALL_EXT, &hallUser);
-    if (deactivateRet == SENSOR_SUCCESS && unsubscribeRet == SENSOR_SUCCESS) {
-        TLOGW(WmsLogTag::DMS, "success.");
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
+    if (ret == SENSOR_SUCCESS) {
+        TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "failed with ret: %{public}d", ret);
     }
 }
 
@@ -209,12 +230,12 @@ bool SecondaryFoldSensorManager::GetPostureInner(const SensorEvent * const event
         TLOGW(WmsLogTag::DMS, "SensorEvent[0].data is nullptr.");
         return false;
     }
-    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < sizeof(FoldScreenSensorManager::PostureDataSecondary)) {
+    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < sizeof(DMS::PostureDataSecondary)) {
         TLOGW(WmsLogTag::DMS, "SensorEvent dataLen less than posture data size.");
         return false;
     }
-    FoldScreenSensorManager::PostureDataSecondary *postureData =
-        reinterpret_cast<FoldScreenSensorManager::PostureDataSecondary *>(event[SENSOR_EVENT_FIRST_DATA].data);
+    DMS::PostureDataSecondary *postureData =
+        reinterpret_cast<DMS::PostureDataSecondary *>(event[SENSOR_EVENT_FIRST_DATA].data);
     valueBc = (*postureData).postureBc;
     valueAb = (*postureData).postureAb;
     valueAbAnti = (*postureData).postureAbAnti;
@@ -233,12 +254,12 @@ bool SecondaryFoldSensorManager::GetHallInner(const SensorEvent * const event, u
         TLOGW(WmsLogTag::DMS, "SensorEvent[0].data is nullptr.");
         return false;
     }
-    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < sizeof(FoldScreenSensorManager::ExtHallData)) {
+    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < sizeof(DMS::ExtHallData)) {
         TLOGW(WmsLogTag::DMS, "SensorEvent dataLen less than hall data size.");
         return false;
     }
-    FoldScreenSensorManager::ExtHallData *extHallData =
-        reinterpret_cast<FoldScreenSensorManager::ExtHallData *>(event[SENSOR_EVENT_FIRST_DATA].data);
+    DMS::ExtHallData *extHallData =
+        reinterpret_cast<DMS::ExtHallData *>(event[SENSOR_EVENT_FIRST_DATA].data);
     uint16_t flag = static_cast<uint16_t>((*extHallData).flag);
     if (!(flag & (1 << HALL_B_C_COLUMN_ORDER)) || !(flag & (1 << HALL_A_B_COLUMN_ORDER))) {
         TLOGW(WmsLogTag::DMS, "not support Extend Hall.");
@@ -261,17 +282,20 @@ void SecondaryFoldSensorManager::PowerKeySetScreenActiveRect()
     }
     uint32_t x = 0;
     uint32_t y = 0;
-    uint32_t width = foldScreenPolicy_->GetScreenParams()[SCREEN_HEIGHT];
+    uint32_t width = 0;
     uint32_t height = 0;
     {
         std::lock_guard<std::recursive_mutex> lock_mode(foldScreenPolicy_->displayModeMutex_);
         if (foldScreenPolicy_->lastDisplayMode_ == FoldDisplayMode::FULL) {
             y = foldScreenPolicy_->GetScreenParams()[FULL_STATUS_OFFSET_X];
             height = foldScreenPolicy_->GetScreenParams()[FULL_STATUS_WIDTH];
+            width = foldScreenPolicy_->GetScreenParams()[FULL_STATUS_HEIGHT];
         } else if (foldScreenPolicy_->lastDisplayMode_ == FoldDisplayMode::MAIN) {
             height = foldScreenPolicy_->GetScreenParams()[MAIN_STATUS_WIDTH];
+            width = foldScreenPolicy_->GetScreenParams()[MAIN_STATUS_HEIGHT];
         } else if (foldScreenPolicy_->lastDisplayMode_ == FoldDisplayMode::GLOBAL_FULL) {
             height = foldScreenPolicy_->GetScreenParams()[GLOBAL_FULL_STATUS_WIDTH];
+            width = foldScreenPolicy_->GetScreenParams()[SCREEN_HEIGHT];
         } else {
             TLOGW(WmsLogTag::DMS, "displayMode[%{public}u] unknown.", foldScreenPolicy_->lastDisplayMode_);
             return;
@@ -289,12 +313,12 @@ void SecondaryFoldSensorManager::PowerKeySetScreenActiveRect()
 
 bool SecondaryFoldSensorManager::IsPostureUserCallbackInvalid() const
 {
-    return postureUser.callback == nullptr;
+    return DMS::ScreenSensorMgr::GetInstance().HasSubscribedSensor(SENSOR_TYPE_ID_POSTURE);
 }
 
 bool SecondaryFoldSensorManager::IsHallUserCallbackInvalid() const
 {
-    return hallUser.callback == nullptr;
+    return DMS::ScreenSensorMgr::GetInstance().HasSubscribedSensor(SENSOR_TYPE_ID_HALL_EXT);
 }
 
 std::vector<float> SecondaryFoldSensorManager::GetGlobalAngle() const

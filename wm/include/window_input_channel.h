@@ -30,6 +30,7 @@ public:
     virtual ~WindowInputChannel();
     void HandlePointerEvent(std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void HandleKeyEvent(std::shared_ptr<MMI::KeyEvent>& keyEvent);
+    void InjectTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void Destroy();
     Rect GetWindowRect();
     

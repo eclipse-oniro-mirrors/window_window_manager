@@ -35,7 +35,7 @@ class AccessibilityElementInfo;
 }
 namespace OHOS::Rosen {
 class RSTransaction;
-class RSCanvasNode;
+class RSWindowKeyFrameNode;
 
 class ISessionStage : public IRemoteBroker {
 public:
@@ -136,7 +136,7 @@ public:
     virtual WSError UpdateWindowMode(WindowMode mode) = 0;
     virtual WSError GetTopNavDestinationName(std::string& topNavDestName) = 0;
     virtual WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) = 0;
-    virtual WMError UpdateWindowModeForUITest(int32_t updateMode) { return WMError::WM_OK; }
+    virtual WMError UpdateWindowModeForUITest(int32_t updateMode) { return WMError::WM_OK; };
     virtual void NotifyForegroundInteractiveStatus(bool interactive) = 0;
     virtual void NotifyLifecyclePausedStatus() = 0;
     virtual void NotifyAppUseControlStatus(bool isUseControl) = 0;
@@ -164,6 +164,15 @@ public:
      * @param singleHandTransform transform to change.
      */
     virtual void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) = 0;
+
+    /**
+     * @brief Notify global scaled rect.
+     *
+     * Notify client when global scaled rect changed.
+     *
+     * @param globalScaledRect rect to change.
+     */
+    virtual void NotifyGlobalScaledRectChange(const Rect& globalScaledRect) {}
 
     /**
      * @brief Set pip event to client.
@@ -202,7 +211,6 @@ public:
     virtual WSError UpdateDisplayId(uint64_t displayId) = 0;
     virtual void NotifyDisplayMove(DisplayId from, DisplayId to) = 0;
     virtual WSError SwitchFreeMultiWindow(bool enable) = 0;
-    virtual WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) = 0;
     virtual WSError PcAppInPadNormalClose()
     {
         return WSError::WS_OK;
@@ -214,6 +222,7 @@ public:
     virtual void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) = 0;
     virtual void UpdateAnimationSpeed(float speed) = 0;
     virtual void NotifySessionFullScreen(bool fullScreen) {}
+    virtual WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) = 0;
 
     // **Non** IPC interface
     virtual void NotifyBackpressedEvent(bool& isConsumed) {}
@@ -258,8 +267,8 @@ public:
         return WSError::WS_OK;
     }
 
-    virtual WSError LinkKeyFrameCanvasNode(std::shared_ptr<RSCanvasNode>& rsCanvasNode) = 0;
-    virtual WSError SetKeyFramePolicy(KeyFramePolicy& keyFramePolicy) = 0;
+    virtual WSError LinkKeyFrameNode() = 0;
+    virtual WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) = 0;
 
     virtual WSError SetSplitButtonVisible(bool isVisible) = 0;
 
@@ -273,18 +282,23 @@ public:
     virtual void NotifyWindowCrossAxisChange(CrossAxisState state) = 0;
     virtual WSError NotifyWindowAttachStateChange(bool isAttach) { return WSError::WS_DO_NOTHING; }
     virtual void NotifyKeyboardAnimationCompleted(const KeyboardPanelInfo& keyboardPanelInfo) {}
+    virtual WSError SetCurrentRotation(int32_t currentRotation) = 0;
     virtual void NotifyKeyboardAnimationWillBegin(const KeyboardAnimationInfo& keyboardAnimationInfo,
         const std::shared_ptr<RSTransaction>& rsTransaction) {};
-    virtual WSError NotifyTargetRotationInfo(OrientationInfo& info) { return WSError::WS_DO_NOTHING; }
+    virtual WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo)
+    {
+        return WSError::WS_DO_NOTHING;
+    }
     virtual WSError NotifyPageRotationIsIgnored() { return WSError::WS_DO_NOTHING; }
     virtual RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo)
     {
         return { RectType::RELATIVE_TO_SCREEN, { 0, 0, 0, 0, } };
     }
-    virtual WSError SetCurrentRotation(int32_t currentRotation) = 0;
     virtual WSError NotifyAppForceLandscapeConfigUpdated() = 0;
+    virtual WSError NotifyAppForceLandscapeConfigEnableUpdated() = 0;
     virtual WSError NotifyAppHookWindowInfoUpdated() = 0;
     virtual WSError CloseSpecificScene() { return WSError::WS_DO_NOTHING; }
+    virtual WSError UpdateBrightness(float brightness) = 0;
 
     /**
      * @brief Send fb event to client.
@@ -305,6 +319,51 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) = 0;
+
+    /**
+     * @brief App window sidebar blur.
+     *
+     * add window siderBar blur effect.
+     *
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError AddSidebarBlur() { return WSError::WS_DO_NOTHING; }
+
+    /**
+     * @brief Set sidebar blur style with type.
+     *
+     * Set sidebar blur style with type.
+     *
+     * @param type Indicates the action type.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError SetSidebarBlurStyleWithType(SidebarBlurType type) { return WSError::WS_DO_NOTHING; }
+
+    /**
+     * @brief Update window UIType when recover.
+     *
+     * Update window UIType when recover.
+     *
+     * @param windowUIType Window UIType.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError UpdateWindowUIType(WindowUIType windowUIType)
+    {
+        return WSError::WS_OK;
+    }
+
+    /**
+     * @brief Update session property when trigger mode.
+     *
+     * Update session property when trigger mode.
+     *
+     * @param property Window session property.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property)
+    {
+        return WSError::WS_OK;
+    }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_INTERFACE_H

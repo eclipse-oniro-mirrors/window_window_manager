@@ -36,6 +36,9 @@ public:
 
     static bool CreateSnapshotDir(const std::string& directory);
     static bool CreateUpdatedIconDir(const std::string& directory);
+    static bool CreateStartWindowDir(const std::string& directory);
+    void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowkey,
+        const std::function<void(std::string, std::string)>& saveStartWindowCallback);
 
     void SetSnapshotCapacity(SnapshotStatus capacity);
     static void InitAstcEnabled();
@@ -45,7 +48,7 @@ public:
     bool HasSnapshot() const;
     bool HasSnapshot(SnapshotStatus key, bool freeMultiWindow = false) const;
     void ClearSnapshotPath();
-    void ClearSnapshot(SnapshotStatus key);
+    void ClearSnapshot();
     bool IsSnapshotExisted(SnapshotStatus key = defaultStatus);
     std::string GetSnapshotFilePath(SnapshotStatus& key, bool useKey = false, bool freeMultiWindow = false);
     bool FindClosestFormSnapshot(SnapshotStatus& key);
@@ -57,8 +60,8 @@ public:
     void SaveSnapshot(const std::shared_ptr<Media::PixelMap>& pixelMap,
         const std::function<void()> resetSnapshotCallback = []() {}, SnapshotStatus key = defaultStatus,
         DisplayOrientation rotate = DisplayOrientation::PORTRAIT, bool freeMultiWindow = false);
-    bool IsSavingSnapshot(SnapshotStatus key = defaultStatus, bool freeMultiWindow = false);
-    void SetIsSavingSnapshot(SnapshotStatus key, bool freeMultiWindow, bool isSavingSnapshot);
+    bool IsSavingSnapshot();
+    void SetIsSavingSnapshot(bool isSavingSnapshot);
     void ResetSnapshotCache();
     void RenameSnapshotFromOldPersistentId(const int32_t& oldPersistentId);
     void RenameSnapshotFromOldPersistentId(const int32_t& oldPersistentId, SnapshotStatus key);
@@ -85,14 +88,16 @@ private:
     std::string updatedIconPath_;
     static bool isAstcEnabled_;
 
+    static std::string startWindowDirectory_;
+
     std::atomic<int> savingSnapshotSum_ { 0 };
-    std::atomic<bool> isSavingSnapshot_[SCREEN_COUNT] = {};
-    std::atomic<bool> isSavingSnapshotFreeMultiWindow_ { false };
+    std::atomic<bool> isSavingSnapshot_ = { false };
 
     static std::shared_ptr<WSFFRTHelper> snapshotFfrtHelper_;
     mutable std::mutex savingSnapshotMutex_;
     mutable std::mutex hasSnapshotMutex_;
     mutable std::mutex snapshotSizeMutex_;
+    mutable std::mutex savingStartWindowMutex_;
     bool isPcWindow_ = false;
 };
 } // namespace OHOS::Rosen

@@ -28,6 +28,44 @@ namespace Rosen {
 #define WINDOW_EXPORT __attribute__((visibility("default")))
 #endif
 
+enum class ImageFit {
+    FILL = 0,
+    CONTAIN,
+    COVER,
+    FITWIDTH,
+    FITHEIGHT,
+    NONE,
+    SCALE_DOWN,
+    TOP_LEFT,
+    TOP,
+    TOP_END,
+    START,
+    CENTER,
+    END,
+    BOTTOM_START,
+    BOTTOM,
+    BOTTOM_END,
+    MATRIX,
+};
+
+enum class Ark_ImageFit {
+    ARK_IMAGE_FIT_CONTAIN = 0,
+    ARK_IMAGE_FIT_COVER = 1,
+    ARK_IMAGE_FIT_AUTO = 2,
+    ARK_IMAGE_FIT_FILL = 3,
+    ARK_IMAGE_FIT_SCALE_DOWN = 4,
+    ARK_IMAGE_FIT_NONE = 5,
+    ARK_IMAGE_FIT_TOP_START = 7,
+    ARK_IMAGE_FIT_TOP = 8,
+    ARK_IMAGE_FIT_TOP_END = 9,
+    ARK_IMAGE_FIT_START = 10,
+    ARK_IMAGE_FIT_CENTER = 11,
+    ARK_IMAGE_FIT_END = 12,
+    ARK_IMAGE_FIT_BOTTOM_START = 13,
+    ARK_IMAGE_FIT_BOTTOM = 14,
+    ARK_IMAGE_FIT_BOTTOM_END = 15,
+    ARK_IMAGE_FIT_MATRIX = 16,
+};
 class AniWindowStage {
 public:
     explicit AniWindowStage(const std::shared_ptr<Rosen::WindowScene>& windowScene);
@@ -36,8 +74,15 @@ public:
     static ani_object NativeTransferDynamic(ani_env* aniEnv, ani_class cls, ani_long nativeObj);
     static void LoadContent(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_string path, ani_object storage);
+    static void LoadContentByName(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_string path, ani_object storage);
+    static void ReleaseUIContent(ani_env* env, ani_object obj, ani_long nativeObj);
     static void DisableWindowDecor(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetShowOnLockScreen(ani_env* env, ani_class cls, ani_long nativeObj, ani_boolean showOnLockScreen);
+    static void SetWindowModal(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isModal);
+    static void SetWindowRectAutoSave(ani_env* env, ani_class cls, ani_long nativeObj,
+        ani_boolean enable, bool isSaveBySpecifiedFlag);
+    static ani_boolean IsWindowRectAutoSave(ani_env* env, ani_class cls, ani_long nativeObj);
     static void RegisterWindowCallback(ani_env* env, ani_object obj, ani_long nativeObj, ani_string type,
         ani_ref callback);
     static void UnregisterWindowCallback(ani_env* env, ani_object obj, ani_long nativeObj, ani_string type,
@@ -49,20 +94,27 @@ public:
     static void SetCustomDensity(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_double density, ani_boolean applyToSubWindow);
     static void SetDefaultDensityEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
+    static void RemoveStartingWindow(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetSupportedWindowModes(
         ani_env* env, ani_object obj, ani_long nativeObj, ani_object aniSupportedWindowModes);
     static void SetSupportedWindowModesWithGrayOutMaximizeButton(
         ani_env* env, ani_object obj, ani_long nativeObj,
         ani_object aniSupportedWindowModes, ani_boolean grayOutMaximizeButton);
-
+    static ani_object GetSubWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+    static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_string name, ani_object options);
     std::weak_ptr<WindowScene> GetWindowScene() { return windowScene_; }
     ani_ref GetMainWindow(ani_env* env);
     ani_boolean WindowIsWindowSupportWideGamut(ani_env* env, ani_class cls, ani_object obj);
     ani_ref OnCreateSubWindow(ani_env *env, ani_string name);
 private:
-    void OnLoadContent(ani_env* env, ani_string path, ani_object storage);
+    void OnLoadContent(ani_env* env, ani_string path, ani_object storage, bool isLoadByName);
+    void OnReleaseUIContent(ani_env* env);
     void OnDisableWindowDecor(ani_env* env);
     void OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockScreen);
+    void OnSetWindowModal(ani_env* env, ani_boolean isModal);
+    void OnSetWindowRectAutoSave(ani_env* env, ani_boolean enable, bool isSaveBySpecifiedFlag);
+    ani_boolean OnIsWindowRectAutoSave(ani_env* env);
     void OnRegisterWindowCallback(ani_env* env, ani_string type, ani_ref callback);
     void OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_ref callback);
 
@@ -73,7 +125,11 @@ private:
     void OnSetSupportedWindowModes(ani_env* env, ani_object aniSupportedWindowModes);
     void OnSetSupportedWindowModesWithGrayOutMaximizeButton(
         ani_env* env, ani_object aniSupportedWindowModes, ani_boolean grayOutMaximizeButton);
+    ani_object OnGetSubWindow(ani_env* env);
+    ani_object OnCreateSubWindowWithOptions(ani_env* env, ani_string name, ani_object options);
+    void OnRemoveStartingWindow(ani_env* env);
 
+    static void ConvertImageFit(ImageFit& dst, const Ark_ImageFit& src);
     std::weak_ptr<WindowScene> windowScene_;
     std::unique_ptr<AniWindowRegisterManager> registerManager_ = nullptr;
 };

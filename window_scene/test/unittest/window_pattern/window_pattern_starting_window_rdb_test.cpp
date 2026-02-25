@@ -27,6 +27,7 @@ namespace {
 const std::string TEST_RDB_PATH = "/data/test/";
 const std::string TEST_INVALID_PATH = "";
 const std::string TEST_RDB_NAME = "starting_window_config_test.db";
+const uint32_t WAIT_SLEEP_TIME = 1500000;
 } // namespace
 
 class WindowPatternStartingWindowRdbTest : public testing::Test {
@@ -78,6 +79,27 @@ HWTEST_F(WindowPatternStartingWindowRdbTest, GetRdbStore, TestSize.Level1)
     startingWindowRdbMgr_->Init();
     rdbStore = startingWindowRdbMgr_->GetRdbStore();
     ASSERT_NE(rdbStore, nullptr);
+}
+
+/**
+ * @tc.name: DelayClearRdbStore
+ * @tc.desc: DelayClearRdbStore
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowRdbTest, DelayClearRdbStore, TestSize.Level1)
+{
+    ASSERT_NE(startingWindowRdbMgr_, nullptr);
+    startingWindowRdbMgr_->GetRdbStore();
+    startingWindowRdbMgr_->DelayClearRdbStore();
+    ASSERT_NE(startingWindowRdbMgr_->rdbStore_, nullptr);
+    startingWindowRdbMgr_->handler_ =
+        std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::Create("TestRunner"));
+    ASSERT_NE(startingWindowRdbMgr_->handler_, nullptr);
+    startingWindowRdbMgr_->DelayClearRdbStore();
+    ASSERT_NE(startingWindowRdbMgr_->rdbStore_, nullptr);
+    startingWindowRdbMgr_->DelayClearRdbStore(1);
+    usleep(WAIT_SLEEP_TIME);
+    ASSERT_EQ(startingWindowRdbMgr_->rdbStore_, nullptr);
 }
 
 /**

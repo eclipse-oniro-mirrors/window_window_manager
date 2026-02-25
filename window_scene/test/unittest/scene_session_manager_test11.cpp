@@ -19,6 +19,8 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "mock/mock_collaborator_dll_manager.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
@@ -134,6 +136,14 @@ sptr<SceneSession> SceneSessionManagerTest11::CreateSceneSession(const std::stri
 }
 
 namespace {
+
+std::string g_logMsg;
+void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+    const char* msg)
+{
+    g_logMsg += msg;
+}
+
 /**
  * @tc.name: GetMainWindowStatesByPid
  * @tc.desc: SceneSesionManager get main window states by pid
@@ -947,6 +957,45 @@ HWTEST_F(SceneSessionManagerTest11, AnimateTo01, Function | SmallTest | Level1)
 }
 
 /**
+ * @tc.name: CheckIfReuseSession06
+ * @tc.desc: Test if CollaboratorType is OTHERS_TYPE and collaboratorMap_ exist
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, CheckIfReuseSession06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    ssm_->currentUserId_ = 123;
+ 
+    SessionInfo sessionInfo;
+    sessionInfo.moduleName_ = "SceneSessionManager";
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.abilityName_ = "CheckIfReuseSession06";
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+ 
+    SceneSessionManager::SessionInfoList list = {
+        .uid_ = 123, .bundleName_ = "SceneSessionManagerTest11",
+        .abilityName_ = "CheckIfReuseSession06", .moduleName_ = "SceneSessionManager"
+    };
+ 
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(abilityInfo, nullptr);
+    abilityInfo->applicationInfo.codePath = std::to_string(CollaboratorType::RESERVE_TYPE);
+    ssm_->abilityInfoMap_[list] = abilityInfo;
+ 
+    sptr<AAFwk::IAbilityManagerCollaborator> collaborator =
+        iface_cast<AAFwk::IAbilityManagerCollaborator>(nullptr);
+    ssm_->collaboratorMap_.insert(std::make_pair(1, collaborator));
+    MockCollaboratorDllManager::MockPreHandleStartAbility(1);
+    auto ret4 = ssm_->CheckIfReuseSession(sessionInfo);
+    EXPECT_EQ((sessionInfo).callerTypeForAnco, 1);
+ 
+    MockCollaboratorDllManager::MockPreHandleStartAbility(0);
+    ssm_->abilityInfoMap_.erase(list);
+    ssm_->collaboratorMap_.erase(1);
+}
+
+/**
  * @tc.name: UpdateHighlightStatus
  * @tc.desc: UpdateHighlightStatus
  * @tc.type: FUNC
@@ -1238,14 +1287,9 @@ HWTEST_F(SceneSessionManagerTest11, QueryAbilityInfoFromBMSTest03, TestSize.Leve
     const int32_t uId = 32;
     SessionInfo sessionInfo_;
     sessionInfo_.bundleName_ = "BundleName";
-    sessionInfo_.abilityName_ = "AbilityName";
-    sessionInfo_.moduleName_ = "ModuleName";
+    sessionInfo_.abilityName_ = "";
+    sessionInfo_.moduleName_ = "";
     sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
-    EXPECT_CALL(*bundleMgrMocker, GetBundleInfoV9(_, _, _, _))
-        .WillOnce([](const std::string& bundleName, int32_t flags, AppExecFwk::BundleInfo& bundleInfo, int32_t userId) {
-            bundleInfo.hapModuleInfos = {};
-            return 0;
-        });
     ssm_->bundleMgr_ = bundleMgrMocker;
 
     auto res = ssm_->QueryAbilityInfoFromBMS(
@@ -1263,8 +1307,8 @@ HWTEST_F(SceneSessionManagerTest11, QueryAbilityInfoFromBMSTest04, TestSize.Leve
     const int32_t uId = 32;
     SessionInfo sessionInfo_;
     sessionInfo_.bundleName_ = "BundleName";
-    sessionInfo_.abilityName_ = "AbilityName";
-    sessionInfo_.moduleName_ = "ModuleName";
+    sessionInfo_.abilityName_ = "";
+    sessionInfo_.moduleName_ = "";
     sptr<IBundleMgrMocker> bundleMgrMocker = sptr<IBundleMgrMocker>::MakeSptr();
     EXPECT_CALL(*bundleMgrMocker, GetBundleInfoV9(_, _, _, _))
         .WillOnce([](const std::string& bundleName, int32_t flags, AppExecFwk::BundleInfo& bundleInfo, int32_t userId) {
@@ -1730,6 +1774,132 @@ HWTEST_F(SceneSessionManagerTest11, ConfigDockAutoHide, TestSize.Level0)
     ssm_->ConfigDockAutoHide(false);
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_FALSE(ssm_->systemConfig_.isDockAutoHide_);
+}
+
+/**
+ * @tc.name: SetSpecificWindowZIndexListener
+ * @tc.desc: test function : SetSpecificWindowZIndexListener
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetSpecificWindowZIndexListener, TestSize.Level1)
+{
+    int value = 0;
+    NotifySetSpecificWindowZIndexFunc func = [&value](WindowType windowType, int32_t zIndex,
+        SetSpecificZIndexReason reason) {
+        value = zIndex;
+    };
+    ssm_->SetSpecificWindowZIndexListener(func);
+    ssm_->setSpecificWindowZIndexFunc_(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD, 20, SetSpecificZIndexReason::SET);
+    EXPECT_EQ(value, 20);
+    ssm_->SetSpecificWindowZIndexListener(nullptr);
+}
+
+/**
+ * @tc.name: SetSpecificWindowZIndex
+ * @tc.desc: test function : SetSpecificWindowZIndex
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetSpecificWindowZIndex, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSystemApp(false);
+    WSError ret = ssm_->SetSpecificWindowZIndex(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD, 20);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NOT_SYSTEM_APP);
+
+    MockAccesstokenKit::MockIsSystemApp(true);
+    int value = 0;
+    NotifySetSpecificWindowZIndexFunc func = [&value](WindowType windowType, int32_t zIndex,
+        SetSpecificZIndexReason reason) {
+        value = zIndex;
+    };
+    ssm_->SetSpecificWindowZIndexListener(func);
+    ret = ssm_->SetSpecificWindowZIndex(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD, 20);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(value, 20);
+    ssm_->SetSpecificWindowZIndexListener(nullptr);
+}
+
+/**
+ * @tc.name: SetBufferAvailable
+ * @tc.desc: test function : SetBufferAvailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetBufferAvailable1, Function | SmallTest | Level2)
+{
+    sptr<SceneSession> sceneSession = nullptr;
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->SetBufferAvailable(sceneSession);
+    EXPECT_TRUE(g_logMsg.find("scene session is nullptr") != std::string::npos) << "Check sceneSession is null.";
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetBufferAvailable
+ * @tc.desc: test function : SetBufferAvailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetBufferAvailable2, Function | SmallTest | Level2)
+{
+    SessionInfo sessionInfo;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::BELOW_APP_SYSTEM_WINDOW_END);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->SetBufferAvailable(sceneSession);
+    EXPECT_TRUE(
+        g_logMsg.find("enter buffer available callback") == std::string::npos) << "Check WindowType is invalid.";
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetBufferAvailable
+ * @tc.desc: test function : SetBufferAvailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetBufferAvailable3, Function | SmallTest | Level2)
+{
+    SessionInfo sessionInfo;
+    std::shared_ptr<RSSurfaceNode> surfaceNode = nullptr;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->surfaceNode_ = surfaceNode;
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_DESKTOP);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->SetBufferAvailable(sceneSession);
+    EXPECT_TRUE(g_logMsg.find("surface node is nullptr") != std::string::npos) << "Check surfaceNode is null.";
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetBufferAvailable
+ * @tc.desc: test function : SetBufferAvailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetBufferAvailable4, Function | SmallTest | Level2)
+{
+    SessionInfo sessionInfo;
+    struct RSSurfaceNodeConfig surfaceNodeConfig;
+
+    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(surfaceNodeConfig, RSSurfaceNodeType::DEFAULT);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->surfaceNode_ = surfaceNode;
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_KEYGUARD);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->SetBufferAvailable(sceneSession);
+    EXPECT_TRUE(g_logMsg.find("config surface node") != std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 } // namespace
 } // namespace Rosen

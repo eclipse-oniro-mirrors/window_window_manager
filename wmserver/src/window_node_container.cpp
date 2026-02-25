@@ -299,7 +299,6 @@ WMError WindowNodeContainer::AddWindowNode(sptr<WindowNode>& node, sptr<WindowNo
         DisplayManagerServiceInner::GetInstance().SetGravitySensorSubscriptionEnabled();
     }
     WLOGI("AddWindowNode Id: %{public}u end", node->GetWindowId());
-    RSInterfaces::GetInstance().SetAppWindowNum(GetAppWindowNum());
     // update private window count and notify dms private status changed
     if (node->GetWindowProperty()->GetPrivacyMode()) {
         UpdatePrivateStateAndNotify();
@@ -444,7 +443,6 @@ WMError WindowNodeContainer::RemoveWindowNode(sptr<WindowNode>& node, bool fromA
         SetBelowScreenlockVisible(node, true);
     }
     WLOGI("Remove Id: %{public}u end", node->GetWindowId());
-    RSInterfaces::GetInstance().SetAppWindowNum(GetAppWindowNum());
 
     // update private window count and notify dms private status changed
     if (node->GetWindowProperty()->GetPrivacyMode()) {
@@ -525,17 +523,6 @@ void WindowNodeContainer::UpdatePrivateWindowCount()
     }
     privateWindowCount_ = count;
     WLOGFD("after update : privateWindow count: %{public}u", privateWindowCount_);
-}
-
-uint32_t WindowNodeContainer::GetAppWindowNum()
-{
-    uint32_t num = 0;
-    for (auto& child : appWindowNode_->children_) {
-        if (WindowHelper::IsAppWindow(child->GetWindowType())) {
-            num++;
-        }
-    }
-    return num;
 }
 
 void WindowNodeContainer::SetConfigMainFloatingWindowAbove(bool isAbove)
@@ -1005,7 +992,8 @@ void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused)
         WLOGW("AbilityToken is null, window : %{public}d", id);
     }
     sptr<FocusChangeInfo> focusChangeInfo = new FocusChangeInfo(node->GetWindowId(), node->GetDisplayId(),
-        node->GetCallingPid(), node->GetCallingUid(), node->GetWindowType(), node->abilityToken_);
+        node->GetDisplayId(), DISPLAY_GROUP_ID_DEFAULT, node->GetCallingPid(), node->GetCallingUid(),
+        node->GetWindowType(), node->abilityToken_);
     WindowManagerAgentController::GetInstance().UpdateFocusChangeInfo(
         focusChangeInfo, focused);
 }
@@ -1437,6 +1425,11 @@ void WindowNodeContainer::NotifyIfKeyboardRegionChanged(const sptr<WindowNode>& 
             auto avoidAreaType = static_cast<AvoidAreaType>(type);
             AvoidArea area = GetAvoidAreaByType(callingWindow, avoidAreaType);
             avoidAreas[avoidAreaType] = area;
+        }
+        if (callingWindow->GetWindowType() == WindowType::WINDOW_TYPE_DESKTOP ||
+            callingWindow->GetWindowType() == WindowType::WINDOW_TYPE_KEYGUARD) {
+            avoidAreas = {};
+            TLOGD(WmsLogTag::WMS_KEYBOARD, "No need to update immersive avoidarea");
         }
         if (isAnimateTransactionEnabled_) {
             auto rsTransaction = RSSyncTransactionAdapter::GetRSTransaction(node->GetRSUIContext());
@@ -1939,7 +1932,7 @@ void WindowNodeContainer::ExitSplitMode(DisplayId displayId)
     windowPair->ExitSplitMode();
 }
 
-void WindowNodeContainer::MinimizeAllAppWindows(DisplayId displayId)
+void WindowNodeContainer::MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId)
 {
     WMError ret = MinimizeAppNodeExceptOptions(MinimizeReason::MINIMIZE_ALL);
     SwitchLayoutPolicy(WindowLayoutMode::CASCADE, displayId);

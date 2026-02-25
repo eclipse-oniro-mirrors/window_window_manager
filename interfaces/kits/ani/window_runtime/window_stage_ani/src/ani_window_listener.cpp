@@ -99,13 +99,15 @@ void AniWindowListener::OnModeChange(WindowMode mode, bool hasDeco)
 void AniWindowListener::OnSystemBarPropertyChange(DisplayId displayId, const SystemBarRegionTints& tints)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, displayId, tints] {
+    auto task = [self = weakRef_, vm = vm_, displayId, tints] {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runSystemBarTintChangeCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runSystemBarTintChangeCallback",
             nullptr, thisListener->aniCallback_, AniWindowUtils::CreateAniSystemBarTintState(eng, displayId, tints));
     };
     if (!eventHandler_) {
@@ -119,15 +121,17 @@ void AniWindowListener::OnAvoidAreaChanged(const AvoidArea avoidArea, AvoidAreaT
     const sptr<OccupiedAreaChangeInfo>& info)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, avoidArea, type] {
+    auto task = [self = weakRef_, vm = vm_, avoidArea, type] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "AniWindowListener::OnAvoidAreaChanged");
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
         auto nativeAvoidArea = AniWindowUtils::CreateAniAvoidArea(eng, avoidArea, type);
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runAvoidAreaChangeCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runAvoidAreaChangeCallback",
             nullptr, thisListener->aniCallback_, nativeAvoidArea, static_cast<ani_int>(type));
     };
     if (!eventHandler_) {
@@ -140,14 +144,16 @@ void AniWindowListener::OnAvoidAreaChanged(const AvoidArea avoidArea, AvoidAreaT
 void AniWindowListener::OnSystemDensityChanged(float density)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, density, eng = env_] {
+    auto task = [self = weakRef_, density, vm = vm_] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "AniWindowListener::OnSystemDensityChanged");
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runSystemDensityChangeCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runSystemDensityChangeCallback",
             nullptr, thisListener->aniCallback_, static_cast<ani_float>(density));
     };
     if (!eventHandler_) {
@@ -160,14 +166,16 @@ void AniWindowListener::OnSystemDensityChanged(float density)
 void AniWindowListener::OnDisplayIdChanged(DisplayId displayId)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, displayId, eng = env_] {
+    auto task = [self = weakRef_, displayId, vm = vm_] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "AniWindowListener::OnDisplayIdChanged");
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runDisplayIdChangeCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runDisplayIdChangeCallback",
             nullptr, thisListener->aniCallback_, static_cast<ani_long>(displayId));
     };
     if (!eventHandler_) {
@@ -187,7 +195,7 @@ void AniWindowListener::LifeCycleCallback(LifeCycleEventType eventType)
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener or eng is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window",
             caseType == CaseType::CASE_STAGE ? "runWindowStageEventCallback" : "runWindowEventCallback",
             nullptr, thisListener->aniCallback_, static_cast<ani_int>(eventType));
     };
@@ -199,7 +207,7 @@ void AniWindowListener::LifeCycleCallback(LifeCycleEventType eventType)
         AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 
-void AniWindowListener::WindowStageLifecycleCallback(WindowStageLifeCycleEventType eventType)
+void AniWindowListener::WindowStageLifecycleCallback(WindowStageLifecycleEventType eventType)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]windowStageLifecycleCallback, envent type: %{public}u", eventType);
     auto task = [self = weakRef_, eventType, eng = env_] () {
@@ -209,7 +217,7 @@ void AniWindowListener::WindowStageLifecycleCallback(WindowStageLifeCycleEventTy
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener or eng is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runWindowStageLifecycleEventCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowStageLifecycleEventCallback",
             nullptr, thisListener->aniCallback_, static_cast<ani_int>(eventType));
     };
     if (!eventHandler_) {
@@ -288,7 +296,7 @@ void AniWindowListener::OnSizeChange(const sptr<OccupiedAreaChangeInfo>& info,
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
     }
-    AniWindowUtils::CallAniFunctionVoid(env_, "L@ohos/window/window;", "runKeyboardHeightChangeCallback",
+    AniWindowUtils::CallAniFunctionVoid(env_, "@ohos.window.window", "runKeyboardHeightChangeCallback",
         nullptr, thisListener->aniCallback_, static_cast<ani_int>(info->rect_.height_));
 }
 
@@ -302,7 +310,7 @@ void AniWindowListener::OnKeyboardDidShow(const KeyboardPanelInfo& keyboardPanel
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
     }
-    AniWindowUtils::CallAniFunctionVoid(env_, "L@ohos/window/window;", "runKeyboardDidShowCallback",
+    AniWindowUtils::CallAniFunctionVoid(env_, "@ohos.window.window", "runKeyboardDidShowCallback",
         nullptr, thisListener->aniCallback_, AniWindowUtils::CreateAniKeyboardInfo(env_, keyboardPanelInfo));
 }
 
@@ -316,24 +324,24 @@ void AniWindowListener::OnKeyboardDidHide(const KeyboardPanelInfo& keyboardPanel
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
     }
-    AniWindowUtils::CallAniFunctionVoid(env_, "L@ohos/window/window;", "runKeyboardDidHideCallback",
+    AniWindowUtils::CallAniFunctionVoid(env_, "@ohos.window.window", "runKeyboardDidHideCallback",
         nullptr, thisListener->aniCallback_, AniWindowUtils::CreateAniKeyboardInfo(env_, keyboardPanelInfo));
 }
 
 void AniWindowListener::OnKeyboardWillShow(const KeyboardAnimationInfo& keyboardAnimationInfo,
     const KeyboardAnimationCurve& curve)
 {
-    KeyboardWillAnimateWithName(keyboardAnimationInfo, KEYBOARD_WILL_SHOW_CB, curve);
+    KeyboardWillAnimateWithName(keyboardAnimationInfo, "runKeyboardWillShowCallback", curve);
 }
 
 void AniWindowListener::OnKeyboardWillHide(const KeyboardAnimationInfo& keyboardAnimationInfo,
     const KeyboardAnimationCurve& curve)
 {
-    KeyboardWillAnimateWithName(keyboardAnimationInfo, KEYBOARD_WILL_HIDE_CB, curve);
+    KeyboardWillAnimateWithName(keyboardAnimationInfo, "runKeyboardWillHideCallback", curve);
 }
 
 void AniWindowListener::KeyboardWillAnimateWithName(const KeyboardAnimationInfo& keyboardAnimationInfo,
-    const std::string& callBackName, const KeyboardAnimationCurve& curve)
+    const char* fn, const KeyboardAnimationCurve& curve)
 {
     TLOGD(WmsLogTag::WMS_KEYBOARD,
         "keyboardAnimationInfo, beginRect: %{public}s, endRect: %{public}s",
@@ -343,7 +351,7 @@ void AniWindowListener::KeyboardWillAnimateWithName(const KeyboardAnimationInfo&
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
     }
-    AniWindowUtils::CallAniFunctionVoid(env_, "L@ohos/window/window;", nullptr, nullptr,
+    AniWindowUtils::CallAniFunctionVoid(env_, "@ohos.window.window", fn, nullptr,
         thisListener->aniCallback_, AniWindowUtils::CreateAniAnimationInfo(env_, keyboardAnimationInfo, curve));
 }
 
@@ -416,13 +424,15 @@ void AniWindowListener::OnWindowNoInteractionCallback()
 void AniWindowListener::OnScreenshot()
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_] {
+    auto task = [self = weakRef_, vm = vm_] {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runWindowListenerVoidArgCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerVoidArgCallback",
             nullptr, thisListener->aniCallback_);
     };
     if (!eventHandler_) {
@@ -439,13 +449,15 @@ void AniWindowListener::OnDialogDeathRecipient() const
 void AniWindowListener::OnGestureNavigationEnabledUpdate(bool enable)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, enable] {
+    auto task = [self = weakRef_, vm = vm_, enable] {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runWindowListenerBooleanArgCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
             nullptr, thisListener->aniCallback_, ani_boolean(enable));
     };
     if (!eventHandler_) {
@@ -458,13 +470,15 @@ void AniWindowListener::OnGestureNavigationEnabledUpdate(bool enable)
 void AniWindowListener::OnWaterMarkFlagUpdate(bool showWaterMark)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, showWaterMark] {
+    auto task = [self = weakRef_, vm = vm_, showWaterMark] {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runWindowListenerBooleanArgCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
             nullptr, thisListener->aniCallback_, ani_boolean(showWaterMark));
     };
     if (!eventHandler_) {
@@ -483,7 +497,7 @@ void AniWindowListener::OnWindowStatusChange(WindowStatus windowstatus)
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener or eng is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runWindowStatusCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowStatusCallback",
             nullptr, thisListener->aniCallback_, static_cast<ani_int>(windowstatus));
     };
     if (!eventHandler_) {
@@ -497,13 +511,15 @@ void AniWindowListener::OnWindowStatusChange(WindowStatus windowstatus)
 void AniWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, isVisible] {
+    auto task = [self = weakRef_, vm = vm_, isVisible] {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runWindowListenerBooleanArgCallback",
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
             nullptr, thisListener->aniCallback_, ani_boolean(isVisible));
     };
     if (!eventHandler_) {
@@ -513,16 +529,37 @@ void AniWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
     eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::HIGH);
 }
 
+void AniWindowListener::OnWindowHighlightChange(bool isHighlight)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
+    auto task = [self = weakRef_, eng = env_, isHighlight] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
+            return;
+        }
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
+            nullptr, thisListener->aniCallback_, ani_boolean(isHighlight));
+    };
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::DEFAULT, "get main event handler failed!");
+        return;
+    }
+    eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+}
+
 void AniWindowListener::OnOcclusionStateChanged(const WindowVisibilityState state)
 {
     const char* const where = __func__;
-    auto task = [self = weakRef_, state, where, env = env_] () {
+    auto task = [self = weakRef_, state, where, vm = vm_]() {
         auto thisListener = self.promote();
-        if (thisListener == nullptr || env == nullptr) {
+        auto aniVm = AniVm(vm);
+        auto env = aniVm.GetAniEnv();
+        if (thisListener == nullptr || env == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: listener or env is null", where);
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(env, "L@ohos/window/window;", "runOcclusionStateChangeCallback",
+        AniWindowUtils::CallAniFunctionVoid(env, "@ohos.window.window", "runOcclusionStateChangeCallback",
             nullptr, thisListener->aniCallback_, static_cast<ani_int>(state));
         TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: occlusionState=%{public}u",
             where, static_cast<uint32_t>(state));
@@ -535,27 +572,49 @@ void AniWindowListener::OnOcclusionStateChanged(const WindowVisibilityState stat
         AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 
-void AniWindowListener::OnWindowHighlightChange(bool isHighlight)
+void AniWindowListener::OnFrameMetricsChanged(const FrameMetrics& metrics)
 {
-    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, isHighlight] {
+    const char* const where = __func__;
+    auto task = [self = weakRef_, metrics, where, vm = vm_]() {
         auto thisListener = self.promote();
-        if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
+        auto aniVm = AniVm(vm);
+        auto env = aniVm.GetAniEnv();
+        if (thisListener == nullptr || env == nullptr || thisListener->aniCallback_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: listener or env is null", where);
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "L@ohos/window/window;", "runWindowListenerBooleanArgCallback",
-            nullptr, thisListener->aniCallback_, ani_boolean(isHighlight));
+        AniWindowUtils::CallAniFunctionVoid(env, "@ohos.window.window", "runFrameMetricsChangeCallback",
+            nullptr, thisListener->aniCallback_, AniWindowUtils::CreateAniFrameMetrics(env, metrics));
+        TLOGND(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: firstDrawFrame=%{public}d"
+            ", inputHandlingDuration=%{public}" PRIu64 ", layoutMeasureDuration=%{public}" PRIu64
+            ", vsyncTimestamp=%{public}" PRIu64, where, metrics.firstDrawFrame_, metrics.inputHandlingDuration_,
+            metrics.layoutMeasureDuration_, metrics.vsyncTimestamp_);
     };
     if (!eventHandler_) {
-        TLOGE(WmsLogTag::DEFAULT, "get main event handler failed!");
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] main event handler is null");
         return;
     }
-    eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+    eventHandler_->PostTask(task, "[ANI] wms:AniWindowListener::OnFrameMetricsChanged", 0,
+        AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 
 void AniWindowListener::OnWindowTitleButtonRectChanged(const TitleButtonRect& titleButtonRect)
 {
+    auto task = [self = weakRef_, titleButtonRect, eng = env_] () {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
+            TLOGE(WmsLogTag::WMS_DECOR, "[ANI]this listener, eng or callback is nullptr");
+            return;
+        }
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowTitleButtonRectChangedCallback",
+            nullptr, thisListener->aniCallback_, AniWindowUtils::CreateAniTitleButtonRect(eng, titleButtonRect));
+    };
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_DECOR, "get main event handler failed!");
+        return;
+    }
+    eventHandler_->PostTask(task, "wms:AniWindowListener::WindowTitleButtonRectChangedCallback", 0,
+        AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 
 void AniWindowListener::OnRectChange(Rect rect, WindowSizeChangeReason reason)
@@ -626,13 +685,25 @@ void AniWindowListener::OnSubWindowClose(bool& terminateCloseProcess)
 
 void AniWindowListener::OnMainWindowClose(bool& terminateCloseProcess)
 {
+    TLOGI(WmsLogTag::WMS_PC, "[ANI]");
+    auto thisListener = weakRef_.promote();
+    if (thisListener == nullptr || env_ == nullptr || thisListener->aniCallback_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PC, "[ANI]this listener, env_ or callback is nullptr");
+        return;
+    }
+    ani_ref preClose;
+    AniWindowUtils::CallAniFunctionRef(env_, preClose, thisListener->aniCallback_, 0);
+    auto aniRet = AniWindowUtils::GetBooleanObject(env_, static_cast<ani_object>(preClose), terminateCloseProcess);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_PC, "[ANI]Get terminateCloseProcess failed, ret: %{public}u", aniRet);
+    }
 }
 
 void AniWindowListener::AfterLifecycleForeground()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
         if (state_ == WindowState::STATE_INITIAL || state_ == WindowState::STATE_HIDDEN) {
-            WindowStageLifecycleCallback(WindowStageLifeCycleEventType::FOREGROUND);
+            WindowStageLifecycleCallback(WindowStageLifecycleEventType::FOREGROUND);
             state_ = WindowState::STATE_SHOWN;
         }
     }
@@ -642,7 +713,7 @@ void AniWindowListener::AfterLifecycleBackground()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
         if (state_ == WindowState::STATE_INITIAL || state_ == WindowState::STATE_SHOWN) {
-            WindowStageLifecycleCallback(WindowStageLifeCycleEventType::BACKGROUND);
+            WindowStageLifecycleCallback(WindowStageLifecycleEventType::BACKGROUND);
             state_ = WindowState::STATE_HIDDEN;
         }
     }
@@ -651,14 +722,14 @@ void AniWindowListener::AfterLifecycleBackground()
 void AniWindowListener::AfterLifecycleResumed()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
-        WindowStageLifecycleCallback(WindowStageLifeCycleEventType::RESUMED);
+        WindowStageLifecycleCallback(WindowStageLifecycleEventType::RESUMED);
     }
 }
 
 void AniWindowListener::AfterLifecyclePaused()
 {
     if (caseType_ == CaseType::CASE_STAGE) {
-        WindowStageLifecycleCallback(WindowStageLifeCycleEventType::PAUSED);
+        WindowStageLifecycleCallback(WindowStageLifecycleEventType::PAUSED);
     }
 }
 
@@ -778,9 +849,11 @@ void AniWindowListener::OnAcrossDisplaysChanged(bool isAcrossDisplays)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
     const char* const where = __func__;
-    auto task = [self = weakRef_, isAcrossDisplays, env = env_, where] {
+    auto task = [self = weakRef_, isAcrossDisplays, vm = vm_, where] {
         auto thisListener = self.promote();
-        if (thisListener == nullptr || env == nullptr) {
+        auto aniVm = AniVm(vm);
+        auto env = aniVm.GetAniEnv();
+        if (thisListener == nullptr || env == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: listener or env is null", where);
             return;
         }
@@ -802,9 +875,11 @@ void AniWindowListener::OnScreenshotAppEvent(ScreenshotEventType type)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
     const char* const where = __func__;
-    auto task = [self = weakRef_, type, env = env_, where] {
+    auto task = [self = weakRef_, type, vm = vm_, where] {
         auto thisListener = self.promote();
-        if (thisListener == nullptr || env == nullptr) {
+        auto aniVm = AniVm(vm);
+        auto env = aniVm.GetAniEnv();
+        if (thisListener == nullptr || env == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: listener or env is null", where);
             return;
         }
@@ -822,18 +897,24 @@ void AniWindowListener::OnScreenshotAppEvent(ScreenshotEventType type)
 
 void AniWindowListener::OnFreeWindowModeChange(bool isInFreeWindowMode)
 {
-    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, isInFreeWindowMode] {
+    TLOGI(WmsLogTag::WMS_PC, "[ANI]");
+    auto task = [self = weakRef_, vm = vm_, isInFreeWindowMode] {
         auto thisListener = self.promote();
-        if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
+        if (thisListener == nullptr || vm == nullptr || thisListener->aniCallback_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PC, "[ANI]this listener, vm or callback is nullptr");
             return;
         }
-        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
+        ani_env* env = nullptr;
+        ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
+        if (ret != ANI_OK || env == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PC, "[ANI]get env failed, ret: %{public}u", ret);
+            return;
+        }
+        AniWindowUtils::CallAniFunctionVoid(env, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
             nullptr, thisListener->aniCallback_, ani_boolean(isInFreeWindowMode));
     };
     if (!eventHandler_) {
-        TLOGE(WmsLogTag::DEFAULT, "get main event handler failed!");
+        TLOGE(WmsLogTag::WMS_PC, "get main event handler failed!");
         return;
     }
     eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);

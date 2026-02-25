@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -39,13 +39,21 @@ public:
     ~MockWindow() {};
 };
 
-void PictureInPictureManagerTest::SetUpTestCase() {}
+void PictureInPictureManagerTest::SetUpTestCase()
+{
+}
 
-void PictureInPictureManagerTest::TearDownTestCase() {}
+void PictureInPictureManagerTest::TearDownTestCase()
+{
+}
 
-void PictureInPictureManagerTest::SetUp() {}
+void PictureInPictureManagerTest::SetUp()
+{
+}
 
-void PictureInPictureManagerTest::TearDown() {}
+void PictureInPictureManagerTest::TearDown()
+{
+}
 
 namespace {
 
@@ -97,7 +105,8 @@ HWTEST_F(PictureInPictureManagerTest, PipControllerInfo, TestSize.Level1)
 HWTEST_F(PictureInPictureManagerTest, PictureInPictureController, TestSize.Level1)
 {
     sptr<PipOption> option = new PipOption();
-    sptr<PictureInPictureController> pipController = new PictureInPictureController(option, nullptr, 100, nullptr);
+    sptr<PictureInPictureController> pipController =
+        new PictureInPictureController(option, nullptr, 100, nullptr);
     PictureInPictureManager::activeController_ = nullptr;
     ASSERT_FALSE(PictureInPictureManager::HasActiveController());
     PictureInPictureManager::RemoveActiveController(pipController);
@@ -461,6 +470,30 @@ HWTEST_F(PictureInPictureManagerTest, DoActiveStatusChangeEvent, TestSize.Level1
     pipController->window_ = mw;
     PictureInPictureManager::DoActiveStatusChangeEvent(true);
     ASSERT_EQ(pipController->curActiveStatus_, true);
+}
+
+/**
+ * @tc.name: DoCloseWithReason
+ * @tc.desc: DoCloseWithReason
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureManagerTest, DoCloseWithReason, TestSize.Level1)
+{
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto option = sptr<PipOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    auto pipController = sptr<PictureInPictureController>::MakeSptr(option, nullptr, 100, nullptr);
+    ASSERT_NE(pipController, nullptr);
+    PictureInPictureManager::activeController_ = nullptr;
+    ASSERT_EQ(false, PictureInPictureManager::HasActiveController());
+    PictureInPictureManager::DoCloseWithReason(true, true, PiPStateChangeReason::REQUEST_DELETE);
+    PictureInPictureManager::SetActiveController(pipController);
+    ASSERT_EQ(true, PictureInPictureManager::HasActiveController());
+    PictureInPictureManager::DoCloseWithReason(true, true, PiPStateChangeReason::REQUEST_DELETE);
+    PictureInPictureManager::DoActionCloseByRequest();
+    PictureInPictureManager::DoActionCloseByPanel();
+    PictureInPictureManager::DoActionCloseByDumpster();
 }
 } // namespace
 } // namespace Rosen

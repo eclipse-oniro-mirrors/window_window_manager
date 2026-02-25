@@ -109,10 +109,11 @@ DMError MultiScreenManager::VirtualScreenMirrorSwitch(const ScreenId mainScreenI
     return ret;
 }
 
-DMError MultiScreenManager::PhysicalScreenMirrorSwitch(const std::vector<ScreenId>& screenIds, DMRect mirrorRegion,
-    const RotationOption& rotationOption, bool forceMirror)
+DMError MultiScreenManager::PhysicalScreenMirrorSwitch(const ScreenId mainScreenId,
+    const std::vector<ScreenId>& screenIds, DMRect mirrorRegion, const RotationOption& rotationOption,
+    bool forceMirror)
 {
-    sptr<ScreenSession> defaultSession = ScreenSessionManager::GetInstance().GetDefaultScreenSession();
+    sptr<ScreenSession> defaultSession = ScreenSessionManager::GetInstance().GetScreenSession(mainScreenId);
     if (defaultSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "fail to get defaultSession");
         return DMError::DM_ERROR_NULLPTR;
@@ -127,7 +128,8 @@ DMError MultiScreenManager::PhysicalScreenMirrorSwitch(const std::vector<ScreenI
             continue;
         }
         TLOGW(WmsLogTag::DMS, "switch to mirror physical ScreenId: %{public}" PRIu64, physicalScreenId);
-        if (screenSession->GetScreenCombination() == ScreenCombination::SCREEN_MIRROR && !forceMirror) {
+        if (ScreenSessionManager::GetInstance().HasSameScreenCastInfo(physicalScreenId, mainScreenId,
+            ScreenCombination::SCREEN_MIRROR) && !forceMirror) {
             if (mirrorRegion != screenSession->GetMirrorScreenRegion().second) {
                 screenSession->SetMirrorScreenRegion(defaultSession->GetRSScreenId(), mirrorRegion);
                 screenSession->SetIsPhysicalMirrorSwitch(true);
@@ -144,6 +146,8 @@ DMError MultiScreenManager::PhysicalScreenMirrorSwitch(const std::vector<ScreenI
         screenSession->SetMirrorScreenRegion(defaultSession->GetRSScreenId(), mirrorRegion);
         screenSession->SetIsPhysicalMirrorSwitch(true);
         screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+        ScreenSessionManager::GetInstance().SetScreenCastInfo(
+            physicalScreenId, mainScreenId, ScreenCombination::SCREEN_MIRROR);
         ScreenSessionManager::GetInstance().NotifyScreenChanged(
             screenSession->ConvertToScreenInfo(), ScreenChangeEvent::SCREEN_SOURCE_MODE_CHANGE);
         ScreenSessionManager::GetInstance().NotifyDisplayChanged(
@@ -189,7 +193,7 @@ DMError MultiScreenManager::PhysicalScreenUniqueSwitch(const std::vector<ScreenI
 }
 
 DMError MultiScreenManager::VirtualScreenUniqueSwitch(sptr<ScreenSession> screenSession,
-    const std::vector<ScreenId>& screenIds)
+    const std::vector<ScreenId>& screenIds, const UniqueScreenRotationOptions& rotationOptions)
 {
     if (screenSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "screenSession is null");
@@ -232,7 +236,8 @@ DMError MultiScreenManager::VirtualScreenUniqueSwitch(sptr<ScreenSession> screen
                 }
         }
         // virtual screen create callback to notify scb
-        ScreenSessionManager::GetInstance().OnVirtualScreenChange(uniqueScreenId, ScreenEvent::CONNECTED);
+        ScreenSessionManager::GetInstance().OnVirtualScreenChange(uniqueScreenId, ScreenEvent::CONNECTED,
+            rotationOptions);
         BlockScreenConnect(uniqueScreen, uniqueScreenId);
     }
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "dms:VirtualScreenUniqueSwitch end");
@@ -279,8 +284,8 @@ static void AddUniqueScreenDisplayId(std::vector<DisplayId>& displayIds,
     }
 }
 
-DMError MultiScreenManager::UniqueSwitch(const std::vector<ScreenId>& screenIds,
-    std::vector<DisplayId>& displayIds)
+DMError MultiScreenManager::UniqueSwitch(const std::vector<ScreenId>& screenIds, std::vector<DisplayId>& displayIds,
+    const UniqueScreenRotationOptions& rotationOptions)
 {
     DMError switchStatus = DMError::DM_OK;
     std::vector<ScreenId> virtualScreenIds;
@@ -292,9 +297,11 @@ DMError MultiScreenManager::UniqueSwitch(const std::vector<ScreenId>& screenIds,
     TLOGW(WmsLogTag::DMS, "enter mirror to screen size: %{public}u",
         static_cast<uint32_t>(screenIds.size()));
     FilterPhysicalAndVirtualScreen(screenIds, physicalScreenIds, virtualScreenIds);
-
+    TLOGD(WmsLogTag::DMS,
+        "ScreenSessionManager processing with parameters, isRotationLocked: %{public}d, rotation: %{public}d",
+        rotationOptions.isRotationLocked_, rotationOptions.rotation_);
     if (!virtualScreenIds.empty()) {
-        switchStatus = ScreenSessionManager::GetInstance().VirtualScreenUniqueSwitch(virtualScreenIds);
+        switchStatus = ScreenSessionManager::GetInstance().VirtualScreenUniqueSwitch(virtualScreenIds, rotationOptions);
         TLOGW(WmsLogTag::DMS, "virtual screen switch to unique result: %{public}d", switchStatus);
         AddUniqueScreenDisplayId(displayIds, virtualScreenIds, switchStatus);
     }
@@ -335,7 +342,8 @@ DMError MultiScreenManager::MirrorSwitch(const ScreenId mainScreenId, const std:
     }
     if (!physicalScreenIds.empty()) {
         screenGroupId = 1;
-        switchStatus = PhysicalScreenMirrorSwitch(physicalScreenIds, mainScreenRegion, rotationOption, forceMirror);
+        switchStatus =
+            PhysicalScreenMirrorSwitch(mainScreenId, physicalScreenIds, mainScreenRegion, rotationOption, forceMirror);
         if (switchStatus == DMError::DM_OK) {
             for (auto screenId : physicalScreenIds) {
                 auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);

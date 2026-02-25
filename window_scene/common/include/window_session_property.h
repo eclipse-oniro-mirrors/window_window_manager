@@ -36,6 +36,7 @@ using HandlWritePropertyFunc = bool (WindowSessionProperty::*)(Parcel& parcel);
 using HandlReadPropertyFunc = void (WindowSessionProperty::*)(Parcel& parcel);
 using TransitionAnimationMapType = std::unordered_map<WindowTransitionType, std::shared_ptr<TransitionAnimation>>;
 constexpr float WINDOW_CORNER_RADIUS_INVALID = -1.0f;
+constexpr float WINDOW_SHADOW_RADIUS_INVALID = -1.0f;
 
 class WindowSessionProperty : public Parcelable {
 public:
@@ -48,7 +49,6 @@ public:
     void SetSessionInfo(const SessionInfo& info);
     void SetTransitionAnimationConfig(WindowTransitionType transitionType, const TransitionAnimation& animation);
     void SetRequestRect(const struct Rect& rect);
-    void SetRectAnimationConfig(const RectAnimationConfig& rectAnimationConfig);
     void SetWindowRect(const struct Rect& rect);
     void SetFocusable(bool isFocusable);
     void SetFocusableOnShow(bool isFocusableOnShow);
@@ -67,6 +67,7 @@ public:
     void SetRequestedOrientation(Orientation orientation, bool needAnimation = true);
     void SetDefaultRequestedOrientation(Orientation orientation);
     void SetUserRequestedOrientation(Orientation orientation);
+    void SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation);
     void SetPrivacyMode(bool isPrivate);
     void SetSystemPrivacyMode(bool isSystemPrivate);
     void SetSnapshotSkip(bool isSkip);
@@ -88,6 +89,8 @@ public:
     void SetLastLimitsVpr(float vpr);
     void SetSystemBarProperty(WindowType type, const SystemBarProperty& property);
     void SetKeyboardLayoutParams(const KeyboardLayoutParams& params);
+    void AddKeyboardLayoutParams(const uint64_t screenId, const KeyboardLayoutParams& params);
+    void ClearCachedKeyboardParamsOnScreenDisconnected(const uint64_t screenId);
     void SetDecorEnable(bool isDecorEnable);
     void SetAnimationFlag(uint32_t animationFlag);
     void SetTransform(const Transform& trans);
@@ -109,7 +112,7 @@ public:
     void SetWindowMask(const std::shared_ptr<Media::PixelMap>& windowMask);
     void SetIsShaped(bool isShaped);
     void SetIsAppSupportPhoneInPc(bool isSupportPhone);
-    void SetIsPcAppInPad(bool isPcAppInLargeScreenDevice);
+    void SetIsPcAppInPad(bool isPcAppInPad);
     void SetIsAtomicService(bool isAtomicService);
 
     /*
@@ -125,7 +128,6 @@ public:
     SessionInfo& EditSessionInfo();
     Rect GetWindowRect() const;
     Rect GetRequestRect() const;
-    RectAnimationConfig GetRectAnimationConfig() const;
     WindowType GetWindowType() const;
     bool GetDragEnabled() const;
     bool GetTouchable() const;
@@ -143,6 +145,7 @@ public:
     bool GetRequestedAnimation() const;
     Orientation GetDefaultRequestedOrientation() const;
     Orientation GetUserRequestedOrientation() const;
+    bool GetIsSpecificSessionRequestOrientation() const;
     bool GetPrivacyMode() const;
     bool GetSystemPrivacyMode() const;
     bool GetSnapshotSkip() const;
@@ -177,6 +180,8 @@ public:
     std::shared_ptr<Media::PixelMap> GetWindowMask() const;
     bool GetIsShaped() const;
     KeyboardLayoutParams GetKeyboardLayoutParams() const;
+    void GetKeyboardLayoutParamsByScreenId(
+        const uint64_t screenId, KeyboardLayoutParams& keyboardLayoutParams);
     bool GetIsAppSupportPhoneInPc() const;
     bool GetIsPcAppInPad() const;
     bool GetIsAtomicService() const;
@@ -215,7 +220,6 @@ public:
 
     double GetTextFieldPositionY() const;
     double GetTextFieldHeight() const;
-
     void SetSessionPropertyChangeCallback(std::function<void()>&& callback);
     bool IsLayoutFullScreen() const;
     void SetIsLayoutFullScreen(bool isLayoutFullScreen);
@@ -233,6 +237,8 @@ public:
     bool GetIsAbilityHook() const;
     void SetFollowScreenChange(bool isFollowScreenChange);
     bool GetFollowScreenChange() const;
+    void SetStatusBarHeightInImmersive(int32_t statusBarHeightInImmersive);
+    int32_t GetStatusBarHeightInImmersive() const;
 
     /*
      * Sub Window
@@ -344,8 +350,14 @@ public:
     bool IsSupportRotateFullScreen() const;
     bool IsAdaptToSubWindow() const;
     bool IsAdaptToSimulationScale() const;
+    bool IsAdaptToCompatibleDevice() const;
     void SetIsFullScreenInForceSplitMode(bool isFullScreenInForceSplitMode);
     bool IsFullScreenInForceSplitMode() const;
+    RealTimeSwitchInfo GetRealTimeSwitchInfo() const;
+    void SetPageCompatibleMode(CompatibleStyleMode compatibleMode);
+    CompatibleStyleMode GetPageCompatibleMode() const;
+    void SetLogicalDeviceConfig(const std::string& logicalDeviceConfig);
+    std::string GetLogicalDeviceConfig() const;
 
     /*
      * Keyboard
@@ -373,6 +385,16 @@ public:
      */
     void SetAspectRatio(float ratio);
     float GetAspectRatio() const;
+
+    /*
+     * Prelaunch Starting Window
+     */
+    void SetPrelaunch(bool isPrelaunch);
+    bool IsPrelaunch() const;
+    void SetFrameNum(int32_t frameNum);
+    int32_t GetFrameNum() const;
+    void SetAppBufferReady(bool isAppBufferReady);
+    bool IsAppBufferReady() const;
 
 private:
     void setTouchHotAreasInner(const std::vector<Rect>& rects, std::vector<Rect>& touchHotAreas);
@@ -452,12 +474,10 @@ private:
     void ReadActionUpdateRotationLockChange(Parcel& parcel);
     std::string windowName_;
     SessionInfo sessionInfo_;
-    mutable std::mutex windowRectMutex_;
-    Rect windowRect_ { 0, 0, 0, 0 }; // actual window rect
     mutable std::mutex requestRectMutex_;
     Rect requestRect_ { 0, 0, 0, 0 }; // window rect requested by the client (without decoration size)
-    mutable std::mutex rectAnimationConfigMutex_;
-    RectAnimationConfig rectAnimationConfig_ { 0, 0.0f, 0.0f, 0.0f, 0.0f };
+    mutable std::mutex windowRectMutex_;
+    Rect windowRect_ { 0, 0, 0, 0 }; // actual window rect
     WindowType type_ { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW }; // type main window
     bool touchable_ { true };
     bool dragEnabled_ = { true };
@@ -474,6 +494,7 @@ private:
     bool needRotateAnimation_ = true;
     Orientation defaultRequestedOrientation_ = Orientation::UNSPECIFIED; // only accessed on SSM thread
     Orientation userRequestedOrientation_ = Orientation::UNSPECIFIED;
+    bool isSpecificSessionRequestOrientation_ = false;
     bool isPrivacyMode_ { false };
     bool isSystemPrivacyMode_ { false };
     bool isSnapshotSkip_ { false };
@@ -498,6 +519,7 @@ private:
     FloatingBallTemplateInfo fbTemplateInfo_ = {};
     mutable std::mutex fbTemplateMutex_;
     KeyboardLayoutParams keyboardLayoutParams_;
+    std::map<uint64_t, KeyboardLayoutParams> keyboardLayoutParamsMap_;
     uint32_t windowModeSupportType_ {WindowModeSupport::WINDOW_MODE_SUPPORT_ALL};
     std::unordered_map<WindowType, SystemBarProperty> sysBarPropMap_ {
         { WindowType::WINDOW_TYPE_STATUS_BAR,           SystemBarProperty(true, 0x00FFFFFF, 0xFF000000) },
@@ -510,6 +532,7 @@ private:
     Transform trans_;
     bool isFloatingWindowAppType_ = false;
     mutable std::mutex touchHotAreasMutex_;
+    mutable std::mutex keyboardParamsMutex_;
     std::vector<Rect> touchHotAreas_;  // coordinates relative to window.
     KeyboardTouchHotAreas keyboardTouchHotAreas_;  // coordinates relative to window.
     bool hideNonSystemFloatingWindows_ = false;
@@ -521,6 +544,7 @@ private:
 
     double textFieldPositionY_ = 0.0;
     double textFieldHeight_ = 0.0;
+
     bool isNeedUpdateWindowMode_ = false;
     std::function<void()> touchHotAreasChangeCallback_;
     bool isLayoutFullScreen_ = false;
@@ -532,9 +556,12 @@ private:
     static const std::map<uint64_t, HandlWritePropertyFunc> writeFuncMap_;
     static const std::map<uint64_t, HandlReadPropertyFunc> readFuncMap_;
     bool isAppSupportPhoneInPc_ = false;
-    bool isPcAppInLargeScreenDevice_ = false;
+    bool isPcAppInPad_ = false;
+    sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
     mutable std::mutex compatibleModeMutex_;
-    bool isFullScreenInForceSplitMode_;
+    bool isFullScreenInForceSplitMode_ = false;
+    CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
+    std::string logicalDeviceConfig_ = "";
     uint8_t backgroundAlpha_ = 0xff; // default alpha is opaque.
     mutable std::mutex atomicServiceMutex_;
     bool isAtomicService_ = false;
@@ -596,12 +623,7 @@ private:
      */
     uint32_t avoidAreaOption_ = 0;
 
-    /*
-     * Window Focus
-     */
-    bool focusable_ { true };
-    bool focusableOnShow_ { true };
-    bool isExclusivelyHighlighted_ { true };
+    int32_t statusBarHeightInImmersive_ = 0;
 
     /*
      * Window Lifecycle
@@ -609,9 +631,10 @@ private:
     mutable std::mutex lifecycleUseControlMutex_;
     bool isUseControlState_ = false;
     std::string ancoRealBundleName_  = "";
+
     MissionInfo missionInfo_;
     mutable std::mutex missionInfoMutex_;
-
+    
     /*
      * Window Property
      */
@@ -627,8 +650,12 @@ private:
     bool isMobileAppInPadLayoutFullScreen_ = false;
     bool isRotationLock_ = false;
 
-    sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
-
+    /*
+     * Window Focus
+     */
+    bool focusable_ { true };
+    bool focusableOnShow_ { true };
+    bool isExclusivelyHighlighted_ { true };
     /**
      * Window Transition Animation For PC
      */
@@ -640,6 +667,13 @@ private:
      * Window Layout
      */
     float aspectRatio_ { 0.0f };
+
+    /*
+     * Prelaunch Starting Window
+     */
+    bool isPrelaunch_ = false;
+    int32_t frameNum_ = 0;
+    bool isAppBufferReady_ = false;
 };
 
 class CompatibleModeProperty : public Parcelable {
@@ -689,10 +723,14 @@ public:
     void SetIsAdaptToSimulationScale(bool isAdaptToSimulationScale);
     bool IsAdaptToSimulationScale() const;
 
+    void SetIsAdaptToCompatibleDevice(bool enable);
+    bool IsAdaptToCompatibleDevice() const;
+
+    void SetRealTimeSwitchInfo(const RealTimeSwitchInfo& switchInfo);
+    RealTimeSwitchInfo GetRealTimeSwitchInfo() const;
+
     bool Marshalling(Parcel& parcel) const override;
     static CompatibleModeProperty* Unmarshalling(Parcel& parcel);
-
-    void CopyFrom(const sptr<CompatibleModeProperty>& property);
 
     std::string ToString() const
     {
@@ -711,6 +749,9 @@ public:
         ss << "isSupportRotateFullScreen_:" << isSupportRotateFullScreen_ << " ";
         ss << "isAdaptToSubWindow_:" << isAdaptToSubWindow_ << " ";
         ss << "isAdaptToSimulationScale_:" << isAdaptToSimulationScale_ << " ";
+        ss << "isAdaptToCompatibleDevice_:" << isAdaptToCompatibleDevice_ << " ";
+        ss << "realTimeSwitchInfo_.isNeedChange_:" << realTimeSwitchInfo_.isNeedChange_ << " ";
+        ss << "realTimeSwitchInfo_.showTypes_:" << realTimeSwitchInfo_.showTypes_ << " ";
         return ss.str();
     }
 
@@ -730,6 +771,8 @@ private:
     bool isSupportRotateFullScreen_ { false };
     bool isAdaptToSubWindow_ { false };
     bool isAdaptToSimulationScale_ { false };
+    bool isAdaptToCompatibleDevice_ { false };
+    RealTimeSwitchInfo realTimeSwitchInfo_;
 };
 
 struct FreeMultiWindowConfig : public Parcelable {
@@ -777,23 +820,38 @@ struct FreeMultiWindowConfig : public Parcelable {
 
 struct AppForceLandscapeConfig : public Parcelable {
     int32_t mode_ = 0;
-    std::string homePage_ = "";
     int32_t supportSplit_ = -1;
-    std::string arkUIOptions_ = "";
     bool ignoreOrientation_ = false;
-
+    std::string sysConfigJsonStr_ = "";
+    std::string appConfigJsonStr_ = "";
+    std::string sysHomePage_ = "";
+    bool isSysRouter_ = false;
+    bool isAppRouter_ = false;
+    bool containsSysConfig_ = false;
+    bool containsAppConfig_ = false;
+    bool hasChanged_ = true;
+    bool configEnable_ = false;
     AppForceLandscapeConfig() {}
-    AppForceLandscapeConfig(int32_t mode, const std::string& homePage, int32_t supportSplit,
-        const std::string& arkUIOptions, bool isIgnoreOrientation) : mode_(mode), homePage_(homePage),
-        supportSplit_(supportSplit), arkUIOptions_(arkUIOptions), ignoreOrientation_(isIgnoreOrientation) {}
+    AppForceLandscapeConfig(int32_t mode, int32_t supportSplit, bool ignoreOrientation,
+        const std::string& sysConfigJsonStr, const std::string& appConfigJsonStr,
+        const std::string& sysHomePage, bool isSysRouter, bool isAppRouter,
+        bool containsSysConfig, bool containsAppConfig) : mode_(mode), supportSplit_(supportSplit),
+        ignoreOrientation_(ignoreOrientation), sysConfigJsonStr_(sysConfigJsonStr),
+        appConfigJsonStr_(appConfigJsonStr), sysHomePage_(sysHomePage), isSysRouter_(isSysRouter),
+        isAppRouter_(isAppRouter), containsSysConfig_(containsSysConfig), containsAppConfig_(containsAppConfig) {}
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
         if (!parcel.WriteInt32(mode_) ||
-            !parcel.WriteString(homePage_) ||
             !parcel.WriteInt32(supportSplit_) ||
-            !parcel.WriteString(arkUIOptions_) ||
-            !parcel.WriteBool(ignoreOrientation_)) {
+            !parcel.WriteBool(ignoreOrientation_) ||
+            !parcel.WriteString(sysConfigJsonStr_) ||
+            !parcel.WriteString(appConfigJsonStr_) ||
+            !parcel.WriteString(sysHomePage_) ||
+            !parcel.WriteBool(isSysRouter_) ||
+            !parcel.WriteBool(isAppRouter_) ||
+            !parcel.WriteBool(containsSysConfig_) ||
+            !parcel.WriteBool(containsAppConfig_)) {
             return false;
         }
         return true;
@@ -806,13 +864,43 @@ struct AppForceLandscapeConfig : public Parcelable {
             return nullptr;
         }
         if (!parcel.ReadInt32(config->mode_) ||
-            !parcel.ReadString(config->homePage_) ||
             !parcel.ReadInt32(config->supportSplit_) ||
-            !parcel.ReadString(config->arkUIOptions_) ||
-            !parcel.ReadBool(config->ignoreOrientation_)) {
+            !parcel.ReadBool(config->ignoreOrientation_) ||
+            !parcel.ReadString(config->sysConfigJsonStr_) ||
+            !parcel.ReadString(config->appConfigJsonStr_) ||
+            !parcel.ReadString(config->sysHomePage_) ||
+            !parcel.ReadBool(config->isSysRouter_) ||
+            !parcel.ReadBool(config->isAppRouter_) ||
+            !parcel.ReadBool(config->containsSysConfig_) ||
+            !parcel.ReadBool(config->containsAppConfig_)) {
             return nullptr;
         }
         return config.release();
+    }
+
+    static bool IsSameForceSplitConfig(const AppForceLandscapeConfig& preconfig, const AppForceLandscapeConfig& config)
+    {
+        if (preconfig.mode_ != config.mode_ ||
+            preconfig.supportSplit_ != config.supportSplit_ ||
+            preconfig.ignoreOrientation_ != config.ignoreOrientation_ ||
+            preconfig.containsSysConfig_ != config.containsSysConfig_ ||
+            preconfig.containsAppConfig_ != config.containsAppConfig_) {
+            return false;
+        }
+        if (config.containsSysConfig_) {
+            if (preconfig.isSysRouter_ != config.isSysRouter_ ||
+                preconfig.sysHomePage_ != config.sysHomePage_ ||
+                preconfig.sysConfigJsonStr_ != config.sysConfigJsonStr_) {
+                return false;
+            }
+        }
+        if (config.containsAppConfig_) {
+            if (preconfig.isAppRouter_ != config.isAppRouter_ ||
+                preconfig.appConfigJsonStr_ != config.appConfigJsonStr_) {
+                return false;
+            }
+        }
+        return true;
     }
 };
 
@@ -875,9 +963,9 @@ struct SystemSessionConfig : public Parcelable {
         }
 
         bool parcelWriteFail = !parcel.WriteUint32(miniWidthOfMainWindow_) ||
-                !parcel.WriteUint32(miniHeightOfMainWindow_) || !parcel.WriteUint32(miniWidthOfSubWindow_) ||
-                !parcel.WriteUint32(miniHeightOfSubWindow_) || !parcel.WriteUint32(miniWidthOfDialogWindow_) ||
-                !parcel.WriteUint32(miniHeightOfDialogWindow_);
+            !parcel.WriteUint32(miniHeightOfMainWindow_) || !parcel.WriteUint32(miniWidthOfSubWindow_) ||
+            !parcel.WriteUint32(miniHeightOfSubWindow_) || !parcel.WriteUint32(miniWidthOfDialogWindow_) ||
+            !parcel.WriteUint32(miniHeightOfDialogWindow_);
         if (parcelWriteFail) {
             return false;
         }
@@ -902,7 +990,7 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportTypeFloatWindow_)) {
             return false;
         }
-        if (!parcel.WriteBool(maxMidSceneNum_)) {
+        if (!parcel.WriteUint32(maxMidSceneNum_)) {
             return false;
         }
         if (!parcel.WriteBool(supportFollowParentWindowLayout_)) {
@@ -989,7 +1077,7 @@ struct SystemSessionConfig : public Parcelable {
         }
         return config;
     }
-
+        
     bool IsFreeMultiWindowMode() const
     {
         return freeMultiWindowEnable_ && freeMultiWindowSupport_;
@@ -1015,7 +1103,7 @@ struct SystemSessionConfig : public Parcelable {
         return IsPcWindow() || (IsPadWindow() && IsFreeMultiWindowMode());
     }
 
-    bool isSupportPCMode() const
+    bool IsSupportPCMode() const
     {
         return IsPcWindow() || IsFreeMultiWindowMode();
     }

@@ -409,6 +409,7 @@ const std::map<WMError, WmErrorCode> WM_JS_TO_ERROR_CODE_MAP {
     {WMError::WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED, WmErrorCode::WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED  },
     {WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED,  WmErrorCode::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED  },
     {WMError::WM_ERROR_UI_EFFECT_ERROR,                WmErrorCode::WM_ERROR_UI_EFFECT_ERROR          },
+    {WMError::WM_ERROR_INVALID_CALLING,                WmErrorCode::WM_ERROR_INVALID_CALLING          },
 };
 
 /**
@@ -423,9 +424,7 @@ enum class WindowSizeChangeReason : uint32_t {
     DRAG_START,
     DRAG_END,
     RESIZE,
-    RESIZE_WITH_ANIMATION,
     MOVE,
-    MOVE_WITH_ANIMATION,
     HIDE,
     TRANSFORM,
     CUSTOM_ANIMATION_SHOW,
@@ -453,6 +452,7 @@ enum class WindowSizeChangeReason : uint32_t {
     SCREEN_RELATIVE_POSITION_CHANGE,
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
+    LS_STATE_CHANGE,
     END
 };
 
@@ -540,7 +540,8 @@ struct KeyFramePolicy : public Parcelable {
             delete keyFramePolicy;
             return nullptr;
         }
-        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE)) {
+        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE) ||
+            keyFramePolicy->interval_ == 0) {
             delete keyFramePolicy;
             return nullptr;
         }
@@ -758,19 +759,6 @@ private:
 };
 
 /**
- * @struct RectAnimationConfig
- *
- * @brief Window RectAnimationConfig
- */
-struct RectAnimationConfig {
-    uint32_t duration = 0; // Duartion of the animation, in milliseconds.
-    float x1 = 0.0f;       // X coordinate of the first point on the Bezier curve.
-    float y1 = 0.0f;       // Y coordinate of the first point on the Bezier curve.
-    float x2 = 0.0f;       // X coordinate of the second point on the Bezier curve.
-    float y2 = 0.0f;       // Y coordinate of the second point on the Bezier curve.
-};
-
-/**
  * @struct SystemBarPropertyFlag
  *
  * @brief Flag of system bar
@@ -780,7 +768,46 @@ struct SystemBarPropertyFlag {
     bool backgroundColorFlag = false;
     bool contentColorFlag = false;
     bool enableAnimationFlag = false;
+    
+    bool operator==(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag == other.enableFlag && backgroundColorFlag == other.backgroundColorFlag &&
+            contentColorFlag == other.contentColorFlag && enableAnimationFlag == other.enableAnimationFlag);
+    }
+
+    bool Contains(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag || !other.enableFlag) && (backgroundColorFlag || !other.backgroundColorFlag) &&
+            (contentColorFlag || !other.contentColorFlag) && (enableAnimationFlag || !other.enableAnimationFlag);
+    }
 };
+
+/**
+ * @struct PartialSystemBarProperty
+ *
+ * @brief Partial system bar property
+ */
+struct PartialSystemBarProperty {
+    bool enable_ = false;
+    uint32_t backgroundColor_ = 0;
+    uint32_t contentColor_ = 0;
+    bool enableAnimation_ = false;
+    SystemBarPropertyFlag flag_;
+};
+
+
+/*
+ * @enum SystemBarPropertyOwner
+ *
+ * @brief System bar property owner
+ */
+enum class SystemBarPropertyOwner {
+    APPLICATION,
+    ARKUI_NAVIGATION,
+    ATOMIC_SERVICE,
+    ABILITY_RUNTIME,
+};
+
 
 /**
  * @struct Rect
@@ -788,10 +815,10 @@ struct SystemBarPropertyFlag {
  * @brief Window Rect.
  */
 struct Rect {
-    int32_t posX_;
-    int32_t posY_;
-    uint32_t width_;
-    uint32_t height_;
+    int32_t posX_ = 0;
+    int32_t posY_ = 0;
+    uint32_t width_ = 0;
+    uint32_t height_ = 0;
 
     bool operator==(const Rect& a) const
     {
@@ -829,6 +856,20 @@ struct Rect {
         std::ostringstream oss;
         oss << "[" << posX_ << " " << posY_ << " " << width_ << " " << height_ << "]";
         return oss.str();
+    }
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteInt32(posX_) && parcel.WriteInt32(posY_) &&
+               parcel.WriteUint32(width_) && parcel.WriteUint32(height_);
+    }
+
+    void Unmarshalling(Parcel& parcel)
+    {
+        posX_ = parcel.ReadInt32();
+        posY_ = parcel.ReadInt32();
+        width_ = parcel.ReadUint32();
+        height_ = parcel.ReadUint32();
     }
 
     static const Rect EMPTY_RECT;
@@ -1106,6 +1147,50 @@ struct VsyncCallback {
 };
 
 /**
+ * @struct FrameMetrics
+ *
+ * @brief frame metrics info.
+ */
+struct FrameMetrics : public Parcelable {
+    bool firstDrawFrame_ = false;
+    uint64_t inputHandlingDuration_ = 0;
+    uint64_t layoutMeasureDuration_ = 0;
+    uint64_t vsyncTimestamp_ = 0;
+
+    /**
+     * @brief Marshalling FrameMetrics.
+     *
+     * @param parcel Package of FrameMetrics.
+     * @return True means marshall success, false means marshall failed.
+     */
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteBool(firstDrawFrame_) &&
+               parcel.WriteUint64(inputHandlingDuration_) &&
+               parcel.WriteUint64(layoutMeasureDuration_) &&
+               parcel.WriteUint64(vsyncTimestamp_);
+    }
+
+    /**
+     * @brief Unmarshalling FrameMetrics.
+     *
+     * @param parcel Package of FrameMetrics.
+     * @return FrameMetrics object.
+     */
+    static FrameMetrics* Unmarshalling(Parcel& parcel)
+    {
+        auto info = std::make_unique<FrameMetrics>();
+        if (!parcel.ReadBool(info->firstDrawFrame_) ||
+            !parcel.ReadUint64(info->inputHandlingDuration_) ||
+            !parcel.ReadUint64(info->layoutMeasureDuration_) ||
+            !parcel.ReadUint64(info->vsyncTimestamp_)) {
+            return nullptr;
+        }
+        return info.release();
+    }
+};
+
+/**
  * @brief Enumerates window update type.
  */
 enum class WindowUpdateType : int32_t {
@@ -1193,6 +1278,14 @@ struct WindowLimits {
             1.0f,                              // vpRatio
             PixelUnit::VP                      // pixelUnit
         };
+    }
+
+    bool IsDefault() const
+    {
+        return (maxWidth_ == static_cast<uint32_t>(INT32_MAX) &&
+                maxHeight_ == static_cast<uint32_t>(INT32_MAX) &&
+                minWidth_ == 1 &&
+                minHeight_ == 1);
     }
 
     std::string ToString() const
@@ -1585,15 +1678,12 @@ struct KeyboardAnimationConfig {
 
 struct MoveConfiguration {
     DisplayId displayId = DISPLAY_ID_INVALID;
-    RectAnimationConfig rectAnimationConfig = { 0, 0.0f, 0.0f, 0.0f, 0.0f };
     std::string ToString() const
     {
         std::string str;
-        constexpr int BUFFER_SIZE = 1024;
+        constexpr int BUFFER_SIZE = 11;
         char buffer[BUFFER_SIZE] = { 0 };
-        if (snprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1,
-            "[displayId: %llu, rectAnimationConfig: [%u, %f, %f, %f, %f]]", displayId, rectAnimationConfig.duration,
-            rectAnimationConfig.x1, rectAnimationConfig.y1, rectAnimationConfig.x2, rectAnimationConfig.y2) > 0) {
+        if (snprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, "[%llu]", displayId) > 0) {
             str.append(buffer);
         }
         return str;
@@ -1892,9 +1982,26 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+};
 
-    /** Disable the resident state but keep the current waterfall layout state unchanged. */
-    CANCEL = 3,
+struct StateChangeOption {
+    int32_t parentPersistentId_ = 0;
+    WindowState newState_ = WindowState::STATE_INITIAL;
+    uint32_t reason_ = 0;
+    bool withAnimation_ = false;
+    bool withFocus_ = false;
+    bool waitAttach_ = false;
+    bool isFromInnerkits_ = false;
+    bool waitDetach_ = false;
+
+    StateChangeOption(int32_t parentPersistentId, WindowState newState)
+        : parentPersistentId_(parentPersistentId), newState_(newState) {}
+
+    StateChangeOption(int32_t parentPersistentId, WindowState newState, uint32_t reason, bool withAnimation,
+        bool withFocus, bool waitAttach, bool isFromInnerkits, bool waitDetach)
+        : parentPersistentId_(parentPersistentId), newState_(newState), reason_(reason),
+          withAnimation_(withAnimation), withFocus_(withFocus), waitAttach_(waitAttach),
+          isFromInnerkits_(isFromInnerkits), waitDetach_(waitDetach) {}
 };
 }
 }

@@ -63,11 +63,59 @@ ohos_shared_library("embeddablewindowstageani_kit") {
   public_configs = [ ":windowstage_ani_public_config" ]
 
   deps = [
+    "../../../../interfaces/kits/napi/window_runtime:window_native_kit",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
     "../window_runtime:windowstageani_kit",
+  ]
+
+  external_deps = [
+    "ability_runtime:ability_manager",
+    "ability_runtime:runtime",
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "hilog:libhilog",
+    "hitrace:hitrace_meter",
+    "image_framework:image",
+    "image_framework:image_ani",
+    "ipc:ipc_single",
+    "napi:ace_napi",
+    "runtime_core:ani",
+    "runtime_core:ani_helpers",
+  ]
+
+  innerapi_tags = [ "platformsdk" ]
+  part_name = "window_manager"
+  subsystem_name = "window"
+}
+
+# lib generate
+ohos_shared_library("embeddablewindowstageani_module") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+  sources = [ "src/ani_embeddable_window_stage_module.cpp" ]
+
+  configs = [
+    ":window_common_config",
+    ":windowstage_ani_public_config",
+    "../../../../resources/config/build:coverage_flags",
+  ]
+
+  public_configs = [ ":windowstage_ani_public_config" ]
+
+  deps = [
+    ":embeddablewindowstageani_kit",
     "../../../../interfaces/kits/napi/window_runtime:window_native_kit",
+    "../../../../utils:libwmutil",
+    "../../../../utils:libwmutil_base",
+    "../../../../wm:libwm",
+    "../window_runtime:windowstageani_kit",
   ]
 
   external_deps = [
@@ -92,6 +140,7 @@ ohos_shared_library("embeddablewindowstageani_kit") {
 group("embeddable_window_stage_ani") {
   deps = [
     ":embeddablewindowstageani_kit",
+    ":embeddablewindowstageani_module",
     "ets:extension_window_abc_ani_etc",
     "ets:extension_window_host_abc_ani_etc",
   ]

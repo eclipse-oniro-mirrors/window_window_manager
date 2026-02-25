@@ -24,6 +24,8 @@
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
 #include "dms_global_mutex.h"
+#include "fold_screen_common.h"
+#include "screen_sensor_mgr.h"
 
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
@@ -72,9 +74,18 @@ void FoldScreenSensorManager::SetSensorFoldStateManager(sptr<SensorFoldStateMana
     sensorFoldStateManager_ = sensorFoldStateManager;
 }
 
+void FoldScreenSensorManager::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
+{
+    if (scheduler == nullptr) {
+        TLOGE(WmsLogTag::DMS, "scheduler is nullptr.");
+        return;
+    }
+    sensorFoldStateManager_->SetTaskScheduler(scheduler);
+}
+
 void FoldScreenSensorManager::RegisterHallCallback()
 {
-    int ret = OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    int ret = DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_HALL_EXT, POSTURE_INTERVAL, SensorHallDataCallback);
     if (ret == SENSOR_SUCCESS) {
         registerHall_ = true;
@@ -85,21 +96,20 @@ void FoldScreenSensorManager::RegisterHallCallback()
     }
 }
 
-void FoldScreenSensorManager::UnRegisterPostureCallback()
+void FoldScreenSensorManager::UnRegisterHallCallback()
 {
-    int32_t deactivateRet = DeactivateSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-    int32_t unsubscribeRet = UnsubscribeSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-    TLOGI(WmsLogTag::DMS, "deactivateRet: %{public}d, unsubscribeRet: %{public}d",
-        deactivateRet, unsubscribeRet);
-    if (deactivateRet == SENSOR_SUCCESS && unsubscribeRet == SENSOR_SUCCESS) {
-        registerPosture_ = false;
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
+    if (ret == SENSOR_SUCCESS) {
+        registerHall_ = false;
         TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "failed with ret: %{public}d", ret);
     }
 }
 
 void FoldScreenSensorManager::RegisterPostureCallback()
 {
-    int ret = OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    int ret = DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL, SensorPostureDataCallback);
     if (ret == SENSOR_SUCCESS) {
         registerPosture_ = true;
@@ -110,13 +120,14 @@ void FoldScreenSensorManager::RegisterPostureCallback()
     }
 }
 
-void FoldScreenSensorManager::UnRegisterHallCallback()
+void FoldScreenSensorManager::UnRegisterPostureCallback()
 {
-    int32_t deactivateRet1 = DeactivateSensor(SENSOR_TYPE_ID_HALL_EXT, &hallUser);
-    int32_t unsubscribeRet1 = UnsubscribeSensor(SENSOR_TYPE_ID_HALL_EXT, &hallUser);
-    if (deactivateRet1 == SENSOR_SUCCESS && unsubscribeRet1 == SENSOR_SUCCESS) {
-        TLOGI(WmsLogTag::DMS, "UnRegisterHallCallback success.");
-        registerHall_ = false;
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_POSTURE);
+    if (ret == SENSOR_SUCCESS) {
+        registerPosture_ = false;
+        TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "failed with ret: %{public}d", ret);
     }
 }
 
@@ -158,87 +169,6 @@ void FoldScreenSensorManager::NotifyFoldAngleChanged(float foldAngle)
     ScreenSessionManager::GetInstance().NotifyFoldAngleChanged(foldAngles);
 }
 
-static void GlobalSensorCallback(SensorEvent* event)
-{
-    DmUtils::HoldLock callback_lock;
-    OHOS::Rosen::FoldScreenSensorManager::GetInstance().HandleSensorData(event);
-}
-
-int32_t FoldScreenSensorManager::SubscribeSensorCallback(int32_t sensorTypeId,
-                                                         int64_t interval, const RecordSensorCallback taskCallback)
-{
-    sensorCallbacks_[sensorTypeId] = {taskCallback, interval };
-    auto& user = users_[sensorTypeId];
-    user.callback = GlobalSensorCallback;
-    int32_t subscribeRet = SubscribeSensor(sensorTypeId, &user);
-    int32_t setBatchRet = SetBatch(sensorTypeId, &user, interval, interval);
-    int32_t activateRet = ActivateSensor(sensorTypeId, &user);
-    TLOGI(WmsLogTag::DMS,
-        "subscribeRet: %{public}d, setBatchRet: %{public}d, activateRet: %{public}d",
-        subscribeRet, setBatchRet, activateRet);
-    if (subscribeRet != SENSOR_SUCCESS || setBatchRet != SENSOR_SUCCESS || activateRet != SENSOR_SUCCESS) {
-        TLOGE(WmsLogTag::DMS, "failed.");
-        return SENSOR_FAILURE;
-    } else {
-        TLOGI(WmsLogTag::DMS, "success.");
-        return SENSOR_SUCCESS;
-    }
-}
-
-void FoldScreenSensorManager::UnSubscribeSensorCallback()
-{
-    for (auto it = sensorCallbacks_.begin(); it != sensorCallbacks_.end();) {
-        int32_t sensorTypeId = it->first;
-        auto& callbackInfo = it->second;
-
-        auto userIt = users_.find(sensorTypeId);
-        if (userIt == users_.end()) {
-            TLOGI(WmsLogTag::DMS, "User data not found for sensor type %{public}d", sensorTypeId);
-            ++it;
-            continue;
-        }
-
-        auto& user = userIt->second;
-
-        int32_t deactivateRet = DeactivateSensor(sensorTypeId, &user);
-        int32_t unsubscribeRet = UnsubscribeSensor(sensorTypeId, &user);
-
-        TLOGI(WmsLogTag::DMS,
-              "Unsubscribe sensor type: sensorTypeId=%{public}d, deactivateRet=%{public}d, unsubscribeRet=%{public}d",
-              sensorTypeId,
-              deactivateRet,
-              unsubscribeRet);
-
-        it = sensorCallbacks_.erase(it);
-        users_.erase(userIt);
-
-        if (deactivateRet != SENSOR_SUCCESS || unsubscribeRet != SENSOR_SUCCESS) {
-            TLOGW(WmsLogTag::DMS, "Failed to unsubscribe sensor type %{public}d", sensorTypeId);
-        }
-    }
-}
-
-void FoldScreenSensorManager::HandleSensorData(const SensorEvent* const event)
-{
-    if (event == nullptr || event->data == nullptr) {
-        TLOGE(WmsLogTag::DMS, "Received invalid sensor event or data is null.");
-        return;
-    }
-
-    if (event->dataLen == 0) {
-        TLOGW(WmsLogTag::DMS, "Sensor event data length is zero, skipping processing.");
-        return;
-    }
-
-    auto it = sensorCallbacks_.find(event->sensorTypeId);
-    if (it == sensorCallbacks_.end()) {
-        TLOGI(WmsLogTag::DMS, "No callback registered for sensorTypeId: %{public}d", event->sensorTypeId);
-        return;
-    }
-    const auto& entry = it->second;
-    entry.taskCallback(const_cast<SensorEvent*>(event));
-}
-
 void FoldScreenSensorManager::HandleHallData(const SensorEvent* const event)
 {
     if (event == nullptr) {
@@ -249,11 +179,11 @@ void FoldScreenSensorManager::HandleHallData(const SensorEvent* const event)
         TLOGI(WmsLogTag::DMS, "SensorEvent[0].data is nullptr.");
         return;
     }
-    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < sizeof(ExtHallData)) {
+    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < sizeof(DMS::ExtHallData)) {
         TLOGI(WmsLogTag::DMS, "SensorEvent dataLen less than hall data size.");
         return;
     }
-    ExtHallData *extHallData = reinterpret_cast<ExtHallData *>(event[SENSOR_EVENT_FIRST_DATA].data);
+    DMS::ExtHallData *extHallData = reinterpret_cast<DMS::ExtHallData *>(event[SENSOR_EVENT_FIRST_DATA].data);
     uint16_t flag = static_cast<uint16_t>((*extHallData).flag);
     if (!(flag & (1 << 1))) {
         TLOGI(WmsLogTag::DMS, "NOT Support Extend Hall.");
@@ -282,8 +212,7 @@ void FoldScreenSensorManager::HandleHallData(const SensorEvent* const event)
 
 bool FoldScreenSensorManager::HandleAbnormalAngle()
 {
-    if (FoldScreenStateInternel::FloatEqualAbs(globalAngle, DUAL_INVALID_ANGLE_VALUE)
-        && globalHall == 0 && !registerPosture_) {
+    if (FoldScreenStateInternel::FloatEqualAbs(globalAngle, DUAL_INVALID_ANGLE_VALUE)) {
         globalAngle = ANGLE_MIN_VAL;
         TLOGI(WmsLogTag::DMS, "hall value is: %{public}u, let angle value is: %{public}f, continue",
             globalHall, globalAngle);

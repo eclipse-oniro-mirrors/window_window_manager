@@ -27,7 +27,7 @@ public:
         std::shared_ptr<RSSurfaceNode> surfaceNode, uint32_t& windowId, const sptr<IRemoteObject>& token));
     MOCK_METHOD1(AddWindow, WMError(sptr<WindowProperty>& windowProperty));
     MOCK_METHOD2(RemoveWindow, WMError(uint32_t windowId, bool isFromInnerkits));
-    MOCK_METHOD0(ClearWindowAdapter, void());
+    MOCK_METHOD0(ClearWMSProxy, void());
     MOCK_METHOD1(DestroyWindow, WMError(uint32_t windowId));
     MOCK_METHOD2(UpdateProperty, WMError(sptr<WindowProperty>& windowProperty, PropertyChangeAction action));
     MOCK_METHOD2(GetTopWindowId, WMError(uint32_t mainWinId, uint32_t& topWinId));
@@ -35,7 +35,7 @@ public:
         uint32_t windowId, AvoidAreaType type, AvoidArea& avoidArea, const Rect& rect));
     MOCK_METHOD2(BindDialogTarget, WMError(uint32_t& windowId, sptr<IRemoteObject> targetToken));
     MOCK_METHOD2(UpdateRsTree, WMError(uint32_t windowId, bool isAdd));
-    MOCK_METHOD1(MinimizeAllAppWindows, WMError(DisplayId displayId));
+    MOCK_METHOD2(MinimizeAllAppWindows, WMError(DisplayId displayId, int32_t excludeWindowId));
     MOCK_METHOD0(ToggleShownStateForAllAppWindows, WMError());
     MOCK_METHOD2(ProcessPointDown, void(uint32_t windowId, bool isPointDown));
     MOCK_METHOD1(ProcessPointUp, void(uint32_t windowId));

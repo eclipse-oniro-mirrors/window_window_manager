@@ -292,12 +292,23 @@ DMError DisplayManagerAdapterLite::SetSystemKeyboardStatus(bool isTpKeyboardOn)
     return displayManagerServiceProxy_->SetSystemKeyboardStatus(isTpKeyboardOn);
 }
 
+DMError DisplayManagerAdapterLite::IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->IsOnboardDisplay(displayId, isOnboardDisplay);
+    }
+    TLOGE(WmsLogTag::DMS, "fail");
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 sptr<ScreenInfo> ScreenManagerAdapterLite::GetScreenInfo(ScreenId screenId)
 {
     if (screenId == SCREEN_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "screen id is invalid");
         return nullptr;
     }
+
     INIT_PROXY_CHECK_RETURN(nullptr);
 
     return displayManagerServiceProxy_->GetScreenInfoById(screenId);
@@ -342,6 +353,22 @@ ScreenPowerState ScreenManagerAdapterLite::GetScreenPower()
     INIT_PROXY_CHECK_RETURN(ScreenPowerState::INVALID_STATE);
 
     return displayManagerServiceProxy_->GetScreenPower();
+}
+
+void ScreenManagerAdapterLite::SyncScreenPowerState(ScreenPowerState state)
+{
+    if (IsScreenLessDevice()) {
+        TLOGI(WmsLogTag::DMS, "screenless device");
+        return;
+    }
+    INIT_PROXY_CHECK_RETURN();
+
+    if (displayManagerServiceProxy_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "null proxy object");
+        return;
+    }
+    displayManagerServiceProxy_->SyncScreenPowerState(state);
+    TLOGI(WmsLogTag::DMS, "sync power state success");
 }
 
 DMError ScreenManagerAdapterLite::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos)
@@ -424,5 +451,13 @@ bool ScreenManagerAdapterLite::SynchronizePowerStatus(ScreenPowerState state)
     INIT_PROXY_CHECK_RETURN(false);
 
     return displayManagerServiceProxy_->SynchronizePowerStatus(state);
+}
+
+DMError ScreenManagerAdapterLite::SetResolution(ScreenId screenId, uint32_t width, uint32_t height,
+    float virtualPixelRatio)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    return displayManagerServiceProxy_->SetResolution(screenId, width, height, virtualPixelRatio);
 }
 } // namespace OHOS::Rosen

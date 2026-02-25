@@ -57,8 +57,8 @@ public:
 
     float GetCurAngle();
 
-    void HandleScreenConnectChange();
-    void HandleScreenDisconnectChange();
+    void DriveStateMachineToExpand();
+    void SetStateMachineToActived();
     void HandleFoldStatusLockedToExpand();
     void HandleFoldStatusUnlocked();
     void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
@@ -66,10 +66,6 @@ public:
 private:
     
     std::recursive_mutex mutex_;
- 
-    SensorUser postureUser {};
- 
-    SensorUser hallUser {};
  
     float curAngle_ = 170.0F;
 

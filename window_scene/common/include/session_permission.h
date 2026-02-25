@@ -45,16 +45,16 @@ public:
     static bool VerifyCallingPermission(const std::string& permissionName);
     static bool VerifyPermissionByCallerToken(const uint32_t callerToken, const std::string& permissionName);
     static bool VerifyPermissionByBundleName(
-        const std::string& permissionName, const std::string& bundleName, uint32_t userId);
+        const std::string& bundleName, const std::string& permissionName, uint32_t userId);
     static bool IsSameBundleNameAsCalling(const std::string& bundleName);
     static bool IsSameAppAsCalling(const std::string& bundleName, const std::string& appIdentifier);
     static bool IsStartedByUIExtension();
     static bool CheckCallingIsUserTestMode(pid_t pid);
     static bool IsBetaVersion();
-    static bool IsSystemAppCall();
     static bool IsSystemAppCallByCallingTokenID(uint32_t callingTokenId);
     static bool IsFoundationCall();
     static std::string GetCallingBundleName();
+    static bool IsSystemAppCall();
     static bool IsTokenNativeOrShellType(uint32_t tokenId);
 };
 } // Rosen

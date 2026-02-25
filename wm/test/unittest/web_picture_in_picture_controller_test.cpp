@@ -252,6 +252,13 @@ HWTEST_F(WebPictureInPictureControllerTest, UpdateWinRectByComponent, TestSize.L
     webPipControl->UpdateWinRectByComponent();
     EXPECT_EQ(webPipControl->windowRect_.posX_, 0);
     EXPECT_EQ(webPipControl->windowRect_.posY_, 0);
+
+    webPipControl->SetPipInitialSurfaceRect(15, 15, 25, 25);
+    webPipControl->UpdateWinRectByComponent();
+    EXPECT_EQ(webPipControl->windowRect_.posX_, 15);
+    EXPECT_EQ(webPipControl->windowRect_.posY_, 15);
+    EXPECT_EQ(webPipControl->windowRect_.width_, 25);
+    EXPECT_EQ(webPipControl->windowRect_.height_, 25);
 }
 
 /**
@@ -263,13 +270,19 @@ HWTEST_F(WebPictureInPictureControllerTest, SetPipParentWindowId, TestSize.Level
 {
     auto webPipControl = sptr<WebPictureInPictureController>::MakeSptr(config);
     uint32_t windowId = 10000;
+    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
+    bool isPC = multiWindowUIType == "FreeFormMultiWindow";
+    if (!isPC) {
+        EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+        GTEST_SKIP();
+    }
     webPipControl->mainWindow_  = nullptr;
-    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_PIP_STATE_ABNORMALLY);
+    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_PIP_INTERNAL_ERROR);
  
     auto mw = sptr<MockWindow>::MakeSptr();
     ASSERT_NE(nullptr, mw);
     webPipControl->mainWindow_ = mw;
-    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_PIP_STATE_ABNORMALLY);
+    EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_INVALID_PARAM);
 }
 }
 }

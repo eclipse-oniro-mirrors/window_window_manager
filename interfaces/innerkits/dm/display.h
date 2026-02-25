@@ -19,6 +19,9 @@
 #include <string>
 #include "dm_common.h"
 #include "noncopyable.h"
+#include "display_info.h"
+typedef struct napi_env__* DisplayNapiEnv;
+
 
 namespace OHOS::Rosen {
 class DisplayInfo;
@@ -28,6 +31,11 @@ class FoldCreaseRegion;
 class Display : public RefBase {
 friend class DisplayManager;
 public:
+    enum class EnvType {
+        NONE,
+        NAPI,
+        ANI
+    };
     ~Display();
     Display(const Display&) = delete;
     Display(Display&&) = delete;
@@ -144,7 +152,14 @@ public:
      *
      * @return Cutout info of the display.
      */
-    sptr<CutoutInfo> GetCutoutInfo() const;
+    sptr<CutoutInfo> GetCutoutInfo(sptr<DisplayInfo> displayinfo = nullptr) const;
+
+    /**
+     * @brief Get rounded corner of the display.
+     * @param roundedCorner roundedCorner of the display.
+     * @return DM_OK means get success, others means get failed.
+     */
+    DMError GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner) const;
 
     /**
      * @brief Judge if current display has immersive window.
@@ -191,11 +206,18 @@ public:
      */
     DMError GetLiveCreaseRegion(FoldCreaseRegion& region) const;
 
+    /**
+     * @brief Set the display info env
+     * @param env Pointer to the display environment configuration data.
+     * @param type Type of the enviroment configuration, determines how env is interpreted.
+     */
+    void SetDisplayInfoEnv(void* env, EnvType type);
+
 protected:
     // No more methods or variables can be defined here.
     Display(const std::string& name, sptr<DisplayInfo> info);
 private:
-    // No more methods or variables can be defined here.
+    uint32_t GetDisplayInfoLifeTime();
     void UpdateDisplayInfo(sptr<DisplayInfo>) const;
     void UpdateDisplayInfo() const;
     class Impl;

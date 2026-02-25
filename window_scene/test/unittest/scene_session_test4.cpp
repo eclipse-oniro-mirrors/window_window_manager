@@ -18,6 +18,8 @@
 #include "display_manager.h"
 #include "input_event.h"
 #include "key_event.h"
+#include "mock/mock_accesstoken_kit.h"
+#include "mock/mock_parameters.h"
 #include "mock/mock_session_stage.h"
 #include "pointer_event.h"
 
@@ -685,51 +687,6 @@ HWTEST_F(SceneSessionTest4, HandleSpecificSystemBarProperty, TestSize.Level1)
 }
 
 /**
- * @tc.name: HandleLayoutAvoidAreaUpdate
- * @tc.desc: HandleLayoutAvoidAreaUpdate
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest4, HandleLayoutAvoidAreaUpdate, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "HandleLayoutAvoidAreaUpdate";
-    info.bundleName_ = "HandleLayoutAvoidAreaUpdate";
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
-    
-    session->isLastFrameLayoutFinishedFunc_ = nullptr;
-    session->isAINavigationBarAvoidAreaValid_ = nullptr;
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
-
-    session->isLastFrameLayoutFinishedFunc_ = [](bool& isLayoutFinished) {
-        isLayoutFinished = false;
-        return WSError::WS_ERROR_NULLPTR;
-    };
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
-
-    session->isLastFrameLayoutFinishedFunc_ = [](bool& isLayoutFinished) {
-        isLayoutFinished = true;
-        return WSError::WS_OK;
-    };
-    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
-    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_SYSTEM));
-    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
-
-    session->isAINavigationBarAvoidAreaValid_ = [](DisplayId displayId,
-        const AvoidArea& avoidArea, int32_t sessionBottom) {
-        return true;
-    };
-    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
-    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
-
-    session->isAINavigationBarAvoidAreaValid_ = [](DisplayId displayId,
-        const AvoidArea& avoidArea, int32_t sessionBottom) {
-        return false;
-    };
-    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
-    EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
-}
-
-/**
  * @tc.name: SetWindowFlags1
  * @tc.desc: SetWindowFlags1
  * @tc.type: FUNC
@@ -1113,7 +1070,7 @@ HWTEST_F(SceneSessionTest4, SetMovable01, TestSize.Level1)
     sceneSession->SetMovable(true);
     sceneSession->leashWinSurfaceNode_ = nullptr;
     SessionEvent event = SessionEvent::EVENT_START_MOVE;
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->SetMovable(true);
     sceneSession->OnSessionEvent(event);
     sceneSession->moveDragController_->isStartDrag_ = true;
@@ -1233,7 +1190,7 @@ HWTEST_F(SceneSessionTest4, IsMovable02, TestSize.Level1)
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     sceneSession->SetSessionProperty(property);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(2024, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_EQ(WSError::WS_DO_NOTHING, sceneSession->UpdateFocus(false));
     ASSERT_EQ(false, sceneSession->IsMovable());
     ASSERT_EQ(WSError::WS_OK, sceneSession->UpdateFocus(true));
@@ -1251,7 +1208,7 @@ HWTEST_F(SceneSessionTest4, IsMovable03, TestSize.Level1)
     info.bundleName_ = "IsMovable03";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(2024, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_EQ(WSError::WS_OK, sceneSession->UpdateFocus(true));
     ASSERT_EQ(false, sceneSession->IsMovable());
 }
@@ -1383,46 +1340,6 @@ HWTEST_F(SceneSessionTest4, HandleActionUpdateAvoidAreaOption, TestSize.Level1)
     sessionProperty->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
     ret = session->HandleActionUpdateAvoidAreaOption(sessionProperty, action);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
-}
-
-/**
- * @tc.name: GetSystemAvoidArea
- * @tc.desc: normal function
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest4, GetSystemAvoidArea, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "GetSystemAvoidArea";
-    info.bundleName_ = "GetSystemAvoidArea";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    auto specificCallback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    sceneSession->isActive_ = true;
-    SystemSessionConfig systemConfig;
-    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    sceneSession->SetSystemConfig(systemConfig);
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
-    sceneSession->GetSessionProperty()->SetDisplayId(2024);
-    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(2024, screenSession));
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
-    property->SetWindowFlags(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID));
-    sceneSession->SetSessionProperty(property);
-
-    WSRect rect1({0, 0, 10, 10});
-    AvoidArea avoidArea;
-    sceneSession->GetSystemAvoidArea(rect1, avoidArea);
-    WSRect rect2({0, 0, 10, 10});
-    property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    sceneSession->SetSessionProperty(property);
-    sceneSession->GetSystemAvoidArea(rect2, avoidArea);
-    ASSERT_EQ(avoidArea.topRect_.posX_, 0);
-
-    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
-    property->SetWindowFlags(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID));
-    sceneSession->SetSessionProperty(property);
-    ASSERT_EQ(avoidArea.topRect_.posX_, 0);
 }
 
 /**
@@ -1792,6 +1709,89 @@ HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest002, TestSize.Leve
 }
 
 /**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest003
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest003, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest003";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest003";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) anco app; 2) SupportNotifyFrameLayoutFinish; 3) not sa calling
+    session->collaboratorType_ = CollaboratorType::RESERVE_TYPE;
+    system::SetBoolParameter("prop_to_param.support.notifyFrameLayoutFinish", true);
+    MockAccesstokenKit::MockIsSACalling(false);
+
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest004
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest004, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest004";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest004";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) anco app; 2) SupportNotifyFrameLayoutFinish; 3) is sa calling
+    session->collaboratorType_ = CollaboratorType::RESERVE_TYPE;
+    system::SetBoolParameter("prop_to_param.support.notifyFrameLayoutFinish", true);
+    MockAccesstokenKit::MockIsSACalling(true);
+
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest005
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest005, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest005";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest005";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) anco app; 2) not SupportNotifyFrameLayoutFinish
+    session->collaboratorType_ = CollaboratorType::RESERVE_TYPE;
+    system::SetBoolParameter("prop_to_param.support.notifyFrameLayoutFinish", false);
+
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyFrameLayoutFinishFromAppTest006
+ * @tc.desc: NotifyFrameLayoutFinishFromApp test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, NotifyFrameLayoutFinishFromAppTest006, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyFrameLayoutFinishFromAppTest006";
+    info.bundleName_ = "NotifyFrameLayoutFinishFromAppTest006";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Mock 1) not anco app
+    WSRect rect = { 200, 200, 200, 200 };
+    WSError res = session->NotifyFrameLayoutFinishFromApp(true, rect);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+
+/**
  * @tc.name: UpdateWaterfallModeTest
  * @tc.desc: UpdateWaterfallMode test
  * @tc.type: FUNC
@@ -1875,7 +1875,7 @@ HWTEST_F(SceneSessionTest4, SyncSessionEventTest002, TestSize.Level1)
     property->isSystemCalling_ = true;
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = false;
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(2024, sceneSession->GetWindowType());
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
 
     SessionEvent event = SessionEvent::EVENT_END_MOVE;
     sceneSession->moveDragController_->isStartMove_ = true;
@@ -1899,7 +1899,7 @@ HWTEST_F(SceneSessionTest4, SyncSessionEventTest003, TestSize.Level1)
     property->isSystemCalling_ = true;
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = false;
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(2024, sceneSession->GetWindowType());
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
 
     SessionEvent event = SessionEvent::EVENT_END_MOVE;
     sceneSession->moveDragController_->isStartMove_ = false;
@@ -1923,7 +1923,7 @@ HWTEST_F(SceneSessionTest4, SyncSessionEventTest004, TestSize.Level1)
     property->isSystemCalling_ = true;
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = false;
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(2024, sceneSession->GetWindowType());
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
 
     SessionEvent event = SessionEvent::EVENT_START_MOVE;
     sceneSession->moveDragController_->isStartMove_ = false;
@@ -1947,7 +1947,7 @@ HWTEST_F(SceneSessionTest4, SyncSessionEventTest005, TestSize.Level1)
     property->isSystemCalling_ = true;
     sceneSession->SetSessionProperty(property);
     sceneSession->isActive_ = false;
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(2024, sceneSession->GetWindowType());
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
 
     SessionEvent event = SessionEvent::EVENT_START_MOVE;
     sceneSession->moveDragController_->isStartMove_ = true;
@@ -2052,6 +2052,23 @@ HWTEST_F(SceneSessionTest4, SetPipParentWindowIdTest, Function | SmallTest | Lev
     sceneSession->isTerminating_ = true;
     result = sceneSession->SetPipParentWindowId(id);
     ASSERT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: IsPiPActiveTest
+ * @tc.desc: IsPiPActive function test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, IsPiPActiveTest, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsPiPActive";
+    info.bundleName_ = "IsPiPActive";
+    sptr<SceneSession> sceneSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    sceneSession->pipActiveStatus_.store(true);
+    bool status = false;
+    ASSERT_EQ(sceneSession->IsPiPActive(status), WMError::WM_OK);
+    ASSERT_EQ(status, true);
 }
 
 /**

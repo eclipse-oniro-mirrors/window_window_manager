@@ -27,7 +27,7 @@
 #include "display_manager_agent_default.h"
 #include "screen_scene_config.h"
 #include "common_test_utils.h"
-
+#include "fold_screen_state_internel.h"
 using namespace testing;
 using namespace testing::ext;
 
@@ -41,10 +41,14 @@ class ScreenCutoutControllerTest : public testing::Test {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
+    static ScreenSessionManager& ssm_;
     void SetUp() override;
     void TearDown() override;
     void SetAceessTokenPermission(const std::string processName);
+    DMHookInfo CreateDefaultHookInfo();
 };
+
+ScreenSessionManager& ScreenCutoutControllerTest::ssm_ = ScreenSessionManager::GetInstance();
 
 void ScreenCutoutControllerTest::SetUpTestCase()
 {
@@ -52,6 +56,17 @@ void ScreenCutoutControllerTest::SetUpTestCase()
     const char** perms = new const char *[1];
     perms[0] = "ohos.permission.CAPTURE_SCREEN";
     CommonTestUtils::SetAceessTokenPermission("foundation", perms, 1);
+}
+
+DMHookInfo ScreenCutoutControllerTest::CreateDefaultHookInfo()
+{
+    uint32_t hookWidth = 500;
+    uint32_t hookHeight = 700;
+    float_t hookDensity = 3.0;
+    uint32_t hookRotation = static_cast<uint32_t>(Rotation::ROTATION_0);
+    uint32_t hookDisplayOrientation = static_cast<uint32_t>(DisplayOrientation::PORTRAIT);
+    DMHookInfo dmHookInfo = { hookWidth, hookHeight, hookDensity, hookRotation, true, hookDisplayOrientation, true };
+    return dmHookInfo;
 }
 
 void ScreenCutoutControllerTest::TearDownTestCase()
@@ -283,11 +298,11 @@ HWTEST_F(ScreenCutoutControllerTest, InitRect, TestSize.Level1)
 }
 
 /**
- * @tc.name: CheckBoundaryRects01
+ * @tc.name: CheckBoundaryRectsWithRotation01
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects01, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation01, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {-15, -15, 8, 8};
@@ -297,17 +312,17 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects01, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 35, 35}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 35, 35);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 35, 35, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 1);
     EXPECT_EQ(boundaryRects[0], emptyRect_);
 }
 
 /**
- * @tc.name: CheckBoundaryRects02
+ * @tc.name: CheckBoundaryRectsWithRotation02
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects02, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation02, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {1, 1, 7, 7};
@@ -317,17 +332,17 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects02, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 35, 35}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 35, 35);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 35, 35, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 2);
     EXPECT_EQ(boundaryRects[0], emptyRect_);
 }
 
 /**
- * @tc.name: CheckBoundaryRects03
+ * @tc.name: CheckBoundaryRectsWithRotation03
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects03, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation03, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {1, 1, 7, 7};
@@ -336,16 +351,16 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects03, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 6, 6}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 6, 6);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 6, 6, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 0);
 }
 
 /**
- * @tc.name: CheckBoundaryRects04
+ * @tc.name: CheckBoundaryRectsWithRotation04
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects04, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation04, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {1, 0, 8, 8};
@@ -355,17 +370,17 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects04, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 25, 23}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 25, 23);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 25, 23, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 1);
     EXPECT_EQ(boundaryRects[0], emptyRect);
 }
 
 /**
- * @tc.name: CheckBoundaryRects05
+ * @tc.name: CheckBoundaryRectsWithRotation05
  * @tc.desc: ScreenCutoutController check boundary rects
  * @tc.type: FUNC
 */
-HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects05, TestSize.Level1)
+HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRectsWithRotation05, TestSize.Level1)
 {
     sptr<ScreenCutoutController> controller = new ScreenCutoutController();
     DMRect emptyRect = {0, 0, 0, 0};
@@ -375,9 +390,115 @@ HWTEST_F(ScreenCutoutControllerTest, CheckBoundaryRects05, TestSize.Level1)
     auto screenBouns = RRect({0, 0, 35, 35}, 0.0f, 0.0f);
     screenProperty.SetBounds(screenBouns);
     ASSERT_TRUE(controller != nullptr);
-    controller->CheckBoundaryRects(boundaryRects, 35, 35);
+    controller->CheckBoundaryRectsWithRotation(boundaryRects, 35, 35, Rotation::ROTATION_0);
     ASSERT_EQ(boundaryRects.size(), 1);
     EXPECT_EQ(boundaryRects[0], emptyRect_);
+}
+/**
+ * @tc.name: HookCutoutInfo001
+ * @tc.desc: HookCutoutInfo001
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo001, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_TRUE(controller != nullptr);
+    DMRect emptyRect = { 0, 0, 0, 0 };
+    DMRect emptyRect_ = { 21, 21, 3, 3 };
+    std::vector<DMRect> boundaryRects = { emptyRect_, emptyRect };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 100;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    EXPECT_EQ(boundaryRects, boundaryRects);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(0);
+    displayInfo->SetActualHeight(0);
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    EXPECT_EQ(boundaryRects, boundaryRects);
+}
+
+/**
+ * @tc.name: HookCutoutInfo002
+ * @tc.desc: HookCutoutInfo002
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo002, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_TRUE(controller != nullptr);
+    DMRect emptyRect1 = { 50, 50, 1, 1 };
+    DMRect emptyRect2 = { 100, 100, 2, 2 };
+    std::vector<DMRect> boundaryRects = { emptyRect1, emptyRect2 };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 200;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    EXPECT_EQ(boundaryRects, boundaryRects);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(100);
+    displayInfo->SetActualHeight(100);
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    EXPECT_EQ(boundaryRects[0], emptyRect2);
+    DMRect emptyRect3 = { 200, 200, 1, 1 };
+    std::vector<DMRect> boundaryRects1 = { emptyRect3 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    std::vector<DMRect> testboundaryRects1;
+    EXPECT_EQ(testboundaryRects1, testboundaryRects1);
+}
+
+/**
+ * @tc.name: HookCutoutInfo003
+ * @tc.desc: HookCutoutInfo003
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo003, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_TRUE(controller != nullptr);
+    DMRect emptyRect1 = { 50, 50, 1, 1 };
+    std::vector<DMRect> boundaryRects = { emptyRect1 };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 200;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(100);
+    displayInfo->SetActualHeight(100);
+    std::vector<DMRect> boundaryRects1 = { emptyRect1 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    std::vector<DMRect> testboundaryRects1;
+    EXPECT_EQ(testboundaryRects1, testboundaryRects1);
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(1000);
+    boundaryRects1 = { emptyRect1 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    EXPECT_EQ(boundaryRects1, testboundaryRects1);
+    emptyRect1 = { 1000, 1000, 1, 1 };
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    boundaryRects1 = { emptyRect1 };
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
+    EXPECT_EQ(boundaryRects1, testboundaryRects1);
 }
 }
 } // namespace Rosen

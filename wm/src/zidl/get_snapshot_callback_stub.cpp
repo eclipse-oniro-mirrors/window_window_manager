@@ -21,6 +21,7 @@
 #include "pixel_map.h"
  
 namespace OHOS::Rosen {
+const int32_t MAX_SESSION_LIMIT_ALL_APP = 512;
  
 int GetSnapshotCallbackStub::OnRemoteRequest(
     uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option)
@@ -50,33 +51,31 @@ int GetSnapshotCallbackStub::HandleOnReceived(MessageParcel& data, MessageParcel
         OnReceived(static_cast<WMError>(errCode), pixelMaps);
         return ERR_NONE;
     }
-    if (len <= 0) {
-        OnReceived(static_cast<WMError>(errCode), pixelMaps);
-        return ERR_NONE;
-    }
-    size_t size = static_cast<size_t>(len);
-    pixelMaps.resize(size);
-    for (size_t i = 0; i < size; i++) {
-        pixelMaps[i] = std::shared_ptr<OHOS::Media::PixelMap>(OHOS::Media::PixelMap::Unmarshalling(data));
+    if (len > 0) {
+        size_t size = static_cast<size_t>(len);
+        pixelMaps.resize(size);
+        for (size_t i = 0; i < size; i++) {
+            pixelMaps[i] = std::shared_ptr<OHOS::Media::PixelMap>(OHOS::Media::PixelMap::Unmarshalling(data));
+        }
     }
     if (!data.ReadInt32(nullptrLen)) {
         TLOGE(WmsLogTag::WMS_LIFE, "read nullptrLen failed");
     }
-    if (nullptrLen > 0) {
+    if (nullptrLen > 0 && nullptrLen <= MAX_SESSION_LIMIT_ALL_APP) {
         int32_t index = 0;
         for (size_t i = 0; i < static_cast<size_t>(nullptrLen); i++) {
             if (!data.ReadInt32(index)) {
                 OnReceived(static_cast<WMError>(errCode), pixelMaps);
                 return ERR_NONE;
             }
-            if (index > static_cast<int32_t>(pixelMaps.size())) {
+            if (index > static_cast<int32_t>(pixelMaps.size()) || index < 0) {
                 OnReceived(static_cast<WMError>(errCode), pixelMaps);
                 return ERR_NONE;
             }
             pixelMaps.insert(pixelMaps.begin() + index, nullptr);
         }
     }
-    TLOGI(WmsLogTag::WMS_LIFE, "pixelMaps size: %{public}zu, size: %{public}zu", pixelMaps.size(), size);
+    TLOGI(WmsLogTag::WMS_LIFE, "pixelMaps size: %{public}zu, size: %{public}d", pixelMaps.size(), len);
     OnReceived(static_cast<WMError>(errCode), pixelMaps);
     return ERR_NONE;
 }

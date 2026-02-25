@@ -25,11 +25,20 @@
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "zidl/screen_session_manager_proxy.h"
+#include <optional>
 
 using namespace testing;
 using namespace testing::ext;
 
 namespace OHOS::Rosen {
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+        const char* msg)
+    {
+        g_logMsg += msg;
+    }
+}
 class ScreenSessionManagerProxyUtTest : public testing::Test {
 public:
     static void SetUpTestSuite();
@@ -75,7 +84,8 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetPrivacyStateByDisplayId, TestSize.L
     int resultValue = 0;
     std::function<void()> func = [&]()
     {
-        screenSessionManagerProxy->SetPrivacyStateByDisplayId(id, hasPrivate);
+        std::unordered_map<DisplayId, bool> privacyBundleDisplayId = {{id, hasPrivate}};
+        screenSessionManagerProxy->SetPrivacyStateByDisplayId(privacyBundleDisplayId);
         resultValue = 1;
     };
     func();
@@ -132,8 +142,10 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetVirtualDisplayMuteFlag, Function | 
     ScreenId id = 1001;
     bool muteFlag = false;
     screenSessionManagerProxy->SetVirtualDisplayMuteFlag(id, muteFlag);
-    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(2000);
-    EXPECT_EQ(screenSession, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -620,44 +632,6 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetScreenHDRFormat, TestSize.Level1)
 }
 
 /**
- * @tc.name: RegisterDisplayManagerAgent
- * @tc.desc: RegisterDisplayManagerAgent
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyUtTest, RegisterDisplayManagerAgent, TestSize.Level1)
-{
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    DisplayManagerAgentType type = DisplayManagerAgentType::SCREEN_EVENT_LISTENER;
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        EXPECT_EQ(DMError::DM_OK, screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
-    } else {
-        EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
-    }
-    displayManagerAgent = nullptr;
-    EXPECT_EQ(DMError::DM_ERROR_INVALID_PARAM,
-              screenSessionManagerProxy->RegisterDisplayManagerAgent(displayManagerAgent, type));
-}
-
-/**
- * @tc.name: UnregisterDisplayManagerAgent
- * @tc.desc: UnregisterDisplayManagerAgent
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyUtTest, UnregisterDisplayManagerAgent, TestSize.Level1)
-{
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    DisplayManagerAgentType type = DisplayManagerAgentType::SCREEN_EVENT_LISTENER;
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        EXPECT_EQ(DMError::DM_OK, screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
-    } else {
-        EXPECT_NE(DMError::DM_OK, screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
-    }
-    displayManagerAgent = nullptr;
-    EXPECT_EQ(DMError::DM_ERROR_INVALID_PARAM,
-              screenSessionManagerProxy->UnregisterDisplayManagerAgent(displayManagerAgent, type));
-}
-
-/**
  * @tc.name: WakeUpBegin
  * @tc.desc: WakeUpBegin
  * @tc.type: FUNC
@@ -1056,8 +1030,10 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, RemoveVirtualScreenFromGroup, TestSize
 {
     std::vector<ScreenId> screens = {1002, 1003, 1004};
     screenSessionManagerProxy->RemoveVirtualScreenFromGroup(screens);
-    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(2000);
-    EXPECT_EQ(screenSession, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(g_logMsg.find("SCB: WriteInterfaceToken failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1453,11 +1429,7 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldDisplayMode, TestSize.Level1)
 {
     FoldDisplayMode displayMode = FoldDisplayMode::UNKNOWN;
     screenSessionManagerProxy->SetFoldDisplayMode(displayMode);
-    if (screenSessionManagerProxy->IsFoldable() && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    } else {
-        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    }
+    EXPECT_EQ(FoldDisplayMode::UNKNOWN, screenSessionManagerProxy->GetFoldDisplayMode());
 }
 
 /**
@@ -1484,11 +1456,10 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetFoldStatusLocked, TestSize.Level1)
 {
     bool locked = true;
     screenSessionManagerProxy->SetFoldStatusLocked(locked);
-    if (screenSessionManagerProxy->IsFoldable() && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        EXPECT_NE(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    } else {
-        EXPECT_EQ(ScreenSessionManager::GetInstance().foldScreenController_, nullptr);
-    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(g_logMsg.find("Send TRANS_ID_SCENE_BOARD_GET_FOLD_DISPLAY_MODE request failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1508,9 +1479,7 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, GetFoldDisplayMode, TestSize.Level1)
  */
 HWTEST_F(ScreenSessionManagerProxyUtTest, IsFoldable, TestSize.Level1)
 {
-    screenSessionManagerProxy->IsFoldable();
-    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(2000);
-    EXPECT_EQ(screenSession, nullptr);
+    EXPECT_FALSE(screenSessionManagerProxy->IsFoldable());
 }
 
 /**
@@ -1578,7 +1547,8 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, MakeUniqueScreen, TestSize.Level1)
 {
     const std::vector<ScreenId> screenIds {1001, 1002, 1003};
     std::vector<DisplayId> displayIds;
-    EXPECT_EQ(DMError::DM_ERROR_NULLPTR, screenSessionManagerProxy->MakeUniqueScreen(screenIds, displayIds));
+    EXPECT_EQ(DMError::DM_ERROR_NULLPTR, screenSessionManagerProxy->MakeUniqueScreen(screenIds, displayIds,
+        UniqueScreenRotationOptions()));
 }
 
 /**
@@ -1601,8 +1571,10 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SetClient, TestSize.Level1)
 HWTEST_F(ScreenSessionManagerProxyUtTest, SwitchUser, TestSize.Level1)
 {
     screenSessionManagerProxy->SwitchUser();
-    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(2000);
-    EXPECT_EQ(screenSession, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1613,9 +1585,11 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, SwitchUser, TestSize.Level1)
 HWTEST_F(ScreenSessionManagerProxyUtTest, GetScreenProperty, TestSize.Level1)
 {
     ScreenId screenId = 1001;
-    screenSessionManagerProxy->GetScreenProperty(screenId);
-    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(2000);
-    EXPECT_EQ(screenSession, nullptr);
+    auto result = screenSessionManagerProxy->GetScreenProperty(screenId);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") == std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**

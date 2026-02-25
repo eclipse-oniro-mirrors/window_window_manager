@@ -40,7 +40,7 @@ ohos_fuzztest("SessionStubLayoutFuzzTest") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
     "${window_base_path}/window_scene/session_manager:session_manager",
     "${window_base_path}/wm:libwm",
   ]

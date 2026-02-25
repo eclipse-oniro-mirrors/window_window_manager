@@ -31,6 +31,7 @@ public:
 
     static napi_value Create(napi_env env, const sptr<ScreenSession>& screenSession);
     static void Finalizer(napi_env env, void* data, void* hint);
+    static napi_value ConvertMapToJsMap(napi_env env, const std::map<int32_t, int32_t>& map);
 
 private:
     static napi_value LoadContent(napi_env env, napi_callback_info info);
@@ -81,6 +82,7 @@ private:
     sptr<ScreenScene> screenScene_ = nullptr;
     std::map<std::string, std::shared_ptr<NativeReference>> mCallback_;
     std::shared_mutex jsCbMapMutex_;
+    std::mutex callbackMutex_;
 };
 } // namespace OHOS::Rosen
 

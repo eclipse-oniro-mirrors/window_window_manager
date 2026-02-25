@@ -40,8 +40,11 @@ public:
     void ExitCoordination() override;
     void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
     FoldDisplayMode GetModeMatchStatus() override;
+    FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus) override;
     void BootAnimationFinishPowerInit() override;
     void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const override;
+    float GetSpecialVirtualPixelRatio() override;
+    void SetConfig(std::map<std::string, std::vector<int>>& numbersConfig);
 private:
     void ChangeScreenDisplayModeToMain(sptr<ScreenSession> screenSession,
         DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
@@ -74,6 +77,7 @@ private:
     std::recursive_mutex& displayInfoMutex_;
     std::mutex coordinationMutex_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
+    float subDensityDpi_ { 0.0f };
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_WINDOW_SCENE_SINGLE_DISPLAY_FOLD_POLICY_H

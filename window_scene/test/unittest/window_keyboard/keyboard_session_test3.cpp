@@ -316,36 +316,36 @@ HWTEST_F(KeyboardSessionTest3, SetSurfaceBounds01, TestSize.Level1)
     info1.abilityName_ = "BindKeyboardPanelSession";
     info1.bundleName_ = "BindKeyboardPanelSession";
     sptr<SceneSession> panelSession = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    struct RSSurfaceNodeConfig config;
+    panelSession->surfaceNode_ = RSSurfaceNode::Create(config);
     keyboardSession->BindKeyboardPanelSession(panelSession);
     keyboardSession->SetSurfaceBounds(rect, false);
     ASSERT_NE(keyboardSession->GetKeyboardPanelSession(), nullptr);
 
-    struct RSSurfaceNodeConfig config;
     keyboardSession->surfaceNode_ = RSSurfaceNode::Create(config);
-    keyboardSession->SetSurfaceBounds(rect, false);
+    keyboardSession->SetSurfaceBounds(rect, false, false);
     ASSERT_NE(keyboardSession->surfaceNode_, nullptr);
 }
 
 /**
- * @tc.name: NotifySessionRectChange01
- * @tc.desc: test function: NotifySessionRectChange
+ * @tc.name: HandleKeyboardMoveDragEnd01
+ * @tc.desc: test function: HandleKeyboardMoveDragEnd
  * @tc.type: FUNC
  */
-HWTEST_F(KeyboardSessionTest3, NotifySessionRectChange01, TestSize.Level1)
+HWTEST_F(KeyboardSessionTest3, HandleKeyboardMoveDragEnd01, TestSize.Level1)
 {
-    auto keyboardSession = GetKeyboardSession("NotifySessionRectChange01", "NotifySessionRectChange01");
+    auto keyboardSession = GetKeyboardSession("HandleKeyboardMoveDragEnd01", "HandleKeyboardMoveDragEnd01");
     ASSERT_NE(keyboardSession, nullptr);
     keyboardSession->adjustKeyboardLayoutFunc_ = [](const KeyboardLayoutParams& params) {};
 
     WSRect rect = { 50, 50, 900, 900 };
-    keyboardSession->NotifySessionRectChange(rect, SizeChangeReason::DRAG_END, -1);
-    keyboardSession->NotifySessionRectChange(rect, SizeChangeReason::DRAG_END, 11);
+    keyboardSession->HandleKeyboardMoveDragEnd(rect, SizeChangeReason::DRAG_END, -1);
+    keyboardSession->HandleKeyboardMoveDragEnd(rect, SizeChangeReason::DRAG_END, 11);
     keyboardSession->sessionRectChangeFunc_ = [](const WSRect& rect,
                                                  SizeChangeReason reason,
-                                                 DisplayId displayId,
-                                                 const RectAnimationConfig& rectAnimationConfig) { return; };
-    keyboardSession->NotifySessionRectChange(rect, SizeChangeReason::DRAG_END, -1);
-    keyboardSession->NotifySessionRectChange(rect, SizeChangeReason::DRAG_END, 11);
+                                                 DisplayId displayId) { return; };
+    keyboardSession->HandleKeyboardMoveDragEnd(rect, SizeChangeReason::DRAG_END, -1);
+    keyboardSession->HandleKeyboardMoveDragEnd(rect, SizeChangeReason::DRAG_END, 11);
 }
 
 /**
@@ -529,6 +529,69 @@ HWTEST_F(KeyboardSessionTest3, IsNeedRaiseSubWindow02, Function | SmallTest | Le
 }
 
 /**
+ * @tc.name: CalculateOccupiedArea_AiWindow
+ * @tc.desc: check func CalculateOccupiedArea_AiWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, CalculateOccupiedArea_AiWindow, Function | SmallTest | Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CalculateOccupiedArea_AiWindow",
+        "CalculateOccupiedArea_AiWindow");
+    SessionInfo info;
+    info.abilityName_ = "CallingSession";
+    info.bundleName_ = "CallingSession";
+    auto callingSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    WSRect lastSafeRect = { 0, 0, 0, 0 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    WSRect zeroRect1 = { 0, 0, 0, 0 };
+    WSRect zeroRect2 = { 0, 0, 0, 0 };
+    sptr<OccupiedAreaChangeInfo> occupiedAreaInfo = nullptr;
+
+    auto ret = keyboardSession->CalculateOccupiedArea(nullptr, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, false);
+
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, false);
+
+    lastSafeRect = { 1, 2, 3, 4 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+
+    callingSession->SetIsMidScene(true);
+    usleep(SLEEP_TIME_US);
+    EXPECT_EQ(true, callingSession->GetIsMidScene());
+    lastSafeRect = { 1, 2, 3, 4 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+
+    callingSession->SetIsMidScene(false);
+    usleep(SLEEP_TIME_US);
+    EXPECT_EQ(false, callingSession->GetIsMidScene());
+    CallingWindowInfoData callingWindowInfoData;
+    callingWindowInfoData.callingWindowState = CallingWindowState::WINDOW_IN_AI;
+    callingWindowInfoData.scaleX = 0.73;
+    callingWindowInfoData.scaleY = 0.73;
+    keyboardSession->CallingWindowStateChange(callingWindowInfoData);
+    EXPECT_EQ(CallingWindowState::WINDOW_IN_AI, keyboardSession->callingWindowInfoData_.callingWindowState);
+    callingSession->SetScale(0.0, 0.0, 0.0, 0.0);
+    lastSafeRect = { 1, 2, 3, 4 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    zeroRect1 = { 0, 0, 1, 2 };
+    zeroRect2 = { 0, 0, 1, 2 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+    callingSession->SetScale(1.0, 1.0, 1.0, 1.0);
+    lastSafeRect = { 1, 1, 1, 1 };
+    callingSession->SetLastSafeRect(lastSafeRect);
+    zeroRect1 = { 2, 2, 2, 2 };
+    zeroRect2 = { 3, 3, 3, 3 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    EXPECT_EQ(ret, true);
+}
+
+/**
  * @tc.name: CalculateOccupiedArea_MIDSCENE
  * @tc.desc: check func CalculateOccupiedArea_MIDSCENE
  * @tc.type: FUNC
@@ -572,9 +635,9 @@ HWTEST_F(KeyboardSessionTest3, CalculateOccupiedArea_MIDSCENE, Function | SmallT
     callingSession->SetScale(0.0, 0.0, 0.0, 0.0);
     lastSafeRect = { 0, 0, 0, 0 };
     callingSession->SetLastSafeRect(lastSafeRect);
-    zeroRect1 = { 0, 0, 1, 2 };
-    zeroRect2 = { 0, 0, 1, 2 };
-    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    WSRect rect1 = { 0, 0, 1, 2 };
+    WSRect rect2 = { 0, 0, 1, 2 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, rect1, rect2, occupiedAreaInfo);
     EXPECT_EQ(ret, false);
 
     callingSession->SetIsMidScene(true);
@@ -583,9 +646,9 @@ HWTEST_F(KeyboardSessionTest3, CalculateOccupiedArea_MIDSCENE, Function | SmallT
     callingSession->SetScale(0.0, 0.0, 0.0, 0.0);
     lastSafeRect = { 1, 2, 3, 4 };
     callingSession->SetLastSafeRect(lastSafeRect);
-    zeroRect1 = { 0, 0, 1, 2 };
-    zeroRect2 = { 0, 0, 1, 2 };
-    ret = keyboardSession->CalculateOccupiedArea(callingSession, zeroRect1, zeroRect2, occupiedAreaInfo);
+    rect1 = { 0, 0, 1, 2 };
+    rect2 = { 0, 0, 1, 2 };
+    ret = keyboardSession->CalculateOccupiedArea(callingSession, rect1, rect2, occupiedAreaInfo);
     EXPECT_EQ(ret, true);
 }
 
@@ -692,6 +755,11 @@ HWTEST_F(KeyboardSessionTest3, CalculateOccupiedAreaAfterUIRefresh02, Function |
     callingSession->UpdateSizeChangeReason(SizeChangeReason::ROTATION);
     EXPECT_EQ(keyboardSession->stateChanged_, false);
     EXPECT_EQ(callingSession->GetOriPosYBeforeRaisedByKeyboard(), 200);
+
+    callingSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_END);
+    keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_ = true;
+    keyboardSession->CalculateOccupiedAreaAfterUIRefresh();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd, false);
 }
 
 /**
@@ -718,7 +786,6 @@ HWTEST_F(KeyboardSessionTest3, GetPanelRect, Function | SmallTest | Level0)
 {
     auto keyboardSession = GetKeyboardSession("GetPanelRect", "GetPanelRect");
     keyboardSession->keyboardPanelSession_ = nullptr;
-    ASSERT_EQ(keyboardSession->keyboardPanelSession_, nullptr);
 
     WSRect rect = { 0, 0, 0, 0 };
     WSRect panelRect = keyboardSession->GetPanelRect();
@@ -747,11 +814,11 @@ HWTEST_F(KeyboardSessionTest3, PostKeyboardAnimationSyncTimeoutTask, Function | 
     auto keyboardSession = GetKeyboardSession(
         "PostKeyboardAnimationSyncTimeoutTask", "PostKeyboardAnimationSyncTimeoutTask");
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
-    ASSERT_EQ(false, keyboardSession->isKeyboardSyncTransactionOpen_);
+    EXPECT_EQ(false, keyboardSession->isKeyboardSyncTransactionOpen_);
 
     keyboardSession->isKeyboardSyncTransactionOpen_ = true;
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
-    ASSERT_EQ(true, keyboardSession->isKeyboardSyncTransactionOpen_);
+    EXPECT_NE(false, keyboardSession->isKeyboardSyncTransactionOpen_);
 }
 
 /**
@@ -805,7 +872,6 @@ HWTEST_F(KeyboardSessionTest3, ProcessKeyboardOccupiedAreaInfo, Function | Small
     keyboardSession->isKeyboardSyncTransactionOpen_ = true;
     needCheckRSTransaction = false;
     keyboardSession->ProcessKeyboardOccupiedAreaInfo(0, needRecalculateAvoidAreas, needCheckRSTransaction);
-    ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, true);
 
     keyboardSession->keyboardCallback_->onGetSceneSession = [&](uint32_t persistentId) {
         return sceneSession;
@@ -856,6 +922,50 @@ HWTEST_F(KeyboardSessionTest3, NotifyOccupiedAreaChanged, Function | SmallTest |
     keyboardSession->NotifyOccupiedAreaChanged(callingSession, occupiedAreaInfo, true, nullptr);
     EXPECT_TRUE(g_logMsg.find("size of avoidAreas: 5") != std::string::npos);
 }
+
+/**
+ * @tc.name: ForceProcessKeyboardOccupiedAreaInfo
+ * @tc.desc: check func ForceProcessKeyboardOccupiedAreaInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, ForceProcessKeyboardOccupiedAreaInfo, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("ProcessKeyboardOccupiedAreaInfo", "ProcessKeyboardOccupiedAreaInfo");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_ = false;
+    keyboardSession->isVisible_ = false;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_, false);
+
+    keyboardSession->isVisible_ = true;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_FLOAT;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_, false);
+
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_EQ(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_, true);
+}
+
+/**
+ * @tc.name: ForceNotifyKeyboardOccupiedArea
+ * @tc.desc: ForceNotifyKeyboardOccupiedArea
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, ForceNotifyKeyboardOccupiedArea, Function | SmallTest | Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "CallingSession";
+    info.bundleName_ = "CallingSession";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    sceneSession->ForceNotifyKeyboardOccupiedArea();
+    bool result = false;
+    sceneSession->RegisterNotifyOccupiedAreaChangeCallback([&](DisplayId displayId) { result = true; });
+    sceneSession->ForceNotifyKeyboardOccupiedArea();
+    EXPECT_TRUE(result);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

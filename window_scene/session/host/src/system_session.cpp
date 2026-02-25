@@ -36,17 +36,23 @@ SystemSession::SystemSession(const SessionInfo& info, const sptr<SpecificSession
 {
     TLOGD(WmsLogTag::WMS_LIFE, "Create");
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
-    moveDragController_ = sptr<MoveDragController>::MakeSptr(GetPersistentId(), GetWindowType());
-    if (specificCallback != nullptr &&
-        specificCallback->onWindowInputPidChangeCallback_ != nullptr) {
-        moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback_->onWindowInputPidChangeCallback_);
-    }
-    SetMoveDragCallback();
 }
 
 SystemSession::~SystemSession()
 {
     TLOGD(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
+}
+
+void SystemSession::OnFirstStrongRef(const void* objectId)
+{
+    // OnFirstStrongRef is overridden in the parent class IPCObjectStub,
+    // so its parent implementation must be invoked here to avoid IPC communication issues.
+    SceneSession::OnFirstStrongRef(objectId);
+
+    moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(this));
+    if (specificCallback_ != nullptr && specificCallback_->onWindowInputPidChangeCallback_ != nullptr) {
+        moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback_->onWindowInputPidChangeCallback_);
+    }
 }
 
 void SystemSession::UpdateCameraWindowStatus(bool isShowing)
@@ -67,11 +73,11 @@ void SystemSession::UpdateCameraWindowStatus(bool isShowing)
         auto pipType = GetPiPTemplateInfo().pipTemplateType;
         if (pipType == static_cast<uint32_t>(PiPTemplateType::VIDEO_CALL) ||
             pipType == static_cast<uint32_t>(PiPTemplateType::VIDEO_MEETING)) {
-            TLOGI(WmsLogTag::WMS_SYSTEM, "PiPWindow status: %{public}d, id: %{public}d", isShowing, GetPersistentId());
+            TLOGI(WmsLogTag::WMS_PIP, "PiPWindow status: %{public}d, id: %{public}d", isShowing, GetPersistentId());
             specificCallback_->onCameraSessionChange_(GetSessionProperty()->GetAccessTokenId(), isShowing);
         }
     } else {
-        TLOGI(WmsLogTag::WMS_SYSTEM, "Skip window type, isShowing: %{public}d", isShowing);
+        TLOGI(WmsLogTag::WMS_PIP, "Skip window type, isShowing: %{public}d", isShowing);
     }
 }
 
@@ -298,7 +304,7 @@ bool SystemSession::NeedSystemPermission(WindowType type)
         type == WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW || type == WindowType::WINDOW_TYPE_TOAST ||
         type == WindowType::WINDOW_TYPE_DRAGGING_EFFECT || type == WindowType::WINDOW_TYPE_APP_LAUNCHING ||
         type == WindowType::WINDOW_TYPE_PIP || type == WindowType::WINDOW_TYPE_FLOAT ||
-        type == WindowType::WINDOW_TYPE_FB);
+        type == WindowType::WINDOW_TYPE_FB || type == WindowType::WINDOW_TYPE_SELECTION);
 }
 
 bool SystemSession::CheckPointerEventDispatch(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const
@@ -334,24 +340,6 @@ void SystemSession::RectCheck(uint32_t curWidth, uint32_t curHeight)
     RectSizeCheckProcess(curWidth, curHeight, minWidth, minHeight, maxFloatingWindowSize);
 }
 
-bool SystemSession::IsVisibleForeground() const
-{
-    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
-        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
-        return parentSession_->IsVisibleForeground() && Session::IsVisibleForeground();
-    }
-    return Session::IsVisibleForeground();
-}
-
-bool SystemSession::IsVisibleNotBackground() const
-{
-    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
-        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
-        return parentSession_->IsVisibleNotBackground() && Session::IsVisibleNotBackground();
-    }
-    return Session::IsVisibleNotBackground();
-}
-
 WSError SystemSession::SetDialogSessionBackGestureEnabled(bool isEnabled)
 {
     return PostSyncTask([weakThis = wptr(this), isEnabled]() {
@@ -369,6 +357,24 @@ WSError SystemSession::SetDialogSessionBackGestureEnabled(bool isEnabled)
         session->dialogSessionBackGestureEnabled_ = isEnabled;
         return WSError::WS_OK;
     });
+}
+
+bool SystemSession::IsVisibleForeground() const
+{
+    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
+        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
+        return parentSession_->IsVisibleForeground() && Session::IsVisibleForeground();
+    }
+    return Session::IsVisibleForeground();
+}
+
+bool SystemSession::IsVisibleNotBackground() const
+{
+    if (GetWindowType() == WindowType::WINDOW_TYPE_DIALOG &&
+        parentSession_ && WindowHelper::IsMainWindow(parentSession_->GetWindowType())) {
+        return parentSession_->IsVisibleNotBackground() && Session::IsVisibleNotBackground();
+    }
+    return Session::IsVisibleNotBackground();
 }
 
 void SystemSession::UpdatePiPWindowStateChanged(bool isForeground)
@@ -390,6 +396,9 @@ int32_t SystemSession::GetSubWindowZLevel() const
     int32_t zLevel = 0;
     auto sessionProperty = GetSessionProperty();
     zLevel = sessionProperty->GetSubWindowZLevel();
+    if (onSubSessionZLevelChange_) {
+        onSubSessionZLevelChange_(zLevel);
+    }
     return zLevel;
 }
 
@@ -399,12 +408,18 @@ WMError SystemSession::UpdateFloatingBall(const FloatingBallTemplateInfo& fbTemp
         return WMError::WM_DO_NOTHING;
     }
 
+    if (fbTemplateInfo.template_ < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
+        fbTemplateInfo.template_ >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Template %{public}d is invalid", fbTemplateInfo.template_);
+        return WMError::WM_ERROR_FB_PARAM_INVALID;
+    }
+
     if (GetFbTemplateInfo().template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb static template can't update");
         return WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED;
     }
 
-    if (GetFbTemplateInfo().template_ != 0 && GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
+    if (GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb template type can't update %{public}d, %{public}d",
             GetFbTemplateInfo().template_, fbTemplateInfo.template_);
         return WMError::WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED;
@@ -460,6 +475,7 @@ WMError SystemSession::GetFloatingBallWindowId(uint32_t& windowId)
         return WMError::WM_DO_NOTHING;
     }
     int32_t callingPid = IPCSkeleton::GetCallingPid();
+
     return PostSyncTask([weakThis = wptr(this), callingPid, &windowId, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
@@ -655,6 +671,93 @@ void SystemSession::SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloati
             session->fbWant_ = nullptr;
         }
     }, __func__);
+}
+
+void SystemSession::SetRestoreFloatMainWindowCallback(NotifyRestoreFloatMainWindowFunc&& func)
+{
+    PostTask(
+        [weakThis = wptr(this), func = std::move(func), where = __func__] {
+            TLOGI(WmsLogTag::WMS_SYSTEM, "Register Callback RestoreFloatMainWindow");
+            auto session = weakThis.promote();
+            if (!session || !func) {
+                TLOGNE(WmsLogTag::WMS_SYSTEM, "%{public}s session or func dont exists", where);
+                return;
+            }
+            session->restoreFloatMainWindowFunc_ = std::move(func);
+        }, __func__);
+}
+
+WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters)
+{
+    int32_t callingPid = IPCSkeleton::GetCallingPid();
+    if (GetWindowType() != WindowType::WINDOW_TYPE_FLOAT) {
+        TLOGNE(WmsLogTag::WMS_SYSTEM, "Check window type failed");
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
+    return PostSyncTask([weakThis = wptr(this), callingPid, wantParameters, where = __func__]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s session is null", where);
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
+        auto parentSession = session->GetParentSession();
+        if (parentSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "cannot find parent session");
+            return WMError::WM_ERROR_INVALID_CALLING;
+        }
+        if (callingPid != session->GetCallingPid()) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s permission denied, not call by the same process", where);
+            return WMError::WM_ERROR_INVALID_CALLING;
+        }
+        if (!session->IsSessionForeground()) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s window state is not at foreground or active", where);
+            return WMError::WM_ERROR_INVALID_CALLING;
+        }
+        if (!session->getIsRecentStateFunc_) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "cannot get recent func");
+            return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+        }
+        if ((parentSession->IsSessionForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
+            session->getIsRecentStateFunc_()) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "parent window is at foreground but not interactive");
+            return WMError::WM_ERROR_START_ABILITY_FAILED;
+        }
+        {
+            std::lock_guard<std::mutex> lock(session->floatWindowDownEventMutex_);
+            if (session->floatWindowDownEventCnt_ == 0) {
+                TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s no enough click, deny", where);
+                return WMError::WM_ERROR_INVALID_CALLING;
+            }
+            session->floatWindowDownEventCnt_ = 0;
+        }
+        TLOGI(WmsLogTag::WMS_SYSTEM, "%{public}s restore float main window", where);
+        session->NotifyRestoreFloatMainWindow(wantParameters);
+        return WMError::WM_OK;
+    });
+}
+
+void SystemSession::NotifyRestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "Notify RestoreFloatingBallMainwindow");
+    PostTask(
+        [weakThis = wptr(this), wantParameters, where = __func__] {
+            auto session = weakThis.promote();
+            if (!session) {
+                TLOGNE(WmsLogTag::WMS_SYSTEM, "%{public}s session is null", where);
+                return;
+            }
+            if (session->restoreFloatMainWindowFunc_) {
+                TLOGI(WmsLogTag::WMS_SYSTEM, "restoreFloatMainWindowFunc");
+                session->restoreFloatMainWindowFunc_(wantParameters);
+            } else {
+                TLOGW(WmsLogTag::WMS_SYSTEM, "%{public}s restoreFloatMainWindowFunc Func is null", where);
+            }
+        }, __func__);
+}
+
+void SystemSession::RegisterGetIsRecentStateFunc(GetIsRecentStateFunc&& callback)
+{
+    getIsRecentStateFunc_ = std::move(callback);
 }
 
 void SystemSession::RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& callback)

@@ -47,6 +47,11 @@ public:
     virtual void OnScreenDisconnected(const sptr<ScreenSession>& screenSession) = 0;
 };
 
+class ITentModeListener {
+public:
+    virtual void OnTentModeChange(const TentMode tentMode) = 0;
+};
+
 class ScreenSessionManagerClient : public ScreenSessionManagerClientStub {
 WM_DECLARE_SINGLE_INSTANCE_BASE(ScreenSessionManagerClient)
 
@@ -54,10 +59,8 @@ public:
     void RegisterScreenConnectionListener(IScreenConnectionListener* listener);
     void RegisterDisplayChangeListener(const sptr<IDisplayChangeListener>& listener);
     void RegisterScreenConnectionChangeListener(const sptr<IScreenConnectionChangeListener>& listener);
-    void ExtraDestroyScreen(ScreenId screenId);
 
     sptr<ScreenSession> GetScreenSession(ScreenId screenId) const;
-    sptr<ScreenSession> GetScreenSessionExtra(ScreenId screenId) const;
     std::map<ScreenId, ScreenProperty> GetAllScreensProperties() const;
     FoldDisplayMode GetFoldDisplayMode() const;
 
@@ -66,8 +69,8 @@ public:
     uint32_t GetCurvedCompressionArea();
     ScreenProperty GetPhyScreenProperty(ScreenId screenId);
     void SetScreenPrivacyState(bool hasPrivate);
-    void SetPrivacyStateByDisplayId(DisplayId id, bool hasPrivate);
-    void SetScreenPrivacyWindowList(DisplayId id, std::vector<std::string> privacyWindowList);
+    void SetPrivacyStateByDisplayId(std::unordered_map<DisplayId, bool>& privacyBundleDisplayId);
+    void SetScreenPrivacyWindowList(std::unordered_map<DisplayId, std::vector<std::string>>& privacyBundleList);
     void NotifyDisplayChangeInfoChanged(const sptr<DisplayChangeInfo>& info);
     void OnDisplayStateChanged(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
         const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type) override;
@@ -88,6 +91,7 @@ public:
     void NotifyFoldToExpandCompletion(bool foldToExpand);
     void NotifyScreenConnectCompletion(ScreenId screenId);
     void NotifyAodOpCompletion(AodOP operation, int32_t result);
+    void SetPowerStateForAod(ScreenPowerState state);
     void RecordEventFromScb(std::string description, bool needRecordEvent);
     FoldStatus GetFoldStatus();
     SuperFoldStatus GetSuperFoldStatus();
@@ -126,8 +130,10 @@ public:
     void NotifyExtendScreenDestroyFinish();
     void NotifyScreenMaskAppear();
     void NotifySwitchUserAnimationFinish(const std::string& description);
+    void NotifySwitchUserAnimationFinishByWindow();
     void RegisterSwitchUserAnimationNotification(const std::string& description);
     void OnAnimationFinish() override;
+    void OnTentModeChange(TentMode tentMode) override;
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override;
     DMError SetPrimaryDisplaySystemDpi(float dpi);
     void FreezeScreen(ScreenId screenId, bool isFreeze);
@@ -136,12 +142,14 @@ public:
     void OnScreenPropertyChanged(ScreenId screenId, float rotation, RRect bounds);
     bool OnFoldPropertyChange(ScreenId screenId, const ScreenProperty& property,
         ScreenPropertyChangeReason reason, FoldDisplayMode displayMode, ScreenProperty& midProperty) override;
+    void RegisterTentModeChangeListener(ITentModeListener* listener);
 
     /*
      * RS Client Multi Instance
      */
     std::shared_ptr<RSUIDirector> GetRSUIDirector(ScreenId screenId);
     std::shared_ptr<RSUIContext> GetRSUIContext(ScreenId screenId);
+    bool GetSupportsFocus(DisplayId displayId);
 
 protected:
     ScreenSessionManagerClient() = default;
@@ -182,16 +190,10 @@ private:
     sptr<ScreenSession> CreateTempScreenSession(
         ScreenId screenId, ScreenId rsId, const std::shared_ptr<RSDisplayNode>& displayNode);
 
-    void HandleKeyboardOnPropertyChange(sptr<ScreenSession>& screenSession, int32_t height);
-    void HandleKeyboardOffPropertyChange(sptr<ScreenSession>& screenSession);
-    void HandleSystemKeyboardOnPropertyChange(sptr<ScreenSession>& screenSession, SuperFoldStatus currentStatus,
-        bool isKeyboardOn, int32_t validHeight);
-    void HandleSystemKeyboardOffPropertyChange(sptr<ScreenSession>& screenSession, SuperFoldStatus currentStatus,
-        bool isKeyboardOn);
+    void UpdateWidthAndHeight(const sptr<ScreenSession>& screenSession, const RRect* bounds, ScreenId screenId);
 
     mutable std::mutex screenSessionMapMutex_;
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMap_;
-    std::map<ScreenId, sptr<ScreenSession>> extraScreenSessionMap_;
     std::function<void()> switchingToAnotherUserFunc_ = nullptr;
 
     sptr<IScreenSessionManager> screenSessionManager_;
@@ -199,12 +201,18 @@ private:
     std::shared_ptr<FfrtQueueHelper> ffrtQueueHelper_ = std::make_shared<FfrtQueueHelper>();
 
     IScreenConnectionListener* screenConnectionListener_;
+    ITentModeListener* tentModeListener_;
+    std::atomic<TentMode> tentMode_ = TentMode::UNKNOWN;
     sptr<IScreenConnectionChangeListener> screenConnectionChangeListener_;
     sptr<IDisplayChangeListener> displayChangeListener_;
     FoldDisplayMode displayMode_ = FoldDisplayMode::UNKNOWN;
+
+    std::atomic<bool> hasCheckFoldableStatus_ = false;
+    std::atomic<bool> isFoldable_ = false;
     SuperFoldStatus currentstate_ = SuperFoldStatus::UNKNOWN;
 
     std::mutex screenEventMutex_;
+    std::mutex connectToServerMutex_;
     std::unordered_set<ScreenId> connectedScreenSet_;
     std::set<std::string> animateFinishDescriptionSet_;
     std::set<std::string> animateFinishNotificationSet_;

@@ -24,7 +24,7 @@
 
 namespace OHOS::Rosen {
 namespace {
-constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "SessionManagerLite" };
+constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_DISPLAY, "SessionManagerLite" };
 }
 std::unordered_map<int32_t, sptr<SessionManagerLite>> SessionManagerLite::sessionManagerLiteMap_ = {};
 std::mutex SessionManagerLite::sessionManagerLiteMapMutex_;
@@ -204,7 +204,7 @@ void SessionManagerLite::SaveSessionListener(const sptr<ISessionListener>& liste
             return (item && item->AsObject() == listener->AsObject());
         });
     if (it != sessionListeners_.end()) {
-        TLOGW(WmsLogTag::DEFAULT, "listener was already added");
+        TLOGW(WmsLogTag::DEFAULT, "listener was already added, do not add again");
         return;
     }
     sessionListeners_.emplace_back(listener);
@@ -520,7 +520,7 @@ void SessionManagerLite::RegisterSMSRecoverListener()
         TLOGD(WmsLogTag::WMS_RECOVER, "Register recover listener, userId_: %{public}d", userId_);
         smsRecoverListener_ = sptr<SessionManagerServiceLiteRecoverListener>::MakeSptr(userId_);
         std::string identity = IPCSkeleton::ResetCallingIdentity();
-        mockSessionManagerServiceProxy_->RegisterSMSRecoverListener(smsRecoverListener_, userId_, true);
+        mockSessionManagerServiceProxy_->RegisterSMSRecoverListener(userId_, true, smsRecoverListener_);
         IPCSkeleton::SetCallingIdentity(identity);
         recoverListenerRegistered_ = true;
     }

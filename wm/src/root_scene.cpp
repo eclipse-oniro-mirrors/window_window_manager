@@ -31,6 +31,7 @@
 #include "extension/extension_business_info.h"
 #include "fold_screen_state_internel.h"
 #include "input_transfer_station.h"
+#include "rate_limited_logger.h"
 #include "rs_adapter.h"
 #include "screen_session_manager_client.h"
 #include "singleton.h"
@@ -38,6 +39,7 @@
 
 #include "intention_event_manager.h"
 #include "window_manager_hilog.h"
+#include "load_intention_event.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -270,8 +272,8 @@ void RootScene::RegisterInputEventListener()
                 std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::Create(INPUT_AND_VSYNC_THREAD));
         }
     }
-    if (!(DelayedSingleton<IntentionEventManager>::GetInstance()->EnableInputEventListener(
-        uiContent_.get(), eventHandler_, this))) {
+    if (staticRootScene_ != nullptr && LoadIntentionEvent() &&
+        !EnableInputEventListener(uiContent_.get(), eventHandler_, this)) {
         WLOGFE("EnableInputEventListener fail");
     }
     InputTransferStation::GetInstance().MarkRegisterToMMI();
@@ -349,7 +351,8 @@ WMError RootScene::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea, 
         return WMError::WM_DO_NOTHING;
     }
     avoidArea = getSessionAvoidAreaByTypeCallback_(type, false);
-    TLOGI(WmsLogTag::WMS_IMMS, "root scene type %{public}u area %{public}s", type, avoidArea.ToString().c_str());
+    TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
+        "root scene type %{public}u area %{public}s", type, avoidArea.ToString().c_str());
     return WMError::WM_OK;
 }
 
@@ -549,21 +552,9 @@ void RootScene::RemoveRootScene(DisplayId displayId)
 std::shared_ptr<RSUIDirector> RootScene::GetRSUIDirector() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
-    sptr<Display> display;
-    if (displayId_ == DISPLAY_ID_INVALID) {
-        display = DisplayManager::GetInstance().GetDefaultDisplay();
-        TLOGE(WmsLogTag::WMS_SCB, "displayId is invalid, use default display");
-    } else {
-        display = DisplayManager::GetInstance().GetDisplayById(displayId_);
-    }
-    if (!display) {
-        TLOGE(WmsLogTag::WMS_SCB, "display is null, displayId: %{public}" PRIu64, displayId_);
-        return nullptr;
-    }
-    auto screenId = display->GetScreenId();
-    auto rsUIDirector = ScreenSessionManagerClient::GetInstance().GetRSUIDirector(screenId);
-    TLOGD(WmsLogTag::WMS_SCB, "%{public}s, screenId: %{public}" PRIu64 ", windowId: %{public}d",
-          RSAdapterUtil::RSUIDirectorToStr(rsUIDirector).c_str(), screenId, GetWindowId());
+    auto rsUIDirector = ScreenSessionManagerClient::GetInstance().GetRSUIDirector(displayId_);
+    TLOGD(WmsLogTag::WMS_SCB, "%{public}s, displayId: %{public}" PRIu64 ", windowId: %{public}d",
+          RSAdapterUtil::RSUIDirectorToStr(rsUIDirector).c_str(), displayId_, GetWindowId());
     return rsUIDirector;
 }
 

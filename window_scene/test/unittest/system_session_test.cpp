@@ -27,6 +27,7 @@
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "pointer_event.h"
+#include "string_wrapper.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -1098,6 +1099,114 @@ HWTEST_F(SystemSessionTest, SendFbActionEvent, Function | SmallTest | Level2)
 
     ret = systemSession_->SendFbActionEvent("on");
     ASSERT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: NotifyRestoreFloatMainWindowCallback
+ * @tc.desc: NotifyRestoreFloatMainWindowCallback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, NotifyRestoreFloatMainWindowCallback, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+
+    std::shared_ptr<AAFwk::WantParams> wantParams = std::make_shared<AAFwk::WantParams>();
+    wantParams->SetParam("NotifyRestoreFloatMainWindowCallback", OHOS::AAFwk::String::Box("100"));
+    
+    systemSession->SetRestoreFloatMainWindowCallback(nullptr);
+    EXPECT_EQ(systemSession->restoreFloatMainWindowFunc_, nullptr);
+    systemSession->NotifyRestoreFloatMainWindow(wantParams);
+
+    string res;
+    auto func = [&res](const std::shared_ptr<AAFwk::WantParams>& wantParameters) {
+        res = wantParameters->ToString();
+    };
+    systemSession->SetRestoreFloatMainWindowCallback(func);
+    systemSession->NotifyRestoreFloatMainWindow(wantParams);
+    EXPECT_EQ(res, "{\"NotifyRestoreFloatMainWindowCallback\":\"100\"}");
+}
+
+/**
+ * @tc.name: RestoreFloatMainWindow
+ * @tc.desc: RestoreFloatMainWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+
+    std::shared_ptr<AAFwk::WantParams> wantParams = std::make_shared<AAFwk::WantParams>();
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    EXPECT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_MEDIA);
+    systemSession->SetSessionProperty(property);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    systemSession->SetSessionProperty(property);
+
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
+    SessionInfo info1;
+    info1.abilityName_ = "floatWindowParentWindow";
+    info1.bundleName_ = "floatWindowParentWindow";
+    sptr<Session> parentSession = sptr<Session>::MakeSptr(info1);
+    systemSession->SetParentSession(parentSession);
+
+    LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid() + 1));
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
+    LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
+
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
+    systemSession->state_.store(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+    systemSession->state_.store(SessionState::STATE_ACTIVE);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+
+    systemSession->RegisterGetIsRecentStateFunc([]() {
+        return true;
+    });
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_START_ABILITY_FAILED);
+    systemSession->RegisterGetIsRecentStateFunc([]() {
+        return false;
+    });
+    parentSession->SetForegroundInteractiveStatus(false);
+    parentSession->state_.store(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_START_ABILITY_FAILED);
+    parentSession->state_.store(SessionState::STATE_ACTIVE);
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_START_ABILITY_FAILED);
+    parentSession->SetForegroundInteractiveStatus(true);
+
+    systemSession->floatWindowDownEventCnt_ = 0;
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
+    systemSession->floatWindowDownEventCnt_ = 2;
+    EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_OK);
+    EXPECT_EQ(systemSession->floatWindowDownEventCnt_, 0);
+}
+
+/**
+ * @tc.name: RestoreFloatMainWindowGetIsAtRecent
+ * @tc.desc: RestoreFloatMainWindowGetIsAtRecent Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, RestoreFloatMainWindowGetIsAtRecent, TestSize.Level1)
+{
+    SessionInfo info;
+
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(systemSession, nullptr);
+
+    EXPECT_EQ(systemSession->getIsRecentStateFunc_, nullptr);
+
+    auto func = []() {
+        return true;
+    };
+    systemSession->RegisterGetIsRecentStateFunc(func);
+    EXPECT_EQ(systemSession->getIsRecentStateFunc_(), true);
 }
 } // namespace
 } // namespace Rosen

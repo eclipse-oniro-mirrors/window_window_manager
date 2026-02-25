@@ -42,7 +42,7 @@ std::mutex WindowAdapterLite::windowAdapterLiteMapMutex_;
             TLOGE(WmsLogTag::DEFAULT, "window manager proxy is nullptr"); \
             return ret;                                                   \
         }                                                                 \
-    } while(false)
+    } while (false)
 
 #define CHECK_PROXY_RETURN_IF_NULL(proxy)                                 \
     do {                                                                  \
@@ -50,7 +50,7 @@ std::mutex WindowAdapterLite::windowAdapterLiteMapMutex_;
             TLOGE(WmsLogTag::DEFAULT, "window manager proxy is nullptr"); \
             return;                                                       \
         }                                                                 \
-    } while(false)
+    } while (false)
 
 WindowAdapterLite::~WindowAdapterLite()
 {
@@ -132,6 +132,77 @@ WMError WindowAdapterLite::UnregisterWindowManagerAgent(WindowManagerAgentType t
     return ret;
 }
 
+WMError WindowAdapterLite::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+
+    auto type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    // Flags only used to independent recovery.
+    observedFlags_ |= static_cast<uint32_t>(windowInfoKey);
+    interestedFlags_ |= interestInfo;
+
+    auto ret = wmsProxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    if (ret == WMError::WM_OK) {
+        std::lock_guard<std::mutex> lock(windowManagerLiteAgentMapMutex_);
+        windowManagerLiteAgentMap_[type].insert(windowManagerAgent);
+    } else {
+        TLOGE(WmsLogTag::WMS_SCB, "failed due to proxy, type: %{public}d", type);
+    }
+    return ret;
+}
+
+WMError WindowAdapterLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    auto ret = wmsProxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+
+    observedFlags_ &= ~(static_cast<uint32_t>(windowInfoKey));
+    interestedFlags_ &= ~interestInfo;
+
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    std::lock_guard<std::mutex> lock(windowManagerLiteAgentMapMutex_);
+    if (windowManagerLiteAgentMap_.find(type) == windowManagerLiteAgentMap_.end()) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "WINDOW_MANAGER_AGENT_TYPE_PROPERTY not found");
+        return ret;
+    }
+
+    auto& agentSet = windowManagerLiteAgentMap_[type];
+    auto agent = std::find(agentSet.begin(), agentSet.end(), windowManagerAgent);
+    if (agent == agentSet.end()) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "Cannot find WINDOW_MANAGER_AGENT_TYPE_PROPERTY");
+        return ret;
+    }
+    agentSet.erase(agent);
+
+    return ret;
+}
+
+WMError WindowAdapterLite::RecoverWindowPropertyChangeFlag()
+{
+    sptr<IWindowManagerLite> wmsProxy = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(wmsProxyMutex_);
+        if (!windowManagerServiceProxy_ || !windowManagerServiceProxy_->AsObject()) {
+            TLOGE(WmsLogTag::WMS_RECOVER, "proxy is null");
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        wmsProxy = windowManagerServiceProxy_;
+    }
+    auto ret = wmsProxy->RecoverWindowPropertyChangeFlag(observedFlags_, interestedFlags_);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "IPC failed, ret=%{public}d", static_cast<int32_t>(ret));
+    }
+    return ret;
+}
+
 // called after InitSSMProxy()
 void WindowAdapterLite::ReregisterWindowManagerLiteAgent()
 {
@@ -168,9 +239,17 @@ WMError WindowAdapterLite::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibi
     return wmsProxy->GetVisibilityWindowInfo(infos);
 }
 
+WMError WindowAdapterLite::UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
+    return wmsProxy->UpdateScreenLockStatusForApp(bundleName, isRelease);
+}
+
 bool WindowAdapterLite::InitSSMProxy()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (isProxyValid_) {
         return true;
     }
@@ -182,23 +261,27 @@ bool WindowAdapterLite::InitSSMProxy()
     sptr<IRemoteObject> remoteObject = windowManagerServiceProxy_->AsObject();
     if (!remoteObject) {
         TLOGE(WmsLogTag::WMS_SCB, "remoteObject is null");
+        windowManagerServiceProxy_ = nullptr;
         return false;
     }
-    wmsDeath_ = sptr<WMSDeathRecipient>::MakeSptr(userId_);
+    if (!wmsDeath_) {
+        wmsDeath_ = sptr<WMSDeathRecipient>::MakeSptr(userId_);
+    }
     if (remoteObject->IsProxyObject() && !remoteObject->AddDeathRecipient(wmsDeath_)) {
         TLOGE(WmsLogTag::WMS_SCB, "Failed to add death recipient");
+        windowManagerServiceProxy_ = nullptr;
         return false;
     }
     // U0 system user needs to subscribe OnUserSwitch event
     int32_t clientUserId = GetUserIdByUid(getuid());
     if (clientUserId == SYSTEM_USERID && !isRegisteredUserSwitchListener_) {
         SessionManagerLite::GetInstance(userId_).RegisterUserSwitchListener([weakThis = wptr(this)] {
-            auto windowAdapter = weakThis.promote();
-            if (!windowAdapter) {
-                TLOGE(WmsLogTag::WMS_SCB, "window adapter is null");
+            auto windowAdapterLite = weakThis.promote();
+            if (!windowAdapterLite) {
+                TLOGE(WmsLogTag::WMS_SCB, "window adapter lite is null");
                 return;
             }
-            windowAdapter->OnUserSwitch();
+            windowAdapterLite->OnUserSwitch();
         });
         isRegisteredUserSwitchListener_ = true;
     }
@@ -208,21 +291,22 @@ bool WindowAdapterLite::InitSSMProxy()
 
 void WindowAdapterLite::OnUserSwitch()
 {
-    TLOGD(WmsLogTag::WMS_MULTI_USER, "User switched lite");
-    ClearWindowAdapter();
+    ClearWMSProxy();
     InitSSMProxy();
     ReregisterWindowManagerLiteAgent();
+    RecoverWindowPropertyChangeFlag();
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "End user switch");
 }
 
-void WindowAdapterLite::ClearWindowAdapter()
+void WindowAdapterLite::ClearWMSProxy()
 {
-    WLOGD("ClearWindowAdapter");
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (windowManagerServiceProxy_ != nullptr && windowManagerServiceProxy_->AsObject() != nullptr) {
         windowManagerServiceProxy_->AsObject()->RemoveDeathRecipient(wmsDeath_);
     }
     isProxyValid_ = false;
     windowManagerServiceProxy_ = nullptr;
+    TLOGI(WmsLogTag::WMS_SCB, "Clear end");
 }
 
 WMSDeathRecipient::WMSDeathRecipient(int32_t userId) : userId_(userId) {}
@@ -239,14 +323,14 @@ void WMSDeathRecipient::OnRemoteDied(const wptr<IRemoteObject>& wptrDeath)
         return;
     }
     TLOGI(WmsLogTag::WMS_SCB, "wms lite OnRemoteDied");
-    WindowAdapterLite::GetInstance(userId_).ClearWindowAdapter();
+    WindowAdapterLite::GetInstance(userId_).ClearWMSProxy();
     SessionManagerLite::GetInstance(userId_).ClearSessionManagerProxy();
 }
 
 void WindowAdapterLite::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
     INIT_PROXY_CHECK_RETURN();
-    WLOGFD("use Foucus window info proxy");
+    TLOGD(WmsLogTag::WMS_FOCUS, "use Foucus window info proxy");
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
@@ -255,6 +339,16 @@ void WindowAdapterLite::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId
     } else {
         wmsProxy->GetFocusWindowInfo(focusInfo);
     }
+}
+
+void WindowAdapterLite::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                                        std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    INIT_PROXY_CHECK_RETURN();
+    TLOGD(WmsLogTag::WMS_FOCUS, "request on adapter lite");
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
+    wmsProxy->GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
 }
 
 WMError WindowAdapterLite::GetWindowModeType(WindowModeType& windowModeType)
@@ -267,14 +361,13 @@ WMError WindowAdapterLite::GetWindowModeType(WindowModeType& windowModeType)
     return wmsProxy->GetWindowModeType(windowModeType);
 }
 
-WMError WindowAdapterLite::GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo)
+WMError WindowAdapterLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
-    TLOGD(WmsLogTag::WMS_MAIN, "get top main window info");
-
+    WLOGFD("update animation speed with pid=%{public}d, speed=%.2f", pid, speed);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->GetMainWindowInfos(topNum, topNInfo);
+    return wmsProxy->UpdateAnimationSpeedWithPid(pid, speed);
 }
 
 WMError WindowAdapterLite::GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken,
@@ -288,13 +381,14 @@ WMError WindowAdapterLite::GetMainWindowInfoByToken(const sptr<IRemoteObject>& a
     return wmsProxy->GetMainWindowInfoByToken(abilityToken, windowInfo);
 }
 
-WMError WindowAdapterLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
+WMError WindowAdapterLite::GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
-    TLOGD(WmsLogTag::WMS_ANIMATION, "update animation speed with pid");
+    TLOGD(WmsLogTag::WMS_MAIN, "get top main window info");
+
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->UpdateAnimationSpeedWithPid(pid, speed);
+    return wmsProxy->GetMainWindowInfos(topNum, topNInfo);
 }
 
 WMError WindowAdapterLite::GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo)
@@ -368,9 +462,17 @@ WMError WindowAdapterLite::GetWindowStyleType(WindowStyleType& windowStyleType)
     return wmsProxy->GetWindowStyleType(windowStyleType);
 }
 
+WMError WindowAdapterLite::SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+}
+
 sptr<IWindowManagerLite> WindowAdapterLite::GetWindowManagerServiceProxy() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     return windowManagerServiceProxy_;
 }
 
@@ -414,6 +516,46 @@ WMError WindowAdapterLite::GetAccessibilityWindowInfo(std::vector<sptr<Accessibi
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->GetAccessibilityWindowInfo(infos);
+}
+
+WMError WindowAdapterLite::SetGlobalDragResizeType(DragResizeType dragResizeType)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetGlobalDragResizeType(dragResizeType);
+}
+
+WMError WindowAdapterLite::GetGlobalDragResizeType(DragResizeType& dragResizeType)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->GetGlobalDragResizeType(dragResizeType);
+}
+
+WMError WindowAdapterLite::SetAppDragResizeType(const std::string& bundleName, DragResizeType dragResizeType)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetAppDragResizeType(bundleName, dragResizeType);
+}
+
+WMError WindowAdapterLite::GetAppDragResizeType(const std::string& bundleName, DragResizeType& dragResizeType)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->GetAppDragResizeType(bundleName, dragResizeType);
+}
+
+WMError WindowAdapterLite::SetAppKeyFramePolicy(const std::string& bundleName, const KeyFramePolicy& keyFramePolicy)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetAppKeyFramePolicy(bundleName, keyFramePolicy);
 }
 
 WMError WindowAdapterLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,

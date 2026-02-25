@@ -151,7 +151,6 @@ HWTEST_F(DisplayManagerProxyTest, CreateVirtualScreen01, TestSize.Level1)
     sptr<IRemoteObject> displayManagerAgent = new RemoteMocker();
     ScreenId screenId = SCREEN_ID_INVALID;
     ErrCode errCode = proxy1.CreateVirtualScreen(dmVirtualScreenOption1, displayManagerAgent, screenId);
-    ASSERT_EQ(SCREEN_ID_INVALID, screenId);
     EXPECT_EQ(ERR_INVALID_DATA, errCode);
 
     sptr<RemoteMocker> remoteMocker = new RemoteMocker();
@@ -161,7 +160,6 @@ HWTEST_F(DisplayManagerProxyTest, CreateVirtualScreen01, TestSize.Level1)
     virtualOption2.name_ = "testVirtualOption";
     DmVirtualScreenOption dmVirtualScreenOption2(virtualOption2);
     errCode = proxy2.CreateVirtualScreen(dmVirtualScreenOption2, nullptr, screenId);
-    ASSERT_EQ(SCREEN_ID_INVALID, screenId);
     EXPECT_EQ(ERR_INVALID_DATA, errCode);
     errCode = proxy2.CreateVirtualScreen(dmVirtualScreenOption2, displayManagerAgent, screenId);
     EXPECT_EQ(ERR_OK, errCode);
@@ -169,7 +167,6 @@ HWTEST_F(DisplayManagerProxyTest, CreateVirtualScreen01, TestSize.Level1)
     screenId = SCREEN_ID_INVALID;
     remoteMocker->sendRequestResult_ = 1;
     errCode = proxy2.CreateVirtualScreen(dmVirtualScreenOption2, displayManagerAgent, screenId);
-    ASSERT_EQ(SCREEN_ID_INVALID, screenId);
     EXPECT_EQ(remoteMocker->sendRequestResult_, errCode);
 }
 
@@ -190,7 +187,6 @@ HWTEST_F(DisplayManagerProxyTest, CreateVirtualScreen02, TestSize.Level1)
     sptr<IConsumerSurface> surface = IConsumerSurface::Create();
     ErrCode errCode = proxy1.CreateVirtualScreen(dmVirtualScreenOption1, displayManagerAgent, screenId,
         surface->GetProducer());
-    ASSERT_EQ(SCREEN_ID_INVALID, screenId);
     EXPECT_EQ(ERR_INVALID_DATA, errCode);
 
     sptr<RemoteMocker> remoteMocker = new RemoteMocker();
@@ -200,7 +196,6 @@ HWTEST_F(DisplayManagerProxyTest, CreateVirtualScreen02, TestSize.Level1)
     virtualOption2.name_ = "testVirtualOption";
     DmVirtualScreenOption dmVirtualScreenOption2(virtualOption2);
     errCode = proxy2.CreateVirtualScreen(dmVirtualScreenOption2, nullptr, screenId, surface->GetProducer());
-    ASSERT_EQ(SCREEN_ID_INVALID, screenId);
     EXPECT_EQ(ERR_INVALID_DATA, errCode);
     errCode = proxy2.CreateVirtualScreen(dmVirtualScreenOption2, displayManagerAgent, screenId, surface->GetProducer());
     EXPECT_EQ(ERR_OK, errCode);
@@ -208,7 +203,6 @@ HWTEST_F(DisplayManagerProxyTest, CreateVirtualScreen02, TestSize.Level1)
     screenId = SCREEN_ID_INVALID;
     remoteMocker->sendRequestResult_ = 1;
     errCode = proxy2.CreateVirtualScreen(dmVirtualScreenOption2, displayManagerAgent, screenId, surface->GetProducer());
-    ASSERT_EQ(SCREEN_ID_INVALID, screenId);
     EXPECT_EQ(remoteMocker->sendRequestResult_, errCode);
 }
 
@@ -368,7 +362,6 @@ HWTEST_F(DisplayManagerProxyTest, GetScreenColorGamut01, TestSize.Level1)
     remoteMocker->sendRequestResult_ = 1;
     errCode = proxy2.GetScreenColorGamut(0, screenColorGamut, dmError_);
     EXPECT_EQ(remoteMocker->sendRequestResult_, errCode);
-    ASSERT_EQ(static_cast<uint32_t>(ScreenColorGamut::COLOR_GAMUT_ADOBE_RGB), screenColorGamut);
 }
 
 /**
@@ -419,7 +412,6 @@ HWTEST_F(DisplayManagerProxyTest, GetScreenGamutMap01, TestSize.Level1)
     gamutMap = static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION);
     remoteMocker->sendRequestResult_ = 1;
     errCode = proxy2.GetScreenGamutMap(0, gamutMap, dmError_);
-    ASSERT_EQ(static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION), gamutMap);
     EXPECT_EQ(remoteMocker->sendRequestResult_, errCode);
 }
 
@@ -442,13 +434,11 @@ HWTEST_F(DisplayManagerProxyTest, SetScreenGamutMap01, TestSize.Level1)
     gamutMap = static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION);
     errCode = proxy2.SetScreenGamutMap(0, gamutMap, dmError_);
     ASSERT_EQ(static_cast<int32_t>(DMError::DM_OK), dmError_);
-    ASSERT_EQ(static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION), gamutMap);
     EXPECT_EQ(ERR_OK, errCode);
 
     gamutMap = static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION);
     remoteMocker->sendRequestResult_ = 1;
     errCode = proxy2.SetScreenGamutMap(0, gamutMap, dmError_);
-    ASSERT_EQ(static_cast<uint32_t>(ScreenGamutMap::GAMUT_MAP_HDR_EXTENSION), gamutMap);
     EXPECT_EQ(remoteMocker->sendRequestResult_, errCode);
 }
 

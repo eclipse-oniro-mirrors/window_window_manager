@@ -25,7 +25,8 @@
 #include "fold_screen_controller/fold_screen_controller_config.h"
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
- 
+#include "screen_sensor_mgr.h"
+
 namespace OHOS {
  
 namespace Rosen {
@@ -63,33 +64,35 @@ static void SensorHallDataCallback(SensorEvent *event)
 
 void SuperFoldSensorManager::RegisterPostureCallback()
 {
-    OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    curInterval_ = POSTURE_INTERVAL;
+    DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL, SensorPostureDataCallback);
 }
 
 void SuperFoldSensorManager::UnregisterPostureCallback()
 {
-    int32_t deactivateRet = DeactivateSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-    int32_t unsubscribeRet = UnsubscribeSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-    TLOGI(WmsLogTag::DMS, "deactivateRet: %{public}d, unsubscribeRet: %{public}d",
-        deactivateRet, unsubscribeRet);
-    if (deactivateRet == SENSOR_SUCCESS && unsubscribeRet == SENSOR_SUCCESS) {
-        TLOGI(WmsLogTag::DMS, "FoldScreenSensorManager.UnRegisterPostureCallback success.");
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(
+        SENSOR_TYPE_ID_POSTURE);
+    if (ret == SENSOR_SUCCESS) {
+        TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "UnregisterPostureCallback failed with ret: %{public}d", ret);
     }
 }
 
 void SuperFoldSensorManager::RegisterHallCallback()
 {
-    OHOS::Rosen::FoldScreenSensorManager::GetInstance().SubscribeSensorCallback(
+    DMS::ScreenSensorMgr::GetInstance().SubscribeSensorCallback(
         SENSOR_TYPE_ID_HALL, POSTURE_INTERVAL, SensorHallDataCallback);
 }
 
 void SuperFoldSensorManager::UnregisterHallCallback()
 {
-    int32_t deactivateRet = DeactivateSensor(SENSOR_TYPE_ID_HALL, &hallUser);
-    int32_t unsubscribeRet = UnsubscribeSensor(SENSOR_TYPE_ID_HALL, &hallUser);
-    if (deactivateRet == SENSOR_SUCCESS && unsubscribeRet == SENSOR_SUCCESS) {
-        TLOGI(WmsLogTag::DMS, "UnRegisterHallCallback success.");
+    int ret = DMS::ScreenSensorMgr::GetInstance().UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL);
+    if (ret == SENSOR_SUCCESS) {
+        TLOGI(WmsLogTag::DMS, "success.");
+    } else {
+        TLOGE(WmsLogTag::DMS, "UnRegisterHallCallback failed with ret: %{public}d", ret);
     }
 }
 
@@ -110,16 +113,15 @@ void SuperFoldSensorManager::HandlePostureData(const SensorEvent * const event)
     PostureData *postureData = reinterpret_cast<PostureData *>(event[SENSOR_EVENT_FIRST_DATA].data);
     curAngle_ = (*postureData).angle;
     if (curAngle_ > UNFOLD_ANGLE && curInterval_ != POSTURE_INTERVAL_FOR_WIDE_ANGLE) {
-        int32_t setBatchRet = SetBatch(SENSOR_TYPE_ID_POSTURE, &postureUser,
-            POSTURE_INTERVAL_FOR_WIDE_ANGLE, POSTURE_INTERVAL_FOR_WIDE_ANGLE);
-        int32_t activateRet = ActivateSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-        if (setBatchRet == 0 && activateRet == 0) {
+        int32_t ret = DMS::ScreenSensorMgr::GetInstance().UpdateSensorInterval(
+            SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL_FOR_WIDE_ANGLE);
+        if (ret == SENSOR_SUCCESS) {
             curInterval_ = POSTURE_INTERVAL_FOR_WIDE_ANGLE;
         }
     } else if (curAngle_ < UNFOLD_ANGLE && curInterval_ != POSTURE_INTERVAL) {
-        int32_t setBatchRet = SetBatch(SENSOR_TYPE_ID_POSTURE, &postureUser, POSTURE_INTERVAL, POSTURE_INTERVAL);
-        int32_t activateRet = ActivateSensor(SENSOR_TYPE_ID_POSTURE, &postureUser);
-        if (setBatchRet == 0 && activateRet == 0) {
+        int32_t ret =
+            DMS::ScreenSensorMgr::GetInstance().UpdateSensorInterval(SENSOR_TYPE_ID_POSTURE, POSTURE_INTERVAL);
+        if (ret == SENSOR_SUCCESS) {
             curInterval_ = POSTURE_INTERVAL;
         }
     }
@@ -202,7 +204,7 @@ void SuperFoldSensorManager::NotifyHallChanged(uint16_t Hall)
 {
     SuperFoldStatusChangeEvents events;
     if (Hall == HALL_REMOVE_KEYBOARD_THRESHOLD) {
-        TLOGI(WmsLogTag::DMS, "NotifyHallChanged: Keyboard off!");
+        TLOGD(WmsLogTag::DMS, "NotifyHallChanged: Keyboard off!");
         events = SuperFoldStatusChangeEvents::KEYBOARD_OFF;
     } else if (Hall == HALL_HAVE_KEYBOARD_THRESHOLD) {
         if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::EXPANDED) {
@@ -226,7 +228,7 @@ void SuperFoldSensorManager::NotifyHallChanged(uint16_t Hall)
 void SuperFoldSensorManager::HandleSuperSensorChange(SuperFoldStatusChangeEvents events)
 {
     // trigger events
-    if (ScreenSessionManager::GetInstance().GetIsExtendMode() ||
+    if (ScreenSessionManager::GetInstance().GetIsExtendModelocked() ||
         ScreenSessionManager::GetInstance().GetIsFoldStatusLocked() ||
         ScreenSessionManager::GetInstance().GetIsLandscapeLockStatus()) {
         return;
@@ -234,19 +236,19 @@ void SuperFoldSensorManager::HandleSuperSensorChange(SuperFoldStatusChangeEvents
     SuperFoldStateManager::GetInstance().HandleSuperFoldStatusChange(events);
 }
 
-void SuperFoldSensorManager::HandleScreenConnectChange()
+void SuperFoldSensorManager::DriveStateMachineToExpand()
 {
-    TLOGW(WmsLogTag::DMS, "Screen connect to stop statemachine.");
-    SuperFoldStateManager::GetInstance().HandleScreenConnectChange();
+    TLOGW(WmsLogTag::DMS, "to expand.");
+    SuperFoldStateManager::GetInstance().DriveStateMachineToExpand();
 }
 
-void SuperFoldSensorManager::HandleScreenDisconnectChange()
+void SuperFoldSensorManager::SetStateMachineToActived()
 {
     if (ScreenSessionManager::GetInstance().GetIsFoldStatusLocked()) {
         TLOGW(WmsLogTag::DMS, "Fold status is still locked.");
         return;
     }
-    if (ScreenSessionManager::GetInstance().GetIsExtendScreenConnected()) {
+    if (ScreenSessionManager::GetInstance().GetIsExtendModelocked()) {
         TLOGW(WmsLogTag::DMS, "Extend screen is still connected.");
         return;
     }
@@ -262,7 +264,7 @@ void SuperFoldSensorManager::HandleScreenDisconnectChange()
 void SuperFoldSensorManager::HandleFoldStatusLockedToExpand()
 {
     TLOGI(WmsLogTag::DMS, "Fold status locked to expand and stop statemachine.");
-    SuperFoldStateManager::GetInstance().HandleScreenConnectChange();
+    SuperFoldStateManager::GetInstance().DriveStateMachineToExpand();
 }
 
 void SuperFoldSensorManager::HandleFoldStatusUnlocked()

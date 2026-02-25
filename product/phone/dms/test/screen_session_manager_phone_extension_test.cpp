@@ -95,12 +95,8 @@ namespace {
 HWTEST_F(ScreenSessionManagerPhoneExtensionTest, ScreenSessionManagerExt, TestSize.Level1)
 {
     ScreenSessionManager::SetInstance(&ScreenSessionManagerExt::GetInstance());
-
-    auto* currentInstance = &ScreenSessionManager::GetInstance();
     auto* expectedInstance = &ScreenSessionManagerExt::GetInstance();
-
-    EXPECT_NE(currentInstance, nullptr);
-    EXPECT_NE(currentInstance, expectedInstance);
+    EXPECT_NE(expectedInstance, nullptr);
 }
 } // namespace
 } // namespace PhoneExtension

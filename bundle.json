@@ -14,7 +14,7 @@
       "subsystem": "window",
       "syscap": [
         "SystemCapability.WindowManager.WindowManager.Core",
-        "SystemCapability.Window.SessionManager"
+        "SystemCapability.Window.SessionManager = false"
       ],
       "features": [
         "window_manager_use_sceneboard",
@@ -92,7 +92,8 @@
           "runtime_core",
           "zlib",
           "screenlock_mgr",
-          "os_account"
+          "os_account",
+          "time_service"
         ],
         "third_party": [
         ]
@@ -128,10 +129,10 @@
             "//foundation/window/window_manager/utils:libwmutil_base",
             "//foundation/window/window_manager/window_scene/common:window_scene_common",
             "//foundation/window/window_manager/wm:libpip_web",
-            "//foundation/window/window_manager/wm:libpip_ndk"
+            "//foundation/window/window_manager/wm:libpip_ndk",
+            "//foundation/window/window_manager/wm:libmmi_client_adapter"
           ],
           "service_group": [
-            "//foundation/window/window_manager/product:libdms_ext",
             "//foundation/window/window_manager/sa_profile:wms_sa_profile",
             "//foundation/window/window_manager/dmserver:libdms",
             "//foundation/window/window_manager/wmserver:libwms"
@@ -535,8 +536,7 @@
           "//foundation/window/window_manager/wmserver:test",
           "//foundation/window/window_manager/test:test",
           "//foundation/window/window_manager/extension/window_extension:test",
-          "//foundation/window/window_manager/window_scene:test",
-          "//foundation/window/window_manager/product:test"
+          "//foundation/window/window_manager/window_scene:test"
         ]
       }
     }

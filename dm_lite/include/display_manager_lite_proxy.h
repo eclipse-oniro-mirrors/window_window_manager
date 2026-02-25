@@ -67,6 +67,7 @@ public:
     bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason);
     ScreenPowerState GetScreenPower(ScreenId dmsScreenId);
     ScreenPowerState GetScreenPower();
+    void SyncScreenPowerState(ScreenPowerState state);
     bool SetDisplayState(DisplayState state);
     DisplayState GetDisplayState(DisplayId displayId);
     bool TryToCancelScreenOff();
@@ -76,9 +77,11 @@ public:
     DMError GetPhysicalScreenIds(std::vector<ScreenId>& screenIds);
     DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
     DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
+    DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
     sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId);
     bool GetKeyboardState();
     bool SynchronizePowerStatus(ScreenPowerState state);
+    DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height, float virtualPixelRatio);
 private:
     static inline DMError ConvertToDMError(ErrCode errCode, int32_t dmError);
     sptr<IRemoteObject> Remote()

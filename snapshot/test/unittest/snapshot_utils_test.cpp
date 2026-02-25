@@ -145,10 +145,8 @@ HWTEST_F(SnapshotUtilsTest, WriteRgb888ToJpeg01, TestSize.Level1)
 {
     uint8_t *data = nullptr;
     FILE *file = fopen(defaultFile_.c_str(), "wb");
-    if (file == nullptr) {
-        return;
-    }
-    ASSERT_FALSE(SnapShotUtils::WriteRgb888ToJpeg(file, 100, 100, data));
+    ASSERT_NE(nullptr, file);
+    EXPECT_FALSE(SnapShotUtils::WriteRgb888ToJpeg(file, 100, 100, data));
     fclose(file);
 }
 
@@ -228,10 +226,8 @@ HWTEST_F(SnapshotUtilsTest, Write04, TestSize.Level1)
     std::shared_ptr<Media::PixelMap> pixelMap = DisplayManager::GetInstance().GetScreenshot(id);
     ASSERT_NE(nullptr, pixelMap);
     int fd = open(defaultFile_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0666);
-    if (fd == -1) {
-        return;
-    }
-    ASSERT_EQ(true, SnapShotUtils::WriteToJpegWithPixelMap(fd, *pixelMap));
+    ASSERT_NE(-1, fd);
+    EXPECT_EQ(true, SnapShotUtils::WriteToJpegWithPixelMap(fd, *pixelMap));
     close(fd);
 }
 

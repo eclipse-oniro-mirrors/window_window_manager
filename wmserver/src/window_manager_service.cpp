@@ -936,7 +936,8 @@ bool WindowManagerService::CheckSystemWindowPermission(const sptr<WindowProperty
         return true;
     }
     if (type == WindowType::WINDOW_TYPE_DRAGGING_EFFECT || type == WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW ||
-        type == WindowType::WINDOW_TYPE_TOAST || type == WindowType::WINDOW_TYPE_DIALOG) {
+        type == WindowType::WINDOW_TYPE_TOAST || type == WindowType::WINDOW_TYPE_DIALOG ||
+        type == WindowType::WINDOW_TYPE_SELECTION) {
         // some system types counld be created by normal app
         return true;
     }
@@ -1286,16 +1287,16 @@ void WindowManagerService::NotifyWindowClientPointUp(uint32_t windowId,
     PostAsyncTask(task, "NotifyWindowClientPointUp");
 }
 
-WMError WindowManagerService::MinimizeAllAppWindows(DisplayId displayId)
+WMError WindowManagerService::MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId)
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         WLOGFE("minimize all appWindows permission denied!");
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
-    auto task = [this, displayId]() {
+    auto task = [this, displayId, excludeWindowId]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "wms:MinimizeAllAppWindows(%" PRIu64")", displayId);
-        WLOGI("displayId %{public}" PRIu64"", displayId);
-        windowController_->MinimizeAllAppWindows(displayId);
+        WLOGI("displayId %{public}" PRIu64", excludeWindowId : %{public}d", displayId, excludeWindowId);
+        windowController_->MinimizeAllAppWindows(displayId, excludeWindowId);
     };
     PostAsyncTask(task, "MinimizeAllAppWindows");
     return WMError::WM_OK;

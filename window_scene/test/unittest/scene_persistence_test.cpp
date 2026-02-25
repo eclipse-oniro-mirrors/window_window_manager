@@ -72,7 +72,7 @@ HWTEST_F(ScenePersistenceTest, CreateSnapshotDir, TestSize.Level1)
     std::string directory = "0/Storage";
     ASSERT_NE(nullptr, scenePersistence);
     bool result = scenePersistence->CreateSnapshotDir(directory);
-    ASSERT_EQ(result, false);
+    EXPECT_EQ(result, false);
 }
 
 /**
@@ -85,7 +85,7 @@ HWTEST_F(ScenePersistenceTest, CreateUpdatedIconDir, TestSize.Level1)
     std::string directory = "0/Storage";
     ASSERT_NE(nullptr, scenePersistence);
     bool result = scenePersistence->CreateUpdatedIconDir(directory);
-    ASSERT_EQ(result, false);
+    EXPECT_EQ(result, false);
 }
 
 /**

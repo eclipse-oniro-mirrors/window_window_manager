@@ -16,6 +16,7 @@
 #include <hitrace_meter.h>
  
 #include "ani.h"
+#include <ani_signature_builder.h>
 #include "screenshot_ani_utils.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
@@ -27,6 +28,8 @@ namespace OHOS::Rosen {
 static const uint32_t PIXMAP_VECTOR_ONLY_SDR_SIZE = 1;
 static const uint32_t PIXMAP_VECTOR_SIZE = 2;
 static const uint32_t HDR_PIXMAP = 1;
+
+using namespace arkts::ani_signature;
 
 ani_status ScreenshotAniUtils::GetStdString(ani_env* env, ani_string ani_str, std::string& result)
 {
@@ -53,7 +56,71 @@ ani_object ScreenshotAniUtils::CreateAniUndefined(ani_env* env)
     env->GetUndefined(&aniRef);
     return static_cast<ani_object>(aniRef);
 }
- 
+
+ani_object ScreenshotAniUtils::CreateRectObject(ani_env* env)
+{
+    ani_class aniClass{};
+    ani_status status = env->FindClass("@ohos.screenshot.screenshot.RectImpl", &aniClass);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] class not found, status:%{public}d", static_cast<int32_t>(status));
+        return nullptr;
+    }
+    ani_method aniCtor;
+    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":", &aniCtor);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Class_FindMethod failed");
+        return nullptr;
+    }
+    ani_object rectObj;
+    status = env->Object_New(aniClass, aniCtor, &rectObj);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Object_New failed");
+        return nullptr;
+    }
+    return rectObj;
+}
+
+void ScreenshotAniUtils::ConvertRect(ani_env* env, Media::Rect rect, ani_object rectObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] rect area info: %{public}d, %{public}d, %{public}u, %{public}u",
+        rect.left, rect.width, rect.top, rect.height);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("left").c_str(), rect.left);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("top").c_str(), rect.top);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("width").c_str(), rect.width);
+    env->Object_SetFieldByName_Long(rectObj, Builder::BuildPropertyName("height").c_str(), rect.height);
+}
+
+ani_object ScreenshotAniUtils::CreateScreenshotPickInfo(ani_env* env, std::unique_ptr<Param>& param)
+{
+    ani_class aniClass{};
+    ani_status status = env->FindClass("@ohos.screenshot.screenshot.PickInfoImpl", &aniClass);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] class not found, status:%{public}d", static_cast<int32_t>(status));
+        return nullptr;
+    }
+    ani_method aniCtor;
+    auto ret = env->Class_FindMethod(aniClass, "<ctor>", ":", &aniCtor);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Class_FindMethod failed");
+        return nullptr;
+    }
+    ani_object pickInfoObj;
+    status = env->Object_New(aniClass, aniCtor, &pickInfoObj);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Object_New failed");
+        return nullptr;
+    }
+    ani_object rectObj = ScreenshotAniUtils::CreateRectObject(env);
+    ScreenshotAniUtils::ConvertRect(env, param->imageRect, rectObj);
+    env->Object_SetFieldByName_Ref(
+        pickInfoObj, Builder::BuildPropertyName("pickRect").c_str(), static_cast<ani_ref>(rectObj));
+
+    auto nativePixelMap = Media::PixelMapTaiheAni::CreateEtsPixelMap(env, param->image);
+    env->Object_SetFieldByName_Ref(
+        pickInfoObj, Builder::BuildPropertyName("pixelMap").c_str(), static_cast<ani_ref>(nativePixelMap));
+    return pickInfoObj;
+}
+
 ani_status ScreenshotAniUtils::GetAniString(ani_env* env, const std::string& str, ani_string* result)
 {
     return env->String_NewUTF8(str.c_str(), static_cast<ani_size>(str.size()), result);
@@ -80,7 +147,7 @@ ani_status ScreenshotAniUtils::CallAniFunctionVoid(ani_env* env, const char* ns,
         return ret;
     }
     if (func == nullptr) {
-        TLOGI(WmsLogTag::DEFAULT, "[ANI] null func ani");
+        TLOGI(WmsLogTag::DEFAULT, "[ANI] null func ani.");
         return ret;
     }
     va_list args;
@@ -147,7 +214,7 @@ ani_object ScreenshotAniUtils::CreateArrayPixelMap(
 {
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_class cls;
-    if (env->FindClass("L@ohos/multimedia/image/image/PixelMap;", &cls) != ANI_OK) {
+    if (env->FindClass("@ohos.multimedia.image.image.PixelMap", &cls) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] class not found");
         return nullptr;
     }
@@ -155,8 +222,8 @@ ani_object ScreenshotAniUtils::CreateArrayPixelMap(
     if (imageVec[HDR_PIXMAP] != nullptr) {
         arrayLength = static_cast<ani_size>(PIXMAP_VECTOR_SIZE);
     }
-    ani_array_ref pixelMapArray = nullptr;
-    if (env->Array_New_Ref(cls, arrayLength, ScreenshotAniUtils::CreateAniUndefined(env), &pixelMapArray) != ANI_OK) {
+    ani_array pixelMapArray = nullptr;
+    if (env->Array_New(arrayLength, ScreenshotAniUtils::CreateAniUndefined(env), &pixelMapArray) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] create array failed");
         return nullptr;
     }
@@ -166,7 +233,7 @@ ani_object ScreenshotAniUtils::CreateArrayPixelMap(
             TLOGE(WmsLogTag::DMS, "[ANI] Create native pixelmap is nullptr!");
             return nullptr;
         }
-        if (env->Array_Set_Ref(pixelMapArray, i, nativePixelMap) != ANI_OK) {
+        if (env->Array_Set(pixelMapArray, i, nativePixelMap) != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] create pixelMapArray failed!");
             return nullptr;
         }
@@ -298,7 +365,7 @@ ani_status ScreenshotAniUtils::ReadOptionalLongField(ani_env* env, ani_object ob
     ani_ref ref = nullptr;
     ani_status result = ReadOptionalField(env, obj, fieldName, ref);
     if (result == ANI_OK && ref != nullptr) {
-        result = env->Object_CallMethodByName_Long(reinterpret_cast<ani_object>(ref), "unboxed", ":l", &value);
+        result = env->Object_CallMethodByName_Long(reinterpret_cast<ani_object>(ref), "toLong", ":l", &value);
     }
     return result;
 }
@@ -309,7 +376,7 @@ ani_status ScreenshotAniUtils::ReadOptionalIntField(ani_env* env, ani_object obj
     ani_ref ref = nullptr;
     ani_status result = ReadOptionalField(env, obj, fieldName, ref);
     if (result == ANI_OK && ref != nullptr) {
-        result = env->Object_CallMethodByName_Int(reinterpret_cast<ani_object>(ref), "unboxed", ":i", &value);
+        result = env->Object_CallMethodByName_Int(reinterpret_cast<ani_object>(ref), "toInt", ":i", &value);
     }
     return result;
 }
@@ -320,7 +387,7 @@ ani_status ScreenshotAniUtils::ReadOptionalBoolField(ani_env* env, ani_object ob
     ani_status result = ReadOptionalField(env, obj, fieldName, ref);
     if (result == ANI_OK && ref != nullptr) {
         ani_boolean aniBool;
-        result = env->Object_CallMethodByName_Boolean(reinterpret_cast<ani_object>(ref), "unboxed", ":z", &aniBool);
+        result = env->Object_CallMethodByName_Boolean(reinterpret_cast<ani_object>(ref), "toBoolean", ":z", &aniBool);
         if (result == ANI_OK) {
             value = static_cast<bool>(aniBool);
         }

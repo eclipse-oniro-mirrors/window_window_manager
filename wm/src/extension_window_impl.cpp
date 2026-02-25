@@ -17,6 +17,7 @@
 #include <want.h>
 
 #include "extension_window_impl.h"
+#include "extension/extension_business_info.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
 
@@ -85,8 +86,8 @@ WMError ExtensionWindowImpl::OccupyEvents(int32_t eventFlags)
     AAFwk::Want want;
     want.SetParam("type", std::string("OccupyEvents"));
     want.SetParam("eventFlags", eventFlags);
-    constexpr int32_t customId = 1001;
-    auto ret = dataHandler->SendDataSync(SubSystemId::ARKUI_UIEXT, customId, want);
+    auto ret = dataHandler->SendDataSync(SubSystemId::ARKUI_UIEXT,
+        static_cast<uint32_t>(Extension::Businesscode::OCCUPY_EVENTS), want);
     if (ret != DataHandlerErr::OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "send failed");
         return WMError::WM_ERROR_IPC_FAILED;

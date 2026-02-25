@@ -58,7 +58,6 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     parcel.WriteBuffer(data, size);
 
     SceneSessionMgrLsUecTestCode(parcel);
-
     return true;
 }
 } // namespace OHOS

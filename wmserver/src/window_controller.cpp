@@ -499,7 +499,6 @@ void WindowController::NotifyInputCallingWindowRectAndOccupiedAreaChange(const s
         auto avoidAreaType = static_cast<AvoidAreaType>(type);
         AvoidArea area = GetAvoidAreaByType(callingWindow->GetWindowId(), avoidAreaType);
         avoidAreas[avoidAreaType] = area;
-        avoidAreas[avoidAreaType] = area;
     }
     auto rsTransaction = RSSyncTransactionAdapter::GetRSTransaction(callingWindow->GetRSUIContext());
     if (WindowNodeContainer::GetAnimateTransactionEnabled() && rsTransaction) {
@@ -1352,9 +1351,9 @@ WMError WindowController::NotifyWindowClientPointUp(uint32_t windowId,
     return WMError::WM_OK;
 }
 
-void WindowController::MinimizeAllAppWindows(DisplayId displayId)
+void WindowController::MinimizeAllAppWindows(DisplayId displayId, int32_t excludeWindowId)
 {
-    windowRoot_->MinimizeAllAppWindows(displayId);
+    windowRoot_->MinimizeAllAppWindows(displayId, excludeWindowId);
     if (RemoteAnimation::NotifyAnimationByHome() != WMError::WM_OK) {
         MinimizeApp::ExecuteMinimizeAll();
     }

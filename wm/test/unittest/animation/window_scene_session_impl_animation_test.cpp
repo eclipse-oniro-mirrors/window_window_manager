@@ -34,6 +34,26 @@ namespace OHOS {
 namespace Rosen {
 using Mocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
 uint32_t MaxWith = 32;
+constexpr uint32_t NUMBER_ONE = 1;
+constexpr uint32_t NUMBER_TWO = 2;
+
+class TestAnimationTransitionController : public IAnimationTransitionController {
+public:
+    uint32_t testCount_ = 0;
+
+    void AnimationForShown() override;
+    void AnimationForHidden() override;
+};
+
+void TestAnimationTransitionController::AnimationForShown()
+{
+    testCount_ = NUMBER_ONE;
+}
+
+void TestAnimationTransitionController::AnimationForHidden()
+{
+    testCount_ = NUMBER_TWO;
+}
 
 class WindowSceneSessionImplAnimationTest : public testing::Test {
 public:
@@ -346,21 +366,21 @@ HWTEST_F(WindowSceneSessionImplAnimationTest, GetWindowCornerRadius, TestSize.Le
     EXPECT_EQ(WMError::WM_OK, ret);
     EXPECT_EQ(0.0f, cornerRadius);
 
-    window->windowSystemConfig_.defaultCornerRadius_ = 1.0f; // 1.0f is valid default corner radius
+    window->windowSystemConfig_.defaultCornerRadius_ = 1.0f; // 1.0f is valid default window corner radius
     ret = window->GetWindowCornerRadius(cornerRadius);
     EXPECT_EQ(WMError::WM_OK, ret);
     EXPECT_EQ(window->windowSystemConfig_.defaultCornerRadius_, cornerRadius);
 
-    window->property_->SetWindowCornerRadius(1.0f); // 1.0f is valid window corner radius
+    window->property_->SetWindowCornerRadius(2.0f); // 2.0f is valid window corner radius
     ret = window->GetWindowCornerRadius(cornerRadius);
     EXPECT_EQ(WMError::WM_OK, ret);
-    EXPECT_EQ(1.0f, cornerRadius); // 1.0f is valid window corner radius
+    EXPECT_EQ(2.0f, cornerRadius); // 2.0f is valid window corner radius
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     ret = window->GetWindowCornerRadius(cornerRadius);
     EXPECT_EQ(WMError::WM_OK, ret);
-    EXPECT_EQ(1.0f, cornerRadius); // 1.0f is valid window corner radius
+    EXPECT_EQ(2.0f, cornerRadius); // 2.0f is valid window corner radius
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
@@ -368,16 +388,53 @@ HWTEST_F(WindowSceneSessionImplAnimationTest, GetWindowCornerRadius, TestSize.Le
     EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     ret = window->GetWindowCornerRadius(cornerRadius);
-    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(2.0f, cornerRadius); // 2.0f is valid window corner radius
+
+    ret = window->SetWindowCornerRadius(1.0f);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    ret = window->GetWindowCornerRadius(cornerRadius);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(1.0f, cornerRadius); //1.0f is valid window corner radius
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    ret = window->GetWindowCornerRadius(cornerRadius);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_END);
+    ret = window->GetWindowCornerRadius(cornerRadius);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     ret = window->GetWindowCornerRadius(cornerRadius);
     EXPECT_EQ(WMError::WM_OK, ret);
-    EXPECT_EQ(1.0f, cornerRadius); // 1.0f is valid window corner radius
+    
+    ret = window->SetWindowCornerRadius(1.5f);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    ret = window->GetWindowCornerRadius(cornerRadius);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(1.5f, cornerRadius);
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    ret = window->GetWindowCornerRadius(cornerRadius);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_END);
+    ret = window->GetWindowCornerRadius(cornerRadius);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    ret = window->GetWindowCornerRadius(cornerRadius);
+    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
 }
 
 /**
@@ -554,6 +611,68 @@ HWTEST_F(WindowSceneSessionImplAnimationTest, SyncShadowsToComponent, TestSize.L
 
     auto ret = window->SyncShadowsToComponent(shadowsInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: CustomHideAnimation
+ * @tc.desc: CustomHideAnimation test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplAnimationTest, CustomHideAnimation, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> mockHostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    auto testController = sptr<TestAnimationTransitionController>::MakeSptr();
+    window->property_->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::CUSTOM));
+
+    int result = 0;
+    window->CustomHideAnimation();
+    ASSERT_EQ(testController->testCount_, result);
+}
+
+/**
+ * @tc.name: CustomHideAnimation_CustomFlag
+ * @tc.desc: CustomHideAnimation_CustomFlag test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplAnimationTest, CustomHideAnimation_CustomFlag, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> mockHostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    auto testController = sptr<TestAnimationTransitionController>::MakeSptr();
+    window->property_->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::CUSTOM));
+
+    window->animationTransitionControllers_.push_back(testController);
+    int result = NUMBER_TWO;
+    window->CustomHideAnimation();
+    ASSERT_EQ(testController->testCount_, result);
+}
+
+/**
+ * @tc.name: CustomHideAnimation_DefaultFlag
+ * @tc.desc: CustomHideAnimation_DefaultFlag test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplAnimationTest, CustomHideAnimation_DefaultFlag, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> mockHostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::DEFAULT));
+
+    auto testController = sptr<TestAnimationTransitionController>::MakeSptr();
+    window->animationTransitionControllers_.push_back(testController);
+
+    int result = 0;
+    window->CustomHideAnimation();
+    ASSERT_EQ(testController->testCount_, result);
 }
 } // namespace
 } // namespace Rosen

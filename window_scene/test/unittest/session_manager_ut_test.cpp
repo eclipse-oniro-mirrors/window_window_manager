@@ -185,7 +185,6 @@ HWTEST_F(SessionManagerUTTest, RecoverSessionManagerService, TestSize.Level1)
     sptr<ISessionManagerService> sessionManagerService;
     sm_->RecoverSessionManagerService(sessionManagerService);
     EXPECT_EQ(nullptr, sm_->sessionManagerServiceProxy_);
-    EXPECT_TRUE(g_logMsg.find("Run recover") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 

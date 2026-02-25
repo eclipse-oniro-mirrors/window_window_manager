@@ -121,6 +121,25 @@ int32_t DisplayManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& d
             NotifyAbnormalScreenConnectChange(screenId);
             break;
         }
+        case TRANS_ID_ON_RECORDING_DISPLAY_CHANGED: {
+            std::vector<DisplayId> displayIds;
+            if (!data.ReadUInt64Vector(&displayIds)) {
+                TLOGE(WmsLogTag::DMS, "Read screenId failed");
+                return -1;
+            }
+            NotifyRecordingDisplayChanged(displayIds);
+            break;
+        }
+        case TRANS_ID_ON_DISPLAY_ATTRIBUTE_CHANGED: {
+            sptr<DisplayInfo> displayInfo = data.ReadParcelable<DisplayInfo>();
+            std::vector<std::string> attributes;
+            if (!data.ReadStringVector(&attributes)) {
+                TLOGE(WmsLogTag::DMS, "Read attributes failed");
+                return -1;
+            }
+            OnDisplayAttributeChange(displayInfo, attributes);
+            break;
+        }
         default: {
             TLOGW(WmsLogTag::DMS, "unknown transaction code %{public}d", code);
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);

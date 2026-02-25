@@ -17,14 +17,17 @@
 
 #include "parameters.h"
 #include "picture_in_picture_controller.h"
+#include "window_adapter.h"
 #include "window_manager_hilog.h"
 #include "window_scene_session_impl.h"
-#include "scene_board_judgement.h"
 
 namespace OHOS {
 namespace Rosen {
 namespace {
 const std::string ACTION_CLOSE = "close";
+const std::string ACTION_REQUEST_CLOSE = "request_close";
+const std::string ACTION_PANEL_CLOSE = "panel_close";
+const std::string ACTION_DUMPSTER_CLOSE = "dumpster_close";
 const std::string ACTION_PRE_RESTORE = "pre_restore";
 const std::string ACTION_RESTORE = "restore";
 const std::string ACTION_DESTROY = "destroy";
@@ -34,6 +37,9 @@ const std::string ACTION_BACKGROUND_AUTO_START = "background_auto_start";
 
 const std::map<std::string, std::function<void()>> PIP_ACTION_MAP {
     {ACTION_CLOSE, PictureInPictureManager::DoActionClose},
+    {ACTION_REQUEST_CLOSE, PictureInPictureManager::DoActionCloseByRequest},
+    {ACTION_PANEL_CLOSE, PictureInPictureManager::DoActionCloseByPanel},
+    {ACTION_DUMPSTER_CLOSE, PictureInPictureManager::DoActionCloseByDumpster},
     {ACTION_PRE_RESTORE, PictureInPictureManager::DoPreRestore},
     {ACTION_RESTORE, PictureInPictureManager::DoRestore},
     {ACTION_PREPARE_SOURCE, PictureInPictureManager::DoPrepareSource},
@@ -44,8 +50,8 @@ const std::map<std::string, std::function<void()>> PIP_ACTION_MAP {
 }
 
 sptr<PictureInPictureControllerBase> PictureInPictureManager::activeController_ = nullptr;
-wptr<PictureInPictureController> PictureInPictureManager::autoStartController_ = nullptr;
-std::map<int32_t, wptr<PictureInPictureController>> PictureInPictureManager::autoStartControllerMap_ = {};
+wptr<PictureInPictureControllerBase> PictureInPictureManager::autoStartController_ = nullptr;
+std::map<int32_t, wptr<PictureInPictureControllerBase>> PictureInPictureManager::autoStartControllerMap_ = {};
 std::map<int32_t, sptr<PictureInPictureControllerBase>> PictureInPictureManager::windowToControllerMap_ = {};
 std::shared_ptr<NativeReference> PictureInPictureManager::innerCallbackRef_ = nullptr;
 
@@ -59,7 +65,9 @@ PictureInPictureManager::~PictureInPictureManager()
 
 bool PictureInPictureManager::IsSupportPiP()
 {
-    return SceneBoardJudgement::IsSceneBoardEnabled();
+    bool isSupportPiPFlag = false;
+    SingletonContainer::Get<WindowAdapter>().GetIsPipEnabled(isSupportPiPFlag);
+    return isSupportPiPFlag;
 }
 
 bool PictureInPictureManager::ShouldAbortPipStart()
@@ -119,7 +127,7 @@ void PictureInPictureManager::RemoveActiveController(wptr<PictureInPictureContro
 }
 
 void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
-    wptr<PictureInPictureController> pipController)
+    wptr<PictureInPictureControllerBase> pipController)
 {
     TLOGD(WmsLogTag::WMS_PIP, "handleId: %{public}u", handleId);
     if (pipController == nullptr) {
@@ -130,7 +138,7 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
 }
 
 void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
-    wptr<PictureInPictureController> pipController)
+    wptr<PictureInPictureControllerBase> pipController)
 {
     TLOGI(WmsLogTag::WMS_PIP, "handleId: %{public}u", handleId);
     if (autoStartController_ == nullptr) {
@@ -204,6 +212,22 @@ void PictureInPictureManager::DoClose(bool destroyWindow, bool byPriority)
         } else {
             currentStopType = StopPipType::OTHER_PACKAGE_STOP;
         }
+        controller->SetStateChangeReason(PiPStateChangeReason::OTHER);
+        controller->StopPictureInPicture(destroyWindow, currentStopType, !byPriority);
+    }
+}
+
+void PictureInPictureManager::DoCloseWithReason(bool destroyWindow, bool byPriority, PiPStateChangeReason reason)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "destroyWindow:%{public}d, byPriority:%{public}d", destroyWindow, byPriority);
+    if (auto controller = GetActiveController()) {
+        StopPipType currentStopType = StopPipType::NULL_STOP;
+        if (!byPriority) {
+            currentStopType = StopPipType::USER_STOP;
+        } else {
+            currentStopType = StopPipType::OTHER_PACKAGE_STOP;
+        }
+        controller->SetStateChangeReason(reason);
         controller->StopPictureInPicture(destroyWindow, currentStopType, !byPriority);
     }
 }
@@ -212,6 +236,24 @@ void PictureInPictureManager::DoActionClose()
 {
     TLOGI(WmsLogTag::WMS_PIP, "in");
     DoClose(true, false);
+}
+
+void PictureInPictureManager::DoActionCloseByRequest()
+{
+    TLOGI(WmsLogTag::WMS_PIP, "in");
+    DoCloseWithReason(true, false, PiPStateChangeReason::REQUEST_DELETE);
+}
+ 
+void PictureInPictureManager::DoActionCloseByPanel()
+{
+    TLOGI(WmsLogTag::WMS_PIP, "in");
+    DoCloseWithReason(true, false, PiPStateChangeReason::PANEL_ACTION_DELETE);
+}
+ 
+void PictureInPictureManager::DoActionCloseByDumpster()
+{
+    TLOGI(WmsLogTag::WMS_PIP, "in");
+    DoCloseWithReason(true, false, PiPStateChangeReason::DRAG_DELETE);
 }
 
 void PictureInPictureManager::DoDestroy()
@@ -256,6 +298,7 @@ void PictureInPictureManager::AutoStartPipWindow()
         TLOGE(WmsLogTag::WMS_PIP, "autoStartController is null");
         return;
     }
+    autoStartController->SetStateChangeReason(PiPStateChangeReason::AUTO_START);
     if (autoStartController->GetPiPNavigationId().empty() || autoStartController->IsTypeNodeEnabled()) {
         TLOGI(WmsLogTag::WMS_PIP, "No use navigation for auto start");
         autoStartController->StartPictureInPicture(StartPipType::AUTO_START);
@@ -312,7 +355,9 @@ void PictureInPictureManager::DoActiveStatusChangeEvent(bool status)
 
 bool PictureInPictureManager::GetPipEnabled()
 {
-    return true;
+    bool isPipEnabled = false;
+    SingletonContainer::Get<WindowAdapter>().GetIsPipEnabled(isPipEnabled);
+    return isPipEnabled;
 }
 
 }

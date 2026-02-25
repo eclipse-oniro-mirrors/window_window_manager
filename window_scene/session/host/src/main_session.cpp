@@ -28,39 +28,14 @@ namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "MainSession" };
 constexpr int32_t MAX_LABEL_SIZE = 1024;
+const uint64_t PRELAUNCH_DONE_TIME_MS = system::GetIntParameter<int>("window.prelaunchDoneTime", 6000);
 } // namespace
 
 MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
     : SceneSession(info, specificCallback)
 {
     scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, GetPersistentId(), capacity_);
-    if (info.persistentId_ != 0 && info.persistentId_ != GetPersistentId()) {
-        // persistentId changed due to id conflicts. Need to rename the old snapshot if exists
-        scenePersistence_->RenameSnapshotFromOldPersistentId(info.persistentId_);
-    }
     pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(this), GetPersistentId());
-    moveDragController_ = sptr<MoveDragController>::MakeSptr(GetPersistentId(), GetWindowType());
-    if (specificCallback != nullptr &&
-        specificCallback->onWindowInputPidChangeCallback_ != nullptr) {
-        moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback->onWindowInputPidChangeCallback_);
-    }
-    SetMoveDragCallback();
-    std::string key = GetRatioPreferenceKey();
-    if (!key.empty()) {
-        if (ScenePersistentStorage::HasKey(key, ScenePersistentStorageType::ASPECT_RATIO)) {
-            float aspectRatio = 0.f;
-            ScenePersistentStorage::Get(key, aspectRatio, ScenePersistentStorageType::ASPECT_RATIO);
-            TLOGI(WmsLogTag::WMS_LAYOUT, "init aspectRatio, bundleName:%{public}s, key:%{public}s, value:%{public}f",
-                info.bundleName_.c_str(), key.c_str(), aspectRatio);
-            Session::SetAspectRatio(aspectRatio);
-            moveDragController_->SetAspectRatio(aspectRatio);
-        }
-    }
-    auto isPersistentImageFit = ScenePersistentStorage::HasKey(
-        "SetImageForRecent_" + std::to_string(GetPersistentId()), ScenePersistentStorageType::MAXIMIZE_STATE);
-    if (isPersistentImageFit) {
-        scenePersistence_->SetHasSnapshot(true);
-    }
 
     WLOGFD("Create MainSession");
 }
@@ -68,6 +43,33 @@ MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCall
 MainSession::~MainSession()
 {
     WLOGD("~MainSession, id: %{public}d", GetPersistentId());
+    // exclude when user deletes session in recent.
+    if (SessionHelper::IsMainWindow(GetWindowType()) && notifySceneSessionDestructFunc_ && !isUserRequestedExit_) {
+        notifySceneSessionDestructFunc_(GetPersistentId());
+    }
+}
+
+void MainSession::OnFirstStrongRef(const void* objectId)
+{
+    // OnFirstStrongRef is overridden in the parent class IPCObjectStub,
+    // so its parent implementation must be invoked here to avoid IPC communication issues.
+    SceneSession::OnFirstStrongRef(objectId);
+
+    moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(this));
+    if (specificCallback_ != nullptr && specificCallback_->onWindowInputPidChangeCallback_ != nullptr) {
+        moveDragController_->SetNotifyWindowPidChangeCallback(specificCallback_->onWindowInputPidChangeCallback_);
+    }
+    std::string key = GetRatioPreferenceKey();
+    if (!key.empty()) {
+        if (ScenePersistentStorage::HasKey(key, ScenePersistentStorageType::ASPECT_RATIO)) {
+            float aspectRatio = 0.f;
+            ScenePersistentStorage::Get(key, aspectRatio, ScenePersistentStorageType::ASPECT_RATIO);
+            TLOGI(WmsLogTag::WMS_LAYOUT,
+                  "init aspectRatio, bundleName:%{public}s, key:%{public}s, value:%{public}f",
+                  sessionInfo_.bundleName_.c_str(), key.c_str(), aspectRatio);
+            Session::SetAspectRatio(aspectRatio);
+        }
+    }
 }
 
 WSError MainSession::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
@@ -127,7 +129,7 @@ void MainSession::NotifyForegroundInteractiveStatus(bool interactive)
         return;
     }
     const auto& state = GetSessionState();
-    if (isVisible_ || state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND) {
+    if (isVisible_.load() || state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND) {
         WLOGFI("NotifyForegroundInteractiveStatus %{public}d", interactive);
         sessionStage_->NotifyForegroundInteractiveStatus(interactive);
     }
@@ -236,15 +238,55 @@ bool MainSession::IsExitSplitOnBackground() const
     return isExitSplitOnBackground_;
 }
 
+void MainSession::RecoverSnapshotPersistence(const SessionInfo& info)
+{
+    if (scenePersistence_ == nullptr) {
+        return;
+    }
+    if (info.persistentId_ != 0 && info.persistentId_ != GetPersistentId()) {
+        // persistentId changed due to id conflicts. Need to rename the old snapshot if exists
+        scenePersistence_->RenameSnapshotFromOldPersistentId(info.persistentId_);
+        RenameSnapshotFromOldPersistentId(info.persistentId_);
+    }
+    if (info.isPersistentRecover_) {
+        if (HasSnapshot()) {
+            TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d", GetPersistentId());
+        }
+        RecoverImageForRecent();
+    } else {
+        ClearSnapshotPersistence();
+    }
+}
+
+void MainSession::ClearSnapshotPersistence()
+{
+    if (scenePersistence_ == nullptr) {
+        return;
+    }
+    auto task = [weakThis = wptr(this), where = __func__]() {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s, session is nullptr", where);
+            return;
+        }
+        TLOGI(WmsLogTag::WMS_PATTERN, "%{public}s, %{public}d", where, session->GetPersistentId());
+        session->DeletePersistentImageFit();
+        session->DeleteHasSnapshot();
+    };
+    auto snapshotFfrtHelper = scenePersistence_->GetSnapshotFfrtHelper();
+    std::string taskName = "ClearSnapshotPersistence" + std::to_string(GetPersistentId());
+    snapshotFfrtHelper->CancelTask(taskName);
+    snapshotFfrtHelper->SubmitTask(std::move(task), taskName);
+}
+
 void MainSession::NotifyClientToUpdateInteractive(bool interactive)
 {
     if (!sessionStage_) {
         return;
     }
     const auto state = GetSessionState();
-    TLOGI(WmsLogTag::WMS_LIFE, "state: %{public}d", state);
     if (state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND) {
-        TLOGI(WmsLogTag::WMS_LIFE, "interactive: %{public}d", interactive);
+        WLOGFI("%{public}d", interactive);
         sessionStage_->NotifyForegroundInteractiveStatus(interactive);
         isClientInteractive_ = interactive;
     }
@@ -284,8 +326,21 @@ WSError MainSession::OnRestoreMainWindow()
     bool isAppSupportPhoneInPc = GetSessionProperty()->GetIsAppSupportPhoneInPc();
     int32_t callingPid = IPCSkeleton::GetCallingPid();
     uint32_t callingToken = IPCSkeleton::GetCallingTokenID();
-    TLOGI(WmsLogTag::WMS_MAIN, "isAppSupportPhoneInPc: %{public}d callingPid: %{public}d callingTokenId: %{public}u",
-        isAppSupportPhoneInPc, callingPid, callingToken);
+    std::string appInstanceKey = GetSessionProperty()->GetAppInstanceKey();
+    bool isSessionBoundedSystemTray = GetSessionBoundedSystemTray(callingPid, callingToken, appInstanceKey);
+    TLOGI(WmsLogTag::WMS_MAIN,
+        "isAppSupportPhoneInPc: %{public}d callingPid: %{public}d callingId: %{private}u appInstanceKey: "
+        "%{public}s isSessionBoundedSystemTray: %{public}d",
+        isAppSupportPhoneInPc,
+        callingPid,
+        callingToken,
+        appInstanceKey.c_str(),
+        isSessionBoundedSystemTray);
+    // check if the application is bound to the system tray
+    if (isAppSupportPhoneInPc && !isSessionBoundedSystemTray) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The application is not bound to the system tray.");
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
     PostTask([weakThis = wptr(this), isAppSupportPhoneInPc, callingPid, callingToken] {
         auto session = weakThis.promote();
         if (!session) {
@@ -360,6 +415,63 @@ bool MainSession::IsModal() const
 bool MainSession::IsApplicationModal() const
 {
     return IsModal();
+}
+
+WSError MainSession::SetSessionLabelAndIcon(const std::string& label,
+    const std::shared_ptr<Media::PixelMap>& icon)
+{
+    TLOGI(WmsLogTag::WMS_MAIN, "id: %{public}d", persistentId_);
+    int32_t callingPid = IPCSkeleton::GetCallingPid();
+    const bool pidCheck = (callingPid != -1) && (callingPid == GetCallingPid());
+    if (!pidCheck ||
+        !SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_SET_ABILITY_INSTANCE_INFO)) {
+        TLOGE(WmsLogTag::WMS_MAIN,
+            "The caller has not permission granted or not the same processs, "
+            "callingPid_: %{public}d, callingPid: %{public}d, bundleName: %{public}s",
+            GetCallingPid(), callingPid, GetSessionInfo().bundleName_.c_str());
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    if (!systemConfig_.IsPcWindow()) {
+        TLOGE(WmsLogTag::WMS_MAIN, "device not support");
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    if (label.empty() || label.length() > MAX_LABEL_SIZE) {
+        TLOGE(WmsLogTag::WMS_MAIN, "invalid label");
+        return WSError::WS_ERROR_SET_SESSION_LABEL_FAILED;
+    }
+    return SetSessionLabelAndIconInner(label, icon);
+}
+
+WSError MainSession::SetSessionLabelAndIconInner(const std::string& label,
+    const std::shared_ptr<Media::PixelMap>& icon)
+{
+    const char* const where = __func__;
+    PostTask([weakThis = wptr(this), where, label, icon] {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s session is nullptr", where);
+            return WSError::WS_ERROR_NULLPTR;
+        }
+        session->label_ = label;
+        if (session->updateSessionLabelAndIconFunc_) {
+            session->updateSessionLabelAndIconFunc_(label, icon);
+        }
+        return WSError::WS_OK;
+    }, __func__);
+    return WSError::WS_OK;
+}
+
+void MainSession::SetUpdateSessionLabelAndIconListener(NofitySessionLabelAndIconUpdatedFunc&& func)
+{
+    const char* const where = __func__;
+    PostTask([weakThis = wptr(this), func = std::move(func), where] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s session is null", where);
+            return;
+        }
+        session->updateSessionLabelAndIconFunc_ = std::move(func);
+    }, __func__);
 }
 
 void MainSession::RegisterSessionLockStateChangeCallback(NotifySessionLockStateChangeCallback&& callback)
@@ -466,63 +578,6 @@ bool MainSession::GetSessionLockState() const
     return isLockedState_;
 }
 
-WSError MainSession::SetSessionLabelAndIcon(const std::string& label,
-    const std::shared_ptr<Media::PixelMap>& icon)
-{
-    TLOGI(WmsLogTag::WMS_MAIN, "id: %{public}d", persistentId_);
-    int32_t callingPid = IPCSkeleton::GetCallingPid();
-    const bool pidCheck = (callingPid != -1) && (callingPid == GetCallingPid());
-    if (!pidCheck ||
-        !SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_SET_ABILITY_INSTANCE_INFO)) {
-        TLOGE(WmsLogTag::WMS_MAIN,
-            "The caller has not permission granted or not the same processs, "
-            "callingPid_: %{public}d, callingPid: %{public}d, bundleName: %{public}s",
-            GetCallingPid(), callingPid, GetSessionInfo().bundleName_.c_str());
-        return WSError::WS_ERROR_INVALID_PERMISSION;
-    }
-    if (!systemConfig_.IsPcWindow()) {
-        TLOGE(WmsLogTag::WMS_MAIN, "device not support");
-        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
-    }
-    if (label.empty() || label.length() > MAX_LABEL_SIZE) {
-        TLOGE(WmsLogTag::WMS_MAIN, "invalid label");
-        return WSError::WS_ERROR_SET_SESSION_LABEL_FAILED;
-    }
-    return SetSessionLabelAndIconInner(label, icon);
-}
-
-WSError MainSession::SetSessionLabelAndIconInner(const std::string& label,
-    const std::shared_ptr<Media::PixelMap>& icon)
-{
-    const char* const where = __func__;
-    PostTask([weakThis = wptr(this), where, label, icon] {
-        auto session = weakThis.promote();
-        if (session == nullptr) {
-            TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s session is nullptr", where);
-            return WSError::WS_ERROR_NULLPTR;
-        }
-        session->label_ = label;
-        if (session->updateSessionLabelAndIconFunc_) {
-            session->updateSessionLabelAndIconFunc_(label, icon);
-        }
-        return WSError::WS_OK;
-    }, __func__);
-    return WSError::WS_OK;
-}
-
-void MainSession::SetUpdateSessionLabelAndIconListener(NofitySessionLabelAndIconUpdatedFunc&& func)
-{
-    const char* const where = __func__;
-    PostTask([weakThis = wptr(this), func = std::move(func), where] {
-        auto session = weakThis.promote();
-        if (!session) {
-            TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s session is null", where);
-            return;
-        }
-        session->updateSessionLabelAndIconFunc_ = std::move(func);
-    }, __func__);
-}
-
 WSError MainSession::UpdateFlag(const std::string& flag)
 {
     const char* const where = __func__;
@@ -540,6 +595,16 @@ WSError MainSession::UpdateFlag(const std::string& flag)
         }
     }, __func__);
     return WSError::WS_OK;
+}
+
+void MainSession::SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func)
+{
+    notifySceneSessionDestructFunc_ = std::move(func);
+}
+
+void MainSession::SetIsUserRequestedExit(bool isUserRequestedExit)
+{
+    isUserRequestedExit_ = isUserRequestedExit;
 }
 
 WMError MainSession::GetRouterStackInfo(std::string& routerStackInfo) const
@@ -604,6 +669,19 @@ bool MainSession::IsFullScreenInForceSplit()
     return isFullScreenInForceSplit_.load();
 }
 
+void MainSession::RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback)
+{
+    compatibleModeChangeCallback_ = std::move(callback);
+}
+
+WSError MainSession::NotifyCompatibleModeChange(CompatibleStyleMode mode)
+{
+    if (compatibleModeChangeCallback_) {
+        compatibleModeChangeCallback_(mode);
+    }
+    return WSError::WS_OK;
+}
+
 bool MainSession::RestoreAspectRatio(float ratio)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, ratio: %{public}f", GetPersistentId(), ratio);
@@ -614,9 +692,68 @@ bool MainSession::RestoreAspectRatio(float ratio)
         return false;
     }
     Session::SetAspectRatio(ratio);
-    if (moveDragController_) {
-        moveDragController_->SetAspectRatio(ratio);
-    }
     return true;
+}
+
+WMError MainSession::GetAppForceLandscapeConfigEnable(bool& enableForceSplit)
+{
+    if (forceSplitEnableFunc_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "forceSplitEnableFunc_ is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    enableForceSplit = forceSplitEnableFunc_(sessionInfo_.bundleName_);
+    return WMError::WM_OK;
+}
+
+WSError MainSession::NotifyAppForceLandscapeConfigEnableUpdated()
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    return sessionStage_->NotifyAppForceLandscapeConfigEnableUpdated();
+}
+
+bool MainSession::GetSessionBoundedSystemTray(
+    int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) const
+{
+    return (isSessionBoundedSystemTrayCallback_ &&
+            isSessionBoundedSystemTrayCallback_(callingPid, callingToken, instanceKey));
+}
+
+void MainSession::RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func)
+{
+    forceSplitEnableFunc_ = std::move(func);
+}
+
+void MainSession::RemovePrelaunchStartingWindow()
+{
+    auto lifecycleListeners = GetListeners<ILifecycleListener>();
+    for (auto& listener : lifecycleListeners) {
+        if (auto listenerPtr = listener.lock()) {
+            listenerPtr->OnRemovePrelaunchStartingWindow();
+        }
+    }
+}
+
+void MainSession::SetPrelaunch()
+{
+    prelaunchStart_ = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    TLOGI(WmsLogTag::WMS_LIFE, "SetPrelaunch timestamp: %{public}" PRIu64, prelaunchStart_);
+    sessionInfo_.isPrelaunch_ = true;
+}
+
+bool MainSession::IsPrelaunch() const
+{
+    int64_t nowTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+
+    if (sessionInfo_.isPrelaunch_) {
+        TLOGI(WmsLogTag::WMS_LIFE, "IsPrelaunch now - start: %{public}" PRIu64, nowTimeStamp - prelaunchStart_);
+    }
+
+    int64_t timeDiff = nowTimeStamp - prelaunchStart_;
+    return sessionInfo_.isPrelaunch_ && sessionInfo_.frameNum_ > 0 && timeDiff > PRELAUNCH_DONE_TIME_MS;
 }
 } // namespace OHOS::Rosen

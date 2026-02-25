@@ -58,12 +58,13 @@ private:
 };
 
 class SessionManager : public RefBase {
-    WM_DECLARE_SINGLE_INSTANCE_BASE(SessionManager);
+WM_DECLARE_SINGLE_INSTANCE_BASE(SessionManager);
 
 public:
     static SessionManager& GetInstance(const int32_t userId);
     void ClearSessionManagerProxy();
     void RemoveSSMDeathRecipient();
+    void RemoveMockFoundationDeathRecipient();
 
     sptr<ISceneSessionManager> GetSceneSessionManagerProxy();
     void OnFoundationDied();
@@ -86,6 +87,11 @@ public:
     using WindowManagerRecoverCallbackFunc = std::function<void()>;
     void RegisterWindowManagerRecoverCallbackFunc(const WindowManagerRecoverCallbackFunc& callbackFunc);
     void RecoverSessionManagerService(const sptr<ISessionManagerService>& sessionManagerService);
+
+    /*
+     * Window Hierarchy
+     */
+    void NotifySetSpecificWindowZIndex();
 
 private:
     friend class sptr<SessionManager>;

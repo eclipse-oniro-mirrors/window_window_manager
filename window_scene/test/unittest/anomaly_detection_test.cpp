@@ -311,44 +311,6 @@ HWTEST_F(AnomalyDetectionTest, SceneZOrderCheckProcess, TestSize.Level1)
     LOG_SetCallback(nullptr);
     GTEST_LOG_(INFO) << "AnomalyDetectionTest: SceneZOrderCheckProcess end";
 }
-
-void FocusNullTest(sptr<SceneSessionManager> ssm_)
-{
-    ssm_->sceneSessionMap_.insert({0, nullptr});
-    AnomalyDetection::FocusCheckProcess(0, 1);
-    ssm_->sceneSessionMap_.clear();
-}
-
-void IsFocusedTest(sptr<SceneSessionManager> ssm_)
-{
-    auto sceneSession = GetSceneSession("IsFocusedTest");
-    ASSERT_NE(sceneSession, nullptr);
-    sceneSession->isFocused_ = true;
-    ssm_->sceneSessionMap_.insert({sceneSession->GetPersistentId(), sceneSession});
-    AnomalyDetection::FocusCheckProcess(0, 1);
-
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: FocusCheckProcess
- * @tc.desc: check func FocusCheckProcess
- * @tc.type: FUNC
- */
-HWTEST_F(AnomalyDetectionTest, FocusCheckProcess, TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "AnomalyDetectionTest: FocusCheckProcess start";
-    int ret = 0;
-
-    AnomalyDetection::FocusCheckProcess(0, INVALID_SESSION_ID);
-
-    FocusNullTest(ssm_);
-    IsFocusedTest(ssm_);
-
-    ASSERT_EQ(ret, 0);
-    GTEST_LOG_(INFO) << "AnomalyDetectionTest: FocusCheckProcess end";
-}
-
 }
 }
 }

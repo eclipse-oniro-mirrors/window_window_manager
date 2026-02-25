@@ -20,6 +20,7 @@ config("libwmutil_private_config") {
     "../interfaces/innerkits/dm",
     "../interfaces/innerkits/wm",
     "${window_base_path}/wm/include",
+    "${window_base_path}/window_scene/common/include",
   ]
 }
 
@@ -55,7 +56,7 @@ ohos_source_set("ui_effect_controller_common") {
   public_deps = [
     ":libwmutil_base",
   ]
-  
+
   public_external_deps = [
     "c_utils:utils",
     "graphic_2d:librender_service_client",
@@ -107,6 +108,7 @@ ohos_static_library("libwmutil_static") {
     "src/window_drawing_content_info.cpp",
     "src/window_frame_trace_impl.cpp",
     "src/window_property.cpp",
+    "src/window_system_timer.cpp",
     "src/window_transition_info.cpp",
     "src/window_visibility_info.cpp",
     "src/wm_math.cpp",
@@ -143,6 +145,8 @@ ohos_static_library("libwmutil_static") {
     "ipc:ipc_single",
     "preferences:native_preferences",
     "samgr:samgr_proxy",
+    "time_service:time_client",
+    "ability_runtime:wantagent_innerkits",
   ]
 
   part_name = "window_manager"
@@ -169,6 +173,10 @@ ohos_shared_library("libwmutil_base") {
     "src/cutout_info.cpp",
     "src/display_change_info.cpp",
     "src/display_info.cpp",
+    "src/dm_common.cpp",
+    "src/dms_global_mutex.cpp",
+    "src/load_mmi_client_adapter.cpp",
+    "src/rate_limited_logger.cpp",
     "src/screen_group_info.cpp",
     "src/screen_info.cpp",
     "src/screenshot_info.cpp",
@@ -183,7 +191,6 @@ ohos_shared_library("libwmutil_base") {
     "src/wm_math.cpp",
     "src/wm_occlusion_region.cpp",
     "src/xml_config_base.cpp",
-    "src/dms_global_mutex.cpp",
   ]
 
   configs = [ ":libwmutil_private_config" ]
@@ -192,6 +199,7 @@ ohos_shared_library("libwmutil_base") {
     "c_utils:utils",
     "hilog:libhilog",
     "ipc:ipc_single",
+    "init:libbegetutil",
   ]
 
   innerapi_tags = [ "platformsdk" ]
@@ -203,6 +211,7 @@ ohos_shared_library("libwmutil_base") {
 ohos_shared_library("libwmutil") {
   branch_protector_ret = "pac_ret"
   sources = [
+    "src/collaborator_dll_manager.cpp",
     "src/dm_virtual_screen_option.cpp",
     "src/dms_reporter.cpp",
     "src/dms_xcollie.cpp",
@@ -219,12 +228,15 @@ ohos_shared_library("libwmutil") {
     "src/surface_reader.cpp",
     "src/surface_reader_handler_impl.cpp",
     "src/sys_cap_util.cpp",
+    "src/task_sequence_process.cpp",
     "src/typec_port_info.cpp",
     "src/vsync_station.cpp",
     "src/window_frame_trace_impl.cpp",
     "src/window_property.cpp",
+    "src/window_system_timer.cpp",
     "src/window_transition_info.cpp",
     "src/ffrt_queue_helper.cpp",
+    "src/ffrt_serial_queue_helper.cpp",
   ]
 
   configs = [
@@ -245,6 +257,7 @@ ohos_shared_library("libwmutil") {
     "bundle_framework:appexecfwk_core",
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "ffrt:libffrt",
     "graphic_2d:2d_graphics",
     "graphic_2d:librender_service_base",
     "graphic_2d:librender_service_client",
@@ -258,7 +271,8 @@ ohos_shared_library("libwmutil") {
     "input:libmmi-client",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
-    "ffrt:libffrt",
+    "time_service:time_client",
+    "ability_runtime:wantagent_innerkits",
   ]
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
@@ -267,6 +281,13 @@ ohos_shared_library("libwmutil") {
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
+  if (is_ohos && is_clang && target_cpu == "arm64") {
+    ldflags = [
+        "-Wl,--emit-relocs",
+        "-Wl,--no-relax",
+        "-mno-fix-cortex-a53-843419"
+    ]
+  }
 
   defines = []
   if (build_variant == "user") {

@@ -38,9 +38,8 @@ public:
     MOCK_METHOD2(Background, WSError(bool isFromClient, const std::string& identityToken));
     MOCK_METHOD2(Disconnect, WSError(bool isFromClient, const std::string& identityToken));
 
-    MOCK_METHOD6(UpdateSessionRect, WSError(const WSRect& rect, SizeChangeReason reason,
-        bool isGlobal, bool isFromMoveToGlobal, const MoveConfiguration& moveConfiguration,
-        const RectAnimationConfig& rectAnimationConfig));
+    MOCK_METHOD5(UpdateSessionRect, WSError(const WSRect& rect, SizeChangeReason reason,
+        bool isGlobal, bool isFromMoveToGlobal, MoveConfiguration moveConfiguration));
     MOCK_METHOD1(UpdateClientRect, WSError(const WSRect& rect));
     MOCK_METHOD(WSError, UpdateGlobalDisplayRectFromClient, (const WSRect& rect, SizeChangeReason reason), (override));
 
@@ -72,6 +71,7 @@ public:
     MOCK_CONST_METHOD2(ConvertGlobalRectToRelative, WSRect(const WSRect& globalRect, DisplayId targetDisplayId));
     MOCK_METHOD1(SetIsShowDecorInFreeMultiWindow, WSError(bool isShow));
     MOCK_METHOD(WSError, SetContentAspectRatio, (float ratio, bool isPersistent, bool needUpdateRect), (override));
+    MOCK_METHOD1(GetGlobalScaledRect, WMError(Rect& globalScaledRect));
 };
 } // namespace Rosen
 } // namespace OHOS

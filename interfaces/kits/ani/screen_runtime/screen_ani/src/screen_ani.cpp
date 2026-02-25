@@ -24,6 +24,9 @@
 #include "screen_ani_utils.h"
 #include "window_manager_hilog.h"
 
+#ifdef XPOWER_EVENT_ENABLE
+#include "xpower_event_js.h"
+#endif // XPOWER_EVENT_ENABLE
  
 namespace OHOS {
 namespace Rosen {
@@ -39,6 +42,10 @@ void ScreenAni::SetDensityDpi(ani_env* env, ani_object obj, ani_double densityDp
         return;
     }
     ScreenAni* screenAni = reinterpret_cast<ScreenAni*>(screenNativeRef);
+    if (screenAni == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] screenAni is nullptr");
+        return;
+    }
     screenAni->OnSetDensityDpi(env, obj, densityDpi);
 }
  
@@ -111,6 +118,98 @@ ani_object ScreenAni::TransferDynamic(ani_env* env, ani_object obj, ani_long nat
         return nullptr;
     }
     return result;
+}
+
+void ScreenAni::SetScreenActiveMode(ani_env* env, ani_object obj, ani_long modeIndex)
+{
+    TLOGI(WmsLogTag::DMS, "begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    ani_long screenNativeRef;
+    ani_status ret = env->Object_GetFieldByName_Long(obj, "screenNativeObj", &screenNativeRef);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] get screenAni native failed, ret: %{public}u", ret);
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "get screenNativeObj failed.");
+        return;
+    }
+#ifdef XPOWER_EVENT_ENABLE
+    HiviewDFX::ReportXPowerJsStackSysEvent(env, "EPS_LCD_FREQ");
+#endif // XPOWER_EVENT_ENABLE
+    ScreenAni* screenAni = reinterpret_cast<ScreenAni*>(screenNativeRef);
+    if (screenAni == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] screenAni is nullptr");
+        return;
+    }
+    screenAni->OnSetScreenActiveMode(env, obj, modeIndex);
+}
+
+void ScreenAni::OnSetScreenActiveMode(ani_env* env, ani_object obj, ani_long modeIndex)
+{
+    if (screen_ ==nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(screen_->SetScreenActiveMode(static_cast<uint32_t>(modeIndex)));
+    if (ret != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Set screen active mode fail, ret: %{public}u", ret);
+        AniErrUtils::ThrowBusinessError(env, ret, "Screen::SetScreenActiveMode failed.");
+    }
+}
+
+void ScreenAni::SetOrientation(ani_env* env, ani_object obj, ani_enum_item orientationAni)
+{
+    TLOGI(WmsLogTag::DMS, "begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    if (orientationAni == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] orientationAni is nullptr");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "orientationAni is nullptr.");
+        return;
+    }
+    ani_long screenNativeRef;
+    ani_status ret = env->Object_GetFieldByName_Long(obj, "screenNativeObj", &screenNativeRef);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] get screenAni native failed, ret: %{public}u", ret);
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "get screenNativeObj failed.");
+        return;
+    }
+    ScreenAni* screenAni = reinterpret_cast<ScreenAni*>(screenNativeRef);
+    if (screenAni == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] screenAni is nullptr");
+        return;
+    }
+    screenAni->OnSetOrientation(env, obj, orientationAni);
+}
+
+void ScreenAni::OnSetOrientation(ani_env* env, ani_object obj, ani_enum_item orientationAni)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    ani_int orientationInt = 0;
+    ani_status ret = env->EnumItem_GetValue_Int(orientationAni, &orientationInt);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get orientation failed, ret: %{public}u", ret);
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to Get orientation");
+        return;
+    }
+    Orientation orientation = static_cast<Orientation>(orientationInt);
+    if (orientation < Orientation::BEGIN || orientation > Orientation::END) {
+        TLOGE(WmsLogTag::DMS, "Orientation param error! orientation value must from enum Orientation");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
+            "orientation value must from enum Orientation");
+        return;
+    }
+    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(screen_->SetOrientation(orientation));
+    if (res != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Set screen orientation failed");
+        AniErrUtils::ThrowBusinessError(env, res, "Screen::SetOrientation failed.");
+    }
 }
 }
 }

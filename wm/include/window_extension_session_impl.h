@@ -47,7 +47,7 @@ public:
         bool isModuleAbilityHookEnd = false) override;
     WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
-    WMError Resize(uint32_t width, uint32_t height, const RectAnimationConfig& rectAnimationConfig = {}) override;
+    WMError Resize(uint32_t width, uint32_t height) override;
     WMError TransferAbilityResult(uint32_t resultCode, const AAFwk::Want& want) override;
     WMError TransferExtensionData(const AAFwk::WantParams& wantParams) override;
     WSError NotifyTransferComponentData(const AAFwk::WantParams& wantParams) override;
@@ -58,6 +58,10 @@ public:
         const NotifyTransferComponentDataForResultFunc& func) override;
     WMError RegisterHostWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
     WMError UnregisterHostWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
+    WMError RegisterRectChangeInGlobalDisplayListener(
+        const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
+    WMError UnregisterRectChangeInGlobalDisplayListener(
+        const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
     WMError RegisterKeyboardDidShowListener(const sptr<IKeyboardDidShowListener>& listener) override;
     WMError UnregisterKeyboardDidShowListener(const sptr<IKeyboardDidShowListener>& listener) override;
     WMError RegisterKeyboardDidHideListener(const sptr<IKeyboardDidHideListener>& listener) override;
@@ -75,8 +79,6 @@ public:
     WMError HidePrivacyContentForHost(bool needHide) override;
 
     WMError NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
-        BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
-    WMError NapiSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
         BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
     WMError AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
         BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
@@ -135,6 +137,7 @@ public:
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue) override;
+    WMError SetUIExtCustomDensity(const float density) override;
     float GetVirtualPixelRatio(const sptr<DisplayInfo>& displayInfo) override;
     float GetDefaultDensity(const sptr<DisplayInfo>& displayInfo);
     WMError HideNonSecureWindows(bool shouldHide) override;
@@ -181,6 +184,11 @@ public:
     WMError UseImplicitAnimation(bool useImplicit) override;
 
     /*
+     * Window Immersive
+     */
+    void UpdateDefaultStatusBarColor() override;
+
+    /*
      * Window Property
      */
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
@@ -196,7 +204,14 @@ public:
         const AAFwk::Want& data) override;
     WMError HandleUnregisterHostWindowRectChangeListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
+    WMError HandleRegisterHostRectChangeInGlobalDisplayListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
+    WMError HandleUnregisterHostRectChangeInGlobalDisplayListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
     uint32_t GetHostStatusBarContentColor() const override;
+    WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
+    WMError SetStatusBarColorForExtension(uint32_t color) override;
+    WMError SetStatusBarColorForExtensionInner(uint32_t color);
 
 protected:
     NotifyTransferComponentDataFunc notifyTransferComponentDataFunc_;
@@ -234,7 +249,6 @@ private:
     WMError OnCrossAxisStateChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnResyncExtensionConfig(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnGestureBackEnabledChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
-    WMError OnImmersiveModeEnabledChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnHostWindowDelayRaiseStateChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnHostWindowRectChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnScreenshot(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
@@ -242,6 +256,7 @@ private:
     WMError OnKeyboardDidShow(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnKeyboardDidHide(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnHostStatusBarContentColorChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
+    WMError OnHostRectChangeInGlobalDisplay(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
 
     /*
      * Compatible Mode
@@ -259,14 +274,15 @@ private:
     ExtensionWindowFlags extensionWindowFlags_ { 0 };
     bool modalUIExtensionMayBeCovered_ { false };
     bool modalUIExtensionSelfLoadContent_ { false };
+    bool isDensityCustomized_ { false };
+    float customizedDensity_ { 0.0f };
     float lastDensity_ { 0.0f };
     int32_t lastOrientation_ { 0 };
     uint64_t lastDisplayId_ { 0 };
+    uint32_t lastTransform_ { 0 };
     AAFwk::WantParams extensionConfig_ {};
-    bool hostGestureBackEnabled_ { true };
-    bool hostImmersiveModeEnabled_ { false };
-    bool immersiveModeEnabled_ { false };
-    std::mutex hostWindowRectChangeListenerMutex_;
+    std::atomic<bool> hostGestureBackEnabled_ { true };
+    std::atomic<bool> immersiveModeEnabled_ { false };
     std::mutex keyboardDidShowListenerMutex_;
     std::mutex keyboardDidHideListenerMutex_;
     std::mutex occupiedAreaChangeListenerMutex_;
@@ -274,6 +290,7 @@ private:
     std::vector<sptr<IKeyboardDidShowListener>> keyboardDidShowListenerList_;
     std::vector<sptr<IKeyboardDidHideListener>> keyboardDidHideListenerList_;
     std::vector<sptr<IOccupiedAreaChangeListener>> occupiedAreaChangeListenerList_;
+    std::vector<sptr<IRectChangeInGlobalDisplayListener>> hostRectChangeInGlobalDisplayListenerList_;
     uint32_t hostStatusBarContentColor_ { 0 };
     int64_t startModalExtensionTimeStamp_ = -1;
 

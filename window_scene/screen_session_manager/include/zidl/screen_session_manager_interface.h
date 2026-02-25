@@ -51,7 +51,8 @@ public:
 
     virtual ScreenId CreateVirtualScreen(VirtualScreenOption option,
         const sptr<IRemoteObject>& displayManagerAgent) { return SCREEN_ID_INVALID; }
-    virtual DMError DestroyVirtualScreen(ScreenId screenId) { return DMError::DM_OK; }
+    virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false)
+        { return DMError::DM_OK; }
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
     {
         return DMError::DM_OK;
@@ -66,10 +67,23 @@ public:
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
+
+    virtual DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual DMError RemoveVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual DMError SetScreenPrivacyMaskImage(ScreenId screenId,
         const std::shared_ptr<Media::PixelMap>& privacyMaskImg)
     {
         return DMError::DM_OK;
+    }
+    virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay)
+    {
+        return DMError::DM_ERROR_INVALID_PARAM;
     }
     virtual DMError SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, bool autoRotate)
     {
@@ -160,6 +174,11 @@ public:
         DisplayManagerAgentType type) { return DMError::DM_OK; }
     virtual DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type) { return DMError::DM_OK; }
+    virtual DMError RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent) { return DMError::DM_OK; }
+    virtual DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent) { return DMError::DM_OK; }
+
     virtual bool WakeUpBegin(PowerStateChangeReason reason) { return false; }
     virtual bool WakeUpEnd() { return false; }
     virtual bool SuspendBegin(PowerStateChangeReason reason) { return false; }
@@ -173,6 +192,7 @@ public:
     virtual bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason) { return false; }
     virtual ScreenPowerState GetScreenPower(ScreenId dmsScreenId) { return ScreenPowerState::INVALID_STATE; }
     virtual ScreenPowerState GetScreenPower() { return ScreenPowerState::INVALID_STATE; }
+    virtual void SyncScreenPowerState(ScreenPowerState state) { }
     virtual bool SetDisplayState(DisplayState state) { return false; }
     virtual DisplayState GetDisplayState(DisplayId displayId) {return DisplayState::UNKNOWN; }
     virtual bool TryToCancelScreenOff() { return false; }
@@ -198,8 +218,12 @@ public:
         ScreenId& screenGroupId, const RotationOption& rotationOption = {Rotation::ROTATION_0, false},
         bool forceMirror = false) { return DMError::DM_OK; }
 
-    virtual DMError MakeMirrorForRecord(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
-        ScreenId &screenGroupId)
+    virtual DMError MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,
+        std::vector<ScreenId>& mirrorScreenIds, ScreenId &screenGroupId)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect)
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -248,6 +272,8 @@ public:
 
     virtual void SetFoldStatusLocked(bool locked) {}
     virtual DMError SetFoldStatusLockedFromJs(bool locked) { return DMError::DM_OK; }
+    virtual DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus) { return DMError::DM_OK; }
+    virtual DMError RestorePhysicalFoldStatus() { return DMError::DM_OK; }
     virtual void SetFoldStatusExpandAndLocked(bool locked) {}
 
     virtual FoldDisplayMode GetFoldDisplayMode() { return FoldDisplayMode::UNKNOWN; }
@@ -270,7 +296,7 @@ public:
     }
 
     virtual DMError MakeUniqueScreen(const std::vector<ScreenId>& screenIds,
-        std::vector<DisplayId>& displayIds) { return DMError::DM_OK; }
+        std::vector<DisplayId>& displayIds, const UniqueScreenRotationOptions& options) { return DMError::DM_OK; }
 
     virtual void SetClient(const sptr<IScreenSessionManagerClient>& client) {}
     virtual void SwitchUser() {}
@@ -298,7 +324,7 @@ public:
     virtual ScreenProperty GetPhyScreenProperty(ScreenId screenId) { return ScreenProperty(); }
     virtual void NotifyDisplayChangeInfoChanged(const sptr<DisplayChangeInfo>& info) {}
     virtual void SetScreenPrivacyState(bool hasPrivate) {}
-    virtual void SetPrivacyStateByDisplayId(DisplayId id, bool hasPrivate) {}
+    virtual void SetPrivacyStateByDisplayId(std::unordered_map<DisplayId, bool>& privacyBundleDisplayId) {}
     virtual void SetScreenPrivacyWindowList(DisplayId id, std::vector<std::string> privacyWindowList) {}
     virtual DMError GetAvailableArea(DisplayId displayId, DMRect& area) { return DMError::DM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area)
@@ -308,6 +334,7 @@ public:
     virtual void NotifyFoldToExpandCompletion(bool foldToExpand) {}
     virtual void NotifyScreenConnectCompletion(ScreenId screenId) {}
     virtual void NotifyAodOpCompletion(AodOP op, int32_t result) {}
+    virtual void SetPowerStateForAod(ScreenPowerState state) {}
     virtual void RecordEventFromScb(std::string description, bool needRecordEvent) {}
     virtual DeviceScreenConfig GetDeviceScreenConfig() { return {}; }
     virtual DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
@@ -390,6 +417,8 @@ public:
         ScreenId& screenId, DMRect& screenArea) { return DMError::DM_OK; }
     virtual DMError GetBrightnessInfo(DisplayId displayId,
         ScreenBrightnessInfo& brightnessInfo) { return DMError::DM_OK; }
+    virtual DMError GetSupportsInput(DisplayId displayId, bool& supportsInput) { return DMError::DM_OK; };
+    virtual DMError SetSupportsInput(DisplayId displayId, bool supportsInput) { return DMError::DM_OK; };
     virtual DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) { return DMError::DM_OK; }
     virtual DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) { return DMError::DM_OK; }
@@ -399,6 +428,8 @@ public:
     {
         return DMError::DM_OK;
     }
+    virtual DMError GetRoundedCorner(DisplayId displayId, int& radius) { return DMError::DM_OK; }
+    virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName) { return DMError::DM_OK; }
 };
 } // namespace Rosen
 } // namespace OHOS

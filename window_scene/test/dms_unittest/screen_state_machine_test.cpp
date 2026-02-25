@@ -144,6 +144,87 @@ HWTEST_F(ScreenStateMachineTest, HandlePowerStateChangeTestInvalidTransition, Te
     EXPECT_FALSE(fsm_->HandlePowerStateChange(ScreenPowerEvent::SCREEN_POWER_EVENT_MAX, type));
 }
 
+/**
+ * @tc.name: DoSetScreenPowerForAll_ShouldReturnFalse_WhenTypeIsInvalid
+ * @tc.number: DoSetScreenPowerForAllTest_001
+ * @tc.desc: 测试当type参数有效时，DoSetScreenPowerForAll 函数应返回 true
+ */
+HWTEST_F(ScreenStateMachineTest, DoSetScreenPowerForAll_ShouldReturnFalse_WhenTypeIsInvalid, TestSize.Level0)
+{   ScreenPowerEvent event = ScreenPowerEvent::POWER_OFF;
+    ScreenPowerInfoType invalidType;
+    EXPECT_FALSE(fsm_->DoSetScreenPowerForAll(event, invalidType));
+}
+
+/**
+ * @tc.name: DoSetScreenPowerForAll_ShouldReturnFalse_WhenTypeIsValidAndDoSetScreenPowerForAllReturnFalse
+ * @tc.number: DoSetScreenPowerForAllTest_003
+ * @tc.desc: 测试当type参数有效时，DoSetScreenPowerForAll 函数应返回 false
+ */
+HWTEST_F(ScreenStateMachineTest,
+DoSetScreenPowerForAll_ShouldReturnFalse_WhenTypeIsValidAndDoSetScreenPowerForAllReturnFalse, TestSize.Level0)
+{   ScreenPowerEvent event = ScreenPowerEvent::POWER_ON;
+    ScreenPowerInfoType validType = std::make_pair(ScreenPowerState::INVALID_STATE,
+    PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_FAIL_SCREEN_OFF);
+    EXPECT_FALSE(fsm_->DoSetScreenPowerForAll(event, validType));
+}
+
+/**
+ * @tc.name: ActionScreenPowerOff invalidType
+ * @tc.desc: ActionScreenPowerOff func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenStateMachineTest, ActionScreenPowerOff_ShouldReturnFalse_WhenTypeIsInvalid, TestSize.Level0)
+{
+    ScreenPowerEvent event = ScreenPowerEvent::POWER_OFF;
+    ScreenPowerInfoType type;
+    EXPECT_FALSE(fsm_->ActionScreenPowerOff(event, type));
+}
+
+/**
+ * @tc.name: ActionScreenPowerOff validType&&powerOn
+ * @tc.desc: ActionScreenPowerOff func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenStateMachineTest, ActionScreenPowerOff_ShouldReturnTrue_WhenTypeIsValidScreenOn, TestSize.Level0)
+{
+    DisplayId id = 0;
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(id, ScreenProperty(), 0);
+    ScreenSessionManager::GetInstance().screenSessionMap_[id] = screenSession;
+    ScreenSessionManager::GetInstance().SetScreenPowerForAll(
+        ScreenPowerState::POWER_ON, PowerStateChangeReason::POWER_BUTTON);
+    ScreenPowerEvent event = ScreenPowerEvent::POWER_OFF;
+    ScreenPowerInfoType type = std::make_pair(id, ScreenPowerStatus::POWER_STATUS_ON);
+    EXPECT_TRUE(fsm_->ActionScreenPowerOff(event, type));
+}
+
+/**
+ * @tc.name: ActionScreenPowerOff validType&&powerOff
+ * @tc.desc: ActionScreenPowerOff func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenStateMachineTest, ActionScreenPowerOff_ShouldReturnTrue_WhenTypeIsValidScreenOff, TestSize.Level0)
+{
+    DisplayId id = 0;
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(id, ScreenProperty(), 0);
+    ScreenSessionManager::GetInstance().screenSessionMap_[id] = screenSession;
+    ScreenSessionManager::GetInstance().SetScreenPowerForAll(
+        ScreenPowerState::POWER_OFF, PowerStateChangeReason::POWER_BUTTON);
+    ScreenPowerEvent event = ScreenPowerEvent::POWER_OFF;
+    ScreenPowerInfoType type = std::make_pair(id, ScreenPowerStatus::POWER_STATUS_OFF);
+    EXPECT_TRUE(fsm_->ActionScreenPowerOff(event, type));
+}
+
+/**sc
+ * @tc.name: DoSetScreenFoldPowerFunc_ShouldReturnFalse_WhenCallbackNull
+ * @tc.desc: DoSetScreenFoldPowerFunc func
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenStateMachineTest, DoSetScreenFoldPowerFunc_ShouldReturnFalse_WhenCallbackNull, TestSize.Level0)
+{
+    bool res = ScreenStateMachine::DoSetScreenFoldPowerFunc(ScreenPowerEvent::POWER_ON,
+        PowerStateChangeReason::POWER_BUTTON);
+    EXPECT_FALSE(res);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

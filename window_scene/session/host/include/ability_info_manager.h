@@ -16,14 +16,11 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_ABILITY_INFO_MANAGER_H
 #define OHOS_ROSEN_WINDOW_SCENE_ABILITY_INFO_MANAGER_H
 
-#include <cstdint>
-#include <mutex>
 #include <string>
-#include <unordered_map>
-
+#include <cstdint>
 #include <refbase.h>
-
-#include "wm_single_instance.h"
+#include <shared_mutex>
+#include <unordered_map>
 
 namespace OHOS::AppExecFwk {
 class IBundleMgr;
@@ -33,8 +30,8 @@ struct BundleInfo;
 
 namespace OHOS::Rosen {
 class AbilityInfoManager {
-WM_DECLARE_SINGLE_INSTANCE(AbilityInfoManager);
 public:
+    static AbilityInfoManager& GetInstance();
     static bool FindAbilityInfo(const AppExecFwk::BundleInfo& bundleInfo,
         const std::string& moduleName, const std::string& abilityName, AppExecFwk::AbilityInfo& abilityInfo);
 
@@ -42,17 +39,17 @@ public:
     void SetCurrentUserId(int32_t userId);
 
     // Locks applicationInfoMutex_
-    void RemoveAppInfo(const std::string& bundleName);
+    void RefreshAppInfo(const std::string& bundleName);
     bool IsAnco(const std::string& bundleName, const std::string& abilityName, const std::string& moduleName);
     // Above guarded by applicationInfoMutex_
 
 private:
     std::mutex applicationInfoMutex_;
     std::unordered_map<std::string, std::string> applicationInfoMap_;
-    int32_t userId_ = 0;
     // Above guarded by applicationInfoMutex_
 
     sptr<AppExecFwk::IBundleMgr> bundleMgr_;
+    int32_t userId_ = 0;
 };
 } // namespace OHOS::Rosen
 

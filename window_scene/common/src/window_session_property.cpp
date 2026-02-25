@@ -217,12 +217,6 @@ void WindowSessionProperty::SetRequestRect(const Rect& requestRect)
     requestRect_ = requestRect;
 }
 
-void WindowSessionProperty::SetRectAnimationConfig(const RectAnimationConfig& rectAnimationConfig)
-{
-    std::lock_guard<std::mutex> lock(rectAnimationConfigMutex_);
-    rectAnimationConfig_ = rectAnimationConfig;
-}
-
 void WindowSessionProperty::SetWindowType(WindowType type)
 {
     type_ = type;
@@ -287,6 +281,11 @@ void WindowSessionProperty::SetDefaultRequestedOrientation(Orientation orientati
 void WindowSessionProperty::SetUserRequestedOrientation(Orientation orientation)
 {
     userRequestedOrientation_ = orientation;
+}
+
+void WindowSessionProperty::SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation)
+{
+    isSpecificSessionRequestOrientation_ = isSpecificSessionRequestOrientation;
 }
 
 void WindowSessionProperty::SetPrivacyMode(bool isPrivate)
@@ -374,12 +373,6 @@ Rect WindowSessionProperty::GetRequestRect() const
     return requestRect_;
 }
 
-RectAnimationConfig WindowSessionProperty::GetRectAnimationConfig() const
-{
-    std::lock_guard<std::mutex> lock(rectAnimationConfigMutex_);
-    return rectAnimationConfig_;
-}
-
 WindowType WindowSessionProperty::GetWindowType() const
 {
     return type_;
@@ -448,6 +441,11 @@ Orientation WindowSessionProperty::GetDefaultRequestedOrientation() const
 Orientation WindowSessionProperty::GetUserRequestedOrientation() const
 {
     return userRequestedOrientation_;
+}
+
+bool WindowSessionProperty::GetIsSpecificSessionRequestOrientation() const
+{
+    return isSpecificSessionRequestOrientation_;
 }
 
 bool WindowSessionProperty::GetPrivacyMode() const
@@ -706,6 +704,7 @@ void WindowSessionProperty::SetWindowState(WindowState state)
 
 void WindowSessionProperty::SetKeyboardLayoutParams(const KeyboardLayoutParams& params)
 {
+    std::lock_guard<std::mutex> lock(keyboardParamsMutex_);
     keyboardLayoutParams_.gravity_ = params.gravity_;
     keyboardLayoutParams_.landscapeAvoidHeight_ = params.landscapeAvoidHeight_;
     keyboardLayoutParams_.portraitAvoidHeight_ = params.portraitAvoidHeight_;
@@ -713,11 +712,56 @@ void WindowSessionProperty::SetKeyboardLayoutParams(const KeyboardLayoutParams& 
     keyboardLayoutParams_.PortraitKeyboardRect_ = params.PortraitKeyboardRect_;
     keyboardLayoutParams_.LandscapePanelRect_ = params.LandscapePanelRect_;
     keyboardLayoutParams_.PortraitPanelRect_ = params.PortraitPanelRect_;
+    keyboardLayoutParams_.displayId_ = params.displayId_;
 }
 
 KeyboardLayoutParams WindowSessionProperty::GetKeyboardLayoutParams() const
 {
+    std::lock_guard<std::mutex> lock(keyboardParamsMutex_);
     return keyboardLayoutParams_;
+}
+
+void WindowSessionProperty::AddKeyboardLayoutParams(const uint64_t screenId, const KeyboardLayoutParams& params)
+{
+    std::lock_guard<std::mutex> lock(keyboardParamsMutex_);
+    if (screenId != DISPLAY_ID_INVALID) {
+        keyboardLayoutParamsMap_[screenId] = params;
+    }
+}
+
+void WindowSessionProperty::ClearCachedKeyboardParamsOnScreenDisconnected(const uint64_t screenId)
+{
+    std::lock_guard<std::mutex> lock(keyboardParamsMutex_);
+    auto it = keyboardLayoutParamsMap_.find(screenId);
+    if (it == keyboardLayoutParamsMap_.end()) {
+        return;
+    }
+    keyboardLayoutParamsMap_.erase(it);
+}
+
+void WindowSessionProperty::GetKeyboardLayoutParamsByScreenId(
+    const uint64_t screenId, KeyboardLayoutParams& keyboardLayoutParams)
+{
+    std::lock_guard<std::mutex> lock(keyboardParamsMutex_);
+    auto it = keyboardLayoutParamsMap_.find(screenId);
+    if (it == keyboardLayoutParamsMap_.end()) {
+        TLOGW(WmsLogTag::WMS_KEYBOARD, "Get keyboardParams failed, %{public}" PRIu64, screenId);
+        return;
+    }
+    const KeyboardLayoutParams& params = it->second;
+    keyboardLayoutParams.gravity_ = params.gravity_;
+    keyboardLayoutParams.landscapeAvoidHeight_ = params.landscapeAvoidHeight_;
+    keyboardLayoutParams.portraitAvoidHeight_ = params.portraitAvoidHeight_;
+    keyboardLayoutParams.LandscapeKeyboardRect_ = params.LandscapeKeyboardRect_;
+    keyboardLayoutParams.PortraitKeyboardRect_ = params.PortraitKeyboardRect_;
+    keyboardLayoutParams.LandscapePanelRect_ = params.LandscapePanelRect_;
+    keyboardLayoutParams.PortraitPanelRect_ = params.PortraitPanelRect_;
+    keyboardLayoutParams.displayId_ = params.displayId_;
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "Get keyboardParams: %{public}u|%{public}d|%{public}d|%{public}s|%{public}s|"
+        "%{public}s|%{public}s|%{public}" PRIu64, static_cast<uint32_t>(params.gravity_),
+        params.landscapeAvoidHeight_, params.portraitAvoidHeight_, params.LandscapeKeyboardRect_.ToString().c_str(),
+        params.PortraitKeyboardRect_.ToString().c_str(), params.LandscapePanelRect_.ToString().c_str(),
+        params.PortraitPanelRect_.ToString().c_str(), params.displayId_);
 }
 
 void WindowSessionProperty::SetDecorEnable(bool isDecorEnable)
@@ -814,6 +858,7 @@ void WindowSessionProperty::SetKeyboardTouchHotAreas(const KeyboardTouchHotAreas
             keyboardTouchHotAreas.landscapePanelHotAreas_, keyboardTouchHotAreas_.landscapePanelHotAreas_);
         setTouchHotAreasInner(
             keyboardTouchHotAreas.portraitPanelHotAreas_, keyboardTouchHotAreas_.portraitPanelHotAreas_);
+        keyboardTouchHotAreas_.displayId_ = keyboardTouchHotAreas.displayId_;
     }
     if (touchHotAreasChangeCallback_) {
         touchHotAreasChangeCallback_();
@@ -850,6 +895,11 @@ void WindowSessionProperty::SetCallingSessionId(uint32_t sessionId)
 uint32_t WindowSessionProperty::GetCallingSessionId() const
 {
     return callingSessionId_;
+}
+
+void WindowSessionProperty::SetSessionPropertyChangeCallback(std::function<void()>&& callback)
+{
+    touchHotAreasChangeCallback_ = std::move(callback);
 }
 
 void WindowSessionProperty::SetPiPTemplateInfo(const PiPTemplateInfo& pipTemplateInfo)
@@ -1036,7 +1086,8 @@ bool WindowSessionProperty::MarshallingKeyboardTouchHotAreas(Parcel& parcel) con
     return MarshallingTouchHotAreasInner(keyboardTouchHotAreas_.landscapeKeyboardHotAreas_, parcel) &&
            MarshallingTouchHotAreasInner(keyboardTouchHotAreas_.portraitKeyboardHotAreas_, parcel) &&
            MarshallingTouchHotAreasInner(keyboardTouchHotAreas_.landscapePanelHotAreas_, parcel) &&
-           MarshallingTouchHotAreasInner(keyboardTouchHotAreas_.portraitPanelHotAreas_, parcel);
+           MarshallingTouchHotAreasInner(keyboardTouchHotAreas_.portraitPanelHotAreas_, parcel) &&
+           parcel.WriteUint64(keyboardTouchHotAreas_.displayId_);
 }
 
 void WindowSessionProperty::UnmarshallingTouchHotAreasInner(Parcel& parcel, std::vector<Rect>& touchHotAreas)
@@ -1062,6 +1113,7 @@ void WindowSessionProperty::UnmarshallingKeyboardTouchHotAreas(Parcel& parcel, W
     UnmarshallingTouchHotAreasInner(parcel, property->keyboardTouchHotAreas_.portraitKeyboardHotAreas_);
     UnmarshallingTouchHotAreasInner(parcel, property->keyboardTouchHotAreas_.landscapePanelHotAreas_);
     UnmarshallingTouchHotAreasInner(parcel, property->keyboardTouchHotAreas_.portraitPanelHotAreas_);
+    property->keyboardTouchHotAreas_.displayId_ = parcel.ReadUint64();
 }
 
 bool WindowSessionProperty::MarshallingPiPTemplateInfo(Parcel& parcel) const
@@ -1168,6 +1220,12 @@ bool WindowSessionProperty::MarshallingSessionInfo(Parcel& parcel) const
         !parcel.WriteBool(sessionInfo_.isKeyboardDidHideRegistered_)) {
         return false;
     }
+    if (!parcel.WriteBool(sessionInfo_.isReceiveDragEventEnabled_)) {
+        return false;
+    }
+    if (!parcel.WriteBool(sessionInfo_.isSeparationTouchEnabled_)) {
+        return false;
+    }
     return true;
 }
 
@@ -1217,6 +1275,14 @@ bool WindowSessionProperty::UnmarshallingSessionInfo(Parcel& parcel, WindowSessi
         !parcel.ReadBool(info.isKeyboardDidShowRegistered_) ||
         !parcel.ReadBool(info.isKeyboardDidHideRegistered_)) {
         TLOGE(WmsLogTag::DEFAULT, "Failed to read keyboard registered state!");
+        return false;
+    }
+    if (!parcel.ReadBool(info.isReceiveDragEventEnabled_)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to read isReceiveDragEventEnabled!");
+        return false;
+    }
+    if (!parcel.ReadBool(info.isSeparationTouchEnabled_)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to read isSeparationTouchEnabled!");
         return false;
     }
     property->SetSessionInfo(info);
@@ -1279,14 +1345,14 @@ bool WindowSessionProperty::GetIsAppSupportPhoneInPc() const
     return isAppSupportPhoneInPc_;
 }
 
-void WindowSessionProperty::SetIsPcAppInPad(bool isPcAppInLargeScreenDevice)
+void WindowSessionProperty::SetIsPcAppInPad(bool isPcAppInPad)
 {
-    isPcAppInLargeScreenDevice_ = isPcAppInLargeScreenDevice;
+    isPcAppInPad_ = isPcAppInPad;
 }
 
 bool WindowSessionProperty::GetIsPcAppInPad() const
 {
-    return isPcAppInLargeScreenDevice_;
+    return isPcAppInPad_;
 }
 
 void WindowSessionProperty::SetSubWindowLevel(uint32_t subWindowLevel)
@@ -1361,9 +1427,6 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteUint32(requestRect_.height_) && parcel.WriteInt32(globalDisplayRect.posX_) &&
         parcel.WriteInt32(globalDisplayRect.posY_) && parcel.WriteUint32(globalDisplayRect.width_) &&
         parcel.WriteUint32(globalDisplayRect.height_) &&
-        parcel.WriteUint32(rectAnimationConfig_.duration) && parcel.WriteFloat(rectAnimationConfig_.x1) &&
-        parcel.WriteFloat(rectAnimationConfig_.y1) && parcel.WriteFloat(rectAnimationConfig_.x2) &&
-        parcel.WriteFloat(rectAnimationConfig_.y2) &&
         parcel.WriteUint32(static_cast<uint32_t>(type_)) &&
         parcel.WriteBool(focusable_) && parcel.WriteBool(focusableOnShow_) &&
         parcel.WriteBool(touchable_) && parcel.WriteBool(tokenState_) &&
@@ -1378,6 +1441,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteUint32(static_cast<uint32_t>(requestedOrientation_)) &&
         parcel.WriteBool(needRotateAnimation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(userRequestedOrientation_)) &&
+        parcel.WriteBool(isSpecificSessionRequestOrientation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(windowMode_)) &&
         parcel.WriteUint32(flags_) && parcel.WriteBool(raiseEnabled_) &&
         parcel.WriteBool(topmost_) && parcel.WriteBool(mainWindowTopmost_) &&
@@ -1390,8 +1454,8 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isFloatingWindowAppType_) && MarshallingTouchHotAreas(parcel) &&
         parcel.WriteBool(isSystemCalling_) &&
         parcel.WriteDouble(textFieldPositionY_) && parcel.WriteDouble(textFieldHeight_) &&
-        parcel.WriteUint32(static_cast<uint32_t>(windowState_)) &&
         parcel.WriteBool(isNeedUpdateWindowMode_) && parcel.WriteUint32(callingSessionId_) &&
+        parcel.WriteUint32(static_cast<uint32_t>(windowState_)) &&
         parcel.WriteBool(isLayoutFullScreen_) &&
         parcel.WriteInt32(realParentId_) &&
         parcel.WriteBool(isUIExtFirstSubWindow_) &&
@@ -1401,7 +1465,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         MarshallingWindowMask(parcel) &&
         parcel.WriteParcelable(&keyboardLayoutParams_) &&
         parcel.WriteBool(isAppSupportPhoneInPc_) &&
-        parcel.WriteBool(isPcAppInLargeScreenDevice_) &&
+        parcel.WriteBool(isPcAppInPad_) &&
         parcel.WriteString(appInstanceKey_) &&
         parcel.WriteInt32(appIndex_) &&
         parcel.WriteBool(isSystemKeyboard_) &&
@@ -1410,12 +1474,13 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteFloat(cornerRadius_) && parcel.WriteBool(isExclusivelyHighlighted_) &&
         parcel.WriteBool(isAtomicService_) && parcel.WriteUint32(apiVersion_) &&
         parcel.WriteBool(isFullScreenWaterfallMode_) && parcel.WriteBool(isAbilityHookOff_) &&
-        parcel.WriteBool(isAbilityHook_) && parcel.WriteBool(isFollowScreenChange_) &&
-        parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(subWindowOutlineEnabled_) &&
+        parcel.WriteBool(isAbilityHook_) &&
+        parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(isFollowScreenChange_) &&
+        parcel.WriteBool(subWindowOutlineEnabled_) &&
         parcel.WriteUint32(windowModeSupportType_) &&
         MarshallingShadowsInfo(parcel) &&
-        MarshallingFbTemplateInfo(parcel) &&
         MarshallingWindowAnchorInfo(parcel) &&
+        MarshallingFbTemplateInfo(parcel) &&
         parcel.WriteBool(isPcAppInpadSpecificSystemBarInvisible_) &&
         parcel.WriteBool(isPcAppInpadOrientationLandscape_) &&
         parcel.WriteBool(isPcAppInpadCompatibleMode_) &&
@@ -1423,8 +1488,12 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isShowDecorInFreeMultiWindow_) &&
         parcel.WriteBool(isMobileAppInPadLayoutFullScreen_) &&
         parcel.WriteBool(isFullScreenInForceSplitMode_) &&
+        parcel.WriteInt32(static_cast<int32_t>(pageCompatibleMode_)) &&
         parcel.WriteFloat(aspectRatio_) &&
-        parcel.WriteBool(isRotationLock_);
+        parcel.WriteBool(isRotationLock_) &&
+        parcel.WriteInt32(frameNum_) &&
+        parcel.WriteBool(isPrelaunch_) &&
+        parcel.WriteBool(isAppBufferReady_);
 }
 
 WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
@@ -1440,9 +1509,6 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetRequestRect(reqRect);
     Rect globalDisplayRect = { parcel.ReadInt32(), parcel.ReadInt32(), parcel.ReadUint32(), parcel.ReadUint32() };
     property->SetGlobalDisplayRect(globalDisplayRect);
-    RectAnimationConfig rectAnimationConfig = { parcel.ReadUint32(), parcel.ReadFloat(),
-        parcel.ReadFloat(), parcel.ReadFloat(), parcel.ReadFloat() };
-    property->SetRectAnimationConfig(rectAnimationConfig);
     property->SetWindowType(static_cast<WindowType>(parcel.ReadUint32()));
     property->SetFocusable(parcel.ReadBool());
     property->SetFocusableOnShow(parcel.ReadBool());
@@ -1471,6 +1537,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetMaximizeMode(static_cast<MaximizeMode>(parcel.ReadUint32()));
     property->SetRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()), parcel.ReadBool());
     property->SetUserRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()));
+    property->SetIsSpecificSessionRequestOrientation(parcel.ReadBool());
     property->SetWindowMode(static_cast<WindowMode>(parcel.ReadUint32()));
     property->SetWindowFlags(parcel.ReadUint32());
     property->SetRaiseEnabled(parcel.ReadBool());
@@ -1492,9 +1559,9 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetSystemCalling(parcel.ReadBool());
     property->SetTextFieldPositionY(parcel.ReadDouble());
     property->SetTextFieldHeight(parcel.ReadDouble());
-    property->SetWindowState(static_cast<WindowState>(parcel.ReadUint32()));
     property->SetIsNeedUpdateWindowMode(parcel.ReadBool());
     property->SetCallingSessionId(parcel.ReadUint32());
+    property->SetWindowState(static_cast<WindowState>(parcel.ReadUint32()));
     property->SetIsLayoutFullScreen(parcel.ReadBool());
     property->SetRealParentId(parcel.ReadInt32());
     property->SetIsUIExtFirstSubWindow(parcel.ReadBool());
@@ -1530,13 +1597,13 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetIsFullScreenWaterfallMode(parcel.ReadBool());
     property->SetIsAbilityHookOff(parcel.ReadBool());
     property->SetIsAbilityHook(parcel.ReadBool());
-    property->SetFollowScreenChange(parcel.ReadBool());
     property->SetCompatibleModeProperty(parcel.ReadParcelable<CompatibleModeProperty>());
+    property->SetFollowScreenChange(parcel.ReadBool());
     property->SetSubWindowOutlineEnabled(parcel.ReadBool());
     property->SetWindowModeSupportType(parcel.ReadUint32());
     UnmarshallingShadowsInfo(parcel, property);
-    UnmarshallingFbTemplateInfo(parcel, property);
     UnmarshallingWindowAnchorInfo(parcel, property);
+    UnmarshallingFbTemplateInfo(parcel, property);
     property->SetPcAppInpadSpecificSystemBarInvisible(parcel.ReadBool());
     property->SetPcAppInpadOrientationLandscape(parcel.ReadBool());
     property->SetPcAppInpadCompatibleMode(parcel.ReadBool());
@@ -1544,8 +1611,12 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetIsShowDecorInFreeMultiWindow(parcel.ReadBool());
     property->SetMobileAppInPadLayoutFullScreen(parcel.ReadBool());
     property->SetIsFullScreenInForceSplitMode(parcel.ReadBool());
+    property->SetPageCompatibleMode(static_cast<CompatibleStyleMode>(parcel.ReadInt32()));
     property->SetAspectRatio(parcel.ReadFloat());
     property->SetRotationLocked(parcel.ReadBool());
+    property->SetFrameNum(parcel.ReadInt32());
+    property->SetPrelaunch(parcel.ReadBool());
+    property->SetAppBufferReady(parcel.ReadBool());
     return property;
 }
 
@@ -1555,7 +1626,6 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     sessionInfo_ = property->sessionInfo_;
     requestRect_ = property->requestRect_;
     globalDisplayRect_ = property->GetGlobalDisplayRect();
-    rectAnimationConfig_ = property->rectAnimationConfig_;
     windowRect_ = property->windowRect_;
     type_ = property->type_;
     focusable_ = property->focusable_;
@@ -1625,7 +1695,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     }
     collaboratorType_ = property->collaboratorType_;
     isAppSupportPhoneInPc_ = property->isAppSupportPhoneInPc_;
-    isPcAppInLargeScreenDevice_ = property->isPcAppInLargeScreenDevice_;
+    isPcAppInPad_ = property->isPcAppInPad_;
     subWindowLevel_ = property->subWindowLevel_;
     realParentId_ = property->realParentId_;
     uiExtensionUsage_ = property->uiExtensionUsage_;
@@ -1640,29 +1710,31 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     isWindowDelayRaiseEnabled_ = property->isWindowDelayRaiseEnabled_;
     backgroundAlpha_ = property->backgroundAlpha_;
     keyboardEffectOption_ = property->keyboardEffectOption_;
-    isExclusivelyHighlighted_ = property->isExclusivelyHighlighted_;
     cornerRadius_ = property->cornerRadius_;
+    isExclusivelyHighlighted_ = property->isExclusivelyHighlighted_;
     isAtomicService_ = property->isAtomicService_;
     apiVersion_ = property->apiVersion_;
     isFullScreenWaterfallMode_ = property->isFullScreenWaterfallMode_;
     isAbilityHookOff_ = property->isAbilityHookOff_;
     isAbilityHook_ = property->isAbilityHook_;
     isFollowScreenChange_ = property->isFollowScreenChange_;
-    subWindowOutlineEnabled_ = property->subWindowOutlineEnabled_;
     shadowsInfo_ = property->shadowsInfo_;
     windowAnchorInfo_ = property->windowAnchorInfo_;
+    subWindowOutlineEnabled_ = property->subWindowOutlineEnabled_;
     isPcAppInpadSpecificSystemBarInvisible_ = property->isPcAppInpadSpecificSystemBarInvisible_;
     isPcAppInpadOrientationLandscape_ = property->isPcAppInpadOrientationLandscape_;
     isPcAppInpadCompatibleMode_ = property->isPcAppInpadCompatibleMode_;
     ancoRealBundleName_ = property->ancoRealBundleName_;
+    isShowDecorInFreeMultiWindow_ = property->isShowDecorInFreeMultiWindow_;
+    isMobileAppInPadLayoutFullScreen_ = property->isMobileAppInPadLayoutFullScreen_;
+    aspectRatio_ = property->aspectRatio_;
     {
         std::lock_guard<std::mutex> lock(missionInfoMutex_);
         missionInfo_ = property->missionInfo_;
     }
-    isShowDecorInFreeMultiWindow_ = property->isShowDecorInFreeMultiWindow_;
-    isMobileAppInPadLayoutFullScreen_ = property->isMobileAppInPadLayoutFullScreen_;
-    aspectRatio_ = property->aspectRatio_;
     isRotationLock_ = property->isRotationLock_;
+    statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
+    pageCompatibleMode_ = property->pageCompatibleMode_;
 }
 
 bool WindowSessionProperty::Write(Parcel& parcel, WSPropertyChangeAction action)
@@ -2065,11 +2137,6 @@ double WindowSessionProperty::GetTextFieldHeight() const
     return textFieldHeight_;
 }
 
-void WindowSessionProperty::SetSessionPropertyChangeCallback(std::function<void()>&& callback)
-{
-    touchHotAreasChangeCallback_ = std::move(callback);
-}
-
 bool WindowSessionProperty::IsLayoutFullScreen() const
 {
     return isLayoutFullScreen_;
@@ -2328,11 +2395,13 @@ bool WindowSessionProperty::GetIsAbilityHook() const
 
 sptr<CompatibleModeProperty> WindowSessionProperty::GetCompatibleModeProperty() const
 {
+    std::lock_guard lock(compatibleModeMutex_);
     return compatibleModeProperty_;
 }
 
 void WindowSessionProperty::SetCompatibleModeProperty(const sptr<CompatibleModeProperty> property)
 {
+    std::lock_guard lock(compatibleModeMutex_);
     compatibleModeProperty_ = property;
 }
 
@@ -2411,6 +2480,22 @@ bool WindowSessionProperty::IsAdaptToSimulationScale() const
     return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToSimulationScale();
 }
 
+bool WindowSessionProperty::IsAdaptToCompatibleDevice() const
+{
+    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToCompatibleDevice();
+}
+
+RealTimeSwitchInfo WindowSessionProperty::GetRealTimeSwitchInfo() const
+{
+    if (!compatibleModeProperty_) {
+        RealTimeSwitchInfo switchInfo;
+        switchInfo.isNeedChange_ = false;
+        switchInfo.showTypes_ = 0;
+        return switchInfo;
+    }
+    return compatibleModeProperty_->GetRealTimeSwitchInfo();
+}
+
 void WindowSessionProperty::SetIsFullScreenInForceSplitMode(bool isFullScreenInForceSplitMode)
 {
     isFullScreenInForceSplitMode_ = isFullScreenInForceSplitMode;
@@ -2419,6 +2504,26 @@ void WindowSessionProperty::SetIsFullScreenInForceSplitMode(bool isFullScreenInF
 bool WindowSessionProperty::IsFullScreenInForceSplitMode() const
 {
     return isFullScreenInForceSplitMode_;
+}
+
+void WindowSessionProperty::SetPageCompatibleMode(CompatibleStyleMode compatibleMode)
+{
+    pageCompatibleMode_ = compatibleMode;
+}
+
+CompatibleStyleMode WindowSessionProperty::GetPageCompatibleMode() const
+{
+    return pageCompatibleMode_;
+}
+
+void WindowSessionProperty::SetLogicalDeviceConfig(const std::string& logicalDeviceConfig)
+{
+    logicalDeviceConfig_ = logicalDeviceConfig;
+}
+
+std::string WindowSessionProperty::GetLogicalDeviceConfig() const
+{
+    return logicalDeviceConfig_;
 }
 
 void WindowSessionProperty::SetPcAppInpadCompatibleMode(bool enabled)
@@ -2621,6 +2726,28 @@ bool CompatibleModeProperty::IsAdaptToSimulationScale() const
     return isAdaptToSimulationScale_;
 }
 
+void CompatibleModeProperty::SetIsAdaptToCompatibleDevice(bool enable)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "enable=%{public}d", enable);
+    isAdaptToCompatibleDevice_ = enable;
+}
+
+bool CompatibleModeProperty::IsAdaptToCompatibleDevice() const
+{
+    return isAdaptToCompatibleDevice_;
+}
+
+void CompatibleModeProperty::SetRealTimeSwitchInfo(const RealTimeSwitchInfo& switchInfo)
+{
+    realTimeSwitchInfo_.isNeedChange_ = switchInfo.isNeedChange_;
+    realTimeSwitchInfo_.showTypes_ = switchInfo.showTypes_;
+}
+
+RealTimeSwitchInfo CompatibleModeProperty::GetRealTimeSwitchInfo() const
+{
+    return realTimeSwitchInfo_;
+}
+
 bool CompatibleModeProperty::Marshalling(Parcel& parcel) const
 {
     return parcel.WriteBool(isAdaptToImmersive_) &&
@@ -2637,7 +2764,10 @@ bool CompatibleModeProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isFullScreenStart_) &&
         parcel.WriteBool(isSupportRotateFullScreen_) &&
         parcel.WriteBool(isAdaptToSubWindow_) &&
-        parcel.WriteBool(isAdaptToSimulationScale_);
+        parcel.WriteBool(isAdaptToSimulationScale_) &&
+        parcel.WriteBool(isAdaptToCompatibleDevice_) &&
+        parcel.WriteBool(realTimeSwitchInfo_.isNeedChange_) &&
+        parcel.WriteUint32(realTimeSwitchInfo_.showTypes_);
 }
 
 CompatibleModeProperty* CompatibleModeProperty::Unmarshalling(Parcel& parcel)
@@ -2661,23 +2791,10 @@ CompatibleModeProperty* CompatibleModeProperty::Unmarshalling(Parcel& parcel)
     property->isSupportRotateFullScreen_ = parcel.ReadBool();
     property->isAdaptToSubWindow_ = parcel.ReadBool();
     property->isAdaptToSimulationScale_ = parcel.ReadBool();
+    property->isAdaptToCompatibleDevice_ = parcel.ReadBool();
+    property->realTimeSwitchInfo_.isNeedChange_ = parcel.ReadBool();
+    property->realTimeSwitchInfo_.showTypes_ = parcel.ReadUint32();
     return property;
-}
-
-void CompatibleModeProperty::CopyFrom(const sptr<CompatibleModeProperty>& property)
-{
-    if (property == nullptr) {
-        return;
-    }
-    isAdaptToImmersive_ = property->isAdaptToImmersive_;
-    isAdaptToEventMapping_ = property->isAdaptToEventMapping_;
-    isAdaptToProportionalScale_ = property->isAdaptToProportionalScale_;
-    isAdaptToBackButton_ = property->isAdaptToBackButton_;
-    disableDragResize_ = property->disableDragResize_;
-    disableResizeWithDpi_ = property->disableResizeWithDpi_;
-    disableFullScreen_ = property->disableFullScreen_;
-    disableWindowLimit_ = property->disableWindowLimit_;
-    isAdaptToSimulationScale_= property->isAdaptToSimulationScale_;
 }
 
 bool WindowSessionProperty::MarshallingWindowAnchorInfo(Parcel& parcel) const
@@ -2722,11 +2839,6 @@ void WindowSessionProperty::UnmarshallingShadowsInfo(Parcel& parcel, WindowSessi
     property->SetWindowShadows(*shadowsInfo);
 }
 
-void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& itemValue)
-{
-    supportUIExtensionSubWindow_ = StringUtil::ConvertStringToBool(itemValue);
-}
-
 void WindowSessionProperty::SetIsShowDecorInFreeMultiWindow(bool isShow)
 {
     isShowDecorInFreeMultiWindow_ = isShow;
@@ -2745,6 +2857,51 @@ void WindowSessionProperty::SetAspectRatio(float ratio)
 float WindowSessionProperty::GetAspectRatio() const
 {
     return aspectRatio_;
+}
+
+void WindowSessionProperty::SetStatusBarHeightInImmersive(int32_t statusBarHeightInImmersive)
+{
+    statusBarHeightInImmersive_ = statusBarHeightInImmersive;
+}
+ 
+int32_t WindowSessionProperty::GetStatusBarHeightInImmersive() const
+{
+    return statusBarHeightInImmersive_;
+}
+
+void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& itemValue)
+{
+    supportUIExtensionSubWindow_ = StringUtil::ConvertStringToBool(itemValue);
+}
+
+void WindowSessionProperty::SetPrelaunch(bool isPrelaunch)
+{
+    isPrelaunch_ = isPrelaunch;
+}
+
+bool WindowSessionProperty::IsPrelaunch() const
+{
+    return isPrelaunch_;
+}
+
+void WindowSessionProperty::SetFrameNum(int32_t frameNum)
+{
+    frameNum_ = frameNum;
+}
+
+int32_t WindowSessionProperty::GetFrameNum() const
+{
+    return frameNum_;
+}
+
+void WindowSessionProperty::SetAppBufferReady(bool isAppBufferReady)
+{
+    isAppBufferReady_ = isAppBufferReady;
+}
+
+bool WindowSessionProperty::IsAppBufferReady() const
+{
+    return isAppBufferReady_;
 }
 } // namespace Rosen
 } // namespace OHOS

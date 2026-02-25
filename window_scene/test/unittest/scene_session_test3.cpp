@@ -107,6 +107,62 @@ HWTEST_F(SceneSessionTest3, NotifyClientToUpdateRectTask, TestSize.Level1)
 
     std::shared_ptr<RSTransaction> rs;
     EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+
+    sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE);
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+
+    sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG);
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+
+    sceneSession->UpdateSizeChangeReason(SizeChangeReason::ROTATION);
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+}
+
+/**
+ * @tc.name: UpdateCrossPlaneState
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, UpdateCrossPlaneState, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateCrossPlaneState";
+    info.bundleName_ = "UpdateCrossPlaneState";
+    sptr<SceneSession> sceneSession = new (std::nothrow) SceneSession(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    WSRect rect = { 0, 0, 800, 800 };
+    sceneSession->SetScreenId(0);
+
+    PcFoldScreenManager::GetInstance().displayId_ = 0;
+    PcFoldScreenManager::GetInstance().screenFoldStatus_ = SuperFoldStatus::FOLDED;
+    PcFoldScreenManager::GetInstance().hasSystemKeyboard_ = false;
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    PcFoldScreenManager::GetInstance().screenFoldStatus_ = SuperFoldStatus::HALF_FOLDED;
+    PcFoldScreenManager::GetInstance().hasSystemKeyboard_ = true;
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    PcFoldScreenManager::GetInstance().SetDisplayRects(
+        { 0, 0, 2472, 1739 }, { 0, 1791, 2472, 1648 }, { 0, 1740, 2472, 50 });
+    PcFoldScreenManager::GetInstance().hasSystemKeyboard_ = false;
+
+    rect = { 0, 1630, 100, 500 };
+    EXPECT_EQ(CrossPlaneState::CROSS_ALL_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 0, 100, 100 };
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1800, 100, 100 };
+    EXPECT_EQ(CrossPlaneState::CROSS_VIRTUAL_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1750, 10, 100 };
+    EXPECT_EQ(CrossPlaneState::CROSS_VIRTUAL_CREASE_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1730, 20, 30 };
+    EXPECT_EQ(CrossPlaneState::CROSS_DEFAULT_CREASE_PLANE, sceneSession->UpdateCrossPlaneState(rect));
+
+    rect = { 0, 1741, 1, 1 };
+    EXPECT_EQ(CrossPlaneState::CROSS_CREASE_PLANE, sceneSession->UpdateCrossPlaneState(rect));
 }
 
 /**
@@ -235,6 +291,42 @@ HWTEST_F(SceneSessionTest3, GetBlank, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetBlurRadius
+ * @tc.desc: check func SetBlurRadius/GetBlurRadius
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, SetBlurRadius, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetBlurRadius";
+    info.bundleName_ = "SetBlurRadius";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+
+    float blurRadius = 6.5f;
+    sceneSession->SetBlurRadius(blurRadius);
+    EXPECT_FLOAT_EQ(blurRadius, sceneSession->GetBlurRadius());
+}
+
+/**
+ * @tc.name: SetBlurBackgroundColor
+ * @tc.desc: check func SetBlurBackgroundColor/GetBlurBackgroundColor
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, SetBlurBackgroundColor, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetBlurBackgroundColor";
+    info.bundleName_ = "SetBlurBackgroundColor";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+
+    float blurBackgroundColor = 128.0f;
+    sceneSession->SetBlurBackgroundColor(blurBackgroundColor);
+    EXPECT_EQ(static_cast<uint32_t>(blurBackgroundColor), sceneSession->GetBlurBackgroundColor());
+}
+
+/**
  * @tc.name: SetBufferAvailableCallbackEnable
  * @tc.desc: check func SetBufferAvailableCallbackEnable
  * @tc.type: FUNC
@@ -268,38 +360,6 @@ HWTEST_F(SceneSessionTest3, GetBufferAvailableCallbackEnable, TestSize.Level1)
     bool enable = true;
     sceneSession->SetBufferAvailableCallbackEnable(enable);
     ASSERT_EQ(enable, sceneSession->GetBufferAvailableCallbackEnable());
-}
-
-/**
- * @tc.name: NotifyClientToUpdateAvoidArea
- * @tc.desc: check func NotifyClientToUpdateAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest3, NotifyClientToUpdateAvoidArea, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifyClientToUpdateAvoidArea";
-    info.bundleName_ = "NotifyClientToUpdateAvoidArea";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(nullptr, sceneSession);
-
-    sceneSession->NotifyClientToUpdateAvoidArea();
-    EXPECT_EQ(nullptr, sceneSession->specificCallback_);
-
-    sptr<SceneSession::SpecificSessionCallback> callback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    sceneSession = sptr<SceneSession>::MakeSptr(info, callback);
-    EXPECT_NE(nullptr, sceneSession);
-    sceneSession->persistentId_ = 6;
-    callback->onUpdateAvoidArea_ = nullptr;
-    sceneSession->NotifyClientToUpdateAvoidArea();
-
-    UpdateAvoidAreaCallback callbackFun = [&sceneSession](int32_t persistentId) {
-        sceneSession->RemoveToastSession(persistentId);
-        return;
-    };
-    callback->onUpdateAvoidArea_ = callbackFun;
-    sceneSession->NotifyClientToUpdateAvoidArea();
-    EXPECT_EQ(6, sceneSession->GetPersistentId());
 }
 
 /**
@@ -507,10 +567,10 @@ HWTEST_F(SceneSessionTest3, IsStartMoving, TestSize.Level1)
     info.bundleName_ = "IsStartMoving";
 
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_EQ(false, sceneSession->IsStartMoving());
 
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1024, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_EQ(false, sceneSession->IsStartMoving());
 }
 
@@ -799,6 +859,28 @@ HWTEST_F(SceneSessionTest3, UpdateFullScreenWaterfallMode, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnWaterfallButtonChange
+ * @tc.desc: OnWaterfallButtonChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, OnWaterfallButtonChange, TestSize.Level1)
+{
+    bool isShow = true;
+    SessionInfo info;
+    info.abilityName_ = "OnWaterfallButtonChange";
+    info.bundleName_ = "OnWaterfallButtonChange";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->pcFoldScreenController_ = sptr<PcFoldScreenController>::MakeSptr(wptr(sceneSession),
+        sceneSession->GetPersistentId());
+    sceneSession->OnWaterfallButtonChange(isShow);
+    EXPECT_NE(sceneSession, nullptr);
+
+    sceneSession->pcFoldScreenController_ = nullptr;
+    sceneSession->OnWaterfallButtonChange(isShow);
+    EXPECT_EQ(sceneSession->pcFoldScreenController_, nullptr);
+}
+
+/**
  * @tc.name: RegisterFullScreenWaterfallModeChangeCallback
  * @tc.desc: RegisterFullScreenWaterfallModeChangeCallback
  * @tc.type: FUNC
@@ -925,6 +1007,10 @@ HWTEST_F(SceneSessionTest3, SendContainerModalEvent, TestSize.Level1)
 
     auto res = sceneSession->SendContainerModalEvent(eventName, eventValue);
     EXPECT_EQ(res, sceneSession->sessionStage_->SendContainerModalEvent(eventName, eventValue));
+
+    eventName = "win_change_water_fall_button";
+    eventValue = "win_water_fall_button_show";
+    EXPECT_EQ(WSError::WS_OK, sceneSession->SendContainerModalEvent(eventName, eventValue));
 }
 
 /**
@@ -1154,6 +1240,38 @@ HWTEST_F(SceneSessionTest3, SetUseControlState, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnSessionEvent2
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, OnSessionEvent2, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEvent2";
+    info.bundleName_ = "OnSessionEvent2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    sceneSession->property_ = property;
+    auto ret = sceneSession->OnSessionEvent(SessionEvent::EVENT_START_MOVE);
+    usleep(SLEEP_TIME_US);
+    EXPECT_EQ(ret, WSError::WS_OK);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    ret = sceneSession->OnSessionEvent(SessionEvent::EVENT_START_MOVE);
+    usleep(SLEEP_TIME_US);
+    EXPECT_EQ(ret, WSError::WS_OK);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    ret = sceneSession->OnSessionEvent(SessionEvent::EVENT_START_MOVE);
+    usleep(SLEEP_TIME_US);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
  * @tc.name: RegisterUpdateAppUseControlCallback
  * @tc.desc: RegisterUpdateAppUseControlCallback
  * @tc.type: FUNC
@@ -1204,11 +1322,11 @@ HWTEST_F(SceneSessionTest3, RegisterUpdateAppUseControlCallback, Function | Smal
 }
 
 /**
- * @tc.name: NotifyUpdateAppUseControl
+ * @tc.name: NotifyUpdateAppUseControl01
  * @tc.desc: NotifyUpdateAppUseControl
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl, Function | SmallTest | Level3)
+HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl01, Function | SmallTest | Level3)
 {
     logMsg.clear();
     LOG_SetCallback(MyLogCallback);
@@ -1243,6 +1361,44 @@ HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl, Function | SmallTest | Le
         .isControlRecentOnly = false
     };
     sceneSession->NotifyUpdateAppUseControl(type, controlInfoThd);
+    EXPECT_TRUE(logMsg.find("isAppUseControl:") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyUpdateAppUseControl02
+ * @tc.desc: NotifyUpdateAppUseControl
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, NotifyUpdateAppUseControl02, Function | SmallTest | Level3)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SessionInfo info;
+    info.abilityName_ = "NotifyUpdateAppUseControl";
+    info.bundleName_ = "NotifyUpdateAppUseControl";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto callback = [](ControlAppType type, bool isNeedControl, bool isControlRecentOnly) {
+        std::cout << "isNeedControl:" << isNeedControl << ";isControlRecentOnly:" << isControlRecentOnly << std::endl;
+    };
+    sceneSession->onUpdateAppUseControlFunc_ = std::move(callback);
+    sceneSession->sessionStage_ = nullptr;
+    ControlAppType type = ControlAppType::APP_LOCK;
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+
+    ControlInfo controlInfo1 = {
+        .isNeedControl = false,
+        .isControlRecentOnly = true
+    };
+    sceneSession->NotifyUpdateAppUseControl(type, controlInfo1);
+
+    sceneSession->Session::SetSessionState(SessionState::STATE_BACKGROUND);
+    sceneSession->NotifyUpdateAppUseControl(type, controlInfo1);
+    ControlInfo controlInfo2 = {
+        .isNeedControl = true,
+        .isControlRecentOnly = true
+    };
+    sceneSession->NotifyUpdateAppUseControl(type, controlInfo2);
     EXPECT_TRUE(logMsg.find("isAppUseControl:") != std::string::npos);
     LOG_SetCallback(nullptr);
 }

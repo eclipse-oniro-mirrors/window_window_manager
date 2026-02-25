@@ -1040,6 +1040,111 @@ HWTEST_F(PcFoldScreenControllerTest, UpdateSupportEnterWaterfallMode, TestSize.L
 }
 
 /**
+ * @tc.name: UpdateSupportEnterWaterfallMode02
+ * @tc.desc: test function : UpdateSupportEnterWaterfallMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(PcFoldScreenControllerTest, UpdateSupportEnterWaterfallMode02, TestSize.Level1)
+{
+    controller_->UpdateSupportEnterWaterfallMode(false);
+    EXPECT_FALSE(controller_->lastSupportEnterWaterfallMode_);
+    EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
+
+    controller_->UpdateSupportEnterWaterfallMode(true);
+    EXPECT_TRUE(controller_->lastSupportEnterWaterfallMode_);
+    EXPECT_TRUE(controller_->supportEnterWaterfallMode_);
+
+    controller_->lastSupportEnterWaterfallMode_ = false;
+    controller_->supportEnterWaterfallMode_ = false;
+    mainSession_ = nullptr;
+    controller_->UpdateSupportEnterWaterfallMode(true);
+    EXPECT_FALSE(controller_->lastSupportEnterWaterfallMode_);
+    EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
+}
+
+/**
+ * @tc.name: FoldStatusChangeForSupportEnterWaterfallMode
+ * @tc.desc: test function : FoldStatusChangeForSupportEnterWaterfallMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(PcFoldScreenControllerTest, FoldStatusChangeForSupportEnterWaterfallMode, TestSize.Level1)
+{
+    DisplayId displayId = 0;
+    SuperFoldStatus status = SuperFoldStatus::HALF_FOLDED;
+    SuperFoldStatus prevStatus = SuperFoldStatus::EXPANDED;
+    mainSession_->sessionInfo_.screenId_ = 11;
+    controller_->FoldStatusChangeForSupportEnterWaterfallMode(displayId, status, prevStatus);
+    EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
+
+    mainSession_->sessionInfo_.screenId_ = DEFAULT_DISPLAY_ID;
+    SetHalfFolded();
+    manager_.UpdateSystemKeyboardStatus(true);
+    controller_->FoldStatusChangeForSupportEnterWaterfallMode(displayId, status, prevStatus);
+    EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
+
+    mainSession_->sessionInfo_.screenId_ = DEFAULT_DISPLAY_ID;
+    SetHalfFolded();
+    manager_.UpdateSystemKeyboardStatus(false);
+    controller_->FoldStatusChangeForSupportEnterWaterfallMode(displayId, status, prevStatus);
+    EXPECT_TRUE(controller_->supportEnterWaterfallMode_);
+
+    controller_->supportEnterWaterfallMode_ = false;
+    mainSession_->UpdateFocus(false);
+    controller_->FoldStatusChangeForSupportEnterWaterfallMode(displayId, status, prevStatus);
+    EXPECT_TRUE(controller_->supportEnterWaterfallMode_);
+
+    controller_->supportEnterWaterfallMode_ = false;
+    mainSession_ = nullptr;
+    controller_->FoldStatusChangeForSupportEnterWaterfallMode(displayId, status, prevStatus);
+    EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
+}
+
+/**
+ * @tc.name: SystemKeyboardStatusChangeForSupportEnterWaterfallMode
+ * @tc.desc: test function : SystemKeyboardStatusChangeForSupportEnterWaterfallMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(PcFoldScreenControllerTest, SystemKeyboardStatusChangeForSupportEnterWaterfallMode, TestSize.Level1)
+{
+    DisplayId displayId = 0;
+    mainSession_->sessionInfo_.screenId_ = 11;
+    bool hasSystemKeyboard = false;
+    controller_->SystemKeyboardStatusChangeForSupportEnterWaterfallMode(displayId, hasSystemKeyboard);
+    EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
+ 
+    mainSession_->sessionInfo_.screenId_ = DEFAULT_DISPLAY_ID;
+    SetHalfFolded();
+    hasSystemKeyboard = true;
+    controller_->SystemKeyboardStatusChangeForSupportEnterWaterfallMode(displayId, hasSystemKeyboard);
+    EXPECT_FALSE(controller_->supportEnterWaterfallMode_);
+ 
+    hasSystemKeyboard = false;
+    controller_->SystemKeyboardStatusChangeForSupportEnterWaterfallMode(displayId, hasSystemKeyboard);
+    EXPECT_TRUE(controller_->supportEnterWaterfallMode_);
+ 
+    controller_->supportEnterWaterfallMode_ = false;
+    mainSession_->UpdateFocus(false);
+    controller_->SystemKeyboardStatusChangeForSupportEnterWaterfallMode(displayId, hasSystemKeyboard);
+    EXPECT_TRUE(controller_->supportEnterWaterfallMode_);
+}
+ 
+/**
+ * @tc.name: UpdateRect
+ * @tc.desc: test function : UpdateRect
+ * @tc.type: FUNC
+ */
+HWTEST_F(PcFoldScreenControllerTest, UpdateRect, TestSize.Level1)
+{
+    mainSession_->sessionInfo_.screenId_ = 11;
+    controller_->UpdateRect();
+    EXPECT_NE(mainSession_, nullptr);
+ 
+    mainSession_->sessionInfo_.screenId_ = DEFAULT_DISPLAY_ID;
+    controller_->UpdateRect();
+    EXPECT_NE(mainSession_, nullptr);
+}
+
+/**
  * @tc.name: MaskSupportEnterWaterfallMode
  * @tc.desc: test function : MaskSupportEnterWaterfallMode
  * Test Procedure

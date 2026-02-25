@@ -233,6 +233,12 @@ auto SceneInputManager::GetFullWindowInfoList() ->
     return sceneSessionDirty_->GetFullWindowInfoList();
 }
 
+void SceneInputManager::UpdateHotAreas(const sptr<SceneSession>& sceneSession,
+    std::vector<MMI::Rect>& touchHotAreas, std::vector<MMI::Rect>& pointerHotAreas) const
+{
+    sceneSessionDirty_->UpdateHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
+}
+
 std::vector<MMI::ScreenInfo> SceneInputManager::ConstructScreenInfos(
     std::map<ScreenId, ScreenProperty>& screensProperties)
 {
@@ -551,7 +557,8 @@ void DumpUIExtentionWindowInfo(const MMI::WindowInfo& windowInfo)
         dumpUecWindowInfo << ";{" << str << "}";
     }
     TLOGND(WmsLogTag::WMS_EVENT, "DumpUecWindowInfo: wid;surfaceId;uecInfoSize"
-        "{wInfo:wId|pid|uid|[x,y,width,height]|agentWindowId|flags|displayId|action|zOrder,hot:[x,y,width,height]}");
+        "{wInfo:wId|pid|agentPid|uid|[x,y,width,height]|agentWindowId|flags|displayId|action|zOrder"
+        ",hot:[x,y,width,height]}");
     TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s", dumpUecWindowInfo.str().c_str());
 }
 
@@ -676,6 +683,12 @@ void SceneInputManager::SetUserBackground(bool userBackground)
     isUserBackground_.store(userBackground);
 }
 
+void SceneInputManager::SetIsRotationBegin(bool isRotationBegin)
+{
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "isRotationBegin=%{public}d", isRotationBegin);
+    isRotationBegin_.store(isRotationBegin);
+}
+
 void SceneInputManager::SetCurrentUserId(int32_t userId)
 {
     TLOGD(WmsLogTag::WMS_MULTI_USER, "Current userId=%{public}d", userId);
@@ -736,10 +749,14 @@ void SceneInputManager::FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& win
                                               const bool forceFlush)
 {
     eventHandler_->PostTask([this, windowInfoList = std::move(windowInfoList),
-                            pixelMapList = std::move(pixelMapList), forceFlush]() {
+                            pixelMapList = std::move(pixelMapList), forceFlush] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "FlushDisplayInfoToMMI");
         if (isUserBackground_.load()) {
             TLOGND(WmsLogTag::WMS_MULTI_USER, "User in background, no need to flush display info");
+            return;
+        }
+        if (isRotationBegin_.load()) {
+            TLOGND(WmsLogTag::WMS_EVENT, "rotating, no need to flush display info");
             return;
         }
         if (sceneSessionDirty_ == nullptr) {

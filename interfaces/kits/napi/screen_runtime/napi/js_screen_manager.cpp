@@ -41,6 +41,10 @@ constexpr int32_t INDEX_ZERO = 0;
 constexpr int32_t INDEX_ONE = 1;
 constexpr int32_t INDEX_TWO = 2;
 constexpr uint32_t MAX_SCREENS_NUM = 1000;
+constexpr uint32_t MIN_VIRTUAL_SIZE = 1;
+constexpr uint32_t MAX_VIRTUAL_SIZE = 0x10000;
+constexpr uint32_t MIN_VIRTUAL_SCREEN_ID = 1000;
+constexpr uint32_t MAX_VIRTUAL_SCREEN_ID = 0x7FFFFFFF;
 
 class JsScreenManager {
 public:
@@ -155,6 +159,12 @@ static napi_value MakeUnique(napi_env env, napi_callback_info info)
 {
     JsScreenManager* me = CheckParamsAndGetThis<JsScreenManager>(env, info);
     return (me != nullptr) ? me->OnMakeUnique(env, info) : nullptr;
+}
+
+static napi_value ResizeVirtualScreen(napi_env env, napi_callback_info info)
+{
+    JsScreenManager* me = CheckParamsAndGetThis<JsScreenManager>(env, info);
+    return (me != nullptr) ? me->OnResizeVirtualScreen(env, info) : nullptr;
 }
 
 private:
@@ -546,6 +556,9 @@ napi_value OnSetMultiScreenMode(napi_env env, napi_callback_info info)
     if (!ConvertFromJsValue(env, argv[INDEX_ONE], secondaryScreenId)) {
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter to int");
     }
+    if (mainScreenId < 0 || secondaryScreenId < 0) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "ScreenId cannot be a negative number");
+    }
     MultiScreenMode screenMode;
     if (!ConvertFromJsValue(env, argv[INDEX_TWO], screenMode)) {
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter");
@@ -817,6 +830,57 @@ napi_value OnMakeUnique(napi_env env, napi_callback_info info)
     return result;
 }
 
+napi_value OnResizeVirtualScreen(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::DMS, "[NAPI] OnResizeVirtualScreen is called");
+    size_t argc = ARGC_FOUR;
+    napi_value argv[ARGC_FOUR] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_THREE) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] Invalid args count, need arg at least!");
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Invalid args count, need three arg at least!");
+    }
+    uint32_t screenId;
+    uint32_t width;
+    uint32_t height;
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], screenId) || !ConvertFromJsValue(env, argv[INDEX_ONE], width) ||
+        !ConvertFromJsValue(env, argv[INDEX_TWO], height)) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] Failed to convert parameter");
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter");
+    }
+    auto checkRange = [](const std::string& paramName, uint32_t value, const uint32_t& minValue,
+        const uint32_t& maxValue) -> bool {
+        if (value < minValue || value > maxValue) {
+            TLOGE(WmsLogTag::DMS, "[NAPI] %{public}s is out of range", paramName.c_str());
+            return false;
+        }
+        return true;
+    };
+    ScreenId actualScreenId = static_cast<ScreenId>(screenId);
+    if (!checkRange("screenId", actualScreenId, MIN_VIRTUAL_SCREEN_ID, MAX_VIRTUAL_SCREEN_ID) ||
+        !checkRange("width", width, MIN_VIRTUAL_SIZE, MAX_VIRTUAL_SIZE) ||
+        !checkRange("height", height, MIN_VIRTUAL_SIZE, MAX_VIRTUAL_SIZE)) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "Parameter out of range");
+    }
+    napi_value lastParam = nullptr;
+    napi_value result = nullptr;
+    std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
+    auto asyncTask = [actualScreenId, width, height, env, task = napiAsyncTask.get()]() {
+        DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(
+            SingletonContainer::Get<ScreenManager>().ResizeVirtualScreen(actualScreenId, width, height));
+        if (ret == DmErrorCode::DM_OK) {
+            TLOGNI(WmsLogTag::DMS, "[NAPI] JsScreenManager::OnResizeVirtualScreen success");
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
+                "JsScreenManager::OnResizeVirtualScreen failed"));
+        }
+        delete task;
+    };
+    NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnResizeVirtualScreen");
+    return result;
+}
+
 static int32_t GetExpandOptionFromJs(napi_env env, napi_value optionObject, ExpandOption& option)
 {
     napi_value screedIdValue = nullptr;
@@ -850,7 +914,7 @@ static int32_t GetMultiScreenPositionOptionsFromJs(napi_env env, napi_value opti
     napi_value screedIdValue = nullptr;
     napi_value startXValue = nullptr;
     napi_value startYValue = nullptr;
-    uint32_t screenId;
+    int64_t screenId;
     uint32_t startX;
     uint32_t startY;
     napi_get_named_property(env, optionObject, "id", &screedIdValue);
@@ -858,6 +922,10 @@ static int32_t GetMultiScreenPositionOptionsFromJs(napi_env env, napi_value opti
     napi_get_named_property(env, optionObject, "startY", &startYValue);
     if (!ConvertFromJsValue(env, screedIdValue, screenId)) {
         TLOGE(WmsLogTag::DMS, "Failed to convert screedIdValue to callbackType");
+        return -1;
+    }
+    if (screenId < 0) {
+        TLOGE(WmsLogTag::DMS, "Failed to convert,screenIdValue must be non-negative number");
         return -1;
     }
     if (!ConvertFromJsValue(env, startXValue, startX)) {
@@ -948,6 +1016,8 @@ napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
                 ret = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
             } else if (screenId == ERROR_ID_NO_PERMISSION) {
                 ret = DmErrorCode::DM_ERROR_NO_PERMISSION;
+            } else if (screenId == ERROR_INVALID_PARAM) {
+                ret = DmErrorCode::DM_ERROR_INVALID_PARAM;
             }
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret), "CreateVirtualScreen failed."));
             TLOGNE(WmsLogTag::DMS, "ScreenManager::CreateVirtualScreen failed.");
@@ -989,11 +1059,26 @@ DmErrorCode GetVirtualScreenOptionFromJs(napi_env env, napi_value optionObject, 
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
     option.density_ = static_cast<float>(densityValue);
-
     napi_value surfaceIdNapiValue = nullptr;
     napi_get_named_property(env, optionObject, "surfaceId", &surfaceIdNapiValue);
     if (!GetSurfaceFromJs(env, surfaceIdNapiValue, option.surface_)) {
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
+    }
+    napi_value supportsFocus = nullptr;
+    napi_status status = napi_get_named_property(env, optionObject, "supportsFocus", &supportsFocus);
+    if (status != napi_ok) {
+        TLOGE(WmsLogTag::DMS, "Failed to get parameter to supportsFocus.");
+        return DmErrorCode::DM_ERROR_INVALID_PARAM;
+    }
+    if (!ConvertFromJsValue(env, supportsFocus, option.supportsFocus_)) {
+        TLOGE(WmsLogTag::DMS, "No supportsFocus parameter to convert");
+    }
+    napi_value userIdNapiValue = nullptr;
+    if (napi_get_named_property(env, optionObject, "userId", &userIdNapiValue) == napi_ok) {
+        if (!ConvertFromJsValue(env, userIdNapiValue, option.userId_)) {
+            TLOGE(WmsLogTag::DMS, "No userId parameter to convert");
+            return DmErrorCode::DM_ERROR_INVALID_PARAM;
+        }
     }
     return DmErrorCode::DM_OK;
 }
@@ -1490,6 +1575,7 @@ napi_value JsScreenManagerInit(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "isScreenRotationLocked", moduleName,
         JsScreenManager::IsScreenRotationLocked);
     BindNativeFunction(env, exportObj, "makeUnique", moduleName, JsScreenManager::MakeUnique);
+    BindNativeFunction(env, exportObj, "resizeVirtualScreen", moduleName, JsScreenManager::ResizeVirtualScreen);
     return NapiGetUndefined(env);
 }
 }  // namespace Rosen

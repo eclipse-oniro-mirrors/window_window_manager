@@ -47,7 +47,9 @@ class AniWindowListener : public IWindowChangeListener,
                         public IGestureNavigationEnabledChangedListener,
                         public IWindowVisibilityChangedListener,
                         public IOcclusionStateChangedListener,
+                        public IFrameMetricsChangedListener,
                         public IWindowTitleButtonRectChangedListener,
+                        public IWindowWillCloseListener,
                         public IWindowStatusChangeListener,
                         public IWindowNoInteractionListener,
                         public IWindowRectChangeListener,
@@ -56,14 +58,14 @@ class AniWindowListener : public IWindowChangeListener,
                         public IWindowHighlightChangeListener,
                         public ISystemDensityChangeListener,
                         public IDisplayIdChangeListener,
-                        public IWindowStageLifeCycle,
                         public IRectChangeInGlobalDisplayListener,
                         public IExtensionSecureLimitChangeListener,
                         public IWindowStatusDidChangeListener,
                         public IWindowRotationChangeListener,
+                        public IFreeWindowModeChangeListener,
                         public IAcrossDisplaysChangeListener,
                         public IScreenshotAppEventListener,
-                        public IFreeWindowModeChangeListener {
+                        public IWindowStageLifeCycle {
 public:
     AniWindowListener(ani_env* env, ani_vm* vm, ani_ref callback, CaseType caseType)
         : env_(env), vm_(vm), aniCallback_(callback), caseType_(caseType),
@@ -104,6 +106,7 @@ public:
     int64_t GetTimeout() const override;
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;
     void OnOcclusionStateChanged(const WindowVisibilityState state) override;
+    void OnFrameMetricsChanged(const FrameMetrics& metrics) override;
     void OnSystemDensityChanged(float density) override;
     void OnDisplayIdChanged(DisplayId displayId) override;
 
@@ -118,26 +121,25 @@ public:
     void OnRectChangeInGlobalDisplay(const Rect& rect, WindowSizeChangeReason reason) override;
     void OnSecureLimitChange(bool isLimit) override;
     void OnWindowStatusDidChange(WindowStatus status) override;
+    void OnFreeWindowModeChange(bool IsInFreeWindowMode) override;
     void OnAcrossDisplaysChanged(bool isAcrossDisplays) override;
     void OnScreenshotAppEvent(ScreenshotEventType type) override;
-    void OnFreeWindowModeChange(bool IsInFreeWindowMode) override;
 
     void AfterLifecycleForeground() override;
     void AfterLifecycleBackground() override;
     void AfterLifecycleResumed() override;
     void AfterLifecyclePaused() override;
-
 private:
     void OnLastStrongRef(const void *) override;
 
     void KeyboardWillAnimateWithName(const KeyboardAnimationInfo& keyboardAnimationInfo,
-        const std::string& callBackName, const KeyboardAnimationCurve& curve);
+        const char* fn, const KeyboardAnimationCurve& curve);
 
     Rect currRect_ = {0, 0, 0, 0};
     WindowState state_ {WindowState::STATE_INITIAL};
     int64_t noInteractionTimeout_ = 0;
     void LifeCycleCallback(LifeCycleEventType eventType);
-    void WindowStageLifecycleCallback(WindowStageLifeCycleEventType eventType);
+    void WindowStageLifecycleCallback(WindowStageLifecycleEventType eventType);
     ani_env* env_ = nullptr;
     ani_vm* vm_ = nullptr;
     ani_ref aniCallback_;

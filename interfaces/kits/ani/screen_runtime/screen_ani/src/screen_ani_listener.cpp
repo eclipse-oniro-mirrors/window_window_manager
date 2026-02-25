@@ -20,6 +20,10 @@
  
 namespace OHOS {
 namespace Rosen {
+
+const std::string ANI_EVENT_CONNECT = "connect";
+const std::string ANI_EVENT_DISCONNECT = "disconnect";
+const std::string ANI_EVENT_CHANGE = "change";
  
 ScreenAniListener::~ScreenAniListener()
 {
@@ -65,7 +69,7 @@ void ScreenAniListener::RemoveCallback(ani_env* env, const std::string& type, an
         ani_boolean isEquals = 0;
         env->Reference_StrictEquals(callback, *iter, &isEquals);
         if (isEquals) {
-            listeners.erase(iter);
+            iter = listeners.erase(iter);
         } else {
             iter++;
         }

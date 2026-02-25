@@ -17,6 +17,7 @@
 #include <thread>
 
 #include "input_manager.h"
+#include "parameters.h"
 #include "perform_reporter.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
@@ -488,15 +489,15 @@ HWTEST_F(PerformReporterTest, ReportEventDispatchException, TestSize.Level1)
 HWTEST_F(PerformReporterTest, ReportWindowProfileInfo017, TestSize.Level1)
 {
     int32_t res = 0;
-    WindowProfileInfo windowProfileInfo;
-    windowProfileInfo.bundleName = "bundleName";
-    windowProfileInfo.windowLocatedScreen = 0;
-    windowProfileInfo.windowSceneMode = 102;
-    windowProfileInfo.windowVisibleState = 2;
-    windowProfileInfo.rect = "[0 0 60 90]";
-    windowProfileInfo.zorder = 110;
+    WindowProfileSum windowProfileSum;
+    windowProfileSum.windowInfo[0] = "bundleName, 3, 0, 102, 115, [121 373 1047 1117];";
+    windowProfileSum.totalWindowCount = 1;
+    windowProfileSum.visibleWindowCount = 0;
+    windowProfileSum.invisibleWindowCount = 1;
+    windowProfileSum.minimizeWindowCount = 0;
+ 
     WindowInfoReporter windowInfoReporter;
-    res = windowInfoReporter.ReportWindowProfileInfo(windowProfileInfo);
+    res = windowInfoReporter.ReportWindowProfileInfo(windowProfileSum);
     ASSERT_EQ(res, 0);
 }
 
@@ -547,6 +548,45 @@ HWTEST_F(PerformReporterTest, ReportSpecWindowLifeCycleChange, Function | SmallT
     WindowInfoReporter windowInfoReporter;
     int32_t res = windowInfoReporter.ReportSpecWindowLifeCycleChange(reportInfo);
     ASSERT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: ReportWindowIO
+ * @tc.desc: ReportWindowIO test
+ * @tc.type: FUNC
+ */
+HWTEST_F(PerformReporterTest, ReportWindowIO, Function | SmallTest | Level2)
+{
+    OHOS::system::SetParameter("persist.window.realTimeIoDataOutput", "0");
+    EXPECT_EQ(OHOS::system::GetParameter("persist.window.realTimeIoDataOutput", "0"), "0");
+
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    WindowInfoReporter windowInfoReporter;
+    windowInfoReporter.ReportWindowIO("ASTC", 10.5);
+    windowInfoReporter.ReportWindowIO("ASTC", 10.5);
+
+    EXPECT_TRUE(g_errLog.find("total") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ReportWindowIOPerDay
+ * @tc.desc: ReportWindowIOPerDay test
+ * @tc.type: FUNC
+ */
+HWTEST_F(PerformReporterTest, ReportWindowIOPerDay, Function | SmallTest | Level2)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    WindowInfoReporter windowInfoReporter;
+    windowInfoReporter.ReportWindowIO("ASTC", 10.5);
+    windowInfoReporter.ReportWindowIOPerDay();
+
+    EXPECT_TRUE(g_errLog.find("total") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 } // namespace
 } // namespace Rosen

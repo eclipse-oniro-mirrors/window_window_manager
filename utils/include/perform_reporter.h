@@ -39,6 +39,7 @@ enum class WindowDFXHelperType : uint32_t {
     WINDOW_UIEXTENSION_START_ABILITY_FAIL,
     WINDOW_FLUSH_EMPTY_DISPLAY_INFO_TO_MMI_EXCEPTION,
     WINDOW_CREATE_SUB_WINDOW_FAILED,
+    WINDOW_UNEXPECTED_EVENT_CHECK,
 };
 
 struct WindowProfileInfo {
@@ -55,9 +56,13 @@ enum class KeyboardLifeCycleException {
     CREATE_EXCEPTION,
 };
 
-const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {
-    {KeyboardLifeCycleException::ANIM_SYNC_EXCEPTION, "ANIM_SYNC_EXCEPTION"},
-    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"}
+static constexpr size_t WINDOW_PROFILE_STATISTIC_SIZE = 50;
+struct WindowProfileSum {
+    std::vector<std::string> windowInfo = std::vector<std::string>(WINDOW_PROFILE_STATISTIC_SIZE, "");
+    int32_t totalWindowCount = -1;
+    int32_t visibleWindowCount = -1;
+    int32_t invisibleWindowCount = -1;
+    int32_t minimizeWindowCount = -1;
 };
 
 struct WindowLifeCycleReportInfo {
@@ -101,6 +106,8 @@ private:
 using FullInfoMap = std::map<std::string, std::map<std::string, uint32_t>>;
 // the map form : <bundleName, count>
 using BundleNameMap = std::map<std::string, uint32_t>;
+// This defines a duration whose period is one day, using long long as the underlying representation.
+using days = std::chrono::duration<long long, std::ratio<86400>>; // 86400 represents the number of seconds in a day
 class WindowInfoReporter {
 WM_DECLARE_SINGLE_INSTANCE(WindowInfoReporter);
 
@@ -119,7 +126,7 @@ public:
     void ReportStartWindow(const std::string& bundleName, const std::string& windowName);
     void ReportRecordedInfos();
     void ReportContainerStartBegin(int32_t missionId, const std::string& bundleName, int64_t timestamp);
-    int32_t ReportWindowProfileInfo(const WindowProfileInfo& windowProfileInfo);
+    int32_t ReportWindowProfileInfo(const WindowProfileSum& windowProfileSum);
     void ReportWindowException(int32_t detectionType, int32_t pid, const std::string& windowInfo);
     int32_t ReportUIExtensionException(int32_t exceptionType, int32_t pid, int32_t persistentId,
         const std::string& uiextInfo);
@@ -127,6 +134,9 @@ public:
     int32_t ReportKeyboardLifeCycleException(int32_t windowId, KeyboardLifeCycleException subType,
         const std::string& msg);
     int32_t ReportSpecWindowLifeCycleChange(WindowLifeCycleReportInfo reportInfo);
+
+    // IO record
+    void ReportWindowIO(const std::string& subScene, double sizeKB);
 
 private:
     void UpdateReportInfo(FullInfoMap& infoMap, const std::string& bundleName,
@@ -138,6 +148,9 @@ private:
     void Report(const std::string& reportTag, const std::string& msg);
     void ClearRecordedInfos();
 
+    // IO record
+    void ReportWindowIOPerDay();
+
     BundleNameMap windowCreateReportInfos_;
     BundleNameMap windowShowReportInfos_;
     BundleNameMap windowHideReportInfos_;
@@ -146,6 +159,13 @@ private:
     FullInfoMap windowNavigationBarReportInfos_;
 
     std::mutex mtx_;
+
+    // IO record
+    std::mutex reportWindowIOMutex_;
+    std::unordered_map<std::string, double> ioRecordMap_;
+    bool firstIOTimeInitialized_ = false;
+    std::chrono::time_point<std::chrono::system_clock, days> firstIODayTime_;
+    std::chrono::time_point<std::chrono::system_clock> firstIOSecondTime_;
 };
 }
 }

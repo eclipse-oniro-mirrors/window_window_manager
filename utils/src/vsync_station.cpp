@@ -17,15 +17,16 @@
 
 #include <functional>
 
+#include <feature/hyper_graphic_manager/rs_ui_display_soloist.h>
 #include <hitrace_meter.h>
 #include <transaction/rs_interfaces.h>
 #include <ui/rs_display_node.h>
 #include <ui/rs_ui_context.h>
-#include <feature/hyper_graphic_manager/rs_ui_display_soloist.h>
+#include <vsync_receiver.h>
+
 
 #include "window_frame_trace.h"
 #include "window_manager_hilog.h"
-#include <vsync_receiver.h>
 
 using namespace FRAME_TRACE;
 
@@ -41,7 +42,7 @@ constexpr int32_t DEFAULT_ANIMATOR_EXPECTED_FRAME_RATE = -1;
 VsyncStation::VsyncStation(NodeId nodeId, const std::shared_ptr<AppExecFwk::EventHandler>& vsyncHandler)
     : nodeId_(nodeId),
       vsyncHandler_(vsyncHandler),
-      vsyncTimeoutTaskName_(VSYNC_TIME_OUT_TASK + std::to_string(nodeId)),
+      vsyncTimeoutTaskName_(VSYNC_TIME_OUT_TASK + std::to_string(nodeId_)),
       frameRateLinker_(RSFrameRateLinker::Create())
 {
     if (!vsyncHandler_) {
@@ -112,8 +113,7 @@ std::shared_ptr<VSyncReceiver> VsyncStation::GetOrCreateVsyncReceiverLocked()
 }
 
 // LCOV_EXCL_START
-__attribute__((no_sanitize("cfi"))) void VsyncStation::RequestVsync(
-    const std::shared_ptr<VsyncCallback>& vsyncCallback)
+void VsyncStation::RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback)
 {
     std::shared_ptr<VSyncReceiver> receiver;
     {
@@ -162,6 +162,45 @@ __attribute__((no_sanitize("cfi"))) void VsyncStation::RequestVsync(
     });
 }
 
+void VsyncStation::RunOnceOnNextVsync(OnCallback&& callback)
+{
+    auto vsyncCallback = std::make_shared<VsyncCallback>();
+    vsyncCallback->onCallback = std::move(callback);
+    RequestVsync(vsyncCallback);
+}
+
+void VsyncStation::RunOnceAfterNVsyncs(uint32_t delayVsyncCount, OnCallback&& callback)
+{
+    if (delayVsyncCount == 0) { // 0: invalid delay (must delay at least 1 vsync)
+        TLOGE(WmsLogTag::DEFAULT, "delayVsyncCount must be >= 1");
+        return;
+    }
+    if (delayVsyncCount == 1) { // 1: just run on next vsync
+        RunOnceOnNextVsync(std::move(callback));
+        return;
+    }
+
+    auto vsyncCallback = std::make_shared<VsyncCallback>();
+    std::weak_ptr<VsyncCallback> weakVsyncCallback = vsyncCallback;
+    auto remaining = std::make_shared<uint32_t>(delayVsyncCount);
+    vsyncCallback->onCallback = [weakThis = weak_from_this(),
+                                 callback = std::move(callback),
+                                 weakVsyncCallback,
+                                 remaining](int64_t timestamp, int64_t frameCount) mutable {
+        if (--(*remaining) == 0) {
+            callback(timestamp, frameCount);
+            return;
+        }
+        // Re-register the callback for the next vsync
+        auto vsyncStation = weakThis.lock();
+        auto vsyncCallback = weakVsyncCallback.lock();
+        if (vsyncStation && vsyncCallback) {
+            vsyncStation->RequestVsync(vsyncCallback);
+        }
+    };
+    RequestVsync(vsyncCallback);
+}
+
 int64_t VsyncStation::GetVSyncPeriod()
 {
     int64_t period = 0;
@@ -169,6 +208,17 @@ int64_t VsyncStation::GetVSyncPeriod()
         receiver->GetVSyncPeriod(period);
     }
     return period;
+}
+
+std::optional<uint32_t> VsyncStation::GetFps()
+{
+    int64_t periodNs = GetVSyncPeriod();
+    if (periodNs <= 0) {
+        return std::nullopt;
+    }
+
+    constexpr int64_t NS_PER_SEC = 1'000'000'000;
+    return static_cast<uint32_t>((NS_PER_SEC + periodNs / 2) / periodNs); // 2: round to nearest FPS.
 }
 
 void VsyncStation::RemoveCallback()
@@ -194,7 +244,7 @@ void VsyncStation::VsyncCallbackInner(int64_t timestamp, int64_t frameCount)
             TLOGI(WmsLogTag::WMS_MAIN, "First vsync has come back, nodeId: %{public}" PRIu64, nodeId_);
         }
     }
-    for (const auto& callback: vsyncCallbacks) {
+    for (const auto& callback : vsyncCallbacks) {
         if (callback && callback->onCallback) {
             callback->onCallback(timestamp, frameCount);
         }

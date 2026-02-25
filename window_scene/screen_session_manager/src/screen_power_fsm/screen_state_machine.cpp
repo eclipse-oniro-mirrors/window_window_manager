@@ -145,7 +145,10 @@ bool ScreenStateMachine::DoScreenPowerOn(ScreenPowerEvent event, const ScreenPow
 bool ScreenStateMachine::DoSetScreenPower(ScreenPowerEvent event, const ScreenPowerInfoType& type)
 {
     auto params = std::get<std::pair<ScreenId, ScreenPowerStatus>>(type);
-    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(params.first, params.second);
+    if (!ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(params.first, params.second)) {
+        TLOGW(WmsLogTag::DMS, "[ScreenPower FSM] Set Screen power status failed");
+        return false;
+    }
     ScreenStateMachine::GetInstance().SetCurrentPowerStatus(params.second);
     return true;
 }
@@ -154,6 +157,17 @@ bool ScreenStateMachine::DoRecordTransNormal(ScreenPowerEvent event, const Scree
 {
     TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
     return true;
+}
+
+bool ScreenStateMachine::DoSetScreenPowerForAll(ScreenPowerEvent event, const ScreenPowerInfoType& type)
+{
+    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
+    auto* params = std::get_if<std::pair<ScreenPowerState, PowerStateChangeReason>>(&type);
+    if (!params) {
+        TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] invalid params");
+        return false;
+    }
+    return ScreenSessionManager::GetInstance().SetScreenPowerForAll(params->first, params->second);
 }
 
 bool ScreenStateMachine::DoAodExitAndSetPowerOn(ScreenPowerEvent event, const ScreenPowerInfoType& type)
@@ -181,6 +195,34 @@ bool ScreenStateMachine::DoAodExitAndSetPowerAllOff(ScreenPowerEvent event, cons
     return true;
 }
 
+bool ScreenStateMachine::DoSetScreenFoldPowerFunc(ScreenPowerEvent event, const ScreenPowerInfoType& type)
+{
+    auto* switchScreenCallback = std::get_if<SwitchScreenCallback>(&type);
+    if (switchScreenCallback) {
+        TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] success");
+        (*switchScreenCallback)();
+        return true;
+    }
+    TLOGE(WmsLogTag::DMS, "[ScreenPower FSM] switchScreenCallback is null");
+    return false;
+}
+
+bool ScreenStateMachine::ActionScreenPowerOff(ScreenPowerEvent event, const ScreenPowerInfoType& type)
+{
+    bool ret = DoSetScreenPower(event, type);
+    if (!ret) {
+        return false;
+    }
+    ScreenPowerState state = ScreenSessionManager::GetInstance().GetScreenPower();
+    if (state != ScreenPowerState::POWER_OFF) {
+        ScreenTransitionState currState = ScreenStateMachine::GetInstance().GetTransitionState();
+        ScreenStateMachine::GetInstance().ToTransition(currState, true);
+        TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] main screen is on, stay current state: %{public}d event: %{public}u",
+            currState, event);
+    }
+    return true;
+}
+
 Transition& ScreenStateMachine::GetTransition(ScreenTransitionState state, ScreenPowerEvent event)
 {
     static Transition errorTransition;
@@ -195,9 +237,15 @@ void ScreenStateMachine::InitStateMachineTbl()
         ScreenTransitionState::SCREEN_INIT, &ScreenStateMachine::DoSetScreenPower};
     stateMachine_[{ScreenTransitionState::SCREEN_INIT, ScreenPowerEvent::POWER_OFF_DIRECTLY}] = {
         ScreenTransitionState::SCREEN_INIT, &ScreenStateMachine::DoSetScreenPower};
+    stateMachine_[{ScreenTransitionState::SCREEN_INIT, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
+        ScreenTransitionState::SCREEN_INIT, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
 
     stateMachine_[{ScreenTransitionState::SCREEN_OFF, ScreenPowerEvent::WAKEUP_BEGIN}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin};
+    stateMachine_[{ScreenTransitionState::SCREEN_OFF, ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE}] = {
+        ScreenTransitionState::SCREEN_DOZE, &ScreenStateMachine::DoSetScreenPowerForAll};
+    stateMachine_[{ScreenTransitionState::SCREEN_OFF, ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND}] = {
+        ScreenTransitionState::SCREEN_DOZE_SUSPEND, &ScreenStateMachine::DoSetScreenPowerForAll};
     stateMachine_[{ScreenTransitionState::SCREEN_OFF, ScreenPowerEvent::POWER_ON_DIRECTLY}] = {
         ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoSetScreenPower};
     stateMachine_[{ScreenTransitionState::SCREEN_OFF, ScreenPowerEvent::POWER_OFF_DIRECTLY}] = {
@@ -212,11 +260,15 @@ void ScreenStateMachine::InitStateMachineTbl()
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoRecordTransNormal};
     stateMachine_[{ScreenTransitionState::SCREEN_OFF, ScreenPowerEvent::SET_DISPLAY_STATE}] = {
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoRecordTransNormal};
+    stateMachine_[{ScreenTransitionState::SCREEN_OFF, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
+        ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
 
     stateMachine_[{ScreenTransitionState::WAIT_SCREEN_ON_READY, ScreenPowerEvent::SET_DISPLAY_STATE}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoSetDisplayState};
     stateMachine_[{ScreenTransitionState::WAIT_SCREEN_ON_READY, ScreenPowerEvent::POWER_ON}] = {
         ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoSetScreenPower};
+    stateMachine_[{ScreenTransitionState::WAIT_SCREEN_ON_READY, ScreenPowerEvent::SYNC_POWER_ON}] = {
+        ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoRecordTransNormal};
 
     stateMachine_[{ScreenTransitionState::SCREEN_ON, ScreenPowerEvent::WAKEUP_BEGIN}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin};
@@ -229,9 +281,11 @@ void ScreenStateMachine::InitStateMachineTbl()
     stateMachine_[{ScreenTransitionState::SCREEN_ON, ScreenPowerEvent::SET_DISPLAY_STATE_DOZE_SUSPEND}] = {
         ScreenTransitionState::WAIT_LOCK_SCREEN_IND, &ScreenStateMachine::DoSetDisplayState};
     stateMachine_[{ScreenTransitionState::SCREEN_ON, ScreenPowerEvent::POWER_OFF_DIRECTLY}] = {
-        ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPower};
+        ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::ActionScreenPowerOff};
     stateMachine_[{ScreenTransitionState::SCREEN_ON, ScreenPowerEvent::POWER_ON_DIRECTLY}] = {
         ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoSetScreenPower};
+    stateMachine_[{ScreenTransitionState::SCREEN_ON, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
+        ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
     
     stateMachine_[{ScreenTransitionState::WAIT_LOCK_SCREEN_IND, ScreenPowerEvent::POWER_OFF}] = {
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPower};
@@ -255,6 +309,8 @@ void ScreenStateMachine::InitStateMachineTbl()
         ScreenTransitionState::SCREEN_AOD, &ScreenStateMachine::DoRecordTransNormal};
     stateMachine_[{ScreenTransitionState::WAIT_SCREEN_CTRL_RSP, ScreenPowerEvent::WAKEUP_BEGIN}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin};
+    stateMachine_[{ScreenTransitionState::WAIT_SCREEN_CTRL_RSP, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
+        ScreenTransitionState::WAIT_SCREEN_CTRL_RSP, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
 
     stateMachine_[{ScreenTransitionState::SCREEN_AOD, ScreenPowerEvent::WAKEUP_BEGIN}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin};
@@ -264,19 +320,33 @@ void ScreenStateMachine::InitStateMachineTbl()
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPower};
     stateMachine_[{ScreenTransitionState::SCREEN_AOD, ScreenPowerEvent::POWER_OFF_DIRECTLY}] = {
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPower};
+    stateMachine_[{ScreenTransitionState::SCREEN_AOD, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
+        ScreenTransitionState::SCREEN_AOD, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
 
     stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::WAKEUP_BEGIN}] = {
-        ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin};
+        ScreenTransitionState::WAIT_SCREEN_ADVANCED_ON_READY, &ScreenStateMachine::DoWakeUpBegin};
+    stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::WAKEUP_BEGIN_ADVANCED}] = {
+        ScreenTransitionState::WAIT_SCREEN_ADVANCED_ON_READY, &ScreenStateMachine::DoWakeUpBegin};
     stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::E_ADVANCED_OFF}] = {
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPower};
     stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::POWER_OFF_DIRECTLY}] = {
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPower};
     stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::POWER_ON_DIRECTLY}] = {
         ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoScreenPowerOn};
+    stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
+        ScreenTransitionState::SCREEN_ADVANCED_ON, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
+    stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::SUSPEND_BEGIN}] = {
+        ScreenTransitionState::SCREEN_ADVANCED_ON, &ScreenStateMachine::DoSuspendBegin};
+    stateMachine_[{ScreenTransitionState::SCREEN_ADVANCED_ON, ScreenPowerEvent::SET_DISPLAY_STATE}] = {
+        ScreenTransitionState::WAIT_LOCK_SCREEN_IND, &ScreenStateMachine::DoSetDisplayState};
 
     stateMachine_[{ScreenTransitionState::SCREEN_DOZE, ScreenPowerEvent::WAKEUP_BEGIN}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin,
         SCREEN_STATE_NORMAL_TIMEOUT_MS, &ScreenStateMachine::DoScreenPowerOn};
+    stateMachine_[{ScreenTransitionState::SCREEN_DOZE, ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_POWER_OFF}] = {
+        ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPowerForAll};
+    stateMachine_[{ScreenTransitionState::SCREEN_DOZE, ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND}] = {
+        ScreenTransitionState::SCREEN_DOZE_SUSPEND, &ScreenStateMachine::DoSetScreenPowerForAll};
     stateMachine_[{ScreenTransitionState::SCREEN_DOZE, ScreenPowerEvent::POWER_OFF}] = {
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPower};
     stateMachine_[{ScreenTransitionState::SCREEN_DOZE, ScreenPowerEvent::E_DOZE_SUSPEND}] = {
@@ -288,6 +358,11 @@ void ScreenStateMachine::InitStateMachineTbl()
 
     stateMachine_[{ScreenTransitionState::SCREEN_DOZE_SUSPEND, ScreenPowerEvent::E_DOZE}] = {
         ScreenTransitionState::SCREEN_DOZE, &ScreenStateMachine::DoSetScreenPower};
+    stateMachine_[{ScreenTransitionState::SCREEN_DOZE_SUSPEND,
+        ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_POWER_OFF}] = {
+        ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPowerForAll};
+    stateMachine_[{ScreenTransitionState::SCREEN_DOZE_SUSPEND, ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_DOZE}] = {
+        ScreenTransitionState::SCREEN_DOZE, &ScreenStateMachine::DoSetScreenPowerForAll};
     stateMachine_[{ScreenTransitionState::SCREEN_DOZE_SUSPEND, ScreenPowerEvent::WAKEUP_BEGIN}] = {
         ScreenTransitionState::WAIT_SCREEN_ON_READY, &ScreenStateMachine::DoWakeUpBegin,
         SCREEN_STATE_NORMAL_TIMEOUT_MS, &ScreenStateMachine::DoScreenPowerOn};
@@ -295,6 +370,15 @@ void ScreenStateMachine::InitStateMachineTbl()
         ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetDisplayState};
     stateMachine_[{ScreenTransitionState::SCREEN_DOZE_SUSPEND, ScreenPowerEvent::SET_DISPLAY_STATE_DOZE}] = {
         ScreenTransitionState::SCREEN_DOZE, &ScreenStateMachine::DoSetDisplayState};
+
+    stateMachine_[{ScreenTransitionState::WAIT_SCREEN_ADVANCED_ON_READY,
+        ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_POWER_ON}] = {
+        ScreenTransitionState::SCREEN_ON, &ScreenStateMachine::DoSetScreenPowerForAll};
+    stateMachine_[{ScreenTransitionState::WAIT_SCREEN_ADVANCED_ON_READY,
+        ScreenPowerEvent::SET_SCREEN_POWER_FOR_ALL_POWER_OFF}] = {
+        ScreenTransitionState::SCREEN_OFF, &ScreenStateMachine::DoSetScreenPowerForAll};
+    stateMachine_[{ScreenTransitionState::WAIT_SCREEN_ADVANCED_ON_READY, ScreenPowerEvent::FOLD_SCREEN_SET_POWER}] = {
+        ScreenTransitionState::WAIT_SCREEN_ADVANCED_ON_READY, &ScreenStateMachine::DoSetScreenFoldPowerFunc};
 }
 
 } // namespace OHOS::Rosen

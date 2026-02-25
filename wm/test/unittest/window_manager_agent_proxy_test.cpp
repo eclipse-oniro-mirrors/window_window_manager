@@ -16,7 +16,6 @@
 #include <functional>
 #include <gtest/gtest.h>
 
-#include "display_manager_adapter.h"
 #include "scene_board_judgement.h"
 #include "iremote_object_mocker.h"
 #include "window_manager_agent_proxy.h"
@@ -707,7 +706,7 @@ HWTEST_F(WindowManagerAgentProxyTest, NotifyWindowPropertyChange, TestSize.Level
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     uint32_t propertyDirtyFlags = 0;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
@@ -725,7 +724,7 @@ HWTEST_F(WindowManagerAgentProxyTest, NotifyWindowPropertyChange01, TestSize.Lev
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     uint32_t propertyDirtyFlags = 0;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteUint32ErrorFlag(true);
@@ -743,7 +742,7 @@ HWTEST_F(WindowManagerAgentProxyTest, NotifyWindowPropertyChange02, TestSize.Lev
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     uint32_t propertyDirtyFlags = 0;
-    std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>> windowInfoList;
+    WindowInfoList windowInfoList;
     std::unordered_map<WindowInfoKey, WindowChangeInfoType> info = {
         { WindowInfoKey::APP_INDEX, 0 },
     };
@@ -967,6 +966,85 @@ HWTEST_F(WindowManagerAgentProxyTest, WriteWindowChangeInfoValue04_MidScene_Writ
     windowInfoPair = std::make_pair(WindowInfoKey::MID_SCENE, windowInfo);
     auto ret = windowManagerAgentProxy->WriteWindowChangeInfoValue(data, windowInfoPair);
     EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: NotifySupportRotationChange
+ * @tc.desc: test NotifySupportRotationChange01
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerAgentProxyTest, NotifySupportRotationChange01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    MessageParcel data;
+
+    SupportRotationInfo supportRotationInfo;
+    supportRotationInfo.displayId_ = 0;
+    supportRotationInfo.persistentId_ = 0;
+    supportRotationInfo.containerSupportRotation_ = {false, false, false, false};
+    supportRotationInfo.sceneSupportRotation_ = {false, false, false, false};
+    supportRotationInfo.supportRotationChangeReason_ = "test";
+
+    // remote == nullptr
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+    auto tempProxy = sptr<WindowManagerAgentProxy>::MakeSptr(nullptr);
+    tempProxy->NotifySupportRotationChange(supportRotationInfo);
+    EXPECT_TRUE(g_logMsg.find("remote is null") != std::string::npos);
+}
+
+/**
+ * @tc.name: NotifySupportRotationChange
+ * @tc.desc: test NotifySupportRotationChange02
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerAgentProxyTest, NotifySupportRotationChange02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    SupportRotationInfo supportRotationInfo;
+    supportRotationInfo.displayId_ = 0;
+    supportRotationInfo.persistentId_ = 0;
+    supportRotationInfo.containerSupportRotation_ = {false, false, false, false};
+    supportRotationInfo.sceneSupportRotation_ = {false, false, false, false};
+    supportRotationInfo.supportRotationChangeReason_ = "test";
+
+    // WriteInterfaceToken failed
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(windowManagerAgentProxy, nullptr);
+    windowManagerAgentProxy->NotifySupportRotationChange(supportRotationInfo);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
+
+/**
+ * @tc.name: NotifySupportRotationChange
+ * @tc.desc: test NotifySupportRotationChange03
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerAgentProxyTest, NotifySupportRotationChange03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    SupportRotationInfo supportRotationInfo;
+    supportRotationInfo.displayId_ = 0;
+    supportRotationInfo.persistentId_ = 0;
+    supportRotationInfo.containerSupportRotation_ = {false, false, false, false};
+    supportRotationInfo.sceneSupportRotation_ = {false, false, false, false};
+    supportRotationInfo.supportRotationChangeReason_ = "test";
+
+    // WriteParcelable failed
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    windowManagerAgentProxy->NotifySupportRotationChange(supportRotationInfo);
+    EXPECT_TRUE(g_logMsg.find("supportRotationInfo marshalling failed") != std::string::npos);
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    windowManagerAgentProxy->NotifySupportRotationChange(supportRotationInfo);
 }
 } // namespace
 } // namespace Rosen

@@ -136,8 +136,6 @@ namespace {
  */
 HWTEST_F(SessionLayoutTest, UpdateRect01, TestSize.Level1)
 {
-    bool preBackgroundUpdateRectNotifyEnabled = Session::IsBackgroundUpdateRectNotifyEnabled();
-    Session::SetBackgroundUpdateRectNotifyEnabled(true);
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     session_->sessionStage_ = mockSessionStage;
     EXPECT_CALL(*(mockSessionStage), UpdateRect(_, _, _, _)).Times(AtLeast(1)).WillOnce(Return(WSError::WS_OK));
@@ -164,28 +162,6 @@ HWTEST_F(SessionLayoutTest, UpdateRect01, TestSize.Level1)
     session_->sessionStage_ = nullptr;
     ASSERT_EQ(WSError::WS_OK, session_->UpdateRect(rect, SizeChangeReason::UNDEFINED, "SessionLayoutTest"));
     ASSERT_EQ(rect, session_->GetSessionRect());
-    Session::SetBackgroundUpdateRectNotifyEnabled(preBackgroundUpdateRectNotifyEnabled);
-}
-
-/**
- * @tc.name: UpdateRect_TestForeground
- * @tc.desc: update rect
- * @tc.type: FUNC
- * @tc.require: #I6JLSI
- */
-HWTEST_F(SessionLayoutTest, UpdateRect_TestForeground, TestSize.Level1)
-{
-    bool preBackgroundUpdateRectNotifyEnabled = Session::IsBackgroundUpdateRectNotifyEnabled();
-    Session::SetBackgroundUpdateRectNotifyEnabled(false);
-    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
-    session_->sessionStage_ = mockSessionStage;
-
-    WSRect rect = { 0, 0, 100, 100 };
-    session_->UpdateSessionState(SessionState::STATE_ACTIVE);
-    ASSERT_EQ(WSError::WS_OK, session_->UpdateRect(rect, SizeChangeReason::UNDEFINED, "SessionLayoutTest"));
-    session_->UpdateSessionState(SessionState::STATE_BACKGROUND);
-    ASSERT_EQ(WSError::WS_DO_NOTHING, session_->UpdateRect(rect, SizeChangeReason::UNDEFINED, "SessionLayoutTest"));
-    Session::SetBackgroundUpdateRectNotifyEnabled(preBackgroundUpdateRectNotifyEnabled);
 }
 
 /**
@@ -258,21 +234,25 @@ HWTEST_F(SessionLayoutTest, SetDragStart, TestSize.Level1)
 }
 
 /**
- * @tc.name: UpdateWindowModeSupportType01
- * @tc.desc: UpdateWindowModeSupportType
+ * @tc.name: NotifyWindowStatusDidChangeIfNeedWhenUpdateRect
+ * @tc.desc: NotifyWindowStatusDidChangeIfNeedWhenUpdateRect
  * @tc.type: FUNC
  */
-HWTEST_F(SessionLayoutTest, UpdateWindowModeSupportType01, TestSize.Level1)
+HWTEST_F(SessionLayoutTest, NotifyWindowStatusDidChangeIfNeedWhenUpdateRect, TestSize.Level1)
 {
-    SessionInfo info;
-    info.abilityName_ = "UpdateWindowModeSupportType01";
-    info.bundleName_ = "UpdateWindowModeSupportType01";
-    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session_, nullptr);
 
-    EXPECT_EQ(session->UpdateWindowModeSupportType(nullptr), false);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(0);
+    session_->NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason::MAXIMIZE);
 
-    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
-    EXPECT_EQ(session->UpdateWindowModeSupportType(abilityInfo), false);
+    session_->sessionStage_ = mockSessionStage;
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
+
+    session_->NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason::MAXIMIZE);
+    EXPECT_CALL(*mockSessionStage, NotifyLayoutFinishAfterWindowModeChange(_)).Times(1);
+
+    session_->NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason::MAXIMIZE_IN_IMPLICT);
 }
 
 /**
@@ -407,6 +387,25 @@ HWTEST_F(SessionLayoutTest, OnVsyncReceivedAfterModeChanged, TestSize.Level1)
     session->OnVsyncReceivedAfterModeChanged();
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_EQ(session->isWindowModeDirty_.load(), false);
+}
+
+/**
+ * @tc.name: SetGetRsCmdBlockingCountFunc
+ * @tc.desc: SetGetRsCmdBlockingCountFunc
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, SetGetRsCmdBlockingCountFunc, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetGetRsCmdBlockingCountFunc";
+    info.bundleName_ = "SetGetRsCmdBlockingCountFunc";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    session->SetGetRsCmdBlockingCountFunc(nullptr);
+    ASSERT_EQ(nullptr, session->getRsCmdBlockingCountFunc_);
+    session->SetGetRsCmdBlockingCountFunc([]() {
+        return 0;
+    });
+    ASSERT_NE(nullptr, session->getRsCmdBlockingCountFunc_);
 }
 
 /**

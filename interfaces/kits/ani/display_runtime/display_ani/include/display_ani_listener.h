@@ -33,7 +33,8 @@ class DisplayAniListener : public DisplayManager::IDisplayListener,
                           public DisplayManager::ICaptureStatusListener,
                           public DisplayManager::IDisplayModeListener,
                           public DisplayManager::IAvailableAreaListener,
-                          public DisplayManager::IBrightnessInfoListener {
+                          public DisplayManager::IBrightnessInfoListener,
+                          public DisplayManager::IDisplayAttributeListener {
 public:
     DisplayAniListener(ani_env* env)
         : env_(env), weakRef_(wptr<DisplayAniListener> (this)) {}
@@ -54,24 +55,27 @@ public:
     ani_status CallAniMethodVoid(ani_object object, const char* cls,
         const char* method, const char* signature, ...);
     void OnBrightnessInfoChanged(DisplayId id, const ScreenBrightnessInfo& info) override;
+    void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attribuutes) override;
 
 private:
+    void RemoveDuplicateMethods(ani_env* env, std::vector<ani_ref>& callbacks);
+    void ProcessAttributeCallbacks(ani_env* env, const std::vector<std::string>& attributes, DisplayId displayId);
     ani_env* env_;
     std::mutex aniCallbackMtx_;
     std::map<std::string, std::vector<ani_ref>> aniCallback_;
     wptr<DisplayAniListener> weakRef_  = nullptr;
     std::shared_ptr<AppExecFwk::EventHandler> eventHandler_ = nullptr;
 };
-const std::string ANI_EVENT_ADD = "add";
-const std::string ANI_EVENT_REMOVE = "remove";
-const std::string ANI_EVENT_CHANGE = "change";
-const std::string ANI_EVENT_PRIVATE_MODE_CHANGE = "privateModeChange";
-const std::string ANI_EVENT_FOLD_STATUS_CHANGED = "foldStatusChange";
-const std::string ANI_EVENT_FOLD_ANGLE_CHANGED = "foldAngleChange";
-const std::string ANI_EVENT_CAPTURE_STATUS_CHANGED = "captureStatusChange";
-const std::string ANI_EVENT_DISPLAY_MODE_CHANGED = "foldDisplayModeChange";
-const std::string ANI_EVENT_AVAILABLE_AREA_CHANGED = "availableAreaChange";
-const std::string ANI_EVENT_BRIGHTNESS_INFO_CHANGED = "brightnessInfoChange";
+extern const std::string ANI_EVENT_ADD;
+extern const std::string ANI_EVENT_REMOVE;
+extern const std::string ANI_EVENT_CHANGE;
+extern const std::string ANI_EVENT_PRIVATE_MODE_CHANGE;
+extern const std::string ANI_EVENT_FOLD_STATUS_CHANGED;
+extern const std::string ANI_EVENT_FOLD_ANGLE_CHANGED;
+extern const std::string ANI_EVENT_CAPTURE_STATUS_CHANGED;
+extern const std::string ANI_EVENT_DISPLAY_MODE_CHANGED;
+extern const std::string ANI_EVENT_AVAILABLE_AREA_CHANGED;
+extern const std::string ANI_EVENT_BRIGHTNESS_INFO_CHANGED;
 }  // namespace Rosen
 }  // namespace OHOS
 #endif

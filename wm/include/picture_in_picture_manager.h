@@ -17,6 +17,7 @@
 #define OHOS_PICTURE_IN_PICTURE_MANAGER_H
 
 #include "picture_in_picture_controller.h"
+#include "picture_in_picture_option_ani.h"
 #include "window.h"
 #include "wm_common.h"
 
@@ -38,14 +39,21 @@ public:
     static bool IsActiveController(wptr<PictureInPictureControllerBase> pipController);
     static void SetActiveController(sptr<PictureInPictureControllerBase> pipController);
     static void RemoveActiveController(wptr<PictureInPictureControllerBase> pipController);
-    static void AttachAutoStartController(int32_t handleId, wptr<PictureInPictureController> pipController);
-    static void DetachAutoStartController(int32_t handleId, wptr<PictureInPictureController> pipController);
+
+    // actual impl controller
+    static void AttachAutoStartController(int32_t handleId, wptr<PictureInPictureControllerBase> pipController);
+    static void DetachAutoStartController(int32_t handleId, wptr<PictureInPictureControllerBase> pipController);
+
     static bool IsAttachedToSameWindow(uint32_t windowId);
     static sptr<Window> GetCurrentWindow();
-
+    
     static void DoPreRestore();
     static void DoRestore();
     static void DoClose(bool destroyWindow, bool needAnim);
+    static void DoCloseWithReason(bool destroyWindow, bool needAnim, PiPStateChangeReason reason);
+    static void DoActionCloseByRequest();
+    static void DoActionCloseByPanel();
+    static void DoActionCloseByDumpster();
     static void DoActionClose();
     static void DoPrepareSource();
     static void DoLocateSource();
@@ -63,10 +71,10 @@ private:
 
     // controller in use
     static sptr<PictureInPictureControllerBase> activeController_;
-    static wptr<PictureInPictureController> autoStartController_;
+    static wptr<PictureInPictureControllerBase> autoStartController_;  // actual impl controller
+    
     // controllers enable auto start
-    static std::map<int32_t, wptr<PictureInPictureController>> autoStartControllerMap_;
-
+    static std::map<int32_t, wptr<PictureInPictureControllerBase>> autoStartControllerMap_;  // actual impl controller
     static std::map<int32_t, sptr<PictureInPictureControllerBase>> windowToControllerMap_;
 };
 } // namespace Rosen

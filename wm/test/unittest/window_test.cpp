@@ -2253,6 +2253,18 @@ HWTEST_F(WindowTest, SetResizeByDragEnabled, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetMainWindowRaiseByClickEnabled
+ * @tc.desc: set raiseEnabled flag
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowTest, SetMainWindowRaiseByClickEnabled, TestSize.Level1)
+{
+    sptr<Window> window = sptr<Window>::MakeSptr();
+    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetMainWindowRaiseByClickEnabled(true));
+    EXPECT_EQ(WMError::WM_OK, window->Destroy());
+}
+
+/**
  * @tc.name: SetRaiseByClickEnabled
  * @tc.desc: set raiseEnabled flag
  * @tc.type: FUNC

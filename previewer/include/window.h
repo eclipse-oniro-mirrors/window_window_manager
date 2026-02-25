@@ -20,6 +20,7 @@
 #include <refbase.h>
 #include <pixel_map.h>
 #include <iremote_object.h>
+#include <optional>
 
 #include "wm_common.h"
 #include "window_option.h"
@@ -55,6 +56,7 @@ class ViewportConfig;
 
 namespace OHOS::AAFwk {
 class Want;
+class WantParams;
 }
 
 namespace OHOS {
@@ -107,10 +109,6 @@ class IAnimationTransitionController : virtual public RefBase {
 public:
     virtual void AnimationForShown() = 0;
     virtual void AnimationForHidden() = 0;
-};
-class ISystemBarPropertyListener : virtual public RefBase {
-public:
-    virtual void OnSystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 };
 class IScreenshotListener : virtual public RefBase {
 };
@@ -231,6 +229,10 @@ public:
         const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags)
         { return WMError::WM_OK; }
+    virtual WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+    virtual WMError RemoveOwnSystemBarProperty(WindowType type, const SystemBarPropertyFlag& flag,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
     virtual void UpdateSpecificSystemBarEnabled(bool systemBarEnable, bool systemBarEnableAnimation,
         SystemBarProperty& property) {}
     virtual WMError UpdateSystemBarPropertyForPage(WindowType type,
@@ -240,8 +242,7 @@ public:
     }
     virtual WMError SetSystemBarProperty(WindowType type, const SystemBarProperty& property) = 0;
     virtual WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) = 0;
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) = 0;
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) = 0;
     virtual WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) = 0;
     virtual WMError SetFullScreen(bool status) = 0;
     virtual WMError SetLayoutFullScreen(bool status) = 0;
@@ -276,9 +277,8 @@ public:
     }
 
     virtual WMError GetGlobalScaledRect(Rect& globalScaledRect) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-    virtual WMError Resize(uint32_t width, uint32_t height, const RectAnimationConfig& rectAnimationConfig = {}) = 0;
-    virtual WMError ResizeAsync(uint32_t width, uint32_t height,
-        const RectAnimationConfig& rectAnimationConfig = {}) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError Resize(uint32_t width, uint32_t height) = 0;
+    virtual WMError ResizeAsync(uint32_t width, uint32_t height) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) = 0;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) = 0;
     virtual bool IsKeepScreenOn() const = 0;
@@ -384,6 +384,11 @@ public:
     virtual void NotifyPreferredOrientationChange(Orientation orientation) = 0;
     virtual void SetUserRequestedOrientation(Orientation orientation) = 0;
     virtual Orientation GetRequestedOrientation() = 0;
+    virtual WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
+        const int32_t value, int32_t& convertedValue)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual void SetRequestWindowModeSupportType(uint32_t windowModeSupportType) = 0;
     virtual uint32_t GetRequestWindowModeSupportType() const = 0;
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) = 0;
@@ -396,6 +401,10 @@ public:
     virtual WMError Maximize() = 0;
     virtual WMError Recover() = 0;
     virtual WMError Restore() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError SetWindowRectAutoSave(bool enabled,
         bool isSaveBySpecifiedFlag = false) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
@@ -474,6 +483,7 @@ public:
     virtual void SetContentInfoCallback(const ContentInfoCallback& callback) = 0;
     virtual WMError SetResizeByDragEnabled(bool dragEnabled) = 0;
     virtual WMError SetRaiseByClickEnabled(bool raiseEnabled) = 0;
+    virtual WMError SetMainWindowRaiseByClickEnabled(bool raiseEnabled) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError RaiseAboveTarget(int32_t subWindowId) = 0;
     virtual WMError SetTopmost(bool topmost) { return WMError::WM_OK; }
     virtual bool IsTopmost() const { return false; }
@@ -484,6 +494,7 @@ public:
     virtual bool IsPcWindow() const { return false; }
     virtual bool IsPadWindow() const { return false; }
     virtual bool IsPcOrFreeMultiWindowCapabilityEnabled() const { return false; }
+    virtual bool IsPhonePadOrPcWindow() const { return false; }
     virtual bool IsPcOrPadFreeMultiWindowMode() const { return false; }
     virtual bool IsPadAndNotFreeMultiWindowCompatibleMode() const { return false; }
     virtual bool IsSceneBoardEnabled() const { return false; }
@@ -549,7 +560,10 @@ public:
      * @param isModal bool.
      * @return WMError
      */
-    virtual WMError SetWindowModal(bool isModal) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetWindowModal(bool isModal)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set the modality of sub window.
@@ -585,6 +599,17 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    /**
+     * @brief Raise main window above another.
+     *
+     * @param targetId Indicates the id of the target main window.
+     * @return WM_OK means raise success, others means raise failed.
+     */
+    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     virtual WMError Recover(uint32_t reason = 0) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     virtual WMError Maximize(MaximizePresentation present) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
@@ -602,6 +627,16 @@ public:
     }
 
     virtual WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Clear the window mask of window.
+     *
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError ClearWindowMask()
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -730,34 +765,15 @@ public:
     virtual void SetRootHostWindowType(WindowType& rootHostWindowType) {}
 
     /**
-     * @brief Register SystemBarProperty listener.
+     * @brief Get window state snapshot.
      *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means register success, others means register failed.
+     * @param winStateSnapshotJsonStr The state snapshot of specified window.
+     * @return WM_OK means get success, others means get failed.
      */
-    virtual WMError RegisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
+    virtual WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-
-    /**
-     * @brief Unregister SystemBarProperty listener.
-     *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means unregister success, others means unregister failed.
-     */
-    virtual WMError UnregisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
-    /**
-     * @brief Notify SystemBarProperty listener.
-     *
-     * @param type The WindowType.
-     * @param property new property value setted by developer.
-     */
-    virtual void NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 
     /**
      * @brief Set the parent window of a sub window.
@@ -863,28 +879,17 @@ public:
      /**
      * @brief The comaptible mode app adapt to immersive or not.
      *
-     * @return true comptbleMode adapt to immersive, others means not.
+     * @return true means compatible app adapt to immersive, others means not.
      */
     virtual bool IsAdaptToCompatibleImmersive() const { return false; }
 
     /**
      * @brief Set the source of subwindow.
      *
-     * @param source 0 - defalut, 1 - arkui.
-     * @return WM_OK means set success.
+     * @param source 0 - default, 1 - arkui.
+     * @return WM_OK means set success, others means failed.
      */
-    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-
-    /**
-     * @brief Raise main window above another.
-     *
-     * @param targetId Indicates the id of the target main window.
-     * @return WM_OK means raise success, others means raise failed.
-     */
-    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_OK; }
 
     /**
      * @brief Set whether this window limits screen rotation when this window is shown.
@@ -901,6 +906,67 @@ public:
      * @return WMError::WM_OK on success, others means failed.
      */
     virtual WMError GetRotationLocked(bool& locked) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Set whether the window receive drag event.
+     *
+     * @param enabled - whether the window receive drag event.
+     *        True: - means default state, the window can receive drag event.
+     *        False: - means the window can't receive drag event.
+     * @return Returns the status code of the execution.
+     */
+    virtual WMError SetReceiveDragEventEnabled(bool enabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief  whether the window receive drag event.
+     *
+     * @return - The value true means the window can receive drag event, and false means the opposite.
+     */
+    virtual bool IsReceiveDragEventEnabled()
+    {
+        return true;
+    }
+
+    /**
+     * @brief Set whether the window supports event separation capability.
+     *        When the window doesn't support event separation capability:
+     *        After the first finger touch the window,
+     *        subsequent fingers' events will be sent to that window regardless of whether they click on it.
+     *        If the first finger does not touch the window,
+     *        the system will discard the events when subsequent fingers touch the window.
+     *
+     * @param enabled - Whether the window supports event separation capability.
+     *        True: - means default state, the event will be sent to the window that the finger taps.
+     *        False: - means the window doesn't support event separation capability.
+     * @return - Promise that returns no value.
+     */
+    virtual WMError SetSeparationTouchEnabled(bool enabled)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief   Get whether the window supports event separation status.
+     *
+     * @return - The value true means the window supports event separation, and false means the opposite.
+     */
+    virtual bool IsSeparationTouchEnabled()
+    {
+        return true;
+    }
+
+    /**
+     * @brief Flush vsync for prelaunch.
+     */
+    virtual void FlushVsync() {}
+
+    /**
+     * @brief Destroy window ui content
+     */
+    virtual void ReleaseUIContent() {}
 };
 }
 }

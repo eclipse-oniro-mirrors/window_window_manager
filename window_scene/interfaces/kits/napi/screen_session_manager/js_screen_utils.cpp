@@ -54,7 +54,7 @@ napi_value JsScreenUtils::CreateJsScreenProperty(napi_env env, const ScreenPrope
     }
 
     napi_set_named_property(env, objValue, "propertyChangeReason",
-        CreateJsValue(env, screenProperty.GetPropertyChangeReason()));
+        CreateJsValue(env, static_cast<uint32_t>(screenProperty.GetPropertyChangeReason())));
     napi_set_named_property(env, objValue, "rotation", CreateJsValue(env, screenProperty.GetRotation()));
     napi_set_named_property(env, objValue, "bounds", CreateJsRRect(env, screenProperty.GetBounds()));
     napi_set_named_property(env, objValue, "fakeBounds", CreateJsRRect(env, screenProperty.GetFakeBounds()));
@@ -131,6 +131,10 @@ napi_value JsScreenUtils::CreateJsScreenPropertyChangeReason(napi_env env)
         static_cast<int32_t>(ScreenPropertyChangeReason::ACCESS_INFO_CHANGE)));
     napi_set_named_property(env, objValue, "VIRTUAL_PIXEL_RATIO_CHANGE", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeReason::VIRTUAL_PIXEL_RATIO_CHANGE)));
+    napi_set_named_property(env, objValue, "FOLD_SCREEN_EXPAND_SWITCH_USER", CreateJsValue(env,
+        static_cast<int32_t>(ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND_SWITCH_USER)));
+    napi_set_named_property(env, objValue, "FOLD_SCREEN_FOLDING_SWITCH_USER", CreateJsValue(env,
+        static_cast<int32_t>(ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING_SWITCH_USER)));
     return objValue;
 }
 
@@ -177,6 +181,24 @@ napi_value JsScreenUtils::CreateJsScreenPropertyChangeType(napi_env env)
         static_cast<int32_t>(ScreenPropertyChangeType::SINGLE_HAND_SWITCH)));
     napi_set_named_property(env, objValue, "UNDEFINED", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeType::UNDEFINED)));
+    return objValue;
+}
+
+napi_value JsScreenUtils::CreateJsScreenPowerState(napi_env env)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to create object!");
+        return NapiGetUndefined(env);
+    }
+
+    napi_set_named_property(env, objValue, "POWER_OFF", CreateJsValue(env,
+        static_cast<int32_t>(ScbScreenPowerState::POWER_OFF)));
+    napi_set_named_property(env, objValue, "POWER_DOZE", CreateJsValue(env,
+        static_cast<int32_t>(ScbScreenPowerState::POWER_DOZE)));
+    napi_set_named_property(env, objValue, "POWER_DOZE_SUSPEND", CreateJsValue(env,
+        static_cast<int32_t>(ScbScreenPowerState::POWER_DOZE_SUSPEND)));
     return objValue;
 }
 

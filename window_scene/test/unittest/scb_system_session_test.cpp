@@ -101,7 +101,7 @@ HWTEST_F(SCBSystemSessionTest, TransferKeyEvent02, TestSize.Level1)
     ASSERT_NE(keyEvent, nullptr);
     scbSystemSession_->windowEventChannel_ = nullptr;
 
-    ASSERT_EQ(WSError::WS_ERROR_NULLPTR, scbSystemSession_->TransferKeyEvent(keyEvent));
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, scbSystemSession_->TransferKeyEvent(keyEvent));
 }
 
 /**
@@ -113,7 +113,7 @@ HWTEST_F(SCBSystemSessionTest, UpdateFocus01, TestSize.Level1)
 {
     bool isFocused = scbSystemSession_->isFocused_;
 
-    ASSERT_EQ(WSError::WS_DO_NOTHING, scbSystemSession_->UpdateFocus(isFocused));
+    EXPECT_EQ(WSError::WS_DO_NOTHING, scbSystemSession_->UpdateFocus(isFocused));
 }
 
 /**
@@ -126,12 +126,12 @@ HWTEST_F(SCBSystemSessionTest, UpdateFocus02, TestSize.Level1)
     scbSystemSession_->isFocused_ = true;
     bool isFocused = scbSystemSession_->isFocused_;
 
-    ASSERT_EQ(WSError::WS_OK, scbSystemSession_->UpdateFocus(!isFocused));
+    EXPECT_EQ(WSError::WS_OK, scbSystemSession_->UpdateFocus(!isFocused));
 
     scbSystemSession_->isFocused_ = false;
     isFocused = scbSystemSession_->isFocused_;
 
-    ASSERT_EQ(WSError::WS_OK, scbSystemSession_->UpdateFocus(!isFocused));
+    EXPECT_EQ(WSError::WS_OK, scbSystemSession_->UpdateFocus(!isFocused));
 }
 
 /**
@@ -171,7 +171,7 @@ HWTEST_F(SCBSystemSessionTest, SetSystemSceneBlockingFocus01, TestSize.Level1)
 {
     ASSERT_NE(nullptr, scbSystemSession_);
     WSError ret = scbSystemSession_->SetSystemSceneBlockingFocus(true);
-    ASSERT_EQ(WSError::WS_OK, ret);
+    EXPECT_EQ(WSError::WS_OK, ret);
 }
 
 /**
@@ -206,7 +206,7 @@ HWTEST_F(SCBSystemSessionTest, ProcessPointDownSession, TestSize.Level1)
     int32_t posX = 0;
     int32_t posY = 0;
     WSError ret = scbSystemSession_->ProcessPointDownSession(posX, posY);
-    ASSERT_EQ(WSError::WS_OK, ret);
+    EXPECT_EQ(WSError::WS_OK, ret);
 }
 
 /**
@@ -281,7 +281,7 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction001, TestSize.Level1)
     info1.bundleName_ = "SCBDesktop";
     info1.isSystem_ = true;
     auto scbSystemSession1 = sptr<SCBSystemSession>::MakeSptr(info1, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession1);
+    ASSERT_NE(nullptr, scbSystemSession1);
 
     SessionInfo info2;
     info2.abilityName_ = "testSCBSystemSession1";
@@ -289,7 +289,7 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction001, TestSize.Level1)
     info2.bundleName_ = "SCBWallpaper";
     info2.isSystem_ = true;
     auto scbSystemSession2 = sptr<SCBSystemSession>::MakeSptr(info2, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession2);
+    ASSERT_NE(nullptr, scbSystemSession2);
 
     SessionInfo info3;
     info3.abilityName_ = "testSCBSystemSession1";
@@ -297,7 +297,7 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction001, TestSize.Level1)
     info3.bundleName_ = "SCBScreenLock";
     info3.isSystem_ = true;
     auto scbSystemSession3 = sptr<SCBSystemSession>::MakeSptr(info3, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession3);
+    ASSERT_NE(nullptr, scbSystemSession3);
 
     SessionInfo info4;
     info4.abilityName_ = "testSCBSystemSession1";
@@ -305,7 +305,7 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction001, TestSize.Level1)
     info4.bundleName_ = "SCBNegativeScreen";
     info4.isSystem_ = true;
     auto scbSystemSession4 = sptr<SCBSystemSession>::MakeSptr(info4, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession4);
+    ASSERT_NE(nullptr, scbSystemSession4);
 
     SessionInfo info5;
     info5.abilityName_ = "testSCBSystemSession1";
@@ -313,7 +313,7 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction001, TestSize.Level1)
     info5.bundleName_ = "SCBDropdownPanel";
     info5.isSystem_ = true;
     auto scbSystemSession5 = sptr<SCBSystemSession>::MakeSptr(info5, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession5);
+    ASSERT_NE(nullptr, scbSystemSession5);
 }
 
 /**
@@ -329,7 +329,7 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction002, TestSize.Level1)
     info6.bundleName_ = "SCBVolumePanel";
     info6.isSystem_ = true;
     auto scbSystemSession6 = sptr<SCBSystemSession>::MakeSptr(info6, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession6);
+    ASSERT_NE(nullptr, scbSystemSession6);
 
     SessionInfo info7;
     info7.abilityName_ = "testSCBSystemSession1";
@@ -337,7 +337,7 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction002, TestSize.Level1)
     info7.bundleName_ = "SCBBannerNotification";
     info7.isSystem_ = true;
     auto scbSystemSession7 = sptr<SCBSystemSession>::MakeSptr(info7, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession7);
+    ASSERT_NE(nullptr, scbSystemSession7);
 
     SessionInfo info8;
     info8.abilityName_ = "testSCBSystemSession1";
@@ -345,8 +345,8 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction002, TestSize.Level1)
     info8.bundleName_ = "SCBGestureBack";
     info8.isSystem_ = true;
     auto scbSystemSession8 = sptr<SCBSystemSession>::MakeSptr(info8, specificCallback);
-    EXPECT_NE(nullptr, scbSystemSession8);
+    ASSERT_NE(nullptr, scbSystemSession8);
 }
 } // namespace
 } // namespace Rosen
-} // namespace OHOS
+} // namespace OHOSS

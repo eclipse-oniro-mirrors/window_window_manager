@@ -206,6 +206,21 @@ HWTEST_F(WindowSessionTest, SetCompatibleModeProperty, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateBrightness
+ * @tc.desc: UpdateBrightness
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, UpdateBrightness, TestSize.Level1)
+{
+    session_->sessionStage_ = mockSessionStage_;
+    float brightness = 0.5f;
+    EXPECT_EQ(WSError::WS_OK, session_->UpdateBrightness(brightness));
+
+    session_->sessionStage_ = nullptr;
+    EXPECT_EQ(WSError::WS_OK, session_->UpdateBrightness(brightness));
+}
+
+/**
  * @tc.name: UpdateClientDisplayId01
  * @tc.desc: UpdateClientDisplayId
  * @tc.type: FUNC
@@ -502,7 +517,7 @@ HWTEST_F(WindowSessionTest, OnSessionEvent02, TestSize.Level1)
     info.bundleName_ = "testSession3";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_TRUE(sceneSession->moveDragController_);
     sceneSession->moveDragController_->InitMoveDragProperty();
     WSRect targetRect = { 100, 100, 1000, 1000 };
@@ -523,10 +538,9 @@ HWTEST_F(WindowSessionTest, ConsumeMoveEvent02, TestSize.Level1)
     info.bundleName_ = "testSession3";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_TRUE(sceneSession->moveDragController_);
     sceneSession->moveDragController_->InitMoveDragProperty();
-    WSRect originalRect = { 100, 100, 1000, 1000 };
     sceneSession->moveDragController_->isStartMove_ = true;
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
     ASSERT_TRUE(pointerEvent);
@@ -543,25 +557,25 @@ HWTEST_F(WindowSessionTest, ConsumeMoveEvent02, TestSize.Level1)
     pointerItem.SetDisplayY(500);
     pointerItem.SetWindowX(15);
     pointerItem.SetWindowY(400);
-    auto result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent, originalRect);
+    auto result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_MOVE);
     pointerItem.SetDisplayX(145);
     pointerItem.SetDisplayY(550);
-    result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent, originalRect);
+    result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_MOVE);
     pointerItem.SetDisplayX(175);
     pointerItem.SetDisplayY(600);
-    result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent, originalRect);
+    result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_UP);
     pointerItem.SetDisplayX(205);
     pointerItem.SetDisplayY(650);
-    result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent, originalRect);
+    result = sceneSession->moveDragController_->ConsumeMoveEvent(pointerEvent);
     ASSERT_EQ(result, true);
 }
 
@@ -577,34 +591,32 @@ HWTEST_F(WindowSessionTest, ConsumeDragEvent01, TestSize.Level1)
     info.bundleName_ = "testSession3";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_TRUE(sceneSession->moveDragController_);
     sceneSession->moveDragController_->InitMoveDragProperty();
     WSRect originalRect = { 100, 100, 1000, 1000 };
-    SystemSessionConfig sessionConfig;
+    sceneSession->SetSessionRect(originalRect);
+    sceneSession->SetSessionGlobalRect(originalRect);
 
     std::shared_ptr<MMI::PointerEvent> pointerEvent = nullptr;
-    sptr<WindowSessionProperty> property = nullptr;
-    auto result =
-        sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    auto result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, false);
 
     pointerEvent = MMI::PointerEvent::Create();
     ASSERT_TRUE(pointerEvent);
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_UP);
-    property = sptr<WindowSessionProperty>::MakeSptr();
     sceneSession->moveDragController_->isStartDrag_ = false;
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, false);
 
     pointerEvent->SetPointerId(1);
     sceneSession->moveDragController_->moveDragProperty_.pointerId_ = 0;
     sceneSession->moveDragController_->isStartDrag_ = true;
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, false);
 
     pointerEvent->SetPointerId(0);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, false);
 }
 
@@ -619,17 +631,12 @@ HWTEST_F(WindowSessionTest, ConsumeDragEvent02, TestSize.Level1)
     info.abilityName_ = "testSession1";
     info.bundleName_ = "testSession3";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_TRUE(sceneSession->moveDragController_);
     sceneSession->moveDragController_->InitMoveDragProperty();
     WSRect originalRect = { 100, 100, 1000, 1000 };
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    SystemSessionConfig sessionConfig;
-    sessionConfig.isSystemDecorEnable_ = true;
-    sessionConfig.backgroundswitch = true;
-    sessionConfig.decorWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL;
+    sceneSession->SetSessionRect(originalRect);
+    sceneSession->SetSessionGlobalRect(originalRect);
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
     pointerEvent->SetAgentWindowId(1);
     pointerEvent->SetPointerId(0);
@@ -647,27 +654,27 @@ HWTEST_F(WindowSessionTest, ConsumeDragEvent02, TestSize.Level1)
     pointerItem.SetWindowX(0);
     pointerItem.SetWindowY(0);
     auto result =
-        sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+        sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     sceneSession->moveDragController_->aspectRatio_ = 0.0f;
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_MOVE);
     pointerItem.SetDisplayX(150);
     pointerItem.SetDisplayY(150);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     sceneSession->moveDragController_->aspectRatio_ = 1.0f;
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_MOVE);
     pointerItem.SetDisplayX(200);
     pointerItem.SetDisplayY(200);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_UP);
     pointerItem.SetDisplayX(250);
     pointerItem.SetDisplayY(250);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 }
 
@@ -683,17 +690,12 @@ HWTEST_F(WindowSessionTest, ConsumeDragEvent03, TestSize.Level1)
     info.bundleName_ = "testSession3";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_TRUE(sceneSession->moveDragController_);
     sceneSession->moveDragController_->InitMoveDragProperty();
     WSRect originalRect = { 100, 100, 1000, 1000 };
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    SystemSessionConfig sessionConfig;
-    sessionConfig.isSystemDecorEnable_ = true;
-    sessionConfig.backgroundswitch = true;
-    sessionConfig.decorWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL;
+    sceneSession->SetSessionRect(originalRect);
+    sceneSession->SetSessionGlobalRect(originalRect);
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
     pointerEvent->SetAgentWindowId(1);
     pointerEvent->SetPointerId(0);
@@ -710,25 +712,25 @@ HWTEST_F(WindowSessionTest, ConsumeDragEvent03, TestSize.Level1)
     pointerItem.SetWindowX(0);
     pointerItem.SetWindowY(0);
     auto result =
-        sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+        sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     // RIGHT_TOP
     pointerItem.SetWindowX(1000);
     pointerItem.SetWindowY(0);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     // RIGHT_BOTTOM
     pointerItem.SetWindowX(1000);
     pointerItem.SetWindowY(1000);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     // LEFT_BOTTOM
     pointerItem.SetWindowX(0);
     pointerItem.SetWindowY(1000);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 }
 
@@ -744,17 +746,12 @@ HWTEST_F(WindowSessionTest, ConsumeDragEvent04, TestSize.Level1)
     info.bundleName_ = "testSession3";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(1, WindowType::WINDOW_TYPE_FLOAT);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_TRUE(sceneSession->moveDragController_);
     sceneSession->moveDragController_->InitMoveDragProperty();
     WSRect originalRect = { 100, 100, 1000, 1000 };
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    SystemSessionConfig sessionConfig;
-    sessionConfig.isSystemDecorEnable_ = true;
-    sessionConfig.backgroundswitch = true;
-    sessionConfig.decorWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL;
+    sceneSession->SetSessionRect(originalRect);
+    sceneSession->SetSessionGlobalRect(originalRect);
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
     pointerEvent->SetAgentWindowId(1);
     pointerEvent->SetPointerId(0);
@@ -771,25 +768,25 @@ HWTEST_F(WindowSessionTest, ConsumeDragEvent04, TestSize.Level1)
     pointerItem.SetWindowX(0);
     pointerItem.SetWindowY(500);
     auto result =
-        sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+        sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     // TOP
     pointerItem.SetWindowX(500);
     pointerItem.SetWindowY(0);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     // RIGHT
     pointerItem.SetWindowX(1000);
     pointerItem.SetWindowY(500);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 
     // BOTTOM
     pointerItem.SetWindowX(500);
     pointerItem.SetWindowY(1000);
-    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent, originalRect, property, sessionConfig);
+    result = sceneSession->moveDragController_->ConsumeDragEvent(pointerEvent);
     ASSERT_EQ(result, true);
 }
 
@@ -1028,32 +1025,6 @@ HWTEST_F(WindowSessionTest, SetFocusedOnShow, TestSize.Level1)
     session_->SetFocusedOnShow(true);
     focusedOnShow = session_->IsFocusedOnShow();
     ASSERT_EQ(focusedOnShow, true);
-}
-
-/**
- * @tc.name: SetTouchable01
- * @tc.desc: IsSessionValid() return false
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest, SetTouchable01, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->state_ = SessionState::STATE_DISCONNECT;
-    session_->sessionInfo_.isSystem_ = true;
-    ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, session_->SetTouchable(false));
-}
-
-/**
- * @tc.name: SetTouchable02
- * @tc.desc: IsSessionValid() return true
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest, SetTouchable02, TestSize.Level1)
-{
-    ASSERT_NE(session_, nullptr);
-    session_->state_ = SessionState::STATE_FOREGROUND;
-    session_->sessionInfo_.isSystem_ = false;
-    ASSERT_EQ(WSError::WS_OK, session_->SetTouchable(false));
 }
 
 /**

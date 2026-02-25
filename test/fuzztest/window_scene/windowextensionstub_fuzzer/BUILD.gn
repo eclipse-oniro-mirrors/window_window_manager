@@ -37,7 +37,7 @@ ohos_fuzztest("WindowExtensionStubFuzzTest") {
   deps = [
     "${window_base_path}/extension/window_extension:libwindow_extension",
     "${window_base_path}/utils:libwmutil",
-    "${window_base_path}/window_scene/session:scene_session",
+    "${window_base_path}/window_scene/session:scene_session_static",
     "${window_base_path}/window_scene/session_manager:session_manager",
   ]
 

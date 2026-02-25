@@ -70,6 +70,8 @@ public:
         std::vector<SecSurfaceInfo>>& constrainedModalUIExtInfoMap);
     bool GetLastConstrainedModalUIExtInfo(const sptr<SceneSession>& sceneSession,
         SecSurfaceInfo& constrainedModalUIExtInfo);
+    void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
+        std::vector<MMI::Rect>& pointerHotAreas) const;
 
 private:
     std::vector<MMI::WindowInfo> FullSceneSessionInfoUpdate() const;
@@ -87,12 +89,14 @@ private:
         MMI::WindowInfo& windowInfo) const;
     std::map<int32_t, sptr<SceneSession>> GetDialogSessionMap(
         const std::map<int32_t, sptr<SceneSession>>& sessionMap) const;
-    void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
-        std::vector<MMI::Rect>& pointerHotAreas) const;
     void UpdateDefaultHotAreas(sptr<SceneSession> sceneSession, std::vector<MMI::Rect>& touchHotAreas,
         std::vector<MMI::Rect>& pointerHotAreas) const;
     void UpdatePointerAreas(sptr<SceneSession> sceneSession, std::vector<int32_t>& pointerChangeAreas) const;
     void UpdateWindowFlags(DisplayId displayId, const sptr<SceneSession>& sceneSession,
+        MMI::WindowInfo& windowInfo) const;
+    void UpdateWindowFlagsForReceiveDragEventEnabled(const sptr<SceneSession>& sceneSession,
+        MMI::WindowInfo& windowInfo) const;
+    void UpdateWindowFlagsForWindowSeparation(const sptr<SceneSession>& sceneSession,
         MMI::WindowInfo& windowInfo) const;
     void UpdateWindowFlagsForLockCursor(const sptr<SceneSession>& sceneSession, MMI::WindowInfo& windowInfo) const;
     void AddModalExtensionWindowInfo(std::vector<MMI::WindowInfo>& windowInfoList, MMI::WindowInfo windowInfo,
@@ -105,7 +109,8 @@ private:
         const MMI::WindowInfo& hostWindowinfo, const sptr<SceneSession>& sceneSession,
         const Matrix3f hostTransform) const;
     MMI::WindowInfo GetHostComponentWindowInfo(const SecSurfaceInfo& secSurfaceInfo,
-        const MMI::WindowInfo& hostWindowinfo, const Matrix3f hostTransform) const;
+        const MMI::WindowInfo& hostWindowinfo, const sptr<SceneSession>& sceneSession,
+        const Matrix3f hostTransform) const;
     MMI::WindowInfo MakeWindowInfoFormHostWindow(const MMI::WindowInfo& hostWindowinfo) const;
     void ResetFlushWindowInfoTask();
     void CheckIfUpdatePointAreas(WindowType windowType, const sptr<SceneSession>& sceneSession,

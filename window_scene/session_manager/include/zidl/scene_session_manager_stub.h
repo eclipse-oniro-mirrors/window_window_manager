@@ -43,11 +43,12 @@ private:
     int HandleDestroyAndDisconnectSpcificSession(MessageParcel& data, MessageParcel& reply);
     int HandleDestroyAndDisconnectSpcificSessionWithDetachCallback(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
+    int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
     int HandleRecoverWindowPropertyChangeFlag(MessageParcel& data, MessageParcel& reply);
-    int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleGetFocusSessionInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleGetFocusWindowInfoByAbilityToken(MessageParcel& data, MessageParcel& reply);
     int HandleSetSessionLabel(MessageParcel& data, MessageParcel& reply);
     int HandleSetSessionIcon(MessageParcel& data, MessageParcel& reply);
     int HandleIsValidSessionIds(MessageParcel& data, MessageParcel& reply);
@@ -79,6 +80,7 @@ private:
     int HandleGetSessionSnapshot(MessageParcel& data, MessageParcel& reply);
     int HandleGetSessionSnapshotById(MessageParcel& data, MessageParcel& reply);
     int HandleGetUIContentRemoteObj(MessageParcel& data, MessageParcel& reply);
+    int HandleGetRootUIContentRemoteObj(MessageParcel& data, MessageParcel& reply);
     int HandleBindDialogTarget(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyDumpInfoResult(MessageParcel& data, MessageParcel& reply);
     int HandleClearSession(MessageParcel& data, MessageParcel& reply);
@@ -97,12 +99,15 @@ private:
     int HandleWatchFocusActiveChange(MessageParcel& data, MessageParcel& reply);
     int HandleGetParentMainWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionWindowVisibilityListener(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateSessionScreenshotListener(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionOcclusionStateListener(MessageParcel& data, MessageParcel& reply);
+    int HandleGetWindowStateSnapshot(MessageParcel& data, MessageParcel& reply);
     int HandleShiftAppWindowFocus(MessageParcel& data, MessageParcel& reply);
     int HandleListWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetAllWindowLayoutInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetAllMainWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetMainWindowSnapshot(MessageParcel& data, MessageParcel& reply);
+    int HandleSetWindowSnapshotSkip(MessageParcel& data, MessageParcel& reply);
     int HandleGetGlobalWindowMode(MessageParcel& data, MessageParcel& reply);
     int HandleGetTopNavDestinationName(MessageParcel& data, MessageParcel& reply);
     int HandleSetWatermarkImageForApp(MessageParcel& data, MessageParcel& reply);
@@ -152,12 +157,16 @@ private:
     int HandleMinimizeByWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleSetForegroundWindowNum(MessageParcel& data, MessageParcel& reply);
     int HandleUseImplicitAnimation(MessageParcel& data, MessageParcel& reply);
-    int HandleCreateUIEffectController(MessageParcel& data, MessageParcel& reply);
     int HandleAddSessionBlackList(MessageParcel& data, MessageParcel& reply);
     int HandleRemoveSessionBlackList(MessageParcel& data, MessageParcel& reply);
+    int HandleCreateUIEffectController(MessageParcel& data, MessageParcel& reply);
     int HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply);
+    int HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply);
     int HandleMinimizeAllAppWindows(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateOutline(MessageParcel& data, MessageParcel& reply);
+    int HandleSetSpecificWindowZIndex(MessageParcel& data, MessageParcel& reply);
+    int HandleResetSpecificWindowZIndex(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifySupportRotationRegistered(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_STUB_H

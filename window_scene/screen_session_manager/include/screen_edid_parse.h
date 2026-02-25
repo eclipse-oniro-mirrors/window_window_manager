@@ -30,12 +30,6 @@
 
 namespace OHOS {
 namespace Rosen {
-#if (defined(__aarch64__) || defined(__x86_64__))
-const std::string EDID_PARSE_SO_PATH = "/system/lib64/libedid_parse.z.so";
-#else
-const std::string EDID_PARSE_SO_PATH = "/system/lib/libedid_parse.z.so";
-#endif
-
 class RSInterfaces;
 
 struct MultiScreenInfo {
@@ -44,7 +38,6 @@ struct MultiScreenInfo {
     MultiScreenMode multiScreenMode;
     MultiScreenPositionOptions mainScreenOption;
     MultiScreenPositionOptions secondaryScreenOption;
-    int32_t activeId;
 };
 
 struct BaseEdid {

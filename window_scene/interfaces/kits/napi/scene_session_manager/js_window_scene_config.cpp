@@ -213,6 +213,22 @@ napi_value JsWindowSceneConfig::CreateFreeMultiWindowConfig(napi_env env, const 
     return objValue;
 }
 
+napi_value JsWindowSceneConfig::CreateSystemConfig(napi_env env, const SystemSessionConfig& config)
+{
+    TLOGI(WmsLogTag::DEFAULT, "in");
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "Object is null!");
+        return NapiGetUndefined(env);
+    }
+    napi_set_named_property(env, objValue, "maxMidSceneNum", CreateJsValue(env,
+        config.maxMidSceneNum_));
+    napi_set_named_property(env, objValue, "maxFloatingWindowSize", CreateJsValue(env,
+        config.maxFloatingWindowSize_));
+    return objValue;
+}
+
 napi_value JsWindowSceneConfig::CreateWindowLimits(napi_env env, const WindowLimits& windowLimits)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "in");
@@ -232,6 +248,8 @@ napi_value JsWindowSceneConfig::CreateWindowLimits(napi_env env, const WindowLim
         windowLimits.minHeight_));
     napi_set_named_property(env, objValue, "pixelUnit", CreateJsValue(env,
         static_cast<uint32_t>(windowLimits.pixelUnit_)));
+    napi_set_named_property(env, objValue, "isInitialized", CreateJsValue(env,
+        !windowLimits.IsDefault()));
     return objValue;
 }
 
@@ -245,7 +263,6 @@ napi_value JsWindowSceneConfig::CreateSingleHandCompatibleConfig(napi_env env,
         TLOGW(WmsLogTag::WMS_LAYOUT, "Object is null!");
         return NapiGetUndefined(env);
     }
-
     napi_set_named_property(env, objValue, "enabled", CreateJsValue(env, config.enabled));
     napi_set_named_property(env, objValue, "singleHandScale", CreateJsValue(env, config.singleHandScale));
     napi_set_named_property(env, objValue, "heightChangeRatio", CreateJsValue(env, config.heightChangeRatio));
@@ -253,20 +270,58 @@ napi_value JsWindowSceneConfig::CreateSingleHandCompatibleConfig(napi_env env,
     return objValue;
 }
 
-napi_value JsWindowSceneConfig::CreateSystemConfig(napi_env env, const SystemSessionConfig& config)
+napi_value JsWindowSceneConfig::CreateSingleHandBackgroundLayoutConfig(
+    napi_env env, const SingleHandBackgroundLayoutConfig& config)
 {
-    TLOGI(WmsLogTag::DEFAULT, "in");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
     if (objValue == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "Object is null!");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Object is null!");
         return NapiGetUndefined(env);
     }
-
-    napi_set_named_property(env, objValue, "maxMidSceneNum", CreateJsValue(env,
-        config.maxMidSceneNum_));
-    napi_set_named_property(env, objValue, "maxFloatingWindowSize", CreateJsValue(env,
-        config.maxFloatingWindowSize_));
+    napi_set_named_property(env, objValue, "isCustomLayout", CreateJsValue(env, config.isCustomLayout));
+    napi_set_named_property(env, objValue, "settingButtonRect", CreateJsRect(env, config.settingButtonRect));
+    napi_set_named_property(env, objValue, "title", CreateSingleHandBackgroundTextConfig(env, config.title));
+    napi_set_named_property(env, objValue, "content", CreateSingleHandBackgroundTextConfig(env, config.content));
+    napi_set_named_property(env, objValue, "issueText", CreateSingleHandBackgroundTextConfig(env, config.issueText));
+    return objValue;
+}
+ 
+napi_value JsWindowSceneConfig::CreateJsRect(napi_env env, const WSRect& rect)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Object is null!");
+        return NapiGetUndefined(env);
+    }
+    napi_set_named_property(env, objValue, "posX_", CreateJsValue(env, rect.posX_));
+    napi_set_named_property(env, objValue, "posY_", CreateJsValue(env, rect.posY_));
+    napi_set_named_property(env, objValue, "width_", CreateJsValue(env, rect.width_));
+    napi_set_named_property(env, objValue, "height_", CreateJsValue(env, rect.height_));
+    return objValue;
+}
+ 
+napi_value JsWindowSceneConfig::CreateSingleHandBackgroundTextConfig(
+    napi_env env, const SingleHandBackgroundTextConfig& config)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Object is null!");
+        return NapiGetUndefined(env);
+    }
+    napi_set_named_property(env, objValue, "posX", CreateJsValue(env, config.posX));
+    napi_set_named_property(env, objValue, "posY", CreateJsValue(env, config.posY));
+    napi_set_named_property(env, objValue, "width", CreateJsValue(env, config.width));
+    napi_set_named_property(env, objValue, "height", CreateJsValue(env, config.height));
+    napi_set_named_property(env, objValue, "fontSize", CreateJsValue(env, config.fontSize));
+    napi_set_named_property(env, objValue, "minFontSize", CreateJsValue(env, config.minFontSize));
+    napi_set_named_property(env, objValue, "maxLines", CreateJsValue(env, config.maxLines));
+    napi_set_named_property(env, objValue, "maxFontScale", CreateJsValue(env, config.maxFontScale));
     return objValue;
 }
 } // namespace OHOS::Rosen

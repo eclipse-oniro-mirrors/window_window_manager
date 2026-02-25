@@ -17,6 +17,8 @@
 #define OHOS_ROSEN_WINDOW_SCENE_STARTING_WINDOW_RDB_MANAGER_H
 
 #include <atomic>
+#include <event_handler.h>
+#include <memory>
 #include <mutex>
 #include <utility>
 
@@ -45,9 +47,10 @@ struct StartingWindowRdbItemKey {
     bool darkMode;
 };
 
-class StartingWindowRdbManager final {
+class StartingWindowRdbManager final : public std::enable_shared_from_this<StartingWindowRdbManager> {
 public:
-    StartingWindowRdbManager(const WmsRdbConfig& rdbConfig);
+    StartingWindowRdbManager(const WmsRdbConfig& rdbConfig,
+        std::shared_ptr<AppExecFwk::EventHandler> handler = nullptr);
     ~StartingWindowRdbManager();
 
     bool Init();
@@ -63,10 +66,12 @@ public:
 
 private:
     std::shared_ptr<NativeRdb::RdbStore> GetRdbStore();
+    void DelayClearRdbStore(int32_t delay = 0);
     
     std::mutex rdbMutex_;
     std::shared_ptr<NativeRdb::RdbStore> rdbStore_;
     WmsRdbConfig wmsRdbConfig_;
+    std::shared_ptr<AppExecFwk::EventHandler> handler_;
 };
 } // namespace Rosen
 } // namespace OHOS

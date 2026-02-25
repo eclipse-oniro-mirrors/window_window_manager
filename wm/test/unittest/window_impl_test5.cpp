@@ -26,6 +26,8 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
+constexpr uint32_t NUMBER_ONE = 1;
+constexpr uint32_t NUMBER_TWO = 2;
 using Mocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
 class MockOccupiedAreaChangeListener : public IOccupiedAreaChangeListener {
 public:
@@ -41,6 +43,20 @@ public:
 class MockWindowDragListener : public IWindowDragListener {
 public:
     MOCK_METHOD3(OnDrag, void(int32_t x, int32_t y, DragEvent event));
+};
+
+class TestAnimationTransitionController : public IAnimationTransitionController {
+public:
+    uint32_t testCount_ = 0;
+
+    void AnimationForShown()
+    {
+        testCount_ = NUMBER_ONE;
+    };
+    void AnimationForHidden()
+    {
+        testCount_ = NUMBER_TWO;
+    };
 };
 
 class WindowImplTest5 : public testing::Test {
@@ -1070,7 +1086,7 @@ HWTEST_F(WindowImplTest5, AdjustWindowAnimationFlag, TestSize.Level1)
     sptr<IAnimationTransitionController> animationTransitionController =
         sptr<IAnimationTransitionController>::MakeSptr();
     ASSERT_NE(animationTransitionController, nullptr);
-    window->animationTransitionController_ = animationTransitionController;
+    window->animationTransitionControllers_.push_back(animationTransitionController);
 
     window->AdjustWindowAnimationFlag(true);
 
@@ -1078,7 +1094,7 @@ HWTEST_F(WindowImplTest5, AdjustWindowAnimationFlag, TestSize.Level1)
     window->needDefaultAnimation_ = true;
     window->AdjustWindowAnimationFlag(true);
 
-    window->animationTransitionController_ = nullptr;
+    window->animationTransitionControllers_.clear();
     window->needDefaultAnimation_ = false;
     window->AdjustWindowAnimationFlag(true);
 
@@ -1330,6 +1346,65 @@ HWTEST_F(WindowImplTest5, GetVirtualPixelRatio01, TestSize.Level1)
     window->property_->SetDisplayId(-1);
     vpr = window->GetVirtualPixelRatio();
     ASSERT_EQ(vpr, 1.0f);
+}
+
+/**
+ * @tc.name: CustomHideAnimation
+ * @tc.desc: CustomHideAnimation test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowImplTest5, CustomHideAnimation, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CustomHideAnimation");
+    option->SetDisplayId(1);
+    sptr<WindowImpl> window = sptr<WindowImpl>::MakeSptr(option);
+    window->property_->animationFlag_ = static_cast<uint32_t>(WindowAnimation::CUSTOM);
+
+    auto testController = sptr<TestAnimationTransitionController>::MakeSptr();
+    int result = 0;
+    window->CustomHideAnimation();
+    ASSERT_EQ(testController->testCount_, result);
+}
+
+/**
+ * @tc.name: CustomHideAnimation_CustomFlag
+ * @tc.desc: CustomHideAnimation_CustomFlag test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowImplTest5, CustomHideAnimation_CustomFlag, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CustomHideAnimation");
+    option->SetDisplayId(1);
+    sptr<WindowImpl> window = sptr<WindowImpl>::MakeSptr(option);
+    window->property_->animationFlag_ = static_cast<uint32_t>(WindowAnimation::CUSTOM);
+
+    auto testController = sptr<TestAnimationTransitionController>::MakeSptr();
+    window->animationTransitionControllers_.push_back(testController);
+    int result = NUMBER_TWO;
+    window->CustomHideAnimation();
+    ASSERT_EQ(testController->testCount_, result);
+}
+
+/**
+ * @tc.name: CustomHideAnimation_DefaultFlag
+ * @tc.desc: CustomHideAnimation_DefaultFlag test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowImplTest5, CustomHideAnimation_DefaultFlag, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CustomHideAnimation");
+    option->SetDisplayId(1);
+    sptr<WindowImpl> window = sptr<WindowImpl>::MakeSptr(option);
+    window->property_->animationFlag_ = static_cast<uint32_t>(WindowAnimation::DEFAULT);
+
+    auto testController = sptr<TestAnimationTransitionController>::MakeSptr();
+    window->animationTransitionControllers_.push_back(testController);
+    int result = 0;
+    window->CustomHideAnimation();
+    ASSERT_EQ(testController->testCount_, result);
 }
 } // namespace
 } // namespace Rosen

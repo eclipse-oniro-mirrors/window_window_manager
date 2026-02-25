@@ -28,7 +28,7 @@ void SessionLifecycleListenerProxy::SendRequestCommon(
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option(MessageOption::TF_ASYNC);
 
     if (!data.WriteInterfaceToken(ISessionLifecycleListener::GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write interface token failed.");

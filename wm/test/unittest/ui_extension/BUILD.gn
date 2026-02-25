@@ -13,6 +13,7 @@
 
 import("//build/test.gni")
 import("//foundation/window/window_manager/windowmanager_aafwk.gni")
+import("../wm_test_external_deps.gni")
 
 module_out_path = "window_manager/window_manager/wm/ui_extension"
 wm_unittest_common = "../:wm_unittest_common"
@@ -21,10 +22,7 @@ ohos_unittest("wm_extension_window_impl_test") {
   module_out_path = module_out_path
   sources = [ "extension_window_impl_test.cpp" ]
   deps = [ wm_unittest_common ]
-  external_deps = [
-    "c_utils:utils",
-    "graphic_2d:librender_service_base",
-  ]
+  external_deps = test_external_deps
 }
 
 ohos_unittest("wm_window_extension_session_impl_test") {
@@ -35,11 +33,5 @@ ohos_unittest("wm_window_extension_session_impl_test") {
     "window_extension_session_impl_test.cpp",
   ]
   deps = [ wm_unittest_common ]
-  external_deps = [
-    "ability_runtime:app_context",
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "graphic_2d:librender_service_base",
-    "hilog:libhilog",
-  ]
+  external_deps = test_external_deps
 }

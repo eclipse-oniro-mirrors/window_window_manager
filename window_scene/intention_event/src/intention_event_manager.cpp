@@ -41,7 +41,7 @@ void LogPointInfo(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
     if (pointerEvent == nullptr) {
         return;
     }
- 
+
     uint32_t windowId = static_cast<uint32_t>(pointerEvent->GetTargetWindowId());
     TLOGD(WmsLogTag::WMS_EVENT, "point source:%{public}d", pointerEvent->GetSourceType());
     auto actionId = pointerEvent->GetPointerId();
@@ -49,7 +49,7 @@ void LogPointInfo(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
     if (action == MMI::PointerEvent::POINTER_ACTION_MOVE) {
         return;
     }
- 
+
     MMI::PointerEvent::PointerItem item;
     if (pointerEvent->GetPointerItem(actionId, item)) {
         TLOGD(WmsLogTag::WMS_EVENT, "action point info:windowid:%{public}d,id:%{public}d,displayx:%{private}d,"
@@ -363,6 +363,14 @@ void IntentionEventManager::InputEventListener::OnInputEvent(
         TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "The UI content consumes the axis event failed.");
         axisEvent->MarkProcessed();
     }
+}
+
+bool CreateAndEnableInputEventListener(Ace::UIContent* uiContent,
+    std::shared_ptr<AppExecFwk::EventHandler> eventHandler, wptr<Window> window)
+{
+    TLOGD(WmsLogTag::WMS_EVENT, "in");
+    return DelayedSingleton<IntentionEventManager>::GetInstance()->EnableInputEventListener(
+        uiContent, eventHandler, window);
 }
 }
 } // namespace OHOS::Rosen

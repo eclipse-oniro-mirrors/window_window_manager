@@ -14,6 +14,7 @@
  */
 
 #include "singleton_container.h"
+#include "parameters.h"
 #include "picture_in_picture_manager.h"
 #include "web_picture_in_picture_controller.h"
 #include "window_manager_hilog.h"
@@ -97,9 +98,9 @@ WMError WebPictureInPictureController::StartPictureInPicture(StartPipType startT
 void WebPictureInPictureController::SetUIContent() const
 {
     napi_value storage = nullptr;
-    napi_ref storageRef = pipOption_->GetStorageRef();
+    std::shared_ptr<NativeReference> storageRef = pipOption_->GetStorageRef();
     if (storageRef != nullptr) {
-        napi_get_reference_value(env_, storageRef, &storage);
+        storage = storageRef->GetNapiValue();
         TLOGI(WmsLogTag::WMS_PIP, "startPiP with localStorage");
     }
     window_->SetUIContentByAbc(WEB_PIP_CONTENT_PATH, env_, storage, nullptr);
@@ -198,6 +199,11 @@ uint8_t WebPictureInPictureController::GetWebRequestId()
 
 WMError WebPictureInPictureController::SetPipParentWindowId(uint32_t windowId)
 {
+    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
+    if (multiWindowUIType != "FreeFormMultiWindow") {
+        TLOGE(WmsLogTag::WMS_PIP, "device not support");
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     if (mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is null");
         return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
@@ -205,7 +211,7 @@ WMError WebPictureInPictureController::SetPipParentWindowId(uint32_t windowId)
     auto newMainWindow = WindowSceneSessionImpl::GetMainWindowWithId(windowId);
     if (newMainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow not found: %{public}u", windowId);
-        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        return WMError::WM_ERROR_INVALID_PARAM;
     }
     mainWindow_ = newMainWindow;
     mainWindowId_ = windowId;

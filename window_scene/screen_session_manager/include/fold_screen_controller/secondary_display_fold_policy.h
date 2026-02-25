@@ -36,11 +36,13 @@ public:
     FoldCreaseRegion GetLiveCreaseRegion() override;
     void SetOnBootAnimation(bool onBootAnimation) override;
     FoldDisplayMode GetModeMatchStatus() override;
+    FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus) override;
     std::vector<uint32_t> GetScreenParams() override;
     void ExitCoordination() override;
     void SetSecondaryDisplayModeChangeStatus(bool status) override;
     void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const override;
     void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
+    const std::unordered_set<FoldStatus>& GetSupportedFoldStatus() const override;
 private:
     void HandlePropertyChange(sptr<ScreenSession> screenSession, ScreenProperty& ScreenProperty,
         ScreenPropertyChangeReason reason, FoldDisplayMode displayMode, bool isNeedNotifyFoldProperty);

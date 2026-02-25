@@ -43,6 +43,7 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "miniHeight",                                   WindowSceneConfig::ValueType::INTS },
     { "showInLandscapeMode",                          WindowSceneConfig::ValueType::INTS },
     { "singleHandCompatibleMode",                     WindowSceneConfig::ValueType::MAP },
+    { "singleHandModeEnable",                         WindowSceneConfig::ValueType::STRING },
     { "mainWindowSizeLimits",                         WindowSceneConfig::ValueType::MAP },
     { "subWindowSizeLimits",                          WindowSceneConfig::ValueType::MAP },
     { "dialogWindowSizeLimits",                       WindowSceneConfig::ValueType::MAP },
@@ -107,6 +108,25 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "supportTypeFloatWindow",                       WindowSceneConfig::ValueType::STRING },
     { "maxMidSceneNum",                               WindowSceneConfig::ValueType::INTS },
     { "defaultDragResizeType",                        WindowSceneConfig::ValueType::INTS },
+    // ========================= Window Layout Config =========================
+    { "windowLayout",                                 WindowSceneConfig::ValueType::MAP },
+    { "moveDrag",                                     WindowSceneConfig::ValueType::MAP },
+    { "moveResample",                                 WindowSceneConfig::ValueType::MAP },
+    { "resampleFpsRange",                             WindowSceneConfig::ValueType::INTS },
+    // ========================================================================
+    { "singleHandBackgroundLayout",                   WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundSettingButton",            WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundTitle",                    WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundContent",                  WindowSceneConfig::ValueType::MAP },
+    { "singleHandBackgroundIssueText",                WindowSceneConfig::ValueType::MAP },
+    { "posX",                                         WindowSceneConfig::ValueType::INTS },
+    { "posY",                                         WindowSceneConfig::ValueType::INTS },
+    { "width",                                        WindowSceneConfig::ValueType::INTS },
+    { "height",                                       WindowSceneConfig::ValueType::INTS },
+    { "fontSize",                                     WindowSceneConfig::ValueType::INTS },
+    { "minFontSize",                                  WindowSceneConfig::ValueType::INTS },
+    { "maxLines",                                     WindowSceneConfig::ValueType::INTS },
+    { "maxFontScale",                                 WindowSceneConfig::ValueType::STRING },
 };
 
 std::vector<std::string> WindowSceneConfig::SplitNodeContent(const xmlNodePtr& node, const std::string& pattern)

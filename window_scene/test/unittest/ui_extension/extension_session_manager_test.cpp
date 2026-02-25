@@ -53,6 +53,13 @@ HWTEST_F(ExtensionSessionManagerTest, RequestExtensionSession, TestSize.Level1)
     SessionInfo sessionInfo;
     sessionInfo.abilityName_ = "RequestExtensionSession";
     ASSERT_NE(nullptr, ExtensionSessionManager::GetInstance().RequestExtensionSession(sessionInfo));
+    // Atomic service branch
+    AAFwk::Want want;
+    sessionInfo.want = std::make_shared<AAFwk::Want>(want);
+    ASSERT_NE(nullptr, sessionInfo.want);
+    ASSERT_NE(nullptr, ExtensionSessionManager::GetInstance().RequestExtensionSession(sessionInfo));
+    sessionInfo.want->SetParam(AAFwk::SCREEN_MODE_KEY, 1);
+    ASSERT_NE(nullptr, ExtensionSessionManager::GetInstance().RequestExtensionSession(sessionInfo));
 }
 
 /**

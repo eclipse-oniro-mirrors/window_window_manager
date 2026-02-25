@@ -33,7 +33,7 @@ public:
     ~DisplayInfo() = default;
     WM_DISALLOW_COPY_AND_MOVE(DisplayInfo);
 
-    virtual bool Marshalling(Parcel& parcel) const override;
+    bool Marshalling(Parcel& parcel) const override;
     static DisplayInfo *Unmarshalling(Parcel& parcel);
 
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(std::string, Name, name, "");
@@ -82,6 +82,13 @@ public:
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(DisplaySourceMode, DisplaySourceMode, displaySourceMode, DisplaySourceMode::NONE);
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(std::vector<uint32_t>, SupportedRefreshRate, supportedRefreshRate,
         std::vector<uint32_t>());
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(bool, SupportsFocus, supportsFocus, true);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(bool, SupportsInput, supportsInput, true);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(std::string, BundleName, bundleName, "");
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(int32_t, ActualPosX, actualPosX, 1.0f);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(int32_t, ActualPosY, actualPosY, 1.0f);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(uint32_t, ActualWidth, actualWidth, 0);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(uint32_t, ActualHeight, actualHeight, 0);
 };
 } // namespace OHOS::Rosen
 #endif // FOUNDATION_DMSERVER_DISPLAY_INFO_H

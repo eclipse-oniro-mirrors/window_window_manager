@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,10 +23,11 @@ namespace OHOS {
 namespace Rosen {
 class WindowManagerAgentLite : public WindowManagerAgentStub {
 public:
-    WindowManagerAgentLite() = default;
+    explicit WindowManagerAgentLite(const int32_t userId = INVALID_USER_ID);
     ~WindowManagerAgentLite() = default;
 
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) override;
+    void UpdateDisplayGroupInfo(DisplayGroupId displayGroupId, DisplayId displayId, bool isAdd) override;
     void UpdateSystemBarRegionTints(DisplayId displayId, const SystemBarRegionTints& props) override {};
     void NotifyAccessibilityWindowInfo(const std::vector<sptr<AccessibilityWindowInfo>>& infos,
         WindowUpdateType type) override;
@@ -44,8 +45,12 @@ public:
     void NotifyCallingWindowDisplayChanged(const CallingWindowInfo& callingWindowInfo) override;
     void NotifyWindowPidVisibilityChanged(const sptr<WindowPidVisibilityInfo>& info) override {};
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground) override;
-    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
-        const std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>& windowInfoList) override {};
+    void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) override;
+    void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo) override {};
+
+private:
+    // Adapt to multi user and multi screen.
+    int32_t userId_;
 };
 } // namespace Rosen
 } // namespace OHOS

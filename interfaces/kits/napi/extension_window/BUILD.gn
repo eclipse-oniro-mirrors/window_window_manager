@@ -99,6 +99,7 @@ ohos_shared_library("extensionwindow_napi") {
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
     "../window_runtime:window_native_kit",
+    "../common:wm_napi_util",
   ]
 
   external_deps = [

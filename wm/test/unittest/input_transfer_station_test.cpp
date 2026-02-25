@@ -19,6 +19,8 @@
 #include "mock_window_adapter.h"
 #include "singleton_mocker.h"
 #include "window_impl.h"
+#include "window_input_redistribute_impl.h"
+#include "window_input_redistribute_client.h"
 #include "window_manager_hilog.h"
 
 using namespace testing;
@@ -87,6 +89,8 @@ HWTEST_F(InputTransferStationTest, AddInputWindow, TestSize.Level0)
     InputTransferStation::GetInstance().AddInputWindow(window_);
     InputTransferStation::GetInstance().isGameControllerLoaded_ = false;
     InputTransferStation::GetInstance().AddInputWindow(window_);
+    InputTransferStation::GetInstance().LoadTouchPredictor();
+    InputTransferStation::GetInstance().LoadTouchPredictor();
     ASSERT_EQ(true, InputTransferStation::GetInstance().isGameControllerLoaded_);
 }
 
@@ -190,6 +194,163 @@ HWTEST_F(InputTransferStationTest, GetInputChannel, TestSize.Level0)
     ASSERT_EQ(channel, nullptr);
     InputTransferStation::GetInstance().AddInputWindow(window_);
     InputTransferStation::GetInstance().GetInputChannel(0);
+}
+
+/**
+ * @tc.name: InjectTouchEvent
+ * @tc.desc: InjectTouchEvent pointerEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(InputTransferStationTest, InjectTouchEvent, TestSize.Level1)
+{
+    auto pointerEvent = MMI::PointerEvent::Create();
+    auto tempPointerEvent = pointerEvent;
+    pointerEvent = nullptr;
+    InputTransferStation::GetInstance().InjectTouchEvent(pointerEvent);
+    pointerEvent = tempPointerEvent;
+    pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_DOWN));
+    InputTransferStation::GetInstance().InjectTouchEvent(pointerEvent);
+    pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_MOVE));
+    pointerEvent->SetAgentWindowId(0);
+    InputTransferStation::GetInstance().InjectTouchEvent(pointerEvent);
+    InputTransferStation::GetInstance().destroyed_ = true;
+    InputTransferStation::GetInstance().RemoveInputWindow(window_->GetWindowId());
+    InputTransferStation::GetInstance().InjectTouchEvent(pointerEvent);
+    auto channel = InputTransferStation::GetInstance().GetInputChannel(0);
+    listener->OnInputEvent(pointerEvent);
+    ASSERT_EQ(channel, nullptr);
+}
+ 
+class MockInputEventRecipientCallback : public IInputEventRecipientCallback {
+public:
+    explicit MockInputEventRecipientCallback(InputAfterRedistributeBehavior returnVal =
+        InputAfterRedistributeBehavior::BEHAVIOR_NORMAL) : returnVal_(returnVal) {}
+    InputAfterRedistributeBehavior OnInputEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+    {
+        return returnVal_;
+    }
+    InputAfterRedistributeBehavior OnInputEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent)
+    {
+        return returnVal_;
+    }
+private:
+    InputAfterRedistributeBehavior returnVal_;
+};
+ 
+/**
+ * @tc.name: RegisterInputEventRedistribute
+ * @tc.desc: Test Register and Unregister input event redistribute in WindowInputRedistributeImpl.
+ * @tc.type: FUNC
+ */
+HWTEST_F(InputTransferStationTest, RegisterInputEventRedistribute, TestSize.Level1)
+{
+    IInputEventRecipientInfo validRecipientInfoNormal = {
+        InputRedistributeIdentity::IDENTITY_MEDIA_CONTROLLER,
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT,
+        InputEventType::KEY_EVENT,
+        1,
+        std::make_shared<MockInputEventRecipientCallback>(InputAfterRedistributeBehavior::BEHAVIOR_NORMAL)
+    };
+    IInputEventRecipientInfo validRecipientInfoIntercept = {
+        InputRedistributeIdentity::IDENTITY_TOUCH_PREDICTOR,
+        InputRedistributeTiming::REDISTRIBUTE_BEFORE_SEND_TO_COMPONENT,
+        InputEventType::POINTER_EVENT,
+        2,
+        std::make_shared<MockInputEventRecipientCallback>(InputAfterRedistributeBehavior::BEHAVIOR_INTERCEPT)
+    };
+    auto pointerEvent = MMI::PointerEvent::Create();
+    auto keyEvent = MMI::KeyEvent::Create();
+
+    listener->OnInputEvent(pointerEvent);
+    listener->OnInputEvent(keyEvent);
+
+    IInputEventRecipientInfo validRecipientInfoIntercept2 = validRecipientInfoIntercept;
+    validRecipientInfoIntercept2.priority = 4;
+ 
+    IInputEventRecipientInfo validRecipientInfoIntercept3 = validRecipientInfoIntercept;
+    validRecipientInfoIntercept3.type = InputEventType::KEY_EVENT;
+
+    WindowInputRedistributeClient::RegisterInputEventRedistribute(validRecipientInfoNormal);
+    WindowInputRedistributeClient::RegisterInputEventRedistribute(validRecipientInfoIntercept);
+    WindowInputRedistributeClient::RegisterInputEventRedistribute(validRecipientInfoIntercept2);
+    WindowInputRedistributeClient::RegisterInputEventRedistribute(validRecipientInfoIntercept3);
+    listener->OnInputEvent(pointerEvent);
+    listener->OnInputEvent(keyEvent);
+    auto channel = InputTransferStation::GetInstance().GetInputChannel(0);
+    listener->OnInputEvent(pointerEvent);
+    ASSERT_EQ(channel, nullptr);
+    WindowInputRedistributeClient::UnRegisterInputEventRedistribute(validRecipientInfoNormal);
+    WindowInputRedistributeClient::UnRegisterInputEventRedistribute(validRecipientInfoIntercept);
+ 
+    IInputEventRecipientInfo invalidRecipientInfo = {
+        InputRedistributeIdentity::IDENTITY_INVALID,
+        InputRedistributeTiming::REDISTRIBUTE_INVALID_TIMING,
+        InputEventType::INVALID,
+        0,
+        nullptr
+    };
+    WindowInputRedistributeClient::UnRegisterInputEventRedistribute(invalidRecipientInfo);
+    WindowInputRedistributeClient::RegisterInputEventRedistribute(invalidRecipientInfo);
+}
+ 
+/**
+ * @tc.name: SendEvent
+ * @tc.desc: Test sending input events (KeyEvent and PointerEvent) in WindowInputRedistributeImpl.
+ * @tc.type: FUNC
+ */
+HWTEST_F(InputTransferStationTest, SendEvent, TestSize.Level1)
+{
+    InputEventType eventType = InputEventType::INVALID;
+    InputRedistributeTiming timing = InputRedistributeTiming::REDISTRIBUTE_INVALID_TIMING;
+    WindowInputRedistributeImpl::GetInstance().GetRecipientResources(eventType, timing);
+ 
+    auto keyEvent = MMI::KeyEvent::Create();
+    auto tempKeyEvent = keyEvent;
+    keyEvent = nullptr;
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, keyEvent);
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_BEFORE_SEND_TO_COMPONENT, keyEvent);
+    WindowInputRedistributeClient::SendInputEvent(keyEvent);
+    keyEvent = tempKeyEvent;
+    WindowInputRedistributeImpl::GetInstance().SendEvent(timing, keyEvent);
+    WindowInputRedistributeClient::SendInputEvent(keyEvent);
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, keyEvent);
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_BEFORE_SEND_TO_COMPONENT, keyEvent);
+    
+    auto pointerEvent = MMI::PointerEvent::Create();
+    auto tempPointerEvent = pointerEvent;
+    pointerEvent = nullptr;
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, pointerEvent);
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_BEFORE_SEND_TO_COMPONENT, pointerEvent);
+    WindowInputRedistributeClient::SendInputEvent(pointerEvent);
+    pointerEvent = tempPointerEvent;
+    WindowInputRedistributeImpl::GetInstance().SendEvent(timing, pointerEvent);
+    WindowInputRedistributeClient::SendInputEvent(pointerEvent);
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, pointerEvent);
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_BEFORE_SEND_TO_COMPONENT, pointerEvent);
+    pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_DOWN));
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, pointerEvent);
+    pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_MOVE));
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, pointerEvent);
+    pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_PULL_MOVE));
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, pointerEvent);
+    pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_AXIS_UPDATE));
+    WindowInputRedistributeImpl::GetInstance().SendEvent(
+        InputRedistributeTiming::REDISTRIBUTE_AFTER_SEND_TO_COMPONENT, pointerEvent);
+ 
+    auto channel = InputTransferStation::GetInstance().GetInputChannel(0);
+    listener->OnInputEvent(pointerEvent);
+    ASSERT_EQ(channel, nullptr);
 }
 } // namespace
 }

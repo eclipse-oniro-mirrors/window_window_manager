@@ -98,6 +98,12 @@ napi_value JsWindowManager::MinimizeAll(napi_env env, napi_callback_info info)
     return nullptr;
 }
 
+napi_value JsWindowManager::MinimizeAllWithExclusion(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "mock: MinimizeAllWithExclusion");
+    return nullptr;
+}
+
 napi_value JsWindowManager::ToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info)
 {
     WLOGI("mock: ToggleShownStateForAllAppWindows");
@@ -260,6 +266,8 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "getTopWindow", moduleName, JsWindowManager::GetTopWindow);
     BindNativeFunction(env, exportObj, "getLastWindow", moduleName, JsWindowManager::GetLastWindow);
     BindNativeFunction(env, exportObj, "minimizeAll", moduleName, JsWindowManager::MinimizeAll);
+    BindNativeFunction(env, exportObj, "minimizeAllWithExclusion", moduleName,
+        JsWindowManager::MinimizeAllWithExclusion);
     BindNativeFunction(env, exportObj, "toggleShownStateForAllAppWindows", moduleName,
         JsWindowManager::ToggleShownStateForAllAppWindows);
     BindNativeFunction(env, exportObj, "getAllWindowLayoutInfo", moduleName, JsWindowManager::GetAllWindowLayoutInfo);

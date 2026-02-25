@@ -26,6 +26,7 @@ public:
     static void SetWriteBoolErrorFlag(bool flag);
     static void SetWriteInt32ErrorFlag(bool flag);
     static void SetWriteInt64ErrorFlag(bool flag);
+    static void SetWriteUint8ErrorFlag(bool flag);
     static void SetWriteUint32ErrorFlag(bool flag);
     static void SetWriteUint64ErrorFlag(bool flag);
     static void SetWriteFloatErrorFlag(bool flag);
@@ -43,7 +44,11 @@ public:
     static void SetReadStringVectorErrorFlag(bool flag);
     static void SetReadStringErrorFlag(bool flag);
     static void SetWriteInt32ErrorCount(int count);
+    static void SetWriteBoolErrorCount(int count);
+    static void SetWriteParcelableErrorCount(int count);
+    static void SetWriteUint32ErrorCount(int count);
     static void AddInt32Cache(int32_t value);
+    static void SetWriteUint64VectorErrorFlag(bool flag);
 };
 }
 }

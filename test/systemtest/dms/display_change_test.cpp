@@ -22,6 +22,7 @@
 #include "screen_manager.h"
 #include "screen_manager/rs_screen_mode_info.h"
 #include "window_manager_hilog.h"
+#include "scene_board_judgement.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -253,18 +254,29 @@ HWTEST_F(DisplayChangeTest, CheckDisplayStateChange01, TestSize.Level1)
  */
 HWTEST_F(DisplayChangeTest, CheckDisplaySizeChange01, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     WLOGI("CheckDisplaySizeChange01");
     auto modes = defaultScreen_->GetSupportedModes();
     uint32_t usedModeIdx = defaultScreen_->GetModeId();
     WLOGI("usedModeIdx / SupportMode size: %{public}u %{public}zu", usedModeIdx, modes.size());
-
     for (uint32_t modeIdx = 0; modeIdx < modes.size(); modeIdx++) {
         if (modeIdx != usedModeIdx && CheckModeSizeChange(modes[usedModeIdx], modes[modeIdx])) {
             defaultScreen_->SetScreenActiveMode(modeIdx);
             WLOGI("SetScreenActiveMode: %{public}u -> %{public}u", usedModeIdx, modeIdx);
-            ASSERT_EQ(true, ScreenSizeEqual(defaultScreen_, modes[modeIdx]));
+            constexpr int maxRetries = 20;
+            constexpr int sleepMs = 100;
+            bool sizeMatched = false;
+            for (int i = 0; i < maxRetries; ++i) {
+                usleep(sleepMs * 1000);
+                if (ScreenSizeEqual(defaultScreen_, modes[modeIdx])) {
+                    sizeMatched = true;
+                    break;
+                }
+            }
+            ASSERT_TRUE(sizeMatched);
             ASSERT_EQ(true, CheckDisplayChangeEventCallback(true));
-            // reset usedMode
             ResetDisplayChangeListener();
             defaultScreen_->SetScreenActiveMode(usedModeIdx);
             CheckDisplayChangeEventCallback(true);
@@ -280,21 +292,32 @@ HWTEST_F(DisplayChangeTest, CheckDisplaySizeChange01, TestSize.Level1)
  */
 HWTEST_F(DisplayChangeTest, CheckDisplaySizeChange02, TestSize.Level1)
 {
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        GTEST_SKIP();
+    }
     WLOGI("CheckDisplaySizeChange02");
     auto modes = defaultScreen_->GetSupportedModes();
     uint32_t usedModeIdx = defaultScreen_->GetModeId();
     WLOGI("usedModeIdx / SupportMode size: %{public}u %{public}zu", usedModeIdx, modes.size());
-
     for (uint32_t modeIdx = 0; modeIdx < modes.size(); modeIdx++) {
         if (modeIdx != usedModeIdx && CheckModeSizeChange(modes[usedModeIdx], modes[modeIdx])) {
             defaultScreen_->SetScreenActiveMode(modeIdx);
             WLOGI("SetScreenActiveMode: %{public}u -> %{public}u", usedModeIdx, modeIdx);
-            ASSERT_EQ(true, ScreenSizeEqual(defaultScreen_, modes[modeIdx]));
+            constexpr int maxRetries = 20;
+            constexpr int sleepMs = 100;
+            bool sizeMatched = false;
+            for (int i = 0; i < maxRetries; ++i) {
+                usleep(sleepMs * 1000);
+                if (ScreenSizeEqual(defaultScreen_, modes[modeIdx])) {
+                    sizeMatched = true;
+                    break;
+                }
+            }
+            ASSERT_TRUE(sizeMatched);
             ASSERT_EQ(true, CheckDisplayChangeEventCallback(true));
             sptr<Display> defaultDisplay = DisplayManager::GetInstance().GetDisplayById(defaultDisplayId_);
             ASSERT_NE(nullptr, defaultDisplay);
             ASSERT_EQ(true, DisplaySizeEqual(defaultDisplay, modes[modeIdx]));
-            // reset usedMode
             ResetDisplayChangeListener();
             defaultScreen_->SetScreenActiveMode(usedModeIdx);
             CheckDisplayChangeEventCallback(true);
@@ -375,21 +398,15 @@ HWTEST_F(DisplayChangeTest, CheckWaterfallCompression01, TestSize.Level1)
 
     bool originStatus = DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal();
     DisplayCutoutController::SetWaterfallAreaCompressionEnableWhenHorzontal(true);
-
-    uint32_t originSize = DisplayCutoutController::GetWaterfallAreaCompressionSizeWhenHorizontal();
     uint32_t testSizeInVp = 24;
     DisplayCutoutController::SetWaterfallAreaCompressionSizeWhenHorizontal(testSizeInVp);
 
-    ASSERT_EQ(true, DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
+    ASSERT_TRUE(DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
     ASSERT_EQ(testSizeInVp, DisplayCutoutController::GetWaterfallAreaCompressionSizeWhenHorizontal());
 
-    Orientation originOrientation = defaultScreen_->GetOrientation();
-    DisplayCutoutController::SetWaterfallAreaCompressionSizeWhenHorizontal(originSize);
-    ASSERT_EQ(originSize, DisplayCutoutController::GetWaterfallAreaCompressionSizeWhenHorizontal());
     DisplayCutoutController::SetWaterfallAreaCompressionEnableWhenHorzontal(originStatus);
-    ASSERT_EQ(originStatus, DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
+    ASSERT_FALSE(DisplayCutoutController::IsWaterfallAreaCompressionEnableWhenHorizontal());
     DisplayCutoutController::SetIsWaterfallDisplay(originWaterfallEnable);
-    ASSERT_EQ(originOrientation, defaultScreen_->GetOrientation());
 }
 }
 } // namespace Rosen

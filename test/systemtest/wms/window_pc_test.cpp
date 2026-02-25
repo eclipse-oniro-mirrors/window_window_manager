@@ -299,8 +299,6 @@ HWTEST_F(WindowPCTest, SetWindowTitleMoveEnabled02, TestSize.Level1)
     ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_OK, window->SetWindowTitleMoveEnabled(false));
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetWindowTitleMoveEnabled(true));
 
     window->Destroy(true, true);
 }

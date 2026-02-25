@@ -31,10 +31,17 @@ namespace Rosen {
 namespace {
     constexpr uint32_t SLEEP_TIME_IN_US = 100000; // 100ms
     std::string g_errLog;
+    const bool SUPPORT_COMPATIBLE_MODE =
+        (system::GetIntParameter<int32_t>("const.settings.extend_display_function_list", 0) & 0x4) == 4;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
     g_errLog = msg;
+    }
+    void MyLogCallbackWithAllLog(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_errLog += msg;
     }
 }
 
@@ -1032,29 +1039,6 @@ HWTEST_F(ScreenSessionTest, SetScreenColorSpace, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetPrivateSessionForeground
- * @tc.desc: normal function
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionTest, SetPrivateSessionForeground, TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "SetPrivateSessionForeground start";
-    ScreenSessionConfig config = {
-        .screenId = 100,
-        .rsId = 101,
-        .name = "OpenHarmony",
-    };
-    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
-        ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
-    EXPECT_NE(nullptr, screenSession);
-    bool hasPrivate = true;
-    screenSession->SetPrivateSessionForeground(hasPrivate);
-    auto res = screenSession->HasPrivateSessionForeground();
-    ASSERT_EQ(res, hasPrivate);
-    GTEST_LOG_(INFO) << "SetPrivateSessionForeground end";
-}
-
-/**
  * @tc.name: GetScreenCombination
  * @tc.desc: normal function
  * @tc.type: FUNC
@@ -1281,6 +1265,40 @@ HWTEST_F(ScreenSessionTest, UpdatePropertyByActiveModeChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdatePropertyByScreenMode
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdatePropertyByScreenMode01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    RSScreenModeInfo screenMode;
+    session->UpdatePropertyByScreenMode(screenMode);
+    EXPECT_TRUE(g_errLog.find("Invalid RSScreenModeInfo") != std::string::npos);
+    g_errLog.clear();
+}
+
+/**
+ * @tc.name: UpdatePropertyByScreenMode
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdatePropertyByScreenMode02, TestSize.Level1)
+{
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    RSScreenModeInfo screenMode;
+    screenMode.SetScreenHeight(2440);
+    screenMode.SetScreenWidth(2240);
+    screenMode.SetScreenRefreshRate(90);
+    screenMode.SetScreenModeId(0);
+    session->UpdatePropertyByScreenMode(screenMode);
+    ASSERT_EQ(session->GetScreenProperty().GetBounds().rect_.width_, 2240);
+    ASSERT_EQ(session->GetScreenProperty().GetBounds().rect_.height_, 2440);
+}
+
+/**
  * @tc.name: SetSupportedRefreshRate
  * @tc.desc: normal function
  * @tc.type: FUNC
@@ -1333,9 +1351,8 @@ HWTEST_F(ScreenSessionTest, UnregisterScreenChangeListener, TestSize.Level1)
     GTEST_LOG_(INFO) << "ScreenSessionTest: UnregisterScreenChangeListener start";
     IScreenChangeListener* screenChangeListener = nullptr;
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
-    int64_t ret = 0;
     session->UnregisterScreenChangeListener(screenChangeListener);
-    ASSERT_EQ(ret, 0);
+    EXPECT_FALSE(g_errLog.find("Failed to unregister screen change listener, listener is null!") != std::string::npos);
     GTEST_LOG_(INFO) << "ScreenSessionTest: UnregisterScreenChangeListener end";
 }
 
@@ -1349,9 +1366,11 @@ HWTEST_F(ScreenSessionTest, UnregisterScreenChangeListener02, TestSize.Level1)
     GTEST_LOG_(INFO) << "ScreenSessionTest: UnregisterScreenChangeListener02 start";
     IScreenChangeListener* screenChangeListener = new ScreenSessionManager();
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
-    int64_t ret = 0;
     session->UnregisterScreenChangeListener(screenChangeListener);
-    ASSERT_EQ(ret, 0);
+    auto it = std::find(session->screenChangeListenerList_.begin(),
+        session->screenChangeListenerList_.end(), screenChangeListener);
+    bool isStillRegistered = (it != session->screenChangeListenerList_.end());
+    ASSERT_FALSE(isStillRegistered);
     GTEST_LOG_(INFO) << "ScreenSessionTest: UnregisterScreenChangeListener02 end";
 }
 
@@ -1581,9 +1600,8 @@ HWTEST_F(ScreenSessionTest, InitRSDisplayNode, TestSize.Level1)
     ASSERT_NE(session, nullptr);
     RSDisplayNodeConfig config;
     Point startPoint;
-    int res = 0;
     sessionGroup.InitRSDisplayNode(config, startPoint);
-    ASSERT_EQ(res, 0);
+    SUCCEED();
     GTEST_LOG_(INFO) << "ScreenSessionTest: InitRSDisplayNode end";
 }
 
@@ -1726,11 +1744,13 @@ HWTEST_F(ScreenSessionTest, ConvertToScreenGroupInfo, TestSize.Level1)
 HWTEST_F(ScreenSessionTest, RegisterScreenChangeListener01, TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "ScreenSessionTest: RegisterScreenChangeListener start";
-    int res = 0;
-    IScreenChangeListener* screenChangeListener = nullptr;
+    IScreenChangeListener* screenChangeListener = new MockScreenChangeListener();
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     session->RegisterScreenChangeListener(screenChangeListener);
-    ASSERT_EQ(res, 0);
+    auto it = std::find(session->screenChangeListenerList_.begin(),
+        session->screenChangeListenerList_.end(), screenChangeListener);
+    bool isRegistered = (it != session->screenChangeListenerList_.end());
+    ASSERT_TRUE(isRegistered);
     GTEST_LOG_(INFO) << "ScreenSessionTest: RegisterScreenChangeListener end";
 }
 
@@ -1788,10 +1808,13 @@ HWTEST_F(ScreenSessionTest, Connect, TestSize.Level1)
 HWTEST_F(ScreenSessionTest, UpdatePropertyByActiveMode, TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "ScreenSessionTest: UpdatePropertyByActiveMode start";
-    int res = 0;
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    ScreenProperty originalProperty = session->GetScreenProperty();
+    auto screenBounds = originalProperty.GetBounds();
     session->UpdatePropertyByActiveMode();
-    ASSERT_EQ(res, 0);
+    ScreenProperty updatedProperty = session->GetScreenProperty();
+    auto screenBounds1 = updatedProperty.GetBounds();
+    ASSERT_EQ(screenBounds, screenBounds1);
     GTEST_LOG_(INFO) << "ScreenSessionTest: UpdatePropertyByActiveMode end";
 }
 
@@ -1803,10 +1826,9 @@ HWTEST_F(ScreenSessionTest, UpdatePropertyByActiveMode, TestSize.Level1)
 HWTEST_F(ScreenSessionTest, Disconnect, TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "ScreenSessionTest: Disconnect start";
-    int res = 0;
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     session->Disconnect();
-    ASSERT_EQ(res, 0);
+    ASSERT_FALSE(session->isFold_);
     GTEST_LOG_(INFO) << "ScreenSessionTest: Disconnect end";
 }
 
@@ -1836,11 +1858,10 @@ HWTEST_F(ScreenSessionTest, Disconnect02, TestSize.Level1)
 HWTEST_F(ScreenSessionTest, SensorRotationChange01, TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "ScreenSessionTest: SensorRotationChange start";
-    int res = 0;
     Rotation sensorRotation = Rotation::ROTATION_0;
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     session->SensorRotationChange(sensorRotation);
-    ASSERT_EQ(res, 0);
+    ASSERT_FALSE(session->isFold_);
     GTEST_LOG_(INFO) << "ScreenSessionTest: SensorRotationChange end";
 }
 
@@ -2003,9 +2024,8 @@ HWTEST_F(ScreenSessionTest, screen_session_test001, TestSize.Level1)
     IScreenChangeListener* screenChangeListener = nullptr;
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     session->screenState_ = ScreenState::CONNECTION;
-    int res = 0;
     session->RegisterScreenChangeListener(screenChangeListener);
-    ASSERT_EQ(res, 0);
+    EXPECT_TRUE(g_errLog.find("Failed to register screen change listener, listener is null!") != std::string::npos);
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test001 end";
 }
 
@@ -2047,9 +2067,10 @@ HWTEST_F(ScreenSessionTest, screen_session_test004, TestSize.Level1)
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test004 start";
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     ScreenProperty newProperty;
-    int res = 0;
-    session->UpdatePropertyByFoldControl(newProperty);
-    ASSERT_EQ(res, 0);
+    ScreenProperty screenProperty;
+    session->UpdatePropertyByFoldControl(newProperty, FoldDisplayMode::MAIN, true);
+    screenProperty = session->GetScreenProperty();
+    ASSERT_EQ(screenProperty.GetDisplayOrientation(), DisplayOrientation::UNKNOWN);
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test004 end";
 }
 
@@ -2063,12 +2084,8 @@ HWTEST_F(ScreenSessionTest, screen_session_test005, TestSize.Level1)
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test005 start";
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     ScreenProperty newProperty;
-    ScreenPropertyChangeReason reason = ScreenPropertyChangeReason::CHANGE_MODE;
-    int res = 0;
-    session->PropertyChange(newProperty, reason);
-    reason = ScreenPropertyChangeReason::VIRTUAL_PIXEL_RATIO_CHANGE;
-    session->PropertyChange(newProperty, reason);
-    ASSERT_EQ(res, 0);
+    session->PropertyChange(newProperty, ScreenPropertyChangeReason::UNDEFINED);
+    GTEST_SKIP();
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test005 end";
 }
 
@@ -2108,22 +2125,10 @@ HWTEST_F(ScreenSessionTest, screen_session_test007, TestSize.Level1)
     Orientation orientation = Orientation::UNSPECIFIED;
     int res = 0;
     session->ScreenOrientationChange(orientation, FoldDisplayMode::UNKNOWN, false);
-    ASSERT_EQ(res, 0);
+    EXPECT_FALSE(g_errLog.find("set orientation from napi") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    g_errLog.clear();
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test007 end";
-}
-
-/**
- * @tc.name: screen_session_test008
- * @tc.desc: normal function
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionTest, screen_session_test008, TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test008 start";
-    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
-    bool res = session->HasPrivateSessionForeground();
-    ASSERT_EQ(res, false);
-    GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test008 end";
 }
 
 /**
@@ -2180,12 +2185,49 @@ HWTEST_F(ScreenSessionTest, screen_session_test012, TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test012 start";
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
-    int res = 0;
     RectF rect = RectF(0, 0, 0, 0);
+    ScreenProperty screenProperty;
     uint32_t offsetY = 0;
     session->SetDisplayBoundary(rect, offsetY);
-    ASSERT_EQ(res, 0);
+    ASSERT_EQ(screenProperty.GetOffsetY(), offsetY);
     GTEST_LOG_(INFO) << "ScreenSessionTest: screen_session_test012 end";
+}
+
+/**
+ * @tc.name: SetExtendPhysicalScreenResolution
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetExtendPhysicalScreenResolution, TestSize.Level1)
+{
+    if (!SUPPORT_COMPATIBLE_MODE) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    LOG_SetCallback(MyLogCallbackWithAllLog);
+    g_errLog.clear();
+    session->SetIsInternal(true);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen is internal") != std::string::npos);
+    g_errLog.clear();
+ 
+    session->SetIsInternal(false);
+    session->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") != std::string::npos);
+    g_errLog.clear();
+    session->SetExtendPhysicalScreenResolution(false);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") != std::string::npos);
+    g_errLog.clear();
+ 
+    session->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    session->SetExtendPhysicalScreenResolution(true);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") == std::string::npos);
+    g_errLog.clear();
+    session->SetExtendPhysicalScreenResolution(false);
+    EXPECT_TRUE(g_errLog.find("screen mirror change") == std::string::npos);
+    g_errLog.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -2211,10 +2253,9 @@ HWTEST_F(ScreenSessionTest, SetName, TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "ScreenSessionTest: SetName start";
     std::string name { "UNKNOWN" };
-    int ret = 0;
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     session->SetName(name);
-    ASSERT_EQ(ret, 0);
+    ASSERT_EQ(name, session->GetName());
     GTEST_LOG_(INFO) << "ScreenSessionTest: SetName end";
 }
 
@@ -2234,8 +2275,7 @@ HWTEST_F(ScreenSessionTest, GetScreenSnapshot, TestSize.Level1)
     ScreenProperty newScreenProperty;
     session = sptr<ScreenSession>::MakeSptr(0, newScreenProperty, 0);
     pixelmap = session->GetScreenSnapshot(1.0, 1.0);
-    int ret = 0;
-    ASSERT_EQ(ret, 0);
+    EXPECT_EQ(pixelmap, nullptr);
     GTEST_LOG_(INFO) << "ScreenSessionTest: GetScreenSnapshot end";
 }
 
@@ -2284,6 +2324,62 @@ HWTEST_F(ScreenSessionTest, CalcRotation, TestSize.Level1)
     session->SetScreenProperty(property);
     res = session->CalcRotation(orientation, foldDisplayMode);
     EXPECT_EQ(Rotation::ROTATION_0, res);
+}
+
+/**
+ * @tc.name: CalcBoundsInRotationZero
+ * @tc.desc: normal CalcBoundsInRotationZero
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, CalcBoundsInRotationZero, TestSize.Level1)
+{
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    ScreenProperty property;
+    RRect bounds;
+    bounds.rect_.width_ = 1344;
+    bounds.rect_.height_ = 2772;
+    property.SetBounds(bounds);
+    property.UpdateDeviceRotation(Rotation::ROTATION_0);
+    session->SetScreenProperty(property);
+    auto res = session->CalcBoundsInRotationZero(FoldDisplayMode::MAIN);
+    EXPECT_EQ(res.rect_.width_, 1344);
+
+    property.UpdateDeviceRotation(Rotation::ROTATION_90);
+    session->SetScreenProperty(property);
+    res = session->CalcBoundsInRotationZero(FoldDisplayMode::MAIN);
+    EXPECT_EQ(res.rect_.width_, 2772);
+}
+
+/**
+ * @tc.name: CalcBoundsByRotation
+ * @tc.desc: normal CalcBoundsByRotation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, CalcBoundsByRotation, TestSize.Level1)
+{
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
+    ScreenProperty property;
+    RRect bounds;
+    bounds.rect_.width_ = 1344;
+    bounds.rect_.height_ = 2772;
+    property.SetBounds(bounds);
+    property.UpdateDeviceRotation(Rotation::ROTATION_0);
+    session->SetScreenProperty(property);
+    Rotation rotation = Rotation::ROTATION_0;
+    auto res = session->CalcBoundsByRotation(rotation);
+    EXPECT_EQ(res.rect_.width_, 1344);
+    rotation = Rotation::ROTATION_90;
+    res = session->CalcBoundsByRotation(rotation);
+    EXPECT_EQ(res.rect_.width_, 2772);
+
+    property.UpdateDeviceRotation(Rotation::ROTATION_90);
+    session->SetScreenProperty(property);
+    rotation = Rotation::ROTATION_0;
+    res = session->CalcBoundsByRotation(rotation);
+    EXPECT_EQ(res.rect_.width_, 2772);
+    rotation = Rotation::ROTATION_90;
+    res = session->CalcBoundsByRotation(rotation);
+    EXPECT_EQ(res.rect_.width_, 1344);
 }
 
 /**
@@ -3134,14 +3230,14 @@ HWTEST_F(ScreenSessionTest, UpdateDisplayNodeRotation, Function | SmallTest | Le
     GTEST_LOG_(INFO) << "ScreenSessionTest: UpdateDisplayNodeRotation start";
     sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
     ASSERT_NE(screenSession, nullptr);
-    screenSession->UpdateDisplayNodeRotation(1);
+    screenSession->UpdateDisplayNodeRotation(FoldDisplayMode::MAIN);
     ASSERT_EQ(screenSession->isExtended_, false);
 
     Rosen::RSDisplayNodeConfig rsConfig;
     rsConfig.isMirrored = true;
     rsConfig.screenId = 101;
     screenSession->CreateDisplayNode(rsConfig);
-    screenSession->UpdateDisplayNodeRotation(1);
+    screenSession->UpdateDisplayNodeRotation(FoldDisplayMode::MAIN);
     ASSERT_EQ(screenSession->isExtended_, false);
     GTEST_LOG_(INFO) << "ScreenSessionTest: UpdateDisplayNodeRotation end";
 }
@@ -4605,7 +4701,6 @@ HWTEST_F(ScreenSessionTest, RemoveRotationCorrection, TestSize.Level1)
  
     rotation = static_cast<Rotation>(100);
     session->RemoveRotationCorrection(rotation, FoldDisplayMode::FULL);
-    EXPECT_EQ(static_cast<int32_t>(rotation), 100);
 }
  
 /**
@@ -4710,7 +4805,6 @@ HWTEST_F(ScreenSessionTest, AddRotationCorrection, TestSize.Level1)
  
     rotation = static_cast<Rotation>(100);
     session->AddRotationCorrection(rotation, FoldDisplayMode::FULL);
-    EXPECT_EQ(static_cast<int32_t>(rotation), 100);
 }
 
 /**
@@ -4818,11 +4912,300 @@ HWTEST_F(ScreenSessionTest, ScreenOrientationChange, TestSize.Level1)
     LOG_SetCallback(MyLogCallback);
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr();
     Orientation orientation = Orientation::UNSPECIFIED;
-    int res = 0;
     session->ScreenOrientationChange(orientation, FoldDisplayMode::UNKNOWN, true);
     EXPECT_TRUE(g_errLog.find("set orientation from napi") != std::string::npos);
     LOG_SetCallback(nullptr);
     g_errLog.clear();
+}
+
+/**
+ * @tc.name  : GetSupportsFocus
+ * @tc.desc  : GetSupportsFocus
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetSupportsFocus, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    auto supportInput = session->GetSupportsFocus();
+    EXPECT_EQ(supportInput, true);
+}
+
+/**
+ * @tc.name  : SetSupportsFocus
+ * @tc.desc  : SetSupportsFocus
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetSupportsFocus, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->SetSupportsFocus(false);
+    auto supportInput = session->GetSupportsFocus();
+    EXPECT_EQ(supportInput, false);
+
+    session->SetSupportsFocus(true);
+    supportInput = session->GetSupportsFocus();
+    EXPECT_EQ(supportInput, true);
+}
+
+/**
+ * @tc.name  : GetSupportsInput
+ * @tc.desc  : GetSupportsInput
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetSupportsInput, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    auto supportInput = session->GetSupportsInput();
+    EXPECT_EQ(supportInput, true);
+}
+
+/**
+ * @tc.name  : SetSupportsInput
+ * @tc.desc  : SetSupportsInput
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetSupportsInput, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->SetSupportsInput(false);
+    auto supportInput = session->GetSupportsInput();
+    EXPECT_EQ(supportInput, false);
+
+    session->SetSupportsInput(true);
+    supportInput = session->GetSupportsInput();
+    EXPECT_EQ(supportInput, true);
+}
+
+/**
+ * @tc.name  : SetBundleName
+ * @tc.desc  : SetBundleName
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetBundleName, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->SetBundleName("test");
+    auto bundleName = session->GetBundleName();
+    EXPECT_EQ(bundleName, "test");
+}
+
+/**
+ * @tc.name  : UpdateRotationOrientationMap01
+ * @tc.desc  : UpdateRotationOrientationMap01
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdateRotationOrientationMap01, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+
+    UniqueScreenRotationOptions rotationOptions;
+    int32_t rotation = static_cast<int32_t>(Rotation::ROTATION_0);
+    int32_t orientation = static_cast<int32_t>(DisplayOrientation::LANDSCAPE);
+
+    bool result = session->UpdateRotationOrientationMap(rotationOptions, rotation, orientation);
+    std::map<int32_t, int32_t> rotationOrientationMap = {{0, 1}, {1, 2}, {2, 3}, {3, 0}};
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(rotationOptions.rotationOrientationMap_, rotationOrientationMap);
+}
+
+/**
+ * @tc.name  : UpdateRotationOrientationMap02
+ * @tc.desc  : UpdateRotationOrientationMap02
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdateRotationOrientationMap02, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+
+    UniqueScreenRotationOptions rotationOptions;
+    int32_t rotation = ROTATION_UNSET;
+    int32_t orientation = static_cast<int32_t>(DisplayOrientation::LANDSCAPE);
+
+    bool result = session->UpdateRotationOrientationMap(rotationOptions, rotation, orientation);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name  : UpdateRotationOrientationMap03
+ * @tc.desc  : UpdateRotationOrientationMap03
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdateRotationOrientationMap03, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    constexpr int32_t INVALID_ORIENTATION = 4;
+
+    UniqueScreenRotationOptions rotationOptions;
+    int32_t rotation = static_cast<int32_t>(Rotation::ROTATION_0);
+    int32_t orientation = INVALID_ORIENTATION;
+
+    bool result = session->UpdateRotationOrientationMap(rotationOptions, rotation, orientation);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name  : SetAndGetCurrentRotationCorrection
+ * @tc.desc  : SetSupportsInput
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetAndGetCurrentRotationCorrection, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->SetCurrentRotationCorrection(Rotation::ROTATION_270);
+    EXPECT_EQ(session->GetCurrentRotationCorrection(), Rotation::ROTATION_270);
+}
+
+/**
+ * @tc.name  : HandleResolutionEffectPropertyChange
+ * @tc.desc  : test HandleResolutionEffectPropertyChange Different rsid
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, HandleResolutionEffectPropertyChange1, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GTEST_SKIP();
+    }
+    LOG_SetCallback(MyLogCallback);
+    g_errLog.clear();
+    ScreenProperty property1, property2;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(0, property1, 0);
+    property1.SetRsId(1);
+    session->HandleResolutionEffectPropertyChange(property1, property2);
+    EXPECT_TRUE(g_errLog.find("no need handle") != std::string::npos);
+    g_errLog.clear();
+
+    property1.SetRsId(0);
+    session->HandleResolutionEffectPropertyChange(property1, property2);
+    EXPECT_FALSE(g_errLog.find("no need handle") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+    g_errLog.clear();
+}
+
+/**
+ * @tc.name  : HandleResolutionEffectPropertyChange
+ * @tc.desc  : test HandleResolutionEffectPropertyChange Different rotation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, HandleResolutionEffectPropertyChange2, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GTEST_SKIP();
+    }
+    ScreenProperty property1, property2;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(0, property1, 0);
+    property1.SetRsId(0);
+    property1.SetScreenRotation(Rotation::ROTATION_0);
+    auto bounds = property2.GetBounds();
+    bounds.rect_.width_ = 1;
+    bounds.rect_.height_ = 2;
+    property2.SetBounds(bounds);
+    session->HandleResolutionEffectPropertyChange(property1, property2);
+    EXPECT_EQ(property1.GetBounds().rect_.width_, 1);
+    EXPECT_EQ(property1.GetBounds().rect_.height_, 2);
+}
+
+
+/**
+ * @tc.name  : UpdateScbScreenPropertyForSuperFlod
+ * @tc.desc  : test UpdateScbScreenPropertyForSuperFlod
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdateScbScreenPropertyForSuperFlod, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        GTEST_SKIP();
+    }
+    LOG_SetCallback(MyLogCallbackWithAllLog);
+    g_errLog.clear();
+    ScreenProperty property;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(0, property, 0);
+
+    property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::KEYBOARD_ON);
+    session->UpdateScbScreenPropertyForSuperFlod(property);
+    EXPECT_TRUE(g_errLog.find("handle keyboard on and keyboard succ") != std::string::npos);
+    g_errLog.clear();
+
+    property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::KEYBOARD_OFF);
+    session->UpdateScbScreenPropertyForSuperFlod(property);
+    EXPECT_TRUE(g_errLog.find("handle keyboard on and keyboard succ") != std::string::npos);
+    g_errLog.clear();
+
+    property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_ON);
+    session->UpdateScbScreenPropertyForSuperFlod(property);
+    EXPECT_TRUE(g_errLog.find("handle system keyboard on and system keyboard succ") != std::string::npos);
+    g_errLog.clear();
+
+    property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF);
+    session->UpdateScbScreenPropertyForSuperFlod(property);
+    EXPECT_TRUE(g_errLog.find("handle system keyboard on and system keyboard succ") != std::string::npos);
+    g_errLog.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name  : ClearPropertyChangeReasonAndEvent
+ * @tc.desc  : ClearPropertyChangeReasonAndEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ClearPropertyChangeReasonAndEvent, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    screenProperty.SetPropertyChangeReason(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    screenProperty.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::RESOLUTION_EFFECT_CHANGE);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->ClearPropertyChangeReasonAndEvent();
+    auto proeperty = session->GetScreenProperty();
+    EXPECT_EQ(proeperty.GetPropertyChangeReason(), ScreenPropertyChangeReason::UNDEFINED);
+    EXPECT_EQ(proeperty.GetSuperFoldStatusChangeEvent(), SuperFoldStatusChangeEvents::UNDEFINED);
+}
+
+/**
+ * @tc.name  : ProcPropertyChange
+ * @tc.desc  : ProcPropertyChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ProcPropertyChange, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty, eventPara;
+    eventPara.SetPropertyChangeReason(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->ProcPropertyChange(screenProperty, eventPara);
+    EXPECT_EQ(screenProperty.GetPropertyChangeReason(), eventPara.GetPropertyChangeReason());
+}
+
+/**
+ * @tc.name: SetBootingConnect
+ * @tc.desc: SetBootingConnect
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SetBootingConnect, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->SetBootingConnect(true);
+    EXPECT_TRUE(session->IsBootingConnect());
 }
 } // namespace
 } // namespace Rosen

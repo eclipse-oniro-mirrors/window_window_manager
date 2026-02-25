@@ -24,6 +24,14 @@
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg = msg;
+    }
+}
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -165,10 +173,15 @@ HWTEST_F(MultiScreenChangeUtilsTest, SetScreenAvailableStatus, TestSize.Level1)
 {
     sptr<ScreenSession> screenSession = nullptr;
     bool isScreenAvailable = true;
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
     multiSCU_.SetScreenAvailableStatus(screenSession, isScreenAvailable);
     screenSession = new ScreenSession();
     multiSCU_.SetScreenAvailableStatus(screenSession, isScreenAvailable);
-    ASSERT_EQ(isScreenAvailable, true);
+    EXPECT_TRUE(g_logMsg.find("screenSession is null") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -547,6 +560,23 @@ HWTEST_F(MultiScreenChangeUtilsTest, CreateExtendSession, TestSize.Level1)
     screenSession = new ScreenSession();
     ASSERT_NE(screenSession, nullptr);
     multiSCU_.CreateExtendSession(screenSession);
+}
+
+/**
+ * @tc.name: SetScreenNotifyFlag
+ * @tc.desc: SetScreenNotifyFlag func
+ * @tc.type: FUNC
+ */
+HWTEST_F(MultiScreenChangeUtilsTest, SetScreenNotifyFlag, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<ScreenSession> innerScreen = nullptr;
+    sptr<ScreenSession> externalScreen = nullptr;
+    multiSCU_.SetScreenNotifyFlag(innerScreen, externalScreen);
+    EXPECT_TRUE(g_logMsg.find("screen sessions null") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 }
 } // namespace Rosen

@@ -63,7 +63,7 @@ public:
         DisplayManagerAgentType type));
     MOCK_METHOD2(CreateVirtualScreen, ScreenId(VirtualScreenOption option,
         const sptr<IDisplayManagerAgent>& displayManagerAgent));
-    MOCK_METHOD1(DestroyVirtualScreen, DMError(ScreenId screenId));
+    MOCK_METHOD2(DestroyVirtualScreen, DMError(ScreenId screenId, bool isCallingByThirdParty));
     MOCK_METHOD2(SetVirtualScreenSurface, DMError(ScreenId screenId, sptr<Surface> surface));
     MOCK_METHOD1(GetScreenGroupInfoById, sptr<ScreenGroupInfo>(ScreenId screenId));
     MOCK_METHOD1(GetAllScreenInfos, DMError(std::vector<sptr<ScreenInfo>>& screenInfos));

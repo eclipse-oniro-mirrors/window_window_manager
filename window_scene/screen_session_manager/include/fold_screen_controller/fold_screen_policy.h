@@ -20,27 +20,17 @@
 #include <mutex>
 
 #include "dm_common.h"
-#include "session/screen/include/screen_property.h"
 #include "fold_screen_info.h"
+#include "screen_power_fsm/screen_state_machine.h"
+#include "session/screen/include/screen_property.h"
+#include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
-const uint32_t FOLD_TO_EXPAND_ONBOOTANIMATION_TASK_NUM = 1;
-const uint32_t FOLD_TO_EXPAND_TASK_NUM = 3;
-constexpr uint32_t SECONDARY_FOLD_TO_EXPAND_TASK_NUM = 3;
-
-enum class DisplayModeChangeReason : uint32_t {
-    DEFAULT = 0,
-    RECOVER,
-    INVALID,
-};
-
-struct FoldCreaseRegionItem {
-    DisplayOrientation orientation_;
-    FoldDisplayMode foldDisplayMode_;
-    FoldCreaseRegion region_;
-    FoldCreaseRegionItem(DisplayOrientation orientation, FoldDisplayMode foldDisplayMode, FoldCreaseRegion region)
-        : orientation_(orientation), foldDisplayMode_(foldDisplayMode), region_(region) {}
-};
+namespace {
+    const uint32_t FOLD_TO_EXPAND_ONBOOTANIMATION_TASK_NUM = 1;
+    const uint32_t FOLD_TO_EXPAND_TASK_NUM = 4;
+    constexpr uint32_t SECONDARY_FOLD_TO_EXPAND_TASK_NUM = 3;
+}
 
 class FoldScreenPolicy : public RefBase {
 public:
@@ -59,6 +49,7 @@ public:
     virtual void ExitCoordination();
     virtual void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command);
     virtual FoldDisplayMode GetModeMatchStatus() { return FoldDisplayMode::UNKNOWN; }
+    virtual FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus) { return FoldDisplayMode::UNKNOWN; }
     virtual void BootAnimationFinishPowerInit() {};
     virtual void ChangeOnTentMode(FoldStatus currentState);
     virtual void ChangeOffTentMode();
@@ -66,14 +57,24 @@ public:
     virtual void SetMainScreenRegion(DMRect& mainScreenRegion);
     virtual void SetIsClearingBootAnimation(bool isClearingBootAnimation);
     virtual void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const;
-    void ClearState();
+    virtual void ChangeScreenPowerOnFold(
+        const std::vector<std::pair<ScreenId, ScreenPowerStatus>>& screenPowerTaskList);
+    virtual const std::unordered_set<FoldStatus>& GetSupportedFoldStatus() const;
+    virtual bool GetPhysicalFoldLockFlag() const;
+    virtual FoldStatus GetForceFoldStatus() const;
+    virtual DMError SetFoldStatusAndLockControl(bool isLocked, FoldStatus targetFoldStatus = FoldStatus::UNKNOWN);
+    virtual void SetFoldLockFlagAndFoldStatus(bool physicalFoldLockFlag, FoldStatus targetFoldStatus);
+    virtual bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
+        FoldStatus targetFoldStatus) const;
     FoldDisplayMode GetScreenDisplayMode();
-    FoldStatus GetFoldStatus();
-    void SetFoldStatus(FoldStatus foldStatus);
+    virtual FoldStatus GetFoldStatus();
+    virtual FoldStatus GetPhysicalFoldStatus();
     std::chrono::steady_clock::time_point GetStartTimePoint();
-    bool GetIsFirstFrameCommitReported();
+    void ClearState();
+    void SetFoldStatus(FoldStatus foldStatus);
     void SetIsFirstFrameCommitReported(bool isFirstFrameCommitReported);
-    
+    bool GetIsFirstFrameCommitReported();
+
     ScreenId screenId_ { SCREEN_ID_INVALID };
     ScreenProperty screenProperty_;
     mutable std::recursive_mutex displayModeMutex_;
@@ -85,6 +86,8 @@ public:
     sptr<FoldCreaseRegion> currentFoldCreaseRegion_ = nullptr;
     FoldCreaseRegion liveCreaseRegion_ = FoldCreaseRegion(0, {});
     bool lockDisplayStatus_ = false;
+    std::atomic<bool> physicalFoldLockFlag_ = false;
+    std::atomic<FoldStatus> forceFoldStatus_ = FoldStatus::UNKNOWN;
     bool onBootAnimation_ = false;
     std::atomic<bool> isClearingBootAnimation_ = false;
     bool isFirstFrameCommitReported_ = false;
@@ -98,6 +101,7 @@ public:
     bool GetdisplayModeRunningStatus();
     FoldDisplayMode GetLastCacheDisplayMode();
     virtual std::vector<uint32_t> GetScreenParams() { return screenParams_; };
+    virtual float GetSpecialVirtualPixelRatio();
 
 protected:
     /*

@@ -64,6 +64,10 @@ void AbstractScreenController::RegisterRsScreenConnectionChangeListener()
     TLOGI(WmsLogTag::DMS, "RegisterRsScreenConnectionChangeListener");
     auto res = rsInterface_.SetScreenChangeCallback(
         [this](ScreenId rsScreenId, ScreenEvent screenEvent, ScreenChangeReason reason) {
+            if (reason == ScreenChangeReason::HWCDEAD) {
+                TLOGE(WmsLogTag::DMS, "hwcdead, ignore");
+                return;
+            }
             OnRsScreenConnectionChange(rsScreenId, screenEvent);
         });
     if (res != StatusCode::SUCCESS) {

@@ -22,7 +22,14 @@
 
 using namespace testing;
 using namespace testing::ext;
-
+namespace {
+std::string g_logMsg;
+void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+    const char* msg)
+{
+    g_logMsg = msg;
+}
+}
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -411,14 +418,23 @@ HWTEST_F(ScreenRotationControllerTest, ProcessOrientationSwitch, TestSize.Level1
  */
 HWTEST_F(ScreenRotationControllerTest, HandleSensorEventInput, TestSize.Level1)
 {
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
     DeviceRotation deviceRotation = DeviceRotation::INVALID;
     ScreenRotationController::HandleSensorEventInput(deviceRotation);
+    EXPECT_TRUE(g_logMsg.find("deviceRotation is invalid, return.") != std::string::npos)
+        << "Expected warning log for INVALID rotation not found.";
+    g_logMsg.clear();
 
-    deviceRotation = DeviceRotation::ROTATION_PORTRAIT;
-    ScreenRotationController::HandleSensorEventInput(deviceRotation);
-
-    ASSERT_EQ(deviceRotation, DeviceRotation::ROTATION_PORTRAIT);
+    Orientation orientation = ScreenRotationController::GetPreferredOrientation();
+    ScreenRotationController::IsSensorRelatedOrientation(orientation);
+    EXPECT_TRUE(g_logMsg.find("If the current preferred orientation is locked or sensor-independent, return.") ==
+                std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
+
 
 /**
  * @tc.name: IsDisplayRotationVertical
@@ -443,35 +459,25 @@ HWTEST_F(ScreenRotationControllerTest, IsDisplayRotationVertical, TestSize.Level
  */
 HWTEST_F(ScreenRotationControllerTest, ProcessSwitchToSensorUnrelatedOrientation, TestSize.Level1)
 {
-    Orientation orientation = Orientation::UNSPECIFIED;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    orientation = Orientation::SENSOR;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    ASSERT_EQ(orientation, Orientation::SENSOR);
+    ScreenRotationController::lastOrientationType_ = Orientation::UNSPECIFIED;
 
-    orientation = Orientation::UNSPECIFIED;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    ASSERT_EQ(orientation, Orientation::UNSPECIFIED);
+    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(Orientation::UNSPECIFIED, false);
+    ASSERT_EQ(ScreenRotationController::lastOrientationType_, Orientation::UNSPECIFIED);
 
-    orientation = Orientation::VERTICAL;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    ASSERT_EQ(orientation, Orientation::VERTICAL);
+    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(Orientation::VERTICAL, false);
+    ASSERT_EQ(ScreenRotationController::lastOrientationType_, Orientation::VERTICAL);
 
-    orientation = Orientation::REVERSE_VERTICAL;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    ASSERT_EQ(orientation, Orientation::REVERSE_VERTICAL);
+    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(Orientation::REVERSE_VERTICAL, false);
+    ASSERT_EQ(ScreenRotationController::lastOrientationType_, Orientation::REVERSE_VERTICAL);
 
-    orientation = Orientation::HORIZONTAL;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    ASSERT_EQ(orientation, Orientation::HORIZONTAL);
+    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(Orientation::HORIZONTAL, false);
+    ASSERT_EQ(ScreenRotationController::lastOrientationType_, Orientation::HORIZONTAL);
 
-    orientation = Orientation::REVERSE_HORIZONTAL;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    ASSERT_EQ(orientation, Orientation::REVERSE_HORIZONTAL);
+    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(Orientation::REVERSE_HORIZONTAL, false);
+    ASSERT_EQ(ScreenRotationController::lastOrientationType_, Orientation::REVERSE_HORIZONTAL);
 
-    orientation = ScreenRotationController::lastOrientationType_;
-    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(orientation, false);
-    ASSERT_EQ(orientation, Orientation::REVERSE_HORIZONTAL);
+    ScreenRotationController::ProcessSwitchToSensorUnrelatedOrientation(Orientation::UNSPECIFIED, false);
+    ASSERT_EQ(ScreenRotationController::lastOrientationType_, Orientation::UNSPECIFIED);
 }
 
 /**
@@ -565,7 +571,7 @@ HWTEST_F(ScreenRotationControllerTest, HandleGravitySensorEventCallback, TestSiz
 {
     SensorEvent event;
     GravityData data = {0.f, 0.f, 0.f};
-    event.sensorTypeId = SENSOR_TYPE_ID_NONE;
+    event.sensorTypeId = SENSOR_TYPE_ID_GRAVITY;
     event.data = reinterpret_cast<uint8_t*>(&data);
 
     std::chrono::milliseconds ms = std::chrono::time_point_cast<std::chrono::milliseconds>(
@@ -574,19 +580,12 @@ HWTEST_F(ScreenRotationControllerTest, HandleGravitySensorEventCallback, TestSiz
 
     GravitySensorSubscriber::lastCallbackTime_ = currentTimeInMillitm;
     GravitySensorSubscriber::HandleGravitySensorEventCallback(&event);
-
-    GravitySensorSubscriber::lastCallbackTime_ = currentTimeInMillitm - 200;
-    GravitySensorSubscriber::HandleGravitySensorEventCallback(&event);
-
-    event.sensorTypeId = SENSOR_TYPE_ID_GRAVITY;
-    GravitySensorSubscriber::lastCallbackTime_ = currentTimeInMillitm - 200;
-    GravitySensorSubscriber::HandleGravitySensorEventCallback(&event);
-
-    auto currentSensorRotationValue = ScreenRotationController::lastSensorRotationConverted_;
+    auto initialRotation = ScreenRotationController::lastSensorRotationConverted_;
     data.z = 1.f;
     GravitySensorSubscriber::lastCallbackTime_ = currentTimeInMillitm - 200;
     GravitySensorSubscriber::HandleGravitySensorEventCallback(&event);
-    ASSERT_EQ(currentSensorRotationValue, ScreenRotationController::lastSensorRotationConverted_);
+    ASSERT_NE(initialRotation, ScreenRotationController::lastSensorRotationConverted_)
+        << "When gravity changes from 000 to 001, rotation should update.";
 }
 
 /**

@@ -33,6 +33,14 @@ ScreenSessionManagerLite::~ScreenSessionManagerLite()
 
 void ScreenSessionManagerLite::ConnectToServer()
 {
+    {
+        std::shared_lock<std::shared_mutex> sharedLock(screenSessionManagerMutex_);
+        if (screenSessionManager_) {
+            return;
+        }
+    }
+
+    std::unique_lock<std::shared_mutex> uniqueLock(screenSessionManagerMutex_);
     if (screenSessionManager_) {
         return;
     }
@@ -80,8 +88,9 @@ DMError ScreenSessionManagerLite::RegisterDisplayManagerAgent(
     const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type)
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->RegisterDisplayManagerAgent(displayManagerAgent, type);
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->RegisterDisplayManagerAgent(displayManagerAgent, type);
     }
     return DMError::DM_ERROR_NULLPTR;
 }
@@ -90,8 +99,9 @@ DMError ScreenSessionManagerLite::UnregisterDisplayManagerAgent(
     const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type)
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->UnregisterDisplayManagerAgent(displayManagerAgent, type);
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->UnregisterDisplayManagerAgent(displayManagerAgent, type);
     }
     return DMError::DM_ERROR_NULLPTR;
 }
@@ -99,8 +109,9 @@ DMError ScreenSessionManagerLite::UnregisterDisplayManagerAgent(
 FoldDisplayMode ScreenSessionManagerLite::GetFoldDisplayMode()
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->GetFoldDisplayMode();
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->GetFoldDisplayMode();
     }
     return FoldDisplayMode::UNKNOWN;
 }
@@ -108,16 +119,18 @@ FoldDisplayMode ScreenSessionManagerLite::GetFoldDisplayMode()
 void ScreenSessionManagerLite::SetFoldDisplayMode(const FoldDisplayMode displayMode)
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        screenSessionManager_->SetFoldDisplayMode(displayMode);
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        managerSharedPtr->SetFoldDisplayMode(displayMode);
     }
 }
 
 bool ScreenSessionManagerLite::IsFoldable()
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->IsFoldable();
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->IsFoldable();
     }
     return false;
 }
@@ -125,8 +138,9 @@ bool ScreenSessionManagerLite::IsFoldable()
 FoldStatus ScreenSessionManagerLite::GetFoldStatus()
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->GetFoldStatus();
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->GetFoldStatus();
     }
     return FoldStatus::UNKNOWN;
 }
@@ -134,8 +148,9 @@ FoldStatus ScreenSessionManagerLite::GetFoldStatus()
 sptr<DisplayInfo> ScreenSessionManagerLite::GetDefaultDisplayInfo()
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->GetDefaultDisplayInfo();
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->GetDefaultDisplayInfo();
     }
     return nullptr;
 }
@@ -143,8 +158,9 @@ sptr<DisplayInfo> ScreenSessionManagerLite::GetDefaultDisplayInfo()
 sptr<DisplayInfo> ScreenSessionManagerLite::GetDisplayInfoById(DisplayId displayId)
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->GetDisplayInfoById(displayId);
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->GetDisplayInfoById(displayId);
     }
     return nullptr;
 }
@@ -152,8 +168,9 @@ sptr<DisplayInfo> ScreenSessionManagerLite::GetDisplayInfoById(DisplayId display
 sptr<CutoutInfo> ScreenSessionManagerLite::GetCutoutInfo(DisplayId displayId)
 {
     ConnectToServer();
-    if (screenSessionManager_) {
-        return screenSessionManager_->GetCutoutInfo(displayId);
+    sptr<IScreenSessionManager> managerSharedPtr = screenSessionManager_;
+    if (managerSharedPtr) {
+        return managerSharedPtr->GetCutoutInfo(displayId);
     }
     return nullptr;
 }

@@ -130,6 +130,8 @@ MouseEventFilterFunc convert2MouseEventFilterFunc(OH_NativeWindowManager_MouseEv
         OH_Input_SetMouseEventActionTime(mouseEvent, event.GetActionTime());
         OH_Input_SetMouseEventWindowId(mouseEvent, event.GetTargetWindowId());
         OH_Input_SetMouseEventDisplayId(mouseEvent, event.GetTargetDisplayId());
+        OH_Input_SetMouseEventGlobalX(mouseEvent, item.GetGlobalX());
+        OH_Input_SetMouseEventGlobalY(mouseEvent, item.GetGlobalY());
         bool res = filter(mouseEvent);
         OH_Input_DestroyMouseEvent(&mouseEvent);
         return res;
@@ -177,7 +179,7 @@ TouchEventFilterFunc convert2TouchEventFilterFunc(OH_NativeWindowManager_TouchEv
         }
         auto actionIter = touchEventActionMap.find(event.GetPointerAction());
         if (actionIter == touchEventActionMap.end()) {
-            TLOGNE(WmsLogTag::WMS_EVENT, "find touch event action fail");
+            TLOGNI(WmsLogTag::WMS_EVENT, "unknown touch type");
             OH_Input_DestroyTouchEvent(&touchEvent);
             return false;
         }
@@ -188,6 +190,13 @@ TouchEventFilterFunc convert2TouchEventFilterFunc(OH_NativeWindowManager_TouchEv
         OH_Input_SetTouchEventActionTime(touchEvent, event.GetActionTime());
         OH_Input_SetTouchEventWindowId(touchEvent, event.GetTargetWindowId());
         OH_Input_SetTouchEventDisplayId(touchEvent, event.GetTargetDisplayId());
+        OH_Input_SetTouchEventGlobalX(touchEvent, item.GetGlobalX());
+        OH_Input_SetTouchEventGlobalY(touchEvent, item.GetGlobalY());
+        OH_Input_SetTouchEventPressure(touchEvent, item.GetPressure());
+        OH_Input_SetTouchEventWindowX(touchEvent, item.GetWindowX());
+        OH_Input_SetTouchEventWindowY(touchEvent, item.GetWindowY());
+        OH_Input_SetTouchEventToolType(touchEvent, static_cast<Input_TouchEventToolType>(item.GetToolType()));
+        OH_Input_SetTouchEventDownTime(touchEvent, item.GetDownTime());
         bool res = filter(touchEvent);
         OH_Input_DestroyTouchEvent(&touchEvent);
         return res;

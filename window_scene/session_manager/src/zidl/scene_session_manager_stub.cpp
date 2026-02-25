@@ -67,6 +67,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUnregisterWindowPropertyChangeAgent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_FOCUS_SESSION_INFO):
             return HandleGetFocusSessionInfo(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_FOCUS_SESSION_INFO_BY_ABILITY_TOKEN):
+            return HandleGetFocusWindowInfoByAbilityToken(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SESSION_LABEL):
             return HandleSetSessionLabel(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SESSION_ICON):
@@ -117,6 +119,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetSessionSnapshotById(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_UI_CONTENT_REMOTE_OBJ):
             return HandleGetUIContentRemoteObj(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_ROOT_UI_CONTENT_REMOTE_OBJ):
+            return HandleGetRootUIContentRemoteObj(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_BIND_DIALOG_TARGET):
             return HandleBindDialogTarget(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_NOTIFY_DUMP_INFO_RESULT):
@@ -151,8 +155,12 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleNotifyWindowExtensionVisibilityChange(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_WINDOW_VISIBILITY_LISTENER):
             return HandleUpdateSessionWindowVisibilityListener(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_SESSION_SCREENSHOT_LISTENER):
+            return HandleUpdateSessionScreenshotListener(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_SESSION_OCCLUSION_STATE_LISTENER):
             return HandleUpdateSessionOcclusionStateListener(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_WINDOW_STATE_SNAPSHOT):
+            return HandleGetWindowStateSnapshot(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SHIFT_APP_WINDOW_FOCUS):
             return HandleShiftAppWindowFocus(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_LIST_WINDOW_INFO):
@@ -163,6 +171,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetAllMainWindowInfo(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_MAIN_WINDOW_SNAPSHOT):
             return HandleGetMainWindowSnapshot(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_WINDOW_SNAPSHOT_SKIP):
+            return HandleSetWindowSnapshotSkip(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_GLOBAL_WINDOW_MODE):
             return HandleGetGlobalWindowMode(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_TOP_NAV_DEST_NAME):
@@ -173,14 +183,14 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleRecoverWatermarkImageForApp(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_VISIBILITY_WINDOW_INFO_ID):
             return HandleGetVisibilityWindowInfo(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_EXTENSION_WINDOW_STAGE_TO_SCB):
-            return HandleAddExtensionWindowStageToSCB(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_EXTENSION_WINDOW_STAGE_FROM_SCB):
-            return HandleRemoveExtensionWindowStageFromSCB(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_MODALEXTENSION_RECT_TO_SCB):
             return HandleUpdateModalExtensionRect(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_PROCESS_MODALEXTENSION_POINTDOWN_TO_SCB):
             return HandleProcessModalExtensionPointDown(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_EXTENSION_WINDOW_STAGE_TO_SCB):
+            return HandleAddExtensionWindowStageToSCB(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_EXTENSION_WINDOW_STAGE_FROM_SCB):
+            return HandleRemoveExtensionWindowStageFromSCB(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_OR_REMOVE_SECURE_SESSION):
             return HandleAddOrRemoveSecureSession(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_EXTENSION_WINDOW_FLAGS):
@@ -248,10 +258,10 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleNotifyScreenshotEvent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_START_WINDOW_BACKGROUND_COLOR):
             return HandleSetStartWindowBackgroundColor(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_BY_WINDOW_ID):
-            return HandleMinimizeByWindowId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_PARENT_WINDOW):
             return HandleSetParentWindow(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_BY_WINDOW_ID):
+            return HandleMinimizeByWindowId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_FOREGROUND_WINDOW_NUM):
             return HandleSetForegroundWindowNum(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_USE_IMPLICIT_ANIMATION):
@@ -264,20 +274,28 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleRemoveImageForRecent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ANIMATE_TO_WINDOW):
             return HandleAnimateTo(data, reply);
-        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_CREATE_UI_EFFECT_CONTROLLER):
-            return HandleCreateUIEffectController(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_ADD_SESSION_BLACK_LIST):
             return HandleAddSessionBlackList(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_SESSION_BLACK_LIST):
             return HandleRemoveSessionBlackList(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_CREATE_UI_EFFECT_CONTROLLER):
+            return HandleCreateUIEffectController(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_SWITCH_STATUS):
             return HandleGetPiPSettingSwitchStatus(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_PIP_IS_PIP_ENABLED):
+            return HandleGetIsPipEnabled(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RECOVER_WINDOW_PROPERTY_CHANGE_FLAG):
             return HandleRecoverWindowPropertyChangeFlag(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_MINIMIZE_ALL_WINDOW):
             return HandleMinimizeAllAppWindows(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_OUTLINE):
             return HandleUpdateOutline(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SPECIFIC_WINDOW_ZINDEX):
+            return HandleSetSpecificWindowZIndex(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RESET_SPECIFIC_WINDOW_ZINDEX):
+            return HandleResetSpecificWindowZIndex(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SUPPORT_ROTATION_REGISTERED):
+            return HandleNotifySupportRotationRegistered(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -629,6 +647,20 @@ int SceneSessionManagerStub::HandleGetFocusSessionInfo(MessageParcel& data, Mess
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleGetFocusWindowInfoByAbilityToken(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "Run");
+    sptr<IRemoteObject> abilityToken = data.ReadRemoteObject();
+    if (!abilityToken) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "AbilityToken is null.");
+        return ERR_INVALID_DATA;
+    }
+    FocusChangeInfo focusInfo;
+    GetFocusWindowInfoByAbilityToken(focusInfo, abilityToken);
+    reply.WriteParcelable(&focusInfo);
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleSetSessionLabel(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::DEFAULT, "In");
@@ -928,6 +960,40 @@ int SceneSessionManagerStub::HandleSetGestureNavigationEnabled(MessageParcel& da
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleConvertToRelativeCoordinateExtended(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t posX_ = 0;
+    int32_t posY_ = 0;
+    uint32_t width_ = 0;
+    uint32_t height_ = 0;
+    DisplayId newDisplayId = 0;
+    if (!data.ReadInt32(posX_) || !data.ReadInt32(posY_) ||
+        !data.ReadUint32(width_) || !data.ReadUint32(height_) ||
+        !data.ReadUint64(newDisplayId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read window infos failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    Rect rect = {posX_, posY_, width_, height_};
+    Rect newRect;
+    WMError errCode = ConvertToRelativeCoordinateExtended(rect, newRect, newDisplayId);
+    if (!reply.WriteInt32(static_cast<int32_t>(newRect.posX_)) ||
+        !reply.WriteInt32(static_cast<int32_t>(newRect.posY_)) ||
+        !reply.WriteUint32(static_cast<uint32_t>(newRect.width_)) ||
+        !reply.WriteUint32(static_cast<uint32_t>(newRect.height_))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write rect failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    if (!reply.WriteUint64(static_cast<uint64_t>(newDisplayId))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write newDisplayId failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode failed.");
+        return ERR_TRANSACTION_FAILED;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleGetAccessibilityWindowInfo(MessageParcel& data, MessageParcel& reply)
 {
     std::vector<sptr<AccessibilityWindowInfo>> infos;
@@ -1058,6 +1124,30 @@ int SceneSessionManagerStub::HandleGetUIContentRemoteObj(MessageParcel& data, Me
     WSError ret = GetUIContentRemoteObj(persistentId, uiContentRemoteObj);
     reply.WriteRemoteObject(uiContentRemoteObj);
     reply.WriteUint32(static_cast<uint32_t>(ret));
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetRootUIContentRemoteObj(MessageParcel& data, MessageParcel& reply)
+{
+    DisplayId displayId = 0;
+    if (!data.ReadUint64(displayId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read displayId failed");
+        return ERR_INVALID_DATA;
+    }
+    sptr<IRemoteObject> uiContentRemoteObj;
+    auto errCode = GetRootUIContentRemoteObj(displayId, uiContentRemoteObj);
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get uiContent failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteRemoteObject(uiContentRemoteObj)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write remote object failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
     return ERR_NONE;
 }
 
@@ -1267,7 +1357,7 @@ int SceneSessionManagerStub::HandleGetTopWindowId(MessageParcel& data, MessagePa
         TLOGE(WmsLogTag::WMS_HIERARCHY, "read mainWinId failed");
         return ERR_INVALID_DATA;
     }
-    uint32_t topWinId;
+    uint32_t topWinId = 0;
     WMError ret = GetTopWindowId(mainWinId, topWinId);
     reply.WriteUint32(topWinId);
     reply.WriteUint32(static_cast<uint32_t>(ret));
@@ -1345,6 +1435,26 @@ int SceneSessionManagerStub::HandleUpdateSessionWindowVisibilityListener(Message
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleUpdateSessionScreenshotListener(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read persistentId fail");
+        return ERR_INVALID_DATA;
+    }
+    bool haveListener = false;
+    if (!data.ReadBool(haveListener)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read haveListener fail");
+        return ERR_INVALID_DATA;
+    }
+    auto errCode = UpdateSessionScreenshotListener(persistentId, haveListener);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleUpdateSessionOcclusionStateListener(MessageParcel& data, MessageParcel& reply)
 {
     int32_t persistentId = 0;
@@ -1358,6 +1468,30 @@ int SceneSessionManagerStub::HandleUpdateSessionOcclusionStateListener(MessagePa
         return ERR_INVALID_DATA;
     }
     auto errCode = UpdateSessionOcclusionStateListener(persistentId, haveListener);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetWindowStateSnapshot(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read persistentId fail");
+        return ERR_INVALID_DATA;
+    }
+    std::string winStateSnapshotJsonStr;
+    if (!data.ReadString(winStateSnapshotJsonStr)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read winStateSnapshotJsonStr failed");
+        return ERR_INVALID_DATA;
+    }
+    auto errCode = GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    if (!reply.WriteString(winStateSnapshotJsonStr)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write winStateSnapshotJsonStr failed");
+        return ERR_INVALID_DATA;
+    }
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed");
         return ERR_INVALID_DATA;
@@ -1469,6 +1603,26 @@ int SceneSessionManagerStub::HandleGetMainWindowSnapshot(MessageParcel& data, Me
     WMError errCode = GetMainWindowSnapshot(windowIds, config, callback);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write errCode fail");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleSetWindowSnapshotSkip(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t windowId = 0;
+    if (!data.ReadInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read windowId fail");
+        return ERR_INVALID_DATA;
+    }
+    bool isSkip = false;
+    if (!data.ReadBool(isSkip)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read isSkip failed");
+        return ERR_INVALID_DATA;
+    }
+    auto errCode = SetWindowSnapshotSkip(windowId, isSkip);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write errCode failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2409,7 +2563,12 @@ int SceneSessionManagerStub::HandleMinimizeAllAppWindows(MessageParcel& data, Me
         TLOGE(WmsLogTag::WMS_LIFE, "Read displayId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = MinimizeAllAppWindows(displayId);
+    int32_t excludeWindowId = 0;
+    if (!data.ReadInt32(excludeWindowId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read excludeWindowId failed.");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = MinimizeAllAppWindows(displayId, excludeWindowId);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write errCode failed.");
         return ERR_INVALID_DATA;
@@ -2478,6 +2637,7 @@ int SceneSessionManagerStub::HandleAnimateTo(MessageParcel& data, MessageParcel&
     }
     return ERR_NONE;
 }
+
 int SceneSessionManagerStub::HandleCreateUIEffectController(MessageParcel& data, MessageParcel& reply)
 {
     sptr<IRemoteObject> controllerObject = data.ReadRemoteObject();
@@ -2511,6 +2671,36 @@ int SceneSessionManagerStub::HandleCreateUIEffectController(MessageParcel& data,
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply)
+{
+    bool switchStatus = false;
+    WMError errCode = GetPiPSettingSwitchStatus(switchStatus);
+    if (!reply.WriteBool(switchStatus)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write switchStatus fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetIsPipEnabled(MessageParcel& data, MessageParcel& reply)
+{
+    bool isPipEnabled = false;
+    WMError errCode = GetIsPipEnabled(isPipEnabled);
+    if (!reply.WriteBool(isPipEnabled)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write isPipEnabled fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleAddSessionBlackList(MessageParcel& data, MessageParcel& reply)
 {
     uint64_t size = 0;
@@ -2526,7 +2716,7 @@ int SceneSessionManagerStub::HandleAddSessionBlackList(MessageParcel& data, Mess
     for (uint64_t i = 0; i < size; i++) {
         std::string bundleName;
         if (!data.ReadString(bundleName)) {
-            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read windowId failed");
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read bundleName failed");
             return ERR_INVALID_DATA;
         }
         bundleNames.insert(bundleName);
@@ -2543,7 +2733,7 @@ int SceneSessionManagerStub::HandleAddSessionBlackList(MessageParcel& data, Mess
     }
     std::unordered_set<std::string> privacyWindowTags;
     for (uint64_t i = 0; i < size; i++) {
-        std::string privacyWindowTag = 0;
+        std::string privacyWindowTag = "";
         if (!data.ReadString(privacyWindowTag)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read privacyWindowTag failed");
             return ERR_INVALID_DATA;
@@ -2590,7 +2780,7 @@ int SceneSessionManagerStub::HandleRemoveSessionBlackList(MessageParcel& data, M
     }
     std::unordered_set<std::string> privacyWindowTags;
     for (uint64_t i = 0; i < size; i++) {
-        std::string privacyWindowTag = 0;
+        std::string privacyWindowTag = "";
         if (!data.ReadString(privacyWindowTag)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read privacyWindowTag failed");
             return ERR_INVALID_DATA;
@@ -2600,22 +2790,6 @@ int SceneSessionManagerStub::HandleRemoveSessionBlackList(MessageParcel& data, M
     WMError errCode = RemoveSessionBlackList(bundleNames, privacyWindowTags);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write errCode failed");
-        return ERR_INVALID_DATA;
-    }
-    return ERR_NONE;
-}
-// LCOV_EXCL_STOP
-
-int SceneSessionManagerStub::HandleGetPiPSettingSwitchStatus(MessageParcel& data, MessageParcel& reply)
-{
-    bool switchStatus = false;
-    WMError errCode = GetPiPSettingSwitchStatus(switchStatus);
-    if (!reply.WriteBool(switchStatus)) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write switchStatus fail.");
-        return ERR_INVALID_DATA;
-    }
-    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_PIP, "Write errCode fail.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2641,35 +2815,47 @@ int SceneSessionManagerStub::HandleUpdateOutline(MessageParcel& data, MessagePar
     return ERR_NONE;
 }
 
-int SceneSessionManagerStub::HandleConvertToRelativeCoordinateExtended(MessageParcel& data, MessageParcel& reply)
+int SceneSessionManagerStub::HandleSetSpecificWindowZIndex(MessageParcel& data, MessageParcel& reply)
 {
-    int32_t posX_ = 0;
-    int32_t posY_ = 0;
-    uint32_t width_ = 0;
-    uint32_t height_ = 0;
-    if (!data.ReadInt32(posX_) || !data.ReadInt32(posY_) || !data.ReadUint32(width_) || !data.ReadUint32(height_)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Read window infos failed.");
-        return ERR_TRANSACTION_FAILED;
+    TLOGI(WmsLogTag::WMS_FOCUS, "in");
+    uint32_t windowTypeValue = 0;
+    if (!data.ReadUint32(windowTypeValue)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Read windowType failed");
+        return ERR_INVALID_DATA;
     }
-    Rect rect = {posX_, posY_, width_, height_};
-    Rect newRect;
-    DisplayId newDisplayId = 0;
-    WMError errCode = ConvertToRelativeCoordinateExtended(rect, newRect, newDisplayId);
-    if (!reply.WriteInt32(static_cast<int32_t>(newRect.posX_)) ||
-        !reply.WriteInt32(static_cast<int32_t>(newRect.posY_)) ||
-        !reply.WriteUint32(static_cast<uint32_t>(newRect.width_)) ||
-        !reply.WriteUint32(static_cast<uint32_t>(newRect.height_))) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Write rect failed.");
-        return ERR_TRANSACTION_FAILED;
+    WindowType windowType = static_cast<WindowType>(windowTypeValue);
+    int32_t zIndex = 0;
+    if (!data.ReadInt32(zIndex)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "read zIndex failed");
+        return ERR_INVALID_DATA;
     }
-    if (!reply.WriteUint64(static_cast<uint64_t>(newDisplayId))) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Write newDisplayId failed.");
-        return ERR_TRANSACTION_FAILED;
+    WSError ret = SetSpecificWindowZIndex(windowType, zIndex);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Write errCode fail");
+        return ERR_INVALID_DATA;
     }
-    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode failed.");
-        return ERR_TRANSACTION_FAILED;
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleResetSpecificWindowZIndex(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGI(WmsLogTag::WMS_FOCUS, "in");
+    int32_t pid = 0;
+    if (!data.ReadInt32(pid)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Read pid fail");
+        return ERR_INVALID_DATA;
     }
+    WSError ret = ResetSpecificWindowZIndex(pid);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Write errCode fail");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+// LCOV_EXCL_STOP
+int SceneSessionManagerStub::HandleNotifySupportRotationRegistered(MessageParcel& data, MessageParcel& reply)
+{
+    NotifySupportRotationRegistered();
     return ERR_NONE;
 }
 } // namespace OHOS::Rosen

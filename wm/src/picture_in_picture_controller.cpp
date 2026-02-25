@@ -23,6 +23,8 @@ namespace Rosen {
 namespace {
     const std::string PIP_CONTENT_PATH = "/system/etc/window/resources/pip_content.abc";
     const std::string DESTROY_TIMEOUT_TASK = "PipDestroyTimeout";
+    const std::string STATE_CHANGE = "stateChange";
+    const std::string UPDATE_NODE = "nodeUpdate";
     const int32_t INVALID_HANDLE_ID = -1;
 }
 
@@ -194,9 +196,9 @@ void PictureInPictureController::IsAutoStartEnabled(bool& enable) const
 void PictureInPictureController::SetUIContent() const
 {
     napi_value storage = nullptr;
-    napi_ref storageRef = pipOption_->GetStorageRef();
+    std::shared_ptr<NativeReference> storageRef = pipOption_->GetStorageRef();
     if (storageRef != nullptr) {
-        napi_get_reference_value(env_, storageRef, &storage);
+        storage = storageRef->GetNapiValue();
         TLOGI(WmsLogTag::WMS_PIP, "startPiP with localStorage");
     }
     window_->SetUIContentByAbc(PIP_CONTENT_PATH, env_, storage, nullptr);
@@ -249,7 +251,7 @@ void PictureInPictureController::UpdateContentSize(int32_t width, int32_t height
     SingletonContainer::Get<PiPReporter>().ReportPiPRatio(width, height);
 }
 
-void PictureInPictureController::UpdateContentNodeRef(napi_ref nodeRef)
+void PictureInPictureController::UpdateContentNodeRef(std::shared_ptr<NativeReference> nodeRef)
 {
     TLOGI(WmsLogTag::WMS_PIP, "in");
     if (pipOption_ == nullptr) {
@@ -278,7 +280,7 @@ void PictureInPictureController::UpdateContentNodeRef(napi_ref nodeRef)
     pipOption_->SetTypeNodeEnabled(true);
 }
 
-void PictureInPictureController::NotifyNodeUpdate(napi_ref nodeRef)
+void PictureInPictureController::NotifyNodeUpdate(std::shared_ptr<NativeReference> nodeRef)
 {
     TLOGI(WmsLogTag::WMS_PIP, "in");
     if (nodeRef == nullptr) {
@@ -288,9 +290,16 @@ void PictureInPictureController::NotifyNodeUpdate(napi_ref nodeRef)
         return;
     }
     if (PictureInPictureManager::IsActiveController(weakRef_)) {
-        for (auto& listener : pipTypeNodeObserver_) {
-            listener->OnPipTypeNodeChange(nodeRef);
+        std::shared_ptr<NativeReference> updateNodeCallbackRef = GetPipContentCallbackRef(UPDATE_NODE);
+        if (updateNodeCallbackRef == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "updateNodeCallbackRef is null");
+            SingletonContainer::Get<PiPReporter>().ReportPiPUpdateContent(static_cast<int32_t>(IsTypeNodeEnabled()),
+                pipOption_->GetPipTemplate(), PipConst::FAILED, "updateNodeCallbackRef is null");
+            return;
         }
+        napi_value typeNode = nodeRef->GetNapiValue();
+        napi_value value[] = { typeNode };
+        CallJsFunction(env_, updateNodeCallbackRef->GetNapiValue(), value, 1);
         SingletonContainer::Get<PiPReporter>().ReportPiPUpdateContent(static_cast<int32_t>(IsTypeNodeEnabled()),
             pipOption_->GetPipTemplate(), PipConst::PIP_SUCCESS, "updateNode success");
     }
@@ -435,6 +444,55 @@ WMError PictureInPictureController::SetXComponentController(std::shared_ptr<XCom
     return WMError::WM_OK;
 }
 
+WMError PictureInPictureController::RegisterPipContentListenerWithType(const std::string& type,
+    std::shared_ptr<NativeReference> callbackRef)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "Register type:%{public}s", type.c_str());
+    if (pipOption_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "Get PictureInPicture option failed");
+        return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
+    }
+    pipOption_->RegisterPipContentListenerWithType(type, callbackRef);
+    return WMError::WM_OK;
+}
+
+WMError PictureInPictureController::UnRegisterPipContentListenerWithType(const std::string& type)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "Unregister type:%{public}s", type.c_str());
+    if (pipOption_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "Get PictureInPicture option failed");
+        return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
+    }
+    pipOption_->UnRegisterPipContentListenerWithType(type);
+    return WMError::WM_OK;
+}
+
+std::shared_ptr<NativeReference> PictureInPictureController::GetPipContentCallbackRef(const std::string& type)
+{
+    return pipOption_ == nullptr ? nullptr : pipOption_->GetPipContentCallbackRef(type);
+}
+
+void PictureInPictureController::NotifyStateChangeInner(PiPState state)
+{
+    NotifyStateChangeInner(env_, state);
+}
+
+void PictureInPictureController::NotifyStateChangeInner(napi_env env, PiPState state)
+{
+    std::shared_ptr<NativeReference> innerCallbackRef = GetPipContentCallbackRef(STATE_CHANGE);
+    if (innerCallbackRef == nullptr) {
+        return;
+    }
+    napi_handle_scope scope = nullptr;
+    napi_open_handle_scope(env, &scope);
+    if (scope == nullptr) {
+        return;
+    }
+    napi_value value[] = {AbilityRuntime::CreateJsValue(env, static_cast<uint32_t>(state))};
+    CallJsFunction(env, innerCallbackRef->GetNapiValue(), value, 1);
+    napi_close_handle_scope(env, scope);
+}
+
 bool PictureInPictureController::IsTypeNodeEnabled() const
 {
     return pipOption_ != nullptr ? pipOption_->IsTypeNodeEnabled() : false;
@@ -455,15 +513,16 @@ bool PictureInPictureController::IsPullPiPAndHandleNavigation()
         return false;
     }
     std::string navId = pipOption_->GetNavigationId();
-    handleId_ = pipOption_->GetHandleId();
+    int32_t pipOptionHandleId = pipOption_->GetHandleId();
     auto navController = GetNavigationController(navId);
     if (navController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Get navController error");
         return false;
     }
 
-    if (handleId_ != INVALID_HANDLE_ID) {
-        navController->SetInPIPMode(handleId_);
+    if (pipOptionHandleId != INVALID_HANDLE_ID) {
+        navController->SetInPIPMode(pipOptionHandleId);
+        handleId_ = pipOptionHandleId;
         TLOGI(WmsLogTag::WMS_PIP, "SetInPIPMode handleId_: %{public}d, top result: %{public}d",
             handleId_, navController->GetTopHandle());
         return true;
@@ -475,36 +534,34 @@ bool PictureInPictureController::IsPullPiPAndHandleNavigation()
     }
 
     TLOGI(WmsLogTag::WMS_PIP, "IsPullPiPAndHandleNavigation IsNavDestinationInTopStack");
+    handleId_ = navController->GetTopHandle();
     if (handleId_ == INVALID_HANDLE_ID) {
-        handleId_ = navController->GetTopHandle();
-        if (handleId_ == INVALID_HANDLE_ID) {
-            TLOGE(WmsLogTag::WMS_PIP, "Get top handle error");
-            return false;
-        }
-        if (firstHandleId_ != INVALID_HANDLE_ID) {
-            handleId_ = firstHandleId_;
-            navController->SetInPIPMode(handleId_);
-            TLOGI(WmsLogTag::WMS_PIP, "Cache first navigation");
-        } else {
-            TLOGI(WmsLogTag::WMS_PIP, "First top handle id: %{public}d", handleId_);
-            firstHandleId_ = handleId_;
-            navController->SetInPIPMode(handleId_);
-        }
+        TLOGE(WmsLogTag::WMS_PIP, "Get top handle error");
+        return false;
+    }
+    if (firstHandleId_ != INVALID_HANDLE_ID) {
+        handleId_ = firstHandleId_;
+        navController->SetInPIPMode(handleId_);
+        TLOGI(WmsLogTag::WMS_PIP, "Cache first navigation");
+    } else {
+        TLOGI(WmsLogTag::WMS_PIP, "First top handle id: %{public}d", handleId_);
+        firstHandleId_ = handleId_;
+        navController->SetInPIPMode(handleId_);
     }
     return true;
 }
 
-std::string PictureInPictureController::GetPiPNavigationId()
+std::string PictureInPictureController::GetPiPNavigationId() const
 {
     return (pipOption_ != nullptr && !IsTypeNodeEnabled()) ? pipOption_->GetNavigationId() : "";
 }
 
-napi_ref PictureInPictureController::GetCustomNodeController()
+std::shared_ptr<NativeReference> PictureInPictureController::GetCustomNodeController()
 {
     return pipOption_ == nullptr ? nullptr : pipOption_->GetNodeControllerRef();
 }
 
-napi_ref PictureInPictureController::GetTypeNode() const
+std::shared_ptr<NativeReference> PictureInPictureController::GetTypeNode() const
 {
     return pipOption_ == nullptr ? nullptr : pipOption_->GetTypeNodeRef();
 }

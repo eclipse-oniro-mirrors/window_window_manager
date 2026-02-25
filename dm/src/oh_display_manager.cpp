@@ -31,6 +31,61 @@ using namespace Rosen;
 
 namespace OHOS {
 namespace {
+const std::map<DisplayState, DM_DisplayStateMode> DM_NATIVE_TO_NDK_DISPLAY_STATE_MAP {
+    { DisplayState::UNKNOWN,      DM_DisplayStateMode::STATE_UNKNOWN      },
+    { DisplayState::OFF,          DM_DisplayStateMode::STATE_OFF          },
+    { DisplayState::ON,           DM_DisplayStateMode::STATE_ON           },
+    { DisplayState::DOZE,         DM_DisplayStateMode::STATE_DOZE         },
+    { DisplayState::DOZE_SUSPEND, DM_DisplayStateMode::STATE_DOZE_SUSPEND },
+    { DisplayState::VR,           DM_DisplayStateMode::STATE_VR           },
+    { DisplayState::ON_SUSPEND,   DM_DisplayStateMode::STATE_ON_SUSPEND   },
+};
+
+const std::map<DM_GraphicCM_ColorSpaceType, DM_ColorSpace> DM_NATIVE_TO_NDK_COLOR_SPACE_TYPE_MAP {
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_COLORSPACE_NONE,     DM_ColorSpace::UNKNOWN },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_ADOBERGB_FULL,       DM_ColorSpace::ADOBE_RGB },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_ADOBERGB_LIMIT,      DM_ColorSpace::ADOBE_RGB },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT2020_HLG_FULL,     DM_ColorSpace::BT2020_HLG },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT2020_HLG_LIMIT,    DM_ColorSpace::BT2020_HLG },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_DISPLAY_BT2020_HLG,  DM_ColorSpace::BT2020_HLG },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT2020_PQ_FULL,      DM_ColorSpace::BT2020_PQ },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT2020_PQ_LIMIT,     DM_ColorSpace::BT2020_PQ },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_DISPLAY_BT2020_PQ,   DM_ColorSpace::BT2020_PQ },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT601_EBU_FULL,      DM_ColorSpace::BT601_EBU },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT601_EBU_LIMIT,     DM_ColorSpace::BT601_EBU },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT601_SMPTE_C_FULL,  DM_ColorSpace::BT601_SMPTE_C },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT601_SMPTE_C_LIMIT, DM_ColorSpace::BT601_SMPTE_C },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT709_FULL,          DM_ColorSpace::BT709 },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_BT709_LIMIT,         DM_ColorSpace::BT709 },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_HLG_FULL,         DM_ColorSpace::P3_HLG },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_HLG_LIMIT,        DM_ColorSpace::P3_HLG },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_DISPLAY_P3_HLG,      DM_ColorSpace::P3_HLG },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_PQ_FULL,          DM_ColorSpace::P3_PQ },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_PQ_LIMIT,         DM_ColorSpace::P3_PQ },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_DISPLAY_P3_PQ,       DM_ColorSpace::P3_PQ },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL,             DM_ColorSpace::DISPLAY_P3 },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_LIMIT,            DM_ColorSpace::DISPLAY_P3 },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_DISPLAY_P3_SRGB,     DM_ColorSpace::DISPLAY_P3 },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_SRGB_FULL,           DM_ColorSpace::SRGB },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_SRGB_LIMIT,          DM_ColorSpace::SRGB },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_DISPLAY_SRGB,        DM_ColorSpace::SRGB },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_LINEAR_SRGB,         DM_ColorSpace::LINEAR_SRGB },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_LINEAR_BT709,        DM_ColorSpace::LINEAR_SRGB },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_LINEAR_P3,           DM_ColorSpace::LINEAR_P3 },
+    { DM_GraphicCM_ColorSpaceType::GRAPHIC_CM_LINEAR_BT2020,       DM_ColorSpace::LINEAR_BT2020 },
+};
+
+const std::map<DM_ScreenHDRFormat, DM_HDRFormat> DM_NATIVE_TO_NDK_HDR_FORMAT_TYPE_MAP {
+    { DM_ScreenHDRFormat::NOT_SUPPORT_HDR,        DM_HDRFormat::NONE },
+    { DM_ScreenHDRFormat::VIDEO_HLG,              DM_HDRFormat::VIDEO_HLG },
+    { DM_ScreenHDRFormat::VIDEO_HDR10,            DM_HDRFormat::VIDEO_HDR10 },
+    { DM_ScreenHDRFormat::VIDEO_HDR_VIVID,        DM_HDRFormat::VIDEO_HDR_VIVID },
+    { DM_ScreenHDRFormat::IMAGE_HDR_VIVID_DUAL,   DM_HDRFormat::IMAGE_HDR_VIVID_DUAL },
+    { DM_ScreenHDRFormat::IMAGE_HDR_VIVID_SINGLE, DM_HDRFormat::IMAGE_HDR_VIVID_SINGLE },
+    { DM_ScreenHDRFormat::IMAGE_HDR_ISO_DUAL,     DM_HDRFormat::IMAGE_HDR_ISO_DUAL },
+    { DM_ScreenHDRFormat::IMAGE_HDR_ISO_SINGLE,   DM_HDRFormat::IMAGE_HDR_ISO_SINGLE },
+};
+
 class AvailableAreaChangeListener : public DisplayManager::IAvailableAreaListener {
 public:
     explicit AvailableAreaChangeListener(OH_NativeDisplayManager_AvailableAreaChangeCallback availableAreaChangeFunc)
@@ -191,8 +246,6 @@ public:
 };
 
 class OH_DisplayChangeListener : public DisplayManager::IDisplayListener {
-private:
-    OH_NativeDisplayManager_DisplayChangeCallback innerDisplayChangeFunc_;
 public:
     explicit OH_DisplayChangeListener(OH_NativeDisplayManager_DisplayChangeCallback displayChangeFunc)
     {
@@ -212,14 +265,11 @@ public:
             TLOGI(WmsLogTag::DMS, "[DMNDK] callback is null");
             return;
         }
-        TLOGI(WmsLogTag::DMS, "[DMNDK] callback displayId=%{public}" PRIu64, displayId);
+        TLOGD(WmsLogTag::DMS, "[DMNDK] callback displayId=%{public}" PRIu64, displayId);
         innerDisplayChangeFunc_(static_cast<uint64_t>(displayId));
-        sptr<Display> display = DisplayManager::GetInstance().GetDefaultDisplaySync();
-        if (display != nullptr) {
-            TLOGI(WmsLogTag::DMS, "[DMNDK] callback rotation=%{public}d orientation=%{public}d",
-                display->GetRotation(), display->GetOrientation());
-        }
     }
+private:
+    OH_NativeDisplayManager_DisplayChangeCallback innerDisplayChangeFunc_;
 };
 
 static sptr<DisplayInfo> OH_GetDefaultDisplayInfo()

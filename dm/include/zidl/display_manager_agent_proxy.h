@@ -50,6 +50,9 @@ public:
     void NotifyScreenModeChange(const std::vector<sptr<ScreenInfo>>& screenInfos) override;
     void NotifyAbnormalScreenConnectChange(ScreenId screenId) override;
     void NotifyBrightnessInfoChanged(ScreenId screenId, const ScreenBrightnessInfo& info) override;
+    virtual void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds) override;
+    void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes)
+        override;
 private:
     static inline BrokerDelegator<DisplayManagerAgentProxy> delegator_;
 };

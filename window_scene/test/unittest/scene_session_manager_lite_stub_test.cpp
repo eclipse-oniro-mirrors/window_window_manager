@@ -17,9 +17,10 @@
 #include <ipc_types.h>
 
 #include "iremote_object_mocker.h"
+#include "pointer_event.h"
+#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_stub.h"
 #include "session_manager/include/zidl/session_router_stack_listener_stub.h"
-#include "session_manager/include/zidl/pip_change_listener_stub.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -43,6 +44,29 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     WSError IsValidSessionIds(const std::vector<int32_t>& sessionIds, std::vector<bool>& results) override
     {
         return WSError::WS_OK;
+    }
+    WMError SetGlobalDragResizeType(DragResizeType dragResizeType) override
+    {
+        return WMError::WM_OK;
+    }
+    WMError GetGlobalDragResizeType(DragResizeType& dragResizeType) override
+    {
+        return WMError::WM_OK;
+    }
+    WMError SetAppDragResizeType(const std::string& bundleName,
+        DragResizeType dragResizeType) override
+    {
+        return WMError::WM_OK;
+    }
+    WMError GetAppDragResizeType(const std::string& bundleName,
+        DragResizeType& dragResizeType) override
+    {
+        return WMError::WM_OK;
+    }
+    WMError SetAppKeyFramePolicy(const std::string& bundleName,
+        const KeyFramePolicy& keyFramePolicy) override
+    {
+        return WMError::WM_OK;
     }
     WSError PendingSessionToForeground(const sptr<IRemoteObject>& token, int32_t windowMode) override
     {
@@ -148,6 +172,8 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
         return WMError::WM_OK;
     }
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId) override {}
+    void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+                         std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override {}
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override
     {
         return WMError::WM_OK;
@@ -399,6 +425,92 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleIsValidSessionIds, TestSize.Leve
     MessageParcel reply;
     auto res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleIsValidSessionIds(data, reply);
     EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleSetGlobalDragResizeType
+ * @tc.desc: test HandleSetGlobalDragResizeType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetGlobalDragResizeType, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetGlobalDragResizeType(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    DragResizeType dragResizeType = DragResizeType::RESIZE_EACH_FRAME;
+    data.WriteUint32(static_cast<uint32_t>(dragResizeType));
+    res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetGlobalDragResizeType(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleGetGlobalDragResizeType
+ * @tc.desc: test HandleGetGlobalDragResizeType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetGlobalDragResizeType, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleGetGlobalDragResizeType(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleSetAppDragResizeType
+ * @tc.desc: test HandleSetAppDragResizeType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetAppDragResizeType, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetAppDragResizeType(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    DragResizeType dragResizeType = DragResizeType::RESIZE_EACH_FRAME;
+    const std::string bundleName = "test";
+    data.WriteString(bundleName);
+    data.WriteUint32(static_cast<uint32_t>(dragResizeType));
+    res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetAppDragResizeType(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleGetAppDragResizeType
+ * @tc.desc: test HandleGetAppDragResizeType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetAppDragResizeType, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    const std::string bundleName = "test";
+    data.WriteString(bundleName);
+    int res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleGetAppDragResizeType(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleSetAppKeyFramePolicy
+ * @tc.desc: test HandleSetAppKeyFramePolicy
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetAppKeyFramePolicy, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetAppKeyFramePolicy(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    const std::string bundleName = "test";
+    KeyFramePolicy keyFramePolicy;
+    data.WriteString(bundleName);
+    data.WriteParcelable(&keyFramePolicy);
+    res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::HandleSetAppKeyFramePolicy(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
 }
 
 /**
@@ -1016,6 +1128,58 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleListWindowInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleRegisterWindowPropertyChangeAgent
+ * @tc.desc: test function : HandleRegisterWindowPropertyChangeAgent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleRegisterWindowPropertyChangeAgent, Function | SmallTest | Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    ASSERT_NE(sceneSessionManagerLiteStub_, nullptr);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT);
+    auto res = sceneSessionManagerLiteStub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    WindowInfoKey windowInfoKey = WindowInfoKey::DISPLAY_ID;
+    uint32_t interestInfo = 0;
+    data.WriteInt32(static_cast<int32_t>(windowInfoKey));
+    data.WriteUint32(interestInfo);
+
+    res = sceneSessionManagerLiteStub_->HandleRegisterWindowPropertyChangeAgent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleSetProcessWatermark
+ * @tc.desc: test HandleSetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetProcessWatermark, Function | SmallTest | Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    ASSERT_NE(sceneSessionManagerLiteStub_, nullptr);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_SET_PROCESS_WATERMARK);
+    auto res = sceneSessionManagerLiteStub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    data.WriteInt32(123);
+    data.WriteString("SetProcessWatermarkName");
+    data.WriteBool(true);
+    res = sceneSessionManagerLiteStub_->HandleSetProcessWatermark(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleGetVisibilityWindowInfo
  * @tc.desc: test function : HandleGetVisibilityWindowInfo
  * @tc.type: FUNC
@@ -1209,6 +1373,33 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetRootMainWindowId, TestSize.Le
 }
 
 /**
+ * @tc.name: HandleNotifyAppUseControlDisplay
+ * @tc.desc: test function : HandleNotifyAppUseControlDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyAppUseControlDisplay, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    auto res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleNotifyAppUseControlDisplay(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
+
+    DisplayId displayId = 1000;
+    data.WriteUint64(displayId);
+    res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleNotifyAppUseControlDisplay(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
+
+    data.WriteUint64(displayId);
+    bool useControl = false;
+    data.WriteBool(useControl);
+    res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleNotifyAppUseControlDisplay(data, reply);
+    EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
  * @tc.name: HandleNotifyAppUseControlList
  * @tc.desc: test function : HandleNotifyAppUseControlList
  * @tc.type: FUNC
@@ -1351,12 +1542,12 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandlePendingSessionToBackgroundByPers
     auto res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(data, reply);
     EXPECT_EQ(ERR_INVALID_DATA, res);
-    
+
     data.WriteInt32(1);
     res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(data, reply);
     EXPECT_EQ(ERR_INVALID_DATA, res);
- 
+
     MessageParcel data2;
     data2.WriteInt32(1);
     data2.WriteBool(true);
@@ -1498,6 +1689,25 @@ HWTEST_F(SceneSessionManagerLiteStubTest, ProcessRemoteRequest_Hover, Function |
     auto res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::ProcessRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ERR_INVALID_DATA, res);
+}
+
+/**
+ * @tc.name: HandleUpdateSessionScreenLock
+ * @tc.desc: handle update session screen lock
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionScreenLock, Function | SmallTest | Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    ASSERT_NE(sceneSessionManagerLiteStub_, nullptr);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_SESSION_SCREEN_LOCK);
+    auto res = sceneSessionManagerLiteStub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
 }
 
 /**
