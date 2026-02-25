@@ -10875,7 +10875,7 @@ void ScreenSessionManager::OnFoldPropertyChange(ScreenId screenId, const ScreenP
         screenSession->AddRotationCorrection(rotation, displayMode);
         midProperty.UpdateDeviceRotation(rotation);
         midProperty.UpdateScreenRotation(rotation);
-        TLOGNFD(WmsLogTag::DMS, "rotation: %{public}d, width:%{public}f, height:%{public}f", rotation,
+        TLOGNFI(WmsLogTag::DMS, "rotation: %{public}d, width:%{public}f, height:%{public}f", rotation,
             midProperty.GetBounds().rect_.width_, midProperty.GetBounds().rect_.height_);
     }
     screenSession->UpdateScbScreenPropertyToServer(midProperty);

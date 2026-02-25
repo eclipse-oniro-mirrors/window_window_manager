@@ -34,7 +34,7 @@ public:
     virtual void SetDisplayMode(const FoldDisplayMode displayMode);
     virtual void RecoverDisplayMode();
     virtual FoldDisplayMode GetDisplayMode();
-    FoldDisplayMode GetCurrentDisplayMode() const;
+    virtual FoldDisplayMode GetCurrentDisplayMode() const;
     virtual bool IsFoldable();
     virtual FoldStatus GetFoldStatus();
     virtual bool GetTentMode();
