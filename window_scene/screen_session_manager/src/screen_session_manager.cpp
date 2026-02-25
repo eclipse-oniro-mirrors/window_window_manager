@@ -6529,7 +6529,7 @@ void ScreenSessionManager::UpdateScreenRotationPropertyForRs(sptr<ScreenSession>
             NotifyScreenChanged(screenSession->ConvertToScreenInfo(), ScreenChangeEvent::UPDATE_ROTATION);
         }
         if(!isSwitchUser) {
-            screenSession->UpdateDisplayNodeRotation(rotation);
+            screenSession->UpdateDisplayNodeRotation(GetFoldDisplayMode());
         }
         return;
     }

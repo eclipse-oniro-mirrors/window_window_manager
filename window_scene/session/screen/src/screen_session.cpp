@@ -1341,13 +1341,7 @@ void ScreenSession::UpdatePropertyAfterRotation(RRect bounds, int rotation, Fold
             return;
         }
     }
-    {
-        Rotation deviceRotation = property_.GetDeviceRotation();
-        RemoveRotationCorrection(deviceRotation, foldDisplayMode);
-        AutoRSTransaction trans(GetRSUIContext());
-        std::shared_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
-        displayNode_->SetScreenRotation(static_cast<uint32_t>(deviceRotation));
-    }
+    UpdateDisplayNodeRotation(foldDisplayMode);
     TLOGI(WmsLogTag::DMS, "bounds:[%{public}f %{public}f %{public}f %{public}f],rotation:%{public}d,\
         displayOrientation:%{public}u, foldDisplayMode:%{public}u",
         property_.GetBounds().rect_.GetLeft(), property_.GetBounds().rect_.GetTop(),
@@ -1356,14 +1350,15 @@ void ScreenSession::UpdatePropertyAfterRotation(RRect bounds, int rotation, Fold
     ReportNotifyModeChange(displayOrientation);
 }
 
-void ScreenSession::UpdateDisplayNodeRotation(int rotation)
+void ScreenSession::UpdateDisplayNodeRotation(FoldDisplayMode foldDisplayMode)
 {
-    Rotation targetRotation = ConvertIntToRotation(rotation);
+    Rotation deviceRotation = property_.GetDeviceRotation();
+    RemoveRotationCorrection(deviceRotation, foldDisplayMode);
     AutoRSTransaction trans(GetRSUIContext());
     std::shared_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
     if (displayNode_ != nullptr) {
-        displayNode_->SetScreenRotation(static_cast<uint32_t>(targetRotation));
-        TLOGI(WmsLogTag::DMS, "Set RS screen rotation:%{public}d", targetRotation);
+        displayNode_->SetScreenRotation(static_cast<uint32_t>(deviceRotation));
+        TLOGI(WmsLogTag::DMS, "Set RS screen rotation:%{public}d", deviceRotation);
     }
 }
 

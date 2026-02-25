@@ -3230,14 +3230,14 @@ HWTEST_F(ScreenSessionTest, UpdateDisplayNodeRotation, Function | SmallTest | Le
     GTEST_LOG_(INFO) << "ScreenSessionTest: UpdateDisplayNodeRotation start";
     sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
     ASSERT_NE(screenSession, nullptr);
-    screenSession->UpdateDisplayNodeRotation(1);
+    screenSession->UpdateDisplayNodeRotation(FoldDisplayMode::MAIN);
     ASSERT_EQ(screenSession->isExtended_, false);
 
     Rosen::RSDisplayNodeConfig rsConfig;
     rsConfig.isMirrored = true;
     rsConfig.screenId = 101;
     screenSession->CreateDisplayNode(rsConfig);
-    screenSession->UpdateDisplayNodeRotation(1);
+    screenSession->UpdateDisplayNodeRotation(FoldDisplayMode::MAIN);
     ASSERT_EQ(screenSession->isExtended_, false);
     GTEST_LOG_(INFO) << "ScreenSessionTest: UpdateDisplayNodeRotation end";
 }
