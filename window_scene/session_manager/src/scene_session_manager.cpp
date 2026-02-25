@@ -15104,7 +15104,6 @@ void SceneSessionManager::PostProcessFocus()
     }
 }
 
-// tanhong
 void SceneSessionManager::PostProcessProperty(uint32_t dirty)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::PostProcessProperty");
