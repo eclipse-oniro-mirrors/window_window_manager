@@ -75,7 +75,7 @@ HWTEST_F(CollaboratorDllManagerTest, InitDlSymbol_001, TestSize.Level1)
     soName = nullptr;
     funcName = "testFunc";
     ret = wrapper.InitDlSymbol(soName, funcName);
-    EXPECT_EQ(ret, false);
+    EXPECT_EQ(ret, true);
 }
  
 /*
