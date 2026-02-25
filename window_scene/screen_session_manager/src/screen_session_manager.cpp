@@ -2519,10 +2519,6 @@ void ScreenSessionManager::HandleRotationCorrectionExemption(sptr<DisplayInfo>& 
         return;
     }
     FoldDisplayMode foldDisplayMode = GetFoldDisplayMode();
-    FoldDisplayMode foldDisplayModeAfterRotation = GetFoldDisplayModeAfterRotation();
-    if (foldDisplayModeAfterRotation != FoldDisplayMode::UNKNOWN) {
-        foldDisplayMode = foldDisplayModeAfterRotation;
-    }
     {
         std::shared_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
         auto it = rotationCorrectionMap_.find(foldDisplayMode);
@@ -10844,7 +10840,6 @@ void ScreenSessionManager::OnFoldPropertyChange(ScreenId screenId, const ScreenP
         TLOGNFE(WmsLogTag::DMS, "clientProxy_ is null");
         return;
     }
-
     // 1. Configure properties prior to notifying the application.
     // 2. The reset operation is triggered subsequent to SCB completing property calculations.
     ScreenProperty midProperty;
@@ -10856,7 +10851,6 @@ void ScreenSessionManager::OnFoldPropertyChange(ScreenId screenId, const ScreenP
     TLOGNFI(WmsLogTag::DMS, "OnFoldPropertyChange get process data,screenId: %{public}" PRIu64
         ", rotation:%{public}f, width:%{public}f, height:%{public}f", screenId,
         midProperty.GetRotation(), midProperty.GetBounds().rect_.GetWidth(), midProperty.GetBounds().rect_.GetHeight());
-
     // update scb map when change displaymode
     UpdateScbDisplayModeMap();
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
@@ -10864,17 +10858,27 @@ void ScreenSessionManager::OnFoldPropertyChange(ScreenId screenId, const ScreenP
         TLOGNFE(WmsLogTag::DMS, "Cannot get ScreenSession, screenId: %{public}" PRIu64 "", screenId);
         return;
     }
-    screenSession->UpdateScbScreenPropertyToServer(midProperty);
-
     // Temporarily set screen property for app while property change is in progress
     // SuperFoldDisplayDevice notify app when property is ready,so no need to modify
-    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        Rotation rotation = Rotation::ROTATION_0;
+    if (foldScreenController_ != nullptr && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        FoldDisplayMode currentDisplayMode = foldScreenController_->GetCurrentDisplayMode();
+        Rotation rotation = midProperty.GetDeviceRotation();
+        rotation = RemoveRotationCorrection(rotation, currentDisplayMode);
+        if (rotation == Rotation::ROTATION_90 || rotation == Rotation::ROTATION_270) {
+            RRect afterBounds = RRect({ midProperty.GetBounds().rect_.GetLeft(),
+                midProperty.GetBounds().rect_.GetTop(),
+                midProperty.GetBounds().rect_.height_,
+                midProperty.GetBounds().rect_.width_},
+                0.0f, 0.0f);
+            midProperty.SetBounds(afterBounds);
+        }
         screenSession->AddRotationCorrection(rotation, displayMode);
-        screenSession->SetRotationAndScreenRotationOnly(rotation);
-        screenSession->SetOrientationMatchRotation(rotation, displayMode);
-        TLOGD(WmsLogTag::DMS, "init rotation= %{public}u", rotation);
+        midProperty.UpdateDeviceRotation(rotation);
+        midProperty.UpdateScreenRotation(rotation);
+        TLOGNFD(WmsLogTag::DMS, "rotation: %{public}d, width:%{public}f, height:%{public}f", rotation,
+            midProperty.GetBounds().rect_.width_, midProperty.GetBounds().rect_.height_);
     }
+    screenSession->UpdateScbScreenPropertyToServer(midProperty);
 }
 
 void ScreenSessionManager::OnPowerStatusChange(DisplayPowerEvent event, EventStatus status,

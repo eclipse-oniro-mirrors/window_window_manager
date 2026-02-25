@@ -228,7 +228,7 @@ void FoldScreenBasePolicy::ChangeOffTentMode()
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayModeToCoordination: screenIdMain ON.");
         NotifyRefreshRateEvent(true);
         ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
-        ScreenSessionManager::GetInstance().SetScreenPowerForFold(SCREEN_ID_MAIN,
+        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
         PowerMgr::PowerMgrClient::GetInstance().RefreshActivity();
     };
@@ -273,7 +273,7 @@ void FoldScreenBasePolicy::CloseCoordinationScreen()
     auto taskScreenOnMainOFF = [=] {
         TLOGNI(WmsLogTag::DMS, "CloseCoordinationScreen: screenIdMain OFF.");
         ScreenSessionManager::GetInstance().SetKeyguardDrawnDoneFlag(false);
-        ScreenSessionManager::GetInstance().SetScreenPowerForFold(SCREEN_ID_MAIN,
+        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_OFF);
         NotifyRefreshRateEvent(false);
     };
@@ -901,5 +901,11 @@ void FoldScreenBasePolicy::SetCurrentDisplayMode(FoldDisplayMode mode)
 float FoldScreenBasePolicy::GetSpecialVirtualPixelRatio()
 {
     return -1.0f;
+}
+
+FoldDisplayMode FoldScreenBasePolicy::GetCurrentDisplayMode() const
+{
+    std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
+    return currentDisplayMode_;
 }
 } // namespace OHOS::Rosen

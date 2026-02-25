@@ -237,4 +237,10 @@ float FoldScreenPolicy::GetSpecialVirtualPixelRatio()
 {
     return -1.0f;
 }
+
+FoldDisplayMode FoldScreenPolicy::GetCurrentDisplayMode() const
+{
+    std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
+    return currentDisplayMode_;
+}
 } // namespace OHOS::Rosen

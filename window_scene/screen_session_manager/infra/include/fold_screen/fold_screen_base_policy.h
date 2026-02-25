@@ -38,6 +38,7 @@ public:
 
     void ClearState();
     FoldDisplayMode GetScreenDisplayMode();
+    FoldDisplayMode GetCurrentDisplayMode() const;
     virtual FoldStatus GetFoldStatus();
     void SetFoldStatus(FoldStatus foldStatus);
     std::chrono::steady_clock::time_point GetStartTimePoint();

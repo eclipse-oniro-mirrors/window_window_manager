@@ -446,4 +446,13 @@ float FoldScreenController::GetSpecialVirtualPixelRatio()
 {
     return foldScreenPolicy_->GetSpecialVirtualPixelRatio();
 }
+
+FoldDisplayMode FoldScreenController::GetCurrentDisplayMode() const
+{
+    if (foldScreenPolicy_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "foldScreenPolicy is null");
+        return FoldDisplayMode::UNKNOWN;
+    }
+    return foldScreenPolicy_->GetCurrentDisplayMode();
+}
 } // namespace OHOS::Rosen
