@@ -11093,7 +11093,7 @@ void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> 
             OnBeforeScreenPropertyChange(foldStatus);
             screenSession->PropertyChange(screenSession->GetScreenProperty(),
                 ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING_SWITCH_USER);
-        } else if (FoldScreenStateInternel::IsSuperFoldDisplayDevice) {
+        } else if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
 #ifdef FOLD_ABILITY_ENABLE
             ScreenId screenId = screenSession->GetScreenId();
             SuperFoldStatus status = SuperFoldStateManager::GetInstance().GetCurrentStatus();
@@ -13054,7 +13054,7 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
             return;
         }
         if (secondarySession->GetIsExtendVirtual() == false &&
-            secondarySession->GetScreenCombination == ScreenCombination::SCREEN_MIRROR &&
+            secondarySession->GetScreenCombination() == ScreenCombination::SCREEN_MIRROR &&
             GetSuperFoldStatus() != SuperFoldStatus::HALF_FOLDED) {
             SuperFoldStateManager::GetInstance().RefreshExternalRegion();
         }
