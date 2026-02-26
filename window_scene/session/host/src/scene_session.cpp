@@ -1875,9 +1875,7 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
         return WSError::WS_ERROR_REPEAT_OPERATION;
     }
     if (reason != SizeChangeReason::DRAG_MOVE) {
-        Rect scaledRect;
-        GetGlobalScaledRect(scaledRect);
-        UpdateCrossAxisOfLayout(SessionHelper::TransferToWSRect(scaledRect));
+        UpdateCrossAxisOfLayout(winRect);
         if (reason != SizeChangeReason::DRAG) {
             UpdatePrivateStateOfLayout(winRect);
         }
