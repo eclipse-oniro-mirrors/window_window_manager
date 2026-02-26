@@ -1433,6 +1433,29 @@ HWTEST_F(SessionStageProxyTest, UpdatePropertyWhenTriggerMode, TestSize.Level1)
     sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
     EXPECT_EQ(WSError::WS_OK, successProxy->UpdatePropertyWhenTriggerMode(property));
 }
+
+/**
+ * @tc.name: SetUIExtensionTransparent
+ * @tc.desc: test function : SetUIExtensionTransparent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SetUIExtensionTransparent, TestSize.Level1)
+{
+    ASSERT_TRUE(sessionStage_ != nullptr);
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->SetUIExtensionTransparent());
+    // 1.test WriteInterfaceToken failed
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetUIExtensionTransparent());
+    // 2.test remote is nullptr
+    sptr<SessionStageProxy> nullRemoteProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    ASSERT_EQ(WSError::WS_ERROR_NULLPTR, nullRemoteProxy->SetUIExtensionTransparent());
+    // 3.test send request failed
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetUIExtensionTransparent());
+    MockMessageParcel::ClearAllErrorFlag();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -53,6 +53,7 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowE
 constexpr int64_t DISPATCH_KEY_EVENT_TIMEOUT_TIME_MS = 1000;
 #endif // IMF_ENABLE
 constexpr int32_t UIEXTENTION_ROTATION_ANIMATION_TIME = 400;
+constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
 }
 
 #define CHECK_HOST_SESSION_RETURN_IF_NULL(hostSession)                         \
@@ -934,6 +935,10 @@ WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& content
         UpdateTitleButtonVisibility();
     }
     UpdateViewportConfig(GetRect(), WindowSizeChangeReason::UNDEFINED);
+    if (transparentUIExtensionFlag_) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "set background to transparent, id:%{public}d", GetPersistentId());
+        SetBackgroundColor(TRANSPARENT_BACKGROUND_COLOR_HEX);
+    }
     WLOGFD("notify uiContent window size change end");
     return WMError::WM_OK;
 }
@@ -2022,6 +2027,22 @@ WSError WindowExtensionSessionImpl::NotifyDumpInfo(const std::vector<std::string
     if (!SessionPermission::IsBetaVersion()) {
         TLOGW(WmsLogTag::WMS_UIEXT, "is not beta version, persistentId: %{public}d", GetPersistentId());
         info.clear();
+    }
+    return WSError::WS_OK;
+}
+
+WSError WindowExtensionSessionImpl::SetUIExtensionTransparent()
+{
+    TLOGI(WmsLogTag::WMS_UIEXT, "in");
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "permission denied!");
+        return WSError::WS_ERROR_NOT_SYSTEM_APP;
+    }
+    if (auto uiContent = GetUIContentSharedPtr()) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "set background to transparent, id:%{public}d", GetPersistentId());
+        SetBackgroundColor(TRANSPARENT_BACKGROUND_COLOR_HEX);
+    } else {
+        transparentUIExtensionFlag_ = true;
     }
     return WSError::WS_OK;
 }

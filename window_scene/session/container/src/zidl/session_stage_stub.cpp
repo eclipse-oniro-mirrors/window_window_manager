@@ -186,6 +186,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleNotifySessionFullScreen(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DUMP_INFO):
             return HandleNotifyDumpInfo(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_UIEXTENSION_TRANSPARENT):
+            return HandleSetUIExtensionTransparent(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_SPLIT_BUTTON_VISIBLE):
             return HandleSetSplitButtonVisible(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_ENABLE_DRAG_BY_SYSTEM):
@@ -1029,6 +1031,13 @@ int SessionStageStub::HandleNotifyDumpInfo(MessageParcel& data, MessageParcel& r
         return ERR_TRANSACTION_FAILED;
     }
 
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleSetUIExtensionTransparent(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "entry");
+    SetUIExtensionTransparent();
     return ERR_NONE;
 }
 

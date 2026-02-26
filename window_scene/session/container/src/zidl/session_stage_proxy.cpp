@@ -1770,6 +1770,29 @@ WSError SessionStageProxy::NotifyDumpInfo(const std::vector<std::string>& params
     return static_cast<WSError>(ret);
 }
 
+WSError SessionStageProxy::SetUIExtensionTransparent()
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "remote is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    int sendCode = remote->SendRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_UIEXTENSION_TRANSPARENT), data, reply, option);
+    if (sendCode != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "SendRequest failed, code: %{public}d", sendCode);
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return WSError::WS_OK;
+}
+
 WSError SessionStageProxy::SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option)
 {
     sptr<IRemoteObject> remote = Remote();

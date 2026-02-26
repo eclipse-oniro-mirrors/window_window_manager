@@ -127,6 +127,11 @@ public:
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info);
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
+    void SetIsTransparentUIExtension(bool isTransparentUIExtension)
+    {
+        isTransparentUIExtension_ = isTransparentUIExtension;
+    }
+    bool IsTransparentUIExtension() const { return isTransparentUIExtension_; }
 
 private:
     sptr<ExtensionSessionEventCallback> extSessionEventCallback_ = nullptr;
@@ -134,6 +139,7 @@ private:
     sptr<ChannelDeathRecipient> channelDeath_ = nullptr;
     sptr<WindowEventChannelListener> channelListener_ = nullptr;
     std::shared_ptr<Extension::DataHandler> dataHandler_;
+    bool isTransparentUIExtension_ = false;
 };
 } // namespace OHOS::Rosen
 
