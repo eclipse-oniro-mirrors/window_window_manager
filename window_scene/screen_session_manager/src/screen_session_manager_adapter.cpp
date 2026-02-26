@@ -86,16 +86,16 @@ void ScreenSessionManagerAdapter::OnDisplayChange(sptr<DisplayInfo> displayInfo,
         TLOGE(WmsLogTag::DMS, "OnDisplayChange agent is null");
         return;
     }
-    std::string notifiedPids;
+    std::ostringstream notifiedPids;
     for (auto& agent : agents) {
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
         if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid, DisplayManagerAgentType::DISPLAY_EVENT_LISTENER)) {
             agent->OnDisplayChange(displayInfo, event);
-            notifiedPids += notifiedPids.empty() ? std::to_string(agentPid) : ("," + std::to_string(agentPid));
+            notifiedPids << ' ' << agentPid;
         }
     }
-    TLOGNI(WmsLogTag::DMS, "event:%{public}d, displayId:%{public}" PRIu64 ", notified agent: %{public}s",
-        event, displayInfo->GetDisplayId(), notifiedPids.c_str());
+    TLOGNI(WmsLogTag::DMS, "event:%{public}d, displayId:%{public}" PRIu64 ", notified agent: [%{public}s]",
+        event, displayInfo->GetDisplayId(), notifiedPids.str().c_str());
 }
 
 void ScreenSessionManagerAdapter::OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo,
@@ -179,16 +179,16 @@ void ScreenSessionManagerAdapter::OnScreenChange(sptr<ScreenInfo> screenInfo, Sc
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
-    std::string notifiedPids;
+    std::ostringstream notifiedPids;
     for (auto& agent : agents) {
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
         if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid, DisplayManagerAgentType::SCREEN_EVENT_LISTENER)) {
             agent->OnScreenChange(screenInfo, event);
-            notifiedPids += notifiedPids.empty() ? std::to_string(agentPid) : ("," + std::to_string(agentPid));
+            notifiedPids << ' ' << agentPid;
         }
     }
-    TLOGNI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", notified agent: %{public}s",
-        screenInfo->GetScreenId(), notifiedPids.c_str());
+    TLOGNI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", notified agent: [%{public}s]",
+        screenInfo->GetScreenId(), notifiedPids.str().c_str());
 }
 
 bool ScreenSessionManagerAdapter::NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status)
