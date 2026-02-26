@@ -6954,6 +6954,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
         return NapiGetUndefined(env);
     }
     session->NotifyAddSnapshot(useFfrt, needPersist, true, std::move(callback));
+    session->SetIsNeedRemoveSnapShot(false);
     return NapiGetUndefined(env);
 }
 
@@ -6965,6 +6966,7 @@ napi_value JsSceneSession::OnRemoveSnapshot(napi_env env, napi_callback_info inf
         return NapiGetUndefined(env);
     }
     session->NotifyRemoveSnapshot();
+    session->SetIsNeedRemoveSnapShot(true);
     return NapiGetUndefined(env);
 }
 

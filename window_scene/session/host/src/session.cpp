@@ -5314,9 +5314,28 @@ void Session::SetIsMidScene(bool isMidScene)
             TLOGI(WmsLogTag::WMS_MULTI_WINDOW, "persistentId:%{public}d, isMidScene:%{public}d",
                 session->GetPersistentId(), isMidScene);
             session->isMidScene_ = isMidScene;
+            if (!session->isMidScene_) {
+                session->SetIsNeedRemoveSnapShot(true);
+            }
             session->NotifySessionPropertyChange(WindowInfoKey::MID_SCENE);
         }
     }, "SetIsMidScene");
+}
+
+void Session::SetIsNeedRemoveSnapShot(bool isNeedRemoveSnapShot)
+{
+    PostTask([weakThis = wptr(this), isNeedRemoveSnapShot] {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGW(WmsLogTag::WMS_MULTI_WINDOW, "session is null");
+            return;
+        }
+        if (session->isNeedRemoveSnapShot_.load() != isNeedRemoveSnapShot) {
+            TLOGW(WmsLogTag::WMS_MULTI_WINDOW, "persistentId:%{public}d, isNeedRemoveSnapShot:%{public}d",
+                session->GetPersistentId(), isNeedRemoveSnapShot);
+            session->isNeedRemoveSnapShot_.store(isNeedRemoveSnapShot);
+        }
+    }, __func__);
 }
 
 bool Session::GetIsMidScene() const
@@ -5328,6 +5347,11 @@ bool Session::GetIsMidScene() const
         return false;
     }
     return GetParentSession()->GetIsMidScene();
+}
+
+bool Session::GetIsNeedRemoveSnapShot() const
+{
+    return isNeedRemoveSnapShot_.load();
 }
 
 void Session::SetTouchHotAreas(const std::vector<Rect>& touchHotAreas)

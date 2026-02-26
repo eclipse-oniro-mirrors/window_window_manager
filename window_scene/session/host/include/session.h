@@ -593,6 +593,8 @@ public:
     void SetIsMidScene(bool isMidScene);
     bool GetIsMidScene() const;
     WSError GetIsMidScene(bool& isMidScene) override;
+    void SetIsNeedRemoveSnapShot(bool isNeedRemoveSnapShot);
+    bool GetIsNeedRemoveSnapShot() const;
 
     /*
      * Keyboard Window
@@ -1214,6 +1216,7 @@ private:
      * Multi Window
      */
     bool isMidScene_ = false;
+    std::atomic<bool> isNeedRemoveSnapShot_ { true };
 
     WSRect preRect_;
     int32_t callingPid_ = -1;
