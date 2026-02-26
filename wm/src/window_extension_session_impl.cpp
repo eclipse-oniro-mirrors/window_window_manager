@@ -2042,7 +2042,6 @@ WSError WindowExtensionSessionImpl::SetUIExtensionTransparent()
         TLOGI(WmsLogTag::WMS_UIEXT, "set background to transparent, id:%{public}d", GetPersistentId());
         SetBackgroundColor(TRANSPARENT_BACKGROUND_COLOR_HEX);
     } else {
-        std::lock_guard<std::mutex> lockListener(transparentUIExtensionFlagMutex_);
         transparentUIExtensionFlag_ = true;
     }
     return WSError::WS_OK;
