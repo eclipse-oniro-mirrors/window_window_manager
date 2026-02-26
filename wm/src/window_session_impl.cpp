@@ -3779,6 +3779,10 @@ WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "device not support");
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
     if (uiContent == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "uicontent is null");
@@ -3818,6 +3822,14 @@ WMError WindowSessionImpl::SetWindowTitleMoveEnabled(bool enable)
 {
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "The is PcAppInPad, not supported");
+        return WMError::WM_OK;
+    }
+    if (!IsPcOrPadFreeMultiWindowMode()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "The device is not supported");
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     if (!WindowHelper::IsMainWindow(GetType()) && !WindowHelper::IsSubWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_DECOR, "called by invalid window type, type:%{public}d", GetType());
@@ -5064,7 +5076,14 @@ WMError WindowSessionImpl::SetTitleButtonVisible(bool isMaximizeVisible, bool is
     if (!WindowHelper::IsMainWindow(GetType())) {
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-    if (GetUIContentSharedPtr() == nullptr) {
+    if (property_->GetPcAppInpadCompatibleMode() && !IsDecorEnable()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "The is PcAppInPad, not supported");
+        return WMError::WM_OK;
+    }
+    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    if (GetUIContentSharedPtr() == nullptr || !IsDecorEnable()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     windowTitleVisibleFlags_ = { isMaximizeVisible, isMinimizeVisible, isSplitVisible, isCloseVisible };
