@@ -939,7 +939,6 @@ WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& content
         std::lock_guard<std::mutex> lockListener(transparentUIExtensionFlagMutex_);
         if (transparentUIExtensionFlag_) {
             SetBackgroundColor(TRANSPARENT_BACKGROUND_COLOR_HEX);
-            transparentUIExtensionFlag_ = false;
         }
     }
     WLOGFD("notify uiContent window size change end");
