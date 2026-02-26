@@ -480,9 +480,9 @@ napi_value JsDisplay::OnGetRoundedCorner(napi_env env, napi_callback_info info)
     std::vector<RoundedCorner> roundedCorner;
     auto errCode = display_->GetRoundedCorner(roundedCorner);
     if (errCode != DMError::DM_OK) {
-        std::string errMsg = "Invalid display or screen.";
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_SCREEN), errMsg));
-        TLOGE(WmsLogTag::DMS, "Invalid display or screen.");
+        std::string errMsg = "Get rounded corner failed.";
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(errCode), errMsg));
+        TLOGE(WmsLogTag::DMS, "Get rounded corner failed.");
         return NapiGetUndefined(env);
     }
     return CreateJsRoundedCorner(env, roundedCorner);

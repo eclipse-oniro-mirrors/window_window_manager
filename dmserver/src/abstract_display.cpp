@@ -25,6 +25,7 @@ namespace {
 constexpr int32_t PAD_SCREEN_WIDTH = 2560;
 constexpr int32_t PHONE_SCREEN_WIDTH = 2160;
 constexpr float INCH_2_MM = 25.4f;
+constexpr ScreenId DEFAULT_DISPLAY_ID = 0;
 }
 
 AbstractDisplay::AbstractDisplay(DisplayId id, sptr<SupportedScreenModes>& info, sptr<AbstractScreen>& absScreen)
@@ -291,6 +292,11 @@ sptr<DisplayInfo> AbstractDisplay::ConvertToDisplayInfo() const
     displayInfo->SetWaterfallDisplayCompressionStatus(waterfallDisplayCompressionStatus_);
     displayInfo->SetDisplayOrientation(displayOrientation_);
     displayInfo->SetIsDefaultVertical(isDefaultVertical_);
+    if (id_ == DEFAULT_DISPLAY_ID) {
+        displayInfo->SetDisplaySourceMode(DisplaySourceMode::MAIN);
+    } else {
+        displayInfo->SetDisplaySourceMode(DisplaySourceMode::NONE);
+    }
     return displayInfo;
 }
 } // namespace OHOS::Rosen
