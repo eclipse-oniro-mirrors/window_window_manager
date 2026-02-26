@@ -37,9 +37,9 @@ class RunningLock;
 
 namespace OHOS::Rosen {
 namespace PARAM_KEY {
-extern const std::string PARAM_MISSION_AFFINITY_KEY;
-extern const std::string PARAM_DMS_CONTINUE_SESSION_ID_KEY;
-extern const std::string PARAM_DMS_PERSISTENT_ID_KEY;
+constexpr const char* const PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missionAffinity";
+constexpr const char* const PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
+constexpr const char* const PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
 }
 class SceneSession;
 class ScreenSession;
