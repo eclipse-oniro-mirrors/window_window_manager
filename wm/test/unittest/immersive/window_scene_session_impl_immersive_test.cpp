@@ -403,11 +403,12 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarProperties, TestSiz
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_ = sptr<WindowSessionProperty>::MakeSptr();
     window->property_->SetPersistentId(1);
-    window->hostSession_ = session;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->state_ = WindowState::STATE_SHOWN;
-    std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties;
+    std::unordered_map<WindowType, SystemBarProperty> systemBarProperties;
     systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags;
+    std::unordered_map<WindowType, SystemBarPropertyFlag> systemBarPropertyFlags;
     systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarPropertyFlag();
     EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
     systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR].enableAnimationFlag = true;
