@@ -29,7 +29,7 @@ namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "ExtensionSessionManager" };
 const std::string EXTENSION_SESSION_MANAGER_THREAD = "OS_ExtensionSessionManager";
-constexpr const char* SET_UIEXTENSION_TRANSPARENT = "ohos.extra.param.key.setAbilityTransparent";
+constexpr const char* SET_UIEXTENSION_TRANSPARENT = "ohos.extra.param.key.setUIExtensionTransparent";
 } // namespace
 
 ExtensionSessionManager::ExtensionSessionManager()
