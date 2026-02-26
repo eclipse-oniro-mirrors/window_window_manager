@@ -1051,18 +1051,24 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
                 errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
                 errMsg = "[window][getLastWindow]msg: FA mode can not get ability window";
-                return;
+            } else {
+                window = Window::GetTopWindowWithId(ability->GetWindow()->GetWindowId());
             }
-            window = Window::GetTopWindowWithId(ability->GetWindow()->GetWindowId());
         } else {
-            auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
+            auto context = static_cast<std::weak_ptr<AbilityRuntime::AbilityContext>*>(contextPtr);
             if (contextPtr == nullptr || context == nullptr) {
                 errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
                 errMsg = "[window][getLastWindow]msg: Stage mode without context";
-                return;
             }
-            window = Window::GetTopWindowWithContext(context->lock());
+            auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(context->lock());
+            if (abilityContext == nullptr) {
+                errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
+                    static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
+                errMsg = "[window][getLastWindow]msg: Stage mode without context";
+            } else {
+                window = Window::GetTopWindowWithContext(abilityContext);
+            }
         }
         if (errorCode != 0) {
             if (newApi) {
