@@ -131,7 +131,7 @@ public:
     {
         isTransparentUIExtension_ = isTransparentUIExtension;
     }
-    bool IsTransparentUIExtension() { return isTransparentUIExtension_; }
+    bool IsTransparentUIExtension() const { return isTransparentUIExtension_; }
 
 private:
     sptr<ExtensionSessionEventCallback> extSessionEventCallback_ = nullptr;

@@ -294,8 +294,7 @@ private:
     std::vector<sptr<IRectChangeInGlobalDisplayListener>> hostRectChangeInGlobalDisplayListenerList_;
     uint32_t hostStatusBarContentColor_ { 0 };
     int64_t startModalExtensionTimeStamp_ = -1;
-    std::mutex transparentUIExtensionFlagMutex_;
-    bool transparentUIExtensionFlag_ = false;
+    std::atomic<bool> transparentUIExtensionFlag_ { false };
 
     /*
      * PC Fold Screen

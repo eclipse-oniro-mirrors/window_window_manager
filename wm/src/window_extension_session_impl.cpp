@@ -935,11 +935,9 @@ WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& content
         UpdateTitleButtonVisibility();
     }
     UpdateViewportConfig(GetRect(), WindowSizeChangeReason::UNDEFINED);
-    {
-        std::lock_guard<std::mutex> lockListener(transparentUIExtensionFlagMutex_);
-        if (transparentUIExtensionFlag_) {
-            SetBackgroundColor(TRANSPARENT_BACKGROUND_COLOR_HEX);
-        }
+    if (transparentUIExtensionFlag_) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "set background to transparent, id:%{public}d", GetPersistentId());
+        SetBackgroundColor(TRANSPARENT_BACKGROUND_COLOR_HEX);
     }
     WLOGFD("notify uiContent window size change end");
     return WMError::WM_OK;
@@ -2041,6 +2039,7 @@ WSError WindowExtensionSessionImpl::SetUIExtensionTransparent()
         return WSError::WS_ERROR_NOT_SYSTEM_APP;
     }
     if (auto uiContent = GetUIContentSharedPtr()) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "set background to transparent, id:%{public}d", GetPersistentId());
         SetBackgroundColor(TRANSPARENT_BACKGROUND_COLOR_HEX);
     } else {
         std::lock_guard<std::mutex> lockListener(transparentUIExtensionFlagMutex_);
