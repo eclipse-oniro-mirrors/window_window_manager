@@ -784,6 +784,56 @@ HWTEST_F(SubSessionTest, GetSubWindowZLevel, TestSize.Level1)
     subSession->property_->zLevel_ = 1;
     EXPECT_EQ(1, subSession->GetSubWindowZLevel());
 }
+
+/**
+ * @tc.name: ProcessPointDownSession01
+ * @tc.desc: ProcessPointDownSession with non-modal window and RaiseEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ProcessPointDownSession01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ProcessPointDownSession01";
+    info.bundleName_ = "ProcessPointDownSession01";
+    sptr<SubSession> subSession = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    subSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession->GetSessionProperty()->SetRaiseEnabled(true);
+    subSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    auto ret = subSession->ProcessPointDownSession(100, 200);
+    EXPECT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: ProcessPointDownSession02
+ * @tc.desc: ProcessPointDownSession with modal window and RaiseEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ProcessPointDownSession02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ProcessPointDownSession02";
+    info.bundleName_ = "ProcessPointDownSession02";
+    sptr<SubSession> subSession = sptr<SubSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(subSession, nullptr);
+
+    subSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession->GetSessionProperty()->AddWindowFlag(WindowFlag::WINDOW_FLAG_IS_MODAL);
+    subSession->GetSessionProperty()->SetRaiseEnabled(true);
+
+    auto ret = subSession->ProcessPointDownSession(100, 200);
+    EXPECT_EQ(WSError::WS_OK, ret);
+
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "ProcessPointDownSession02_main";
+    mainInfo.bundleName_ = "ProcessPointDownSession02_main";
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(mainInfo, nullptr);
+    subSession->SetParentSession(mainSession);
+
+    ret = subSession->ProcessPointDownSession(100, 200);
+    EXPECT_EQ(WSError::WS_OK, ret);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
