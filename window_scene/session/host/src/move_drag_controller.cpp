@@ -591,8 +591,12 @@ void MoveDragController::ModifyWindowCoordinates(const std::shared_ptr<MMI::Poin
 void MoveDragController::ProcessWindowDragHotAreaFunc(uint32_t lastWindowDragHotAreaType,
     DisplayId lastHotAreaDisplayId, SizeChangeReason reason)
 {
-    bool isSendHotAreaMessage = lastWindowDragHotAreaType != windowDragHotAreaType_
-        || lastHotAreaDisplayId != hotAreaDisplayId_;
+    bool isSendHotAreaMessage = lastWindowDragHotAreaType != windowDragHotAreaType_ ||
+        lastHotAreaDisplayId != hotAreaDisplayId_;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "start, isSendHotAreaMessage: %{public}u, reason: %{public}d,"
+        "[lastWindowDragHotAreaType: %{public}d, windowDragHotAreaType_: %{public}d, lastHotAreaDisplayId: %{public}"
+        PRIu64 ",hotAreaDisplayId_: %{public}" PRIu64 "]", isSendHotAreaMessage, reason, lastWindowDragHotAreaType,
+        windowDragHotAreaType_, lastHotAreaDisplayId, hotAreaDisplayId_);
     if (isSendHotAreaMessage) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "start, isSendHotAreaMessage:%{public}u, reason:%{public}d",
             isSendHotAreaMessage, reason);
