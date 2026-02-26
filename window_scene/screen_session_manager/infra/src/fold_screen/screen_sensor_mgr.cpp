@@ -152,7 +152,10 @@ static void GlobalSensorCallback(SensorEvent* event)
 int32_t ScreenSensorMgr::SubscribeSensorCallback(
     int32_t sensorTypeId, int64_t interval, const RecordSensorCallback taskCallback)
 {
-    sensorCallbacks_[sensorTypeId] = {taskCallback, interval};
+    {
+        std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
+        sensorCallbacks_[sensorTypeId] = {taskCallback, interval};
+    }
     auto& user = users_[sensorTypeId];
     user.callback = GlobalSensorCallback;
     int32_t subscribeRet = SubscribeSensor(sensorTypeId, &user);
@@ -170,6 +173,7 @@ int32_t ScreenSensorMgr::SubscribeSensorCallback(
 
 void ScreenSensorMgr::CleanupCallback(int32_t sensorTypeId)
 {
+    std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
     auto callbackIt = sensorCallbacks_.find(sensorTypeId);
     if (callbackIt != sensorCallbacks_.end()) {
         sensorCallbacks_.erase(callbackIt);
@@ -223,6 +227,7 @@ int32_t ScreenSensorMgr::UpdateSensorInterval(int32_t sensorTypeId, int64_t inte
 
 bool ScreenSensorMgr::HasSubscribedSensor(int32_t sensorTypeId)
 {
+    std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
     return sensorCallbacks_.find(sensorTypeId) != sensorCallbacks_.end();
 }
 
@@ -238,12 +243,16 @@ void ScreenSensorMgr::HandleSensorData(SensorEvent* event)
         return;
     }
 
-    auto it = sensorCallbacks_.find(event->sensorTypeId);
-    if (it == sensorCallbacks_.end()) {
-        TLOGI(WmsLogTag::DMS, "No callback registered for sensorTypeId: %{public}d", event->sensorTypeId);
-        return;
+    SensorCallbackEntry entry;
+    {
+        std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
+        auto it = sensorCallbacks_.find(event->sensorTypeId);
+        if (it == sensorCallbacks_.end()) {
+            TLOGI(WmsLogTag::DMS, "No callback registered for sensorTypeId: %{public}d", event->sensorTypeId);
+            return;
+        }
+        entry = it->second;
     }
-    const auto& entry = it->second;
     entry.taskCallback(event);
 }
 

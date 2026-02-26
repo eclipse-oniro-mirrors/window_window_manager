@@ -74,6 +74,7 @@ private:
     void CleanupCallback(int32_t sensorTypeId);
 
     std::map<int32_t, SensorCallbackEntry> sensorCallbacks_;
+    std::mutex sensorCallbacksMutex_;
     std::unordered_map<int32_t, SensorUser> users_;
 };
 
