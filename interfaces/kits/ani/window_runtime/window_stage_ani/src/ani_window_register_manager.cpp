@@ -18,6 +18,10 @@
 #include "singleton_container.h"
 #include "window_manager.h"
 #include "window_manager_hilog.h"
+#include "sys_cap_util.h"
+#include <cstdint>
+
+constexpr uint32_t API_VERSION_23 = 23;
 
 namespace OHOS {
 namespace Rosen {
@@ -873,7 +877,11 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowRotationChangeRegister(const 
     sptr<IWindowRotationChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (window->IsPcWindow()) {
-        return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
+        uint32_t apiVersion = SysCapUtil::GetApiCompatibleVersion();
+        if (apiVersion < API_VERSION_23) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "rotationChange not support on pc, api%{public}u", apiVersion);
+            return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
+        }
     }
     if (isRegister) {
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowRotationChangeListener(thisListener));
