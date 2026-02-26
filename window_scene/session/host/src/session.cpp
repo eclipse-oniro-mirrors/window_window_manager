@@ -622,6 +622,7 @@ void Session::NotifyActivation()
             listenerPtr->OnActivation();
         }
     }
+    lastSnapshotScreen_ = WSSnapshotHelper::GetInstance()->GetScreenStatus();
     snapshotNeedCancel_.store(true);
 }
 
