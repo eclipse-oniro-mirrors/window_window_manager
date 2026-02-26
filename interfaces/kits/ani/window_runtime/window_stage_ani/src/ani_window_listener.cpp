@@ -292,6 +292,8 @@ void AniWindowListener::OnSizeChange(const sptr<OccupiedAreaChangeInfo>& info,
         info->rect_.posX_, info->rect_.posY_, info->rect_.width_, info->rect_.height_);
     // callback should run in js thread
     auto thisListener = weakRef_.promote();
+    auto aniVm = AniVm(vm_);
+    env_ = aniVm.GetAniEnv();
     if (thisListener == nullptr || env_ == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
@@ -306,6 +308,8 @@ void AniWindowListener::OnKeyboardDidShow(const KeyboardPanelInfo& keyboardPanel
         "keyboardPanelInfo, beginRect: %{public}s, endRect: %{public}s",
         keyboardPanelInfo.beginRect_.ToString().c_str(), keyboardPanelInfo.endRect_.ToString().c_str());
     auto thisListener = weakRef_.promote();
+    auto aniVm = AniVm(vm_);
+    env_ = aniVm.GetAniEnv();
     if (thisListener == nullptr || env_ == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
@@ -320,6 +324,8 @@ void AniWindowListener::OnKeyboardDidHide(const KeyboardPanelInfo& keyboardPanel
         "keyboardPanelInfo, beginRect: %{public}s, endRect: %{public}s",
         keyboardPanelInfo.beginRect_.ToString().c_str(), keyboardPanelInfo.endRect_.ToString().c_str());
     auto thisListener = weakRef_.promote();
+    auto aniVm = AniVm(vm_);
+    env_ = aniVm.GetAniEnv();
     if (thisListener == nullptr || env_ == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
@@ -347,6 +353,8 @@ void AniWindowListener::KeyboardWillAnimateWithName(const KeyboardAnimationInfo&
         "keyboardAnimationInfo, beginRect: %{public}s, endRect: %{public}s",
         keyboardAnimationInfo.beginRect.ToString().c_str(), keyboardAnimationInfo.endRect.ToString().c_str());
     auto thisListener = weakRef_.promote();
+    auto aniVm = AniVm(vm_);
+    env_ = aniVm.GetAniEnv();
     if (thisListener == nullptr || env_ == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "this listener or env is nullptr.");
         return;
@@ -532,8 +540,10 @@ void AniWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
 void AniWindowListener::OnWindowHighlightChange(bool isHighlight)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, isHighlight] {
+    auto task = [self = weakRef_, vm = vm_, isHighlight] {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
             return;
