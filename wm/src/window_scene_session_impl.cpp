@@ -3520,14 +3520,13 @@ WMError WindowSceneSessionImpl::UpdateSystemBarProperties(
             SystemBarSettingFlag::COLOR_SETTING : SystemBarSettingFlag::DEFAULT_SETTING;
         property.enableAnimation_ = systemBarPropertyFlag.enableAnimationFlag ?
             systemBarProperties.at(systemBarType).enableAnimation_ : property.enableAnimation_;
-
         if (systemBarPropertyFlag.enableFlag || systemBarPropertyFlag.backgroundColorFlag ||
             systemBarPropertyFlag.contentColorFlag || systemBarPropertyFlag.enableAnimationFlag) {
             auto ret = UpdateSystemBarPropertyForPage(systemBarType, property, systemBarPropertyFlag);
             if (ret != WMError::WM_OK) {
                 TLOGE(WmsLogTag::WMS_IMMS, "set failed");
                 return ret;
-            }   
+            }
         }
     }
     SystemBarProperty statusProperty = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
