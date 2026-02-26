@@ -92,7 +92,10 @@ ohos_unittest("ws_extension_session_test") {
   module_out_path = module_out_path
 
   sources = [ "extension_session_test.cpp" ]
-  include_dirs = [ "${window_base_path}/window_scene/session/host/include" ]
+  include_dirs = [
+    "${window_base_path}/window_scene/session/host/include",
+    "${window_base_path}/window_scene/test/unittest/ui_extension/data_handler",
+  ]
 
   deps = [ ws_unittest_common ]
   defines = [ "ACCESSIBILITY_MOCK" ]

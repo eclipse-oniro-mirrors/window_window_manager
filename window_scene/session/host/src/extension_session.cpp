@@ -19,6 +19,7 @@
 
 #include "ui_extension/host_data_handler.h"
 #include "window_manager_hilog.h"
+#include "extension/extension_business_info.h"
 
 namespace OHOS::Rosen {
 namespace {
@@ -247,6 +248,10 @@ WSError ExtensionSession::ConnectInner(
         }
 
         session->dataHandler_->SetRemoteProxyObject(sessionStage->AsObject());
+        if (session->IsTransparentUIExtension()) {
+            AAFwk::Want want;
+            sessionStage->SetUIExtensionTransparent();
+        }
         return session->Session::ConnectInner(
             sessionStage, eventChannel, surfaceNode, systemConfig, property, token, pid, uid);
     };

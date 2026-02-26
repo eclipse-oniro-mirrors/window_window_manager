@@ -267,6 +267,11 @@ public:
         return WSError::WS_OK;
     }
 
+    virtual WSError SetUIExtensionTransparent()
+    {
+        return WSError::WS_OK;
+    }
+
     virtual WSError LinkKeyFrameNode() = 0;
     virtual WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) = 0;
 

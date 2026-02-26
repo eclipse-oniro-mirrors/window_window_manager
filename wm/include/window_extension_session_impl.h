@@ -175,6 +175,7 @@ public:
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
+    WSError SetUIExtensionTransparent() override;
 
     /*
      * PC Window
@@ -293,6 +294,8 @@ private:
     std::vector<sptr<IRectChangeInGlobalDisplayListener>> hostRectChangeInGlobalDisplayListenerList_;
     uint32_t hostStatusBarContentColor_ { 0 };
     int64_t startModalExtensionTimeStamp_ = -1;
+    std::mutex transparentUIExtensionFlagMutex_;
+    bool transparentUIExtensionFlag_ = false;
 
     /*
      * PC Fold Screen

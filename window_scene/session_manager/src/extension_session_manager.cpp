@@ -29,6 +29,7 @@ namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "ExtensionSessionManager" };
 const std::string EXTENSION_SESSION_MANAGER_THREAD = "OS_ExtensionSessionManager";
+constexpr const char* SET_UIEXTENSION_TRANSPARENT = "ohos.extra.param.key.setAbilityTransparent";
 } // namespace
 
 ExtensionSessionManager::ExtensionSessionManager()
@@ -92,8 +93,13 @@ sptr<ExtensionSession> ExtensionSessionManager::RequestExtensionSession(const Se
             newSessionInfo.isAtomicService_ = (screenMode == AAFwk::ScreenMode::EMBEDDED_FULL_SCREEN_MODE) ||
                 (screenMode == AAFwk::ScreenMode::EMBEDDED_HALF_SCREEN_MODE);
         }
+        bool isTransparentUIExtension = false;
+        if (newSessionInfo.want && newSessionInfo.want->HasParameter(SET_UIEXTENSION_TRANSPARENT)) {
+            isTransparentUIExtension = newSessionInfo.want->GetBoolParam(SET_UIEXTENSION_TRANSPARENT, false);
+        }
         sptr<ExtensionSession> extensionSession = sptr<ExtensionSession>::MakeSptr(newSessionInfo);
         extensionSession->SetEventHandler(taskScheduler_->GetEventHandler(), nullptr);
+        extensionSession->SetIsTransparentUIExtension(isTransparentUIExtension);
         auto persistentId = extensionSession->GetPersistentId();
         if (persistentId == INVALID_SESSION_ID) {
             return nullptr;
