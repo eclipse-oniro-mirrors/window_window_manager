@@ -107,6 +107,7 @@ public:
     sptr<ScreenGroupInfo> GetScreenGroupInfoById(ScreenId screenId);
     ScreenId GetScreenGroupIdByScreenId(ScreenId screenId);
     DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
+    sptr<DisplayInfo> GetDisplayInfoByScreenId(ScreenId screenId) const;
 
     std::vector<DisplayId> GetAllDisplayIds();
     DMError SetScreenActiveMode(ScreenId screenId, uint32_t modeId);
