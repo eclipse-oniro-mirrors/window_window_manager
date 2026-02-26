@@ -921,6 +921,8 @@ private:
     std::vector<int32_t> oldScbPids_ {};
     std::map<int32_t, sptr<IScreenSessionManagerClient>> multiClientProxyMap_;
     std::mutex multiClientProxyMapMutex_;
+    std::mutex clientProxyPidMapMutex_;
+    std::map<int32_t, sptr<IScreenSessionManagerClient>> clientProxyPidMap_;
 
     /*
      * This map stores per-display and per-user information specifically for concurrent scenarios
