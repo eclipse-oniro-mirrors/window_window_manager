@@ -64,7 +64,7 @@ namespace {
 HWTEST_F(SessionManagerLiteUTTest, GetSceneSessionManagerLiteProxy, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->Clear();
+    sml_->RemoveSSMDeathRecipient();
     sml_->ClearSessionManagerProxy();
     auto sceneSessionManagerLiteProxy = sml_->GetSceneSessionManagerLiteProxy();
     ASSERT_EQ(nullptr, sceneSessionManagerLiteProxy);
@@ -111,7 +111,7 @@ HWTEST_F(SessionManagerLiteUTTest, ClearSessionManagerProxy, TestSize.Level1)
     sml_->ClearSessionManagerProxy();
     ASSERT_EQ(sml_->sessionManagerServiceProxy_, nullptr);
 
-    sml_->recoverListenerRegistered_ = true;
+    sml_->isRecoverListenerRegistered_ = true;
     sml_->GetSessionManagerServiceProxy();
     sml_->ClearSessionManagerProxy();
     ASSERT_EQ(sml_->sessionManagerServiceProxy_, nullptr);
@@ -215,7 +215,7 @@ HWTEST_F(SessionManagerLiteUTTest, OnUserSwitch, TestSize.Level1)
     sml_->OnUserSwitch(nullptr);
     ASSERT_EQ(nullptr, sml_->sessionManagerServiceProxy_);
 
-    sml_->recoverListenerRegistered_ = true;
+    sml_->isRecoverListenerRegistered_ = true;
     bool funInvoked = false;
     sml_->userSwitchCallbackFunc_ = [&]() { funInvoked = true; };
     auto sessionManagerService = sml_->GetSessionManagerServiceProxy();
@@ -234,8 +234,7 @@ HWTEST_F(SessionManagerLiteUTTest, OnRemoteDied1, TestSize.Level1)
     wptr<IRemoteObject> wptrDeath;
     foundationDeathRecipient.OnRemoteDied(wptrDeath);
     ASSERT_EQ(false, sml_->isWMSConnected_);
-    ASSERT_EQ(false, sml_->isFoundationListenerRegistered_);
-    ASSERT_EQ(false, sml_->recoverListenerRegistered_);
+    ASSERT_EQ(false, sml_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sml_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sceneSessionManagerLiteProxy_);
@@ -265,8 +264,7 @@ HWTEST_F(SessionManagerLiteUTTest, OnFoundationDied, TestSize.Level1)
     ASSERT_NE(nullptr, sml_);
     sml_->OnFoundationDied();
     ASSERT_EQ(false, sml_->isWMSConnected_);
-    ASSERT_EQ(false, sml_->isFoundationListenerRegistered_);
-    ASSERT_EQ(false, sml_->recoverListenerRegistered_);
+    ASSERT_EQ(false, sml_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sml_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sceneSessionManagerLiteProxy_);
@@ -292,7 +290,7 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterWMSConnectionChangedListener, TestSiz
 HWTEST_F(SessionManagerLiteUTTest, RegisterWMSConnectionChangedListener1, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->recoverListenerRegistered_ = true;
+    sml_->isRecoverListenerRegistered_ = true;
     sml_->currentWMSUserId_ = 100;
     sml_->currentScreenId_ = 0;
     sml_->isWMSConnected_ = true;
@@ -309,10 +307,10 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterWMSConnectionChangedListener1, TestSi
 HWTEST_F(SessionManagerLiteUTTest, RegisterSMSRecoverListener1, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->recoverListenerRegistered_ = false;
+    sml_->isRecoverListenerRegistered_ = false;
     sml_->mockSessionManagerServiceProxy_ = nullptr;
     sml_->RegisterSMSRecoverListener();
-    ASSERT_EQ(sml_->recoverListenerRegistered_, false);
+    ASSERT_EQ(sml_->isRecoverListenerRegistered_, false);
 }
 
 /**
@@ -323,10 +321,10 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterSMSRecoverListener1, TestSize.Level1)
 HWTEST_F(SessionManagerLiteUTTest, RegisterSMSRecoverListener2, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->recoverListenerRegistered_ = false;
-    sml_->InitMockSMSProxy();
+    sml_->isRecoverListenerRegistered_ = false;
+    sml_->GetMockSessionManagerServiceProxy();
     sml_->RegisterSMSRecoverListener();
-    ASSERT_EQ(sml_->recoverListenerRegistered_, true);
+    ASSERT_EQ(sml_->isRecoverListenerRegistered_, true);
 }
 
 /**
@@ -345,16 +343,16 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterUserSwitchListener, TestSize.Level1)
 }
 
 /**
- * @tc.name: InitMockSMSProxy
+ * @tc.name: GetMockSessionManagerServiceProxy
  * @tc.desc: normal function
  * @tc.type: FUNC
  */
-HWTEST_F(SessionManagerLiteUTTest, InitMockSMSProxy, TestSize.Level1)
+HWTEST_F(SessionManagerLiteUTTest, GetMockSessionManagerServiceProxy, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->InitMockSMSProxy();
-    sml_->InitMockSMSProxy();
-    ASSERT_NE(sml_->foundationDeath_, nullptr);
+    sml_->GetMockSessionManagerServiceProxy();
+    sml_->GetMockSessionManagerServiceProxy();
+    ASSERT_NE(sml_->mockFoundationDeathRecipient_, nullptr);
 }
 } // namespace
 } // namespace Rosen

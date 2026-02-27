@@ -725,7 +725,7 @@ bool WindowAdapter::InitSSMProxy()
 {
     std::lock_guard<std::mutex> lock(wmsProxyMutex_);
     if (isProxyValid_) {
-        TLOGI(WmsLogTag::WMS_SCB, "proxy has been inited");
+        TLOGD(WmsLogTag::WMS_SCB, "proxy has been inited");
         return true;
     }
     windowManagerServiceProxy_ = SessionManager::GetInstance(userId_).GetSceneSessionManagerProxy();
