@@ -390,7 +390,6 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarPropertyForPage, Te
     EXPECT_TRUE(found);
 }
 
-
 /**
  * @tc.name: UpdateSystemBarProperties
  * @tc.desc: UpdateSystemBarProperties
