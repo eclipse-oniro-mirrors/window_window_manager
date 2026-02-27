@@ -389,6 +389,42 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarPropertyForPage, Te
     }
     EXPECT_TRUE(found);
 }
+
+/**
+ * @tc.name: UpdateSystemBarProperties
+ * @tc.desc: UpdateSystemBarProperties
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarProperties, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSystemBarProperties");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->state_ = WindowState::STATE_SHOWN;
+    std::unordered_map<WindowType, SystemBarProperty> systemBarProperties;
+    systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
+    std::unordered_map<WindowType, SystemBarPropertyFlag> systemBarPropertyFlags;
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarPropertyFlag();
+    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR].enableAnimationFlag = true;
+    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarPropertyFlag();
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR].backgroundColorFlag = true;
+    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarPropertyFlag();
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR].contentColorFlag = true;
+    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarPropertyFlag();
+    systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR].enableAnimationFlag = true;
+    EXPECT_EQ(WMError::WM_OK, window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
+    window->state_ = WindowState::STATE_DESTROYED;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW,
+        window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
