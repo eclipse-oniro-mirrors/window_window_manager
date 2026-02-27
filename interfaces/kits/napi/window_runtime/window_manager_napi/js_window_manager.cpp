@@ -1031,7 +1031,7 @@ TopWindowInfo DoGetTopWindow(AppExecFwk::Ability* ability, bool isOldApi, bool n
     TopWindowInfo info;
     std::string errMsg = "";
     int32_t errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
-        static_cast<int32_t>(WMError::WM_ERROR_NULLPTR)
+        static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
     if (isOldApi) {
         if (ability == nullptr || ability->GetWindow() == nullptr) {
             info.errorCode = errorCode;
@@ -1079,7 +1079,8 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         TopWindowInfo info = DoGetTopWindow(ability, isOldApi, newApi, contextPtr);
         if (info.errorCode != 0) {
             if (newApi) {
-                task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WmErrorCode>(info.errorCode), info.errMsg));
+                task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WmErrorCode>(info.errorCode),
+                    info.errMsg));
             } else {
                 task->Reject(env, JsErrUtils::CreateJsError(env, static_cast<WMError>(info.errorCode), info.errMsg));
             }
