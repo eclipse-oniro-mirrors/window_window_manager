@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "screen_session_manager_adapter.h"
+#include "display_manager_agent_default.h"
 #include "scene_board_judgement.h"
 
 using namespace testing;
@@ -105,6 +106,30 @@ HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange02_Agents_UPDATE_REFRES
     adapter.OnDisplayChange(displayInfo, event);
     EXPECT_TRUE(g_errLog.find("agent size: 0") == std::string::npos);  // can't record TLOGND log
     EXPECT_TRUE(g_errLog.find("OnDisplayChange agent is null") != std::string::npos);
+}
+
+/**
+ * @tc.name  : OnDisplayChange02_WhenAgentsExist
+ * @tc.number: OnDisplayChange02_WhenAgentsExist
+ * @tc.desc  : verify that the OnDisplayChange function does not enter the empty agents branch when agents exist.
+ */
+HWTEST_F(ScreenSessionManagerAdapterTest, OnDisplayChange02_WhenAgentsExist, TestSize.Level1)
+{
+    // creating a valid displayInfo object
+    sptr<DisplayInfo> displayInfo = new DisplayInfo();
+    DisplayChangeEvent event = DisplayChangeEvent::UPDATE_ROTATION;
+
+    // the simulated agents are not empty
+    sptr<IDisplayManagerAgent> agent = new DisplayManagerAgentDefault();
+    ScreenSessionManagerAdapter adapter;
+    adapter.dmAgentContainer_.RegisterAgent(agent, DisplayManagerAgentType::DISPLAY_EVENT_LISTENER);
+
+    // calling the tested function
+    adapter.OnDisplayChange(displayInfo, event);
+
+    // verify that the empty agents branch is not accessed
+    EXPECT_TRUE(g_errLog.find("agent size: 1") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("OnDisplayChange agent is null") == std::string::npos);
 }
 
 /**
