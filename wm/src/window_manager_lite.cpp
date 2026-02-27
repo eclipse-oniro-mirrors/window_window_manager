@@ -704,7 +704,6 @@ WMError WindowManagerLite::RegisterDisplayIdChangedListener(const sptr<IWindowIn
         return WMError::WM_ERROR_NULLPTR;
     }
     std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
-    WMError ret = WMError::WM_OK;
     if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
         pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
     }
@@ -717,7 +716,7 @@ WMError WindowManagerLite::RegisterDisplayIdChangedListener(const sptr<IWindowIn
         }
         interestInfo |= static_cast<uint32_t>(windowInfoKey);
     }
-    ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
+    WMError ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
         WindowInfoKey::DISPLAY_ID, interestInfo, pImpl_->windowPropertyChangeAgent_);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
