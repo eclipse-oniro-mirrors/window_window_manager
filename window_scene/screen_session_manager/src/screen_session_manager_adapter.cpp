@@ -73,24 +73,27 @@ void ScreenSessionManagerAdapter::OnDisplayChange(sptr<DisplayInfo> displayInfo,
     }
 
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_EVENT_LISTENER);
-    if (event == DisplayChangeEvent::UPDATE_REFRESHRATE) {
-        TLOGND(WmsLogTag::DMS,
-               "event:%{public}d, displayId:%{public}" PRIu64 ", agent size: %{public}u",
-               event, displayInfo->GetDisplayId(), static_cast<uint32_t>(agents.size()));
-    } else {
-        TLOGNI(WmsLogTag::DMS,
-               "event:%{public}d, displayId:%{public}" PRIu64 ", agent size: %{public}u",
-               event, displayInfo->GetDisplayId(), static_cast<uint32_t>(agents.size()));
-    }
     if (agents.empty()) {
-        TLOGE(WmsLogTag::DMS, "OnDisplayChange agent is null");
+        TLOGE(WmsLogTag::DMS, "event:%{public}d, displayId:%{public}" PRIu64 "OnDisplayChange agent is null",
+            event, displayInfo->GetDisplayId());
         return;
     }
+    std::ostringstream notifiedPids;
     for (auto& agent : agents) {
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
         if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid, DisplayManagerAgentType::DISPLAY_EVENT_LISTENER)) {
             agent->OnDisplayChange(displayInfo, event);
+            notifiedPids << ' ' << agentPid;
         }
+    }
+    if (event == DisplayChangeEvent::UPDATE_REFRESHRATE) {
+        TLOGD(WmsLogTag::DMS,
+            "event:%{public}d, displayId:%{public}" PRIu64 ", agent size: %{public}u, notified: [%{public}s]",
+            event, displayInfo->GetDisplayId(), static_cast<uint32_t>(agents.size()), notifiedPids.str().c_str());
+    } else {
+        TLOGNI(WmsLogTag::DMS,
+            "event:%{public}d, displayId:%{public}" PRIu64 ", agent size: %{public}u, notified: [%{public}s]",
+            event, displayInfo->GetDisplayId(), static_cast<uint32_t>(agents.size()), notifiedPids.str().c_str());
     }
 }
 
@@ -169,18 +172,20 @@ void ScreenSessionManagerAdapter::OnScreenChange(sptr<ScreenInfo> screenInfo, Sc
     }
 
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::SCREEN_EVENT_LISTENER);
-    TLOGNI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", agent size: %{public}u",
-        screenInfo->GetScreenId(), static_cast<uint32_t>(agents.size()));
     if (agents.empty()) {
-        TLOGE(WmsLogTag::DMS, "agent is null");
+        TLOGE(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", agent is null", screenInfo->GetScreenId());
         return;
     }
+    std::ostringstream notifiedPids;
     for (auto& agent : agents) {
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
         if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid, DisplayManagerAgentType::SCREEN_EVENT_LISTENER)) {
             agent->OnScreenChange(screenInfo, event);
+            notifiedPids << ' ' << agentPid;
         }
     }
+    TLOGNI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", agent size: %{public}u, notified: [%{public}s]",
+        screenInfo->GetScreenId(), static_cast<uint32_t>(agents.size()), notifiedPids.str().c_str());
 }
 
 bool ScreenSessionManagerAdapter::NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status)
