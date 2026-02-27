@@ -90,6 +90,7 @@ public:
     void SetCameraStatus(int32_t cameraStatus, int32_t cameraPosition);
     void NotifyFoldToExpandCompletion(bool foldToExpand);
     void NotifyScreenConnectCompletion(ScreenId screenId);
+    void SetPhysicalVisibleMaskToDisplayNode(int32_t width, int32_t height);
     void NotifyAodOpCompletion(AodOP operation, int32_t result);
     void SetPowerStateForAod(ScreenPowerState state);
     void RecordEventFromScb(std::string description, bool needRecordEvent);

@@ -637,6 +637,36 @@ void ScreenSessionManagerClient::NotifyAodOpCompletion(AodOP operation, int32_t 
     screenSessionManager_->NotifyAodOpCompletion(operation, result);
 }
 
+void ScreenSessionManagerClient::SetPhysicalVisibleMaskToDisplayNode(int32_t width, int32_t height)
+{
+    sptr<ScreenSession> screenSession = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
+        auto iter = screenSessionMap_.find(0);
+        if (iter != screenSessionMap_.end() && iter->second != nullptr) {
+            screenSession = iter->second;
+            TLOGW(WmsLogTag::DMS, "screen session has exist.");
+        }
+    }
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screensession is null");
+        return;
+    }
+    Rect MaskBounds = {0, 0, 0, 0};
+    if (width > 0 && height > 0) {
+        MaskBounds = Rect {0, 0, width, height};
+        TLOGNI(WmsLogTag::DMS, "screen width: %{public}d, heigth %{public}d", width, height);
+    } else {
+        TLOGNI(WmsLogTag::DMS, "set default");
+    }
+    auto displayNode = screenSession->GetDisplayNode();
+    if (displayNode != nullptr) {
+        displayNode->SetDisplayContentRect(MaskBounds);
+    } else {
+        TLOGW(WmsLogTag::DMS, "displaynode is null.");
+    }
+}
+
 void ScreenSessionManagerClient::SetPowerStateForAod(ScreenPowerState state)
 {
     if (!screenSessionManager_) {
