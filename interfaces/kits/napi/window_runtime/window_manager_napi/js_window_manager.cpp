@@ -1041,19 +1041,19 @@ TopWindowInfo DoGetTopWindow(AppExecFwk::Ability* ability, bool isOldApi, bool n
         info.window = Window::GetTopWindowWithId(ability->GetWindow()->GetWindowId());
         return info;
     }
-    auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
-    if (contextPtr == nullptr || context == nullptr) {
+    auto contextTmp = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
+    if (contextPtr == nullptr || contextTmp == nullptr) {
         info.errorCode = errorCode;
         info.errMsg = "[window][getLastWindow]msg: Stage mode without context";
         return info;
     }
-    auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(context->lock());
-    if (abilityContext == nullptr) {
+    auto context = AbilityRuntime::Context::ConvertTo<AbilityRuntime::Context>(contextTmp->lock());
+    if (context == nullptr) {
         info.errorCode = errorCode;
         info.errMsg = "[window][getLastWindow]msg: Stage mode without context";
         return info;
     }
-    info.window = Window::GetTopWindowWithContext(abilityContext);
+    info.window = Window::GetTopWindowWithContext(context);
     return info;
 }
 
