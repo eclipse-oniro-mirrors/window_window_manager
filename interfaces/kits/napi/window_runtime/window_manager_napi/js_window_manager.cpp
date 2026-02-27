@@ -1053,7 +1053,7 @@ TopWindowInfo DoGetTopWindow(AppExecFwk::Ability* ability, bool isOldApi, bool n
         info.errMsg = "[window][getLastWindow]msg: Stage mode without context";
         return info;
     }
-    info.window = Window::GetTopWindowWithContext(context->lock());
+    info.window = Window::GetTopWindowWithContext(abilityContext);
     return info;
 }
 
