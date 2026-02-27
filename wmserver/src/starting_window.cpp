@@ -604,8 +604,7 @@ std::shared_ptr<Global::Resource::ResourceManager> StartingWindow::CreateResourc
         TLOGE(WmsLogTag::WMS_PATTERN, "resConfig is nullptr.");
         return nullptr;
     }
-    std::shared_ptr<Global::Resource::ResourceManager> resourceMgr(Global::Resource::CreateResourceManager(
-        abilityInfo->bundleName, abilityInfo->moduleName, "", {}, *resConfig));
+    std::shared_ptr<Global::Resource::ResourceManager> resourceMgr(Global::Resource::CreateResourceManager(false));
     if (resourceMgr == nullptr) {
         TLOGE(WmsLogTag::WMS_PATTERN, "resourceMgr is nullptr.");
         return nullptr;
