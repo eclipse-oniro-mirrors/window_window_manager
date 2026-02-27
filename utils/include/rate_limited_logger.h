@@ -132,29 +132,69 @@ static inline uintptr_t GET_PACKED_ADDR_LINE_WID(uint32_t wid)
 }
 
 /**
- * usually use for client-side which not need to distinguish
+ * @brief The TLOGI log macro with a rate limiting function which functionAddress is
+ * derived by GET_PACKED_ADDR_LINE.
+ *
+ * @note Usually use for client-side which not need to distinguish.
  */
 #define TLOGI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                          \
-    do {                                                                                          \
-        uintptr_t functionAddress = GET_PACKED_ADDR_LINE();                                       \
-        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
-            RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
-            timeWindowMs, maxCount)) {                                                            \
-            TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
-        }                                                                                         \
-    } while (0)
+    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
 
 /**
- * usually use for server-side to distinguish between different screens
+ * @brief The TLOGI log macro with a rate limiting function. The functionAddress is derived by
+ * GET_PACKED_ADDR_LINE and the window ID is passed to distinguish different windows.
+ *
+ * @note Usually use for server-side to distinguish between different windows.
  */
 #define TLOGI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                 \
+    TLOGI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
+
+/**
+ * @brief The TLOGNI log macro with a rate limiting function which functionAddress is
+ * derived by GET_PACKED_ADDR_LINE.
+ *
+ * @note Usually used for the client-side for thread throwing.
+ */
+#define TLOGNI_LMT(timeWindowMs, maxCount, tag, fmt, ...)                                         \
+    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE(), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
+
+/**
+ * @brief The TLOGNI log macro with a rate limiting function. The functionAddress is derived by
+ * GET_PACKED_ADDR_LINE and the window ID is passed to distinguish different windows.
+ *
+ * @note Usually used to distinguish different windows on the server-side for thread throwing.
+ */
+#define TLOGNI_LMTBYID(timeWindowMs, maxCount, wid, tag, fmt, ...)                                \
+    TLOGNI_LMT_INNER(GET_PACKED_ADDR_LINE_WID(wid), timeWindowMs, maxCount, tag, fmt, ##__VA_ARGS__)
+
+/**
+ * @brief The TLOGI log macro with a rate limiting function. The functionAddress is used to
+ * distinguish between different logs, thus implementing rate limiting functionality.
+ *
+ * @note Not recommended to use directly.
+ */
+#define TLOGI_LMT_INNER(functionAddress, timeWindowMs, maxCount, tag, fmt, ...)                   \
     do {                                                                                          \
-        uintptr_t functionAddress = GET_PACKED_ADDR_LINE_WID(wid);                                \
         if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
-            RateLimitedLogger::getInstance().logFunction(functionAddress,                         \
-            timeWindowMs, maxCount)) {                                                            \
+            RateLimitedLogger::getInstance()                                                      \
+                .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
             TLOGI(tag, fmt, ##__VA_ARGS__);                                                       \
         }                                                                                         \
+	} while (0)
+
+/**
+ * @brief The TLOGNI log macro with a rate limiting function. The functionAddress is used to
+ * distinguish between different logs, thus implementing rate limiting functionality.
+ *
+ * @note Not recommended to use directly.
+ */
+#define TLOGNI_LMT_INNER(functionAddress, timeWindowMs, maxCount, tag, fmt, ...)                  \
+    do {                                                                                          \
+        if (TAG_WHITE_LIST.find(tag) != TAG_WHITE_LIST.end() &&                                   \
+		    RateLimitedLogger::getInstance()                                                      \
+			    .logFunction(functionAddress, timeWindowMs, maxCount)) {                          \
+                    TLOGNI(tag, fmt, ##__VA_ARGS__);                                              \
+                }                                                                                 \
     } while (0)
 
 } // namespace Rosen
