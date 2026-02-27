@@ -1640,6 +1640,11 @@ Rotation ScreenSession::CalcRotationSystemInner(Orientation orientation, FoldDis
  
 Rotation ScreenSession::CalcRotation(Orientation orientation, FoldDisplayMode foldDisplayMode)
 {
+    if (orientation == Orientation::UNSPECIFIED) {
+        Rotation rotation = Rotation::ROTATION_0;
+        AddRotationCorrection(rotation, foldDisplayMode);
+        return rotation;
+    }
     RRect boundsInRotationZero = CalcBoundsInRotationZero(foldDisplayMode);
     DisplayOrientation displayOrientation = CalcOrientationToDisplayOrientation(orientation);
     return CalcRotationByDeviceOrientation(displayOrientation, foldDisplayMode, boundsInRotationZero);
