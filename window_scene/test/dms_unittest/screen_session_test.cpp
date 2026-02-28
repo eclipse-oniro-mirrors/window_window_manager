@@ -5225,6 +5225,7 @@ HWTEST_F(ScreenSessionTest, UpdatePropertyByResolution2, TestSize.Level1)
     auto bounds = screenSession->GetScreenProperty().GetBounds();
     EXPECT_EQ(bounds.rect_.width_, 3120);
     screenSession->SetRotation(Rotation::ROTATION_90);
+    screenSession->UpdatePropertyByResolution(rect);
     bounds = screenSession->GetScreenProperty().GetBounds();
     EXPECT_EQ(bounds.rect_.width_, 2080);
 }
