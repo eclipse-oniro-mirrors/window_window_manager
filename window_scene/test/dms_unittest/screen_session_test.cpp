@@ -2324,6 +2324,8 @@ HWTEST_F(ScreenSessionTest, CalcRotation, TestSize.Level1)
     session->SetScreenProperty(property);
     res = session->CalcRotation(orientation, foldDisplayMode);
     EXPECT_EQ(Rotation::ROTATION_0, res);
+    res = session->CalcRotation(Orientation::UNSPECIFIED, foldDisplayMode);
+    EXPECT_EQ(Rotation::ROTATION_0, res);
 }
 
 /**
