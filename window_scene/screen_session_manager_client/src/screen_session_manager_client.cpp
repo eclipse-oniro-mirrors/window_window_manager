@@ -1522,8 +1522,8 @@ void ScreenSessionManagerClient::SetInternalClipToBounds(ScreenId screenId, bool
     }
     auto displayNode = internalSession->GetDisplayNode();
     if (displayNode != nullptr) {
-        TLOGI(WmsLogTag::DMS, "Screen %{public}llu displayNode cliptobounds set to %{public}d",
-            screenId, clipToBounds);
+        TLOGI(WmsLogTag::DMS, "Screen %{public}" PRIu64 " displayNode cliptobounds set to %{public}d",
+            static_cast<uint64_t>(screenId), clipToBounds);
         displayNode->SetClipToBounds(clipToBounds);
         RSTransactionAdapter::FlushImplicitTransaction(displayNode);
     }
