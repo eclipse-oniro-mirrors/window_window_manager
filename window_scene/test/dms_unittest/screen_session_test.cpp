@@ -5207,6 +5207,28 @@ HWTEST_F(ScreenSessionTest, SetBootingConnect, TestSize.Level1)
     session->SetBootingConnect(true);
     EXPECT_TRUE(session->IsBootingConnect());
 }
+
+/**
+ * @tc.name: UpdatePropertyByResolution by rect
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, UpdatePropertyByResolution2, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    EXPECT_NE(nullptr, screenSession);
+    DMRect rect = {0, 0, 3120, 2080};
+    screenSession->SetRotation(Rotation::ROTATION_0);
+    screenSession->UpdatePropertyByResolution(rect);
+    auto bounds = screenSession->GetScreenProperty().GetBounds();
+    EXPECT_EQ(bounds.rect_.width_, 3120);
+    screenSession->SetRotation(Rotation::ROTATION_90);
+    screenSession->UpdatePropertyByResolution(rect);
+    bounds = screenSession->GetScreenProperty().GetBounds();
+    EXPECT_EQ(bounds.rect_.width_, 2080);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

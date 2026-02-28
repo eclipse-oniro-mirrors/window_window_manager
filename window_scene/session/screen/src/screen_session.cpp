@@ -806,15 +806,19 @@ void ScreenSession::UpdatePropertyByResolution(uint32_t width, uint32_t height)
 
 void ScreenSession::UpdatePropertyByResolution(const DMRect& rect)
 {
+    auto logicalRect = rect;
+    if (!IsVertical(property_.GetScreenRotation())) {
+        std::swap(logicalRect.width_, logicalRect.height_);
+    }
     auto screenBounds = property_.GetBounds();
-    screenBounds.rect_.left_ = rect.posX_;
-    screenBounds.rect_.top_ = rect.posY_;
-    screenBounds.rect_.width_ = rect.width_;
-    screenBounds.rect_.height_ = rect.height_;
+    screenBounds.rect_.left_ = logicalRect.posX_;
+    screenBounds.rect_.top_ = logicalRect.posY_;
+    screenBounds.rect_.width_ = logicalRect.width_;
+    screenBounds.rect_.height_ = logicalRect.height_;
     property_.SetBounds(screenBounds);
     // Determine whether the touch is in a valid area.
-    property_.SetValidWidth(rect.width_);
-    property_.SetValidHeight(rect.height_);
+    property_.SetValidWidth(logicalRect.width_);
+    property_.SetValidHeight(logicalRect.height_);
     property_.SetInputOffset(rect.posX_, rect.posY_);
     // It is used to calculate the original screen size
     property_.SetScreenAreaWidth(rect.width_);
