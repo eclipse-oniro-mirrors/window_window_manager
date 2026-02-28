@@ -146,7 +146,17 @@ WmErrorCode AniExtensionWindowRegisterManager::RegisterListener(sptr<Window>& wi
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Create fn global reference failed, ret: %{public}u", ret);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     };
-    sptr<AniExtensionWindowListener> extensionWindowListener = sptr<AniExtensionWindowListener>::MakeSptr(env, fnRef);
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Get VM failed, ret: %{public}u", aniRet);
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    auto extensionWindowListener = sptr<AniExtensionWindowListener>::MakeSptr(env, vm, fnRef);
+    if (extensionWindowListener == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]New AniExtensionWindowListener failed");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
     extensionWindowListener->SetMainEventHandler();
     WmErrorCode retCode = ProcessRegister(caseType, extensionWindowListener, window, type, true);
     if (retCode != WmErrorCode::WM_OK) {
