@@ -5039,7 +5039,8 @@ void JsSceneSession::PendingSessionActivation(SessionInfo& info)
         return;
     }
 
-    if (info.startWindowType_ == StartWindowType::RETAIN_AND_INVISIBLE) {
+    if (info.startWindowType_ == StartWindowType::RETAIN_AND_INVISIBLE &&
+        sceneSession->GetSessionState() == SessionState::STATE_DISCONNECT) {
         sceneSession->SetHidingStartingWindow(true);
     }
 
