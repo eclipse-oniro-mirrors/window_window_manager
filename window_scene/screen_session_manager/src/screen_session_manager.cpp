@@ -11602,7 +11602,7 @@ void ScreenSessionManager::SwitchScbNodeHandle(int32_t newUserId, int32_t newScb
     currentScbPId_ = newScbPid;
     scbSwitchCV_.notify_all();
     HandleResolutionEffectAfterSwitchUser();
-    if (isPhyScreenConnected_) {
+    if (isPhyScreenConnected_ && !g_isPcDevice) {
         RegisterSettingWiredScreenGamutObserver();
     }
 #endif
