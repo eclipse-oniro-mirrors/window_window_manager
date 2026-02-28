@@ -94,6 +94,7 @@ void ScreenSessionManagerTest::SetUp()
 void ScreenSessionManagerTest::TearDown()
 {
     usleep(SLEEP_TIME_IN_US);
+    LOG_SetCallback(nullptr);
 }
 
 sptr<ScreenSession> ScreenSessionManagerTest::InitTestScreenSession(std::string name, ScreenId &screenId)

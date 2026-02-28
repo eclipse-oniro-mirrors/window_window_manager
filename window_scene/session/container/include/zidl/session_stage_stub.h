@@ -85,6 +85,7 @@ private:
     int HandleUpdateAnimationSpeed(MessageParcel& data, MessageParcel& reply);
     int HandleNotifySessionFullScreen(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyDumpInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleSetUIExtensionTransparent(MessageParcel& data, MessageParcel& reply);
     int HandleExtensionHostData(MessageParcel& data, MessageParcel& reply, MessageOption& option);
     int HandleLinkKeyFrameNode(MessageParcel& data, MessageParcel& reply);
     int HandleSetStageKeyFramePolicy(MessageParcel& data, MessageParcel& reply);

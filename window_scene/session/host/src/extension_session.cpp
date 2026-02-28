@@ -247,6 +247,9 @@ WSError ExtensionSession::ConnectInner(
         }
 
         session->dataHandler_->SetRemoteProxyObject(sessionStage->AsObject());
+        if (session->IsTransparentUIExtension()) {
+            sessionStage->SetUIExtensionTransparent();
+        }
         return session->Session::ConnectInner(
             sessionStage, eventChannel, surfaceNode, systemConfig, property, token, pid, uid);
     };

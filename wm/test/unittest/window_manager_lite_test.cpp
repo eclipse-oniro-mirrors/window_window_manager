@@ -881,21 +881,28 @@ HWTEST_F(WindowManagerLiteTest, UpdateScreenLockStatusForApp, TestSize.Level1)
 HWTEST_F(WindowManagerLiteTest, NotifyWindowPropertyChange01, TestSize.Level1)
 {
     ASSERT_NE(instance_, nullptr);
-    uint32_t flags = static_cast<int32_t>(WindowInfoKey::MID_SCENE);
+    uint32_t flags = static_cast<int32_t>(WindowInfoKey::MID_SCENE) |
+        static_cast<int32_t>(WindowInfoKey::DISPLAY_ID);
     WindowInfoList windowInfoList;
-    windowInfoList.push_back({{WindowInfoKey::MID_SCENE, true}, {WindowInfoKey::WINDOW_ID, 0}});
+    windowInfoList.push_back({{WindowInfoKey::MID_SCENE, true},
+        {WindowInfoKey::DISPLAY_ID, static_cast<uint64_t>(1)},
+        {WindowInfoKey::WINDOW_ID, 0}});
 
     auto oldInfoKeyMap = instance_->interestInfoMap_;
+    auto oldDisplayListeners = instance_->pImpl_->windowDisplayIdChangeListeners_;
     auto oldListeners = instance_->pImpl_->midSceneStatusChangeListeners_;
     instance_->interestInfoMap_.clear();
+    instance_->pImpl_->windowDisplayIdChangeListeners_.clear();
     instance_->pImpl_->midSceneStatusChangeListeners_.clear();
 
     instance_->interestInfoMap_[WindowInfoKey::MID_SCENE] = 0;
     instance_->interestInfoMap_[WindowInfoKey::VISIBILITY_STATE] = 3;
+    instance_->interestInfoMap_[WindowInfoKey::DISPLAY_ID] = 2;
     sptr<IWindowInfoChangedListener> listener = sptr<TestWindowVisibilityStateListener>::MakeSptr();
     std::unordered_set<WindowInfoKey> interestInfo;
     interestInfo.insert(WindowInfoKey::MID_SCENE);
     interestInfo.insert(WindowInfoKey::VISIBILITY_STATE);
+    interestInfo.insert(WindowInfoKey::DISPLAY_ID);
     interestInfo.insert(WindowInfoKey::BUNDLE_NAME);
     listener->SetInterestInfo(interestInfo);
     std::unordered_set<int32_t> interestWindowIds;
@@ -903,24 +910,38 @@ HWTEST_F(WindowManagerLiteTest, NotifyWindowPropertyChange01, TestSize.Level1)
 
     auto ret = instance_->RegisterMidSceneChangedListener(nullptr);
     EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    ret = instance_->RegisterDisplayIdChangedListener(nullptr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
     ret = instance_->RegisterMidSceneChangedListener(listener);
     EXPECT_NE(ret, WMError::WM_OK);
+    ret = instance_->RegisterDisplayIdChangedListener(listener);
+    EXPECT_NE(ret, WMError::WM_OK);
     ret = instance_->RegisterMidSceneChangedListener(listener);
+    EXPECT_NE(ret, WMError::WM_OK);
+    ret = instance_->RegisterDisplayIdChangedListener(listener);
     EXPECT_NE(ret, WMError::WM_OK);
 
     instance_->NotifyWindowPropertyChange(flags, windowInfoList);
 
     ret = instance_->UnregisterMidSceneChangedListener(nullptr);
     EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    ret = instance_->UnregisterDisplayIdChangedListener(nullptr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
     ret = instance_->UnregisterMidSceneChangedListener(listener);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    ret = instance_->UnregisterDisplayIdChangedListener(listener);
     EXPECT_EQ(ret, WMError::WM_OK);
 
     instance_->pImpl_->midSceneStatusChangeListeners_.emplace_back(nullptr);
+    instance_->pImpl_->windowDisplayIdChangeListeners_.emplace_back(nullptr);
     sptr<IWindowInfoChangedListener> listener2 = sptr<TestWindowVisibilityStateListener>::MakeSptr();
     ret = instance_->RegisterMidSceneChangedListener(listener2);
     EXPECT_NE(ret, WMError::WM_OK);
+    ret = instance_->RegisterDisplayIdChangedListener(listener2);
+    EXPECT_NE(ret, WMError::WM_OK);
     instance_->NotifyWindowPropertyChange(flags, windowInfoList);
 
+    instance_->pImpl_->windowDisplayIdChangeListeners_ = oldDisplayListeners;
     instance_->pImpl_->midSceneStatusChangeListeners_ = oldListeners;
     instance_->interestInfoMap_ = oldInfoKeyMap;
 }
@@ -1516,8 +1537,11 @@ HWTEST_F(WindowManagerLiteTest, ProcessRegisterWindowInfoChangeCallback01, Funct
     WindowInfoKey observedInfo = WindowInfoKey::VISIBILITY_STATE;
     ASSERT_NE(nullptr, instance_);
     instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener);
+    observedInfo = WindowInfoKey::DISPLAY_ID;
+    auto ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener);
+    ASSERT_NE(WMError::WM_ERROR_INVALID_PARAM, ret);
 
-    auto ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, nullptr);
+    ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, nullptr);
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
     observedInfo = WindowInfoKey::BUNDLE_NAME;
     ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener);
@@ -1534,6 +1558,9 @@ HWTEST_F(WindowManagerLiteTest, ProcessUnregisterWindowInfoChangeCallback01, Fun
     sptr<TestWindowVisibilityStateListener> listener = sptr<TestWindowVisibilityStateListener>::MakeSptr();
     WindowInfoKey observedInfo = WindowInfoKey::VISIBILITY_STATE;
     auto ret = instance_->ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
+    ASSERT_EQ(WMError::WM_OK, ret);
+    observedInfo = WindowInfoKey::DISPLAY_ID;
+    ret = instance_->ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
     ASSERT_EQ(WMError::WM_OK, ret);
     ret = instance_->ProcessUnregisterWindowInfoChangeCallback(observedInfo, nullptr);
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
@@ -1562,6 +1589,10 @@ HWTEST_F(WindowManagerLiteTest, RegisterWindowInfoChangeCallback, Function | Sma
     observedInfo.insert(WindowInfoKey::VISIBILITY_STATE);
     ret = instance_->RegisterWindowInfoChangeCallback(observedInfo, listener);
     EXPECT_NE(WMError::WM_OK, ret);
+    observedInfo.clear();
+    observedInfo.insert(WindowInfoKey::DISPLAY_ID);
+    ret = instance_->RegisterWindowInfoChangeCallback(observedInfo, listener);
+    EXPECT_NE(WMError::WM_OK, ret);
 }
 
 /**
@@ -1583,6 +1614,12 @@ HWTEST_F(WindowManagerLiteTest, UnregisterWindowInfoChangeCallback, Function | S
     listener = sptr<TestWindowVisibilityStateListener>::MakeSptr();
     auto interestInfoSizeOld = listener->GetInterestInfo().size();
     observedInfo.insert(WindowInfoKey::VISIBILITY_STATE);
+    ret = instance_->UnregisterWindowInfoChangeCallback(observedInfo, listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(interestInfoSizeOld + 1, listener->GetInterestInfo().size());
+    observedInfo.clear();
+    interestInfoSizeOld = listener->GetInterestInfo().size();
+    observedInfo.insert(WindowInfoKey::DISPLAY_ID);
     ret = instance_->UnregisterWindowInfoChangeCallback(observedInfo, listener);
     EXPECT_EQ(WMError::WM_OK, ret);
     EXPECT_EQ(interestInfoSizeOld + 1, listener->GetInterestInfo().size());

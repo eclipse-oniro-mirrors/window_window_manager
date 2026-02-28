@@ -576,6 +576,29 @@ HWTEST_F(SceneSessionManagerImmersiveTest, CalculateAvoidAreaByType, TestSize.Le
     sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
     sceneSession->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, avoidAreaRect, area);
 }
+
+/**
+ * @tc.name: PostProcessProperty
+ * @tc.desc: PostProcessProperty
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, PostProcessProperty, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->rootSceneSession_ = sptr<RootSceneSession>::MakeSptr();
+    ssm_->PostProcessProperty(0);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "PostProcessProperty";
+    sessionInfo.abilityName_ = "PostProcessProperty";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.insert(std::make_pair(5, sceneSession));
+    ssm_->sceneSessionMap_.insert(std::make_pair(6, nullptr));
+    ssm_->PostProcessProperty(0);
+    ssm_->PostProcessProperty(64);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->PostProcessProperty(64);
+}
 }
 }
 }

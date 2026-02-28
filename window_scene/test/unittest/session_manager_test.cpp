@@ -105,7 +105,6 @@ HWTEST_F(SessionManagerTest, OnRemoteDied1, TestSize.Level1)
     auto deathRecipient = sptr<FoundationDeathRecipient>::MakeSptr(userId_);
     deathRecipient->OnRemoteDied(wptrDeath);
     ASSERT_EQ(false, sm_->isWMSConnected_);
-    ASSERT_EQ(false, sm_->isFoundationListenerRegistered_);
     ASSERT_EQ(false, sm_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sm_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sm_->sessionManagerServiceProxy_);
@@ -136,7 +135,6 @@ HWTEST_F(SessionManagerTest, OnFoundationDied, TestSize.Level1)
 {
     sm_->OnFoundationDied();
     ASSERT_EQ(false, sm_->isWMSConnected_);
-    ASSERT_EQ(false, sm_->isFoundationListenerRegistered_);
     ASSERT_EQ(false, sm_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sm_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sm_->sessionManagerServiceProxy_);

@@ -209,7 +209,11 @@ WSError SubSession::ProcessPointDownSession(int32_t posX, int32_t posY)
     }
     auto sessionProperty = GetSessionProperty();
     if (sessionProperty && sessionProperty->GetRaiseEnabled()) {
-        RaiseToAppTopForPointDown();
+        if (!isModal) {
+            RaiseToAppTopForPointDown();
+        } else if (auto mainSession = GetMainSession()) {
+            mainSession->NotifyClick(false);
+        }
     }
     auto ret = SceneSession::ProcessPointDownSession(posX, posY);
     PresentFocusIfPointDown();

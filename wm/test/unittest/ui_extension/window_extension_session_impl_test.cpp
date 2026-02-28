@@ -1213,6 +1213,10 @@ HWTEST_F(WindowExtensionSessionImplTest, NapiSetUIContent, Function | SmallTest 
     window_->property_->SetUIExtensionUsage(UIExtensionUsage::UIEXTENSION_USAGE_END);
     ASSERT_EQ(WMError::WM_OK,
         window_->NapiSetUIContent(contentInfo, env, storage, BackupAndRestoreType::NONE, token, nullptr));
+    // set Ability Transparent
+    window_->transparentUIExtensionFlag_ = true;
+    ASSERT_EQ(WMError::WM_OK,
+        window_->NapiSetUIContent(contentInfo, env, storage, BackupAndRestoreType::NONE, token, nullptr));
 }
 
 /**
@@ -3805,6 +3809,19 @@ HWTEST_F(WindowExtensionSessionImplTest, SetStatusBarColorForExtension, TestSize
     window_->property_->SetPersistentId(1);
     EXPECT_CALL(*session, TransferExtensionData).WillOnce(Return(ERR_NONE));
     EXPECT_EQ(WMError::WM_OK, window_->SetStatusBarColorForExtension(255));
+}
+
+/**
+ * @tc.name: SetUIExtensionTransparent
+ * @tc.desc: SetUIExtensionTransparent Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, SetUIExtensionTransparent, TestSize.Level1)
+{
+    window_->property_->SetPersistentId(1);
+    EXPECT_EQ(WSError::WS_OK, window_->SetUIExtensionTransparent());
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_EQ(WSError::WS_OK, window_->SetUIExtensionTransparent());
 }
 }
 } // namespace Rosen

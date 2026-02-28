@@ -5039,7 +5039,8 @@ void JsSceneSession::PendingSessionActivation(SessionInfo& info)
         return;
     }
 
-    if (info.startWindowType_ == StartWindowType::RETAIN_AND_INVISIBLE) {
+    if (info.startWindowType_ == StartWindowType::RETAIN_AND_INVISIBLE &&
+        sceneSession->GetSessionState() == SessionState::STATE_DISCONNECT) {
         sceneSession->SetHidingStartingWindow(true);
     }
 
@@ -6954,6 +6955,7 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
         return NapiGetUndefined(env);
     }
     session->NotifyAddSnapshot(useFfrt, needPersist, true, std::move(callback));
+    session->SetIsNeedRemoveSnapShot(false);
     return NapiGetUndefined(env);
 }
 
@@ -6965,6 +6967,7 @@ napi_value JsSceneSession::OnRemoveSnapshot(napi_env env, napi_callback_info inf
         return NapiGetUndefined(env);
     }
     session->NotifyRemoveSnapshot();
+    session->SetIsNeedRemoveSnapShot(true);
     return NapiGetUndefined(env);
 }
 

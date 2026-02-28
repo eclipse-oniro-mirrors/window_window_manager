@@ -27,6 +27,12 @@
 namespace OHOS {
 namespace Rosen {
 napi_value JsWindowManagerInit(napi_env env, napi_value exportObj);
+
+struct TopWindowInfo {
+    sptr<Window> window = nullptr;
+    int32_t errorCode = 0;
+    std::string errMsg = "";
+};
 class JsWindowManager {
 public:
     JsWindowManager();

@@ -41,6 +41,7 @@ constexpr float TENT_MODE_EXIT_MIN_THRESHOLD = 5.0F;
 constexpr float TENT_MODE_EXIT_MAX_THRESHOLD = 175.0F;
 constexpr int32_t TENT_MODE_OFF = 0;
 constexpr int32_t TENT_MODE_ON = 1;
+constexpr int32_t TENT_MODE_HOVER_ON = 2;
 constexpr int32_t MAX_QUEUE_SIZE = 1;
 constexpr uint64_t MAX_TIME_INTERVAL_MS = 2000;
 
@@ -309,24 +310,27 @@ void SensorFoldStateMgr::HandleTentChange(const SensorStatus& sensorStatus)
 {
     SensorStatus tmpSensorStatus = sensorStatus;
     TentSensorInfo& tentSensor = tmpSensorStatus.tentSensorInfo_;
-    if (tentSensor.tentType_ > TENT_MODE_ON) {
-        TLOGI_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES,
-            "only need deal on or off :%{public}d, other no processing", tentSensor.tentType_);
-        return;
-    }
     if (tentSensor.tentType_ == tentModeType_) {
         TLOGI(WmsLogTag::DMS, "Repeat reporting tent mode:%{public}d, no processing", tentModeType_);
         return;
     }
 
     SetTentMode(tentSensor.tentType_);
-    if (tentSensor.tentType_ == TENT_MODE_ON) {
+    TLOGNFI(WmsLogTag::DMS, "tent mode:%{public}d", tentSensor.tentType_);
+    if (tentSensor.tentType_ != TENT_MODE_OFF) {
         ReportTentStatusChange(ReportTentModeStatus::NORMAL_ENTER_TENT_MODE);
         currentFoldStatus_ = {FoldStatus::FOLDED};
         HandleSensorChange(FoldStatus::FOLDED);
         FoldScreenBasePolicy::GetInstance().ChangeOnTentMode(FoldStatus::FOLDED);
-        SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
-        ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS);
+        if (tentSensor.tentType_ == TENT_MODE_ON) {
+            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
+            ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS);
+        } else if (tentSensor.tentType_ == TENT_MODE_HOVER_ON) {
+            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT_HOVER));
+            ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_HOVER);
+        } else {
+            TLOGW(WmsLogTag::DMS, "unknown tent mode:%{public}d, no processing", tentModeType_);
+        }
     } else {
         if (tentSensor.hall_ == HALL_FOLDED_THRESHOLD) {
             tmpSensorStatus.axis_[0].angle_ = ANGLE_MIN_VAL;

@@ -141,11 +141,6 @@ bool isMainOrExtendScreenMode(const ScreenSourceMode& screenSourceMode)
 }
 } // namespace
 
-namespace PARAM_KEY {
-const std::string PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missionAffinity";
-const std::string PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
-const std::string PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
-}
 MaximizeMode SceneSession::maximizeMode_ = MaximizeMode::MODE_RECOVER;
 std::shared_mutex SceneSession::windowDragHotAreaMutex_;
 std::map<uint64_t, std::map<uint32_t, WSRect>> SceneSession::windowDragHotAreaMap_;
@@ -1860,6 +1855,7 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
 {
     PostTask([weakThis = wptr(this), rect, reason, rsTransaction, updateReason, where = __func__] {
         auto session = weakThis.promote();
+        int32_t persistentId = session->GetPersistentId();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
             return;
@@ -1871,7 +1867,7 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         }
 
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::UpdateRect %d [%d, %d, %u, %u]",
-            session->GetPersistentId(), rect.posX_, rect.posY_, rect.width_, rect.height_);
+            persistentId, rect.posX_, rect.posY_, rect.width_, rect.height_);
         // check whether to notify the client rect update
         // SetWinRectWhenUpdateRect needs to be set after determining whether to skip
         if (session->ShouldSkipUpdateRectNotify(rect)) {
@@ -1882,9 +1878,9 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         session->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
-        TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, session->GetPersistentId(), WmsLogTag::WMS_LAYOUT,
+        TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
             "%{public}s: id:%{public}d, reason:%{public}d %{public}s rect:win=%{public}s "
-            "client=%{public}s", where, session->GetPersistentId(), session->GetSizeChangeReason(),
+            "client=%{public}s", where, persistentId, session->GetSizeChangeReason(),
             updateReason.c_str(), rect.ToString().c_str(), session->GetClientRect().ToString().c_str());
     }, __func__ + GetRectInfo(rect));
     return WSError::WS_OK;
@@ -4118,7 +4114,13 @@ bool SceneSession::IsDraggable() const
         (GetSessionProperty()->GetIsPcAppInPad() && !isMainWindow));
     bool isPhoneWindowCanDrag = isFloatingDragAccessible && (isSystemWindow || isSubWindow) &&
         (systemConfig_.IsPhoneWindow() || (systemConfig_.IsPadWindow() && !IsFreeMultiWindowMode()));
-    return isPcOrFreeMultiWindowCanDrag || isPhoneWindowCanDrag;
+    bool isDraggable = isPcOrFreeMultiWindowCanDrag || isPhoneWindowCanDrag;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "IsDraggable: %{public}d, isPcOrFreeMultiWindowCanDrag: %{public}d, "
+        "isPhoneWindowCanDrag: %{public}d, isFloatingDragAccessible: %{public}d, "
+        "isDragAccessibleSystemWindow: %{public}d, id: %{public}d",
+        isDraggable, isPcOrFreeMultiWindowCanDrag, isPhoneWindowCanDrag,
+        isFloatingDragAccessible, isDragAccessibleSystemWindow, GetPersistentId());
+    return isDraggable;
 }
 
 WSError SceneSession::RequestSessionBack(bool needMoveToBackground)
@@ -6304,6 +6306,16 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
     info.scenarios = abilitySessionInfo->scenarios;
     session->CalculateStartWindowType(info, abilitySessionInfo->hideStartWindow);
     info.windowCreateParams = abilitySessionInfo->windowCreateParams;
+
+    if (abilitySessionInfo->want.HasParameter(AAFwk::Want::PARAM_RESV_WITH_ANIMATION) &&
+        (info.windowCreateParams == nullptr || info.windowCreateParams->needAnimation == nullptr)) {
+        bool withAnimation = abilitySessionInfo->want.GetBoolParam(AAFwk::Want::PARAM_RESV_WITH_ANIMATION, true);
+        if (info.windowCreateParams == nullptr) {
+            info.windowCreateParams = std::make_shared<WindowCreateParams>();
+        }
+        info.windowCreateParams->needAnimation = std::make_shared<bool>(withAnimation);
+    }
+
     TLOGI(WmsLogTag::WMS_LIFE, "bundleName:%{public}s, moduleName:%{public}s, abilityName:%{public}s,"
         "appIndex:%{public}d, affinity:%{public}s. callState:%{public}d, want persistentId:%{public}d,"
         "uiAbilityId:%{public}" PRIu64 ", windowMode:%{public}d, callerId:%{public}d,"

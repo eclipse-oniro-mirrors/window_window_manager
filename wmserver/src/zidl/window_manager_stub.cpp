@@ -310,7 +310,7 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
             sptr<WindowTransitionInfo> from = data.ReadParcelable<WindowTransitionInfo>();
             sptr<WindowTransitionInfo> to = data.ReadParcelable<WindowTransitionInfo>();
             bool isFromClient = false;
-            if (!data.ReadBool(isFromClient)) {
+            if (!data.ReadBool(isFromClient) || from == nullptr || to == nullptr) {
                 return ERR_INVALID_DATA;
             }
             WMError errCode = NotifyWindowTransition(from, to, isFromClient);
