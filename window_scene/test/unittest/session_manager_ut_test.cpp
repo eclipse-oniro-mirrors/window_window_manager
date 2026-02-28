@@ -236,7 +236,6 @@ HWTEST_F(SessionManagerUTTest, OnRemoteDied1, TestSize.Level1)
     wptr<IRemoteObject> wptrDeath;
     foundationDeathRecipient.OnRemoteDied(wptrDeath);
     ASSERT_EQ(false, sm_->isWMSConnected_);
-    ASSERT_EQ(false, sm_->isFoundationListenerRegistered_);
     ASSERT_EQ(false, sm_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sm_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sm_->sessionManagerServiceProxy_);
@@ -267,7 +266,6 @@ HWTEST_F(SessionManagerUTTest, OnFoundationDied, TestSize.Level1)
     ASSERT_NE(nullptr, sm_);
     sm_->OnFoundationDied();
     ASSERT_EQ(false, sm_->isWMSConnected_);
-    ASSERT_EQ(false, sm_->isFoundationListenerRegistered_);
     ASSERT_EQ(false, sm_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sm_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sm_->sessionManagerServiceProxy_);
@@ -340,7 +338,7 @@ HWTEST_F(SessionManagerUTTest, InitMockSMSProxy, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sm_);
     sm_->InitMockSMSProxy();
-    ASSERT_NE(sm_->foundationDeath_, nullptr);
+    ASSERT_NE(sm_->mockFoundationDeathRecipient_, nullptr);
 }
 
 /**
