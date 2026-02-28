@@ -1088,7 +1088,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
 
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callback, &result);
-    auto asyncTask = [env, task = napiAsyncTask, ability, isOldApi, newApi, contextPtr, where = __func__] {
+    auto asyncTask = [env, task = napiAsyncTask, ability, isOldApi, newApi, contextPtr, ctxRef, where = __func__] {
         TopWindowInfo info = DoGetTopWindow(ability, isOldApi, newApi, contextPtr);
         if (info.errorCode != 0) {
             if (newApi) {
