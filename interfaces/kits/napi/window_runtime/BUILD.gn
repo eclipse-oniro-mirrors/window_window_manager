@@ -185,10 +185,10 @@ ohos_shared_library("window_napi") {
   external_deps = [
     "ability_runtime:ability_context_native",
     "ability_runtime:abilitykit_native",
+    "ability_runtime:app_context",
     "ability_runtime:runtime",
     "ability_runtime:wantagent_innerkits",
     "ability_runtime:napi_common",
-    "ability_runtime:app_context",
     "c_utils:utils",
     "common_event_service:cesfwk_innerkits",
     "graphic_2d:librender_service_base",

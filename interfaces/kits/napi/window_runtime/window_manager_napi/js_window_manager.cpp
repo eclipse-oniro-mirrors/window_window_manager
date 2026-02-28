@@ -357,6 +357,13 @@ static void CreateNewSystemWindowTask(void* contextPtr, sptr<WindowOption> windo
         WLOGFE("Context is nullptr");
         return;
     }
+    auto contextConvert = Context::ConvertTo<AbilityRuntime::Context>(context->lock());
+    if (contextConvert == nullptr) {
+        task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_CONTEXT_ABNORMALLY,
+            "Convert context is nullptr"));
+        TLOGE(WmsLogTag::WMS_LIFE, "Convert context is nullptr");
+        return;
+    }
     if (windowOption->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT ||
         windowOption->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT_CAMERA) {
         auto abilityContext = Context::ConvertTo<AbilityRuntime::AbilityContext>(context->lock());
@@ -387,6 +394,12 @@ static void CreateSystemWindowTask(void* contextPtr, std::string windowName, Win
     if (contextPtr == nullptr || context == nullptr) {
         task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR, "Context is nullptr"));
         WLOGFE("Context is nullptr");
+        return;
+    }
+    auto contextConvert = Context::ConvertTo<AbilityRuntime::Context>(context->lock());
+    if (contextConvert == nullptr) {
+        task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR, "Convert context is nullptr"));
+        TLOGE(WmsLogTag::WMS_LIFE, "Convert Context is nullptr");
         return;
     }
     if (winType == WindowType::WINDOW_TYPE_FLOAT || winType == WindowType::WINDOW_TYPE_FLOAT_CAMERA) {
@@ -1075,7 +1088,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
 
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callback, &result);
-    auto asyncTask = [env, task = napiAsyncTask, ability, isOldApi, newApi, contextPtr, where = __func__] {
+    auto asyncTask = [env, task = napiAsyncTask, ability, isOldApi, newApi, contextPtr, ctxRef, where = __func__] {
         TopWindowInfo info = DoGetTopWindow(ability, isOldApi, newApi, contextPtr);
         if (info.errorCode != 0) {
             if (newApi) {
