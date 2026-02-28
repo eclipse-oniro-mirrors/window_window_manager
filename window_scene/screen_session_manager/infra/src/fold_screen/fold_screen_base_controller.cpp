@@ -251,4 +251,9 @@ float FoldScreenBaseController::GetSpecialVirtualPixelRatio()
 {
     return FoldScreenBasePolicy::GetInstance().GetSpecialVirtualPixelRatio();
 }
+
+FoldDisplayMode FoldScreenBaseController::GetCurrentDisplayMode() const
+{
+    return FoldScreenBasePolicy::GetInstance().GetCurrentDisplayMode();
+}
 } // namespace OHOS::Rosen

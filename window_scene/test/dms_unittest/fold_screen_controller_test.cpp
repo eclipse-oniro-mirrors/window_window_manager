@@ -994,6 +994,31 @@ namespace {
         LOG_SetCallback(nullptr);
         g_errLog.clear();
     }
+
+    /**
+     * @tc.name: GetCurrentDisplayMode
+     * @tc.desc: Test SetMainScreenRegion
+     * @tc.type: FUNC
+     */
+    HWTEST_F(FoldScreenControllerTest, GetCurrentDisplayMode, TestSize.Level1)
+    {
+        LOG_SetCallback(MyLogCallback);
+        std::recursive_mutex displayInfoMutex;
+        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler = std::shared_ptr<TaskScheduler>();
+        FoldScreenController foldScreenController(displayInfoMutex, screenPowerTaskScheduler);
+        foldScreenController.foldScreenPolicy_ = nullptr;
+        auto mode = foldScreenController.GetCurrentDisplayMode();
+        EXPECT_EQ(mode, FoldDisplayMode::UNKNOWN);
+        EXPECT_TRUE(g_errLog.find("foldScreenPolicy is null") != std::string::npos);
+        g_errLog.clear();
+        LOG_SetCallback(nullptr);
+
+        auto mockPolicy = sptr<FoldScreenPolicy>::MakeSptr();
+        mockPolicy->currentDisplayMode_ = FoldDisplayMode::FULL;
+        foldScreenController.foldScreenPolicy_ = mockPolicy;
+        mode = foldScreenController.GetCurrentDisplayMode();
+        EXPECT_EQ(mode, FoldDisplayMode::FULL);
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

@@ -376,6 +376,18 @@ HWTEST_F(FoldScreenBaseControllerTest, NotifyRunSensorFoldStateManagerTest, Test
     LOG_SetCallback(nullptr);
     g_logMsg.clear();
 }
+
+/**
+ * @tc.name: GetCurrentDisplayMode
+ * @tc.desc: test function : GetCurrentDisplayMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBaseControllerTest, GetCurrentDisplayMode, TestSize.Level1)
+{
+    auto controller = FoldScreenBaseController();
+    FoldScreenBasePolicy::GetInstance().currentDisplayMode_ = FoldDisplayMode::MAIN;
+    EXPECT_EQ(controller.GetCurrentDisplayMode(), FoldDisplayMode::MAIN);
+}
 } // namespace
 } // namespace DMS
 } // namespace Rosen

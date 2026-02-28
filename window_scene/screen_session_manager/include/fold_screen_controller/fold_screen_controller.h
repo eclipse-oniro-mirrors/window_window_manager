@@ -46,6 +46,7 @@ public:
     void SetDisplayMode(const FoldDisplayMode displayMode) override;
     void RecoverDisplayMode() override;
     FoldDisplayMode GetDisplayMode() override;
+    FoldDisplayMode GetCurrentDisplayMode() const override;
     bool IsFoldable() override;
     FoldStatus GetFoldStatus() override;
     bool GetTentMode() override;

@@ -67,6 +67,7 @@ public:
     virtual bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
         FoldStatus targetFoldStatus) const;
     FoldDisplayMode GetScreenDisplayMode();
+    FoldDisplayMode GetCurrentDisplayMode() const;
     virtual FoldStatus GetFoldStatus();
     virtual FoldStatus GetPhysicalFoldStatus();
     std::chrono::steady_clock::time_point GetStartTimePoint();
