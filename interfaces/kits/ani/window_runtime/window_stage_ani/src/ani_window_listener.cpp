@@ -366,8 +366,10 @@ void AniWindowListener::KeyboardWillAnimateWithName(const KeyboardAnimationInfo&
 void AniWindowListener::OnTouchOutside() const
 {
     TLOGI(WmsLogTag::WMS_EVENT, "[ANI]in");
-    auto task = [self = weakRef_, eng = env_] () {
+    auto task = [self = weakRef_, vm = vm_] () {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::WMS_EVENT, "[ANI]thisListener, eng or callback is nullptr!");
             return;
@@ -386,8 +388,10 @@ void AniWindowListener::OnTouchOutside() const
 void AniWindowListener::OnDialogTargetTouch() const
 {
     TLOGI(WmsLogTag::WMS_EVENT, "[ANI]in");
-    auto task = [self = weakRef_, eng = env_] () {
+    auto task = [self = weakRef_, vm = vm_] () {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::WMS_EVENT, "[ANI]thisListener, eng or callback is nullptr!");
             return;

@@ -19,6 +19,7 @@
 
 #include "ani.h"
 #include <ani_signature_builder.h>
+#include "ani_window_utils.h"
 #include "event_handler.h"
 #include "event_runner.h"
 #include "window_manager_hilog.h"
@@ -79,9 +80,11 @@ void AniExtensionWindowListener::OnSizeChange(Rect rect, WindowSizeChangeReason 
         TLOGD(WmsLogTag::WMS_UIEXT, "[ANI]No need to notify size change");
         return;
     }
-    auto onSizeChangeTask = [self = weakRef_, rect, eng = env_] () {
+    auto onSizeChangeTask = [self = weakRef_, rect, vm = vm_] () {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "AniExtensionWindowListener::OnSizeChange");
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]thisListener, eng or callback is nullptr");
             return;
@@ -106,8 +109,10 @@ void AniExtensionWindowListener::OnAvoidAreaChanged(const AvoidArea avoidArea, A
     const sptr<OccupiedAreaChangeInfo>& info)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "[ANI]");
-    auto task = [self = weakRef_, eng = env_, avoidArea, type] {
+    auto task = [self = weakRef_, vm = vm_, avoidArea, type] {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]thisListener, eng or callback is nullptr");
             return;
@@ -131,8 +136,10 @@ void AniExtensionWindowListener::OnSizeChange(const sptr<OccupiedAreaChangeInfo>
         "[ANI]OccupiedAreaChangeInfo, type: %{public}u, input rect:[%{public}d, %{public}d, %{public}u, %{public}u]",
         static_cast<uint32_t>(info->type_), info->rect_.posX_, info->rect_.posY_, info->rect_.width_,
         info->rect_.height_);
-    auto onSizeChangeTask = [self = weakRef_, info, eng = env_] () {
+    auto onSizeChangeTask = [self = weakRef_, info, vm = vm_] () {
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
             TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]thisListener, eng or callback is nullptr");
             return;
@@ -157,9 +164,11 @@ void AniExtensionWindowListener::OnRectChange(Rect rect, WindowSizeChangeReason 
     }
     // js callback should run in js thread
     const char* const where = __func__;
-    auto onRectChangeTask = [self = weakRef_, rect, env = env_, where] {
+    auto onRectChangeTask = [self = weakRef_, rect, vm = vm_, where] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsExtensionWindowListener::OnRectChange");
         auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto env = aniVm.GetAniEnv();
         if (thisListener == nullptr || env == nullptr) {
             TLOGNE(WmsLogTag::WMS_UIEXT, "%{public}s This listener or env is nullptr", where);
             return;
