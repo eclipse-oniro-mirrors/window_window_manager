@@ -1192,7 +1192,8 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
         data.WriteBool(virtualOption.supportsInput_) &&
         data.WriteString(virtualOption.serialNumber_) &&
         data.WriteString(virtualOption.bundleName_) && data.WriteInt32(virtualOption.userId_) &&
-        data.WriteUint32(virtualOption.phyWidth_) && data.WriteUint32(virtualOption.phyHeight_);
+        data.WriteUint32(virtualOption.phyWidth_) && data.WriteUint32(virtualOption.phyHeight_) &&
+        data.WriteUint32(virtualOption.renderWidth_) && data.WriteUint32(virtualOption.renderHeight_);
     if (virtualOption.surface_ != nullptr && virtualOption.surface_->GetProducer() != nullptr) {
         res = res &&
             data.WriteBool(true) &&
@@ -1519,7 +1520,8 @@ DMError ScreenSessionManagerProxy::SetVirtualMirrorScreenScaleMode(ScreenId scre
     return static_cast<DMError>(reply.ReadInt32());
 }
 
-DMError ScreenSessionManagerProxy::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+DMError ScreenSessionManagerProxy::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
 {
     TLOGI(WmsLogTag::DMS, "ENTER");
     sptr<IRemoteObject> remote = Remote();
@@ -1546,6 +1548,14 @@ DMError ScreenSessionManagerProxy::ResizeVirtualScreen(ScreenId screenId, uint32
     }
     if (!data.WriteUint32(height)) {
         TLOGE(WmsLogTag::DMS, "WriteUnit32 height failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(renderWidth)) {
+        TLOGE(WmsLogTag::DMS, "WriteUnit32 renderWidth failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(renderHeight)) {
+        TLOGE(WmsLogTag::DMS, "WriteUnit32 renderHeight failed");
         return DMError::DM_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_RESIZE_VIRTUAL_SCREEN),

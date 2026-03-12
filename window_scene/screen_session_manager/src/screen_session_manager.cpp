@@ -7506,7 +7506,8 @@ DMError ScreenSessionManager::SetVirtualMirrorScreenCanvasRotation(ScreenId scre
     return DMError::DM_OK;
 }
 
-DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
 {
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
@@ -7535,7 +7536,11 @@ DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t wi
         TLOGNFE(WmsLogTag::DMS, "RS side failed in resizing virtual screen, rsRet: %{public}d", rsRet);
         return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
     }
-    screenSession->Resize(width, height);
+    if (renderWidth > 0 && renderHeight >0) {
+        screenSession->Resize(renderWidth, renderHeight);
+    } else {
+        screenSession->Resize(width, height);
+    }
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
         ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE);
     return DMError::DM_OK;
@@ -8337,6 +8342,10 @@ sptr<ScreenSession> ScreenSessionManager::InitVirtualScreen(ScreenId smsScreenId
     }
     info->width_ = option.width_;
     info->height_ = option.height_;
+    if (option.renderWidth_ > 0 && option.renderHeight_ > 0) {
+        info->width_ = option.renderWidth_;
+        info->height_ = option.renderHeight_;
+    }
     auto defaultScreen = GetScreenSession(GetDefaultScreenId());
     if (defaultScreen != nullptr) {
         info->refreshRate_ = defaultScreen->GetRefreshRate();

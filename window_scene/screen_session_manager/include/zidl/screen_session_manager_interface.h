@@ -254,7 +254,7 @@ public:
     virtual DMError GetDensityInCurResolution(ScreenId screenId,
         float& virtualPixelRatio) { return DMError::DM_OK; }
     virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width,
-        uint32_t height) { return DMError::DM_OK; }
+        uint32_t height, uint32_t renderWidth, uint32_t renderHeight) { return DMError::DM_OK; }
     virtual DMError AddSurfaceNodeToDisplay(DisplayId displayId,
         std::shared_ptr<class RSSurfaceNode>& surfaceNode, bool onTop = true) { return DMError::DM_OK; }
     virtual DMError RemoveSurfaceNodeFromDisplay(DisplayId displayId,

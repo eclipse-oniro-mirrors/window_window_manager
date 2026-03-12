@@ -100,7 +100,8 @@ public:
 
     DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay) override;
 
-    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height) override;
+    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth, uint32_t renderHeight) override;
 
     virtual DMError SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, bool autoRotate) override;
 
