@@ -365,6 +365,7 @@ void SessionManager::UnregisterSMSRecoverListener()
 
 void SessionManager::RegisterWindowManagerRecoverCallbackFunc(const WindowManagerRecoverCallbackFunc& callbackFunc)
 {
+    TLOGD(WmsLogTag::WMS_RECOVER, "enter");
     std::lock_guard<std::mutex> lock(wmRecoverCallbackMutex_);
     windowManagerRecoverFunc_ = callbackFunc;
 }
@@ -449,6 +450,12 @@ void SessionManager::RemoveMockFoundationDeathRecipient()
     }
     remoteObject->RemoveDeathRecipient(deathRecipient);
     TLOGI(WmsLogTag::DEFAULT, "Removed success");
+}
+
+sptr<IMockSessionManagerInterface> SessionManager::GetMockSessionManagerServiceProxy()
+{
+    std::lock_guard<std::mutex> lock(mockSessionManagerServiceMutex_);
+    return mockSessionManagerServiceProxy_;
 }
 
 WMError SessionManager::RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc)

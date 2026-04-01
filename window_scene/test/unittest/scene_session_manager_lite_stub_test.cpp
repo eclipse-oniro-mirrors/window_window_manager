@@ -110,6 +110,11 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     {
         return WSError::WS_OK;
     }
+    WSError GetSessionInfo(const std::string& deviceId, int32_t persistentId,
+        SessionInfoBean& sessionInfo, AAFwk::DisplayInfo& displayInfo) override
+    {
+        return WSError::WS_OK;
+    }
     WSError GetSessionInfoByContinueSessionId(const std::string& continueSessionId,
                                               SessionInfoBean& sessionInfo) override
     {

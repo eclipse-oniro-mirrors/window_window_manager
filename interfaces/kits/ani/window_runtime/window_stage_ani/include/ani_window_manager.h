@@ -66,6 +66,8 @@ public:
         ani_int zIndex);
     static void SetWindowLayoutMode(ani_env* env, ani_long nativeObj, ani_enum_item mode);
     static void ToggleShownStateForAllAppWindows(ani_env* env, ani_long nativeObj);
+    static ani_ref CreateSubWindowAndBindParent(ani_env* env, ani_long nativeObj,
+        ani_string name, ani_int parentId, ani_object aniContext, ani_ref callback);
 private:
     ani_ref OnGetLastWindow(ani_env* env, ani_object context);
     ani_ref OnFindWindow(ani_env* env, ani_string windowName);
@@ -95,6 +97,8 @@ private:
     void OnSetGestureNavigationEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWaterMarkImage(ani_env* env, ani_object nativePixelMap, ani_boolean enabled);
     ani_object OnGetWindowsByCoordinate(ani_env* env, ani_object getWindowsParam);
+    ani_ref OnCreateSubWindowAndBindParent(ani_env* env, ani_string name, ani_int parentId,
+        ani_object aniContext, ani_ref callback);
 
     std::unique_ptr<AniWindowRegisterManager> registerManager_ = nullptr;
 };

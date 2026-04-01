@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <map>
 #include "mock_accesstoken_kit.h"
 #include "accesstoken_kit.h"
 #include "tokenid_kit.h"
@@ -21,8 +22,10 @@ using namespace OHOS::Security::AccessToken;
 namespace OHOS::Rosen {
 namespace {
 bool g_isSystemApp = true;
+bool g_isUseTokenMap = false;
 bool g_isMockGetTokenTypeFlagRet = true;
 int32_t g_accessTokenKitRet = 0;
+std::map<std::string, int32_t> g_tokenMap;
 }
 
 void MockAccesstokenKit::MockIsSystemApp(const bool isSystemApp)
@@ -40,11 +43,23 @@ void MockAccesstokenKit::MockAccessTokenKitRet(int32_t accessTokenKitRet)
     g_accessTokenKitRet = accessTokenKitRet;
 }
 
+void MockAccesstokenKit::MockIsUseTokenMap(const bool useTokenMap)
+{
+    g_isUseTokenMap = useTokenMap;
+}
+
+void MockAccesstokenKit::MockTokenMap(const std::string& permissionName, int32_t available)
+{
+    g_tokenMap[permissionName] = available;
+}
+
 void MockAccesstokenKit::ChangeMockStateToInit()
 {
     g_isSystemApp = true;
     g_isMockGetTokenTypeFlagRet = true;
     g_accessTokenKitRet = 0;
+    g_isUseTokenMap = false;
+    g_tokenMap.clear();
 }
 }
 
@@ -64,6 +79,9 @@ ATokenTypeEnum AccessTokenKit::GetTokenTypeFlag(AccessTokenID tokenId)
 
 int32_t AccessTokenKit::VerifyAccessToken(uint32_t AccessTokenID, const std::string& permissionName)
 {
+    if (Rosen::g_isUseTokenMap) {
+        return Rosen::g_tokenMap[permissionName];
+    }
     return Rosen::g_accessTokenKitRet;
 }
 } // namespace OHOS::Security::AccessToken

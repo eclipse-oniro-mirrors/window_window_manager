@@ -403,6 +403,28 @@ HWTEST_F(SceneSessionManagerStubLifecycleTest, HandleGetMainWindowSnapshot, Test
     data.WriteRemoteObject(stub_->AsObject());
     EXPECT_EQ(stub_->HandleGetMainWindowSnapshot(data, reply), ERR_NONE);
 }
+
+/**
+ * @tc.name: HandleSnapshotByWindowId
+ * @tc.desc: test HandleSnapshotByWindowId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubLifecycleTest, HandleSnapshotByWindowId, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, stub_);
+    MessageParcel data;
+    MessageParcel reply;
+
+    EXPECT_EQ(stub_->HandleSnapshotByWindowId(data, reply), ERR_INVALID_DATA);
+
+    data.WriteInt32(1);
+    EXPECT_EQ(stub_->HandleSnapshotByWindowId(data, reply), ERR_INVALID_DATA);
+
+    data.WriteInt32(1);
+    SnapshotConfig config;
+    data.WriteParcelable(&config);
+    EXPECT_EQ(stub_->HandleSnapshotByWindowId(data, reply), ERR_NONE);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -27,6 +27,6 @@ std::ifstream& SceneBoardJudgement::SafeGetLine(std::ifstream& configFile, std::
     return configFile;
 }
 
-void SceneBoardJudgement::IintWithConfigFile(const char* filePath, bool& enabled) {}
+void SceneBoardJudgement::InitWithConfigFile(const char* filePath, bool& enabled) {}
 }  // namespace Rosen
 }  // namespace OHOS

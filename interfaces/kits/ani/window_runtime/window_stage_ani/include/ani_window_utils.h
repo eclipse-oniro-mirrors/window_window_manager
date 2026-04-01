@@ -217,9 +217,11 @@ public:
     static void GetWindowSnapshotConfiguration(ani_env* env, ani_object config,
         WindowSnapshotConfiguration& windowSnapshotConfiguration);
     static bool ParseWindowLimits(ani_env* env, ani_object aniWindowLimits, WindowLimits& windowLimits);
+    static bool ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnchorInfo, WindowAnchorInfo& windowAnchorInfo);
     static bool CheckParaIsUndefined(ani_env* env, ani_object para);
     static ani_object CreateAniPosition(ani_env* env, const Position& position);
     static std::string GetPixelUnitString(const PixelUnit& pixelUnit);
+    static std::string ANIStringToStdString(ani_env* env, ani_string ani_str);
 
     /**
      * @brief Convert WMError to corresponding WmErrorCode.

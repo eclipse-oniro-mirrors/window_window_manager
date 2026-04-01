@@ -176,6 +176,39 @@ public:
 };
 
 /**
+ * @class IParentLifecycleEventListener
+ *
+ * @brief IParentLifecycleEventListener is a listener used to notify caller that lifecycle of parent window.
+ */
+class IParentLifecycleEventListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller that parent window is on the foreground.
+     */
+    virtual void OnParentForeground(int32_t windowId) {}
+
+    /**
+     * @brief Notify caller that parent window is active.
+     */
+    virtual void OnParentActive(int32_t windowId) {}
+
+    /**
+     * @brief Notify caller that parent window is inactive.
+     */
+    virtual void OnParentInactive(int32_t windowId) {}
+
+    /**
+     * @brief Notify caller that parent window is on the background.
+     */
+    virtual void OnParentBackground(int32_t windowId) {}
+
+    /**
+     * @brief Notify caller that parent window is destroyed.
+     */
+    virtual void OnParentDestroyed(int32_t windowId) {}
+};
+
+/**
  * @class IWindowStageLifeCycle
  *
  * @brief IWindowStageLifeCycle is a listener used to notify caller that lifecycle of window.
@@ -299,6 +332,39 @@ public:
      * @param status Mode of the current window.
      */
     virtual void OnWindowStatusDidChange(WindowStatus status) {}
+};
+
+/**
+ * @class IParentWindowSizeChangeListener
+ *
+ * @brief IParentWindowSizeChangeListener is used to observe the parent window size when parent window size changed.
+ *
+ */
+class IParentWindowSizeChangeListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when parent window size changed.
+     *
+     * @param Rect rect of parent window.
+     */
+    virtual void OnParentWindowSizeChange(Rect rect) {}
+};
+
+/**
+ * @class IParentWindowStatusChangeListener
+ *
+ * @brief IParentWindowStatusChangeListener is used to observe the parent window status when
+ *        parent window status changed.
+ *
+ */
+class IParentWindowStatusChangeListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when parent window status changed.
+     *
+     * @param status rect of parent window.
+     */
+    virtual void OnParentWindowStatusChange(WindowStatus status) {}
 };
 
 /**
@@ -1769,6 +1835,13 @@ public:
     virtual bool IsTransparent() const { return false; }
 
     /**
+     * @brief Get whether the session is blocking sub window.
+     *
+     * @return True means the session is blocking sub window, false means the opposite.
+     */
+    virtual bool IsBlockSubwindow() const { return false; }
+
+    /**
      * @brief Set brightness value of window.
      *
      * @param brightness Brightness of window.
@@ -2094,6 +2167,28 @@ public:
      * @return WM_OK means unregister success, others means unregister failed.
      */
     virtual WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) { return WMError::WM_OK; }
+
+    /**
+     * @brief Register parent window lifecycle listener.
+     *
+     * @param listener ParentLifeCycleListener listener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterParentLifecycleEventListener(const sptr<IParentLifecycleEventListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister parent window lifecycle listener.
+     *
+     * @param listener WindowLifeCycle listener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    virtual WMError UnregisterParentLifecycleEventListener(const sptr<IParentLifecycleEventListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
 
     /**
      * @brief Register window lifecycle listener.
@@ -3322,6 +3417,50 @@ public:
     }
 
     /**
+     * @brief Register parent window size change listener.
+     *
+     * @param listener IParentWindowSizeChangeListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterParentWindowSizeChangeListener(const sptr<IParentWindowSizeChangeListener>& listener)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Unregister parent window size change listener.
+     *
+     * @param listener IParentWindowSizeChangeListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    virtual WMError UnregisterParentWindowSizeChangeListener(const sptr<IParentWindowSizeChangeListener>& listener)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+        /**
+     * @brief Register parent window status change listener.
+     *
+     * @param listener IParentWindowStatusChangeListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterParentWindowStatusChangeListener(const sptr<IParentWindowStatusChangeListener>& listener)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Unregister parent window status change listener.
+     *
+     * @param listener IParentWindowStatusChangeListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    virtual WMError UnregisterParentWindowStatusChangeListener(const sptr<IParentWindowStatusChangeListener>& listener)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Set Specific System Bar(include status bar and nav bar) Enable and Animation Properties
      *
      * @param systemBarEnable is system bar enabled
@@ -4542,7 +4681,7 @@ public:
      * @param windowAnchorInfo the windowAnchorInfo of subWindow.
      * @return WM_OK means set success.
      */
-    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo)
+    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, bool isAttach = false)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -5148,6 +5287,18 @@ public:
      * @brief Flush vsync for prelaunch.
      */
     virtual void FlushVsync() {}
+
+    /**
+     * @brief Notify pageEnable.
+     *
+     * @param action action.
+     * @param message message.
+     * @return WM_OK means on success, others means failed.
+     */
+    virtual WMError NotifyPageEnable(const std::string& action, const std::string& message)
+    {
+        return WMError::WM_ERROR_INVALID_WINDOW_TYPE;
+    }
 };
 }
 }

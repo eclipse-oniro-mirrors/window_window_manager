@@ -79,6 +79,16 @@ public:
     MOCK_METHOD1(OnWindowStatusDidChange, void(WindowStatus status));
 };
 
+class MockParentWindowSizeChangeListener : public IParentWindowSizeChangeListener {
+public:
+    MOCK_METHOD1(OnParentWindowSizeChange, void(Rect rect));
+};
+
+class MockParentWindowStatusChangeListener : public IParentWindowStatusChangeListener {
+public:
+    MOCK_METHOD1(OnParentWindowStatusChange, void(WindowStatus status));
+};
+
 class MockIOccupiedAreaChangeListener : public IOccupiedAreaChangeListener {
 public:
     MOCK_METHOD2(OnSizeChange, void(const sptr<OccupiedAreaChangeInfo>& info,

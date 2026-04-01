@@ -47,6 +47,8 @@ public:
     static napi_value ToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info);
     static napi_value RegisterWindowManagerCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterWindowMangerCallback(napi_env env, napi_callback_info info);
+    static napi_value RegisterApplicationFocusStateChangeCallback(napi_env env, napi_callback_info info);
+    static napi_value UnregisterApplicationFocusStateChangeCallback(napi_env env, napi_callback_info info);
     static napi_value GetTopWindow(napi_env env, napi_callback_info info);
     static napi_value GetSnapshot(napi_env env, napi_callback_info info);
     static napi_value GetLastWindow(napi_env env, napi_callback_info info);
@@ -68,6 +70,7 @@ public:
     static napi_value GetAllMainWindowInfo(napi_env env, napi_callback_info info);
     static napi_value GetMainWindowSnapshot(napi_env env, napi_callback_info info);
     static napi_value SetSpecificSystemWindowZIndex(napi_env env, napi_callback_info info);
+    static napi_value CreateSubWindowAndBindParent(napi_env env, napi_callback_info info);
 
 private:
     static napi_value OnCreate(napi_env env, napi_callback_info info);
@@ -79,6 +82,8 @@ private:
     static napi_value OnToggleShownStateForAllAppWindows(napi_env env, napi_callback_info info);
     napi_value OnRegisterWindowManagerCallback(napi_env env, napi_callback_info info);
     napi_value OnUnregisterWindowManagerCallback(napi_env env, napi_callback_info info);
+    napi_value OnRegisterApplicationFocusStateChangeCallback(napi_env env, napi_callback_info info);
+    napi_value OnUnregisterApplicationFocusStateChangeCallback(napi_env env, napi_callback_info info);
     static napi_value OnGetTopWindow(napi_env env, napi_callback_info info);
     static napi_value OnGetLastWindow(napi_env env, napi_callback_info info);
     static napi_value OnGetSnapshot(napi_env env, napi_callback_info info);
@@ -100,6 +105,7 @@ private:
     static napi_value OnNotifyScreenshotEvent(napi_env env, napi_callback_info info);
     static napi_value OnCreateUIEffectController(napi_env env, napi_callback_info info);
     static napi_value OnSetSpecificSystemWindowZIndex(napi_env env, napi_callback_info info);
+    napi_value OnCreateSubWindowAndBindParent(napi_env env, napi_callback_info info);
     static bool ParseRequiredConfigOption(
         napi_env env, napi_value jsObject, WindowOption& option);
     static bool ParseConfigOption(

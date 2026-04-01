@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "display_manager.h"
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
@@ -1561,6 +1562,42 @@ HWTEST_F(SceneSessionManagerTest10, ListWindowInfo01, TestSize.Level1)
     WindowInfoOption windowInfoOption;
     std::vector<sptr<WindowInfo>> infos;
     ASSERT_EQ(ssm_->ListWindowInfo(windowInfoOption, infos), WMError::WM_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: ListWindowInfo02
+ * @tc.desc: verify displayName is returned with WINDOW_DISPLAY_INFO
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ListWindowInfo02, TestSize.Level1)
+{
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplay();
+    ASSERT_NE(defaultDisplay, nullptr);
+    MockAccesstokenKit::MockIsSACalling(true);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.persistentId_ = 301;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
+    sceneSession->GetSessionProperty()->SetWindowName("listWindowInfoTest");
+    sceneSession->GetSessionProperty()->SetDisplayId(defaultDisplay->GetId());
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+
+    WindowInfoOption windowInfoOption;
+    windowInfoOption.windowId = sceneSession->GetWindowId();
+    windowInfoOption.windowInfoTypeOption =
+        WindowInfoTypeOption::WINDOW_DISPLAY_INFO | WindowInfoTypeOption::WINDOW_META_INFO;
+    std::vector<sptr<WindowInfo>> infos;
+    ASSERT_EQ(ssm_->ListWindowInfo(windowInfoOption, infos), WMError::WM_OK);
+    ASSERT_EQ(infos.size(), 1);
+    ASSERT_NE(infos[0], nullptr);
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowName, "listWindowInfoTest");
+    EXPECT_EQ(infos[0]->windowDisplayInfo.displayId, defaultDisplay->GetId());
+    EXPECT_EQ(infos[0]->windowDisplayInfo.displayName, defaultDisplay->GetName());
 }
 
 /**

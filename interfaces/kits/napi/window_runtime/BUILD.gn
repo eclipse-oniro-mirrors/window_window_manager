@@ -126,6 +126,7 @@ ohos_shared_library("window_native_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
 
   public_configs = [ ":window_native_kit_public_config" ]
@@ -157,6 +158,7 @@ ohos_shared_library("window_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   defines = [ "SUPPORT_SCREEN" ]
   sources = [
@@ -218,6 +220,7 @@ ohos_shared_library("windowstage_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "window_stage_napi/js_window_stage.cpp" ]
 

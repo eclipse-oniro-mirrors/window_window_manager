@@ -3835,7 +3835,6 @@ void WindowImpl::UpdateViewportConfig(const Rect& rect, const sptr<Display>& dis
     const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto uiContent = GetUIContentSharedPtr();
     if (uiContent == nullptr) {
         return;

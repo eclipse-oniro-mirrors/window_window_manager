@@ -19,7 +19,6 @@
 #include "dm_common.h"
 #include <ipc_skeleton.h>
 #include "transaction/rs_marshalling_helper.h"
-#include "session_manager/include/scene_session_manager.h"
 #include "marshalling_helper.h"
 
 namespace OHOS::Rosen {
@@ -338,6 +337,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             uint32_t phyHeight = data.ReadUint32();
             uint32_t renderWidth = data.ReadUint32();
             uint32_t renderHeight = data.ReadUint32();
+            int32_t screenIdParam = data.ReadInt32();
             bool isSurfaceValid = data.ReadBool();
             sptr<Surface> surface = nullptr;
             if (isSurfaceValid) {
@@ -366,7 +366,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .phyHeight_ = phyHeight,
                 .userId_ = userId,
                 .renderWidth_ = renderWidth,
-                .renderHeight_ = renderHeight
+                .renderHeight_ = renderHeight,
+                .screenId_ = screenIdParam
             };
             ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
             static_cast<void>(reply.WriteUint64(static_cast<uint64_t>(screenId)));

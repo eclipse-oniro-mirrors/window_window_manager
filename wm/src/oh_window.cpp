@@ -266,16 +266,16 @@ void EraseFrameMetricsMeasuredListener(int32_t windowId, uintptr_t measuredCallb
 WindowManager_ErrorCode UnregisterFrameMetricsMeasuredCallbackInner(
     int32_t windowId, uintptr_t measuredCallbackId, const char* where)
 {
-    OHOS::sptr<OHWindowFrameMetricsMeasuredListener> listener = nullptr;
-    if (!FindFrameMetricsMeasuredListener(windowId, measuredCallbackId, listener)) {
-        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
-    }
-
     auto window = Window::GetWindowWithId(windowId);
     if (window == nullptr) {
         TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
         EraseFrameMetricsMeasuredListener(windowId, measuredCallbackId);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
+    }
+
+    OHOS::sptr<OHWindowFrameMetricsMeasuredListener> listener = nullptr;
+    if (!FindFrameMetricsMeasuredListener(windowId, measuredCallbackId, listener)) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
 
     auto ret = window->UnregisterFrameMetricsChangeListener(listener);
@@ -860,6 +860,10 @@ int32_t OH_WindowManager_RegisterFrameMetricsMeasuredCallback(
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "callback is null, windowId:%{public}d", windowId);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
+    if (windowId <= 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowId is invalid, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+    }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler is null, windowId:%{public}d", windowId);
@@ -904,6 +908,10 @@ int32_t OH_WindowManager_UnregisterFrameMetricsMeasuredCallback(
 {
     if (callback == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "callback is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+    }
+    if (windowId <= 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowId is invalid, windowId:%{public}d", windowId);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();

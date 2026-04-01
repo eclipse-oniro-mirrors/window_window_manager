@@ -362,6 +362,7 @@ enum class WMError : int32_t {
     WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED,
     WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED,
     WM_ERROR_INVALID_WINDOW_TYPE,
+    WM_ERROR_FORBID_SUBWINDOW,
 };
 
 /**
@@ -402,6 +403,7 @@ enum class WmErrorCode : int32_t {
     WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED = 1300027,
     WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED = 1300028,
     WM_ERROR_INVALID_WINDOW_TYPE = 1300029,
+    WM_ERROR_FORBID_SUBWINDOW = 1300035,
 };
 
 /**
@@ -563,6 +565,7 @@ enum class WindowSizeChangeReason : uint32_t {
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
     FULL_SCREEN_IN_FORCE_SPLIT,
+    HOOK_INFO_CHANGE,
     END,
 };
 
@@ -687,6 +690,7 @@ struct KeyFramePolicy : public Parcelable {
 struct HookWindowInfo : public Parcelable {
     bool enableHookWindow{ false };
     float widthHookRatio{ 1.0f };
+    bool notifyWindowChange{ false };
 
     static constexpr float DEFAULT_WINDOW_SIZE_HOOK_RATIO = 1.0f;
 
@@ -710,7 +714,8 @@ struct HookWindowInfo : public Parcelable {
         std::ostringstream oss;
         oss << std::boolalpha  // For true/false instead of 1/0
             << "enableHookWindow: " << enableHookWindow
-            << ", widthHookRatio: " << std::fixed << std::setprecision(precision) << widthHookRatio;
+            << ", widthHookRatio: " << std::fixed << std::setprecision(precision) << widthHookRatio
+            << ", notifyWindowChange: " << notifyWindowChange;
         return oss.str();
     }
 
@@ -718,13 +723,15 @@ private:
     bool WriteAllFields(Parcel& parcel) const
     {
         return parcel.WriteBool(enableHookWindow) &&
-               parcel.WriteFloat(widthHookRatio);
+               parcel.WriteFloat(widthHookRatio) &&
+               parcel.WriteBool(notifyWindowChange);
     }
 
     static bool ReadAllFields(Parcel& parcel, HookWindowInfo& info)
     {
         return parcel.ReadBool(info.enableHookWindow) &&
-               parcel.ReadFloat(info.widthHookRatio);
+               parcel.ReadFloat(info.widthHookRatio) &&
+               parcel.ReadBool(info.notifyWindowChange);
     }
 };
 
@@ -866,6 +873,33 @@ struct WindowSnapshotConfiguration : public Parcelable {
             return nullptr;
         }
         return windowSnapshotConfiguration.release();
+    }
+};
+
+/**
+ * @struct SnapshotConfig
+ *
+ * @brief Snapshot configuration for sa inner interface.
+ */
+struct SnapshotConfig : public Parcelable {
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    bool useCurWindow = false;
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteFloat(scaleX) && parcel.WriteFloat(scaleY) && parcel.WriteBool(useCurWindow);
+    }
+
+    static SnapshotConfig* Unmarshalling(Parcel& parcel)
+    {
+        auto snapshotConfig = std::make_unique<SnapshotConfig>();
+        if (!parcel.ReadFloat(snapshotConfig->scaleX) ||
+            !parcel.ReadFloat(snapshotConfig->scaleY) ||
+            !parcel.ReadBool(snapshotConfig->useCurWindow)) {
+            return nullptr;
+        }
+        return snapshotConfig.release();
     }
 };
 
@@ -1132,6 +1166,7 @@ struct PartialSystemBarProperty {
     uint32_t contentColor_ = 0;
     bool enableAnimation_ = false;
     SystemBarPropertyFlag flag_;
+    bool isolate_ = false;
 };
 
 /*
@@ -1429,20 +1464,59 @@ enum class WindowAnchor : uint32_t {
  */
 struct WindowAnchorInfo : public Parcelable {
     bool isAnchorEnabled_ = false;
+    bool isAnchoredByAttach_ = false;
     WindowAnchor windowAnchor_ = WindowAnchor::TOP_START;
     int32_t offsetX_ = 0;
     int32_t offsetY_ = 0;
+
+    struct AttachOptions : public Parcelable {
+        std::string currentLayoutMode = "";
+        AttachOptions() = default;
+        AttachOptions(std::string currentLayoutMode) : currentLayoutMode(currentLayoutMode) {}
+        bool operator==(const AttachOptions& other) const
+        {
+            return currentLayoutMode == other.currentLayoutMode;
+        }
+
+        bool operator!=(const AttachOptions& other) const
+        {
+            return !(*this == other);
+        }
+
+        bool Marshalling(Parcel& parcel) const override
+        {
+            return parcel.WriteString(currentLayoutMode);
+        }
+
+        static AttachOptions* Unmarshalling(Parcel& parcel)
+        {
+            std::string layoutMode = "";
+            auto attachOptions = std::make_unique<AttachOptions>();
+            if (!attachOptions) {
+                return nullptr;
+            }
+            if (!parcel.ReadString(layoutMode)) {
+                return nullptr;
+            }
+            attachOptions->currentLayoutMode = layoutMode;
+            return attachOptions.release();
+        }
+    };
+    AttachOptions attachOptions;
 
     WindowAnchorInfo() {}
     WindowAnchorInfo(bool isAnchorEnabled) : isAnchorEnabled_(isAnchorEnabled) {}
     WindowAnchorInfo(bool isAnchorEnabled, WindowAnchor windowAnchor, int32_t offsetX,
         int32_t offsetY) : isAnchorEnabled_(isAnchorEnabled),  windowAnchor_(windowAnchor),
         offsetX_(offsetX), offsetY_(offsetY) {}
+    WindowAnchorInfo(bool isAnchorEnabled, bool isAnchoredByAttach,  WindowAnchor windowAnchor, int32_t offsetX,
+        int32_t offsetY) : isAnchorEnabled_(isAnchorEnabled), isAnchoredByAttach_(isAnchoredByAttach),
+        windowAnchor_(windowAnchor), offsetX_(offsetX), offsetY_(offsetY) {}
 
     bool operator==(const WindowAnchorInfo& other) const
     {
-        return isAnchorEnabled_ == other.isAnchorEnabled_ && windowAnchor_ == other.windowAnchor_ &&
-            offsetX_ == other.offsetX_ && offsetY_ == other.offsetY_;
+        return isAnchorEnabled_ == other.isAnchorEnabled_ && isAnchoredByAttach_ == other.isAnchoredByAttach_ &&
+            windowAnchor_ == other.windowAnchor_ && offsetX_ == other.offsetX_ && offsetY_ == other.offsetY_;
     }
 
     bool operator!=(const WindowAnchorInfo& other) const
@@ -1452,8 +1526,9 @@ struct WindowAnchorInfo : public Parcelable {
 
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteBool(isAnchorEnabled_) && parcel.WriteUint32(static_cast<uint32_t>(windowAnchor_)) &&
-            parcel.WriteInt32(offsetX_) && parcel.WriteInt32(offsetY_);
+        return parcel.WriteBool(isAnchorEnabled_) && parcel.WriteBool(isAnchoredByAttach_) &&
+            parcel.WriteUint32(static_cast<uint32_t>(windowAnchor_)) && parcel.WriteInt32(offsetX_) &&
+            parcel.WriteInt32(offsetY_);
     }
 
     static WindowAnchorInfo* Unmarshalling(Parcel& parcel)
@@ -1463,7 +1538,8 @@ struct WindowAnchorInfo : public Parcelable {
         if (windowAnchorInfo == nullptr) {
             return nullptr;
         }
-        if (!parcel.ReadBool(windowAnchorInfo->isAnchorEnabled_) || !parcel.ReadUint32(windowAnchorMode) ||
+        if (!parcel.ReadBool(windowAnchorInfo->isAnchorEnabled_)||
+            !parcel.ReadBool(windowAnchorInfo->isAnchoredByAttach_) || !parcel.ReadUint32(windowAnchorMode) ||
             !parcel.ReadInt32(windowAnchorInfo->offsetX_) || !parcel.ReadInt32(windowAnchorInfo->offsetY_)) {
             delete windowAnchorInfo;
             return nullptr;
@@ -2158,15 +2234,17 @@ struct WindowUIInfo : public Parcelable {
  */
 struct WindowDisplayInfo : public Parcelable {
     DisplayId displayId = DISPLAY_ID_INVALID;
+    std::string displayName;
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteUint64(displayId);
+        return parcel.WriteUint64(displayId) && parcel.WriteString(displayName);
     }
 
     static WindowDisplayInfo* Unmarshalling(Parcel& parcel)
     {
         WindowDisplayInfo* windowDisplayInfo = new WindowDisplayInfo();
-        if (!parcel.ReadUint64(windowDisplayInfo->displayId)) {
+        if (!parcel.ReadUint64(windowDisplayInfo->displayId) ||
+            !parcel.ReadString(windowDisplayInfo->displayName)) {
             delete windowDisplayInfo;
             return nullptr;
         }
@@ -2327,6 +2405,51 @@ struct WindowInfoOption : public Parcelable {
         windowInfoOption->windowInfoTypeOption = static_cast<WindowInfoTypeOption>(windowInfoTypeOption);
         return windowInfoOption;
     }
+};
+
+struct CrossProcessWindowInfo : public Parcelable {
+    int32_t persistentId = 0;
+    uint64_t displayId = 0;
+    bool isPcAppInPad = false;
+    bool isPcAppInpadCompatibleMode = false;
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        if (!parcel.WriteInt32(persistentId)) {
+            return false;
+        }
+        if (!parcel.WriteUint64(displayId)) {
+            return false;
+        }
+        if (!parcel.WriteBool(isPcAppInPad)) {
+            return false;
+        }
+        if (!parcel.WriteBool(isPcAppInpadCompatibleMode)) {
+            return false;
+        }
+        return true;
+    }
+
+    static CrossProcessWindowInfo* Unmarshalling(Parcel& parcel)
+    {
+        auto info = new CrossProcessWindowInfo();
+        if (!parcel.ReadInt32(info->persistentId) || !parcel.ReadUint64(info->displayId) ||
+            !parcel.ReadBool(info->isPcAppInPad) || !parcel.ReadBool(info->isPcAppInpadCompatibleMode)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+};
+
+enum class ParentLifeCycleEventType : uint32_t {
+    FOREGROUND = 1,
+    ACTIVE,
+    INACTIVE,
+    BACKGROUND,
+    RESUMED,
+    PAUSED,
+    DESTROYED,
 };
 
 /**
@@ -3553,6 +3676,16 @@ struct StateChangeOption {
         : parentPersistentId_(parentPersistentId), newState_(newState), reason_(reason),
           withAnimation_(withAnimation), withFocus_(withFocus), waitAttach_(waitAttach),
           isFromInnerkits_(isFromInnerkits), waitDetach_(waitDetach) {}
+};
+
+/**
+ * @enum TitleButtonEventType
+ * @brief Represent type of title button event.
+ */
+enum class TitleButtonEventType : uint32_t {
+    EVENT_TYPE_UNDEFINED = 0,
+    EVENT_TYPE_MAXIMIZE = 1,
+    EVENT_TYPE_END = 10,
 };
 }
 }

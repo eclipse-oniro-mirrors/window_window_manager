@@ -21,6 +21,7 @@ ohos_shared_library("cj_screenshot_ffi") {
     cfi = true
     cfi_cross_dso = true
     debug = false
+    cfi_policy = "adaptive"
   }
   configs = [ "../../../../resources/config/build:coverage_flags" ]
 

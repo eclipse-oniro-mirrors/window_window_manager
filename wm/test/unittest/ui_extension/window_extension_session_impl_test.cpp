@@ -3823,6 +3823,20 @@ HWTEST_F(WindowExtensionSessionImplTest, SetUIExtensionTransparent, TestSize.Lev
     window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     EXPECT_EQ(WSError::WS_OK, window_->SetUIExtensionTransparent());
 }
+
+/**
+ * @tc.name: IsBlockSubwindow
+ * @tc.desc: IsBlockSubwindow Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, IsBlockSubwindow, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    window_->isBlockSubwindow_ = true;
+    EXPECT_TRUE(window_->IsBlockSubwindow());
+    window_->isBlockSubwindow_ = false;
+    EXPECT_FALSE(window_->IsBlockSubwindow());
+}
 }
 } // namespace Rosen
 } // namespace OHOS

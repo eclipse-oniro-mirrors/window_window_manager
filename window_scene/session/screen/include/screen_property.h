@@ -304,6 +304,7 @@ public:
     void SetScreenAreaHeight(uint32_t screenAreaHeight) { screenAreaHeight_ = screenAreaHeight; }
     uint32_t GetScreenAreaHeight() const { return screenAreaHeight_; }
     void CalculateXYDpi(uint32_t phyWidth, uint32_t phyHeight);
+    void SetRogScreenResolution(uint32_t width, uint32_t height);
 
 private:
     SuperFoldStatusChangeEvents changeEvent_ {SuperFoldStatusChangeEvents::UNDEFINED};
@@ -407,6 +408,8 @@ private:
     uint32_t mirrorHeight_ { 0 };
 
     FoldDisplayMode displayMode_;
+    uint32_t rogWidth_{ 0 };
+    uint32_t rogHeight_{ 0 };
 };
 } // namespace OHOS::Rosen
 

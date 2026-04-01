@@ -161,8 +161,6 @@ void RootScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configurat
                 window->GetWindowId(), window->GetDisplayId());
             continue;
         }
-        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "root win=%{public}u, display=%{public}" PRIu64,
-            window->GetWindowId(), window->GetDisplayId());
         uiContent->UpdateConfiguration(configuration);
         if (configuration == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "config is null, root win=%{public}u, display=%{public}" PRIu64,
@@ -170,6 +168,11 @@ void RootScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configurat
             continue;
         }
         std::string colorMode = configuration->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE);
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "root win=%{public}u, colorMode=%{public}s, display=%{public}" PRIu64,
+            window->GetWindowId(), colorMode.c_str(), window->GetDisplayId());
+        if (colorMode == AppExecFwk::ConfigurationInner::EMPTY_STRING) {
+            continue;
+        }
         bool isDark = (colorMode == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
         bool ret = RSInterfaces::GetInstance().SetGlobalDarkColorMode(isDark);
         if (ret == false) {

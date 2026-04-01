@@ -875,7 +875,7 @@ private:
      *
      * Records the action time of the most recently handled pointer event during
      * the moving phase of a drag operation. This is used in combination with
-     * `movingEventThrottleIntervalMs_` to determine whether a new event should
+     * `movingEventThrottleIntervalUs_` to determine whether a new event should
      * be processed or skipped for throttling purposes.
      */
     int64_t lastMovingEventActionTimeUs_ = 0;

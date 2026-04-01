@@ -57,6 +57,7 @@ constexpr uint32_t COLOR_WHITE = 0xffffffff;
 constexpr uint32_t COLOR_BLACK = 0xff000000;
 extern const std::string WINDOW_SCREEN_LOCK_PREFIX;
 extern const std::string VIEW_SCREEN_LOCK_PREFIX;
+constexpr const char* BOUNDS_CHANGED = "OnBoundsChanged";
 constexpr int32_t DEFAULT_INVALID_WINDOW_MODE = 0;
 constexpr uint32_t ICON_MAX_SIZE = 128 * 1024 * 1024;
 
@@ -1076,13 +1077,16 @@ struct SingleHandBackgroundTextConfig {
     int32_t height = -1;
     int32_t fontSize = 0;
     int32_t minFontSize = 0;
-    int32_t maxLines = 0;
+    int32_t maxLines = -1;
+    int32_t textAlign = 1;
     std::string maxFontScale = "";
 };
 
 struct SingleHandBackgroundLayoutConfig {
     bool isCustomLayout = false;
     WSRect settingButtonRect = {0, 0, 0, 0};
+    bool isSettingButtonMirror = false;
+    int32_t textContainerWidth = 0;
     SingleHandBackgroundTextConfig title;
     SingleHandBackgroundTextConfig content;
     SingleHandBackgroundTextConfig issueText;
@@ -1183,6 +1187,7 @@ struct SessionEventParam {
     uint32_t compatibleStyleMode = 0;
     int32_t windowGlobalPosX_ = 0;
     int32_t windowGlobalPosY_ = 0;
+    uint32_t titleButtonEventType_ = 0;
 };
 
 struct BackgroundParams {
@@ -1346,6 +1351,16 @@ enum class LifeCycleChangeReason {
     SCREEN_ROTATION,
 
     REASON_END,
+};
+
+enum class ParentLifeCycleEvent : uint32_t {
+    FOREGROUND = 1,
+    ACTIVE,
+    INACTIVE,
+    BACKGROUND,
+    RESUMED,
+    PAUSED,
+    DESTROYED,
 };
 
 enum class AsyncTraceTaskId: int32_t {

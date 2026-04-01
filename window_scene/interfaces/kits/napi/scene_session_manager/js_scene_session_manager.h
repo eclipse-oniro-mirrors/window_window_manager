@@ -57,6 +57,7 @@ enum class ListenerFunctionType : uint32_t {
     SET_SPECIFIC_SESSION_ZINDEX_CB,
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
     MINIMIZE_ALL_CB,
+    NOTIFY_PAGE_ENABLE_REGISTERED_CB,
 };
 
 class JsSceneSessionManager final {
@@ -461,6 +462,13 @@ private:
     napi_value OnSupportCacheLockedSessionSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSupportPreloadStartingWindow(napi_env env, napi_callback_info info);
     napi_value OnPreloadStartingWindow(napi_env env, napi_callback_info info);
+
+    /*
+     * Compatible Mode
+     */
+    void RegisterPageEnableCallback();
+    void OnNotifyPageEnableRegistered(const std::string& bundleName, int32_t windowId,
+        const std::string& action, const std::string& message);
 };
 } // namespace OHOS::Rosen
 

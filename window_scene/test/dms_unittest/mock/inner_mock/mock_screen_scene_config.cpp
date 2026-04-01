@@ -17,7 +17,7 @@
 
 namespace OHOS::Rosen {
 namespace {
-constexpr uint32_t NO_EARTERFALL_DISPLAY_COMPRESSION_SIZE = 0;
+constexpr uint32_t NO_WATERFALL_DISPLAY_COMPRESSION_SIZE = 0;
 constexpr uint32_t DISPLAY_PHYSICAL_SIZE = 2;
 constexpr uint32_t SCROLLABLE_PARAM_SIZE = 2;
 enum XmlNodeElement {
@@ -78,6 +78,9 @@ bool ScreenSceneConfig::isSupportOffScreenRendering_ = false;
 bool ScreenSceneConfig::isConcurrentUser_ = false;
 uint32_t ScreenSceneConfig::curvedAreaInLandscape_ = 0;
 uint32_t ScreenSceneConfig::offScreenPPIThreshold_ = 0;
+uint64_t ScreenSceneConfig::bootTimeThreshold_ = 60;
+int32_t ScreenSceneConfig::rogDpi_ = 0;
+RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 0, 0, 0, 0 };
 std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {DPI, "dpi"},
     {SUB_DPI, "subDpi"},
@@ -255,7 +258,7 @@ void ScreenSceneConfig::SetSubCutoutSvgPath(const std::string& svgPath)
 DMRect ScreenSceneConfig::CalcCutoutBoundaryRect(std::string svgPath)
 {
     DMRect emptyRect = { 0, 0, 0, 0 };
-    return cutoutMinOuterRect;
+    return emptyRect;
 }
 
 std::vector<DMRect> ScreenSceneConfig::GetCutoutBoundaryRect(uint64_t displayId)
@@ -338,12 +341,32 @@ bool ScreenSceneConfig::IsConcurrentUser()
 }
 // LCOV_EXCL_STOP
 
+void ScreenSceneConfig::SetRogResolution(const RogResolution& rogResolution)
+{
+    rogResolution_ = rogResolution;
+}
+
 uint32_t ScreenSceneConfig::GetNumberConfigValue(const std::string& name, const uint32_t& default_value)
 {
     if (intNumbersConfig_.count(name) != 0) {
         return static_cast<uint32_t>(intNumbersConfig_[name][0]);
     }
     return default_value;
+}
+
+RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t height)
+{
+    return rogResolution_;
+}
+
+uint64_t ScreenSceneConfig::GetUptimeSeconds()
+{
+    return 0;
+}
+
+uint64_t ScreenSceneConfig::GetBootTimeThreshold()
+{
+    return bootTimeThreshold_;
 }
 
 }  // namespace OHOS::Rosen

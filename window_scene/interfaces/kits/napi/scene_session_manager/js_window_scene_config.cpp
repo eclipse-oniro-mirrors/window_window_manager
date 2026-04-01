@@ -282,6 +282,8 @@ napi_value JsWindowSceneConfig::CreateSingleHandBackgroundLayoutConfig(
     }
     napi_set_named_property(env, objValue, "isCustomLayout", CreateJsValue(env, config.isCustomLayout));
     napi_set_named_property(env, objValue, "settingButtonRect", CreateJsRect(env, config.settingButtonRect));
+    napi_set_named_property(env, objValue, "isSettingButtonMirror", CreateJsValue(env, config.isSettingButtonMirror));
+    napi_set_named_property(env, objValue, "textContainerWidth", CreateJsValue(env, config.textContainerWidth));
     napi_set_named_property(env, objValue, "title", CreateSingleHandBackgroundTextConfig(env, config.title));
     napi_set_named_property(env, objValue, "content", CreateSingleHandBackgroundTextConfig(env, config.content));
     napi_set_named_property(env, objValue, "issueText", CreateSingleHandBackgroundTextConfig(env, config.issueText));
@@ -321,6 +323,7 @@ napi_value JsWindowSceneConfig::CreateSingleHandBackgroundTextConfig(
     napi_set_named_property(env, objValue, "fontSize", CreateJsValue(env, config.fontSize));
     napi_set_named_property(env, objValue, "minFontSize", CreateJsValue(env, config.minFontSize));
     napi_set_named_property(env, objValue, "maxLines", CreateJsValue(env, config.maxLines));
+    napi_set_named_property(env, objValue, "textAlign", CreateJsValue(env, config.textAlign));
     napi_set_named_property(env, objValue, "maxFontScale", CreateJsValue(env, config.maxFontScale));
     return objValue;
 }

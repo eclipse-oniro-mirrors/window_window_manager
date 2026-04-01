@@ -25,6 +25,8 @@ public:
     static void MockIsSACalling(const bool mockGetTokenTypeFlagRet);
     static void MockAccessTokenKitRet(int32_t accessTokenKitRet);
     static void ChangeMockStateToInit();
+    static void MockIsUseTokenMap(const bool useTokenMap);
+    static void MockTokenMap(const std::string& permissionName, int32_t available);
 };
 } // namespace OHOS::Rosen
 #endif // WINDOW_MANAGER_MOCK_ACCESSTOKEN_KIT_H

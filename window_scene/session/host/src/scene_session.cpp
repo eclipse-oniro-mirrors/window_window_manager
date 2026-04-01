@@ -658,6 +658,7 @@ WSError SceneSession::BackgroundTask(const bool isSaveSnapshot, LifeCycleChangeR
             session->specificCallback_->onHandleSecureSessionShouldHide_(session);
             session->UpdateGestureBackEnabled();
         }
+        session->NotifyCrossProcessChildrenLifecycle(ParentLifeCycleEvent::BACKGROUND);
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
@@ -1070,6 +1071,7 @@ void SceneSession::ApplySessionEventParam(SessionEvent event, const SessionEvent
     switch (event) {
         case SessionEvent::EVENT_MAXIMIZE:
             sessionEventParam_.waterfallResidentState = param.waterfallResidentState;
+            sessionEventParam_.titleButtonEventType_ = param.titleButtonEventType_;
             break;
         case SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE:
             sessionEventParam_.compatibleStyleMode = param.compatibleStyleMode;
@@ -1077,6 +1079,7 @@ void SceneSession::ApplySessionEventParam(SessionEvent event, const SessionEvent
         default:
             sessionEventParam_.waterfallResidentState = static_cast<uint32_t>(WaterfallResidentState::UNCHANGED);
             sessionEventParam_.compatibleStyleMode = static_cast<uint32_t>(CompatibleStyleMode::LANDSCAPE_DEFAULT);
+            sessionEventParam_.titleButtonEventType_ = static_cast<uint32_t>(TitleButtonEventType::EVENT_TYPE_UNDEFINED);
             break;
     }
 }
@@ -1138,6 +1141,7 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
         }
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s event: %{public}d", where, static_cast<int32_t>(event));
         session->NotifyWindowStatusDidChangeIfNeedWhenSessionEvent(event);
+        session->NotifySubSessionParentStatusChange(session->GetWindowMode());
         session->UpdateWaterfallMode(event);
         auto property = session->GetSessionProperty();
         bool proportionalScale = property->IsAdaptToProportionalScale();
@@ -1938,7 +1942,11 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
 
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
     if (GetForegroundInteractiveStatus()) {
-        GetAllAvoidAreas(avoidAreas);
+        if (IsImmersiveType() && updateReason == BOUNDS_CHANGED) {
+            MarkAvoidAreaAsDirty();
+        } else {
+            GetAllAvoidAreas(avoidAreas);
+        }
     } else {
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}d] avoid area update rejected by recent", GetPersistentId());
     }
@@ -3244,7 +3252,7 @@ void SceneSession::HookAvoidAreaInCompatibleMode(const WSRect& rect, AvoidAreaTy
     AvoidArea& avoidArea) const
 {
     WindowMode mode = GetWindowMode();
-    if (!GetSessionProperty()->IsAdaptToImmersive() || mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
+    if (!GetSessionProperty()->IsAdaptToImmersive()) {
         return;
     }
     float vpr = 1.9f; // 3.5f: default pixel ratio
@@ -4298,7 +4306,7 @@ bool SceneSession::SaveAspectRatio(float ratio)
 /** @note @window.drag */
 void SceneSession::InitializeCrossMoveDrag()
 {
-    auto movedSurfaceNode = GetSurfaceNodeForMoveDrag();
+    auto movedSurfaceNode = GetMoveDragTargetSurfaceNode();
     if (!movedSurfaceNode) {
         return;
     }
@@ -4336,17 +4344,7 @@ void SceneSession::HandleMoveDragSurfaceBounds(
     const bool isDragMoveOrEnd = reason == SizeChangeReason::DRAG_MOVE || reason == SizeChangeReason::DRAG_END;
 
     if (isTouchDrag && allowThrowSlip && isDragMoveOrEnd) {
-        // Foldable PC Slip Animation Path
-        bool hasAnimation = reason == SizeChangeReason::DRAG_END && pcFoldScreenController_->NeedFollowHandAnimation();
-        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "reason=%{public}u, hasAnimation=%{public}d",
-              static_cast<uint32_t>(reason), hasAnimation);
-        if (hasAnimation) {
-            auto movingPair = std::make_pair(pcFoldScreenController_->GetMovingTimingProtocol(),
-                                             pcFoldScreenController_->GetMovingTimingCurve());
-            SetSurfaceBoundsWithAnimation(movingPair, globalRect, nullptr, isGlobal);
-        } else {
-            SetSurfaceBounds(globalRect, isGlobal, needFlush);
-        }
+        SetSurfaceBounds(globalRect, isGlobal, needFlush);
         pcFoldScreenController_->RecordMoveRects(rect);
     } else if (reason == SizeChangeReason::DRAG_START) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Drag-start event doesn't set surface bounds");
@@ -4585,8 +4583,8 @@ bool SceneSession::MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeR
         return false;
     }
     bool isDockAutoHide = onGetIsDockAutoHideFunc_ ? onGetIsDockAutoHideFunc_() : false;
-    int32_t statusBarHeight = (IsLayoutFullScreen() || isDockAutoHide) ? 0 : GetStatusBarHeight();
-    int32_t dockHeight = (IsLayoutFullScreen() || isDockAutoHide) ? 0 : GetDockHeight();
+    int32_t statusBarHeight = (IsLayoutFullScreen() || isDockAutoHide || IsAncoInFullScreen()) ? 0 : GetStatusBarHeight();
+    int32_t dockHeight = (IsLayoutFullScreen() || isDockAutoHide || IsAncoInFullScreen()) ? 0 : GetDockHeight();
     CompatibilityModeWindowScaleTransfer(rect, true);
     bool ret = pcFoldScreenController_->ThrowSlip(GetScreenId(), rect, statusBarHeight, dockHeight);
     if (!ret) {
@@ -5083,11 +5081,12 @@ std::shared_ptr<Rosen::RSNode> SceneSession::GetWindowDragMoveMountedNode(Displa
 /** @note @window.drag */
 void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
 {
-    auto movedSurfaceNode = GetSurfaceNodeForMoveDrag();
-    if (movedSurfaceNode == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "SurfaceNode is null");
-        return;
-    }
+    auto targetSurfaceNode = GetMoveDragTargetSurfaceNode();
+    RETURN_IF_NULL(targetSurfaceNode);
+
+    auto targetShadowSurfaceNode = GetMoveDragTargetShadowSurfaceNode();
+    RETURN_IF_NULL(targetShadowSurfaceNode);
+
     const auto startDisplayId = moveDragController_->GetMoveDragStartDisplayId();
     auto startScreenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(startDisplayId);
     if (startScreenSession == nullptr) {
@@ -5119,23 +5118,29 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
                 continue;
             }
             {
-                AutoRSTransaction trans(movedSurfaceNode->GetRSUIContext());
+                AutoRSTransaction trans(targetShadowSurfaceNode);
                 // In cross-display drag scenarios, SetIsCrossNode(true) creates a clone node.
                 // The clone node uses global position, so GlobalPosition must be enabled, and
                 // Bounds / Frame must be updated synchronously. Otherwise, if deferred to a
                 // vsync callback, the clone node will be rendered at an incorrect position in
                 // its first frame.
-                movedSurfaceNode->SetGlobalPositionEnabled(true);
-                movedSurfaceNode->SetBounds(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
-                movedSurfaceNode->SetFrame(globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
-                movedSurfaceNode->SetPositionZ(MOVE_DRAG_POSITION_Z);
-                movedSurfaceNode->SetIsCrossNode(true);
+                targetShadowSurfaceNode->SetGlobalPositionEnabled(true);
+                targetShadowSurfaceNode->SetBounds(
+                    globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
+                targetShadowSurfaceNode->SetFrame(
+                    globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_);
             }
-
             {
-                AutoRSTransaction trans(dragMoveMountedNode->GetRSUIContext());
+                AutoRSTransaction trans(targetSurfaceNode);
+                // PositionZ depends on RSTransformModifier. Shadow node adaptation is not
+                // supported yet, so the value is set on the original surface node.
+                targetSurfaceNode->SetPositionZ(MOVE_DRAG_POSITION_Z);
+                targetSurfaceNode->SetIsCrossNode(true);
+            }
+            {
+                AutoRSTransaction trans(dragMoveMountedNode);
                 // input parameter -1 means inserting to the end of childList
-                dragMoveMountedNode->AddCrossScreenChild(movedSurfaceNode, -1, true);
+                dragMoveMountedNode->AddCrossScreenChild(targetSurfaceNode, -1, true);
             }
             HandleSubSessionSurfaceNodeByWindowAnchor(reason, displayId);
             TLOGI(WmsLogTag::WMS_LAYOUT, "Add window to display: %{public}" PRIu64 "persistentId: %{public}d",
@@ -5151,15 +5156,15 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
                 TLOGE(WmsLogTag::WMS_LAYOUT, "dragMoveMountedNode is null");
                 continue;
             }
-            movedSurfaceNode->SetPositionZ(moveDragController_->GetOriginalPositionZ());
-            movedSurfaceNode->SetIsCrossNode(false);
-            dragMoveMountedNode->RemoveCrossScreenChild(movedSurfaceNode);
+            targetSurfaceNode->SetPositionZ(moveDragController_->GetOriginalPositionZ());
+            targetSurfaceNode->SetIsCrossNode(false);
+            dragMoveMountedNode->RemoveCrossScreenChild(targetSurfaceNode);
             // When the drag-to-move or drag-to-scale operation ends, if the window's current screen
             // is the same as the starting screen, the cloned node is removed immediately. Otherwise,
             // the removal of the cloned node is submitted along with the vsync refresh.
             if (!moveDragController_->IsWindowCrossScreenOnDragEnd()) {
                 TLOGD(WmsLogTag::WMS_LAYOUT, "Cloned node removed immediately");
-                RSTransactionAdapter::FlushImplicitTransaction({ movedSurfaceNode, dragMoveMountedNode });
+                RSTransactionAdapter::FlushImplicitTransaction({ targetSurfaceNode, dragMoveMountedNode });
             }
             HandleSubSessionSurfaceNodeByWindowAnchor(reason, displayId);
             TLOGI(WmsLogTag::WMS_LAYOUT, "Remove window from display: %{public}" PRIu64 "persistentId: %{public}d",
@@ -5279,11 +5284,6 @@ void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool need
         "id: %{public}d, type: %{public}u, rect: %{public}s, isGlobal: %{public}d, needFlush: %{public}d",
         windowId, windowType, rect.ToString().c_str(), isGlobal, needFlush);
 
-    if (getRsCmdBlockingCountFunc_ != nullptr && getRsCmdBlockingCountFunc_() > 0) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "creating node, stop commit");
-        return;
-    }
-
     auto surfaceNode = GetSurfaceNode();
     RETURN_IF_NULL(surfaceNode);
 
@@ -5300,31 +5300,61 @@ void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool need
         TLOGD(WmsLogTag::WMS_KEYBOARD, "On drag end, needFlush: %{public}d", needFlush);
     }
 
-    auto leashWinSurfaceNode = GetLeashWinSurfaceNode();
-    if (leashWinSurfaceNode) {
-        AutoRSTransaction trans(surfaceNode, needFlush);
+    // If the bounds update needs to be flushed to RS immediately, operate on a
+    // shadow node instead of the original one.
+    // SurfaceNode updates are recorded as RS commands and committed through the
+    // current RSTransaction. Flushing the original node may also commit other
+    // pending modifications on the same node prematurely.
+    // Using the shadow node isolates this update, ensuring that only the bounds
+    // change is flushed to RS without affecting other SurfaceNode updates.
+    if (needFlush) {
+        SetSurfaceBoundsWithShadowNode(rect, isGlobal);
+    } else {
+        // Otherwise, commit together with the next ArkUI relayout in the normal transaction.
+        SetSurfaceBoundsWithOriginalNode(rect, isGlobal);
+    }
+}
+
+void SceneSession::SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal)
+{
+    auto surfaceNode = GetSurfaceNode();
+    RETURN_IF_NULL(surfaceNode);
+
+    if (auto leashWinSurfaceNode = GetLeashWinSurfaceNode()) {
+        surfaceNode->SetBounds(0.0f, 0.0f, rect.width_, rect.height_);
+        surfaceNode->SetFrame(0.0f, 0.0f, rect.width_, rect.height_);
         leashWinSurfaceNode->SetGlobalPositionEnabled(isGlobal);
         leashWinSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
         leashWinSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        surfaceNode->SetBounds(0, 0, rect.width_, rect.height_);
-        surfaceNode->SetFrame(0, 0, rect.width_, rect.height_);
-        return;
-    }
-
-    // NOTE: This judgment might be redundant and can be removed later.
-    const bool isDraggableSpecialWindow = WindowHelper::IsPipWindow(windowType) ||
-                                          WindowHelper::IsSubWindow(windowType) ||
-                                          WindowHelper::IsDialogWindow(windowType) ||
-                                          WindowHelper::IsSystemWindow(windowType);
-    if (isDraggableSpecialWindow) {
-        AutoRSTransaction trans(surfaceNode, needFlush);
+    } else {
         surfaceNode->SetGlobalPositionEnabled(isGlobal);
         surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
         surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
+    }
+}
+
+void SceneSession::SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal)
+{
+    auto shadowSurfaceNode = EnsureMoveDragShadowSurfaceNode();
+    RETURN_IF_NULL(shadowSurfaceNode);
+
+    if (auto leashWinShadowSurfaceNode = EnsureMoveDragLeashWinShadowSurfaceNode()) {
+        {
+            AutoRSTransaction trans(shadowSurfaceNode);
+            shadowSurfaceNode->SetBounds(0.0f, 0.0f, rect.width_, rect.height_);
+            shadowSurfaceNode->SetFrame(0.0f, 0.0f, rect.width_, rect.height_);
+        }
+        {
+            AutoRSTransaction trans(leashWinShadowSurfaceNode);
+            leashWinShadowSurfaceNode->SetGlobalPositionEnabled(isGlobal);
+            leashWinShadowSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
+            leashWinShadowSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
+        }
     } else {
-        TLOGE(WmsLogTag::WMS_LAYOUT,
-              "id: %{public}d, type: %{public}u, unsupported to set bounds",
-              windowId, windowType);
+        AutoRSTransaction trans(shadowSurfaceNode);
+        shadowSurfaceNode->SetGlobalPositionEnabled(isGlobal);
+        shadowSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
+        shadowSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
     }
 }
 
@@ -6384,6 +6414,36 @@ void SceneSession::CalculateStartWindowType(SessionInfo& info, bool hideStartWin
 void SceneSession::RegisterGetStartWindowConfigFunc(GetStartWindowTypeFunc&& func)
 {
     getStartWindowConfigFunc_ = std::move(func);
+}
+
+void SceneSession::NotifyParentLifecycleEvent(ParentLifeCycleEvent event)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LIFE, "sessionStage is nullptr");
+        return;
+    }
+    sessionStage_->NotifyParentLifecycleEvent(event);
+}
+
+void SceneSession::NotifyCrossProcessChildrenLifecycle(ParentLifeCycleEvent event)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "parentId: %{public}d, event: %{public}u",
+        GetPersistentId(), static_cast<uint32_t>(event));
+    const auto& subSessions = GetSubSession();
+    for (const auto& subSession : subSessions) {
+        if (subSession == nullptr) {
+            continue;
+        }
+        if (subSession->GetSessionProperty() == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "id:%{public}d, property is null", subSession->GetPersistentId());
+            continue;
+        }
+        if (subSession->GetSessionProperty()->GetIsCrossProcessWindow()) {
+            TLOGI(WmsLogTag::WMS_LIFE, "Cross-process subWindow found, subId: %{public}d, event: %{public}u",
+                subSession->GetPersistentId(), static_cast<uint32_t>(event));
+            subSession->NotifyParentLifecycleEvent(event);
+        }
+    }
 }
 
 void SceneSession::NotifyPendingSessionActivation(SessionInfo& info)
@@ -8705,6 +8765,16 @@ void SceneSession::SetWindowAnchorInfoChangeFunc(NotifyWindowAnchorInfoChangeFun
 WSError SceneSession::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo)
 {
     auto property = GetSessionProperty();
+    if(windowAnchorInfo.isAnchoredByAttach_ && !SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Not system app, no permission");
+        return WSError::WS_ERROR_NOT_SYSTEM_APP;
+    }
+    auto parentSession = GetParentSession();
+    if (parentSession && !WindowHelper::IsMainWindow(parentSession->GetWindowType()))
+    {
+        TLOGE(WmsLogTag::WMS_SUB, "parent window is not mainWindow");
+        return WSError::WS_ERROR_INVALID_OPERATION;
+    }
     if (!property || property->GetSubWindowLevel() > 1) {
         TLOGE(WmsLogTag::WMS_SUB, "property is null or not surppot more than 1 level window");
         return WSError::WS_ERROR_INVALID_OPERATION;
@@ -10075,6 +10145,15 @@ WSError SceneSession::SetCurrentRotation(int32_t currentRotation)
     return WSError::WS_OK;
 }
 
+WSError SceneSession::GetSceneNodeCount(uint32_t& nodeCount)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::DEFAULT, "sessionStage_ is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    return sessionStage_->GetSceneNodeCount(nodeCount);
+}
+
 WSError SceneSession::UpdateRotationChangeRegistered(int32_t persistentId, bool isRegister)
 {
     PostTask(
@@ -10196,6 +10275,26 @@ void SceneSession::HookSceneSessionActivation(NotifyHookSceneSessionActivationFu
         }
         session->hookSceneSessionActivationFunc_ = std::move(func);
     }, where);
+}
+
+void SceneSession::NotifySubSessionParentSizeChange(Rect rect)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "subSessionSize: %{public}zu", GetSubSession().size());
+    for(const auto& subSession : GetSubSession()) {
+        if (subSession && subSession->sessionStage_ && subSession->GetWindowAnchorInfo().isAnchoredByAttach_) {
+            subSession->sessionStage_->NotifySubWindowAfterParentWindowSizeChange(rect);
+        }
+    }
+}
+
+void SceneSession::NotifySubSessionParentStatusChange(WindowMode mode)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "subSessionSize: %{public}zu", GetSubSession().size());
+    for(const auto& subSession : GetSubSession()) {
+        if (subSession && subSession->sessionStage_ && subSession->GetWindowAnchorInfo().isAnchoredByAttach_) {
+            subSession->sessionStage_->NotifySubWindowAfterParentWindowStatusChange(mode);
+        }
+    }
 }
 
 void SceneSession::NotifyWindowAttachStateListenerRegistered(bool registered)
@@ -10639,6 +10738,11 @@ void SceneSession::RegisterIsSessionBoundedSystemTrayCallback(
     const std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>& callback)
 {
     isSessionBoundedSystemTrayCallback_ = callback;
+}
+
+bool SceneSession::IsAncoInFullScreen()
+{
+    return IsAnco() && IsPcWindow() && GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
 }
 /*
  * Window Event end

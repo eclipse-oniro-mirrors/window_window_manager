@@ -49,7 +49,7 @@ void ProductConfigMock::ResetToPLR()
     currentConfig_.innerScreenId_ = {0};
     currentConfig_.screenActiveModeId_ = {{0, 3}};
     currentConfig_.screenModeInfo_ = {{0,
-                                       {{1316. 2832, 120, 0},
+                                       {{1316, 2832, 120, 0},
                                         {1316, 2832, 90, 1},
                                         {1316, 2832, 72, 2},
                                         {1316, 2832, 60, 3},

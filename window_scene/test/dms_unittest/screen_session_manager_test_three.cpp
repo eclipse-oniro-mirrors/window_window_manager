@@ -516,6 +516,29 @@ HWTEST_F(ScreenSessionManagerTest, GetPhysicalScreenSession002, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnGetHdrFormats
+ * @tc.desc: OnGetHdrFormats
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnGetHdrFormats, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ASSERT_EQ(ssm_->clientProxy_, nullptr);
+
+    ScreenId screenId = 123;
+    std::vector<ScreenHDRFormat> rsHdrFormats{ScreenHDRFormat::VIDEO_AIHDR};
+    std::vector<ScreenHDRFormat> rsHdrFormatsEmpty{};
+    ssm_->OnGetHdrFormats(screenId, nullptr, rsHdrFormatsEmpty);
+    ssm_->OnGetHdrFormats(screenId, nullptr, rsHdrFormats);
+
+    sptr<ScreenSession> session = new ScreenSession();
+    ssm_->OnGetHdrFormats(screenId, session, rsHdrFormatsEmpty);
+    ssm_->OnGetHdrFormats(screenId, session, rsHdrFormats);
+    auto hdrFormats = session->hdrFormats_;
+    EXPECT_TRUE(std::find(hdrFormats.begin(), hdrFormats.end(), ScreenHDRFormat::VIDEO_AIHDR) != hdrFormats.end());
+}
+
+/**
  * @tc.name: OnScreenModeChange
  * @tc.desc: OnScreenModeChange
  * @tc.type: FUNC

@@ -132,6 +132,7 @@ public:
         std::vector<std::tuple<ResourceManager::NapiValueType, std::string>>& jsParams));
     MOCK_METHOD3(GetStringFormatById, RState(std::string& outValue, uint32_t id, va_list args));
     MOCK_METHOD3(GetStringFormatByName, RState(std::string& outValue, const char* name, va_list args));
+    MOCK_METHOD2(GetResName, RState(uint32_t id, std::string &outValue));
     virtual RState GetStringFormatByName(std::string& outValue, const char* name, ...)
     {
         return SUCCESS;

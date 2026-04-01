@@ -1042,15 +1042,53 @@ enum class WindowAnchor : uint32_t {
  */
 struct WindowAnchorInfo : public Parcelable {
     bool isAnchorEnabled_ = false;
+    bool isAnchoredByAttach_ = false;
     WindowAnchor windowAnchor_ = WindowAnchor::TOP_START;
     int32_t offsetX_ = 0;
     int32_t offsetY_ = 0;
+    struct AttachOptions : public Parcelable {
+        std::string currentLayoutMode = "";
+        AttachOptions() = default;
+        AttachOptions(const std::string&& currentLayoutMode) : currentLayoutMode(currentLayoutMode) {}
+        bool operator==(const AttachOptions& other) const
+        {
+            return currentLayoutMode == other.currentLayoutMode;
+        }
+
+        bool operator!=(const AttachOptions& other) const
+        {
+            return !(*this == other);
+        }
+
+        bool Marshalling(Parcel& parcel) const override
+        {
+            return parcel.WriteString(currentLayoutMode);
+        }
+
+        static AttachOptions* Unmarshalling(Parcel& parcel)
+        {
+            std::string layoutMode = "";
+            auto attachOptions = std::make_unique<AttachOptions>();
+            if (!attachOptions) {
+                return nullptr;
+            }
+            if (!parcel.ReadString(layoutMode)) {
+                return nullptr;
+            }
+            attachOptions->currentLayoutMode = layoutMode;
+            return attachOptions.release();
+        }
+    };
+    AttachOptions attachOptions;
 
     WindowAnchorInfo() {}
     WindowAnchorInfo(bool isAnchorEnabled) : isAnchorEnabled_(isAnchorEnabled) {}
     WindowAnchorInfo(bool isAnchorEnabled, WindowAnchor windowAnchor, int32_t offsetX,
         int32_t offsetY) : isAnchorEnabled_(isAnchorEnabled),  windowAnchor_(windowAnchor),
         offsetX_(offsetX), offsetY_(offsetY) {}
+    WindowAnchorInfo(bool isAnchorEnabled, bool isAnchoredByAttach, WindowAnchor windowAnchor, int32_t offsetX,
+        int32_t offsetY) : isAnchorEnabled_(isAnchorEnabled), isAnchoredByAttach_(isAnchoredByAttach),
+        windowAnchor_(windowAnchor), offsetX_(offsetX), offsetY_(offsetY) {}
 
     bool operator==(const WindowAnchorInfo& other) const
     {
@@ -1432,15 +1470,17 @@ struct WindowUIInfo : public Parcelable {
  */
 struct WindowDisplayInfo : public Parcelable {
     DisplayId displayId = DISPLAY_ID_INVALID;
+    std::string displayName;
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteUint64(displayId);
+        return parcel.WriteUint64(displayId) && parcel.WriteString(displayName);
     }
 
     static WindowDisplayInfo* Unmarshalling(Parcel& parcel)
     {
         WindowDisplayInfo* windowDisplayInfo = new WindowDisplayInfo();
-        if (!parcel.ReadUint64(windowDisplayInfo->displayId)) {
+        if (!parcel.ReadUint64(windowDisplayInfo->displayId) ||
+            !parcel.ReadString(windowDisplayInfo->displayName)) {
             delete windowDisplayInfo;
             return nullptr;
         }

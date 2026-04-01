@@ -356,7 +356,7 @@ Vector4<T> Vector4<T>::operator+(const Vector4<T>& other) const
     return Vector4<T>(
         thisData[0] + otherData[0],
         thisData[1] + otherData[1],
-        thisData[[INDEX_TWO]] + otherData[[INDEX_TWO]],
+        thisData[INDEX_TWO] + otherData[INDEX_TWO],
         thisData[INDEX_THREE] + otherData[INDEX_THREE]);
 }
 

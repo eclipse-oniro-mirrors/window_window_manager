@@ -138,7 +138,7 @@ ohos_static_library("window_extension_unittest_common") {
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/session_manager:scene_session_manager",
-    "${window_base_path}/wm:libwm",
+    "${window_base_path}/wm:libwm_static",
     "${window_base_path}/wm:libwm_lite",
     "${window_base_path}/wmserver:libwms",
   ]

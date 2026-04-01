@@ -46,6 +46,8 @@ enum class RegisterListenerType : uint32_t {
     DIALOG_DEATH_RECIPIENT_CB,
     WINDOW_STATUS_CHANGE_CB,
     WINDOW_STATUS_DID_CHANGE_CB,
+    PARENT_WINDOW_SIZE_CHANGE_CB,
+    PARENT_WINDOW_STATUS_CHANGE_CB,
     WINDOW_TITLE_BUTTON_RECT_CHANGE_CB,
     WINDOW_VISIBILITY_CHANGE_CB,
     OCCLUSION_STATE_CHANGE_CB,
@@ -66,6 +68,7 @@ enum class RegisterListenerType : uint32_t {
     WINDOW_ROTATION_CHANGE_CB,
     FREE_WINDOW_MODE_CHANGE_CB,
     APPLICATION_FOCUS_STATE_CHANGE_CB,
+    PARENT_LIFECYCLE_EVENT_CB,
 };
 
 class JsWindowRegisterManager {
@@ -134,6 +137,10 @@ private:
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessWindowStatusDidChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
+    WmErrorCode ProcessParentWindowSizeChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
+        bool isRegister, napi_env env, napi_value parameter = nullptr);
+    WmErrorCode ProcessParentWindowStatusChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
+        bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessWindowTitleButtonRectChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessWindowRectChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
@@ -154,6 +161,8 @@ private:
     WmErrorCode ProcessWindowRotationChangeRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessFreeWindowModeChangeRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
+        bool isRegister, napi_env env, napi_value parameter = nullptr);
+    WmErrorCode ProcessParentLifecycleEventRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessListener(RegisterListenerType registerListenerType, CaseType caseType,
         const sptr<JsWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,

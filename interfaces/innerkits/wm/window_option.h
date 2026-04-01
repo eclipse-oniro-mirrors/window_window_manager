@@ -662,6 +662,34 @@ public:
      */
     bool IsFollowCreatorLifecycle() const;
 
+    /**
+    * @brief Set whether this window is a cross-process window.
+    *
+    * @param isCrossProcessWindow true means the window is a cross-process window.
+    */
+    void SetIsCrossProcessWindow(bool isCrossProcessWindow);
+ 	 
+    /**
+    * @brief Check whether this window is a cross-process window.
+    *
+    * @return true - this window is a cross-process window, false - this window is not a cross-process window.
+    */
+    bool IsCrossProcessWindow() const;
+
+    /**
+     * @brief Set whether this window is a block subwindow.
+     *
+     * @param isBlockSubwindow true - is a block subwindow, false - is not a block subwindow.
+     */
+    void SetIsBlockSubwindow(bool isBlockSubwindow);
+
+    /**
+     * @brief Get whether this window is a block subwindow.
+     *
+     * @return true - is a block subwindow, false - is not a block subwindow.
+     */
+    bool IsBlockSubwindow() const;
+
 private:
     Rect windowRect_ { 0, 0, 0, 0 };
     WindowType type_ { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW };
@@ -699,6 +727,7 @@ private:
     int32_t zIndex_ = SPECIFIC_ZINDEX_INVALID;
     bool isSystemKeyboard_ = false;
     bool defaultDensityEnabled_ = false;
+    bool isCrossProcessWindow_ = false;
 
     /*
      * UIExtension
@@ -713,6 +742,7 @@ private:
     bool isConstrainedModal_ = false;
     int64_t startModalExtensionTimeStamp_ = -1;
     bool followCreatorLifecycle_ = false;
+    bool isBlockSubwindow_ = false;
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,7 +21,6 @@
 #include <mutex>
 #include <refbase.h>
 #include <shared_mutex>
-#include <vector>
 
 #include "dm_common.h"
 #include "focus_change_info.h"
@@ -672,6 +671,7 @@ class WindowManager : public RefBase {
 public:
     static WindowManager& GetInstance(const int32_t userId);
     static WMError RemoveInstanceByUserId(const int32_t userId);
+    static bool IsMultiInstanceEnabled();
 
     /**
      * @brief Register WMS connection status changed listener.
@@ -984,6 +984,14 @@ public:
     WMError ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId);
 
     /**
+     * @brief Obtain cross-process window information
+     *
+     * @param crossProcessWindowInfo Cross-process window information
+     * @return WM_OK means get success, others means get failed.
+     */
+    WMError GetCrossProcessWindowInfo(CrossProcessWindowInfo& crossProcessWindowInfo);
+
+    /**
      * @brief Get accessibility window info.
      *
      * @param infos WindowInfos used for Accessibility.
@@ -1185,6 +1193,18 @@ public:
      */
     WMError SetStartWindowBackgroundColor(
         const std::string& moduleName, const std::string& abilityName, uint32_t color);
+
+    /**
+     * @brief Snapshot by window id.
+     * @caller SA
+     * @permission SA permission
+     *
+     * @param pixelMap Snapshot output pixel map.
+     * @param windowId Window id which want to snapshot.
+     * @param config Snapshot configuration.
+     * @return WM_OK means snapshot success, others means failed.
+     */
+    WMError Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap, int32_t windowId, const SnapshotConfig& config);
 
     /**
      * @brief Get snapshot by window id.
@@ -1538,8 +1558,9 @@ private:
     ~WindowManager() override;
 
     const int32_t userId_;
+    static const int32_t MAX_INSTANCE_NUM = 20;
     static std::unordered_map<int32_t, sptr<WindowManager>> windowManagerMap_;
-    static std::mutex windowManagerMapMutex_;
+    static std::shared_mutex windowManagerMapMutex_;
 
     std::recursive_mutex mutex_;
     class Impl;
@@ -1555,10 +1576,8 @@ private:
     OutlineParams outlineParams_;
     bool isOutlineRecoverRegistered_ = false;
     WMError CheckOutlineParams(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams);
-    
+
     void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const;
-    void UpdateFocusStatus(uint32_t windowId, const sptr<IRemoteObject>& abilityToken, WindowType windowType,
-        DisplayId displayId, bool focused) const;
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) const;
     void UpdateWindowModeTypeInfo(WindowModeType type) const;
     void UpdateSystemBarRegionTints(DisplayId displayId, const SystemBarRegionTints& tints) const;
@@ -1594,10 +1613,8 @@ private:
     WMError UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     void SetIsModuleHookOffToSet(const std::string& moduleName);
     bool GetIsModuleHookOffFromSet(const std::string& moduleName);
-
-    // For fault agent re-register.
-    void ActiveFaultAgentReregister(const WindowManagerAgentType type,
-        const sptr<WindowManagerAgent>& agent, WMError& ret);
+    // For agent which register failed to re-register.
+    WMError ActiveFaultAgentReregister(const WindowManagerAgentType type, const sptr<WindowManagerAgent>& agent);
 };
 } // namespace Rosen
 } // namespace OHOS

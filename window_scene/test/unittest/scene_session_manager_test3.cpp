@@ -1990,13 +1990,11 @@ HWTEST_F(SceneSessionManagerTest3, StartOrMinimizePcAppInPadUIAbilityBySCB, Test
  */
 HWTEST_F(SceneSessionManagerTest3, NotifyRotationBegin, TestSize.Level1)
 {
-    bool isStopDrag = false;
-    ssm_->NotifyRotationBegin(isStopDrag);
-    EXPECT_FALSE(isStopDrag);
-
-    isStopDrag = true;
-    ssm_->NotifyRotationBegin(isStopDrag);
-    EXPECT_TRUE(isStopDrag);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->NotifyRotationBegin();
+    EXPECT_TRUE(g_logMsg.find("NotifyRotationBegin") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 } // namespace
 } // namespace Rosen

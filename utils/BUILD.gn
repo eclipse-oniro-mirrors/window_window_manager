@@ -43,6 +43,7 @@ ohos_source_set("ui_effect_controller_common") {
     integer_overflow = true
     ubsan = true
     boundary_sanitize = true
+    cfi_policy = "adaptive"
   }
 
   sources = [
@@ -53,15 +54,15 @@ ohos_source_set("ui_effect_controller_common") {
     ":libwmutil_public_config",
   ]
 
-  public_deps = [
+  deps = [
     ":libwmutil_base",
   ]
 
-  public_external_deps = [
+  external_deps = [
+    "ability_runtime:runtime",
     "c_utils:utils",
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
-    "ability_runtime:runtime",
     "napi:ace_napi",
   ]
   part_name = "window_manager"
@@ -163,6 +164,7 @@ ohos_shared_library("libwmutil_base") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "src/accessibility_window_info.cpp",

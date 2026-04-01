@@ -61,8 +61,11 @@ class AniWindowListener : public IWindowChangeListener,
                         public IRectChangeInGlobalDisplayListener,
                         public IExtensionSecureLimitChangeListener,
                         public IWindowStatusDidChangeListener,
+                        public IParentWindowSizeChangeListener,
+                        public IParentWindowStatusChangeListener,
                         public IWindowRotationChangeListener,
                         public IFreeWindowModeChangeListener,
+                        public IParentLifecycleEventListener,
                         public IAcrossDisplaysChangeListener,
                         public IScreenshotAppEventListener,
                         public IApplicationFocusChangedListener,
@@ -124,6 +127,8 @@ public:
     void OnRectChangeInGlobalDisplay(const Rect& rect, WindowSizeChangeReason reason) override;
     void OnSecureLimitChange(bool isLimit) override;
     void OnWindowStatusDidChange(WindowStatus status) override;
+    void OnParentWindowSizeChange(Rect rect) override;
+    void OnParentWindowStatusChange(WindowStatus status) override;
     void OnFreeWindowModeChange(bool IsInFreeWindowMode) override;
     void OnAcrossDisplaysChanged(bool isAcrossDisplays) override;
     void OnScreenshotAppEvent(ScreenshotEventType type) override;
@@ -132,6 +137,12 @@ public:
     void AfterLifecycleBackground() override;
     void AfterLifecycleResumed() override;
     void AfterLifecyclePaused() override;
+
+    void OnParentForeground(int32_t windowId) override;
+    void OnParentActive(int32_t windowId) override;
+    void OnParentInactive(int32_t windowId) override;
+    void OnParentBackground(int32_t windowId) override;
+    void OnParentDestroyed(int32_t windowId) override;
 private:
     void OnLastStrongRef(const void *) override;
 

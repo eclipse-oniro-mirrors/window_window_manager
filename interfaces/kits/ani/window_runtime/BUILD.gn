@@ -40,6 +40,7 @@ ohos_shared_library("windowstageani_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "window_stage_ani/src/ani_err_utils.cpp",
@@ -112,6 +113,7 @@ ohos_shared_library("windowstageani_module") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "window_stage_ani/src/ani_window_stage_module.cpp" ]
 

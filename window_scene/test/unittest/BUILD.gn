@@ -208,6 +208,11 @@ ohos_unittest("ws_anomaly_detection_test") {
 
   sources = [ "anomaly_detection_test.cpp" ]
 
+  cflags_cc = [
+    "-Dprivate = public",
+    "-Dprotected = public",
+  ]
+
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps
@@ -1392,7 +1397,7 @@ ohos_unittest("ws_session_stub_lifecycle_test") {
 
   external_deps = test_external_deps
 
-  public_external_deps = [ "accessibility:accessibility_interface" ]
+  external_deps += [ "accessibility:accessibility_interface" ]
 }
 
 ohos_unittest("ws_session_stub_mock_test") {
@@ -1477,7 +1482,7 @@ ohos_unittest("ws_session_manager_service_recover_proxy_test") {
 
   deps = [
     ":ws_unittest_common",
-    "${window_base_path}/wmserver:sms",
+    "${window_base_path}/wmserver:sms_static",
   ]
 
   external_deps = test_external_deps
@@ -1496,7 +1501,7 @@ ohos_unittest("ws_mock_session_manager_service_test") {
   deps = [
     ":ws_unittest_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-    "${window_base_path}/wmserver:sms",
+    "${window_base_path}/wmserver:sms_static",
   ]
 
   external_deps = test_external_deps
@@ -1603,9 +1608,9 @@ ohos_static_library("ws_unittest_common") {
     "${window_base_path}/window_scene/session:scene_session_static",
     "${window_base_path}/window_scene/session:screen_session_static",
     "${window_base_path}/window_scene/session_manager:scene_session_manager_static",
-    "${window_base_path}/window_scene/session_manager:session_manager",
+    "${window_base_path}/window_scene/session_manager:session_manager_static",
     "${window_base_path}/window_scene/session_manager:session_manager_lite",
-    "${window_base_path}/wm:libwm",
+    "${window_base_path}/wm:libwm_static",
     "${window_base_path}/wm:libwm_lite",
   ]
 

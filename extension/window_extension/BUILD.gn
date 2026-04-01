@@ -37,6 +37,7 @@ ohos_shared_library("libwindow_extension") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../extension_connection/src/zidl/window_extension_client_proxy.cpp",
@@ -109,6 +110,7 @@ ohos_shared_library("window_extension_module") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "src/window_extension_module_loader.cpp" ]
 

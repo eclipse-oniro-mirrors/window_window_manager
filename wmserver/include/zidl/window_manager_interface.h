@@ -271,6 +271,10 @@ public:
     {
         return WSError::WS_OK;
     }
+    virtual WMError GetCrossProcessWindowInfo(CrossProcessWindowInfo& crossProcessWindowInfo)
+    {
+        return WMError::WM_OK;
+    }
     virtual WMError RequestFocusStatus(int32_t persistentId, bool isFocused, bool byForeground = true,
         FocusChangeReason reason = FocusChangeReason::DEFAULT)
     {
@@ -278,6 +282,11 @@ public:
     }
     virtual WMError RequestFocusStatusBySA(int32_t persistentId, bool isFocused = true,
         bool byForeground = true, FocusChangeReason reason = FocusChangeReason::SA_REQUEST)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual WMError Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap,
+        int32_t persistentId, const SnapshotConfig& config)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

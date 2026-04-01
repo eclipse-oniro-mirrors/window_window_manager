@@ -70,6 +70,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetMainWindowStatesByPid(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_MISSION_INFO_BY_ID):
             return HandleGetSessionInfo(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY):
+            return HandleGetSessionInfoWithDisplay(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_SESSION_INFO_BY_CONTINUE_SESSION_ID):
             return HandleGetSessionInfoByContinueSessionId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_TERMINATE_SESSION_NEW):
@@ -450,6 +452,38 @@ int SceneSessionManagerLiteStub::HandleGetSessionInfo(MessageParcel& data, Messa
         return ERR_INVALID_DATA;
     }
 
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write sessionInfo result fail");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleGetSessionInfoWithDisplay(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "In!");
+    SessionInfoBean info;
+    AAFwk::DisplayInfo displayInfo;
+    std::u16string deviceIdU16;
+    if (!data.ReadString16(deviceIdU16)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read deviceId fail");
+        return ERR_TRANSACTION_FAILED;
+    }
+    std::string deviceId = Str16ToStr8(deviceIdU16);
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read persistentId fail");
+        return ERR_TRANSACTION_FAILED;
+    }
+    WSError errCode = GetSessionInfo(deviceId, persistentId, info, displayInfo);
+    if (!reply.WriteParcelable(&info)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write sessionInfo fail");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteParcelable(&displayInfo)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write displayInfo fail");
+        return ERR_INVALID_DATA;
+    }
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write sessionInfo result fail");
         return ERR_INVALID_DATA;

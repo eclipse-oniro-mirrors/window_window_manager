@@ -44,6 +44,12 @@ constexpr uint32_t ANIMATION_FOUR_PARAMS_SIZE = 4;
 const std::string RESOLVED_CALLBACK = "resolvedCallback";
 const std::string REJECTED_CALLBACK = "rejectedCallback";
 const std::string INTERPOLATINGSPRING  = "interpolatingSpring";
+static napi_value CreateJsNumber(napi_env env, uint64_t value)
+{
+    napi_value result = nullptr;
+    napi_create_int64(env, static_cast<int64_t>(value), &result);
+    return result;
+}
 constexpr std::array<DefaultSpecificZIndex, 2> DefaultSpecificZIndexList = {
     DefaultSpecificZIndex::MUTISCREEN_COLLABORATION,
     DefaultSpecificZIndex::SUPER_PRIVACY_ANIMATION
@@ -1045,6 +1051,10 @@ napi_value CreateJsWindowInfoObject(napi_env env, const sptr<WindowVisibilityInf
     napi_set_named_property(env, objValue, "rect", GetRectAndConvertToJsValue(env, info->GetRect()));
     napi_set_named_property(env, objValue, "globalDisplayRect",
         GetRectAndConvertToJsValue(env, info->GetGlobalDisplayRect()));
+    napi_set_named_property(env, objValue, "globalRect",
+        GetRectAndConvertToJsValue(env, info->GetGlobalRect()));
+    napi_set_named_property(env, objValue, "displayId",
+        CreateJsNumber(env, static_cast<uint64_t>(info->GetDisplayId())));
     napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, info->GetBundleName()));
     napi_set_named_property(env, objValue, "abilityName", CreateJsValue(env, info->GetAbilityName()));
     napi_set_named_property(env, objValue, "windowId", CreateJsValue(env, info->GetWindowId()));

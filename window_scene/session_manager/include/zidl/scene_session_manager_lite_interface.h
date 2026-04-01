@@ -131,6 +131,7 @@ public:
         TRANS_ID_SET_SESSION_ICON_FOR_THIRD_PARTY,
         TRANS_ID_GET_MAIN_WINDOW_INFO_BY_TOKEN,
         TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY,
+        TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY,
     };
 
     /*
@@ -166,6 +167,8 @@ public:
     virtual WSError GetSessionInfos(const std::string& deviceId,
                                     int32_t numMax, std::vector<SessionInfoBean>& sessionInfos) = 0;
     virtual WSError GetSessionInfo(const std::string& deviceId, int32_t persistentId, SessionInfoBean& sessionInfo) = 0;
+    virtual WSError GetSessionInfo(const std::string& deviceId, int32_t persistentId, SessionInfoBean& sessionInfo,
+        AAFwk::DisplayInfo& displayInfo) = 0;
     virtual WSError GetSessionInfoByContinueSessionId(const std::string& continueSessionId,
         SessionInfoBean& sessionInfo) = 0;
     virtual WSError SetSessionContinueState(const sptr<IRemoteObject>& token, const ContinueState& continueState) = 0;

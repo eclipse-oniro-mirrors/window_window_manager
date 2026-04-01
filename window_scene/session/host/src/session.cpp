@@ -46,6 +46,14 @@
 #include "session/host/include/scene_persistent_storage.h"
 #include "screen_manager.h"
 
+#define RETURN_IF_NULL(param, ...)                                       \
+    do {                                                                 \
+        if (!param) {                                                    \
+            TLOGE(WmsLogTag::DEFAULT, "The %{public}s is null", #param); \
+            return __VA_ARGS__;                                          \
+        }                                                                \
+    } while (0)
+
 namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "Session" };
@@ -199,6 +207,15 @@ void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
     }
     shadowSurfaceNode_ = RSAdapterUtil::IsClientMultiInstanceEnabled() && surfaceNode_ ?
         surfaceNode_->CreateShadowSurfaceNode() : nullptr;
+
+    // Reset move drag shadow surface node when surface node changes.
+    moveDragShadowSurfaceNode_ = nullptr;
+}
+
+std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode() const
+{
+    std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
+    return surfaceNode_;
 }
 
 std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode(bool isUpdateContextBeforeGet)
@@ -217,10 +234,13 @@ std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode(bool isUpdateContextBefor
     return surfaceNode_;
 }
 
-std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode() const
+std::optional<NodeId> Session::GetSurfaceNodeId() const
 {
     std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
-    return surfaceNode_;
+    if (surfaceNode_ != nullptr) {
+        return surfaceNode_->GetId();
+    }
+    return std::nullopt;
 }
 
 std::shared_ptr<RSSurfaceNode> Session::GetShadowSurfaceNode() const
@@ -229,13 +249,34 @@ std::shared_ptr<RSSurfaceNode> Session::GetShadowSurfaceNode() const
     return RSAdapterUtil::IsClientMultiInstanceEnabled() ? shadowSurfaceNode_ : surfaceNode_;
 }
 
-std::optional<NodeId> Session::GetSurfaceNodeId() const
+std::shared_ptr<RSSurfaceNode> Session::EnsureMoveDragShadowSurfaceNode()
 {
     std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
-    if (surfaceNode_ != nullptr) {
-        return surfaceNode_->GetId();
+    if (moveDragShadowSurfaceNode_) {
+        return moveDragShadowSurfaceNode_;
     }
-    return std::nullopt;
+
+    RETURN_IF_NULL(surfaceNode_, nullptr);
+
+    // When RS client multi-instance mode is disabled, directly return the
+    // original surface node without creating a shadow node.
+    RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(surfaceNode_);
+
+    // Move-drag operations update the surface node's bounds and frame.
+    // The shadow node must copy RSBoundsModifier and RSFrameModifier
+    // from the original node so that subsequent drag updates can take effect.
+    //
+    // Note: If the original node has never had bounds or frame set, or the
+    // corresponding modifiers are not present, the synchronization may fail,
+    // which can lead to shadow node creation failure.
+    moveDragShadowSurfaceNode_ = surfaceNode_->CreateShadowSurfaceNode(
+        { ShadowPropertyType::BOUNDS, ShadowPropertyType::FRAME });
+    if (!moveDragShadowSurfaceNode_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "Failed to create shadow surface node, fallback to surfaceNode");
+        return surfaceNode_;
+    }
+    return moveDragShadowSurfaceNode_;
 }
 
 void Session::SetLeashWinSurfaceNode(std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode)
@@ -252,11 +293,9 @@ void Session::SetLeashWinSurfaceNode(std::shared_ptr<RSSurfaceNode> leashWinSurf
     leashWinSurfaceNode_ = leashWinSurfaceNode;
     leashWinShadowSurfaceNode_ = RSAdapterUtil::IsClientMultiInstanceEnabled() && leashWinSurfaceNode_ ?
         leashWinSurfaceNode_->CreateShadowSurfaceNode() : nullptr;
-}
 
-void Session::SetFrameLayoutFinishListener(const NotifyFrameLayoutFinishFunc& func)
-{
-    frameLayoutFinishFunc_ = func;
+    // Reset move drag shadow surface node when leash win surface node changes.
+    moveDragLeashWinShadowSurfaceNode_ = nullptr;
 }
 
 std::shared_ptr<RSSurfaceNode> Session::GetLeashWinSurfaceNode() const
@@ -271,13 +310,55 @@ std::shared_ptr<RSSurfaceNode> Session::GetLeashWinShadowSurfaceNode() const
     return RSAdapterUtil::IsClientMultiInstanceEnabled() ? leashWinShadowSurfaceNode_ : leashWinSurfaceNode_;
 }
 
-std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNodeForMoveDrag() const
+std::shared_ptr<RSSurfaceNode> Session::EnsureMoveDragLeashWinShadowSurfaceNode()
 {
-    auto movedSurfaceNode = GetLeashWinSurfaceNode();
-    if (!movedSurfaceNode) {
-        movedSurfaceNode = GetSurfaceNode();
+    std::lock_guard<std::mutex> lock(leashWinSurfaceNodeMutex_);
+    if (moveDragLeashWinShadowSurfaceNode_) {
+        return moveDragLeashWinShadowSurfaceNode_;
     }
-    return movedSurfaceNode;
+
+    RETURN_IF_NULL(leashWinSurfaceNode_, nullptr);
+
+    // When RS client multi-instance mode is disabled, directly return the
+    // original leash window surface node without creating a shadow node.
+    RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(leashWinSurfaceNode_);
+
+    // Move-drag operations update the surface node's bounds and frame.
+    // The shadow node must copy RSBoundsModifier and RSFrameModifier
+    // from the original node so that subsequent drag updates can take effect.
+    //
+    // Note: If the original node has never had bounds or frame set, or the
+    // corresponding modifiers are not present, the synchronization may fail,
+    // which can lead to shadow node creation failure.
+    moveDragLeashWinShadowSurfaceNode_ = leashWinSurfaceNode_->CreateShadowSurfaceNode(
+        { ShadowPropertyType::BOUNDS, ShadowPropertyType::FRAME });
+    if (!moveDragLeashWinShadowSurfaceNode_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "Failed to create shadow surface node, fallback to leashWinSurfaceNode");
+        return leashWinSurfaceNode_;
+    }
+    return moveDragLeashWinShadowSurfaceNode_;
+}
+
+std::shared_ptr<RSSurfaceNode> Session::GetMoveDragTargetSurfaceNode() const
+{
+    if (auto leashWinSurfaceNode = GetLeashWinSurfaceNode()) {
+        return leashWinSurfaceNode;
+    }
+    return GetSurfaceNode();
+}
+
+std::shared_ptr<RSSurfaceNode> Session::GetMoveDragTargetShadowSurfaceNode()
+{
+    if (auto leashWinShadowSurfaceNode = EnsureMoveDragLeashWinShadowSurfaceNode()) {
+        return leashWinShadowSurfaceNode;
+    }
+    return EnsureMoveDragShadowSurfaceNode();
+}
+
+void Session::SetFrameLayoutFinishListener(const NotifyFrameLayoutFinishFunc& func)
+{
+    frameLayoutFinishFunc_ = func;
 }
 
 std::shared_ptr<Media::PixelMap> Session::GetSnapshot() const
@@ -836,6 +917,35 @@ WSError Session::SetAspectRatio(float ratio)
 SessionState Session::GetSessionState() const
 {
     return state_;
+}
+
+SessionState Session::GetRealSessionState()
+{
+    auto state = GetSessionState();
+    auto winType = GetWindowType();
+    if (!IsSessionForeground()) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], state=%{public}u, winType=%{public}d",
+            GetWindowId(), GetWindowName().c_str(), state, static_cast<int32_t>(winType));
+        return state;
+    }
+    if (auto parent = GetParentSession()) {
+        state = parent->GetSessionState();
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+            "win=[%{public}d, %{public}s], state=%{public}u, winType=%{public}d, parentId=%{public}d",
+            GetWindowId(), GetWindowName().c_str(), state, static_cast<int32_t>(winType), parent->GetWindowId());
+    }
+    if (WindowHelper::IsSubWindow(winType)) {
+        int32_t mainWinId = INVALID_SESSION_ID;
+        auto mainSession = GetMainSession();
+        if (mainSession != nullptr) {
+            state = mainSession->GetSessionState();
+            mainWinId = mainSession->GetWindowId();
+        }
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+            "win=[%{public}d, %{public}s], state=%{public}u, winType=%{public}d, mainWinId=%{public}d",
+            GetWindowId(), GetWindowName().c_str(), state, static_cast<int32_t>(winType), mainWinId);
+    }
+    return state;
 }
 
 void Session::SetSessionState(SessionState state)
@@ -1452,6 +1562,16 @@ WSError Session::UpdateRect(const WSRect& rect, SizeChangeReason reason,
     return UpdateRectWithLayoutInfo(rect, reason, updateReason, rsTransaction, {});
 }
 
+void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
+{
+    WSRect lastParentRect = GetLayoutController()->GetLastClientParentSize();
+    if (lastParentRect.width_ != rect.width_ || lastParentRect.height_ != rect.height_) {
+        Rect parentRect = { rect.posX_, rect.posY_, static_cast<uint32_t>(rect.width_),
+            static_cast<uint32_t>(rect.height_)};
+        NotifySubSessionParentSizeChange(parentRect);
+    }
+}
+
 WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
@@ -1459,7 +1579,9 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     const auto persistentId = GetPersistentId();
     TLOGD(WmsLogTag::WMS_LAYOUT, "session update rect: id: %{public}d, rect:%{public}s, "
         "reason:%{public}u %{public}s", persistentId, rect.ToString().c_str(), reason, updateReason.c_str());
+    IsNeedNotifySubSessionParentSizeChange(rect);
     GetLayoutController()->SetSessionRect(rect);
+    GetLayoutController()->SetLastClientParentSize(rect);
     if (!IsSessionValid()) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Session is invalid, id: %{public}d state: %{public}u",
             persistentId, GetSessionState());
@@ -1617,16 +1739,22 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
         GetSessionInfo().abilityInfo->windowModes : GetSessionInfo().supportedWindowModes;
     property->SetSupportedWindowModes(supportedWindowModes);
     property->SetWindowSizeLimits(GetSessionInfo().windowSizeLimits);
+
+    auto windowCreateParams = GetSessionInfo().windowCreateParams;
+    bool isWindowLimitsForcible = windowCreateParams ? windowCreateParams->isWindowLimitsForcible : false;
+    property->SetIsWindowLimitsForcible(isWindowLimitsForcible);
+
     property->SetIsAtomicService(GetSessionInfo().isAtomicService_);
     property->SetRequestedOrientation(GetSessionProperty()->GetRequestedOrientation());
     property->SetDefaultRequestedOrientation(GetSessionProperty()->GetDefaultRequestedOrientation());
     property->SetUserRequestedOrientation(GetSessionProperty()->GetUserRequestedOrientation());
     TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d] requestedOrientation: %{public}u,"
         " defaultRequestedOrientation: %{public}u,"
-        " userRequestedOrientation: %{public}u", GetPersistentId(),
+        " userRequestedOrientation: %{public}u, isWindowLimitsForcible: %{public}d", GetPersistentId(),
         static_cast<uint32_t>(GetSessionProperty()->GetRequestedOrientation()),
         static_cast<uint32_t>(GetSessionProperty()->GetDefaultRequestedOrientation()),
-        static_cast<uint32_t>(GetSessionProperty()->GetUserRequestedOrientation()));
+        static_cast<uint32_t>(GetSessionProperty()->GetUserRequestedOrientation()),
+        isWindowLimitsForcible);
     property->SetCompatibleModeProperty(GetSessionProperty()->GetCompatibleModeProperty());
     if (property->GetCompatibleModeProperty()) {
         property->SetDragEnabled(!GetSessionProperty()->IsDragResizeDisabled());
@@ -1727,6 +1855,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
         return WSError::WS_ERROR_INVALID_SESSION;
     }
 
+    NotifyCrossProcessChildrenLifecycle(ParentLifeCycleEvent::FOREGROUND);
     UpdateSessionState(SessionState::STATE_FOREGROUND);
     if (!isActive_ || GetSessionInfo().reuseDelegatorWindow) {
         SetActive(true);
@@ -1795,6 +1924,7 @@ void Session::HandleDialogForeground()
 WSError Session::Background(bool isFromClient, const std::string& identityToken)
 {
     HandleDialogBackground();
+    NotifySubSessionParentStatusChange(GetWindowMode());
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] Background session, state: %{public}" PRIu32, GetPersistentId(),
         static_cast<uint32_t>(state));
@@ -3060,7 +3190,7 @@ bool Session::GetNeedUseBlurSnapshot() const
     bool snapshotPrivacyMode = GetSnapshotPrivacyMode();
     ControlInfo controlInfo;
     bool isAppControl = GetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
-    bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
+    bool isAppUseControl = controlInfo.isNeedControl;
     bool needUseBlurSnapshot = isPrivacyMode || snapshotPrivacyMode || (isAppControl && isAppUseControl);
     if (needUseBlurSnapshot) {
         TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isPrivacyMode: %{public}d, snapshotPrivacyMode: %{public}d, "
@@ -3101,7 +3231,7 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
         SaveSnapshot(true, true, nullptr);
         return;
     }
-    bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
+    bool isAppUseControl = controlInfo.isNeedControl;
     TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d, isAppLock: %{public}d", persistentId_, isAppUseControl);
     if (isAppLockControl_.load() == isAppUseControl) {
         return;
@@ -3112,7 +3242,9 @@ void Session::UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo
             NotifyAddSnapshot(false, false, false);
             return;
         }
-        NotifyAddSnapshot(true, false, false);
+        if (!controlInfo.isControlRecentOnly) {
+            NotifyAddSnapshot(true, false, false);
+        }
         SaveSnapshot(true, true, nullptr, true);
         return;
     }
@@ -3975,6 +4107,7 @@ WSError Session::NotifyFocusStatus(const sptr<FocusNotifyInfo>& focusNotifyInfo,
             GetPersistentId(), GetSessionState());
         return WSError::WS_ERROR_NULLPTR;
     }
+    NotifyCrossProcessChildrenLifecycle(isFocused ? ParentLifeCycleEvent::ACTIVE : ParentLifeCycleEvent::INACTIVE);
     sessionStage_->UpdateFocus(focusNotifyInfo, isFocused);
 
     return WSError::WS_OK;
@@ -4317,18 +4450,44 @@ WSError Session::SetSessionPropertyForReconnect(const sptr<WindowSessionProperty
 }
 
 /** @note @window.layout */
-void Session::RectSizeCheckProcess(uint32_t curWidth, uint32_t curHeight, uint32_t minWidth,
-    uint32_t minHeight, uint32_t maxFloatingWindowSize)
+void Session::RectSizeCheckProcess(float curWidth, float curHeight, uint32_t minWidth,
+    uint32_t minHeight, const ScreenMetrics& screenMetrics)
 {
-    constexpr uint32_t marginOfError = 2; // The max vp bias for preventing giant logs.
-    if (curWidth + marginOfError < minWidth || curWidth > maxFloatingWindowSize + marginOfError ||
-        curHeight + marginOfError < minHeight || curHeight > maxFloatingWindowSize + marginOfError) {
+    constexpr uint32_t MARGIN_OF_ERROR = 2; // The max vp bias for preventing giant logs.
+    constexpr float DEFAULT_DENSITY = 1.0f;
+
+    const auto& systemConfig = GetSystemConfig();
+    const uint32_t maxFloatingWindowSize = systemConfig.maxFloatingWindowSize_;
+
+    const bool isSizeBelowMin = (curWidth + MARGIN_OF_ERROR < minWidth) ||
+                                (curHeight + MARGIN_OF_ERROR < minHeight);
+    const bool isSizeAboveMax = (curWidth > maxFloatingWindowSize + MARGIN_OF_ERROR) ||
+                                (curHeight > maxFloatingWindowSize + MARGIN_OF_ERROR);
+
+    const WindowType winType = GetWindowType();
+    const bool isSystemWindowButNotDialog = WindowHelper::IsSystemWindowButNotDialog(winType);
+
+    const uint32_t screenWidth = screenMetrics.widthPx;
+    const uint32_t screenHeight = screenMetrics.heightPx;
+    const float density = screenMetrics.density;
+
+    const float safeDensity = (!NearZero(density)) ? density : DEFAULT_DENSITY;
+    const float screenWidthVp = screenWidth / safeDensity;
+    const float screenHeightVp = screenHeight / safeDensity;
+
+    const bool isSizeBelowScreen = (curWidth + MARGIN_OF_ERROR < screenWidthVp) ||
+                                   (curHeight + MARGIN_OF_ERROR < screenHeightVp);
+
+    const bool needReportException = isSizeAboveMax ||
+                                     (!isSystemWindowButNotDialog && isSizeBelowMin && isSizeBelowScreen);
+
+    if (needReportException) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "RectCheck err sessionID: %{public}d rect %{public}s",
             GetPersistentId(), GetSessionRect().ToString().c_str());
         std::ostringstream oss;
         oss << " RectCheck err size ";
         oss << " cur persistentId: " << GetPersistentId() << ",";
-        oss << " windowType: " << static_cast<uint32_t>(GetWindowType()) << ",";
+        oss << " windowType: " << static_cast<uint32_t>(winType) << ",";
         auto property = GetSessionProperty();
         if (property) {
             oss << " windowName: " << property->GetWindowName() << ",";
@@ -4338,10 +4497,11 @@ void Session::RectSizeCheckProcess(uint32_t curWidth, uint32_t curHeight, uint32
         oss << " curHeight: " << curHeight << ",";
         oss << " minWidth: " << minWidth << ",";
         oss << " minHeight: " << minHeight << ",";
+        oss << " screenWidth: " << screenWidth << ",";
+        oss << " screenHeight: " << screenHeight << ",";
         oss << " maxFloatingWindowSize: " << maxFloatingWindowSize << ",";
         oss << " sessionRect: " << GetSessionRect().ToString() << ";";
-        WindowInfoReporter::GetInstance().ReportWindowException(
-            static_cast<int32_t>(WindowDFXHelperType::WINDOW_RECT_CHECK), getpid(), oss.str());
+        WindowInfoReporter::GetInstance().ReportWindowFrozen(WindowDFXHelperType::WINDOW_RECT_CHECK, oss.str());
     }
 }
 
@@ -4364,6 +4524,10 @@ void Session::RectCheckProcess()
     }
     auto screenProperty = screensProperties[displayId];
     float density = screenProperty.GetDensity();
+    ScreenMetrics screenMetrics{
+        .widthPx = static_cast<uint32_t>(screenProperty.GetBounds().rect_.width_),
+        .heightPx = static_cast<uint32_t>(screenProperty.GetBounds().rect_.height_),
+        .density = screenProperty.GetDensity()};
     if (!NearZero(density) && !NearZero(GetSessionRect().height_)) {
         float curWidth = GetSessionRect().width_ / density;
         float curHeight = GetSessionRect().height_ / density;
@@ -4384,7 +4548,7 @@ void Session::RectCheckProcess()
             WindowInfoReporter::GetInstance().ReportWindowException(
                 static_cast<int32_t>(WindowDFXHelperType::WINDOW_RECT_CHECK), getpid(), oss.str());
         }
-        RectCheck(curWidth, curHeight);
+        RectCheck(curWidth, curHeight, screenMetrics);
     }
 }
 
@@ -4401,9 +4565,26 @@ void Session::SetSessionRect(const WSRect& rect)
 }
 
 /** @note @window.layout */
+void Session::SetLastClientParentSize(const WSRect& rect)
+{
+    if (GetSessionRect() == rect) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "id: %{public}d skip same rect", persistentId_);
+        return;
+    }
+    layoutController_->SetLastClientParentSize(rect);
+    dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
+}
+
+/** @note @window.layout */
 WSRect Session::GetSessionRect() const
 {
     return layoutController_->GetSessionRect();
+}
+
+/** @note @window.layout */
+WSRect Session::GetLastClientParentSize() const
+{
+    return layoutController_->GetLastClientParentSize();
 }
 
 /** @note @window.layout */
@@ -4659,6 +4840,17 @@ uint32_t Session::GetBlurBackgroundColor() const
 void Session::SetSnapshotScale(const float snapshotScale)
 {
     snapshotScale_ = snapshotScale;
+    if (scenePersistence_) {
+        scenePersistence_->SetSnapshotScale(snapshotScale);
+    }
+}
+
+void Session::InitPersistentScaledSnapshotParam(bool enabled)
+{
+    enablePersistentScaledSnapshot_ = enabled;
+    if (scenePersistence_) {
+        scenePersistence_->InitPersistentScaledSnapshotParam(enabled);
+    }
 }
 
 WSError Session::ProcessBackEvent()

@@ -1421,6 +1421,13 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM)));
         return NapiGetUndefined(env);
     }
+    auto extWindow = extensionWindow_->GetWindow();
+    if (extWindow != nullptr && extWindow->IsBlockSubwindow()) {
+        TLOGE(WmsLogTag::WMS_SUB, "The session is blocking sub window");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_FORBID_SUBWINDOW,
+            "[window][createSubWindowWithOptions]msg: The session is blocking sub window"));
+        return NapiGetUndefined(env);
+    }
     option->SetFollowCreatorLifecycle(followCreatorLifecycle);
     option->SetParentId(hostWindowId_);
     const char* const where = __func__;

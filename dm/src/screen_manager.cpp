@@ -33,6 +33,8 @@ namespace OHOS::Rosen {
 namespace {
 const static uint32_t MAX_SCREEN_SIZE = 32;
 const static uint32_t DLCLOSE_TIMEOUT = 300000;
+constexpr int32_t MIN_VIRTUAL_SCREEN_ID = 500;
+constexpr int32_t MAX_VIRTUAL_SCREEN_ID = 900;
 }
 class ScreenManager::Impl : public RefBase {
 public:
@@ -716,6 +718,13 @@ ScreenId ScreenManager::CreateVirtualScreen(VirtualScreenOption option)
 
 ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
 {
+    if (option.screenId_ != -1) {
+        if (option.screenId_ < MIN_VIRTUAL_SCREEN_ID || option.screenId_ > MAX_VIRTUAL_SCREEN_ID) {
+            TLOGE(WmsLogTag::DMS, "screenId_ %{public}d is out of range [%{public}d, %{public}d]",
+                option.screenId_, MIN_VIRTUAL_SCREEN_ID, MAX_VIRTUAL_SCREEN_ID);
+            return SCREEN_ID_INVALID;
+        }
+    }
     //  After the process creating the virtual screen is killed, DMS needs to delete the virtual screen
     std::lock_guard<std::mutex> agentLock(virtualScreenAgentMutex_);
     if (virtualScreenAgent_ == nullptr) {

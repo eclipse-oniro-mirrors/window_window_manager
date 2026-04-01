@@ -21,6 +21,7 @@ ohos_shared_library("screenshot") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "native_screenshot_module.cpp" ]
 

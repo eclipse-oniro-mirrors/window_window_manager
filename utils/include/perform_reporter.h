@@ -27,7 +27,6 @@
 
 namespace OHOS {
 namespace Rosen {
-
 enum class WindowDFXHelperType : uint32_t {
     WINDOW_RECT_CHECK = 1,
     WINDOW_ZORDER_CHECK,
@@ -40,6 +39,10 @@ enum class WindowDFXHelperType : uint32_t {
     WINDOW_FLUSH_EMPTY_DISPLAY_INFO_TO_MMI_EXCEPTION,
     WINDOW_CREATE_SUB_WINDOW_FAILED,
     WINDOW_UNEXPECTED_EVENT_CHECK,
+    WINDOW_UICONTENT_TIMEOUT_CHECK,
+    WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK,
+    WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK,
+    WINDOW_WALLPAPER_ZORDER_CHECK,
 };
 
 struct WindowProfileInfo {
@@ -137,6 +140,10 @@ public:
 
     // IO record
     void ReportWindowIO(const std::string& subScene, double sizeKB);
+
+    // Window frozen check
+    void ReportWindowFrozen(WindowDFXHelperType detectionType, const std::string& windowInfo);
+    static bool IsKeyboardFrozenEnabled();
 
 private:
     void UpdateReportInfo(FullInfoMap& infoMap, const std::string& bundleName,

@@ -621,6 +621,21 @@ HWTEST_F(WindowOptionTest, SetConstrainedModal, TestSize.Level1)
     option->SetConstrainedModal(true);
     ASSERT_EQ(true, option->IsConstrainedModal());
 }
+
+/**
+ * @tc.name: SetIsBlockSubwindow
+ * @tc.desc: test SetIsBlockSubwindow and IsDensityFollowHost
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowOptionTest, SetIsBlockSubwindow, TestSize.Level1)
+{
+    sptr<WindowOption> option = new WindowOption();
+    ASSERT_NE(nullptr, option);
+    option->SetIsBlockSubwindow(true);
+    ASSERT_EQ(true, option->IsBlockSubwindow());
+    option->SetIsBlockSubwindow(false);
+    ASSERT_EQ(false, option->IsBlockSubwindow());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

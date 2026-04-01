@@ -15,10 +15,21 @@
 
 #include "js_window_animation_utils.h"
 
+#include <optional>
+
 #include <accesstoken_kit.h>
 #include <ipc_skeleton.h>
 #include <tokenid_kit.h>
 #include "window_manager_hilog.h"
+
+#define RETURN_IF_NULL(param, ...)                                             \
+    do {                                                                       \
+        if (!param) {                                                          \
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] The %{public}s is null", #param); \
+            return __VA_ARGS__;                                                \
+        }                                                                      \
+    } while (0)
+
 namespace {
     #define NAPI_CALL_NO_THROW(theCall, retVal)      \
     do {                                         \
@@ -143,6 +154,62 @@ bool ParseJsValue(napi_value jsObject, napi_env env, const std::string& name, T&
 }
 namespace OHOS {
 namespace Rosen {
+/**
+ * @brief Get an optional property from a NAPI object.
+ *
+ * @param env        NAPI environment.
+ * @param napiObject Source NAPI object.
+ * @param propName   Property name.
+ * @return napi_value NAPI value to the property, or nullptr if not present/undefined/error.
+ */
+napi_value GetOptionalProp(napi_env env, napi_value napiObject, const char* propName)
+{
+    RETURN_IF_NULL(env, nullptr);
+    RETURN_IF_NULL(napiObject, nullptr);
+    RETURN_IF_NULL(propName, nullptr);
+
+    napi_value napiVal = nullptr;
+    napi_status ret = napi_get_named_property(env, napiObject, propName, &napiVal);
+    if (ret != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to get property %{public}s. ret: %{public}d", propName, ret);
+        return nullptr;
+    }
+    RETURN_IF_NULL(napiVal, nullptr);
+
+    napi_valuetype type = napi_undefined;
+    if (napi_typeof(env, napiVal, &type) != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to get type for %{public}s. ret: %{public}d", propName, ret);
+        return nullptr;
+    }
+    if (type == napi_undefined) {
+        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined.", propName);
+        return nullptr;
+    }
+    return napiVal;
+}
+
+/**
+ * @brief Get an optional boolean property from a NAPI object.
+ *
+ * @param env        NAPI environment.
+ * @param napiObject Source NAPI object.
+ * @param propName   Property name.
+ * @return std::optional<bool> Boolean value, or std::nullopt if not present/undefined/error.
+ */
+std::optional<bool> GetOptionalBoolProp(napi_env env, napi_value napiObject, const char* propName)
+{
+    napi_value napiVal = GetOptionalProp(env, napiObject, propName);
+    RETURN_IF_NULL(napiVal, std::nullopt);
+
+    bool result = false;
+    napi_status ret = napi_get_value_bool(env, napiVal, &result);
+    if (ret != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to convert %{public}s to boolean. ret: %{public}d", propName, ret);
+        return std::nullopt;
+    }
+    return result;
+}
+
 bool IsSystemCalling()
 {
     uint64_t accessTokenID = IPCSkeleton::GetCallingFullTokenID();
@@ -317,9 +384,10 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
             windowCreateParams.animationParams = nullptr;
         }
     }
+    bool isSystemCalling = IsSystemCalling();
     bool hasAnimationSystemParams = false;
     napi_has_named_property(env, jsObject, "systemAnimationParams", &hasAnimationSystemParams);
-    if (hasAnimationSystemParams && IsSystemCalling()) {
+    if (hasAnimationSystemParams && isSystemCalling) {
         napi_value jsAnimationSystemParams = nullptr;
         napi_get_named_property(env, jsObject, "systemAnimationParams", &jsAnimationSystemParams);
         windowCreateParams.animationSystemParams = std::make_shared<StartAnimationSystemOptions>();
@@ -343,6 +411,12 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
         }
     } else {
         windowCreateParams.needAnimation = nullptr;
+    }
+    if (isSystemCalling) {
+        windowCreateParams.isWindowLimitsForcible =
+            GetOptionalBoolProp(env, jsObject, "isWindowLimitsForcible").value_or(false);
+    } else {
+        windowCreateParams.isWindowLimitsForcible = false;
     }
     return true;
 }

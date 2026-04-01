@@ -117,6 +117,7 @@ public:
     MOCK_METHOD(void, NotifyBrightnessInfoChanged, (ScreenId screenId, const ScreenBrightnessInfo& info), (override));
     MOCK_METHOD(void, OnDisplayAttributeChange,
                 (sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes), (override));
+    MOCK_METHOD(void, NotifyRecordingDisplayChanged, (const std::vector<DisplayId>& displayIds), (override));
 };
 
 class DmsTestBase : public testing::Test {

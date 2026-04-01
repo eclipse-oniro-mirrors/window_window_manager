@@ -213,7 +213,7 @@ export namespace PiPWindow {
 
   export function runOnStateChangeEvent(cb: Object, state: int, reason: string): void {
     const func = cb as (state: PiPState, reason: string) => void;
-    func(state as PiPState, reason as string);
+    func(PiPState.fromValue(state), reason as string);
   }
 
   export function runOnControlPanelActionEvent(cb: Object, action: string, status: int): void {
@@ -222,8 +222,8 @@ export namespace PiPWindow {
 
   export function runOnControlEvent(cb: Object, controlType: int, status: int): void {
     const param: ControlEventParam = {
-      controlType: controlType as PiPControlType,
-      status: status as PiPControlStatus,
+      controlType: PiPControlType.fromValue(controlType),
+      status: PiPControlStatus.fromValue(status),
     };
     (cb as Callback<ControlEventParam>)(param);
   }
@@ -293,7 +293,7 @@ export namespace PiPWindow {
     
     native updatePiPControlStatusNative(nativeObj: long, controlType: int, status: int): void;
     public updatePiPControlStatus(controlType: PiPControlType, status: PiPControlStatus): void {
-      this.updatePiPControlStatusNative(this.nativeObj, controlType as int, status as int);
+      this.updatePiPControlStatusNative(this.nativeObj, controlType, status);
     }
 
     native updateContentNodeNative(nativeObj: long, contentNode: typeNode.XComponent): void;
@@ -311,7 +311,7 @@ export namespace PiPWindow {
 
      native setPiPControlEnabledNative(nativeObj: long, controlType: int, enabled: boolean): void;
      public setPiPControlEnabled(controlType: PiPControlType, enabled: boolean): void {
-       this.setPiPControlEnabledNative(this.nativeObj, controlType as int, enabled);
+       this.setPiPControlEnabledNative(this.nativeObj, controlType, enabled);
      }
 
      native getPiPWindowInfoNative(nativeObj: long): PiPWindowInfo;

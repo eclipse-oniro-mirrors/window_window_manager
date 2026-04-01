@@ -797,7 +797,7 @@ public:
      * @param windowAnchorInfo the windowAnchorInfo of subWindow.
      * @return WM_OK means set success.
      */
-    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo)
+    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, bool isAttach = false)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

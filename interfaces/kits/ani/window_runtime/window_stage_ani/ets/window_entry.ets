@@ -104,7 +104,7 @@ function main() {
     console.println('[ANI] avoidArea:' + JSON.stringify(avoidArea));
     w.setWaterMarkFlag(true);
     let cb = (data: window.WindowStatusType): void => {
-      console.println(`onOffWindowStatusChangeTest status:${data as int}`);
+      console.println(`onOffWindowStatusChangeTest status:${data}`);
     };
     w.on('windowEvent', cb);
     w.off('windowEvent', cb);
@@ -114,7 +114,7 @@ function main() {
     w.on('windowSizeChange', cb2);
     w.off('windowSizeChange', cb2);
     let cb3 = (data: window.WindowEventType): void => {
-      console.println(`windowEvent event:${data as int}`);
+      console.println(`windowEvent event:${data}`);
     };
     w.on('windowStatusChange', cb3);
     w.off('windowStatusChange', cb3);

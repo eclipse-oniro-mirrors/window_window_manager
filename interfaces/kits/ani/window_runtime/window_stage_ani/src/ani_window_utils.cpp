@@ -766,7 +766,7 @@ ani_object AniWindowUtils::CreateAniWindowSystemBarProperties(ani_env* env,
     CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("statusBarContentColor").c_str(),
         nullptr, statusBarContentColor);
     CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("isStatusBarLightIcon").c_str(),
-        nullptr, status.contentColor_ == SYSTEM_COLOR_WHITE);
+        nullptr, CreateOptionalBool(env, ani_boolean(status.contentColor_ == SYSTEM_COLOR_WHITE)));
 
     if (!CreateNavBarColorProperties(env, navi, cls, systemBarProperties, status)) {
         TLOGE(WmsLogTag::WMS_IMMS, "[ANI] create string failed");
@@ -792,11 +792,11 @@ bool AniWindowUtils::CreateNavBarColorProperties(ani_env* env, const SystemBarPr
     CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("navigationBarContentColor").c_str(),
         nullptr, navigationBarContentColor);
     CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("isNavigationBarLightIcon").c_str(),
-        nullptr, navi.contentColor_ == SYSTEM_COLOR_WHITE);
+        nullptr, CreateOptionalBool(env, ani_boolean(navi.contentColor_ == SYSTEM_COLOR_WHITE)));
     CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("enableStatusBarAnimation").c_str(),
-        nullptr, status.enableAnimation_);
+        nullptr, CreateOptionalBool(env, ani_boolean(status.enableAnimation_)));
     CallAniMethodVoid(env, systemBarProperties, cls, Builder::BuildSetterName("enableNavigationBarAnimation").c_str(),
-        nullptr, navi.enableAnimation_);
+        nullptr, CreateOptionalBool(env, ani_boolean(navi.enableAnimation_)));
     return true;
 }
 
@@ -860,6 +860,10 @@ ani_object AniWindowUtils::CreateAniWindowInfo(ani_env* env, const WindowVisibil
         CreateAniRect(env, info.GetRect()));
     CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("globalDisplayRect").c_str(), nullptr,
         CreateAniRect(env, info.GetGlobalDisplayRect()));
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("globalRect").c_str(), nullptr,
+        CreateAniRect(env, info.GetGlobalRect()));
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("displayId").c_str(), nullptr,
+        static_cast<ani_long>(info.GetDisplayId()));
     ani_string bundleName;
     if (GetAniString(env, info.GetBundleName(), &bundleName) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
@@ -1493,7 +1497,7 @@ ani_object AniWindowUtils::CreateAniAnimationConfig(ani_env* env, const Keyboard
     }
 
     ret = CallAniMethodVoid(env, aniConfig, aniClass, "<set>duration", nullptr,
-        CreateBaseTypeObject(env, curve.duration_));
+        CreateBaseTypeObject<long>(env, curve.duration_));
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "[ANI] failed to set duration");
         return AniWindowUtils::CreateAniUndefined(env);
@@ -2323,6 +2327,56 @@ bool AniWindowUtils::ParseWindowLimits(ani_env* env, ani_object aniWindowLimits,
         getAndAssign("minWidth", windowLimits.minWidth_) != ANI_OK ||
         getAndAssign("minHeight", windowLimits.minHeight_) != ANI_OK ||
         getAndAssignUnit("pixelUnit", windowLimits.pixelUnit_) != ANI_OK) {
+        return false;
+    }
+    return true;
+}
+
+std::string AniWindowUtils::ANIStringToStdString(ani_env *env, ani_string ani_str)
+{
+    ani_size sz {};
+    env->String_GetUTF8Size(ani_str, &sz);
+
+    std::string result(sz + 1, 0);
+    env->String_GetUTF8(ani_str, result.data(), result.size(), &sz);
+    result.resize(sz);
+    return result;
+}
+
+bool AniWindowUtils::ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnchorInfo,
+    WindowAnchorInfo& windowAnchorInfo)
+{
+    auto getAndAssign = [&, where = __func__](const char* name, int32_t& field) -> ani_status {
+        std::optional<ani_int> optValue;
+        ani_status ret = AniWindowUtils::GetOptionalIntProperty(env, name, aniWindowAnchorInfo, optValue);
+        if (ret != ANI_OK) {
+            return ret;
+        }
+        if (!optValue || *optValue < 0) {
+            field = 0;
+            TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s: [ANI] Use default parameters for %{public}s", where, name);
+            return ANI_OK;
+        }
+        field = static_cast<int32_t>(*optValue);
+        return ANI_OK;
+    };
+
+    auto getAndAssignWindowAnchor = [&](const char* name, WindowAnchor& field) -> ani_status {
+        std::optional<WindowAnchor> optValue;
+        ani_status ret = AniWindowUtils::GetOptionalEnumProperty(env, name, aniWindowAnchorInfo, optValue);
+        if (ret != ANI_OK) {
+            return ret;
+        }
+        if (optValue) {
+            field = *optValue;
+        } else {
+            field = WindowAnchor::TOP_START;
+        }
+        return ANI_OK;
+    };
+    if (getAndAssign("offsetX", windowAnchorInfo.offsetX_) != ANI_OK ||
+        getAndAssign("offsetY", windowAnchorInfo.offsetY_) != ANI_OK ||
+        getAndAssignWindowAnchor("anchorType", windowAnchorInfo.windowAnchor_) != ANI_OK) {
         return false;
     }
     return true;

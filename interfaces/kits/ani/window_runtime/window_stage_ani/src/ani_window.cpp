@@ -5315,6 +5315,185 @@ void AniWindow::OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boo
     }
 }
 
+void AniWindow::AttachLayoutToParentWindow(ani_env* env, ani_object Obj, ani_long nativeObj, ani_object anchorInfo,
+    ani_object attachOptions)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (!aniWindow) {
+        TLOGE(WmsLogTag::WMS_SUB, "[ANI] aniWindow is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->OnAttachToParentWindow(env, anchorInfo, attachOptions);
+}
+
+static void ParseAttachOptions(sptr<Window> windowToken, ani_env* env, ani_object attachOptions,
+    std::unique_ptr<AniWindowRegisterManager>& registerManager, WindowAnchorInfo::AttachOptions& options)
+{
+    auto getPropertyAndCheckUndefined = [env](ani_object obj, const char* propName,
+        ani_ref& outRef, std::string_view errorPrefix) -> bool {
+            if (env->Object_GetPropertyByName_Ref(obj, propName, &outRef) != ANI_OK) {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "%s: Failed to get %s.", errorPrefix.data(), propName);
+                AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                    std::string("Failed to get") + propName + ".");
+                return false;
+            }
+            ani_boolean isUndefined;
+            if (env->Reference_IsUndefined(outRef, &isUndefined) != ANI_OK || isUndefined) {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check %s isUndefined fail", propName);
+                AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+                return false;
+            }
+            return true;
+        };
+    ani_ref nameValueRet;
+    if (env->Object_GetPropertyByName_Ref(attachOptions, "currentLayoutMode", &nameValueRet) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to get currentLayoutMode.");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "Failed to get currentLayoutMode.");
+        return;
+    }
+    ani_boolean isUndefinedCurrentLayoutMode;
+    if (env->Reference_IsUndefined(nameValueRet, &isUndefinedCurrentLayoutMode) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check enum_object isUndefined fail");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    if (!isUndefinedCurrentLayoutMode) {
+        std::string currentLayoutMode = AniWindowUtils::ANIStringToStdString(env,
+        static_cast<ani_string>(nameValueRet));
+        options.currentLayoutMode = currentLayoutMode;
+    }
+    ani_ref parentWindowSizeChangeCallBack;
+    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowSizeChangeCallBack",
+        parentWindowSizeChangeCallBack, "parentWindowSizeChangeCallBack")) {
+        return;
+    }
+    if (parentWindowSizeChangeCallBack && registerManager->RegisterListener(windowToken, "parentWindowSizeChange",
+        CaseType::CASE_WINDOW, env, parentWindowSizeChangeCallBack, 0) != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    ani_ref parentWindowStatusChangeCallBack;
+    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowStatusChangeCallBack",
+        parentWindowStatusChangeCallBack, "parentWindowStatusChangeCallBack")) {
+        return;
+    }
+    if (parentWindowStatusChangeCallBack && registerManager->RegisterListener(windowToken, "parentWindowStatusChange",
+        CaseType::CASE_WINDOW, env, parentWindowStatusChangeCallBack, 0) != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+}
+
+void AniWindow::OnAttachToParentWindow(ani_env* env, ani_object anchorInfo,
+    ani_object attachOptions)
+{
+    if (!Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "permission denied!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP, "not system application");
+        return;
+    }
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    if (!WindowHelper::IsSubWindow(windowToken_->GetType())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] only sub window is valid");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return;
+    }
+    WindowAnchorInfo acceptWindowAnchorInfo = {true, true, WindowAnchor::TOP_START, 0, 0};
+    ani_boolean isUndefinedAnchorInfo;
+    ani_status aniAnchorRet = env->Reference_IsUndefined(anchorInfo, &isUndefinedAnchorInfo);
+    if (aniAnchorRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check enum_object isUndefined fail");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    if (!isUndefinedAnchorInfo && !AniWindowUtils::ParseWindowAnchorInfo(env, anchorInfo, acceptWindowAnchorInfo)) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Failed to parse windowAnchorInfo");
+        return;
+    }
+    ani_boolean isUndefinedOptions;
+    ani_status aniOptionRet = env->Reference_IsUndefined(attachOptions, &isUndefinedOptions);
+    if (aniOptionRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check enum_object isUndefined fail");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    if (!isUndefinedOptions) {
+        ParseAttachOptions(windowToken_, env, attachOptions, registerManager_, acceptWindowAnchorInfo.attachOptions);
+    }
+    WindowAnchorInfo windowAnchorInfo = { true, true, acceptWindowAnchorInfo.windowAnchor_,
+        acceptWindowAnchorInfo.offsetX_, acceptWindowAnchorInfo.offsetY_};
+    windowAnchorInfo.attachOptions.currentLayoutMode = acceptWindowAnchorInfo.attachOptions.currentLayoutMode;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offset:%{public}d currentLayoutMode:"
+        "%{public}s", windowAnchorInfo.windowAnchor_, windowAnchorInfo.offsetX_, windowAnchorInfo.offsetY_,
+        windowAnchorInfo.attachOptions.currentLayoutMode.c_str());
+    auto setWindowAnchorInfoRet = windowToken_->SetWindowAnchorInfo(windowAnchorInfo, true);
+    auto it = WM_JS_TO_ERROR_CODE_MAP.find(setWindowAnchorInfoRet);
+    WmErrorCode errorCode = (it != WM_JS_TO_ERROR_CODE_MAP.end()) ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    if (errorCode != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_SUB, "[ANI] failed, errorCode:%{public}d ", errorCode);
+        AniWindowUtils::AniThrowError(env, errorCode, "[ANI] attach to parent window failed.");
+        return;
+    }
+}
+
+void AniWindow::DetachLayoutToParentWindow(ani_env* env, ani_object obj, ani_long nativeObj)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (!aniWindow) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] aniWindow is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->OnDetachLayoutToParentWindow(env);
+}
+
+void AniWindow::OnDetachLayoutToParentWindow(ani_env* env)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "[ANI]");
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    if (!WindowHelper::IsSubWindow(windowToken_->GetType())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] only sub window is valid");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return;
+    }
+    WmErrorCode sizeChangeRet = registerManager_->UnregisterListener(windowToken_, "parentWindowSizeChange",
+        CaseType::CASE_WINDOW, env, nullptr);
+    if (sizeChangeRet != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, sizeChangeRet);
+        return;
+    }
+
+    WmErrorCode statusChangeRet = registerManager_->UnregisterListener(windowToken_, "parentWindowStatusChange",
+        CaseType::CASE_WINDOW, env, nullptr);
+    if (statusChangeRet != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, statusChangeRet);
+        return;
+    }
+
+    WindowAnchorInfo windowAnchorInfo = { false, false, WindowAnchor::TOP_START, 0, 0};
+    windowAnchorInfo.attachOptions.currentLayoutMode = "";
+    auto setWindowAnchorInfoRet = windowToken_->SetWindowAnchorInfo(windowAnchorInfo, true);
+    auto it = WM_JS_TO_ERROR_CODE_MAP.find(setWindowAnchorInfoRet);
+    WmErrorCode errorCode = (it != WM_JS_TO_ERROR_CODE_MAP.end()) ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    if (errorCode != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] failed");
+        AniWindowUtils::AniThrowError(env, errorCode, "[ANI] detach from parent window failed.");
+        return;
+    }
+}
+
 void AniWindow::SetWindowTransitionAnimation(ani_env* env, ani_object obj, ani_long nativeObj,
     ani_enum_item transitionType, ani_object animation)
 {
@@ -6691,6 +6870,11 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
         ani_native_function {"setRelativePositionToParentWindowEnabled",
             "lzC{@ohos.window.window.WindowAnchor}C{std.core.Int}C{std.core.Int}:",
             reinterpret_cast<void *>(AniWindow::SetRelativePositionToParentWindowEnabled)},
+        ani_native_function {"attachLayoutToParentWindow",
+            "lC{@ohos.window.window.WindowAnchorInfo}C{@ohos.window.window.SubWindowAttachOptions}:",
+            reinterpret_cast<void *>(AniWindow::AttachLayoutToParentWindow)},
+        ani_native_function {"detachLayoutToParentWindow", "l:",
+            reinterpret_cast<void *>(AniWindow::DetachLayoutToParentWindow)},
         ani_native_function {"setDefaultDensityEnabled", "lz:",
             reinterpret_cast<void *>(AniWindow::SetDefaultDensityEnabled)},
         ani_native_function {"setWindowContainerColor", "lC{std.core.String}C{std.core.String}:",

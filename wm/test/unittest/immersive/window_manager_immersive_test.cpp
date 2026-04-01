@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "iremote_object_mocker.h"
+#include "parameters.h"
 #include "scene_board_judgement.h"
 #include "singleton_mocker.h"
 #include "window_manager.cpp"
@@ -102,6 +103,7 @@ private:
     int32_t mockUserId_ = 200;
     sptr<WindowManager> mockInstance_ = nullptr;
     sptr<MockWindowAdapter> mockAdapter_ = nullptr;
+    std::string isConcurrentuser_;
 };
 
 void WindowManagerImmersiveTest::SetUpTestCase() {}
@@ -110,6 +112,8 @@ void WindowManagerImmersiveTest::TearDownTestCase() {}
 
 void WindowManagerImmersiveTest::SetUp()
 {
+    isConcurrentuser_ = OHOS::system::GetParameter("persist.dms.concurrentuser", "");
+    OHOS::system::SetParameter("persist.dms.concurrentuser", "true");
     instance_ = &WindowManager::GetInstance(userId_);
     windowAdapter = &WindowAdapter::GetInstance(userId_);
 
@@ -127,6 +131,7 @@ void WindowManagerImmersiveTest::TearDown()
     WindowManager::RemoveInstanceByUserId(mockUserId_);
 
     WindowAdapter::windowAdapterMap_.clear();
+    OHOS::system::SetParameter("persist.dms.concurrentuser", isConcurrentuser_);
 }
 
 namespace {
@@ -183,7 +188,7 @@ HWTEST_F(WindowManagerImmersiveTest, UnregisterWindowSystemBarPropertyChangedLis
     instance_->pImpl_->windowSystemBarPropertyChangedListeners_.clear();
     EXPECT_EQ(WMError::WM_DO_NOTHING, instance_->UnregisterWindowSystemBarPropertyChangedListener(listener));
 
-    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.emplace_back(listener);
+    instance_->pImpl_->windowSystemBarPropertyChangedListeners_.insert(listener);
     ASSERT_NE(nullptr, windowAdapter);
     windowAdapter->isProxyValid_ = true;
     windowAdapter->windowManagerServiceProxy_ = nullptr;
@@ -206,7 +211,7 @@ HWTEST_F(WindowManagerImmersiveTest, NotifyWindowSystemBarPropertyChange, TestSi
         WindowType::WINDOW_TYPE_STATUS_BAR, systemBarProperty);
     sptr<TestWindowSystemBarPropertyChangedListener> listener =
         sptr<TestWindowSystemBarPropertyChangedListener>::MakeSptr();
-    windowManager.pImpl_->windowSystemBarPropertyChangedListeners_.emplace_back(listener);
+    windowManager.pImpl_->windowSystemBarPropertyChangedListeners_.insert(listener);
     EXPECT_EQ(1, windowManager.pImpl_->windowSystemBarPropertyChangedListeners_.size());
     WindowManager::GetInstance().pImpl_->NotifyWindowSystemBarPropertyChange(
         WindowType::WINDOW_TYPE_STATUS_BAR, systemBarProperty);
@@ -221,31 +226,24 @@ HWTEST_F(WindowManagerImmersiveTest, NotifyWindowSystemBarPropertyChange, TestSi
  */
 HWTEST_F(WindowManagerImmersiveTest, RegisterSystemBarChangedListener01, TestSize.Level1)
 {
-    ASSERT_NE(nullptr, instance_);
     auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
     auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
     instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
     instance_->pImpl_->systemBarChangedListeners_.clear();
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, instance_->RegisterSystemBarChangedListener(nullptr));
 
-    auto oldAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
-
-    instance_->pImpl_->systemBarChangedListenerAgent_ = nullptr;
-    instance_->pImpl_->systemBarChangedListeners_.clear();
-    WMError ret = instance_->RegisterSystemBarChangedListener(nullptr);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+    instance_->RegisterSystemBarChangedListener(nullptr);
+    ASSERT_EQ(nullptr, instance_->pImpl_->systemBarChangedListenerAgent_);
 
     sptr<ISystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
-
-    ASSERT_EQ(WMError::WM_ERROR_SAMGR, instance_->RegisterSystemBarChangedListener(listener));
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
+    ASSERT_EQ(WMError::WM_OK, instance_->RegisterSystemBarChangedListener(listener));
+    ASSERT_EQ(1, instance_->pImpl_->systemBarChangedListeners_.size());
 
     // to check that the same listner can not be registered twice
+    ASSERT_EQ(WMError::WM_OK, instance_->RegisterSystemBarChangedListener(listener));
+    ASSERT_EQ(1, instance_->pImpl_->systemBarChangedListeners_.size());
 
-    instance_->pImpl_->systemBarChangedListenerAgent_ = oldAgent;
+    instance_->pImpl_->systemBarChangedListenerAgent_ = oldWindowManagerAgent;
     instance_->pImpl_->systemBarChangedListeners_ = oldListeners;
 }
 
@@ -256,7 +254,6 @@ HWTEST_F(WindowManagerImmersiveTest, RegisterSystemBarChangedListener01, TestSiz
  */
 HWTEST_F(WindowManagerImmersiveTest, UnregisterSystemBarChangedListener01, TestSize.Level1)
 {
-    ASSERT_NE(instance_, nullptr);
     auto oldWindowManagerAgent = instance_->pImpl_->systemBarChangedListenerAgent_;
     auto oldListeners = instance_->pImpl_->systemBarChangedListeners_;
     instance_->pImpl_->systemBarChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
@@ -267,19 +264,17 @@ HWTEST_F(WindowManagerImmersiveTest, UnregisterSystemBarChangedListener01, TestS
     sptr<TestSystemBarChangedListener> listener1 = sptr<TestSystemBarChangedListener>::MakeSptr();
     sptr<TestSystemBarChangedListener> listener2 = sptr<TestSystemBarChangedListener>::MakeSptr();
     ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
-    ASSERT_NE(nullptr, windowAdapter);
-    windowAdapter->isProxyValid_ = true;
-    windowAdapter->windowManagerServiceProxy_ = nullptr;
+
     instance_->RegisterSystemBarChangedListener(listener1);
     instance_->RegisterSystemBarChangedListener(listener2);
-    ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
+    ASSERT_EQ(2, instance_->pImpl_->systemBarChangedListeners_.size());
 
     instance_->UnregisterSystemBarChangedListener(listener1);
     instance_->UnregisterSystemBarChangedListener(listener2);
     ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
     ASSERT_EQ(nullptr, instance_->pImpl_->systemBarChangedListenerAgent_);
 
-    instance_->pImpl_->systemBarChangedListeners_.push_back(listener1);
+    instance_->pImpl_->systemBarChangedListeners_.insert(listener1);
     ASSERT_EQ(WMError::WM_OK, instance_->UnregisterSystemBarChangedListener(listener1));
     ASSERT_EQ(0, instance_->pImpl_->systemBarChangedListeners_.size());
 
@@ -298,8 +293,8 @@ HWTEST_F(WindowManagerImmersiveTest, NotifySystemBarChanged, TestSize.Level1)
     ASSERT_NE(nullptr, instance_->pImpl_);
     sptr<TestSystemBarChangedListener> listener = sptr<TestSystemBarChangedListener>::MakeSptr();
     ASSERT_NE(nullptr, listener);
-    instance_->pImpl_->systemBarChangedListeners_.push_back(listener);
-    
+    instance_->pImpl_->systemBarChangedListeners_.insert(listener);
+
     SystemBarRegionTints tints;
     instance_->pImpl_->NotifySystemBarChanged(0, tints);
     EXPECT_EQ(1, listener->count_);

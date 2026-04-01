@@ -91,6 +91,7 @@ const std::string UI_EFFECT_SET_PARAMS_CB = "uiEffectSetParams";
 const std::string UI_EFFECT_ANIMATE_TO_CB = "uiEffectAnimateTo";
 const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
 const std::string MINIMIZE_ALL_CB = "minimizeAll";
+const std::string NOTIFY_PAGE_ENABLE_REGISTERED_CB = "notifyPageEnableRegistered";
 
 const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {CREATE_SYSTEM_SESSION_CB,     ListenerFunctionType::CREATE_SYSTEM_SESSION_CB},
@@ -120,6 +121,7 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {VIRTUAL_DENSITY_CHANGE_CB,   ListenerFunctionType::VIRTUAL_DENSITY_CHANGE_CB},
     {SET_SPECIFIC_SESSION_ZINDEX_CB,     ListenerFunctionType::SET_SPECIFIC_SESSION_ZINDEX_CB},
     {MINIMIZE_ALL_CB,     ListenerFunctionType::MINIMIZE_ALL_CB},
+    {NOTIFY_PAGE_ENABLE_REGISTERED_CB, ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB},
 };
 } // namespace
 
@@ -161,6 +163,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "SupportFunctionType", CreateSupportType(env));
     napi_set_named_property(env, exportObj, "WaterfallResidentState", CreateWaterfallResidentState(env));
     napi_set_named_property(env, exportObj, "CompatibleStyleMode", CreateCompatibleStyleMode(env));
+    napi_set_named_property(env, exportObj, "TitleButtonEventType", CreateTitleButtonEventType(env));
 
     const char* moduleName = "JsSceneSessionManager";
     BindNativeFunction(env, exportObj, "setBehindWindowFilterEnabled",
@@ -1436,7 +1439,7 @@ napi_value JsSceneSessionManager::UpdateAppHookDisplayInfo(napi_env env, napi_ca
 
 napi_value JsSceneSessionManager::UpdateAppHookWindowInfo(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnUpdateAppHookWindowInfo(env, info) : nullptr;
 }
@@ -1799,6 +1802,9 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
             break;
         case ListenerFunctionType::MINIMIZE_ALL_CB:
             RegisterMinimizeAllCallback();
+            break;
+        case ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB:
+            RegisterPageEnableCallback();
             break;
         default:
             break;
@@ -4655,7 +4661,7 @@ napi_value JsSceneSessionManager::OnUpdateAppHookWindowInfo(napi_env env, napi_c
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
 
     if (argc < ARGC_TWO) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
+        TLOGE(WmsLogTag::WMS_COMPAT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
@@ -4663,7 +4669,7 @@ napi_value JsSceneSessionManager::OnUpdateAppHookWindowInfo(napi_env env, napi_c
 
     std::string bundleName;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_ZERO], bundleName)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to bundleName");
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to bundleName");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
@@ -4671,7 +4677,7 @@ napi_value JsSceneSessionManager::OnUpdateAppHookWindowInfo(napi_env env, napi_c
 
     HookWindowInfo hookWindowInfo{};
     if (!ConvertHookWindowInfoFromJs(env, argv[ARG_INDEX_ONE], hookWindowInfo)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to hookWindowInfo");
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to hookWindowInfo");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
@@ -5517,18 +5523,13 @@ napi_value JsSceneSessionManager::OnNotifyRotationBegin(napi_env env, napi_callb
     size_t argc = ARGC_ONE;
     napi_value argv[ARGC_ONE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != ARGC_ONE) {
+    if (argc >= ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_ROTATION, "Argc count is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    bool isStopDrag = false;
-    if (!ConvertFromJsValue(env, argv[0], isStopDrag)) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to isStopDrag");
-        return NapiGetUndefined(env);
-    }
-    SceneSessionManager::GetInstance().NotifyRotationBegin(isStopDrag);
+    SceneSessionManager::GetInstance().NotifyRotationBegin();
     return NapiGetUndefined(env);
 }
 
@@ -6243,6 +6244,36 @@ void JsSceneSessionManager::OnMinimizeAll(DisplayId displayId, int32_t excludeWi
         napi_value jsDisplayIdObj = CreateJsNumber(env, static_cast<int64_t>(displayId));
         napi_value jsExcludeWindowIdObj = CreateJsValue(env, excludeWindowId);
         napi_value argv[] = { jsDisplayIdObj, jsExcludeWindowIdObj };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+        }, __func__);
+}
+
+void JsSceneSessionManager::RegisterPageEnableCallback()
+{
+    TLOGND(WmsLogTag::WMS_COMPAT, "RegisterPageEnableCallback called");
+    SceneSessionManager::GetInstance().RegisterPageEnableFunc(
+        [this](const std::string& bundleName, int32_t windowId, const std::string& action,
+        const std::string& message) {
+        this->OnNotifyPageEnableRegistered(bundleName, windowId, action, message);
+    });
+}
+
+void JsSceneSessionManager::OnNotifyPageEnableRegistered(const std::string& bundleName, int32_t windowId,
+    const std::string& action, const std::string& message)
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "in");
+    const char* const where = __func__;
+    taskScheduler_->PostMainThreadTask([this, where, bundleName, windowId, action, message,
+        jsCallBack = GetJSCallback(NOTIFY_PAGE_ENABLE_REGISTERED_CB), env = env_] {
+        if (jsCallBack == nullptr) {
+            TLOGNE(WmsLogTag::WMS_COMPAT, "%{public}s, jsCallBack is nullptr", where);
+            return;
+        }
+        napi_value jsBundleNameObj = CreateJsValue(env, bundleName);
+        napi_value jsWindowIdObj = CreateJsValue(env, windowId);
+        napi_value jsActionObj = CreateJsValue(env, action);
+        napi_value jsMessageObj = CreateJsValue(env, message);
+        napi_value argv[] = { jsBundleNameObj, jsWindowIdObj, jsActionObj, jsMessageObj };
         napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
         }, __func__);
 }

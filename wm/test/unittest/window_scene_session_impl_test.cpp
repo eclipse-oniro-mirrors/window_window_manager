@@ -1252,14 +1252,14 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_RepeatOperationFailed, Test
 }
 
 /**
- * @tc.name: StartMoveWindow_PcAppInPadFullscreenFailed
- * @tc.desc: StartMoveWindow Test - PC app in Pad fullscreen mode should fail
+ * @tc.name: StartMoveWindow_PcAppInPadFullscreenSuccess
+ * @tc.desc: StartMoveWindow Test - PC app in Pad fullscreen mode should succeed
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadFullscreenFailed, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadFullscreenSuccess, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("StartMoveWindow_PcAppInPadFullscreenFailed");
+    option->SetWindowName("StartMoveWindow_PcAppInPadFullscreenSuccess");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
@@ -1271,18 +1271,18 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadFullscreenFailed,
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
-    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
 /**
- * @tc.name: StartMoveWindow_PcAppInPadSplitPrimaryFailed
- * @tc.desc: StartMoveWindow Test - PC app in Pad split primary mode should fail
+ * @tc.name: StartMoveWindow_PcAppInPadSplitPrimarySuccess
+ * @tc.desc: StartMoveWindow Test - PC app in Pad split primary mode should succeed
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitPrimaryFailed, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitPrimarySuccess, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("StartMoveWindow_PcAppInPadSplitPrimaryFailed");
+    option->SetWindowName("StartMoveWindow_PcAppInPadSplitPrimarySuccess");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
@@ -1294,18 +1294,18 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitPrimaryFaile
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
-    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
 /**
- * @tc.name: StartMoveWindow_PcAppInPadSplitSecondaryFailed
- * @tc.desc: StartMoveWindow Test - PC app in Pad split secondary mode should fail
+ * @tc.name: StartMoveWindow_PcAppInPadSplitSecondarySuccess
+ * @tc.desc: StartMoveWindow Test - PC app in Pad split secondary mode should succeed
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitSecondaryFailed, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitSecondarySuccess, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("StartMoveWindow_PcAppInPadSplitSecondaryFailed");
+    option->SetWindowName("StartMoveWindow_PcAppInPadSplitSecondarySuccess");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
@@ -1317,7 +1317,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitSecondaryFai
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
-    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
 /**
@@ -1424,14 +1424,14 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadSubWindowWithoutFreeMult
 }
 
 /**
- * @tc.name: StartMoveWindow_WallpaperWindowFailed
- * @tc.desc: StartMoveWindow Test - Wallpaper window type should fail
+ * @tc.name: StartMoveWindow_WallpaperWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Wallpaper window type should succeed
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_WallpaperWindowFailed, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_WallpaperWindowSuccess, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("StartMoveWindow_WallpaperWindowFailed");
+    option->SetWindowName("StartMoveWindow_WallpaperWindowSuccess");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_WALLPAPER);
@@ -1439,7 +1439,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_WallpaperWindowFailed, Test
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
-    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
 

@@ -164,6 +164,31 @@ HWTEST_F(WindowSessionImplRotationTest, SetCurrentRotation, Function | SmallTest
 }
 
 /**
+ * @tc.name: GetSceneNodeCount
+ * @tc.desc: GetSceneNodeCount
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, GetSceneNodeCount, Function | SmallTest | Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: GetSceneNodeCount start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetSceneNodeCount");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    
+    // Case 1: rsUIDirector_ is valid by default - should return success
+    uint32_t nodeCount = 0;
+    auto ret = window->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    
+    // Case 2: Explicitly set rsUIDirector_ to nullptr - should return error
+    window->rsUIDirector_ = nullptr;
+    nodeCount = 0;
+    ret = window->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: GetSceneNodeCount end";
+}
+
+/**
  * @tc.name: SetRequestedOrientation01
  * @tc.desc: SetRequestedOrientation01
  * @tc.type: FUNC

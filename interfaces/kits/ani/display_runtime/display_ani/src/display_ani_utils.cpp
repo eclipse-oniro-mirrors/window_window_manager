@@ -238,8 +238,10 @@ void DisplayAniUtils::CvtDisplayHelper(sptr<Display> display, ani_env* env, ani_
         env, "@ohos.display.display.ScreenShape", static_cast<ani_size>(info->GetScreenShape())));
     if (info->GetDisplaySourceMode() == DisplaySourceMode::MAIN ||
         info->GetDisplaySourceMode() == DisplaySourceMode::EXTEND) {
-        env->Object_SetFieldByName_Long(obj, propName("x").c_str(), info->GetX());
-        env->Object_SetFieldByName_Long(obj, propName("y").c_str(), info->GetY());
+        env->Object_SetFieldByName_Ref(
+            obj, propName("x").c_str(), DisplayAniUtils::CreateOptionalInt(env, static_cast<ani_int>(info->GetX())));
+        env->Object_SetFieldByName_Ref(
+            obj, propName("y").c_str(), DisplayAniUtils::CreateOptionalInt(env, static_cast<ani_int>(info->GetY())));
     } else {
         env->Object_SetFieldByName_Ref(obj, propName("x").c_str(), DisplayAniUtils::CreateAniUndefined(env));
         env->Object_SetFieldByName_Ref(obj, propName("y").c_str(), DisplayAniUtils::CreateAniUndefined(env));

@@ -169,21 +169,27 @@ HWTEST_F(SceneSessionTest5, HookAvoidAreaInCompatibleMode, TestSize.Level1)
     session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     session->HookAvoidAreaInCompatibleMode(rect, AvoidAreaType::TYPE_SYSTEM, avoidArea);
     EXPECT_TRUE(avoidArea.topRect_ == invalidRect);
-    compatibleModeProperty->SetIsAdaptToImmersive(true);
-    session->property_->SetCompatibleModeProperty(compatibleModeProperty);
-    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    session->HookAvoidAreaInCompatibleMode(rect, AvoidAreaType::TYPE_SYSTEM, avoidArea);
-    EXPECT_TRUE(avoidArea.topRect_ == invalidRect);
 
-    // test top system avoidArea
+    // test top system avoidArea in floating
     session->property_->GetCompatibleModeProperty()->SetIsAdaptToImmersive(true);
-    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->property_->SetCompatibleModeProperty(compatibleModeProperty);
     session->HookAvoidAreaInCompatibleMode(rect, AvoidAreaType::TYPE_SYSTEM, avoidArea);
-    auto vpr = 3.5f;
+    auto vpr = 1.9f;
     Rect targetRect = { 0, 0, rect.width_, 40 * vpr };
     EXPECT_TRUE(avoidArea.topRect_ == targetRect);
 
-    // test buttom aiBar avoidArea
+    // test buttom aiBar avoidArea in floating
+    session->HookAvoidAreaInCompatibleMode(rect, AvoidAreaType::TYPE_NAVIGATION_INDICATOR, avoidArea);
+    targetRect = { 0, rect.height_ - 28 * vpr, rect.width_, 28 * vpr };
+    EXPECT_TRUE(avoidArea.bottomRect_ == targetRect);
+
+    // test top system avoidArea in full screen
+    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    session->HookAvoidAreaInCompatibleMode(rect, AvoidAreaType::TYPE_SYSTEM, avoidArea);
+    targetRect = { 0, 0, rect.width_, 40 * vpr };
+    EXPECT_TRUE(avoidArea.topRect_ == targetRect);
+
+    // test buttom aiBar avoidArea in full screen
     session->HookAvoidAreaInCompatibleMode(rect, AvoidAreaType::TYPE_NAVIGATION_INDICATOR, avoidArea);
     targetRect = { 0, rect.height_ - 28 * vpr, rect.width_, 28 * vpr };
     EXPECT_TRUE(avoidArea.bottomRect_ == targetRect);
@@ -400,7 +406,7 @@ HWTEST_F(SceneSessionTest5, SetSurfaceBounds01, TestSize.Level1)
     session->SetGetRsCmdBlockingCountFunc([] {
         return 0;
     });
-    session->surfaceNode_ = surfaceNode;
+    session->SetSurfaceNode(surfaceNode);
     session->SetSurfaceBounds(rect, false, false);
     EXPECT_EQ(preRect, session->GetSessionRect());
 }
@@ -2005,6 +2011,7 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType);
     sceneSession->SetSurfaceNode(surfaceNode);
+    sceneSession->moveDragShadowSurfaceNode_ = surfaceNode;
     // set displayId to moveDrag map
     sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(0);
     sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(1001);

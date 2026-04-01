@@ -43,6 +43,7 @@ ohos_shared_library("screenani_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "screen_ani/src/ani_err_utils.cpp",

@@ -42,6 +42,7 @@ ohos_shared_library("embeddablewindowstage") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "embeddable_window_stage_module.cpp" ]
 
@@ -88,6 +89,7 @@ ohos_shared_library("embeddablewindowstage_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "js_embeddable_window_stage.cpp" ]
 

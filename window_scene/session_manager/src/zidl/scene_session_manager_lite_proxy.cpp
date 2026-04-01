@@ -448,6 +448,51 @@ WSError SceneSessionManagerLiteProxy::GetSessionInfo(const std::string& deviceId
     return static_cast<WSError>(reply.ReadInt32());
 }
 
+WSError SceneSessionManagerLiteProxy::GetSessionInfo(const std::string& deviceId, int32_t persistentId,
+    SessionInfoBean& sessionInfo, AAFwk::DisplayInfo& displayInfo)
+{
+    WLOGFD("run SceneSessionManagerLiteProxy::GetSessionInfo");
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        WLOGFE("WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString16(Str8ToStr16(deviceId))) {
+        WLOGFE("GetSessionInfo write deviceId failed.");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(persistentId)) {
+        WLOGFE("GetSessionInfo write persistentId failed.");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        WLOGFE("remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>
+        (SceneSessionManagerLiteMessage::TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY),
+        data, reply, option) != ERR_NONE) {
+        WLOGFE("SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    std::unique_ptr<SessionInfoBean> missionInfo(reply.ReadParcelable<SessionInfoBean>());
+    if (missionInfo == nullptr) {
+        WLOGFE("read missioninfo failed.");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    std::unique_ptr<AAFwk::DisplayInfo> displayInfoReply(reply.ReadParcelable<AAFwk::DisplayInfo>());
+    if (displayInfoReply == nullptr) {
+        WLOGFE("read displayInfo failed.");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sessionInfo = *missionInfo;
+    displayInfo = *displayInfoReply;
+    return static_cast<WSError>(reply.ReadInt32());
+}
+
 WSError SceneSessionManagerLiteProxy::GetSessionInfoByContinueSessionId(
     const std::string& continueSessionId, SessionInfoBean& sessionInfo)
 {

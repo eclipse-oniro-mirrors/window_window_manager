@@ -426,6 +426,36 @@ HWTEST_F(MultiScreenChangeUtilsTest, ScreenPropertyChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ScreenHdrFormatsChange
+ * @tc.desc: ScreenHdrFormatsChange func
+ * @tc.type: FUNC
+ */
+HWTEST_F(MultiScreenChangeUtilsTest, ScreenHdrFormatsChange, TestSize.Level1)
+{
+    sptr<ScreenSession> innerScreen = nullptr;
+    sptr<ScreenSession> externalScreen = nullptr;
+    multiSCU_.ScreenHdrFormatsChange(innerScreen, externalScreen);
+
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    ScreenId screenId = ssm_.CreateVirtualScreen(
+        virtualOption, displayManagerAgent->AsObject());
+    innerScreen = ssm_.GetScreenSession(screenId);
+    multiSCU_.ScreenHdrFormatsChange(innerScreen, externalScreen);
+    ASSERT_NE(innerScreen, nullptr);
+
+    externalScreen = ssm_.GetOrCreateScreenSession(0);
+    innerScreen = nullptr;
+    multiSCU_.ScreenHdrFormatsChange(innerScreen, externalScreen);
+    ASSERT_NE(externalScreen, nullptr);
+
+    innerScreen = ssm_.GetScreenSession(screenId);
+    multiSCU_.ScreenHdrFormatsChange(innerScreen, externalScreen);
+    ASSERT_NE(innerScreen, nullptr);
+}
+
+/**
  * @tc.name: ExchangeScreenSupportedRefreshRate
  * @tc.desc: ExchangeScreenSupportedRefreshRate func
  * @tc.type: FUNC

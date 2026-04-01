@@ -86,6 +86,10 @@ private:
         bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowStatusChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);
+    WmErrorCode ProcessParentWindowSizeChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
+        bool isRegister, ani_env* env);
+    WmErrorCode ProcessParentWindowStatusChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
+        bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowTitleButtonRectChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowWillCloseRegister(const sptr<AniWindowListener>& listener, const sptr<Window>& window,
@@ -120,6 +124,8 @@ private:
     WmErrorCode ProcessScreenshotAppEventRegister(const sptr<AniWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessFreeWindowModeChangeRegister(const sptr<AniWindowListener>& listener,
+        const sptr<Window>& window, bool isRegister, ani_env* env);
+    WmErrorCode ProcessParentLifecycleEventRegister(const sptr<AniWindowListener>& listener,
         const sptr<Window>& window, bool isRegister, ani_env* env);
     WmErrorCode ProcessListener(RegisterListenerType registerListenerType, CaseType caseType,
         const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister, ani_env* env,

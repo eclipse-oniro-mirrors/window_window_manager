@@ -59,7 +59,6 @@ group("systemtest") {
       ":wms_window_layout_integration_test",
       ":wms_window_pc_test",
       ":wms_window_specialwindow_test",
-      ":wms_window_recover_test",
       ":wms_window_layout_test",
       ":wms_window_status_change_test",
     ]
@@ -602,7 +601,7 @@ ohos_static_library("wms_systemtest_common") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-    "${window_base_path}/wm:libwm",
+    "${window_base_path}/wm:libwm_static",
   ]
   external_deps = test_external_deps
 

@@ -40,6 +40,7 @@ const DOMAIN = 0x4200;
 const TAG = '[ANI]';
 const WM_ERROR_INVALID_PARAM = 401;
 declare type WindowAnimationCurveParam = Array<number>;
+declare type WindowEventListener = (windowId: int, event: window.WindowEventType) => void;
 
 namespace window {
   export interface Size {
@@ -557,6 +558,18 @@ namespace window {
     BOTTOM_END = 8,
   }
 
+  export interface WindowAnchorInfo {
+    anchorType ?: WindowAnchor;
+    offsetX?: int;
+    offsetY?: int;
+  }
+
+  export interface SubWindowAttachOptions {
+    currentLayoutMode?: string;
+    parentWindowSizeChangeCallBack?:Callback<Size>;
+    parentWindowStatusChangeCallBack?:Callback<WindowStatusType>;
+  }
+
   export interface Rect {
     /**
      * The left of the Rect.
@@ -946,6 +959,8 @@ export class WindowLayoutInfoInternal implements WindowLayoutInfo {
 export interface WindowInfo {
   rect: Rect;
   globalDisplayRect?: Rect;
+  globalRect?: Rect;
+  displayId?: int;
   bundleName: string;
   abilityName: string;
   windowId: int;
@@ -956,6 +971,8 @@ export interface WindowInfo {
 export class WindowInfoInternal implements WindowInfo {
   rect: Rect;
   globalDisplayRect?: Rect;
+  globalRect?: Rect;
+  displayId?: int;
   bundleName: string;
   abilityName: string;
   windowId: int;
@@ -1198,7 +1215,7 @@ export class WindowPropertiesInternal implements WindowProperties {
     this.isPrivacyMode = isPrivacyMode;
     this.isRoundCorner = isRoundCorner;
     this.isTransparent = isTransparent;
-    this.type = typeInternal as WindowType;
+    this.type = WindowType.fromValue(typeInternal);
     this.id = id;
     this.displayId = displayId;
     this.name = name;
@@ -1665,11 +1682,15 @@ export class TransitionAnimationInternal implements TransitionAnimation {
 export interface WindowCreateParams {
     animationParams?: StartAnimationParams;
     systemAnimationParams?: StartAnimationSystemParams;
+    needAnimation?: boolean;
+    isWindowLimitsForcible?: boolean;
 }
 
 export class WindowCreateParamsInternal implements WindowCreateParams {
     animationParams?: StartAnimationParams;
     systemAnimationParams?: StartAnimationSystemParams;
+    needAnimation?: boolean;
+    isWindowLimitsForcible?: boolean;
 }
 
 /**
@@ -2669,6 +2690,7 @@ export class WindowStageInternal implements WindowStage {
         }).then((ret: Any) => {
             callback(new BusinessError(), ret as Window);
         }).catch((err: Any) => {
+            callback(err as BusinessError, new WindowInternal());
         });
     }
 
@@ -2692,6 +2714,7 @@ export class WindowStageInternal implements WindowStage {
         }).then((ret: Any) => {
             callback(new BusinessError(), ret as Window);
         }).catch((err: Any) => {
+            callback(err as BusinessError, new WindowInternal());
         });
     }
 
@@ -2810,7 +2833,7 @@ export class WindowStageInternal implements WindowStage {
     public setImageForRecent(imageResource: long | image.PixelMap, value: ImageFit): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
-          this.setImageForRecentSync(this.nativeObj, imageResource, value as int);
+          this.setImageForRecentSync(this.nativeObj, imageResource, value);
         }).then((ret: Any): void => {
           resolve(undefined);
         }).catch((err: Any): void => {
@@ -3064,6 +3087,9 @@ export class WindowInternal implements Window {
     private native setParentWindow(nativeObj: long, windowId: int): void;
     private native setContentAspectRatio(
       nativeObj: long, ratio: double, isPersistent: boolean, needUpdateRect: boolean): void;
+    private native attachLayoutToParentWindow(
+      nativeObj: long, anchorInfo: WindowAnchorInfo, attachOptions: SubWindowAttachOptions): void;
+    private native detachLayoutToParentWindow(nativeObj: long): void;
     private native onSync(nativeObj: long, type: string, callback: object): void;
     private native onNoInteractionDetected(nativeObj: long, type: string, timeout: long, callback: Object): void;
     private native offSync(nativeObj: long, type: string, callback?: object): void;
@@ -3661,7 +3687,7 @@ export class WindowInternal implements Window {
     public setWindowColorSpace(colorSpace: ColorSpace): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
-          this.setWindowColorSpaceSync(this.nativeObj, colorSpace as int);
+          this.setWindowColorSpaceSync(this.nativeObj, colorSpace);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -3672,7 +3698,7 @@ export class WindowInternal implements Window {
 
     public setWindowColorSpace(colorSpace: ColorSpace, callback: AsyncCallback<void>): void {
       taskpool.execute((): void => {
-        this.setWindowColorSpaceSync(this.nativeObj, colorSpace as int);
+        this.setWindowColorSpaceSync(this.nativeObj, colorSpace);
       }).then((ret: Any) => {
         callback(new BusinessError(), undefined);
       }).catch((err: Any) => {
@@ -3683,7 +3709,7 @@ export class WindowInternal implements Window {
     public setPreferredOrientation(orientation: Orientation): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
-          this.setPreferredOrientationSync(this.nativeObj, orientation as int);
+          this.setPreferredOrientationSync(this.nativeObj, orientation);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -3694,7 +3720,7 @@ export class WindowInternal implements Window {
 
     public setPreferredOrientation(orientation: Orientation, callback: AsyncCallback<void>): void {
       taskpool.execute((): void => {
-        this.setPreferredOrientationSync(this.nativeObj, orientation as int);
+        this.setPreferredOrientationSync(this.nativeObj, orientation);
       }).then((ret: Any) => {
         callback(new BusinessError(), undefined);
       }).catch((err: Any) => {
@@ -3703,11 +3729,11 @@ export class WindowInternal implements Window {
     }
 
     public getPreferredOrientation(): Orientation {
-      return this.getPreferredOrientation(this.nativeObj) as Orientation;
+      return Orientation.fromValue(this.getPreferredOrientation(this.nativeObj));
     }
 
     public convertOrientationAndRotation(from: RotationInfoType, to: RotationInfoType, value: int): int {
-      return this.convertOrientationAndRotation(this.nativeObj, from as int, to as int, value);
+      return this.convertOrientationAndRotation(this.nativeObj, from, to, value);
     }
 
     public setWindowPrivacyMode(isPrivacyMode: boolean): Promise<void> {
@@ -4006,7 +4032,7 @@ export class WindowInternal implements Window {
     }
 
     public getWindowColorSpace(): ColorSpace {
-      return this.getWindowColorSpace(this.nativeObj) as ColorSpace;
+      return ColorSpace.fromValue(this.getWindowColorSpace(this.nativeObj));
     }
 
     public setWakeUpScreen(wakeUp: boolean): void {
@@ -4116,7 +4142,7 @@ export class WindowInternal implements Window {
     }
 
     public getWindowAvoidAreaIgnoringVisibility(type: AvoidAreaType): AvoidArea {
-      return this.getWindowAvoidAreaIgnoringVisibilitySync(this.nativeObj, type as AvoidAreaType);
+      return this.getWindowAvoidAreaIgnoringVisibilitySync(this.nativeObj, type);
     }
 
     public setWaterMarkFlag(enable: boolean): Promise<void> {
@@ -4337,6 +4363,32 @@ export class WindowInternal implements Window {
         (resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
           taskpool.execute((): void => {
               this.setContentAspectRatio(this.nativeObj, ratio, isPersistent ?? true, needUpdateRect ?? true);
+          }).then((ret: Any) => {
+              resolve(undefined);
+          }).catch((err: Any) => {
+              reject(err as BusinessError);
+          });
+      });
+    }
+
+    public attachLayoutToParentWindow(anchorInfo: WindowAnchorInfo, attachOptions: SubWindowAttachOptions): Promise<void> {
+      return new Promise<void>(
+        (resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
+          taskpool.execute((): void => {
+              this.attachLayoutToParentWindow(this.nativeObj, anchorInfo, attachOptions);
+          }).then((ret: Any) => {
+              resolve(undefined);
+          }).catch((err: Any) => {
+              reject(err as BusinessError);
+          });
+      });
+    }
+
+    public detachLayoutToParentWindow(): Promise<void> {
+      return new Promise<void>(
+        (resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
+          taskpool.execute((): void => {
+              this.detachLayoutToParentWindow(this.nativeObj);
           }).then((ret: Any) => {
               resolve(undefined);
           }).catch((err: Any) => {
@@ -4842,7 +4894,7 @@ export class WindowInternal implements Window {
     }
 
     public getWindowStatus(): WindowStatusType {
-      return this.getWindowStatus(this.nativeObj) as WindowStatusType;
+      return WindowStatusType.fromValue(this.getWindowStatus(this.nativeObj));
     }
 
     public minimize(): Promise<void> {
@@ -5369,6 +5421,8 @@ export interface Window {
     bindDialogTarget(requestInfo: dialogRequest.RequestInfo, deathCallback: Callback<void>,
       callback: AsyncCallback<void>): void;
     setContentAspectRatio(ratio: double, isPersistent?: boolean, needUpdateRect?: boolean): Promise<void>;
+    attachLayoutToParentWindow(anchorInfo: WindowAnchorInfo, attachOptions: SubWindowAttachOptions): Promise<void>;
+    detachLayoutToParentWindow(): Promise<void>;
     opacity(opacity: double): void;
     scale(scaleOptions: ScaleOptions): void;
     translate(translateOptions: TranslateOptions): void;
@@ -5521,6 +5575,32 @@ native function setStartWindowBackgroundColorSync(nativeObj: long, moduleName: s
 native function notifyScreenshotEventSync(nativeObj: long, eventType: ScreenshotEventType): void;
 native function toggleShownStateForAllAppWindowsSync(nativeObj: long): void;
 native function setSpecificSystemWindowZIndexSync(nativeObj: long, windowType: WindowType, zIndex: int): void;
+native function createSubWindowAndBindParentSync(nativeObj: long, name: string,
+  parentId: int, ctx: BaseContext, parentWindowEventListener: WindowEventListener): Window;
+
+export function createSubWindowAndBindParent(name: string, parentId: int, ctx: BaseContext,
+  parentWindowEventListener: WindowEventListener): Promise<Window> {
+ 	return new Promise<Window>((resolve: (value: Window) => void, reject: (error: BusinessError) => void ) => {
+ 	  taskpool.execute((): Window => {
+ 	    return createSubWindowAndBindParentSync(nativeObj, name, parentId, ctx, parentWindowEventListener);
+ 	  }).then((ret: Any) => {
+ 	    resolve(ret as Window);
+ 	  }).catch((err: Any) => {
+ 	    reject(err as BusinessError);
+ 	  });
+ 	});
+}
+
+export function createSubWindowAndBindParent(name: string, parentId: int, ctx: BaseContext,
+  parentWindowEventListener: WindowEventListener, asyncCallback: AsyncCallback<Window>): void {
+ 	taskpool.execute((): Window => {
+ 	  return createSubWindowAndBindParentSync(nativeObj, name, parentId, ctx, parentWindowEventListener);
+ 	}).then((ret: Any) => {
+ 	  asyncCallback(new BusinessError(), ret as Window);
+ 	}).catch((err: Any) => {
+ 	  asyncCallback(err as BusinessError, new WindowInternal());
+ 	});
+}
 
 export function toggleShownStateForAllAppWindows(callback: AsyncCallback<void>): void {
       taskpool.execute((): void => {
@@ -5718,7 +5798,7 @@ export function getVisibleWindowInfo(): Promise<Array<WindowInfo>> {
           let visibleWindowInfos = getVisibleWindowInfo(nativeObj);
           for (let i = 0; i < visibleWindowInfos.length; i++) {
             visibleWindowInfos[i].windowStatusType =
-              visibleWindowInfos[i].windowStatusTypeInternal as WindowStatusType;
+              WindowStatusType.fromValue(visibleWindowInfos[i].windowStatusTypeInternal);
             visibleWindowInfos[i].isFocused = visibleWindowInfos[i].isFocusedInternal;
           }
           return visibleWindowInfos;
@@ -6013,17 +6093,17 @@ function runSystemBarTintChangeCallback(cb: object, tint: object): void {
 
 function runAvoidAreaChangeCallback(cb: object, area: object, type: int): void {
   const func = cb as (data: AvoidAreaOptions) => void;
-  func({type: type as AvoidAreaType, area: area as AvoidArea});
+  func({type: AvoidAreaType.fromValue(type), area: area as AvoidArea});
 }
 
 function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
-    func(cbArg as WindowStageLifecycleEventType);
+    func(WindowStageLifecycleEventType.fromValue(cbArg));
 }
 
 function runWindowEventCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: WindowEventType) => void;
-    func(cbArg as WindowEventType);
+    func(WindowEventType.fromValue(cbArg));
 }
 
 function runWindowSizeCallback(cb: object, cbArg: object): void {
@@ -6033,7 +6113,7 @@ function runWindowSizeCallback(cb: object, cbArg: object): void {
 
 function runWindowRectChangeCallback(cb: object, rect: object, reason: int): void {
     const func = cb as (data: RectChangeOptions) => void;
-    func({rect: rect as Rect, reason: reason as RectChangeReason});
+    func({rect: rect as Rect, reason: RectChangeReason.fromValue(reason)});
 }
 
 function runKeyboardHeightChangeCallback(cb: object, cbArg: int): void {
@@ -6063,12 +6143,12 @@ function runKeyboardWillHideCallback(cb: object, cbArg: object): void {
 
 function runWindowStatusCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: WindowStatusType) => void;
-    func(cbArg as WindowStatusType);
+    func(WindowStatusType.fromValue(cbArg));
 }
 
 function runOcclusionStateChangeCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: OcclusionState) => void;
-    func(cbArg as OcclusionState);
+    func(OcclusionState.fromValue(cbArg));
 }
 
 function runFrameMetricsChangeCallback(cb: object, cbArg: object): void {
@@ -6093,7 +6173,7 @@ function runWindowNoInteractionCallback(cb: object): void {
 
 function runWindowStageEventCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: WindowStageEventType) => void;
-    func(cbArg as WindowStageEventType);
+    func(WindowStageEventType.fromValue(cbArg));
 }
 
 function runMainWindowFullScreenAcrossDisplaysChangedCallback(cb: object, cbArg: boolean): void {
@@ -6113,7 +6193,7 @@ function runWindowTitleButtonRectChangedCallback(cb: object, cbArg: object): voi
 
 function runRectChangeInGlobalDisplayCallback(cb: object, rect: object, reason: int): void {
   const func = cb as (data: RectChangeOptions) => void;
-  func({rect: rect as Rect, reason: reason as RectChangeReason});
+  func({rect: rect as Rect, reason: RectChangeReason.fromValue(reason)});
 }
 
 function runUiExtensionSecureLimitChangeCallback(cb: object, cbArg: boolean): void {
@@ -6123,7 +6203,22 @@ function runUiExtensionSecureLimitChangeCallback(cb: object, cbArg: boolean): vo
 
 function runWindowStatusDidChangeCallback(cb: object, windowStatus: int): void {
   const func = cb as (windowStatus: WindowStatusType) => void;
-  func(windowStatus as WindowStatusType);
+  func(WindowStatusType.fromValue(windowStatus));
+}
+
+function runParentWindowSizeChangeCallback(cb: object, cbArg: object): void {
+  const func = cb as (cbArg: Size) => void;
+  func(cbArg as Size);
+}
+
+function runParentWindowStatusChangeCallback(cb: object, windowStatus: int): void {
+  const func = cb as (windowStatus: WindowStatusType) => void;
+  func(WindowStatusType.fromValue(windowStatus));
+}
+
+function runParentLifecycleEventCallback(cb: object, windowId: int, event: int): void {
+  const func = cb as (windowId: int, event: WindowEventType) => void;
+  func(windowId, WindowEventType.fromValue(event));
 }
 }
 

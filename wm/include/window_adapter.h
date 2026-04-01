@@ -135,7 +135,10 @@ public:
     virtual WMError DestroyAndDisconnectSpecificSession(const int32_t persistentId);
     virtual WMError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
         const sptr<IRemoteObject>& callback);
-    WMError GetSnapshotByWindowId(int32_t windowId, std::shared_ptr<Media::PixelMap>& pixelMap);
+    virtual WMError GetCrossProcessWindowInfo(CrossProcessWindowInfo& crossProcessWindowInfo);
+    virtual WMError Snapshot(
+        std::shared_ptr<Media::PixelMap>& pixelMap, int32_t windowId, const SnapshotConfig& config);
+    virtual WMError GetSnapshotByWindowId(int32_t windowId, std::shared_ptr<Media::PixelMap>& pixelMap);
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();
     virtual WMError SetSessionGravity(int32_t persistentId, SessionGravity gravity, uint32_t percent);
@@ -175,6 +178,8 @@ public:
     /*
      * Window Recover
      */
+    bool IsWindowManagerServiceProxyValid();
+    bool IsMockSMSProxyAlive();
     void RegisterSessionRecoverCallbackFunc(int32_t persistentId, const SessionRecoverCallbackFunc& callbackFunc);
     void UnregisterSessionRecoverCallbackFunc(int32_t persistentId);
     virtual WMError RecoverAndReconnectSceneSession(const sptr<ISessionStage>& sessionStage,
@@ -223,7 +228,7 @@ public:
     virtual WMError AnimateTo(int32_t windowId, const WindowAnimationProperty& animationProperty,
         const WindowAnimationOption& animationOption);
     WMError NotifySupportRotationRegistered();
-    
+
     /*
      * Window Property
      */
@@ -250,8 +255,6 @@ public:
     void UnregisterOutlineRecoverCallbackFunc();
     virtual WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams);
 
-    sptr<IWindowManager> GetWindowManagerServiceProxy() const;
-
 private:
     friend class sptr<WindowAdapter>;
     ~WindowAdapter() override;
@@ -277,10 +280,14 @@ private:
     void WindowManagerAndSessionRecover();
     void RecoverSpecificZIndexSetByApp();
     WMError RecoverWindowPropertyChangeFlag();
-    uint32_t observedFlags_ = 0;
-    uint32_t interestedFlags_ = 0;
+    void RegisterRecoverCallback();
     std::string appWatermarkName_;
     std::unordered_map<WindowType, int32_t> specificZIndexMap_;
+
+    uint32_t observedFlags_ = 0;
+    uint32_t interestedFlags_ = 0;
+
+    sptr<IWindowManager> GetWindowManagerServiceProxy() const;
 
     mutable std::mutex wmsProxyMutex_;
     sptr<IWindowManager> windowManagerServiceProxy_ = nullptr;
@@ -293,10 +300,10 @@ private:
     std::mutex sessionRecoverCallbackMapMutex_;
 
     // Note: Currently, sptr does not support unordered_map<T, unordered_set<sptr<T>>>.
-    std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentMap_;
-    std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentFaultMap_;
+    std::unordered_map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentMap_;
     std::mutex wmAgentMapMutex_;
-    // Agent map both locked by wmAgentMapMutex_
+    std::unordered_map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentFaultMap_;
+    std::mutex wmFaultAgentMapMutex_;
 
     std::mutex effectMutex_;
     std::unordered_map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap_;

@@ -108,7 +108,9 @@ scene_session_manager_external_deps = [
   "ability_runtime:ability_start_setting",
   "ability_runtime:app_context",
   "ability_runtime:app_manager",
+  "ability_runtime:process_options",
   "ability_runtime:mission_info",
+  "ability_runtime:runtime",
   "ability_runtime:session_handler",
   "ace_engine:ace_uicontent",
   "bundle_framework:appexecfwk_base",
@@ -152,6 +154,7 @@ ohos_static_library("scene_session_manager_static") {
   external_deps = scene_session_manager_external_deps
   external_deps += [
     "accessibility:accessibility_common",
+    "c_utils:utils",
     "graphic_2d:window_animation",
     "input:libmmi-napi",
   ]
@@ -203,11 +206,6 @@ ohos_static_library("scene_session_manager_static") {
   } else {
     imf_enable = false
   }
-
-  if (device_status_enable) {
-    external_deps += [ "device_status:devicestatus_client" ]
-    defines += [ "DEVICE_STATUS_ENABLE" ]
-  }
   print("imf_enable: ", imf_enable)
   if (imf_enable == true) {
     external_deps += [ "imf:inputmethod_client" ]
@@ -230,6 +228,7 @@ ohos_shared_library("scene_session_manager") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
 
   public_configs = [ ":session_manager_public_config" ]
@@ -295,11 +294,6 @@ ohos_shared_library("scene_session_manager") {
   } else {
     imf_enable = false
   }
-
-  if (device_status_enable) {
-    external_deps += [ "device_status:devicestatus_client" ]
-    defines += [ "DEVICE_STATUS_ENABLE" ]
-  }
   print("imf_enable: ", imf_enable)
   if (imf_enable == true) {
     external_deps += [ "imf:inputmethod_client" ]
@@ -315,7 +309,23 @@ ohos_shared_library("scene_session_manager") {
   }
 }
 
-ohos_shared_library("session_manager") {
+session_manager_sources = [
+    "../session_manager_service/src/session_manager_service_proxy.cpp", 
+    "src/session_manager.cpp", 
+    "src/zidl/scene_session_manager_proxy.cpp", 
+    "src/zidl/session_lifecycle_listener_proxy.cpp",
+]
+
+session_manager_deps = [
+    ":session_manager_lite",
+    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_base",
+    "${window_base_path}/window_scene/common:window_scene_common",
+    "${window_base_path}/window_scene/session:ui_effect_controller_client",
+    "${window_base_path}/wmserver:mock_session_manager_service_proxy",
+]
+
+ohos_static_library("session_manager_static") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
@@ -323,25 +333,63 @@ ohos_shared_library("session_manager") {
     cfi_vcall_icall_only = true
     debug = false
   }
-  sources = [
-    "../session_manager_service/src/session_manager_service_proxy.cpp",
-    "src/session_manager.cpp",
-    "src/zidl/scene_session_manager_proxy.cpp",
-    "src/zidl/session_lifecycle_listener_proxy.cpp",
-  ]
+  sources = session_manager_sources
 
   cflags_cc = [ "-std=c++17" ]
 
   public_configs = [ ":session_manager_public_config" ]
 
-  deps = [
-    ":session_manager_lite",
-    "${window_base_path}/utils:libwmutil",
-    "${window_base_path}/utils:libwmutil_base",
-    "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/window_scene/session:ui_effect_controller_client",
-    "${window_base_path}/wmserver:mock_session_manager_service_proxy",
+  deps = session_manager_deps
+
+  external_deps = [
+    "ability_base:session_info",
+    "ability_base:want",
+    "ability_runtime:ability_manager",
+    "ability_runtime:app_manager",
+    "ability_runtime:mission_info",
+    "ability_runtime:session_handler",
+    "accessibility:accessibility_common",
+    "c_utils:utils",
+    "graphic_2d:librender_service_base",
+    "graphic_2d:librender_service_client",
+    "graphic_2d:window_animation",
+    "hilog:libhilog",
+    "image_framework:image_native",
+    "ipc:ipc_single",
+    "input:libmmi-client",
+    "input:libmmi-napi",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
   ]
+
+  part_name = "window_manager"
+  subsystem_name = "window"
+
+  defines = []
+  if (build_variant == "user") {
+    defines += [ "IS_RELEASE_VERSION" ]
+  }
+}
+
+ohos_shared_library("session_manager") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
+  sources = session_manager_sources
+
+  cflags_cc = [ "-std=c++17" ]
+
+  public_configs = [ ":session_manager_public_config" ]
+
+  version_script = "libsession_manager.map"
+
+  deps = session_manager_deps
+
   public_external_deps = [
     "ability_runtime:session_handler",
     "accessibility:accessibility_common",
@@ -350,6 +398,7 @@ ohos_shared_library("session_manager") {
     "input:libmmi-client",
     "input:libmmi-napi",
   ]
+
   external_deps = [
     "ability_base:session_info",
     "ability_base:want",
@@ -383,6 +432,7 @@ ohos_shared_library("session_manager_lite") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../session_manager_service/src/session_manager_service_proxy.cpp",

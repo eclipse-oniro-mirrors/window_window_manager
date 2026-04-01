@@ -28,6 +28,12 @@
 
 namespace OHOS {
 namespace Rosen {
+enum class RootSessionState {
+    NOT_CREATED,
+    CREATED_FIRST_TIME,
+    CREATED_SUBSEQUENT
+};
+
 class SceneSessionDirtyManager;
 struct SecSurfaceInfo;
 class SceneInputManager : public std::enable_shared_from_this<SceneInputManager> {
@@ -50,6 +56,7 @@ public:
         GetFullWindowInfoList();
     void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
         std::vector<MMI::Rect>& pointerHotAreas) const;
+    void SetRootSceneSessionCreated(bool created);
 
     /*
      * Multi User
@@ -85,6 +92,7 @@ private:
         std::ostringstream& dumpDisplayListStream);
     void ConstructDumpWindowInfo(const MMI::WindowInfo& windowInfo,
         std::ostringstream& dumpWindowListStream);
+    void HandleEmptyDisplayGroup();
     std::unordered_map<DisplayId, int32_t> GetFocusedSessionMap() const;
     std::shared_ptr<SceneSessionDirtyManager> sceneSessionDirty_;
     std::shared_ptr<AppExecFwk::EventRunner> eventLoop_;
@@ -94,6 +102,8 @@ private:
     std::vector<MMI::WindowInfo> lastWindowInfoList_;
     int32_t lastFocusId_ { -1 };
     int32_t focusedSessionId_ { -1 };
+    std::atomic<RootSessionState> rootSessionState_ { RootSessionState::NOT_CREATED };
+    std::atomic<bool> hasDelayedTaskScheduled_ { false };
 
     /*
      * Multi User

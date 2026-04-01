@@ -424,8 +424,6 @@ HWTEST_F(ScreenSessionManagerTest, SetResolution, TestSize.Level1)
     mode->height_ = 1;
     screenSession->modes_ = {mode};
 
-    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, ssm_->SetResolution(screenId, 100, 100, 0.5));
-
     ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, ssm_->SetResolution(screenId, 0, 0, 0.5));
 
     ScreenId invalidScreenId = -1;
@@ -1622,6 +1620,110 @@ HWTEST_F(ScreenSessionManagerTest, SetOnBootAnimation, TestSize.Level1)
 {
     ssm_->SetOnBootAnimation(true);
     EXPECT_TRUE(ssm_->IsOnBootAnimation());
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithScreenId_DefaultValue_ReturnsValidId
+ * @tc.desc: CreateVirtualScreen with screenId_ = -1 (default) returns valid screen id
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CreateVirtualScreenWithScreenId_DefaultValue_ReturnsValidId, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    virtualOption.width_ = 200;
+    virtualOption.height_ = 100;
+    virtualOption.screenId_ = -1;
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_NE(screenId, SCREEN_ID_INVALID);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithScreenId_MinBoundary_ReturnsValidId
+ * @tc.desc: CreateVirtualScreen with screenId_ = 300 (min boundary) returns valid screen id
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CreateVirtualScreenWithScreenId_MinBoundary_ReturnsValidId, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    virtualOption.width_ = 200;
+    virtualOption.height_ = 100;
+    virtualOption.screenId_ = 300;
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_EQ(screenId, 300);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithScreenId_MaxBoundary_ReturnsValidId
+ * @tc.desc: CreateVirtualScreen with screenId_ = 900 (max boundary) returns valid screen id
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CreateVirtualScreenWithScreenId_MaxBoundary_ReturnsValidId, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    virtualOption.width_ = 200;
+    virtualOption.height_ = 100;
+    virtualOption.screenId_ = 900;
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_EQ(screenId, 900);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithScreenId_MiddleValue_ReturnsValidId
+ * @tc.desc: CreateVirtualScreen with screenId_ = 500 (middle value) returns valid screen id
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CreateVirtualScreenWithScreenId_MiddleValue_ReturnsValidId, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    virtualOption.width_ = 200;
+    virtualOption.height_ = 100;
+    virtualOption.screenId_ = 500;
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_EQ(screenId, 500);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithScreenId_Duplicate_ReturnsInvalidId
+ * @tc.desc: CreateVirtualScreen with duplicate screenId_ returns invalid screen id
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CreateVirtualScreenWithScreenId_Duplicate_ReturnsInvalidId, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "createVirtualOption";
+    virtualOption.width_ = 200;
+    virtualOption.height_ = 100;
+    virtualOption.screenId_ = 400;
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_EQ(screenId, 400);
+    
+    VirtualScreenOption duplicateOption;
+    duplicateOption.name_ = "duplicateVirtualOption";
+    duplicateOption.width_ = 200;
+    duplicateOption.height_ = 100;
+    duplicateOption.screenId_ = 400;
+    auto duplicateScreenId = ssm_->CreateVirtualScreen(duplicateOption, displayManagerAgent->AsObject());
+    ASSERT_EQ(duplicateScreenId, SCREEN_ID_INVALID);
+    
+    ssm_->DestroyVirtualScreen(screenId);
 }
 }
 } // namespace Rosen

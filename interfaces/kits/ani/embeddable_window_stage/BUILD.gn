@@ -46,6 +46,7 @@ ohos_shared_library("embeddablewindowstageani_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "src/ani_embeddable_window_stage.cpp",
@@ -99,6 +100,7 @@ ohos_shared_library("embeddablewindowstageani_module") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "src/ani_embeddable_window_stage_module.cpp" ]
 

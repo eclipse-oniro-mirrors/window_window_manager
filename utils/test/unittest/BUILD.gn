@@ -400,7 +400,7 @@ ohos_static_library("utils_unittest_common") {
     "../../../resources/config/build:testcase_flags",
   ]
 
-  public_deps = [
+  deps = [
     "${window_base_path}/dm:libdm",
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",

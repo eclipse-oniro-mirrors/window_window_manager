@@ -218,6 +218,7 @@
             OHOS::Rosen::SceneSessionManager::VisitSnapshotFromCache*;
             OHOS::Rosen::SceneSessionManager::RegisterMinimizeAllCallback*;
             OHOS::Rosen::SceneSessionManager::NotifyRotationBegin*;
+            OHOS::Rosen::SceneSessionManager::RegisterPageEnableFunc*;
             OHOS::Rosen::SceneSessionManagerLite::GetInstance*;
             OHOS::Rosen::SessionLifecycleListenerStub::OnRemoteRequest*;
             OHOS::Rosen::SessionRouterStackListenerStub::OnRemoteRequest*;

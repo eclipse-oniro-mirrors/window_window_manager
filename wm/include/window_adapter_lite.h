@@ -83,6 +83,10 @@ public:
     virtual WMError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     virtual WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
        std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap);
+    void RegisterWindowManagerAgentWhenSCBFault(WindowManagerAgentType type,
+        const sptr<IWindowManagerAgent>& windowManagerAgent);
+    bool IsWindowManagerServiceProxyValid();
+    bool IsMockSMSProxyAlive();
 
 private:
     friend class sptr<WindowAdapterLite>;
@@ -107,6 +111,8 @@ private:
     static std::mutex windowAdapterLiteMapMutex_;
     void OnUserSwitch();
     void ReregisterWindowManagerLiteAgent();
+    void ReregisterWindowManagerFaultAgent(const sptr<IWindowManagerLite>& proxy);
+    void RegisterUserSwitchCallback();
 
     sptr<IWindowManagerLite> GetWindowManagerServiceProxy() const;
 
@@ -119,6 +125,9 @@ private:
 
     std::mutex windowManagerLiteAgentMapMutex_;
     std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerLiteAgentMap_;
+
+    std::mutex windowManagerLiteFaultAgentMapMutex_;
+    std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerLiteFaultAgentMap_;
 };
 } // namespace Rosen
 } // namespace OHOS

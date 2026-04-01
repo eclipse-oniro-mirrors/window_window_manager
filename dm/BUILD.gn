@@ -48,6 +48,7 @@ ohos_static_library("libdm_static") {
     integer_overflow = true
     ubsan = true
     boundary_sanitize = true
+    cfi_policy = "adaptive"
   }
   sources = [
     "../window_scene/screen_session_manager/src/zidl/screen_session_manager_proxy.cpp",
@@ -72,11 +73,6 @@ ohos_static_library("libdm_static") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-  ]
-
-  public_external_deps = [
-    "graphic_2d:color_manager",
-    "image_framework:image_native",
   ]
 
   external_deps = [
@@ -106,6 +102,7 @@ ohos_shared_library("libdm") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../window_scene/screen_session_manager/src/zidl/screen_session_manager_proxy.cpp",
@@ -139,6 +136,8 @@ ohos_shared_library("libdm") {
 
   external_deps = [
     "ability_runtime:ability_manager",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
     "c_utils:utils",
     "graphic_2d:librender_service_base",
     "graphic_2d:librender_service_client",
@@ -182,6 +181,7 @@ ohos_shared_library("libdm_ndk") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
 
   public_configs = [ ":libdm_ndk_public_config" ]

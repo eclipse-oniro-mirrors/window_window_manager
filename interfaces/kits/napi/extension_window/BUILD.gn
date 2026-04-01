@@ -42,6 +42,7 @@ ohos_shared_library("extensionwindow") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "extension_window_module.cpp" ]
 
@@ -79,6 +80,7 @@ ohos_shared_library("extensionwindow_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "js_extension_window.cpp",

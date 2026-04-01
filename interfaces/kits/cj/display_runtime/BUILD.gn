@@ -30,6 +30,7 @@ ohos_shared_library("cj_display_ffi") {
     cfi = true
     cfi_cross_dso = true
     debug = false
+    cfi_policy = "adaptive"
   }
   configs = [
     ":display_config",

@@ -108,7 +108,7 @@ void WindowManagerAgent::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
     const WindowInfoList& windowInfoList)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "userId_=%{public}d", userId_);
-    WindowManager::GetInstance().NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
+    WindowManager::GetInstance(userId_).NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
 }
 
 void WindowManagerAgent::NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo)

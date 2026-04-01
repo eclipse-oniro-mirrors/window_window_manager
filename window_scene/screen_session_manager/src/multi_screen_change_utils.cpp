@@ -276,6 +276,20 @@ void MultiScreenChangeUtils::ScreenPropertyChange(sptr<ScreenSession>& innerScre
     externalScreen->SetScreenProperty(innerPhyProperty);
 }
 
+void MultiScreenChangeUtils::ScreenHdrFormatsChange(sptr<ScreenSession>& innerScreen,
+    sptr<ScreenSession>& externalScreen)
+{
+    if (innerScreen == nullptr || externalScreen == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screen sessions null.");
+        return;
+    }
+
+    std::vector<uint32_t> innerScreenHdrFormats = innerScreen->GetHdrFormats();
+    std::vector<uint32_t> externalScreenHdrFormats = externalScreen->GetHdrFormats();
+    innerScreen->SetHdrFormats(std::move(externalScreenHdrFormats));
+    externalScreen->SetHdrFormats(std::move(innerScreenHdrFormats));
+}
+
 void MultiScreenChangeUtils::ExchangeScreenSupportedRefreshRate(sptr<ScreenSession>& innerScreen,
     sptr<ScreenSession>& externalScreen)
 {
@@ -330,6 +344,9 @@ void MultiScreenChangeUtils::ScreenPhysicalInfoChange(sptr<ScreenSession>& inner
 
     /* change screen property */
     ScreenPropertyChange(innerScreen, externalScreen);
+
+    /* change screen HdrFormats */
+    ScreenHdrFormatsChange(innerScreen, externalScreen);
 
     /* change screen supported refresh rate */
     ExchangeScreenSupportedRefreshRate(innerScreen, externalScreen);

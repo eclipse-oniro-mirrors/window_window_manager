@@ -22,6 +22,8 @@
 #include "context.h"
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
+#include "libxml/parser.h"
+#include "libxml/tree.h"
 #include "screen_fold_data.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
 #include "session_info.h"
@@ -50,6 +52,28 @@ void MyLogCallback(const LogType type, const LogLevel level, const unsigned int 
     const char* msg)
 {
     g_logMsg = msg;
+}
+using ConfigItem = WindowSceneConfig::ConfigItem;
+ConfigItem ReadConfig(const std::string& xmlStr)
+{
+    ConfigItem config;
+    xmlDocPtr docPtr = xmlParseMemory(xmlStr.c_str(), xmlStr.length());
+    if (docPtr == nullptr) {
+        return config;
+    }
+
+    xmlNodePtr rootPtr = xmlDocGetRootElement(docPtr);
+    if (rootPtr == nullptr || rootPtr->name == nullptr ||
+        xmlStrcmp(rootPtr->name, reinterpret_cast<const xmlChar*>("Configs"))) {
+        xmlFreeDoc(docPtr);
+        return config;
+    }
+
+    std::map<std::string, ConfigItem> configMap;
+    config.SetValue(configMap);
+    WindowSceneConfig::ReadConfig(rootPtr, *config.mapValue_);
+    xmlFreeDoc(docPtr);
+    return config;
 }
 }
 
@@ -81,6 +105,7 @@ void WindowPatternSnapshotTest::SetUpTestCase()
 void WindowPatternSnapshotTest::TearDownTestCase()
 {
     ssm_ = nullptr;
+    scenePersistence = nullptr;
 }
 
 void WindowPatternSnapshotTest::SetUp()
@@ -167,6 +192,20 @@ HWTEST_F(WindowPatternSnapshotTest, SaveSnapshot01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: PersistSnapshot
+ * @tc.desc: test function : PersistSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, PersistSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, scenePersistence);
+    std::string path = "/data/1.png";
+
+    auto ret = scenePersistence->PersistSnapshot(path, mPixelMap);
+    EXPECT_EQ(ret, false);
+}
+
+/**
  * @tc.name: RenameSnapshotFromOldPersistentId
  * @tc.desc: test function : RenameSnapshotFromOldPersistentId
  * @tc.type: FUNC
@@ -186,6 +225,7 @@ HWTEST_F(WindowPatternSnapshotTest, RenameSnapshotFromOldPersistentId, TestSize.
     scenePersistence->RenameSnapshotFromOldPersistentId(persistentId);
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_TRUE(g_logMsg.find("snapshot from") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -594,6 +634,7 @@ HWTEST_F(WindowPatternSnapshotTest, InitDmaReclaimParam, TestSize.Level1)
     EXPECT_EQ(ssm_->IsDmaReclaimEnabled(), false);
     ssm_->InitDmaReclaimParam();
     EXPECT_TRUE(g_logMsg.find("Dma reclaim enabled:") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -906,11 +947,14 @@ HWTEST_F(WindowPatternSnapshotTest, SetSnapshotSize, TestSize.Level1)
     ASSERT_NE(scenePersistence, nullptr);
     auto key = defaultStatus;
     std::pair<uint32_t, uint32_t> size = { 1440, 2580 };
-    scenePersistence->SetSnapshotSize(key, true, size);
+    scenePersistence->SetSnapshotSize(key, true, false, size);
     EXPECT_EQ(scenePersistence->GetSnapshotSize(key, true), size);
-    
-    scenePersistence->SetSnapshotSize(key, false, size);
+
+    scenePersistence->SetSnapshotSize(key, false, false, size);
     EXPECT_EQ(scenePersistence->GetSnapshotSize(key, false), size);
+
+    scenePersistence->SetSnapshotSize(key, false, true, size);
+    EXPECT_EQ(scenePersistence->GetSnapshotSize(key, false, true), size);
 }
 
 /**
@@ -1053,6 +1097,7 @@ HWTEST_F(WindowPatternSnapshotTest, SetHasSnapshot, TestSize.Level1)
     DisplayOrientation rotate = DisplayOrientation::PORTRAIT;
     session_->SetHasSnapshot(key, rotate);
     EXPECT_TRUE(g_logMsg.find("SetHasSnapshot") != std::string::npos);
+    LOG_SetCallback(nullptr);
 
     session_->scenePersistence_ =
         sptr<ScenePersistence>::MakeSptr(session_->sessionInfo_.bundleName_, session_->persistentId_);
@@ -1179,6 +1224,7 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateAppLockSnapshot, TestSize.Level1)
     sceneSession->SetAppLockControl(true);
     sceneSession->UpdateAppLockSnapshot(type, controlInfo);
     EXPECT_TRUE(g_logMsg.find("UpdateAppLockSnapshot") != std::string::npos);
+    LOG_SetCallback(nullptr);
 
     sceneSession->state_ = SessionState::STATE_ACTIVE;
     controlInfo.isNeedControl = true;
@@ -1456,6 +1502,7 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyAddOrRemoveSnapshotWindow, TestSize.Le
     sceneSession->isPersistentImageFit_ = true;
     sceneSession->NotifyAddOrRemoveSnapshotWindow(true);
     EXPECT_TRUE(g_logMsg.find("NotifyAddOrRemoveSnapshotWindow") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1662,6 +1709,41 @@ HWTEST_F(WindowPatternSnapshotTest, CropSnapshotPixelMap, TestSize.Level1)
     rect.width_ = 1093;
     res = sceneSession->CropSnapshotPixelMap(pixelMap, rect, 0.5);
     EXPECT_EQ(res, true);
+}
+
+/**
+ * @tc.name: ConfigPersistentScaledSnapshot
+ * @tc.desc: ConfigPersistentScaledSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, ConfigPersistentScaledSnapshot, TestSize.Level1)
+{
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->enablePersistentScaledSnapshot_ = false;
+    ssm_->ConfigPersistentScaledSnapshot();
+    EXPECT_EQ(ssm_->enablePersistentScaledSnapshot_, false);
+
+    xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<persistDifferentScaledSnapshot enable=\"false\"/>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigPersistentScaledSnapshot();
+    EXPECT_EQ(ssm_->enablePersistentScaledSnapshot_, false);
+
+    xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<persistDifferentScaledSnapshot enable=\"true\"/>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigPersistentScaledSnapshot();
+    EXPECT_EQ(ssm_->enablePersistentScaledSnapshot_, true);
 }
 } // namespace
 } // namespace Rosen

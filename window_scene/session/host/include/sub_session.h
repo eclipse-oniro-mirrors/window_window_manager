@@ -33,7 +33,7 @@ public:
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
     int32_t GetMissionId() const override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
-    void RectCheck(uint32_t curWidth, uint32_t curHeight) override;
+    void RectCheck(float curWidth, float curHeight, const ScreenMetrics& screenMetrics) override;
     bool IsVisibleForeground() const override;
     bool IsVisibleNotBackground() const override;
     bool IsNeedCrossDisplayRendering() const override;

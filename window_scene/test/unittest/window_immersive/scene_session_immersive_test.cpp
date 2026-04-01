@@ -562,6 +562,32 @@ HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreas, TestSize.Level1)
     sceneSession->Session::SetRsScale(1, 1);
     EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
 }
+
+/*
+ * @tc.name: NotifyClientToUpdateRectTask
+ * @tc.desc: NotifyClientToUpdateRectTask
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, NotifyClientToUpdateRectTask, TestSize.Level1)
+{
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    SessionInfo info;
+    info.abilityName_ = "NotifyClientToUpdateRectTask";
+    info.bundleName_ = "NotifyClientToUpdateRectTask";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    session->layoutController_ = sptr<LayoutController>::MakeSptr(session->property_);
+    session->layoutController_->reason_ = SizeChangeReason::AVOID_AREA_CHANGE;
+    session->foregroundInteractiveStatus_ = false;
+    session->NotifyClientToUpdateRectTask("OnBoundsChanged", nullptr);
+    session->foregroundInteractiveStatus_ = true;
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session->NotifyClientToUpdateRectTask("OnBounds", nullptr);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
+    session->NotifyClientToUpdateRectTask("OnBounds", nullptr);
+    session->NotifyClientToUpdateRectTask("OnBoundsChanged", nullptr);
+    EXPECT_EQ(session->GetSizeChangeReason(), SizeChangeReason::AVOID_AREA_CHANGE);
+}
 }
 }
 }

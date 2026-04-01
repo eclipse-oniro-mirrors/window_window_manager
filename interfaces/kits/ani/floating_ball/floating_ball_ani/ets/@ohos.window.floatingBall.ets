@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -80,7 +80,7 @@ export default namespace floatingBall {
 
   function runOnStateChangeEvent(cb: object, cbArg: int): void {
     const func = cb as (cbArg: FloatingBallState) => void;
-    func(cbArg as FloatingBallState);
+    func(FloatingBallState.fromValue(cbArg));
   }
 
   // nativeObj : the address of AniFbController

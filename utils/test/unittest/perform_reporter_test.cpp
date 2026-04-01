@@ -588,6 +588,55 @@ HWTEST_F(PerformReporterTest, ReportWindowIOPerDay, Function | SmallTest | Level
     EXPECT_TRUE(g_errLog.find("total") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: ReportWindowFrozen_MapExist
+ * @tc.desc: ReportWindowFrozen test - detectionType in map
+ * @tc.type: FUNC
+ */
+HWTEST_F(PerformReporterTest, ReportWindowFrozen_MapExist, Function | SmallTest | Level2)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    WindowInfoReporter windowInfoReporter;
+    windowInfoReporter.ReportWindowFrozen(
+        WindowDFXHelperType::WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK,
+        "test window info");
+
+    EXPECT_TRUE(g_errLog.find("Write HiSysEvent error") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ReportWindowFrozen_MapNotExist
+ * @tc.desc: ReportWindowFrozen test - detectionType not in map
+ * @tc.type: FUNC
+ */
+HWTEST_F(PerformReporterTest, ReportWindowFrozen_MapNotExist, Function | SmallTest | Level2)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    WindowInfoReporter windowInfoReporter;
+    windowInfoReporter.ReportWindowFrozen(
+        static_cast<WindowDFXHelperType>(999),
+        "test window info");
+
+    EXPECT_TRUE(g_errLog.find("Write HiSysEvent error") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: IsKeyboardFrozenEnabled
+ * @tc.desc: Test IsKeyboardFrozenEnabled returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(PerformReporterTest, IsKeyboardFrozenEnabled, Function | SmallTest | Level2)
+{
+    bool result = WindowInfoReporter::GetInstance().IsKeyboardFrozenEnabled();
+    EXPECT_TRUE(result == false);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -53,14 +53,22 @@ ohos_source_set("ui_effect_controller_client") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "host/src/ui_effect_controller_client.cpp",
     "host/src/ui_effect_controller_client_stub.cpp",
     "host/src/ui_effect_controller_proxy.cpp",
   ]
+  external_deps = [
+    "ability_runtime:runtime",
+    "c_utils:utils",
+    "graphic_2d:librender_service_client",
+    "hilog:libhilog",
+    "napi:ace_napi",
+    ]
   public_configs = [ ":ui_effect_public_config" ]
-  public_deps = [ "${window_base_path}/utils:ui_effect_controller_common" ]
+  deps = [ "${window_base_path}/utils:ui_effect_controller_common" ]
   part_name = "window_manager"
   subsystem_name = "window"
 }
@@ -72,6 +80,7 @@ ohos_source_set("ui_effect_controller") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "host/src/ui_effect_controller.cpp",
@@ -79,9 +88,18 @@ ohos_source_set("ui_effect_controller") {
     "host/src/ui_effect_controller_stub.cpp",
   ]
   public_configs = [ ":ui_effect_public_config" ]
-  public_deps = [ "${window_base_path}/utils:ui_effect_controller_common" ]
-
-  deps = [ "${window_base_path}/window_scene/common:window_scene_common" ]
+  external_deps = [
+    "ability_runtime:runtime",
+    "c_utils:utils",
+    "graphic_2d:librender_service_client",
+    "hilog:libhilog",
+    "napi:ace_napi",
+    ]
+  deps = [
+    "${window_base_path}/utils:ui_effect_controller_common",
+    "${window_base_path}/window_scene/common:window_scene_common",
+    
+    ]
   part_name = "window_manager"
   subsystem_name = "window"
 }
@@ -238,6 +256,7 @@ ohos_shared_library("scene_session") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "container/src/window_event_channel.cpp",
@@ -293,13 +312,17 @@ ohos_shared_library("scene_session") {
   ]
 
   external_deps = [
+    "ability_base:base",
     "ability_base:configuration",
+    "ability_base:want",
     "ability_runtime:ability_manager",
     "ability_runtime:ability_start_setting",
     "ability_runtime:app_context",
     "ability_runtime:app_manager",
     "ability_runtime:process_options",
     "ability_runtime:start_window_option",
+    "accessibility:accessibility_common",
+    "accessibility:accessibility_interface",
     "bundle_framework:appexecfwk_base",
     "bundle_framework:appexecfwk_core",
     "bundle_framework:libappexecfwk_common",
@@ -323,11 +346,7 @@ ohos_shared_library("scene_session") {
     external_deps += [ "preferences:native_preferences" ]
   }
   public_external_deps = [
-    "ability_base:base",
     "ability_base:session_info",
-    "ability_base:want",
-    "accessibility:accessibility_common",
-    "accessibility:accessibility_interface",
     "input:libmmi-napi",
   ]
   defines = []
@@ -390,6 +409,9 @@ screen_session_deps = [
 ]
 
 screen_session_external_deps = [
+  "ability_base:base",
+  "ability_base:want",
+  "accessibility:accessibility_common",
   "bundle_framework:appexecfwk_core",
   "c_utils:utils",
   "graphic_2d:librender_service_base",
@@ -399,14 +421,8 @@ screen_session_external_deps = [
   "hisysevent:libhisysevent",
   "hitrace:hitrace_meter",
   "init:libbegetutil",
-  "ipc:ipc_single",
-]
-
-screen_session_public_external_deps = [
-  "ability_base:base",
-  "ability_base:want",
-  "accessibility:accessibility_common",
   "input:libmmi-napi",
+  "ipc:ipc_single",
 ]
 
 ## Build libscreen_session_static.a
@@ -417,13 +433,13 @@ ohos_static_library("screen_session_static") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
 
   public_configs = [ ":session_public_config" ]
   sources = screen_session_sources
   deps = screen_session_deps
   external_deps = screen_session_external_deps
-  external_deps += screen_session_public_external_deps
 
   defines = []
   if (window_manager_feature_screen_color_gamut) {
@@ -450,13 +466,13 @@ ohos_shared_library("screen_session") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
 
   public_configs = [ ":session_public_config" ]
   sources = screen_session_sources
   deps = screen_session_deps
   external_deps = screen_session_external_deps
-  public_external_deps = screen_session_public_external_deps
 
   defines = []
   if (window_manager_feature_screen_color_gamut) {

@@ -25,6 +25,7 @@ ohos_shared_library("wm_interface") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   public_configs = [ ":wm_interface_config" ]
 

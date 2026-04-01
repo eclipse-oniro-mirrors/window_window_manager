@@ -80,6 +80,7 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "offsetY",                                      WindowSceneConfig::ValueType::FLOATS },
     { "radius",                                       WindowSceneConfig::ValueType::FLOATS },
     { "snapshotScale",                                WindowSceneConfig::ValueType::FLOATS },
+    { "persistDifferentScaledSnapshot",               WindowSceneConfig::ValueType::STRING },
     { "fullScreen",                                   WindowSceneConfig::ValueType::STRING },
     { "split",                                        WindowSceneConfig::ValueType::STRING },
     { "float",                                        WindowSceneConfig::ValueType::STRING },
@@ -128,7 +129,10 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "fontSize",                                     WindowSceneConfig::ValueType::INTS },
     { "minFontSize",                                  WindowSceneConfig::ValueType::INTS },
     { "maxLines",                                     WindowSceneConfig::ValueType::INTS },
+    { "textAlign",                                    WindowSceneConfig::ValueType::INTS },
+    { "textContainerWidth",                           WindowSceneConfig::ValueType::INTS },
     { "maxFontScale",                                 WindowSceneConfig::ValueType::STRING },
+    { "isSettingButtonMirror",                        WindowSceneConfig::ValueType::STRING },
 };
 
 std::vector<std::string> WindowSceneConfig::SplitNodeContent(const xmlNodePtr& node, const std::string& pattern)

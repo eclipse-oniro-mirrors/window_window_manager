@@ -31,6 +31,19 @@ group("unittest") {
   ]
 }
 
+dm_unittest_common_lite_deps = [
+    "${window_base_path}/dm:libdm",
+    "${window_base_path}/dm_lite:libdm_lite",
+    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_base",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+    "${window_base_path}/wm:libwm",
+    "../../../dmserver:libdms",
+    "../../../test/common/utils:libtestutil",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest_main",
+  ]
+
 ohos_unittest("dm_display_lite_test") {
   cflags = [
     "-Dprivate = public",
@@ -42,11 +55,7 @@ ohos_unittest("dm_display_lite_test") {
   sources = [ "display_lite_test.cpp" ]
 
   deps = [ ":dm_unittest_common_lite" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  deps += dm_unittest_common_lite_deps
 }
 
 ohos_unittest("dm_display_manager_adapter_lite_test") {
@@ -55,11 +64,7 @@ ohos_unittest("dm_display_manager_adapter_lite_test") {
   sources = [ "display_manager_adapter_lite_test.cpp" ]
 
   deps = [ ":dm_unittest_common_lite" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  deps += dm_unittest_common_lite_deps
 }
 
 ohos_unittest("dm_display_manager_lite_test") {
@@ -70,11 +75,7 @@ ohos_unittest("dm_display_manager_lite_test") {
   sources = [ "display_manager_lite_test.cpp" ]
 
   deps = [ ":dm_unittest_common_lite" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  deps += dm_unittest_common_lite_deps
 }
 
 ohos_unittest("dm_display_lite_power_unit_test") {
@@ -85,11 +86,7 @@ ohos_unittest("dm_display_lite_power_unit_test") {
   sources = [ "display_lite_power_unit_test.cpp" ]
 
   deps = [ ":dm_unittest_common_lite" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  deps += dm_unittest_common_lite_deps
 }
 
 ohos_unittest("dm_display_lite_proxy_test") {
@@ -100,11 +97,7 @@ ohos_unittest("dm_display_lite_proxy_test") {
   sources = [ "display_manager_lite_proxy_test.cpp" ]
 
   deps = [ ":dm_unittest_common_lite" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  deps += dm_unittest_common_lite_deps
 }
 
 ohos_unittest("dm_display_manager_proxy_mock_test") {
@@ -118,10 +111,9 @@ ohos_unittest("dm_display_manager_proxy_mock_test") {
   ]
 
   deps = [ ":dm_unittest_common_lite" ]
+  deps += dm_unittest_common_lite_deps
 
   external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
     "googletest:gmock",
     "googletest:gtest",
     "googletest:gtest_main",
@@ -136,11 +128,7 @@ ohos_unittest("dm_display_manager_lite_proxy_test") {
   sources = [ "display_manager_lite_proxy_test.cpp" ]
 
   deps = [ ":dm_unittest_common_lite" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  deps += dm_unittest_common_lite_deps
 }
 
 ohos_unittest("dm_screen_manager_lite_test") {
@@ -151,11 +139,7 @@ ohos_unittest("dm_screen_manager_lite_test") {
   sources = [ "screen_manager_lite_test.cpp" ]
 
   deps = [ ":dm_unittest_common_lite" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-  ]
+  deps += dm_unittest_common_lite_deps
 }
 
 ## Build dm_unittest_common_lite.a {{{
@@ -186,18 +170,7 @@ ohos_static_library("dm_unittest_common_lite") {
     "../../../resources/config/build:testcase_flags",
   ]
 
-  public_deps = [
-    "${window_base_path}/dm:libdm",
-    "${window_base_path}/dm_lite:libdm_lite",
-    "${window_base_path}/utils:libwmutil",
-    "${window_base_path}/utils:libwmutil_base",
-    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-    "${window_base_path}/wm:libwm",
-    "../../../dmserver:libdms",
-    "../../../test/common/utils:libtestutil",
-    "//third_party/googletest:gmock",
-    "//third_party/googletest:gtest_main",
-  ]
+  deps = dm_unittest_common_lite_deps
 
   external_deps = [
     "access_token:libaccesstoken_sdk",

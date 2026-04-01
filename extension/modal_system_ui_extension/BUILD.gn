@@ -30,6 +30,7 @@ ohos_shared_library("libmodal_system_ui_extension_client") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   install_enable = true
   sources = [ "src/modal_system_ui_extension.cpp" ]

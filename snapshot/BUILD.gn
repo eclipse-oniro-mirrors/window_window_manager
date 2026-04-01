@@ -26,6 +26,7 @@ ohos_executable("snapshot_display") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   install_enable = true
   sources = [ "src/snapshot_display.cpp" ]
@@ -58,6 +59,7 @@ ohos_shared_library("libsnapshot_util") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "src/snapshot_utils.cpp" ]
 

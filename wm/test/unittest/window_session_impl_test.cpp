@@ -1035,7 +1035,6 @@ HWTEST_F(WindowSessionImplTest, RegisterListener01, TestSize.Level1)
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("RegisterListener01");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = new (std::nothrow) SessionMocker(sessionInfo);
     ASSERT_NE(nullptr, session);
@@ -1043,29 +1042,24 @@ HWTEST_F(WindowSessionImplTest, RegisterListener01, TestSize.Level1)
     window->hostSession_ = session;
     ASSERT_NE(window->property_, nullptr);
     window->property_->SetPersistentId(1);
-
     sptr<IWindowLifeCycle> listener = nullptr;
     WMError res = window->RegisterLifeCycleListener(listener);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
     res = window->UnregisterLifeCycleListener(listener);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
-
     sptr<IOccupiedAreaChangeListener> listener1 = nullptr;
     res = window->RegisterOccupiedAreaChangeListener(listener1);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
     res = window->UnregisterOccupiedAreaChangeListener(listener1);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
-
     sptr<IWindowChangeListener> listener2 = nullptr;
     res = window->RegisterWindowChangeListener(listener2);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
     res = window->UnregisterWindowChangeListener(listener2);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
-
     sptr<IDialogDeathRecipientListener> listener3 = nullptr;
     window->RegisterDialogDeathRecipientListener(listener3);
     window->UnregisterDialogDeathRecipientListener(listener3);
-
     sptr<IDialogTargetTouchListener> listener4 = nullptr;
     res = window->RegisterDialogTargetTouchListener(listener4);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
@@ -1080,6 +1074,16 @@ HWTEST_F(WindowSessionImplTest, RegisterListener01, TestSize.Level1)
     res = window->RegisterWindowCrossAxisListener(listener6);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
     res = window->UnregisterWindowCrossAxisListener(listener6);
+    ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
+    sptr<IParentWindowSizeChangeListener> listener7 = nullptr;
+    res = window->RegisterParentWindowSizeChangeListener(listener7);
+    ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
+    res = window->UnregisterParentWindowSizeChangeListener(listener7);
+    ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
+    sptr<IParentWindowStatusChangeListener> listener8 = nullptr;
+    res = window->RegisterParentWindowStatusChangeListener(listener8);
+    ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
+    res = window->UnregisterParentWindowStatusChangeListener(listener8);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
     ASSERT_EQ(WMError::WM_OK, window->Destroy());
     GTEST_LOG_(INFO) << "WindowSessionImplTest: RegisterListener01 end";

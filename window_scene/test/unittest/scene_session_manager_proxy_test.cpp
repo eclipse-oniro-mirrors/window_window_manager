@@ -969,6 +969,23 @@ HWTEST_F(sceneSessionManagerProxyTest, GetSnapshotByWindowId, TestSize.Level1)
 }
 
 /**
+ * @tc.name: Snapshot
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, Snapshot, TestSize.Level1)
+{
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    auto sceneSessionManagerProxy = sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
+    int32_t windowId = -1;
+    std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
+    SnapshotConfig config;
+    WMError ret = sceneSessionManagerProxy->Snapshot(pixelMap, windowId, config);
+    ASSERT_EQ(WMError::WM_ERROR_IPC_FAILED, ret);
+    ASSERT_EQ(nullptr, pixelMap);
+}
+
+/**
  * @tc.name: GetSessionSnapshotById
  * @tc.desc: normal function
  * @tc.type: FUNC

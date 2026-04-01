@@ -16,6 +16,7 @@
 #include "display_manager.h"
 #include "session/host/include/keyboard_session.h"
 #include <gtest/gtest.h>
+#include <parameters.h>
 #include <ui/rs_surface_node.h>
 
 #include "interfaces/include/ws_common.h"
@@ -964,6 +965,25 @@ HWTEST_F(KeyboardSessionTest3, ForceNotifyKeyboardOccupiedArea, Function | Small
     sceneSession->RegisterNotifyOccupiedAreaChangeCallback([&](DisplayId displayId) { result = true; });
     sceneSession->ForceNotifyKeyboardOccupiedArea();
     EXPECT_TRUE(result);
+}
+
+/**
+ * @tc.name: PostKeyboardAnimationSyncTimeoutTask_HandlerNull
+ * @tc.desc: test PostKeyboardAnimationSyncTimeoutTask with handler is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, PostKeyboardAnimationSyncTimeoutTask_HandlerNull, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession(
+        "PostKeyboardAnimationSyncTimeoutTask_HandlerNull", "PostKeyboardAnimationSyncTimeoutTask_HandlerNull");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    keyboardSession->SetEventHandler(nullptr, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
+    EXPECT_TRUE(g_logMsg.find("handler is null") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 } // namespace

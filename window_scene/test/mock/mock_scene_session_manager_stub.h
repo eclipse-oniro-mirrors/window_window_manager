@@ -56,8 +56,6 @@ public:
         (const std::vector<std::int32_t>& sessionIds, int32_t topSessionId), (override));
     MOCK_METHOD(WSError, MoveSessionsToBackground,
         (const std::vector<std::int32_t>& sessionIds, std::vector<std::int32_t>& result), (override));
-    MOCK_METHOD(WSError, RegisterIAbilityManagerCollaborator,
-        (int32_t type, const sptr<AAFwk::IAbilityManagerCollaborator>& impl), (override));
     MOCK_METHOD(WSError, UnregisterIAbilityManagerCollaborator, (int32_t type), (override));
     MOCK_METHOD(WMError, GetProcessSurfaceNodeIdByPersistentId, (const int32_t pid,
         const std::vector<int32_t>& persistentIds, std::vector<uint64_t>& surfaceNodeIds), (override));

@@ -40,6 +40,7 @@
             OHOS::Rosen::SceneSession::RemoveSubSession*;
             OHOS::Rosen::SceneSession::SendKeyEventToUI*;
             OHOS::Rosen::SceneSession::SetIsStartMoving*;
+            OHOS::Rosen::SceneSession::NotifyParentLifecycleEvent*;
             OHOS::Rosen::SceneSession::SetUIFirstSwitch*;
             OHOS::Rosen::SceneSession::IsSameMainSession*;
             OHOS::Rosen::SceneSession::NotifyDisplayMove*;
@@ -224,6 +225,7 @@
             OHOS::Rosen::SceneSession::SetSessionChangeByActionNotifyManagerListener*;
             OHOS::Rosen::SceneSession::SetSessionGetTargetOrientationConfigInfoCallback*;
             OHOS::Rosen::SceneSession::HasExtensionTokenInfoWithTokenID*;
+            OHOS::Rosen::SceneSession::GetSceneNodeCount*;
             OHOS::Rosen::SceneSession::AnimateTo*;
             OHOS::Rosen::SceneSession::SceneSession*;
             OHOS::Rosen::SceneSession::RegisterGetAppUseControlDisplayMapFunc*;

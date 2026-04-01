@@ -121,6 +121,10 @@ public:
 
     Rect GetGlobalDisplayRect() const { return globalDisplayRect_; }
 
+    void SetGlobalRect(const Rect& globalRect) { globalRect_ = globalRect; }
+
+    Rect GetGlobalRect() const { return globalRect_; }
+
     int32_t GetCallingPid() const { return callingPid_; }
 
     void SetCallingPid(int32_t callingPid) { callingPid_ = callingPid; }
@@ -128,6 +132,10 @@ public:
     int32_t GetCollaboratorType() const { return collaboratorType_; }
 
     void SetCollaboratorType(int32_t collaboratorType) { collaboratorType_ = collaboratorType; }
+
+    void SetDisplayId(DisplayId displayId) { displayId_ = displayId; }
+
+    DisplayId GetDisplayId() const { return displayId_; }
 
     uint32_t windowId_ { INVALID_WINDOW_ID };
     int32_t pid_ { 0 };
@@ -137,6 +145,7 @@ public:
     WindowStatus windowStatus_ = WindowStatus::WINDOW_STATUS_UNDEFINED;
     Rect rect_ = {0, 0, 0, 0};
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
+    Rect globalRect_ { 0, 0, 0, 0 };
     std::string bundleName_;
     std::string abilityName_;
     bool isFocused_ = false;
@@ -145,6 +154,7 @@ public:
     uint32_t zOrder_ { 0 };
     int32_t callingPid_ { -1 };
     int32_t collaboratorType_ = 0;
+    DisplayId displayId_ { DISPLAY_ID_INVALID };
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_VISIBILITY_INFO_H

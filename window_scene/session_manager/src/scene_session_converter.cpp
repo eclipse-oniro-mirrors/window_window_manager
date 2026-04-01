@@ -15,6 +15,7 @@
 
 #include "scene_session_converter.h"
 #include "ability_info.h"
+#include "display_manager.h"
 
 using namespace std;
 namespace OHOS {
@@ -80,6 +81,21 @@ WSError SceneSessionConverter::ConvertToMissionInfo(const sptr<SceneSession>& sc
     missionInfo.time = sceneSession->GetSessionInfo().time;
     missionInfo.continueState = (AAFwk::ContinueState) (AAFwk::ContinueState::CONTINUESTATE_UNKNOWN +
         (sceneSession->GetSessionInfo().continueState - Rosen::ContinueState::CONTINUESTATE_UNKNOWN));
+    return WSError::WS_OK;
+}
+WSError SceneSessionConverter::ConvertToMissionInfo(const sptr<SceneSession>& sceneSession,
+                                                    AAFwk::MissionInfo& missionInfo,
+                                                    AAFwk::DisplayInfo& displayInfo)
+{
+    WSError ret = ConvertToMissionInfo(sceneSession, missionInfo);
+    if (ret != WSError::WS_OK || sceneSession == nullptr) {
+        return ret;
+    }
+    displayInfo.id = static_cast<int32_t>(sceneSession->GetSessionProperty()->GetDisplayId());
+    auto display = DisplayManager::GetInstance().GetDisplayById(displayInfo.id);
+    if (display != nullptr) {
+        displayInfo.displayName = display->GetName();
+    }
     return WSError::WS_OK;
 }
 }

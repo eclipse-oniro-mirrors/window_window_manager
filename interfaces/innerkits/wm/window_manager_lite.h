@@ -30,6 +30,7 @@
 
 namespace OHOS {
 namespace Rosen {
+class WindowManagerAgentLite;
 /**
  * @class WindowManagerLite
  *
@@ -43,6 +44,7 @@ class WindowManagerLite : public RefBase {
 public:
     static WindowManagerLite& GetInstance(const int32_t userId);
     static WMError RemoveInstanceByUserId(const int32_t userId);
+    static bool IsMultiInstanceEnabled();
 
     /**
      * @brief Register focus changed listener.
@@ -515,8 +517,9 @@ private:
     ~WindowManagerLite() override;
 
     const int32_t userId_;
+    static const int32_t MAX_INSTANCE_NUM = 20;
     static std::unordered_map<int32_t, sptr<WindowManagerLite>> windowManagerLiteMap_;
-    static std::mutex windowManagerLiteMapMutex_;
+    static std::shared_mutex windowManagerLiteMapMutex_;
 
     void UpdateFocusStatus(uint32_t windowId, const sptr<IRemoteObject>& abilityToken, WindowType windowType,
         DisplayId displayId, bool focused) const;
@@ -531,6 +534,8 @@ private:
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground) const;
     void OnRemoteDied();
     void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const;
+    WMError ActiveFaultAgentReregister(const WindowManagerAgentType type,
+        const sptr<WindowManagerAgentLite>& agent);
     WMError NotifyWindowStyleChange(WindowStyleType type);
     void NotifyAccessibilityWindowInfo(const std::vector<sptr<AccessibilityWindowInfo>>& infos,
         WindowUpdateType type) const;

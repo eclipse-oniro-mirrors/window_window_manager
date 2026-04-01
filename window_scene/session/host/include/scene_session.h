@@ -104,6 +104,8 @@ using SetSkipSelfWhenShowOnVirtualScreenCallback = std::function<void(uint64_t s
 using SetSkipEventOnCastPlusCallback = std::function<void(int32_t persistentId, bool isSkip)>;
 using NotifyForceSplitFunc = std::function<AppForceLandscapeConfig(const std::string& bundleName)>;
 using NotifyForceSplitEnableFunc = std::function<bool(const std::string& bundleName)>;
+using PageEnableCallback = std::function<void(const std::string& bundleName, int32_t windowId,
+    const std::string& action, const std::string& message)>;
 using GetHookWindowInfoFunc = std::function<HookWindowInfo(const std::string& bundleName)>;
 using UpdatePrivateStateAndNotifyFunc = std::function<void(int32_t persistentId)>;
 using UpdateScreenshotAppEventRegisteredFunc = std::function<void(int32_t persistentId, bool isRegister)>;
@@ -344,7 +346,8 @@ public:
     WSError RaiseMainWindowAboveTarget(int32_t targetId) override;
     std::shared_ptr<Rosen::RSNode> GetWindowDragMoveMountedNode(DisplayId displayId, uint32_t targetZOrder);
     virtual void RegisterGetIsRecentStateFunc(GetIsRecentStateFunc&& callback) {};
-
+    void NotifySubSessionParentSizeChange(Rect rect) override;
+    void NotifySubSessionParentStatusChange(WindowMode mode) override;
     /*
      * PiP Window
      */
@@ -453,6 +456,7 @@ public:
     virtual bool IsFullScreenInForceSplit() { return false; }
     virtual void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) {}
     virtual void RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func) {}
+    virtual void RegisterPageEnableCallback(PageEnableCallback&& callback) {}
 
     /*
      * PC Window
@@ -645,6 +649,7 @@ public:
      */
     void RegisterRequestedOrientationChangeCallback(NotifyReqOrientationChangeFunc&& callback);
     WSError SetCurrentRotation(int32_t currentRotation);
+    WSError GetSceneNodeCount(uint32_t& nodeCount);
     WSError NotifyRotationProperty(uint32_t rotation, uint32_t width, uint32_t height);
     WSError NotifyPageRotationIsIgnored();
     WSError ConvertRotationToOrientation(uint32_t rotation, uint32_t width, uint32_t height, uint32_t& orientation);
@@ -716,6 +721,8 @@ public:
     void CalculateStartWindowType(SessionInfo& sessionInfo, bool hideStartWindow);
     void NotifyPendingSessionActivation(SessionInfo& info);
     bool isRemoving_ = false;
+    void NotifyParentLifecycleEvent(ParentLifeCycleEvent event);
+    void NotifyCrossProcessChildrenLifecycle(ParentLifeCycleEvent event) override;
 
     void SendPointerEventToUI(std::shared_ptr<MMI::PointerEvent> pointerEvent);
     bool SendKeyEventToUI(std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent = false);
@@ -1294,7 +1301,7 @@ private:
     NotifySessionEventFunc onSessionEvent_;
     void ProcessWindowMoving(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
     void HandleSubSessionCrossNode(SizeChangeReason reason);
-
+    bool IsAncoInFullScreen();
     /**
      * @brief Get the current FPS for this session.
      *
@@ -1481,6 +1488,27 @@ private:
     WindowLimits GetWindowLimits() const;
     bool ShouldSkipUpdateRect(const WSRect& rect);
     bool ShouldSkipUpdateRectNotify(const WSRect& rect);
+
+    /**
+     * @brief Set surface bounds via the original surface node.
+     *
+     * This method is used for normal transaction commit together with ArkUI relayout.
+     *
+     * @param rect     Window bounds to be applied.
+     * @param isGlobal Indicates whether global positioning is enabled.
+     */
+    void SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal);
+
+    /**
+     * @brief Set surface bounds via the shadow surface node.
+     *
+     * This method is used for immediate RS commit to avoid flushing other pending
+     * SurfaceNode updates in the current transaction.
+     *
+     * @param rect     Window bounds to be applied.
+     * @param isGlobal Indicates whether global positioning is enabled.
+     */
+    void SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal);
 
     /*
      * Window Decor

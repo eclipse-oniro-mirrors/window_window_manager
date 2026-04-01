@@ -53,15 +53,20 @@ public:
     void ClearSnapshot();
     bool IsSnapshotExisted(SnapshotStatus key = defaultStatus);
     std::string GetSnapshotFilePath(SnapshotStatus& key, bool useKey = false, bool freeMultiWindow = false);
+    std::string GetSnapshotScaledFilePath() { return snapshotScaledPath_; };
     bool FindClosestFormSnapshot(SnapshotStatus& key);
     std::pair<uint32_t, uint32_t> GetSnapshotSize(SnapshotStatus key = defaultStatus,
-        bool freeMultiWindow = false) const;
-    void SetSnapshotSize(SnapshotStatus key, bool freeMultiWindow, std::pair<uint32_t, uint32_t> size);
+        bool freeMultiWindow = false, bool isScaledSnapshot = false) const;
+    void SetSnapshotSize(SnapshotStatus key, bool freeMultiWindow, bool isScaledSnapshot,
+        std::pair<uint32_t, uint32_t> size);
     std::shared_ptr<WSFFRTHelper> GetSnapshotFfrtHelper() const;
 
     void SaveSnapshot(const std::shared_ptr<Media::PixelMap>& pixelMap,
         const std::function<void()> resetSnapshotCallback = []() {}, SnapshotStatus key = defaultStatus,
         DisplayOrientation rotate = DisplayOrientation::PORTRAIT, bool freeMultiWindow = false);
+    bool PersistSnapshot(std::string path, const std::shared_ptr<Media::PixelMap>& pixelMap);
+    void SetSnapshotScale(const float snapshotScale) { snapshotScale_ = snapshotScale; };
+    void InitPersistentScaledSnapshotParam(bool enabled) { enablePersistentScaledSnapshot_ = enabled; };
     bool IsSavingSnapshot();
     void SetIsSavingSnapshot(bool isSavingSnapshot);
     void ResetSnapshotCache();
@@ -83,8 +88,10 @@ private:
     int32_t persistentId_;
     SnapshotStatus capacity_;
     std::string snapshotPath_[SCREEN_COUNT];
+    std::string snapshotScaledPath_;
     std::string snapshotFreeMultiWindowPath_;
     std::pair<uint32_t, uint32_t> snapshotSize_[SCREEN_COUNT];
+    std::pair<uint32_t, uint32_t> snapshotScaledSize_;
     std::pair<uint32_t, uint32_t> snapshotFreeMultiWindowSize_;
     bool hasSnapshot_[SCREEN_COUNT] = {};
     bool hasSnapshotFreeMultiWindow_ = false;
@@ -100,6 +107,9 @@ private:
 
     std::atomic<int> savingSnapshotSum_ { 0 };
     std::atomic<bool> isSavingSnapshot_ = { false };
+    float snapshotScale_ = 0.5;
+    float snapshotScaleLow_ = 0.5;
+    bool enablePersistentScaledSnapshot_ = false;
 
     static std::shared_ptr<WSFFRTHelper> snapshotFfrtHelper_;
     mutable std::mutex savingSnapshotMutex_;

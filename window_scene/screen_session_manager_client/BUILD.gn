@@ -36,6 +36,7 @@ ohos_shared_library("screen_session_manager_client") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../screen_session_manager/src/zidl/screen_session_manager_proxy.cpp",
@@ -52,6 +53,9 @@ ohos_shared_library("screen_session_manager_client") {
   ]
 
   external_deps = [
+    "ability_base:base",
+    "ability_base:want",
+    "accessibility:accessibility_common",
     "c_utils:utils",
     "ffrt:libffrt",
     "graphic_2d:librender_service_base",

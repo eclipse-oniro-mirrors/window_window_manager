@@ -153,8 +153,9 @@ HWTEST_F(SessionStubLifecycleTest, Hide01, TestSize.Level1)
     subSession_->sessionStage_ = tempStage_;
 
     WSRect rect;
+    ScreenMetrics screenMetrics{1920, 1080, 2.0f};
     subSession_->UpdatePointerArea(rect);
-    subSession_->RectCheck(50, 100);
+    subSession_->RectCheck(50, 100, screenMetrics);
     ASSERT_EQ(WSError::WS_OK, subSession_->ProcessPointDownSession(50, 100));
 }
 
@@ -277,8 +278,9 @@ HWTEST_F(SessionStubLifecycleTest, ProcessPointDownSession01, TestSize.Level1)
     ASSERT_TRUE(subSession_->GetParentSession() != nullptr);
 
     WSRect rect;
+    ScreenMetrics screenMetrics{1920, 1080, 2.0f};
     subSession_->UpdatePointerArea(rect);
-    subSession_->RectCheck(50, 100);
+    subSession_->RectCheck(50, 100, screenMetrics);
     ASSERT_EQ(subSession_->ProcessPointDownSession(50, 100), WSError::WS_OK);
 }
 
@@ -291,8 +293,9 @@ HWTEST_F(SessionStubLifecycleTest, ProcessPointDownSession02, TestSize.Level1)
 {
     subSession_->Hide();
     WSRect rect;
+    ScreenMetrics screenMetrics{1920, 1080, 2.0f};
     subSession_->UpdatePointerArea(rect);
-    subSession_->RectCheck(50, 100);
+    subSession_->RectCheck(50, 100, screenMetrics);
 
     auto property = subSession_->GetSessionProperty();
     ASSERT_NE(property, nullptr);

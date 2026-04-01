@@ -2591,6 +2591,69 @@ HWTEST_F(SessionProxyTest, NotifyAppForceLandscapeConfigEnableUpdated03, TestSiz
     auto res = sProxy->NotifyAppForceLandscapeConfigEnableUpdated(false);
     EXPECT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
 }
+
+/**
+ * @tc.name: NotifyPageEnable
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, NotifyPageEnable, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifyPageEnable start";
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(iRemoteObjectMocker, nullptr);
+    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(sProxy, nullptr);
+    auto res = sProxy->NotifyPageEnable("enter", "HomePage");
+    ASSERT_EQ(res, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "SessionProxyTest: NotifyPageEnable end";
+}
+
+/**
+ * @tc.name: NotifyPageEnable01
+ * @tc.desc: ShouldReturnIpcFailed_WhenWriteInterfaceTokenFails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, NotifyPageEnable01, TestSize.Level1)
+{
+    auto iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(iRemoteObjectMocker, nullptr);
+    auto sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(sProxy, nullptr);
+    
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    auto res = sProxy->NotifyPageEnable("enter", "HomePage");
+    EXPECT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: NotifyPageEnable02
+ * @tc.desc: NotifyPageEnable_ShouldReturnIpcFailed_WhenRemoteIsNull
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, NotifyPageEnable02, TestSize.Level1)
+{
+    auto sProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    ASSERT_NE(sProxy, nullptr);
+    auto res = sProxy->NotifyPageEnable("enter", "HomePage");
+    EXPECT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: NotifyPageEnable03
+ * @tc.desc: ShouldReturnIpcFailed_WhenSendRequestFails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, NotifyPageEnable03, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    auto sProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    ASSERT_NE(sProxy, nullptr);
+    auto res = sProxy->NotifyPageEnable("enter", "HomePage");
+    EXPECT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

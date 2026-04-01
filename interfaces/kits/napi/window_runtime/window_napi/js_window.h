@@ -124,6 +124,8 @@ public:
     static napi_value KeepKeyboardOnFocus(napi_env env, napi_callback_info info);
     static napi_value GetWindowLimits(napi_env env, napi_callback_info info);
     static napi_value GetWindowLimitsVP(napi_env env, napi_callback_info info);
+    static napi_value AttachLayoutToParentWindow(napi_env env, napi_callback_info info);
+    static napi_value DetachLayoutToParentWindow(napi_env env, napi_callback_info info);
     static napi_value SetWindowLimits(napi_env env, napi_callback_info info);
     static napi_value SetSingleFrameComposerEnabled(napi_env env, napi_callback_info info);
     static napi_value EnableLandscapeMultiWindow(napi_env env, napi_callback_info info);
@@ -274,6 +276,9 @@ private:
     static bool ParseRotateOption(napi_env env, napi_value jsObject, Transform& trans);
     static bool ParseTranslateOption(napi_env env, napi_value jsObject, Transform& trans);
     static bool ParseWindowLimits(napi_env env, napi_value jsObject, WindowLimits& windowLimits);
+    static bool ParseWindowAnchorInfo(napi_env env, napi_value jsObject, WindowAnchorInfo& windowAnchorInfo);
+    static bool ParseWindowAttachOptions(napi_env env, napi_value jsObject,
+        WindowAnchorInfo::AttachOptions& subWindowAttachOptions);
     void ParseShadowOptionalParameters(WmErrorCode& ret, std::shared_ptr<ShadowsInfo>& shadowsInfo,
         napi_env env, const napi_value* argv, size_t argc);
     bool CheckWindowMaskParams(napi_env env, napi_value jsObject);
@@ -334,6 +339,8 @@ private:
     napi_value OnSetWindowLimits(napi_env env, napi_callback_info info);
     napi_value OnGetWindowLimits(napi_env env, napi_callback_info info);
     napi_value OnGetWindowLimitsVP(napi_env env, napi_callback_info info);
+    napi_value OnAttachToParentWindow(napi_env env, napi_callback_info info);
+    napi_value OnDetachLayoutToParentWindow(napi_env env, napi_callback_info info);
 
     napi_value OnIsFocused(napi_env env, napi_callback_info info);
     napi_value OnRequestFocus(napi_env env, napi_callback_info info);

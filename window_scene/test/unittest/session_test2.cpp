@@ -795,14 +795,12 @@ HWTEST_F(WindowSessionTest2, SetAndGetShadowSurfaceNode, TestSize.Level1)
     session_->SetSurfaceNode(nullptr);
     EXPECT_EQ(session_->GetSurfaceNode(), nullptr);
     EXPECT_EQ(session_->GetShadowSurfaceNode(), nullptr);
-    EXPECT_EQ(session_->GetRSShadowContext(), nullptr);
 
     std::shared_ptr<RSSurfaceNode> surfaceNode = WindowSessionTest2::CreateRSSurfaceNode();
     EXPECT_NE(nullptr, surfaceNode);
     session_->SetSurfaceNode(surfaceNode);
     EXPECT_NE(session_->GetSurfaceNode(), nullptr);
     EXPECT_NE(session_->GetShadowSurfaceNode(), nullptr);
-    EXPECT_NE(session_->GetRSShadowContext(), nullptr);
 }
 
 /**
@@ -816,14 +814,12 @@ HWTEST_F(WindowSessionTest2, SetAndGetLeashWinShadowSurfaceNode, TestSize.Level1
     session_->SetLeashWinSurfaceNode(nullptr);
     EXPECT_EQ(session_->GetLeashWinSurfaceNode(), nullptr);
     EXPECT_EQ(session_->GetLeashWinShadowSurfaceNode(), nullptr);
-    EXPECT_EQ(session_->GetRSLeashWinShadowContext(), nullptr);
 
     std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode = WindowSessionTest2::CreateRSSurfaceNode();
     EXPECT_NE(nullptr, leashWinSurfaceNode);
     session_->SetLeashWinSurfaceNode(leashWinSurfaceNode);
     EXPECT_NE(session_->GetLeashWinSurfaceNode(), nullptr);
     EXPECT_NE(session_->GetLeashWinShadowSurfaceNode(), nullptr);
-    EXPECT_NE(session_->GetRSLeashWinShadowContext(), nullptr);
 }
 
 /**
@@ -1656,6 +1652,116 @@ HWTEST_F(WindowSessionTest2, SetBorderUnoccupied, TestSize.Level1)
     session_->SetBorderUnoccupied(true);
     bool res = session_->GetBorderUnoccupied();
     ASSERT_EQ(res, true);
+}
+
+/**
+ * @tc.name: TestEnsureMoveDragShadowSurfaceNodeSurface
+ * @tc.desc: Verify EnsureMoveDragShadowSurfaceNode in different scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest2, TestEnsureMoveDragShadowSurfaceNodeSurface, TestSize.Level1)
+{
+    // Case 1: surfaceNode_ and moveDragShadowSurfaceNode_ are not null
+    {
+        RSSurfaceNodeConfig config;
+        session_->surfaceNode_ = RSSurfaceNode::Create(config);
+        session_->moveDragShadowSurfaceNode_ = RSSurfaceNode::Create(config);
+
+        auto result = session_->EnsureMoveDragShadowSurfaceNode();
+        EXPECT_NE(result, nullptr);
+    }
+
+    // Case 2: surfaceNode_ is null, return nullptr
+    {
+        session_->surfaceNode_ = nullptr;
+        session_->moveDragShadowSurfaceNode_ = nullptr;
+
+        auto result = session_->EnsureMoveDragShadowSurfaceNode();
+        EXPECT_EQ(result, nullptr);
+    }
+}
+
+/**
+ * @tc.name: TestEnsureMoveDragLeashWinShadowSurfaceNode
+ * @tc.desc: Verify EnsureMoveDragLeashWinShadowSurfaceNode in different scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest2, TestEnsureMoveDragLeashWinShadowSurfaceNode, TestSize.Level1)
+{
+    // Case 1: leashWinSurfaceNode_ and moveDragLeashWinShadowSurfaceNode_ are not null
+    {
+        RSSurfaceNodeConfig config;
+        session_->leashWinSurfaceNode_ = RSSurfaceNode::Create(config);
+        session_->moveDragLeashWinShadowSurfaceNode_ = RSSurfaceNode::Create(config);
+
+        auto result = session_->EnsureMoveDragLeashWinShadowSurfaceNode();
+        EXPECT_NE(result, nullptr);
+    }
+
+    // Case 2: leashWinSurfaceNode_ is null, return nullptr
+    {
+        session_->leashWinSurfaceNode_ = nullptr;
+        session_->moveDragLeashWinShadowSurfaceNode_ = nullptr;
+
+        auto result = session_->EnsureMoveDragLeashWinShadowSurfaceNode();
+        EXPECT_EQ(result, nullptr);
+    }
+}
+
+/**
+ * @tc.name: TestGetMoveDragTargetSurfaceNode
+ * @tc.desc: Verify GetMoveDragTargetSurfaceNode in different scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest2, TestGetMoveDragTargetSurfaceNode, TestSize.Level1)
+{
+    // Case 1: leashWinSurfaceNode_ is not null, return leashWinSurfaceNode_
+    {
+        RSSurfaceNodeConfig config;
+        session_->leashWinSurfaceNode_ = RSSurfaceNode::Create(config);
+
+        auto result = session_->GetMoveDragTargetSurfaceNode();
+        EXPECT_EQ(result, session_->leashWinSurfaceNode_);
+    }
+
+    // Case 2: leashWinSurfaceNode_ is null, return surfaceNode_
+    {
+        session_->leashWinSurfaceNode_ = nullptr;
+
+        auto result = session_->GetMoveDragTargetSurfaceNode();
+        EXPECT_EQ(result, session_->surfaceNode_);
+    }
+}
+
+/**
+ * @tc.name: TestGetMoveDragTargetShadowSurfaceNode
+ * @tc.desc: Verify GetMoveDragTargetShadowSurfaceNode returns correct shadow node
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest2, TestGetMoveDragTargetShadowSurfaceNode, TestSize.Level1)
+{
+    RSSurfaceNodeConfig config;
+
+    // Case 1: leashWinShadowSurfaceNode exists, return it
+    {
+        session_->leashWinSurfaceNode_ = RSSurfaceNode::Create(config);
+        session_->moveDragLeashWinShadowSurfaceNode_ = session_->leashWinSurfaceNode_;
+
+        auto result = session_->GetMoveDragTargetShadowSurfaceNode();
+        EXPECT_EQ(result, session_->moveDragLeashWinShadowSurfaceNode_);
+    }
+
+    // Case 2: leashWinShadowSurfaceNode is null, fallback to moveDragShadowSurfaceNode
+    {
+        session_->leashWinSurfaceNode_ = nullptr;
+        session_->moveDragLeashWinShadowSurfaceNode_ = nullptr;
+
+        session_->surfaceNode_ = RSSurfaceNode::Create(config);
+        session_->moveDragShadowSurfaceNode_ = session_->surfaceNode_;
+
+        auto result = session_->GetMoveDragTargetShadowSurfaceNode();
+        EXPECT_EQ(result, session_->moveDragShadowSurfaceNode_);
+    }
 }
 } // namespace
 } // namespace Rosen

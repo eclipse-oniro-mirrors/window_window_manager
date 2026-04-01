@@ -1011,6 +1011,167 @@ HWTEST_F(SceneInputManagerTest, SetIsRotationBegin, TestSize.Level1)
     SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {});
     ASSERT_TRUE(SceneInputManager::GetInstance().isRotationBegin_.load());
 }
+
+/**
+ * @tc.name: SetRootSceneSessionCreated001
+ * @tc.desc: Test SetRootSceneSessionCreated with created=true when state is NOT_CREATED
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated001, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated002
+ * @tc.desc: Test SetRootSceneSessionCreated with created=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated002, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(false);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::NOT_CREATED);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated003
+ * @tc.desc: Test SetRootSceneSessionCreated with created=true when state is already CREATED_FIRST_TIME
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated003, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated004
+ * @tc.desc: Test SetRootSceneSessionCreated with created=true when state is CREATED_SUBSEQUENT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated004, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_SUBSEQUENT);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_SUBSEQUENT);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated005
+ * @tc.desc: Test SetRootSceneSessionCreated CAS operation ensures atomicity
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated005, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup001
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is CREATED_SUBSEQUENT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup001, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_SUBSEQUENT);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_SUBSEQUENT);
+    EXPECT_FALSE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup002
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is NOT_CREATED
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup002, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::NOT_CREATED);
+    EXPECT_FALSE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup003
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is CREATED_FIRST_TIME and task not scheduled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup003, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup004
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is CREATED_FIRST_TIME and task already scheduled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup004, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(true);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup005
+ * @tc.desc: Test HandleEmptyDisplayGroup CAS operation ensures only one thread schedules task
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup005, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup006
+ * @tc.desc: Test HandleEmptyDisplayGroup double-check mechanism rolls back flag when state changes
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup006, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_FALSE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup007
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is NOT_CREATED and task already scheduled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup007, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(true);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::NOT_CREATED);
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

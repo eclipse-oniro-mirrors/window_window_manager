@@ -282,6 +282,7 @@ private:
     static napi_value SetPcAppInpadOrientationLandscape(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneAnimationConfig(napi_env env, napi_callback_info info);
     static napi_value SetMobileAppInPadLayoutFullScreen(napi_env env, napi_callback_info info);
+    static napi_value GetSceneNodeCount(napi_env env, napi_callback_info info);
     /*
      * PC Window
      */
@@ -384,6 +385,7 @@ private:
     napi_value OnUpdateSceneAnimationConfig(napi_env env, napi_callback_info info);
     napi_value OnGetUid(napi_env env, napi_callback_info info);
     napi_value OnSetMobileAppInPadLayoutFullScreen(napi_env env, napi_callback_info info);
+    napi_value OnGetSceneNodeCount(napi_env env, napi_callback_info info);
 
     /*
      * PC Window

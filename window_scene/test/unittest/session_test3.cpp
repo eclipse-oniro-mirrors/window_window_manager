@@ -870,10 +870,11 @@ HWTEST_F(WindowSessionTest3, UpdateWindowMode, TestSize.Level1)
 HWTEST_F(WindowSessionTest3, RectSizeCheckProcess, TestSize.Level1)
 {
     ASSERT_NE(session_, nullptr);
-    session_->RectSizeCheckProcess(1, 0, 2, 0, 0);
-    session_->RectSizeCheckProcess(1, 0, 1, 0, 0);
-    session_->RectSizeCheckProcess(0, 1, 0, 2, 0);
-    session_->RectSizeCheckProcess(0, 1, 0, 0, 0);
+    ScreenMetrics screenMetrics{1920, 1080, 2.0f};
+    session_->RectSizeCheckProcess(1, 0, 2, 0, screenMetrics);
+    session_->RectSizeCheckProcess(1, 0, 1, 0, screenMetrics);
+    session_->RectSizeCheckProcess(0, 1, 0, 2, screenMetrics);
+    session_->RectSizeCheckProcess(0, 1, 0, 0, screenMetrics);
     EXPECT_EQ(true, session_->CheckPointerEventDispatch(nullptr));
 }
 
@@ -1083,16 +1084,16 @@ HWTEST_F(WindowSessionTest3, NotifySessionPropertyChange01, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetSurfaceNodeForMoveDrag
- * @tc.desc: GetSurfaceNodeForMoveDrag Test
+ * @tc.name: GetMoveDragTargetSurfaceNode
+ * @tc.desc: GetMoveDragTargetSurfaceNode Test
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionTest3, GetSurfaceNodeForMoveDrag, TestSize.Level1)
+HWTEST_F(WindowSessionTest3, GetMoveDragTargetSurfaceNode, TestSize.Level1)
 {
     ASSERT_NE(session_, nullptr);
     session_->leashWinSurfaceNode_ = nullptr;
     session_->surfaceNode_ = nullptr;
-    std::shared_ptr<RSSurfaceNode> res = session_->GetSurfaceNodeForMoveDrag();
+    std::shared_ptr<RSSurfaceNode> res = session_->GetMoveDragTargetSurfaceNode();
     ASSERT_EQ(res, nullptr);
 }
 

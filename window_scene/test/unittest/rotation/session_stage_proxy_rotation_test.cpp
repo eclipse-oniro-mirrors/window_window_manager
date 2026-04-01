@@ -63,6 +63,50 @@ HWTEST_F(SessionStageProxyRotationTest, SetCurrentRotation, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetSceneNodeCount
+ * @tc.desc: test function : GetSceneNodeCount
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyRotationTest, GetSceneNodeCount, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageProxyRotationTest: GetSceneNodeCount start";
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SessionStageProxy> sessionStageProxy = sptr<SessionStageProxy>::MakeSptr(remoteMocker);
+
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    uint32_t nodeCount = 0;
+    WSError errCode = sessionStageProxy->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    errCode = nullProxy->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+
+    // Case 3: Failed to send request
+    remoteMocker->SetRequestResult(1);
+    errCode = sessionStageProxy->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(0);
+
+    // Case 4: Failed to read nodeCount
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
+    errCode = sessionStageProxy->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadUint32ErrorFlag(false);
+
+    // Case 5: Success
+    errCode = sessionStageProxy->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(errCode, WSError::WS_OK);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    GTEST_LOG_(INFO) << "SessionStageProxyRotationTest: GetSceneNodeCount end";
+}
+
+/**
  * @tc.name: NotifyRotationChange
  * @tc.desc: test function : NotifyRotationChange
  * @tc.type: FUNC

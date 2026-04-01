@@ -28,6 +28,7 @@ ohos_shared_library("session_manager_service") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "src/session_manager_service.cpp",

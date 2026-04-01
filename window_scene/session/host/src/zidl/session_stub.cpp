@@ -351,6 +351,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleNotifyIsFullScreenInForceSplitMode(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_COMPATIBLE_MODE_CHANGE):
             return HandleNotifyCompatibleModeChange(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_PAGE_ENABLE):
+            return HandleNotifyPageEnable(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RESTART_APP):
             return HandleRestartApp(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SEND_COMMAND_EVENT):
@@ -529,6 +531,7 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         reply.WriteUint32(windowSizeLimits.minWindowWidth);
         reply.WriteUint32(windowSizeLimits.maxWindowHeight);
         reply.WriteUint32(windowSizeLimits.minWindowHeight);
+        reply.WriteBool(property->GetIsWindowLimitsForcible());
         reply.WriteBool(property->GetIsAppSupportPhoneInPc());
         reply.WriteBool(property->GetIsPcAppInPad());
         reply.WriteUint32(static_cast<uint32_t>(property->GetRequestedOrientation()));
@@ -610,6 +613,10 @@ bool ReadEventParam(MessageParcel& data, SessionEvent event, SessionEventParam& 
     if (event == SessionEvent::EVENT_MAXIMIZE) {
         if (!data.ReadUint32(param.waterfallResidentState)) {
             TLOGE(WmsLogTag::WMS_EVENT, "Failed to read waterfallResidentState");
+            return false;
+        }
+        if (!data.ReadUint32(param.titleButtonEventType_)) {
+            TLOGE(WmsLogTag::WMS_EVENT, "Failed to read titleButtonEventType_");
             return false;
         }
     } else if (event == SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE) {
@@ -2689,6 +2696,27 @@ int SessionStub::HandleNotifyCompatibleModeChange(MessageParcel& data, MessagePa
         return ERR_INVALID_DATA;
     }
     WSError errCode = NotifyCompatibleModeChange(static_cast<CompatibleStyleMode>(mode));
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleNotifyPageEnable(MessageParcel& data, MessageParcel& reply)
+{
+    std::string action;
+    std::string message;
+    TLOGD(WmsLogTag::WMS_COMPAT, "in");
+    if (!data.ReadString(action)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Read action failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadString(message)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Read message failed.");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = NotifyPageEnable(action, message);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_COMPAT, "write errCode fail.");
         return ERR_INVALID_DATA;

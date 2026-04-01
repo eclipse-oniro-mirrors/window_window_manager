@@ -328,6 +328,11 @@ ani_object AniExtensionWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_st
         TLOGE(WmsLogTag::WMS_SUB, "Modal subwindow has topmost, but no system permission");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
     }
+    auto extWindow = extensionWindow_->GetWindow();
+    if (extWindow != nullptr && extWindow->IsBlockSubwindow()) {
+        TLOGE(WmsLogTag::WMS_SUB, "[ANI]The session is blocking sub window");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
+    }
     option->SetParentId(hostWindowId_);
     option->SetWindowType(Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     option->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);

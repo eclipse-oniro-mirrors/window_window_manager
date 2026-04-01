@@ -80,6 +80,7 @@ void WindowPatternStartingWindowTest::TearDownTestCase()
         ssm_->ClearStartWindowPersistencePath("emptyBundle");
     }
     ssm_ = nullptr;
+    scenePersistence = nullptr;
     NativeRdb::RdbHelper::DeleteRdbStore(TEST_RDB_PATH + TEST_RDB_NAME);
 }
 

@@ -79,7 +79,7 @@ bool RSInterfaces::TakeSurfaceCapture(std::shared_ptr<RSDisplayNode> node,
 {
     return true;
 }
-bool RSInterfaces::FreezeScreen(std::shared_ptr<RSDisplayNode> node, bool isFreeze)
+bool RSInterfaces::FreezeScreen(std::shared_ptr<RSDisplayNode> node, bool isFreeze, bool needSync)
 {
     return true;
 }
@@ -175,7 +175,8 @@ int32_t RSInterfaces::SetPixelFormat(ScreenId id, GraphicPixelFormat pixelFormat
 {
     return 0;
 }
-int32_t RSInterfaces::GetScreenSupportedHDRFormats(ScreenId id, std::vector<ScreenHDRFormat>& hdrFormats)
+int32_t RSInterfaces::GetScreenSupportedHDRFormats(ScreenId id, std::vector<ScreenHDRFormat>& hdrFormats,
+    const ScreenSupportedHDRFormatsCallback& callback)
 {
     return RsMockImpl::GetInstance().GetScreenSupportedHDRFormats(id, hdrFormats);
 }
@@ -265,6 +266,11 @@ int32_t RSInterfaces::RemoveVirtualScreenWhiteList(ScreenId id, const std::vecto
 }
 
 int32_t RSInterfaces::SetLogicalCameraRotationCorrection(ScreenId id, ScreenRotation screenRotation)
+{
+    return 0;
+}
+
+ScreenId RSInterfaces::GetActiveScreenId()
 {
     return 0;
 }

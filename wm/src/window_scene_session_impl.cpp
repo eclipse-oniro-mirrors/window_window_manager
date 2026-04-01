@@ -213,11 +213,23 @@ void RecalculateLimits(double maxRatio, double minRatio, WindowLimits& limits)
     limits.minHeight_ = std::max(newMinHeight, limits.minHeight_);
 }
 
-void UpdateLimitIfInRange(uint32_t& currentLimit, uint32_t newLimit, uint32_t minBound, uint32_t maxBound)
+/**
+ * @brief Returns candidate if it lies within the inclusive range; otherwise returns fallback.
+ *
+ * Performs a range check against [lowerBound, upperBound]. Unlike std::clamp,
+ * this function does not adjust out-of-range values but instead returns fallback.
+ *
+ * @tparam T Type supporting comparison operators.
+ * @param candidate Value to evaluate.
+ * @param lowerBound Inclusive lower bound.
+ * @param upperBound Inclusive upper bound.
+ * @param fallback Value returned when candidate is out of range.
+ * @return candidate if within range; otherwise fallback.
+ */
+template<typename T>
+static inline T SafeBoundAssign(T candidate, T lowerBound, T upperBound, T fallback)
 {
-    if (minBound <= newLimit && newLimit <= maxBound) {
-        currentLimit = newLimit;
-    }
+    return (candidate >= lowerBound && candidate <= upperBound) ? candidate : fallback;
 }
 }
 std::mutex WindowSceneSessionImpl::keyboardPanelInfoChangeListenerMutex_;
@@ -422,26 +434,42 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             AddSubWindowMapForExtensionWindow();
         }
     } else if (WindowHelper::IsSubWindow(type)) {
-        sptr<WindowSessionImpl> parentSession = nullptr;
-        auto ret = WindowSceneSessionImpl::GetParentSessionAndVerify(hasToastFlag, parentSession);
-        if (ret != WMError::WM_OK) {
-            return ret;
+        if (property_->GetIsCrossProcessWindow()) {
+            CrossProcessWindowInfo crossProcessWindowInfo;
+            crossProcessWindowInfo.persistentId = property_->GetParentId();
+            WMError wmError = SingletonContainer::Get<WindowAdapter>()
+                .GetCrossProcessWindowInfo(crossProcessWindowInfo);
+            if (wmError != WMError::WM_OK) {
+                return wmError;
+            }
+            property_->SetParentPersistentId(crossProcessWindowInfo.persistentId);
+            property_->SetDisplayId(crossProcessWindowInfo.displayId);
+            property_->SetIsPcAppInPad(crossProcessWindowInfo.isPcAppInPad);
+            property_->SetPcAppInpadCompatibleMode(crossProcessWindowInfo.isPcAppInpadCompatibleMode);
+            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+                surfaceNode_, property_, persistentId, session, windowSystemConfig_, token);
+        } else {
+            sptr<WindowSessionImpl> parentSession = nullptr;
+            auto ret = WindowSceneSessionImpl::GetParentSessionAndVerify(hasToastFlag, parentSession);
+            if (ret != WMError::WM_OK) {
+                return ret;
+            }
+            property_->SetDisplayId(parentSession->GetDisplayId());
+            // set parent persistentId
+            auto parentWindowId = parentSession->GetPersistentId();
+            property_->SetParentPersistentId(parentWindowId);
+            property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
+            property_->SetPcAppInpadCompatibleMode(parentSession->GetProperty()->GetPcAppInpadCompatibleMode());
+            // creat sub session by parent session
+            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+                surfaceNode_, property_, persistentId, session, windowSystemConfig_, token);
+            {
+                std::lock_guard<std::recursive_mutex> lock(subWindowSessionMutex_);
+                // update subWindowSessionMap_
+                subWindowSessionMap_[parentWindowId].push_back(this);
+            }
+            SetTargetAPIVersion(parentSession->GetTargetAPIVersion());
         }
-        property_->SetDisplayId(parentSession->GetDisplayId());
-        // set parent persistentId
-        auto parentWindowId = parentSession->GetPersistentId();
-        property_->SetParentPersistentId(parentWindowId);
-        property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
-        property_->SetPcAppInpadCompatibleMode(parentSession->GetProperty()->GetPcAppInpadCompatibleMode());
-        // creat sub session by parent session
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-            surfaceNode_, property_, persistentId, session, windowSystemConfig_, token);
-        {
-            std::lock_guard<std::recursive_mutex> lock(subWindowSessionMutex_);
-            // update subWindowSessionMap_
-            subWindowSessionMap_[parentWindowId].push_back(this);
-        }
-        SetTargetAPIVersion(parentSession->GetTargetAPIVersion());
     } else { // system window
         WMError createSystemWindowRet = CreateSystemWindow(type);
         if (createSystemWindowRet != WMError::WM_OK) {
@@ -536,7 +564,8 @@ WMError WindowSceneSessionImpl::RecoverAndConnectSpecificSession()
     if (WindowHelper::IsSubWindow(type) && !property_->GetIsUIExtFirstSubWindow()) { // sub window
         TLOGD(WmsLogTag::WMS_RECOVER, "SubWindow");
         auto parentSession = FindParentSessionByParentId(property_->GetParentId());
-        if (parentSession == nullptr || parentSession->GetHostSession() == nullptr) {
+        if ((parentSession == nullptr || parentSession->GetHostSession() == nullptr) &&
+            !property_->GetIsCrossProcessWindow()) {
             TLOGE(WmsLogTag::WMS_RECOVER, "parentSession is null");
             return WMError::WM_ERROR_NULLPTR;
         }
@@ -702,7 +731,8 @@ void WindowSceneSessionImpl::UpdateWindowState()
 }
 
 WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
-    const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd)
+    const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
+    bool isBlockSubwindow)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "Window Create name:%{public}s, state:%{public}u, mode:%{public}u",
         property_->GetWindowName().c_str(), state_, GetWindowMode());
@@ -1450,6 +1480,9 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
     }
     auto abilityInfo = abilityContext->GetAbilityInfo();
     if (abilityInfo != nullptr) {
+        // NOTE: The windowSizeLimits are retrieved from the window server.
+        // One of their sources is the configuration passed when launching
+        // the application via the startAbility API.
         WindowSizeLimits windowSizeLimits = property_->GetWindowSizeLimits();
         GetWindowSizeLimits(abilityInfo, windowSizeLimits);
         property_->SetConfigWindowLimitsVP({
@@ -1459,6 +1492,7 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
             1.0f, PixelUnit::VP
         });
         UpdateWindowSizeLimits();
+        // Sync the updated WindowLimits to the window server.
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
         // get support modes configuration
         uint32_t windowModeSupportType = GetSupportedWindowModesConfiguration(abilityInfo);
@@ -1505,6 +1539,36 @@ uint32_t WindowSceneSessionImpl::UpdateConfigValInVP(uint32_t minVal, uint32_t m
     return validConfig ? configVal : defaultVal;
 }
 
+void WindowSceneSessionImpl::ApplyForcibleLimits(
+    WindowLimits& sysLimitsPX, WindowLimits& sysLimitsVP, float vpr, SystemPermissionChecker systemPermChecker)
+{
+    bool isWindowLimitsForcible = property_->GetIsWindowLimitsForcible();
+    if (!isWindowLimitsForcible) {
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "The window limits are not forcible, no need to break system constraints.");
+        return;
+    }
+    // Only system apps can break system limits; others are currently restricted.
+    if (!systemPermChecker()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+            "The caller doesn't have system permissions, cannot to break system constraints.");
+        return;
+    }
+
+    constexpr uint32_t FORCIBLE_MAX = static_cast<uint32_t>(INT32_MAX);
+    constexpr uint32_t FORCIBLE_MIN = 1;
+
+    sysLimitsPX.maxWidth_  = FORCIBLE_MAX;
+    sysLimitsPX.maxHeight_ = FORCIBLE_MAX;
+    sysLimitsPX.minWidth_  = std::min(sysLimitsPX.minWidth_, FORCIBLE_MIN);
+    sysLimitsPX.minHeight_ = std::min(sysLimitsPX.minHeight_, FORCIBLE_MIN);
+
+    sysLimitsVP.maxWidth_  = FORCIBLE_MAX;
+    sysLimitsVP.maxHeight_ = FORCIBLE_MAX;
+    sysLimitsVP.minWidth_  = std::min(sysLimitsVP.minWidth_, FORCIBLE_MIN);
+    sysLimitsVP.minHeight_ = std::min(sysLimitsVP.minHeight_, FORCIBLE_MIN);
+}
+
 /** @note @window.layout */
 std::pair<WindowLimits, WindowLimits> WindowSceneSessionImpl::GetSystemSizeLimits(uint32_t displayWidth,
                                                                                   uint32_t displayHeight,
@@ -1521,12 +1585,12 @@ std::pair<WindowLimits, WindowLimits> WindowSceneSessionImpl::GetSystemSizeLimit
     systemLimitsVP.maxHeight_ = configMaxSize;
 
     SetMinimumDimensions(systemLimits, systemLimitsVP, displayWidth, displayHeight, vpr);
-
-    TLOGI(WmsLogTag::WMS_LAYOUT, "px[%{public}u,%{public}u,%{public}u,%{public}u], "
-        "vp[%{public}u,%{public}u,%{public}u,%{public}u], configMax:%{public}u, vpr:%{public}f, "
-        "winType:%{public}u", systemLimits.maxWidth_, systemLimits.maxHeight_, systemLimits.minWidth_,
-        systemLimits.minHeight_, systemLimitsVP.maxWidth_, systemLimitsVP.maxHeight_, systemLimitsVP.minWidth_,
-        systemLimitsVP.minHeight_, configMaxSize, vpr, GetType());
+    ApplyForcibleLimits(systemLimits, systemLimitsVP, vpr, SessionPermission::IsSystemCalling);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+          "systemLimitsPX: %{public}s, systemLimitsVP: %{public}s, configMaxSize: %{public}u, "
+          "vpr: %{public}f, winType: %{public}u",
+          systemLimits.ToString().c_str(), systemLimitsVP.ToString().c_str(),
+          configMaxSize, vpr, GetType());
     return std::make_pair(systemLimits, systemLimitsVP);
 }
 
@@ -1624,17 +1688,15 @@ void WindowSceneSessionImpl::ProcessVirtualPixelLimits(WindowLimits& newLimits, 
                                                        const WindowLimits& customizedLimits,
                                                        const WindowLimits& systemLimitsVP, float virtualPixelRatio)
 {
-    const uint32_t limitMinWidth = systemLimitsVP.minWidth_;
-    const uint32_t limitMinHeight = systemLimitsVP.minHeight_;
+    const uint32_t sysMinW = systemLimitsVP.minWidth_;
+    const uint32_t sysMinH = systemLimitsVP.minHeight_;
+    const uint32_t sysMaxW = systemLimitsVP.maxWidth_;
+    const uint32_t sysMaxH = systemLimitsVP.maxHeight_;
 
-    // Update the maximum width and height limitations
-    UpdateLimitIfInRange(newLimitsVP.maxWidth_, customizedLimits.maxWidth_, limitMinWidth, systemLimitsVP.maxWidth_);
-    UpdateLimitIfInRange(newLimitsVP.maxHeight_, customizedLimits.maxHeight_, limitMinHeight,
-        systemLimitsVP.maxHeight_);
-
-    // Update the minimum width and height limitations
-    UpdateLimitIfInRange(newLimitsVP.minWidth_, customizedLimits.minWidth_, limitMinWidth, newLimitsVP.maxWidth_);
-    UpdateLimitIfInRange(newLimitsVP.minHeight_, customizedLimits.minHeight_, limitMinHeight, newLimitsVP.maxHeight_);
+    newLimitsVP.maxWidth_ = SafeBoundAssign(customizedLimits.maxWidth_, sysMinW, sysMaxW, sysMaxW);
+    newLimitsVP.maxHeight_ = SafeBoundAssign(customizedLimits.maxHeight_, sysMinH, sysMaxH, sysMaxH);
+    newLimitsVP.minWidth_ = SafeBoundAssign(customizedLimits.minWidth_, sysMinW, newLimitsVP.maxWidth_, sysMinW);
+    newLimitsVP.minHeight_ = SafeBoundAssign(customizedLimits.minHeight_, sysMinH, newLimitsVP.maxHeight_, sysMinH);
 
     // Convert virtual pixels to physical pixels
     RecalculatePxLimitsByVp(newLimitsVP, newLimits, virtualPixelRatio);
@@ -1645,30 +1707,20 @@ void WindowSceneSessionImpl::ProcessPhysicalPixelLimits(WindowLimits& newLimits,
                                                         const WindowLimits& customizedLimits,
                                                         const WindowLimits& systemLimits, float virtualPixelRatio)
 {
-    uint32_t limitMinWidth = systemLimits.minWidth_;
-    uint32_t limitMinHeight = systemLimits.minHeight_;
+    bool needAdjustMinBound = forceLimits_ && IsPcOrFreeMultiWindowCapabilityEnabled();
+    const uint32_t sysMinW = needAdjustMinBound ?
+        std::min(static_cast<uint32_t>(FORCE_LIMIT_MIN_FLOATING_WIDTH * virtualPixelRatio), systemLimits.minWidth_) :
+        systemLimits.minWidth_;
+    const uint32_t sysMinH = needAdjustMinBound ?
+        std::min(static_cast<uint32_t>(FORCE_LIMIT_MIN_FLOATING_HEIGHT * virtualPixelRatio), systemLimits.minHeight_) :
+        systemLimits.minHeight_;
+    const uint32_t sysMaxW = systemLimits.maxWidth_;
+    const uint32_t sysMaxH = systemLimits.maxHeight_;
 
-    // Breaking through system limitations
-    if (forceLimits_ && IsPcOrFreeMultiWindowCapabilityEnabled()) {
-        const uint32_t forceLimitMinWidth =
-            static_cast<uint32_t>(FORCE_LIMIT_MIN_FLOATING_WIDTH * virtualPixelRatio);
-        const uint32_t forceLimitMinHeight =
-            static_cast<uint32_t>(FORCE_LIMIT_MIN_FLOATING_HEIGHT * virtualPixelRatio);
-
-        limitMinWidth = std::min(forceLimitMinWidth, limitMinWidth);
-        limitMinHeight = std::min(forceLimitMinHeight, limitMinHeight);
-
-        newLimits.minWidth_ = limitMinWidth;
-        newLimits.minHeight_ = limitMinHeight;
-    }
-
-    // Update the maximum width and height limitations
-    UpdateLimitIfInRange(newLimits.maxWidth_, customizedLimits.maxWidth_, limitMinWidth, systemLimits.maxWidth_);
-    UpdateLimitIfInRange(newLimits.maxHeight_, customizedLimits.maxHeight_, limitMinHeight, systemLimits.maxHeight_);
-
-    // Update the minimum width and height limitations
-    UpdateLimitIfInRange(newLimits.minWidth_, customizedLimits.minWidth_, limitMinWidth, newLimits.maxWidth_);
-    UpdateLimitIfInRange(newLimits.minHeight_, customizedLimits.minHeight_, limitMinHeight, newLimits.maxHeight_);
+    newLimits.maxWidth_ = SafeBoundAssign(customizedLimits.maxWidth_, sysMinW, sysMaxW, sysMaxW);
+    newLimits.maxHeight_ = SafeBoundAssign(customizedLimits.maxHeight_, sysMinH, sysMaxH, sysMaxH);
+    newLimits.minWidth_ = SafeBoundAssign(customizedLimits.minWidth_, sysMinW, newLimits.maxWidth_, sysMinW);
+    newLimits.minHeight_ = SafeBoundAssign(customizedLimits.minHeight_, sysMinH, newLimits.maxHeight_, sysMinH);
 
     // Convert physical pixel to virtual pixels
     RecalculateVpLimitsByPx(newLimits, newLimitsVP, virtualPixelRatio);
@@ -2233,7 +2285,8 @@ WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer)
             ret = SyncDestroyAndDisconnectSpecificSession(property_->GetPersistentId());
         } else if (WindowHelper::IsSubWindow(GetType()) && !property_->GetIsUIExtFirstSubWindow()) {
             auto parentSession = FindParentSessionByParentId(GetParentId());
-            if (parentSession == nullptr || parentSession->GetHostSession() == nullptr) {
+            if ((parentSession == nullptr || parentSession->GetHostSession() == nullptr) &&
+                !property_->GetIsCrossProcessWindow()) {
                 return WMError::WM_ERROR_NULLPTR;
             }
             ret = SyncDestroyAndDisconnectSpecificSession(property_->GetPersistentId());
@@ -3538,12 +3591,15 @@ WMError WindowSceneSessionImpl::UpdateSystemBarProperties(
 WMError WindowSceneSessionImpl::UpdateSystemBarPropertyForPage(WindowType type,
     const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag)
 {
+    bool hasEnableSetting = static_cast<uint32_t>(systemBarProperty.settingFlag_) &
+        static_cast<uint32_t>(SystemBarSettingFlag::ENABLE_SETTING);
     PartialSystemBarProperty prop = {
         .enable_ = systemBarProperty.enable_,
         .backgroundColor_ = systemBarProperty.backgroundColor_,
         .contentColor_ = systemBarProperty.contentColor_,
         .enableAnimation_ = systemBarProperty.enableAnimation_,
-        .flag_ = systemBarPropertyFlag
+        .flag_ = systemBarPropertyFlag,
+        .isolate_ = systemBarPropertyFlag.enableFlag && !hasEnableSetting
     };
     auto ret = SetOwnSystemBarProperty(type, prop, SystemBarPropertyOwner::APPLICATION);
     if (ret == WMError::WM_OK) {
@@ -3702,10 +3758,10 @@ WMError WindowSceneSessionImpl::SetOwnSystemBarProperty(WindowType type, const P
         }
         ownPropList.insert(insertIt, insertPair);
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}u owner %{public}u "
-            "prop [%{public}u %{public}x %{public}x %{public}u] "
+            "prop [%{public}u %{public}x %{public}x %{public}u, %{public}u] "
             "flag [%{public}u%{public}u%{public}u%{public}u] size %{public}u",
             GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(type), static_cast<uint32_t>(owner),
-            prop.enable_, prop.backgroundColor_, prop.contentColor_, prop.enableAnimation_,
+            prop.enable_, prop.backgroundColor_, prop.contentColor_, prop.enableAnimation_, prop.isolate_,
             prop.flag_.enableFlag, prop.flag_.backgroundColorFlag,
             prop.flag_.contentColorFlag, prop.flag_.enableAnimationFlag, static_cast<uint32_t>(ownPropList.size()));
     }
@@ -3771,7 +3827,8 @@ SystemBarProperty WindowSceneSessionImpl::GetCurrentActiveSystemBarProperty(Wind
             if (!flag.enableFlag && pair.second.flag_.enableFlag) {
                 prop.enable_ = pair.second.enable_;
                 flag.enableFlag = true;
-                prop.settingFlag_ |= SystemBarSettingFlag::ENABLE_SETTING;
+                prop.settingFlag_ = pair.second.isolate_ ?
+                    prop.settingFlag_ : (prop.settingFlag_ | SystemBarSettingFlag::ENABLE_SETTING);
             }
             if (!flag.enableAnimationFlag && pair.second.flag_.enableAnimationFlag) {
                 prop.enableAnimation_= pair.second.enableAnimation_;
@@ -4122,7 +4179,9 @@ void WindowSceneSessionImpl::MaximizeEvent(const sptr<ISession> &hostSession)
             UpdateIsShowDecorInFreeMultiWindow(false);
             hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE_FULLSCREEN);
         } else {
-            hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+            SessionEventParam param;
+            param.titleButtonEventType_ = static_cast<uint32_t>(TitleButtonEventType::EVENT_TYPE_MAXIMIZE);
+            hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE, param);
         }
         SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
         UpdateDecorEnable(true);
@@ -6002,6 +6061,18 @@ WSError WindowSceneSessionImpl::NotifyLayoutFinishAfterWindowModeChange(WindowMo
     return WSError::WS_OK;
 }
 
+WSError WindowSceneSessionImpl::NotifySubWindowAfterParentWindowSizeChange(Rect rect)
+{
+    NotifyParentWindowSizeChange(rect);
+    return WSError::WS_OK;
+}
+
+WSError WindowSceneSessionImpl::NotifySubWindowAfterParentWindowStatusChange(WindowMode mode)
+{
+    NotifyParentWindowStatusChange(mode);
+    return WSError::WS_OK;
+}
+
 bool WindowSceneSessionImpl::ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode)
 {
     bool isFreeMultiWindowMode = IsFreeMultiWindowMode();
@@ -6354,6 +6425,23 @@ WSError WindowSceneSessionImpl::NotifyCompatibleModePropertyChange(const sptr<Co
     }
     property_->SetCompatibleModeProperty(property);
     return WSError::WS_OK;
+}
+
+WMError WindowSceneSessionImpl::NotifyPageEnable(const std::string& action, const std::string& message)
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "action:%{public}zu, message:%{public}zu", action.length(), message.length());
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "window session invalid!");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
+    WSError ret = hostSession->NotifyPageEnable(action, message);
+    if (ret != WSError::WS_OK) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "NotifyPageEnable failed, ret: %{public}d", static_cast<int32_t>(ret));
+        return static_cast<WMError>(ret);
+    }
+    return WMError::WM_OK;
 }
 
 void WindowSceneSessionImpl::NotifySessionForeground(uint32_t reason, bool withAnimation)
@@ -6734,7 +6822,7 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
     auto rsMask = RSMask::CreatePixelMapMask(mask);
     surfaceNode_->SetCornerRadius(0.0f);
     if (property_->GetWindowShadows().hasRadiusValue_) {
-        surfaceNode_->SetShadowRadius(0.0f);
+        surfaceNode_->SetShadowRadius(WINDOW_SHADOW_RADIUS_INVALID);
     }
     surfaceNode_->SetAbilityBGAlpha(0);
     surfaceNode_->SetMask(rsMask); // RS interface to set mask
@@ -6775,7 +6863,8 @@ WMError WindowSceneSessionImpl::ClearWindowMask()
     bool hasShadowRadius = shadowsInfo.hasRadiusValue_;
     if (hasShadowRadius) {
         hostSession->SetWindowShadows(shadowsInfo);
-        surfaceNode_->SetShadowRadius(ConvertRadiusToSigma(shadowsInfo.radius_));
+        surfaceNode_->SetShadowRadius(MathHelper::NearEqual(shadowsInfo.radius_, 0.0f) ?
+            WINDOW_SHADOW_RADIUS_INVALID : ConvertRadiusToSigma(shadowsInfo.radius_));
     }
 
     if (!(hasCornerRadius && hasShadowRadius)) {
@@ -7592,12 +7681,20 @@ float WindowSceneSessionImpl::GetCustomDensity() const
     return customDensity_;
 }
 
-WMError WindowSceneSessionImpl::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo)
+WMError WindowSceneSessionImpl::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, bool isAttach)
 {
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     const auto& property = GetProperty();
+    if (isAttach && (!(windowSystemConfig_.IsPcWindow() || windowSystemConfig_.freeMultiWindowSupport_) ||
+        property_->IsAdaptToCompatibleDevice())) {
+            return WMError::WM_OK;
+    }
+    if (!windowAnchorInfo.isAnchoredByAttach_ && !property->GetWindowAnchorInfo().isAnchoredByAttach_) {
+        TLOGE(WmsLogTag::WMS_SUB, "Repeated invoking");
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
     if (!WindowHelper::IsSubWindow(property->GetWindowType())) {
         TLOGE(WmsLogTag::WMS_SUB, "only sub window is valid");
         return WMError::WM_ERROR_INVALID_CALLING;
@@ -7610,7 +7707,7 @@ WMError WindowSceneSessionImpl::SetWindowAnchorInfo(const WindowAnchorInfo& wind
         TLOGI(WmsLogTag::WMS_SUB, "not support more than 1 level window");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-    if (!windowSystemConfig_.supportFollowRelativePositionToParent_) {
+    if (!isAttach && !windowSystemConfig_.supportFollowRelativePositionToParent_) {
         TLOGI(WmsLogTag::WMS_SUB, "not support device");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -8034,6 +8131,17 @@ WSError WindowSceneSessionImpl::NotifyAppHookWindowInfoUpdated()
         return WSError::WS_DO_NOTHING;
     }
 
+    SetAppHookWindowInfo(hookWindowInfo);
+    return WSError::WS_OK;
+}
+
+WSError WindowSceneSessionImpl::UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "in");
+    const WindowType windowType = GetType();
+    if (!WindowHelper::IsMainWindow(windowType)) {
+        return WSError::WS_DO_NOTHING;
+    }
     SetAppHookWindowInfo(hookWindowInfo);
     return WSError::WS_OK;
 }

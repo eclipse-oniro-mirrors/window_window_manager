@@ -42,6 +42,8 @@ public:
     void SetAgentDeathCallback(std::function<void(const sptr<IRemoteObject>&)> callback);
     int32_t GetAgentPid(const sptr<T1>& agent);
     std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> GetAttributeAgentsMap();
+    template <typename Func>
+    auto ParseAttributeAgentsMap(Func&& func);
 
 private:
     void RemoveAgent(const sptr<IRemoteObject>& remoteObject);
@@ -181,6 +183,14 @@ std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> ClientAgentContainer<T1, 
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     return attributeAgentMap_;
+}
+
+template<typename T1, typename T2>
+template <typename Func>
+auto ClientAgentContainer<T1, T2>::ParseAttributeAgentsMap(Func&& func)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return func(attributeAgentMap_);
 }
 
 template<typename T1, typename T2>

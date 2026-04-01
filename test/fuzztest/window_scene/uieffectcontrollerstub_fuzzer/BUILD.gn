@@ -31,6 +31,7 @@ ohos_fuzztest("UIEffectControllerStubFuzzTest") {
   sources = [ "uieffectcontrollerstub_fuzzer.cpp" ]
 
   deps = [
+    "${window_base_path}/utils:ui_effect_controller_common",
     "${window_base_path}/window_scene/session:ui_effect_controller",
     "${window_base_path}/window_scene/session:ui_effect_controller_client",
   ]

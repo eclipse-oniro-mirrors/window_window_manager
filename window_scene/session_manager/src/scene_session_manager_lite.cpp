@@ -80,6 +80,13 @@ WSError SceneSessionManagerLite::GetSessionInfo(const std::string& deviceId,
     return SceneSessionManager::GetInstance().GetSessionInfo(deviceId, persistentId, sessionInfo);
 }
 
+WSError SceneSessionManagerLite::GetSessionInfo(const std::string& deviceId,
+    int32_t persistentId, SessionInfoBean& sessionInfo, AAFwk::DisplayInfo& displayInfo)
+{
+    WLOGFD("in");
+    return SceneSessionManager::GetInstance().GetSessionInfo(deviceId, persistentId, sessionInfo, displayInfo);
+}
+
 WSError SceneSessionManagerLite::GetSessionInfoByContinueSessionId(
     const std::string& continueSessionId, SessionInfoBean& sessionInfo)
 {

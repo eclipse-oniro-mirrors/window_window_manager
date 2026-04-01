@@ -39,6 +39,7 @@ ohos_shared_library("fbwindowani_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ 
     "floating_ball_ani/src/ani_fb_window.cpp",

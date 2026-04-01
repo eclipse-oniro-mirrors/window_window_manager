@@ -31,6 +31,7 @@ ohos_shared_library("display_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "js_display.cpp",
@@ -60,10 +61,9 @@ ohos_shared_library("display_napi") {
     "graphic_surface:surface",
     "hilog:libhilog",
     "hitrace:hitrace_meter",
+    "image_framework:image_native", 
     "napi:ace_napi",
   ]
-
-  public_external_deps = [ "image_framework:image_native" ]
 
   relative_install_dir = "module"
   part_name = "window_manager"
@@ -84,6 +84,7 @@ ohos_shared_library("display_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "js_display.cpp",

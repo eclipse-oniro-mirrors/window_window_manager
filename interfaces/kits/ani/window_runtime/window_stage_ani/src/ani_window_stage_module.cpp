@@ -44,10 +44,11 @@ static ani_object WindowStageCreate(ani_env* env, ani_long scene)
 
 static ani_ref WindowGetMainWindow(ani_env* env, ani_object obj, ani_long nativeObj)
 {
-    TLOGD(WmsLogTag::DEFAULT, "[ANI]");
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniWindowStage* windowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
-    if (windowStage == nullptr || windowStage->GetWindowScene().lock() == nullptr) {
-        TLOGD(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+    if (windowStage == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     return windowStage->GetMainWindow(env);
@@ -57,8 +58,9 @@ static ani_ref CreateSubWindow(ani_env* env, ani_object obj, ani_long nativeObj,
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniWindowStage* windowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
-    if (windowStage == nullptr || windowStage->GetWindowScene().lock() == nullptr) {
-        TLOGD(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+    if (windowStage == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     return windowStage->OnCreateSubWindow(env, name);
@@ -145,6 +147,7 @@ std::array g_functions = {
 
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] ANI_Constructor start!");
     ani_status ret;
     ani_env* env;
     if ((ret = vm->GetEnv(ANI_VERSION_1, &env)) != ANI_OK) {
@@ -190,6 +193,7 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     OHOS::Rosen::ANI_Transition_Controller_Constructor(vm, result);
     OHOS::Rosen::ANI_Window_Constructor(vm, result);
     ExtensionWindowConfig_ANI_Constructor(vm, result);
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] ANI_Constructor end!");
     return ANI_OK;
 }
 }

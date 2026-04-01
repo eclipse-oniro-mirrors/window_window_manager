@@ -91,6 +91,8 @@ private:
     int HandleGetAppForceLandscapeConfigEnable(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppHookWindowInfoFromServer(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyWindowStatusDidChangeAfterShowWindow(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyParentWindowSizeChange(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyParentWindowStatusChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyFrameLayoutFinish(MessageParcel& data, MessageParcel& reply);
     int HandleSetDialogSessionBackGestureEnabled(MessageParcel& data, MessageParcel& reply);
     int HandleGetStatusBarHeight(MessageParcel& data, MessageParcel& reply);
@@ -192,6 +194,7 @@ private:
     int HandleNotifyIsFullScreenInForceSplitMode(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyCompatibleModeChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyPageEnable(MessageParcel& data, MessageParcel& reply);
 
     int HandleRestartApp(MessageParcel& data, MessageParcel& reply);
 

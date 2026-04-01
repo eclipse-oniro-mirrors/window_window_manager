@@ -57,6 +57,7 @@ void WindowAdapterLiteTest::SetUp()
 
 void WindowAdapterLiteTest::TearDown()
 {
+    LOG_SetCallback(nullptr);
     instance_ = nullptr;
 }
 
@@ -215,7 +216,6 @@ HWTEST_F(WindowAdapterLiteTest, TerminateSessionByPersistentId, TestSize.Level1)
     instance_->OnUserSwitch();
 
     ASSERT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, instance_->TerminateSessionByPersistentId(0));
-    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -232,7 +232,6 @@ HWTEST_F(WindowAdapterLiteTest, CloseTargetFloatWindow, TestSize.Level1)
 
     const std::string& bundleName = "test";
     ASSERT_EQ(WMError::WM_OK, instance_->CloseTargetFloatWindow(bundleName));
-    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -248,7 +247,6 @@ HWTEST_F(WindowAdapterLiteTest, CloseTargetPiPWindow, TestSize.Level1)
 
     const std::string& bundleName = "test";
     ASSERT_EQ(WMError::WM_OK, instance_->CloseTargetPiPWindow(bundleName));
-    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -264,7 +262,6 @@ HWTEST_F(WindowAdapterLiteTest, GetCurrentPiPWindowInfo, TestSize.Level1)
 
     std::string bundleName = "test";
     ASSERT_EQ(WMError::WM_OK, instance_->GetCurrentPiPWindowInfo(bundleName));
-    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -386,6 +383,418 @@ HWTEST_F(WindowAdapterLiteTest, RegisterWMSConnectionChangedListener, TestSize.L
     auto callbackFunc = [](int32_t, int32_t, bool) { return; };
     instance_->RegisterWMSConnectionChangedListener(callbackFunc);
 }
+
+/**
+ * @tc.name: WindowAdapterLite::IsWindowManagerServiceProxyValid
+ * @tc.desc: 测试检查 WMS 代理是否有效
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, IsWindowManagerServiceProxyValid, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+
+    // Test with isProxyValid_ = false
+    instance_->isProxyValid_ = false;
+    EXPECT_FALSE(instance_->IsWindowManagerServiceProxyValid());
+
+    // Test with isProxyValid_ = true
+    instance_->isProxyValid_ = true;
+    EXPECT_TRUE(instance_->IsWindowManagerServiceProxyValid());
+}
+
+/**
+ * @tc.name: WindowAdapterLite::IsMockSMSProxyAlive
+ * @tc.desc: 测试检查 Mock SMS 是否存活
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, IsMockSMSProxyAlive, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+
+    // This test depends on SessionManager state
+    // We just verify the method can be called without crashing
+    auto isAlive = instance_->IsMockSMSProxyAlive();
+    // The result depends on whether SessionManager has a mock proxy
+    // We don.t assert specific value, just ensure it doesn't crash
+}
+
+/**
+ * @tc.name: WindowAdapterLite::RegisterUserSwitchCallback_AlreadyRegistered
+ * @tc.desc: 测试已注册时直接返回
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, RegisterUserSwitchCallback_AlreadyRegistered, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+
+    // Set isRegisteredUserSwitchListener_ to true
+    instance_->isRegisteredUserSwitchListener_ = true;
+
+    // Call RegisterUserSwitchCallback should return early
+    instance_->RegisterUserSwitchCallback();
+
+    // isRegisteredUserSwitchListener_ should still be true
+    EXPECT_TRUE(instance_->isRegisteredUserSwitchListener_);
+
+    // Restore
+    instance_->isRegisteredUserSwitchListener_ = false;
+}
+
+/**
+ * @tc.name: WindowAdapterLite::RegisterUserSwitchCallback_MockSMSNull
+ * @tc.desc: 测试 Mock SMS 为空时直接返回
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, RegisterUserSwitchCallback_MockSMSNull, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+
+    // Ensure isRegisteredUserSwitchListener_ is false
+    instance_->isRegisteredUserSwitchListener_ = false;
+
+    // Call RegisterUserSwitchCallback
+    // If SessionManager doesn.t have mock proxy, it should return early
+    instance_->RegisterUserSwitchCallback();
+
+    // The result depends on SessionManager state
+    // We just verify it doesn.t crash
+}
+
+/**
+ * @tc.name: WindowAdapterLite::RegisterUserSwitchCallback_NonSystemUser
+ * @tc.desc: 测试非 SYSTEM_USER 时直接返回
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, RegisterUserSwitchCallback_NonSystemUser, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+
+    // Ensure isRegisteredUserSwitchListener_ is false
+    instance_->isRegisteredUserSwitchListener_ = false;
+
+    // Call RegisterUserSwitchCallback
+    // If current user is not SYSTEM_USERID, it should return early
+    instance_->RegisterUserSwitchCallback();
+
+    // The result depends on GetUserIdByUid(getuid()) value
+    // We just verify it doesn.t crash
+}
+
+/**
+ * @tc.name: WindowAdapterLite::RegisterUserSwitchCallback_Success
+ * @tc.desc: 测试的后常注册回调
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, RegisterUserSwitchCallback_Success, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+
+    // Ensure isRegisteredUserSwitchListener_ is false
+    instance_->isRegisteredUserSwitchListener_ = false;
+
+    // Call RegisterUserSwitchCallback
+    // If SessionManager has mock proxy and user is SYSTEM_USERID, it should register callback
+    instance_->RegisterUserSwitchCallback();
+
+    // The result depends on SessionManager state and user ID
+    // We just verify it doesn.t crash
+}
+
+/**
+ * @tc.name: WindowAdapterLite::ReregisterWindowManagerFaultAgent_ProxyNull
+ * @tc.desc: 测试 proxy 为空的情况
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_ProxyNull, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+    LOG_SetCallback(MyLogCallback);
+    g_logMsg.clear();
+
+    sptr<IWindowManagerLite> wmsProxy = nullptr;
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+
+    EXPECT_TRUE(g_logMsg.find("WMS proxy is null") != std::string::npos);
+}
+
+/**
+ * @tc.name: WindowAdapterLite::ReregisterWindowManagerFaultAgent_RegisterFailed
+ * @tc.desc: 测试注册失败的情况
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_RegisterFailed, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+    LOG_SetCallback(MyLogCallback);
+    g_logMsg.clear();
+
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(WMError::WM_ERROR_SAMGR));
+
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    auto agent = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
+    instance_->windowManagerLiteFaultAgentMap_[type].insert(agent);
+
+    g_logMsg.clear();
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+
+    EXPECT_TRUE(g_logMsg.find("Re-register fault agent failed") != std::string::npos);
+    EXPECT_FALSE(instance_->windowManagerLiteFaultAgentMap_[type].empty());
+}
+
+/**
+ * @tc.name: WindowAdapterLite::ReregisterWindowManagerFaultAgent_RegisterSuccess
+ * @tc.desc: 测试注册成功的情况
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_RegisterSuccess, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+    LOG_SetCallback(MyLogCallback);
+    g_logMsg.clear();
+
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+        .WillRepeatedly(Return(WMError::WM_OK));
+
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    auto agent = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
+    instance_->windowManagerLiteFaultAgentMap_[type].insert(agent);
+
+    g_logMsg.clear();
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+}
+
+/**
+ * @tc.name: WindowAdapterLite::ReregisterWindowManagerFaultAgent_MultipleAgents
+ * @tc.desc: 测试多个 agent 混合成功/失败的情况
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_MultipleAgents, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+    LOG_SetCallback(MyLogCallback);
+    g_logMsg.clear();
+
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+        .Times(2)
+        .WillOnce(Return(WMError::WM_ERROR_SAMGR))
+        .WillOnce(Return(WMError::WM_OK));
+
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    WindowManagerAgentType type1 = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    WindowManagerAgentType type2 = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PIP;
+    auto agent1 = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
+    auto agent2 = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
+    instance_->windowManagerLiteFaultAgentMap_[type1].insert(agent1);
+    instance_->windowManagerLiteFaultAgentMap_[type2].insert(agent2);
+
+    g_logMsg.clear();
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+}
+
+/**
+ * @tc.name: WindowAdapterLite::ReregisterWindowManagerFaultAgent_EmptyFaultMap
+ * @tc.desc: 测试空的 fault map
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_EmptyFaultMap, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, instance_);
+
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+        .Times(0);
+
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerLiteFaultAgentMap_.clear();
+
+    instance_->ReregisterWindowManagerFaultAgent(wmsProxy);
+
+    EXPECT_TRUE(instance_->windowManagerLiteFaultAgentMap_.empty());
+}
+/**
+ * @tc.name: UnregisterWindowManagerAgent01
+ * @tc.desc: 测试 wmsProxy 为空的情况
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent01, TestSize.Level1)
+{
+    instance_->isProxyValid_ = true;
+    instance_->windowManagerServiceProxy_ = nullptr;
+    
+    sptr<IWindowManagerAgent> agent = nullptr;
+    auto ret = instance_->UnregisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, agent);
+    
+    EXPECT_EQ(WMError::WM_ERROR_SAMGR, ret);
+}
+
+/**
+ * @tc.name: UnregisterWindowManagerAgent02
+ * @tc.desc: 测试 windowManagerLiteAgentMap_ 中找不到 type 的情况
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent02, TestSize.Level1)
+{
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(WMError::WM_OK));
+    
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    instance_->isProxyValid_ = true;
+    
+    instance_->windowManagerLiteAgentMap_.clear();
+    
+    sptr<IWindowManagerAgent> agent = nullptr;
+    auto ret = instance_->UnregisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, agent);
+    
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: UnregisterWindowManagerAgent03
+ * @tc.desc: 测试 agentSet 中找不到 agent 的情况
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent03, TestSize.Level1)
+{
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(WMError::WM_OK));
+    
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    instance_->isProxyValid_ = true;
+    
+    sptr<IWindowManagerAgent> existingAgent = nullptr;
+    std::set<sptr<IWindowManagerAgent>> agentSet = { existingAgent };
+    instance_->windowManagerLiteAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS] = agentSet;
+    
+    sptr<IWindowManagerAgent> newAgent = nullptr;
+    auto ret = instance_->UnregisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, newAgent);
+    
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: UnregisterWindowManagerAgent04
+ * @tc.desc: 测试正常注销成功，windowManagerLiteFaultAgentMap_ 为空
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent04, TestSize.Level1)
+{
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(WMError::WM_OK));
+    
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    instance_->isProxyValid_ = true;
+    
+    sptr<IWindowManagerAgent> agent = nullptr;
+    std::set<sptr<IWindowManagerAgent>> agentSet = { agent };
+    instance_->windowManagerLiteAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS] = agentSet;
+    
+    instance_->windowManagerLiteFaultAgentMap_.clear();
+    
+    auto ret = instance_->UnregisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, agent);
+}
+
+/**
+ * @tc.name: UnregisterWindowManagerAgent05
+ * @tc.desc: 测试正常注销成功，windowManagerLiteFaultAgentMap_ 中找不到 type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent05, TestSize.Level1)
+{
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    instance_->isProxyValid_ = true;
+
+    sptr<IWindowManagerAgent> agent = nullptr;
+    std::set<sptr<IWindowManagerAgent>> agentSet = { agent };
+    instance_->windowManagerLiteAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS] = agentSet;
+
+    sptr<IWindowManagerAgent> faultAgent = nullptr;
+    std::set<sptr<IWindowManagerAgent>> faultAgentSet = { faultAgent };
+    instance_->windowManagerLiteFaultAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT] =
+        faultAgentSet;
+
+    auto ret = instance_->UnregisterWindowManagerAgent(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, agent);
+}
+
+/**
+ * @tc.name: UnregisterWindowManagerAgent06
+ * @tc.desc: 测试正常注销成功，fault map 中找到 type 和 agent，删除后 set 不为空
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent06, TestSize.Level1)
+{
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(WMError::WM_OK));
+    
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    instance_->isProxyValid_ = true;
+    
+    sptr<IWindowManagerAgent> agent = nullptr;
+    std::set<sptr<IWindowManagerAgent>> agentSet = { agent };
+    instance_->windowManagerLiteAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS] = agentSet;
+    
+    sptr<IWindowManagerAgent> faultAgent1 = agent;
+    sptr<IWindowManagerAgent> faultAgent2 = nullptr;
+    std::set<sptr<IWindowManagerAgent>> faultAgentSet = { faultAgent1, faultAgent2 };
+    instance_->windowManagerLiteFaultAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS] = faultAgentSet;
+    
+    auto ret = instance_->UnregisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, agent);
+}
+
+/**
+ * @tc.name: UnregisterWindowManagerAgent07
+ * @tc.desc: 测试正常注销成功，fault map 中找到 type 和 agent，删除后 set 为空，删除整个 entry
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent07, TestSize.Level1)
+{
+    auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(WMError::WM_OK));
+    
+    auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    instance_->isProxyValid_ = true;
+    
+    sptr<IWindowManagerAgent> agent = nullptr;
+    std::set<sptr<IWindowManagerAgent>> agentSet = { agent };
+    instance_->windowManagerLiteAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS] = agentSet;
+    
+    std::set<sptr<IWindowManagerAgent>> faultAgentSet = { agent };
+    instance_->windowManagerLiteFaultAgentMap_[WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS] = faultAgentSet;
+    
+    auto ret = instance_->UnregisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, agent);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

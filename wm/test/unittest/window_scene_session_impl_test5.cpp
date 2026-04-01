@@ -2755,6 +2755,36 @@ HWTEST_F(WindowSceneSessionImplTest5, SetDefaultDensityEnabled_forCompatMode, Te
 }
 
 /**
+ * @tc.name: NotifySubWindowAfterParentWindowSizeChange
+ * @tc.desc: NotifySubWindowAfterParentWindowSizeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, NotifySubWindowAfterParentWindowSizeChange, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySubWindowAfterParentWindowSizeChange");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    Rect rect = {1, 2, 3, 4};
+    WSError result = window->NotifySubWindowAfterParentWindowSizeChange(rect);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifySubWindowAfterParentWindowStatusChange
+ * @tc.desc: NotifySubWindowAfterParentWindowStatusChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, NotifySubWindowAfterParentWindowStatusChange, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySubWindowAfterParentWindowSizeChange");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    WindowMode mode = WindowMode::WINDOW_MODE_FULLSCREEN;
+    WSError result = window->NotifySubWindowAfterParentWindowStatusChange(mode);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
  * @tc.name: ShouldSkipSupportWindowModeCheck01
  * @tc.desc: ShouldSkipSupportWindowModeCheck01
  * @tc.type: FUNC

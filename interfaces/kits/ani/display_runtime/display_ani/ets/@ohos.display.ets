@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -573,17 +573,17 @@ export native function isCaptured(): boolean;
 
 export function getFoldDisplayMode(): FoldDisplayMode {
     let res = getFoldDisplayModeNative();
-    return res as FoldDisplayMode;
+    return FoldDisplayMode.fromValue(res);
 }
 
 export native function getFoldDisplayModeNative(): int;
 
 export function setFoldDisplayMode(mode: FoldDisplayMode, reason: string): void {
-    setFoldDisplayModeReasonNative(mode as int, reason, displayMgrRef);
+    setFoldDisplayModeReasonNative(mode, reason, displayMgrRef);
 }
 
 export function setFoldDisplayMode(mode: FoldDisplayMode): void {
-    setFoldDisplayModeNative(mode as int, displayMgrRef);
+    setFoldDisplayModeNative(mode, displayMgrRef);
 }
 
 export native function setFoldDisplayModeReasonNative(mode: int, reason: string, nativeObj: long): void;
@@ -591,7 +591,7 @@ export native function setFoldDisplayModeNative(mode: int, nativeObj: long): voi
 
 export function getFoldStatus(): FoldStatus{
     let res = getFoldStatusNative();
-    return res as FoldStatus;
+    return FoldStatus.fromValue(res);
 }
 
 export native function getFoldStatusNative(): int;
@@ -783,12 +783,12 @@ export function displayEventCallBack(cb: object, cbArg: long): void {
 
 export function foldStatusCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: FoldStatus) => void;
-    func(cbArg as FoldStatus);
+    func(FoldStatus.fromValue(cbArg));
 }
 
 export function foldDisplayModeCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: FoldDisplayMode) => void;
-    func(cbArg as FoldDisplayMode);
+    func(FoldDisplayMode.fromValue(cbArg));
 }
 
 export function foldAngleChangeCallback(cb: object, cbArg: object): void {
@@ -833,7 +833,7 @@ function minusResolutionArray(resolutions: Array<DisplayPhysicalResolution>): vo
             break;
         }
         let resolution = resolutions[index] as DisplayPhysicalResolutionImpl;
-        resolution.foldDisplayMode = resolution.foldDisplayMode_ as FoldDisplayMode;
+        resolution.foldDisplayMode = FoldDisplayMode.fromValue(resolution.foldDisplayMode_);
     }
 }
 

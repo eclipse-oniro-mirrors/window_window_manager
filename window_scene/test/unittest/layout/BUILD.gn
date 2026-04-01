@@ -75,6 +75,4 @@ ohos_unittest("ws_layout_test") {
     "napi:ace_napi",
     "safwk:system_ability_fwk",
   ]
-
-  public_external_deps = [ "accessibility:accessibility_interface" ]
 }

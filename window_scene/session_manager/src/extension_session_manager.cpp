@@ -85,6 +85,7 @@ sptr<ExtensionSession> ExtensionSessionManager::RequestExtensionSession(const Se
 {
     auto task = [this, newSessionInfo = sessionInfo]() mutable -> sptr<ExtensionSession> {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "RequestExtensionSession");
+        TLOGNI(WmsLogTag::WMS_UIEXT, "in");
         if (!newSessionInfo.config_.isDensityFollowHost_) {
             newSessionInfo.config_.density_ = GetSystemDensity(newSessionInfo.config_.displayId_);
         }

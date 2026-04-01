@@ -39,6 +39,7 @@ ohos_shared_library("libdm_extension") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "dms/src/screen_session_manager_phone_extension.cpp",

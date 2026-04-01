@@ -15,7 +15,7 @@
 
 #ifndef STARTUP_SYSPARAM_PARAMETER_API_H
 #define STARTUP_SYSPARAM_PARAMETER_API_H
-#include <cstdint.h>
+#include <cstdint>
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {

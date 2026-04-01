@@ -15,10 +15,20 @@
 
 #include "ani_window_animation_utils.h"
 
+#include <optional>
+
 #include <accesstoken_kit.h>
 #include <ipc_skeleton.h>
 #include <tokenid_kit.h>
 #include "window_manager_hilog.h"
+
+#define RETURN_IF_NULL(param, ...)                                             \
+    do {                                                                       \
+        if (!param) {                                                          \
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] The %{public}s is null", #param); \
+            return __VA_ARGS__;                                                \
+        }                                                                      \
+    } while (0)
 
 namespace OHOS {
 namespace Rosen {
@@ -87,6 +97,64 @@ ani_object CreateAniUndefined(ani_env* env)
     ani_ref aniRef;
     env->GetUndefined(&aniRef);
     return static_cast<ani_object>(aniRef);
+}
+
+/**
+ * @brief Get an optional property reference from an ANI object.
+ *
+ * @param env       ANI environment.
+ * @param aniObject Source ANI object.
+ * @param propName  Property name.
+ * @return ani_ref Reference to the property, or nullptr if not present/undefined/error.
+ */
+ani_ref GetOptionalProp(ani_env* env, ani_object aniObject, const char* propName)
+{
+    RETURN_IF_NULL(env, nullptr);
+    RETURN_IF_NULL(aniObject, nullptr);
+    RETURN_IF_NULL(propName, nullptr);
+
+    ani_ref propRef = nullptr;
+    ani_status ret = env->Object_GetPropertyByName_Ref(aniObject, propName, &propRef);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to get property %{public}s. ret: %{public}d", propName, ret);
+        return nullptr;
+    }
+    RETURN_IF_NULL(propRef, nullptr);
+
+    ani_boolean isUndefined = ANI_FALSE;
+    ret = env->Reference_IsUndefined(propRef, &isUndefined);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to check undefined for %{public}s. ret: %{public}d", propName, ret);
+        return nullptr;
+    }
+    if (isUndefined) {
+        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined.", propName);
+        return nullptr;
+    }
+    return propRef;
+}
+
+/**
+ * @brief Get an optional boolean property from an ANI object.
+ *
+ * @param env       ANI environment.
+ * @param aniObject Source ANI object.
+ * @param propName  Property name.
+ * @return std::optional<bool> Boolean value, or std::nullopt if not present/undefined/error.
+ */
+std::optional<bool> GetOptionalBoolProp(ani_env* env, ani_object aniObject, const char* propName)
+{
+    ani_ref boolRef = GetOptionalProp(env, aniObject, propName);
+    RETURN_IF_NULL(boolRef, std::nullopt);
+
+    ani_boolean boolValue = ANI_FALSE;
+    ani_status ret =
+        env->Object_CallMethodByName_Boolean(static_cast<ani_object>(boolRef), "toBoolean", ":z", &boolValue);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to convert %{public}s to boolean. ret: %{public}d", propName, ret);
+        return std::nullopt;
+    }
+    return static_cast<bool>(boolValue);
 }
 
 std::string GetAnimationCurveItemName(WindowAnimationCurve curve)
@@ -594,9 +662,10 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
         TLOGW(WmsLogTag::WMS_ANIMATION, "[ANI] There is no animationParams.");
     }
 
+    bool isSystemCalling = IsSystemCalling();
     ani_ref aniAnimationSystemParams = nullptr;
     if (!CheckIsUndefinedAndGetProperty(env, aniObject, "systemAnimationParams", &aniAnimationSystemParams) &&
-        IsSystemCalling()) {
+        isSystemCalling) {
         windowCreateParams.animationSystemParams = std::make_shared<StartAnimationSystemOptions>();
         if (!ConvertStartAnimationSystemOptionsFromAniValue(env,
             static_cast<ani_object>(aniAnimationSystemParams), *(windowCreateParams.animationSystemParams))) {
@@ -605,10 +674,27 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
     } else {
         TLOGW(WmsLogTag::WMS_ANIMATION, "[ANI] There is no systemAnimationParams.");
     }
-    ani_boolean isNeeded = false;
-    ani_status status = env->Object_GetPropertyByName_Boolean(aniObject, "needAnimation", &isNeeded);
+    ani_ref aniNeedAnimation = nullptr;
+    ani_status status = env->Object_GetPropertyByName_Ref(aniObject, "needAnimation", &aniNeedAnimation);
     if (status == ANI_OK) {
-        windowCreateParams.needAnimation = std::make_shared<bool>(isNeeded);
+        ani_boolean isUndefined = true;
+        if (env->Reference_IsUndefined(aniNeedAnimation, &isUndefined) == ANI_OK && !isUndefined) {
+            ani_boolean isNeeded = false;
+            ani_status boolStatus = env->Object_CallMethodByName_Boolean(static_cast<ani_object>(aniNeedAnimation),
+                "toBoolean", ":z", &isNeeded);
+            if (boolStatus != ANI_OK) {
+                boolStatus = env->Object_GetPropertyByName_Boolean(aniObject, "needAnimation", &isNeeded);
+            }
+            if (boolStatus == ANI_OK) {
+                windowCreateParams.needAnimation = std::make_shared<bool>(static_cast<bool>(isNeeded));
+            }
+        }
+    }
+    if (isSystemCalling) {
+        windowCreateParams.isWindowLimitsForcible =
+            GetOptionalBoolProp(env, aniObject, "isWindowLimitsForcible").value_or(false);
+    } else {
+        windowCreateParams.isWindowLimitsForcible = false;
     }
     return true;
 }

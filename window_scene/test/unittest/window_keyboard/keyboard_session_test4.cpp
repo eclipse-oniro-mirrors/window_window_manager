@@ -55,9 +55,14 @@ private:
     sptr<SceneSession> GetSceneSession(const std::string& abilityName, const std::string& bundleName);
 };
 
+static sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr("testBundleName", 1423);
+
 void KeyboardSessionTest4::SetUpTestCase() {}
 
-void KeyboardSessionTest4::TearDownTestCase() {}
+void KeyboardSessionTest4::TearDownTestCase()
+{
+    scenePersistence = nullptr;
+}
 
 void KeyboardSessionTest4::SetUp() {}
 

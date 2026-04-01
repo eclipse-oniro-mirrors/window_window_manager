@@ -110,13 +110,14 @@ void ScreenSessionManagerAdapter::OnDisplayAttributeChange(sptr<DisplayInfo> dis
     }
  
     std::set<sptr<IDisplayManagerAgent>> agents;
-    auto agentsMap = dmAttributeAgentContainer_.GetAttributeAgentsMap();
-    for (auto it = agentsMap.begin(); it != agentsMap.end(); ++it) {
-        if (IsAgentListenedAttributes(it->second.second, attributes)) {
-            agents.insert(it->second.first);
+    dmAttributeAgentContainer_.ParseAttributeAgentsMap([&](auto& map) {
+        for (auto it = map.begin(); it != map.end(); ++it) {
+            if (IsAgentListenedAttributes(it->second.second, attributes)) {
+                agents.insert(it->second.first);
+            }
         }
-    }
- 
+        });
+
     for (auto& agent : agents) {
         int32_t agentPid = dmAttributeAgentContainer_.GetAgentPid(agent);
         if (uid != INVALID_UID && ScreenSessionManager::GetInstance().GetStoredPidFromUid(uid, agentPid)) {

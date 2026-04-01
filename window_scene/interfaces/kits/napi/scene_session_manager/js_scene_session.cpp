@@ -608,6 +608,8 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::UpdateSceneAnimationConfig);
     BindNativeFunction(env, objValue, "setMobileAppInPadLayoutFullScreen",
         moduleName, JsSceneSession::SetMobileAppInPadLayoutFullScreen);
+    BindNativeFunction(env, objValue, "getSceneNodeCount", moduleName,
+        JsSceneSession::GetSceneNodeCount);
 }
 
 void JsSceneSession::BindNativeMethodForKeyboard(napi_env env, napi_value objValue, const char* moduleName)
@@ -3019,6 +3021,12 @@ napi_value JsSceneSession::SetCurrentRotation(napi_env env, napi_callback_info i
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
     JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
     return (me != nullptr) ? me->OnSetCurrentRotation(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::GetSceneNodeCount(napi_env env, napi_callback_info info)
+{
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnGetSceneNodeCount(env, info) : nullptr;
 }
 
 napi_value JsSceneSession::SetSidebarBlurMaximize(napi_env env, napi_callback_info info)
@@ -8805,6 +8813,25 @@ napi_value JsSceneSession::OnSetCurrentRotation(napi_env env, napi_callback_info
         return NapiGetUndefined(env);
     }
     return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnGetSceneNodeCount(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "[NAPI]OnGetSceneNodeCount");
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "session is nullptr, id:%{public}d", persistentId_);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
+    uint32_t nodeCount = 0;
+    if (session->GetSceneNodeCount(nodeCount) != WSError::WS_OK) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "GetSceneNodeCount failed, id:%{public}d", persistentId_);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
+    TLOGI(WmsLogTag::WMS_ROTATION, "GetSceneNodeCount success, count: %{public}u", nodeCount);
+    return CreateJsValue(env, nodeCount);
 }
 
 void JsSceneSession::ProcessSetSubWindowSourceRegister()

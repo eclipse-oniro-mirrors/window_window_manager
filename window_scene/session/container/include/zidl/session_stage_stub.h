@@ -56,6 +56,8 @@ private:
     int HandleUpdateWindowMode(MessageParcel& data, MessageParcel& reply);
     int HandleGetTopNavDestinationName(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyLayoutFinishAfterWindowModeChange(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifySubWindowAfterParentWindowSizeChange(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifySubWindowAfterParentWindowStatusChange(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateWindowModeForUITest(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyForegroundInteractiveStatus(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyPausedStatus();
@@ -109,7 +111,9 @@ private:
     int HandleNotifyAppForceLandscapeConfigUpdated(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyAppHookWindowInfoUpdated(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateAppHookWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetRouterStackInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleGetSceneNodeCount(MessageParcel& data, MessageParcel& reply);
     int HandleCloseSpecificScene(MessageParcel& data, MessageParcel& reply);
     int HandleSendFbActionEvent(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateIsShowDecorInFreeMultiWindow(MessageParcel& data, MessageParcel& reply);
@@ -118,6 +122,7 @@ private:
     int HandleSetSidebarBlurStyleWithType(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateWindowUIType(MessageParcel& data, MessageParcel& reply);
     int HandleUpdatePropertyWhenTriggerMode(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyParentLifecycleEvent(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_STUB_H

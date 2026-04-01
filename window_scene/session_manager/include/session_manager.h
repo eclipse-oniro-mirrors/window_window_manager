@@ -66,6 +66,8 @@ public:
     void RemoveSSMDeathRecipient();
     void RemoveMockFoundationDeathRecipient();
 
+    sptr<IMockSessionManagerInterface> GetMockSessionManagerServiceProxy();
+
     sptr<ISceneSessionManager> GetSceneSessionManagerProxy();
     void OnFoundationDied();
 

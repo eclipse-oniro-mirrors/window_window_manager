@@ -89,6 +89,8 @@ public:
         const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
     MOCK_METHOD(WMError, RegisterWindowPropertyChangeAgent, (WindowInfoKey windowInfoKey, uint32_t interestInfo,
         const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
+    MOCK_METHOD(WMError, UnregisterWindowPropertyChangeAgent, (WindowInfoKey, uint32_t,
+        const sptr<IWindowManagerAgent>&), (override));
 };
 
 /**

@@ -21,6 +21,7 @@ ohos_shared_library("libintention_event") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   include_dirs = [
     "./include",

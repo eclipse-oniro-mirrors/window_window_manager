@@ -237,6 +237,11 @@ struct WindowCreateParams : public Parcelable {
     std::shared_ptr<StartAnimationSystemOptions> animationSystemParams = nullptr;
     std::shared_ptr<bool> needAnimation = nullptr;
 
+    /**
+     * @brief Whether application-defined window size limits are allowed to exceed system limits.
+     */
+    bool isWindowLimitsForcible = false;
+
     bool Marshalling(Parcel& parcel) const override
     {
         if (!parcel.WriteParcelable(animationParams.get())) {
@@ -254,32 +259,36 @@ struct WindowCreateParams : public Parcelable {
                 return false;
             }
         }
+        if (!parcel.WriteBool(isWindowLimitsForcible)) {
+            return false;
+        }
         return true;
     }
 
     static WindowCreateParams* Unmarshalling(Parcel& parcel)
     {
-        WindowCreateParams* windowCreateParams = new WindowCreateParams();
+        auto windowCreateParams = std::make_unique<WindowCreateParams>();
         windowCreateParams->animationParams =
             std::shared_ptr<StartAnimationOptions>(parcel.ReadParcelable<StartAnimationOptions>());
         windowCreateParams->animationSystemParams =
             std::shared_ptr<StartAnimationSystemOptions>(parcel.ReadParcelable<StartAnimationSystemOptions>());
         bool hasNeedAnimation = false;
         if (!parcel.ReadBool(hasNeedAnimation)) {
-            delete windowCreateParams;
             return nullptr;
         }
         if (hasNeedAnimation) {
             bool needAnimationValue = false;
             if (!parcel.ReadBool(needAnimationValue)) {
-                delete windowCreateParams;
                 return nullptr;
             }
             windowCreateParams->needAnimation = std::make_shared<bool>(needAnimationValue);
         } else {
             windowCreateParams->needAnimation = nullptr;
         }
-        return windowCreateParams;
+        if (!parcel.ReadBool(windowCreateParams->isWindowLimitsForcible)) {
+            return nullptr;
+        }
+        return windowCreateParams.release();
     }
 };
 

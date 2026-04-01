@@ -32,6 +32,7 @@ ohos_shared_library("window_animation_utils") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "js_window_animation_utils.cpp",

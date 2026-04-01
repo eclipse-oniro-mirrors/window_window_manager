@@ -1100,6 +1100,94 @@ HWTEST_F(SceneSessionLayoutTest, NotifyWindowStatusDidChangeAfterShowWindow, Tes
 }
 
 /**
+ * @tc.name: NotifyNotifySubSessionParentSizeChange
+ * @tc.desc: NotifyNotifySubSessionParentSizeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifySubSessionParentSizeChange, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifySubSessionParentSizeChange";
+    info.bundleName_ = "NotifySubSessionParentSizeChange";
+    Rect rect = {1, 2, 3, 4};
+    auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+
+    // subSession is null
+    sceneSession->sessionStage_ = mockSessionStage;
+    sptr<SceneSession> subSceneSession = nullptr;
+    sceneSession->subSession_.push_back(subSceneSession);
+    sceneSession->handler_ = nullptr;
+    sceneSession->NotifySubSessionParentSizeChange(rect);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowSizeChange(rect)).Times(0);
+
+    // sessionStage_ is null
+    subSceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
+    subSceneSession->sessionStage_ = nullptr;
+    sceneSession->subSession_.push_back(subSceneSession);
+    sceneSession->NotifySubSessionParentSizeChange(rect);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowSizeChange(rect)).Times(0);
+
+    // subSession->GetWindowAnchorInfo().isAnchoredByAttach is false
+    sptr<SessionStageMocker> mockSubSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    subSceneSession->sessionStage_ = mockSubSessionStage;
+    WindowAnchorInfo anchorInfo = {false, false, WindowAnchor::TOP_START, 0, 0};
+    subSceneSession->SetWindowAnchorInfo(anchorInfo);
+    sceneSession->subSession_.push_back(subSceneSession);
+    sceneSession->NotifySubSessionParentSizeChange(rect);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowSizeChange(rect)).Times(0);
+
+    anchorInfo = {true, true, WindowAnchor::TOP_START, 0, 0};
+    subSceneSession->SetWindowAnchorInfo(anchorInfo);
+    sceneSession->subSession_.push_back(subSceneSession);
+    sceneSession->NotifySubSessionParentSizeChange(rect);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowSizeChange(rect)).Times(1);
+}
+
+/**
+ * @tc.name: NotifyNotifySubSessionParentStatusChange
+ * @tc.desc: NotifyNotifySubSessionParentSizeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifySubSessionParentStatusChange, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifySubSessionParentStatusChange";
+    info.bundleName_ = "NotifySubSessionParentStatusChange";
+    auto specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
+    // sceneSession->subSession_
+
+    WindowMode mode = WindowMode::WINDOW_MODE_FULLSCREEN;
+    // subSession is null
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = mockSessionStage;
+    sceneSession->handler_ = nullptr;
+    sceneSession->NotifySubSessionParentStatusChange(mode);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowStatusChange(mode)).Times(0);
+
+    // sessionStage_ is null
+    sptr<SceneSession> subSceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback_);
+    sceneSession->sessionStage_ = nullptr;
+    sceneSession->subSession_.push_back(subSceneSession);
+    sceneSession->NotifySubSessionParentStatusChange(mode);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowStatusChange(mode)).Times(0);
+
+    sptr<SessionStageMocker> mockSubSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    subSceneSession->sessionStage_ = mockSubSessionStage;
+    WindowAnchorInfo anchorInfo = {false, false, WindowAnchor::TOP_START, 0, 0};
+    subSceneSession->SetWindowAnchorInfo(anchorInfo);
+    sceneSession->NotifySubSessionParentStatusChange(mode);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowStatusChange(mode)).Times(0);
+
+    anchorInfo = {true, true, WindowAnchor::TOP_START, 0, 0};
+    subSceneSession->SetWindowAnchorInfo(anchorInfo);
+    sceneSession->NotifySubSessionParentStatusChange(mode);
+    EXPECT_CALL(*mockSessionStage, NotifySubWindowAfterParentWindowStatusChange(mode)).Times(1);
+}
+
+/**
  * @tc.name: NotifyWindowStatusDidChangeIfNeedWhenSessionEvent
  * @tc.desc: NotifyWindowStatusDidChangeIfNeedWhenSessionEventForUITest
  * @tc.type: FUNC

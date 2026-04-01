@@ -69,6 +69,7 @@ public:
     void ClearSessionManagerProxy();
     void RemoveSSMDeathRecipient();
 
+    virtual sptr<IMockSessionManagerInterface> GetMockSessionManagerServiceProxy();
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteProxy();
     sptr<IScreenSessionManagerLite> GetScreenSessionManagerLiteProxy();
 
@@ -107,8 +108,6 @@ private:
 
     void DeleteAllSessionListeners();
     void ReregisterSessionListener();
-
-    virtual sptr<IMockSessionManagerInterface> GetMockSessionManagerServiceProxy();
 
     /*
      * Multi User and multi screen

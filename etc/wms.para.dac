@@ -15,3 +15,10 @@ bootevent.wms.fullscreen.ready = foundation:foundation:0775
 bootevent.wms.ready = foundation:foundation:0775
 persist.scrollable. = foundation:system:0775
 persist.dms.device.status = foundation:system:0775
+persist.dms.concurrentuser = foundation:system:0775
+
+persist.window.screen.isSupportRog = foundation:system:0664
+persist.window.screen.width = foundation:system:0664
+persist.window.screen.height = foundation:system:0664
+persist.window.screen.dpi = foundation:system:0664
+persist.window.boot.threshold = foundation:system:0664

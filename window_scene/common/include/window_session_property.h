@@ -329,6 +329,8 @@ public:
     WindowSizeLimits GetWindowSizeLimits() const;
     void SetIsFullScreenWaterfallMode(bool isFullScreenWaterfallMode);
     bool GetIsFullScreenWaterfallMode() const;
+    void SetIsWindowLimitsForcible(bool isWindowLimitsForcible) { isWindowLimitsForcible_ = isWindowLimitsForcible; }
+    bool GetIsWindowLimitsForcible() const { return isWindowLimitsForcible_; }
 
     /*
      * Compatible mode
@@ -395,6 +397,9 @@ public:
     int32_t GetFrameNum() const;
     void SetAppBufferReady(bool isAppBufferReady);
     bool IsAppBufferReady() const;
+
+    void SetIsCrossProcessWindow(bool isCrossProcess);
+    bool GetIsCrossProcessWindow() const;
 
 private:
     void setTouchHotAreasInner(const std::vector<Rect>& rects, std::vector<Rect>& touchHotAreas);
@@ -612,6 +617,11 @@ private:
     WindowSizeLimits windowSizeLimits_;
     bool isFullScreenWaterfallMode_ = false;
 
+    /**
+     * @brief Whether application-defined window size limits are allowed to exceed system limits.
+     */
+    bool isWindowLimitsForcible_ = false;
+
     /*
      * Keyboard
      */
@@ -674,6 +684,7 @@ private:
     bool isPrelaunch_ = false;
     int32_t frameNum_ = 0;
     bool isAppBufferReady_ = false;
+    bool isCrossProcessWindow_ = false;
 };
 
 class CompatibleModeProperty : public Parcelable {

@@ -44,7 +44,10 @@ static sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSpt
 
 void ScenePersistenceTest::SetUpTestCase() {}
 
-void ScenePersistenceTest::TearDownTestCase() {}
+void ScenePersistenceTest::TearDownTestCase()
+{
+    scenePersistence = nullptr;
+}
 
 void ScenePersistenceTest::SetUp() {}
 

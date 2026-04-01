@@ -234,6 +234,7 @@ public:
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
     WSError NotifyAppForceLandscapeConfigEnableUpdated(bool needUpdateViewport = false) override;
+    WSError NotifyPageEnable(const std::string& action, const std::string& message) override;
 
     /**
      * Restart app

@@ -54,7 +54,8 @@ static sptr<Window> CreateWindowWithSession(sptr<WindowOption>& option,
     }
 
     windowSessionImpl->SetWindowType(option->GetWindowType());
-    WMError error = windowSessionImpl->Create(context, iSession, identityToken, isModuleAbilityHookEnd);
+    WMError error = windowSessionImpl->Create(context, iSession, identityToken, isModuleAbilityHookEnd,
+        option->IsBlockSubwindow());
     if (error != WMError::WM_OK) {
         errCode = error;
         WLOGFE("error: %{public}u", static_cast<uint32_t>(errCode));

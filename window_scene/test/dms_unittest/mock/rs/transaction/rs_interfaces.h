@@ -59,6 +59,8 @@ using ScreenSwitchingNotifyCallback = std::function<void(bool)>;
 using BrightnessInfoChangeCallback = std::function<void(ScreenId, BrightnessInfo)>;
 using HgmRefreshRateUpdateCallback = std::function<void(int32_t)>;
 using FirstFrameCommitCallback = std::function<void(uint64_t, int64_t)>;
+using ScreenSupportedHDRFormatsCallback = std::function<void(ScreenId,
+    std::vector<ScreenHDRFormat>& specialHdrFormats)>;
 
 class RSInterfaces {
 public:
@@ -84,7 +86,7 @@ public:
     int32_t GetBrightnessInfo(ScreenId screenId, BrightnessInfo& brightnessInfo);
     bool TakeSurfaceCapture(std::shared_ptr<RSDisplayNode> node, std::shared_ptr<SurfaceCaptureCallback> callback,
                             RSSurfaceCaptureConfig captureConfig = {});
-    bool FreezeScreen(std::shared_ptr<RSDisplayNode> node, bool isFreeze);
+    bool FreezeScreen(std::shared_ptr<RSDisplayNode> node, bool isFreeze, bool needSync = false);
     uint32_t SetScreenActiveMode(ScreenId id, uint32_t modeId);
     int32_t SetRogScreenResolution(ScreenId id, uint32_t width, uint32_t height);
     int32_t SetPhysicalScreenResolution(ScreenId id, uint32_t width, uint32_t height);
@@ -110,7 +112,8 @@ public:
     int32_t GetScreenGamutMap(ScreenId id, ScreenGamutMap& mode);
     int32_t GetPixelFormat(ScreenId id, GraphicPixelFormat& pixelFormat);
     int32_t SetPixelFormat(ScreenId id, GraphicPixelFormat pixelFormat);
-    int32_t GetScreenSupportedHDRFormats(ScreenId id, std::vector<ScreenHDRFormat>& hdrFormats);
+    int32_t GetScreenSupportedHDRFormats(ScreenId id, std::vector<ScreenHDRFormat>& hdrFormats,
+        const ScreenSupportedHDRFormatsCallback& callback = nullptr);
     int32_t GetScreenHDRFormat(ScreenId id, ScreenHDRFormat& hdrFormat);
     int32_t GetScreenHDRStatus(ScreenId id, HdrStatus& hdrStatus);
     int32_t SetScreenHDRFormat(ScreenId id, int32_t modeIdx);
@@ -141,6 +144,7 @@ public:
     int32_t AddVirtualScreenWhiteList(ScreenId id, const std::vector<NodeId>& whiteList);
     int32_t RemoveVirtualScreenWhiteList(ScreenId id, const std::vector<NodeId>& whiteList);
     int32_t SetLogicalCameraRotationCorrection(ScreenId id, ScreenRotation screenRotation);
+    ScreenId GetActiveScreenId();
 };
 }  // namespace Rosen
 }  // namespace OHOS

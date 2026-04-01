@@ -19,6 +19,7 @@ group("unittest") {
   testonly = true
 
   deps = [
+    "screen_session_manager_test:unittest",
     ":ws_screen_cutout_controller_test",
     ":ws_screen_edid_test",
     ":ws_screen_edid_parse_test",
@@ -199,7 +200,7 @@ ohos_unittest("ws_screen_session_manager_lite_test") {
   deps = [
     ":ws_unittest_common",
     "${window_base_path}/dm_lite:libdm_lite",
-    "${window_base_path}/wmserver:sms",
+    "${window_base_path}/wmserver:sms_static",
   ]
 
   external_deps = test_external_deps
@@ -534,7 +535,7 @@ ohos_unittest("ws_screen_session_manager_lite_stub_test") {
 
   deps = [
     ":ws_unittest_common",
-    "${window_base_path}/wmserver:sms",
+    "${window_base_path}/wmserver:sms_static",
   ]
   external_deps = test_external_deps
 }
@@ -1587,6 +1588,7 @@ config("ws_unittest_common_public_config") {
     "${window_base_path}/window_scene/screen_session_manager_client/include",
     "${window_base_path}/window_scene/screen_session_manager/infra/include/fold_screen",
     "${window_base_path}/window_scene/screen_session_manager/infra/include/common",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/ffrt",
     "${window_base_path}/window_scene/screen_session_manager/include",
     "${window_base_path}/window_scene/session_manager/include",
     "${window_base_path}/window_scene/session_manager_service/include",
@@ -1629,6 +1631,7 @@ ohos_static_library("ws_unittest_common") {
   ]
 
   deps = [
+    "../../../test/common/utils:libtestutil",
     "${window_base_path}/dm:libdm",
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
@@ -1644,16 +1647,9 @@ ohos_static_library("ws_unittest_common") {
     "${window_base_path}/wm:libwm",
   ]
 
-  public_deps = [
-    "${window_base_path}/utils:libwmutil",
-    "${window_base_path}/utils:libwmutil_base",
-    "${window_base_path}/window_scene/session:screen_session_static",
-    "../../../test/common/utils:libtestutil",
-  ]
-
   external_deps = test_external_deps
 
-  public_external_deps = [
+  external_deps += [
     "ability_base:session_info",
     "ability_base:want",
   ]

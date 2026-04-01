@@ -59,12 +59,7 @@ group("unittest") {
       ":wm_window_adapter_lite_test",
       ":wm_window_adapter_test",
       ":wm_window_agent_test",
-      ":wm_window_effect_test",
       ":wm_window_event_subscriber_test",
-      ":wm_window_impl_test",
-      ":wm_window_impl_test2",
-      ":wm_window_impl_test3",
-      ":wm_window_impl_test5",
       ":wm_window_input_channel_test",
       ":wm_window_input_intercept_test",
       ":wm_window_manager_agent_proxy_test",
@@ -80,6 +75,7 @@ group("unittest") {
       ":wm_window_scene_session_impl_test6",
       "rotation:wm_window_scene_session_impl_rotation_test",
       ":wm_window_scene_test",
+      ":wm_window_session_impl_compatible_mode_test",
       ":wm_window_session_impl_test",
       ":wm_window_session_impl_test2",
       ":wm_window_session_impl_test3",
@@ -91,7 +87,6 @@ group("unittest") {
       "attribute:wm_window_manager_attribute_test",
       "event_distribution:wm_oh_window_event_test",
       "event_distribution:wm_window_event_test",
-      "event_distribution:wm_window_impl_event_test",
       "event_distribution:wm_window_scene_session_impl_event_test",
       "event_distribution:wm_window_session_impl_event_test",
       "immersive:wm_immersive_test",
@@ -109,7 +104,7 @@ ohos_unittest("wm_window_manager_test") {
   module_out_path = module_out_path
 
   include_dirs = [ "${window_base_path}/wm/src" ]
-  sources = [ "window_manager_test.cpp" ]
+  sources = [ "window_manager_test.cpp", "window_manager_test2.cpp" ]
 
   deps = [
     ":wm_unittest_common",
@@ -292,6 +287,26 @@ ohos_unittest("wm_compatible_mode_window_session_impl_test") {
   sources = [ "compatible_mode_window_session_impl_test.cpp" ]
 
   deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_window_session_impl_compatible_mode_test") {
+  module_out_path = module_out_path
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+
+  sources = [ "compatible_mode/window_session_impl_compatible_mode_test.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
 
   external_deps = test_external_deps
 }
@@ -868,6 +883,7 @@ ohos_static_library("wm_unittest_common") {
   deps = [
     "${window_base_path}/window_scene/session_manager:scene_session_manager_static",
     "${window_base_path}/window_scene/session:scene_session_static",
+    "${window_base_path}/wm:libwm_static",
   ]
 
   public_deps = [
@@ -877,28 +893,24 @@ ohos_static_library("wm_unittest_common") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
-    "${window_base_path}/wm:libwm",
     "${window_base_path}/wm:libwm_lite",
     "${window_base_path}/wmserver:libwms",
   ]
 
-  public_external_deps = [
-    "ability_runtime:ability_connect_callback_stub",
-    "ability_runtime:ability_manager",
-  ]
   external_deps = [
-    "ace_engine:ace_uicontent",
-    "googletest:gmock",
-    "googletest:gtest_main",
-    "napi:ace_napi",
     "ability_base:configuration",
     "ability_base:want",
+    "ability_runtime:ability_connect_callback_stub",
     "ability_runtime:ability_context_native",
+    "ability_runtime:ability_manager",
     "ability_runtime:app_context",
     "ability_runtime:session_handler",
     "accessibility:accessibility_common",
+    "ace_engine:ace_uicontent",
     "bundle_framework:appexecfwk_base",
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "graphic_2d:librender_service_client",
     "graphic_2d:window_animation",
     "image_framework:image_native",
@@ -906,6 +918,7 @@ ohos_static_library("wm_unittest_common") {
     "input:libmmi-napi",
     "ipc:ipc_core",
     "ipc:ipc_single",
+    "napi:ace_napi",
     "power_manager:powermgr_client",
     "safwk:system_ability_fwk",
   ]

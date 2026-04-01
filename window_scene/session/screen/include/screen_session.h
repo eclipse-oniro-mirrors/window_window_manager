@@ -204,6 +204,7 @@ public:
     float ConvertRotationToFloat(Rotation sensorRotation);
 
     void SetDisplayBoundary(const RectF& rect, const uint32_t& offsetY);
+    void SetPhyBounds(const RectF& rect);
     void SetExtendProperty(RRect bounds, bool isCurrentOffScreenRendering);
     void SetScreenRotationLocked(bool isLocked);
     void SetScreenRotationLockedFromJs(bool isLocked);
@@ -224,7 +225,7 @@ public:
     void UpdateRefreshRate(uint32_t refreshRate);
     uint32_t GetRefreshRate();
     void UpdatePropertyByResolution(uint32_t width, uint32_t height);
-    void UpdatePropertyByResolution(const DMRect& rect);
+    ScreenProperty GetPropertyByResolution(const DMRect& rect);
     void UpdatePropertyByFakeBounds(uint32_t width, uint32_t height);
     void SetName(std::string name);
     void SetInnerName(std::string innerName);
@@ -232,6 +233,7 @@ public:
     void SetFrameGravity(Gravity gravity);
 
     void SetHdrFormats(std::vector<uint32_t>&& hdrFormats);
+    void AddHdrFormats(const std::vector<uint32_t>& hdrFormats);
     std::vector<uint32_t> GetHdrFormats();
     void SetColorSpaces(std::vector<uint32_t>&& colorSpaces);
     std::vector<uint32_t> GetColorSpaces();
@@ -280,6 +282,7 @@ public:
     uint32_t GetValidHeight() const;
     uint32_t GetValidWidth() const;
     float GetVirtualPixelRatio() const;
+    void SetRogScreenResolution(uint32_t width, uint32_t height) { property_.SetRogScreenResolution(width, height); }
     void SetRealHeight(uint32_t realHeight) { property_.SetScreenRealHeight(realHeight); }
     void SetRealWidth(uint32_t realWidth) { property_.SetScreenRealWidth(realWidth); }
 
@@ -460,7 +463,8 @@ public:
 
     void SetBootingConnect(const bool bootingConnect);
     bool IsBootingConnect() const;
-
+    void CheckAndNotifyPropertyChange();
+    void SetPropertyNeedNotified(const ScreenProperty& property);
 private:
     bool IsVertical(Rotation rotation) const;
     Orientation CalcDisplayOrientationToOrientation(DisplayOrientation displayOrientation) const;
@@ -545,6 +549,10 @@ private:
     std::string bundleName_ = "";
 
     std::atomic<bool> bootingConnect_ { false };
+
+    mutable std::mutex propertyNeedNotifiedMutex_;
+    ScreenProperty propertyNeedNotified_;
+    bool isNeedNotify = false;
 };
 
 class ScreenSessionGroup : public ScreenSession {

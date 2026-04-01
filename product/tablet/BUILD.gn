@@ -42,6 +42,7 @@ ohos_shared_library("libdm_extension") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../pc/dms/src/screen_session_manager_pc_extension.cpp",

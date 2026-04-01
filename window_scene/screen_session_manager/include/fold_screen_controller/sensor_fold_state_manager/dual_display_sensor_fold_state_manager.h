@@ -16,15 +16,12 @@
 #ifndef OHOS_ROSEN_DUAL_DISPLAY_FOLD_STATE_SENSOR_MANAGER_H
 #define OHOS_ROSEN_DUAL_DISPLAY_FOLD_STATE_SENSOR_MANAGER_H
 
-#include "app_state_data.h"
-#include "ability_state_data.h"
-#include "process_data.h"
-
 #include "common/include/task_scheduler.h"
 #include "dm_common.h"
 #include "fold_screen_controller/fold_screen_policy.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
 #include "iapplication_state_observer.h"
+#include "ffrt_queue.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -81,6 +78,7 @@ private:
     int32_t currentHall_ = -1;
     std::atomic_bool isInTask_ = false;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
+    std::shared_ptr<DMS::FfrtQueue> ffrtQueue_ = nullptr;
 };
 } // namespace Rosen
 } // namespace OHOS

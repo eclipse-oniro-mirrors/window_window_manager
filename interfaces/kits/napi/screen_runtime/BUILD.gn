@@ -27,6 +27,7 @@ ohos_shared_library("screen_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "napi/js_screen.cpp",
@@ -79,6 +80,7 @@ ohos_shared_library("screen_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "napi/js_screen.cpp" ]
 

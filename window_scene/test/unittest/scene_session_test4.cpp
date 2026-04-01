@@ -363,10 +363,12 @@ HWTEST_F(SceneSessionTest4, SetSurfaceBounds, TestSize.Level1)
     WSRect rect;
     struct RSSurfaceNodeConfig config;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
-    session->surfaceNode_ = surfaceNode;
-    session->SetSurfaceBounds(rect, false);
+    session->SetSurfaceNode(surfaceNode);
+    session->SetSurfaceBounds(rect, false, false);
+    session->SetSurfaceBounds(rect, false, true);
     session->SetLeashWinSurfaceNode(surfaceNode);
-    session->SetSurfaceBounds(rect, false);
+    session->SetSurfaceBounds(rect, false, false);
+    session->SetSurfaceBounds(rect, false, true);
     EXPECT_NE(nullptr, session->GetLeashWinSurfaceNode());
 }
 

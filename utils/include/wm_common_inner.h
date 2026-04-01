@@ -338,6 +338,7 @@ namespace {
     const Rect INVALID_EMPTY_RECT = {0, 0, 0, 0};
     const Rect DEFAULT_PLACE_HOLDER_RECT = {0, 0, 512, 512};
     constexpr int32_t SNAPSHOT_TIMEOUT_MS = 300;
+    constexpr int32_t SNAPSHOT_INNER_TIMEOUT_MS = 2000;
     const std::unordered_set<WindowType> INPUT_WINDOW_TYPE_SKIPPED {
         WindowType::WINDOW_TYPE_POINTER,
         WindowType::WINDOW_TYPE_DRAGGING_EFFECT,

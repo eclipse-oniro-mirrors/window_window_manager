@@ -29,6 +29,7 @@ ohos_shared_library("scenesessionmanager_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "js_root_scene_session.cpp",
