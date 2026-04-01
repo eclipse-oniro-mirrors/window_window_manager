@@ -335,13 +335,13 @@ public:
 
     /**
      * @brief Resize virtual screen
-     * If either the value of renderWidth or renderHeight is 0, 
+     * If either the value of renderWidth or renderHeight is 0,
      * then use the width and height respectively as the values of renderWidth and renderHeight
      *
      * @param screenId the id of virtual screen to be resized.
      * @param width the new width.
      * @param height the new height.
-     * @param renderWidth the render width. 
+     * @param renderWidth the render width.
      * @param renderHeight the render height.
      * @return DM_OK means set success, others means set failed.
      */
