@@ -1000,35 +1000,6 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetVirtualMirrorScreenScaleMode, TestSiz
 }
 
 /**
- * @tc.name: ResizeVirtualScreen01
- * @tc.desc: ResizeVirtualScreen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen01, TestSize.Level1)
-{
-    sptr<IRemoteObject> remoteMocker = nullptr;
-    sptr<ScreenSessionManagerProxy> proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
-    ScreenId screenId = 1001;
-    uint32_t width = 1024;
-    uint32_t width = 1024;
-    EXPECT_EQ(DMError::DM_ERROR_IPC_FAILED, proxy->ResizeVirtualScreen(ScreenId, width, height));
-}
-
-/**
- * @tc.name: ResizeVirtualScreen02
- * @tc.desc: ResizeVirtualScreen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen02, TestSize.Level1)
-{
-    ScreenId ScreenId = 1001;
-    uint32_t width = 1024;
-    uint32_t height = 1024;
-    EXPECT_NE(DMError::DM_ERROR_IPC_FAILED,
-              screenSessionManagerProxy->ResizeVirtualScreen(ScreenId, width, height));
-}
-
-/**
  * @tc.name: DestroyVirtualScreen
  * @tc.desc: DestroyVirtualScreen
  * @tc.type: FUNC
@@ -2838,6 +2809,63 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetOrientation02, TestSize.Level1)
     logMsg.clear();
     proxy->SetOrientation(screenId, orientation, false);
     EXPECT_FALSE(logMsg.find("SendRequest failed") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ResizeVirtualScreen
+ * @tc.desc: ResizeVirtualScreen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 2111;
+    uint32_t width = 1024;
+    uint32_t height = 1024;
+    uint32_t renderWidth = 2048;
+    uint32_t renderHeight = 2048;
+    // remote is null
+    sptr<MockIRemoteObject> remoteMocker = nullptr;
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    DMError ret = proxy->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
+    EXPECT_EQ(ret, DMError::DM_ERROR_REMOTE_CREATE_FAILED);
+    // write token failed
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED);
+    // Write screenId failed
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    ret = proxy->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
+    EXPECT_TRUE(logMsg.find("WriteUnit64 screenId failed") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    // Write uint32 failed
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ret = proxy->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
+    EXPECT_TRUE(logMsg.find("WriteUnit32 width failed") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    // SendRequest failed
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    // all success
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    ret = proxy->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    MockMessageParcel::ClearAllErrorFlag();
     LOG_SetCallback(nullptr);
 }
 }
