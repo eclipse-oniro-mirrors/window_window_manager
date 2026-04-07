@@ -1994,7 +1994,7 @@ WSError SceneSession::NotifyClientToUpdateRect(const std::string& updateReason,
 bool SceneSession::GetScreenWidthAndHeightFromClient(const sptr<WindowSessionProperty>& sessionProperty,
     uint32_t& screenWidth, uint32_t& screenHeight)
 {
-    auto defaultDisplayInfo = DisplayManager::GetInstance().GetDefaultDisplay();
+    auto defaultDisplayInfo = DisplayManager::GetInstance().GetDisplayById(sessionProperty->GetDisplayId());
     if (defaultDisplayInfo != nullptr) {
         screenWidth = static_cast<uint32_t>(defaultDisplayInfo->GetWidth());
         screenHeight = static_cast<uint32_t>(defaultDisplayInfo->GetHeight());
@@ -2006,7 +2006,8 @@ bool SceneSession::GetScreenWidthAndHeightFromClient(const sptr<WindowSessionPro
         screenHeight = static_cast<uint32_t>(defaultDisplayInfo->GetPhysicalHeight());
         TLOGI(WmsLogTag::WMS_KEYBOARD, "id: %{public}d, display is half-fold", GetPersistentId());
     }
-    TLOGI(WmsLogTag::WMS_KEYBOARD, "screenSize: [%{public}d, %{public}d]", screenWidth, screenHeight);
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "displayId:%{public}" PRIu64 ", screenSize: [%{public}d, %{public}d]",
+        sessionProperty->GetDisplayId(), screenWidth, screenHeight);
     return true;
 }
 
