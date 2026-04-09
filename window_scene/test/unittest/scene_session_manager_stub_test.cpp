@@ -3139,21 +3139,10 @@ HWTEST_F(SceneSessionManagerStubTest, HandleMoveMainWindowToTargetDisplay, Funct
     EXPECT_EQ(res, ERR_NONE);
 
     res = stub_->HandleMoveMainWindowToTargetDisplay(data, reply);
-    EXPECT_EQ(res, ERR_NONE);
-}
-
-/**
- * @tc.name: HandleMoveMainWindowToTargetDisplay1
- * @tc.desc: HandleMoveMainWindowToTargetDisplay read error
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerStubTest, HandleMoveMainWindowToTargetDisplay1, Function | SmallTest | Level2)
-{
-    MessageParcel data;
-    MessageParcel reply;
-
-    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
-    int res = stub_->HandleMoveMainWindowToTargetDisplay(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    
+    data.WriteUint64(0);
+    res = stub_->HandleMoveMainWindowToTargetDisplay(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
 }
 
