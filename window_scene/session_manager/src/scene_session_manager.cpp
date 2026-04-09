@@ -5888,17 +5888,16 @@ WMError SceneSessionManager::GetCrossProcessWindowInfo(CrossProcessWindowInfo& c
     if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Scene session is not main window, id:%{public}d",
             crossProcessWindowInfo.persistentId);
-        return parentSession;
+        return WMError::WM_ERROR_INVALID_PARENT;
     }
     if (sceneSession->isTerminating_ || session->GetSessionState() == SessionState::STATE_DISCONNECT) {
         TLOGE(WmsLogTag::WMS_LIFE, "Scene session state is invalid, id:%{public}d",
             crossProcessWindowInfo.persistentId);
-        return parentSession;
+        return WMError::WM_ERROR_INVALID_PARENT;
     }
     crossProcessWindowInfo.displayId = static_cast<uint64_t>(sceneSession->GetDisplayId());
     crossProcessWindowInfo.isPcAppInPad = sceneSession->GetSessionProperty()->GetIsPcAppInPad();
-    crossProcessWindowInfo.isPcAppInpadCompatibleMode =
-        sceneSession->GetSessionProperty()->GetPcAppInpadCompatibleMode();
+    crossProcessWindowInfo.isPcAppInpadCompatibleMode = sceneSession->GetSessionProperty()->GetPcAppInpadCompatibleMode();
     return WMError::WM_OK;
 }
 
