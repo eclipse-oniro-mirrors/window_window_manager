@@ -59,7 +59,7 @@ public:
     void OnRemoteDied();
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
     DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
-        uint32_t renderWidth = 0, uint32_t renderHeight = 0)
+        uint32_t renderWidth = 0, uint32_t renderHeight = 0);
 
 private:
     void NotifyScreenConnect(sptr<ScreenInfo> info);
