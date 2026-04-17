@@ -56,7 +56,7 @@ public:
     void UpdateSizeChangeReason(SizeChangeReason reason) { reason_ = reason; }
     SizeChangeReason GetSizeChangeReason() const { return reason_; }
     void SetScale(float scaleX, float scaleY, float pivotX, float pivotY);
-    void SetIgnoreRotateScale(float scaleX, float scaleY);
+    void SetIgnoreRotateScale(float ignoreRotateScaleX, float ignoreRotateScaleY);
     void SetClientScale(float scaleX, float scaleY, float pivotX, float pivotY);
     bool IsTransformNeedUpdate(float scaleX, float scaleY, float pivotX, float pivotY);
     void SetSystemConfigFunc(GetSystemConfigFunc&& func);
