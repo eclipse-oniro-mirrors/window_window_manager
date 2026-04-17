@@ -3615,12 +3615,12 @@ WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
         TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, not in LS state", GetPersistentId());
         return WSError::WS_DO_NOTHING;
     }
-    if (GetRsScaleX() == INVALID_SCALE || GetRsScaleY() == INVALID_SCALE) {
+    if (GetIgnoreRotateScaleX() == INVALID_SCALE || GetIgnoreRotateScaleY() == INVALID_SCALE) {
         TLOGE(WmsLogTag::WMS_IMMS, "win: %{public}d, invalid scale", GetPersistentId());
         return WSError::WS_ERROR_INVALID_PARAM;
     }
-    scaleX = GetRsScaleX();
-    scaleY = GetRsScaleY();
+    scaleX = GetIgnoreRotateScaleX();
+    scaleY = GetIgnoreRotateScaleY();
     return WSError::WS_OK;
 }
 
@@ -9207,7 +9207,7 @@ uint32_t SceneSession::UpdateUIParam(const SessionUIParam& uiParam)
     }
     dirtyFlags_ |= UpdateVisibilityInner(true) ? static_cast<uint32_t>(SessionUIDirtyFlag::VISIBLE) : 0;
     dirtyFlags_ |= UpdateScaleInner(uiParam.scaleX_, uiParam.scaleY_,
- 	    uiParam.rsScaleX_, uiParam.rsScaleY_, uiParam.pivotX_, uiParam.pivotY_) ?
+ 	    uiParam.ignoreRotateScaleX_, uiParam.ignoreRotateScaleY_, uiParam.pivotX_, uiParam.pivotY_) ?
         static_cast<uint32_t>(SessionUIDirtyFlag::SCALE) : 0;
     bool isUpdateRectDirty = UpdateRectInner(uiParam, GetSizeChangeReason());
     if (isUpdateRectDirty) {
@@ -9408,13 +9408,13 @@ void SceneSession::NotifyClientToUpdateAvoidArea()
     }
 }
 
-bool SceneSession::UpdateScaleInner(
-    float scaleX, float scaleY, float rsScaleX, float rsScaleY, float pivotX, float pivotY)
+bool SceneSession::UpdateScaleInner(float scaleX, float scaleY,
+    float ignoreRotateScaleX, float ignoreRotateScaleY, float pivotX, float pivotY)
 {
     if (!layoutController_->IsTransformNeedUpdate(scaleX, scaleY, pivotX, pivotY)) {
         return false;
     }
-    Session::SetRsScale(rsScaleX, rsScaleY);
+    Session::SetIgnoreRotateScale(ignoreRotateScaleX, ignoreRotateScaleY);
     Session::SetScale(scaleX, scaleY, pivotX, pivotY);
     if (!IsSessionForeground()) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "id:%{public}d, session is not foreground!", GetPersistentId());
