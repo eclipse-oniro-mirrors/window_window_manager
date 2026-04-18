@@ -10058,6 +10058,11 @@ ScreenProperty ScreenSessionManager::GetPhyScreenProperty(ScreenId screenId)
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return {};
     }
+    return GetPhyScreenPropertyInner(screenId);
+}
+
+ScreenProperty ScreenSessionManager::GetPhyScreenPropertyInner(ScreenId screenId)
+{
     std::lock_guard<std::recursive_mutex> lock_phy(phyScreenPropMapMutex_);
     ScreenProperty property;
     auto iter = phyScreenPropMap_.find(screenId);
