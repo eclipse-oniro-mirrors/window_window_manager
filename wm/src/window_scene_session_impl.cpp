@@ -8067,7 +8067,7 @@ WMError WindowSceneSessionImpl::GetWindowStatus(WindowStatus& windowStatus)
         TLOGE(WmsLogTag::WMS_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    windowStatus = GetWindowStatusInner(GetWindowMode());
+    windowStatus = GetOwnWindowStatus(GetWindowMode());
     TLOGD(WmsLogTag::WMS_PC, "Id:%{public}u, WindowStatus:%{public}u", GetWindowId(), windowStatus);
     return WMError::WM_OK;
 }
