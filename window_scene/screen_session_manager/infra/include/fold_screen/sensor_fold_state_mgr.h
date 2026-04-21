@@ -57,7 +57,7 @@ protected:
     virtual bool CheckInputSensorStatus(const SensorStatus& sensorStatus);
     virtual bool IsGetFoldStatusByHalls(const SensorStatus& sensorStatus);
     virtual FoldStatus GetFoldStatusByHalls(const SensorStatus& sensorStatus);
-    virtual const ScreenAxis& GetTentModeScreenAxis(const SensorStatus& sensorStatus);
+    virtual ScreenAxis GetTentModeScreenAxis(const SensorStatus& sensorStatus);
     void HandleSensorChange(FoldStatus nextStatus);
     void UpdateFoldAlgorithmStrategy(const std::vector<ScreenAxis>& axis);
     void ReportTentStatusChange(ReportTentModeStatus tentStatus);

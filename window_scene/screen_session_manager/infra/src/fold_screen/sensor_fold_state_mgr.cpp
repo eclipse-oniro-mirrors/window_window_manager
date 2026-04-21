@@ -429,9 +429,9 @@ void SensorFoldStateMgr::TentModeHandleSensorChange(const SensorStatus& sensorSt
     }
 }
 
-const ScreenAxis& SensorFoldStateMgr::GetTentModeScreenAxis(const SensorStatus& sensorStatus)
+ScreenAxis SensorFoldStateMgr::GetTentModeScreenAxis(const SensorStatus& sensorStatus)
 {
-    ScreenAxis screenAxis;
+    ScreenAxis screenAxis = {.angle_ = -1.0F, .hall_ = -1};
     if (sensorStatus.axis_.size() > 0) {
         screenAxis = sensorStatus.axis_[0];
     }
