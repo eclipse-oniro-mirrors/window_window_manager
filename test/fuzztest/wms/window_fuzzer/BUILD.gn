@@ -43,6 +43,7 @@ ohos_fuzztest("WindowFuzzTest") {
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/wm:libwm",
+    "${window_base_path}/extension/extension_connection:libwindow_extension_client",
   ]
 
   external_deps = [
@@ -68,7 +69,6 @@ ohos_fuzztest("WindowFuzzTest") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "resource_management:global_resmgr",
-    "window_manager:libwindow_extension_client",
   ]
 }
 

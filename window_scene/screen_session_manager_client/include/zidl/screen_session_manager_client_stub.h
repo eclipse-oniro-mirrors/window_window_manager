@@ -73,6 +73,9 @@ private:
     int HandleOnAnimationFinish(MessageParcel& data, MessageParcel& reply);
     int HandleSetInternalClipToBounds(MessageParcel& data, MessageParcel& reply);
     int HandleTentModeChange(MessageParcel& data, MessageParcel& reply);
+    int HandleTransRSEvent(MessageParcel& data, MessageParcel& reply);
+    sptr<RSEventDataBase> ReadRSEventFromParcel(MessageParcel& data);
+    sptr<RSEventDataBase> CreateEventByType(const RSExposedEventType& type);
 
     HandleScreenChangeMap HandleScreenChangeMap_ {};
 };

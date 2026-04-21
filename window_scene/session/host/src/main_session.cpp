@@ -677,6 +677,11 @@ void MainSession::RegisterPageEnableCallback(PageEnableCallback&& callback)
     pageEnableCallback_ = std::move(callback);
 }
 
+void MainSession::RegisterSetSelectModeCallback(SetSelectModeCallback&& callback)
+{
+    setSelectModeCallback_ = std::move(callback);
+}
+
 WMError MainSession::NotifySplitRatioChanged(float newRatio)
 {
     return WMError::WM_OK;
@@ -723,6 +728,67 @@ WSError MainSession::UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInf
     return sessionStage_->UpdateAppHookWindowInfo(hookWindowInfo);
 }
 
+WSError MainSession::UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo)
+{
+    if (hookWindowInfo.widthHookRatio < 0.0f) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Invalid hook window parameters: widthHookRatio:%{public}f",
+            hookWindowInfo.widthHookRatio);
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "hookWindowInfo:[%{public}s]", hookWindowInfo.ToString().c_str());
+
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "id: %{public}d property is nullptr", persistentId_);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    HookWindowInfo preInfo = property->GetHookWindowInfo();
+    HookWindowInfo newInfo = {};
+    newInfo.enableHookWindow = hookWindowInfo.enableHookWindow;
+    newInfo.widthHookRatio = hookWindowInfo.widthHookRatio;
+    newInfo.notifyWindowChange = false;
+    newInfo.drawableRectHook = hookWindowInfo.drawableRectHook;
+    property->SetHookWindowInfo(newInfo);
+    if (preInfo.enableHookWindow != hookWindowInfo.enableHookWindow ||
+        !MathHelper::NearZero(preInfo.widthHookRatio - hookWindowInfo.widthHookRatio) ||
+        preInfo.drawableRectHook != hookWindowInfo.drawableRectHook) {
+        // Notify the client of the info change
+        auto ret = UpdateAppHookWindowInfo(hookWindowInfo);
+        if (ret != WSError::WS_OK) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "UpdateAppHookWindowInfo failed, ret: %{public}d", ret);
+            return ret;
+        }
+    }
+    return WSError::WS_OK;
+}
+
+WSError MainSession::SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode)
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "isForceSplitEnabled: %{public}d, needUpdateViewport: %{public}d, "
+        "selectMode: %{public}u", isForceSplitEnabled, needUpdateViewport, selectMode);
+    if (!setSelectModeCallback_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "setSelectModeCallback_ is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    setSelectModeCallback_(selectMode);
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "id: %{public}d property is nullptr", persistentId_);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    property->SetForceSplitEnable(isForceSplitEnabled);
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is nullptr!");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    auto ret = sessionStage_->SetForceSplitEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
+    if (ret != WSError::WS_OK) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage SetForceSplitEnable failed, ret: %{public}d", ret);
+        return ret;
+    }
+    return WSError::WS_OK;
+}
+
 bool MainSession::RestoreAspectRatio(float ratio)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, ratio: %{public}f", GetPersistentId(), ratio);
@@ -736,23 +802,95 @@ bool MainSession::RestoreAspectRatio(float ratio)
     return true;
 }
 
-WMError MainSession::GetAppForceLandscapeConfigEnable(bool& enableForceSplit)
+/** @note @window.layout */
+WSError MainSession::RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId,
+    const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit, bool isIntersectedWidthLimit,
+    int32_t excludePersistentId)
 {
-    if (forceSplitEnableFunc_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "forceSplitEnableFunc_ is null");
-        return WMError::WM_ERROR_NULLPTR;
-    }
-    enableForceSplit = forceSplitEnableFunc_(sessionInfo_.bundleName_);
-    return WMError::WM_OK;
-}
-
-WSError MainSession::NotifyAppForceLandscapeConfigEnableUpdated(bool needUpdateViewport, SelectMode selectMode)
-{
+    int32_t winId = GetPersistentId();
     if (!sessionStage_) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "sessionStage_ is null for main window id=%{public}d", winId);
         return WSError::WS_ERROR_NULLPTR;
     }
-    return sessionStage_->NotifyAppForceLandscapeConfigEnableUpdated(needUpdateViewport, selectMode);
+
+    // Update own limits first (skip if excluded - i.e., when propagating from/to self)
+    if (excludePersistentId != winId) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d updating limits from source id=%{public}d",
+            winId, sourcePersistentId);
+        const auto& property = GetSessionProperty();
+        property->SetAttachedWindowLimits(sourcePersistentId, attachedWindowLimits);
+        AttachLimitOptions limitOptions;
+        limitOptions.isIntersectedHeightLimit = isIntersectedHeightLimit;
+        limitOptions.isIntersectedWidthLimit = isIntersectedWidthLimit;
+        property->SetAttachedLimitOptions(sourcePersistentId, limitOptions);
+        WSError ret = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedWindowLimits,
+            isIntersectedHeightLimit, isIntersectedWidthLimit);
+        if (ret != WSError::WS_OK) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d failed to update own limits", winId);
+            return ret;
+        }
+    }
+
+    // Propagate to children (excluding specified one)
+    std::vector<sptr<SceneSession>> subSessions = GetSubSession();
+    for (auto& subSession : subSessions) {
+        if (!ShouldNotifyAttachedWindow(subSession)) {
+            continue;
+        }
+        // Skip excluded child
+        if (subSession->GetPersistentId() == excludePersistentId) {
+            continue;
+        }
+
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d requesting child id=%{public}d to update limits "
+            "from source id=%{public}d", winId, subSession->GetPersistentId(), sourcePersistentId);
+        // All notifications use the input parameter values
+        subSession->RequestUpdateAttachedWindowLimits(sourcePersistentId, attachedWindowLimits,
+            isIntersectedHeightLimit, isIntersectedWidthLimit);
+    }
+    return WSError::WS_OK;
+}
+
+/** @note @window.layout */
+WSError MainSession::RequestRemoveAttachedWindowLimits(int32_t sourcePersistentId,
+    int32_t excludePersistentId)
+{
+    int32_t winId = GetPersistentId();
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "sessionStage_ is null for main window id=%{public}d", winId);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+
+    // Remove own limits first (skip if excluded - i.e., when propagating from/to self)
+    if (excludePersistentId != winId) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d removing limits from source id=%{public}d",
+            winId, sourcePersistentId);
+        const auto& property = GetSessionProperty();
+        property->RemoveAttachedWindowLimits(sourcePersistentId);
+        property->RemoveAttachedLimitOptions(sourcePersistentId);
+        WSError ret = sessionStage_->RemoveAttachedWindowLimits(sourcePersistentId);
+        if (ret != WSError::WS_OK) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d failed to remove own limits", winId);
+            return ret;
+        }
+    }
+
+    // Propagate to children (excluding specified one)
+    std::vector<sptr<SceneSession>> subSessions = GetSubSession();
+    for (auto& subSession : subSessions) {
+        if (!ShouldNotifyAttachedWindow(subSession)) {
+            continue;
+        }
+        // Skip excluded child
+        if (subSession->GetPersistentId() == excludePersistentId) {
+            continue;
+        }
+
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d requesting child id=%{public}d to remove limits "
+            "from source id=%{public}d", winId, subSession->GetPersistentId(), sourcePersistentId);
+        subSession->RequestRemoveAttachedWindowLimits(sourcePersistentId);
+    }
+    return WSError::WS_OK;
 }
 
 bool MainSession::GetSessionBoundedSystemTray(
@@ -760,11 +898,6 @@ bool MainSession::GetSessionBoundedSystemTray(
 {
     return (isSessionBoundedSystemTrayCallback_ &&
             isSessionBoundedSystemTrayCallback_(callingPid, callingToken, instanceKey));
-}
-
-void MainSession::RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func)
-{
-    forceSplitEnableFunc_ = std::move(func);
 }
 
 void MainSession::RemovePrelaunchStartingWindow()

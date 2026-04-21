@@ -294,16 +294,12 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::InitScheduleUtils);
     BindNativeFunction(env, exportObj, "setAppForceLandscapeConfig", moduleName,
         JsSceneSessionManager::SetAppForceLandscapeConfig);
-    BindNativeFunction(env, exportObj, "setAppForceLandscapeConfigEnable", moduleName,
-        JsSceneSessionManager::SetAppForceLandscapeConfigEnable);
     BindNativeFunction(env, exportObj, "setSelectMode", moduleName,
         JsSceneSessionManager::SetSelectMode);
     BindNativeFunction(env, exportObj, "isScbCoreEnabled", moduleName,
         JsSceneSessionManager::IsScbCoreEnabled);
     BindNativeFunction(env, exportObj, "updateAppHookDisplayInfo", moduleName,
         JsSceneSessionManager::UpdateAppHookDisplayInfo);
-    BindNativeFunction(env, exportObj, "updateAppHookWindowInfo", moduleName,
-        JsSceneSessionManager::UpdateAppHookWindowInfo);
     BindNativeFunction(env, exportObj, "notifyHookOrientationChange", moduleName,
         JsSceneSessionManager::NotifyHookOrientationChange);
     BindNativeFunction(env, exportObj, "refreshPcZOrder", moduleName,
@@ -1498,14 +1494,6 @@ napi_value JsSceneSessionManager::UpdateAppHookDisplayInfo(napi_env env, napi_ca
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnUpdateAppHookDisplayInfo(env, info) : nullptr;
 }
-
-napi_value JsSceneSessionManager::UpdateAppHookWindowInfo(napi_env env, napi_callback_info info)
-{
-    TLOGI(WmsLogTag::WMS_COMPAT, "[NAPI]");
-    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnUpdateAppHookWindowInfo(env, info) : nullptr;
-}
-
 
 napi_value JsSceneSessionManager::NotifyHookOrientationChange(napi_env env, napi_callback_info info)
 {
@@ -4796,38 +4784,6 @@ napi_value JsSceneSessionManager::OnUpdateAppHookDisplayInfo(napi_env env, napi_
     return NapiGetUndefined(env);
 }
 
-napi_value JsSceneSessionManager::OnUpdateAppHookWindowInfo(napi_env env, napi_callback_info info)
-{
-    size_t argc = ARGC_TWO;
-    napi_value argv[ARGC_TWO] = { nullptr };
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-
-    if (argc < ARGC_TWO) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "Argc is invalid: %{public}zu", argc);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-
-    std::string bundleName;
-    if (!ConvertFromJsValue(env, argv[ARG_INDEX_ZERO], bundleName)) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to bundleName");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-
-    HookWindowInfo hookWindowInfo{};
-    if (!ConvertHookWindowInfoFromJs(env, argv[ARG_INDEX_ONE], hookWindowInfo)) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to hookWindowInfo");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-    SceneSessionManager::GetInstance().UpdateAppHookWindowInfo(bundleName, hookWindowInfo);
-    return NapiGetUndefined(env);
-}
-
 napi_value JsSceneSessionManager::OnNotifyHookOrientationChange(napi_env env, napi_callback_info info)
 {
     size_t argc = ARGC_ONE;
@@ -4879,16 +4835,6 @@ napi_value JsSceneSessionManager::OnSetAppForceLandscapeConfig(napi_env env, nap
     }
 
     AppForceLandscapeConfig config;
-    napi_value jsMode = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_ONE], "mode", &jsMode);
-    RETURN_IF_CONVERT_FAIL(env, jsMode, config.mode_, "mode", WmsLogTag::DEFAULT);
-    napi_value jsSupportSplit = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_ONE], "supportSplit", &jsSupportSplit);
-    RETURN_IF_CONVERT_FAIL(env, jsSupportSplit, config.supportSplit_, "supportSplit", WmsLogTag::DEFAULT);
-    napi_value jsIgnoreOrient = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_ONE], "ignoreOrientation", &jsIgnoreOrient);
-    RETURN_IF_CONVERT_FAIL(env, jsIgnoreOrient, config.ignoreOrientation_, "ignoreOrientation",
-        WmsLogTag::DEFAULT);
     napi_value jsContainsSysConfig = nullptr;
     napi_get_named_property(env, argv[ARG_INDEX_ONE], "containsSysConfig", &jsContainsSysConfig);
     RETURN_IF_CONVERT_FAIL(env, jsContainsSysConfig, config.containsSysConfig_, "containsSysConfig",
@@ -4913,63 +4859,13 @@ napi_value JsSceneSessionManager::OnSetAppForceLandscapeConfig(napi_env env, nap
     napi_get_named_property(env, argv[ARG_INDEX_THREE], "configJsonStr", &jsAppConfigJsonStr);
     ConvertFromJsValue(env, jsAppConfigJsonStr, config.appConfigJsonStr_);
 
-    TLOGI(WmsLogTag::DEFAULT, "SetAppForceLandscapeConfig bundleName: %{public}s, mode: %{public}d, "
-        "supportSplit: %{public}d, ignoreOrientation: %{public}d, containsSysConfig: %{public}d, "
-        "containsAppConfig: %{public}d, isSysRouter: %{public}d, sysConfigJsonStr: %{public}s,"
+    TLOGI(WmsLogTag::DEFAULT, "SetAppForceLandscapeConfig bundleName: %{public}s, containsSysConfig: %{public}d, "
+        "containsAppConfig: %{public}d, isSysRouter: %{public}d, sysConfigJsonStr: %{public}s, "
         "sysHomePage: %{public}s, isAppRouter: %{public}d, appConfigJsonStr: %{public}s",
-        bundleName.c_str(), config.mode_, config.supportSplit_, config.ignoreOrientation_,
-        config.containsSysConfig_, config.containsAppConfig_, config.isSysRouter_,
+        bundleName.c_str(), config.containsSysConfig_, config.containsAppConfig_, config.isSysRouter_,
         config.sysConfigJsonStr_.c_str(), config.sysHomePage_.c_str(), config.isAppRouter_,
         config.appConfigJsonStr_.c_str());
     SceneSessionManager::GetInstance().SetAppForceLandscapeConfig(bundleName, config);
-    return NapiGetUndefined(env);
-}
-
-napi_value JsSceneSessionManager::SetAppForceLandscapeConfigEnable(napi_env env, napi_callback_info info)
-{
-    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnSetAppForceLandscapeConfigEnable(env, info) : nullptr;
-}
-
-napi_value JsSceneSessionManager::OnSetAppForceLandscapeConfigEnable(napi_env env, napi_callback_info info)
-{
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = { nullptr };
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != OHOS::Rosen::ARGC_FOUR) {
-        TLOGE(WmsLogTag::DEFAULT, "Argc is invalid: %{public}zu", argc);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-
-    std::string bundleName;
-    if (!ConvertFromJsValue(env, argv[ARG_INDEX_ZERO], bundleName)) {
-        TLOGE(WmsLogTag::DEFAULT, "Failed to convert parameter to bundleName");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));
-        return NapiGetUndefined(env);
-    }
-
-    bool enableForceSplit = false;
-    if (GetType(env, argv[ARG_INDEX_ONE]) == napi_boolean) {
-        RETURN_IF_CONVERT_FAIL(env, argv[ARG_INDEX_ONE], enableForceSplit, "enableForceSplit", WmsLogTag::DEFAULT);
-    }
-    bool needUpdateViewport = false;
-    if (GetType(env, argv[ARG_INDEX_TWO]) == napi_boolean) {
-        RETURN_IF_CONVERT_FAIL(env, argv[ARG_INDEX_TWO], needUpdateViewport, "needUpdateViewport", WmsLogTag::DEFAULT);
-    }
-    SelectMode selectMode = SelectMode::WIDE_MODE;
-    if (GetType(env, argv[ARG_INDEX_THREE]) == napi_number) {
-        RETURN_IF_CONVERT_FAIL(env, argv[ARG_INDEX_THREE], selectMode, "selectMode", WmsLogTag::DEFAULT);
-    }
-
-    TLOGI(WmsLogTag::DEFAULT, "SetAppForceLandscapeConfigEnable bundleName: %{public}s, enable: %{public}d, "
-        "needUpdateViewport: %{public}d, selectMode: %{public}u", bundleName.c_str(),
-        enableForceSplit, needUpdateViewport, static_cast<uint32_t>(selectMode));
-
-    SceneSessionManager::GetInstance().SetAppForceLandscapeConfigEnable(bundleName, enableForceSplit,
-        needUpdateViewport, selectMode);
     return NapiGetUndefined(env);
 }
 

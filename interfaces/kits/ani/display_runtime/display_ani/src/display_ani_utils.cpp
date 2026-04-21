@@ -451,7 +451,7 @@ ani_object DisplayAniUtils::CreateAniUndefined(ani_env* env)
 static DmErrorCode GetFocusFromAni(ani_env* env, ani_object virtualScreenObj, VirtualScreenOption& option)
 {
     ani_ref supportsFocus = nullptr;
-    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "%%property-supportsFocus", &supportsFocus) != ANI_OK) {
+    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "supportsFocus", &supportsFocus) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get supportsFocus.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }

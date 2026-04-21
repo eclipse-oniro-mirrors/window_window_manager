@@ -1134,5 +1134,101 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleSetInternalClipToBounds, Test
     int ret = screenSessionManagerClientStub_->HandleSetInternalClipToBounds(data, reply);
     EXPECT_EQ(ret, 0);
 }
+
+/**
+ * @tc.name: HandleTransRSEvent
+ * @tc.desc: HandleTransRSEvent test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleTransRSEvent, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+
+    // Write event type - EXT_SCREEN_UNSUPPORT
+    uint32_t eventType = static_cast<uint32_t>(RSExposedEventType::EXT_SCREEN_UNSUPPORT);
+    data.WriteUint32(eventType);
+
+    int ret = screenSessionManagerClientStub_->HandleTransRSEvent(data, reply);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name: HandleTransRSEvent02
+ * @tc.desc: HandleTransRSEvent test with unknown event type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleTransRSEvent02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+
+    uint32_t eventType = 999;
+    data.WriteUint32(eventType);
+
+    int ret = screenSessionManagerClientStub_->HandleTransRSEvent(data, reply);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name: CreateEventByType
+ * @tc.desc: CreateEventByType test with EXT_SCREEN_UNSUPPORT
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, CreateEventByType, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->CreateEventByType(type);
+    ASSERT_NE(event, nullptr);
+}
+
+/**
+ * @tc.name: CreateEventByType02
+ * @tc.desc: CreateEventByType test with unknown type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, CreateEventByType02, TestSize.Level1)
+{
+    RSExposedEventType type = static_cast<RSExposedEventType>(999);
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->CreateEventByType(type);
+    EXPECT_EQ(event, nullptr);
+}
+
+/**
+ * @tc.name: ReadRSEventFromParcel
+ * @tc.desc: ReadRSEventFromParcel test with valid event
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, ReadRSEventFromParcel, TestSize.Level1)
+{
+    MessageParcel data;
+
+    // Write event type - EXT_SCREEN_UNSUPPORT
+    uint32_t eventType = static_cast<uint32_t>(RSExposedEventType::EXT_SCREEN_UNSUPPORT);
+    data.WriteUint32(eventType);
+
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->ReadRSEventFromParcel(data);
+    ASSERT_NE(event, nullptr);
+}
+
+/**
+ * @tc.name: ReadRSEventFromParcel02
+ * @tc.desc: ReadRSEventFromParcel test with unknown event type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, ReadRSEventFromParcel02, TestSize.Level1)
+{
+    MessageParcel data;
+
+    uint32_t eventType = 999;
+    data.WriteUint32(eventType);
+
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->ReadRSEventFromParcel(data);
+    EXPECT_EQ(event, nullptr);
+}
 } // namespace Rosen
 } // namespace OHOS

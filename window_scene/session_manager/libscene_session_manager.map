@@ -153,7 +153,6 @@
             OHOS::Rosen::SceneSessionManager::SetAlivePersistentIds*;
             OHOS::Rosen::SceneSessionManager::SetAppDragResizeTypeInner*;
             OHOS::Rosen::SceneSessionManager::SetAppForceLandscapeConfig*;
-            OHOS::Rosen::SceneSessionManager::SetAppForceLandscapeConfigEnable*;
             OHOS::Rosen::SceneSessionManager::SetSelectMode*;
             OHOS::Rosen::SceneSessionManager::GetSelectMode*;
             OHOS::Rosen::SceneSessionManager::SetBehindWindowFilterEnabled*;
@@ -204,7 +203,6 @@
             OHOS::Rosen::SceneSessionManager::UpdateAllStartingWindowRdb*;
             OHOS::Rosen::SceneSessionManager::UpdateAppBoundSystemTrayStatus*;
             OHOS::Rosen::SceneSessionManager::UpdateAppHookDisplayInfo*;
-            OHOS::Rosen::SceneSessionManager::UpdateAppHookWindowInfo*;
             OHOS::Rosen::SceneSessionManager::UpdateAvoidAreaForLSStateChange*;
             OHOS::Rosen::SceneSessionManager::UpdateDisplayHookInfo*;
             OHOS::Rosen::SceneSessionManager::UpdateMaximizeMode*;

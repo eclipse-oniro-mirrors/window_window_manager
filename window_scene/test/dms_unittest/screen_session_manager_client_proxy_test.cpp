@@ -734,5 +734,50 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, SetInternalClipToBounds, TestSize.
     logMsg.clear();
     MockMessageParcel::ClearAllErrorFlag();
 }
+
+/**
+ * @tc.name: OnTransRSEvent
+ * @tc.desc: OnTransRSEvent test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnTransRSEvent, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(nullptr);
+    sptr<RSExtScreenUnsupportEventData> rsEvent = new RSExtScreenUnsupportEventData();
+    proxy->OnTransRSEvent(rsEvent);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    proxy->OnTransRSEvent(rsEvent);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    proxy->OnTransRSEvent(rsEvent);
+    EXPECT_TRUE(logMsg.find("Write event type failed") != std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->OnTransRSEvent(rsEvent);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    proxy->OnTransRSEvent(rsEvent);
+    EXPECT_FALSE(logMsg.find("SendRequest failed") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace Rosen
 } // namespace OHOS

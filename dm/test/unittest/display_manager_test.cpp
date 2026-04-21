@@ -1041,6 +1041,18 @@ HWTEST_F(DisplayManagerTest, IsCaptured01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: IsCapturedByBundleNameList01
+ * @tc.desc: IsCapturedByBundleNameList01 fun
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, IsCapturedByBundleNameList01, TestSize.Level1)
+{
+    std::vector<std::string> bundleNameList;
+    auto ret = DisplayManager::GetInstance().IsCapturedByBundleNameList(bundleNameList);
+    ASSERT_FALSE(ret);
+}
+
+/**
  * @tc.name: isinsideof
  * @tc.desc: isinside0f fun
  * @tc.type: FUNC

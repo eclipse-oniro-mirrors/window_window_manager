@@ -90,6 +90,7 @@ ohos_shared_library("libdm_lite") {
   if (window_manager_feature_screenless) {
     defines += [ "SCREENLESS_ENABLE" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("test") {

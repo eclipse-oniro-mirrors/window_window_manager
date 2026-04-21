@@ -70,6 +70,49 @@ RSSurfaceNode::SharedPtr SceneSessionLayoutTest::CreateRSSurfaceNode()
     return surfaceNode;
 }
 
+// Helper: Create a main session with attach info
+sptr<MainSession> CreateMainSessionWithAttach(const std::string& name, sptr<SessionStageMocker>& mockStage)
+{
+    SessionInfo info;
+    info.abilityName_ = name;
+    info.bundleName_ = name;
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    session->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    mockStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = mockStage;
+
+    // Main session does not need windowAnchorInfo_ to be set
+    // It only checks children's windowAnchorInfo_ when notifying attached windows
+
+    return session;
+}
+
+// Helper: Create a child session with attach info
+sptr<SubSession> CreateChildSessionWithAttach(const std::string& name,
+    bool isHeightLimit = true, bool isWidthLimit = true)
+{
+    SessionInfo info;
+    info.abilityName_ = name;
+    info.bundleName_ = name;
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = isHeightLimit;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = isWidthLimit;
+
+    return session;
+}
+
+// Helper: Set up parent-child relationship
+void SetupParentChild(sptr<MainSession> parent, sptr<SubSession> child)
+{
+    child->parentSession_ = parent;
+    parent->subSession_.push_back(child);
+}
+
 namespace {
 /**
  * @tc.name: UpdateRect01
@@ -91,7 +134,7 @@ HWTEST_F(SceneSessionLayoutTest, UpdateRect01, TestSize.Level1)
     WSRect rect({ 1, 1, 1, 1 });
     SizeChangeReason reason = SizeChangeReason::UNDEFINED;
     WSError result = sceneSession->UpdateRect(rect, reason, "SceneSessionLayoutTest");
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -114,19 +157,19 @@ HWTEST_F(SceneSessionLayoutTest, UpdateRect02, TestSize.Level0)
     WSRect rect({ 1, 1, 1, 1 });
     SizeChangeReason reason = SizeChangeReason::UNDEFINED;
     WSError result = sceneSession->UpdateRect(rect, reason, "SceneSessionLayoutTest");
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sceneSession->GetLayoutController()->SetSessionRect(rect);
     result = sceneSession->UpdateRect(rect, reason, "SceneSessionLayoutTest");
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sceneSession->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG_END);
     result = sceneSession->UpdateRect(rect, reason, "SceneSessionLayoutTest");
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     WSRect rect2({ 0, 0, 0, 0 });
     result = sceneSession->UpdateRect(rect2, reason, "SceneSessionLayoutTest");
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
@@ -558,19 +601,19 @@ HWTEST_F(SceneSessionLayoutTest, SetAspectRatio2, TestSize.Level0)
     float ratio = 0.0001;
     sceneSession->moveDragController_ = nullptr;
     auto result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
     ASSERT_EQ(sceneSession->GetAspectRatio(), ratio);
 
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
     ASSERT_EQ(sceneSession->GetAspectRatio(), ratio);
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
     ASSERT_EQ(sceneSession->GetAspectRatio(), ratio);
 }
 
@@ -597,7 +640,7 @@ HWTEST_F(SceneSessionLayoutTest, SetAspectRatio3, TestSize.Level1)
     limits.minHeight_ = 1;
     property->SetWindowLimits(limits);
     auto result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
 }
 
 /**
@@ -622,7 +665,7 @@ HWTEST_F(SceneSessionLayoutTest, SetAspectRatio4, TestSize.Level1)
     limits.minWidth_ = 10;
     property->SetWindowLimits(limits);
     auto result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
 }
 
 /**
@@ -640,13 +683,13 @@ HWTEST_F(SceneSessionLayoutTest, SetAspectRatio5, TestSize.Level0)
 
     float ratio = 0.0001;
     auto result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
 
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(result, WSError::WS_OK);
     ASSERT_EQ(sceneSession->GetAspectRatio(), ratio);
 }
 
@@ -674,7 +717,7 @@ HWTEST_F(SceneSessionLayoutTest, SetAspectRatio6, TestSize.Level0)
     property->SetWindowLimits(limits);
     sceneSession->SetSessionProperty(property);
     auto result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
 }
 
 /**
@@ -701,7 +744,7 @@ HWTEST_F(SceneSessionLayoutTest, SetAspectRatio7, TestSize.Level0)
     property->SetWindowLimits(limits);
     sceneSession->SetSessionProperty(property);
     auto result = sceneSession->SetAspectRatio(ratio);
-    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
 }
 
 /**
@@ -1263,6 +1306,1169 @@ HWTEST_F(SceneSessionLayoutTest, ExecuteWindowStatusChangeNotification, TestSize
 }
 
 /**
+ * @tc.name: NotifyAttachedWindowsLimitsChanged01
+ * @tc.desc: Test NotifyAttachedWindowsLimitsChanged with main window and attached children
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyAttachedWindowsLimitsChanged01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyAttachedWindowsLimitsChanged01";
+    info.bundleName_ = "NotifyAttachedWindowsLimitsChanged01";
+
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    // Set up attach info on main session
+    mainSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<SessionStageMocker> mainSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    mainSession->sessionStage_ = mainSessionStage;
+
+    // Create child session with attach
+    sptr<SessionStageMocker> childSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SubSession> childSession =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged01_child");
+    childSession->sessionStage_ = childSessionStage;
+    SetupParentChild(mainSession, childSession);
+
+    WindowLimits newLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+
+    // Main window should notify its children via UpdateAttachedWindowLimits (async operation)
+    EXPECT_CALL(*childSessionStage, UpdateAttachedWindowLimits(
+        mainSession->GetPersistentId(), testing::_, true, true))
+        .Times(1)
+        .WillOnce(testing::Return(WSError::WS_OK));
+    mainSession->NotifyAttachedWindowsLimitsChanged(newLimits);
+    usleep(WAIT_SYNC_NS);
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyAttachedWindowsLimitsChanged02
+ * @tc.desc: Test NotifyAttachedWindowsLimitsChanged with child window notifying parent
+ *           Parent should then notify all children (including siblings) automatically
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyAttachedWindowsLimitsChanged02, TestSize.Level1)
+{
+    sptr<SessionStageMocker> mainSessionStage;
+    sptr<MainSession> mainSession =
+        CreateMainSessionWithAttach("NotifyAttachedWindowsLimitsChanged02_main", mainSessionStage);
+
+    // Create first child session (the one that will trigger notification)
+    sptr<SubSession> childSession1 =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged02_child1", true, true);
+    SetupParentChild(mainSession, childSession1);
+
+    // Create second child session (sibling that should be notified)
+    sptr<SessionStageMocker> childSession2Stage = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SubSession> childSession2 =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged02_child2", false, true);
+    childSession2->sessionStage_ = childSession2Stage;
+    SetupParentChild(mainSession, childSession2);
+
+    WindowLimits newLimits = { 1800, 1200, 100, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+
+    // Child window should notify parent and parent should notify sibling (async operation)
+    // Parent Session calls its SessionStage to update own limits (excludePersistentId defaults to INVALID_SESSION_ID)
+    EXPECT_CALL(*mainSessionStage, UpdateAttachedWindowLimits(
+        childSession1->GetPersistentId(), testing::_, true, true))
+        .Times(1)
+        .WillOnce(testing::Return(WSError::WS_OK));
+    // Parent then propagates to sibling via UpdateAttachedWindowLimits
+    EXPECT_CALL(*childSession2Stage, UpdateAttachedWindowLimits(
+        childSession1->GetPersistentId(), testing::_, true, true))
+        .Times(1)
+        .WillOnce(testing::Return(WSError::WS_OK));
+    childSession1->NotifyAttachedWindowsLimitsChanged(newLimits);
+    usleep(WAIT_SYNC_NS);
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession1->parentSession_ = nullptr;
+    childSession2->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyAttachedWindowsLimitsChanged03
+ * @tc.desc: Test NotifyAttachedWindowsLimitsChanged with main window notifying multiple children
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyAttachedWindowsLimitsChanged03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyAttachedWindowsLimitsChanged03";
+    info.bundleName_ = "NotifyAttachedWindowsLimitsChanged03";
+
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    // Set up attach info on main session
+    mainSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<SessionStageMocker> mainSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    mainSession->sessionStage_ = mainSessionStage;
+
+    // Create multiple child sessions with different limit settings
+    sptr<SessionStageMocker> childSessionStage1 = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SessionStageMocker> childSessionStage2 = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SessionStageMocker> childSessionStage3 = sptr<SessionStageMocker>::MakeSptr();
+
+    sptr<SubSession> childSession1 =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged03_child1", true, false);
+    childSession1->sessionStage_ = childSessionStage1;
+    SetupParentChild(mainSession, childSession1);
+
+    sptr<SubSession> childSession2 =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged03_child2", false, true);
+    childSession2->sessionStage_ = childSessionStage2;
+    SetupParentChild(mainSession, childSession2);
+
+    sptr<SubSession> childSession3 =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged03_child3", true, false);
+    childSession3->sessionStage_ = childSessionStage3;
+    SetupParentChild(mainSession, childSession3);
+
+    WindowLimits newLimits = { 1800, 900, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+
+    // Main window should notify all its children via UpdateAttachedWindowLimits (async operation)
+    EXPECT_CALL(*childSessionStage1, UpdateAttachedWindowLimits(
+        mainSession->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+    EXPECT_CALL(*childSessionStage2, UpdateAttachedWindowLimits(
+        mainSession->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+    EXPECT_CALL(*childSessionStage3, UpdateAttachedWindowLimits(
+        mainSession->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+    mainSession->NotifyAttachedWindowsLimitsChanged(newLimits);
+    usleep(WAIT_SYNC_NS);
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession1->parentSession_ = nullptr;
+    childSession2->parentSession_ = nullptr;
+    childSession3->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyAttachedWindowsLimitsChanged04
+ * @tc.desc: Test NotifyAttachedWindowsLimitsChanged with child window notifying parent
+ *           Parent should then notify all other children (siblings) automatically
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyAttachedWindowsLimitsChanged04, TestSize.Level1)
+{
+    sptr<SessionStageMocker> mainSessionStage;
+    sptr<MainSession> mainSession =
+        CreateMainSessionWithAttach("NotifyAttachedWindowsLimitsChanged04_main", mainSessionStage);
+
+    // Create the child session that will trigger notification
+    sptr<SubSession> childSession1 = CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged04_child1");
+    sptr<SessionStageMocker> childSessionStage1 = sptr<SessionStageMocker>::MakeSptr();
+    childSession1->sessionStage_ = childSessionStage1;
+    SetupParentChild(mainSession, childSession1);
+
+    // Create sibling child sessions with different limit settings
+    sptr<SessionStageMocker> childSessionStage2 = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SessionStageMocker> childSessionStage3 = sptr<SessionStageMocker>::MakeSptr();
+
+    sptr<SubSession> childSession2 =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged04_child2", true, false);
+    childSession2->sessionStage_ = childSessionStage2;
+    SetupParentChild(mainSession, childSession2);
+
+    sptr<SubSession> childSession3 =
+        CreateChildSessionWithAttach("NotifyAttachedWindowsLimitsChanged04_child3", false, true);
+    childSession3->sessionStage_ = childSessionStage3;
+    SetupParentChild(mainSession, childSession3);
+
+    WindowLimits newLimits = { 1900, 1100, 120, 280, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+
+    // Set up expectations: child notifies parent
+    // Parent Session calls its SessionStage to update own limits
+    EXPECT_CALL(*mainSessionStage, UpdateAttachedWindowLimits(
+        childSession1->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Parent then notifies other children via UpdateAttachedWindowLimits
+    EXPECT_CALL(*childSessionStage2, UpdateAttachedWindowLimits(
+        childSession1->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+    EXPECT_CALL(*childSessionStage3, UpdateAttachedWindowLimits(
+        childSession1->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Child window should notify parent, and parent should notify all siblings automatically
+    childSession1->NotifyAttachedWindowsLimitsChanged(newLimits);
+    usleep(WAIT_SYNC_NS);
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession1->parentSession_ = nullptr;
+    childSession2->parentSession_ = nullptr;
+    childSession3->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyAttachedWindowsLimitsChanged05
+ * @tc.desc: Test NotifyAttachedWindowsLimitsChanged without attach relationship
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyAttachedWindowsLimitsChanged05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyAttachedWindowsLimitsChanged05";
+    info.bundleName_ = "NotifyAttachedWindowsLimitsChanged05";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Set up without attach relationship
+    session->windowAnchorInfo_.isAnchoredByAttach_ = false;
+
+    WindowLimits newLimits = { 1800, 900, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+
+    // No attach relationship - no parent to notify, so this should complete without errors
+    // This tests the path when isAnchoredByAttach_ is false
+    auto result = session->NotifyAttachedWindowsLimitsChanged(newLimits);
+    usleep(WAIT_SYNC_NS);  // Wait for async task to complete
+
+    // Verify function returns OK and limits were set in property
+    EXPECT_EQ(result, WSError::WS_OK);
+    WindowLimits savedLimits = session->GetSessionProperty()->GetLimitsForAttachedWindows();
+    EXPECT_EQ(savedLimits.maxWidth_, 1800);
+    EXPECT_EQ(savedLimits.maxHeight_, 900);
+    EXPECT_EQ(savedLimits.minWidth_, 150);
+    EXPECT_EQ(savedLimits.minHeight_, 250);
+}
+
+/**
+ * @tc.name: NotifyAttachedWindowsLimitsChanged06
+ * @tc.desc: Test NotifyAttachedWindowsLimitsChanged with sub window but no parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyAttachedWindowsLimitsChanged06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyAttachedWindowsLimitsChanged06";
+    info.bundleName_ = "NotifyAttachedWindowsLimitsChanged06";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info for sub window
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Deliberately don't set parent - parentSession will be null
+    // This should log a warning but not crash
+    WindowLimits newLimits = { 1800, 900, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    auto result = session->NotifyAttachedWindowsLimitsChanged(newLimits);
+    usleep(WAIT_SYNC_NS);  // Wait for async task to complete
+
+    // Verify function returns OK, limits were set, and no crash occurred
+    EXPECT_EQ(result, WSError::WS_OK);
+    WindowLimits savedLimits = session->GetSessionProperty()->GetLimitsForAttachedWindows();
+    EXPECT_EQ(savedLimits.maxWidth_, 1800);
+    EXPECT_EQ(savedLimits.maxHeight_, 900);
+    EXPECT_EQ(savedLimits.minWidth_, 150);
+    EXPECT_EQ(savedLimits.minHeight_, 250);
+}
+
+/**
+ * @tc.name: NotifyAttachedWindowsLimitsChanged07
+ * @tc.desc: Test NotifyAttachedWindowsLimitsChanged with system modal window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyAttachedWindowsLimitsChanged07, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyAttachedWindowsLimitsChanged07";
+    info.bundleName_ = "NotifyAttachedWindowsLimitsChanged07";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FLOAT);
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info for system modal window
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // System modal window is neither main nor sub window, so it should not trigger any notifications
+    WindowLimits newLimits = { 1800, 900, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    auto result = session->NotifyAttachedWindowsLimitsChanged(newLimits);
+    usleep(WAIT_SYNC_NS);  // Wait for async task to complete
+
+    // Verify function returns OK and limits were set (even though no notifications are sent)
+    EXPECT_EQ(result, WSError::WS_OK);
+    WindowLimits savedLimits = session->GetSessionProperty()->GetLimitsForAttachedWindows();
+    EXPECT_EQ(savedLimits.maxWidth_, 1800);
+    EXPECT_EQ(savedLimits.maxHeight_, 900);
+    EXPECT_EQ(savedLimits.minWidth_, 150);
+    EXPECT_EQ(savedLimits.minHeight_, 250);
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange01
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange when isFromAttachOrDetach_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange01";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange01";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with isFromAttachOrDetach_ = false
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = false;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<Session> parentSession = nullptr;
+
+    // Should return early without any operations
+    session->NotifyRelatedWindowsAttachStateChange(parentSession, false, true, false, false);
+
+    // Verify no changes to property lists
+    EXPECT_TRUE(session->GetSessionProperty()->GetAttachedWindowLimitsList().empty());
+    EXPECT_TRUE(session->GetSessionProperty()->GetAttachedLimitOptionsList().empty());
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange02
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange when effective limits unchanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange02";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange02";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with intersected limits enabled
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<Session> parentSession = nullptr;
+
+    // wasAttached=false, isAttached=false
+    // Old effective: false && true = false, New effective: false && true = false (no change)
+    session->NotifyRelatedWindowsAttachStateChange(parentSession, false, false, true, true);
+
+    // Verify no changes to property lists
+    EXPECT_TRUE(session->GetSessionProperty()->GetAttachedWindowLimitsList().empty());
+    EXPECT_TRUE(session->GetSessionProperty()->GetAttachedLimitOptionsList().empty());
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange03
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange attach scenario without parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange03";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange03";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<Session> parentSession = nullptr;
+
+    // wasAttached=false, isAttached=true (attach scenario)
+    // Without parent, should not call any request methods
+    session->NotifyRelatedWindowsAttachStateChange(parentSession, false, true, false, false);
+
+    // Verify no crash and lists remain empty
+    EXPECT_TRUE(session->GetSessionProperty()->GetAttachedWindowLimitsList().empty());
+    EXPECT_TRUE(session->GetSessionProperty()->GetAttachedLimitOptionsList().empty());
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange04
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange attach scenario with parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange04";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange04";
+
+    // Create parent session (MainSession overrides RequestUpdateAttachedWindowLimits)
+    sptr<Session> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    sptr<SceneSession> parentSceneSession = static_cast<SceneSession*>(parentSession.GetRefPtr());
+    sptr<SessionStageMocker> parentSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    parentSceneSession->sessionStage_ = parentSessionStage;
+
+    // Create child session
+    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    childSession->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info for child
+    childSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    childSession->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Set window limits for notification
+    childSession->GetSessionProperty()->SetLimitsForAttachedWindows(
+        { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+
+    // Expect parent to receive RequestUpdateAttachedWindowLimits call
+    EXPECT_CALL(*parentSessionStage, UpdateAttachedWindowLimits(
+        childSession->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // wasAttached=false, isAttached=true (attach scenario)
+    childSession->NotifyRelatedWindowsAttachStateChange(parentSession, false, true, false, false);
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange05
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange detach scenario without parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange05";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange05";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Add some limits to the lists to verify they get cleared
+    auto property = session->GetSessionProperty();
+    property->SetAttachedWindowLimits(100, { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    AttachLimitOptions options = { true, true };
+    property->SetAttachedLimitOptions(100, options);
+
+    // Verify lists are not empty before
+    EXPECT_FALSE(property->GetAttachedWindowLimitsList().empty());
+    EXPECT_FALSE(property->GetAttachedLimitOptionsList().empty());
+
+    sptr<Session> parentSession = nullptr;
+
+    // wasAttached=true, isAttached=false (detach scenario)
+    session->NotifyRelatedWindowsAttachStateChange(parentSession, true, false, true, true);
+
+    // Verify lists were cleared
+    EXPECT_TRUE(property->GetAttachedWindowLimitsList().empty());
+    EXPECT_TRUE(property->GetAttachedLimitOptionsList().empty());
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange06
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange detach scenario with parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange06";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange06";
+
+    // Create parent session (MainSession overrides RequestRemoveAttachedWindowLimits)
+    sptr<Session> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    sptr<SceneSession> parentSceneSession = static_cast<SceneSession*>(parentSession.GetRefPtr());
+    sptr<SessionStageMocker> parentSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    parentSceneSession->sessionStage_ = parentSessionStage;
+
+    // Create child session
+    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    childSession->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info for child
+    childSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    childSession->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Expect parent to receive RequestRemoveAttachedWindowLimits call
+    EXPECT_CALL(*parentSessionStage, RemoveAttachedWindowLimits(childSession->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // wasAttached=true, isAttached=false (detach scenario)
+    childSession->NotifyRelatedWindowsAttachStateChange(parentSession, true, false, true, true);
+
+    // Verify lists were cleared
+    EXPECT_TRUE(childSession->GetSessionProperty()->GetAttachedWindowLimitsList().empty());
+    EXPECT_TRUE(childSession->GetSessionProperty()->GetAttachedLimitOptionsList().empty());
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange07
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange when limits change without parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange07, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange07";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange07";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with intersected limits
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;  // New value
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<Session> parentSession = nullptr;
+
+    // wasAttached=true, isAttached=true (attach state unchanged)
+    // old height limit was false, new is true (limits changed)
+    // Without parent, should not call any request methods
+    session->NotifyRelatedWindowsAttachStateChange(parentSession, true, true, true, false);
+
+    // Verify no crash
+    EXPECT_TRUE(session->GetWindowAnchorInfo().isAnchoredByAttach_);
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsAttachStateChange08
+ * @tc.desc: Test NotifyRelatedWindowsAttachStateChange when limits change with parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsAttachStateChange08, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsAttachStateChange08";
+    info.bundleName_ = "NotifyRelatedWindowsAttachStateChange08";
+
+    // Create parent session (MainSession overrides RequestUpdateAttachedWindowLimits)
+    sptr<Session> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    sptr<SceneSession> parentSceneSession = static_cast<SceneSession*>(parentSession.GetRefPtr());
+    sptr<SessionStageMocker> parentSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    parentSceneSession->sessionStage_ = parentSessionStage;
+
+    // Create child session
+    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    childSession->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with new limits (height enabled, width enabled)
+    childSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    childSession->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;  // New value (changed from false)
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Set window limits for notification
+    childSession->GetSessionProperty()->SetLimitsForAttachedWindows(
+        { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+
+    // Expect parent to receive RequestUpdateAttachedWindowLimits call
+    // wasAttached=true, isAttached=true, but old height limit was false
+    // Old effective: true && false = false (height), New effective: true && true = true (height)
+    EXPECT_CALL(*parentSessionStage, UpdateAttachedWindowLimits(
+        childSession->GetPersistentId(), testing::_, true, true))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Limits changed scenario
+    childSession->NotifyRelatedWindowsAttachStateChange(parentSession, true, true, true, false);
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction01
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction with main window and attached children
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsOnDestruction01";
+    info.bundleName_ = "NotifyRelatedWindowsOnDestruction01";
+
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    // Set up attach info on main session
+    mainSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<SessionStageMocker> mainSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    mainSession->sessionStage_ = mainSessionStage;
+
+    // Create child session with attach
+    SessionInfo childInfo;
+    childInfo.abilityName_ = "NotifyRelatedWindowsOnDestruction01_child";
+    childInfo.bundleName_ = "NotifyRelatedWindowsOnDestruction01_child";
+    childInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+
+    sptr<SubSession> childSession = sptr<SubSession>::MakeSptr(childInfo, nullptr);
+
+    childSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    childSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Create mock session stage for child
+    sptr<SessionStageMocker> childSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    childSession->sessionStage_ = childSessionStage;
+
+    // Add child to main session
+    mainSession->subSession_.push_back(childSession);
+    childSession->parentSession_ = mainSession;
+
+    // Main window being destroyed should call RemoveAttachedWindowLimits on child
+    EXPECT_CALL(*childSessionStage, RemoveAttachedWindowLimits(mainSession->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    mainSession->NotifyRelatedWindowsOnDestruction();
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction02
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction with child window notifying parent
+ *           Parent should then notify other children (siblings) to remove limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction02, TestSize.Level1)
+{
+    sptr<SessionStageMocker> mainSessionStage;
+    sptr<MainSession> mainSession =
+        CreateMainSessionWithAttach("NotifyRelatedWindowsOnDestruction02_main", mainSessionStage);
+
+    // Create first child session (the one being destroyed)
+    sptr<SubSession> childSession1 =
+        CreateChildSessionWithAttach("NotifyRelatedWindowsOnDestruction02_child1", true, false);
+    SetupParentChild(mainSession, childSession1);
+
+    // Create second child session (sibling that should be notified)
+    sptr<SessionStageMocker> childSession2Stage = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SubSession> childSession2 =
+        CreateChildSessionWithAttach("NotifyRelatedWindowsOnDestruction02_child2", false, true);
+    childSession2->sessionStage_ = childSession2Stage;
+    SetupParentChild(mainSession, childSession2);
+
+    // Child being destroyed notifies parent via RemoveAttachedWindowLimits
+    EXPECT_CALL(*mainSessionStage, RemoveAttachedWindowLimits(childSession1->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Parent then notifies sibling via RemoveAttachedWindowLimits
+    EXPECT_CALL(*childSession2Stage, RemoveAttachedWindowLimits(childSession1->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Child window being destroyed should notify parent, and parent should notify sibling
+    childSession1->NotifyRelatedWindowsOnDestruction();
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession1->parentSession_ = nullptr;
+    childSession2->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction03
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction with main window notifying multiple children
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsOnDestruction03";
+    info.bundleName_ = "NotifyRelatedWindowsOnDestruction03";
+
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    // Set up attach info on main session
+    mainSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    mainSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    sptr<SessionStageMocker> mainSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    mainSession->sessionStage_ = mainSessionStage;
+
+    // Create multiple child sessions with attach
+    sptr<SessionStageMocker> childSessionStage1 = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SessionStageMocker> childSessionStage2 = sptr<SessionStageMocker>::MakeSptr();
+
+    sptr<SubSession> childSession1 =
+        CreateChildSessionWithAttach("NotifyRelatedWindowsOnDestruction03_child1", true, false);
+    childSession1->sessionStage_ = childSessionStage1;
+    SetupParentChild(mainSession, childSession1);
+
+    sptr<SubSession> childSession2 =
+        CreateChildSessionWithAttach("NotifyRelatedWindowsOnDestruction03_child2", false, true);
+    childSession2->sessionStage_ = childSessionStage2;
+    SetupParentChild(mainSession, childSession2);
+
+    // Main window being destroyed should call RemoveAttachedWindowLimits on all children
+    EXPECT_CALL(*childSessionStage1, RemoveAttachedWindowLimits(mainSession->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+    EXPECT_CALL(*childSessionStage2, RemoveAttachedWindowLimits(mainSession->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Main window being destroyed should notify all its children
+    mainSession->NotifyRelatedWindowsOnDestruction();
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession1->parentSession_ = nullptr;
+    childSession2->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction04
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction with child window notifying parent
+ *           Parent should then notify all other children (multiple siblings) to remove limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction04, TestSize.Level1)
+{
+    sptr<SessionStageMocker> mainSessionStage;
+    sptr<MainSession> mainSession =
+        CreateMainSessionWithAttach("NotifyRelatedWindowsOnDestruction04_main", mainSessionStage);
+
+    // Create the child session that will be destroyed
+    sptr<SubSession> childSession1 = CreateChildSessionWithAttach("NotifyRelatedWindowsOnDestruction04_child1");
+    SetupParentChild(mainSession, childSession1);
+
+    // Create sibling child sessions with different limit settings
+    sptr<SessionStageMocker> childSessionStage2 = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SessionStageMocker> childSessionStage3 = sptr<SessionStageMocker>::MakeSptr();
+
+    sptr<SubSession> childSession2 =
+        CreateChildSessionWithAttach("NotifyRelatedWindowsOnDestruction04_child2", true, false);
+    childSession2->sessionStage_ = childSessionStage2;
+    SetupParentChild(mainSession, childSession2);
+
+    sptr<SubSession> childSession3 =
+        CreateChildSessionWithAttach("NotifyRelatedWindowsOnDestruction04_child3", false, true);
+    childSession3->sessionStage_ = childSessionStage3;
+    SetupParentChild(mainSession, childSession3);
+
+    // Child being destroyed notifies parent via RemoveAttachedWindowLimits
+    EXPECT_CALL(*mainSessionStage, RemoveAttachedWindowLimits(childSession1->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Parent then notifies all siblings via RemoveAttachedWindowLimits
+    EXPECT_CALL(*childSessionStage2, RemoveAttachedWindowLimits(childSession1->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+    EXPECT_CALL(*childSessionStage3, RemoveAttachedWindowLimits(childSession1->GetPersistentId()))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    // Child window being destroyed should notify parent, and parent should notify all siblings
+    childSession1->NotifyRelatedWindowsOnDestruction();
+
+    // Clean up: break circular sptr references
+    mainSession->subSession_.clear();
+    childSession1->parentSession_ = nullptr;
+    childSession2->parentSession_ = nullptr;
+    childSession3->parentSession_ = nullptr;
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction05
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction without attach relationship
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsOnDestruction05";
+    info.bundleName_ = "NotifyRelatedWindowsOnDestruction05";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Set up without attach - should return early
+    session->windowAnchorInfo_.isAnchoredByAttach_ = false;
+
+    session->NotifyRelatedWindowsOnDestruction();
+
+    // Verify early return path - no attach relationship
+    EXPECT_FALSE(session->GetWindowAnchorInfo().isAnchoredByAttach_);
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction06
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction with attach but no intersected limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsOnDestruction06";
+    info.bundleName_ = "NotifyRelatedWindowsOnDestruction06";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    // Set up with attach but no intersected limits - should return early
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = false;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = false;
+
+    session->NotifyRelatedWindowsOnDestruction();
+
+    // Verify early return path - attach exists but no intersected limits
+    EXPECT_TRUE(session->GetWindowAnchorInfo().isAnchoredByAttach_);
+    EXPECT_FALSE(session->GetWindowAnchorInfo().attachOptions.isIntersectedHeightLimit);
+    EXPECT_FALSE(session->GetWindowAnchorInfo().attachOptions.isIntersectedWidthLimit);
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction07
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction with sub window but no parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction07, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsOnDestruction07";
+    info.bundleName_ = "NotifyRelatedWindowsOnDestruction07";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info for sub window
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Deliberately don't set parent - parentSession will be null
+    // This should log a warning but not crash
+    session->NotifyRelatedWindowsOnDestruction();
+
+    // Verify sub window with attach but no parent does not crash
+    EXPECT_EQ(info.windowType_, static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_SUB_WINDOW));
+    EXPECT_EQ(session->parentSession_, nullptr);
+    EXPECT_TRUE(session->GetWindowAnchorInfo().isAnchoredByAttach_);
+}
+
+/**
+ * @tc.name: NotifyRelatedWindowsOnDestruction08
+ * @tc.desc: Test NotifyRelatedWindowsOnDestruction with system modal window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRelatedWindowsOnDestruction08, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRelatedWindowsOnDestruction08";
+    info.bundleName_ = "NotifyRelatedWindowsOnDestruction08";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FLOAT);
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info for system modal window
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // System modal window is neither main nor sub window, so it should not trigger any notifications
+    session->NotifyRelatedWindowsOnDestruction();
+
+    // Verify FLOAT window type and attach state (no notifications sent)
+    EXPECT_EQ(info.windowType_, static_cast<uint32_t>(WindowType::WINDOW_TYPE_FLOAT));
+    EXPECT_TRUE(session->GetWindowAnchorInfo().isAnchoredByAttach_);
+}
+
+/**
+ * @tc.name: RequestUpdateAttachedWindowLimits_BaseClass
+ * @tc.desc: Test SceneSession base class default implementation returns WS_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, RequestUpdateAttachedWindowLimits_BaseClass, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "RequestUpdateAttachedWindowLimits_BaseClass";
+    info.bundleName_ = "RequestUpdateAttachedWindowLimits_BaseClass";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    int32_t sourcePersistentId = 1001;
+    WindowLimits attachedLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    bool isIntersectedHeightLimit = true;
+    bool isIntersectedWidthLimit = true;
+
+    // Base class default implementation should return WS_OK
+    WSError ret = session->RequestUpdateAttachedWindowLimits(sourcePersistentId, attachedLimits,
+        isIntersectedHeightLimit, isIntersectedWidthLimit);
+    EXPECT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: RequestRemoveAttachedWindowLimits_BaseClass
+ * @tc.desc: Test SceneSession base class default implementation returns WS_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, RequestRemoveAttachedWindowLimits_BaseClass, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "RequestRemoveAttachedWindowLimits_BaseClass";
+    info.bundleName_ = "RequestRemoveAttachedWindowLimits_BaseClass";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    int32_t sourcePersistentId = 2001;
+
+    // Base class default implementation should return WS_OK
+    WSError ret = session->RequestRemoveAttachedWindowLimits(sourcePersistentId);
+    EXPECT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange01
+ * @tc.desc: Test ShouldProcessAttachStateChange with valid session and attach info
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange01";
+    info.bundleName_ = "ShouldProcessAttachStateChange01";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with intersected limits
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Test with valid session and attach state change (wasAttached=false, isAttached=true)
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(false, true, false, false, isDetaching);
+    EXPECT_EQ(true, result);  // Should return true as effective limits changed
+    EXPECT_EQ(false, isDetaching);  // Not detaching
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange02
+ * @tc.desc: Test ShouldProcessAttachStateChange returns false when isFromAttachOrDetach_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange02";
+    info.bundleName_ = "ShouldProcessAttachStateChange02";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with isFromAttachOrDetach_ = false
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = false;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(false, true, false, false, isDetaching);
+    EXPECT_EQ(false, result);
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange03
+ * @tc.desc: Test ShouldProcessAttachStateChange returns false when effective limits unchanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange03";
+    info.bundleName_ = "ShouldProcessAttachStateChange03";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with intersected limits
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Test with unchanged effective limits (wasAttached=false, isAttached=false)
+    // Old: false && true = false, New: false && true = false (no change)
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(false, false, true, true, isDetaching);
+    EXPECT_EQ(false, result);
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange04
+ * @tc.desc: Test ShouldProcessAttachStateChange returns true when effective limits change
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange04";
+    info.bundleName_ = "ShouldProcessAttachStateChange04";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with intersected limits
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Test with changed effective limits (wasAttached=false, isAttached=true)
+    // Old: false && false = false, New: true && true = true (changed)
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(false, true, false, false, isDetaching);
+    EXPECT_EQ(true, result);
+    EXPECT_EQ(false, isDetaching);  // Not detaching (wasAttached=false, isAttached=true)
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange05
+ * @tc.desc: Test ShouldProcessAttachStateChange with attach scenario
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange05";
+    info.bundleName_ = "ShouldProcessAttachStateChange05";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with height limit only
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = false;
+
+    // Test attach: wasAttached=false, isAttached=true
+    // Old: false && false = false, New: true && true = true (height changed)
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(false, true, false, false, isDetaching);
+    EXPECT_EQ(true, result);
+    EXPECT_EQ(false, isDetaching);  // Not detaching
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange06
+ * @tc.desc: Test ShouldProcessAttachStateChange with detach scenario
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange06";
+    info.bundleName_ = "ShouldProcessAttachStateChange06";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with both limits
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Test detach: wasAttached=true, isAttached=false
+    // Old: true && true = true, New: false && true = false (changed)
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(true, false, true, true, isDetaching);
+    EXPECT_EQ(true, result);
+    EXPECT_EQ(true, isDetaching);  // Detaching (wasAttached=true, isAttached=false)
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange07
+ * @tc.desc: Test ShouldProcessAttachStateChange returns false when effective limits unchanged (both true)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange07, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange07";
+    info.bundleName_ = "ShouldProcessAttachStateChange07";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with intersected limits
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Test with both old and new effective limits being true (no change)
+    // Old: true && true = true, New: true && true = true (no change)
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(true, true, true, true, isDetaching);
+    EXPECT_EQ(false, result);  // No change in effective limits
+}
+
+/**
+ * @tc.name: ShouldProcessAttachStateChange08
+ * @tc.desc: Test ShouldProcessAttachStateChange when attach state unchanged but limits change
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ShouldProcessAttachStateChange08, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ShouldProcessAttachStateChange08";
+    info.bundleName_ = "ShouldProcessAttachStateChange08";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Set up attach info with intersected limits
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;  // New value
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+
+    // Test with wasAttached=true, isAttached=true, but old limits changed
+    // Old: true && false = false (height), true && true = true (width)
+    // New: true && true = true (height), true && true = true (width)
+    // Height limit changed from false to true
+    bool isDetaching = false;
+    bool result = session->ShouldProcessAttachStateChange(true, true, true, false, isDetaching);
+    EXPECT_EQ(true, result);  // Height limit changed
+    EXPECT_EQ(false, isDetaching);  // Not detaching (wasAttached=true, isAttached=true)
+}
+
+/**
  * @tc.name: HandleMoveDragEnd
  * @tc.desc: HandleMoveDragEnd
  * @tc.type: FUNC
@@ -1418,65 +2624,6 @@ HWTEST_F(SceneSessionLayoutTest, SetMoveAvailableArea02, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetAppHookWindowInfoFromServer
- * @tc.desc: GetAppHookWindowInfoFromServer
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionLayoutTest, GetAppHookWindowInfoFromServer, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "GetAppHookWindowInfoFromServer";
-    info.bundleName_ = "GetAppHookWindowInfoFromServer";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-
-    sceneSession->getHookWindowInfoFunc_ = nullptr;
-    HookWindowInfo hookWindowInfo;
-    WMError errCode = sceneSession->GetAppHookWindowInfoFromServer(hookWindowInfo);
-    EXPECT_EQ(errCode, WMError::WM_ERROR_NULLPTR);
-    EXPECT_EQ(hookWindowInfo.enableHookWindow, false);
-
-    sceneSession->getHookWindowInfoFunc_ = [](const std::string& bundleName) -> HookWindowInfo {
-        HookWindowInfo hookInfo;
-        hookInfo.enableHookWindow = true;
-        return hookInfo;
-    };
-    HookWindowInfo hookWindowInfo2;
-    errCode = sceneSession->GetAppHookWindowInfoFromServer(hookWindowInfo2);
-    EXPECT_EQ(errCode, WMError::WM_OK);
-    EXPECT_EQ(hookWindowInfo2.enableHookWindow, true);
-}
-
-/**
- * @tc.name: RegisterAppHookWindowInfoFunc
- * @tc.desc: RegisterAppHookWindowInfoFunc
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionLayoutTest, RegisterAppHookWindowInfoFunc, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "RegisterAppHookWindowInfoFunc";
-    info.bundleName_ = "RegisterAppHookWindowInfoFunc";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    sceneSession->getHookWindowInfoFunc_ = nullptr;
-
-    // Case 1: func is not nullptr
-    sceneSession->RegisterAppHookWindowInfoFunc([](const std::string& bundleName) -> HookWindowInfo {
-        HookWindowInfo hookInfo;
-        hookInfo.enableHookWindow = true;
-        return hookInfo;
-    });
-    ASSERT_NE(sceneSession->getHookWindowInfoFunc_, nullptr);
-    HookWindowInfo hookWindowInfo;
-    WMError errCode = sceneSession->GetAppHookWindowInfoFromServer(hookWindowInfo);
-    EXPECT_EQ(errCode, WMError::WM_OK);
-    EXPECT_EQ(hookWindowInfo.enableHookWindow, true);
-
-    // Case 2: func is nullptr
-    sceneSession->RegisterAppHookWindowInfoFunc(nullptr);
-    ASSERT_NE(sceneSession->getHookWindowInfoFunc_, nullptr);
-}
-
-/**
  * @tc.name: GetWindowDragMoveMountedNode01
  * @tc.desc: GetWindowDragMoveMountedNode
  * @tc.type: FUNC
@@ -1582,6 +2729,151 @@ HWTEST_F(SceneSessionLayoutTest, ShouldSkipUpdateRectNotify, TestSize.Level0)
     session->SetSessionRect({ 0, 0, 800, 800});
     EXPECT_EQ(true, session->ShouldSkipUpdateRectNotify(rect));
 }
+/**
+ * @tc.name: SyncAllAttachedLimitsToAttachingChild01
+ * @tc.desc: Test SyncAllAttachedLimitsToAttachingChild with null parentSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SyncAllAttachedLimitsToAttachingChild01";
+    info.bundleName_ = "SyncAllAttachedLimitsToAttachingChild01";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = mockSessionStage_;
+
+    // Call with null parent - should return early
+    session->SyncAllAttachedLimitsToAttachingChild(nullptr);
+
+    // Verify no IPC call was made
+    auto limitsList = session->GetSessionProperty()->GetAttachedWindowLimitsList();
+    EXPECT_TRUE(limitsList.empty());
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToAttachingChild02
+ * @tc.desc: Test SyncAllAttachedLimitsToAttachingChild with null sessionStage
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SyncAllAttachedLimitsToAttachingChild02";
+    info.bundleName_ = "SyncAllAttachedLimitsToAttachingChild02";
+
+    sptr<MainSession> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    // Don't set sessionStage_ - it stays null
+
+    // Call with null sessionStage - should return early
+    childSession->SyncAllAttachedLimitsToAttachingChild(parentSession);
+
+    // Verify no crash
+    auto limitsList = childSession->GetSessionProperty()->GetAttachedWindowLimitsList();
+    EXPECT_TRUE(limitsList.empty());
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToAttachingChild03
+ * @tc.desc: Test SyncAllAttachedLimitsToAttachingChild with parent that has no attached limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SyncAllAttachedLimitsToAttachingChild03";
+    info.bundleName_ = "SyncAllAttachedLimitsToAttachingChild03";
+
+    // Create parent with limits for attached windows
+    sptr<MainSession> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    WindowLimits parentLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    parentSession->GetSessionProperty()->SetLimitsForAttachedWindows(parentLimits);
+
+    // Create child with mock sessionStage
+    sptr<SubSession> childSession = sptr<SubSession>::MakeSptr(info, nullptr);
+    sptr<SessionStageMocker> childMockStage = sptr<SessionStageMocker>::MakeSptr();
+    childSession->sessionStage_ = childMockStage;
+
+    // Expect IPC call with only parent's own limits (no other attached windows)
+    EXPECT_CALL(*childMockStage, SyncAllAttachedLimitsToChild(
+        testing::SizeIs(1), testing::SizeIs(1)))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    childSession->SyncAllAttachedLimitsToAttachingChild(parentSession);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToAttachingChild04
+ * @tc.desc: Test SyncAllAttachedLimitsToAttachingChild with parent that has existing attached limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SyncAllAttachedLimitsToAttachingChild04";
+    info.bundleName_ = "SyncAllAttachedLimitsToAttachingChild04";
+
+    // Create parent with limits for attached windows
+    sptr<MainSession> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    WindowLimits parentLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    parentSession->GetSessionProperty()->SetLimitsForAttachedWindows(parentLimits);
+
+    // Simulate parent already has an attached sub-window's limits
+    WindowLimits subLimits = { 1500, 800, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    parentSession->GetSessionProperty()->SetAttachedWindowLimits(500, subLimits);
+    parentSession->GetSessionProperty()->SetAttachedLimitOptions(500, AttachLimitOptions{ true, false });
+
+    // Create child with mock sessionStage
+    sptr<SubSession> childSession = sptr<SubSession>::MakeSptr(info, nullptr);
+    sptr<SessionStageMocker> childMockStage = sptr<SessionStageMocker>::MakeSptr();
+    childSession->sessionStage_ = childMockStage;
+
+    // Expect IPC call with parent's limits + 1 other attached window = 2 entries
+    EXPECT_CALL(*childMockStage, SyncAllAttachedLimitsToChild(
+        testing::SizeIs(2), testing::SizeIs(2)))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    childSession->SyncAllAttachedLimitsToAttachingChild(parentSession);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToAttachingChild05
+ * @tc.desc: Test SyncAllAttachedLimitsToAttachingChild with multiple attached sub-windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SyncAllAttachedLimitsToAttachingChild05";
+    info.bundleName_ = "SyncAllAttachedLimitsToAttachingChild05";
+
+    // Create parent with limits for attached windows
+    sptr<MainSession> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    WindowLimits parentLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    parentSession->GetSessionProperty()->SetLimitsForAttachedWindows(parentLimits);
+
+    // Simulate parent already has 2 attached sub-windows
+    WindowLimits subLimits1 = { 1500, 800, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WindowLimits subLimits2 = { 1800, 900, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    parentSession->GetSessionProperty()->SetAttachedWindowLimits(501, subLimits1);
+    parentSession->GetSessionProperty()->SetAttachedLimitOptions(501, AttachLimitOptions{ true, false });
+    parentSession->GetSessionProperty()->SetAttachedWindowLimits(502, subLimits2);
+    parentSession->GetSessionProperty()->SetAttachedLimitOptions(502, AttachLimitOptions{ false, true });
+
+    // Create child with mock sessionStage
+    sptr<SubSession> childSession = sptr<SubSession>::MakeSptr(info, nullptr);
+    sptr<SessionStageMocker> childMockStage = sptr<SessionStageMocker>::MakeSptr();
+    childSession->sessionStage_ = childMockStage;
+
+    // Expect IPC call with parent's limits + 2 other attached windows = 3 entries
+    EXPECT_CALL(*childMockStage, SyncAllAttachedLimitsToChild(
+        testing::SizeIs(3), testing::SizeIs(3)))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    childSession->SyncAllAttachedLimitsToAttachingChild(parentSession);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

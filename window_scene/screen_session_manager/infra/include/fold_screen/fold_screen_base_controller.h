@@ -70,6 +70,7 @@ public:
     virtual void NotifyRunSensorFoldStateManager();
     virtual float GetSpecialVirtualPixelRatio();
     virtual void PowerkeySetScreenActiveRect();
+    virtual const std::map<FoldDisplayMode, RRect>& GetScreenActiveModeRectMap() const;
 private:
     std::vector<FoldCreaseRegionItem> foldCreaseRegionItems_;
 };

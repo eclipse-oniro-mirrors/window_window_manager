@@ -112,7 +112,7 @@ using NotifyForceSplitFunc = std::function<AppForceLandscapeConfig(const std::st
 using NotifyForceSplitEnableFunc = std::function<bool(const std::string& bundleName)>;
 using PageEnableCallback = std::function<void(const std::string& bundleName, int32_t windowId,
     const std::string& action, const std::string& message)>;
-using GetHookWindowInfoFunc = std::function<HookWindowInfo(const std::string& bundleName)>;
+using SetSelectModeCallback = std::function<void(SelectMode selectMode)>;
 using GetSelectModeFunc = std::function<SelectMode()>;
 using UpdatePrivateStateAndNotifyFunc = std::function<void(int32_t persistentId)>;
 using UpdateScreenshotAppEventRegisteredFunc = std::function<void(int32_t persistentId, bool isRegister)>;
@@ -489,8 +489,8 @@ public:
     virtual void RegisterForceSplitFullScreenChangeCallback(ForceSplitFullScreenChangeCallback&& callback) {}
     virtual bool IsFullScreenInForceSplit() { return false; }
     virtual void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) {}
-    virtual void RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func) {}
     virtual void RegisterPageEnableCallback(PageEnableCallback&& callback) {}
+    virtual void RegisterSetSelectModeCallback(SetSelectModeCallback&& callback) {}
 
     /*
      * PC Window
@@ -820,6 +820,7 @@ public:
     WSError SetDecorVisible(bool isVisible) override;
     bool IsDecorVisible() const;
     WindowDecoration GetWindowDecoration() const;
+    WSError ConfigDockAutoHide(bool isDockAutoHide);
 
     WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
@@ -979,13 +980,16 @@ public:
     WSError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
     WindowAnchorInfo GetWindowAnchorInfo() const { return windowAnchorInfo_; }
     void CalcSubWindowRectByAnchor(const WSRect& parentRect, WSRect& subRect);
+    void NotifyRelatedWindowsAttachStateChange(const sptr<Session>& parentSession,
+        bool wasAttached, bool isAttached, bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit);
+    void SyncAllAttachedLimitsToAttachingChild(const sptr<Session>& parentSession);
+    WSError NotifyAttachedWindowsLimitsChanged(const WindowLimits& newLimits) override;
+    void NotifyRelatedWindowsOnDestruction();
 
     bool IsAnyParentSessionDragMoving() const override;
     bool IsAnyParentSessionDragZooming() const override;
     bool IsNeedNotifyDragEventOnNextVsync() const;
     void NotifiedDragEventOnNextVsync();
-    void RegisterAppHookWindowInfoFunc(GetHookWindowInfoFunc&& func);
-    WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) override;
     void RegisterSelectModeFunc(GetSelectModeFunc&& func);
     WMError GetSelectMode(SelectMode& selectMode) override;
     void SetFindScenePanelRsNodeByZOrderFunc(FindScenePanelRsNodeByZOrderFunc&& func);
@@ -1241,6 +1245,7 @@ protected:
     void SetShouldFollowParentWhenShow(bool shouldFollow) { shouldFollowParentWhenShow_ = shouldFollow; }
     bool GetShouldFollowParentWhenShow() const { return shouldFollowParentWhenShow_; }
     void CheckSubSessionShouldFollowParent(uint64_t displayId);
+    bool ShouldNotifyAttachedWindow(const sptr<SceneSession>& subSession) const;
     bool IsNeedConvertToRelativeRect(SizeChangeReason reason = SizeChangeReason::UNDEFINED) const override;
     void SetRequestMoveConfiguration(const MoveConfiguration& config) { requestMoveConfiguration_ = config; }
     MoveConfiguration GetRequestMoveConfiguration() const { return requestMoveConfiguration_; }
@@ -1550,7 +1555,6 @@ private:
     /*
      * Window Layout
      */
-    GetHookWindowInfoFunc getHookWindowInfoFunc_ = nullptr;
     GetSelectModeFunc getSelectModeFunc_ = nullptr;
     bool SaveAspectRatio(float ratio);
     WSError UpdateRectForDrag(const WSRect& rect);
@@ -1567,6 +1571,8 @@ private:
     WindowLimits GetWindowLimits() const;
     bool ShouldSkipUpdateRect(const WSRect& rect);
     bool ShouldSkipUpdateRectNotify(const WSRect& rect);
+    bool ShouldProcessAttachStateChange(bool wasAttached, bool isAttached,
+        bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit, bool& isDetaching);
 
     /**
      * @brief Set surface bounds via the original surface node.
@@ -1747,6 +1753,9 @@ private:
     bool isAncoForFloatingWindow_ = false;
     bool subWindowOutlineEnabled_ = false;
     std::atomic_bool isRegisterAcrossDisplaysChanged_ = false;
+    void OnSurfaceNodeChanged() override;
+    void UpdateSurfaceDarkMode();
+    bool GetDarkMode() const;
     std::string colorMode_;
     bool hasDarkRes_ = false;
     mutable std::mutex colorModeMutex_;

@@ -72,9 +72,24 @@ declare namespace window {
     WINDOW_DESTROYED = 7
   }
 
+  interface WindowDensityInfo {
+    systemDensity: number;
+    defaultDensity: number;
+    customDensity: number;
+  }
+
+  interface SystemDensity {
+    systemDensity: number;
+  }
+
+  interface DisplayId {
+    displayId: number;
+  }
+
   interface Window {
     getWindowProperties(): { windowRect: Size };
     getWindowAvoidArea(type: number): AvoidArea;
+    getWindowDensityInfo(): window.WindowDensityInfo;
     on(type: 'windowSizeChange', callback: Callback<Size>): void;
     off(type: 'windowSizeChange', callback?: Callback<Size>): void;
     on(type: 'avoidAreaChange', callback: Callback<AvoidAreaOptions>): void;
@@ -83,13 +98,39 @@ declare namespace window {
     off(type: 'windowEvent', callback?: Callback<WindowEventType>): void;
     on(type: 'windowHighlightChange', callback: Callback<boolean>): void;
     off(type: 'windowHighlightChange', callback?: Callback<boolean>): void;
+    on(type: 'systemDensityChange', callback: Callback<number>): void;
+    off(type: 'systemDensityChange', callback?: Callback<number>): void;
+    on(type: 'displayIdChange', callback: Callback<number>): void;
+    off(type: 'displayIdChange', callback?: Callback<number>): void;
   }
+}
+
+declare namespace uiExtension {
+  interface WindowProxy {
+    getWindowProperties(): { windowRect: window.Size };
+    getWindowAvoidArea(type: number): window.AvoidArea;
+    getWindowDensityInfo(): window.WindowDensityInfo;
+    on(type: 'windowSizeChange', callback: Callback<window.Size>): void;
+    off(type: 'windowSizeChange', callback?: Callback<window.Size>): void;
+    on(type: 'avoidAreaChange', callback: Callback<window.AvoidAreaOptions>): void;
+    off(type: 'avoidAreaChange', callback?: Callback<window.AvoidAreaOptions>): void;
+    on(type: 'systemDensityChange', callback: Callback<number>): void;
+    off(type: 'systemDensityChange', callback?: Callback<number>): void;
+    on(type: 'displayIdChange', callback: Callback<number>): void;
+    off(type: 'displayIdChange', callback?: Callback<number>): void;
+  }
+}
+
+interface WindowEnv {
+  findWindowById(value: number): window.Window | uiExtension.WindowProxy;
+  getDisplayId(value: number): number;
 }
 
 declare class UIContext {
   getWindowName(): string;
   getUIObserver(): UIObserver;
   px2vp(value: number): number;
+  getId(): number;
 }
 
 declare namespace uiObserver {

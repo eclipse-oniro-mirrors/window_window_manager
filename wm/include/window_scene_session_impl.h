@@ -80,8 +80,15 @@ public:
         bool isLayoutFullScreen) override;
     WMError SetFrameRectForPartialZoomIn(const Rect& frameRect) override;
     WMError UpdateWindowModeForUITest(int32_t updateMode) override;
-    WSError NotifyAppHookWindowInfoUpdated() override;
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
+    WSError UpdateAttachedWindowLimits(int32_t sourcePersistentId,
+        const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit,
+        bool isIntersectedWidthLimit) override;
+    WSError RemoveAttachedWindowLimits(int32_t sourcePersistentId) override;
+    WSError SyncAllAttachedLimitsToChild(
+        const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
+        const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList) override;
 
     /*
      * Window Hierarchy
@@ -185,10 +192,7 @@ public:
     WMError AdjustKeyboardLayout(const KeyboardLayoutParams params) override;
     WMError CheckAndModifyWindowRect(uint32_t& width, uint32_t& height) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
-    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
     WSError NotifyAppForceLandscapeConfigUpdated() override;
-    WSError NotifyAppForceLandscapeConfigEnableUpdated(bool needUpdateViewport,
-        SelectMode selectMode) override;
 
     /*
      * Sub Window
@@ -322,6 +326,7 @@ public:
     bool IsDecorEnable() const override;
     WMError Close() override;
     WMError CloseDirectly() override;
+    WSError ConfigDockAutoHide(bool isDockAutoHide) override;
 
     /*
      * Starting Window
@@ -376,7 +381,7 @@ public:
      * Window LifeCycle
      */
     void Resume(bool isGamePreLaunch = false) override;
-    void Pause() override;
+    void Pause(bool isGamePreLaunch = false) override;
 
     WSError CloseSpecificScene() override;
     WMError SetSubWindowSource(SubWindowSource source) override;
@@ -429,7 +434,45 @@ protected:
      *      may exceed system limits and is clamped to min(system limits, 40vp);
      *      other cases remain constrained by system limits.
      */
-    void UpdateWindowSizeLimits();
+    void UpdateWindowSizeLimits(bool needNotifySession = false);
+
+    /**
+     * @brief Calculate window limits intersection with attached windows.
+     * @param newLimits Reference to WindowLimits (PX unit) to be updated with intersected values.
+     * @param newLimitsVP Reference to WindowLimits (VP unit) to be updated with intersected values.
+     * @param virtualPixelRatio Virtual pixel ratio for unit conversion.
+     */
+    void CalculateAttachedWindowLimitsIntersection(WindowLimits& newLimits, WindowLimits& newLimitsVP,
+        float virtualPixelRatio);
+
+    /**
+     * @brief Result of calculating intersection with a single attached window.
+     */
+    struct WinIntersectResult {
+        bool pxValid;           // PX intersection is valid
+        bool vpValid;           // VP intersection is valid
+        WindowLimits pxLimits;  // PX intersection result
+        WindowLimits vpLimits;  // VP intersection result
+    };
+
+    /**
+     * @brief Calculate intersection with a single attached window.
+     * @param currentLimits Current PX limits.
+     * @param currentLimitsVP Current VP limits.
+     * @param attachedLimits Attached window limits (may be PX or VP).
+     * @param limitOptions Options for which limits (height/width) to intersect.
+     * @param virtualPixelRatio Virtual pixel ratio for conversion.
+     * @return Intersection result containing validity and calculated limits.
+     */
+    WinIntersectResult CalcSingleWinIntersect(
+        const WindowLimits& currentLimits, const WindowLimits& currentLimitsVP, const WindowLimits& attachedLimits,
+        const AttachLimitOptions& limitOptions, float virtualPixelRatio);
+
+    /**
+     * @brief Notify session side about window limits change.
+     * @param limitsToNotify The window limits to notify (already selected based on pixelUnit).
+     */
+    void NotifySessionSideLimitsChanged(const WindowLimits& limitsToNotify);
 
     // Checker to determine whether the caller has system permission.
     using SystemPermissionChecker = std::function<bool()>;
@@ -526,7 +569,6 @@ private:
      */
     void CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
-    WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) override;
     WMError GetSelectMode(SelectMode& selectMode) override;
     bool ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode);
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);

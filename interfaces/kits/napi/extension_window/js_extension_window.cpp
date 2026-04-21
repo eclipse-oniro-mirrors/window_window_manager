@@ -59,6 +59,17 @@ const std::unordered_set<std::string> g_unsupportListener = {
 const std::unordered_set<std::string> g_invalidListener = {
     "subWindowClose",
 };
+const std::unordered_set<std::string> g_emptyProxyListener = {
+    "displayIdChange",
+    "systemDensityChange",
+};
+static thread_local std::map<int32_t, std::shared_ptr<NativeReference>> g_jsExtensionWindowMap;
+static std::mutex g_extensionMutex;
+
+bool IsEmptyProxyListener(const std::string& type)
+{
+    return g_emptyProxyListener.find(type) != g_emptyProxyListener.end();
+}
 
 bool IsEmptyListener(const std::string& type)
 {
@@ -75,6 +86,33 @@ bool IsInvalidListener(const std::string& type)
     return g_invalidListener.find(type) != g_invalidListener.end();
 }
 } // namespace
+
+void addJsExtensionWindow(napi_env env, napi_value objValue, int32_t id)
+{
+    std::shared_ptr<NativeReference> jsExtensionWindowRef;
+    napi_ref result = nullptr;
+    napi_create_reference(env, objValue, 1, &result);
+    jsExtensionWindowRef.reset(reinterpret_cast<NativeReference*>(result));
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    g_jsExtensionWindowMap[id] = jsExtensionWindowRef;
+}
+
+napi_value FindJsExtensionWindowById(napi_env env, int32_t id)
+{
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    if (g_jsExtensionWindowMap.find(id) == g_jsExtensionWindowMap.end()) {
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "The extensionWindow is destroyed."));
+        return NapiGetUndefined(env);
+    }
+    napi_value extensionWindow = g_jsExtensionWindowMap[id]->GetNapiValue();
+    if (!extensionWindow) {
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "The extensionWindow is destroyed."));
+        return NapiGetUndefined(env);
+    }
+    return extensionWindow;
+}
 
 const std::string& JsExtensionWindow::GetWindowName() const
 {
@@ -134,7 +172,9 @@ napi_value JsExtensionWindow::CreateJsExtensionWindow(napi_env env, sptr<Rosen::
     BindNativeFunction(env, objValue, "hidePrivacyContentForHost", moduleName,
                        JsExtensionWindow::HidePrivacyContentForHost);
     BindNativeFunction(env, objValue, "occupyEvents", moduleName, JsExtensionWindow::OccupyEvents);
+    BindNativeFunction(env, objValue, "getWindowDensityInfo", moduleName, JsExtensionWindow::GetWindowDensityInfo);
 
+    addJsExtensionWindow(env, objValue, window->GetWindowPersistentId());
     return objValue;
 }
 
@@ -206,6 +246,7 @@ napi_value JsExtensionWindow::CreateJsExtensionWindowObject(napi_env env, sptr<R
 
     RegisterUnsupportFuncs(env, objValue, moduleName);
 
+    addJsExtensionWindow(env, objValue, window->GetWindowPersistentId());
     return objValue;
 }
 
@@ -1114,6 +1155,10 @@ napi_value JsExtensionWindow::OnRegisterExtensionWindowCallback(napi_env env, na
             return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "[window][on]msg: The device not support");
         }
+    } else {
+        if (IsEmptyProxyListener(cbType)) {
+            return NapiGetUndefined(env);
+        }
     }
     napi_value value = argv[INDEX_ONE];
     if (!NapiIsCallable(env, value)) {
@@ -1179,6 +1224,10 @@ napi_value JsExtensionWindow::OnUnRegisterExtensionWindowCallback(napi_env env, 
         if (IsUnsupportListener(cbType)) {
             return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "[window][off]msg: The device not support");
+        }
+    } else {
+        if (IsEmptyProxyListener(cbType)) {
+            return NapiGetUndefined(env);
         }
     }
 

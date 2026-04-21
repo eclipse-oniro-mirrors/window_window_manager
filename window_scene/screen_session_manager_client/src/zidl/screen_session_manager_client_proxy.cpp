@@ -1164,4 +1164,48 @@ void ScreenSessionManagerClientProxy::SetInternalClipToBounds(ScreenId screenId,
         return;
     }
 }
+
+void ScreenSessionManagerClientProxy::OnTransRSEvent(const sptr<RSEventDataBase>& param)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+
+    if (!WriteRSEventToParcel(data, *param)) {
+        TLOGE(WmsLogTag::DMS, "WriteRSEventToParcel failed");
+        return;
+    }
+
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_TRANS_RS_EVENT_TO_DESKTOP),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+}
+ 
+bool ScreenSessionManagerClientProxy::WriteRSEventToParcel(MessageParcel& data, const RSEventDataBase& param)
+{
+    if (!data.WriteUint32(static_cast<uint32_t>(param.GetEventType()))) {
+        TLOGE(WmsLogTag::DMS, "Write event type failed");
+        return false;
+    }
+
+    if (!param.Marshalling(data)) {
+        TLOGE(WmsLogTag::DMS, "Marshalling failed, type:%{public}u", static_cast<int>(param.GetEventType()));
+        return false;
+    }
+
+    return true;
+}
 } // namespace OHOS::Rosen

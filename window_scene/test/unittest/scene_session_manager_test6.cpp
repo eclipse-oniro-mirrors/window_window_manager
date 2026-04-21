@@ -1551,6 +1551,7 @@ HWTEST_F(SceneSessionManagerTest6, SetSessionVisibilityInfo02, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest2";
+    sessionInfo.moduleName_ = "entry";
     sessionInfo.abilityName_ = "DumpSessionWithId";
     sessionInfo.callerPersistentId_ = 2;
     auto session1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
@@ -1566,6 +1567,7 @@ HWTEST_F(SceneSessionManagerTest6, SetSessionVisibilityInfo02, TestSize.Level1)
     ssm_->occlusionStateListenerSessionSet_.insert(1);
     ssm_->SetSessionVisibilityInfo(session1, visibleState, windowVisibilityInfos, visibilityInfo);
     EXPECT_NE(windowVisibilityInfos.size(), 0);
+    EXPECT_EQ(windowVisibilityInfos[0]->GetModuleName(), "entry");
     ssm_->sceneSessionMap_.clear();
     ssm_->occlusionStateListenerSessionSet_.clear();
 }

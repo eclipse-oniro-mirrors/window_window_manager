@@ -144,6 +144,31 @@ bool isMainOrExtendScreenMode(const ScreenSourceMode& screenSourceMode)
     return screenSourceMode == ScreenSourceMode::SCREEN_MAIN ||
         screenSourceMode == ScreenSourceMode::SCREEN_EXTEND;
 }
+
+void SetDarkColorModeToSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode, bool isDarkMode)
+{
+    if (!surfaceNode) {
+        return;
+    }
+    AutoRSTransaction trans(surfaceNode);
+    surfaceNode->SetDarkColorMode(isDarkMode);
+}
+
+bool GetSystemDarkMode()
+{
+    auto appContext = AbilityRuntime::Context::GetApplicationContext();
+    if (appContext == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "app context is nullptr");
+        return false;
+    }
+    auto config = appContext->GetConfiguration();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "app configuration is nullptr");
+        return false;
+    }
+    return config->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE) ==
+        AppExecFwk::ConfigurationInner::COLOR_MODE_DARK;
+}
 } // namespace
 
 MaximizeMode SceneSession::maximizeMode_ = MaximizeMode::MODE_RECOVER;
@@ -470,7 +495,11 @@ WSError SceneSession::Foreground(
             TLOGW(WmsLogTag::WMS_LIFE,
                 "screen is locked, session %{public}d %{public}s start below lock screen permission verified",
                 GetPersistentId(), sessionInfo_.bundleName_.c_str());
-        } else {
+        } else if (sessionInfo_.isGamePrelaunch_) {
+ 	        TLOGW(WmsLogTag::WMS_LIFE,
+ 	            "[gameprelaunch]screen is locked, session %{public}d %{public}s start below game prelaunch",
+ 	            GetPersistentId(), sessionInfo_.bundleName_.c_str());
+ 	    } else {
             TLOGW(WmsLogTag::WMS_LIFE,
                 "failed: screen is locked, session %{public}d %{public}s show without ShowWhenLocked flag",
                 GetPersistentId(), sessionInfo_.bundleName_.c_str());
@@ -837,6 +866,10 @@ WSError SceneSession::DisconnectTask(bool isFromClient, bool isSaveSnapshot)
         }
         session->Session::Disconnect(isFromClient);
         session->isTerminating_ = false;
+
+        // Notify related windows to remove this window's limits from their maps
+        session->NotifyRelatedWindowsOnDestruction();
+
         if (session->specificCallback_ != nullptr) {
             session->specificCallback_->onHandleSecureSessionShouldHide_(session);
             session->isEnableGestureBack_ = true;
@@ -7452,13 +7485,15 @@ WMError SceneSession::HandleActionUpdateWindowLimits(const sptr<WindowSessionPro
         sessionProperty->SetWindowLimits(property->GetWindowLimits());
         sessionProperty->SetWindowLimitsVP(property->GetWindowLimitsVP());
         sessionProperty->SetUserWindowLimits(property->GetUserWindowLimits());
+        sessionProperty->SetLimitsForAttachedWindows(property->GetLimitsForAttachedWindows());
 
         WindowLimits windowLimits = sessionProperty->GetWindowLimits();
         WindowLimits windowLimitsVP = sessionProperty->GetWindowLimitsVP();
         WindowLimits userWindowLimits = sessionProperty->GetUserWindowLimits();
-        TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, px:%{public}s, vp:%{public}s, userLimitsUnit:%{public}u",
-            GetPersistentId(), windowLimits.ToString().c_str(), windowLimitsVP.ToString().c_str(),
-            userWindowLimits.pixelUnit_);
+        WindowLimits limitsForAttachedWindows = sessionProperty->GetLimitsForAttachedWindows();
+        TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, px:%{public}s, vp:%{public}s, userLimitsUnit:%{public}u, "
+            "limitsForAttached:%{public}s", GetPersistentId(), windowLimits.ToString().c_str(),
+            windowLimitsVP.ToString().c_str(), userWindowLimits.pixelUnit_, limitsForAttachedWindows.ToString().c_str());
 
         bool useVPLimits = (userWindowLimits.pixelUnit_ == PixelUnit::VP);
         const WindowLimits& limitsToNotify = useVPLimits ? windowLimitsVP : windowLimits;
@@ -8403,9 +8438,12 @@ WMError SceneSession::OnUpdateColorMode(const std::string& colorMode, bool hasDa
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, colorMode: %{public}s, hasDarkRes: %{public}u",
         GetPersistentId(), colorMode.c_str(), hasDarkRes);
-    std::lock_guard<std::mutex> lock(colorModeMutex_);
-    colorMode_ = colorMode;
-    hasDarkRes_ = hasDarkRes;
+    {
+        std::lock_guard<std::mutex> lock(colorModeMutex_);
+        colorMode_ = colorMode;
+        hasDarkRes_ = hasDarkRes;
+    }
+    UpdateSurfaceDarkMode();
     return WMError::WM_OK;
 }
 
@@ -8418,6 +8456,28 @@ std::string SceneSession::GetAbilityColorMode() const
         return AppExecFwk::ConfigurationInner::COLOR_MODE_AUTO;
     }
     return colorMode_;
+}
+
+void SceneSession::OnSurfaceNodeChanged()
+{
+    UpdateSurfaceDarkMode();
+}
+
+bool SceneSession::GetDarkMode() const
+{
+    auto colorMode = GetAbilityColorMode();
+    if (colorMode == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK) {
+        return true;
+    }
+    if (colorMode == AppExecFwk::ConfigurationInner::COLOR_MODE_LIGHT) {
+        return false;
+    }
+    return GetSystemDarkMode();
+}
+
+void SceneSession::UpdateSurfaceDarkMode()
+{
+    SetDarkColorModeToSurfaceNode(GetShadowSurfaceNode(), GetDarkMode());
 }
 
 /** @note @Window.Layout */
@@ -8712,15 +8772,6 @@ void SceneSession::RegisterForceSplitListener(const NotifyForceSplitFunc& func)
     forceSplitFunc_ = func;
 }
 
-void SceneSession::RegisterAppHookWindowInfoFunc(GetHookWindowInfoFunc&& func)
-{
-    if (!func) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, func is null", GetPersistentId());
-        return;
-    }
-    getHookWindowInfoFunc_ = std::move(func);
-}
-
 void SceneSession::RegisterSelectModeFunc(GetSelectModeFunc&& func)
 {
     if (!func) {
@@ -8793,23 +8844,6 @@ WMError SceneSession::GetAppForceLandscapeConfig(AppForceLandscapeConfig& config
     }
     config = forceSplitFunc_(sessionInfo_.bundleName_);
     return WMError::WM_OK;
-}
-
-WMError SceneSession::GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo)
-{
-    return PostSyncTask([weakThis = wptr(this), &hookWindowInfo, where = __func__]() -> WMError {
-        auto session = weakThis.promote();
-        if (!session) {
-            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s session is null", where);
-            return WMError::WM_ERROR_INVALID_SESSION;
-        }
-        if (!session->getHookWindowInfoFunc_) {
-            TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, func is null", session->GetPersistentId());
-            return WMError::WM_ERROR_NULLPTR;
-        }
-        hookWindowInfo = session->getHookWindowInfoFunc_(session->GetSessionInfo().bundleName_);
-        return WMError::WM_OK;
-    }, __func__);
 }
 
 WMError SceneSession::GetSelectMode(SelectMode& selectMode)
@@ -8922,6 +8956,223 @@ bool SceneSession::CheckAndGetAbilityInfoByWant(const std::shared_ptr<AAFwk::Wan
     return specificCallback_->onCheckAndGetAbilityInfoByWantCallback_(want, abilityInfo);
 }
 
+/** @note @window.layout */
+bool SceneSession::ShouldProcessAttachStateChange(bool wasAttached, bool isAttached,
+    bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit, bool& isDetaching)
+{
+    // Only proceed if this is from attach/detach operation
+    if (!windowAnchorInfo_.isFromAttachOrDetach_) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Window id=%{public}d isFromAttachOrDetach_ is false, skip attach state change",
+            GetPersistentId());
+        return false;
+    }
+
+    // Calculate old and new effective intersected limits values
+    // The effective value is the actual result of whether limits intersection applies
+    bool oldEffectiveWidthLimit = wasAttached && oldIsIntersectedWidthLimit;
+    bool oldEffectiveHeightLimit = wasAttached && oldIsIntersectedHeightLimit;
+    bool newEffectiveWidthLimit = isAttached && windowAnchorInfo_.attachOptions.isIntersectedWidthLimit;
+    bool newEffectiveHeightLimit = isAttached && windowAnchorInfo_.attachOptions.isIntersectedHeightLimit;
+
+    // Only proceed if effective limits have actually changed
+    bool widthLimitChanged = (oldEffectiveWidthLimit != newEffectiveWidthLimit);
+    bool heightLimitChanged = (oldEffectiveHeightLimit != newEffectiveHeightLimit);
+
+    if (!widthLimitChanged && !heightLimitChanged) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Win id=%{public}d attachState: wasAttach=%{public}d isAttach=%{public}d, "
+            "widthInt: %{public}d->%{public}d, heightInt: %{public}d->%{public}d, eff unchanged, skip",
+            GetPersistentId(), wasAttached, isAttached,
+            oldIsIntersectedWidthLimit, windowAnchorInfo_.attachOptions.isIntersectedWidthLimit,
+            oldIsIntersectedHeightLimit, windowAnchorInfo_.attachOptions.isIntersectedHeightLimit);
+        return false;
+    }
+
+    // Determine if this is a detach operation
+    isDetaching = (wasAttached && !isAttached);
+
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Window id=%{public}d effective intersected limits changed: "
+        "widthLimit %{public}d->%{public}d, heightLimit %{public}d->%{public}d, isDetaching=%{public}d",
+        GetPersistentId(), oldEffectiveWidthLimit, newEffectiveWidthLimit,
+        oldEffectiveHeightLimit, newEffectiveHeightLimit, isDetaching);
+    return true;
+}
+
+/** @note @window.layout */
+void SceneSession::SyncAllAttachedLimitsToAttachingChild(const sptr<Session>& parentSession)
+{
+    if (!parentSession || !sessionStage_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "parentSession or sessionStage_ is null");
+        return;
+    }
+    auto parentSceneSession = static_cast<SceneSession*>(parentSession.GetRefPtr());
+    if (!parentSceneSession) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "parentSceneSession is null");
+        return;
+    }
+    const auto& parentProperty = parentSceneSession->GetSessionProperty();
+    int32_t parentWinId = parentSceneSession->GetPersistentId();
+    auto parentAttachedLimits = parentProperty->GetAttachedWindowLimitsList();
+    auto parentAttachedOptions = parentProperty->GetAttachedLimitOptionsList();
+    WindowLimits parentOwnLimits = parentProperty->GetLimitsForAttachedWindows();
+    AttachLimitOptions defaultOptions{true, true};
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+    // Parent's own limits first (highest priority)
+    limitsList.emplace_back(parentWinId, parentOwnLimits);
+    optionsList.emplace_back(parentWinId, defaultOptions);
+    // Other attached windows' limits in original order
+    for (const auto& [sourceId, limits] : parentAttachedLimits) {
+        limitsList.emplace_back(sourceId, limits);
+        AttachLimitOptions options = defaultOptions;
+        for (const auto& [optSourceId, opt] : parentAttachedOptions) {
+            if (optSourceId == sourceId) {
+                options = opt;
+                break;
+            }
+        }
+        optionsList.emplace_back(sourceId, options);
+    }
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Sync parent id=%{public}d to attaching child id=%{public}d, total=%{public}zu",
+        parentWinId, GetPersistentId(), limitsList.size());
+    sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+}
+
+/** @note @window.layout */
+void SceneSession::NotifyRelatedWindowsAttachStateChange(const sptr<Session>& parentSession,
+    bool wasAttached, bool isAttached, bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit)
+{
+    bool isDetaching = false;
+    if (!ShouldProcessAttachStateChange(wasAttached, isAttached, oldIsIntersectedWidthLimit,
+        oldIsIntersectedHeightLimit, isDetaching)) {
+        return;
+    }
+
+    auto property = GetSessionProperty();
+    int32_t winId = GetPersistentId();
+
+    if (isDetaching) {
+        // Detaching: remove this window's limits from parent and siblings' maps
+        // Also clear this window's list
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Window id=%{public}d is detaching, notifying related windows", winId);
+
+        // Clear this window's list
+        property->ClearAttachedWindowLimitsList();
+        property->ClearAttachedLimitOptionsList();
+
+        // Notify parent (main window will propagate to siblings automatically)
+        if (parentSession) {
+            parentSession->RequestRemoveAttachedWindowLimits(winId);
+        }
+    } else {
+        // Attaching or limits changed: notify related windows with updated limits info
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Window id=%{public}d notifying related windows with limits info", winId);
+
+        // When first attaching, sync parent's full limits list to this child
+        if (!wasAttached && isAttached) {
+            SyncAllAttachedLimitsToAttachingChild(parentSession);
+        }
+
+        WindowLimits newLimits = property->GetLimitsForAttachedWindows();
+        bool newIsIntersectedHeightLimit = windowAnchorInfo_.attachOptions.isIntersectedHeightLimit;
+        bool newIsIntersectedWidthLimit = windowAnchorInfo_.attachOptions.isIntersectedWidthLimit;
+
+        // Notify parent (main window will propagate to siblings and notify back)
+        // Exclude self to avoid redundant update
+        if (parentSession) {
+            parentSession->RequestUpdateAttachedWindowLimits(winId, newLimits,
+                newIsIntersectedHeightLimit, newIsIntersectedWidthLimit, winId);
+        }
+    }
+}
+
+/** @note @window.layout */
+bool SceneSession::ShouldNotifyAttachedWindow(const sptr<SceneSession>& subSession) const
+{
+    return subSession && subSession->windowAnchorInfo_.isAnchoredByAttach_ &&
+           (subSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit ||
+            subSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit);
+}
+
+/** @note @window.layout */
+WSError SceneSession::NotifyAttachedWindowsLimitsChanged(const WindowLimits& newLimits)
+{
+    // Post async task to business thread
+    PostTask([weakThis = wptr(this), newLimits, where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
+            return;
+        }
+
+        // Save the limits that are notified to attached windows
+        session->GetSessionProperty()->SetLimitsForAttachedWindows(newLimits);
+
+        int32_t winId = session->GetPersistentId();
+        bool isIntersectedHeightLimit = session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit;
+        bool isIntersectedWidthLimit = session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit;
+        WindowType windowType = session->GetWindowType();
+        if (WindowHelper::IsMainWindow(windowType)) {
+            // Main window: propagate limits to all attached children (exclude self to skip redundant update)
+            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s win id=%{public}d is main window, notifying attached children",
+                where, winId);
+            // Use default intersect flags for main window
+            session->RequestUpdateAttachedWindowLimits(winId, newLimits, true, true, winId);
+        } else if (WindowHelper::IsSubWindow(windowType)) {
+            // Child window: only notify parent, parent will notify siblings automatically
+            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s window id=%{public}d is child window, notifying parent",
+                where, winId);
+
+            auto parentSession = session->GetParentSession();
+            if (parentSession) {
+                TLOGND(WmsLogTag::WMS_LAYOUT,
+                    "%{public}s notifying parent window id=%{public}d about limits change",
+                    where, parentSession->GetPersistentId());
+                // Parent will record child's limits and notify all children (including siblings)
+                parentSession->RequestUpdateAttachedWindowLimits(winId, newLimits,
+                    isIntersectedHeightLimit, isIntersectedWidthLimit, winId);
+            } else {
+                TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s parent session not found for window id=%{public}d",
+                    where, winId);
+            }
+        }
+    }, __func__);
+
+    return WSError::WS_OK;
+}
+
+/** @note @window.layout */
+void SceneSession::NotifyRelatedWindowsOnDestruction()
+{
+    // Only proceed if this window had attach relationship with intersected limits
+    if (!windowAnchorInfo_.isAnchoredByAttach_ ||
+        (!windowAnchorInfo_.attachOptions.isIntersectedWidthLimit &&
+         !windowAnchorInfo_.attachOptions.isIntersectedHeightLimit)) {
+        return;
+    }
+
+    int32_t winId = GetPersistentId();
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Window id=%{public}d is being destroyed, notifying related windows", winId);
+
+    WindowType windowType = GetWindowType();
+    if (WindowHelper::IsMainWindow(windowType)) {
+        // Main window: propagate limits removal to all attached children (exclude self)
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d being destroyed, notifying attached children", winId);
+        RequestRemoveAttachedWindowLimits(winId, winId);  // Exclude self
+    } else if (WindowHelper::IsSubWindow(windowType)) {
+        // Child window: only notify parent, parent will notify siblings automatically
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Child window id=%{public}d being destroyed, notifying parent", winId);
+
+        auto parentSession = GetParentSession();
+        if (parentSession) {
+            TLOGD(WmsLogTag::WMS_LAYOUT, "Notifying parent window id=%{public}d to remove limits",
+                parentSession->GetPersistentId());
+            // Parent will remove child's limits and notify other children (siblings) to remove child's limits
+            parentSession->RequestRemoveAttachedWindowLimits(winId);
+        } else {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "Parent session not found for window id=%{public}d", winId);
+        }
+    }
+}
 
 void SceneSession::SetWindowAnchorInfoChangeFunc(NotifyWindowAnchorInfoChangeFunc&& func)
 {
@@ -8985,7 +9236,13 @@ WSError SceneSession::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorIn
         return ret;
     }
 
-    PostTask([weakThis = wptr(this), windowAnchorInfo, weakParentSession = wptr(parentSession), where = __func__] {
+    // Store old attach state and intersected limits to detect state changes
+    bool oldIsAnchoredByAttach = windowAnchorInfo_.isAnchoredByAttach_;
+    bool oldIsIntersectedWidthLimit = windowAnchorInfo_.attachOptions.isIntersectedWidthLimit;
+    bool oldIsIntersectedHeightLimit = windowAnchorInfo_.attachOptions.isIntersectedHeightLimit;
+
+    PostTask([weakThis = wptr(this), windowAnchorInfo, weakParentSession = wptr(parentSession),
+        oldIsAnchoredByAttach, oldIsIntersectedWidthLimit, oldIsIntersectedHeightLimit, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s session is null", where);
@@ -8996,6 +9253,7 @@ WSError SceneSession::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorIn
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s parentSession is null", where);
             return;
         }
+
         session->windowAnchorInfo_ = windowAnchorInfo;
         if (session->onWindowAnchorInfoChangeFunc_) {
             session->onWindowAnchorInfoChangeFunc_(windowAnchorInfo);
@@ -9010,6 +9268,10 @@ WSError SceneSession::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorIn
         } else {
             TLOGI(WmsLogTag::WMS_SUB, "func is null");
         }
+
+        // Notify related windows about attach/detach for limits intersection
+        session->NotifyRelatedWindowsAttachStateChange(parentSession, oldIsAnchoredByAttach,
+            windowAnchorInfo.isAnchoredByAttach_, oldIsIntersectedWidthLimit, oldIsIntersectedHeightLimit);
     });
     return WSError::WS_OK;
 }
@@ -9630,6 +9892,32 @@ WindowDecoration SceneSession::GetWindowDecoration() const
     WindowDecoration decoration{0, getTopDecorInPx(), 0, 0};
     TLOGD(WmsLogTag::WMS_DECOR, "decoration: %{public}s", decoration.ToString().c_str());
     return decoration;
+}
+
+WSError SceneSession::ConfigDockAutoHide(bool isDockAutoHide)
+{
+    if (!IsSessionValid()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "Session is invalid, id: %{public}d state: %{public}u",
+            GetPersistentId(), GetSessionState());
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "sessionStage_ is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "property is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    if (sessionInfo_.abilityInfo == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "abilityInfo is nullptr!");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    systemConfig_.isDockAutoHide_ = isDockAutoHide;
+    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "windowId: %{public}d isDockAutoHide: %{public}d",
+        GetPersistentId(), isDockAutoHide);
+    return sessionStage_->ConfigDockAutoHide(isDockAutoHide);
 }
 
 void SceneSession::SetNeedSyncSessionRect(bool needSync)

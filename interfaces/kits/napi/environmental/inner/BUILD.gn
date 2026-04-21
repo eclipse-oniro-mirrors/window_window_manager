@@ -1,0 +1,62 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("../../../../../windowmanager_aafwk.gni")
+
+config("windowenv_manager_config") {
+  visibility = [ ":*" ]
+  include_dirs = [ "../../../../../wm/include" ]
+}
+
+ohos_shared_library("windowenv_napi") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+  sources = [
+    "js_windowenv_manager.cpp",
+    "js_windowenv_module.cpp",
+  ]
+
+  deps = [
+    "../../../../../utils:libwmutil",
+    "../../../../../utils:libwmutil_base",
+    "../../../../../wm:libwm",
+    "../../extension_window:extensionwindow_napi",
+    "../../window_runtime:window_native_kit",
+  ]
+
+  external_deps = [
+    "ability_runtime:ability_context_native",
+    "ability_runtime:abilitykit_native",
+    "ability_runtime:runtime",
+    "ace_engine:ace_uicontent",
+    "ace_engine:ace_xcomponent_controller",
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "napi:ace_napi",
+  ]
+  relative_install_dir = "module"
+  part_name = "window_manager"
+  subsystem_name = "window"
+
+  defines = []
+  if (build_variant == "user") {
+    defines += [ "IS_RELEASE_VERSION" ]
+  }
+}

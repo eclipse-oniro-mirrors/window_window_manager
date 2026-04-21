@@ -88,6 +88,7 @@ public:
     bool ConvertScreenIdToRsScreenId(ScreenId screenId, ScreenId& rsScreenId);
     bool IsFoldable();
     bool IsCaptured();
+    bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
     FoldStatus GetFoldStatus();
     FoldDisplayMode GetFoldDisplayMode();
     FoldDisplayMode GetFoldDisplayModeForExternal();
@@ -1287,6 +1288,16 @@ bool DisplayManager::IsCaptured()
 bool DisplayManager::Impl::IsCaptured()
 {
     return SingletonContainer::Get<DisplayManagerAdapter>().IsCaptured();
+}
+
+bool DisplayManager::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    return pImpl_->IsCapturedByBundleNameList(bundleNameList);
+}
+
+bool DisplayManager::Impl::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    return SingletonContainer::Get<DisplayManagerAdapter>().IsCapturedByBundleNameList(bundleNameList);
 }
 
 FoldStatus DisplayManager::GetFoldStatus()

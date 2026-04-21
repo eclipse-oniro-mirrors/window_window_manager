@@ -573,7 +573,7 @@ HWTEST_F(WindowSessionImplLayoutTest, HookWindowSizeByDrawableRectHook, TestSize
     hookWindowInfo.drawableRectHook = false;
     window->SetAppHookWindowInfo(hookWindowInfo);
     Rect drawableRect = { 0, 0, defaultSize, defaultSize };
-    if (window->GetAppHookWindowInfo().drawableRectHook) {
+    if (window->GetProperty()->GetHookWindowInfo().drawableRectHook) {
         window->HookWindowSizeByHookWindowInfo(drawableRect);
     }
     EXPECT_EQ(drawableRect.width_, defaultSize);
@@ -582,7 +582,7 @@ HWTEST_F(WindowSessionImplLayoutTest, HookWindowSizeByDrawableRectHook, TestSize
     hookWindowInfo.drawableRectHook = true;
     window->SetAppHookWindowInfo(hookWindowInfo);
     drawableRect = { 0, 0, defaultSize, defaultSize };
-    if (window->GetAppHookWindowInfo().drawableRectHook) {
+    if (window->GetProperty()->GetHookWindowInfo().drawableRectHook) {
         window->HookWindowSizeByHookWindowInfo(drawableRect);
     }
     EXPECT_NE(drawableRect.width_, defaultSize);

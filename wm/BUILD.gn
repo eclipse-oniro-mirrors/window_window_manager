@@ -328,6 +328,7 @@ ohos_shared_library("libwm") {
   ]
 
   defines = []
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   if (defined(global_parts_info) &&
       defined(global_parts_info.barrierfree_accessibility)) {
@@ -363,7 +364,7 @@ ohos_shared_library("libwm") {
   }
 
   if (is_ohos && is_clang && target_cpu == "arm64") {
-    ldflags = [
+    ldflags += [
       "-Wl,--emit-relocs",
       "-Wl,--no-relax",
       "-mno-fix-cortex-a53-843419"
@@ -453,6 +454,7 @@ ohos_shared_library("libwm_lite") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("test") {
@@ -476,7 +478,7 @@ ohos_shared_library("libwm_ndk") {
 
   include_dirs = [
     "${window_base_path}/interfaces/kits/ndk/wm",
-    "${window_base_path}/interfaces/inner_kits/wm",
+    "${window_base_path}/interfaces/innerkits/wm",
   ]
 
   sources = [
@@ -596,6 +598,7 @@ ohos_shared_library("libpip_web") {
     "samgr:samgr_proxy",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -630,7 +633,7 @@ ohos_shared_library("libpip_ndk") {
   include_dirs = [
     "//foundation/window/window_manager",
     "//foundation/window/window_manager/interfaces/innerkits",
-    "//foundation/window/window_manager/interfaces/inner_kits/wm",
+    "//foundation/window/window_manager/interfaces/innerkits/wm",
     "//foundation/window/window_manager/interfaces/kits/ndk/wm",
     "//foundation/window/window_manager/wm/include",
   ]

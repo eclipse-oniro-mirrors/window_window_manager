@@ -979,6 +979,7 @@ napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
     TLOGI(WmsLogTag::DMS, "called");
     DmErrorCode errCode = DmErrorCode::DM_OK;
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::JS_SCREEN_MANAGER;
     size_t argc = 4;
     std::string errMsg = "";
     napi_value argv[4] = {nullptr};

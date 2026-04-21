@@ -52,6 +52,11 @@ public:
     virtual void OnTentModeChange(const TentMode tentMode) = 0;
 };
 
+class ITransRSEventListener : virtual public RefBase {
+public:
+    virtual void OnTransRSEvent(const sptr<RSEventDataBase>& param) = 0;
+};
+
 class ScreenSessionManagerClient : public ScreenSessionManagerClientStub {
 WM_DECLARE_SINGLE_INSTANCE_BASE(ScreenSessionManagerClient)
 
@@ -144,6 +149,9 @@ public:
     bool OnFoldPropertyChange(ScreenId screenId, const ScreenProperty& property,
         ScreenPropertyChangeReason reason, FoldDisplayMode displayMode, ScreenProperty& midProperty) override;
     void RegisterTentModeChangeListener(ITentModeListener* listener);
+    void OnTransRSEvent(const sptr<RSEventDataBase>& param) override;
+    void RegisterTransRSEventListener(const RSExposedEventType& type, const sptr<ITransRSEventListener>& listener);
+    void UnRegisterTransRSEventListener(const RSExposedEventType& type, const sptr<ITransRSEventListener>& listener);
 
     /*
      * RS Client Multi Instance
@@ -219,6 +227,8 @@ private:
     std::set<std::string> animateFinishNotificationSet_;
     mutable std::shared_mutex animateFinishDescriptionSetMutex_;
     mutable std::mutex animateFinishNotificationSetMutex_;
+    std::mutex transToRSEventMutex_;
+    std::unordered_map<RSExposedEventType, std::vector<sptr<ITransRSEventListener>>> transRSEventListener_;
 };
 } // namespace OHOS::Rosen
 

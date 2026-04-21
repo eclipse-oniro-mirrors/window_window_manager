@@ -93,6 +93,10 @@ public:
 
     void SetBundleName(const std::string& bundleName) { bundleName_ = bundleName; }
 
+    const std::string& GetModuleName() const { return moduleName_; }
+
+    void SetModuleName(const std::string& moduleName) { moduleName_ = moduleName; }
+
     const std::string& GetAbilityName() const { return abilityName_; }
 
     void SetAbilityName(const std::string& abilityName) { abilityName_ = abilityName; }
@@ -155,6 +159,7 @@ public:
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
     Rect globalRect_ { 0, 0, 0, 0 };
     std::string bundleName_;
+    std::string moduleName_;
     std::string abilityName_;
     bool isFocused_ = false;
     int32_t appIndex_ { 0 };

@@ -202,6 +202,7 @@ ohos_shared_library("libwmutil_base") {
     "init:libbegetutil",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -275,12 +276,13 @@ ohos_shared_library("libwmutil") {
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
   if (is_ohos && is_clang && target_cpu == "arm64") {
-    ldflags = [
+    ldflags += [
         "-Wl,--emit-relocs",
         "-Wl,--no-relax",
         "-mno-fix-cortex-a53-843419"

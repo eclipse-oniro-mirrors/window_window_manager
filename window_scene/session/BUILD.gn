@@ -98,7 +98,7 @@ ohos_source_set("ui_effect_controller") {
   deps = [
     "${window_base_path}/utils:ui_effect_controller_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    
+
     ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -203,7 +203,7 @@ ohos_static_library("scene_session_static") {
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
   }
-  
+
   defines = []
 
   if (defined(global_parts_info) &&
@@ -348,6 +348,7 @@ ohos_shared_library("scene_session") {
     "samgr:samgr_proxy",
     "zlib:shared_libz",
   ]
+
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
   }
@@ -402,6 +403,7 @@ ohos_shared_library("scene_session") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 screen_session_sources = [
@@ -479,6 +481,7 @@ ohos_shared_library("screen_session") {
   sources = screen_session_sources
   deps = screen_session_deps
   external_deps = screen_session_external_deps
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   defines = []
   if (window_manager_feature_screen_color_gamut) {

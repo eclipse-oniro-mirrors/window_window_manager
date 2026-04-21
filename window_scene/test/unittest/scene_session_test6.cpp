@@ -2169,6 +2169,33 @@ HWTEST_F(SceneSessionTest6, PreCalcWindowPropertyWithValues, Function | SmallTes
         EXPECT_EQ(result.height, testCase.height);
     }
 }
+
+/**
+ * @tc.name: ConfigDockAutoHide
+ * @tc.desc: ConfigDockAutoHide test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, ConfigDockAutoHide, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    session->sessionInfo_.isSystem_ = false;
+    session->state_ = SessionState::STATE_FOREGROUND;
+    bool isDockAutoHide = true;
+    auto ret = session->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_NE(ret, WSError::WS_ERROR_INVALID_SESSION);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session->sessionStage_ = mockSessionStage;
+    session->ConfigDockAutoHide(isDockAutoHide);
+    WSError res = session->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_EQ(WSError::WS_OK, res);
+    session->sessionInfo_.isSystem_ = true;
+    ret = session->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -92,6 +92,7 @@ public:
     virtual bool ConvertScreenIdToRsScreenId(ScreenId screenId, ScreenId& rsScreenId);
     virtual bool IsFoldable();
     virtual bool IsCaptured();
+    virtual bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
     virtual FoldStatus GetFoldStatus();
     virtual FoldDisplayMode GetFoldDisplayMode();
     virtual void SetFoldDisplayMode(const FoldDisplayMode);

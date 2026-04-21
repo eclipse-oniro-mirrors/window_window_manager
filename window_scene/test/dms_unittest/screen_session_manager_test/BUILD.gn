@@ -78,6 +78,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/src/multi_screen_power_change_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/multi_screen_mode_change_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/publish/screen_session_publish.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/rs_event_data_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_aod_plugin.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_cutout_controller.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_edid_parse.cpp",

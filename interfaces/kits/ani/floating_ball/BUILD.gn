@@ -10,13 +10,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
- 
+
 import("//build/ohos.gni")
 import("../../../../windowmanager_aafwk.gni")
- 
+
 config("fbwindow_common_config") {
   visibility = [ ":*" ]
- 
+
   include_dirs = [
     "../common",
     "../../../../wm/include",
@@ -24,10 +24,10 @@ config("fbwindow_common_config") {
     "../../arkui/ace_engine/interfaces/inner_api/xcomponent_controller",
   ]
 }
- 
+
 config("fbwindow_kit_public_config") {
   visibility = [ ":*" ]
- 
+
   include_dirs = [ "floating_ball_ani/include" ]
 }
 
@@ -41,21 +41,21 @@ ohos_shared_library("fbwindowani_kit") {
     debug = false
     cfi_policy = "adaptive"
   }
-  sources = [ 
+  sources = [
     "floating_ball_ani/src/ani_fb_window.cpp",
     "floating_ball_ani/src/ani_fb_window_controller.cpp",
     "floating_ball_ani/src/ani_fb_window_utils.cpp",
     "floating_ball_ani/src/ani_fb_window_listener.cpp"
   ]
- 
+
   configs = [
     ":fbwindow_common_config",
     ":fbwindow_kit_public_config",
     "../../../../resources/config/build:coverage_flags",
   ]
- 
+
   public_configs = [ ":fbwindow_kit_public_config" ]
- 
+
   deps = [
     "${window_base_path}/wm:libwm",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
@@ -92,6 +92,7 @@ ohos_shared_library("fbwindowani_kit") {
     "runtime_core:ani_helpers",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
