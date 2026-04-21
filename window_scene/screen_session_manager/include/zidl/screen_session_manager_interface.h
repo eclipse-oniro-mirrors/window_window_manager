@@ -282,6 +282,7 @@ public:
 
     virtual bool IsFoldable() { return false; }
     virtual bool IsCaptured() { return false; }
+    virtual bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList) { return false; }
 
     virtual FoldStatus GetFoldStatus() { return FoldStatus::UNKNOWN; }
     virtual SuperFoldStatus GetSuperFoldStatus() { return SuperFoldStatus::UNKNOWN; }

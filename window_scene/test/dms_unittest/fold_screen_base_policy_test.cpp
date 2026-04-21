@@ -603,6 +603,21 @@ HWTEST_F(FoldScreenBasePolicyTest, GetScreenActiveModeRectMapTest01, TestSize.Le
     EXPECT_EQ(result[FoldDisplayMode::FULL], rect);
     FoldScreenBasePolicy::GetInstance().screenActiveModeRectMap_[FoldDisplayMode::FULL] = rectOld;
 }
+
+/**
+ * @tc.name: GetScreenActiveModeRectMap
+ * @tc.desc: test function : GetScreenActiveModeRectMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, GetScreenActiveModeRectMap, TestSize.Level1)
+{
+    FoldScreenBasePolicy* policy = mockBasePolicy.get();
+    policy->screenActiveModeRectMap_.clear();
+    RRect bounds = RRect{{0, 0, 100, 100}, 0.0f, 0.0f};
+    policy->screenActiveModeRectMap_.insert(std::make_pair(FoldDisplayMode::MAIN, bounds));
+    auto map = policy->GetScreenActiveModeRectMap();
+    EXPECT_EQ(map.size(), 1);
+}
 }
 }
 } // namespace Rosen

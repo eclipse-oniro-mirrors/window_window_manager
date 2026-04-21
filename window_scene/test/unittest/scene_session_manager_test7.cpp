@@ -1324,7 +1324,7 @@ HWTEST_F(SceneSessionManagerTest7, TestReportIncompleteScreenFoldStatusChangeEve
 HWTEST_F(SceneSessionManagerTest7, SetAppForceLandscapeConfig, TestSize.Level1)
 {
     std::string bundleName = "SetAppForceLandscapeConfig";
-    AppForceLandscapeConfig config = { 0, false, false, {}, {}, {}, false, false, false, false };
+    AppForceLandscapeConfig config = { {}, {}, {}, false, false, false, false };
     WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
     ASSERT_EQ(result, WSError::WS_OK);
 }
@@ -1351,13 +1351,9 @@ HWTEST_F(SceneSessionManagerTest7, SetAppForceLandscapeConfig02, TestSize.Level1
 {
     std::string bundleName = "com.example.app";
     AppForceLandscapeConfig config;
-    config.mode_ = 5; // 5: FORCE_SPLIT_MODE
-    config.supportSplit_ = 5;
 
     WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
     EXPECT_EQ(result, WSError::WS_OK);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].mode_, 5);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].supportSplit_, 5);
 }
 
 /**
@@ -1369,31 +1365,12 @@ HWTEST_F(SceneSessionManagerTest7, SetAppForceLandscapeConfig03, TestSize.Level1
 {
     std::string bundleName = "com.example.app";
     AppForceLandscapeConfig preConfig;
-    preConfig.mode_ = 0;
-    preConfig.supportSplit_ = -1;
     ssm_->appForceLandscapeMap_[bundleName] = preConfig;
 
     AppForceLandscapeConfig config;
-    config.mode_ = 5; // 5: FORCE_SPLIT_MODE
-    config.supportSplit_ = 5;
 
     WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
     EXPECT_EQ(result, WSError::WS_OK);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].mode_, 5);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].supportSplit_, 5);
-}
-
-/**
- * @tc.name: GetAppForceLandscapeConfig
- * @tc.desc: SceneSesionManager GetAppForceLandscapeConfig
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest7, GetAppForceLandscapeConfig, TestSize.Level1)
-{
-    std::string bundleName = "GetAppForceLandscapeConfig";
-    AppForceLandscapeConfig config = ssm_->GetAppForceLandscapeConfig(bundleName);
-    EXPECT_EQ(config.mode_, 0);
-    EXPECT_EQ(config.supportSplit_, -1);
 }
 
 /**

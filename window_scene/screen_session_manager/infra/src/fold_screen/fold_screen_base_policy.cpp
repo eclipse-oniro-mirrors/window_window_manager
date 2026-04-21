@@ -1010,4 +1010,9 @@ FoldDisplayMode FoldScreenBasePolicy::GetCurrentDisplayMode() const
     std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
     return currentDisplayMode_;
 }
+
+const std::map<FoldDisplayMode, RRect>& FoldScreenBasePolicy::GetScreenActiveModeRectMap() const
+{
+    return screenActiveModeRectMap_;
+}
 } // namespace OHOS::Rosen

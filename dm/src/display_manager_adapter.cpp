@@ -1245,6 +1245,17 @@ bool DisplayManagerAdapter::IsCaptured()
     return false;
 }
 
+bool DisplayManagerAdapter::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    INIT_PROXY_CHECK_RETURN(false);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->IsCapturedByBundleNameList(bundleNameList);
+    }
+
+    return false;
+}
+
 FoldStatus DisplayManagerAdapter::GetFoldStatus()
 {
     INIT_PROXY_CHECK_RETURN(FoldStatus::UNKNOWN);

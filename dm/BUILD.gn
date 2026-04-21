@@ -159,6 +159,7 @@ ohos_shared_library("libdm") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("test") {
@@ -189,7 +190,7 @@ ohos_shared_library("libdm_ndk") {
   include_dirs = [
     ".",
     "${window_base_path}/interfaces/kits/dmndk/dm",
-    "${window_base_path}/interfaces/inner_kits/dm",
+    "${window_base_path}/interfaces/innerkits/dm",
   ]
 
   sources = [ "src/oh_display_manager.cpp" ]

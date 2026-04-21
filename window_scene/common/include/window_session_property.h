@@ -87,6 +87,7 @@ public:
     void SetWindowLimitsVP(const WindowLimits& windowLimits);
     void SetUserWindowLimits(const WindowLimits& windowLimits);
     void SetConfigWindowLimitsVP(const WindowLimits& windowLimitsVP);
+    void SetLimitsForAttachedWindows(const WindowLimits& windowLimits);
     void SetLastLimitsVpr(float vpr);
     void SetSystemBarProperty(WindowType type, const SystemBarProperty& property);
     void SetKeyboardLayoutParams(const KeyboardLayoutParams& params);
@@ -166,6 +167,7 @@ public:
     WindowLimits GetWindowLimitsVP() const;
     WindowLimits GetUserWindowLimits() const;
     WindowLimits GetConfigWindowLimitsVP() const;
+    WindowLimits GetLimitsForAttachedWindows() const;
     float GetLastLimitsVpr() const;
     uint32_t GetWindowModeSupportType() const;
     std::unordered_map<WindowType, SystemBarProperty> GetSystemBarProperty() const;
@@ -213,6 +215,8 @@ public:
     static void UnmarshallingShadowsInfo(Parcel& parcel, WindowSessionProperty* property);
     bool MarshallingWindowAnchorInfo(Parcel& parcel) const;
     static void UnmarshallingWindowAnchorInfo(Parcel& parcel, WindowSessionProperty* property);
+    bool MarshallingHookWindowInfo(Parcel& parcel) const;
+    static void UnmarshallingHookWindowInfo(Parcel& parcel, WindowSessionProperty* property);
 
     void SetTextFieldPositionY(double textFieldPositionY);
     void SetTextFieldHeight(double textFieldHeight);
@@ -256,6 +260,22 @@ public:
     bool IsSubWindowZLevelAboveParentLoosened() const;
     void SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo);
     WindowAnchorInfo GetWindowAnchorInfo() const;
+    // Set attached window limits from a specific source window (by persistentId)
+    void SetAttachedWindowLimits(int32_t sourcePersistentId, const WindowLimits& attachedWindowLimits);
+    // Remove attached window limits from a specific source window
+    void RemoveAttachedWindowLimits(int32_t sourcePersistentId);
+    // Get all attached window limits (preserving insertion order)
+    std::vector<std::pair<int32_t, WindowLimits>> GetAttachedWindowLimitsList() const;
+    void ClearAttachedWindowLimitsList();
+    // Set limit options for a specific attached window
+    void SetAttachedLimitOptions(int32_t sourcePersistentId, const AttachLimitOptions& options);
+    // Get limit options for a specific attached window
+    AttachLimitOptions GetAttachedLimitOptions(int32_t sourcePersistentId) const;
+    // Remove limit options for a specific attached window
+    void RemoveAttachedLimitOptions(int32_t sourcePersistentId);
+    // Get all attached limit options (preserving insertion order)
+    std::vector<std::pair<int32_t, AttachLimitOptions>> GetAttachedLimitOptionsList() const;
+    void ClearAttachedLimitOptionsList();
 
     /*
      * Window Hierarchy
@@ -282,6 +302,10 @@ public:
     bool GetPcAppInpadOrientationLandscape() const;
     void SetMobileAppInPadLayoutFullScreen(bool isMobileAppInPadLayoutFullScreen);
     bool GetMobileAppInPadLayoutFullScreen() const;
+    void SetForceSplitEnable(bool isForceSplitEnabled);
+    bool GetForceSplitEnable() const;
+    void SetHookWindowInfo(const HookWindowInfo& hookWindowInfo);
+    HookWindowInfo GetHookWindowInfo() const;
     void SetRotationLocked(bool locked);
     bool GetRotationLocked() const;
 
@@ -528,6 +552,7 @@ private:
     WindowLimits limitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
     WindowLimits userLimits_ = WindowLimits::DEFAULT_VP_LIMITS();
     WindowLimits configLimitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
+    WindowLimits limitsForAttachedWindows_ = WindowLimits::DEFAULT_VP_LIMITS();
     float lastVpr_ = 0.0f;
     PiPTemplateInfo pipTemplateInfo_ = {};
     FloatingBallTemplateInfo fbTemplateInfo_ = {};
@@ -593,6 +618,14 @@ private:
     bool subWindowOutlineEnabled_ = false;
     bool zLevelAboveParentLoosened_ = false;
     WindowAnchorInfo windowAnchorInfo_;
+    // Store window limits from attached windows (preserving insertion order for priority)
+    // Parent window stores limits from its sub windows, sub window stores limits from its parent
+    // Earlier attached windows have higher priority in intersection calculation
+    std::vector<std::pair<int32_t, WindowLimits>> attachedWindowLimitsList_;
+    // Store limit options for each attached window (preserving insertion order to match limits list)
+    // Parent window stores options from its sub windows (which limits to intersect)
+    // Each pair contains: <sourceWindowId, AttachLimitOptions>
+    std::vector<std::pair<int32_t, AttachLimitOptions>> attachedLimitOptionsList_;
 
     /*
      * Window Hierarchy
@@ -668,10 +701,14 @@ private:
     mutable std::mutex shadowsInfoMutex_;
     mutable std::mutex globalDisplayRectMutex_;
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
+    mutable std::mutex hookWindowInfoMutex_;
+    HookWindowInfo hookWindowInfo_;
     bool isPcAppInpadCompatibleMode_ = false;
     bool isPcAppInpadSpecificSystemBarInvisible_ = false;
     bool isPcAppInpadOrientationLandscape_ = false;
     bool isMobileAppInPadLayoutFullScreen_ = false;
+    mutable std::mutex isForceSplitEnabledMutex_;
+    bool isForceSplitEnabled_ = false;
     bool isRotationLock_ = false;
 
     /*
@@ -844,9 +881,6 @@ struct FreeMultiWindowConfig : public Parcelable {
 };
 
 struct AppForceLandscapeConfig : public Parcelable {
-    int32_t mode_ = 0;
-    int32_t supportSplit_ = -1;
-    bool ignoreOrientation_ = false;
     std::string sysConfigJsonStr_ = "";
     std::string appConfigJsonStr_ = "";
     std::string sysHomePage_ = "";
@@ -857,20 +891,15 @@ struct AppForceLandscapeConfig : public Parcelable {
     bool hasChanged_ = true;
     bool configEnable_ = false;
     AppForceLandscapeConfig() {}
-    AppForceLandscapeConfig(int32_t mode, int32_t supportSplit, bool ignoreOrientation,
-        const std::string& sysConfigJsonStr, const std::string& appConfigJsonStr,
+    AppForceLandscapeConfig(const std::string& sysConfigJsonStr, const std::string& appConfigJsonStr,
         const std::string& sysHomePage, bool isSysRouter, bool isAppRouter,
-        bool containsSysConfig, bool containsAppConfig) : mode_(mode), supportSplit_(supportSplit),
-        ignoreOrientation_(ignoreOrientation), sysConfigJsonStr_(sysConfigJsonStr),
+        bool containsSysConfig, bool containsAppConfig) : sysConfigJsonStr_(sysConfigJsonStr),
         appConfigJsonStr_(appConfigJsonStr), sysHomePage_(sysHomePage), isSysRouter_(isSysRouter),
         isAppRouter_(isAppRouter), containsSysConfig_(containsSysConfig), containsAppConfig_(containsAppConfig) {}
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
-        if (!parcel.WriteInt32(mode_) ||
-            !parcel.WriteInt32(supportSplit_) ||
-            !parcel.WriteBool(ignoreOrientation_) ||
-            !parcel.WriteString(sysConfigJsonStr_) ||
+        if (!parcel.WriteString(sysConfigJsonStr_) ||
             !parcel.WriteString(appConfigJsonStr_) ||
             !parcel.WriteString(sysHomePage_) ||
             !parcel.WriteBool(isSysRouter_) ||
@@ -888,10 +917,7 @@ struct AppForceLandscapeConfig : public Parcelable {
         if (config == nullptr) {
             return nullptr;
         }
-        if (!parcel.ReadInt32(config->mode_) ||
-            !parcel.ReadInt32(config->supportSplit_) ||
-            !parcel.ReadBool(config->ignoreOrientation_) ||
-            !parcel.ReadString(config->sysConfigJsonStr_) ||
+        if (!parcel.ReadString(config->sysConfigJsonStr_) ||
             !parcel.ReadString(config->appConfigJsonStr_) ||
             !parcel.ReadString(config->sysHomePage_) ||
             !parcel.ReadBool(config->isSysRouter_) ||
@@ -905,10 +931,7 @@ struct AppForceLandscapeConfig : public Parcelable {
 
     static bool IsSameForceSplitConfig(const AppForceLandscapeConfig& preconfig, const AppForceLandscapeConfig& config)
     {
-        if (preconfig.mode_ != config.mode_ ||
-            preconfig.supportSplit_ != config.supportSplit_ ||
-            preconfig.ignoreOrientation_ != config.ignoreOrientation_ ||
-            preconfig.containsSysConfig_ != config.containsSysConfig_ ||
+        if (preconfig.containsSysConfig_ != config.containsSysConfig_ ||
             preconfig.containsAppConfig_ != config.containsAppConfig_) {
             return false;
         }

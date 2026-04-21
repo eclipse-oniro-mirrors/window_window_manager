@@ -738,6 +738,14 @@ public:
     bool IsCaptured();
 
     /**
+     * @brief Check whether the device is captured by apps in bundle name list.
+     *
+     * @param bundleNameList The list of bundle names to check.
+     * @return true means the device is captured by apps in the list.
+     */
+    bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
+
+    /**
      * @brief Get the current fold status of the foldable device.
      *
      * @return locked fold status if set; otherwise, return the current(actual) fold status.

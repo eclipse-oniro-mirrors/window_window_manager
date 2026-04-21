@@ -46,6 +46,7 @@ constexpr size_t ARGC_TWO = 2;
 constexpr size_t ARGC_THREE = 3;
 constexpr size_t ARGS_MAX = 4;
 constexpr int32_t INDEX_ONE = 1;
+constexpr size_t BUNDLE_NAME_LIST_MAX_SIZE = 100;
 class JsDisplayManager {
 public:
 explicit JsDisplayManager(napi_env env) {
@@ -1026,16 +1027,51 @@ napi_value OnIsFoldable(napi_env env, napi_callback_info info)
 napi_value OnIsCaptured(napi_env env, napi_callback_info info)
 {
     std::string functionName = "isCaptured";
-    size_t argc = 4;  // default arg length
-    napi_value argv[4] = { nullptr };  // default arg length
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc >= ARGC_ONE) {
-        napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
-            GetFormatMsg(functionName, "Input parameter invalid")));
-        return NapiGetUndefined(env);
+
+    if (argc > ARGC_ONE) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+            "Input parameter invalid", functionName);
     }
-    bool isCapture = SingletonContainer::Get<DisplayManager>().IsCaptured();
-    TLOGD(WmsLogTag::DMS, "[NAPI]IsCaptured = %{public}u", isCapture);
+
+    if (argc == 0) {
+        bool isCapture = SingletonContainer::Get<DisplayManager>().IsCaptured();
+        TLOGD(WmsLogTag::DMS, "[NAPI]IsCaptured = %{public}u", isCapture);
+        napi_value result;
+        napi_get_boolean(env, isCapture, &result);
+        return result;
+    }
+
+    napi_value nativeArray = argv[0];
+    uint32_t size = 0;
+    if (GetType(env, nativeArray) != napi_object ||
+        napi_get_array_length(env, nativeArray, &size) != napi_ok) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+            "Failed to convert parameter to bundleNameList array", functionName);
+    }
+
+    if (size > BUNDLE_NAME_LIST_MAX_SIZE) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+            "The size of bundleNameList is larger than 100", functionName);
+    }
+
+    std::vector<std::string> bundleNameList;
+    for (uint32_t i = 0; i < size; i++) {
+        std::string bundleName;
+        napi_value element = nullptr;
+        napi_get_element(env, nativeArray, i, &element);
+        if (!ConvertFromJsValue(env, element, bundleName)) {
+            return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+                "Failed to convert parameter to bundle name", functionName);
+        }
+        bundleNameList.push_back(bundleName);
+    }
+
+    bool isCapture = SingletonContainer::Get<DisplayManager>().IsCapturedByBundleNameList(bundleNameList);
+    TLOGI(WmsLogTag::DMS, "[NAPI] BundleNameList size: %{public}zu, isCapturedByBundleNameList: %{public}u.",
+        bundleNameList.size(), isCapture);
     napi_value result;
     napi_get_boolean(env, isCapture, &result);
     return result;
@@ -1194,6 +1230,7 @@ napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
     TLOGI(WmsLogTag::DMS, "called");
     DmErrorCode errCode = DmErrorCode::DM_OK;
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::JS_DISPLAY_MANAGER;
     size_t argc = 4;
     std::string errMsg = "";
     napi_value argv[4] = {nullptr};

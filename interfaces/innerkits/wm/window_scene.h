@@ -137,7 +137,7 @@ public:
      *
      * @return the error code of window
      */
-    WMError GoPause();
+    WMError GoPause(bool isGamePreLaunch = false);
 
     /**
      * Window handle new want.

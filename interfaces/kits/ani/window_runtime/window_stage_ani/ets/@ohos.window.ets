@@ -568,6 +568,8 @@ namespace window {
     currentLayoutMode?: string;
     parentWindowSizeChangeCallback? :Callback<Size>;
     parentWindowStatusChangeCallback? :Callback<WindowStatusType>;
+    isIntersectedHeightLimit?: boolean;
+    isIntersectedWidthLimit?: boolean;
   }
 
   export interface Rect {
@@ -982,6 +984,7 @@ export interface WindowInfo {
   globalRect?: Rect;
   displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;
@@ -994,6 +997,7 @@ export class WindowInfoInternal implements WindowInfo {
   globalRect?: Rect;
   displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;

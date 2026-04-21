@@ -149,6 +149,7 @@ ohos_shared_library("window_native_kit") {
   }
 
   version_script = "libwindow_native_kit.map"
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 ohos_shared_library("window_napi") {
@@ -257,4 +258,5 @@ ohos_shared_library("windowstage_kit") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }

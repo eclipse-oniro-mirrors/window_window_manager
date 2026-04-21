@@ -379,6 +379,54 @@ WMError SubSession::NotifySetParentSession(int32_t oldParentWindowId, int32_t ne
     }, __func__);
 }
 
+/** @note @window.layout */
+WSError SubSession::RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId,
+    const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit, bool isIntersectedWidthLimit,
+    int32_t excludePersistentId)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "sessionStage_ is null for sub window id=%{public}d", GetPersistentId());
+        return WSError::WS_ERROR_NULLPTR;
+    }
+
+    // Sub window: only update own limits
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Sub window id=%{public}d updating limits from source id=%{public}d",
+        GetPersistentId(), sourcePersistentId);
+    const auto& property = GetSessionProperty();
+    property->SetAttachedWindowLimits(sourcePersistentId, attachedWindowLimits);
+    AttachLimitOptions limitOptions;
+    limitOptions.isIntersectedHeightLimit = isIntersectedHeightLimit;
+    limitOptions.isIntersectedWidthLimit = isIntersectedWidthLimit;
+    property->SetAttachedLimitOptions(sourcePersistentId, limitOptions);
+    return sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedWindowLimits,
+        isIntersectedHeightLimit, isIntersectedWidthLimit);
+}
+
+/** @note @window.layout */
+WSError SubSession::RequestRemoveAttachedWindowLimits(int32_t sourcePersistentId,
+    int32_t excludePersistentId)
+{
+    int32_t winId = GetPersistentId();
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "sessionStage_ is null for sub window id=%{public}d", winId);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+
+    const auto& property = GetSessionProperty();
+    if (sourcePersistentId == winId) {
+        // This window is detaching - clear all attached limits lists
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id=%{public}u is detaching, clearing all attached limits", winId);
+        property->ClearAttachedWindowLimitsList();
+        property->ClearAttachedLimitOptionsList();
+    } else {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id=%{public}d removing limits from source id=%{public}d",
+            winId, sourcePersistentId);
+        property->RemoveAttachedWindowLimits(sourcePersistentId);
+        property->RemoveAttachedLimitOptions(sourcePersistentId);
+    }
+    return sessionStage_->RemoveAttachedWindowLimits(sourcePersistentId);
+}
+
 void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
 {
     auto movedSurfaceNode = GetMoveDragTargetSurfaceNode();

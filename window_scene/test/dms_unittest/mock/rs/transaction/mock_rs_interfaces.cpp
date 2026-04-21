@@ -274,5 +274,16 @@ ScreenId RSInterfaces::GetActiveScreenId()
 {
     return 0;
 }
+
+int32_t RSInterfaces::RegisterExposedEventCallback(
+    const RSExposedEventType type, const RSExposedEventCallback& callback)
+{
+    return 0;
+}
+
+int32_t RSInterfaces::UnRegisterExposedEventCallback(const RSExposedEventType type)
+{
+    return 0;
+}
 }  // namespace Rosen
 }  // namespace OHOS

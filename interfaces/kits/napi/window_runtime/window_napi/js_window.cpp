@@ -7769,12 +7769,10 @@ bool JsWindow::ParseWindowAnchorInfo(napi_env env, napi_value jsObject, WindowAn
 bool JsWindow::ParseWindowAttachOptions(napi_env env, napi_value jsObject,
     WindowAnchorInfo::AttachOptions& subWindowAttachOptions)
 {
-    std::string data = "";
-    std::string defaultValue = "";
     if (GetType(env, jsObject) != napi_object) {
         return false;
     }
-    auto parseField = [](napi_env& env, const char* fieldName, std::string& data, auto& field, auto& defValue,
+    auto parseField = [](napi_env& env, const char* fieldName, auto& data, auto& field, const auto& defValue,
             napi_value& jsObject) -> bool {
         if (!ParseJsValueOrGetDefault(jsObject, env, fieldName, data, defValue)) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert object to %{public}s", fieldName);
@@ -7784,9 +7782,25 @@ bool JsWindow::ParseWindowAttachOptions(napi_env env, napi_value jsObject,
         return true;
     };
 
+    std::string data = "";
+    std::string defaultValue = "";
     if (!parseField(env, "currentLayoutMode", data, subWindowAttachOptions.currentLayoutMode, defaultValue, jsObject)) {
         return false;
     }
+
+    const bool defaultBoolValue = false;
+    bool boolData = false;
+    if (!parseField(env, "isIntersectedHeightLimit", boolData, subWindowAttachOptions.isIntersectedHeightLimit,
+        defaultBoolValue, jsObject)) {
+        return false;
+    }
+
+    boolData = defaultBoolValue;
+    if (!parseField(env, "isIntersectedWidthLimit", boolData, subWindowAttachOptions.isIntersectedWidthLimit,
+        defaultBoolValue, jsObject)) {
+        return false;
+    }
+
     return true;
 }
 
@@ -8074,10 +8088,15 @@ napi_value JsWindow::OnAttachToParentWindow(napi_env env, napi_callback_info inf
     napi_value result = nullptr;
     std::shared_ptr napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     acceptAnchorInfo.attachOptions.currentLayoutMode = windowAttachOptions.currentLayoutMode;
+    acceptAnchorInfo.attachOptions.isIntersectedHeightLimit = windowAttachOptions.isIntersectedHeightLimit;
+    acceptAnchorInfo.attachOptions.isIntersectedWidthLimit = windowAttachOptions.isIntersectedWidthLimit;
     acceptAnchorInfo.isFromAttachOrDetach_ = true;
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offsetY:%{public}d"
-        "currentLayoutMode:%{public}s", acceptAnchorInfo.windowAnchor_, acceptAnchorInfo.offsetX_,
-        acceptAnchorInfo.offsetY_, acceptAnchorInfo.attachOptions.currentLayoutMode.c_str());
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offsetY:%{public}d, "
+        "currentLayoutMode:%{public}s, isIntersectedHeightLimit:%{public}d, isIntersectedWidthLimit:%{public}d",
+        acceptAnchorInfo.windowAnchor_, acceptAnchorInfo.offsetX_, acceptAnchorInfo.offsetY_,
+        acceptAnchorInfo.attachOptions.currentLayoutMode.c_str(),
+        acceptAnchorInfo.attachOptions.isIntersectedHeightLimit,
+        acceptAnchorInfo.attachOptions.isIntersectedWidthLimit);
     napi_ref sizeChangeCallbackRef = nullptr;
     if (sizeChangeCallback != nullptr) {
         napi_valuetype valueType;

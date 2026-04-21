@@ -89,8 +89,7 @@ private:
     int HandleRestoreMainWindow(MessageParcel& data, MessageParcel& reply);
     int HandleRestoreFloatMainWindow(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppForceLandscapeConfig(MessageParcel& data, MessageParcel& reply);
-    int HandleGetAppForceLandscapeConfigEnable(MessageParcel& data, MessageParcel& reply);
-    int HandleGetAppHookWindowInfoFromServer(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyAttachedWindowsLimitsChanged(MessageParcel& data, MessageParcel& reply);
     int HandleGetSelectMode(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyWindowStatusDidChangeAfterShowWindow(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyParentWindowSizeChange(MessageParcel& data, MessageParcel& reply);

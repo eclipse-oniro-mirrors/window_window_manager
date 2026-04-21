@@ -350,6 +350,7 @@ HWTEST_F(FloatWindowManagerTest, StopBindFloatView, TestSize.Level1)
     EXPECT_CALL(*mockFvController, IsBind()).WillRepeatedly(Return(false));
     
     FloatWindowManager::Bind(mockFvController, fbController_, *fbOption_);
+    mockFvController->curState_ = FvWindowState::FV_STATE_STARTED;
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, FloatWindowManager::StopBindFloatView(mockFvController));
 
     EXPECT_CALL(*mw_, Destroy(_)).WillRepeatedly(Return(WMError::WM_OK));

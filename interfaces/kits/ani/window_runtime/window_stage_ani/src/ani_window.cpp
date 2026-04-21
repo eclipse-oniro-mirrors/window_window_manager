@@ -5416,6 +5416,49 @@ void AniWindow::OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boo
     }
 }
 
+static void RegisterAttachOptionCallbacks(sptr<Window> windowToken, ani_env* env, ani_object attachOptions,
+    std::unique_ptr<AniWindowRegisterManager>& registerManager)
+{
+    auto getPropertyAndCheckUndefined = [env](ani_object obj, const char* propName,
+        ani_ref& outRef, std::string_view errorPrefix) -> bool {
+        if (env->Object_GetPropertyByName_Ref(obj, propName, &outRef) != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "%s: Failed to get %s.", errorPrefix.data(), propName);
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                std::string("Failed to get") + propName + ".");
+            return false;
+        }
+        ani_boolean isUndefined;
+        if (env->Reference_IsUndefined(outRef, &isUndefined) != ANI_OK || isUndefined) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check %s isUndefined fail", propName);
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            return false;
+        }
+        return true;
+    };
+
+    ani_ref parentWindowSizeChangeCallback;
+    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowSizeChangeCallback",
+        parentWindowSizeChangeCallback, "parentWindowSizeChangeCallback")) {
+        return;
+    }
+    if (parentWindowSizeChangeCallback && registerManager->RegisterListener(windowToken, "parentWindowSizeChange",
+        CaseType::CASE_WINDOW, env, parentWindowSizeChangeCallback, 0) != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+
+    ani_ref parentWindowStatusChangeCallback;
+    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowStatusChangeCallback",
+        parentWindowStatusChangeCallback, "parentWindowStatusChangeCallback")) {
+        return;
+    }
+    if (parentWindowStatusChangeCallback && registerManager->RegisterListener(windowToken, "parentWindowStatusChange",
+        CaseType::CASE_WINDOW, env, parentWindowStatusChangeCallback, 0) != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+}
+
 void AniWindow::AttachLayoutToParentWindow(ani_env* env, ani_object Obj, ani_long nativeObj, ani_object anchorInfo,
     ani_object attachOptions)
 {
@@ -5432,22 +5475,35 @@ void AniWindow::AttachLayoutToParentWindow(ani_env* env, ani_object Obj, ani_lon
 static void ParseAttachOptions(sptr<Window> windowToken, ani_env* env, ani_object attachOptions,
     std::unique_ptr<AniWindowRegisterManager>& registerManager, WindowAnchorInfo::AttachOptions& options)
 {
-    auto getPropertyAndCheckUndefined = [env](ani_object obj, const char* propName,
-        ani_ref& outRef, std::string_view errorPrefix) -> bool {
-            if (env->Object_GetPropertyByName_Ref(obj, propName, &outRef) != ANI_OK) {
-                TLOGE(WmsLogTag::WMS_LAYOUT, "%s: Failed to get %s.", errorPrefix.data(), propName);
-                AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-                    std::string("Failed to get") + propName + ".");
-                return false;
-            }
-            ani_boolean isUndefined;
-            if (env->Reference_IsUndefined(outRef, &isUndefined) != ANI_OK || isUndefined) {
-                TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check %s isUndefined fail", propName);
+    // Helper lambda to parse boolean property from attachOptions
+    auto parseBooleanProperty = [env, attachOptions](const char* propName, bool& outValue) -> bool {
+        ani_ref valueRet;
+        if (env->Object_GetPropertyByName_Ref(attachOptions, propName, &valueRet) != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to get %s.", propName);
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                std::string("Failed to get ") + propName + ".");
+            return false;
+        }
+        ani_boolean isUndefined;
+        if (env->Reference_IsUndefined(valueRet, &isUndefined) != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check %s isUndefined fail", propName);
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            return false;
+        }
+        if (!isUndefined) {
+            ani_boolean boolValue;
+            if (env->Object_CallMethodByName_Boolean(static_cast<ani_object>(valueRet),
+                "toBoolean", ":z", &boolValue) != ANI_OK) {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to get boolean value for %s.", propName);
                 AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
                 return false;
             }
-            return true;
-        };
+            outValue = static_cast<bool>(boolValue);
+        }
+        return true;
+    };
+
+    // Parse currentLayoutMode
     ani_ref nameValueRet;
     if (env->Object_GetPropertyByName_Ref(attachOptions, "currentLayoutMode", &nameValueRet) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to get currentLayoutMode.");
@@ -5466,26 +5522,18 @@ static void ParseAttachOptions(sptr<Window> windowToken, ani_env* env, ani_objec
         static_cast<ani_string>(nameValueRet));
         options.currentLayoutMode = currentLayoutMode;
     }
-    ani_ref parentWindowSizeChangeCallback;
-    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowSizeChangeCallback",
-        parentWindowSizeChangeCallback, "parentWindowSizeChangeCallback")) {
+
+    // Parse isIntersectedHeightLimit
+    if (!parseBooleanProperty("isIntersectedHeightLimit", options.isIntersectedHeightLimit)) {
         return;
     }
-    if (parentWindowSizeChangeCallback && registerManager->RegisterListener(windowToken, "parentWindowSizeChange",
-        CaseType::CASE_WINDOW, env, parentWindowSizeChangeCallback, 0) != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+
+    // Parse isIntersectedWidthLimit
+    if (!parseBooleanProperty("isIntersectedWidthLimit", options.isIntersectedWidthLimit)) {
         return;
     }
-    ani_ref parentWindowStatusChangeCallback;
-    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowStatusChangeCallback",
-        parentWindowStatusChangeCallback, "parentWindowStatusChangeCallback")) {
-        return;
-    }
-    if (parentWindowStatusChangeCallback && registerManager->RegisterListener(windowToken, "parentWindowStatusChange",
-        CaseType::CASE_WINDOW, env, parentWindowStatusChangeCallback, 0) != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return;
-    }
+
+    RegisterAttachOptionCallbacks(windowToken, env, attachOptions, registerManager);
 }
 
 void AniWindow::OnAttachToParentWindow(ani_env* env, ani_object anchorInfo,
@@ -5531,10 +5579,17 @@ void AniWindow::OnAttachToParentWindow(ani_env* env, ani_object anchorInfo,
     WindowAnchorInfo windowAnchorInfo = { true, true, acceptWindowAnchorInfo.windowAnchor_,
         acceptWindowAnchorInfo.offsetX_, acceptWindowAnchorInfo.offsetY_};
     windowAnchorInfo.attachOptions.currentLayoutMode = acceptWindowAnchorInfo.attachOptions.currentLayoutMode;
+    windowAnchorInfo.attachOptions.isIntersectedHeightLimit =
+        acceptWindowAnchorInfo.attachOptions.isIntersectedHeightLimit;
+    windowAnchorInfo.attachOptions.isIntersectedWidthLimit =
+        acceptWindowAnchorInfo.attachOptions.isIntersectedWidthLimit;
     windowAnchorInfo.isFromAttachOrDetach_ = true;
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offset:%{public}d currentLayoutMode:"
-        "%{public}s", windowAnchorInfo.windowAnchor_, windowAnchorInfo.offsetX_, windowAnchorInfo.offsetY_,
-        windowAnchorInfo.attachOptions.currentLayoutMode.c_str());
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offset:%{public}d "
+        "currentLayoutMode:%{public}s, isIntersectedHeightLimit:%{public}d, isIntersectedWidthLimit:%{public}d",
+        windowAnchorInfo.windowAnchor_, windowAnchorInfo.offsetX_, windowAnchorInfo.offsetY_,
+        windowAnchorInfo.attachOptions.currentLayoutMode.c_str(),
+        windowAnchorInfo.attachOptions.isIntersectedHeightLimit,
+        windowAnchorInfo.attachOptions.isIntersectedWidthLimit);
     auto setWindowAnchorInfoRet = windowToken_->SetWindowAnchorInfo(windowAnchorInfo);
     auto it = WM_JS_TO_ERROR_CODE_MAP.find(setWindowAnchorInfoRet);
     WmErrorCode errorCode = (it != WM_JS_TO_ERROR_CODE_MAP.end()) ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;

@@ -392,6 +392,19 @@ HWTEST_F(FoldScreenBaseControllerTest, GetCurrentDisplayMode, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetScreenActiveModeRectMap
+ * @tc.desc: test function : GetScreenActiveModeRectMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBaseControllerTest, GetScreenActiveModeRectMap, TestSize.Level1)
+{
+    auto controller = FoldScreenBaseController();
+    auto screenActiveModeRectMapTemp = FoldScreenBasePolicy::GetInstance().GetScreenActiveModeRectMap();
+    auto screenActiveModeRectMap = controller.GetScreenActiveModeRectMap();
+    EXPECT_EQ(screenActiveModeRectMapTemp.size(), screenActiveModeRectMap.size());
+}
+
+/**
  * @tc.name: SortCreaseRegionRects
  * @tc.desc: test function : SortCreaseRegionRects
  * @tc.type: FUNC

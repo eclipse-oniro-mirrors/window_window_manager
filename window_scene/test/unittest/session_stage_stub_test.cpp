@@ -1021,6 +1021,23 @@ HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleConfigDockAutoHide
+ * @tc.desc: test function : HandleConfigDockAutoHide
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleConfigDockAutoHide, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_CONFIG_DOCK_AUTO_HIDE);
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteBool(true);
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    ASSERT_EQ(0, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
  * @tc.name: HandleGetUIContentRemoteObj
  * @tc.desc: test function : HandleGetUIContentRemoteObj
  * @tc.type: FUNC
@@ -1625,22 +1642,6 @@ HWTEST_F(SessionStageStubTest, HandleUpdateGlobalDisplayRectFromServerSuccess, T
 }
 
 /**
- * @tc.name: HandleNotifyAppHookWindowInfoUpdated
- * @tc.desc: test function : HandleNotifyAppHookWindowInfoUpdated
- * @tc.type: FUNC
- */
-HWTEST_F(SessionStageStubTest, HandleNotifyAppHookWindowInfoUpdated, TestSize.Level1)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
-    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_APP_HOOK_WINDOW_INFO_UPDATED);
-    ASSERT_TRUE(sessionStageStub_ != nullptr);
-    EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
-}
-
-/**
  * @tc.name: HandleUpdateAppHookWindowInfo
  * @tc.desc: test function : HandleUpdateAppHookWindowInfo
  * @tc.type: FUNC
@@ -1950,6 +1951,63 @@ HWTEST_F(SessionStageStubTest, HandleSyncFvLimits, TestSize.Level1)
     MessageParcel reply2;
     data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
     ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data2, reply2, option));
+}
+
+/**
+ * @tc.name: HandleSetForceSplitEnable01
+ * @tc.desc: test function : HandleSetForceSplitEnable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetForceSplitEnable01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    // Case 1: Success
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    bool isForceSplitEnabled = true;
+    bool needUpdateViewport = false;
+    uint32_t selectModeValue = static_cast<uint32_t>(SelectMode::WIDE_MODE);
+    data.WriteBool(isForceSplitEnabled);
+    data.WriteBool(needUpdateViewport);
+    data.WriteUint32(selectModeValue);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
+ * @tc.name: HandleSetForceSplitEnable02
+ * @tc.desc: test function : HandleSetForceSplitEnable with read failure
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetForceSplitEnable02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    // Case 1: Failed to read isForceSplitEnabled
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    ASSERT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+
+    // Case 2: Failed to read needUpdateViewport
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data2.WriteBool(true);
+    ASSERT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data2, reply2, option));
+
+    // Case 3: Failed to read selectMode
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data3.WriteBool(true);
+    data3.WriteBool(false);
+    ASSERT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data3, reply3, option));
 }
 } // namespace
 } // namespace Rosen

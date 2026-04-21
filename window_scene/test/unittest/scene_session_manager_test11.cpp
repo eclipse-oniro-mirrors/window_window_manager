@@ -1730,6 +1730,7 @@ HWTEST_F(SceneSessionManagerTest11, WindowVisibilityInfoMarshallingDisplayAndGlo
     info.rect_ = { 1, 2, 300, 400 };
     info.globalDisplayRect_ = { 5, 6, 700, 800 };
     info.SetDisplayId(66);
+    info.SetModuleName("entry");
     info.SetGlobalRect({ 10, 20, 100, 200 });
 
     MessageParcel parcel;
@@ -1738,6 +1739,7 @@ HWTEST_F(SceneSessionManagerTest11, WindowVisibilityInfoMarshallingDisplayAndGlo
     WindowVisibilityInfo* unmarshalled = WindowVisibilityInfo::Unmarshalling(parcel);
     ASSERT_NE(unmarshalled, nullptr);
     EXPECT_EQ(unmarshalled->GetDisplayId(), 66);
+    EXPECT_EQ(unmarshalled->GetModuleName(), "entry");
     EXPECT_EQ(unmarshalled->GetGlobalRect().posX_, 10);
     EXPECT_EQ(unmarshalled->GetGlobalRect().posY_, 20);
     EXPECT_EQ(unmarshalled->GetGlobalRect().width_, 100);

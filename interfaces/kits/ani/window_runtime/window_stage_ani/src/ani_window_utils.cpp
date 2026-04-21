@@ -873,6 +873,12 @@ ani_object AniWindowUtils::CreateAniWindowInfo(ani_env* env, const WindowVisibil
         return AniWindowUtils::CreateAniUndefined(env);
     }
     CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("bundleName").c_str(), nullptr, bundleName);
+    ani_string moduleName;
+    if (GetAniString(env, info.GetModuleName(), &moduleName) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("moduleName").c_str(), nullptr, moduleName);
     ani_string abilityName;
     if (GetAniString(env, info.GetAbilityName(), &abilityName) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");

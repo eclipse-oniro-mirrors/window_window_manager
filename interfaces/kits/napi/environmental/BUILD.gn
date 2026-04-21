@@ -25,6 +25,14 @@ name_mapping = [
   {
     js_file = "$target_out_dir/engine/WindowFocusEnv.js"
     abc_name = "windowfocusenv"
+  },
+  {
+    js_file = "$target_out_dir/engine/SystemDensityEnv.js"
+    abc_name = "systemdensityenv"
+  },
+  {
+    js_file = "$target_out_dir/engine/DisplayIdEnv.js"
+    abc_name = "displayidenv"
   }
 ]
 

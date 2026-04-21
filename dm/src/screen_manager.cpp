@@ -729,6 +729,9 @@ ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
     if (virtualScreenAgent_ == nullptr) {
         virtualScreenAgent_ = new DisplayManagerAgentDefault();
     }
+    if (option.caller_ == VirtualScreenCaller::UNKNOWN) {
+        option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    }
     return SingletonContainer::Get<ScreenManagerAdapter>().CreateVirtualScreen(option, virtualScreenAgent_);
 }
 

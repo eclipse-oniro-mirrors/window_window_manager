@@ -91,6 +91,11 @@
             OHOS::Rosen::ScreenProperty::UpdateScreenRotation*;
             OHOS::Rosen::ScreenProperty::SetRogScreenResolution*;
             OHOS::Rosen::ScreenProperty::UpdateVirtualPixelRatio*;
+            OHOS::Rosen::ScreenProperty::GetScreenRotation*;
+            OHOS::Rosen::ScreenProperty::GetDisplayMode*;
+            OHOS::Rosen::ScreenProperty::SetDisplayOrientation*;
+            OHOS::Rosen::ScreenProperty::SetDeviceOrientation*;
+            OHOS::Rosen::ScreenProperty::GetDeviceOrientation*;
             OHOS::Rosen::ScreenSession::AddHdrFormats*;
             OHOS::Rosen::ScreenSession::AddRotationCorrection*;
             OHOS::Rosen::ScreenSession::BeforeScreenPropertyChange*;

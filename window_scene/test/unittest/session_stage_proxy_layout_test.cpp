@@ -284,41 +284,240 @@ HWTEST_F(SessionStageProxyLayoutTest, NotifyGlobalScaledRectChange, TestSize.Lev
 }
 
 /**
- * @tc.name: NotifyAppHookWindowInfoUpdated
- * @tc.desc: test function : NotifyAppHookWindowInfoUpdated
+ * @tc.name: UpdateAttachedWindowLimits01
+ * @tc.desc: Test UpdateAttachedWindowLimits with valid limits
  * @tc.type: FUNC
  */
-HWTEST_F(SessionStageProxyLayoutTest, NotifyAppHookWindowInfoUpdated, TestSize.Level1)
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits01, TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "SessionStageProxyLayoutTest: NotifyAppHookWindowInfoUpdated start";
-    MockMessageParcel::ClearAllErrorFlag();
-    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
-    sptr<SessionStageProxy> sessionStageProxy = sptr<SessionStageProxy>::MakeSptr(remoteMocker);
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    int32_t sourcePersistentId = 1001;
+    WindowLimits attachedLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    bool isIntersectedHeightLimit = true;
+    bool isIntersectedWidthLimit = true;
 
-    // Case 1: Failed to write interface token
+    WSError res = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits,
+        isIntersectedHeightLimit, isIntersectedWidthLimit);
+    EXPECT_EQ(WSError::WS_OK, res);
+}
+
+/**
+ * @tc.name: UpdateAttachedWindowLimits02
+ * @tc.desc: Test UpdateAttachedWindowLimits with WriteInterfaceToken error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    WSError errCode = sessionStageProxy->NotifyAppHookWindowInfoUpdated();
-    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+
+    int32_t sourcePersistentId = 1002;
+    WindowLimits attachedLimits = { 1800, 900, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WSError res = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, false, true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
 
-    // Case 2: remote is nullptr
-    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
-    errCode = nullProxy->NotifyAppHookWindowInfoUpdated();
-    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+/**
+ * @tc.name: UpdateAttachedWindowLimits03
+ * @tc.desc: Test UpdateAttachedWindowLimits with VP unit limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits03, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    int32_t sourcePersistentId = 1003;
+    WindowLimits attachedLimits = { 1000, 500, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
 
-    // Case 3: Failed to send request
-    remoteMocker->SetRequestResult(ERR_TRANSACTION_FAILED);
-    errCode = sessionStageProxy->NotifyAppHookWindowInfoUpdated();
-    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
-    remoteMocker->SetRequestResult(ERR_NONE);
+    WSError res = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, true, false);
+    EXPECT_EQ(WSError::WS_OK, res);
+}
 
-    // Case 4: Success
-    errCode = sessionStageProxy->NotifyAppHookWindowInfoUpdated();
-    MockMessageParcel::SetReadInt32ErrorFlag(false);
-    EXPECT_EQ(errCode, WSError::WS_OK);
+/**
+ * @tc.name: UpdateAttachedWindowLimits04
+ * @tc.desc: Test UpdateAttachedWindowLimits with null remote object
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits04, TestSize.Level1)
+{
+    // Create proxy with null remote object
+    auto sessionStage = sptr<SessionStageProxy>::MakeSptr(nullptr);
+
+    int32_t sourcePersistentId = 1004;
+    WindowLimits attachedLimits = { 1600, 800, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WSError res = sessionStage->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, true, true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
+/**
+ * @tc.name: UpdateAttachedWindowLimits05
+ * @tc.desc: Test UpdateAttachedWindowLimits with WriteInt32 error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits05, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+
+    int32_t sourcePersistentId = 1005;
+    WindowLimits attachedLimits = { 1700, 900, 120, 220, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WSError res = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, true, false);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: UpdateAttachedWindowLimits06
+ * @tc.desc: Test UpdateAttachedWindowLimits with Marshalling error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits06, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+
+    int32_t sourcePersistentId = 1006;
+    WindowLimits attachedLimits = { 1750, 950, 130, 230, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WSError res = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, false, true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: UpdateAttachedWindowLimits07
+ * @tc.desc: Test UpdateAttachedWindowLimits with WriteBool(isIntersectedHeightLimit) error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits07, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteBoolErrorCount(0);
+
+    int32_t sourcePersistentId = 1007;
+    WindowLimits attachedLimits = { 1800, 980, 140, 240, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WSError res = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, true, true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
 
     MockMessageParcel::ClearAllErrorFlag();
-    GTEST_LOG_(INFO) << "SessionStageProxyLayoutTest: NotifyAppHookWindowInfoUpdated end";
+}
+
+/**
+ * @tc.name: UpdateAttachedWindowLimits08
+ * @tc.desc: Test UpdateAttachedWindowLimits with WriteBool(isIntersectedWidthLimit) error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits08, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteBoolErrorCount(1);
+
+    int32_t sourcePersistentId = 1008;
+    WindowLimits attachedLimits = { 1850, 970, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WSError res = sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, true, true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: UpdateAttachedWindowLimits09
+ * @tc.desc: Test UpdateAttachedWindowLimits with SendRequest error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, UpdateAttachedWindowLimits09, TestSize.Level1)
+{
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+
+    int32_t sourcePersistentId = 1009;
+    WindowLimits attachedLimits = { 1900, 990, 160, 260, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WSError res = failSendProxy->UpdateAttachedWindowLimits(sourcePersistentId, attachedLimits, true, true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
+/**
+ * @tc.name: RemoveAttachedWindowLimits01
+ * @tc.desc: Test RemoveAttachedWindowLimits with valid sourceId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, RemoveAttachedWindowLimits01, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    int32_t sourcePersistentId = 2001;
+
+    WSError res = sessionStage_->RemoveAttachedWindowLimits(sourcePersistentId);
+    EXPECT_EQ(WSError::WS_OK, res);
+}
+
+/**
+ * @tc.name: RemoveAttachedWindowLimits02
+ * @tc.desc: Test RemoveAttachedWindowLimits with WriteInterfaceToken error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, RemoveAttachedWindowLimits02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+
+    int32_t sourcePersistentId = 2002;
+    WSError res = sessionStage_->RemoveAttachedWindowLimits(sourcePersistentId);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
+
+/**
+ * @tc.name: RemoveAttachedWindowLimits03
+ * @tc.desc: Test RemoveAttachedWindowLimits with null remote object
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, RemoveAttachedWindowLimits03, TestSize.Level1)
+{
+    // Create proxy with null remote object
+    auto sessionStage = sptr<SessionStageProxy>::MakeSptr(nullptr);
+
+    int32_t sourcePersistentId = 2003;
+    WSError res = sessionStage->RemoveAttachedWindowLimits(sourcePersistentId);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
+/**
+ * @tc.name: RemoveAttachedWindowLimits04
+ * @tc.desc: Test RemoveAttachedWindowLimits with WriteInt32 error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, RemoveAttachedWindowLimits04, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+
+    int32_t sourcePersistentId = 2004;
+    WSError res = sessionStage_->RemoveAttachedWindowLimits(sourcePersistentId);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: RemoveAttachedWindowLimits05
+ * @tc.desc: Test RemoveAttachedWindowLimits with SendRequest error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, RemoveAttachedWindowLimits05, TestSize.Level1)
+{
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+
+    int32_t sourcePersistentId = 2005;
+    WSError res = failSendProxy->RemoveAttachedWindowLimits(sourcePersistentId);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
 }
 
 /**
@@ -365,6 +564,165 @@ HWTEST_F(SessionStageProxyLayoutTest, UpdateAppHookWindowInfo, TestSize.Level1)
     MockMessageParcel::ClearAllErrorFlag();
     GTEST_LOG_(INFO) << "SessionStageProxyLayoutTest: UpdateAppHookWindowInfo end";
 }
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild01
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with valid lists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild01, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+
+    limitsList.emplace_back(1001, WindowLimits{ 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1001, AttachLimitOptions{ true, true });
+
+    limitsList.emplace_back(1002, WindowLimits{ 1800, 900, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1002, AttachLimitOptions{ true, false });
+
+    WSError res = sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_OK, res);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild02
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with empty lists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+
+    WSError res = sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_OK, res);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild03
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with WriteInterfaceToken error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild03, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+    limitsList.emplace_back(1003, WindowLimits{ 1600, 800, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1003, AttachLimitOptions{ false, true });
+
+    WSError res = sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild04
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with null remote object
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild04, TestSize.Level1)
+{
+    auto sessionStage = sptr<SessionStageProxy>::MakeSptr(nullptr);
+
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+    limitsList.emplace_back(1004, WindowLimits{ 1700, 850, 120, 220, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1004, AttachLimitOptions{ true, true });
+
+    WSError res = sessionStage->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild05
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with WriteUint32 error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild05, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+    limitsList.emplace_back(1005, WindowLimits{ 1750, 950, 130, 230, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1005, AttachLimitOptions{ true, false });
+
+    WSError res = sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild06
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with WriteInt32 error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild06, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+    limitsList.emplace_back(1006, WindowLimits{ 1800, 980, 140, 240, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1006, AttachLimitOptions{ false, true });
+
+    WSError res = sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild07
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with WriteBool error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild07, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteBoolErrorCount(0);
+
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+    limitsList.emplace_back(1007, WindowLimits{ 1900, 990, 160, 260, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1007, AttachLimitOptions{ true, true });
+
+    WSError res = sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SyncAllAttachedLimitsToChild08
+ * @tc.desc: Test SyncAllAttachedLimitsToChild with SendRequest error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SyncAllAttachedLimitsToChild08, TestSize.Level1)
+{
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+
+    std::vector<std::pair<int32_t, WindowLimits>> limitsList;
+    std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;
+    limitsList.emplace_back(1008, WindowLimits{ 1950, 995, 170, 270, 0.0f, 0.0f, 0.0f, PixelUnit::PX });
+    optionsList.emplace_back(1008, AttachLimitOptions{ true, true });
+
+    WSError res = failSendProxy->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
