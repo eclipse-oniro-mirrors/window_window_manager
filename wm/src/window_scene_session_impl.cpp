@@ -1421,6 +1421,11 @@ void WindowSceneSessionImpl::ConsumePointerEvent(const std::shared_ptr<MMI::Poin
 
 bool WindowSceneSessionImpl::PreNotifyKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent)
 {
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
+        property_->GetDisplayId() == DISPLAY_ID_C &&
+        DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD) {
+        keyEvent->SetTargetDisplayId(DISPLAY_ID_C);
+    }
     bool isConsumed = false;
     if (auto uiContent = GetUIContentSharedPtr()) {
         isConsumed = uiContent->ProcessKeyEvent(keyEvent, true);
