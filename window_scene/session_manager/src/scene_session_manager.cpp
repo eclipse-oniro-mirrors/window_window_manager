@@ -29,6 +29,7 @@
 #include <hitrace_meter.h>
 #include <parameters.h>
 #include <ui/rs_node.h>
+#include "comp_config_read_util.h"
 #include "ffrt_serial_queue_helper.h"
 #include "parameter.h"
 #include "publish/scb_dump_subscriber.h"
@@ -3767,14 +3768,13 @@ int32_t SceneSessionManager::StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSes
         OHOS::AbilityRuntime::StartParamsBySCB startParams;
         startParams.sceneFlag = windowStateChangeReason;
         startParams.isRestart = sceneSession->GetSessionInfo().isRestartApp_;
-        startParams.pageConfig = sceneSession->GetSessionInfo().pageConfig;
         auto result = AAFwk::AbilityManagerClient::GetInstance()->StartUIAbilityBySCB(abilitySessionInfo, startParams,
             *coldStartFlag);
         CloseAllFd(sceneSession->GetSessionInfo().want);
         HiviewDFX::XCollie::GetInstance().CancelTimer(timerId);
         *retCode = static_cast<int32_t>(result);
-        TLOGNI(WmsLogTag::WMS_LIFE, "start ui ability sceneFlag:%{public}d isRestart:%{public}d pageConfig:%{public}zu retCode: %{public}d",
-            startParams.sceneFlag, startParams.isRestart, startParams.pageConfig.size(), *retCode);
+        TLOGNI(WmsLogTag::WMS_LIFE, "start ui ability sceneFlag:%{public}d isRestart:%{public}d retCode: %{public}d",
+            startParams.sceneFlag, startParams.isRestart, *retCode);
     }, START_UI_ABILITY_TIMEOUT);
 
     if (isTimeout) {
@@ -11872,12 +11872,11 @@ WSError SceneSessionManager::RequestSceneSessionByCall(const sptr<SceneSession>&
             return WSError::WS_ERROR_INVALID_SESSION;
         }
         const auto& sessionInfo = sceneSession->GetSessionInfo();
-        TLOGNI(WmsLogTag::WMS_MAIN, "%{public}s: state:%{public}d, id:%{public}d, pageConfig:%{public}zu",
-            where, sessionInfo.callState_, persistentId, sceneSession->GetSessionInfo().pageConfig.size());
+        TLOGNI(WmsLogTag::WMS_MAIN, "%{public}s: state:%{public}d, id:%{public}d",
+            where, sessionInfo.callState_, persistentId);
         auto abilitySessionInfo = SetAbilitySessionInfo(sceneSession, requestId, true);
         bool isColdStart = false;
         OHOS::AbilityRuntime::StartParamsBySCB startParams;
-        startParams.pageConfig = sceneSession->GetSessionInfo().pageConfig;
         startParams.sceneFlag = static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL);
         AAFwk::AbilityManagerClient::GetInstance()->CallUIAbilityBySCB(abilitySessionInfo, startParams, isColdStart);
         CloseAllFd(sessionInfo.want);
@@ -18185,12 +18184,8 @@ WSError SceneSessionManager::SetAppForceLandscapeConfig(const std::string& bundl
     }
 
     TLOGI(WmsLogTag::WMS_COMPAT,
-        "bundleName:%{public}s, config:[containsSysConfig_%{public}d, isSysRouter_%{public}d, sysHomePage_%{public}s, "
-        "sysConfigJsonStr_%{public}s, containsAppConfig_%{public}d, isAppRouter_%{public}d, "
-        "appConfigJsonStr_%{public}s]",
-        bundleName.c_str(), config.containsSysConfig_, config.isSysRouter_, config.sysHomePage_.c_str(),
-        config.sysConfigJsonStr_.c_str(), config.containsAppConfig_, config.isAppRouter_,
-        config.appConfigJsonStr_.c_str());
+        "bundleName:%{public}s, config:[containsConfig_%{public}d, isRouter_%{public}d, configJsonStr_%{public}s",
+        bundleName.c_str(), config.containsConfig_, config.isRouter_ config.configJsonStr_.c_str());
     return WSError::WS_OK;
 }
 

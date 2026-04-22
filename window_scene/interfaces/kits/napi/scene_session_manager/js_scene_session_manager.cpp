@@ -2307,9 +2307,6 @@ napi_value JsSceneSessionManager::OnRequestSceneSession(napi_env env, napi_callb
             napi_throw(env, CreateJsError(
                 env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY), "System is abnormal"));
         }
-        if (!sessionInfo.pageConfig.empty()) {
-            sceneSession->EditSessionInfo().pageConfig = sessionInfo.pageConfig;
-        }
         if (!sessionInfo.combinedCompatibleConfig.empty()) {
             sceneSession->EditSessionInfo().combinedCompatibleConfig = sessionInfo.combinedCompatibleConfig;
         }
@@ -4816,10 +4813,10 @@ napi_value JsSceneSessionManager::SetAppForceLandscapeConfig(napi_env env, napi_
 
 napi_value JsSceneSessionManager::OnSetAppForceLandscapeConfig(napi_env env, napi_callback_info info)
 {
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = { nullptr };
+    size_t argc = ARGC_TWO;
+    napi_value argv[ARGC_TWO] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != OHOS::Rosen::ARGC_FOUR) {
+    if (argc != OHOS::Rosen::ARGC_TWO) {
         TLOGE(WmsLogTag::DEFAULT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
@@ -4835,36 +4832,20 @@ napi_value JsSceneSessionManager::OnSetAppForceLandscapeConfig(napi_env env, nap
     }
 
     AppForceLandscapeConfig config;
-    napi_value jsContainsSysConfig = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_ONE], "containsSysConfig", &jsContainsSysConfig);
-    RETURN_IF_CONVERT_FAIL(env, jsContainsSysConfig, config.containsSysConfig_, "containsSysConfig",
-        WmsLogTag::DEFAULT);
-    napi_value jsContainsAppConfig = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_ONE], "containsAppConfig", &jsContainsAppConfig);
-    RETURN_IF_CONVERT_FAIL(env, jsContainsAppConfig, config.containsAppConfig_, "containsAppConfig",
-        WmsLogTag::DEFAULT);
-    napi_value jsIsSysRouter = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_TWO], "isRouter", &jsIsSysRouter);
-    ConvertFromJsValue(env, jsIsSysRouter, config.isSysRouter_);
-    napi_value jsSysConfigJsonStr = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_TWO], "configJsonStr", &jsSysConfigJsonStr);
-    ConvertFromJsValue(env, jsSysConfigJsonStr, config.sysConfigJsonStr_);
-    napi_value jsSysHomePage = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_TWO], "homePage", &jsSysHomePage);
-    ConvertFromJsValue(env, jsSysHomePage, config.sysHomePage_);
-    napi_value jsIsAppRouter = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_THREE], "isRouter", &jsIsAppRouter);
-    ConvertFromJsValue(env, jsIsAppRouter, config.isAppRouter_);
-    napi_value jsAppConfigJsonStr = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_THREE], "configJsonStr", &jsAppConfigJsonStr);
-    ConvertFromJsValue(env, jsAppConfigJsonStr, config.appConfigJsonStr_);
+    napi_value containsConfig = nullptr;
+    napi_get_named_property(env, argv[ARG_INDEX_ONE], "containsConfig", &containsConfig);
+    RETURN_IF_CONVERT_FAIL(env, containsConfig, config.containsConfig_, "containsConfig",
+         WmsLogTag::DEFAULT);
+    napi_value jsIsRouter = nullptr;
+    napi_get_named_property(env, argv[ARG_INDEX_ONE], "isRouter", &jsIsRouter);
+    ConvertFromJsValue(env, jsIsRouter, config.isRouter_);
+    napi_value jsConfigJsonStr = nullptr;
+    napi_get_named_property(env, argv[ARG_INDEX_ONE], "configJsonStr", &jsConfigJsonStr);
+    ConvertFromJsValue(env, jsConfigJsonStr, config.configJsonStr_);
 
-    TLOGI(WmsLogTag::DEFAULT, "SetAppForceLandscapeConfig bundleName: %{public}s, containsSysConfig: %{public}d, "
-        "containsAppConfig: %{public}d, isSysRouter: %{public}d, sysConfigJsonStr: %{public}s, "
-        "sysHomePage: %{public}s, isAppRouter: %{public}d, appConfigJsonStr: %{public}s",
-        bundleName.c_str(), config.containsSysConfig_, config.containsAppConfig_, config.isSysRouter_,
-        config.sysConfigJsonStr_.c_str(), config.sysHomePage_.c_str(), config.isAppRouter_,
-        config.appConfigJsonStr_.c_str());
+    TLOGI(WmsLogTag::DEFAULT, "SetAppForceLandscapeConfig bundleName: %{public}s, "
+        "containsConfig: %{public}d, isRouter: %{public}d, configJsonStr: %{public}s",
+        bundleName.c_str(), config.containsConfig_, config.isRouter_, config.configJsonStr_.c_str());
     SceneSessionManager::GetInstance().SetAppForceLandscapeConfig(bundleName, config);
     return NapiGetUndefined(env);
 }
