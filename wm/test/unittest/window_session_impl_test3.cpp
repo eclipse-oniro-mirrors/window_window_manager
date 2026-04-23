@@ -176,9 +176,10 @@ HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig, TestSize.Level1)
     window_ = GetTestWindowImpl("SetForceSplitConfig");
     ASSERT_NE(window_, nullptr);
 
-    AppForceLandscapeConfig config = { {}, false, false };
+    AppForceLandscapeConfig config = {};
     window_->SetForceSplitConfig(config);
     window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    config.hasChanged_ = false;
     window_->SetForceSplitConfig(config);
     config.hasChanged_ = true;
     window_->SetForceSplitConfig(config);
