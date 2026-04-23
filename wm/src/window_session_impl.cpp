@@ -2663,7 +2663,7 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
 
     AppForceLandscapeConfig config = {};
     if (WindowHelper::IsMainWindow(winType) && GetAppForceLandscapeConfig(config) == WMError::WM_OK &&
-        (config.containsSysConfig_ || config.containsAppConfig_)) {
+        config.containsConfig_) {
         SetForceSplitConfig(config);
         // try to fetch selectMode
         SelectMode finalSelectMode = SelectMode::INVALID_MODE;

@@ -1643,7 +1643,7 @@ HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeFail, Function | 
 
     // Mock GetAppForceLandscapeConfig to return OK with config
     AppForceLandscapeConfig config;
-    config.containsSysConfig_ = true;
+    config.containsConfig_ = true;
     EXPECT_CALL(*hostSession, GetAppForceLandscapeConfig(::testing::_))
         .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(config), ::testing::Return(WMError::WM_OK)));
 
@@ -1682,7 +1682,7 @@ HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeSuccess, Function
 
     // Mock GetAppForceLandscapeConfig to return OK with config
     AppForceLandscapeConfig config;
-    config.containsSysConfig_ = true;
+    config.containsConfig_ = true;
     EXPECT_CALL(*hostSession, GetAppForceLandscapeConfig(::testing::_))
         .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(config), ::testing::Return(WMError::WM_OK)));
 

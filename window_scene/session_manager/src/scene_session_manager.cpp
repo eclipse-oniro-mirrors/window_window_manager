@@ -29,7 +29,6 @@
 #include <hitrace_meter.h>
 #include <parameters.h>
 #include <ui/rs_node.h>
-#include "comp_config_read_util.h"
 #include "ffrt_serial_queue_helper.h"
 #include "parameter.h"
 #include "publish/scb_dump_subscriber.h"
@@ -18185,7 +18184,7 @@ WSError SceneSessionManager::SetAppForceLandscapeConfig(const std::string& bundl
 
     TLOGI(WmsLogTag::WMS_COMPAT,
         "bundleName:%{public}s, config:[containsConfig_%{public}d, isRouter_%{public}d, configJsonStr_%{public}s",
-        bundleName.c_str(), config.containsConfig_, config.isRouter_ config.configJsonStr_.c_str());
+        bundleName.c_str(), config.containsConfig_, config.isRouter_, config.configJsonStr_.c_str());
     return WSError::WS_OK;
 }
 
