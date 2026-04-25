@@ -103,6 +103,28 @@ void SceneSessionMgrLsStubFuzzer02(MessageParcel& parcel)
         parcel, reply, option);
     parcel.RewindRead(0);
     SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_DISPLAYID_BY_WINDOWID),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_PARENT_WINDOW_ID),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_SET_SESSION_ICON_FOR_THIRD_PARTY),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_MAIN_WINDOW_INFO_BY_TOKEN),
+        parcel, reply, option);
+}
+
+void SceneSessionMgrLsStubFuzzer03(MessageParcel& parcel)
+{
+    MessageParcel reply;
+    MessageOption option;
+    parcel.RewindRead(0);
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
         ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_CLOSE_TARGET_PIP_WINDOW),
         parcel, reply, option);
     parcel.RewindRead(0);
@@ -120,22 +142,6 @@ void SceneSessionMgrLsStubFuzzer02(MessageParcel& parcel)
     parcel.RewindRead(0);
     SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
         ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_UNREGISTER_PIP_CHG_LISTENER),
-        parcel, reply, option);
-    parcel.RewindRead(0);
-    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
-        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_DISPLAYID_BY_WINDOWID),
-        parcel, reply, option);
-    parcel.RewindRead(0);
-    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
-        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_PARENT_WINDOW_ID),
-        parcel, reply, option);
-    parcel.RewindRead(0);
-    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
-        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_SET_SESSION_ICON_FOR_THIRD_PARTY),
-        parcel, reply, option);
-    parcel.RewindRead(0);
-    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
-        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_MAIN_WINDOW_INFO_BY_TOKEN),
         parcel, reply, option);
 }
 
@@ -163,6 +169,7 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     SceneSessionMgrLsUecTestCode(parcel);
     SceneSessionMgrLsStubFuzzer01(parcel);
     SceneSessionMgrLsStubFuzzer02(parcel);
+    SceneSessionMgrLsStubFuzzer03(parcel);
     return true;
 }
 } // namespace OHOS
