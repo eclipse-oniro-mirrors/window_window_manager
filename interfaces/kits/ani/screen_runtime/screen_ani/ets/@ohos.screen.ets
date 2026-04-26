@@ -21,8 +21,8 @@ export default namespace screen {
 
 loadLibraryWithPermissionCheck("screenani_kit.z", "@ohos.screen");
 
-const SCREEN_ARRAY_LENGTH = 15;
-const SCREEN_MODE_INFO = 15;
+const SCREEN_ARRAY_LENGTH: int = 15;
+const SCREEN_MODE_INFO: int = 15;
 
 export function on<T>(eventType: string, callback: Callback<T>): void{
     syncOn(eventType, callback, screenMgrRef);
@@ -116,7 +116,7 @@ export function getAllScreens(): Promise<Array<Screen>> {
     );
 }
 
-function minusScreens(screens: Array<Screen>) {
+function minusScreens(screens: Array<Screen>): void {
     let i = 0;
     for (; i < screens.length; i++) {
         let currentScreen: ScreenImpl = screens[i] as ScreenImpl;
@@ -128,7 +128,7 @@ function minusScreens(screens: Array<Screen>) {
     }
 }
 
-function minusScreenModeInfo(screenModeInfo: Array<ScreenModeInfo>) {
+function minusScreenModeInfo(screenModeInfo: Array<ScreenModeInfo>): void {
     let i = 0;
     for (; i < screenModeInfo.length; i++) {
         let currentScreenMode: ScreenModeInfoImpl = screenModeInfo[i] as ScreenModeInfoImpl;

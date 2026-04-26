@@ -56,10 +56,10 @@ export class XCNodeController extends NodeController {
     this.node?.appendChild(this.mXComponent);
   }
 
-  removeNode() {
+  removeNode(): void {
     this.node?.removeChild(this.mXComponent);
   }
-  aboutToDisappear() {
+  aboutToDisappear(): void {
     this.node?.clearChildren();
   }
 }

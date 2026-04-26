@@ -217,7 +217,7 @@ export default namespace floatView {
   }
 
   export native function fvControllerFinalizerCallback(nativeObj: long): void;
-  let fvControllerFinalizerRegister = new FinalizationRegistry<long>(fvControllerFinalizerCallback);
+  let fvControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(fvControllerFinalizerCallback);
 
   export class FvControllerInternal implements FloatViewController {
     private nativeObj: long = 0;
