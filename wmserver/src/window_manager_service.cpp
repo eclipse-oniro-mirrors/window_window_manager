@@ -1124,11 +1124,11 @@ WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::
         auto BoolToChar = [](bool value) { return value ? '1' : '0'; };
         auto statusBarNode = windowRoot_->GetWindowNodeByWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
         if (statusBarNode) {
-            systemUiVisible[0] = BoolToChar(statusBarNode->GetVisibilityState());
+            systemUiVisible[0] = BoolToChar(statusBarNode->currentVisibility_);
         }
         auto navigationBarNode = windowRoot_->GetWindowNodeByWindowType(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
         if (navigationBarNode) {
-            systemUiVisible[3] = BoolToChar(navigationBarNode->GetVisibilityState());
+            systemUiVisible[3] = BoolToChar(navigationBarNode->currentVisibility_);
         }
         winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
         winStateSnapshotJsonStr = winStateSnapshotJson.dump();
