@@ -195,6 +195,8 @@ class Session : public SessionStub {
 public:
     friend class HidumpController;
     using Task = std::function<void()>;
+    void SetRenderSession(const sptr<IRemoteObject>& renderSession) override;
+    sptr<IRemoteObject> GetRenderSession() override;
     class SessionLifeCycleTask : public virtual RefBase {
     public:
         SessionLifeCycleTask(const Task& task, const std::string& name, const LifeCycleTaskType& type)
@@ -1340,6 +1342,7 @@ private:
     std::function<bool()> isScreenLockedCallback_;
 
     sptr<WindowSessionProperty> property_;
+    sptr<IRemoteObject> renderSession_;
 
     /*
      * Window Focus

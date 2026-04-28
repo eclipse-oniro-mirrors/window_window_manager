@@ -153,6 +153,16 @@ Session::~Session()
     }
 }
 
+void Session::SetRenderSession(const sptr<IRemoteObject>& renderSession)
+{
+    renderSession_ = renderSession;
+}
+
+sptr<IRemoteObject> Session::GetRenderSession()
+{
+    return renderSession_;
+}
+
 void Session::SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
     const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler)
 {

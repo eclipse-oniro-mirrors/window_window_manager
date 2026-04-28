@@ -91,7 +91,7 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
 
 WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRuntime::Context>& context,
     sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option, const sptr<IRemoteObject>& iSession,
-    const std::string& identityToken, bool isModuleAbilityHookEnd, sptr<IRemoteObject> renderSession)
+    const std::string& identityToken, bool isModuleAbilityHookEnd)
 {
     TLOGI(WmsLogTag::WMS_MAIN, "WindowScene with window session!");
     if (option == nullptr || iSession == nullptr) {
@@ -108,7 +108,7 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
             SingletonContainer::Get<WindowManager>().IsModuleHookOff(isModuleAbilityHookEnd, moduleName);
     }
     auto mainWindow = SingletonContainer::Get<StaticCall>()
-        .CreateWindow(option, context, iSession, identityToken, isModuleAbilityHookEnd, renderSession);
+        .CreateWindow(option, context, iSession, identityToken, isModuleAbilityHookEnd);
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "mainWindow is null after create Window!");
         return WMError::WM_ERROR_NULLPTR;

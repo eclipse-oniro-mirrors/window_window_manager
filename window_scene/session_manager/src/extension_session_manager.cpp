@@ -60,7 +60,7 @@ sptr<AAFwk::SessionInfo> ExtensionSessionManager::SetAbilitySessionInfo(const sp
     abilitySessionInfo->density = sessionInfo.config_.density_;
     abilitySessionInfo->orientation = sessionInfo.config_.orientation_;
     abilitySessionInfo->isDensityFollowHost = sessionInfo.config_.isDensityFollowHost_;
-    abilitySessionInfo->renderSession = sessionInfo.connectToRenderToken_;
+    extensionSession->SetRenderSession(sessionInfo.connectToRenderToken_);
     if (sessionInfo.want != nullptr) {
         abilitySessionInfo->want = sessionInfo.GetWantSafely();
     }

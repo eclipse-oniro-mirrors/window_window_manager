@@ -113,7 +113,7 @@ sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& o
 
 sptr<Window> Window::Create(sptr<WindowOption>& option, const std::shared_ptr<OHOS::AbilityRuntime::Context>& context,
     const sptr<IRemoteObject>& iSession, WMError& errCode, const std::string& identityToken,
-    bool isModuleAbilityHookEnd, sptr<IRemoteObject> renderSession)
+    bool isModuleAbilityHookEnd)
 {
     // create from ability mgr service
     if (!iSession || !option) {
@@ -138,6 +138,11 @@ sptr<Window> Window::Create(sptr<WindowOption>& option, const std::shared_ptr<OH
           WindowHelper::IsAppComponentWindow(type))) {
         WLOGFE("window type is invalid %{public}d", type);
         return nullptr;
+    }
+    auto session = iface_cast<ISession>(iSession);
+    sptr<IRemoteObject> renderSession = nullptr;
+    if (session != nullptr) {
+        renderSession = session->GetRenderSession();
     }
     return CreateWindowWithSession(option, context, errCode,
         iface_cast<Rosen::ISession>(iSession), identityToken, isModuleAbilityHookEnd, nullptr, renderSession);

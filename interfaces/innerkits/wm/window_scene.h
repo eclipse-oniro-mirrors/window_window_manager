@@ -72,8 +72,7 @@ public:
                  sptr<WindowOption> option,
                  const sptr<IRemoteObject>& iSession,
                  const std::string& identityToken = "",
-                 bool isModuleAbilityHookEnd = false,
-                 sptr<IRemoteObject> renderSession = nullptr);
+                 bool isModuleAbilityHookEnd = false);
 
     /**
      * Create a window instance based on the parameters windowName and option.
