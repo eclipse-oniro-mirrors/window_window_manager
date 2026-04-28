@@ -26,8 +26,10 @@
 
 #include <iremote_broker.h>
 #include <want.h>
-#include "wm_animation_common.h"
 #include "pixel_map.h"
+#include "wm_animation_common.h"
+#include "wm_layout_common.h"
+
 
 namespace OHOS::AAFwk {
 class AbilityStartSetting;
@@ -1226,6 +1228,7 @@ struct SessionEventParam {
     int32_t windowGlobalPosX_ = 0;
     int32_t windowGlobalPosY_ = 0;
     uint32_t titleButtonEventType_ = 0;
+    SnapshotAnimationConfig snapshotAnimationConfig_;
 };
 
 struct BackgroundParams {

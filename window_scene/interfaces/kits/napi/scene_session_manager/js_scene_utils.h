@@ -204,6 +204,8 @@ bool ConvertHookWindowInfoFromJs(napi_env env, napi_value jsObject, HookWindowIn
 bool ConvertRotateAnimationConfigFromJs(napi_env env, napi_value value, RotateAnimationConfig& config);
 bool ConvertDragResizeTypeFromJs(napi_env env, napi_value value, DragResizeType& dragResizeType);
 bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect);
+bool ConvertDragDisabledAreasFromJsValue(napi_env env, napi_value nativeArray,
+    std::vector<Rect>& dragDisabledAreas);
 bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInfo& rotationChangeInfo);
 bool ConvertThrowSlipModeFromJs(napi_env env, napi_value value, ThrowSlipMode& throwSlipMode);
 bool convertAnimConfigFromJs(napi_env env, napi_value value, SceneAnimationConfig& config);

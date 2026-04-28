@@ -722,6 +722,8 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::GetSceneNodeCount);
     BindNativeFunction(env, objValue, "notifyPreCalcWindowProperty", moduleName,
         JsSceneSession::NotifyPreCalcWindowProperty);
+    BindNativeFunction(env, objValue, "setDragDisabledAreas", moduleName,
+        JsSceneSession::SetDragDisabledAreas);
     BindNativeFunction(env, objValue, "sendFvActionEvent", moduleName, JsSceneSession::SendFvActionEvent);
     BindNativeFunction(env, objValue, "syncFvWindowInfo", moduleName, JsSceneSession::SyncFvWindowInfo);
 }
@@ -9806,6 +9808,50 @@ napi_value JsSceneSession::OnNotifyPreCalcWindowProperty(napi_env env, napi_call
         return NapiGetUndefined(env);
     }
     session->preWindowPropertyFuture_.SetValue(PreWindowProperty(rotation, width, height));
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::SetDragDisabledAreas(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_EVENT, "start");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnSetDragDisabledAreas(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::OnSetDragDisabledAreas(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_TWO;
+    napi_value argv[ARGC_TWO] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Invalid parameters"));
+        return NapiGetUndefined(env);
+    }
+    // parse parameters
+    napi_value nativeArray = argv[ARG_INDEX_0];
+    if (nativeArray == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Drag disabled areas is not exists");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Drag disabled areas is not exists"));
+        return NapiGetUndefined(env);
+    }
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "session is null, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    std::vector<Rect> dragDisabledAreas;
+    if (!ConvertDragDisabledAreasFromJsValue(env, nativeArray, dragDisabledAreas)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert drag disabled areas from jsValue");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Failed to convert drag disabled areas from jsValue"));
+        return NapiGetUndefined(env);
+    }
+
+    TLOGI(WmsLogTag::WMS_EVENT, "dragDisabledAreas size: %{public}zu", dragDisabledAreas.size());
+    session->SetDragDisabledAreas(dragDisabledAreas);
     return NapiGetUndefined(env);
 }
 

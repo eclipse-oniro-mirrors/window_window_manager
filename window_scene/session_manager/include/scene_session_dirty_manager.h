@@ -72,6 +72,8 @@ public:
         SecSurfaceInfo& constrainedModalUIExtInfo);
     void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
         std::vector<MMI::Rect>& pointerHotAreas) const;
+    void UpdateDragDisabledAreas(const sptr<SceneSession>& sceneSession,
+        std::vector<MMI::Rect>& dragDisabledAreas) const;
 
 private:
     std::vector<MMI::WindowInfo> FullSceneSessionInfoUpdate() const;

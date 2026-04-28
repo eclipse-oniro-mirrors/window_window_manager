@@ -633,6 +633,23 @@ napi_value MaximizePresentationInit(napi_env env)
     return objValue;
 }
 
+napi_value AcrossDisplayPresentationInit(napi_env env)
+{
+    WLOGD("AcrossDisplayPresentationInit");
+    CHECK_NAPI_ENV_RETURN_IF_NULL(env);
+
+    napi_value objValue = nullptr;
+    CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
+
+    napi_set_named_property(env, objValue, "FOLLOW_ACROSS_DISPLAY_SETTING", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING)));
+    napi_set_named_property(env, objValue, "ENTER_ACROSS_DISPLAY_MODE", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE)));
+    napi_set_named_property(env, objValue, "EXIT_ACROSS_DISPLAY_MODE", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE)));
+    return objValue;
+}
+
 napi_value WindowErrorInit(napi_env env)
 {
     WLOGFD("WindowErrorInit");

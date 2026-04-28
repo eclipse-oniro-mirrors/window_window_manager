@@ -4304,6 +4304,14 @@ bool WindowSceneSessionImpl::CheckWaterfallResidentState(WaterfallResidentState 
     return true;
 }
 
+bool WindowSceneSessionImpl::CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const
+{
+    if (WindowHelper::IsSubWindow(GetType())) {
+        return state == AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+    }
+    return true;
+}
+
 void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation presentation)
 {
     titleHoverShowEnabled_ = true;
@@ -4332,16 +4340,44 @@ void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation pres
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, WaterfallResidentState state)
 {
+    // Convert WaterfallResidentState to AcrossDisplayPresentation
+    auto acrossDisplay = static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
+    WMError checkRet = CheckMaximizePreConditions(acrossDisplay);
+    if (checkRet != WMError::WM_OK) {
+        return checkRet;
+    }
+    return ExecuteMaximizeWithOptions(presentation, acrossDisplay, { -1, -1 });
+}
+
+WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config)
+{
+    constexpr int64_t MAX_DURATION = 400;
+    constexpr int64_t MAX_DELAY = 350;
+    if (config.duration < 0 || config.duration > MAX_DURATION ||
+        config.delay < 0 || config.delay > MAX_DELAY) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Invalid animation config: duration=%{public}" PRId64
+            ", delay=%{public}" PRId64 " (valid: duration [0,%{public}" PRId64
+            "], delay [0,%{public}" PRId64 "])",
+            config.duration, config.delay, MAX_DURATION, MAX_DELAY);
+        return WMError::WM_ERROR_ILLEGAL_PARAM;
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::CheckMaximizePreConditions(AcrossDisplayPresentation state)
+{
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+
     if (property_->GetWindowAnchorInfo().isFromAttachOrDetach_ &&
         property_->GetWindowAnchorInfo().isAnchoredByAttach_) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Cannot maximize due to in ancor enabled mode.");
         return WMError::WM_OK;
     }
-    if (!CheckWaterfallResidentState(state)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Invalid waterfallResidentState. windowId: %{public}u, state: %{public}u",
+
+    if (!CheckAcrossDisplayPresentation(state)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Invalid acrossDisplayPresentation. windowId: %{public}u, state: %{public}u",
               GetWindowId(), static_cast<uint32_t>(state));
         return WMError::WM_ERROR_INVALID_CALLING;
     }
@@ -4358,6 +4394,12 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
         TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         return WMError::WM_OK;
     }
+    return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::ExecuteMaximizeWithOptions(MaximizePresentation presentation,
+    AcrossDisplayPresentation state, const SnapshotAnimationConfig& snapshotAnimationConfig)
+{
     ApplyMaximizePresentation(presentation);
     UpdateIsShowDecorInFreeMultiWindow(true);
     isMaximizeInvoked_ = true;
@@ -4373,8 +4415,30 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
         presentation, enableImmersiveMode_.load());
     SessionEventParam param;
     param.waterfallResidentState = static_cast<uint32_t>(state);
+    param.snapshotAnimationConfig_ = snapshotAnimationConfig;
     hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE, param);
     return SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+}
+
+WMError WindowSceneSessionImpl::MaximizeWithOptions(MaximizePresentation presentation,
+    AcrossDisplayPresentation state, const SnapshotAnimationConfig& snapshotAnimationConfig)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, presentation: %{public}u, state: %{public}u, "
+        "duration: %{public}" PRId64 ", delay: %{public}" PRId64, GetPersistentId(),
+        static_cast<uint32_t>(presentation), static_cast<uint32_t>(state),
+        snapshotAnimationConfig.duration, snapshotAnimationConfig.delay);
+
+    WMError validateRet = ValidateSnapshotAnimationConfig(snapshotAnimationConfig);
+    if (validateRet != WMError::WM_OK) {
+        return validateRet;
+    }
+
+    WMError checkRet = CheckMaximizePreConditions(state);
+    if (checkRet != WMError::WM_OK) {
+        return checkRet;
+    }
+
+    return ExecuteMaximizeWithOptions(presentation, state, snapshotAnimationConfig);
 }
 
 WMError WindowSceneSessionImpl::MaximizeFloating()
@@ -4527,7 +4591,15 @@ WMError WindowSceneSessionImpl::Restore()
 
 WMError WindowSceneSessionImpl::Recover(uint32_t reason)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "id: %{public}d, reason: %{public}u", GetPersistentId(), reason);
+    WMError checkRet = CheckRecoverPreConditions();
+    if (checkRet != WMError::WM_OK) {
+        return checkRet;
+    }
+    return ExecuteRecover(reason, { -1, -1 });
+}
+
+WMError WindowSceneSessionImpl::CheckRecoverPreConditions()
+{
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -4544,36 +4616,61 @@ WMError WindowSceneSessionImpl::Recover(uint32_t reason)
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "not support floating, can not Recover");
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
+    return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::ExecuteRecover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
+{
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
-    if (WindowHelper::IsMainWindow(GetType()) || IsSubWindowMaximizeSupported()) {
-        if (property_->GetMaximizeMode() == MaximizeMode::MODE_RECOVER &&
-            property_->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING) {
-            TLOGW(WmsLogTag::WMS_LAYOUT_PC, "Recover fail, already MODE_RECOVER");
-            return WMError::WM_ERROR_REPEAT_OPERATION;
-        }
-        if (enableImmersiveMode_) {
-            enableImmersiveMode_ = false;
-            property_->SetIsLayoutFullScreen(enableImmersiveMode_);
-            hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
-        }
-        hostSession->OnSessionEvent(SessionEvent::EVENT_RECOVER);
-        // need notify arkui maximize mode change
-        if (reason == REASON_MAXIMIZE_MODE_CHANGE &&
-            property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR) {
-            UpdateMaximizeMode(MaximizeMode::MODE_RECOVER);
-        }
-        SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-        isMaximizeInvoked_ = false;
-        property_->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
-        UpdateDecorEnable(true);
-        UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MAXIMIZE_STATE);
-        NotifyWindowStatusChange(GetWindowMode());
-    } else {
+    if (!WindowHelper::IsMainWindow(GetType()) && !IsSubWindowMaximizeSupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "recovery is invalid on sub window");
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
+    if (property_->GetMaximizeMode() == MaximizeMode::MODE_RECOVER &&
+        property_->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "Recover fail, already MODE_RECOVER");
+        return WMError::WM_ERROR_REPEAT_OPERATION;
+    }
+    if (enableImmersiveMode_) {
+        enableImmersiveMode_ = false;
+        property_->SetIsLayoutFullScreen(enableImmersiveMode_);
+        hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
+    }
+    SessionEventParam param;
+    param.snapshotAnimationConfig_ = snapshotAnimationConfig;
+    hostSession->OnSessionEvent(SessionEvent::EVENT_RECOVER, param);
+    // need notify arkui maximize mode change
+    if (reason == REASON_MAXIMIZE_MODE_CHANGE &&
+        property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR) {
+        UpdateMaximizeMode(MaximizeMode::MODE_RECOVER);
+    }
+    SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    isMaximizeInvoked_ = false;
+    property_->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
+    UpdateDecorEnable(true);
+    UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MAXIMIZE_STATE);
+    NotifyWindowStatusChange(GetWindowMode());
     return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, reason: %{public}u, duration: %{public}" PRId64
+        ", delay: %{public}" PRId64, GetPersistentId(), reason,
+        snapshotAnimationConfig.duration, snapshotAnimationConfig.delay);
+
+    WMError validateRet = ValidateSnapshotAnimationConfig(snapshotAnimationConfig);
+    if (validateRet != WMError::WM_OK) {
+        return validateRet;
+    }
+
+    WMError checkRet = CheckRecoverPreConditions();
+    if (checkRet != WMError::WM_OK) {
+        return checkRet;
+    }
+
+    return ExecuteRecover(reason, snapshotAnimationConfig);
 }
 
 WMError WindowSceneSessionImpl::SetWindowRectAutoSave(bool enabled, bool isSaveBySpecifiedFlag)

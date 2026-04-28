@@ -568,6 +568,8 @@ public:
     WMError UnlockCursor(const std::vector<int32_t>& parameters) override;
     void RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
     WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
+    void SetDragDisabledAreas(const std::vector<Rect>& areas);
+    std::vector<Rect> GetDragDisabledAreas() const;
 
     /*
      * Window Immersive
@@ -920,6 +922,7 @@ public:
     bool IsDragMoving() const override;
     bool IsDragZooming() const override;
     bool IsCrossDisplayDragSupported() const;
+    
     // KeyFrame
     WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode,
         std::shared_ptr<RSTransaction>& rsTransaction) override;

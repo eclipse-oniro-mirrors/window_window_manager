@@ -31,6 +31,7 @@
 #include "dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
+#include "wm_layout_common.h"
 #include "wm_math.h"
 #include "wm_type.h"
 
@@ -4030,6 +4031,17 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+};
+
+/**
+ * @struct MaximizeOptions
+ * @brief Options for maximize operation with animation configuration.
+ */
+struct MaximizeOptions {
+    MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
+    AcrossDisplayPresentation acrossDisplayPresentation =
+        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+    SnapshotAnimationConfig snapshotAnimationConfig;
 };
 
 /**

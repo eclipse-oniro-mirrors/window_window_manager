@@ -972,6 +972,13 @@ napi_value JsWindow::Maximize(napi_env env, napi_callback_info info)
     return (me != nullptr) ? me->OnMaximize(env, info) : nullptr;
 }
 
+napi_value JsWindow::MaximizeWithOptions(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnMaximizeWithOptions(env, info) : nullptr;
+}
+
 /** @note @window.hierarchy */
 napi_value JsWindow::RaiseAboveTarget(napi_env env, napi_callback_info info)
 {
@@ -1875,6 +1882,46 @@ napi_value JsWindow::OnHideWithAnimation(napi_env env, napi_callback_info info)
     return result;
 }
 
+std::optional<SnapshotAnimationConfig> ParseSnapshotAnimationConfig(napi_env env, napi_value jsConfig)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "env is nullptr");
+        return std::nullopt;
+    }
+    if (jsConfig == nullptr || GetType(env, jsConfig) == napi_undefined) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "jsConfig is null or undefined");
+        return std::nullopt;
+    }
+
+    SnapshotAnimationConfig config;
+    napi_value jsDuration = nullptr;
+    napi_value jsDelay = nullptr;
+
+    // Get duration (optional, default: -1)
+    if (napi_get_named_property(env, jsConfig, "duration", &jsDuration) == napi_ok &&
+        jsDuration != nullptr && GetType(env, jsDuration) != napi_undefined) {
+        int64_t duration = -1;
+        if (!ConvertFromJsValue(env, jsDuration, duration)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert duration");
+            return std::nullopt;
+        }
+        config.duration = duration;
+    }
+
+    // Get delay (optional, default: -1)
+    if (napi_get_named_property(env, jsConfig, "delay", &jsDelay) == napi_ok &&
+        jsDelay != nullptr && GetType(env, jsDelay) != napi_undefined) {
+        int64_t delay = -1;
+        if (!ConvertFromJsValue(env, jsDelay, delay)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert delay");
+            return std::nullopt;
+        }
+        config.delay = delay;
+    }
+
+    return config;
+}
+
 napi_value JsWindow::OnRecover(napi_env env, napi_callback_info info)
 {
     size_t argc = FOUR_PARAMS_SIZE;
@@ -1882,25 +1929,36 @@ napi_value JsWindow::OnRecover(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     napi_value lastParam = (argc == 0) ? nullptr :
         (GetType(env, argv[INDEX_ZERO]) == napi_function ? argv[INDEX_ZERO] : nullptr);
+    // Check if argv[0] is a SnapshotAnimationConfig object
+    std::optional<SnapshotAnimationConfig> configOpt;
+    if (argc > 0 && argv[INDEX_ZERO] != nullptr && GetType(env, argv[INDEX_ZERO]) == napi_object) {
+        lastParam = nullptr;
+        configOpt = ParseSnapshotAnimationConfig(env, argv[INDEX_ZERO]);
+        if (!configOpt) {
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                "[window][recover]msg: Failed to parse SnapshotAnimationConfig");
+        }
+    }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     const char* const where = __func__;
-    auto asyncTask = [windowToken = wptr<Window>(windowToken_), env, task = napiAsyncTask, where] {
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_), configOpt, env, task = napiAsyncTask, where] {
         auto window = windowToken.promote();
         if (window == nullptr) {
-            TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s window is nullptr", where);
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s window is nullptr", where);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                  "[window][recover]msg: Window is nullptr"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->Recover(1));
-        if (ret == WmErrorCode::WM_OK) {
+        WMError ret = configOpt.has_value() ? window->Recover(1, *configOpt) : window->Recover(1);
+        if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][recover]msg: Failed"));
+            WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "[window][recover]msg: Failed"));
         }
-        TLOGNI(WmsLogTag::WMS_LAYOUT_PC, "%{public}s end, window [%{public}u] ret=%{public}d",
-            where, window->GetWindowId(), ret);
+        TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s end, window [%{public}u] ret=%{public}d",
+            where, window->GetWindowId(), static_cast<int32_t>(ret));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnRecover") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, CreateJsError(env,
@@ -7637,6 +7695,119 @@ napi_value JsWindow::OnMaximize(napi_env env, napi_callback_info info)
     return result;
 }
 
+std::optional<MaximizeOptions> ParseMaximizeOptions(napi_env env, napi_value jsOptions)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "env is nullptr");
+        return std::nullopt;
+    }
+    if (jsOptions == nullptr || GetType(env, jsOptions) == napi_undefined) {
+        return MaximizeOptions{}; // Return default options
+    }
+
+    MaximizeOptions options;
+    napi_value jsMaximizePresentation = nullptr;
+    napi_value jsAcrossDisplayPresentation = nullptr;
+    napi_value jsSnapshotAnimationConfig = nullptr;
+
+    // Get presentation
+    if (napi_get_named_property(env, jsOptions, "maximizePresentation", &jsMaximizePresentation) == napi_ok &&
+        jsMaximizePresentation != nullptr && GetType(env, jsMaximizePresentation) != napi_undefined) {
+        auto presentationOpt = ParsePresentation(env, jsMaximizePresentation);
+        if (!presentationOpt) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid presentation in MaximizeOptions");
+            return std::nullopt;
+        }
+        options.maximizePresentation = *presentationOpt;
+    }
+
+    // Get acrossDisplayPresentation
+    if (napi_get_named_property(env, jsOptions, "acrossDisplayPresentation",
+        &jsAcrossDisplayPresentation) == napi_ok &&
+        jsAcrossDisplayPresentation != nullptr &&
+        GetType(env, jsAcrossDisplayPresentation) != napi_undefined) {
+        using T = std::underlying_type_t<AcrossDisplayPresentation>;
+        T value = static_cast<T>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING);
+        if (!ConvertFromJsValue(env, jsAcrossDisplayPresentation, value) ||
+            value < static_cast<T>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING) ||
+            value > static_cast<T>(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid acrossDisplayPresentation in MaximizeOptions");
+            return std::nullopt;
+        }
+        options.acrossDisplayPresentation = static_cast<AcrossDisplayPresentation>(value);
+    }
+
+    // Get snapshotAnimationConfig
+    if (napi_get_named_property(env, jsOptions, "snapshotAnimationConfig", &jsSnapshotAnimationConfig) == napi_ok &&
+        jsSnapshotAnimationConfig != nullptr && GetType(env, jsSnapshotAnimationConfig) != napi_undefined) {
+        auto configOpt = ParseSnapshotAnimationConfig(env, jsSnapshotAnimationConfig);
+        if (!configOpt) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid snapshotAnimationConfig in MaximizeOptions");
+            return std::nullopt;
+        }
+        options.snapshotAnimationConfig = *configOpt;
+    }
+
+    return options;
+}
+
+napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][maximizeWithOptions]msg: The window is not created or destroyed.");
+    }
+    if (!(WindowHelper::IsMainWindow(windowToken_->GetType()) || windowToken_->IsSubWindowMaximizeSupported())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "only support main or sub Window");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][maximizeWithOptions]msg: Only support main or sub Window");
+    }
+
+    size_t argc = ONE_PARAMS_SIZE;
+    napi_value argv[ONE_PARAMS_SIZE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    auto optionsOpt = ParseMaximizeOptions(env, argv[INDEX_ZERO]);
+    if (!optionsOpt) {
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][maximizeWithOptions]msg: Failed to parse MaximizeOptions");
+    }
+
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto options = *optionsOpt;
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_), options,
+                      env, napiAsyncTask, where = __func__] {
+        auto window = windowToken.promote();
+        if (window == nullptr) {
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][maximizeWithOptions]msg: The window is not created or destroyed."));
+            return;
+        }
+        WMError ret = window->MaximizeWithOptions(
+            options.maximizePresentation, options.acrossDisplayPresentation, options.snapshotAnimationConfig);
+        if (ret == WMError::WM_OK) {
+            napiAsyncTask->Resolve(env, NapiGetUndefined(env));
+        } else {
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env,
+                WM_JS_TO_ERROR_CODE_MAP.at(ret), "[window][maximizeWithOptions]msg: Failed"));
+        }
+        TLOGNI(WmsLogTag::WMS_LAYOUT,
+            "%{public}s: windowId: %{public}u, present: %{public}d, acrossDisplayPresentation: %{public}u",
+            where, window->GetWindowId(), static_cast<int32_t>(options.maximizePresentation),
+            static_cast<uint32_t>(options.acrossDisplayPresentation));
+    };
+    if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnMaximizeWithOptions") != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env,
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][maximizeWithOptions]msg: Failed to send event"));
+    }
+    return result;
+}
+
+
+
 std::shared_ptr<NativeReference> FindJsWindowObject(const std::string& windowName)
 {
     WLOGFD("Try to find window %{public}s in g_jsWindowMap", windowName.c_str());
@@ -10597,6 +10768,7 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
     BindNativeFunction(env, object, "setHandwritingFlag", moduleName, JsWindow::SetHandwritingFlag);
     BindNativeFunction(env, object, "minimize", moduleName, JsWindow::Minimize);
     BindNativeFunction(env, object, "maximize", moduleName, JsWindow::Maximize);
+    BindNativeFunction(env, object, "maximizeWithOptions", moduleName, JsWindow::MaximizeWithOptions);
     BindNativeFunction(env, object, "setResizeByDragEnabled", moduleName, JsWindow::SetResizeByDragEnabled);
     BindNativeFunction(env, object, "setRaiseByClickEnabled", moduleName, JsWindow::SetRaiseByClickEnabled);
     BindNativeFunction(env, object, "setMainWindowRaiseByClickEnabled", moduleName,

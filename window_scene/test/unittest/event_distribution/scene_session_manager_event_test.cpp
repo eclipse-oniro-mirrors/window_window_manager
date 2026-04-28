@@ -162,6 +162,61 @@ HWTEST_F(SceneSessionManagerEventTest, SendAxisEventTestWithInvalidPointerEvent,
     auto ret = ssm_->SendAxisEvent(pointerEvent);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_PARAM, ret);
 }
+
+/**
+ * @tc.name: RedispatchTouchEventTestWithNullPointerEvent
+ * @tc.desc: RedispatchTouchEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerEventTest, RedispatchTouchEventTestWithNullPointerEvent, TestSize.Level1)
+{
+    sptr<SceneSessionManager> ssm_ = &SceneSessionManager::GetInstance();
+    ASSERT_NE(nullptr, ssm_);
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = nullptr;
+
+    auto ret = ssm_->RedispatchTouchEvent(pointerEvent);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, ret);
+}
+
+/**
+ * @tc.name: RedispatchTouchEventTestWithValidPointerEvent
+ * @tc.desc: RedispatchTouchEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerEventTest, RedispatchTouchEventTestWithValidPointerEvent, TestSize.Level1)
+{
+    sptr<SceneSessionManager> ssm_ = &SceneSessionManager::GetInstance();
+    ASSERT_NE(nullptr, ssm_);
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    ASSERT_NE(nullptr, pointerEvent);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.pointerId_ = 0;
+    pointerEvent->pointerId_ = 0;
+    pointerEvent->AddPointerItem(pointerItem);
+
+    auto ret = ssm_->RedispatchTouchEvent(pointerEvent);
+    EXPECT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: RedispatchTouchEventTestWithInvalidPointerEvent
+ * @tc.desc: RedispatchTouchEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerEventTest, RedispatchTouchEventTestWithInvalidPointerEvent, TestSize.Level1)
+{
+    sptr<SceneSessionManager> ssm_ = &SceneSessionManager::GetInstance();
+    ASSERT_NE(nullptr, ssm_);
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    ASSERT_NE(nullptr, pointerEvent);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.pointerId_ = 0;
+    pointerEvent->pointerId_ = 1;
+    pointerEvent->AddPointerItem(pointerItem);
+
+    auto ret = ssm_->RedispatchTouchEvent(pointerEvent);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_PARAM, ret);
+}
 }
 }
 }

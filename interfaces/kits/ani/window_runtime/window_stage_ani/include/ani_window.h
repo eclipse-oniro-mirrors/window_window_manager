@@ -56,7 +56,8 @@ public:
     static ani_int ConvertOrientationAndRotation(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_int from, ani_int to, ani_int value);
     static void SetWindowPrivacyMode(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isPrivacyMode);
-    static void Recover(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void Recover(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object snapshotAnimationConfig);
     static void SetUIContent(ani_env* env, ani_object obj, ani_long nativeObj, ani_string path);
     static void SetWindowKeepScreenOn(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isKeepScreenOn);
     static void SetWaterMarkFlag(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enable);
@@ -140,6 +141,8 @@ public:
     void HideWindowFunction(ani_env* env, WmErrorCode errCode);
     static void Maximize(ani_env* env, ani_object obj, ani_long nativeObj,
                          ani_object aniPresentation, ani_object aniAcrossDisplay);
+    static void MaximizeWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
+                         ani_object maximizeOptions);
     static void StartMoving(ani_env* env, ani_object obj, ani_long nativeObj);
     static void StartMoveWindowWithCoordinate(ani_env* env, ani_object obj, ani_long nativeObj,
                                               ani_int offsetX, ani_int offsetY);
@@ -259,7 +262,7 @@ private:
     ani_int OnGetPreferredOrientation(ani_env* env);
     ani_int OnConvertOrientationAndRotation(ani_env* env, ani_int from, ani_int to, ani_int value);
     void OnSetWindowPrivacyMode(ani_env* env, ani_boolean isPrivacyMode);
-    void OnRecover(ani_env* env);
+    void OnRecover(ani_env* env, ani_object snapshotAnimationConfig);
     void OnSetUIContent(ani_env* env, ani_string path);
     void OnSetWindowKeepScreenOn(ani_env* env, ani_boolean isKeepScreenOn);
     void OnSetWaterMarkFlag(ani_env* env, ani_boolean enable);
@@ -364,6 +367,7 @@ private:
     ani_int OnGetWindowStatus(ani_env* env);
     void OnMinimize(ani_env* env);
     void OnMaximize(ani_env* env, ani_object aniPresentation, ani_object aniAcrossDisplay);
+    void OnMaximizeWithOptions(ani_env* env, ani_object maximizeOptions);
     void OnStartMoving(ani_env* env);
     void OnStartMoveWindowWithCoordinate(ani_env* env, ani_int offsetX, ani_int offsetY);
     void OnStopMoving(ani_env* env);

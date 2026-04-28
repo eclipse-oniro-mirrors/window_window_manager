@@ -1562,6 +1562,140 @@ HWTEST_F(SceneSessionDirtyManagerTest, ConvertToMMIRotation, TestSize.Level1)
     rotation = ConvertToMMIRotation(30.0);
     ASSERT_EQ(rotation, MMI::Rotation::ROTATION_0);
 }
+
+/**
+ * @tc.name: UpdateDragDisabledAreas01
+ * @tc.desc: UpdateDragDisabledAreas with null sceneSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionDirtyManagerTest, UpdateDragDisabledAreas01, TestSize.Level1)
+{
+    std::vector<MMI::Rect> dragDisabledAreas;
+    manager_->UpdateDragDisabledAreas(nullptr, dragDisabledAreas);
+    EXPECT_EQ(dragDisabledAreas.size(), 0);
+}
+
+/**
+ * @tc.name: UpdateDragDisabledAreas02
+ * @tc.desc: UpdateDragDisabledAreas with valid areas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionDirtyManagerTest, UpdateDragDisabledAreas02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateDragDisabledAreas02";
+    info.bundleName_ = "UpdateDragDisabledAreas02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    areas.push_back({ 200, 200, 50, 50 });
+    sceneSession->SetDragDisabledAreas(areas);
+
+    std::vector<MMI::Rect> dragDisabledAreas;
+    manager_->UpdateDragDisabledAreas(sceneSession, dragDisabledAreas);
+
+    EXPECT_EQ(dragDisabledAreas.size(), 2);
+    EXPECT_EQ(dragDisabledAreas[0].x, 0);
+    EXPECT_EQ(dragDisabledAreas[0].y, 0);
+    EXPECT_EQ(dragDisabledAreas[0].width, 100);
+    EXPECT_EQ(dragDisabledAreas[0].height, 100);
+    EXPECT_EQ(dragDisabledAreas[1].x, 200);
+    EXPECT_EQ(dragDisabledAreas[1].y, 200);
+    EXPECT_EQ(dragDisabledAreas[1].width, 50);
+    EXPECT_EQ(dragDisabledAreas[1].height, 50);
+}
+
+/**
+ * @tc.name: UpdateDragDisabledAreas03
+ * @tc.desc: UpdateDragDisabledAreas with empty areas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionDirtyManagerTest, UpdateDragDisabledAreas03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateDragDisabledAreas03";
+    info.bundleName_ = "UpdateDragDisabledAreas03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    sceneSession->SetDragDisabledAreas(areas);
+
+    std::vector<MMI::Rect> dragDisabledAreas;
+    manager_->UpdateDragDisabledAreas(sceneSession, dragDisabledAreas);
+
+    EXPECT_EQ(dragDisabledAreas.size(), 0);
+}
+
+/**
+ * @tc.name: UpdateDragDisabledAreas04
+ * @tc.desc: UpdateDragDisabledAreas with duplicate areas should deduplicate
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionDirtyManagerTest, UpdateDragDisabledAreas04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateDragDisabledAreas04";
+    info.bundleName_ = "UpdateDragDisabledAreas04";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    areas.push_back({ 0, 0, 100, 100 });
+    areas.push_back({ 200, 200, 50, 50 });
+    areas.push_back({ 200, 200, 50, 50 });
+    sceneSession->SetDragDisabledAreas(areas);
+
+    std::vector<MMI::Rect> dragDisabledAreas;
+    manager_->UpdateDragDisabledAreas(sceneSession, dragDisabledAreas);
+
+    EXPECT_EQ(dragDisabledAreas.size(), 2);
+}
+
+/**
+ * @tc.name: UpdateDragDisabledAreas05
+ * @tc.desc: UpdateDragDisabledAreas when areas exceed MAX_HOTAREA_COUNT should truncate
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionDirtyManagerTest, UpdateDragDisabledAreas05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateDragDisabledAreas05";
+    info.bundleName_ = "UpdateDragDisabledAreas05";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    uint32_t maxCount = static_cast<uint32_t>(MMI::WindowInfo::MAX_HOTAREA_COUNT);
+    for (uint32_t i = 0; i < maxCount + 10; i++) {
+        areas.push_back({ static_cast<int32_t>(i), static_cast<int32_t>(i), 10, 10 });
+    }
+    sceneSession->SetDragDisabledAreas(areas);
+
+    std::vector<MMI::Rect> dragDisabledAreas;
+    manager_->UpdateDragDisabledAreas(sceneSession, dragDisabledAreas);
+
+    EXPECT_EQ(dragDisabledAreas.size(), maxCount);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

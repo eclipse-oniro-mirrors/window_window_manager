@@ -992,6 +992,18 @@ bool WindowSessionProperty::GetRotationLocked() const
     return isRotationLock_;
 }
 
+void WindowSessionProperty::SetDragDisabledAreas(const std::vector<Rect>& areas)
+{
+    std::lock_guard<std::mutex> lock(dragDisabledAreasMutex_);
+    dragDisabledAreas_ = areas;
+}
+
+void WindowSessionProperty::GetDragDisabledAreas(std::vector<Rect>& areas)
+{
+    std::lock_guard<std::mutex> lock(dragDisabledAreasMutex_);
+    areas = dragDisabledAreas_;
+}
+
 bool WindowSessionProperty::MarshallingWindowLimits(Parcel& parcel) const
 {
     auto writeWindowLimits = [&parcel](const WindowLimits& limits) -> bool {

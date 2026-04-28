@@ -2258,6 +2258,299 @@ HWTEST_F(SceneSessionTest, GetWindowLimits, TestSize.Level1)
         EXPECT_EQ(limits.minHeight_, 100);
     }
 }
+
+/**
+ * @tc.name: ApplySessionEventParam01
+ * @tc.desc: EVENT_MAXIMIZE sets waterfallResidentState, titleButtonEventType_ and snapshotAnimationConfig_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, ApplySessionEventParam01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ApplySessionEventParam01";
+    info.bundleName_ = "ApplySessionEventParam01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    SessionEventParam param;
+    param.waterfallResidentState = 1;
+    param.titleButtonEventType_ = 2;
+    param.snapshotAnimationConfig_.duration = 300;
+    param.snapshotAnimationConfig_.delay = 50;
+
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_MAXIMIZE, param);
+
+    EXPECT_EQ(sceneSession->sessionEventParam_.waterfallResidentState, 1u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.titleButtonEventType_, 2u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.duration, 300);
+    EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.delay, 50);
+}
+
+/**
+ * @tc.name: ApplySessionEventParam02
+ * @tc.desc: EVENT_RECOVER only sets snapshotAnimationConfig_, other fields unchanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, ApplySessionEventParam02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ApplySessionEventParam02";
+    info.bundleName_ = "ApplySessionEventParam02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    // Set initial values via EVENT_MAXIMIZE
+    SessionEventParam initParam;
+    initParam.waterfallResidentState = 1;
+    initParam.titleButtonEventType_ = 2;
+    initParam.snapshotAnimationConfig_.duration = 100;
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_MAXIMIZE, initParam);
+
+    // EVENT_RECOVER should only update snapshotAnimationConfig_
+    SessionEventParam recoverParam;
+    recoverParam.snapshotAnimationConfig_.duration = 500;
+    recoverParam.snapshotAnimationConfig_.delay = 80;
+    // Set other fields in param to non-zero to verify they are NOT applied
+    recoverParam.waterfallResidentState = 99;
+    recoverParam.titleButtonEventType_ = 99;
+
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_RECOVER, recoverParam);
+
+    // snapshotAnimationConfig_ updated
+    EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.duration, 500);
+    EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.delay, 80);
+    // Other fields unchanged from EVENT_MAXIMIZE
+    EXPECT_EQ(sceneSession->sessionEventParam_.waterfallResidentState, 1u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.titleButtonEventType_, 2u);
+}
+
+/**
+ * @tc.name: ApplySessionEventParam03
+ * @tc.desc: EVENT_SWITCH_COMPATIBLE_MODE only sets compatibleStyleMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, ApplySessionEventParam03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ApplySessionEventParam03";
+    info.bundleName_ = "ApplySessionEventParam03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    // Set initial values via EVENT_MAXIMIZE
+    SessionEventParam initParam;
+    initParam.waterfallResidentState = 1;
+    initParam.titleButtonEventType_ = 3;
+    initParam.snapshotAnimationConfig_.duration = 200;
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_MAXIMIZE, initParam);
+
+    // EVENT_SWITCH_COMPATIBLE_MODE should only update compatibleStyleMode
+    SessionEventParam switchParam;
+    switchParam.compatibleStyleMode = 5;
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE, switchParam);
+
+    EXPECT_EQ(sceneSession->sessionEventParam_.compatibleStyleMode, 5u);
+    // Other fields unchanged
+    EXPECT_EQ(sceneSession->sessionEventParam_.waterfallResidentState, 1u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.titleButtonEventType_, 3u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.duration, 200);
+}
+
+/**
+ * @tc.name: ApplySessionEventParam04
+ * @tc.desc: Default branch resets waterfallResidentState, compatibleStyleMode, titleButtonEventType_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, ApplySessionEventParam04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ApplySessionEventParam04";
+    info.bundleName_ = "ApplySessionEventParam04";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    // Set initial non-zero values via EVENT_MAXIMIZE
+    SessionEventParam initParam;
+    initParam.waterfallResidentState = 2;
+    initParam.titleButtonEventType_ = 5;
+    initParam.compatibleStyleMode = 3;
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_MAXIMIZE, initParam);
+
+    // Trigger default branch with EVENT_MINIMIZE
+    SessionEventParam unusedParam;
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_MINIMIZE, unusedParam);
+
+    EXPECT_EQ(sceneSession->sessionEventParam_.waterfallResidentState, 0u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.compatibleStyleMode, 0u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.titleButtonEventType_, 0u);
+}
+
+/**
+ * @tc.name: ApplySessionEventParam05
+ * @tc.desc: EVENT_MAXIMIZE then EVENT_RECOVER only overrides snapshotAnimationConfig_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, ApplySessionEventParam05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ApplySessionEventParam05";
+    info.bundleName_ = "ApplySessionEventParam05";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    // First: EVENT_MAXIMIZE sets all three fields
+    SessionEventParam maxParam;
+    maxParam.waterfallResidentState = 2;
+    maxParam.titleButtonEventType_ = 4;
+    maxParam.snapshotAnimationConfig_.duration = 100;
+    maxParam.snapshotAnimationConfig_.delay = 20;
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_MAXIMIZE, maxParam);
+
+    // Second: EVENT_RECOVER overrides only snapshotAnimationConfig_
+    SessionEventParam recoverParam;
+    recoverParam.snapshotAnimationConfig_.duration = 400;
+    recoverParam.snapshotAnimationConfig_.delay = 60;
+    sceneSession->ApplySessionEventParam(SessionEvent::EVENT_RECOVER, recoverParam);
+
+    // waterfallResidentState and titleButtonEventType_ preserved from EVENT_MAXIMIZE
+    EXPECT_EQ(sceneSession->sessionEventParam_.waterfallResidentState, 2u);
+    EXPECT_EQ(sceneSession->sessionEventParam_.titleButtonEventType_, 4u);
+    // snapshotAnimationConfig_ updated by EVENT_RECOVER
+    EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.duration, 400);
+    EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.delay, 60);
+}
+
+/**
+ * @tc.name: SetDragDisabledAreas01
+ * @tc.desc: Set drag disable areas with valid property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas01";
+    info.bundleName_ = "SetDragDisabledAreas01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    areas.push_back({ 200, 200, 50, 50 });
+
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_EQ(result[0].posX_, 0);
+    EXPECT_EQ(result[0].posY_, 0);
+    EXPECT_EQ(result[0].width_, 100);
+    EXPECT_EQ(result[0].height_, 100);
+    EXPECT_EQ(result[1].posX_, 200);
+    EXPECT_EQ(result[1].posY_, 200);
+    EXPECT_EQ(result[1].width_, 50);
+    EXPECT_EQ(result[1].height_, 50);
+}
+
+/**
+ * @tc.name: SetDragDisabledAreas02
+ * @tc.desc: Set drag disable areas with empty vector
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas02";
+    info.bundleName_ = "SetDragDisabledAreas02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: SetDragDisabledAreas03
+ * @tc.desc: Set drag disable areas with null property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas03";
+    info.bundleName_ = "SetDragDisabledAreas03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->property_ = nullptr;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: GetDragDisabledAreas01
+ * @tc.desc: Get drag disable areas with null property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetDragDisabledAreas01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetDragDisabledAreas01";
+    info.bundleName_ = "GetDragDisabledAreas01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->property_ = nullptr;
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: GetDragDisabledAreas02
+ * @tc.desc: Get drag disable areas after setting multiple areas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetDragDisabledAreas02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetDragDisabledAreas02";
+    info.bundleName_ = "GetDragDisabledAreas02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 10, 10, 200, 150 });
+    areas.push_back({ 300, 400, 80, 60 });
+    areas.push_back({ 500, 500, 1, 1 });
+
+    sceneSession->SetDragDisabledAreas(areas);
+    auto result = sceneSession->GetDragDisabledAreas();
+
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0], areas[0]);
+    EXPECT_EQ(result[1], areas[1]);
+    EXPECT_EQ(result[2], areas[2]);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

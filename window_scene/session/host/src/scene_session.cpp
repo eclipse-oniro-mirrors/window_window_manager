@@ -1049,6 +1049,29 @@ bool SceneSession::IsCrossDisplayDragSupported() const
            WindowHelper::IsInputWindow(windowType);
 }
 
+void SceneSession::SetDragDisabledAreas(const std::vector<Rect>& areas)
+{
+    auto property = GetSessionProperty();
+    if (!property) {
+        TLOGE(WmsLogTag::WMS_EVENT, "property is null");
+        return;
+    }
+    property->SetDragDisabledAreas(areas);
+    NotifySessionInfoChange();
+}
+
+std::vector<Rect> SceneSession::GetDragDisabledAreas() const
+{
+    std::vector<Rect> dragDisabledAreas;
+    auto property = GetSessionProperty();
+    if (!property) {
+        TLOGE(WmsLogTag::WMS_EVENT, "property is null");
+        return dragDisabledAreas;
+    }
+    property->GetDragDisabledAreas(dragDisabledAreas);
+    return dragDisabledAreas;
+}
+
 bool SceneSession::IsAnyParentSessionDragMoving() const
 {
     if (SessionHelper::IsMainWindow(GetWindowType())) {
@@ -1112,6 +1135,10 @@ void SceneSession::ApplySessionEventParam(SessionEvent event, const SessionEvent
         case SessionEvent::EVENT_MAXIMIZE:
             sessionEventParam_.waterfallResidentState = param.waterfallResidentState;
             sessionEventParam_.titleButtonEventType_ = param.titleButtonEventType_;
+            sessionEventParam_.snapshotAnimationConfig_ = param.snapshotAnimationConfig_;
+            break;
+        case SessionEvent::EVENT_RECOVER:
+            sessionEventParam_.snapshotAnimationConfig_ = param.snapshotAnimationConfig_;
             break;
         case SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE:
             sessionEventParam_.compatibleStyleMode = param.compatibleStyleMode;

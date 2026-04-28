@@ -667,6 +667,16 @@ bool ReadEventParam(MessageParcel& data, SessionEvent event, SessionEventParam& 
             TLOGE(WmsLogTag::WMS_EVENT, "Failed to read titleButtonEventType_");
             return false;
         }
+    }
+    if (event == SessionEvent::EVENT_MAXIMIZE || event == SessionEvent::EVENT_RECOVER) {
+        if (!data.ReadInt64(param.snapshotAnimationConfig_.duration)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read snapshotAnimationConfig duration");
+            return false;
+        }
+        if (!data.ReadInt64(param.snapshotAnimationConfig_.delay)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read snapshotAnimationConfig delay");
+            return false;
+        }
     } else if (event == SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE) {
         if (!data.ReadUint32(param.compatibleStyleMode)) {
             TLOGE(WmsLogTag::WMS_EVENT, "Failed to read compatibleStyleMode");

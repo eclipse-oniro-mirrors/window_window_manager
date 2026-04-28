@@ -2859,6 +2859,20 @@ public:
     }
 
     /**
+     * @brief Maximize window with presentation, across-display presentation, and snapshot animation config.
+     *
+     * @param presentation The presentation mode used for window layout when maximizing.
+     * @param acrossDisplayPresentation The across-display presentation to apply when maximizing.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError MaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation acrossDisplayPresentation, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief maximize the main window according to MaximizeMode. called by ACE when maximize button is clicked.
      *
      * @return WMError
@@ -3972,6 +3986,18 @@ public:
      * @return WMError
      */
     virtual WMError Recover(uint32_t reason) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Recovery the main window with snapshot animation config.
+     *
+     * @param reason Reason of update.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError
+     */
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set to automatically save the window rect.
