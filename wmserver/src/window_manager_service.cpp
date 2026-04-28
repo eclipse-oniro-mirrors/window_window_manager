@@ -1110,7 +1110,7 @@ AvoidArea WindowManagerService::GetAvoidAreaByType(uint32_t windowId, AvoidAreaT
 
 WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
 {
-    auto task = [this, &winStateSnapshotJsonStr]() {
+    auto task = [this, persistentId, &winStateSnapshotJsonStr]() {
         if (winStateSnapshotJsonStr.empty()) {
             winStateSnapshotJsonStr = "{}";
         }
@@ -1168,7 +1168,7 @@ WMError WindowManagerService::UnregisterWindowManagerAgent(WindowManagerAgentTyp
     if ((windowManagerAgent == nullptr) || (windowManagerAgent->AsObject() == nullptr)) {
         WLOGFE("windowManagerAgent is null");
         return WMError::WM_ERROR_NULLPTR;
-    } 
+    }
     auto task = [this, &windowManagerAgent, type]() {
         return WindowManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type);
     };

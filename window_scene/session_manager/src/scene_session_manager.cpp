@@ -14431,14 +14431,13 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
         }
         systemUiVisible[1] = BoolToChar(GetAINavigationBarArea(displayId, false) != WSRect::EMPTY_RECT);
         std::tuple<bool, WSRect, WSRect> floatNavigationInfo;
-        systemUiVisible[2] = BoolToChar(GetFloatNavigationInfo(displayId, floatNavigationInfo) == WSError::WS_OK);
+        systemUiVisible[2] = BoolToChar(GetFloatNavigationInfo(displayId, floatNavigationInfo) == WSError::WS_OK &&
+            std::get<0>(floatNavigationInfo));
         auto navigationBarVector = GetSceneSessionVectorByTypeAndDisplayId(
             WindowType::WINDOW_TYPE_NAVIGATION_BAR, displayId);
         for (auto& navigationBar : navigationBarVector) {
             systemUiVisible[3] = BoolToChar(navigationBar->IsVisible());
         }
-        systemUiVisible += navigationBarVisible;
-
         winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
     }
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();

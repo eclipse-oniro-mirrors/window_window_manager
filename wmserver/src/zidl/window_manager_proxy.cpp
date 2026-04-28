@@ -241,7 +241,7 @@ AvoidArea WindowManagerProxy::GetAvoidAreaByType(uint32_t windowId, AvoidAreaTyp
     return *area;
 }
 
-WMError SceneSessionManagerProxy::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
+WMError WindowManagerProxy::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
 {
     MessageParcel data;
     MessageParcel reply;

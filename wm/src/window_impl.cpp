@@ -468,15 +468,16 @@ WMError WindowImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea,
 
 WMError WindowImpl::GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
 {
-    auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(property_->GetWindowId(),
+    auto windowId = property_->GetWindowId();
+    auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(windowId,
         winStateSnapshotJsonStr);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d, retCode=%{public}d",
-            persistentId, static_cast<int32_t>(errCode));
+            windowId, static_cast<int32_t>(errCode));
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
-        persistentId, winStateSnapshotJsonStr.c_str());
+        windowId, winStateSnapshotJsonStr.c_str());
     return WMError::WM_OK;
 }
 
