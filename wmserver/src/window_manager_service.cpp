@@ -1108,6 +1108,35 @@ AvoidArea WindowManagerService::GetAvoidAreaByType(uint32_t windowId, AvoidAreaT
     return PostSyncTask(task, "GetAvoidAreaByType");
 }
 
+WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
+{
+    auto task = [this, &winStateSnapshotJsonStr]() {
+        if (winStateSnapshotJsonStr.empty()) {
+            winStateSnapshotJsonStr = "{}";
+        }
+        nlohmann::json winStateSnapshotJson = nlohmann::json::parse(winStateSnapshotJsonStr, nullptr, false);
+        if (winStateSnapshotJson.is_discarded()) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "parse json error: winId=%{public}d, winStateSnapshot=%{public}s",
+                persistentId, winStateSnapshotJsonStr.c_str());
+            return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+        }
+        std::string systemUiVisible(4, '0');
+        auto BoolToChar = [](bool value) { return value ? '1' : '0'; };
+        auto statusBarNode = windowRoot_->GetWindowNodeByWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
+        if (statusBarNode) {
+            systemUiVisible[0] = BoolToChar(statusBarNode->GetVisibilityState());
+        }
+        auto navigationBarNode = windowRoot_->GetWindowNodeByWindowType(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
+        if (navigationBarNode) {
+            systemUiVisible[3] = BoolToChar(navigationBarNode->GetVisibilityState());
+        }
+        winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
+        winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+        return WMError::WM_OK;
+    };
+    return PostSyncTask(task, "GetWindowStateSnapshot");
+}
+
 WMError WindowManagerService::RegisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
@@ -1139,7 +1168,7 @@ WMError WindowManagerService::UnregisterWindowManagerAgent(WindowManagerAgentTyp
     if ((windowManagerAgent == nullptr) || (windowManagerAgent->AsObject() == nullptr)) {
         WLOGFE("windowManagerAgent is null");
         return WMError::WM_ERROR_NULLPTR;
-    }
+    } 
     auto task = [this, &windowManagerAgent, type]() {
         return WindowManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type);
     };
