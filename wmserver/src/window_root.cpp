@@ -173,14 +173,12 @@ sptr<WindowNode> WindowRoot::GetWindowNodeByMissionId(uint32_t missionId) const
 
 sptr<WindowNode> WindowRoot::GetWindowNodeByWindowType(WindowType type) const
 {
-
     for (auto iter: windowNodeMap_) {
         if (iter->second) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "tanhong winId %{public}d windowType: %{public}d visible %{public}d",
                 iter->first, iter->second->GetWindowType(), iter->second->GetVisibilityState());
         }
     }
-
     using ValueType = const std::map<uint32_t, sptr<WindowNode>>::value_type&;
     auto it = std::find_if(windowNodeMap_.begin(), windowNodeMap_.end(), [type] (ValueType item) {
         return item.second && item.second->GetWindowType() == type;
