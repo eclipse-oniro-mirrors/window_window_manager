@@ -17,7 +17,7 @@
 #include "window_manager_proxy.h"
 #include "window_manager_stub_impl.h"
 #include "iremote_object_mocker.h"
-#include "mock/mock_message_parcel.h"
+#include "mock_message_parcel.h"
 #include <rs_window_animation_target.h>
 
 using namespace testing;
