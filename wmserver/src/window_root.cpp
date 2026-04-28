@@ -176,8 +176,8 @@ sptr<WindowNode> WindowRoot::GetWindowNodeByWindowType(WindowType type) const
 
     for (auto iter: windowNodeMap_) {
         if (iter->second) {
-            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "tanhong winId=%{public}d windowType: ",
-                iter->first, iter->second->GetWindowType());
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "tanhong winId %{public}d windowType: %{public}d visible %{public}d",
+                iter->first, iter->second->GetWindowType(), iter->second->GetVisibilityState());
         }
     }
 
