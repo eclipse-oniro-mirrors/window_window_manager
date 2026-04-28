@@ -17,6 +17,7 @@
 #include "window_manager_proxy.h"
 #include "window_manager_stub_impl.h"
 #include "iremote_object_mocker.h"
+#include "mock/mock_message_parcel.h"
 #include <rs_window_animation_target.h>
 
 using namespace testing;
@@ -637,6 +638,68 @@ HWTEST_F(WindowManagerProxyTest, GetFocusWindowInfo, TestSize.Level1)
     windowManagerProxy_->GetFocusWindowInfo(focusInfo);
     WMError err = windowManagerProxy_->GetSystemConfig(systemConfig);
     EXPECT_EQ(err, static_cast<WMError>(reply.ReadInt32()));
+}
+
+/**
+ * @tc.name: GetWindowStateSnapshot01
+ * @tc.desc: test all error branches
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerProxyTest, GetWindowStateSnapshot01, TestSize.Level1)
+{
+    int32_t persistentId = 1;
+    std::string winStateSnapshotJsonStr = "{}";
+
+    // Test with null remote
+    auto tempProxy = sptr<WindowManagerProxy>::MakeSptr(nullptr);
+    auto ret = tempProxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<WindowManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    // Test WriteInterfaceToken failed
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Test WriteInt32 failed
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    // Test WriteString failed
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ret = proxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+
+    // Test SendRequest failed
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    // Test ReadString failed
+    MockMessageParcel::SetReadStringErrorFlag(true);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    ret = proxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadStringErrorFlag(false);
+
+    // Test ReadInt32 failed
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    ret = proxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    // Test success
+    remoteMocker->SetRequestResult(ERR_NONE);
+    ret = proxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+    EXPECT_NE(ret, WMError::WM_ERROR_INVALID_CALLING);
 }
 }
 }
