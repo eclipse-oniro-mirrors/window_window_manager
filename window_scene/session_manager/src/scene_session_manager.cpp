@@ -14408,6 +14408,18 @@ WMError SceneSessionManager::UpdateSessionOcclusionStateListener(int32_t persist
     }, where);
 }
 
+WSError SceneSessionManager::GetFloatNavagationInfo(
+    DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)
+{
+    std::lock_guard<std::mutex> lock(floatNavagationInfoMapMutex_);
+    auto iter = floatNavagationInfoMap_.find(displayId);
+    if (iter != floatNavagationInfoMap_.end()) {
+        floatNavagationInfo = iter->second;
+        return WSError::WS_OK;
+    }
+    return WSError::WS_DO_NOTHING;
+}
+
 WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
 {
     if (winStateSnapshotJsonStr.empty()) {
@@ -14420,6 +14432,20 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     winStateSnapshotJson["showInLandscapeMode"] = appWindowSceneConfig_.systemUIStatusBarConfig_.showInLandscapeMode_;
+    // tanhong
+    auto session = GetSceneSession(persistentId);
+    if (session) {
+        auto displayId = session->GetSessionProperty()->GetDisplayId();
+        auto statusBarVector = GetSceneSessionVectorByTypeAndDisplayId(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
+        std::string systemUiVisible;
+        for (auto& statusBar : statusBarVector) {
+            systemUiVisible = std::to_string(static_cast<int32_t(statusBar->isVisible));
+        }
+        systemUiVisible += std::to_string(static_cast<int32_t(GetAINavigationBarArea(displayId, false) != {}));
+        auto [navigationBarVisible, _, _] = GetFloatNavagationInfo(displayId, floatNavagationInfo);
+        systemUiVisible += std::to_string(static_cast<int32_t(navigationBarVisible));
+        winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
+    }
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
         persistentId, winStateSnapshotJsonStr.c_str());
