@@ -123,11 +123,18 @@ napi_value JsFloatViewManager::CreateFloatViewControllerTask(napi_env env, const
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_CREATE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
         }
+        sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
+        if (mainWindow == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get main window from context");
+            *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+            return;
+        }
         if (floatViewController == nullptr) {
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_CREATE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
         }
+        floatViewController->UpdateMainWindow(mainWindow);
     };
     NapiAsyncTask::CompleteCallback complete =
         [errCodePtr, floatViewController](napi_env env, NapiAsyncTask& task, int32_t status) {

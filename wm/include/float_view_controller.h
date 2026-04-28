@@ -38,6 +38,7 @@ public:
     FloatViewController(const FvOption &option, napi_env env);
     FloatViewController(const FvOption &option, ani_env* env);
     virtual ~FloatViewController();
+    void UpdateMainWindow(const sptr<Window>& mainWindow);
     WMError StartFloatView();
     WMError StartFloatViewSingle(bool showWhenCreate = true);
     WMError StopFloatViewFromClient();

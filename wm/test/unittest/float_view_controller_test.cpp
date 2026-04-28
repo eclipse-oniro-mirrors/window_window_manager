@@ -192,8 +192,11 @@ HWTEST_F(FloatViewControllerTest, StartFloatView, TestSize.Level1)
 {
     fvController_->SetBindState(true);
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatView());
+    fvContoller_->UpdateMainWindow(nullptr);
+    EXPECT_EQ(fvController_->mainWindow_, nullptr);
 
     fvController_->SetBindState(false);
+    fvController_->UpdateMainWindow(mw_);
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatView());
 }
 
@@ -218,7 +221,7 @@ HWTEST_F(FloatViewControllerTest, StartFloatViewSingle, TestSize.Level1)
     EXPECT_EQ(WMError::WM_ERROR_FV_START_FAILED, fvController_->StartFloatViewSingle());
     FloatViewManager::SetActiveController(fvController_);
     EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, fvController_->StartFloatViewSingle());
-
+    fvController_->UpdateMainWindow(mw_);
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatViewSingle(false));
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatViewSingle(true));
 }

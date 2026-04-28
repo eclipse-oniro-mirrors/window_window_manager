@@ -69,6 +69,15 @@ FloatViewController::~FloatViewController()
     TLOGI(WmsLogTag::WMS_SYSTEM, "FloatViewController release, id: %{public}s", id_.c_str());
 }
 
+void FloatViewController::UpdateMainWindow(const sptr<Window>& mainWindow)
+{
+    if (mainWindow == nullptr) {
+        return;
+    }
+    mainWindow_ = mainWindow;
+    mainWindowId_ = mainWindow_->GetWindowId();
+}
+
 FvWindowState FloatViewController::GetCurState()
 {
     std::lock_guard<std::mutex> lock(controllerMutex_);
@@ -204,18 +213,24 @@ WMError FloatViewController::StartFloatViewInner()
         TLOGE(WmsLogTag::WMS_SYSTEM, "Show fv window failed, err: %{public}u", errCode);
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    if (mainWindow_ != nullptr) {
+        mainWindowLifeCycleListener_ = sptr<FloatViewController::WindowLifeCycleListener>::MakeSptr();
+        mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
+    }
     return WMError::WM_OK;
 }
 
 WMError FloatViewController::CreateFloatViewWindow()
 {
     auto contextPtr = option_.GetContext();
-    if (contextPtr == nullptr) {
+    if (contextPtr == nullptr || mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Create fv failed, invalid fvOption or mainWindow");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    if (!Window::IsAnyWindowMatchState(WindowState::STATE_SHOWN)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Create fv failed, no shown window");
+    auto mainWindowState = mainWindow_->GetWindowState();
+    TLOGI(WmsLogTag::WMS_SYSTEM, "Main window state: %{public}u", mainWindowState);
+    if (mainWindowState != WindowState::STATE_SHOWN) {
+        TLOGW(WmsLogTag::WMS_SYSTEM, "Main window is not in foreground, state: %{public}u", mainWindowState);
         return WMError::WM_ERROR_FV_START_FAILED;
     }
     auto windowOption = sptr<WindowOption>::MakeSptr();
@@ -351,6 +366,10 @@ WMError FloatViewController::DestroyFloatViewWindow(const std::string& reason)
     curState_ = FvWindowState::FV_STATE_STOPPED;
     OnStateChange(FloatViewState::FV_STOPPED, reason);
     FloatViewManager::RemoveActiveController(weakRef_);
+    if (mainWindow_ != nullptr) {
+        mainWindow_->UnregisterLifeCycleListener(mainWindowLifeCycleListener_);
+        mainWindowLifeCycleListener_ = nullptr;
+    }
     window_ = nullptr;
     stopFromClient_ = false;
     bindWindowId_ = INVALID_WINDOW_ID;
