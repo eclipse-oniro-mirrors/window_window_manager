@@ -41,7 +41,7 @@ public:
     WMError StartFloatView();
     WMError StartFloatViewSingle(bool showWhenCreate = true);
     WMError StopFloatViewFromClient();
-    WMError StopFloatViewFromClientSingle();
+    WMError StopFloatViewFromClientSingle(bool isForceStop = false);
     WMError StopFloatView(const std::string& reason);
     WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams);
     WMError SetUIContext(const std::string &contextUrl, const std::shared_ptr<NativeReference>& contentStorage);

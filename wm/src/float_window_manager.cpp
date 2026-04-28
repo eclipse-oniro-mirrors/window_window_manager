@@ -176,7 +176,7 @@ WMError FloatWindowManager::StartBindFloatView(const wptr<FloatViewController> &
     auto fvWindow = fvController->GetWindow();
     if (fvWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "float view window is nullptr");
-        fvController->StopFloatViewFromClientSingle();
+        fvController->StopFloatViewFromClientSingle(true);
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     fbController->SetBindWindowId(fvWindow->GetWindowId());
@@ -184,14 +184,14 @@ WMError FloatWindowManager::StartBindFloatView(const wptr<FloatViewController> &
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "start floating ball failed when bind");
         fbController->SetBindWindowId(INVALID_WINDOW_ID);
-        fvController->StopFloatViewFromClientSingle();
+        fvController->StopFloatViewFromClientSingle(true);
         return WMError::WM_DO_NOTHING;
     }
     auto fbWindow = fbController->GetFbWindow();
     if (fbWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "floating ball window is nullptr");
         fbController->SetBindWindowId(INVALID_WINDOW_ID);
-        fvController->StopFloatViewFromClientSingle();
+        fvController->StopFloatViewFromClientSingle(true);
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     fvController->SetBindWindowId(fbWindow->GetWindowId());
