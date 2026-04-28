@@ -901,6 +901,7 @@ napi_value CreateJsBrightnessInfo(napi_env env, const ScreenBrightnessInfo& brig
     napi_set_named_property(env, objValue, "currentHeadroom", CreateJsValue(env, brightnessInfo.currentHeadroom));
     napi_set_named_property(env, objValue, "maxHeadroom", CreateJsValue(env, brightnessInfo.maxHeadroom));
     napi_set_named_property(env, objValue, "sdrNits", CreateJsValue(env, brightnessInfo.sdrNits));
+    napi_set_named_property(env, objValue, "brightnessPosition", CreateJsValue(env, brightnessInfo.brightnessPosition));
 
     return objValue;
 }

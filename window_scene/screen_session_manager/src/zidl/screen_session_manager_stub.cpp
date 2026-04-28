@@ -271,6 +271,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::DMS, "write sdrNits failed!");
                 break;
             }
+            if (!reply.WriteFloat(brightnessInfo.brightnessPosition)) {
+                TLOGE(WmsLogTag::DMS, "write brightnessPosition failed!");
+                break;
+            }
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTS_INPUT: {

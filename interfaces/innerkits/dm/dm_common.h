@@ -738,6 +738,7 @@ struct ScreenBrightnessInfo {
     float currentHeadroom = DEFAULT_HEADROOM;
     float maxHeadroom = DEFAULT_HEADROOM;
     float sdrNits = DEFAULT_SDR_NITS;
+    float brightnessPosition = 0.0f;
 };
 
 struct MultiScreenPositionOptions {

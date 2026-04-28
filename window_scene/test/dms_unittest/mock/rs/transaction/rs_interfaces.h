@@ -34,11 +34,13 @@ struct BrightnessInfo {
     float currentHeadroom = 1.0f;
     float maxHeadroom = 1.0f;
     float sdrNits = 500.0f;
+    float brightnessPosition = 0.0f;
 
     bool operator==(const BrightnessInfo& other) const
     {
         return this == &other || (ROSEN_EQ(currentHeadroom, other.currentHeadroom) &&
-                                  ROSEN_EQ(maxHeadroom, other.maxHeadroom) && ROSEN_EQ(sdrNits, other.sdrNits));
+                                  ROSEN_EQ(maxHeadroom, other.maxHeadroom) && ROSEN_EQ(sdrNits, other.sdrNits) &&
+                                  ROSEN_EQ(brightnessPosition, other.brightnessPosition));
     }
 
     bool operator!=(const BrightnessInfo& other) const
