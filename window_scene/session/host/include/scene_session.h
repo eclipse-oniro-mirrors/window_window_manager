@@ -138,7 +138,7 @@ using GetStatusBarConstantlyShowFunc = std::function<void(DisplayId displayId, b
 using NotifySetWindowCornerRadiusFunc = std::function<void(float cornerRadius)>;
 using GetNextAvoidAreaRectInfoFunc = std::function<WSError(DisplayId displayId, AvoidAreaType type,
     std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo)>;
-using GetFloatNavagationInfoFunc = std::function<WSError(DisplayId displayId,
+using GetFloatNavigationInfoFunc = std::function<WSError(DisplayId displayId,
     std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)>;
 using GetLSStateFunc = std::function<bool()>;
 using NotifyFollowParentRectFunc = std::function<void(bool isFollow)>;
@@ -211,7 +211,7 @@ public:
         NotifySessionTouchOutsideCallback onSessionTouchOutside_;
         GetAINavigationBarArea onGetAINavigationBarArea_;
         GetNextAvoidAreaRectInfoFunc onGetNextAvoidAreaRectInfo_;
-        GetFloatNavagationInfoFunc onGetFloatNavagationInfo_;
+        GetFloatNavigationInfoFunc onGetFloatNavigationInfo_;
         GetLSStateFunc onGetLSState_;
         OnOutsideDownEvent onOutsideDownEvent_;
         HandleSecureSessionShouldHideCallback onHandleSecureSessionShouldHide_;

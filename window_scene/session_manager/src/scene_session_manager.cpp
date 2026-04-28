@@ -2324,9 +2324,9 @@ sptr<SceneSession::SpecificSessionCallback> SceneSessionManager::CreateSpecificS
         DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
         return this->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
     };
-    specificCb->onGetFloatNavagationInfo_ = [this](
+    specificCb->onGetFloatNavigationInfo_ = [this](
         DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo) {
-        return this->GetFloatNavagationInfo(displayId, floatNavagationInfo);
+        return this->GetFloatNavigationInfo(displayId, floatNavagationInfo);
     };
     specificCb->onGetLSState_ = [this]() {
         return this->GetLSState();
@@ -14301,7 +14301,7 @@ WSError SceneSessionManager::NotifyFloatNavigationInfo(DisplayId displayId, bool
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::GetFloatNavagationInfo(
+WSError SceneSessionManager::GetFloatNavigationInfo(
     DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)
 {
     std::lock_guard<std::mutex> lock(floatNavagationInfoMapMutex_);
@@ -14424,13 +14424,21 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
     if (session) {
         auto displayId = session->GetSessionProperty()->GetDisplayId();
         auto statusBarVector = GetSceneSessionVectorByTypeAndDisplayId(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
-        std::string systemUiVisible;
+        std::string systemUiVisible(4, '0');
+        auto BoolToChar = [](bool value) { return value ? '1' : '0'; };
         for (auto& statusBar : statusBarVector) {
-            systemUiVisible = std::to_string(static_cast<int32_t(statusBar->isVisible));
+            systemUiVisible[0] = BoolToChar(statusBar->IsVisible());
         }
-        systemUiVisible += std::to_string(static_cast<int32_t(GetAINavigationBarArea(displayId, false) != {}));
-        auto [navigationBarVisible, _, _] = GetFloatNavagationInfo(displayId, floatNavagationInfo);
-        systemUiVisible += std::to_string(static_cast<int32_t(navigationBarVisible));
+        systemUiVisible[1] = BoolToChar(GetAINavigationBarArea(displayId, false) != WSRect::EMPTY_RECT);
+        std::tuple<bool, WSRect, WSRect> floatNavigationInfo;
+        systemUiVisible[2] = BoolToChar(GetFloatNavigationInfo(displayId, floatNavigationInfo) == WSError::WS_OK);
+        auto navigationBarVector = GetSceneSessionVectorByTypeAndDisplayId(
+            WindowType::WINDOW_TYPE_NAVIGATION_BAR, displayId);
+        for (auto& navigationBar : navigationBarVector) {
+            systemUiVisible[3] = BoolToChar(navigationBar->IsVisible());
+        }
+        systemUiVisible += navigationBarVisible;
+
         winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
     }
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
