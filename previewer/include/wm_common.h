@@ -2253,6 +2253,9 @@ enum class AcrossDisplayPresentation : uint32_t {
      * re-entering half-folded.
      */
     EXIT_ACROSS_DISPLAY_MODE = 2,
+
+    /** Internal sentinel indicating the user did not specify this parameter. */
+    UNSPECIFIED = UINT32_MAX,
 };
 
 /**
@@ -2262,7 +2265,7 @@ enum class AcrossDisplayPresentation : uint32_t {
 struct MaximizeOptions {
     MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
     AcrossDisplayPresentation acrossDisplayPresentation =
-        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        AcrossDisplayPresentation::UNSPECIFIED;
     SnapshotAnimationConfig snapshotAnimationConfig;
 };
 

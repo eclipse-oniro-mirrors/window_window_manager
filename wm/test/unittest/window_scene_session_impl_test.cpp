@@ -4238,7 +4238,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowExitMode01, Te
 
 /**
  * @tc.name: MaximizeWithOptions_SubWindowFollowMode01
- * @tc.desc: Sub window with FOLLOW_ACROSS_DISPLAY_SETTING should succeed
+ * @tc.desc: Sub window with FOLLOW_ACROSS_DISPLAY_SETTING should fail (explicit value rejected)
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowFollowMode01, TestSize.Level1)
@@ -4256,6 +4256,29 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowFollowMode01, 
     SnapshotAnimationConfig config = { 100, 20 };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowUnspecified01
+ * @tc.desc: Sub window with UNSPECIFIED acrossDisplayPresentation should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowUnspecified01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWindowUnspecified01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 100, 20 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
     ASSERT_EQ(ret, WMError::WM_OK);
 }
 

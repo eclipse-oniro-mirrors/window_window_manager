@@ -58,6 +58,9 @@ enum class AcrossDisplayPresentation : uint32_t {
      * re-entering half-folded.
      */
     EXIT_ACROSS_DISPLAY_MODE = 2,
+
+    /** Internal sentinel indicating the user did not specify this parameter. */
+    UNSPECIFIED = UINT32_MAX,
 };
 
 } // namespace Rosen

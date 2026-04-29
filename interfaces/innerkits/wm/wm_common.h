@@ -4059,7 +4059,7 @@ enum class WaterfallResidentState : uint32_t {
 struct MaximizeOptions {
     MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
     AcrossDisplayPresentation acrossDisplayPresentation =
-        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        AcrossDisplayPresentation::UNSPECIFIED;
     SnapshotAnimationConfig snapshotAnimationConfig;
 };
 
