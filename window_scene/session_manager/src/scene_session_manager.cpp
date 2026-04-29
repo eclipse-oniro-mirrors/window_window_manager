@@ -14425,19 +14425,18 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
         auto displayId = session->GetSessionProperty()->GetDisplayId();
         auto statusBarVector = GetSceneSessionVectorByTypeAndDisplayId(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
         std::string systemUiVisible(4, '0');
-        auto BoolToChar = [](bool value) { return value ? '1' : '0'; };
-        for (auto& statusBar : statusBarVector) {
-            systemUiVisible[0] = BoolToChar(statusBar->IsVisible());
-        }
-        systemUiVisible[1] = BoolToChar(GetAINavigationBarArea(displayId, false) != WSRect::EMPTY_RECT);
-        std::tuple<bool, WSRect, WSRect> floatNavigationInfo;
-        systemUiVisible[2] = BoolToChar(GetFloatNavigationInfo(displayId, floatNavigationInfo) == WSError::WS_OK &&
-            std::get<0>(floatNavigationInfo));
-        auto navigationBarVector = GetSceneSessionVectorByTypeAndDisplayId(
-            WindowType::WINDOW_TYPE_NAVIGATION_BAR, displayId);
-        for (auto& navigationBar : navigationBarVector) {
-            systemUiVisible[3] = BoolToChar(navigationBar->IsVisible());
-        }
+        auto IsSystemUiVisible = [](WindowType type, DisplayId displayId) {
+            auto systemUiVector = GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
+            for (auto& systemUi : systemUiVector) {
+                return systemUi->IsVisible() ? '1' : '0';
+            }
+            return '0';
+        };
+        systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
+        systemUiVisible[2] = IsSystemUiVisible(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION, displayId);
+        systemUiVisible[1] = systemUiVisible[2] == '1' ? '0' :
+            (GetAINavigationBarArea(displayId, false) != WSRect::EMPTY_RECT ? '1' : '0');
+        systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR, displayId);
         winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
     }
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
