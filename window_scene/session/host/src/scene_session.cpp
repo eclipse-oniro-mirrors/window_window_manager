@@ -196,8 +196,9 @@ SceneSession::~SceneSession()
 WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel,
     const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token, int32_t pid, int32_t uid,
-    const std::string& identityToken, sptr<IRemoteObject>& renderSession)
+    const std::string& identityToken)
 {
     return PostSyncTask([weakThis = wptr(this), sessionStage, eventChannel, surfaceNode, &systemConfig,
         property, token, pid, uid, identityToken, &renderSession, where = __func__] {
@@ -233,7 +234,7 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
         }
         session->RetrieveStatusBarDefaultVisibility();
         auto ret = LOCK_GUARD_EXPR(SCENE_GUARD, session->Session::ConnectInner(
-            sessionStage, eventChannel, surfaceNode, systemConfig, property, token, pid, uid));
+            sessionStage, eventChannel, surfaceNode, systemConfig, renderSession, property, token, pid, uid));
         if (ret != WSError::WS_OK) {
             return ret;
         }
@@ -250,14 +251,15 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
 
 WSError SceneSession::Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
     const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
-    const std::string& identityToken, sptr<IRemoteObject>& renderSession)
+    const std::string& identityToken)
 {
     // Get pid and uid before posting task.
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     int32_t uid = IPCSkeleton::GetCallingUid();
-    return ConnectInner(sessionStage, eventChannel, surfaceNode, systemConfig,
-        property, token, pid, uid, identityToken, renderSession);
+    return ConnectInner(sessionStage, eventChannel, surfaceNode, systemConfig, renderSession,
+        property, token, pid, uid, identityToken);
 }
 
 WSError SceneSession::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,

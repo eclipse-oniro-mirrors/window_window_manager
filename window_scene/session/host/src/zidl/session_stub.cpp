@@ -538,9 +538,10 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
     }
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    WSError errCode = Connect(sessionStage, eventChannel, surfaceNode, systemConfig, property, token,
-        identityToken, renderSession);
+    WSError errCode = Connect(sessionStage, eventChannel, surfaceNode, systemConfig, renderSession,
+        property, token, identityToken);
     reply.WriteParcelable(&systemConfig);
+    reply.WriteRemoteObject(renderSession);
     if (property) {
         reply.WriteInt32(property->GetPersistentId());
         reply.WriteUint64(property->GetDisplayId());
@@ -604,7 +605,6 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         reply.WriteBool(property->IsPrelaunch());
         reply.WriteInt32(property->GetFrameNum());
     }
-    reply.WriteRemoteObject(renderSession);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
     // LCOV_EXCL_STOP

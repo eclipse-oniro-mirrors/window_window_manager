@@ -799,8 +799,8 @@ WMError WindowSessionImpl::Connect()
     }
     property_->SetApiVersion(GetTargetAPIVersion());
     auto ret = hostSession->Connect(
-        iSessionStage, iWindowEventChannel, surfaceNode_, windowSystemConfig_, property_,
-        token, identityToken_, renderSession);
+        iSessionStage, iWindowEventChannel, surfaceNode_, windowSystemConfig_, renderSession, property_,
+        token, identityToken_);
     if (SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         WindowHelper::IsMainWindow(GetType()) && !property_->GetMissionInfo().startupInvisibility_) {
         auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
