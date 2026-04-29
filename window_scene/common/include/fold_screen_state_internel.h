@@ -34,8 +34,8 @@ static const std::string SECONDARY_FOLD_DISPLAY = "6";
 static const std::string SINGLE_SUPER_DISPLAY = "7";
 static const std::string SECONDARY_SUPER_DISPLAY = "8";
 static const std::string DEFAULT_OFFSET = "0";
-static const size_t THIRD_ANGLE = 2;
 static const std::string SCREEN_NUMBER = "2";
+static const size_t THIRD_ANGLE = 2;
 }
 class FoldScreenStateInternel {
 public:
