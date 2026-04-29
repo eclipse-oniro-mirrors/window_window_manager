@@ -468,6 +468,7 @@ WMError WindowImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea,
 
 WMError WindowImpl::GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
 {
+    
     auto windowId = property_->GetWindowId();
     auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(windowId,
         winStateSnapshotJsonStr);
