@@ -825,8 +825,8 @@ protected:
     WindowStatus ConvertWindowModeToStatus(WindowMode mode, MaximizeMode maximizeMode, bool immersiveModeEnabled);
     // Get window status for the current session using its own properties
     WindowStatus GetOwnWindowStatus(WindowMode mode);
-    // Get window status for the parent session using externally provided parameters
-    WindowStatus GetParentWindowStatus(WindowMode mode, MaximizeMode maximizeMode, bool isLayoutFullScreen);
+    // Get window status using externally provided parameters
+    WindowStatus GetWindowStatusWithExternalState(WindowMode mode, MaximizeMode maximizeMode, bool isLayoutFullScreen);
 
     /*
      * PC Event Filter

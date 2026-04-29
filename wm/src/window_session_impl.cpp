@@ -2816,7 +2816,7 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
         WindowMode mode = GetWindowMode();
         bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
         bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
-            mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+            WindowHelper::IsSplitWindowMode(mode) ||
             (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !isAncoInPcOrPcMode);
         TLOGD(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d", decorVisible);
         if (windowSystemConfig_.freeMultiWindowSupport_) {
@@ -2855,7 +2855,7 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
         if (auto uiContent = GetUIContentSharedPtr()) {
             bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
             bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
-                mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+                WindowHelper::IsSplitWindowMode(mode) ||
                 (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() &&
                 !isAncoInPcOrPcMode);
             if (windowSystemConfig_.freeMultiWindowSupport_) {
@@ -8712,7 +8712,7 @@ WindowStatus WindowSessionImpl::ConvertWindowModeToStatus(WindowMode mode, Maxim
         return (maximizeMode == MaximizeMode::MODE_AVOID_SYSTEM_BAR)
             ? WindowStatus::WINDOW_STATUS_MAXIMIZE : WindowStatus::WINDOW_STATUS_FLOATING;
     }
-    if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+    if (WindowHelper::IsSplitWindowMode(mode)) {
         return WindowStatus::WINDOW_STATUS_SPLITSCREEN;
     }
     if (mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
@@ -8746,14 +8746,14 @@ WindowStatus WindowSessionImpl::GetOwnWindowStatus(WindowMode mode)
 }
 
 /**
- * @brief Get window status for the parent session using externally provided parameters.
- * @param mode Parent window mode
- * @param maximizeMode Parent maximize mode (provided by caller)
- * @param isLayoutFullScreen Whether parent is in layout fullscreen state (provided by caller)
- * @return Window status derived from the parent's parameters.
- *         Returns MINIMIZE if the current session is in hidden state regardless of parent mode.
+ * @brief Get window status using externally provided parameters.
+ * @param mode Window mode
+ * @param maximizeMode Maximize mode (provided by caller)
+ * @param isLayoutFullScreen Whether is in layout fullscreen state (provided by caller)
+ * @return Window status derived from the externally provided parameters.
+ *         Returns MINIMIZE if the current session is in hidden state regardless of mode.
  */
-WindowStatus WindowSessionImpl::GetParentWindowStatus(WindowMode mode, MaximizeMode maximizeMode,
+WindowStatus WindowSessionImpl::GetWindowStatusWithExternalState(WindowMode mode, MaximizeMode maximizeMode,
     bool isLayoutFullScreen)
 {
     auto windowStatus = ConvertWindowModeToStatus(mode, maximizeMode, isLayoutFullScreen);
@@ -8870,7 +8870,7 @@ void WindowSessionImpl::NotifyParentWindowSizeChange(Rect rect)
 void WindowSessionImpl::NotifyParentWindowStatusChange(WindowMode mode, MaximizeMode maximizeMode,
     bool isLayoutFullScreen)
 {
-    auto windowStatus = GetParentWindowStatus(mode, maximizeMode, isLayoutFullScreen);
+    auto windowStatus = GetWindowStatusWithExternalState(mode, maximizeMode, isLayoutFullScreen);
     TLOGI(WmsLogTag::WMS_LAYOUT, " id:%{public}d, windowStatus:%{public}u, windowMode:%{public}u",
         GetPersistentId(), windowStatus,  mode);
     auto lastStatus = lastStatusWhenNotifyParentStatusChange_.load();
@@ -9743,8 +9743,7 @@ WMError WindowSessionImpl::CheckMultiWindowRect(uint32_t& width, uint32_t& heigh
 
     if (WindowHelper::IsSubWindow(GetType())) {
         auto mainWindow = FindMainWindowWithContext();
-        if (mainWindow != nullptr && (mainWindow->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
-                                      mainWindow->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY)) {
+        if (mainWindow != nullptr && WindowHelper::IsSplitWindowMode(mainWindow->GetWindowMode())) {
             if (width == requestRect.width_ && height == requestRect.height_) {
                 TLOGW(WmsLogTag::WMS_LAYOUT, "Request same size in multiWindow will not update, return");
                 return WMError::WM_ERROR_INVALID_WINDOW;

@@ -8915,7 +8915,7 @@ bool SceneSessionManager::CheckLastFocusedAppSessionFocus(const sptr<SceneSessio
          (nextSession->GetSessionProperty()->IsTopmost() ||
           nextSession->GetSessionProperty()->IsMainWindowTopmost())) ||
         (nextSession->IsAppSession() &&
-         (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+         (WindowHelper::IsSplitWindowMode(mode) ||
           mode == WindowMode::WINDOW_MODE_FLOATING) &&
          (systemConfig_.IsPadWindow() || systemConfig_.IsPhoneWindow()))) {
         if (RequestSessionFocus(lastFocusedAppSessionId, false, FocusChangeReason::LAST_FOCUSED_APP) ==
@@ -10600,7 +10600,7 @@ WindowModeType SceneSessionManager::CheckWindowModeType()
                 continue;
             }
             auto mode = session.second->GetWindowMode();
-            if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+            if (WindowHelper::IsSplitWindowMode(mode)) {
                 inSplit = true;
             }
             if (mode == WindowMode::WINDOW_MODE_FLOATING) {
@@ -17211,8 +17211,7 @@ void SceneSessionManager::CacVisibleWindowNum()
         bool isWindowVisible = curSession->GetRSVisible();
         if (isWindowVisible) {
             auto windowMode = curSession->GetWindowMode();
-            if (windowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-                windowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+            if (WindowHelper::IsSplitWindowMode(windowMode) ||
                 windowMode == WindowMode::WINDOW_MODE_FLOATING || windowMode == WindowMode::WINDOW_MODE_PIP) {
                 isFullScreen = false;
             }
@@ -17618,7 +17617,7 @@ WindowStatus SceneSessionManager::GetWindowStatus(WindowMode mode, SessionState 
         if (property->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR) { // maximize floating
             windowStatus = WindowStatus::WINDOW_STATUS_MAXIMIZE;
         }
-    } else if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+    } else if (WindowHelper::IsSplitWindowMode(mode)) {
         windowStatus = WindowStatus::WINDOW_STATUS_SPLITSCREEN;
     } else if (mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
         windowStatus = WindowStatus::WINDOW_STATUS_FULLSCREEN;

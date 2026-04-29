@@ -237,7 +237,8 @@ public:
 
     static inline bool IsSplitWindowMode(WindowMode mode)
     {
-        return mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+        return mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+            mode == WindowMode::WINDOW_MODE_SPLIT;
     }
 
     static inline bool IsPipWindowMode(WindowMode mode)
@@ -255,8 +256,8 @@ public:
 
     static inline bool IsValidWindowMode(WindowMode mode)
     {
-        return mode == WindowMode::WINDOW_MODE_FULLSCREEN || mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-            mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY || mode == WindowMode::WINDOW_MODE_FLOATING ||
+        return mode == WindowMode::WINDOW_MODE_FULLSCREEN || IsSplitWindowMode(mode) ||
+            mode == WindowMode::WINDOW_MODE_FLOATING ||
             mode == WindowMode::WINDOW_MODE_PIP || mode == WindowMode::WINDOW_MODE_FB ||
             mode == WindowMode::WINDOW_MODE_FV;
     }

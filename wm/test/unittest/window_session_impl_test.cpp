@@ -2609,87 +2609,87 @@ HWTEST_F(WindowSessionImplTest, ConvertWindowModeToStatus04, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetParentWindowStatus01
- * @tc.desc: Test GetParentWindowStatus delegates to ConvertWindowModeToStatus with parent params
+ * @tc.name: GetWindowStatusWithExternalState01
+ * @tc.desc: Test GetWindowStatusWithExternalState delegates to ConvertWindowModeToStatus with parent params
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest, GetParentWindowStatus01, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, GetWindowStatusWithExternalState01, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetParentWindowStatus01");
+    option->SetWindowName("GetWindowStatusWithExternalState01");
     sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
 
     // Parent FLOATING + MODE_AVOID_SYSTEM_BAR → MAXIMIZE
-    auto result = window->GetParentWindowStatus(
+    auto result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_AVOID_SYSTEM_BAR, false);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
 
     // Parent FLOATING + MODE_FULL_FILL → FLOATING
-    result = window->GetParentWindowStatus(
+    result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_FULL_FILL, false);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FLOATING);
 
     // Parent SPLIT_PRIMARY → SPLITSCREEN
-    result = window->GetParentWindowStatus(
+    result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_SPLIT_PRIMARY, MaximizeMode::MODE_FULL_FILL, false);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
 
     // Parent SPLIT_SECONDARY → SPLITSCREEN
-    result = window->GetParentWindowStatus(
+    result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_SPLIT_SECONDARY, MaximizeMode::MODE_FULL_FILL, false);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
 }
 
 /**
- * @tc.name: GetParentWindowStatus02
- * @tc.desc: Test GetParentWindowStatus with FULLSCREEN mode and parent isLayoutFullScreen parameter
+ * @tc.name: GetWindowStatusWithExternalState02
+ * @tc.desc: Test GetWindowStatusWithExternalState with FULLSCREEN mode and parent isLayoutFullScreen parameter
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest, GetParentWindowStatus02, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, GetWindowStatusWithExternalState02, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetParentWindowStatus02");
+    option->SetWindowName("GetWindowStatusWithExternalState02");
     sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
 
     // Parent FULLSCREEN + non-PC → FULLSCREEN (isLayoutFullScreen not used in this path)
     window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
-    auto result = window->GetParentWindowStatus(
+    auto result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, false);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // Parent FULLSCREEN + PC + API >= 14 + isLayoutFullScreen=true → FULLSCREEN
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->targetAPIVersion_ = 14;
-    result = window->GetParentWindowStatus(
+    result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, true);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // Parent FULLSCREEN + PC + API >= 14 + isLayoutFullScreen=false → MAXIMIZE
-    result = window->GetParentWindowStatus(
+    result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, false);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
 }
 
 /**
- * @tc.name: GetParentWindowStatus03
- * @tc.desc: Test GetParentWindowStatus returns MINIMIZE when current session is hidden
+ * @tc.name: GetWindowStatusWithExternalState03
+ * @tc.desc: Test GetWindowStatusWithExternalState returns MINIMIZE when current session is hidden
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest, GetParentWindowStatus03, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, GetWindowStatusWithExternalState03, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetParentWindowStatus03");
+    option->SetWindowName("GetWindowStatusWithExternalState03");
     sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
 
     window->state_ = WindowState::STATE_HIDDEN;
 
     // Hidden state overrides parent FULLSCREEN to MINIMIZE
-    auto result = window->GetParentWindowStatus(
+    auto result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, true);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MINIMIZE);
 
     // Hidden state overrides parent FLOATING to MINIMIZE
-    result = window->GetParentWindowStatus(
+    result = window->GetWindowStatusWithExternalState(
         WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_AVOID_SYSTEM_BAR, false);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MINIMIZE);
 }

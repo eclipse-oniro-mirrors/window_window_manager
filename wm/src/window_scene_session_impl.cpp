@@ -2750,8 +2750,7 @@ WMError WindowSceneSessionImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal
     const auto& requestRect = GetRequestRect();
     if (WindowHelper::IsSubWindow(GetType())) {
         auto mainWindow = FindMainWindowWithContext();
-        if (mainWindow != nullptr && (mainWindow->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
-                                      mainWindow->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY)) {
+        if (mainWindow != nullptr && WindowHelper::IsSplitWindowMode(mainWindow->GetWindowMode())) {
             if (requestRect.posX_ == x && requestRect.posY_ == y) {
                 TLOGW(WmsLogTag::WMS_LAYOUT, "Request same position in multiWindow will not update");
                 return WMError::WM_OK;
@@ -3070,8 +3069,7 @@ WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height)
 
     if (WindowHelper::IsSubWindow(GetType())) {
         auto mainWindow = FindMainWindowWithContext();
-        if (mainWindow != nullptr && (mainWindow->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
-                                      mainWindow->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY)) {
+        if (mainWindow != nullptr && WindowHelper::IsSplitWindowMode(mainWindow->GetWindowMode())) {
             if (width == requestRect.width_ && height == requestRect.height_) {
                 TLOGW(WmsLogTag::WMS_LAYOUT, "Request same size in multiWindow will not update, return");
                 return WMError::WM_OK;
@@ -5003,8 +5001,7 @@ bool WindowSceneSessionImpl::CheckIsPcAppInPadFullScreenOnMobileWindowMode()
     auto mode = property_->GetWindowMode();
     if (property_->GetIsPcAppInPad() &&
         (mode == WindowMode::WINDOW_MODE_FULLSCREEN ||
-         mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-         mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) &&
+         WindowHelper::IsSplitWindowMode(mode)) &&
         !IsFreeMultiWindowMode()) {
         return true;
     }
@@ -5298,6 +5295,8 @@ WMError WindowSceneSessionImpl::SetWindowMode(WindowMode mode)
         hostSession->OnSessionEvent(SessionEvent::EVENT_SPLIT_PRIMARY);
     } else if (mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
         hostSession->OnSessionEvent(SessionEvent::EVENT_SPLIT_SECONDARY);
+    } else if (mode == WindowMode::WINDOW_MODE_SPLIT) {
+        // TODO: 增加触发事件？
     }
     return WMError::WM_OK;
 }
@@ -6527,8 +6526,7 @@ bool WindowSceneSessionImpl::ShouldSkipSupportWindowModeCheck(uint32_t windowMod
         return true;
     }
     bool isMultiWindowMode = mode == WindowMode::WINDOW_MODE_FLOATING ||
-                             mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-                             mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+                             WindowHelper::IsSplitWindowMode(mode);
     bool isAvailableDevice =
         (windowSystemConfig_.IsPhoneWindow() || windowSystemConfig_.IsPadWindow()) && !isFreeMultiWindowMode;
     if (isAvailableDevice && isMultiWindowMode) {
@@ -6622,7 +6620,7 @@ WMError WindowSceneSessionImpl::UpdateWindowModeImmediately(WindowMode mode)
         property_->SetWindowMode(mode);
         UpdateTitleButtonVisibility();
         UpdateDecorEnable(true, mode);
-        if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        if (WindowHelper::IsSplitWindowMode(mode)) {
             property_->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
         }
     }

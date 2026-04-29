@@ -4074,7 +4074,7 @@ void WindowImpl::RestoreSplitWindowMode(uint32_t mode)
         return;
     }
     auto windowMode = static_cast<WindowMode>(mode);
-    if (windowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || windowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+    if (WindowHelper::IsSplitWindowMode(windowMode)) {
         UpdateMode(windowMode);
     }
 }

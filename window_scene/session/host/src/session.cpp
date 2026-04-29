@@ -3629,8 +3629,7 @@ int32_t Session::DecodeSnapShotRecoverValue(int32_t snapShotRecoverValue, SnapSh
 
 bool Session::IsExitSplitOnBackgroundRecover()
 {
-    return GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-           GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+    return WindowHelper::IsSplitWindowMode(GetWindowMode()) ||
            IsExitSplitOnBackground();
 }
 
@@ -4444,7 +4443,7 @@ WSError Session::UpdateWindowMode(WindowMode mode)
         property->SetWindowMode(mode);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
         RequestNextVsyncWhenModeChange();
-        if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        if (WindowHelper::IsSplitWindowMode(mode)) {
             property->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
         }
         UpdateGestureBackEnabled();
@@ -4467,6 +4466,8 @@ void Session::UpdateGravityWhenUpdateWindowMode(WindowMode mode)
             surfaceNode->SetFrameGravity(Gravity::RIGHT);
         } else if (mode == WindowMode::WINDOW_MODE_FLOATING || mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
             surfaceNode->SetFrameGravity(Gravity::RESIZE);
+        } else if {mode == WindowMode::WINDOW_MODE_SPLIT} {
+            // TODO: 明确当前场景下要设置的Gravity
         }
     }
 }

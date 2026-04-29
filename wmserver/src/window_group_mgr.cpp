@@ -125,7 +125,7 @@ WMError WindowGroupMgr::MoveMissionToForeground(int32_t missionId)
     std::set<DisplayId> displayIds;
     if (backupWindowModes_.count(windowNode->GetWindowId()) > 0) {
         auto mode = backupWindowModes_.at(windowNode->GetWindowId());
-        if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        if (WindowHelper::IsSplitWindowMode(mode)) {
             property->SetWindowMode(mode);
             windowNode->SetWindowMode(mode);
             // when change mode, need to reset shadow and radius

@@ -588,8 +588,7 @@ WMError WindowRoot::ToggleShownStateForAllAppWindows()
             if (property == nullptr) {
                 return false;
             }
-            if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-                mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+            if (WindowHelper::IsSplitWindowMode(mode)) {
                 property->SetWindowMode(mode);
                 // when change mode, need to reset shadow and radius
                 windowNode->SetWindowMode(mode);

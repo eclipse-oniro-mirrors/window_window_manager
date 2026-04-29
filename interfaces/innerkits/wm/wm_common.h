@@ -217,6 +217,7 @@ enum class WindowMode : uint32_t {
     WINDOW_MODE_PIP,
     WINDOW_MODE_FB,
     WINDOW_MODE_FV,
+    WINDOW_MODE_SPLIT,
     END = WINDOW_MODE_FV,
 };
 
