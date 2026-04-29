@@ -331,13 +331,12 @@ bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
     } while (false)
 
 WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
-    const std::shared_ptr<RSUIContext>& rsUIContext, sptr<IRemoteObject> renderSession)
+    const std::shared_ptr<RSUIContext>& rsUIContext)
 {
     WLOGFD("[WMSCom] Constructor");
     property_ = sptr<WindowSessionProperty>::MakeSptr();
     windowOption_ = option;
     rsUIContext_ = rsUIContext;
-    renderSession_ = renderSession;
     handler_ = std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::GetMainEventRunner());
 
     WindowType optionWindowType = option->GetWindowType();
@@ -352,15 +351,11 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
     if (WindowHelper::IsSubWindow(GetType())) {
         property_->SetDecorEnable(option->GetSubWindowDecorEnable());
     }
-    TLOGD(WmsLogTag::WMS_LIFE, "renderSession is %{public}p", renderSession.GetRefPtr());
     if (IsSceneBoardEnabled()) {
-        if (renderSession) {
-            RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext);
-        }
         surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
     } else {
         needCreateCompleteSurfaceNode_ = true;
-        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext);
+        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
         surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
     }
     if (surfaceNode_ != nullptr) {
@@ -562,10 +557,10 @@ RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string&
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
     rsSurfaceNodeConfig.SurfaceNodeName = name;
     RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(type);
-    auto surfaceNode = (renderSession_ || needCreateCompleteSurfaceNode_) ? RSSurfaceNode::Create(rsSurfaceNodeConfig,
+    auto surfaceNode = needCreateCompleteSurfaceNode_ ? RSSurfaceNode::Create(rsSurfaceNodeConfig,
         rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext())
         : RSSurfaceNode::CreateSurfaceNode(rsSurfaceNodeConfig, true);
-    if (renderSession_ || needCreateCompleteSurfaceNode_) {
+    if (needCreateCompleteSurfaceNode_) {
         RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
     }
     TLOGI(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
@@ -791,6 +786,7 @@ WMError WindowSessionImpl::Connect()
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     sptr<ISessionStage> iSessionStage(this);
+    sptr<IRemoteObject> renderSession;
     auto windowEventChannel = sptr<WindowEventChannel>::MakeSptr(iSessionStage);
     windowEventChannel->SetIsUIExtension(property_->GetWindowType() == WindowType::WINDOW_TYPE_UI_EXTENSION);
     windowEventChannel->SetUIExtensionUsage(property_->GetUIExtensionUsage());
@@ -804,7 +800,7 @@ WMError WindowSessionImpl::Connect()
     property_->SetApiVersion(GetTargetAPIVersion());
     auto ret = hostSession->Connect(
         iSessionStage, iWindowEventChannel, surfaceNode_, windowSystemConfig_, property_,
-        token, identityToken_);
+        token, identityToken_, renderSession);
     if (SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         WindowHelper::IsMainWindow(GetType()) && !property_->GetMissionInfo().startupInvisibility_) {
         auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -820,6 +816,13 @@ WMError WindowSessionImpl::Connect()
     TLOGI(WmsLogTag::WMS_LIFE, "Window Connect [name:%{public}s, id:%{public}d, type:%{public}u], ret:%{public}u, "
         "oriDisplayId:%{public}" PRIu64 ", curDisplayId:%{public}" PRIu64, property_->GetWindowName().c_str(),
         GetPersistentId(), property_->GetWindowType(), ret, originDisplayId, property_->GetDisplayId());
+    if (renderSession == nullptr) {
+        TLOGI(WmsLogTag::WMS_LIFE, "connect failed, renderSession is nullptr, name: %{public}s",
+            property_->GetWindowName().c_str());
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    renderSession_ = renderSession;
+    PostInitSurfaceNode(renderSession);
     if (originDisplayId != property_->GetDisplayId() && property_->GetDisplayId() != DISPLAY_ID_C) {
         NotifyDmsDisplayMove(property_->GetDisplayId());
     }
@@ -829,6 +832,19 @@ WMError WindowSessionImpl::Connect()
     FloatViewManager::isSupportFloatView_ = windowSystemConfig_.supportCreateFloatView_;
     SetAppHookWindowInfo(property_->GetHookWindowInfo());
     return static_cast<WMError>(ret);
+}
+
+void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
+{
+    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
+    auto rsUIContext = rsUIDirector_->GetRSUIContext();
+    surfaceNode_->SetRSUIContext(rsUIContext);
+
+    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
+    rsSurfaceNodeConfig.SurfaceNodeName = property_->GetWindowName();
+    RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(property_->GetWindowType());
+    surfaceNode_->SendDataToRender(rsSurfaceNodeConfig, rsSurfaceNodeType, true, property_->IsConstrainedModal());
+    TLOGI(WmsLogTag::WMS_LIFE, "post init surfaceNode success, name: %{public}s", property_->GetWindowName().c_str());
 }
 
 sptr<WindowSessionImpl> WindowSessionImpl::GetWindowWithId(uint32_t windowId)

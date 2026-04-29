@@ -39,16 +39,16 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "Window"
 static sptr<Window> CreateWindowWithSession(sptr<WindowOption>& option,
     const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode,
     sptr<ISession> iSession = nullptr, const std::string& identityToken = "", bool isModuleAbilityHookEnd = false,
-    const std::shared_ptr<RSUIContext>& rsUiContext = nullptr, sptr<IRemoteObject> renderSession = nullptr)
+    const std::shared_ptr<RSUIContext>& rsUiContext = nullptr)
 {
     WLOGFD("in");
     sptr<WindowSessionImpl> windowSessionImpl = nullptr;
     auto sessionType = option->GetWindowSessionType();
     if (sessionType == WindowSessionType::SCENE_SESSION) {
-        windowSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option, rsUiContext, renderSession);
+        windowSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option, rsUiContext);
     } else if (sessionType == WindowSessionType::EXTENSION_SESSION) {
         option->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
-        windowSessionImpl = sptr<WindowExtensionSessionImpl>::MakeSptr(option, renderSession);
+        windowSessionImpl = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
     }
     if (windowSessionImpl == nullptr) {
         WLOGFE("malloc windowSessionImpl failed");
@@ -139,13 +139,8 @@ sptr<Window> Window::Create(sptr<WindowOption>& option, const std::shared_ptr<OH
         WLOGFE("window type is invalid %{public}d", type);
         return nullptr;
     }
-    auto session = iface_cast<ISession>(iSession);
-    sptr<IRemoteObject> renderSession = nullptr;
-    if (session != nullptr) {
-        renderSession = session->GetRenderSession();
-    }
     return CreateWindowWithSession(option, context, errCode,
-        iface_cast<Rosen::ISession>(iSession), identityToken, isModuleAbilityHookEnd, nullptr, renderSession);
+        iface_cast<Rosen::ISession>(iSession), identityToken, isModuleAbilityHookEnd);
 }
 
 WMError Window::GetAndVerifyWindowTypeForArkUI(uint32_t parentId, const std::string& windowName,

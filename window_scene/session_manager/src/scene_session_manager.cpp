@@ -3593,8 +3593,6 @@ sptr<AAFwk::SessionInfo> SceneSessionManager::SetAbilitySessionInfo(const sptr<S
     auto abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
     auto displayId = sceneSession->GetSessionProperty()->GetDisplayId();
     abilitySessionInfo->sessionToken = sptr<ISession>(sceneSession)->AsObject();
-    auto renderSession = ScreenSessionManagerClient::GetInstance().GetRenderSessionToken();
-    sceneSession->SetRenderSession(renderSession);
     abilitySessionInfo->identityToken = std::to_string(std::chrono::time_point_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now()).time_since_epoch().count());
     abilitySessionInfo->callerToken = sessionInfo.callerToken_;

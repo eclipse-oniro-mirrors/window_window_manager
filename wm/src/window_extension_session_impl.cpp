@@ -73,8 +73,7 @@ constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
     } while (false)
 
 WindowExtensionSessionImpl::WindowExtensionSessionImpl(
-    const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession)
-    : WindowSessionImpl(option, nullptr, renderSession)
+    const sptr<WindowOption>& option) : WindowSessionImpl(option, nullptr)
 {
     if (property_->GetUIExtensionUsage() == UIExtensionUsage::MODAL ||
         SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {

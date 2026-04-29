@@ -537,8 +537,9 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         return ERR_INVALID_DATA;
     }
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
     WSError errCode = Connect(sessionStage, eventChannel, surfaceNode, systemConfig, property, token,
-        identityToken);
+        identityToken, renderSession);
     reply.WriteParcelable(&systemConfig);
     if (property) {
         reply.WriteInt32(property->GetPersistentId());
@@ -603,6 +604,7 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         reply.WriteBool(property->IsPrelaunch());
         reply.WriteInt32(property->GetFrameNum());
     }
+    reply.WriteRemoteObject(renderSession);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
     // LCOV_EXCL_STOP

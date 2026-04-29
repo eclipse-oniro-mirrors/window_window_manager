@@ -49,13 +49,10 @@ class ISession : public IRemoteBroker {
 public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ISession");
 
-    virtual void SetRenderSession(const sptr<IRemoteObject>& renderSession) {}
-    virtual sptr<IRemoteObject> GetRenderSession() { return nullptr; }
-
     virtual WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
-        const std::string& identityToken = "") { return WSError::WS_OK; }
+        const std::string& identityToken = "", sptr<IRemoteObject>& renderSession = nullptr) { return WSError::WS_OK; }
     virtual WSError Foreground(
         sptr<WindowSessionProperty> property, bool isFromClient = false, const std::string& identityToken = "") = 0;
     virtual WSError Background(bool isFromClient = false, const std::string& identityToken = "") = 0;

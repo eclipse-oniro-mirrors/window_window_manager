@@ -267,7 +267,7 @@ WSError ReadCombinedCompatibleConfig(MessageParcel& reply, sptr<WindowSessionPro
 WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
     const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
-    const std::string& identityToken)
+    const std::string& identityToken, sptr<IRemoteObject>& renderSession)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -396,6 +396,7 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
         property->SetPrelaunch(reply.ReadBool());
         property->SetFrameNum(reply.ReadInt32());
     }
+    renderSession = reply.ReadRemoteObject();
     int32_t ret = reply.ReadInt32();
     return static_cast<WSError>(ret);
 }
