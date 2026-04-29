@@ -287,6 +287,7 @@ public:
     bool WakeUpBegin(PowerStateChangeReason reason) override;
     bool DoWakeUpBegin(PowerStateChangeReason reason);
     bool WakeUpEnd() override;
+    DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn) override;
     bool SuspendBegin(PowerStateChangeReason reason) override;
     bool DoSuspendBegin(PowerStateChangeReason reason);
     bool SuspendEnd() override;

@@ -910,5 +910,11 @@ enum class DisplayModeChangeReason : uint32_t {
     SETMODE,
     FORCE_SET
 };
+
+enum class ScreenClosedState : uint32_t {
+    CLOSE = 0,
+    OPEN,
+    UNKNOWN
+};
 }
 #endif // OHOS_ROSEN_DM_COMMON_H

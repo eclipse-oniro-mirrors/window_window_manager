@@ -35,6 +35,7 @@ static const std::string SINGLE_SUPER_DISPLAY = "7";
 static const std::string SECONDARY_SUPER_DISPLAY = "8";
 static const std::string DEFAULT_OFFSET = "0";
 static const size_t THIRD_ANGLE = 2;
+static const std::string SCREEN_NUMBER = "2";
 }
 class FoldScreenStateInternel {
 public:
@@ -83,6 +84,18 @@ public:
     static bool IsSuperFoldDisplayDevice()
     {
         return GetFoldType() == SUPER_FOLD_DISPLAY;
+    }
+
+    static bool IsSuperFoldMultiDisplayDevice()
+    {
+        if (!IsValidFoldType(g_foldScreenType)) {
+            return false;
+        }
+        std::vector<std::string> foldTypes = StringSplit(g_foldScreenType, ',');
+        if (foldTypes.size() < 2) {
+            return false;
+        }
+        return foldTypes[0] == SUPER_FOLD_DISPLAY && foldTypes[1] == SCREEN_NUMBER;
     }
 
     static bool IsSecondaryDisplayFoldDevice()
