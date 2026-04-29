@@ -14422,16 +14422,15 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
     winStateSnapshotJson["showInLandscapeMode"] = appWindowSceneConfig_.systemUIStatusBarConfig_.showInLandscapeMode_;
     auto session = GetSceneSession(persistentId);
     if (session) {
-        auto displayId = session->GetSessionProperty()->GetDisplayId();
-        auto statusBarVector = GetSceneSessionVectorByTypeAndDisplayId(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
-        std::string systemUiVisible(4, '0');
-        auto IsSystemUiVisible = [](WindowType type, DisplayId displayId) {
-            auto systemUiVector = GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
+        auto IsSystemUiVisible = [this](WindowType type, DisplayId displayId) {
+            auto systemUiVector = this->GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
             for (auto& systemUi : systemUiVector) {
                 return systemUi->IsVisible() ? '1' : '0';
             }
             return '0';
         };
+        std::string systemUiVisible(4, '0');
+        auto displayId = session->GetSessionProperty()->GetDisplayId();
         systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
         systemUiVisible[2] = IsSystemUiVisible(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION, displayId);
         systemUiVisible[1] = systemUiVisible[2] == '1' ? '0' :

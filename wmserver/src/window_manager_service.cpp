@@ -1121,12 +1121,9 @@ WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::
             return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
         }
         std::string systemUiVisible(4, '0');
-        auto IsSystemUiVisible = [](WindowType type) {
-            auto systemUiNode = windowRoot_->GetWindowNodeByWindowType(type);
-            if (systemUiNode) {
-                return systemUiNode->currentVisibility_ ? '1' : '0';
-            }
-            return '0';
+        auto IsSystemUiVisible = [this](WindowType type) {
+            auto systemUiNode = this->windowRoot_->GetWindowNodeByWindowType(type);
+            return systemUiNode && systemUiNode->currentVisibility_ ? '1' : '0';
         };
         systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR);
         systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
