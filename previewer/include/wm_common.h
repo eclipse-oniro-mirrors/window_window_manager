@@ -2206,8 +2206,9 @@ enum class ScreenshotEventType : int32_t {
  * @brief Configuration for snapshot animation duration and delay.
  */
 struct SnapshotAnimationConfig {
-    int64_t duration = -1;  // Animation duration in ms, -1 means use system default
-    int64_t delay = -1;     // Animation delay in ms, -1 means use system default
+    static constexpr int64_t UNSET = -1;  // Use system default
+    int64_t duration = UNSET;  // Animation duration in ms
+    int64_t delay = UNSET;     // Animation delay in ms
 };
 
 /**

@@ -2482,8 +2482,8 @@ HWTEST_F(SessionStubTest, TestHandleSessionEventWithValidInputs, TestSize.Level1
         uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE);
         uint32_t waterfallResidentState = 0;
         uint32_t titleButtonEventType = 0;
-        int64_t duration = -1;
-        int64_t delay = -1;
+        int64_t duration = SnapshotAnimationConfig::UNSET;
+        int64_t delay = SnapshotAnimationConfig::UNSET;
         data.WriteUint32(eventId);
         data.WriteUint32(waterfallResidentState);
         data.WriteUint32(titleButtonEventType);
@@ -3187,7 +3187,7 @@ HWTEST_F(SessionStubTest, TestHandleSessionEventRecoverEdgeValues01, TestSize.Le
     MessageParcel reply;
     uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_RECOVER);
     int64_t duration = 0;
-    int64_t delay = -1;
+    int64_t delay = SnapshotAnimationConfig::UNSET;
     data.WriteUint32(eventId);
     data.WriteInt64(duration);
     data.WriteInt64(delay);
@@ -3203,7 +3203,7 @@ HWTEST_F(SessionStubTest, TestHandleSessionEventRecoverEdgeValues01, TestSize.Le
     EXPECT_EQ(ret, ERR_NONE);
 
     EXPECT_EQ(capturedParam.snapshotAnimationConfig_.duration, 0);
-    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.delay, -1);
+    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.delay, SnapshotAnimationConfig::UNSET);
 }
 
 /**

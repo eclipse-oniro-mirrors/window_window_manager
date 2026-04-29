@@ -4364,7 +4364,8 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
         TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         return WMError::WM_OK;
     }
-    return ExecuteMaximizeWithOptions(presentation, acrossDisplay, { -1, -1 });
+    return ExecuteMaximizeWithOptions(presentation, acrossDisplay,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config)
@@ -4620,7 +4621,7 @@ WMError WindowSceneSessionImpl::Restore()
 
 WMError WindowSceneSessionImpl::Recover(uint32_t reason)
 {
-    return Recover(reason, { -1, -1 });
+    return Recover(reason, { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 WMError WindowSceneSessionImpl::CheckRecoverPreConditions()

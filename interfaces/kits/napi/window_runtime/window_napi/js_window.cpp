@@ -1922,7 +1922,7 @@ std::optional<SnapshotAnimationConfig> ParseSnapshotAnimationConfig(napi_env env
     // Get duration (optional, default: -1)
     if (napi_get_named_property(env, jsConfig, "duration", &jsDuration) == napi_ok &&
         jsDuration != nullptr && GetType(env, jsDuration) != napi_undefined) {
-        int64_t duration = -1;
+        int64_t duration = SnapshotAnimationConfig::UNSET;
         if (!ConvertFromJsValue(env, jsDuration, duration)) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert duration");
             return std::nullopt;
@@ -1937,7 +1937,7 @@ std::optional<SnapshotAnimationConfig> ParseSnapshotAnimationConfig(napi_env env
     // Get delay (optional, default: -1)
     if (napi_get_named_property(env, jsConfig, "delay", &jsDelay) == napi_ok &&
         jsDelay != nullptr && GetType(env, jsDelay) != napi_undefined) {
-        int64_t delay = -1;
+        int64_t delay = SnapshotAnimationConfig::UNSET;
         if (!ConvertFromJsValue(env, jsDelay, delay)) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert delay");
             return std::nullopt;

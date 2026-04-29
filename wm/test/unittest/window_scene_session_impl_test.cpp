@@ -3506,7 +3506,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions01, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { -1, -1 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
     ASSERT_EQ(ret, WMError::WM_OK);
@@ -3699,7 +3699,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions09, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { 200, -1 };
+    SnapshotAnimationConfig config = { 200, SnapshotAnimationConfig::UNSET };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
     ASSERT_EQ(ret, WMError::WM_OK);
@@ -3989,7 +3989,7 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig10, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { -1, -1 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->Recover(1, config);
     ASSERT_EQ(ret, WMError::WM_OK);
 }
