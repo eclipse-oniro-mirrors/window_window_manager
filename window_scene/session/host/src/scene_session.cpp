@@ -238,7 +238,6 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
         if (ret != WSError::WS_OK) {
             return ret;
         }
-        renderSession = ScreenSessionManagerClient::GetInstance().GetRenderSessionToken();
         session->NotifySingleHandTransformChange(session->GetSingleHandTransform());
         session->NotifyGlobalScaledRectChange();
         session->NotifyPropertyWhenConnect();

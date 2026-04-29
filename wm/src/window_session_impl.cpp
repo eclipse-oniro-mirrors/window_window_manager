@@ -822,6 +822,7 @@ WMError WindowSessionImpl::Connect()
         return WMError::WM_ERROR_NULLPTR;
     }
     renderSession_ = renderSession;
+    RSUIContextContainer::SetRenderSession(renderSession);
     PostInitSurfaceNode(renderSession);
     if (originDisplayId != property_->GetDisplayId() && property_->GetDisplayId() != DISPLAY_ID_C) {
         NotifyDmsDisplayMove(property_->GetDisplayId());

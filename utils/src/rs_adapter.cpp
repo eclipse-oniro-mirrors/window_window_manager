@@ -602,5 +602,17 @@ std::string RSAdapterUtil::RSUIDirectorToStr(const std::shared_ptr<RSUIDirector>
     oss << "RSUIDirector's " << RSUIContextToStr(rsUIDirector->GetRSUIContext());
     return oss.str();
 }
+
+sptr<IRemoteBroker> RSUIContextContainer::renderSession;
+ 
+sptr<IRemoteObject> RSUIContextContainer::GetRenderSession()
+{
+    return renderSession;
+}
+
+void RSUIContextContainer::SetRenderSession(sptr<IRemoteObject> renderSessionObj)
+{
+    renderSession = renderSessionObj;
+}
 } // namespace Rosen
 } // namespace OHOS

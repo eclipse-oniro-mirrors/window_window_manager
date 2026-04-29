@@ -30,6 +30,8 @@
             OHOS::Rosen::TransformHelper::*;
             OHOS::Rosen::PersistentStorage::*;
             OHOS::Rosen::WindowTransitionInfo::*;
+            OHOS::Rosen::RSUIContextContainer::GetRenderSession*;
+            OHOS::Rosen::RSUIContextContainer::SetRenderSession*;
 
             VTT*WindowProperty*;
             VTT*WindowTransitionInfo*;

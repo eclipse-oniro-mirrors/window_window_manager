@@ -216,6 +216,7 @@ void ExtensionSession::SetEventHandler(const std::shared_ptr<AppExecFwk::EventHa
 WSError ExtensionSession::ConnectInner(
     const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
     const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token, int32_t pid, int32_t uid,
     const std::string& identityToken)
 {
@@ -224,7 +225,7 @@ WSError ExtensionSession::ConnectInner(
         return WSError::WS_ERROR_INVALID_PARAM;
     }
     auto task = [weakThis = wptr(this), sessionStage, eventChannel, surfaceNode,
-        &systemConfig, property, token, pid, uid]() NO_THREAD_SAFETY_ANALYSIS {
+        &systemConfig, property, token, &renderSession, pid, uid]() NO_THREAD_SAFETY_ANALYSIS {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_UIEXT, "session is null");
@@ -251,7 +252,7 @@ WSError ExtensionSession::ConnectInner(
             sessionStage->SetUIExtensionTransparent();
         }
         return session->Session::ConnectInner(
-            sessionStage, eventChannel, surfaceNode, systemConfig, property, token, pid, uid);
+            sessionStage, eventChannel, surfaceNode, systemConfig, renderSession, property, token, pid, uid);
     };
     return PostSyncTask(task, "ConnectInner");
 }
@@ -259,13 +260,14 @@ WSError ExtensionSession::ConnectInner(
 WSError ExtensionSession::Connect(
     const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
     const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
 {
     // Get pid and uid before posting task.
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     int32_t uid = IPCSkeleton::GetCallingUid();
-    return ConnectInner(sessionStage, eventChannel, surfaceNode, systemConfig,
+    return ConnectInner(sessionStage, eventChannel, surfaceNode, systemConfig, renderSession,
         property, token, pid, uid, identityToken);
 }
 

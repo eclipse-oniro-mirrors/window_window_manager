@@ -4839,7 +4839,7 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         newSession->SetClientDisplayId(initClientDisplayId);
         property->SetSystemCalling(isSystemCalling);
         auto errCode = newSession->ConnectInner(
-            sessionStage, eventChannel, surfaceNode, systemConfig_, property, token, pid, uid);
+            sessionStage, eventChannel, surfaceNode, systemConfig_, renderSession, property, token, pid, uid);
         newSession->SetIsSystemSpecificSession(isSystemCalling);
         systemConfig = systemConfig_;
         persistentId = property->GetPersistentId();
