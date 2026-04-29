@@ -60,6 +60,7 @@
 #include "window_manager_hilog.h"
 #include "screen_rotation_property.h"
 #include "screen_sensor_connector.h"
+#include "motion_manager.h"
 #include "screen_setting_helper.h"
 #include "screen_session_dumper.h"
 #include "mock_session_manager_service.h"
@@ -7328,6 +7329,7 @@ void ScreenSessionManager::SetSensorSubscriptionEnabled()
     }
     DmsXcollie dmsXcollie("DMS:SetSensorSubscriptionEnabled", XCOLLIE_TIMEOUT_10S);
     ScreenSensorConnector::SubscribeRotationSensor();
+    MotionManager::GetInstance().SetMotionEventListener(this);
     TLOGNFI(WmsLogTag::DMS, "subscribe rotation sensor successful");
 }
 
@@ -16570,6 +16572,29 @@ DMError ScreenSessionManager::GetScreenCapability(ScreenId screenId, ScreenCapab
         static_cast<uint32_t>(capability.interfaceType_), capability.colorBitDepth_);
 #endif
     return DMError::DM_OK;
+}
+
+void ScreenSessionManager::SubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::DMS, "SubscribeMotionSensor motionType: %{public}d", motionType);
+    MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
+}
+
+void ScreenSessionManager::UnsubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::DMS, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
+    MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
+}
+
+void ScreenSessionManager::OnMotionRotationChanged(float sensorRotation)
+{
+    TLOGI(WmsLogTag::DMS, "OnMotionRotationChanged sensorRotation: %{public}f", sensorRotation);
+    auto screenSession = GetDefaultScreenSession();
+    if (!screenSession) {
+        TLOGW(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->HandleSensorRotation(sensorRotation);
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen

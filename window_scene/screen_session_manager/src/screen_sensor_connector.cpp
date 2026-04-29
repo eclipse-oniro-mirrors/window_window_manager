@@ -17,27 +17,18 @@
 #include <chrono>
 #include <securec.h>
 #include <parameters.h>
+#include "motion_manager.h"
 
 namespace OHOS {
 namespace Rosen {
 namespace {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    constexpr int32_t MOTION_ACTION_PORTRAIT = 0;
-    constexpr int32_t MOTION_ACTION_LEFT_LANDSCAPE = 1;
-    constexpr int32_t MOTION_ACTION_PORTRAIT_INVERTED = 2;
-    constexpr int32_t MOTION_ACTION_RIGHT_LANDSCAPE = 3;
-    const int32_t MOTION_TYPE_ROTATION = 700;
-    const int32_t SMART_MOTION_TYPE_ROTATION = 701;
-    const int32_t DISABLE_SMART_ROTATION = 0;
-    const int32_t ENABLE_SMART_ROTATION = 1;
     const int32_t MOTION_TYPE_TENT = 2800;
 #endif
 }
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-bool MotionSubscriber::isMotionSensorSubscribed_ = false;
 bool MotionTentSubscriber::isMotionSensorSubscribed_ = false;
-static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
 static void TentMotionEventCallback(const MotionSensorEvent& motionData);
 #endif
 
@@ -45,14 +36,15 @@ void ScreenSensorConnector::SubscribeRotationSensor()
 {
     TLOGD(WmsLogTag::DMS, "subscribe rotation-related sensor");
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    MotionSubscriber::SubscribeMotionSensor();
+    MotionManager::GetInstance().Init();
+    MotionManager::GetInstance().OnScreenOn();
 #endif
 }
 
 void ScreenSensorConnector::UnsubscribeRotationSensor()
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    MotionSubscriber::UnsubscribeMotionSensor();
+    MotionManager::GetInstance().OnScreenOff();
 #endif
 }
 

@@ -80,6 +80,7 @@ ohos_shared_library("screen_session_manager") {
     "src/screen_scene_config.cpp",
     "src/screen_sensor_connector.cpp",
     "src/screen_sensor_plugin.cpp",
+    "src/motion_manager.cpp",
     "src/screen_session_dumper.cpp",
     "src/screen_session_manager.cpp",
     "src/screen_setting_helper.cpp",

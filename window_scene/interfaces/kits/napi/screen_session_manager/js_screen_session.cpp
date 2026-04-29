@@ -24,6 +24,7 @@
 #include "window_manager_hilog.h"
 #include "singleton_container.h"
 #include "screen_manager.h"
+#include "screen_session_manager/include/screen_session_manager.h"
 
 namespace OHOS::Rosen {
 using namespace AbilityRuntime;
@@ -92,6 +93,10 @@ napi_value JsScreenSession::Create(napi_env env, const sptr<ScreenSession>& scre
     BindNativeFunction(env, objValue, "loadContent", moduleName, JsScreenSession::LoadContent);
     BindNativeFunction(env, objValue, "getScreenUIContext", moduleName,
         JsScreenSession::GetScreenUIContext);
+    BindNativeFunction(env, objValue, "registerMotionSensor", moduleName,
+        JsScreenSession::RegisterMotionSensor);
+    BindNativeFunction(env, objValue, "unregisterMotionSensor", moduleName,
+        JsScreenSession::UnregisterMotionSensor);
     BindNativeFunction(env, objValue, "destroyContent", moduleName,
         JsScreenSession::DestroyContent);
     BindNativeFunction(env, objValue, "releaseResource", moduleName,
@@ -544,6 +549,70 @@ napi_value JsScreenSession::OnGetScreenUIContext(napi_env env, napi_callback_inf
     }
     TLOGI(WmsLogTag::DMS, "success");
     return uiContext;
+}
+
+napi_value JsScreenSession::RegisterMotionSensor(napi_env env, napi_callback_info info)
+{
+    JsScreenSession* me = CheckParamsAndGetThis<JsScreenSession>(env, info);
+    return (me != nullptr) ? me->OnRegisterMotionSensor(env, info) : nullptr;
+}
+
+napi_value JsScreenSession::OnRegisterMotionSensor(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::DMS, "[NAPI]OnRegisterMotionSensor");
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < 1) {
+        TLOGE(WmsLogTag::DMS, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM)));
+        return NapiGetUndefined(env);
+    }
+    
+    int32_t motionType = 0;
+    napi_value nativeVal = argv[0];
+    if (nativeVal == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Get motionType failed!");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM)));
+        return NapiGetUndefined(env);
+    }
+    napi_get_value_int32(env, nativeVal, &motionType);
+    
+    ScreenSessionManager::GetInstance().SubscribeMotionSensor(motionType);
+    TLOGI(WmsLogTag::DMS, "RegisterMotionSensor motionType: %{public}d", motionType);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsScreenSession::UnregisterMotionSensor(napi_env env, napi_callback_info info)
+{
+    JsScreenSession* me = CheckParamsAndGetThis<JsScreenSession>(env, info);
+    return (me != nullptr) ? me->OnUnregisterMotionSensor(env, info) : nullptr;
+}
+
+napi_value JsScreenSession::OnUnregisterMotionSensor(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::DMS, "[NAPI]OnUnregisterMotionSensor");
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < 1) {
+        TLOGE(WmsLogTag::DMS, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM)));
+        return NapiGetUndefined(env);
+    }
+    
+    int32_t motionType = 0;
+    napi_value nativeVal = argv[0];
+    if (nativeVal == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Get motionType failed!");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM)));
+        return NapiGetUndefined(env);
+    }
+    napi_get_value_int32(env, nativeVal, &motionType);
+    
+    ScreenSessionManager::GetInstance().UnsubscribeMotionSensor(motionType);
+    TLOGI(WmsLogTag::DMS, "UnregisterMotionSensor motionType: %{public}d", motionType);
+    return NapiGetUndefined(env);
 }
 
 void JsScreenSession::CallJsCallback(const std::string& callbackType)
