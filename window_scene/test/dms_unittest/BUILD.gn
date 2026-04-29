@@ -336,7 +336,7 @@ ohos_unittest("ws_screen_session_ability_connection_test") {
 
   include_dirs = [ "${window_base_path}/window_scene/session/screen/include" ]
   sources = [ "screen_session_ability_connection_test.cpp" ]
-  
+
   sanitize = {
     cfi = true
     cfi_cross_dso = true
@@ -660,9 +660,9 @@ ohos_unittest("ws_screen_session_manager_test") {
 ohos_unittest("ws_screen_session_manager_test_two") {
   module_out_path = module_out_path
 
-  sources = [ 
+  sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
-    "screen_session_manager_test_two.cpp" 
+    "screen_session_manager_test_two.cpp"
   ]
 
   sanitize = {
@@ -1083,9 +1083,9 @@ ohos_unittest("ws_screen_aod_plugin_test") {
     cfi_cross_dso = true
     debug = false
   }
-  sources = [ 
+  sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
-    "screen_aod_plugin_test.cpp" 
+    "screen_aod_plugin_test.cpp"
   ]
   deps = [ ":ws_unittest_common" ]
 
@@ -1146,7 +1146,7 @@ ohos_unittest("ws_screen_session_manager_adapter_test") {
   external_deps = test_external_deps
   external_deps += [ "init:libbegetutil" ]
 }
-  
+
 ohos_unittest("ws_screen_edid_parse_test") {
   module_out_path = module_out_path
 
@@ -1283,7 +1283,7 @@ if (window_manager_fold_ability) {
       external_deps = test_external_deps
       external_deps +=["init:libbegetutil"]
     }
-  
+
   ohos_unittest("ws_fold_screen_sensor_manager_test") {
     module_out_path = module_out_path
 
@@ -1314,7 +1314,7 @@ if (window_manager_fold_ability) {
 
     sources = [ "fold_screen_controller_test.cpp" ]
 
-    deps = [ 
+    deps = [
       ":ws_unittest_common",
       "${window_base_path}/window_scene/interfaces/innerkits:libwsutils"
     ]
@@ -1537,7 +1537,7 @@ if (window_manager_fold_ability) {
       cfi_cross_dso = true
       debug = false
     }
-    
+
     deps = [
       ":ws_unittest_common",
     ]
@@ -1559,13 +1559,13 @@ if (window_manager_fold_ability) {
 
   ohos_unittest("ws_fold_crease_region_controller_test") {
     module_out_path = module_out_path
- 
+
     sources = [ "fold_crease_region_controller_test.cpp" ]
- 
+
     deps = [
       ":ws_unittest_common",
     ]
- 
+
     external_deps = test_external_deps
     external_deps += [
       "hisysevent:libhisysevent",
@@ -1633,7 +1633,7 @@ ohos_static_library("ws_unittest_common") {
   deps = [
     "../../../test/common/utils:libtestutil",
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",

@@ -233,10 +233,10 @@ HWTEST_F(SessionStageProxyTest, ConfigDockAutoHide, TestSize.Level1)
     ASSERT_TRUE((sessionStage_ != nullptr));
     bool isDockAutoHide = true;
     WSError res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(WSError::WS_OK, res);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
     isDockAutoHide = false;
     res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(WSError::WS_OK, res);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
 }
 
 /**

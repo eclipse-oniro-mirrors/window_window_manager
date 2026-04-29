@@ -162,26 +162,26 @@ HWTEST_F(WindowSceneSessionImplTest5, HandleDownForCompatibleMode, TestSize.Leve
 }
 
 /**
- * @tc.name: TestCheckWaterfallResidentState
- * @tc.desc: Verify CheckWaterfallResidentState validates states correctly based on window type
+ * @tc.name: TestCheckAcrossDisplayPresentation
+ * @tc.desc: Verify CheckAcrossDisplayPresentation validates states correctly based on window type
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest5, TestCheckWaterfallResidentState, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest5, TestCheckAcrossDisplayPresentation, TestSize.Level1)
 {
     auto option = sptr<WindowOption>::MakeSptr();
     auto window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     // Case 1: Main window, any state should return true
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    EXPECT_TRUE(window->CheckWaterfallResidentState(WaterfallResidentState::UNCHANGED));
-    EXPECT_TRUE(window->CheckWaterfallResidentState(WaterfallResidentState::OPEN));
-    EXPECT_TRUE(window->CheckWaterfallResidentState(WaterfallResidentState::CLOSE));
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 
-    // Case 2: Sub window, only UNCHANGED should return true
+    // Case 2: Sub window, only FOLLOW_ACROSS_DISPLAY_SETTING should return true
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
-    EXPECT_TRUE(window->CheckWaterfallResidentState(WaterfallResidentState::UNCHANGED));
-    EXPECT_FALSE(window->CheckWaterfallResidentState(WaterfallResidentState::OPEN));
-    EXPECT_FALSE(window->CheckWaterfallResidentState(WaterfallResidentState::CLOSE));
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
+    EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
+    EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 }
 
 /**

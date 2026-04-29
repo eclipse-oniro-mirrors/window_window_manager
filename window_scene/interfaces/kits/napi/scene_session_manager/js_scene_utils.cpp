@@ -2522,6 +2522,16 @@ napi_value CreateJsSessionEventParam(napi_env env, const SessionEventParam& para
     napi_set_named_property(env, objValue, "windowGlobalPosX", CreateJsValue(env, param.windowGlobalPosX_));
     napi_set_named_property(env, objValue, "windowGlobalPosY", CreateJsValue(env, param.windowGlobalPosY_));
     napi_set_named_property(env, objValue, "titleButtonEventType", CreateJsValue(env, param.titleButtonEventType_));
+    // snapshotAnimationConfig
+    napi_value animConfigObj = nullptr;
+    napi_create_object(env, &animConfigObj);
+    if (animConfigObj != nullptr) {
+        napi_set_named_property(env, animConfigObj, "duration",
+            CreateJsValue(env, param.snapshotAnimationConfig_.duration));
+        napi_set_named_property(env, animConfigObj, "delay",
+            CreateJsValue(env, param.snapshotAnimationConfig_.delay));
+        napi_set_named_property(env, objValue, "snapshotAnimationConfig", animConfigObj);
+    }
     return objValue;
 }
 

@@ -2026,7 +2026,7 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManagerProxy::GetDisplaySnapshot(D
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManagerProxy::GetDisplayHDRSnapshot(DisplayId displayId,
-    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen)
+    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent)
 {
     TLOGD(WmsLogTag::DMS, "enter");
     sptr<IRemoteObject> remote = Remote();
@@ -2055,6 +2055,11 @@ std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManagerProxy::GetDisp
  
     if (!data.WriteBool(isCaptureFullOfScreen)) {
         TLOGE(WmsLogTag::DMS, "isCaptureFullOfScreen fail: data write failed");
+        return { nullptr, nullptr };
+    }
+    
+    if (!data.WriteUint32(static_cast<uint32_t>(displayIntent))) {
+        TLOGE(WmsLogTag::DMS, "displayIntent fail: data write failed");
         return { nullptr, nullptr };
     }
  
@@ -4985,8 +4990,9 @@ std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManagerProxy::GetDisp
     }
     if (!data.WriteUint64(captureOption.displayId_) || !data.WriteBool(captureOption.isNeedNotify_) ||
         !data.WriteBool(captureOption.isCaptureFullOfScreen_) ||
-        !data.WriteUInt64Vector(captureOption.surfaceNodesList_)) {
-        TLOGE(WmsLogTag::DMS, "Write displayId or isNeedNotify or isNeedPointer failed");
+        !data.WriteUInt64Vector(captureOption.surfaceNodesList_) ||
+        !data.WriteUint32(static_cast<uint32_t>(captureOption.displayIntent_))) {
+        TLOGE(WmsLogTag::DMS, "Write displayId or isNeedNotify or isNeedPointer or displayIntent failed");
         return { nullptr, nullptr };
     }
     if (remote->SendRequest(static_cast<uint32_t>(

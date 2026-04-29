@@ -280,6 +280,16 @@ ScreenId ScreenProperty::GetRsId() const
     return rsId_;
 }
 
+void ScreenProperty::SetIsInternal(bool isInternal)
+{
+    isInternal_ = isInternal;
+}
+
+bool ScreenProperty::GetIsInternal() const
+{
+    return isInternal_;
+}
+
 void ScreenProperty::SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason)
 {
     propertyChangeReason_ = propertyChangeReason;

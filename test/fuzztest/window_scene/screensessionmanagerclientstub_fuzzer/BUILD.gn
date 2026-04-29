@@ -36,7 +36,7 @@ ohos_fuzztest("ScreenSessionManagerClientStubFuzzTest") {
   sources = [ "screensessionmanagerclientstub_fuzzer.cpp" ]
   deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/screen_session_manager:screen_session_manager",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",

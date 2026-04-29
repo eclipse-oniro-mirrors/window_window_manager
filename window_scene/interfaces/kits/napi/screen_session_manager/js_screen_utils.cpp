@@ -64,6 +64,7 @@ napi_value JsScreenUtils::CreateJsScreenProperty(napi_env env, const ScreenPrope
     napi_set_named_property(env, objValue, "scaleX", CreateJsValue(env, screenProperty.GetScaleX()));
     napi_set_named_property(env, objValue, "scaleY", CreateJsValue(env, screenProperty.GetScaleY()));
     napi_set_named_property(env, objValue, "rsId", CreateJsValue(env, static_cast<int64_t>(screenProperty.GetRsId())));
+    napi_set_named_property(env, objValue, "isInternal", CreateJsValue(env, screenProperty.GetIsInternal()));
     return objValue;
 }
 

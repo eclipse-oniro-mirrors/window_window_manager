@@ -4227,6 +4227,7 @@ WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
     }
     uiContent->SetContainerModalTitleVisible(isVisible, true);
     isDecorHiddenByApp_ = !isVisible;
+    UpdateDecorEnable(true);
     handler_->PostTask([weakWindow = wptr(this), isVisible, where = __func__] {
         auto window = weakWindow.promote();
         if (window == nullptr) {
@@ -5537,6 +5538,18 @@ void WindowSessionImpl::ClearListenersById(int32_t persistentId)
     }
     ClearSwitchFreeMultiWindowListenersById(persistentId);
     TLOGI(WmsLogTag::WMS_LIFE, "Clear success, id: %{public}d.", GetPersistentId());
+}
+
+void WindowSessionImpl::ClearParentWindowListeners(int32_t persistentId)
+{
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(parentWindowSizeChangeListenerMutex_);
+        ClearUselessListeners(parentWindowSizeChangeListeners_, persistentId);
+    }
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(parentWindowStatusChangeListenerMutex_);
+        ClearUselessListeners(parentWindowStatusChangeListeners_, persistentId);
+    }
 }
 
 void WindowSessionImpl::ClearSwitchFreeMultiWindowListenersById(int32_t persistentId)

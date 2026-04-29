@@ -461,6 +461,38 @@ HWTEST_F(SessionStageStubLayoutTest, HandleSyncAllAttachedLimitsToChild09, TestS
     EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->HandleSyncAllAttachedLimitsToChild(data, reply));
 }
 
+/**
+ * @tc.name: HandleNotifyRebindAttachAfterParentChange01
+ * @tc.desc: Test HandleNotifyRebindAttachAfterParentChange with valid newParentWindowId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubLayoutTest, HandleNotifyRebindAttachAfterParentChange01, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+
+    int32_t newParentWindowId = 100;
+    data.WriteInt32(newParentWindowId);
+
+    EXPECT_EQ(ERR_NONE, sessionStageStub_->HandleNotifyRebindAttachAfterParentChange(data, reply));
+}
+
+/**
+ * @tc.name: HandleNotifyRebindAttachAfterParentChange02
+ * @tc.desc: Test HandleNotifyRebindAttachAfterParentChange with read newParentWindowId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubLayoutTest, HandleNotifyRebindAttachAfterParentChange02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+    // Don't write newParentWindowId - will fail to read
+
+    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->HandleNotifyRebindAttachAfterParentChange(data, reply));
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -70,6 +70,7 @@ public:
     MOCK_METHOD2(SyncAllAttachedLimitsToChild, WSError(
         const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
         const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList));
+    MOCK_METHOD1(NotifyRebindAttachAfterParentChange, WSError(int32_t newParentWindowId));
     MOCK_METHOD1(NotifyTransformChange, void(const Transform& transform));
     MOCK_METHOD1(NotifySingleHandTransformChange, void(const SingleHandTransform& singleHandTransform));
     MOCK_METHOD(void, NotifyGlobalScaledRectChange, (const Rect& globalScaledRect), (override));

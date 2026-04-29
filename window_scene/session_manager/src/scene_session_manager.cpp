@@ -8955,8 +8955,9 @@ bool SceneSessionManager::CheckTopmostWindowFocus(const sptr<SceneSession>& focu
 
 bool SceneSessionManager::CheckRequestFocusImmediately(const sptr<SceneSession>& sceneSession)
 {
-    if ((sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
-         (SessionHelper::IsSubWindow(sceneSession->GetWindowType()) && !sceneSession->IsModal())) &&
+    bool isMainSession = sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
+        sceneSession->IsLoosenedWithFreeMultiMode();
+    if ((isMainSession || (SessionHelper::IsSubWindow(sceneSession->GetWindowType()) && !sceneSession->IsModal())) &&
         (ProcessModalTopmostRequestFocusImmediately(sceneSession) == WSError::WS_OK ||
          ProcessDialogRequestFocusImmediately(sceneSession) == WSError::WS_OK)) {
         TLOGD(WmsLogTag::WMS_FOCUS, "dialog or modal subwindow get focused");
@@ -10685,7 +10686,8 @@ WSError SceneSessionManager::ProcessModalTopmostRequestFocusImmediately(const sp
 {
     // focus must on modal topmost subwindow when APP_MAIN_WINDOW or sub window request focus
     sptr<SceneSession> mainSession = nullptr;
-    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
+        sceneSession->IsLoosenedWithFreeMultiMode()) {
         mainSession = sceneSession;
     } else if (SessionHelper::IsSubWindow(sceneSession->GetWindowType())) {
         mainSession = GetSceneSession(sceneSession->GetParentPersistentId());
@@ -10772,7 +10774,8 @@ WSError SceneSessionManager::ProcessDialogRequestFocusImmediately(const sptr<Sce
 {
     // focus must on dialog when APP_MAIN_WINDOW or sub window request focus
     sptr<SceneSession> mainSession = nullptr;
-    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
+        sceneSession->IsLoosenedWithFreeMultiMode()) {
         mainSession = sceneSession;
     } else if (SessionHelper::IsSubWindow(sceneSession->GetWindowType())) {
         mainSession = GetSceneSession(sceneSession->GetParentPersistentId());
@@ -15864,6 +15867,9 @@ WSError SceneSessionManager::RaiseWindowToTop(int32_t persistentId)
         if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
             sceneSession->RaiseToAppTop();
         }
+        if (sceneSession->IsLoosenedWithFreeMultiMode()) {
+            return WSError::WS_OK;
+        }
         if (WindowHelper::IsSubWindow(sceneSession->GetWindowType()) ||
             sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_DIALOG) {
             TLOGND(WmsLogTag::WMS_HIERARCHY, "parent session id: %{public}d", sceneSession->GetParentPersistentId());
@@ -19964,9 +19970,7 @@ WMError SceneSessionManager::SetParentWindowInner(const sptr<SceneSession>& subS
     newParentSession->AddSubSession(subSession);
     subSession->SetParentSession(newParentSession);
     subSession->SetParentPersistentId(newParentWindowId);
-    if (!subSession->IsLoosenedWithFreeMultiMode()) {
-        subSession->UpdateSubWindowLevel(newSubWindowLevel + 1);
-    }
+    subSession->UpdateSubWindowLevel(newSubWindowLevel + 1);
     if (oldSubWindowLevel == 0) {
         oldParentSession->UnregisterNotifySurfaceBoundsChangeFunc(subWindowId);
         if (newSubWindowLevel == 0 && subSession->GetIsFollowParentLayout()) {
@@ -19978,6 +19982,25 @@ WMError SceneSessionManager::SetParentWindowInner(const sptr<SceneSession>& subS
         SetHighlightSessionIds(subSession, true, std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
     }
+
+    // Handle anchor binding rebind after parent switch
+    auto subAnchorInfo = subSession->GetWindowAnchorInfo();
+    if (subAnchorInfo.isAnchorEnabled_) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Rebinding anchor after parent change, subId=%{public}d", subWindowId);
+        // 1. Server-side: detach from old main window's attach system
+        if (subAnchorInfo.isAnchoredByAttach_) {
+            subSession->RequestRemoveAttachedWindowLimits(subWindowId);
+            auto oldMainSession = oldParentSession->GetMainSession();
+            if (oldMainSession) {
+                oldMainSession->RequestRemoveAttachedWindowLimits(subWindowId);
+            }
+        }
+        // 2. Reset server-side anchor state and trigger callback
+        subSession->ResetAttachBindingState();
+        // 3. Notify client to walk through full rebind flow
+        subSession->NotifyRebindAttachAfterParentChange(newParentWindowId);
+    }
+
     return WMError::WM_OK;
 }
 

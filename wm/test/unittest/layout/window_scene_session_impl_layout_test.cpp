@@ -2695,6 +2695,208 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, ConvertBaseLimitsToTargetUnit05, Func
     EXPECT_EQ(result.maxHeight_, 1000);
 }
 
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange01
+ * @tc.desc: No anchor binding → early return
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, NotifyRebindAttachAfterParentChange01, Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRebindAttachAfterParentChange01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    ASSERT_NE(window, nullptr);
+
+    // Default WindowAnchorInfo has isAnchorEnabled_ = false
+    WSError res = window->NotifyRebindAttachAfterParentChange(100);
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange02
+ * @tc.desc: Attach binding + new parent is main window → re-attach
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, NotifyRebindAttachAfterParentChange02, Function | SmallTest | Level2)
+{
+    sptr<WindowOption> mainOpt = sptr<WindowOption>::MakeSptr();
+    mainOpt->SetWindowName("NotifyRebindAttachAfterParentChange02_Main");
+    sptr<WindowSceneSessionImpl> mainWindow = sptr<WindowSceneSessionImpl>::MakeSptr(mainOpt);
+    mainWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    uint32_t mainWinId = 200;
+    mainWindow->property_->SetPersistentId(mainWinId);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRebindAttachAfterParentChange02_Sub");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetPersistentId(201);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->windowSessionMap_["NotifyRebindAttachAfterParentChange02_Main"] = {mainWinId, mainWindow};
+
+    WindowAnchorInfo attachInfo;
+    attachInfo.isAnchorEnabled_ = true;
+    attachInfo.isAnchoredByAttach_ = true;
+    attachInfo.isFromAttachOrDetach_ = true;
+    window->property_->SetWindowAnchorInfo(attachInfo);
+
+    WSError res = window->NotifyRebindAttachAfterParentChange(mainWinId);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    window->windowSessionMap_.erase("NotifyRebindAttachAfterParentChange02_Main");
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange03
+ * @tc.desc: Attach binding + new parent is not main window → detach and clear listeners
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, NotifyRebindAttachAfterParentChange03, Function | SmallTest | Level2)
+{
+    sptr<WindowOption> parentOpt = sptr<WindowOption>::MakeSptr();
+    parentOpt->SetWindowName("NotifyRebindAttachAfterParentChange03_Parent");
+    sptr<WindowSceneSessionImpl> parentWindow = sptr<WindowSceneSessionImpl>::MakeSptr(parentOpt);
+    parentWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    uint32_t parentWinId = 300;
+    parentWindow->property_->SetPersistentId(parentWinId);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRebindAttachAfterParentChange03_Sub");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->windowSessionMap_["NotifyRebindAttachAfterParentChange03_Parent"] = {parentWinId, parentWindow};
+
+    WindowAnchorInfo attachInfo;
+    attachInfo.isAnchorEnabled_ = true;
+    attachInfo.isAnchoredByAttach_ = true;
+    attachInfo.isFromAttachOrDetach_ = true;
+    attachInfo.attachOptions.isIntersectedWidthLimit = true;
+    attachInfo.attachOptions.isIntersectedHeightLimit = true;
+    window->property_->SetWindowAnchorInfo(attachInfo);
+
+    WSError res = window->NotifyRebindAttachAfterParentChange(parentWinId);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    WindowAnchorInfo afterInfo = window->property_->GetWindowAnchorInfo();
+    EXPECT_FALSE(afterInfo.isAnchorEnabled_);
+    EXPECT_FALSE(afterInfo.isAnchoredByAttach_);
+    EXPECT_TRUE(afterInfo.isFromAttachOrDetach_);
+
+    window->windowSessionMap_.erase("NotifyRebindAttachAfterParentChange03_Parent");
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange04
+ * @tc.desc: Attach binding + new parent not found in windowSessionMap_ → detach
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, NotifyRebindAttachAfterParentChange04, Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRebindAttachAfterParentChange04");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    WindowAnchorInfo attachInfo;
+    attachInfo.isAnchorEnabled_ = true;
+    attachInfo.isAnchoredByAttach_ = true;
+    attachInfo.isFromAttachOrDetach_ = true;
+    window->property_->SetWindowAnchorInfo(attachInfo);
+
+    WSError res = window->NotifyRebindAttachAfterParentChange(999);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    WindowAnchorInfo afterInfo = window->property_->GetWindowAnchorInfo();
+    EXPECT_FALSE(afterInfo.isAnchorEnabled_);
+    EXPECT_FALSE(afterInfo.isAnchoredByAttach_);
+    EXPECT_TRUE(afterInfo.isFromAttachOrDetach_);
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange05
+ * @tc.desc: RelativePosition binding + new parent is main window → re-attach
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, NotifyRebindAttachAfterParentChange05, Function | SmallTest | Level2)
+{
+    sptr<WindowOption> mainOpt = sptr<WindowOption>::MakeSptr();
+    mainOpt->SetWindowName("NotifyRebindAttachAfterParentChange05_Main");
+    sptr<WindowSceneSessionImpl> mainWindow = sptr<WindowSceneSessionImpl>::MakeSptr(mainOpt);
+    mainWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    uint32_t mainWinId = 500;
+    mainWindow->property_->SetPersistentId(mainWinId);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRebindAttachAfterParentChange05_Sub");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetPersistentId(501);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->windowSessionMap_["NotifyRebindAttachAfterParentChange05_Main"] = {mainWinId, mainWindow};
+
+    WindowAnchorInfo relPosInfo;
+    relPosInfo.isAnchorEnabled_ = true;
+    relPosInfo.isAnchoredByAttach_ = false;
+    relPosInfo.isFromAttachOrDetach_ = false;
+    window->property_->SetWindowAnchorInfo(relPosInfo);
+
+    WSError res = window->NotifyRebindAttachAfterParentChange(mainWinId);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    window->windowSessionMap_.erase("NotifyRebindAttachAfterParentChange05_Main");
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange06
+ * @tc.desc: RelativePosition binding + new parent is not main window → detach
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, NotifyRebindAttachAfterParentChange06, Function | SmallTest | Level2)
+{
+    sptr<WindowOption> parentOpt = sptr<WindowOption>::MakeSptr();
+    parentOpt->SetWindowName("NotifyRebindAttachAfterParentChange06_Parent");
+    sptr<WindowSceneSessionImpl> parentWindow = sptr<WindowSceneSessionImpl>::MakeSptr(parentOpt);
+    parentWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    uint32_t parentWinId = 600;
+    parentWindow->property_->SetPersistentId(parentWinId);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRebindAttachAfterParentChange06_Sub");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->windowSessionMap_["NotifyRebindAttachAfterParentChange06_Parent"] = {parentWinId, parentWindow};
+
+    WindowAnchorInfo relPosInfo;
+    relPosInfo.isAnchorEnabled_ = true;
+    relPosInfo.isAnchoredByAttach_ = false;
+    relPosInfo.isFromAttachOrDetach_ = false;
+    window->property_->SetWindowAnchorInfo(relPosInfo);
+
+    WSError res = window->NotifyRebindAttachAfterParentChange(parentWinId);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    WindowAnchorInfo afterInfo = window->property_->GetWindowAnchorInfo();
+    EXPECT_FALSE(afterInfo.isAnchorEnabled_);
+    EXPECT_FALSE(afterInfo.isAnchoredByAttach_);
+    EXPECT_TRUE(afterInfo.isFromAttachOrDetach_);
+
+    window->windowSessionMap_.erase("NotifyRebindAttachAfterParentChange06_Parent");
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -104,6 +104,9 @@ public:
     void SetRsId(ScreenId rsId);
     ScreenId GetRsId() const;
 
+    void SetIsInternal(bool isInternal);
+    bool GetIsInternal() const;
+
     void SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason);
     ScreenPropertyChangeReason GetPropertyChangeReason() const;
 
@@ -340,6 +343,8 @@ private:
     uint32_t defaultDeviceRotationOffset_ { 0 };
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
+
+    bool isInternal_ = true;
 
     ScreenPropertyChangeReason propertyChangeReason_;
 

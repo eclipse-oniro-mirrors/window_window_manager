@@ -164,6 +164,8 @@
             OHOS::Rosen::SceneSession::SetGetAllAppUseControlMapFunc*;
             OHOS::Rosen::SceneSession::SetShouldHideNonSecureWindows*;
             OHOS::Rosen::SceneSession::SetWindowAnchorInfoChangeFunc*;
+            OHOS::Rosen::SceneSession::NotifyRebindAttachAfterParentChange*;
+            OHOS::Rosen::SceneSession::ResetAttachBindingState*;
             OHOS::Rosen::SceneSession::SetWindowCornerRadiusCallback*;
             OHOS::Rosen::SceneSession::SetWindowRectAutoSaveCallback*;
             OHOS::Rosen::SceneSession::UpdateFullScreenWaterfallMode*;

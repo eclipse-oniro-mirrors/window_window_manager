@@ -224,6 +224,20 @@ public:
     }
 
     /**
+     * Notify client to rebind attach relationship after parent window changed.
+     * Called when a sub-window switches parent via SetParentWindow. The server has already
+     * cleaned up the old attach state; the client re-evaluates whether to re-attach to the
+     * new parent (only valid when new parent is a main window) or fully detach.
+     *
+     * @param newParentWindowId persistentId of the new parent window
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId)
+    {
+        return WSError::WS_OK;
+    }
+
+    /**
      * @brief Set pip event to client.
      *
      * Set the pip event to client. Such as close, restore, destroy events.

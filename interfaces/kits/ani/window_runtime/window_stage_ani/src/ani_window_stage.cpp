@@ -32,6 +32,7 @@
 #include "interop_js/hybridgref_napi.h"
 #include "js_window_stage.h"
 #include "ani_extension_window_config.h"
+#include "window_histogram_management.h"
 
 using OHOS::Rosen::WindowScene;
 
@@ -495,6 +496,8 @@ void AniWindowStage::OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockS
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI]set show on lock screen permission denied!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
+            WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
             "[window][SetShowOnLockScreen]msg: permission denied");
         return;
@@ -502,6 +505,8 @@ void AniWindowStage::OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockS
     auto windowScene = GetWindowScene().lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI]windowScene is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][SetShowOnLockScreen]msg: invalid windowScene");
         return;
@@ -509,6 +514,8 @@ void AniWindowStage::OnSetShowOnLockScreen(ani_env* env, ani_boolean showOnLockS
     auto mainWindow = windowScene->GetMainWindow();
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] mainWindow is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][SetShowOnLockScreen]msg: invalid mainWindow");
         return;
@@ -538,6 +545,8 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
     auto windowScene = GetWindowScene().lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI]windowScene is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][setWindowModal]msg: windowScene is nullptr");
         return;
@@ -545,12 +554,16 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
     auto window = windowScene->GetMainWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] mainWindow is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][setWindowModal]msg: windowScene is nullptr");
         return;
     }
     if (!window->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "device not support");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal",
+            WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
             "[window][setWindowModal]msg: device not support");
         return;
@@ -558,6 +571,7 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowModal(isModal));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "failed, ret is %{public}d", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", ret);
         AniWindowUtils::AniThrowError(env, ret,
             "window][setWindowModal]msg: Set main window modal failed");
         return;
@@ -823,12 +837,16 @@ void AniWindowStage::OnSetSupportedWindowModes(ani_env* env, ani_object aniSuppo
     auto windowScene = windowScene_.lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] windowScene is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSupportedWindowModes",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
     auto window = windowScene->GetMainWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] mainWindow is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSupportedWindowModes",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
@@ -838,6 +856,8 @@ void AniWindowStage::OnSetSupportedWindowModes(ani_env* env, ani_object aniSuppo
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] Failed, windowId: %{public}u, ret: %{public}d",
               window->GetWindowId(), static_cast<int32_t>(ret));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSupportedWindowModes",
+            AniWindowUtils::ToErrorCode(ret));
         AniWindowUtils::AniThrowError(env, AniWindowUtils::ToErrorCode(ret));
         return;
     }
@@ -864,12 +884,16 @@ void AniWindowStage::OnSetSupportedWindowModesWithGrayOutMaximizeButton(
     auto windowScene = windowScene_.lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] windowScene is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSupportedWindowModes",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
     auto window = windowScene->GetMainWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] mainWindow is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSupportedWindowModes",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
@@ -879,6 +903,8 @@ void AniWindowStage::OnSetSupportedWindowModesWithGrayOutMaximizeButton(
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] Failed, windowId: %{public}u, ret: %{public}d",
               window->GetWindowId(), static_cast<int32_t>(ret));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSupportedWindowModes",
+            AniWindowUtils::ToErrorCode(ret));
         AniWindowUtils::AniThrowError(env, AniWindowUtils::ToErrorCode(ret));
         return;
     }

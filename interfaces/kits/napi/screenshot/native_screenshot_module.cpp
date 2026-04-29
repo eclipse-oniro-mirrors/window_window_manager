@@ -50,6 +50,7 @@ struct Option {
     bool isNeedNotify = true;
     bool isNeedPointer = true;
     bool isCaptureFullOfScreen = false;
+    DisplayIntentType displayIntent = DisplayIntentType::CANONICAL;
     std::vector<uint64_t> blackWindowIds = {};
 };
 
@@ -264,6 +265,27 @@ static void IsCaptureFullOfScreen(napi_env env, std::unique_ptr<Param> &param, n
     }
 }
 
+static void GetDisplayIntent(napi_env env, std::unique_ptr<Param> &param, napi_value &argv)
+{
+    TLOGD(WmsLogTag::DMS, "Get Screenshot Option: displayIntent");
+    napi_value displayIntent;
+    NAPI_CALL_RETURN_VOID(env, napi_get_named_property(env, argv, "displayIntent", &displayIntent));
+    if (displayIntent != nullptr && GetType(env, displayIntent) == napi_number) {
+        uint32_t value;
+        NAPI_CALL_RETURN_VOID(env, napi_get_value_uint32(env, displayIntent, &value));
+        if (value >= static_cast<uint32_t>(DisplayIntentType::DISPLAY_INTENT_BUTT)) {
+            TLOGE(WmsLogTag::DMS, "GetDisplayIntent failed, illegal param");
+            param->validInputParam = false;
+            param->wret = DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
+            return;
+        }
+        param->option.displayIntent = static_cast<DisplayIntentType>(value);
+        TLOGI(WmsLogTag::DMS, "GetDisplayIntent: %{public}u", param->option.displayIntent);
+    } else {
+        TLOGD(WmsLogTag::DMS, "GetDisplayIntent failed, invalid param, use default CANONICAL.");
+    }
+}
+
 static void GetScreenshotParam(napi_env env, std::unique_ptr<Param> &param, napi_value &argv)
 {
     if (param == nullptr) {
@@ -277,6 +299,7 @@ static void GetScreenshotParam(napi_env env, std::unique_ptr<Param> &param, napi
     IsNeedNotify(env, param, argv);
     IsNeedPointer(env, param, argv);
     IsCaptureFullOfScreen(env, param, argv);
+    GetDisplayIntent(env, param, argv);
     ConvertWindowIdList(env, param, argv);
 }
 
@@ -335,13 +358,13 @@ static void AsyncGetScreenHDRshot(napi_env env, std::unique_ptr<HdrParam>& param
         return;
     }
     CaptureOption option = { param->option.displayId, param->option.isNeedNotify, param->option.isNeedPointer,
-        param->option.isCaptureFullOfScreen};
+        param->option.isCaptureFullOfScreen, param->option.displayIntent};
     if (!option.isNeedNotify_) {
         param->imageVec = DisplayManager::GetInstance().GetScreenHDRshotWithOption(option, param->wret);
     } else {
         TLOGI(WmsLogTag::DMS, "Get Screenshot by default option");
         param->imageVec = DisplayManager::GetInstance().GetScreenHDRshot(param->option.displayId, param->wret,
-            true, param->option.isCaptureFullOfScreen);
+            true, param->option.isCaptureFullOfScreen, param->option.displayIntent);
     }
     if ((param->imageVec.size() != PIXMAP_VECTOR_SIZE || param->imageVec[SDR_PIXMAP] == nullptr) &&
         param->wret == DmErrorCode::DM_OK) {
@@ -735,17 +758,27 @@ void SetDmErrorCodeObjectProperty(napi_env env, napi_value dmErrorCode)
         (int32_t)DmErrorCode::DM_ERROR_SYSTEM_INNORMAL, "DM_ERROR_SYSTEM_INNORMAL");
 }
 
+void SetDisplayIntentTypeProperty(napi_env env, napi_value displayIntentType)
+{
+    SetNamedProperty(env, displayIntentType,
+        (uint32_t)DisplayIntentType::CANONICAL, "CANONICAL");
+    SetNamedProperty(env, displayIntentType,
+        (uint32_t)DisplayIntentType::LOCAL, "LOCAL");
+}
+
 napi_value ScreenshotModuleInit(napi_env env, napi_value exports)
 {
     TLOGI_LIMITN_HOUR(WmsLogTag::DMS, TEN_TIMES, "called");
 
     napi_value errorCode = nullptr;
     napi_value dmErrorCode = nullptr;
+    napi_value displayIntentType = nullptr;
     napi_create_object(env, &errorCode);
     napi_create_object(env, &dmErrorCode);
+    napi_create_object(env, &displayIntentType);
     SetDmErrorObjectProperty(env, errorCode);
     SetDmErrorCodeObjectProperty(env, dmErrorCode);
-
+    SetDisplayIntentTypeProperty(env, displayIntentType);
     napi_property_descriptor properties[] = {
         DECLARE_NAPI_FUNCTION("save", save::MainFunc),
         DECLARE_NAPI_FUNCTION("saveHdrPicture", save::SaveHDRFunc),
@@ -753,6 +786,7 @@ napi_value ScreenshotModuleInit(napi_env env, napi_value exports)
         DECLARE_NAPI_FUNCTION("capture", save::CaptureFunc),
         DECLARE_NAPI_PROPERTY("DMError", errorCode),
         DECLARE_NAPI_PROPERTY("DmErrorCode", dmErrorCode),
+        DECLARE_NAPI_PROPERTY("DisplayIntentType", displayIntentType),
     };
 
     NAPI_CALL(env, napi_define_properties(env,

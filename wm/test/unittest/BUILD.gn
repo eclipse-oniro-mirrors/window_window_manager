@@ -639,11 +639,11 @@ ohos_unittest("wm_picture_in_picture_option_test") {
 
 ohos_unittest("wm_picture_in_picture_option_ani_test") {
   module_out_path = module_out_path
- 
+
   sources = [ "picture_in_picture_option_ani_test.cpp" ]
- 
+
   deps = [ ":wm_unittest_common" ]
- 
+
   external_deps = test_external_deps
 }
 
@@ -974,7 +974,7 @@ ohos_static_library("wm_unittest_common") {
     # need delete it for abilitycontext
     "${window_base_path}/dm:libdm",
     "${window_base_path}/dmserver:libdms",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/wm:libwm_lite",

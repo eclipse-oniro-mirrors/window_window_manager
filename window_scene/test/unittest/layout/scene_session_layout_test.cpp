@@ -2870,6 +2870,105 @@ HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild05, TestSi
     childSession->SyncAllAttachedLimitsToAttachingChild(parentSession);
 }
 
+/**
+ * @tc.name: ResetAttachBindingState01
+ * @tc.desc: Reset attach state and verify all fields are cleared
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ResetAttachBindingState01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ResetAttachBindingState01";
+    info.bundleName_ = "ResetAttachBindingState01";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    // Set anchor state
+    session->windowAnchorInfo_.isAnchorEnabled_ = true;
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.windowAnchor_ = WindowAnchor::BOTTOM_END;
+    session->windowAnchorInfo_.offsetX_ = 100;
+    session->windowAnchorInfo_.offsetY_ = 200;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+
+    session->ResetAttachBindingState();
+
+    EXPECT_FALSE(session->windowAnchorInfo_.isAnchorEnabled_);
+    EXPECT_FALSE(session->windowAnchorInfo_.isAnchoredByAttach_);
+    EXPECT_TRUE(session->windowAnchorInfo_.isFromAttachOrDetach_);
+    EXPECT_EQ(session->windowAnchorInfo_.windowAnchor_, WindowAnchor::TOP_START);
+    EXPECT_EQ(session->windowAnchorInfo_.offsetX_, 0);
+    EXPECT_EQ(session->windowAnchorInfo_.offsetY_, 0);
+    EXPECT_FALSE(session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit);
+    EXPECT_FALSE(session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit);
+}
+
+/**
+ * @tc.name: ResetAttachBindingState02
+ * @tc.desc: ResetAttachBindingState triggers onWindowAnchorInfoChangeFunc_ callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ResetAttachBindingState02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ResetAttachBindingState02";
+    info.bundleName_ = "ResetAttachBindingState02";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    session->windowAnchorInfo_.isAnchorEnabled_ = true;
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+
+    std::shared_ptr<bool> callbackFired = std::make_shared<bool>(false);
+    session->onWindowAnchorInfoChangeFunc_ = [callbackFired](const WindowAnchorInfo& info) {
+        *callbackFired = true;
+        EXPECT_FALSE(info.isAnchorEnabled_);
+        EXPECT_FALSE(info.isAnchoredByAttach_);
+        EXPECT_TRUE(info.isFromAttachOrDetach_);
+    };
+
+    session->ResetAttachBindingState();
+    EXPECT_TRUE(*callbackFired);
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange01
+ * @tc.desc: NotifyRebindAttachAfterParentChange with null sessionStage_ → early return
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRebindAttachAfterParentChange01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRebindAttachAfterParentChange01";
+    info.bundleName_ = "NotifyRebindAttachAfterParentChange01";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    // sessionStage_ is null by default → should return early without crash
+    session->NotifyRebindAttachAfterParentChange(100);
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange02
+ * @tc.desc: NotifyRebindAttachAfterParentChange calls sessionStage_ IPC
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRebindAttachAfterParentChange02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRebindAttachAfterParentChange02";
+    info.bundleName_ = "NotifyRebindAttachAfterParentChange02";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    sptr<SessionStageMocker> mockStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = mockStage;
+
+    EXPECT_CALL(*mockStage, NotifyRebindAttachAfterParentChange(200))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    session->NotifyRebindAttachAfterParentChange(200);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

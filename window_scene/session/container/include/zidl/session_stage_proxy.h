@@ -80,6 +80,7 @@ public:
     WSError SyncAllAttachedLimitsToChild(
         const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
         const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList) override;
+    WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId) override;
     WSError NotifyDialogStateChange(bool isForeground) override;
     WSError SetPipActionEvent(const std::string& action, int32_t status) override;
     WSError SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status) override;

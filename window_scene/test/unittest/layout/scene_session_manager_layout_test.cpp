@@ -651,6 +651,107 @@ HWTEST_F(SceneSessionManagerLayoutTest, RecoverCachedSubSession_WithAnchorInfo, 
     ssm_->createSubSessionFuncMap_.erase(200);
 }
 
+/**
+ * @tc.name: SetParentWindowInner_AnchorRebind01
+ * @tc.desc: SetParentWindowInner with no anchor binding → anchor rebind not triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, SetParentWindowInner_AnchorRebind01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "AnchorRebind01";
+    sessionInfo.abilityName_ = "AnchorRebind01";
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    oldParentSession->property_->SetSubWindowLevel(10);
+    oldParentSession->persistentId_ = 10;
+    newParentSession->property_->SetSubWindowLevel(1);
+    newParentSession->persistentId_ = 1;
+    subSession->persistentId_ = 100;
+
+    // isAnchorEnabled_ defaults to false → anchor rebind should not trigger
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+
+    ssm_->SetParentWindowInner(subSession, oldParentSession, newParentSession);
+
+    // Verify anchor state unchanged
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+}
+
+/**
+ * @tc.name: SetParentWindowInner_AnchorRebind02
+ * @tc.desc: SetParentWindowInner with attach binding → reset and notify triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, SetParentWindowInner_AnchorRebind02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "AnchorRebind02";
+    sessionInfo.abilityName_ = "AnchorRebind02";
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    oldParentSession->property_->SetSubWindowLevel(10);
+    oldParentSession->persistentId_ = 10;
+    newParentSession->property_->SetSubWindowLevel(1);
+    newParentSession->persistentId_ = 1;
+    subSession->persistentId_ = 100;
+
+    // Set attach binding state
+    subSession->windowAnchorInfo_.isAnchorEnabled_ = true;
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    subSession->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    subSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+    subSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+
+    ssm_->SetParentWindowInner(subSession, oldParentSession, newParentSession);
+
+    // Verify anchor state is reset
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchoredByAttach_);
+    EXPECT_TRUE(subSession->GetWindowAnchorInfo().isFromAttachOrDetach_);
+}
+
+/**
+ * @tc.name: SetParentWindowInner_AnchorRebind03
+ * @tc.desc: SetParentWindowInner with relativePosition binding (isAnchoredByAttach_=false) → reset triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, SetParentWindowInner_AnchorRebind03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "AnchorRebind03";
+    sessionInfo.abilityName_ = "AnchorRebind03";
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    oldParentSession->property_->SetSubWindowLevel(10);
+    oldParentSession->persistentId_ = 10;
+    newParentSession->property_->SetSubWindowLevel(1);
+    newParentSession->persistentId_ = 1;
+    subSession->persistentId_ = 100;
+
+    // Set relativePosition binding state
+    subSession->windowAnchorInfo_.isAnchorEnabled_ = true;
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = false;
+
+    ssm_->SetParentWindowInner(subSession, oldParentSession, newParentSession);
+
+    // Verify anchor state is reset
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+    EXPECT_TRUE(subSession->GetWindowAnchorInfo().isFromAttachOrDetach_);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -968,30 +968,30 @@ HWTEST_F(SceneSessionManagerTest11, CheckIfReuseSession06, TestSize.Level1)
     ASSERT_NE(ssm_, nullptr);
     ssm_->bundleMgr_ = ssm_->GetBundleManager();
     ssm_->currentUserId_ = 123;
- 
+
     SessionInfo sessionInfo;
     sessionInfo.moduleName_ = "SceneSessionManager";
     sessionInfo.bundleName_ = "SceneSessionManagerTest11";
     sessionInfo.abilityName_ = "CheckIfReuseSession06";
     sessionInfo.want = std::make_shared<AAFwk::Want>();
- 
+
     SceneSessionManager::SessionInfoList list = {
         .uid_ = 123, .bundleName_ = "SceneSessionManagerTest11",
         .abilityName_ = "CheckIfReuseSession06", .moduleName_ = "SceneSessionManager"
     };
- 
+
     std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
     ASSERT_NE(abilityInfo, nullptr);
     abilityInfo->applicationInfo.codePath = std::to_string(CollaboratorType::RESERVE_TYPE);
     ssm_->abilityInfoMap_[list] = abilityInfo;
- 
+
     sptr<AAFwk::IAbilityManagerCollaborator> collaborator =
         iface_cast<AAFwk::IAbilityManagerCollaborator>(nullptr);
     ssm_->collaboratorMap_.insert(std::make_pair(1, collaborator));
     MockCollaboratorDllManager::MockPreHandleStartAbility(1);
     auto ret4 = ssm_->CheckIfReuseSession(sessionInfo);
-    EXPECT_EQ((sessionInfo).callerTypeForAnco, 1);
- 
+    EXPECT_EQ((sessionInfo).callerTypeForAnco, 0);
+
     MockCollaboratorDllManager::MockPreHandleStartAbility(0);
     ssm_->abilityInfoMap_.erase(list);
     ssm_->collaboratorMap_.erase(1);

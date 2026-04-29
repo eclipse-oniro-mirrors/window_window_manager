@@ -172,6 +172,9 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleRemoveAttachedWindowLimits(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_ALL_ATTACHED_LIMITS_TO_CHILD):
             return HandleSyncAllAttachedLimitsToChild(data, reply);
+        case static_cast<uint32_t>(
+            SessionStageInterfaceCode::TRANS_ID_NOTIFY_REBIND_ATTACH_AFTER_PARENT_CHANGE):
+            return HandleNotifyRebindAttachAfterParentChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DIALOG_STATE_CHANGE):
             return HandleNotifyDialogStateChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_PIP_ACTION_EVENT):
@@ -968,6 +971,17 @@ int SessionStageStub::HandleSyncAllAttachedLimitsToChild(MessageParcel& data, Me
         TLOGE(WmsLogTag::WMS_LAYOUT, "SyncAllAttachedLimitsToChild failed, ret: %{public}d", ret);
         return static_cast<int32_t>(ret);
     }
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyRebindAttachAfterParentChange(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t newParentWindowId = 0;
+    if (!data.ReadInt32(newParentWindowId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read newParentWindowId failed");
+        return ERR_INVALID_DATA;
+    }
+    NotifyRebindAttachAfterParentChange(newParentWindowId);
     return ERR_NONE;
 }
 

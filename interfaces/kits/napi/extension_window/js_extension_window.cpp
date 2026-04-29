@@ -172,6 +172,7 @@ napi_value JsExtensionWindow::CreateJsExtensionWindow(napi_env env, sptr<Rosen::
                        JsExtensionWindow::HidePrivacyContentForHost);
     BindNativeFunction(env, objValue, "occupyEvents", moduleName, JsExtensionWindow::OccupyEvents);
     BindNativeFunction(env, objValue, "getWindowDensityInfo", moduleName, JsExtensionWindow::GetWindowDensityInfo);
+    BindNativeFunction(env, objValue, "getWindowProperties", moduleName, JsExtensionWindow::GetWindowPropertiesSync);
 
     addJsExtensionWindow(env, objValue, window->GetWindowPersistentId());
     return objValue;

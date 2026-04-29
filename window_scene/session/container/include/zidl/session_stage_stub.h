@@ -76,6 +76,7 @@ private:
     int HandleUpdateAttachedWindowLimits(MessageParcel& data, MessageParcel& reply);
     int HandleRemoveAttachedWindowLimits(MessageParcel& data, MessageParcel& reply);
     int HandleSyncAllAttachedLimitsToChild(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyRebindAttachAfterParentChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyDialogStateChange(MessageParcel& data, MessageParcel& reply);
     int HandleSetPipActionEvent(MessageParcel& data, MessageParcel& reply);
     int HandleSetPiPControlEvent(MessageParcel& data, MessageParcel& reply);

@@ -48,9 +48,29 @@ namespace {
 HWTEST_F(StringUtilTest, Trim, TestSize.Level1)
 {
     ASSERT_EQ("", StringUtil::Trim(""));
+    ASSERT_EQ("", StringUtil::Trim(" "));
     ASSERT_EQ("", StringUtil::Trim("  "));
+    ASSERT_EQ("", StringUtil::Trim("     "));
+
+    ASSERT_EQ("123", StringUtil::Trim("  123"));
+    ASSERT_EQ("abc", StringUtil::Trim("   abc"));
+    ASSERT_EQ("A", StringUtil::Trim(" A"));
+
+    ASSERT_EQ("123", StringUtil::Trim("123  "));
+    ASSERT_EQ("abc", StringUtil::Trim("abc   "));
+    ASSERT_EQ("A", StringUtil::Trim("A "));
+
     ASSERT_EQ("123", StringUtil::Trim(" 123 "));
     ASSERT_EQ("12 3", StringUtil::Trim(" 12 3 "));
+
+    ASSERT_EQ("123", StringUtil::Trim("123"));
+    ASSERT_EQ("hello", StringUtil::Trim("hello"));
+    ASSERT_EQ("x", StringUtil::Trim("x"));
+
+    ASSERT_EQ("12 34", StringUtil::Trim("12 34"));
+    ASSERT_EQ("a b c", StringUtil::Trim("a b c"));
+
+    ASSERT_EQ("Hello World 123", StringUtil::Trim("   Hello World 123   "));
 }
 } // namespace
 } // namespace Rosen

@@ -1114,6 +1114,10 @@ void SceneSession::ApplySessionEventParam(SessionEvent event, const SessionEvent
         case SessionEvent::EVENT_MAXIMIZE:
             sessionEventParam_.waterfallResidentState = param.waterfallResidentState;
             sessionEventParam_.titleButtonEventType_ = param.titleButtonEventType_;
+            sessionEventParam_.snapshotAnimationConfig_ = param.snapshotAnimationConfig_;
+            break;
+        case SessionEvent::EVENT_RECOVER:
+            sessionEventParam_.snapshotAnimationConfig_ = param.snapshotAnimationConfig_;
             break;
         case SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE:
             sessionEventParam_.compatibleStyleMode = param.compatibleStyleMode;
@@ -2349,39 +2353,45 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
 
 void SceneSession::UpdateSessionRectPosYFromClient(SizeChangeReason reason, DisplayId& configDisplayId, WSRect& rect)
 {
-    if (!PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId()) ||
-        PcFoldScreenManager::GetInstance().HasSystemKeyboard()) {
-        TLOGD(
-            WmsLogTag::WMS_LAYOUT, "winId: %{public}d, displayId: %{public}" PRIu64, GetPersistentId(), GetScreenId());
+    auto persistentId = GetPersistentId();
+    auto& foldMgr = PcFoldScreenManager::GetInstance();
+    // VIRTUAL_DISPLAY_ID (999) represents the lower half of the default display
+    // in half-folded mode. It is only valid when the default display is half-folded.
+    // Skip position adjustment if not in half-folded state.
+    if (!foldMgr.IsHalfFolded(DEFAULT_DISPLAY_ID)) {
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+              "Skip update posY: default display not half folded, id: %{public}d", persistentId);
+        return;
+    }
+    if (foldMgr.HasSystemKeyboard()) {
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+              "Skip update posY: system keyboard present, id: %{public}d", persistentId);
         return;
     }
     if (reason != SizeChangeReason::RESIZE) {
         configDisplayId_ = configDisplayId;
     }
-    if (configDisplayId_ != DISPLAY_ID_INVALID &&
-        !PcFoldScreenManager::GetInstance().IsPcFoldScreen(configDisplayId_)) {
+    if (configDisplayId_ != DISPLAY_ID_INVALID && !foldMgr.IsPcFoldScreen(configDisplayId_)) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "winId: %{public}d, configDisplayId: %{public}" PRIu64,
-            GetPersistentId(), configDisplayId_);
+            persistentId, configDisplayId_);
         return;
     }
-    auto clientDisplayId = clientDisplayId_;
     TLOGI(WmsLogTag::WMS_LAYOUT, "winId: %{public}d, input: %{public}s, screenId: %{public}" PRIu64
         ", clientDisplayId: %{public}" PRIu64 ", configDisplayId: %{public}" PRIu64,
-        GetPersistentId(), rect.ToString().c_str(), GetScreenId(), clientDisplayId, configDisplayId_);
+        persistentId, rect.ToString().c_str(), GetScreenId(), clientDisplayId_, configDisplayId_);
     if (configDisplayId_ == DEFAULT_DISPLAY_ID) {
         return;
     }
-    if (configDisplayId_ != VIRTUAL_DISPLAY_ID && clientDisplayId != VIRTUAL_DISPLAY_ID) {
+    if (configDisplayId_ != VIRTUAL_DISPLAY_ID && clientDisplayId_ != VIRTUAL_DISPLAY_ID) {
         return;
     }
     // case 1：rect.posY_ < 0. Move from side C to side B
     // case 2: rect.posY_ > 0 && rect.posY_ < defaultDisplay + foldCrease. Move window to C
     // case 3: rect.posY_ > 0 && rect.posY_ >= defaultDisplay + foldCrease. Move window to C
     if (rect.posY_ >= 0) {
-        const auto& [defaultDisplayRect, virtualDisplayRect, foldCreaseRect] =
-            PcFoldScreenManager::GetInstance().GetDisplayRects();
+        const auto& [defaultDisplayRect, virtualDisplayRect, foldCreaseRect] = foldMgr.GetDisplayRects();
         TLOGI(WmsLogTag::WMS_LAYOUT, "winId: %{public}d, defaultDisplayRect: %{public}s, virtualDisplayRect: %{public}s"
-            ", foldCreaseRect: %{public}s", GetPersistentId(), defaultDisplayRect.ToString().c_str(),
+            ", foldCreaseRect: %{public}s", persistentId, defaultDisplayRect.ToString().c_str(),
             virtualDisplayRect.ToString().c_str(), foldCreaseRect.ToString().c_str());
         auto lowerScreenPosY = defaultDisplayRect.height_ + foldCreaseRect.height_;
         if (rect.posY_ < lowerScreenPosY) {
@@ -2391,7 +2401,7 @@ void SceneSession::UpdateSessionRectPosYFromClient(SizeChangeReason reason, Disp
         rect.posY_ += GetSessionRect().posY_;
     }
     configDisplayId = DEFAULT_DISPLAY_ID;
-    TLOGI(WmsLogTag::WMS_LAYOUT, "winId: %{public}d, output: %{public}s", GetPersistentId(), rect.ToString().c_str());
+    TLOGI(WmsLogTag::WMS_LAYOUT, "winId: %{public}d, output: %{public}s", persistentId, rect.ToString().c_str());
 }
 
 /** @note @window.layout */
@@ -9064,6 +9074,32 @@ void SceneSession::SyncAllAttachedLimitsToAttachingChild(const sptr<Session>& pa
     TLOGI(WmsLogTag::WMS_LAYOUT, "Sync parent id=%{public}d to attaching child id=%{public}d, total=%{public}zu",
         parentWinId, GetPersistentId(), limitsList.size());
     sessionStage_->SyncAllAttachedLimitsToChild(limitsList, optionsList);
+}
+
+/** @note @window.layout */
+void SceneSession::ResetAttachBindingState()
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id=%{public}d", GetPersistentId());
+    windowAnchorInfo_ = {false, false, WindowAnchor::TOP_START, 0, 0};
+    windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    windowAnchorInfo_.attachOptions.currentLayoutMode = "";
+    windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = false;
+    windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = false;
+    if (onWindowAnchorInfoChangeFunc_) {
+        onWindowAnchorInfoChangeFunc_(windowAnchorInfo_);
+    }
+}
+
+/** @note @window.layout */
+void SceneSession::NotifyRebindAttachAfterParentChange(int32_t newParentWindowId)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "sessionStage_ is null, id=%{public}d", GetPersistentId());
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id=%{public}d, newParentId=%{public}d",
+        GetPersistentId(), newParentWindowId);
+    sessionStage_->NotifyRebindAttachAfterParentChange(newParentWindowId);
 }
 
 /** @note @window.layout */

@@ -2475,16 +2475,20 @@ HWTEST_F(SessionStubTest, TestHandleSessionEventWithValidInputs, TestSize.Level1
     uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
     MessageOption option;
 
-    // Case 1: EVENT_MAXIMIZE with valid 'waterfallResidentState' → should succeed and return WS_OK
+    // Case 1: EVENT_MAXIMIZE with valid params → should succeed and return WS_OK
     {
         MessageParcel data;
         MessageParcel reply;
         uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE);
         uint32_t waterfallResidentState = 0;
         uint32_t titleButtonEventType = 0;
+        int64_t duration = -1;
+        int64_t delay = -1;
         data.WriteUint32(eventId);
         data.WriteUint32(waterfallResidentState);
         data.WriteUint32(titleButtonEventType);
+        data.WriteInt64(duration);
+        data.WriteInt64(delay);
 
         EXPECT_CALL(*session, OnSessionEvent(_, _))
             .Times(1)
@@ -2502,7 +2506,6 @@ HWTEST_F(SessionStubTest, TestHandleSessionEventWithValidInputs, TestSize.Level1
         MessageParcel data;
         MessageParcel reply;
         uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MINIMIZE);
-        uint32_t waterfallResidentState = 1;
         data.WriteUint32(eventId);
 
         EXPECT_CALL(*session, OnSessionEvent(_, _))
@@ -2924,6 +2927,386 @@ HWTEST_F(SessionStubTest, HandleIsMainWindowFullScreenAcrossDisplaysAttribute01,
     EXPECT_EQ(1, session->isMainAcrossDisplaysCallCount_);
     EXPECT_EQ(static_cast<int32_t>(WMError::WM_OK), reply.ReadInt32());
     EXPECT_EQ(true, reply.ReadBool());
+}
+
+/**
+ * @tc.name: TestHandleSessionEventRecover01
+ * @tc.desc: Verify EVENT_RECOVER reads snapshotAnimationConfig (duration + delay) correctly.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventRecover01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_RECOVER);
+    int64_t duration = 500;
+    int64_t delay = 80;
+    data.WriteUint32(eventId);
+    data.WriteInt64(duration);
+    data.WriteInt64(delay);
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::Return(WSError::WS_OK));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    uint32_t errCode = reply.ReadUint32();
+    EXPECT_EQ(errCode, static_cast<uint32_t>(WSError::WS_OK));
+}
+
+/**
+ * @tc.name: TestHandleSessionEventMaximizeWithConfig01
+ * @tc.desc: Verify EVENT_MAXIMIZE reads waterfallResidentState, titleButtonEventType and snapshotAnimationConfig.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventMaximizeWithConfig01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE);
+    uint32_t waterfallResidentState = 1;
+    uint32_t titleButtonEventType = 2;
+    int64_t duration = 300;
+    int64_t delay = 50;
+    data.WriteUint32(eventId);
+    data.WriteUint32(waterfallResidentState);
+    data.WriteUint32(titleButtonEventType);
+    data.WriteInt64(duration);
+    data.WriteInt64(delay);
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::Return(WSError::WS_OK));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    uint32_t errCode = reply.ReadUint32();
+    EXPECT_EQ(errCode, static_cast<uint32_t>(WSError::WS_OK));
+}
+
+/**
+ * @tc.name: TestHandleSessionEventRecoverMissingConfig01
+ * @tc.desc: Verify EVENT_RECOVER fails when snapshotAnimationConfig data is missing.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventRecoverMissingConfig01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    // Only write eventId, no duration/delay → ReadEventParam should fail
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_RECOVER);
+    data.WriteUint32(eventId);
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _)).Times(0);
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventMaximizeMissingConfig01
+ * @tc.desc: Verify EVENT_MAXIMIZE fails when snapshotAnimationConfig data is missing.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventMaximizeMissingConfig01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    // Only write eventId + waterfallResidentState + titleButtonEventType, no duration/delay
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE);
+    data.WriteUint32(eventId);
+    data.WriteUint32(1); // waterfallResidentState
+    data.WriteUint32(2); // titleButtonEventType
+    // Missing: duration and delay
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _)).Times(0);
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventMinimize01
+ * @tc.desc: Verify EVENT_MINIMIZE needs no extra params and succeeds.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventMinimize01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MINIMIZE);
+    data.WriteUint32(eventId);
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::Return(WSError::WS_OK));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    uint32_t errCode = reply.ReadUint32();
+    EXPECT_EQ(errCode, static_cast<uint32_t>(WSError::WS_OK));
+}
+
+/**
+ * @tc.name: TestHandleSessionEventClose01
+ * @tc.desc: Verify EVENT_CLOSE needs no extra params and succeeds.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventClose01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_CLOSE);
+    data.WriteUint32(eventId);
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::Return(WSError::WS_OK));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    uint32_t errCode = reply.ReadUint32();
+    EXPECT_EQ(errCode, static_cast<uint32_t>(WSError::WS_OK));
+}
+
+/**
+ * @tc.name: TestHandleSessionEventMaximizeRoundtrip01
+ * @tc.desc: Verify EVENT_MAXIMIZE Write→Read roundtrip preserves all param values.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventMaximizeRoundtrip01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE);
+    uint32_t waterfallResidentState = 1;
+    uint32_t titleButtonEventType = 2;
+    int64_t duration = 300;
+    int64_t delay = 50;
+    data.WriteUint32(eventId);
+    data.WriteUint32(waterfallResidentState);
+    data.WriteUint32(titleButtonEventType);
+    data.WriteInt64(duration);
+    data.WriteInt64(delay);
+
+    SessionEventParam capturedParam;
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&capturedParam),
+            testing::Return(WSError::WS_OK)));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    EXPECT_EQ(capturedParam.waterfallResidentState, waterfallResidentState);
+    EXPECT_EQ(capturedParam.titleButtonEventType_, titleButtonEventType);
+    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.duration, duration);
+    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.delay, delay);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventRecoverRoundtrip01
+ * @tc.desc: Verify EVENT_RECOVER Write→Read roundtrip preserves duration and delay.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventRecoverRoundtrip01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_RECOVER);
+    int64_t duration = 500;
+    int64_t delay = 80;
+    data.WriteUint32(eventId);
+    data.WriteInt64(duration);
+    data.WriteInt64(delay);
+
+    SessionEventParam capturedParam;
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&capturedParam),
+            testing::Return(WSError::WS_OK)));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.duration, duration);
+    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.delay, delay);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventRecoverEdgeValues01
+ * @tc.desc: Verify EVENT_RECOVER with edge values (duration=0, delay=-1).
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventRecoverEdgeValues01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_RECOVER);
+    int64_t duration = 0;
+    int64_t delay = -1;
+    data.WriteUint32(eventId);
+    data.WriteInt64(duration);
+    data.WriteInt64(delay);
+
+    SessionEventParam capturedParam;
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&capturedParam),
+            testing::Return(WSError::WS_OK)));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.duration, 0);
+    EXPECT_EQ(capturedParam.snapshotAnimationConfig_.delay, -1);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventMaximizeMissingWaterfall01
+ * @tc.desc: Verify EVENT_MAXIMIZE fails when waterfallResidentState is missing.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventMaximizeMissingWaterfall01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE);
+    data.WriteUint32(eventId);
+    // Missing: waterfallResidentState, titleButtonEventType, duration, delay
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _)).Times(0);
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventSwitchCompatibleMissingMode01
+ * @tc.desc: Verify EVENT_SWITCH_COMPATIBLE_MODE fails when compatibleStyleMode is missing.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventSwitchCompatibleMissingMode01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE);
+    data.WriteUint32(eventId);
+    // Missing: compatibleStyleMode
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _)).Times(0);
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventMaximizeMissingTitleButton01
+ * @tc.desc: Verify EVENT_MAXIMIZE fails when titleButtonEventType is missing.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventMaximizeMissingTitleButton01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE);
+    data.WriteUint32(eventId);
+    data.WriteUint32(1); // waterfallResidentState
+    // Missing: titleButtonEventType, duration, delay
+
+    EXPECT_CALL(*session, OnSessionEvent(_, _)).Times(0);
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: TestHandleSessionEventSwitchCompatibleRoundtrip01
+ * @tc.desc: Verify EVENT_SWITCH_COMPATIBLE_MODE Write→Read roundtrip preserves compatibleStyleMode.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, TestHandleSessionEventSwitchCompatibleRoundtrip01, TestSize.Level1)
+{
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT);
+    MessageOption option;
+
+    MessageParcel data;
+    MessageParcel reply;
+    uint32_t eventId = static_cast<uint32_t>(SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE);
+    uint32_t compatibleStyleMode = 3;
+    data.WriteUint32(eventId);
+    data.WriteUint32(compatibleStyleMode);
+
+    SessionEventParam capturedParam;
+    EXPECT_CALL(*session, OnSessionEvent(_, _))
+        .Times(1)
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&capturedParam),
+            testing::Return(WSError::WS_OK)));
+
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+
+    uint32_t errCode = reply.ReadUint32();
+    EXPECT_EQ(errCode, static_cast<uint32_t>(WSError::WS_OK));
+    EXPECT_EQ(capturedParam.compatibleStyleMode, compatibleStyleMode);
 }
 } // namespace
 } // namespace Rosen

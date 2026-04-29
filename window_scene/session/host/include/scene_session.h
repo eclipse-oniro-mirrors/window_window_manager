@@ -998,10 +998,12 @@ public:
     void SetWindowAnchorInfoChangeFunc(NotifyWindowAnchorInfoChangeFunc&& func);
     WSError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
     WindowAnchorInfo GetWindowAnchorInfo() const { return windowAnchorInfo_; }
+    void ResetAttachBindingState();
     void CalcSubWindowRectByAnchor(const WSRect& parentRect, WSRect& subRect);
     void NotifyRelatedWindowsAttachStateChange(const sptr<Session>& parentSession,
         bool wasAttached, bool isAttached, bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit);
     void SyncAllAttachedLimitsToAttachingChild(const sptr<Session>& parentSession);
+    void NotifyRebindAttachAfterParentChange(int32_t newParentWindowId);
     WSError NotifyAttachedWindowsLimitsChanged(const WindowLimits& newLimits) override;
     void NotifyRelatedWindowsOnDestruction();
 
