@@ -1121,15 +1121,15 @@ WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::
             return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
         }
         std::string systemUiVisible(4, '0');
-        auto BoolToChar = [](bool value) { return value ? '1' : '0'; };
-        auto statusBarNode = windowRoot_->GetWindowNodeByWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
-        if (statusBarNode) {
-            systemUiVisible[0] = BoolToChar(statusBarNode->currentVisibility_);
-        }
-        auto navigationBarNode = windowRoot_->GetWindowNodeByWindowType(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
-        if (navigationBarNode) {
-            systemUiVisible[3] = BoolToChar(navigationBarNode->currentVisibility_);
-        }
+        auto IsSystemUiVisible = [](WindowType type) {
+            auto systemUiNode = windowRoot_->GetWindowNodeByWindowType(type);
+            if (systemUiNode) {
+                return systemUiNode->currentVisibility_ ? '1' : '0';
+            }
+            return '0';
+        };
+        systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR);
+        systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
         winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
         winStateSnapshotJsonStr = winStateSnapshotJson.dump();
         return WMError::WM_OK;
