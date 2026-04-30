@@ -2015,7 +2015,13 @@ void WindowSessionImpl::NotifyLifecyclePausedStatus()
 
 WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
+    windowModeInfo_ = windowModeInfo;
     return WSError::WS_OK;
+}
+
+WindowModeInfo WindowSessionImpl::GetWindowModeInfo() const
+{
+    return windowModeInfo_;
 }
 
 /** @note @window.layout */

@@ -1276,6 +1276,13 @@ public:
     virtual WindowMode GetWindowMode() const { return WindowMode::WINDOW_MODE_UNDEFINED; }
 
     /**
+     * @brief Get the window mode info.
+     *
+     * @return WindowModeInfo of window.
+     */
+    virtual WindowModeInfo GetWindowModeInfo() const { return WindowModeInfo{}; }
+
+    /**
      * @brief Get alpha of window.
      *
      * @return Alpha of window.
