@@ -1109,10 +1109,18 @@ bool Session::GetWindowTouchableForMMI(DisplayId displayId) const
     bool isTouchable = true;
     auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(displayId);
     if (screenSession != nullptr) {
-        if (!screenSession->IsTouchEnabled() || !GetSystemTouchable() ||
-            !GetForegroundInteractiveStatus()) {
+        if (!screenSession->IsTouchEnabled() || !GetSessionTouchable()) {
             isTouchable = false;
         }
+    }
+    return isTouchable;
+}
+
+bool Session::GetSessionTouchable() const
+{
+    bool isTouchable = true;
+    if (!GetSystemTouchable() || !GetForegroundInteractiveStatus()) {
+        isTouchable = false;
     }
     return isTouchable;
 }

@@ -623,6 +623,7 @@ public:
     virtual void SetSystemTouchable(bool touchable);
     bool GetSystemTouchable() const;
     bool GetWindowTouchableForMMI(DisplayId displayId) const;
+    bool GetSessionTouchable() const;
     virtual WSError SetRSVisible(bool isVisible);
     bool GetRSVisible() const;
     WSError SetVisibilityState(WindowVisibilityState state);
