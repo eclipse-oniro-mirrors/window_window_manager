@@ -76,7 +76,7 @@ WMError WindowProxy::UpdateWindowRect(const struct Rect& rect, bool decoStatus, 
     return WMError::WM_OK;
 }
 
-WMError WindowProxy::UpdateWindowMode(WindowMode mode)
+WMError WindowProxy::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -85,8 +85,16 @@ WMError WindowProxy::UpdateWindowMode(WindowMode mode)
         WLOGFE("WriteInterfaceToken failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    if (!data.WriteUint32(static_cast<uint32_t>(mode))) {
-        WLOGFE("Write WindowMode failed");
+    if (!data.WriteUint32(static_cast<uint32_t>(windowModeInfo.windowMode))) {
+        WLOGFE("Write windowMode failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(static_cast<int32_t>(windowModeInfo.splitStyle))) {
+        WLOGFE("Write splitStyle failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(windowModeInfo.splitIndex)) {
+        WLOGFE("Write splitIndex failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 

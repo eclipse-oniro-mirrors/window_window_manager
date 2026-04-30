@@ -6550,8 +6550,9 @@ bool WindowSceneSessionImpl::ShouldSkipSupportWindowModeCheck(uint32_t windowMod
     return false;
 }
 
-WSError WindowSceneSessionImpl::UpdateWindowMode(WindowMode mode)
+WSError WindowSceneSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
+    WindowMode mode = windowModeInfo.windowMode;
     if (IsWindowSessionInvalid()) {
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
@@ -6568,7 +6569,7 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(WindowMode mode)
         UpdateIsShowDecorInFreeMultiWindow(true);
         isMaximizeInvoked_ = false;
     }
-    WMError ret = UpdateWindowModeImmediately(mode);
+    WMError ret = UpdateWindowModeImmediately(windowModeInfo);
 
     if (windowSystemConfig_.IsPcWindow()) {
         if (mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
@@ -6609,8 +6610,9 @@ WSError WindowSceneSessionImpl::GetTopNavDestinationName(std::string& topNavDest
     return WSError::WS_OK;
 }
 
-WMError WindowSceneSessionImpl::UpdateWindowModeImmediately(WindowMode mode)
+WMError WindowSceneSessionImpl::UpdateWindowModeImmediately(const WindowModeInfo& windowModeInfo)
 {
+    WindowMode mode = windowModeInfo.windowMode;
     if (state_ == WindowState::STATE_CREATED || state_ == WindowState::STATE_HIDDEN) {
         property_->SetWindowMode(mode);
         UpdateTitleButtonVisibility();

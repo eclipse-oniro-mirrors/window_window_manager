@@ -2013,7 +2013,7 @@ void WindowSessionImpl::NotifyLifecyclePausedStatus()
     NotifyAfterLifecyclePaused();
 }
 
-WSError WindowSessionImpl::UpdateWindowMode(WindowMode mode)
+WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     return WSError::WS_OK;
 }

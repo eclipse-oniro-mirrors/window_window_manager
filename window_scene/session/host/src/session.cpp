@@ -4421,8 +4421,9 @@ void Session::InitVsyncCallbackForModeChangeAndRequestNextVsync()
     requestNextVsyncWhenModeChangeFunc_(nextVsyncCallback);
 }
 
-WSError Session::UpdateWindowMode(WindowMode mode)
+WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
+    WindowMode mode = windowModeInfo.windowMode;
     WLOGFD("Session update window mode, id: %{public}d, mode: %{public}d", GetPersistentId(),
         static_cast<int32_t>(mode));
     auto property = GetSessionProperty();
@@ -4447,17 +4448,18 @@ WSError Session::UpdateWindowMode(WindowMode mode)
             property->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
         }
         UpdateGestureBackEnabled();
-        UpdateGravityWhenUpdateWindowMode(mode);
+        UpdateGravityWhenUpdateWindowMode(windowModeInfo);
         if (!sessionStage_) {
             return WSError::WS_ERROR_NULLPTR;
         }
-        return sessionStage_->UpdateWindowMode(mode);
+        return sessionStage_->UpdateWindowMode(windowModeInfo);
     }
     return WSError::WS_OK;
 }
 
-void Session::UpdateGravityWhenUpdateWindowMode(WindowMode mode)
+void Session::UpdateGravityWhenUpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
+    WindowMode mode = windowModeInfo.windowMode;
     auto surfaceNode = GetSurfaceNode();
     if ((systemConfig_.IsPcWindow() || systemConfig_.IsFreeMultiWindowMode()) && surfaceNode != nullptr) {
         if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY) {
@@ -4466,7 +4468,7 @@ void Session::UpdateGravityWhenUpdateWindowMode(WindowMode mode)
             surfaceNode->SetFrameGravity(Gravity::RIGHT);
         } else if (mode == WindowMode::WINDOW_MODE_FLOATING || mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
             surfaceNode->SetFrameGravity(Gravity::RESIZE);
-        } else if {mode == WindowMode::WINDOW_MODE_SPLIT} {
+        } else if (mode == WindowMode::WINDOW_MODE_SPLIT) {
             // TODO: 明确当前场景下要设置的Gravity
         }
     }

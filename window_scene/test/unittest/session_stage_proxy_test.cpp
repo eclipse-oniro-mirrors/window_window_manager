@@ -531,7 +531,7 @@ HWTEST_F(SessionStageProxyTest, UpdateWindowMode, TestSize.Level1)
 {
     WindowMode mode = WindowMode::WINDOW_MODE_UNDEFINED;
     ASSERT_TRUE((sessionStage_ != nullptr));
-    WSError res = sessionStage_->UpdateWindowMode(mode);
+    WSError res = sessionStage_->UpdateWindowMode(WindowModeInfo{ mode });
     ASSERT_EQ(WSError::WS_OK, res);
 }
 

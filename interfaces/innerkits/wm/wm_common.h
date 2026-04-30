@@ -231,6 +231,24 @@ enum class SplitRatioPreference : uint32_t {
 };
 
 /**
+ * @brief Enumerates split style of window.
+ */
+enum class SplitStyle : int32_t {
+    TWO_WINDOW_HORIZONTAL = 0,
+    TWO_WINDOW_VERTICAL,
+    THREE_WINDOW_HORIZONTAL,
+};
+
+/**
+ * @brief Window mode info, including mode, split style and split index.
+ */
+struct WindowModeInfo {
+    WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    int32_t splitIndex = 0;
+};
+
+/**
  * @brief Enumerates modeType of window.
  */
 enum class WindowModeType : uint8_t {

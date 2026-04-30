@@ -31,7 +31,7 @@ public:
 
     WMError UpdateWindowRect(const struct Rect& rect, bool decoStatus, WindowSizeChangeReason reason,
         const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) override;
-    WMError UpdateWindowMode(WindowMode mode) override;
+    WMError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WMError UpdateWindowModeSupportType(uint32_t windowModeSupportType) override;
     WMError UpdateFocusStatus(bool focused) override;
     WMError UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) override;

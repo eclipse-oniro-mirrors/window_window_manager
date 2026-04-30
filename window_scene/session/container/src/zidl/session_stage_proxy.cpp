@@ -928,7 +928,7 @@ WSError SessionStageProxy::NotifyWindowOcclusionState(const WindowVisibilityStat
     return static_cast<WSError>(errCode);
 }
 
-WSError SessionStageProxy::UpdateWindowMode(WindowMode mode)
+WSError SessionStageProxy::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -938,8 +938,16 @@ WSError SessionStageProxy::UpdateWindowMode(WindowMode mode)
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
-    if (!data.WriteUint32(static_cast<uint32_t>(mode))) {
-        WLOGFE("Write mode failed");
+    if (!data.WriteUint32(static_cast<uint32_t>(windowModeInfo.windowMode))) {
+        WLOGFE("Write windowMode failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(static_cast<int32_t>(windowModeInfo.splitStyle))) {
+        WLOGFE("Write splitStyle failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(windowModeInfo.splitIndex)) {
+        WLOGFE("Write splitIndex failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 

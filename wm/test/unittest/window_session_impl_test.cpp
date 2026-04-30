@@ -2024,7 +2024,7 @@ HWTEST_F(WindowSessionImplTest, UpdateWindowMode, TestSize.Level1)
     sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
     ASSERT_NE(window, nullptr);
     WindowMode mode = WindowMode{ 0 };
-    auto ret = window->UpdateWindowMode(mode);
+    auto ret = window->UpdateWindowMode(WindowModeInfo{ mode });
     ASSERT_EQ(ret, WSError::WS_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: UpdateWindowModetest01 end";
 }

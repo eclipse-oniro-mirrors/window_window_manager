@@ -857,31 +857,31 @@ HWTEST_F(WindowSessionTest3, UpdateWindowMode, TestSize.Level1)
     session_->sessionStage_ = mockSessionStage;
 
     session_->state_ = SessionState::STATE_END;
-    auto result = session_->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED);
+    auto result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED });
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_SESSION);
 
     session_->state_ = SessionState::STATE_DISCONNECT;
-    result = session_->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED);
+    result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED });
     EXPECT_EQ(session_->property_->windowMode_, WindowMode::WINDOW_MODE_UNDEFINED);
     EXPECT_EQ(session_->property_->isNeedUpdateWindowMode_, true);
     EXPECT_EQ(result, WSError::WS_OK);
 
     session_->state_ = SessionState::STATE_CONNECT;
-    result = session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_SECONDARY });
     EXPECT_EQ(session_->property_->windowMode_, WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
     EXPECT_EQ(session_->property_->maximizeMode_, MaximizeMode::MODE_RECOVER);
     EXPECT_EQ(result, WSError::WS_OK);
 
     session_->state_ = SessionState::STATE_CONNECT;
-    result = session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
     EXPECT_EQ(result, WSError::WS_OK);
 
     session_->state_ = SessionState::STATE_CONNECT;
-    result = session_->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED);
+    result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED });
     EXPECT_EQ(result, WSError::WS_OK);
 
     session_->sessionStage_ = nullptr;
-    result = session_->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED);
+    result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED });
     EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 }
 
@@ -1250,7 +1250,7 @@ HWTEST_F(WindowSessionTest3, EncodeAndDecodeSnapShotRecoverValue, Function | Sma
 {
     ASSERT_NE(session_, nullptr);
     int32_t snapShotRecoverValue = 0;
-    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
     snapShotRecoverValue = session_->EncodeSnapShotRecoverValue(DisplayOrientation::PORTRAIT);
     EXPECT_EQ(session_->DecodeSnapShotRecoverValue(snapShotRecoverValue,
         SnapShotRecoverType::ROTATE), static_cast<int32_t>(DisplayOrientation::PORTRAIT));
@@ -1268,11 +1268,11 @@ HWTEST_F(WindowSessionTest3, IsExitSplitOnBackgroundRecover, Function | SmallTes
 {
     ASSERT_NE(session_, nullptr);
     int32_t snapShotRecoverValue = 0;
-    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
     EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), false);
-    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
     EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), true);
-    session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_SECONDARY });
     EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), true);
 }
 

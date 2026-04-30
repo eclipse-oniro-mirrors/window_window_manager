@@ -84,6 +84,7 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
             break;
         }
         case WindowMessage::TRANS_ID_UPDATE_WINDOW_MODE: {
+            WindowModeInfo windowModeInfo;
             uint32_t windowMode = 0;
             if (!data.ReadUint32(windowMode)) {
                 TLOGE(WmsLogTag::WMS_LAYOUT, "read windowMode failed");
@@ -94,8 +95,20 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 TLOGE(WmsLogTag::WMS_LAYOUT, "invalid windowMode: %{public}d", windowMode);
                 return ERR_INVALID_DATA;
             }
-            WindowMode mode = static_cast<WindowMode>(windowMode);
-            UpdateWindowMode(mode);
+            windowModeInfo.windowMode = static_cast<WindowMode>(windowMode);
+            int32_t splitStyle = 0;
+            if (!data.ReadInt32(splitStyle)) {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "read splitStyle failed");
+                return ERR_INVALID_DATA;
+            }
+            windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+            int32_t splitIndex = 0;
+            if (!data.ReadInt32(splitIndex)) {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "read splitIndex failed");
+                return ERR_INVALID_DATA;
+            }
+            windowModeInfo.splitIndex = splitIndex;
+            UpdateWindowMode(windowModeInfo);
             break;
         }
         case WindowMessage::TRANS_ID_UPDATE_MODE_SUPPORT_INFO: {

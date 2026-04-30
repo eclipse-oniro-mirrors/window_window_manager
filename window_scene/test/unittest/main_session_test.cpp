@@ -290,9 +290,9 @@ HWTEST_F(MainSessionTest, SetMainWindowTopmost, TestSize.Level1)
 HWTEST_F(MainSessionTest, UpdatePointerArea, TestSize.Level1)
 {
     WSRect Rect = { 0, 0, 50, 50 };
-    mainSession_->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED);
+    mainSession_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED });
     mainSession_->UpdatePointerArea(Rect);
-    mainSession_->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    mainSession_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
     mainSession_->UpdatePointerArea(Rect);
     ASSERT_EQ(Rect, mainSession_->preRect_);
 }
@@ -1118,13 +1118,13 @@ HWTEST_F(MainSessionTest, IsExitSplitOnBackgroundRecover, TestSize.Level1)
 
     ASSERT_NE(session, nullptr);
     int32_t snapShotRecoverValue = 0;
-    session->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
     EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), false);
-    session->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    session->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
     EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), true);
-    session->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    session->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_SECONDARY });
     EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), true);
-    session->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
     session->isExitSplitOnBackground_ = true;
     EXPECT_EQ(session->IsExitSplitOnBackgroundRecover(), true);
 }

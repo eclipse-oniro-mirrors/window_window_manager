@@ -620,7 +620,7 @@ public:
     void NotifyClick(bool requestFocus = true, bool isClick = true);
     bool GetStateFromManager(const ManagerState key);
     virtual void PresentFocusIfNeed(int32_t pointerAcrion, int32_t sourceType = 0);
-    virtual WSError UpdateWindowMode(WindowMode mode);
+    virtual WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo);
     WSError SetIsPcAppInPad(bool enable);
     WSError SetCompatibleModeProperty(const sptr<CompatibleModeProperty> compatibleModeProperty);
     WSError SetAppSupportPhoneInPc(bool isSupportPhone);
@@ -1334,7 +1334,7 @@ private:
     void InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& property);
     void InitSystemSessionDragEnable(const sptr<WindowSessionProperty>& property);
 
-    void UpdateGravityWhenUpdateWindowMode(WindowMode mode);
+    void UpdateGravityWhenUpdateWindowMode(const WindowModeInfo& windowModeInfo);
 
     std::recursive_mutex lifecycleListenersMutex_;
     std::vector<std::shared_ptr<ILifecycleListener>> lifecycleListeners_;

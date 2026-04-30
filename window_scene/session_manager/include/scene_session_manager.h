@@ -370,7 +370,7 @@ public:
     void SetSpecificWindowZIndexListener(const NotifySetSpecificWindowZIndexFunc& func);
     void SetMoveMainWindowToTargetDisplayListener(NotifyMoveMainWindowToTargetDisplayFunc&& func);
 
-    WSError UpdateWindowMode(int32_t persistentId, int32_t windowMode);
+    WSError UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo);
     WSError SendTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, uint32_t zIndex);
     WSError RaiseWindowToTop(int32_t persistentId) override;
     void SetScreenLocked(const bool isScreenLocked);

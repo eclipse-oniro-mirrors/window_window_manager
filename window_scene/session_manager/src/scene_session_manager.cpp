@@ -9791,16 +9791,16 @@ std::string SceneSessionManager::GetAllSessionFocusInfo()
     return os.str();
 }
 
-WSError SceneSessionManager::UpdateWindowMode(int32_t persistentId, int32_t windowMode)
+WSError SceneSessionManager::UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo)
 {
-    TLOGD(WmsLogTag::DEFAULT, "update window mode, id: %{public}d, mode: %{public}d", persistentId, windowMode);
+    TLOGD(WmsLogTag::DEFAULT, "update window mode, id: %{public}d, mode: %{public}d", persistentId,
+        static_cast<int32_t>(windowModeInfo.windowMode));
     auto sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "could not find window, persistentId:%{public}d", persistentId);
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
-    WindowMode mode = static_cast<WindowMode>(windowMode);
-    return sceneSession->UpdateWindowMode(mode);
+    return sceneSession->UpdateWindowMode(windowModeInfo);
 }
 
 SingleHandTransform SceneSessionManager::GetNormalSingleHandTransform() const
