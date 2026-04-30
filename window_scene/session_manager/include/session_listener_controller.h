@@ -52,7 +52,7 @@ public:
         const SessionInfo& sessionInfo, LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
 
     void NotifyAppInstanceLifecycleEvent(SessionState state,
-        const SessionInfo& sessionInfo, LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+        const sptr<SceneSession>& session, LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
 
     void NotifySessionTransferToTargetScreenEvent(const SessionInfo& sessionInfo,
         const uint32_t resultCode, const uint64_t fromScreenId, const uint64_t toScreenId,
@@ -149,13 +149,17 @@ private:
         const std::vector<sptr<SceneSession>>& sessions);
     void OnSessionLifecycleListenerDied(const wptr<IRemoteObject>& remote);
     void RemoveSessionLifecycleListener(const sptr<IRemoteObject>& target);
+    template <typename MapType>
+    void RemoveListenersFromMap(MapType& listenerMap,
+        const std::function<bool(const sptr<ISessionLifecycleListener>&)>& predicate);
 
     template <typename KeyType, typename MapType>
     void NotifyListeners(const MapType& listenerMap, const KeyType& key,
         const ISessionLifecycleListener::SessionLifecycleEvent event,
         const ISessionLifecycleListener::LifecycleEventPayload& payload);
-    template <typename KeyType, typename MapType>
-    void NotifyListeners(const MapType& listenerMap, const KeyType& key,
+    void NotifyAppInstanceListeners(const AppInstanceFilterKey& key,
+        const ISessionLifecycleListener::LifecycleEventPayload& payload);
+    void NotifyAppInstanceListenersByKey(const AppInstanceFilterKey& filterKey,
         const ISessionLifecycleListener::LifecycleEventPayload& payload);
     std::shared_ptr<TaskScheduler> taskScheduler_;
     sptr<IRemoteObject::DeathRecipient> lifecycleListenerDeathRecipient_;

@@ -69,6 +69,7 @@ public:
     virtual WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds);
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType);
     virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled);
+    virtual WMError RecoverProcessWatermark();
     virtual WMError TerminateSessionByPersistentId(int32_t persistentId);
     virtual WMError CloseTargetFloatWindow(const std::string& bundleName);
     virtual WMError CloseTargetPiPWindow(const std::string& bundleName);
@@ -102,6 +103,9 @@ private:
     uint32_t observedFlags_ = 0;
     uint32_t interestedFlags_ = 0;
     WMError RecoverWindowPropertyChangeFlag();
+    mutable std::mutex processWatermarkMutex_;
+    int32_t processWatermarkPid_ = 0;
+    std::string processWatermarkName_;
 
     /*
      * Multi user and multi screen

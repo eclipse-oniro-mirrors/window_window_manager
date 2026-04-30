@@ -1727,6 +1727,42 @@ WMError SceneSessionManagerLiteProxy::SetProcessWatermark(int32_t pid, const std
     return static_cast<WMError>(reply.ReadInt32());
 }
 
+WMError SceneSessionManagerLiteProxy::RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "WriteInterfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(pid)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write pid failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString(watermarkName)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write watermarkName failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_RECOVER_PROCESS_WATERMARK),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t errCode = 0;
+    if (!reply.ReadInt32(errCode)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read errcode failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return static_cast<WMError>(errCode);
+}
+
 WMError SceneSessionManagerLiteProxy::TerminateSessionByPersistentId(int32_t persistentId)
 {
     MessageParcel data;
@@ -3186,5 +3222,68 @@ WMError SceneSessionManagerLiteProxy::UnregisterPipChgListenerByScreenId(int32_t
         return WMError::WM_ERROR_IPC_FAILED;
     }
     return static_cast<WMError>(ret);
+}
+
+WMError SceneSessionManagerLiteProxy::GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+    std::vector<AppWindowShowingInfo>& windowInfos)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in, bundleName:%{public}s, appIndex:%{public}d",
+        appInfo.bundleName.c_str(), appInfo.appIndex);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString(appInfo.bundleName)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Failed to write bundleName");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(appInfo.appIndex)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Failed to write appIndex");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString(appInfo.appInstanceKey)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Failed to write appInstanceKey");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_MAIN, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    WMError errCode = static_cast<WMError>(ret);
+    if (errCode != WMError::WM_OK) {
+        return errCode;
+    }
+    int32_t size = 0;
+    if (!reply.ReadInt32(size)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Read size failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    windowInfos.clear();
+    for (int32_t i = 0; i < size; i++) {
+        AppWindowShowingInfo* info = reply.ReadParcelable<AppWindowShowingInfo>();
+        if (info == nullptr) {
+            TLOGE(WmsLogTag::WMS_MAIN, "ReadParcelable AppWindowShowingInfo failed");
+            return WMError::WM_ERROR_IPC_FAILED;
+        }
+        windowInfos.push_back(*info);
+        delete info;
+    }
+    return WMError::WM_OK;
 }
 } // namespace OHOS::Rosen

@@ -203,7 +203,17 @@ namespace window {
      * @atomicservice
      * @since 12
      */
-    TYPE_NAVIGATION_INDICATOR
+    TYPE_NAVIGATION_INDICATOR,
+
+    /**
+     * Area for float navigation
+     *
+     * @syscap SystemCapability.Window.SessionManager
+     * @stagemodelonly
+     * @atomicservice
+     * @since 26.0.0 dynamic&static
+     */
+    TYPE_FLOAT_NAVIGATION
   }
   export interface AvoidArea {
     /**
@@ -566,8 +576,10 @@ namespace window {
 
   export interface SubWindowAttachOptions {
     currentLayoutMode?: string;
-    parentWindowSizeChangeCallBack?:Callback<Size>;
-    parentWindowStatusChangeCallBack?:Callback<WindowStatusType>;
+    parentWindowSizeChangeCallback? :Callback<Size>;
+    parentWindowStatusChangeCallback? :Callback<WindowStatusType>;
+    isIntersectedHeightLimit?: boolean;
+    isIntersectedWidthLimit?: boolean;
   }
 
   export interface Rect {
@@ -813,6 +825,12 @@ export enum MaximizePresentation {
     ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER = 3
 }
 
+export enum AcrossDisplayPresentation {
+    FOLLOW_ACROSS_DISPLAY_SETTING = 0,
+    ENTER_ACROSS_DISPLAY_MODE = 1,
+    EXIT_ACROSS_DISPLAY_MODE = 2
+}
+
 export enum WindowStatusType {
     UNDEFINED = 0,
     FULL_SCREEN = 1,
@@ -820,6 +838,17 @@ export enum WindowStatusType {
     MINIMIZE = 3,
     FLOATING = 4,
     SPLIT_SCREEN = 5
+}
+
+export interface WindowSnapshotAnimationConfig {
+  duration?: long;
+  delay?: long;
+}
+
+export interface MaximizeOptions {
+  maximizePresentation?: MaximizePresentation;
+  acrossDisplayPresentation?: AcrossDisplayPresentation;
+  snapshotAnimationConfig?: WindowSnapshotAnimationConfig;
 }
 
 export enum OcclusionState {
@@ -926,6 +955,12 @@ export enum WindowMode {
     FLOATING = 5
 }
 
+export enum SplitRatioPreference {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2,
+}
+
 export enum WindowLayoutMode {
     WINDOW_LAYOUT_MODE_CASCADE = 0,
     WINDOW_LAYOUT_MODE_TILE = 1
@@ -982,6 +1017,7 @@ export interface WindowInfo {
   globalRect?: Rect;
   displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;
@@ -994,6 +1030,7 @@ export class WindowInfoInternal implements WindowInfo {
   globalRect?: Rect;
   displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;
@@ -3067,7 +3104,7 @@ export class WindowInternal implements Window {
     private native getPreferredOrientation(nativeObj: long): int;
     private native convertOrientationAndRotation(nativeObj: long, from: int, to: int, value: int): int;
     private native setWindowPrivacyModeSync(nativeObj: long, isPrivacyMode: boolean): void;
-    private native recoverSync(nativeObj: long): void;
+    private native recoverSync(nativeObj: long, snapshotAnimationConfig?: WindowSnapshotAnimationConfig): void;
     private native setUIContentSync(nativeObj: long, path: string): void;
     private native loadContentSync(nativeObj: long, path: string, storage?: LocalStorage): void;
     private native loadContentByNameSync(nativeObj: long, path: string, storage?: LocalStorage): void;
@@ -3146,6 +3183,7 @@ export class WindowInternal implements Window {
     private native getWindowStatus(nativeObj: long): int;
     private native minimize(nativeObj: long): void;
     private native maximize(nativeObj: long, presentation?: MaximizePresentation, acrossDisplay?: boolean): void;
+    private native maximizeWithOptionsSync(nativeObj: long, maximizeOptions?: MaximizeOptions): void;
     private native startMoving(nativeObj: long): void;
     private native startMoveWindowWithCoordinate(nativeObj: long, offsetX: int, offsetY: int): void;
     private native stopMoving(nativeObj: long): void;
@@ -3830,6 +3868,18 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.recoverSync(this.nativeObj);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public recover(snapshotAnimationConfig: WindowSnapshotAnimationConfig): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.recoverSync(this.nativeObj, snapshotAnimationConfig);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -5019,6 +5069,18 @@ export class WindowInternal implements Window {
       });
     }
 
+    public maximizeWithOptions(maximizeOptions?: MaximizeOptions): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.maximizeWithOptionsSync(this.nativeObj, maximizeOptions);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public startMoving(): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute((): void => {
@@ -5415,6 +5477,7 @@ export interface Window {
     setWindowPrivacyMode(isPrivacyMode: boolean): Promise<void>;
     setWindowPrivacyMode(isPrivacyMode: boolean, callback: AsyncCallback<void>): void;
     recover(): Promise<void>;
+    recover(snapshotAnimationConfig: WindowSnapshotAnimationConfig): Promise<void>;
     setUIContent(path: string): Promise<void>;
     setUIContent(path: string, callback: AsyncCallback<void>): void;
     loadContent(path: string, storage: LocalStorage): Promise<void>;
@@ -5578,6 +5641,7 @@ export interface Window {
     minimize(): Promise<void>;
     maximize(presentation?: MaximizePresentation): Promise<void>;
     maximize(presentation?: MaximizePresentation, acrossDisplay?: boolean): Promise<void>;
+    maximizeWithOptions(maximizeOptions?: MaximizeOptions): Promise<void>;
     startMoving(): Promise<void>;
     startMoving(offsetX: int, offsetY: int): Promise<void>;
     stopMoving(): Promise<void>;

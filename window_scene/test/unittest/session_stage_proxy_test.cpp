@@ -224,6 +224,22 @@ HWTEST_F(SessionStageProxyTest, SwitchFreeMultiWindow, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConfigDockAutoHide
+ * @tc.desc: test function : ConfigDockAutoHide
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, ConfigDockAutoHide, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    bool isDockAutoHide = true;
+    WSError res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+    isDockAutoHide = false;
+    res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
+/**
  * @tc.name: GetUIContentRemoteObj
  * @tc.desc: test function : GetUIContentRemoteObj
  * @tc.type: FUNC
@@ -1623,6 +1639,80 @@ HWTEST_F(SessionStageProxyTest, SyncFvLimits, TestSize.Level1)
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SyncFvLimits(limits));
     
     MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SetForceSplitEnable01
+ * @tc.desc: test function : SetForceSplitEnable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SetForceSplitEnable01, TestSize.Level1)
+{
+    ASSERT_TRUE(sessionStage_ != nullptr);
+
+    // Case 1: Success
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+
+    // Case 2: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 3: Failed to write isForceSplitEnabled
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    // Case 4: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+
+    // Case 5: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: TestSetIsStartMoving
+ * @tc.desc: Test SetIsStartMoving behavior in various IPC scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, TestSetIsStartMoving, TestSize.Level1)
+{
+    constexpr bool isStartMoving = true;
+
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetIsStartMoving(isStartMoving));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: Failed to write bool
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetIsStartMoving(isStartMoving));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    // Case 3: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SetIsStartMoving(isStartMoving));
+
+    // Case 4: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetIsStartMoving(isStartMoving));
+
+    // Case 5: Success (true)
+    remoteMock->sendRequestResult_ = ERR_NONE;
+    sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_OK, successProxy->SetIsStartMoving(true));
+
+    // Case 6: Success (false)
+    EXPECT_EQ(WSError::WS_OK, successProxy->SetIsStartMoving(false));
 }
 } // namespace
 } // namespace Rosen

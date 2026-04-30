@@ -31,6 +31,7 @@
 #include "dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
+#include "wm_layout_common.h"
 #include "wm_math.h"
 #include "wm_type.h"
 
@@ -217,6 +218,15 @@ enum class WindowMode : uint32_t {
     WINDOW_MODE_FB,
     WINDOW_MODE_FV,
     END = WINDOW_MODE_FV,
+};
+
+/**
+ * @brief Enumerates type of split ratio preference.
+ */
+enum class SplitRatioPreference : uint32_t {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2
 };
 
 /**
@@ -1523,11 +1533,21 @@ struct WindowAnchorInfo : public Parcelable {
 
     struct AttachOptions : public Parcelable {
         std::string currentLayoutMode = "";
+        bool isIntersectedHeightLimit = false;
+        bool isIntersectedWidthLimit = false;
+
         AttachOptions() = default;
         AttachOptions(std::string currentLayoutMode) : currentLayoutMode(currentLayoutMode) {}
+        AttachOptions(std::string currentLayoutMode, bool isIntersectedHeightLimit,
+            bool isIntersectedWidthLimit) : currentLayoutMode(currentLayoutMode),
+            isIntersectedHeightLimit(isIntersectedHeightLimit),
+            isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
         bool operator==(const AttachOptions& other) const
         {
-            return currentLayoutMode == other.currentLayoutMode;
+            return currentLayoutMode == other.currentLayoutMode &&
+                   isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+                   isIntersectedWidthLimit == other.isIntersectedWidthLimit;
         }
 
         bool operator!=(const AttachOptions& other) const
@@ -1537,7 +1557,12 @@ struct WindowAnchorInfo : public Parcelable {
 
         bool Marshalling(Parcel& parcel) const override
         {
-            return parcel.WriteString(currentLayoutMode);
+            if (!parcel.WriteString(currentLayoutMode) ||
+                !parcel.WriteBool(isIntersectedHeightLimit) ||
+                !parcel.WriteBool(isIntersectedWidthLimit)) {
+                return false;
+            }
+            return true;
         }
 
         static AttachOptions* Unmarshalling(Parcel& parcel)
@@ -1551,6 +1576,11 @@ struct WindowAnchorInfo : public Parcelable {
                 return nullptr;
             }
             attachOptions->currentLayoutMode = layoutMode;
+
+            if (!parcel.ReadBool(attachOptions->isIntersectedHeightLimit) ||
+                !parcel.ReadBool(attachOptions->isIntersectedWidthLimit)) {
+                return nullptr;
+            }
             return attachOptions.release();
         }
     };
@@ -1603,6 +1633,8 @@ struct WindowAnchorInfo : public Parcelable {
         }
         windowAnchorInfo->windowAnchor_ = static_cast<WindowAnchor>(windowAnchorMode);
         windowAnchorInfo->attachOptions.currentLayoutMode = attachOptions->currentLayoutMode;
+        windowAnchorInfo->attachOptions.isIntersectedHeightLimit = attachOptions->isIntersectedHeightLimit;
+        windowAnchorInfo->attachOptions.isIntersectedWidthLimit = attachOptions->isIntersectedWidthLimit;
         return windowAnchorInfo;
     }
 };
@@ -2317,6 +2349,66 @@ struct WindowLimits {
             << " " << std::fixed << std::setprecision(precision) << maxRatio_ << " " << minRatio_
             << " " << vpRatio_ << " " << static_cast<uint32_t>(pixelUnit_) << "]";
         return oss.str();
+    }
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(maxWidth_) && parcel.WriteUint32(maxHeight_) &&
+            parcel.WriteUint32(minWidth_) && parcel.WriteUint32(minHeight_) &&
+            parcel.WriteFloat(maxRatio_) && parcel.WriteFloat(minRatio_) &&
+            parcel.WriteFloat(vpRatio_) && parcel.WriteUint32(static_cast<uint32_t>(pixelUnit_));
+    }
+
+    static WindowLimits* Unmarshalling(Parcel& parcel)
+    {
+        auto windowLimits = std::make_unique<WindowLimits>();
+        if (!windowLimits) {
+            return nullptr;
+        }
+        uint32_t pixelUnit = 0;
+        if (!parcel.ReadUint32(windowLimits->maxWidth_) ||
+            !parcel.ReadUint32(windowLimits->maxHeight_) ||
+            !parcel.ReadUint32(windowLimits->minWidth_) ||
+            !parcel.ReadUint32(windowLimits->minHeight_) ||
+            !parcel.ReadFloat(windowLimits->maxRatio_) ||
+            !parcel.ReadFloat(windowLimits->minRatio_) ||
+            !parcel.ReadFloat(windowLimits->vpRatio_) ||
+            !parcel.ReadUint32(pixelUnit)) {
+            return nullptr;
+        }
+        // Validate pixelUnit: valid values are PX=0 and VP=1
+        if (pixelUnit > static_cast<uint32_t>(PixelUnit::VP)) {
+            return nullptr;
+        }
+        windowLimits->pixelUnit_ = static_cast<PixelUnit>(pixelUnit);
+        return windowLimits.release();
+    }
+};
+
+/**
+ * @struct AttachLimitOptions
+ *
+ * @brief Options for intersecting limits with attached windows.
+ * Used to specify whether to intersect height/width limits.
+ */
+struct AttachLimitOptions {
+    bool isIntersectedHeightLimit = false;
+    bool isIntersectedWidthLimit = false;
+
+    AttachLimitOptions() = default;
+    AttachLimitOptions(bool isIntersectedHeightLimit, bool isIntersectedWidthLimit)
+        : isIntersectedHeightLimit(isIntersectedHeightLimit),
+          isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
+    bool operator==(const AttachLimitOptions& other) const
+    {
+        return isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+               isIntersectedWidthLimit == other.isIntersectedWidthLimit;
+    }
+
+    bool operator!=(const AttachLimitOptions& other) const
+    {
+        return !this->operator==(other);
     }
 };
 
@@ -3587,6 +3679,66 @@ struct RecentSessionInfo : public Parcelable {
     RecentSessionState sessionState = RecentSessionState::DISCONNECT;
 };
 
+struct ApplicationInfo : public Parcelable {
+    ApplicationInfo() = default;
+    ApplicationInfo(const std::string& bundleName, int32_t appIndex = 0, const std::string& appInstanceKey = "")
+        : bundleName(bundleName), appIndex(appIndex), appInstanceKey(appInstanceKey) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteString(bundleName) &&
+               parcel.WriteInt32(appIndex) &&
+               parcel.WriteString(appInstanceKey);
+    }
+
+    static ApplicationInfo* Unmarshalling(Parcel& parcel)
+    {
+        ApplicationInfo* info = new ApplicationInfo();
+        if (!parcel.ReadString(info->bundleName) ||
+            !parcel.ReadInt32(info->appIndex) ||
+            !parcel.ReadString(info->appInstanceKey)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    std::string bundleName;
+    int32_t appIndex = 0;
+    std::string appInstanceKey;
+};
+
+struct AppWindowShowingInfo : public Parcelable {
+    AppWindowShowingInfo() = default;
+    AppWindowShowingInfo(int32_t persistentId) : persistentId(persistentId) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteInt32(persistentId) &&
+               parcel.WriteString(windowName) &&
+               parcel.WriteUint32(sessionState) &&
+               parcel.WriteBool(isShowOnDock);
+    }
+
+    static AppWindowShowingInfo* Unmarshalling(Parcel& parcel)
+    {
+        AppWindowShowingInfo* info = new AppWindowShowingInfo();
+        if (!parcel.ReadInt32(info->persistentId) ||
+            !parcel.ReadString(info->windowName) ||
+            !parcel.ReadUint32(info->sessionState) ||
+            !parcel.ReadBool(info->isShowOnDock)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    int32_t persistentId = -1;
+    std::string windowName;
+    uint32_t sessionState = 0;
+    bool isShowOnDock = false;
+};
+
 /**
  * @brief Screenshot event type.
  */
@@ -3879,6 +4031,17 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+};
+
+/**
+ * @struct MaximizeOptions
+ * @brief Options for maximize operation with animation configuration.
+ */
+struct MaximizeOptions {
+    MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
+    AcrossDisplayPresentation acrossDisplayPresentation =
+        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+    SnapshotAnimationConfig snapshotAnimationConfig;
 };
 
 /**

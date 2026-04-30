@@ -1193,7 +1193,7 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
         data.WriteString(virtualOption.serialNumber_) &&
         data.WriteString(virtualOption.bundleName_) && data.WriteInt32(virtualOption.userId_) &&
         data.WriteUint32(virtualOption.phyWidth_) && data.WriteUint32(virtualOption.phyHeight_) &&
-        data.WriteInt32(virtualOption.screenId_);
+        data.WriteInt32(virtualOption.screenId_) && data.WriteUint32(static_cast<uint32_t>(virtualOption.caller_));
     if (virtualOption.surface_ != nullptr && virtualOption.surface_->GetProducer() != nullptr) {
         res = res &&
             data.WriteBool(true) &&
@@ -2026,7 +2026,7 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManagerProxy::GetDisplaySnapshot(D
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManagerProxy::GetDisplayHDRSnapshot(DisplayId displayId,
-    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen)
+    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent)
 {
     TLOGD(WmsLogTag::DMS, "enter");
     sptr<IRemoteObject> remote = Remote();
@@ -2055,6 +2055,11 @@ std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManagerProxy::GetDisp
  
     if (!data.WriteBool(isCaptureFullOfScreen)) {
         TLOGE(WmsLogTag::DMS, "isCaptureFullOfScreen fail: data write failed");
+        return { nullptr, nullptr };
+    }
+    
+    if (!data.WriteUint32(static_cast<uint32_t>(displayIntent))) {
+        TLOGE(WmsLogTag::DMS, "displayIntent fail: data write failed");
         return { nullptr, nullptr };
     }
  
@@ -3212,6 +3217,33 @@ bool ScreenSessionManagerProxy::IsCaptured()
         return false;
     }
     if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return false;
+    }
+    return reply.ReadBool();
+}
+
+bool ScreenSessionManagerProxy::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is null");
+        return false;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteStringVector(bundleNameList)) {
+        TLOGE(WmsLogTag::DMS, "Write bundleNameList failed");
+        return false;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::DMS, "SendRequest failed");
         return false;
@@ -4958,8 +4990,9 @@ std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManagerProxy::GetDisp
     }
     if (!data.WriteUint64(captureOption.displayId_) || !data.WriteBool(captureOption.isNeedNotify_) ||
         !data.WriteBool(captureOption.isCaptureFullOfScreen_) ||
-        !data.WriteUInt64Vector(captureOption.surfaceNodesList_)) {
-        TLOGE(WmsLogTag::DMS, "Write displayId or isNeedNotify or isNeedPointer failed");
+        !data.WriteUInt64Vector(captureOption.surfaceNodesList_) ||
+        !data.WriteUint32(static_cast<uint32_t>(captureOption.displayIntent_))) {
+        TLOGE(WmsLogTag::DMS, "Write displayId or isNeedNotify or isNeedPointer or displayIntent failed");
         return { nullptr, nullptr };
     }
     if (remote->SendRequest(static_cast<uint32_t>(

@@ -103,7 +103,10 @@ public:
         bool isUseDma = false, bool isCaptureFullOfScreen = false) { return nullptr; }
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(
         DisplayId displayId, DmErrorCode& errorCode, bool isUseDma = false,
-        bool isCaptureFullOfScreen = false) { return { nullptr, nullptr }; }
+        bool isCaptureFullOfScreen = false, DisplayIntentType displayIntent = DisplayIntentType::CANONICAL)
+    {
+        return { nullptr, nullptr };
+    }
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect,
         DmErrorCode* errorCode = nullptr)
     {
@@ -282,6 +285,7 @@ public:
 
     virtual bool IsFoldable() { return false; }
     virtual bool IsCaptured() { return false; }
+    virtual bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList) { return false; }
 
     virtual FoldStatus GetFoldStatus() { return FoldStatus::UNKNOWN; }
     virtual SuperFoldStatus GetSuperFoldStatus() { return SuperFoldStatus::UNKNOWN; }

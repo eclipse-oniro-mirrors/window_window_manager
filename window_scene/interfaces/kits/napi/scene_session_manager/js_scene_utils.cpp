@@ -822,6 +822,9 @@ bool ConvertSessionInfoState(napi_env env, napi_value jsObject, SessionInfo& ses
     if (!ConvertFromJsValueProperty(env, jsObject, "isSkipAncoNotifyPreStart", sessionInfo.isSkipAncoNotifyPreStart)) {
         return false;
     }
+    if (!ConvertFromJsValueProperty(env, jsObject, "nativeHideWindow", sessionInfo.nativeHideWindow_)) {
+        return false;
+    }
     if (!ConvertFromJsValueProperty(env, jsObject, "hasPrivacyModeControl", sessionInfo.hasPrivacyModeControl)) {
         return false;
     }
@@ -1887,6 +1890,8 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     SetJsSessionInfoByWant(env, sessionInfo, objValue);
     napi_set_named_property(env, objValue, "supportWindowModes",
         CreateSupportWindowModes(env, sessionInfo.supportedWindowModes));
+    napi_set_named_property(env, objValue, "splitRatioPreference",
+        CreateJsValue(env, sessionInfo.splitRatioPreference));
 
     if (config != nullptr) {
         napi_set_named_property(env, objValue, "extendPendingActivationConfig",
@@ -1935,6 +1940,8 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         CreateJsValue(env, sessionInfo.isGamePrelaunch_));
     napi_set_named_property(env, objValue, "reuseSessionInGamePreLaunch",
         CreateJsValue(env, sessionInfo.reuseSessionInGamePreLaunch_));
+    napi_set_named_property(env, objValue, "nativeHideWindow",
+        CreateJsValue(env, sessionInfo.nativeHideWindow_));
     return objValue;
 }
 
@@ -2515,6 +2522,16 @@ napi_value CreateJsSessionEventParam(napi_env env, const SessionEventParam& para
     napi_set_named_property(env, objValue, "windowGlobalPosX", CreateJsValue(env, param.windowGlobalPosX_));
     napi_set_named_property(env, objValue, "windowGlobalPosY", CreateJsValue(env, param.windowGlobalPosY_));
     napi_set_named_property(env, objValue, "titleButtonEventType", CreateJsValue(env, param.titleButtonEventType_));
+    // snapshotAnimationConfig
+    napi_value animConfigObj = nullptr;
+    napi_create_object(env, &animConfigObj);
+    if (animConfigObj != nullptr) {
+        napi_set_named_property(env, animConfigObj, "duration",
+            CreateJsValue(env, param.snapshotAnimationConfig_.duration));
+        napi_set_named_property(env, animConfigObj, "delay",
+            CreateJsValue(env, param.snapshotAnimationConfig_.delay));
+        napi_set_named_property(env, objValue, "snapshotAnimationConfig", animConfigObj);
+    }
     return objValue;
 }
 

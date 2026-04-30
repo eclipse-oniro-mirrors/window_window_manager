@@ -42,7 +42,7 @@ ohos_shared_library("pipwindowani_kit") {
     debug = false
     cfi_policy = "adaptive"
   }
-  sources = [ 
+  sources = [
     "pipwindow_ani/src/ani_pip_window.cpp",
     "pipwindow_ani/src/ani_pip_controller.cpp",
     "pipwindow_ani/src/ani_pip_utils.cpp",
@@ -90,6 +90,7 @@ ohos_shared_library("pipwindowani_kit") {
     "runtime_core:ani_helpers",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

@@ -228,6 +228,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleSkipSnapshotByUserIdAndBundleNames(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_PROCESS_WATERMARK):
             return HandleSetProcessWatermark(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RECOVER_PROCESS_WATERMARK):
+            return HandleRecoverProcessWatermark(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_WINDOW_IDS_BY_COORDINATE):
             return HandleGetWindowIdsByCoordinate(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_SESSION_SCREEN_LOCK):
@@ -312,6 +314,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetCrossProcessWindowInfo(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_FLOAT_VIEW_LIMITS):
             return HandleGetFloatViewLimits(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME):
+            return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -348,14 +352,16 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     auto persistentId = INVALID_SESSION_ID;
     sptr<ISession> sceneSession;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
     CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode,
-        property, persistentId, sceneSession, systemConfig, token);
+        property, persistentId, sceneSession, systemConfig, renderSession, token);
     if (sceneSession== nullptr) {
         return ERR_INVALID_STATE;
     }
     reply.WriteInt32(persistentId);
     reply.WriteRemoteObject(sceneSession->AsObject());
     reply.WriteParcelable(&systemConfig);
+    reply.WriteRemoteObject(renderSession);
     reply.WriteUint32(property->GetSubWindowLevel());
     reply.WriteUint64(property->GetDisplayId());
     reply.WriteUint32(static_cast<uint32_t>(property->GetWindowType()));
@@ -2227,6 +2233,26 @@ int SceneSessionManagerStub::HandleSetProcessWatermark(MessageParcel& data, Mess
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleRecoverProcessWatermark(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t pid = INVALID_PID;
+    if (!data.ReadInt32(pid)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to readInt32 pid");
+        return ERR_INVALID_DATA;
+    }
+    std::string watermarkName;
+    if (!data.ReadString(watermarkName)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to readString watermarkName");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = RecoverProcessWatermark(pid, watermarkName);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleGetWindowIdsByCoordinate(MessageParcel& data, MessageParcel& reply)
 {
     uint64_t displayId;
@@ -3062,6 +3088,42 @@ int SceneSessionManagerStub::HandleGetCrossProcessWindowInfo(MessageParcel& data
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write errCode fail");
         return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply)
+{
+    ApplicationInfo appInfo;
+    if (!data.ReadString(appInfo.bundleName)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read bundleName failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadInt32(appInfo.appIndex)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read appIndex failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadString(appInfo.appInstanceKey)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read appInstanceKey failed");
+        return ERR_INVALID_DATA;
+    }
+    std::vector<AppWindowShowingInfo> windowInfos;
+    WMError ret = GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_MAIN, "write ret failed");
+        return ERR_INVALID_DATA;
+    }
+    if (ret == WMError::WM_OK) {
+        if (!reply.WriteInt32(static_cast<int32_t>(windowInfos.size()))) {
+            TLOGE(WmsLogTag::WMS_MAIN, "write size failed");
+            return ERR_INVALID_DATA;
+        }
+        for (const auto& info : windowInfos) {
+            if (!reply.WriteParcelable(&info)) {
+                TLOGE(WmsLogTag::WMS_MAIN, "write AppWindowShowingInfo failed");
+                return ERR_INVALID_DATA;
+            }
+        }
     }
     return ERR_NONE;
 }

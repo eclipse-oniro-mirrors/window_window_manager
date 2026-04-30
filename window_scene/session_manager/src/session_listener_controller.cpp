@@ -437,41 +437,30 @@ WMError SessionListenerController::UnregisterSessionLifecycleListener(const sptr
     return WMError::WM_OK;
 }
 
+template <typename MapType>
+void SessionListenerController::RemoveListenersFromMap(MapType& listenerMap,
+    const std::function<bool(const sptr<ISessionLifecycleListener>&)>& predicate)
+{
+    for (auto it = listenerMap.begin(); it != listenerMap.end();) {
+        auto& listeners = it->second;
+        listeners.erase(std::remove_if(listeners.begin(), listeners.end(), predicate), listeners.end());
+        if (listeners.empty()) {
+            it = listenerMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 void SessionListenerController::RemoveSessionLifecycleListener(const sptr<IRemoteObject>& target)
 {
     auto compareByAsObject = [&target](const sptr<ISessionLifecycleListener>& item) {
         return (item != nullptr) && (item->AsObject() == target);
     };
 
-    for (auto it = listenerMapById_.begin(); it != listenerMapById_.end();) {
-        auto& listeners = it->second;
-        listeners.erase(std::remove_if(listeners.begin(), listeners.end(), compareByAsObject), listeners.end());
-        if (listeners.empty()) {
-            it = listenerMapById_.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    for (auto it = listenerMapByBundle_.begin(); it != listenerMapByBundle_.end();) {
-        auto& listeners = it->second;
-        listeners.erase(std::remove_if(listeners.begin(), listeners.end(), compareByAsObject), listeners.end());
-        if (listeners.empty()) {
-            it = listenerMapByBundle_.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    for (auto it = listenerMapByAppInstance_.begin(); it != listenerMapByAppInstance_.end();) {
-        auto& listeners = it->second;
-        listeners.erase(std::remove_if(listeners.begin(), listeners.end(), compareByAsObject), listeners.end());
-        if (listeners.empty()) {
-            it = listenerMapByAppInstance_.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    RemoveListenersFromMap(listenerMapById_, compareByAsObject);
+    RemoveListenersFromMap(listenerMapByBundle_, compareByAsObject);
+    RemoveListenersFromMap(listenerMapByAppInstance_, compareByAsObject);
 
     auto iter = std::remove_if(listenersOfAllBundles_.begin(), listenersOfAllBundles_.end(), compareByAsObject);
     listenersOfAllBundles_.erase(iter, listenersOfAllBundles_.end());
@@ -511,31 +500,47 @@ void SessionListenerController::NotifySessionLifecycleEvent(ISessionLifecycleLis
 }
 
 void SessionListenerController::NotifyAppInstanceLifecycleEvent(SessionState state,
-    const SessionInfo& sessionInfo, LifeCycleChangeReason reason)
+    const sptr<SceneSession>& session, LifeCycleChangeReason reason)
 {
-    std::string bundleName = sessionInfo.bundleName_;
-    int32_t appIndex = sessionInfo.appIndex_;
-    std::string appInstanceKey = sessionInfo.appInstanceKey_;
-    int32_t persistentId = sessionInfo.persistentId_;
+    if (!session) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr!");
+        return;
+    }
+    int32_t persistentId = session->GetPersistentId();
     if (persistentId <= INVALID_SESSION_ID) {
         TLOGE(WmsLogTag::WMS_LIFE, "invalid persistentId!");
         return;
     }
-    ISessionLifecycleListener::LifecycleEventPayload payload;
-    ConstructPayload(payload, sessionInfo, 0, 0, 0, reason);
-    payload.sessionState_ = state;
     taskScheduler_->PostAsyncTask(
-        [weakThis = weak_from_this(), payload, bundleName, appIndex, appInstanceKey, persistentId,
-            where = __func__] {
+        [weakThis = weak_from_this(), state, weakSession = wptr<SceneSession>(session), reason,
+            persistentId, where = __func__] {
             auto controller = weakThis.lock();
             if (controller == nullptr) {
                 TLOGNE(WmsLogTag::WMS_LIFE, "controller is null.");
                 return;
             }
+            auto session = weakSession.promote();
+            if (session == nullptr) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "session is null, persistentId:%{public}d", persistentId);
+                return;
+            }
+            const auto& sessionInfo = session->GetSessionInfo();
+            std::string bundleName = sessionInfo.bundleName_;
+            int32_t appIndex = sessionInfo.appIndex_;
+            std::string appInstanceKey = sessionInfo.appInstanceKey_;
+            if (appInstanceKey.empty()) {
+                auto mainSession = session->GetMainSession();
+                if (mainSession) {
+                    appInstanceKey = mainSession->GetSessionInfo().appInstanceKey_;
+                }
+            }
+            ISessionLifecycleListener::LifecycleEventPayload payload;
+            controller->ConstructPayload(payload, sessionInfo, 0, 0, 0, reason);
+            payload.sessionState_ = state;
             TLOGI(WmsLogTag::WMS_LIFE,
                 "start notify listeners, bundleName:%{public}s, Id:%{public}d, state:%{public}d, reason: %{public}u",
                 bundleName.c_str(), persistentId, payload.sessionState_, payload.lifeCycleChangeReason_);
-            controller->NotifyListeners(controller->listenerMapByAppInstance_, AppInstanceFilterKey{ bundleName,
+            controller->NotifyAppInstanceListeners(AppInstanceFilterKey{ bundleName,
                 appIndex, appInstanceKey }, payload);
         }, __func__);
 }
@@ -556,12 +561,21 @@ void SessionListenerController::NotifyListeners(const MapType& listenerMap, cons
     }
 }
 
-template <typename KeyType, typename MapType>
-void SessionListenerController::NotifyListeners(const MapType& listenerMap, const KeyType& key,
+void SessionListenerController::NotifyAppInstanceListeners(const AppInstanceFilterKey& key,
     const ISessionLifecycleListener::LifecycleEventPayload& payload)
 {
-    auto it = listenerMap.find(key);
-    if (it != listenerMap.end()) {
+    NotifyAppInstanceListenersByKey(key, payload);
+    if (!key.appInstanceKey_.empty()) {
+        // Empty appInstanceKey is a wildcard, notify regardless of the appInstanceKey.
+        NotifyAppInstanceListenersByKey(AppInstanceFilterKey{ key.bundleName_, key.appIndex_, "" }, payload);
+    }
+}
+
+void SessionListenerController::NotifyAppInstanceListenersByKey(const AppInstanceFilterKey& filterKey,
+    const ISessionLifecycleListener::LifecycleEventPayload& payload)
+{
+    auto it = listenerMapByAppInstance_.find(filterKey);
+    if (it != listenerMapByAppInstance_.end()) {
         const auto& listeners = it->second;
         for (const auto& listener : listeners) {
             if (listener != nullptr) {

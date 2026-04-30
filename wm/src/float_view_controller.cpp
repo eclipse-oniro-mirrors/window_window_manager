@@ -163,7 +163,7 @@ WMError FloatViewController::PrepareStartFloatView(bool showWhenCreate)
         return WMError::WM_ERROR_FV_START_FAILED;
     }
 
-    if (curState_ == FvWindowState::FV_STATE_STARTING || curState_ == FvWindowState::FV_STATE_STARTED) {
+    if (curState_ == FvWindowState::FV_STATE_STARTING || IsStateWithWindow(curState_)) {
         TLOGW(WmsLogTag::WMS_SYSTEM, "fvWindow state is: %{public}u, id: %{public}u, mainWindow: %{public}u",
             curState_, (window_ == nullptr) ? INVALID_WINDOW_ID : window_->GetWindowId(), mainWindowId_);
         return WMError::WM_ERROR_FV_REPEAT_OPERATION;
@@ -278,6 +278,10 @@ WMError FloatViewController::StopFloatViewFromClientSingle()
             curState_ == FvWindowState::FV_STATE_STOPPED) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Repeat stop request, curState: %{public}u", curState_);
             return WMError::WM_ERROR_FV_REPEAT_OPERATION;
+        }
+        if (!IsStateWithWindow(curState_)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "curState cannot stop: %{public}u", curState_);
+            return WMError::WM_ERROR_FV_INVALID_STATE;
         }
         if (window_ == nullptr) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "window is nullptr when stop fv");

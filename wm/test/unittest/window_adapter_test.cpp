@@ -961,6 +961,20 @@ HWTEST_F(WindowAdapterTest, SetProcessWatermark, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RecoverProcessWatermark
+ * @tc.desc: WindowAdapter/RecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, RecoverProcessWatermark, TestSize.Level1)
+{
+    WindowAdapter windowAdapter;
+    windowAdapter.processWatermarkPid_ = 10;
+    windowAdapter.processWatermarkName_ = "test";
+    auto err = windowAdapter.RecoverProcessWatermark();
+    EXPECT_EQ(err, WMError::WM_OK);
+}
+
+/**
  * @tc.name: NotifyScreenshotEvent
  * @tc.desc: NotifyScreenshotEvent
  * @tc.type: FUNC

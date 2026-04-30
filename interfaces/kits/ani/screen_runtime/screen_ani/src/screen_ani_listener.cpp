@@ -96,7 +96,7 @@ void ScreenAniListener::OnConnect(ScreenId id)
         return;
     }
     std::vector<ani_ref> vec = it->second;
-    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}d", vec.size());
+    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}zu", vec.size());
     // find callbacks in vector
     for (auto oneAniCallback : vec) {
         if (vm_ == nullptr) {
@@ -155,7 +155,7 @@ void ScreenAniListener::OnDisconnect(ScreenId id)
         return;
     }
     std::vector<ani_ref> vec = it->second;
-    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}d", vec.size());
+    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}zu", vec.size());
     // find callbacks in vector
     for (auto oneAniCallback : vec) {
         if (vm_ == nullptr) {

@@ -981,9 +981,13 @@ void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused)
         } else {
             focusNodeId = node->surfaceNode_->GetId();
         }
-        FocusAppInfo appInfo =
-            { node->GetCallingPid(), node->GetCallingUid(), info.bundleName_, info.abilityName_, focusNodeId };
-        RSInterfaces::GetInstance().SetFocusAppInfo(appInfo);
+        auto rsUICtx = node->GetRSUIContext();
+        if (rsUICtx != nullptr && rsUICtx->GetRSRenderInterface() != nullptr) {
+            FocusAppInfo appInfo = { node->GetCallingPid(), node->GetCallingUid(),
+                info.bundleName_, info.abilityName_, focusNodeId };
+            TLOGD(WmsLogTag::WMS_FOCUS, "bundleName=%{public}s", appInfo.bundleName.c_str());
+            rsUICtx->GetRSRenderInterface()->SetFocusAppInfo(appInfo);
+        }
     }
     if (node->GetWindowToken()) {
         node->GetWindowToken()->UpdateFocusStatus(focused);

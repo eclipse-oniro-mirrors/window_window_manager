@@ -73,12 +73,17 @@ private:
     int HandleNotifyTransformChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifySingleHandTransformChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyGlobalScaledRectChange(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateAttachedWindowLimits(MessageParcel& data, MessageParcel& reply);
+    int HandleRemoveAttachedWindowLimits(MessageParcel& data, MessageParcel& reply);
+    int HandleSyncAllAttachedLimitsToChild(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyRebindAttachAfterParentChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyDialogStateChange(MessageParcel& data, MessageParcel& reply);
     int HandleSetPipActionEvent(MessageParcel& data, MessageParcel& reply);
     int HandleSetPiPControlEvent(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateDisplayId(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyDisplayMove(MessageParcel& data, MessageParcel& reply);
     int HandleSwitchFreeMultiWindow(MessageParcel& data, MessageParcel& reply);
+    int HandleConfigDockAutoHide(MessageParcel& data, MessageParcel& reply);
     int HandleGetUIContentRemoteObj(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyKeyboardPanelInfoChange(MessageParcel& data, MessageParcel& reply);
     int HandleSetUniqueVirtualPixelRatio(MessageParcel& data, MessageParcel& reply);
@@ -110,8 +115,8 @@ private:
     int HandleNotifyRotationChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyAppForceLandscapeConfigUpdated(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply);
-    int HandleNotifyAppHookWindowInfoUpdated(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateAppHookWindowInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleSetForceSplitEnable(MessageParcel& data, MessageParcel& reply);
     int HandleGetRouterStackInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetSceneNodeCount(MessageParcel& data, MessageParcel& reply);
     int HandleGetSceneNodeCountWithCallback(MessageParcel& data, MessageParcel& reply);
@@ -128,6 +133,9 @@ private:
     int HandleSendFvActionEvent(MessageParcel& data, MessageParcel& reply);
     int HandleSyncFvWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleSyncFvLimits(MessageParcel& data, MessageParcel& reply);
+    int HandleHideSubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply);
+    int HandleShowSubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply);
+    int HandleSetIsStartMoving(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_STUB_H

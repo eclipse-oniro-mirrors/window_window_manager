@@ -177,12 +177,6 @@ HWTEST_F(SessionManagerLiteTest, InitSceneSessionManagerLiteProxy, TestSize.Leve
     ret = instance_->InitSceneSessionManagerLiteProxy();
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
 
-    // branch 2
-    instance_->InitSessionManagerServiceProxy();
-    EXPECT_EQ(nullptr, instance_->sessionManagerServiceProxy_);
-    ret = instance_->InitSceneSessionManagerLiteProxy();
-    EXPECT_NE(WMError::WM_OK, ret);
-
     // branch 3: mock sessionManagerServiceProxy_
     instance_->sceneSessionManagerLiteProxy_ = nullptr;
     auto mockRemoteObject = sptr<IRemoteSessionManagerMocker>::MakeSptr();
@@ -294,18 +288,6 @@ HWTEST_F(SessionManagerLiteTest, OnUserSwitch, TestSize.Level1)
     // branch 1: Make sceneSessionManagerLiteProxy_ is null
     instance_->OnUserSwitch(nullptr);
     EXPECT_TRUE(g_errLog.find("Init scene session manager lite proxy failed") != std::string::npos);
-
-    // branch 2: Set callback func is null
-    sessionMgrService = instance_->GetSessionManagerServiceProxy();
-    EXPECT_EQ(nullptr, sessionMgrService);
-    instance_->userSwitchCallbackFunc_ = nullptr;
-    instance_->OnUserSwitch(sessionMgrService);
-    EXPECT_FALSE(g_errLog.find("callback func is null") != std::string::npos);
-
-    // branch 3: Set callback func is not null
-    instance_->userSwitchCallbackFunc_ = [](){};
-    instance_->OnUserSwitch(sessionMgrService);
-    EXPECT_FALSE(g_errLog.find("run callback func") != std::string::npos);
 
     LOG_SetCallback(nullptr);
 }

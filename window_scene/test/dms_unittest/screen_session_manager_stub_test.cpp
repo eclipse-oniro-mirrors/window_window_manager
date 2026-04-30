@@ -3826,6 +3826,56 @@ HWTEST_F(ScreenSessionManagerStubTest, SetPowerStateForAodNnormalTest, TestSize.
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, 0);
 }
+
+/**
+ * @tc.name: IsCapturedByBundleNameList001
+ * @tc.desc: IsCapturedByBundleNameList test normal input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, IsCapturedByBundleNameList001, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    std::vector<std::string> bundleNameList = {"com.test.app1", "com.test.app2"};
+    data.WriteStringVector(bundleNameList);
+    
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+    
+    bool result = reply.ReadBool();
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList002
+ * @tc.desc: empty bundleNameList
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, IsCapturedByBundleNameList002, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    std::vector<std::string> bundleNameList;
+    data.WriteStringVector(bundleNameList);
+    
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+
+    bool result = reply.ReadBool();
+    EXPECT_EQ(result, false);
+}
 }
 }
 }

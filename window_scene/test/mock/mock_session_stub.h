@@ -75,7 +75,6 @@ public:
     MOCK_METHOD2(HandleNotifyExtensionTimeout, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleGetStatusBarHeight, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleGetAppForceLandscapeConfig, int(MessageParcel& data, MessageParcel& reply));
-    MOCK_METHOD2(HandleGetAppHookWindowInfoFromServer, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleNotifySecureLimitChange, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleGetAllAvoidAreas, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD3(GetAvoidAreaByType, AvoidArea(AvoidAreaType type, const WSRect& rect, int32_t apiVersion));
@@ -94,7 +93,7 @@ public:
     MOCK_METHOD1(UpdateIsShowDecorInFreeMultiWindow, WSError(bool& isShow));
     MOCK_METHOD(WSError, SetContentAspectRatio, (float ratio, bool isPersistent, bool needUpdateRect), (override));
     MOCK_METHOD(WSError, SetDecorVisible, (bool isVisible), (override));
-    MOCK_METHOD(WMError, SetFloatNavigationAvoidAreaEnabled, (bool enable), (override));
+    MOCK_METHOD(WMError, SetFloatNavigationEnabled, (bool enable), (override));
 };
 } // namespace Rosen
 } // namespace OHOS

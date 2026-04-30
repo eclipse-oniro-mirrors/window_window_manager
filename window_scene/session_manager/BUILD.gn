@@ -236,6 +236,7 @@ ohos_shared_library("scene_session_manager") {
   sources = scene_session_manager_sources
   deps = scene_session_manager_deps
   external_deps = scene_session_manager_external_deps
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   public_external_deps = [
     "ability_runtime:session_handler",
@@ -311,9 +312,9 @@ ohos_shared_library("scene_session_manager") {
 }
 
 session_manager_sources = [
-    "../session_manager_service/src/session_manager_service_proxy.cpp", 
-    "src/session_manager.cpp", 
-    "src/zidl/scene_session_manager_proxy.cpp", 
+    "../session_manager_service/src/session_manager_service_proxy.cpp",
+    "src/session_manager.cpp",
+    "src/zidl/scene_session_manager_proxy.cpp",
     "src/zidl/session_lifecycle_listener_proxy.cpp",
 ]
 
@@ -416,6 +417,8 @@ ohos_shared_library("session_manager") {
     "samgr:samgr_proxy",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
+
   innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -467,6 +470,8 @@ ohos_shared_library("session_manager_lite") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
+
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "window_manager"

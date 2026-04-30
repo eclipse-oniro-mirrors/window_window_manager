@@ -23,6 +23,7 @@
 
 #include "dm_common.h"
 #include "interfaces/include/ws_common.h"
+#include "nlohmann/json.hpp"
 #include "common/include/window_session_property.h"
 #include "wm_common.h"
 #include "hitrace_meter.h"

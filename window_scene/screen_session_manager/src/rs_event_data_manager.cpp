@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,15 +13,21 @@
  * limitations under the License.
  */
 
-#include "screen_session_manager.h"
-#include "../include/screen_session_manager_pc_extension.h"
+#include "rs_event_data_manager.h"
 
-using namespace OHOS::Rosen;
-using namespace PCExtension;
-
-extern "C" __attribute__((constructor)) void PCScreenSessionManagerRegisterFunc()
+namespace OHOS::Rosen {
+RSExposedEventType RSExtScreenUnsupportEventData::GetEventType() const
 {
-    TLOGI(WmsLogTag::DMS, "startpc");
-    ScreenSessionManager::SetInstance(static_cast<ScreenSessionManager*>(&ScreenSessionManagerExt::GetInstance()));
-    TLOGI(WmsLogTag::DMS, "pcScreenSessionManagerExt registered successfully");
+    return RSExposedEventType::EXT_SCREEN_UNSUPPORT;
 }
+
+bool RSExtScreenUnsupportEventData::Marshalling(Parcel& parcel) const
+{
+    return true;
+}
+
+bool RSExtScreenUnsupportEventData::Unmarshalling(Parcel& parcel)
+{
+    return true;
+}
+} // namespace OHOS::Rosen

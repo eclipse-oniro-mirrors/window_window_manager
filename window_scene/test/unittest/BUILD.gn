@@ -96,6 +96,7 @@ group("unittest") {
       ":ws_scene_session_manager_proxy_test",
       ":ws_scene_session_manager_stub_test",
       ":ws_scene_session_manager_stub_test2",
+      ":ws_scene_session_manager_three_test",
       ":ws_scene_session_manager_outline_test",
       ":ws_scene_session_manager_test",
       ":ws_scene_session_manager_two_test",
@@ -106,6 +107,7 @@ group("unittest") {
       ":ws_session_manager_service_recover_proxy_test",
       ":ws_session_manager_test",
       ":ws_session_proxy_immersive_test",
+      ":ws_session_proxy_layout_test",
       ":ws_session_proxy_lifecycle_test",
       ":ws_session_proxy_mock_test",
       ":ws_session_proxy_property_test",
@@ -113,6 +115,7 @@ group("unittest") {
       ":ws_session_specific_window_test",
       ":ws_session_stage_proxy_lifecycle_test",
       ":ws_session_stage_proxy_test",
+      ":ws_session_stage_stub_layout_test",
       ":ws_session_stage_stub_lifecycle_test",
       ":ws_session_stage_stub_test",
       ":ws_session_stub_immersive_test",
@@ -574,6 +577,16 @@ ohos_unittest("ws_session_stage_proxy_lifecycle_test") {
   external_deps += [ "ability_base:base" ]
 }
 
+ohos_unittest("ws_session_stage_stub_layout_test") {
+  module_out_path = module_out_path
+
+  sources = [ "session_stage_stub_layout_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ohos_unittest("ws_session_stage_stub_lifecycle_test") {
   module_out_path = module_out_path
 
@@ -681,6 +694,40 @@ ohos_unittest("ws_scene_session_manager_two_test") {
     "scene_session_manager_test10.cpp",
     "scene_session_manager_test11.cpp",
     "scene_session_manager_test12.cpp",
+  ]
+
+  cflags_cc = [ "-Wno-thread-safety" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:configuration",
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:ability_manager",
+    "ability_runtime:app_context",
+    "ability_runtime:mission_info",
+    "ability_runtime:runtime",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+    "eventhandler:libeventhandler",
+    "safwk:system_ability_fwk",
+  ]
+}
+
+ohos_unittest("ws_scene_session_manager_three_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/test/mock",
+    "${window_base_path}/window_scene/session/host/include/",
+  ]
+
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "scene_session_manager_test13.cpp",
   ]
 
   cflags_cc = [ "-Wno-thread-safety" ]
@@ -984,11 +1031,11 @@ ohos_unittest("ws_scene_session_manager_stub_test2") {
 
 ohos_unittest("ws_scene_session_manager_supplement_test") {
   module_out_path = module_out_path
-  include_dirs = [ 
+  include_dirs = [
     "${window_base_path}/test/common/utils/include/",
     "${window_base_path}/window_scene/test/mock"
   ]
-  sources = [ 
+  sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
     "scene_session_manager_supplement_test.cpp"
     ]
@@ -1180,6 +1227,34 @@ ohos_unittest("ws_session_proxy_test") {
   deps = [
     ":ws_unittest_common",
     "${window_base_path}/window_scene/session:screen_session_static",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:session_info",
+    "ability_base:want",
+  ]
+}
+
+ohos_unittest("ws_session_proxy_layout_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/window_scene/session/host/include/zidl",
+    "${window_base_path}/window_scene/test/mock",
+  ]
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_message_parcel.cpp",
+    "session_proxy_layout_test.cpp",
+  ]
+
+  defines = [
+    "ENABLE_MOCK_READ_UINT32",
+    "ENABLE_MOCK_READ_INT32",
+  ]
+
+  deps = [
+    ":ws_unittest_common",
   ]
 
   external_deps = test_external_deps
@@ -1618,7 +1693,7 @@ ohos_static_library("ws_unittest_common") {
 
   deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",
@@ -1634,7 +1709,7 @@ ohos_static_library("ws_unittest_common") {
   ]
 
   public_deps = [
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
   ]
 
@@ -1840,17 +1915,17 @@ ohos_unittest("ws_compatible_mode_session_stub_test") {
 
 ohos_unittest("ws_collaborator_dll_manager_test") {
   module_out_path = module_out_path
- 
+
   include_dirs = [
     "${window_base_path}/utils/include/",
   ]
- 
+
   sources = [
   "${window_base_path}/window_scene/test/unittest/collaborator_dll_manager_test.cpp"
   ]
- 
+
   deps = [ ":ws_unittest_common" ]
- 
+
   external_deps = [
   "ability_base:configuration",
   "ability_base:session_info",

@@ -870,16 +870,17 @@ HWTEST_F(WindowSessionTest, Snapshot, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     session_->surfaceNode_ = RSSurfaceNode::Create(config);
     ASSERT_NE(session_->surfaceNode_, nullptr);
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    Session::SnapshotOptions options;
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->bufferAvailable_ = true;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->surfaceNode_->bufferAvailable_ = true;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->surfaceNode_ = nullptr;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 }
 
 /**
@@ -1704,13 +1705,20 @@ HWTEST_F(WindowSessionTest, SetSessionRect01, TestSize.Level1)
  */
 HWTEST_F(WindowSessionTest, SetLastClientParentSize01, TestSize.Level1)
 {
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    WSRect rect = {1, 2, 3, 4};
-    session_->SetSessionRect(rect);
+    WSRect initLastClientRect = {10, 11, 12, 13};
     session_->SetLastClientParentSize(rect);
-    EXPECT_TRUE(g_errLog.find("skip same rect") != std::string::npos);
-    LOG_SetCallback(nullptr);
+    {
+        // success
+        WSRect rect = {1, 2, 3, 4};
+        session_->SetLastClientParentSize(rect);
+        EXPECT_EQ(session_->GetLastClientParentSize().posX_, rect.posX_);
+    }
+    {
+        // fail
+        WSRect rect = {1, 2, 3, 4};
+        session_->SetLastClientParentSize(rect);
+        EXPECT_EQ(session_->GetLastClientParentSize().posX_, rect.posX_);
+    }
 }
 
 /**
@@ -2004,37 +2012,6 @@ HWTEST_F(WindowSessionTest, IsCompatibilityModeSubWin05, TestSize.Level1)
     childSession->SetParentSession(parentSession);
     // Different pid, should return false
     EXPECT_EQ(childSession->IsCompatibilityModeSubWin(), false);
-}
-
-/**
- * @tc.name: GetRealSessionState
- * @tc.desc: test get the real session state
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest, GetRealSessionState, TestSize.Level1)
-{
-    SessionInfo parentInfo;
-    parentInfo.abilityName_ = "ParentSession";
-    parentInfo.bundleName_ = "ParentBundle";
-    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
-    ASSERT_NE(parentSession, nullptr);
-    parentSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
-    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    parentSession->SetSessionState(SessionState::STATE_ACTIVE);
-
-    SessionInfo childInfo;
-    childInfo.abilityName_ = "ChildSession";
-    childInfo.bundleName_ = "ChildBundle";
-    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(childInfo, nullptr);
-    ASSERT_NE(childSession, nullptr);
-    childSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-    childSession->SetParentSession(parentSession);
-
-    childSession->SetSessionState(SessionState::STATE_BACKGROUND);
-    EXPECT_EQ(childSession->GetRealSessionState(), SessionState::STATE_BACKGROUND);
-
-    childSession->SetSessionState(SessionState::STATE_FOREGROUND);
-    EXPECT_EQ(childSession->GetRealSessionState(), SessionState::STATE_ACTIVE);
 }
 
 /**

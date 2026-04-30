@@ -30,6 +30,8 @@ public:
     virtual bool IsSingleDisplayPocketFoldDevice();
     virtual bool IsSingleDisplaySuperFoldDevice();
     virtual bool IsSecondaryDisplayFoldDevice();
+    virtual bool IsSecondaryDisplaySuperFoldDevice();
+    virtual bool IsLoadDmsExt();
     std::vector<uint64_t> GetBoardList();
 
 private:

@@ -32,7 +32,7 @@ ohos_fuzztest("ScreenFuzzTest") {
   sources = [ "screen_fuzzer.cpp" ]
   deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
   ]
   external_deps = [

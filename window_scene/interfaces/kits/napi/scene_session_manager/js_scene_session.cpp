@@ -714,6 +714,8 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::UpdateSceneAnimationConfig);
     BindNativeFunction(env, objValue, "setMobileAppInPadLayoutFullScreen",
         moduleName, JsSceneSession::SetMobileAppInPadLayoutFullScreen);
+    BindNativeFunction(env, objValue, "setForceSplitEnable", moduleName, JsSceneSession::SetForceSplitEnable);
+    BindNativeFunction(env, objValue, "updateHookWindowInfo", moduleName, JsSceneSession::UpdateHookWindowInfo);
     BindNativeFunction(env, objValue, "notifyOrientationExecutionResult", moduleName,
         JsSceneSession::NotifyOrientationExecutionResult);
     BindNativeFunction(env, objValue, "getSceneNodeCount", moduleName,
@@ -3239,6 +3241,20 @@ napi_value JsSceneSession::SetMobileAppInPadLayoutFullScreen(napi_env env, napi_
     return (me != nullptr) ? me->OnSetMobileAppInPadLayoutFullScreen(env, info) : nullptr;
 }
 
+napi_value JsSceneSession::SetForceSplitEnable(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnSetForceSplitEnable(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::UpdateHookWindowInfo(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnUpdateHookWindowInfo(env, info) : nullptr;
+}
+
 napi_value JsSceneSession::SetPcAppInpadSpecificSystemBarInvisible(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_PC, "[NAPI]");
@@ -3697,9 +3713,9 @@ napi_value JsSceneSession::OnSetPrivacyMode(napi_env env, napi_callback_info inf
         WLOGFE("session is nullptr, id:%{public}d", persistentId_);
         return NapiGetUndefined(env);
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "isPrivacy=%{public}d", isPrivacy);
     session->SetPrivacyMode(isPrivacy);
     SceneSessionManager::GetInstance().UpdatePrivateStateAndNotify(session->GetPersistentId());
-    TLOGD(WmsLogTag::DEFAULT, "end");
     return NapiGetUndefined(env);
 }
 
@@ -7592,6 +7608,77 @@ napi_value JsSceneSession::OnSetMobileAppInPadLayoutFullScreen(napi_env env, nap
         return NapiGetUndefined(env);
     }
     session->SetMobileAppInPadLayoutFullScreen(isMobileAppInPadLayoutFullScreen);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnSetForceSplitEnable(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_THREE;
+    napi_value argv[ARG_INDEX_3] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_THREE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    bool isForceSplitEnabled = false;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_0], isForceSplitEnabled)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to isForceSplitEnabled");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    bool needUpdateViewport = false;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_1], needUpdateViewport)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to needUpdateViewport");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    SelectMode selectMode = SelectMode::WIDE_MODE;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_2], selectMode)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to selectMode");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->SetForceSplitEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnUpdateHookWindowInfo(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARG_INDEX_1] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    HookWindowInfo hookWindowInfo{};
+    if (!ConvertHookWindowInfoFromJs(env, argv[ARG_INDEX_0], hookWindowInfo)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to hookWindowInfo");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->UpdateHookWindowInfo(hookWindowInfo);
     return NapiGetUndefined(env);
 }
 

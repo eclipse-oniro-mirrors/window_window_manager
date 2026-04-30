@@ -42,6 +42,7 @@ constexpr int32_t INVALID_ID = -1;
 namespace {
 const std::string ON_SCREEN_CONNECTION_CHANGE_CALLBACK = "screenConnectChange";
 const std::string ON_TENT_MODE_CHANGE_CALLBACK = "tentModeChange";
+const std::string ON_EXT_SCREEN_UNSUPPORT_CALLBACK = "extScreenUnsupport";
 const std::map<ScbScreenPowerState, ScreenPowerState> POWER_STATE_MAP {
     { ScbScreenPowerState::POWER_OFF,                  ScreenPowerState::POWER_OFF },
     { ScbScreenPowerState::POWER_DOZE,                 ScreenPowerState::POWER_DOZE },
@@ -90,6 +91,7 @@ napi_value JsScreenSessionManager::Init(napi_env env, napi_value exportObj)
 
     const char* moduleName = "JsScreenSessionManager";
     BindNativeFunction(env, exportObj, "on", moduleName, JsScreenSessionManager::RegisterCallback);
+    BindNativeFunction(env, exportObj, "off", moduleName, JsScreenSessionManager::UnRegisterCallback);
     BindNativeFunction(env, exportObj, "updateScreenRotationProperty", moduleName,
         JsScreenSessionManager::UpdateScreenRotationProperty);
     BindNativeFunction(env, exportObj, "updateServerScreenProperty", moduleName,
@@ -188,6 +190,13 @@ napi_value JsScreenSessionManager::RegisterCallback(napi_env env, napi_callback_
     TLOGD(WmsLogTag::DMS, "[NAPI]RegisterCallback");
     JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
     return (me != nullptr) ? me->OnRegisterCallback(env, info) : nullptr;
+}
+
+napi_value JsScreenSessionManager::UnRegisterCallback(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DMS, "[NAPI]UnRegisterCallback");
+    JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
+    return (me != nullptr) ? me->OnUnRegisterCallback(env, info) : nullptr;
 }
 
 napi_value JsScreenSessionManager::UpdateScreenRotationProperty(napi_env env, napi_callback_info info)
@@ -534,6 +543,145 @@ void JsScreenSessionManager::OnTentModeChange(const TentMode tentMode)
     }
 }
 
+void JsScreenSessionManager::RegisterTransRSEventCallback(napi_env env, napi_ref& callback, RSExposedEventType type)
+{
+    TLOGI(WmsLogTag::DMS, "[NAPI]Register, type:%{public}u", static_cast<uint32_t>(type));
+    {
+        std::shared_lock<std::shared_mutex> lock(rsEventCallbacksMutex_);
+        auto it = rsEventCallbacks_.find(type);
+        if (it != rsEventCallbacks_.end()) {
+            napi_value callbackNapi;
+            napi_get_reference_value(env, callback, &callbackNapi);
+
+            for (auto* callbackItem : it->second) {
+                if (!callbackItem) {
+                    continue;
+                }
+                bool isEquals = false;
+                napi_strict_equals(env, callbackItem->GetNapiValue(), callbackNapi, &isEquals);
+                if (isEquals) {
+                    TLOGW(WmsLogTag::DMS, "[NAPI]Callback already registered for type:%{public}u",
+                        static_cast<uint32_t>(type));
+                    return;
+                }
+            }
+        }
+    }
+    NativeReference* callbackRef = reinterpret_cast<NativeReference*>(callback);
+    {
+        std::unique_lock<std::shared_mutex> lock(rsEventCallbacksMutex_);
+        rsEventCallbacks_[type].emplace_back(callbackRef);
+    }
+
+    bool isFirstCallback = false;
+    {
+        std::shared_lock<std::shared_mutex> lock(rsEventCallbacksMutex_);
+        isFirstCallback = (rsEventCallbacks_[type].size() == 1);
+    }
+    if (isFirstCallback) {
+        ScreenSessionManagerClient::GetInstance().RegisterTransRSEventListener(type, this);
+    }
+
+    TLOGI(WmsLogTag::DMS, "[NAPI]Success to register type:%{public}u", static_cast<uint32_t>(type));
+}
+
+void JsScreenSessionManager::UnRegisterTransRSEventCallback(napi_env env, napi_ref& callback, RSExposedEventType type)
+{
+    std::unique_lock<std::shared_mutex> lock(rsEventCallbacksMutex_);
+    auto it = rsEventCallbacks_.find(type);
+    if (it == rsEventCallbacks_.end()) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] No callbacks registered for type:%{public}u", static_cast<uint32_t>(type));
+        return;
+    }
+
+    auto& callbacks = it->second;
+    auto iter = std::find_if(callbacks.begin(), callbacks.end(),
+        [&](NativeReference* callbackItem) {
+            if (!callbackItem) return false;
+            napi_value callbackNapi;
+            napi_get_reference_value(env, callback, &callbackNapi);
+            bool isEquals = false;
+            napi_strict_equals(env, callbackItem->GetNapiValue(), callbackNapi, &isEquals);
+            return isEquals;
+        });
+    if (iter != callbacks.end()) {
+        napi_delete_reference(env, reinterpret_cast<napi_ref>(*iter));
+        callbacks.erase(iter);
+        TLOGI(WmsLogTag::DMS, "[NAPI] Unregistered callback for type:%{public}u", static_cast<uint32_t>(type));
+        if (callbacks.empty()) {
+            rsEventCallbacks_.erase(it);
+            ScreenSessionManagerClient::GetInstance().UnRegisterTransRSEventListener(type, this);
+        }
+    } else {
+        TLOGE(WmsLogTag::DMS, "[NAPI]Callback not registered for type:%{public}u", static_cast<uint32_t>(type));
+    }
+}
+
+napi_value JsScreenSessionManager::ConvertRsEventToNapiValue(napi_env env, const sptr<RSEventDataBase>& event)
+{
+    if (!event) {
+        return nullptr;
+    }
+
+    napi_value obj;
+    napi_create_object(env, &obj);
+
+    switch (event->GetEventType()) {
+        case RSExposedEventType::EXT_SCREEN_UNSUPPORT: {
+            break;
+        }
+        default:
+            break;
+    }
+
+    return obj;
+}
+ 
+void JsScreenSessionManager::OnTransRSEvent(const sptr<RSEventDataBase>& data)
+{
+    if (!data) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] data is null");
+        return;
+    }
+
+    RSExposedEventType type = data->GetEventType();
+    std::vector<NativeReference*> callbacks;
+    {
+        std::shared_lock<std::shared_mutex> lock(rsEventCallbacksMutex_);
+        auto it = rsEventCallbacks_.find(type);
+        if (it == rsEventCallbacks_.end() || it->second.empty()) {
+            TLOGW(WmsLogTag::DMS, "[NAPI] callbacks empty for type:%{public}u", static_cast<uint32_t>(type));
+            return;
+        }
+        callbacks = it->second;
+    }
+
+    for (auto& callback : callbacks) {
+        TLOGI(WmsLogTag::DMS, "[NAPI] OnRSEvent begin, type:%{public}u", static_cast<uint32_t>(type));
+        auto asyncTask = [this, callback, data, env = env_]() {
+            HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreenSessionManager::OnRSEvent");
+
+            napi_value jsEvent = ConvertRsEventToNapiValue(env, data);
+            napi_value argv[] = { jsEvent };
+            napi_value method = callback->GetNapiValue();
+            if (method == nullptr) {
+                TLOGNE(WmsLogTag::DMS, "Failed to get method callback from object!");
+                return;
+            }
+            napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
+        };
+
+        if (env_ != nullptr) {
+            napi_status ret = napi_send_event(env_, asyncTask, napi_eprio_vip, "OnRSEvent");
+            if (ret != napi_status::napi_ok) {
+                TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
+            }
+        } else {
+            TLOGE(WmsLogTag::DMS, "env is nullptr");
+        }
+    }
+}
+
 napi_value JsScreenSessionManager::SetCameraStatus(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "[NAPI]SetCameraStatus");
@@ -684,10 +832,31 @@ napi_value JsScreenSessionManager::OnRegisterCallback(napi_env env, const napi_c
         RegisterScreenConnectionCallback(env, callbackRef);
     } else if (callbackType == ON_TENT_MODE_CHANGE_CALLBACK) {
         RegisterTentModeCallback(env, callbackRef);
+    } else if (callbackType == ON_EXT_SCREEN_UNSUPPORT_CALLBACK) {
+        RegisterTransRSEventCallback(env, callbackRef, RSExposedEventType::EXT_SCREEN_UNSUPPORT);
     } else {
         TLOGE(WmsLogTag::DMS, "Unsupported callback type: %{public}s.", callbackType.c_str());
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
     }
+    return NapiGetUndefined(env);
+}
+
+napi_value JsScreenSessionManager::OnUnRegisterCallback(napi_env env, const napi_callback_info info)
+{
+    std::string callbackType;
+    napi_ref callbackRef;
+    if (!ObtainCallBackInfo(env, info, callbackType, callbackRef)) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] param check fail");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
+        return NapiGetUndefined(env);
+    }
+    if (callbackType == ON_EXT_SCREEN_UNSUPPORT_CALLBACK) {
+        UnRegisterTransRSEventCallback(env, callbackRef, RSExposedEventType::EXT_SCREEN_UNSUPPORT);
+    } else {
+        TLOGE(WmsLogTag::DMS, "Unsupported callback type: %{public}s.", callbackType.c_str());
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
+    }
+    napi_delete_reference(env, callbackRef);
     return NapiGetUndefined(env);
 }
 
@@ -1534,7 +1703,7 @@ napi_value JsScreenSessionManager::OnGetScreenSnapshotWithAllWindows(napi_env en
     std::array<double, ARGC_TWO> scaleParam;
     for (size_t i = 0; i < ARGC_TWO; i++) {
         if (!ConvertFromJsValue(env, argv[i + 1], scaleParam[i])) {
-            TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to scale[%d]", i + 1);
+            TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to scale[%zu]", i + 1);
             napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                 "Input parameter is missing or invalid"));
             return NapiGetUndefined(env);

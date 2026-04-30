@@ -94,11 +94,13 @@ private:
     void SetScreenRotateAnimation(sptr<AbstractScreen>& screen, ScreenId screenId,
         Rotation rotationAfter, bool withAnimation);
     void RegisterRsScreenConnectionChangeListener();
-    void OnRsScreenConnectionChange(ScreenId rsScreenId, ScreenEvent screenEvent);
+    void OnRsScreenConnectionChange(ScreenId rsScreenId,
+                                    ScreenEvent screenEvent,
+                                    sptr<IRemoteObject> connectToRenderToken = nullptr);
     bool OnRemoteDied(const sptr<IRemoteObject>& agent);
-    void ProcessScreenConnected(ScreenId rsScreenId);
+    void ProcessScreenConnected(ScreenId rsScreenId, sptr<IRemoteObject> connectToRenderToken = nullptr);
     void ProcessDefaultScreenReconnected(ScreenId rsScreenId);
-    sptr<AbstractScreen> InitAndGetScreen(ScreenId rsScreenId);
+    sptr<AbstractScreen> InitAndGetScreen(ScreenId rsScreenId, sptr<IRemoteObject> connectToRenderToken = nullptr);
     void ProcessScreenDisconnected(ScreenId rsScreenId);
     bool InitAbstractScreenModesInfo(sptr<AbstractScreen>& absScreen);
     sptr<AbstractScreen> InitVirtualScreen(ScreenId dmsScreenId, ScreenId rsId, VirtualScreenOption option);

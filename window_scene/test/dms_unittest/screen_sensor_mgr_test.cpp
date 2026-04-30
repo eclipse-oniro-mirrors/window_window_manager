@@ -80,6 +80,8 @@ class MockProductConfig : public ProductConfig {
 public:
     MOCK_METHOD(bool, IsSingleDisplaySuperFoldDevice, (), (override));
     MOCK_METHOD(bool, IsSecondaryDisplayFoldDevice, (), (override));
+    MOCK_METHOD(bool, IsSecondaryDisplaySuperFoldDevice, (), (override));
+    MOCK_METHOD(bool, IsLoadDmsExt, (), (override));
 };
 }
 
@@ -196,7 +198,7 @@ HWTEST_F(ScreenSensorMgrTest, RegisterPostureCallbackTest01, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(true));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
 
     ScreenSensorMgr::GetInstance().RegisterPostureCallback();
@@ -214,7 +216,7 @@ HWTEST_F(ScreenSensorMgrTest, RegisterPostureCallbackTest02, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
 
@@ -233,7 +235,7 @@ HWTEST_F(ScreenSensorMgrTest, RegisterPostureCallbackTest03, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(false));
     ProductConfig::singleton_ = &mockObj;
 
@@ -252,7 +254,7 @@ HWTEST_F(ScreenSensorMgrTest, RegisterHallCallbackTest01, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(true));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
 
     ScreenSensorMgr::GetInstance().RegisterHallCallback();
@@ -270,7 +272,7 @@ HWTEST_F(ScreenSensorMgrTest, RegisterHallCallbackTest02, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
 
@@ -289,7 +291,7 @@ HWTEST_F(ScreenSensorMgrTest, RegisterHallCallbackTest03, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(false));
     ProductConfig::singleton_ = &mockObj;
 
@@ -324,7 +326,7 @@ HWTEST_F(ScreenSensorMgrTest, UnRegisterPostureCallbackTest02, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(true));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
 
     ScreenSensorMgr::GetInstance().UnRegisterPostureCallback();
@@ -342,7 +344,7 @@ HWTEST_F(ScreenSensorMgrTest, UnRegisterPostureCallbackTest03, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
  
@@ -369,7 +371,7 @@ HWTEST_F(ScreenSensorMgrTest, UnRegisterPostureCallbackTest04, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(false));
     ProductConfig::singleton_ = &mockObj;
     
@@ -411,7 +413,7 @@ HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackTest02, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(true));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
 
     ScreenSensorMgr::GetInstance().UnRegisterHallCallback();
@@ -429,7 +431,7 @@ HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackTest03, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
  
@@ -458,7 +460,7 @@ HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackTest04, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
-    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(false));
     ProductConfig::singleton_ = &mockObj;
  
@@ -642,6 +644,279 @@ HWTEST_F(ScreenSensorMgrTest, HasSubscribedSensorTest, TestSize.Level1)
     ScreenSensorMgr::GetInstance().RegisterPostureCallback();
     EXPECT_EQ(false, ScreenSensorMgr::GetInstance().HasSubscribedSensor(100000));
     EXPECT_EQ(true, ScreenSensorMgr::GetInstance().HasSubscribedSensor(SENSOR_TYPE_ID_POSTURE));
+}
+
+/**
+ * @tc.name: UnRegisterHallCallbackInnerTest01
+ * @tc.desc: test function : UnRegisterHallCallbackInner success when LoadBaseControllerDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackInnerTest01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(false));
+    ProductConfig::singleton_ = &mockObj;
+
+    ScreenSensorMgr::GetInstance().UnRegisterHallCallbackInner();
+    EXPECT_TRUE(g_logMsg.find("success.") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterHallCallbackInnerTest02
+ * @tc.desc: test function : UnRegisterHallCallbackInner failed when LoadBaseControllerDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackInnerTest02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterHallCallbackInner();
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(g_logMsg.find("unregister hall sensor failed") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterHallCallbackInnerTest03
+ * @tc.desc: test function : UnRegisterHallCallbackInner for SecondaryDisplaySuperFoldDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackInnerTest03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsSingleDisplaySuperFoldDevice()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterHallCallbackInner();
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(g_logMsg.find("success.") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterHallCallbackInnerTest01
+ * @tc.desc: test function : UnRegisterHallCallbackInner success when LoadBaseControllerDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackInnerTest01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(false));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterHallCallbackInner();
+    EXPECT_FALSE(ret);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterHallCallbackInnerTest02
+ * @tc.desc: test function : UnRegisterHallCallbackInner failed when LoadBaseControllerDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackInnerTest02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterHallCallbackInner();
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(g_logMsg.find("unregister hall sensor failed") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterHallCallbackInnerTest03
+ * @tc.desc: test function : UnRegisterHallCallbackInner for SecondaryDisplaySuperFoldDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackInnerTest03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterHallCallbackInner();
+    EXPECT_FALSE(ret);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterPostureCallbackInnerTest01
+ * @tc.desc: test function : UnRegisterPostureCallbackInner success when LoadBaseControllerDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterPostureCallbackInnerTest01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(false));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterPostureCallbackInner();
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(g_logMsg.find("success.") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterPostureCallbackInnerTest02
+ * @tc.desc: test function : UnRegisterPostureCallbackInner failed when LoadBaseControllerDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterPostureCallbackInnerTest02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterPostureCallbackInner();
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(g_logMsg.find("UnRegisterPostureCallback failed") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterPostureCallbackInnerTest03
+ * @tc.desc: test function : UnRegisterPostureCallbackInner for SecondaryDisplayFoldDevice
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterPostureCallbackInnerTest03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    bool ret = ScreenSensorMgr::GetInstance().UnRegisterPostureCallbackInner();
+    EXPECT_FALSE(ret);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterHallCallbackForTestTest01
+ * @tc.desc: test function : UnRegisterHallCallbackForTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterHallCallbackForTestTest01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    ScreenSensorMgr::GetInstance().UnRegisterHallCallbackForTest();
+    EXPECT_TRUE(g_logMsg.find("unregister hall sensor failed") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: UnRegisterPostureCallbackForTestTest01
+ * @tc.desc: test function : UnRegisterPostureCallbackForTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, UnRegisterPostureCallbackForTestTest01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockProductConfig mockObj;
+    EXPECT_CALL(mockObj, IsLoadDmsExt()).WillRepeatedly(Return(true));
+    ProductConfig::singleton_ = &mockObj;
+
+    ScreenSensorMgr::GetInstance().UnRegisterPostureCallbackForTest();
+    EXPECT_TRUE(g_logMsg.find("UnRegisterPostureCallback failed") != std::string::npos);
+
+    ProductConfig::singleton_ = nullptr;
+}
+
+/**
+ * @tc.name: GetSensorDataTest01
+ * @tc.desc: test function : GetSensorData with nullptr event
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, GetSensorDataTest01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    void* result = ScreenSensorMgr::GetInstance().GetSensorData(nullptr, sizeof(PostureData));
+    EXPECT_EQ(result, nullptr);
+    EXPECT_TRUE(g_logMsg.find("SensorEvent is nullptr") != std::string::npos);
+}
+
+/**
+ * @tc.name: GetSensorDataTest02
+ * @tc.desc: test function : GetSensorData with dataLen less than dataSize
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, GetSensorDataTest02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    std::unique_ptr<SensorEvent> event = std::make_unique<SensorEvent>();
+    event->data = nullptr;
+
+    void* result = ScreenSensorMgr::GetInstance().GetSensorData(event.get(), sizeof(PostureData));
+    EXPECT_EQ(result, nullptr);
+    EXPECT_TRUE(g_logMsg.find("data is nullptr") != std::string::npos);
+}
+
+/**
+ * @tc.name: GetSensorDataTest03
+ * @tc.desc: test function : GetSensorData with valid data
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSensorMgrTest, GetSensorDataTest03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    std::unique_ptr<SensorEvent> event = std::make_unique<SensorEvent>();
+    PostureData data;
+    data.angle = 45.0F;
+    event->data = reinterpret_cast<uint8_t*>(&data);
+    event->dataLen = sizeof(PostureData);
+
+    void* result = ScreenSensorMgr::GetInstance().GetSensorData(event.get(), sizeof(PostureData));
+    EXPECT_NE(result, nullptr);
 }
 
 }

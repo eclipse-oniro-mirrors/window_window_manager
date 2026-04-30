@@ -1555,22 +1555,24 @@ HWTEST_F(SceneSessionManagerTest4, RegisterSessionSnapshotFunc, TestSize.Level1)
     ssm_->listenerController_ = std::make_shared<SessionListenerController>();
     ASSERT_NE(ssm_->listenerController_, nullptr);
     ssm_->RegisterSessionSnapshotFunc(sceneSession);
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    Session::SnapshotOptions options;
+    options.runInFfrt = true;
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.abilityInfo->excludeFromMissions = false;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     ssm_->listenerController_ = nullptr;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.abilityInfo = nullptr;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.isSystem_ = true;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.persistentId_ = 2;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
     usleep(WAIT_SYNC_IN_NS);
 }
 

@@ -1321,6 +1321,278 @@ HWTEST_F(ScreenSessionDumperTest, TriggerSecondarySensor_001, TestSize.Level1)
     LOG_SetCallback(nullptr);
 }
 
+/**
+ * @tc.name: DumpScreenPropertyById_OutputFormat
+ * @tc.desc: test DumpScreenPropertyById output contains expected property fields
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, DumpScreenPropertyById_OutputFormat, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->dumpInfo_ = "";
+    ScreenId id = 0;
+    dumper->DumpScreenPropertyById(id);
+    EXPECT_TRUE(dumper->dumpInfo_.find("[SCREEN PROPERTY]") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("Rotation:") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("DisplayOrientation:") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("Bounds<L,T,W,H>:") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("PhyBounds<L,T,W,H>:") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("AvailableArea<X,Y,W,H>") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("DefaultDeviceRotationOffset") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("DisplayGroupId") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("MainDisplayIdOfGroup") != std::string::npos);
+}
+
+/**
+ * @tc.name: DumpScreenPropertyById_ScreenId5
+ * @tc.desc: test DumpScreenPropertyById with screen id 5
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, DumpScreenPropertyById_ScreenId5, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->dumpInfo_ = "";
+    ScreenId id = 5;
+    dumper->DumpScreenPropertyById(id);
+    EXPECT_TRUE(dumper->dumpInfo_.find("[SCREEN PROPERTY]") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("Bounds<L,T,W,H>:") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("PhyBounds<L,T,W,H>:") != std::string::npos);
+}
+
+/**
+ * @tc.name: ExtractPositionGroups_Normal
+ * @tc.desc: test ExtractPositionGroups with valid flat comma-separated input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ExtractPositionGroups_Normal, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::string first, second;
+
+    // real command format: valueStr after "-setPos" starts with ","
+    EXPECT_TRUE(dumper->ExtractPositionGroups(",0,100,200,5,300,400", first, second));
+    EXPECT_EQ(first, "0,100,200");
+    EXPECT_EQ(second, "5,300,400");
+
+    EXPECT_TRUE(dumper->ExtractPositionGroups(",1,0,0,2,0,0", first, second));
+    EXPECT_EQ(first, "1,0,0");
+    EXPECT_EQ(second, "2,0,0");
+
+    // without leading comma also works
+    EXPECT_TRUE(dumper->ExtractPositionGroups("0,100,200,5,300,400", first, second));
+    EXPECT_EQ(first, "0,100,200");
+    EXPECT_EQ(second, "5,300,400");
+}
+
+/**
+ * @tc.name: ExtractPositionGroups_NoParentheses
+ * @tc.desc: test ExtractPositionGroups with wrong value count
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ExtractPositionGroups_NoParentheses, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::string first, second;
+
+    EXPECT_FALSE(dumper->ExtractPositionGroups("", first, second));
+    EXPECT_FALSE(dumper->ExtractPositionGroups("0,100,200", first, second));
+    EXPECT_FALSE(dumper->ExtractPositionGroups(",0,100,200,5,300", first, second));
+    EXPECT_FALSE(dumper->ExtractPositionGroups(",0,100,200,5,300,400,700", first, second));
+}
+
+/**
+ * @tc.name: ExtractPositionGroups_EmptyGroup
+ * @tc.desc: test ExtractPositionGroups with double commas causing empty tokens
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ExtractPositionGroups_EmptyGroup, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::string first, second;
+
+    EXPECT_FALSE(dumper->ExtractPositionGroups(",,100,200,5,300,400", first, second));
+    EXPECT_FALSE(dumper->ExtractPositionGroups(",0,100,,5,300,400", first, second));
+    EXPECT_FALSE(dumper->ExtractPositionGroups(",0,100,200,5,300,", first, second));
+}
+
+/**
+ * @tc.name: ExtractPositionGroups_MissingSecondGroup
+ * @tc.desc: test ExtractPositionGroups with only 3 values (missing second screen)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ExtractPositionGroups_MissingSecondGroup, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::string first, second;
+
+    EXPECT_FALSE(dumper->ExtractPositionGroups(",0,100,200", first, second));
+    EXPECT_FALSE(dumper->ExtractPositionGroups("0,100,200", first, second));
+}
+
+/**
+ * @tc.name: ParsePositionGroup_Normal
+ * @tc.desc: test ParsePositionGroup with valid input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ParsePositionGroup_Normal, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    MultiScreenPositionOptions opts;
+
+    EXPECT_TRUE(dumper->ParsePositionGroup("0,100,200", opts));
+    EXPECT_EQ(opts.screenId_, 0u);
+    EXPECT_EQ(opts.startX_, 100u);
+    EXPECT_EQ(opts.startY_, 200u);
+
+    EXPECT_TRUE(dumper->ParsePositionGroup("5,0,0", opts));
+    EXPECT_EQ(opts.screenId_, 5u);
+    EXPECT_EQ(opts.startX_, 0u);
+    EXPECT_EQ(opts.startY_, 0u);
+}
+
+/**
+ * @tc.name: ParsePositionGroup_InvalidSize
+ * @tc.desc: test ParsePositionGroup with wrong number of values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ParsePositionGroup_InvalidSize, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    MultiScreenPositionOptions opts;
+
+    EXPECT_FALSE(dumper->ParsePositionGroup("", opts));
+    EXPECT_FALSE(dumper->ParsePositionGroup("0", opts));
+    EXPECT_FALSE(dumper->ParsePositionGroup("0,100", opts));
+    EXPECT_FALSE(dumper->ParsePositionGroup("0,100,200,300", opts));
+}
+
+/**
+ * @tc.name: ParsePositionGroup_NonNumeric
+ * @tc.desc: test ParsePositionGroup with non-numeric values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, ParsePositionGroup_NonNumeric, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    MultiScreenPositionOptions opts;
+
+    EXPECT_FALSE(dumper->ParsePositionGroup("a,100,200", opts));
+    EXPECT_FALSE(dumper->ParsePositionGroup("0,abc,200", opts));
+    EXPECT_FALSE(dumper->ParsePositionGroup("0,100,xyz", opts));
+}
+
+/**
+ * @tc.name: SetMultiScreenRelativePositionCmd_InvalidCommand
+ * @tc.desc: test SetMultiScreenRelativePositionCmd with invalid command prefix
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetMultiScreenRelativePositionCmd_InvalidCommand, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->dumpInfo_ = "";
+
+    dumper->SetMultiScreenRelativePositionCmd("invalid");
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]: the command is invalid") != std::string::npos);
+}
+
+/**
+ * @tc.name: SetMultiScreenRelativePositionCmd_InvalidFormat
+ * @tc.desc: test SetMultiScreenRelativePositionCmd with invalid format
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetMultiScreenRelativePositionCmd_InvalidFormat, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    dumper->dumpInfo_ = "";
+    dumper->SetMultiScreenRelativePositionCmd("-setPos,abc");
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]: invalid format") != std::string::npos);
+
+    dumper->dumpInfo_ = "";
+    dumper->SetMultiScreenRelativePositionCmd("-setPos,0,100,200");
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]: invalid format") != std::string::npos);
+}
+
+/**
+ * @tc.name: SetMultiScreenRelativePositionCmd_MainScreenInvalid
+ * @tc.desc: test SetMultiScreenRelativePositionCmd with invalid main screen params
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetMultiScreenRelativePositionCmd_MainScreenInvalid, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    dumper->dumpInfo_ = "";
+    dumper->SetMultiScreenRelativePositionCmd("-setPos,abc,100,200,5,300,400");
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]: main screen params invalid") != std::string::npos);
+
+    dumper->dumpInfo_ = "";
+    dumper->SetMultiScreenRelativePositionCmd("-setPos,0,abc,200,5,300,400");
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]: main screen params invalid") != std::string::npos);
+}
+
+/**
+ * @tc.name: SetMultiScreenRelativePositionCmd_SecondScreenInvalid
+ * @tc.desc: test SetMultiScreenRelativePositionCmd with invalid second screen params
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetMultiScreenRelativePositionCmd_SecondScreenInvalid, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    dumper->dumpInfo_ = "";
+    dumper->SetMultiScreenRelativePositionCmd("-setPos,0,100,200,abc,300,400");
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]: second screen params invalid") != std::string::npos);
+
+    dumper->dumpInfo_ = "";
+    dumper->SetMultiScreenRelativePositionCmd("-setPos,0,100,200,5,abc,400");
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]: second screen params invalid") != std::string::npos);
+}
+
+/**
+ * @tc.name: SetMultiScreenRelativePositionCmd_ValidFormat
+ * @tc.desc: test SetMultiScreenRelativePositionCmd with valid format (will fail at SetMultiScreenRelativePosition)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetMultiScreenRelativePositionCmd_ValidFormat, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+
+    dumper->dumpInfo_ = "";
+    dumper->SetMultiScreenRelativePositionCmd("-setPos,0,0,0,1,1920,0");
+    EXPECT_TRUE(dumper->dumpInfo_.find("SET MULTI SCREEN RELATIVE POSITION") != std::string::npos);
+    EXPECT_TRUE(dumper->dumpInfo_.find("[error]") != std::string::npos ||
+        dumper->dumpInfo_.find("[success]") != std::string::npos);
+}
+
 #ifdef FOLD_ABILITY_ENABLE
 /**
  * @tc.name: DumpFoldCreaseRegion
@@ -1334,6 +1606,83 @@ HWTEST_F(ScreenSessionDumperTest, DumpFoldCreaseRegion, TestSize.Level1)
     sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
     dumper->DumpFoldCreaseRegion();
     ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: DumpCreaseRectsToOss_EmptyRects
+ * @tc.desc: test DumpCreaseRectsToOss with empty rects vector
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, DumpCreaseRectsToOss_EmptyRects, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::ostringstream oss;
+    std::vector<DMRect> emptyRects;
+    dumper->DumpCreaseRectsToOss(oss, "TestLabel: ", emptyRects);
+    std::string result = oss.str();
+    EXPECT_TRUE(result.find("TestLabel: ") != std::string::npos);
+    EXPECT_TRUE(result.find("empty") != std::string::npos);
+}
+
+/**
+ * @tc.name: DumpCreaseRectsToOss_SingleRect
+ * @tc.desc: test DumpCreaseRectsToOss with one rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, DumpCreaseRectsToOss_SingleRect, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::ostringstream oss;
+    DMRect rect = {10, 20, 100, 200};
+    std::vector<DMRect> rects = {rect};
+    dumper->DumpCreaseRectsToOss(oss, "CreaseRects: ", rects);
+    std::string result = oss.str();
+    EXPECT_TRUE(result.find("CreaseRects: ") != std::string::npos);
+    EXPECT_TRUE(result.find("[10, 20, 100, 200]") != std::string::npos);
+}
+
+/**
+ * @tc.name: DumpCreaseRectsToOss_MultipleRects
+ * @tc.desc: test DumpCreaseRectsToOss with multiple rects
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, DumpCreaseRectsToOss_MultipleRects, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::ostringstream oss;
+    std::vector<DMRect> rects = {
+        {0, 0, 100, 200},
+        {100, 0, 100, 200}
+    };
+    dumper->DumpCreaseRectsToOss(oss, "Rects: ", rects);
+    std::string result = oss.str();
+    EXPECT_TRUE(result.find("Rects: ") != std::string::npos);
+    EXPECT_TRUE(result.find("[0, 0, 100, 200]") != std::string::npos);
+    EXPECT_TRUE(result.find("[100, 0, 100, 200]") != std::string::npos);
+}
+
+/**
+ * @tc.name: DumpCreaseRectsToOss_ZeroRect
+ * @tc.desc: test DumpCreaseRectsToOss with zero-valued rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, DumpCreaseRectsToOss_ZeroRect, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    std::ostringstream oss;
+    DMRect rect = {0, 0, 0, 0};
+    std::vector<DMRect> rects = {rect};
+    dumper->DumpCreaseRectsToOss(oss, "Label: ", rects);
+    std::string result = oss.str();
+    EXPECT_TRUE(result.find("[0, 0, 0, 0]") != std::string::npos);
 }
 
 /**
@@ -1823,6 +2172,18 @@ HWTEST_F(ScreenSessionDumperTest, SetFoldDisplayMode, TestSize.Level1)
     ASSERT_EQ(ret, 0);
 
     dumper->params_[0] = "-f";
+    ret = dumper->SetFoldDisplayMode();
+    ASSERT_EQ(ret, 0);
+
+    dumper->params_[0] = "-lf";
+    ret = dumper->SetFoldDisplayMode();
+    ASSERT_EQ(ret, 0);
+
+    dumper->params_[0] = "-n";
+    ret = dumper->SetFoldDisplayMode();
+    ASSERT_EQ(ret, 0);
+
+    dumper->params_[0] = "-v";
     ret = dumper->SetFoldDisplayMode();
     ASSERT_EQ(ret, 0);
 

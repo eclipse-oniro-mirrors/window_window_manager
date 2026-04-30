@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,20 +13,15 @@
  * limitations under the License.
  */
 
-#ifndef SCREEN_SESSION_MANAGER_PHONE_EXTENSION_H
-#define SCREEN_SESSION_MANAGER_PHONE_EXTENSION_H
+#include "js_windowenv_manager.h"
 
-#include "screen_property.h"
-#include "screen_session.h"
-#include "screen_session_manager.h"
-
-namespace OHOS {
-namespace Rosen {
-namespace PhoneExtension {
-class ScreenSessionManagerExt : virtual public ScreenSessionManager {
-    WM_DECLARE_SINGLE_INSTANCE(ScreenSessionManagerExt)
+static napi_module g_windowenvManagerModule = {
+    .nm_filename = "module/libwindowenv_napi.so/windowenv.js",
+    .nm_register_func = OHOS::Rosen::JsWindowEnvManagerInit,
+    .nm_modname = "windowenv",
 };
+
+extern "C" __attribute__((constructor)) void NAPI_application_windowenvmanager_AutoRegister()
+{
+    napi_module_register(&g_windowenvManagerModule);
 }
-} // namespace Rosen
-} // namespace OHOS
-#endif

@@ -589,14 +589,16 @@ ani_status DisplayAni::NspBindNativeFunctions(ani_env* env, ani_namespace nsp)
             reinterpret_cast<void *>(DisplayManagerAni::AddVirtualScreenBlocklist)},
         ani_native_function {"removeVirtualScreenBlocklistNative", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::RemoveVirtualScreenBlocklist)},
-        ani_native_function {"isCaptured", nullptr, reinterpret_cast<void *>(DisplayManagerAni::IsCaptured)},
+        ani_native_function {"isCapturedByBundleNameList", nullptr,
+            reinterpret_cast<void *>(DisplayManagerAni::IsCaptured)},
         ani_native_function {"finalizerDisplayNative", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::FinalizerDisplay)},
         ani_native_function {"onChangeWithAttributeNative", nullptr,
             reinterpret_cast<void *>(DisplayManagerAni::RegisterDisplayAttributeListener)},
         ani_native_function {"displayInfoFinalizerCallback", nullptr,
             reinterpret_cast<void *>(DisplayAni::CleanDisplayInfoMap)},
-        
+        ani_native_function {"isCapturedByBundleNameList", nullptr,
+            reinterpret_cast<void *>(DisplayManagerAni::IsCapturedByBundleNameList)},
     };
     auto ret = env->Namespace_BindNativeFunctions(nsp, funcs.data(), funcs.size());
     if (ret != ANI_OK) {

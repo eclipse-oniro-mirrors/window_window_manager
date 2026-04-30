@@ -36,6 +36,7 @@
             OHOS::Rosen::SceneSession::SetFrameGravity*;
             OHOS::Rosen::SceneSession::SetSnapshotSkip*;
             OHOS::Rosen::SceneSession::GetMainSessionId*;
+            OHOS::Rosen::SceneSession::GetMainSessionOrLoosenedSessionId*;
             OHOS::Rosen::SceneSession::OnShowWhenLocked*;
             OHOS::Rosen::SceneSession::RemoveSubSession*;
             OHOS::Rosen::SceneSession::SendKeyEventToUI*;
@@ -50,6 +51,8 @@
             OHOS::Rosen::SceneSession::IsDelayFocusChange*;
             OHOS::Rosen::SceneSession::IsShowOnLockScreen*;
             OHOS::Rosen::SceneSession::NotifyTouchOutside*;
+            OHOS::Rosen::SceneSession::SetIsShowOnDock*;
+            OHOS::Rosen::SceneSession::GetIsShowOnDock*;
             OHOS::Rosen::SceneSession::RemoveToastSession*;
             OHOS::Rosen::SceneSession::SetCurrentRotation*;
             OHOS::Rosen::SceneSession::SetPiPControlEvent*;
@@ -153,13 +156,16 @@
             OHOS::Rosen::SceneSession::UpdateNormalModalUIExtension*;
             OHOS::Rosen::SceneSession::UpdatePrivacyModeControlInfo*;
             OHOS::Rosen::SceneSession::MaskSupportEnterWaterfallMode*;
-            OHOS::Rosen::SceneSession::RegisterAppHookWindowInfoFunc*;
             OHOS::Rosen::SceneSession::RegisterSelectModeFunc*;
+            OHOS::Rosen::SceneSession::RegisterSetSelectModeCallback*;
             OHOS::Rosen::SceneSession::RegisterGetIsDockAutoHideFunc*;
+            OHOS::Rosen::SceneSession::ConfigDockAutoHide*;
             OHOS::Rosen::SceneSession::RemoveFingerPointerDownStatus*;
             OHOS::Rosen::SceneSession::SetGetAllAppUseControlMapFunc*;
             OHOS::Rosen::SceneSession::SetShouldHideNonSecureWindows*;
             OHOS::Rosen::SceneSession::SetWindowAnchorInfoChangeFunc*;
+            OHOS::Rosen::SceneSession::NotifyRebindAttachAfterParentChange*;
+            OHOS::Rosen::SceneSession::ResetAttachBindingState*;
             OHOS::Rosen::SceneSession::SetWindowCornerRadiusCallback*;
             OHOS::Rosen::SceneSession::SetWindowRectAutoSaveCallback*;
             OHOS::Rosen::SceneSession::UpdateFullScreenWaterfallMode*;

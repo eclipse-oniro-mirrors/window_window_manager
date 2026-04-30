@@ -306,7 +306,7 @@ void MultiScreenModeChangeManager::NotifyClientCreateExtendSessionOnly(sptr<IScr
     MultiScreenChangeUtils::CreateExtendSession(screenSession);
 
     ssmClient->OnCreateScreenSessionOnly(screenSession->GetScreenId(), screenSession->GetRSScreenId(),
-        screenSession->GetName(), screenSession->GetIsExtend());
+        screenSession->GetName(), screenSession->GetRenderSession(), screenSession->GetIsExtend());
 }
 
 void MultiScreenModeChangeManager::NotifyClientCreateMirrorSessionOnly(sptr<IScreenSessionManagerClient>& ssmClient,
@@ -321,7 +321,7 @@ void MultiScreenModeChangeManager::NotifyClientCreateMirrorSessionOnly(sptr<IScr
     MultiScreenChangeUtils::CreateMirrorSession(mainSession, screenSession);
 
     ssmClient->OnCreateScreenSessionOnly(screenSession->GetScreenId(), screenSession->GetRSScreenId(),
-        screenSession->GetName(), screenSession->GetIsExtend());
+        screenSession->GetName(), screenSession->GetRenderSession(), screenSession->GetIsExtend());
 }
 
 void MultiScreenModeChangeManager::ScreenChangeToMirrorMode(sptr<IScreenSessionManagerClient> ssmClient,

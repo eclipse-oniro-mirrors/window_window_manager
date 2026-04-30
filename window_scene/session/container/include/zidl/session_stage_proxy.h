@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
-#define OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
+#ifndef OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H
+#define OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H
 
 #include <iremote_proxy.h>
 #include <transaction/rs_transaction.h>
@@ -61,7 +61,8 @@ public:
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
     WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) override;
     WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) override;
-    WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode) override;
+    WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode, MaximizeMode maximizeMode,
+        bool isLayoutFullScreen) override;
     WMError UpdateWindowModeForUITest(int32_t updateMode) override;
     void NotifyForegroundInteractiveStatus(bool interactive) override;
     WSError UpdateMaximizeMode(MaximizeMode mode) override;
@@ -72,6 +73,14 @@ public:
     void NotifyTransformChange(const Transform& transform) override;
     void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) override;
     void NotifyGlobalScaledRectChange(const Rect& globalScaledRect) override;
+    WSError UpdateAttachedWindowLimits(int32_t sourcePersistentId,
+        const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit,
+        bool isIntersectedWidthLimit) override;
+    WSError RemoveAttachedWindowLimits(int32_t sourcePersistentId) override;
+    WSError SyncAllAttachedLimitsToChild(
+        const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
+        const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList) override;
+    WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId) override;
     WSError NotifyDialogStateChange(bool isForeground) override;
     WSError SetPipActionEvent(const std::string& action, int32_t status) override;
     WSError SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -80,6 +89,7 @@ public:
     WSError UpdateDisplayId(uint64_t displayId) override;
     void NotifyDisplayMove(DisplayId from, DisplayId to) override;
     WSError SwitchFreeMultiWindow(bool enable) override;
+    WSError ConfigDockAutoHide(bool isDockAutoHide) override;
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
     void NotifyKeyboardPanelInfoChange(const KeyboardPanelInfo& keyboardPanelInfo) override;
     void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
@@ -90,6 +100,8 @@ public:
     WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo) override;
     WSError NotifyPageRotationIsIgnored() override;
     RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo) override;
+    WSError HideSubWindowZLevelAboveParentLoosened() override;
+    WSError ShowSubWindowZLevelAboveParentLoosened() override;
 
     // UIExtension
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
@@ -117,10 +129,8 @@ public:
     WSError GetSceneNodeCount(const sptr<IRemoteObject>& callback) override;
     WSError NotifyOrientationExecutionResult(uint32_t promiseId, OrientationExecutionResult result) override;
     WSError NotifyAppForceLandscapeConfigUpdated() override;
-    WSError NotifyAppForceLandscapeConfigEnableUpdated(bool needUpdateViewport,
-        SelectMode selectMode) override;
-    WSError NotifyAppHookWindowInfoUpdated() override;
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
     WSError CloseSpecificScene() override;
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
@@ -140,9 +150,10 @@ public:
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
+    WSError SetIsStartMoving(bool isStartMoving) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;
 };
 } // namespace OHOS::Rosen
-#endif // OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
+#endif // OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H

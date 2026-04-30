@@ -86,6 +86,7 @@ struct ScreenSessionConfig {
     std::string innerName = "UNKNOWN";
     ScreenProperty property;
     std::shared_ptr<RSDisplayNode> displayNode;
+    sptr<IRemoteObject> renderSession = nullptr;
 };
 
 enum class ScreenSessionReason : int32_t {
@@ -427,6 +428,8 @@ public:
     uint32_t GetScreenAreaWidth() const;
     void SetScreenAreaHeight(uint32_t screenAreaHeight);
     uint32_t GetScreenAreaHeight() const;
+    void SetRenderSession(sptr<IRemoteObject> renderSession);
+    sptr<IRemoteObject> GetRenderSession();
 
     void UpdateMirrorWidth(uint32_t mirrorWidth);
     void UpdateMirrorHeight(uint32_t mirrorHeight);
@@ -538,6 +541,7 @@ private:
     int32_t uniqueRotation_ { 0 };
     mutable std::shared_mutex rotationMapMutex_;
     std::map<int32_t, int32_t> uniqueRotationOrientationMap_;
+    sptr<IRemoteObject> renderSession_ = nullptr;
 
     /*
      * RS Client Multi Instance

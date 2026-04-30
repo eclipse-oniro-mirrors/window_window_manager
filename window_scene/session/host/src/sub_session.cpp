@@ -88,6 +88,10 @@ WSError SubSession::Show(sptr<WindowSessionProperty> property)
             sessionProperty->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::CUSTOM));
             session->NotifyIsCustomAnimationPlaying(true);
         }
+        if (session->IsLoosenedWithFreeMultiMode()) {
+            TLOGND(WmsLogTag::WMS_SUB, "raise sub session when show, id: %{public}d", session->GetPersistentId());
+            session->RaiseAppMainWindowToTop();
+        }
         auto ret = session->SceneSession::Foreground(property);
         return ret;
     }, "Show");
@@ -133,7 +137,7 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
         return;
     }
 
-    if (IsSessionForeground() && (reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE)) {
+    if (IsLifecycleForeground() && (reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE)) {
         SetOriPosYBeforeRaisedByKeyboard(0);
         const WSRect& winRect = GetSessionRect();
         if (reason == SizeChangeReason::MOVE && (rect.posX_ != winRect.posX_ || rect.posY_ != winRect.posY_)) {
@@ -211,8 +215,12 @@ WSError SubSession::ProcessPointDownSession(int32_t posX, int32_t posY)
     if (sessionProperty && sessionProperty->GetRaiseEnabled()) {
         if (!isModal) {
             RaiseToAppTopForPointDown();
-        } else if (auto mainSession = GetMainSession()) {
-            mainSession->NotifyClick(false);
+        } else if (auto mainSession = GetMainSessionOrLoosenedSession()) {
+            if (mainSession->IsLoosenedWithFreeMultiMode()) {
+                mainSession->RaiseToAppTopForPointDown();
+            } else {
+                mainSession->NotifyClick(false);
+            }
         }
     }
     auto ret = SceneSession::ProcessPointDownSession(posX, posY);
@@ -302,11 +310,7 @@ bool SubSession::IsApplicationModal() const
 bool SubSession::IsVisibleForeground() const
 {
     if (IsLoosenedWithFreeMultiMode()) {
-        bool isVisibleForeground = Session::IsVisibleForeground();
-        TLOGD(WmsLogTag::WMS_SUB,
-            "id: %{public}d, IsVisibleForeground: %{public}d",
-            GetPersistentId(), isVisibleForeground);
-        return isVisibleForeground;
+        return Session::IsVisibleForeground();
     }
     const auto& mainOrFloatSession = GetMainOrFloatSession();
     if (mainOrFloatSession) {
@@ -317,6 +321,9 @@ bool SubSession::IsVisibleForeground() const
 
 bool SubSession::IsVisibleNotBackground() const
 {
+    if (IsLoosenedWithFreeMultiMode()) {
+        return Session::IsVisibleNotBackground();
+    }
     const auto& mainOrFloatSession = GetMainOrFloatSession();
     if (mainOrFloatSession) {
         return mainOrFloatSession->IsVisibleNotBackground() && Session::IsVisibleNotBackground();
@@ -374,6 +381,54 @@ WMError SubSession::NotifySetParentSession(int32_t oldParentWindowId, int32_t ne
         }
         return WMError::WM_OK;
     }, __func__);
+}
+
+/** @note @window.layout */
+WSError SubSession::RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId,
+    const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit, bool isIntersectedWidthLimit,
+    int32_t excludePersistentId)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "sessionStage_ is null for sub window id=%{public}d", GetPersistentId());
+        return WSError::WS_ERROR_NULLPTR;
+    }
+
+    // Sub window: only update own limits
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Sub window id=%{public}d updating limits from source id=%{public}d",
+        GetPersistentId(), sourcePersistentId);
+    const auto& property = GetSessionProperty();
+    property->SetAttachedWindowLimits(sourcePersistentId, attachedWindowLimits);
+    AttachLimitOptions limitOptions;
+    limitOptions.isIntersectedHeightLimit = isIntersectedHeightLimit;
+    limitOptions.isIntersectedWidthLimit = isIntersectedWidthLimit;
+    property->SetAttachedLimitOptions(sourcePersistentId, limitOptions);
+    return sessionStage_->UpdateAttachedWindowLimits(sourcePersistentId, attachedWindowLimits,
+        isIntersectedHeightLimit, isIntersectedWidthLimit);
+}
+
+/** @note @window.layout */
+WSError SubSession::RequestRemoveAttachedWindowLimits(int32_t sourcePersistentId,
+    int32_t excludePersistentId)
+{
+    int32_t winId = GetPersistentId();
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "sessionStage_ is null for sub window id=%{public}d", winId);
+        return WSError::WS_ERROR_NULLPTR;
+    }
+
+    const auto& property = GetSessionProperty();
+    if (sourcePersistentId == winId) {
+        // This window is detaching - clear all attached limits lists
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id=%{public}u is detaching, clearing all attached limits", winId);
+        property->ClearAttachedWindowLimitsList();
+        property->ClearAttachedLimitOptionsList();
+    } else {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id=%{public}d removing limits from source id=%{public}d",
+            winId, sourcePersistentId);
+        property->RemoveAttachedWindowLimits(sourcePersistentId);
+        property->RemoveAttachedLimitOptions(sourcePersistentId);
+    }
+    return sessionStage_->RemoveAttachedWindowLimits(sourcePersistentId);
 }
 
 void SubSession::HandleCrossMoveToSurfaceNode(WSRect& globalRect)
@@ -584,5 +639,39 @@ int32_t SubSession::GetSubWindowZLevel() const
     zLevel = sessionProperty->GetSubWindowZLevel();
     TLOGI(WmsLogTag::WMS_HIERARCHY, "zLevel: %{public}d", zLevel);
     return zLevel;
+}
+
+WSError SubSession::HideSubWindowZLevelAboveParentLoosened()
+{
+    PostTask([weakThis = wptr(this), funcName = __func__]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: session is null", funcName);
+            return;
+        }
+        if (session->sessionStage_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: sessionStage_ is nullptr", funcName);
+            return;
+        }
+        session->sessionStage_->HideSubWindowZLevelAboveParentLoosened();
+        }, __func__);
+    return WSError::WS_OK;
+}
+
+WSError SubSession::ShowSubWindowZLevelAboveParentLoosened()
+{
+    PostTask([weakThis = wptr(this), funcName = __func__]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: session is null", funcName);
+            return;
+        }
+        if (session->sessionStage_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: sessionStage_ is nullptr", funcName);
+            return;
+        }
+        session->sessionStage_->ShowSubWindowZLevelAboveParentLoosened();
+        }, __func__);
+    return WSError::WS_OK;
 }
 } // namespace OHOS::Rosen

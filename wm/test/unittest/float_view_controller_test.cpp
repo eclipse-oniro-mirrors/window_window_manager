@@ -281,6 +281,9 @@ HWTEST_F(FloatViewControllerTest, StopFloatViewFromClientSingle, TestSize.Level1
     fvController_->ChangeState(FvWindowState::FV_STATE_STOPPING);
     EXPECT_EQ(WMError::WM_ERROR_FV_REPEAT_OPERATION, fvController_->StopFloatViewFromClientSingle());
 
+    fvController_->ChangeState(FvWindowState::FV_STATE_UNDEFINED);
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, fvController_->StopFloatViewFromClientSingle());
+
     fvController_->ChangeState(FvWindowState::FV_STATE_STARTED);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvController_->StopFloatViewFromClientSingle());
 

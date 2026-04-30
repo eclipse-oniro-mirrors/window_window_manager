@@ -65,7 +65,8 @@ public:
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId,
         DmErrorCode* errorCode = nullptr, bool isUseDma = false, bool isCaptureFullOfScreen = false);
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(DisplayId displayId,
-        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false);
+        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false,
+        DisplayIntentType displayIntent = DisplayIntentType::CANONICAL);
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect, DmErrorCode* errorCode = nullptr);
     virtual DMError HasImmersiveWindow(ScreenId screenId, bool& immersive);
     virtual DMError HasPrivateWindow(DisplayId displayId, bool& hasPrivateWindow);
@@ -92,6 +93,7 @@ public:
     virtual bool ConvertScreenIdToRsScreenId(ScreenId screenId, ScreenId& rsScreenId);
     virtual bool IsFoldable();
     virtual bool IsCaptured();
+    virtual bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
     virtual FoldStatus GetFoldStatus();
     virtual FoldDisplayMode GetFoldDisplayMode();
     virtual void SetFoldDisplayMode(const FoldDisplayMode);

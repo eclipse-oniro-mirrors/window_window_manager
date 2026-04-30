@@ -19,6 +19,7 @@
 
 #include "js_float_view_listener.h"
 #include "js_runtime_utils.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -57,7 +58,7 @@ private:
         const std::shared_ptr<NativeReference>& contentStorage);
     napi_value OnSetFloatViewVisibilityInApp(napi_env env, napi_callback_info info);
     napi_value OnSetWindowSize(napi_env env, napi_callback_info info);
-    napi_value OnSetWindowSizeTask(napi_env env, const Rect &rect);
+    napi_value OnSetWindowSizeTask(napi_env env, int32_t width, int32_t height);
     napi_value OnGetWindowProperties(napi_env env, napi_callback_info info);
     napi_value OnRestoreMainWindow(napi_env env, napi_callback_info info);
 

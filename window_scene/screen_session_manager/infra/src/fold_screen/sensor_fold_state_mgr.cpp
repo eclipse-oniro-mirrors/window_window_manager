@@ -25,6 +25,7 @@
 #include "screen_session_manager.h"
 #include "fold_screen_base_policy.h"
 #include "task_sequence_process.h"
+#include "product_ext_wrapper.h"
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
 #endif
@@ -55,6 +56,11 @@ SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
     if (instance_ == nullptr) {
         std::lock_guard<std::mutex> lock(singletonMutex_);
         if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init sensorFoldStateMgr from ext");
+            instance_ = ProductExtWrapper::GetExtInstance<SensorFoldStateMgr>("GetSensorFoldStateMgr");
+        }
+        if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init SensorFoldStateMgr");
             instance_ = new SensorFoldStateMgr();
         }
     }
@@ -103,6 +109,9 @@ void SensorFoldStateMgr::HandleSensorEvent(const SensorStatus& sensorStatus)
 
 FoldStatus SensorFoldStateMgr::GetNextFoldStatus(const SensorStatus& sensorStatus)
 {
+    if (IsGetFoldStatusByHalls(sensorStatus)) {
+        return GetFoldStatusByHalls(sensorStatus);
+    }
     UpdateFoldAlgorithmStrategy(sensorStatus.axis_);
     std::vector<FoldStatus> nextFoldStatus;
     for (size_t i = 0; i < sensorStatus.axis_.size(); ++i) {
@@ -433,4 +442,13 @@ void SensorFoldStateMgr::SetTentMode(int tentType)
     tentModeType_ = tentType;
 }
 
+bool SensorFoldStateMgr::IsGetFoldStatusByHalls(const SensorStatus& sensorStatus)
+{
+    return false;
+}
+
+FoldStatus SensorFoldStateMgr::GetFoldStatusByHalls(const SensorStatus& sensorStatus)
+{
+    return FoldStatus::UNKNOWN;
+}
 }  // namespace OHOS::Rosen::DMS

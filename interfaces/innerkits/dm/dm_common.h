@@ -492,6 +492,9 @@ enum class FoldDisplayMode: uint32_t {
     SUB = 3,
     COORDINATION = 4,
     GLOBAL_FULL = 5,
+    V_MAIN = 6,
+    N_MAIN = 7,
+    L_FULL = 8,
 };
 
 struct RotationCorrectionWhiteConfig {
@@ -606,6 +609,12 @@ enum class ScreenModeChangeEvent: uint32_t {
     END,
 };
 
+enum class DisplayIntentType: uint32_t {
+    CANONICAL = 0, //fixed nits
+    LOCAL = 1, // current screen nits
+    DISPLAY_INTENT_BUTT, // a boundary for DisplayIntentType Security Check
+};
+
 class Point : public Parcelable {
 public:
     int32_t posX_{0};
@@ -697,6 +706,7 @@ struct CaptureOption {
     bool isNeedNotify_ = true;
     bool isNeedPointer_ = true;
     bool isCaptureFullOfScreen_ = false;
+    DisplayIntentType displayIntent_ = DisplayIntentType::CANONICAL;
     std::vector<NodeId> surfaceNodesList_ = {}; // exclude surfacenodes in screenshot
     std::vector<NodeId> blackWindowIdList_ = {};
     float scaleX_ = DEFAULT_SNAPSHOT_SCALE;
@@ -800,23 +810,6 @@ struct ScreenDirectionInfo {
     int32_t screenRotation_;
     int32_t rotation_;
     int32_t phyRotation_;
-};
-
-/**
- * @brief Session option when connect
- */
-struct SessionOption {
-    ScreenId rsId_;
-    std::string name_;
-    bool isExtend_;
-    std::string innerName_;
-    ScreenId screenId_;
-    std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
-    bool supportsFocus_ {true};
-    bool isRotationLocked_;
-    int32_t rotation_;
-    std::map<int32_t, int32_t> rotationOrientationMap_;
-    bool isBooting_ { false };
 };
 
 /**

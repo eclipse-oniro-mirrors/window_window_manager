@@ -315,10 +315,12 @@ public:
      * @param errorCode Error code.
      * @param isUseDma Whether to use DMA, not used by default.
      * @param isCaptureFullOfScreen Whether to take screenshots of all displays on this screen.
+     * @param displayIntent Whether to optimize output for HDR screenshot.
      * @return std::vector<std::shared_ptr<Media::PixelMap>> Vector of screenshot pixel maps.
      */
     std::vector<std::shared_ptr<Media::PixelMap>> GetScreenHDRshot(DisplayId displayId,
-        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false);
+        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false,
+        DisplayIntentType displayIntent = DisplayIntentType::CANONICAL);
 
     /**
      * @brief Get screenshot by user select area.
@@ -736,6 +738,14 @@ public:
      * @return true means the device is capture.
      */
     bool IsCaptured();
+
+    /**
+     * @brief Check whether the device is captured by apps in bundle name list.
+     *
+     * @param bundleNameList The list of bundle names to check.
+     * @return true means the device is captured by apps in the list.
+     */
+    bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
 
     /**
      * @brief Get the current fold status of the foldable device.

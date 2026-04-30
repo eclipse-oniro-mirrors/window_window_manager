@@ -31,8 +31,7 @@ public:
     {
         rsClientMultiInstanceEnabled_ = RSAdapterUtil::IsClientMultiInstanceEnabled();
         if (rsClientMultiInstanceEnabled_) {
-            rsUIDirector_ = RSUIDirector::Create();
-            rsUIDirector_->Init(true, true);
+            rsUIDirector_ = RSUIDirector::Create(nullptr);
             rsUIContext_ = rsUIDirector_->GetRSUIContext();
         }
         struct RSSurfaceNodeConfig config;
@@ -325,7 +324,7 @@ HWTEST_F(RSAdapterTest, AllowInMultiThreadGuardLifecycle, Function | SmallTest |
 HWTEST_F(RSAdapterTest, RSAdapterUtilInitRSUIDirectorTest, Function | SmallTest | Level1)
 {
     std::shared_ptr<RSUIDirector> rsUIDirector;
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector, true, true);
+    RSAdapterUtil::InitRSUIDirector(rsUIDirector, nullptr, nullptr);
     if (rsClientMultiInstanceEnabled_) {
         EXPECT_NE(rsUIDirector, nullptr);
     } else {

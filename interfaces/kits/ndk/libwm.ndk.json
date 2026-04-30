@@ -232,31 +232,31 @@
         "name":"OH_WindowManager_UnregisterFrameMetricsMeasuredCallback"
     },
     {
-        "first_instroduced":"26.0.0",
+        "first_instroduced":"24",
         "name":"OH_WindowManager_DensityInfo_GetDefaultDensity"
     },
     {
-        "first_instroduced":"26.0.0",
+        "first_instroduced":"24",
         "name":"OH_WindowManager_DensityInfo_GetSystemDensity"
     },
     {
-        "first_instroduced":"26.0.0",
+        "first_instroduced":"24",
         "name":"OH_WindowManager_DensityInfo_GetCustomDensity"
     },
     {
-        "first_instroduced":"26.0.0",
+        "first_instroduced":"24",
         "name":"OH_WindowManager_GetDensityInfoCopy"
     },
     {
-        "first_instroduced":"26.0.0",
+        "first_instroduced":"24",
         "name":"OH_WindowManager_RegisterDensityInfoChangeCallback"
     },
     {
-        "first_instroduced":"26.0.0",
+        "first_instroduced":"24",
         "name":"OH_WindowManager_UnregisterDensityInfoChangeCallback"
     },
     {
-        "first_instroduced":"26.0.0",
+        "first_instroduced":"24",
         "name":"OH_WindowManager_DensityInfo_Release"
     }
 ]

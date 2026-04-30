@@ -34,6 +34,7 @@ public:
     static ani_boolean IsFoldableAni(ani_env* env);
     static ani_int GetFoldStatus(ani_env* env);
     static ani_boolean IsCaptured(ani_env* env);
+    static ani_boolean IsCapturedByBundleNameList(ani_env* env, ani_object bundleNameListObj);
     static void GetCurrentFoldCreaseRegion(ani_env* env, ani_object obj, ani_long nativeObj);
 
     static void GetAllDisplaysAni(ani_env* env, ani_object arrayObj);

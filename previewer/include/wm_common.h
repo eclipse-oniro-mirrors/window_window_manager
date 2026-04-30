@@ -196,6 +196,15 @@ enum class WindowMode : uint32_t {
 };
 
 /**
+ * @brief Split ratio preference of window.
+ */
+enum class SplitRatioPreference : int32_t {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2,
+};
+
+/**
  * @brief Enumerates global mode of window.
  */
 enum class GlobalWindowMode : uint32_t {
@@ -1083,11 +1092,21 @@ struct WindowAnchorInfo : public Parcelable {
     int32_t offsetY_ = 0;
     struct AttachOptions : public Parcelable {
         std::string currentLayoutMode = "";
+        bool isIntersectedHeightLimit = false;
+        bool isIntersectedWidthLimit = false;
+
         AttachOptions() = default;
         AttachOptions(const std::string&& currentLayoutMode) : currentLayoutMode(currentLayoutMode) {}
+        AttachOptions(std::string currentLayoutMode, bool isIntersectedHeightLimit,
+            bool isIntersectedWidthLimit) : currentLayoutMode(currentLayoutMode),
+            isIntersectedHeightLimit(isIntersectedHeightLimit),
+            isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
         bool operator==(const AttachOptions& other) const
         {
-            return currentLayoutMode == other.currentLayoutMode;
+            return currentLayoutMode == other.currentLayoutMode &&
+                   isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+                   isIntersectedWidthLimit == other.isIntersectedWidthLimit;
         }
 
         bool operator!=(const AttachOptions& other) const
@@ -1097,7 +1116,12 @@ struct WindowAnchorInfo : public Parcelable {
 
         bool Marshalling(Parcel& parcel) const override
         {
-            return parcel.WriteString(currentLayoutMode);
+            if (!parcel.WriteString(currentLayoutMode) ||
+                !parcel.WriteBool(isIntersectedHeightLimit) ||
+                !parcel.WriteBool(isIntersectedWidthLimit)) {
+                return false;
+            }
+            return true;
         }
 
         static AttachOptions* Unmarshalling(Parcel& parcel)
@@ -1111,6 +1135,11 @@ struct WindowAnchorInfo : public Parcelable {
                 return nullptr;
             }
             attachOptions->currentLayoutMode = layoutMode;
+
+            if (!parcel.ReadBool(attachOptions->isIntersectedHeightLimit) ||
+                !parcel.ReadBool(attachOptions->isIntersectedWidthLimit)) {
+                return nullptr;
+            }
             return attachOptions.release();
         }
     };
@@ -1162,6 +1191,8 @@ struct WindowAnchorInfo : public Parcelable {
         }
         windowAnchorInfo->windowAnchor_ = static_cast<WindowAnchor>(windowAnchorMode);
         windowAnchorInfo->attachOptions.currentLayoutMode = attachOptions->currentLayoutMode;
+        windowAnchorInfo->attachOptions.isIntersectedHeightLimit = attachOptions->isIntersectedHeightLimit;
+        windowAnchorInfo->attachOptions.isIntersectedWidthLimit = attachOptions->isIntersectedWidthLimit;
         return windowAnchorInfo;
     }
 };
@@ -1376,6 +1407,66 @@ struct WindowLimits {
             << " " << std::fixed << std::setprecision(precision) << maxRatio_ << " " << minRatio_
             << " " << vpRatio_ << " " << static_cast<uint32_t>(pixelUnit_) << "]";
         return oss.str();
+    }
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(maxWidth_) && parcel.WriteUint32(maxHeight_) &&
+            parcel.WriteUint32(minWidth_) && parcel.WriteUint32(minHeight_) &&
+            parcel.WriteFloat(maxRatio_) && parcel.WriteFloat(minRatio_) &&
+            parcel.WriteFloat(vpRatio_) && parcel.WriteUint32(static_cast<uint32_t>(pixelUnit_));
+    }
+
+    static WindowLimits* Unmarshalling(Parcel& parcel)
+    {
+        auto windowLimits = std::make_unique<WindowLimits>();
+        if (!windowLimits) {
+            return nullptr;
+        }
+        uint32_t pixelUnit = 0;
+        if (!parcel.ReadUint32(windowLimits->maxWidth_) ||
+            !parcel.ReadUint32(windowLimits->maxHeight_) ||
+            !parcel.ReadUint32(windowLimits->minWidth_) ||
+            !parcel.ReadUint32(windowLimits->minHeight_) ||
+            !parcel.ReadFloat(windowLimits->maxRatio_) ||
+            !parcel.ReadFloat(windowLimits->minRatio_) ||
+            !parcel.ReadFloat(windowLimits->vpRatio_) ||
+            !parcel.ReadUint32(pixelUnit)) {
+            return nullptr;
+        }
+        // Validate pixelUnit: valid values are PX=0 and VP=1
+        if (pixelUnit > static_cast<uint32_t>(PixelUnit::VP)) {
+            return nullptr;
+        }
+        windowLimits->pixelUnit_ = static_cast<PixelUnit>(pixelUnit);
+        return windowLimits.release();
+    }
+};
+
+/**
+ * @struct AttachLimitOptions
+ *
+ * @brief Options for intersecting limits with attached windows.
+ * Used to specify whether to intersect height/width limits.
+ */
+struct AttachLimitOptions {
+    bool isIntersectedHeightLimit = false;
+    bool isIntersectedWidthLimit = false;
+
+    AttachLimitOptions() = default;
+    AttachLimitOptions(bool isIntersectedHeightLimit, bool isIntersectedWidthLimit)
+        : isIntersectedHeightLimit(isIntersectedHeightLimit),
+          isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
+    bool operator==(const AttachLimitOptions& other) const
+    {
+        return isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+               isIntersectedWidthLimit == other.isIntersectedWidthLimit;
+    }
+
+    bool operator!=(const AttachLimitOptions& other) const
+    {
+        return !this->operator==(other);
     }
 };
 
@@ -2091,6 +2182,15 @@ enum class ScreenshotEventType : int32_t {
 };
 
 /**
+ * @struct SnapshotAnimationConfig
+ * @brief Configuration for snapshot animation duration and delay.
+ */
+struct SnapshotAnimationConfig {
+    int64_t duration = -1;  // Animation duration in ms, -1 means use system default
+    int64_t delay = -1;     // Animation delay in ms, -1 means use system default
+};
+
+/**
  * @enum WaterfallResidentState
  * @brief Represents the resident (persistent) state control of the waterfall layout.
  */
@@ -2103,6 +2203,47 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+};
+
+/**
+ * Enum for across-display policy used when maximizing in the half-folded state of a foldable 2-in-1 device.
+ */
+enum class AcrossDisplayPresentation : uint32_t {
+    /**
+     * Indicates following the current acrossDisplayPresentation.
+     * If the acrossDisplayPresentation has not been set, the default system policy applies:
+     * In the half-folded state of the device, the window enters single-screen maximization
+     * (i.e., when maximized, the window is displayed only on the upper or lower half of the screen).
+     * In the expanded state, the window is maximized and remains across-display mode
+     * (i.e., spanning across both the upper and lower displays) when folded back to the half-folded state.
+     */
+    FOLLOW_ACROSS_DISPLAY_SETTING = 0,
+
+    /**
+     * In the half-folded state of the device, the window could directly enter the across-display mode.
+     * In the expanded state, the window is maximized and remains across-display mode
+     * when folded back to the half-folded state.
+     */
+    ENTER_ACROSS_DISPLAY_MODE = 1,
+
+    /**
+     * In the half-folded state of the device, the window exits across-display mode and enters
+     * single-screen maximization.
+     * In the expanded state, the window is maximized and will exit across-display mode upon
+     * re-entering half-folded.
+     */
+    EXIT_ACROSS_DISPLAY_MODE = 2,
+};
+
+/**
+ * @struct MaximizeOptions
+ * @brief Options for maximize operation with animation configuration.
+ */
+struct MaximizeOptions {
+    MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
+    AcrossDisplayPresentation acrossDisplayPresentation =
+        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+    SnapshotAnimationConfig snapshotAnimationConfig;
 };
 
 struct StateChangeOption {

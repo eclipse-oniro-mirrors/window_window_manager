@@ -134,6 +134,8 @@ export interface HdrScreenshotOptions {
     isNotificationNeeded?: boolean;
  
     isCaptureFullOfScreen?: boolean;
+
+    displayIntent?: DisplayIntentType;
 }
  
 export class HdrScreenshotOptionsImpl implements HdrScreenshotOptions {
@@ -142,8 +144,15 @@ export class HdrScreenshotOptionsImpl implements HdrScreenshotOptions {
     isNotificationNeeded?: boolean;
  
     isCaptureFullOfScreen?: boolean;
+
+    displayIntent?: DisplayIntentType;
 }
  
+export enum DisplayIntentType {
+    CANONICAL = 0,
+
+    LOCAL = 1,
+}
 export interface Size {
     width: long;
  

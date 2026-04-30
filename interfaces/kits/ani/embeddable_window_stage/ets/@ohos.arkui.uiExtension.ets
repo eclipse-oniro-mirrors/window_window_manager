@@ -34,7 +34,7 @@ namespace uiExtension {
   const WINDOW_SIZE_CHANGE_CB: string = "windowSizeChange";
   const AVOID_AREA_CHANGE_CB: string = "avoidAreaChange";
   const WINDOW_RECT_CHANGE_CB: string = "rectChange";
-  const enum WmErrorCode {
+  enum WmErrorCode {
     WM_OK = 0,
     WM_ERROR_INVALID_PARAM = 401
   }

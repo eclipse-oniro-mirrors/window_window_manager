@@ -515,6 +515,28 @@ HWTEST_F(WindowSessionTest3, HandlePointerEventForFocus_Hover, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandlePointerEventForFocus_Loosened
+ * @tc.desc: sub session with IsLoosenedWithFreeMultiMode true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, HandlePointerEventForFocus_Loosened, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsLoosenedWithFreeMultiMode";
+    info.moduleName_ = "IsLoosenedWithFreeMultiMode";
+    info.bundleName_ = "IsLoosenedWithFreeMultiMode";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(info);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession->property_->SetZLevelAboveParentLoosened(true);
+    subSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    pointerEvent->pointerAction_ = MMI::PointerEvent::POINTER_ACTION_DOWN;
+    WSError ret = subSession->HandlePointerEventForFocus(pointerEvent);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
  * @tc.name: TransferFocusStateEvent03
  * @tc.desc: TransferFocusStateEvent Test
  * @tc.type: FUNC
@@ -542,16 +564,17 @@ HWTEST_F(WindowSessionTest3, Snapshot, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     session_->surfaceNode_ = RSSurfaceNode::Create(config);
     ASSERT_NE(session_->surfaceNode_, nullptr);
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    Session::SnapshotOptions options;
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->bufferAvailable_ = true;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->surfaceNode_->bufferAvailable_ = true;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->surfaceNode_ = nullptr;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 }
 
 /**
@@ -1252,6 +1275,32 @@ HWTEST_F(WindowSessionTest3, IsExitSplitOnBackgroundRecover, Function | SmallTes
     session_->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
     EXPECT_EQ(session_->IsExitSplitOnBackgroundRecover(), true);
 }
+
+/**
+ * @tc.name: NotifyClick1
+ * @tc.desc: NotifyClick with IsLoosenedWithFreeMultiMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, NotifyClick1, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "IsLoosenedWithFreeMultiMode";
+    info.moduleName_ = "IsLoosenedWithFreeMultiMode";
+    info.bundleName_ = "IsLoosenedWithFreeMultiMode";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    session->property_->SetZLevelAboveParentLoosened(true);
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    int callbackCount = 0;
+    NotifyRaiseToTopForPointDownFunc func = [&callbackCount]() {
+        callbackCount++;
+    };
+    session->SetRaiseToAppTopForPointDownFunc(func);
+    session->NotifyClick(true, false);
+    EXPECT_EQ(callbackCount, 1);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -247,6 +247,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
     bool isSystem = sceneSession->GetSessionInfo().isSystem_;
     bool displayModeIsFull = static_cast<MMI::DisplayMode>(displayMode) == MMI::DisplayMode::FULL;
     bool displayModeIsGlobalFull = displayMode == FoldDisplayMode::GLOBAL_FULL;
+    bool displayModeIsNOrLFull = displayMode == FoldDisplayMode::L_FULL || displayMode == FoldDisplayMode::N_MAIN;
     bool displayModeIsMain = static_cast<MMI::DisplayMode>(displayMode) == MMI::DisplayMode::MAIN;
     bool displayModeIsCoordination = static_cast<MMI::DisplayMode>(displayMode) == MMI::DisplayMode::COORDINATION;
     bool foldScreenStateInternel = FoldScreenStateInternel::IsSingleDisplayPocketFoldDevice() ||
@@ -256,7 +257,7 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
         " isScreenLockWindow:%{public}d", sceneSession->GetWindowId(), isRotate, isSystem,
         displayMode, foldScreenStateInternel, isRotateWindow, isScreenLockWindow);
 
-    if (isRotate || !isSystem || displayModeIsFull || displayModeIsGlobalFull ||
+    if (isRotate || !isSystem || displayModeIsFull || displayModeIsGlobalFull || displayModeIsNOrLFull ||
         (displayModeIsMain && foldScreenStateInternel) || displayModeIsCoordination) {
         if (isScreenLockWindow && isRotateWindow) {
             CalSpecialNotRotateTransform(sceneSession, screenProperty, transform, useUIExtension);
@@ -448,7 +449,7 @@ void SceneSessionDirtyManager::UpdateHotAreas(const sptr<SceneSession>& sceneSes
 static void AddDialogSessionMapItem(const sptr<SceneSession>& session,
     std::map<int32_t, sptr<SceneSession>>& dialogMap)
 {
-    const auto& mainSession = session->GetMainSession();
+    const auto& mainSession = session->GetMainSessionOrLoosenedSession();
     if (mainSession == nullptr) {
         return;
     }
@@ -731,9 +732,9 @@ auto SceneSessionDirtyManager::GetFullWindowInfoList() -> FullInfoForMMI
             sceneSessionValue->GetSessionInfo().bundleName_.c_str(), sceneSessionValue->GetWindowId(),
             sceneSessionValue->GetForegroundInteractiveStatus());
         auto [windowInfo, pixelMap] = GetWindowInfo(sceneSessionValue, WindowAction::WINDOW_ADD);
-        auto iter = (sceneSessionValue->GetMainSessionId() == INVALID_SESSION_ID) ?
+        auto iter = (sceneSessionValue->GetMainSessionOrLoosenedSessionId() == INVALID_SESSION_ID) ?
             dialogMap.find(sceneSessionValue->GetPersistentId()) :
-            dialogMap.find(sceneSessionValue->GetMainSessionId());
+            dialogMap.find(sceneSessionValue->GetMainSessionOrLoosenedSessionId());
         if (iter != dialogMap.end() && iter->second != nullptr &&
             sceneSessionValue->GetPersistentId() != iter->second->GetPersistentId() &&
             iter->second->GetZOrder() > sceneSessionValue->GetZOrder()) {

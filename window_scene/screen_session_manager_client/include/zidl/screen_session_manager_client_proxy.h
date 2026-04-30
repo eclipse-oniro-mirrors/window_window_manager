@@ -61,7 +61,7 @@ public:
         ExtendScreenConnectStatus extendScreenConnectStatus) override;
     bool OnExtendDisplayNodeChange(ScreenId firstId, ScreenId secondId) override;
     bool OnCreateScreenSessionOnly(ScreenId screenId, ScreenId rsId, const std::string& name,
-        bool isExtend) override;
+        sptr<IRemoteObject> renderSession, bool isExtend) override;
     bool OnMainDisplayNodeChange(ScreenId mainScreenId, ScreenId extendScreenId, ScreenId extendRSId) override;
     void SetScreenCombination(ScreenId mainScreenId, ScreenId extendScreenId,
         ScreenCombination extendCombination) override;
@@ -71,9 +71,11 @@ public:
     void OnAnimationFinish() override;
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override;
     void OnTentModeChange(TentMode tentMode) override;
+    void OnTransRSEvent(const sptr<RSEventDataBase>& param) override;
 private:
     static inline BrokerDelegator<ScreenSessionManagerClientProxy> delegator_;
     bool ScreenConnectWriteParam(const SessionOption& SessionOption, ScreenEvent screenEvent, MessageParcel& data);
+    bool WriteRSEventToParcel(MessageParcel& data, const RSEventDataBase& param);
 };
 } // namespace OHOS::Rosen
 

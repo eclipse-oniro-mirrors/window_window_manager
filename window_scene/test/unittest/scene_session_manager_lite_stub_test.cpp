@@ -361,6 +361,11 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     WMError UnregisterPipChgListenerByScreenId(int32_t screenId) override { return WMError::WM_OK; }
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) override { return WMError::WM_OK; }
+    WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) override
+    {
+        return WMError::WM_OK;
+    }
 };
 
 class SceneSessionManagerLiteStubTest : public testing::Test {
@@ -1724,6 +1729,25 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionScreenLock, Functio
 }
 
 /**
+ * @tc.name: HandleRecoverProcessWatermark
+ * @tc.desc: test HandleRecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleRecoverProcessWatermark, TestSize.Level1)
+{
+    ASSERT_NE(sceneSessionManagerLiteStub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInt32(123);
+    data.WriteString("RecoverProcessWatermarkName");
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_RECOVER_PROCESS_WATERMARK);
+    auto res = sceneSessionManagerLiteStub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_NE(res, ERR_NULL_OBJECT);
+}
+
+/**
  * @tc.name: HandleSendPointerEventForHover
  * @tc.desc: HandleSendPointerEventForHover
  * @tc.type: FUNC
@@ -1906,6 +1930,64 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetDisplayIdByWindowId02, TestSi
 
     int res = sceneSessionManagerLiteStub_->HandleGetDisplayIdByWindowId(data, reply);
     EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_Success
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetAppWindowShowingInfosByBundleName_Success, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteString("com.test.app");
+    data.WriteInt32(0);
+    data.WriteString("");
+    int res = sceneSessionManagerLiteStub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_ReadBundleNameFailed
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName when ReadString bundleName failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest,
+    HandleGetAppWindowShowingInfosByBundleName_ReadBundleNameFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleGetAppWindowShowingInfosByBundleName(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_ReadAppIndexFailed
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName when ReadInt32 appIndex failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest,
+    HandleGetAppWindowShowingInfosByBundleName_ReadAppIndexFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteString("com.test.app");
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleGetAppWindowShowingInfosByBundleName(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_ReadAppInstanceKeyFailed
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName when ReadString appInstanceKey failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest,
+    HandleGetAppWindowShowingInfosByBundleName_ReadAppInstanceKeyFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteString("com.test.app");
+    data.WriteInt32(0);
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleGetAppWindowShowingInfosByBundleName(data, reply), ERR_INVALID_DATA);
 }
 } // namespace
 } // namespace Rosen

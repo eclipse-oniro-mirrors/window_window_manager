@@ -22,10 +22,12 @@
 #include "fold_screen_state_internel.h"
 #include "fold_crease_region_controller.h"
 #include "screen_session_manager.h"
+#include "screen_scene_config.h"
 #include "window_manager_hilog.h"
 #include "rs_adapter.h"
 #include "sensor_agent.h"
 #include "sensor_agent_type.h"
+#include "product_ext_wrapper.h"
 
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
@@ -70,11 +72,99 @@ FoldScreenBasePolicy& FoldScreenBasePolicy::GetInstance()
     if (instance_ == nullptr) {
         std::lock_guard<std::mutex> lock(singletonMutex_);
         if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init policy from ext");
+            instance_ = ProductExtWrapper::GetExtInstance<FoldScreenBasePolicy>("GetFoldScreenBasePolicy");
+        }
+        if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init base policy");
             instance_ = new FoldScreenBasePolicy();
         }
     }
     return *instance_;
 }
+
+// closed source not depend on open source start
+void FoldScreenBasePolicy::NotifyDisplayModeChanged(FoldDisplayMode displayMode)
+{
+    ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
+}
+
+void FoldScreenBasePolicy::SwitchScrollParam(FoldDisplayMode displayMode)
+{
+    ScreenSessionManager::GetInstance().SwitchScrollParam(displayMode);
+}
+
+bool FoldScreenBasePolicy::IsInRecoveryProcess()
+{
+    return ScreenSessionManager::GetInstance().IsInRecoveringProcess();
+}
+
+void FoldScreenBasePolicy::HandlePowerStateChange(ScreenPowerEvent event, const std::function<void()>& func)
+{
+    ScreenStateMachine::GetInstance().HandlePowerStateChange(event, func);
+}
+
+std::shared_ptr<TaskScheduler> FoldScreenBasePolicy::GetScreenPowerTaskScheduler()
+{
+    return ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler();
+}
+
+std::vector<DisplayPhysicalResolution> FoldScreenBasePolicy::GetAllDisplayPhysicalConfig()
+{
+    return ScreenSceneConfig::GetAllDisplayPhysicalConfig();
+}
+
+ScreenProperty FoldScreenBasePolicy::GetPhyScreenProperty(ScreenId screenId)
+{
+    return ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
+}
+
+void FoldScreenBasePolicy::SetTpFeatureConfig(int32_t tpType, const std::string& tpConfig, bool isDefaultConfigType)
+{
+#ifdef TP_FEATURE_ENABLE
+    if (isDefaultConfigType) {
+        RSInterfaces::GetInstance().SetTpFeatureConfig(tpType, tpConfig.c_str());
+    } else {
+        RSInterfaces::GetInstance().SetTpFeatureConfig(tpType, tpConfig.c_str(), TpFeatureConfigType::AFT_TP_FEATURE);
+    }
+#endif
+}
+
+bool FoldScreenBasePolicy::TryToCancelScreenOff()
+{
+    return ScreenSessionManager::GetInstance().TryToCancelScreenOff();
+}
+
+bool FoldScreenBasePolicy::IsFoldScreenOn()
+{
+    return PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn();
+}
+
+void FoldScreenBasePolicy::NotifyScreenSwitched()
+{
+    RSInterfaces::GetInstance().NotifyScreenSwitched();
+}
+
+sptr<ScreenSession> FoldScreenBasePolicy::GetScreenSession(ScreenId screenId) const
+{
+    return ScreenSessionManager::GetInstance().GetScreenSession(screenId);
+}
+
+uint32_t FoldScreenBasePolicy::SetScreenActiveRect(ScreenId id, const Rect& activeRect)
+{
+    return RSInterfaces::GetInstance().SetScreenActiveRect(id, activeRect);
+}
+
+void FoldScreenBasePolicy::WakeupDeviceAsync()
+{
+    PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
+}
+
+void FoldScreenBasePolicy::NotifyDisplayChanged(const sptr<DisplayInfo>& displayInfo, DisplayChangeEvent event)
+{
+    ScreenSessionManager::GetInstance().NotifyDisplayChanged(displayInfo, event);
+}
+// closed source not depend on open source end
 
 FoldDisplayMode FoldScreenBasePolicy::GetScreenDisplayMode()
 {
@@ -643,9 +733,9 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeToMain(sptr<ScreenSession> scr
         return;
     }
     RSInterfaces::GetInstance().NotifyScreenSwitched();
-    #ifdef TP_FEATURE_ENABLE
+#ifdef TP_FEATURE_ENABLE
     RSInterfaces::GetInstance().SetTpFeatureConfig(TP_TYPE, MAIN_TP.c_str());
-    #endif
+#endif
     if (PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn() ||
         ScreenSessionManager::GetInstance().GetCancelSuspendStatus()) {
         ChangeScreenDisplayModeToMainWhenFoldScreenOn(screenSession);
@@ -737,9 +827,9 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModePower(ScreenId screenId, Scree
 }
 
 void FoldScreenBasePolicy::SendPropertyChangeResult(sptr<ScreenSession> screenSession, ScreenId screenId,
-    ScreenPropertyChangeReason reason)
+    ScreenPropertyChangeReason reason, ScreenProperty& screenProperty)
 {
-    screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
+    screenProperty_ =screenProperty;
     screenSession->SetPhyScreenId(screenId);
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
         screenSession->UpdatePropertyByFoldControl(screenProperty_);
@@ -757,10 +847,22 @@ void FoldScreenBasePolicy::SendPropertyChangeResult(sptr<ScreenSession> screenSe
     }
 }
 
+void FoldScreenBasePolicy::SendPropertyChangeResult(sptr<ScreenSession> screenSession, ScreenId screenId,
+    ScreenPropertyChangeReason reason)
+{
+    auto screenProperty = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
+    SendPropertyChangeResult(screenSession, screenId, reason, screenProperty);
+}
+
 void FoldScreenBasePolicy::SetdisplayModeChangeStatus(bool status, bool isOnBootAnimation)
 {
+    SetdisplayModeChangeStatusCount(status, isOnBootAnimation ? FOLD_TASK_NUM_ONBOOTANIMATION : FOLD_TASK_NUM);
+}
+
+void FoldScreenBasePolicy::SetdisplayModeChangeStatusCount(bool status, uint32_t count)
+{
     if (status) {
-        pendingTask_ = isOnBootAnimation ? FOLD_TASK_NUM_ONBOOTANIMATION : FOLD_TASK_NUM;
+        pendingTask_ = count;
         startTimePoint_ = std::chrono::steady_clock::now();
         displayModeChangeRunning_ = status;
     } else {
@@ -907,5 +1009,10 @@ FoldDisplayMode FoldScreenBasePolicy::GetCurrentDisplayMode() const
 {
     std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
     return currentDisplayMode_;
+}
+
+const std::map<FoldDisplayMode, RRect>& FoldScreenBasePolicy::GetScreenActiveModeRectMap() const
+{
+    return screenActiveModeRectMap_;
 }
 } // namespace OHOS::Rosen

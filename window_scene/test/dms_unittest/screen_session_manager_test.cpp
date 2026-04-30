@@ -1291,6 +1291,173 @@ HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid04, TestSize.Level1)
     ssm_->displayHookMap_.erase(uid);
     ssm_->DestroyVirtualScreen(screenId);
 }
+
+/**
+ * @tc.name: OnTransRSEvent
+ * @tc.desc: OnTransRSEvent all branches test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnTransRSEvent, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    ssm_->OnTransRSEvent(nullptr);
+
+    auto unknownData = std::make_shared<RSExposedEventDataBase>();
+    unknownData->type_ = static_cast<RSExposedEventType>(999);
+    ssm_->OnTransRSEvent(unknownData);
+
+    auto validData = std::make_shared<RSExposedEventDataBase>();
+    validData->type_ = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    auto originalProxy = ssm_->clientProxy_;
+    ssm_->clientProxy_ = nullptr;
+    ssm_->OnTransRSEvent(validData);
+
+    ssm_->clientProxy_ = originalProxy;
+    ssm_->OnTransRSEvent(validData);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList001
+ * @tc.desc: The package name in bundleNameList matches the virtual screen.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, IsCapturedByBundleNameList001, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "TestVirtualScreen";
+    virtualOption.bundleName_ = "com.test.recorder";
+    virtualOption.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+
+    std::vector<std::string> bundleNameList = {"com.test.recorder"};
+    bool ret = ssm_->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, true);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList002
+ * @tc.desc: The package name in bundleNameList does not match the virtual screen.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, IsCapturedByBundleNameList002, TestSize.Level1)
+{
+    // 1. 创建虚拟屏，设置 bundleName
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "TestVirtualScreen";
+    virtualOption.bundleName_ = "com.test.recorder";
+    virtualOption.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+
+    std::vector<std::string> bundleNameList = {"com.other.app"};
+    bool ret = ssm_->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList003
+ * @tc.desc: The bundleNameList contains multiple package names.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, IsCapturedByBundleNameList003, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> agent = new DisplayManagerAgentDefault();
+    VirtualScreenOption option;
+    option.name_ = "VirtualScreen";
+    option.bundleName_ = "com.target.app";
+    option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    ScreenId screenId = ssm_->CreateVirtualScreen(option, agent->AsObject());
+
+    std::vector<std::string> bundleNameList = {"com.app1", "com.target.app", "com.app3"};
+    bool ret = ssm_->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, true);
+    
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: SetOptionConfig_BundleName001
+ * @tc.desc: caller is NATIVE_SCREEN_MANAGEG
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName001, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "testVirtualScreen";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    
+    VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    option.bundleName_ = "com.test.native";
+    
+    ssm_->SetOptionConfig(screenId, option);
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_EQ(screenSession->GetBundleName(), "com.test.native");
+    
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: SetOptionConfig_BundleName002
+ * @tc.desc: caller is JS_DISPLAY_MANAGER
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName002, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "testVirtualScreen";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    
+    VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::JS_DISPLAY_MANAGER;
+    option.bundleName_ = "";
+    
+    ssm_->SetOptionConfig(screenId, option);
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_TRUE(g_logMsg.find("bundleInfo null") != std::string::npos);
+    
+    LOG_SetCallback(nullptr);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: SetOptionConfig_BundleName003
+ * @tc.desc: caller is UNKNOWN
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName003, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "testVirtualScreen";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+
+    VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::UNKNOWN;
+    option.bundleName_ = "";
+
+    ssm_->SetOptionConfig(screenId, option);
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_TRUE(g_logMsg.find("bundleInfo null") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+    ssm_->DestroyVirtualScreen(screenId);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

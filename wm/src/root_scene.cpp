@@ -174,9 +174,14 @@ void RootScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configurat
             continue;
         }
         bool isDark = (colorMode == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
-        bool ret = RSInterfaces::GetInstance().SetGlobalDarkColorMode(isDark);
-        if (ret == false) {
-            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SetGlobalDarkColorMode fail, colorMode : %{public}s", colorMode.c_str());
+        auto rsUICtx = GetRSUIContext();
+        if (rsUICtx == nullptr) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no rsUICtx");
+            continue;
+        }
+        if (auto rsInterface = rsUICtx->GetRSRenderInterface()) {
+            bool ret = rsInterface->SetGlobalDarkColorMode(isDark);
+            TLOGI(WmsLogTag::DEFAULT, "colorMode: %{public}s, ret: %{public}d", colorMode.c_str(), ret);
         }
     }
 }
@@ -199,9 +204,15 @@ void RootScene::UpdateConfigurationForSpecified(const std::shared_ptr<AppExecFwk
         GetWindowId(), GetDisplayId());
     std::string colorMode = configuration->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE);
     bool isDark = (colorMode == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
-    if (!RSInterfaces::GetInstance().SetGlobalDarkColorMode(isDark)) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "set dark color mode failed, winId: %{public}u, colorMode: %{public}s",
-            GetWindowId(), colorMode.c_str());
+    auto rsUICtx = GetRSUIContext();
+    if (rsUICtx == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no rsUICtx");
+        return;
+    }
+    if (auto rsInterface = rsUICtx->GetRSRenderInterface()) {
+        bool ret = rsInterface->SetGlobalDarkColorMode(isDark);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u, colorMode: %{public}s, ret: %{public}d",
+            GetWindowId(), colorMode.c_str(), ret);
     }
 }
 

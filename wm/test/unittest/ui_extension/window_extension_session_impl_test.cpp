@@ -3858,6 +3858,28 @@ HWTEST_F(WindowExtensionSessionImplTest, IsBlockSubwindow, TestSize.Level1)
     window_->isBlockSubwindow_ = false;
     EXPECT_FALSE(window_->IsBlockSubwindow());
 }
+
+/*
+ * @tc.name: GetAvoidAreaByType
+ * @tc.desc: GetAvoidAreaByType
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetAvoidAreaByType, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->state_ = WindowState::STATE_SHOWN;
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    AvoidArea avoidArea;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_FLOAT_NAVIGATION, avoidArea), WMError::WM_DO_NOTHING);
+    window->floatNavigationAvoidAreaEnabled_ = true;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
 }
 
 /**
@@ -3953,6 +3975,7 @@ HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowStatusChangeWithListener, T
     EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
     EXPECT_EQ(WindowStatus::WINDOW_STATUS_MINIMIZE, windowStatus);
     EXPECT_EQ(WMError::WM_OK, window_->UnregisterWindowStatusChangeListener(listener));
+}
 }
 } // namespace Rosen
 } // namespace OHOS

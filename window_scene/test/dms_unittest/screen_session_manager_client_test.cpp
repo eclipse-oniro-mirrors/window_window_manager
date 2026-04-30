@@ -22,6 +22,7 @@
 #include "window_manager_hilog.h"
 #include "scene_board_judgement.h"
 #include "fold_screen_state_internel.h"
+#include "rs_event_data_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -87,6 +88,18 @@ public:
     void SetUp() override;
     void TearDown() override;
     ScreenSessionManagerClient* screenSessionManagerClient_;
+};
+
+class MockTransRSEventListener : public ITransRSEventListener {
+public:
+    MockTransRSEventListener() : eventReceived_(false) {}
+    void OnTransRSEvent(const sptr<RSEventDataBase>& param) override
+    {
+        eventReceived_ = true;
+        eventData_ = param;
+    }
+    bool eventReceived_;
+    sptr<RSEventDataBase> eventData_;
 };
 
 void ScreenSessionManagerClientTest::SetUp()
@@ -2673,6 +2686,186 @@ HWTEST_F(ScreenSessionManagerClientTest, OnPropertyChanged05, TestSize.Level1)
     logMsg.clear();
     LOG_SetCallback(nullptr);
     screenSessionManagerClient_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: RegisterTransRSEventListener01
+ * @tc.desc: RegisterTransRSEventListener with null listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterTransRSEventListener01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<ITransRSEventListener> listener = nullptr;
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("Failed to register transRSEvent listener, listener is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RegisterTransRSEventListener02
+ * @tc.desc: RegisterTransRSEventListener with duplicate listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterTransRSEventListener02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("Listener already exists") != std::string::npos);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener01
+ * @tc.desc: UnRegisterTransRSEventListener with null listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<ITransRSEventListener> listener = nullptr;
+
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("listener is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener02
+ * @tc.desc: UnRegisterTransRSEventListener successfully
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener02, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(listener->eventReceived_ == false);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener03
+ * @tc.desc: UnRegisterTransRSEventListener with listener not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("No listeners for type") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener04
+ * @tc.desc: UnRegisterTransRSEventListener removes empty listener list
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("Remove empty listener list") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnTransRSEvent01
+ * @tc.desc: OnTransRSEvent with null data
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<RSEventDataBase> data = nullptr;
+
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(logMsg.find("data is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnTransRSEvent02
+ * @tc.desc: OnTransRSEvent with no listeners for event type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<RSEventDataBase> data = new RSExtScreenUnsupportEventData();
+
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(logMsg.find("No listeners for type") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnTransRSEvent03
+ * @tc.desc: OnTransRSEvent successfully dispatches to listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent03, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+    sptr<RSEventDataBase> data = new RSExtScreenUnsupportEventData();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(listener->eventReceived_);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+}
+
+/**
+ * @tc.name: OnTransRSEvent04
+ * @tc.desc: OnTransRSEvent dispatches to multiple listeners
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent04, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener1 = new MockTransRSEventListener();
+    sptr<MockTransRSEventListener> listener2 = new MockTransRSEventListener();
+    sptr<RSEventDataBase> data = new RSExtScreenUnsupportEventData();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener1);
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener2);
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(listener1->eventReceived_);
+    EXPECT_TRUE(listener2->eventReceived_);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener1);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener2);
 }
 } // namespace Rosen
 } // namespace OHOS

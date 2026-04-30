@@ -43,6 +43,7 @@ public:
     static void SetReadFloatErrorFlag(bool flag);
     static void SetReadStringVectorErrorFlag(bool flag);
     static void SetReadStringErrorFlag(bool flag);
+    static void SetWriteStringVectorErrorFlag(bool flag);
     static void SetWriteInt32ErrorCount(int count);
     static void SetWriteBoolErrorCount(int count);
     static void SetWriteParcelableErrorCount(int count);

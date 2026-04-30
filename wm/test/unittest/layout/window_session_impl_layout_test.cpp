@@ -424,7 +424,7 @@ HWTEST_F(WindowSessionImplLayoutTest, NotifyParentWindowStatusChange, TestSize.L
     EXPECT_NE(listeners.size(), 0);
     listeners.insert(listeners.begin(), nullptr);
     window->parentWindowStatusChangeListeners_.insert({ window->GetPersistentId(), listeners });
-    window->NotifyParentWindowStatusChange(WindowMode::WINDOW_MODE_FLOATING);
+    window->NotifyParentWindowStatusChange(WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_AVOID_SYSTEM_BAR, true);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
     GTEST_LOG_(INFO) << "WindowSessionImplLayoutTest: NotifyParentWindowStatusChange end";
 }
@@ -442,7 +442,7 @@ HWTEST_F(WindowSessionImplLayoutTest, NotifyParentWindowStatusChange_Test_Undefi
     EXPECT_NE(listeners.size(), 0);
     window->parentWindowStatusChangelisteners_.insert({ window->GetPersistentId(), listeners });
     window->lastStatusWhenNotifyParentStatusChange_.store(WindowStatus::WINDOW_STATUS_FULLSCREEN);
-    window->NotifyParentWindowStatusChange(WindowMode::WINDOW_MODE_UNDEFINED);
+    window->NotifyParentWindowStatusChange(WindowMode::WINDOW_MODE_UNDEFINED, MaximizeMode::MODE_FULL_FILL, true);
     EXPECT_EQ(window->lastStatusWhenNotifyParentStatusChange_, WindowStatus::WINDOW_STATUS_UNDEFINED);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
     GTEST_LOG_(INFO) << "WindowSessionImplLayoutTest: NotifyWindowStatusDidChange_Test_Undefined end";
@@ -573,7 +573,7 @@ HWTEST_F(WindowSessionImplLayoutTest, HookWindowSizeByDrawableRectHook, TestSize
     hookWindowInfo.drawableRectHook = false;
     window->SetAppHookWindowInfo(hookWindowInfo);
     Rect drawableRect = { 0, 0, defaultSize, defaultSize };
-    if (window->GetAppHookWindowInfo().drawableRectHook) {
+    if (window->GetProperty()->GetHookWindowInfo().drawableRectHook) {
         window->HookWindowSizeByHookWindowInfo(drawableRect);
     }
     EXPECT_EQ(drawableRect.width_, defaultSize);
@@ -582,7 +582,7 @@ HWTEST_F(WindowSessionImplLayoutTest, HookWindowSizeByDrawableRectHook, TestSize
     hookWindowInfo.drawableRectHook = true;
     window->SetAppHookWindowInfo(hookWindowInfo);
     drawableRect = { 0, 0, defaultSize, defaultSize };
-    if (window->GetAppHookWindowInfo().drawableRectHook) {
+    if (window->GetProperty()->GetHookWindowInfo().drawableRectHook) {
         window->HookWindowSizeByHookWindowInfo(drawableRect);
     }
     EXPECT_NE(drawableRect.width_, defaultSize);
@@ -595,6 +595,57 @@ HWTEST_F(WindowSessionImplLayoutTest, HookWindowSizeByDrawableRectHook, TestSize
     EXPECT_NE(normalRect.width_, defaultSize);
 
     GTEST_LOG_(INFO) << "WindowSessionImplLayoutTest: HookWindowSizeByDrawableRectHook end";
+}
+
+/**
+ * @tc.name: ClearParentWindowListeners01
+ * @tc.desc: ClearParentWindowListeners removes registered parent window listeners
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplLayoutTest, ClearParentWindowListeners01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ClearParentWindowListeners01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    int32_t persistentId = 9999;
+    window->property_->SetPersistentId(persistentId);
+    ASSERT_NE(window, nullptr);
+
+    // Register a parent window size change listener
+    sptr<MockParentWindowSizeChangeListener> sizeListener = sptr<MockParentWindowSizeChangeListener>::MakeSptr();
+    window->RegisterParentWindowSizeChangeListener(sizeListener);
+
+    // Register a parent window status change listener
+    sptr<MockParentWindowStatusChangeListener> statusListener = sptr<MockParentWindowStatusChangeListener>::MakeSptr();
+    window->RegisterParentWindowStatusChangeListener(statusListener);
+
+    // Clear listeners
+    window->ClearParentWindowListeners(persistentId);
+
+    // Verify listeners are cleared by checking the map entry is removed
+    EXPECT_EQ(WindowSessionImpl::parentWindowSizeChangeListeners_.count(persistentId), 0u);
+    EXPECT_EQ(WindowSessionImpl::parentWindowStatusChangeListeners_.count(persistentId), 0u);
+}
+
+/**
+ * @tc.name: ClearParentWindowListeners02
+ * @tc.desc: ClearParentWindowListeners with no registered listeners → no crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplLayoutTest, ClearParentWindowListeners02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ClearParentWindowListeners02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    int32_t persistentId = 8888;
+    window->property_->SetPersistentId(persistentId);
+    ASSERT_NE(window, nullptr);
+
+    // No listeners registered, should not crash
+    window->ClearParentWindowListeners(persistentId);
+    EXPECT_EQ(WindowSessionImpl::parentWindowSizeChangeListeners_.count(persistentId), 0u);
 }
 }
 } // namespace Rosen

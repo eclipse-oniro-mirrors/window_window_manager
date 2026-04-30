@@ -121,10 +121,14 @@ std::shared_ptr<Media::PixelMap> AbstractDisplayController::GetScreenSnapshot(Di
     }
     ScreenId dmsScreenId = abstractDisplay->GetAbstractScreenId();
     std::shared_ptr<RSDisplayNode> displayNode = abstractScreenController_->GetRSDisplayNodeByScreenId(dmsScreenId);
+    if (displayNode == nullptr || displayNode->GetRSUIContext() == nullptr) {
+        TLOGE(WmsLogTag::DMS, "GetScreenSnapshot: displayNode or rsUIContext is nullptr");
+        return nullptr;
+    }
 
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    rsInterface_.TakeSurfaceCapture(displayNode, callback);
+    displayNode->GetRSUIContext()->GetRSRenderInterface()->TakeSurfaceCapture(displayNode, callback);
     std::shared_ptr<Media::PixelMap> screenshot = callback->GetResult(2000); // wait for <= 2000ms
     if (screenshot == nullptr) {
         TLOGE(WmsLogTag::DMS, "Failed to get pixelmap from RS, return nullptr!");

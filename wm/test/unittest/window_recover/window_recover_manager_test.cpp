@@ -269,6 +269,11 @@ HWTEST_F(WindowRecoverManagerTest, OnWindowRecoverStateChange, TestSize.Level1)
     window->OnWindowRecoverStateChange(false, WindowRecoverState::WINDOW_START_RECONNECT);
     EXPECT_EQ(window->property_->GetWindowState(), window->state_);
 
+    window->UpdateFocusState(true);
+    window->NotifyHighlightChange(true);
+    window->OnWindowRecoverStateChange(false, WindowRecoverState::WINDOW_START_RECONNECT);
+    EXPECT_EQ(window->property_->GetWindowState(), window->state_);
+
     window->OnWindowRecoverStateChange(false, WindowRecoverState::WINDOW_FINISH_RECONNECT);
     EXPECT_EQ(window->property_->GetWindowState(), window->state_);
 }

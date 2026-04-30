@@ -407,27 +407,6 @@ HWTEST_F(SessionLayoutTest, SetGetRsCmdBlockingCountFunc, TestSize.Level1)
     });
     ASSERT_NE(nullptr, session->getRsCmdBlockingCountFunc_);
 }
-
-/**
- * @tc.name: NotifyAppHookWindowInfoUpdated
- * @tc.desc: NotifyAppHookWindowInfoUpdated
- * @tc.type: FUNC
- */
-HWTEST_F(SessionLayoutTest, NotifyAppHookWindowInfoUpdated, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifyAppHookWindowInfoUpdated";
-    info.bundleName_ = "NotifyAppHookWindowInfoUpdated";
-    sptr<Session> session = sptr<Session>::MakeSptr(info);
-
-    session->sessionStage_ = nullptr;
-    WSError errCode = session->NotifyAppHookWindowInfoUpdated();
-    EXPECT_EQ(errCode, WSError::WS_ERROR_NULLPTR);
-
-    session->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
-    errCode = session->NotifyAppHookWindowInfoUpdated();
-    EXPECT_EQ(errCode, WSError::WS_OK);
-}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

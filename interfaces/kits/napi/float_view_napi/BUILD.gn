@@ -17,8 +17,9 @@ import("../../../../windowmanager_aafwk.gni")
 config("float_view_config") {
     include_dirs = [
       "../../../../wm/include",
+      "../floating_ball_napi",
       "../common",
-      "../floating_ball_napi"
+      "../../../../utils/include",
     ]
 }
 
@@ -70,5 +71,9 @@ ohos_shared_library("floatview_napi") {
   defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
+  }
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
   }
 }

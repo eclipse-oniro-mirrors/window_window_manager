@@ -406,6 +406,38 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleGetRootUIContentRemoteObj01, TestSi
 }
 
 /**
+ * @tc.name: HandleRecoverProcessWatermark
+ * @tc.desc: test HandleRecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverProcessWatermark, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInt32(123);
+    data.WriteString("RecoverProcessWatermarkName");
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_RECOVER_PROCESS_WATERMARK);
+    auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_NE(res, ERR_NULL_OBJECT);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    EXPECT_NE(stub_->HandleRecoverProcessWatermark(data, reply), ERR_NULL_OBJECT);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    MessageParcel data2;
+    data2.WriteInt32(2);
+    MockMessageParcel::SetReadStringErrorFlag(true);
+    EXPECT_NE(stub_->HandleRecoverProcessWatermark(data2, reply), ERR_NULL_OBJECT);
+    MockMessageParcel::SetReadStringErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+
+/**
  * @tc.name: HandleUpdateOutline
  * @tc.desc: test HandleUpdateOutline
  * @tc.type: FUNC

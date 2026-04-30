@@ -94,7 +94,7 @@ WSError SystemSession::Show(sptr<WindowSessionProperty> property)
             WLOGFW("parent session is null");
             return WSError::WS_ERROR_INVALID_PARENT;
         }
-        if ((type == WindowType::WINDOW_TYPE_TOAST) && !parentSession->IsSessionForeground()) {
+        if ((type == WindowType::WINDOW_TYPE_TOAST) && !parentSession->IsLifecycleForeground()) {
             WLOGFW("parent session is not in foreground");
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
@@ -246,15 +246,16 @@ WSError SystemSession::ProcessBackEvent()
 }
 
 WSError SystemSession::NotifyClientToUpdateRect(const std::string& updateReason,
-    std::shared_ptr<RSTransaction> rsTransaction)
+                                                std::optional<WSRect> updateRect,
+                                                std::shared_ptr<RSTransaction> rsTransaction)
 {
-    PostTask([weakThis = wptr(this), rsTransaction, updateReason]() {
+    PostTask([weakThis = wptr(this), updateReason, updateRect, rsTransaction, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            WLOGFE("session is null");
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, rsTransaction);
+        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, updateRect, rsTransaction);
         if (ret != WSError::WS_OK) {
             return ret;
         }
@@ -712,7 +713,7 @@ WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantP
             TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s permission denied, not call by the same process", where);
             return WMError::WM_ERROR_INVALID_CALLING;
         }
-        if (!session->IsSessionForeground()) {
+        if (!session->IsLifecycleForeground()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s window state is not at foreground or active", where);
             return WMError::WM_ERROR_INVALID_CALLING;
         }
@@ -720,7 +721,7 @@ WMError SystemSession::RestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantP
             TLOGE(WmsLogTag::WMS_SYSTEM, "cannot get recent func");
             return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
         }
-        if ((parentSession->IsSessionForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
+        if ((parentSession->IsLifecycleForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
             session->getIsRecentStateFunc_()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "parent window is at foreground but not interactive");
             return WMError::WM_ERROR_START_ABILITY_FAILED;
@@ -902,7 +903,7 @@ WMError SystemSession::RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::W
             TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s permission denied, not call by the same process", where);
             return WMError::WM_ERROR_INVALID_CALLING;
         }
-        if (!session->IsSessionForeground()) {
+        if (!session->IsLifecycleForeground()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s window state is not at foreground or active", where);
             return WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED;
         }
@@ -910,7 +911,7 @@ WMError SystemSession::RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::W
             TLOGE(WmsLogTag::WMS_SYSTEM, "cannot get recent func");
             return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
         }
-        if ((parentSession->IsSessionForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
+        if ((parentSession->IsLifecycleForeground() && !parentSession->GetForegroundInteractiveStatus()) ||
             session->getIsRecentStateFunc_()) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "parent window is at foreground but not interactive");
             return WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED;

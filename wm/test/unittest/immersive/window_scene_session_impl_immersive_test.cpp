@@ -434,7 +434,7 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateSystemBarProperties, TestSiz
 HWTEST_F(WindowSceneSessionImplImmersiveTest, SetFloatNavigationAvoidAreaEnabled, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     window->property_ = sptr<WindowSessionProperty>::MakeSptr();
     window->property_->SetPersistentId(1);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -446,6 +446,75 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, SetFloatNavigationAvoidAreaEnabled
     window->state_ = WindowState::STATE_SHOWN;
     EXPECT_EQ(window->SetFloatNavigationAvoidAreaEnabled(true), WMError::WM_OK);
     EXPECT_EQ(window->GetFloatNavigationAvoidAreaEnabled(enable), WMError::WM_OK);
+}
+
+/*
+ * @tc.name: GetAvoidAreaByType1
+ * @tc.desc: GetAvoidAreaByType1
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplImmersiveTest, GetAvoidAreaByType1, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->state_ = WindowState::STATE_SHOWN;
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    AvoidArea avoidArea;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_FLOAT_NAVIGATION, avoidArea), WMError::WM_DO_NOTHING);
+    window->floatNavigationAvoidAreaEnabled_ = true;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
+}
+
+/*
+ * @tc.name: GetAvoidAreaByTypeIgnoringVisibility
+ * @tc.desc: GetAvoidAreaByTypeIgnoringVisibility
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplImmersiveTest, GetAvoidAreaByTypeIgnoringVisibility, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->state_ = WindowState::STATE_SHOWN;
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    AvoidArea avoidArea;
+    EXPECT_EQ(window->GetAvoidAreaByTypeIgnoringVisibility(
+        AvoidAreaType::TYPE_FLOAT_NAVIGATION, avoidArea), WMError::WM_DO_NOTHING);
+    window->floatNavigationAvoidAreaEnabled_ = true;
+    EXPECT_EQ(window->GetAvoidAreaByTypeIgnoringVisibility(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    EXPECT_EQ(window->GetAvoidAreaByTypeIgnoringVisibility(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
+}
+
+/*
+ * @tc.name: UpdateAvoidArea_1
+ * @tc.desc: UpdateAvoidArea_1
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateAvoidArea_1, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->state_ = WindowState::STATE_SHOWN;
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    AvoidArea avoidArea;
+    EXPECT_EQ(window->UpdateAvoidArea(new AvoidArea(avoidArea), AvoidAreaType::TYPE_SYSTEM), WSError::WS_OK);
+    EXPECT_EQ(window->UpdateAvoidArea(new AvoidArea(avoidArea), AvoidAreaType::TYPE_FLOAT_NAVIGATION), WSError::WS_OK);
+    window->floatNavigationAvoidAreaEnabled_ = true;
+    EXPECT_EQ(window->UpdateAvoidArea(new AvoidArea(avoidArea), AvoidAreaType::TYPE_FLOAT_NAVIGATION), WSError::WS_OK);
 }
 } // namespace
 } // namespace Rosen

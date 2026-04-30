@@ -24,6 +24,7 @@
 #include "fold_screen_controller/fold_screen_state_machine.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
 #include "fold_screen_info.h"
+#include "nlohmann/json.hpp"
 
 namespace OHOS::Rosen {
 enum class DisplayDeviceType :uint32_t {

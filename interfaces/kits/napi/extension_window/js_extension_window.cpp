@@ -58,6 +58,17 @@ const std::unordered_set<std::string> g_unsupportListener = {
 const std::unordered_set<std::string> g_invalidListener = {
     "subWindowClose",
 };
+const std::unordered_set<std::string> g_emptyProxyListener = {
+    "displayIdChange",
+    "systemDensityChange",
+};
+static thread_local std::map<int32_t, std::shared_ptr<NativeReference>> g_jsExtensionWindowMap;
+static std::mutex g_extensionMutex;
+
+bool IsEmptyProxyListener(const std::string& type)
+{
+    return g_emptyProxyListener.find(type) != g_emptyProxyListener.end();
+}
 
 bool IsEmptyListener(const std::string& type)
 {
@@ -74,6 +85,33 @@ bool IsInvalidListener(const std::string& type)
     return g_invalidListener.find(type) != g_invalidListener.end();
 }
 } // namespace
+
+void addJsExtensionWindow(napi_env env, napi_value objValue, int32_t id)
+{
+    std::shared_ptr<NativeReference> jsExtensionWindowRef;
+    napi_ref result = nullptr;
+    napi_create_reference(env, objValue, 1, &result);
+    jsExtensionWindowRef.reset(reinterpret_cast<NativeReference*>(result));
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    g_jsExtensionWindowMap[id] = jsExtensionWindowRef;
+}
+
+napi_value FindJsExtensionWindowById(napi_env env, int32_t id)
+{
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    if (g_jsExtensionWindowMap.find(id) == g_jsExtensionWindowMap.end()) {
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "The extensionWindow is destroyed."));
+        return NapiGetUndefined(env);
+    }
+    napi_value extensionWindow = g_jsExtensionWindowMap[id]->GetNapiValue();
+    if (!extensionWindow) {
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "The extensionWindow is destroyed."));
+        return NapiGetUndefined(env);
+    }
+    return extensionWindow;
+}
 
 const std::string& JsExtensionWindow::GetWindowName() const
 {
@@ -133,7 +171,10 @@ napi_value JsExtensionWindow::CreateJsExtensionWindow(napi_env env, sptr<Rosen::
     BindNativeFunction(env, objValue, "hidePrivacyContentForHost", moduleName,
                        JsExtensionWindow::HidePrivacyContentForHost);
     BindNativeFunction(env, objValue, "occupyEvents", moduleName, JsExtensionWindow::OccupyEvents);
+    BindNativeFunction(env, objValue, "getWindowDensityInfo", moduleName, JsExtensionWindow::GetWindowDensityInfo);
+    BindNativeFunction(env, objValue, "getWindowProperties", moduleName, JsExtensionWindow::GetWindowPropertiesSync);
 
+    addJsExtensionWindow(env, objValue, window->GetWindowPersistentId());
     return objValue;
 }
 
@@ -205,6 +246,7 @@ napi_value JsExtensionWindow::CreateJsExtensionWindowObject(napi_env env, sptr<R
 
     RegisterUnsupportFuncs(env, objValue, moduleName);
 
+    addJsExtensionWindow(env, objValue, window->GetWindowPersistentId());
     return objValue;
 }
 
@@ -290,6 +332,20 @@ napi_value JsExtensionWindow::GetWindowAvoidArea(napi_env env, napi_callback_inf
     TLOGI(WmsLogTag::WMS_UIEXT, "[NAPI]");
     JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);
     return (me != nullptr) ? me->OnGetWindowAvoidArea(env, info) : nullptr;
+}
+
+napi_value JsExtensionWindow::SetFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
+    JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);
+    return (me != nullptr) ? me->OnSetFloatNavigationAvoidAreaEnabled(env, info) : nullptr;
+}
+
+napi_value JsExtensionWindow::IsFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
+    JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);
+    return (me != nullptr) ? me->OnIsFloatNavigationAvoidAreaEnabled(env, info) : nullptr;
 }
 
 napi_value JsExtensionWindow::RegisterExtensionWindowCallback(napi_env env, napi_callback_info info)
@@ -1034,6 +1090,70 @@ napi_value JsExtensionWindow::OnGetWindowAvoidArea(napi_env env, napi_callback_i
     }
 }
 
+napi_value JsExtensionWindow::OnSetFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    size_t argc = FOUR_PARAMS_SIZE;
+    napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < INDEX_ONE) {
+        TLOGE(WmsLogTag::WMS_IMMS, "argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setFloatNavigationAvoidAreaEnabled]msg: Mandatory parameters are left unspecified");
+    }
+    bool enabled = false;
+    if (argv[INDEX_ZERO] == nullptr || napi_get_value_bool(env, argv[INDEX_ZERO], &enabled) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_IMMS, "failed to convert parameter to enabled");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setFloatNavigationAvoidanceEnabled]msg: Incorrect parameter types");
+    }
+    napi_value result = nullptr;
+    const char* const where = __func__;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [weakToken = wptr<Window>(windowToken_), env, task = napiAsyncTask, enabled, argc, where] {
+        auto window = weakToken.promote();
+        if (window == nullptr) {
+            TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is nullptr", where);
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][setFloatNavigationAvoidAreaEnabled]msg: The window is not created or destroyed"));
+            return;
+        }
+        auto errCode = WM_JS_TO_ERROR_CODE_MAP.at(window->SetFloatNavigationAvoidAreaEnabled(enabled));
+        if (errCode == WmErrorCode::WM_OK) {
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s failed, ret %{public}d", where, errCode);
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
+                "[window][setFloatNavigationAvoidAreaEnabled]"));
+        }
+    };
+    if (napi_send_event(env, asyncTask, napi_eprio_high,
+        "OnSetFloatNavigationAvoidAreaEnabled") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_IMMS, "napi_send_event failed");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setFloatNavigationAvoidAreaEnabled]msg: Internal task error"));
+    }
+    return result;
+}
+    
+napi_value JsExtensionWindow::OnIsFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_IMMS, "windowToken is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isFloatNavigationAvoidAreaEnabled]msg: The window is not created or destroyed");
+    }
+    bool enable = false;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetFloatNavigationAvoidAreaEnabled(enable));
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_IMMS, "get failed, ret %{public}d", ret);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isFloatNavigationAvoidAreaEnabled]");
+    }
+    TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u, %{public}s] enable %{public}u",
+        windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str(), enable);
+    return CreateJsValue(env, enable);
+}
+
 napi_value JsExtensionWindow::OnRegisterRectChangeCallback(napi_env env, size_t argc, napi_value* argv,
     const sptr<Window>& windowImpl)
 {
@@ -1114,6 +1234,10 @@ napi_value JsExtensionWindow::OnRegisterExtensionWindowCallback(napi_env env, na
             return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "[window][on]msg: The device not support");
         }
+    } else {
+        if (IsEmptyProxyListener(cbType)) {
+            return NapiGetUndefined(env);
+        }
     }
     napi_value value = argv[INDEX_ONE];
     if (!NapiIsCallable(env, value)) {
@@ -1179,6 +1303,10 @@ napi_value JsExtensionWindow::OnUnRegisterExtensionWindowCallback(napi_env env, 
         if (IsUnsupportListener(cbType)) {
             return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "[window][off]msg: The device not support");
+        }
+    } else {
+        if (IsEmptyProxyListener(cbType)) {
+            return NapiGetUndefined(env);
         }
     }
 

@@ -45,7 +45,7 @@ ohos_fuzztest("SceneSessionMgrLStubRegFuzzTest") {
   sources = [ "scenesessionmgrlstubreg_fuzzer.cpp" ]
   deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",

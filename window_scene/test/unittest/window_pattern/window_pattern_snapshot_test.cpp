@@ -534,20 +534,21 @@ HWTEST_F(WindowPatternSnapshotTest, Snapshot02, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     sceneSession->surfaceNode_ = RSSurfaceNode::Create(config);
     ASSERT_NE(sceneSession->surfaceNode_, nullptr);
-    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
+    Session::SnapshotOptions options;
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(options));
 
     sceneSession->bufferAvailable_ = true;
-    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(options));
 
     sceneSession->surfaceNode_->bufferAvailable_ = true;
     sceneSession->property_->SetPrivacyMode(false);
-    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(options));
 
     sceneSession->property_->SetPrivacyMode(true);
-    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(options));
 
     sceneSession->surfaceNode_ = nullptr;
-    ASSERT_EQ(nullptr, sceneSession->Snapshot(false, 0.0f));
+    ASSERT_EQ(nullptr, sceneSession->Snapshot(options));
 }
 
 /**

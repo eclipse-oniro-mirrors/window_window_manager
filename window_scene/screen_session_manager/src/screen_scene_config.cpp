@@ -439,6 +439,12 @@ void ScreenSceneConfig::ReadPhysicalDisplayConfigInfo(const xmlNodePtr& currNode
         physicalSize.foldDisplayMode_ = FoldDisplayMode::SUB;
     } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_GLOBAL_FULL"))) {
         physicalSize.foldDisplayMode_ = FoldDisplayMode::GLOBAL_FULL;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_L_FULL"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::L_FULL;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_N_MAIN"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::N_MAIN;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_V_MAIN"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::V_MAIN;
     } else {
         physicalSize.foldDisplayMode_ = FoldDisplayMode::UNKNOWN;
     }

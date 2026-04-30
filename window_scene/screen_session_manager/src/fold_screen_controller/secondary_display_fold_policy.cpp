@@ -527,6 +527,13 @@ void SecondaryDisplayFoldPolicy::ChangeSuperScreenDisplayMode(sptr<ScreenSession
 void SecondaryDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> screenSession, ScreenId screenId,
     ScreenPropertyChangeReason reason, FoldDisplayMode displayMode)
 {
+    if (displayMode == FoldDisplayMode::COORDINATION && currentDisplayMode_ == FoldDisplayMode::FULL) {
+        ChangeScreenDisplayModeToCoordination();
+    }
+    bool res = displayMode != FoldDisplayMode::COORDINATION && displayMode != FoldDisplayMode::UNKNOWN;
+    if (res && currentDisplayMode_ == FoldDisplayMode::COORDINATION) {
+        CloseCoordinationScreen();
+    }
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
     screenSession->SetPhyScreenId(screenId);
@@ -539,7 +546,6 @@ void SecondaryDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> sc
                     isNeedToSetSwitch = false;
                     isNeedNotifyFoldProperty = false;
                 }
-                CloseCoordinationScreen();
             }
             SetStatusFullActiveRectAndTpFeature(screenSession, screenProperty_, isNeedToSetSwitch);
             break;
@@ -553,16 +559,12 @@ void SecondaryDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> sc
             break;
         }
         case FoldDisplayMode::GLOBAL_FULL: {
-            if (currentDisplayMode_ == FoldDisplayMode::COORDINATION) {
-                CloseCoordinationScreen();
-            }
             SetStatusGlobalFullActiveRectAndTpFeature(screenSession, screenProperty_);
             break;
         }
         case FoldDisplayMode::COORDINATION: {
             if (currentDisplayMode_ == FoldDisplayMode::FULL) {
                 isNeedNotifyFoldProperty = false;
-                ChangeScreenDisplayModeToCoordination();
                 SetStatusConditionalActiveRectAndTpFeature(screenProperty_);
             }
             break;
@@ -625,6 +627,7 @@ void SecondaryDisplayFoldPolicy::SetStatusFullActiveRectAndTpFeature(const sptr<
         if (isNeedToSetSwitch) {
             RSInterfaces::GetInstance().NotifyScreenSwitched();
         }
+        RSInterfaces::GetInstance().NotifyScreenSwitched();
         auto response = RSInterfaces::GetInstance().SetScreenActiveRect(0, rectCur);
         TLOGI(WmsLogTag::DMS, "rs response is %{public}ld", static_cast<long>(response));
     }

@@ -148,9 +148,14 @@ void RootSceneSession::GetFloatNavigationAvoidAreaForRoot(
     if (specificCallback_ != nullptr && specificCallback_->onGetFloatNavagationInfo_ &&
         specificCallback_->onGetFloatNavagationInfo_(
             GetSessionProperty()->GetDisplayId(), floatNavagationInfo) == WSError::WS_OK) {
-        auto [visibleFromTuple, floatNavigationArea, landspaceRect] = floatNavagationInfo;
+        auto [visibleFromTuple, portraitRect, landspaceRect] = floatNavagationInfo;
         visible = visibleFromTuple;
-        floatNavigationArea = rect.width_ > rect.height_ ? landspaceRect : floatNavigationArea;
+        auto display = DisplayManager::GetInstance().GetDisplayById(GetDisplayId());
+        if (!display) {
+            TLOGE(WmsLogTag::WMS_IMMS, "win %{public}d display is null", GetPersistentId());
+            return;
+        }
+        floatNavigationArea = display->GetWidth() > display->GetHeight() ? landspaceRect : portraitRect;
     }
     if (!visible && !ignoreVisibility) {
         TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d float navigation not visible", GetPersistentId());
@@ -193,7 +198,7 @@ AvoidArea RootSceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, bool ign
             }
             case AvoidAreaType::TYPE_FLOAT_NAVIGATION: {
                 session->GetFloatNavigationAvoidAreaForRoot(sessionRect, avoidArea, ignoreVisibility);
-                return session->GetFloatNavigationAvoidAreaEnabled() ? avoidArea : AvoidArea();
+                return avoidArea;
             }
             default: {
                 TLOGNE(WmsLogTag::WMS_IMMS, "cannot find type %{public}u, id %{public}d",

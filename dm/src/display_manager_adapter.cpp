@@ -120,14 +120,14 @@ std::shared_ptr<Media::PixelMap> DisplayManagerAdapter::GetDisplaySnapshot(Displ
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> DisplayManagerAdapter::GetDisplayHDRSnapshot(DisplayId displayId,
-    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen)
+    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent)
 {
     std::vector<std::shared_ptr<Media::PixelMap>> ret = { nullptr, nullptr };
     INIT_PROXY_CHECK_RETURN(ret);
  
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->GetDisplayHDRSnapshot(displayId, errorCode, isUseDma,
-            isCaptureFullOfScreen);
+            isCaptureFullOfScreen, displayIntent);
     }
     errorCode = DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT;
     return { nullptr, nullptr };
@@ -1240,6 +1240,17 @@ bool DisplayManagerAdapter::IsCaptured()
 
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->IsCaptured();
+    }
+
+    return false;
+}
+
+bool DisplayManagerAdapter::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    INIT_PROXY_CHECK_RETURN(false);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->IsCapturedByBundleNameList(bundleNameList);
     }
 
     return false;

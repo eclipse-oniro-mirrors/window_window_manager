@@ -298,6 +298,8 @@ napi_value AvoidAreaTypeInit(napi_env env)
         CreateJsValue(env, static_cast<int32_t>(AvoidAreaType::TYPE_KEYBOARD)));
     napi_set_named_property(env, objValue, "TYPE_NAVIGATION_INDICATOR",
         CreateJsValue(env, static_cast<int32_t>(AvoidAreaType::TYPE_NAVIGATION_INDICATOR)));
+    napi_set_named_property(env, objValue, "TYPE_FLOAT_NAVIGATION",
+        CreateJsValue(env, static_cast<int32_t>(AvoidAreaType::TYPE_FLOAT_NAVIGATION)));
     return objValue;
 }
 
@@ -320,6 +322,21 @@ napi_value WindowModeInit(napi_env env)
         static_cast<int32_t>(ApiWindowMode::SECONDARY)));
     napi_set_named_property(env, objValue, "FLOATING", CreateJsValue(env,
         static_cast<int32_t>(ApiWindowMode::FLOATING)));
+    return objValue;
+}
+
+napi_value SplitRatioPreferenceInit(napi_env env)
+{
+    WLOGFD("SplitRatioPreferenceInit");
+    CHECK_NAPI_ENV_RETURN_IF_NULL(env);
+    napi_value objValue = nullptr;
+    CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
+    napi_set_named_property(env, objValue, "EQUAL", CreateJsValue(env,
+        static_cast<int32_t>(SplitRatioPreference::EQUAL)));
+    napi_set_named_property(env, objValue, "PRIMARY_DOMINANT", CreateJsValue(env,
+        static_cast<int32_t>(SplitRatioPreference::PRIMARY_DOMINANT)));
+    napi_set_named_property(env, objValue, "SECONDARY_DOMINANT", CreateJsValue(env,
+        static_cast<int32_t>(SplitRatioPreference::SECONDARY_DOMINANT)));
     return objValue;
 }
 
@@ -613,6 +630,23 @@ napi_value MaximizePresentationInit(napi_env env)
         static_cast<int32_t>(MaximizePresentation::ENTER_IMMERSIVE)));
     napi_set_named_property(env, objValue, "ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER", CreateJsValue(env,
         static_cast<int32_t>(MaximizePresentation::ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER)));
+    return objValue;
+}
+
+napi_value AcrossDisplayPresentationInit(napi_env env)
+{
+    WLOGD("AcrossDisplayPresentationInit");
+    CHECK_NAPI_ENV_RETURN_IF_NULL(env);
+
+    napi_value objValue = nullptr;
+    CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
+
+    napi_set_named_property(env, objValue, "FOLLOW_ACROSS_DISPLAY_SETTING", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING)));
+    napi_set_named_property(env, objValue, "ENTER_ACROSS_DISPLAY_MODE", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE)));
+    napi_set_named_property(env, objValue, "EXIT_ACROSS_DISPLAY_MODE", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE)));
     return objValue;
 }
 
@@ -1075,6 +1109,7 @@ napi_value CreateJsWindowInfoObject(napi_env env, const sptr<WindowVisibilityInf
     napi_set_named_property(env, objValue, "displayId",
         CreateJsNumber(env, static_cast<uint64_t>(info->GetDisplayId())));
     napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, info->GetBundleName()));
+    napi_set_named_property(env, objValue, "moduleName", CreateJsValue(env, info->GetModuleName()));
     napi_set_named_property(env, objValue, "abilityName", CreateJsValue(env, info->GetAbilityName()));
     napi_set_named_property(env, objValue, "windowId", CreateJsValue(env, info->GetWindowId()));
     napi_set_named_property(env, objValue, "windowStatusType",

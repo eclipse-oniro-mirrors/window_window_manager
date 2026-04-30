@@ -133,6 +133,7 @@ public:
         TRANS_ID_SET_PROCESS_SNAPSHOT_SKIP,
         TRANS_ID_SET_SNAPSHOT_SKIP_BY_USERID_AND_BUNDLENAMES,
         TRANS_ID_SET_PROCESS_WATERMARK,
+        TRANS_ID_RECOVER_PROCESS_WATERMARK,
         TRANS_ID_GET_WINDOW_IDS_BY_COORDINATE,
         TRANS_ID_UPDATE_SESSION_SCREEN_LOCK,
         TRANS_ID_ADD_SKIP_SELF_ON_VIRTUAL_SCREEN,
@@ -182,6 +183,7 @@ public:
         TRANS_ID_SNAPSHOT_BY_WINDOW_ID,
         TRANS_ID_GET_CROSS_PROCESS_WINDOW_INFO,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
+        TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -508,6 +510,9 @@ public:
     }
     WMError NotifySupportRotationRegistered() override { return WMError::WM_OK; }
     WMError GetFloatViewLimits(FloatViewLimits& limits) override { return WMError::WM_OK; }
+
+    virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_INTERFACE_H

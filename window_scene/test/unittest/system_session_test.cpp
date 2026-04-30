@@ -147,7 +147,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect01, TestSize.Level1)
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     systemSession_->sessionStage_ = mockSessionStage;
-    auto ret = systemSession_->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    auto ret = systemSession_->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 }
 
@@ -678,12 +678,12 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect02, TestSize.Level1)
 
     sysSession->dirtyFlags_ = 0;
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
-    sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     ASSERT_EQ(sysSession->GetSizeChangeReason(), SizeChangeReason::UNDEFINED);
 
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG);
-    sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     ASSERT_EQ(sysSession->GetSizeChangeReason(), SizeChangeReason::DRAG);
 }
@@ -712,7 +712,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect03, TestSize.Level1)
     sysSession->specificCallback_ = specificCallback;
     sysSession->specificCallback_->onUpdateAvoidArea_ = nullptr;
     sysSession->GetLayoutController()->SetSessionRect({ 0, 0, 800, 800 });
-    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     EXPECT_EQ(res, WSError::WS_OK);
 
@@ -720,7 +720,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect03, TestSize.Level1)
     sysSession->SetScbCoreEnabled(true);
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
     sysSession->specificCallback_->onUpdateAvoidArea_ = [](const int32_t& persistentId) {};
-    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     EXPECT_EQ(sysSession->dirtyFlags_, static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA));
     EXPECT_EQ(res, WSError::WS_OK);

@@ -36,7 +36,9 @@ public:
     WSError ProcessBackEvent() override;
 
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void RectCheck(float curWidth, float curHeight, const ScreenMetrics& screenMetrics) override;
     WSError SetDialogSessionBackGestureEnabled(bool isEnabled) override;
     int32_t GetSubWindowZLevel() const override;

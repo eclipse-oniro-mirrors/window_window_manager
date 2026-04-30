@@ -72,7 +72,9 @@ constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
         }                                                                      \
     } while (false)
 
-WindowExtensionSessionImpl::WindowExtensionSessionImpl(const sptr<WindowOption>& option) : WindowSessionImpl(option)
+WindowExtensionSessionImpl::WindowExtensionSessionImpl(
+    const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession)
+    : WindowSessionImpl(option, nullptr, renderSession)
 {
     if (property_->GetUIExtensionUsage() == UIExtensionUsage::MODAL ||
         SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
@@ -1007,6 +1009,7 @@ void WindowExtensionSessionImpl::UpdateRectForRotation(const Rect& wmRect, const
         if (needSync) {
             window->UpdateRotateDuration(wmReason, duration, rsTransaction);
             RSTransactionAdapter::FlushImplicitTransaction(rsUIContext);
+            RSAdapterUtil::SetRSTransactionHandler(rsTransaction, rsUIContext);
             rsTransaction->Begin();
         }
         window->rotationAnimationCount_++;
@@ -1356,6 +1359,10 @@ WMError WindowExtensionSessionImpl::GetAvoidAreaByType(AvoidAreaType type, Avoid
 {
     uint32_t currentApiVersion = GetTargetAPIVersionByApplicationInfo();
     apiVersion = (apiVersion == API_VERSION_INVALID) ? static_cast<int32_t>(currentApiVersion) : apiVersion;
+    if (!IsFloatNavigationAvoidAreaEnabled(type)) {
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u type not supported", GetWindowId());
+        return WMError::WM_DO_NOTHING;
+    }
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     WSRect sessionRect = { rect.posX_, rect.posY_, rect.width_, rect.height_ };
@@ -2121,7 +2128,7 @@ void WindowExtensionSessionImpl::UpdateExtensionConfig(const std::shared_ptr<AAF
     SetRootHostWindowType(rootHostWindowType);
     SetCompatInfo(configParam);
     auto hostWindowStatus = static_cast<WindowStatus>(configParam.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD,
-            static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
     hostWindowStatus_ = hostWindowStatus;
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "CrossAxisState: %{public}d, waterfall: %{public}d, "
         "rootHostWindowType: %{public}u, isHostWindowDelayRaiseEnabled: %{public}d, "

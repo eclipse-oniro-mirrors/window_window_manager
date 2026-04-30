@@ -314,6 +314,11 @@ WMError SceneSessionManagerLite::SetProcessWatermark(int32_t pid, const std::str
     return SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
 }
 
+WMError SceneSessionManagerLite::RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
+{
+    return SceneSessionManager::GetInstance().RecoverProcessWatermark(pid, watermarkName);
+}
+
 WMError SceneSessionManagerLite::TerminateSessionByPersistentId(int32_t persistentId)
 {
     return SceneSessionManager::GetInstance().TerminateSessionByPersistentId(persistentId);
@@ -547,5 +552,12 @@ WSError SceneSessionManagerLite::NotifyAppUseControlDisplay(DisplayId displayId,
 {
     TLOGI(WmsLogTag::WMS_PATTERN, "in");
     return SceneSessionManager::GetInstance().NotifyAppUseControlDisplay(displayId, useControl);
+}
+
+WMError SceneSessionManagerLite::GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+    std::vector<AppWindowShowingInfo>& windowInfos)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
 }
 } // namespace OHOS::Rosen

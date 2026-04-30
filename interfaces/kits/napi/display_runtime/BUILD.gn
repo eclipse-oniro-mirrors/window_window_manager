@@ -61,7 +61,7 @@ ohos_shared_library("display_napi") {
     "graphic_surface:surface",
     "hilog:libhilog",
     "hitrace:hitrace_meter",
-    "image_framework:image_native", 
+    "image_framework:image_native",
     "napi:ace_napi",
   ]
 
@@ -111,6 +111,7 @@ ohos_shared_library("display_kit") {
     "napi:ace_napi",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

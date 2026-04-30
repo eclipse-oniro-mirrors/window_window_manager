@@ -1130,118 +1130,6 @@ HWTEST_F(MainSessionTest, IsExitSplitOnBackgroundRecover, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetAppForceLandscapeConfigEnable01
- * @tc.desc: Test GetAppForceLandscapeConfigEnable when forceSplitEnableFunc_ is null
- * @tc.type: FUNC
- */
-HWTEST_F(MainSessionTest, GetAppForceLandscapeConfigEnable01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "testMainSession1";
-    info.moduleName_ = "testMainSession2";
-    info.bundleName_ = "testMainSession3";
-    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
-    
-    bool enableForceSplit = false;
-    WMError res = session->GetAppForceLandscapeConfigEnable(enableForceSplit);
-    EXPECT_EQ(res, WMError::WM_ERROR_NULLPTR);
-}
-
-/**
- * @tc.name: GetAppForceLandscapeConfigEnable02
- * @tc.desc: Test GetAppForceLandscapeConfigEnable when forceSplitEnableFunc_ is set
- * @tc.type: FUNC
- */
-HWTEST_F(MainSessionTest, GetAppForceLandscapeConfigEnable02, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "testMainSession1";
-    info.moduleName_ = "testMainSession2";
-    info.bundleName_ = "testBundle";
-    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
-    
-    bool expectedEnable = true;
-    session->RegisterForceSplitEnableListener(
-        [expectedEnable](const std::string& bundleName) {
-            return expectedEnable;
-        });
-    
-    bool enableForceSplit = false;
-    WMError res = session->GetAppForceLandscapeConfigEnable(enableForceSplit);
-    EXPECT_EQ(res, WMError::WM_OK);
-    EXPECT_EQ(enableForceSplit, expectedEnable);
-}
-
-/**
- * @tc.name: NotifyAppForceLandscapeConfigEnableUpdated01
- * @tc.desc: Test NotifyAppForceLandscapeConfigEnableUpdated when sessionStage_ is null
- * @tc.type: FUNC
- */
-HWTEST_F(MainSessionTest, NotifyAppForceLandscapeConfigEnableUpdated01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "testMainSession1";
-    info.moduleName_ = "testMainSession2";
-    info.bundleName_ = "testMainSession3";
-    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
-    session->sessionStage_ = nullptr;
-    
-    WSError res = session->NotifyAppForceLandscapeConfigEnableUpdated(false, SelectMode::WIDE_MODE);
-    EXPECT_EQ(res, WSError::WS_ERROR_NULLPTR);
-}
-
-/**
- * @tc.name: NotifyAppForceLandscapeConfigEnableUpdated02
- * @tc.desc: Test NotifyAppForceLandscapeConfigEnableUpdated when sessionStage_ is set
- * @tc.type: FUNC
- */
-HWTEST_F(MainSessionTest, NotifyAppForceLandscapeConfigEnableUpdated02, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "testMainSession1";
-    info.moduleName_ = "testMainSession2";
-    info.bundleName_ = "testMainSession3";
-    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
-    session->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
-    
-    WSError res = session->NotifyAppForceLandscapeConfigEnableUpdated(false, SelectMode::WIDE_MODE);
-    EXPECT_EQ(res, WSError::WS_OK);
-}
-
-/**
- * @tc.name: RegisterForceSplitEnableListener
- * @tc.desc: Test RegisterForceSplitEnableListener
- * @tc.type: FUNC
- */
-HWTEST_F(MainSessionTest, RegisterForceSplitEnableListener, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "testMainSession1";
-    info.moduleName_ = "testMainSession2";
-    info.bundleName_ = "testBundle";
-    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
-    
-    bool callbackCalled = false;
-    bool callbackResult = true;
-    session->RegisterForceSplitEnableListener(
-        [&callbackCalled, callbackResult](const std::string& bundleName) {
-            callbackCalled = true;
-            return callbackResult;
-        });
-    
-    bool enableForceSplit = false;
-    WMError res = session->GetAppForceLandscapeConfigEnable(enableForceSplit);
-    EXPECT_EQ(res, WMError::WM_OK);
-    EXPECT_TRUE(callbackCalled);
-    EXPECT_EQ(enableForceSplit, callbackResult);
-}
-
-/**
  * @tc.name: Prelaunch
  * @tc.desc: Test Prelaunch
  * @tc.type: FUNC
@@ -1381,6 +1269,266 @@ HWTEST_F(MainSessionTest, NotifyPageEnable01, TestSize.Level1)
 
     EXPECT_EQ(std::get<2>(callbackCalls[2]), "enter");
     EXPECT_EQ(std::get<3>(callbackCalls[2]), "Page2");
+}
+
+/**
+ * @tc.name: UpdateHookWindowInfo01
+ * @tc.desc: Test UpdateHookWindowInfo with drawableRectHook change
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, UpdateHookWindowInfo01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "UpdateHookWindowInfo01";
+    info.abilityName_ = "UpdateHookWindowInfo01";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+    session->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+
+    HookWindowInfo initialInfo;
+    initialInfo.enableHookWindow = true;
+    initialInfo.widthHookRatio = 0.5f;
+    initialInfo.drawableRectHook = false;
+    session->GetSessionProperty()->SetHookWindowInfo(initialInfo);
+
+    HookWindowInfo newInfo;
+    newInfo.enableHookWindow = true;
+    newInfo.widthHookRatio = 0.5f;
+    newInfo.drawableRectHook = true;
+
+    auto ret = session->UpdateHookWindowInfo(newInfo);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(session->GetSessionProperty()->GetHookWindowInfo().drawableRectHook, true);
+}
+
+/**
+ * @tc.name: UpdateHookWindowInfo02
+ * @tc.desc: Test UpdateHookWindowInfo with no change (drawableRectHook same)
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, UpdateHookWindowInfo02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "UpdateHookWindowInfo02";
+    info.abilityName_ = "UpdateHookWindowInfo02";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+
+    HookWindowInfo initialInfo;
+    initialInfo.enableHookWindow = true;
+    initialInfo.widthHookRatio = 0.5f;
+    initialInfo.drawableRectHook = true;
+    session->GetSessionProperty()->SetHookWindowInfo(initialInfo);
+
+    HookWindowInfo newInfo;
+    newInfo.enableHookWindow = true;
+    newInfo.widthHookRatio = 0.5f;
+    newInfo.drawableRectHook = true;
+
+    auto ret = session->UpdateHookWindowInfo(newInfo);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateHookWindowInfo03
+ * @tc.desc: Test UpdateHookWindowInfo with invalid widthHookRatio
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, UpdateHookWindowInfo03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "UpdateHookWindowInfo03";
+    info.abilityName_ = "UpdateHookWindowInfo03";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    HookWindowInfo invalidInfo;
+    invalidInfo.widthHookRatio = -1.0f;
+
+    auto ret = session->UpdateHookWindowInfo(invalidInfo);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: UpdateHookWindowInfo04
+ * @tc.desc: Test UpdateHookWindowInfo when property is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, UpdateHookWindowInfo04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "UpdateHookWindowInfo04";
+    info.abilityName_ = "UpdateHookWindowInfo04";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->property_ = nullptr;
+
+    HookWindowInfo hookInfo;
+    hookInfo.widthHookRatio = 0.5f;
+
+    auto ret = session->UpdateHookWindowInfo(hookInfo);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetForceSplitEnable01
+ * @tc.desc: Test SetForceSplitEnable when setSelectModeCallback_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, SetForceSplitEnable01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "SetForceSplitEnable01";
+    info.abilityName_ = "SetForceSplitEnable01";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->setSelectModeCallback_ = nullptr;
+
+    auto ret = session->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetForceSplitEnable02
+ * @tc.desc: Test SetForceSplitEnable with callback registered and property nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, SetForceSplitEnable02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "SetForceSplitEnable02";
+    info.abilityName_ = "SetForceSplitEnable02";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    SelectMode receivedSelectMode = SelectMode::WIDE_MODE;
+    session->RegisterSetSelectModeCallback([&receivedSelectMode](SelectMode selectMode) {
+        receivedSelectMode = selectMode;
+    });
+    session->property_ = nullptr;
+
+    auto ret = session->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
+    EXPECT_EQ(receivedSelectMode, SelectMode::WIDE_MODE);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetForceSplitEnable03
+ * @tc.desc: Test SetForceSplitEnable with callback and sessionStage nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, SetForceSplitEnable03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "SetForceSplitEnable03";
+    info.abilityName_ = "SetForceSplitEnable03";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+
+    SelectMode receivedSelectMode = SelectMode::WIDE_MODE;
+    session->RegisterSetSelectModeCallback([&receivedSelectMode](SelectMode selectMode) {
+        receivedSelectMode = selectMode;
+    });
+    session->sessionStage_ = nullptr;
+
+    auto ret = session->SetForceSplitEnable(true, false, SelectMode::SQUARE_MODE);
+    EXPECT_EQ(receivedSelectMode, SelectMode::SQUARE_MODE);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetForceSplitEnable04
+ * @tc.desc: Test SetForceSplitEnable success with callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, SetForceSplitEnable04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "SetForceSplitEnable04";
+    info.abilityName_ = "SetForceSplitEnable04";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+    session->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+
+    SelectMode receivedSelectMode = SelectMode::WIDE_MODE;
+    session->RegisterSetSelectModeCallback([&receivedSelectMode](SelectMode selectMode) {
+        receivedSelectMode = selectMode;
+    });
+
+    auto ret = session->SetForceSplitEnable(true, true, SelectMode::SQUARE_MODE);
+    EXPECT_EQ(receivedSelectMode, SelectMode::SQUARE_MODE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(session->GetSessionProperty()->GetForceSplitEnable(), true);
+}
+
+/**
+ * @tc.name: SetForceSplitEnable05
+ * @tc.desc: Test SetForceSplitEnable when sessionStage SetForceSplitEnable fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, SetForceSplitEnable05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "SetForceSplitEnable05";
+    info.abilityName_ = "SetForceSplitEnable05";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+
+    auto sessionStageMock = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMock;
+
+    SelectMode receivedSelectMode = SelectMode::WIDE_MODE;
+    session->RegisterSetSelectModeCallback([&receivedSelectMode](SelectMode selectMode) {
+        receivedSelectMode = selectMode;
+    });
+
+    // Mock sessionStage SetForceSplitEnable to return error
+    EXPECT_CALL(*sessionStageMock, SetForceSplitEnable(true, false, SelectMode::WIDE_MODE))
+        .WillOnce(::testing::Return(WSError::WS_ERROR_IPC_FAILED));
+
+    auto ret = session->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
+    EXPECT_EQ(receivedSelectMode, SelectMode::WIDE_MODE);
+    EXPECT_EQ(ret, WSError::WS_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: RegisterSetSelectModeCallback01
+ * @tc.desc: Test RegisterSetSelectModeCallback
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, RegisterSetSelectModeCallback01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "RegisterSetSelectModeCallback01";
+    info.abilityName_ = "RegisterSetSelectModeCallback01";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    EXPECT_EQ(session->setSelectModeCallback_, nullptr);
+
+    bool callbackCalled = false;
+    session->RegisterSetSelectModeCallback([&callbackCalled](SelectMode selectMode) {
+        callbackCalled = true;
+    });
+
+    EXPECT_NE(session->setSelectModeCallback_, nullptr);
+    session->setSelectModeCallback_(SelectMode::WIDE_MODE);
+    EXPECT_TRUE(callbackCalled);
 }
 } // namespace
 } // namespace Rosen

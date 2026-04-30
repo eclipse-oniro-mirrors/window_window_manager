@@ -380,6 +380,7 @@ void WindowAdapterLite::OnUserSwitch()
     InitSSMProxy();
     ReregisterWindowManagerLiteAgent();
     RecoverWindowPropertyChangeFlag();
+    RecoverProcessWatermark();
     TLOGI(WmsLogTag::WMS_MULTI_USER, "End user switch");
 }
 
@@ -552,7 +553,41 @@ WMError WindowAdapterLite::SetProcessWatermark(int32_t pid, const std::string& w
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto errCode = wmsProxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    if (errCode == WMError::WM_OK) {
+        std::lock_guard<std::mutex> lock(processWatermarkMutex_);
+        if (isEnabled) {
+            processWatermarkPid_ = pid;
+            processWatermarkName_ = watermarkName;
+        } else {
+            processWatermarkPid_ = 0;
+            processWatermarkName_ = "";
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "pid=%{public}d, watermarkName=%{public}s, isEnabled=%{public}d, err=%{public}d",
+        pid, watermarkName.c_str(), isEnabled, static_cast<int32_t>(errCode));
+    return errCode;
+}
+
+WMError WindowAdapterLite::RecoverProcessWatermark()
+{
+    int32_t pid = 0;
+    std::string watermarkName;
+    {
+        std::lock_guard<std::mutex> lock(processWatermarkMutex_);
+        pid = processWatermarkPid_;
+        watermarkName = processWatermarkName_;
+    }
+    if (pid == 0 || watermarkName.empty()) {
+        return WMError::WM_OK;
+    }
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    auto errCode = wmsProxy->RecoverProcessWatermark(pid, watermarkName);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "pid=%{public}d, watermarkName=%{public}s, err=%{public}d",
+        pid, watermarkName.c_str(), static_cast<int32_t>(errCode));
+    return errCode;
 }
 
 sptr<IWindowManagerLite> WindowAdapterLite::GetWindowManagerServiceProxy() const

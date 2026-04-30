@@ -264,6 +264,7 @@ WMError FloatingBallController::CreateFloatingBallWindow(const sptr<FbOption>& o
     fbTemplateBaseInfo.isBind_ = bindState_;
     fbTemplateBaseInfo.bindWindowId_ = bindWindowId_;
     fbTemplateBaseInfo.id_ = id_;
+    fbTemplateBaseInfo.textUpdateAnimationType_ = 0; // no need animation when create
     WMError errCode = WMError::WM_OK;
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr_);
     sptr<Window> window = FloatWindowManager::CreateFbWindow(windowOption, fbTemplateBaseInfo, option->GetIcon(),

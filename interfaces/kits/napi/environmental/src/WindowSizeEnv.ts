@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const window = requireInternal('window');
+const windowenv = requireInternal('windowenv');
 const hilog = requireInternal('hilog');
 const WMS_LAYOUT_DOMAIN = 0x04208;
 const WMS_LAYOUT_TAG = 'WMSLayout';
@@ -22,7 +22,7 @@ const WMS_LAYOUT_TAG = 'WMSLayout';
 class WindowSizePxEnv implements IEnvironmentValue<window.Size> {
   @Trace public width: number;
   @Trace public height: number;
-  #win: window.Window;
+  #win: window.Window | uiExtension.WindowProxy;
 
   #sizeChangeCallback = (size: window.Size): void => {
     this.update(size);
@@ -40,7 +40,7 @@ class WindowSizePxEnv implements IEnvironmentValue<window.Size> {
     }
 
     try {
-      this.#win = window.findWindow(context.getWindowName());
+      this.#win = windowenv.findWindowById(context.getId());
       const props = this.#win.getWindowProperties();
       this.update({ width: props.windowRect.width, height: props.windowRect.height });
       this.#win.on('windowSizeChange', this.#sizeChangeCallback);
@@ -75,7 +75,7 @@ class WindowSizePxEnv implements IEnvironmentValue<window.Size> {
 class WindowSizeVpEnv implements IEnvironmentValue<window.SizeInVp> {
   @Trace public width: number;
   @Trace public height: number;
-  #win: window.Window;
+  #win: window.Window | uiExtension.WindowProxy;
   #context: UIContext;
   #widthPx = 0;
   #heightPx = 0;
@@ -113,7 +113,7 @@ class WindowSizeVpEnv implements IEnvironmentValue<window.SizeInVp> {
 
     try {
       this.#context = context;
-      this.#win = window.findWindow(this.#context.getWindowName());
+      this.#win = windowenv.findWindowById(context.getId());
       const props = this.#win.getWindowProperties();
       this.#widthPx = props.windowRect.width;
       this.#heightPx = props.windowRect.height;

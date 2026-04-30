@@ -337,6 +337,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             uint32_t phyWidth = data.ReadUint32();
             uint32_t phyHeight = data.ReadUint32();
             int32_t screenIdParam = data.ReadInt32();
+            VirtualScreenCaller caller = static_cast<VirtualScreenCaller>(data.ReadUint32());
             bool isSurfaceValid = data.ReadBool();
             sptr<Surface> surface = nullptr;
             if (isSurfaceValid) {
@@ -364,7 +365,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .phyWidth_ = phyWidth,
                 .phyHeight_ = phyHeight,
                 .userId_ = userId,
-                .screenId_ = screenIdParam
+                .screenId_ = screenIdParam,
+                .caller_ = caller
             };
             ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
             static_cast<void>(reply.WriteUint64(static_cast<uint64_t>(screenId)));
@@ -684,6 +686,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             DisplayId displayId = DISPLAY_ID_INVALID;
             bool isUseDma = false;
             bool isCaptureFullOfScreen = false;
+            uint32_t displayIntentValue = 0;
             DmErrorCode errCode = DmErrorCode::DM_OK;
             if (!data.ReadUint64(displayId)) {
                 TLOGE(WmsLogTag::DMS, "Read displayId failed");
@@ -697,8 +700,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::DMS, "Read isCaptureFullOfScreen failed");
                 return ERR_INVALID_DATA;
             }
+            if (!data.ReadUint32(displayIntentValue)) {
+                TLOGE(WmsLogTag::DMS, "Read displayIntent failed");
+                return ERR_INVALID_DATA;
+            }
+            DisplayIntentType displayIntent = static_cast<DisplayIntentType>(displayIntentValue);
             std::vector<std::shared_ptr<Media::PixelMap>> displaySnapshotVec = GetDisplayHDRSnapshot(
-                displayId, errCode, isUseDma, isCaptureFullOfScreen);
+                displayId, errCode, isUseDma, isCaptureFullOfScreen, displayIntent);
             if (displaySnapshotVec.size() != PIXMAP_VECTOR_SIZE) {
                 TLOGE(WmsLogTag::DMS, "Dail to receive displaySnapshotVec in stub.");
                 reply.WriteParcelable(nullptr);
@@ -977,7 +985,16 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteBool(IsCaptured());
             break;
         }
-        //Fold Screen
+        case DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST: {
+            std::vector<std::string> bundleNameList;
+            if (!data.ReadStringVector(&bundleNameList)) {
+                TLOGE(WmsLogTag::DMS, "Failed to read bundleNameList");
+                return ERR_INVALID_DATA;
+            }
+            reply.WriteBool(IsCapturedByBundleNameList(bundleNameList));
+            break;
+        }
+        // Fold Screen
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_SET_FOLD_DISPLAY_MODE: {
             FoldDisplayMode displayMode = static_cast<FoldDisplayMode>(data.ReadUint32());
             SetFoldDisplayMode(displayMode);
@@ -1848,6 +1865,12 @@ void ScreenSessionManagerStub::ProcGetDisplayHDRSnapshotWithOption(MessageParcel
         TLOGE(WmsLogTag::DMS, "Read surfaceNodesList failed");
         return;
     }
+    uint32_t displayIntentValue = 0;
+    if (!data.ReadUint32(displayIntentValue)) {
+        TLOGE(WmsLogTag::DMS, "Read displayIntent failed");
+        return;
+    }
+    option.displayIntent_ = static_cast<DisplayIntentType>(displayIntentValue);
     DmErrorCode errCode = DmErrorCode::DM_OK;
     std::vector<std::shared_ptr<Media::PixelMap>> captureVec = GetDisplayHDRSnapshotWithOption(option, errCode);
     if (captureVec.size() != PIXMAP_VECTOR_SIZE) {

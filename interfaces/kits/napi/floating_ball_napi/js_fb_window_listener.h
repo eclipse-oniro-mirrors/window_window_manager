@@ -20,6 +20,8 @@
 #include "floating_ball_interface.h"
 #include "refbase.h"
 #include "wm_common.h"
+#include "window_histogram_management.h"
+
 
 namespace OHOS {
 namespace Rosen {

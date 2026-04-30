@@ -34,7 +34,7 @@ group("unittest") {
 dm_unittest_common_lite_deps = [
     "${window_base_path}/dm:libdm",
     "${window_base_path}/dm_lite:libdm_lite",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/wm:libwm",
@@ -129,6 +129,7 @@ ohos_unittest("dm_display_manager_lite_proxy_test") {
 
   deps = [ ":dm_unittest_common_lite" ]
   deps += dm_unittest_common_lite_deps
+  external_deps = [ "hilog:libhilog" ]
 }
 
 ohos_unittest("dm_screen_manager_lite_test") {
@@ -140,6 +141,7 @@ ohos_unittest("dm_screen_manager_lite_test") {
 
   deps = [ ":dm_unittest_common_lite" ]
   deps += dm_unittest_common_lite_deps
+  external_deps = [ "hilog:libhilog" ]
 }
 
 ## Build dm_unittest_common_lite.a {{{

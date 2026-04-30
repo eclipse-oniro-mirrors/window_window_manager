@@ -76,7 +76,8 @@ public:
                 (ScreenId screenId, ExtendScreenConnectStatus extendScreenConnectStatus), (override));
     MOCK_METHOD(bool, OnExtendDisplayNodeChange, (ScreenId mainScreenId, ScreenId extendScreenId), (override));
     MOCK_METHOD(bool, OnCreateScreenSessionOnly,
-                (ScreenId screenId, ScreenId rsId, const std::string& name, bool isExtend), (override));
+                (ScreenId screenId, ScreenId rsId, const std::string& name, sptr<IRemoteObject> renderSession,
+                bool isExtend), (override));
     MOCK_METHOD(bool, OnMainDisplayNodeChange, (ScreenId mainScreenId, ScreenId extendScreenId, ScreenId extendRSId),
                 (override));
     MOCK_METHOD(void, SetScreenCombination,
@@ -86,6 +87,7 @@ public:
     MOCK_METHOD(void, OnAnimationFinish, (), (override));
     MOCK_METHOD(void, SetInternalClipToBounds, (ScreenId screenId, bool clipToBounds), (override));
     MOCK_METHOD(void, OnTentModeChange, (TentMode tentMode), (override));
+    MOCK_METHOD(void, OnTransRSEvent, (const sptr<RSEventDataBase>& param), (override));
 };
 
 class DisplayManagerAgentMock : public IRemoteStub<IDisplayManagerAgent> {
