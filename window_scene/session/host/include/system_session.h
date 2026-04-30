@@ -72,7 +72,7 @@ public:
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
     WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters) override;
     void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) override;
-    WSError SyncFloatViewLimits(const FloatViewLimits &limits) override;
+    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
 
     /*
      * Float Window

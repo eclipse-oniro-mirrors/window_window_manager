@@ -108,13 +108,17 @@ ani_ref AniFvWindow::CreateFvController(ani_env* env, void* contextPtr, uint32_t
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]start");
 
-    if (!AniFvWindow::IsFloatViewEnabledAni(env)) {
+    if (!FloatViewManager::isSupportFloatView_) {
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT, "device not support floatView");
     }
 
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
     if (context == nullptr) {
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_FB_INTERNAL_ERROR, "Invalid context");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Invalid context");
+    }
+
+    if (templateType >= static_cast<uint32_t>(FloatViewTemplate::END)) {
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "template type is invalid");
     }
     
     FvOption option;
@@ -130,7 +134,7 @@ ani_boolean AniFvWindow::IsFloatViewEnabledAni(ani_env* env)
     return static_cast<ani_boolean>(FloatViewManager::isSupportFloatView_);
 }
 
-ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env)
+ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env, ani_int templateType)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]GetFloatViewLimitsAni start");
     if (!FloatViewManager::isSupportFloatView_) {
@@ -138,8 +142,12 @@ ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env)
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
             "Device do not support float view.");
     }
+    uint32_t templateType_ = static_cast<uint32_t>(templateType);
+    if (templateType_ >= static_cast<uint32_t>(FloatViewTemplate::END)) {
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "template type is invalid");
+    }
     FloatViewLimits limits;
-    WMError errCode = SingletonContainer::Get<WindowManager>().GetFloatViewLimits(limits);
+    WMError errCode = SingletonContainer::Get<WindowManager>().GetFloatViewLimits(templateType_, limits);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Failed to get global float view limits");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_SYSTEM_ABNORMALLY,

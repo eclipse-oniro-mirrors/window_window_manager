@@ -2897,7 +2897,7 @@ bool Session::IsLoosenedWithFreeMultiMode() const
         "id: %{public}d, isAbover: %{public}d, IsFreeMultiWindowMode: %{public}d, ispc: %{public}d",
         GetPersistentId(), IsSubWindowZLevelAboveParentLoosened(),
         systemConfig_.IsFreeMultiWindowMode(), systemConfig_.IsPcWindow());
-    return IsSubWindowZLevelAboveParentLoosened() &&
+    return WindowHelper::IsSubWindow(GetWindowType()) && IsSubWindowZLevelAboveParentLoosened() &&
         (systemConfig_.IsPcWindow() || systemConfig_.IsFreeMultiWindowMode());
 }
 

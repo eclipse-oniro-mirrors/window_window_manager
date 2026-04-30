@@ -75,11 +75,25 @@ napi_value CreateJsExtensionWindowProperties(napi_env env, sptr<Window>& window)
     napi_set_named_property(env, objValue, "windowRect", windowRectObj);
     
     WindowType type = window->GetType();
-    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
-        napi_set_named_property(env, objValue, "type", CreateJsValue(env, NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type)));
+    
+    uint32_t typeValue;
+    if (type == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+        typeValue = static_cast<uint32_t>(ApiWindowType::TYPE_SYSTEM_ALERT);
+    } else if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
+        typeValue = static_cast<uint32_t>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type));
     } else {
-        napi_set_named_property(env, objValue, "type", CreateJsValue(env, type));
+        typeValue = static_cast<uint32_t>(type);
     }
+    napi_set_named_property(env, objValue, "type", CreateJsValue(env, typeValue));
+    
+    uint32_t windowTypeValue;
+    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
+        windowTypeValue = static_cast<uint32_t>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type));
+    } else {
+        windowTypeValue = static_cast<uint32_t>(type);
+    }
+    napi_set_named_property(env, objValue, "windowType", CreateJsValue(env, windowTypeValue));
+    
     napi_set_named_property(env, objValue, "isLayoutFullScreen", CreateJsValue(env, window->IsLayoutFullScreen()));
     napi_set_named_property(env, objValue, "isFullScreen", CreateJsValue(env, window->IsFullScreen()));
     napi_set_named_property(env, objValue, "touchable", CreateJsValue(env, window->GetTouchable()));

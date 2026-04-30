@@ -1024,6 +1024,10 @@ ohos_unittest("ws_scene_session_manager_stub_test2") {
     "scene_session_manager_stub_test2.cpp",
   ]
 
+  defines = [
+    "ENABLE_MOCK_READ_UINT32",
+  ]
+
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps

@@ -609,6 +609,12 @@ enum class ScreenModeChangeEvent: uint32_t {
     END,
 };
 
+enum class DisplayIntentType: uint32_t {
+    CANONICAL = 0, //fixed nits
+    LOCAL = 1, // current screen nits
+    DISPLAY_INTENT_BUTT, // a boundary for DisplayIntentType Security Check
+};
+
 class Point : public Parcelable {
 public:
     int32_t posX_{0};
@@ -700,6 +706,7 @@ struct CaptureOption {
     bool isNeedNotify_ = true;
     bool isNeedPointer_ = true;
     bool isCaptureFullOfScreen_ = false;
+    DisplayIntentType displayIntent_ = DisplayIntentType::CANONICAL;
     std::vector<NodeId> surfaceNodesList_ = {}; // exclude surfacenodes in screenshot
     std::vector<NodeId> blackWindowIdList_ = {};
     float scaleX_ = DEFAULT_SNAPSHOT_SCALE;

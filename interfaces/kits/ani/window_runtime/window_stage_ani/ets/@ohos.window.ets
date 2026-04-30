@@ -1220,6 +1220,7 @@ export interface WindowProperties {
     drawableRect: Rect;
     globalDisplayRect?: Rect;
     type: WindowType;
+    windowType: WindowType;
     isFullScreen: boolean;
     isLayoutFullScreen: boolean;
     focusable: boolean;
@@ -1249,6 +1250,7 @@ export class WindowPropertiesInternal implements WindowProperties {
   isRoundCorner: boolean;
   isTransparent: boolean;
   type: WindowType;
+  windowType: WindowType;
   id: int;
   displayId?: long;
   name?: string;
@@ -1256,8 +1258,8 @@ export class WindowPropertiesInternal implements WindowProperties {
 
   constructor(windowRect: Rect, drawableRect: Rect, isFullScreen: boolean, isLayoutFullScreen: boolean,
     focusable: boolean, touchable: boolean, brightness: double, dimBehindValue: number, isKeepScreenOn: boolean,
-    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, id: int,
-    displayId: long, name: string, globalDisplayRect: Rect)
+    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, windowTypeInternal: int,
+    id: int, displayId: long, name: string, globalDisplayRect: Rect)
   {
     this.windowRect = windowRect;
     this.drawableRect = drawableRect;
@@ -1273,6 +1275,7 @@ export class WindowPropertiesInternal implements WindowProperties {
     this.isRoundCorner = isRoundCorner;
     this.isTransparent = isTransparent;
     this.type = WindowType.fromValue(typeInternal);
+    this.windowType = WindowType.fromValue(windowTypeInternal);
     this.id = id;
     this.displayId = displayId;
     this.name = name;

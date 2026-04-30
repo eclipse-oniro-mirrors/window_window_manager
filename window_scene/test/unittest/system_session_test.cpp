@@ -1494,7 +1494,7 @@ HWTEST_F(SystemSessionTest, SyncFloatViewLimits, Function | SmallTest | Level2)
     SessionInfo info;
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
 
-    FloatViewLimits limits;
+    std::map<uint32_t, FloatViewLimits> limits;
     systemSession->sessionStage_ = nullptr;
     EXPECT_EQ(systemSession->SyncFloatViewLimits(limits), WSError::WS_ERROR_NULLPTR);
 

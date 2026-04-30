@@ -481,7 +481,7 @@ public:
      * @param limits Indicates the float view limits info.
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
-    virtual WSError SyncFvLimits(const FloatViewLimits& limits) = 0;
+    virtual WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) = 0;
 
     /**
      * @brief Hide SubWindow whose zLevel above parent loosened.

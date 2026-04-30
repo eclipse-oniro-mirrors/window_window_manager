@@ -116,6 +116,11 @@ ohos_static_library("window_native_kit_static") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 }
 
 ## Build libwindow_native_kit.z.so
@@ -146,6 +151,11 @@ ohos_shared_library("window_native_kit") {
   defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
+  }
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
   }
 
   version_script = "libwindow_native_kit.map"

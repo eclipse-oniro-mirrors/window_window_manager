@@ -2049,26 +2049,17 @@ struct PiPTemplateInfo : public Parcelable {
 
 struct FloatViewWindowInfo : public Parcelable {
     Rect windowRect_ {};
-    Rect titleBarRect_ {};
+    AvoidArea avoidArea_ {};
     float scale_ {1.0f};
 
     FloatViewWindowInfo() {}
 
-    static inline bool WriteRectParcel(Parcel& parcel, const Rect& rect)
-    {
-        return parcel.WriteInt32(rect.posX_) && parcel.WriteInt32(rect.posY_) &&
-            parcel.WriteUint32(rect.width_) && parcel.WriteUint32(rect.height_);
-    }
-
-    static inline bool ReadRectParcel(Parcel& parcel, Rect& rect)
-    {
-        return parcel.ReadInt32(rect.posX_) && parcel.ReadInt32(rect.posY_) &&
-            parcel.ReadUint32(rect.width_) && parcel.ReadUint32(rect.height_);
-    }
-
     bool Marshalling(Parcel& parcel) const override
     {
-        if (!WriteRectParcel(parcel, windowRect_) || !WriteRectParcel(parcel, titleBarRect_)) {
+        if (!windowRect_.Marshalling(parcel)) {
+            return false;
+        }
+        if (!avoidArea_.Marshalling(parcel)) {
             return false;
         }
         if (!parcel.WriteFloat(scale_)) {
@@ -2080,11 +2071,13 @@ struct FloatViewWindowInfo : public Parcelable {
     static FloatViewWindowInfo* Unmarshalling(Parcel& parcel)
     {
         auto* floatViewWindowInfo = new FloatViewWindowInfo();
-        if (!ReadRectParcel(parcel, floatViewWindowInfo->windowRect_) ||
-            !ReadRectParcel(parcel, floatViewWindowInfo->titleBarRect_)) {
+        floatViewWindowInfo->windowRect_.Unmarshalling(parcel);
+        std::shared_ptr<AvoidArea> avoidArea = std::shared_ptr<AvoidArea>(AvoidArea::Unmarshalling(parcel));
+        if (avoidArea == nullptr) {
             delete floatViewWindowInfo;
             return nullptr;
         }
+        floatViewWindowInfo->avoidArea_ = *avoidArea;
         if (!parcel.ReadFloat(floatViewWindowInfo->scale_)) {
             delete floatViewWindowInfo;
             return nullptr;
@@ -2096,10 +2089,8 @@ struct FloatViewWindowInfo : public Parcelable {
     {
         constexpr int precision = 6; // Print float with precision of 6 decimal places.
         std::ostringstream oss;
-        oss << "window rect [" << windowRect_.posX_ << " " << windowRect_.posY_ << " "
-            << windowRect_.width_ << " " << windowRect_.height_ << "]"
-            << " titleBar rect [" << titleBarRect_.posX_ << " " << titleBarRect_.posY_ << " "
-            << titleBarRect_.width_ << " " << titleBarRect_.height_ << "]"
+        oss << "window rect " << windowRect_.ToString()
+            << " avoidArea " << avoidArea_.ToString()
             << " scale [" << std::fixed << std::setprecision(precision) << scale_ << "]";
         return oss.str();
     }
@@ -2110,7 +2101,7 @@ struct FloatViewLimits : public Parcelable {
     uint32_t maxHeight_ {0};
     uint32_t minWidth_ {0};
     uint32_t minHeight_ {0};
-    std::vector<std::pair<float, float>> ratioLimits_ {};
+    std::vector<std::pair<double, double>> ratioLimits_ {};
     FloatViewLimits() {}
 
     bool Marshalling(Parcel& parcel) const override
@@ -2123,7 +2114,7 @@ struct FloatViewLimits : public Parcelable {
             return false;
         }
         for (const auto& ratioLimit : ratioLimits_) {
-            if (!parcel.WriteFloat(ratioLimit.first) || !parcel.WriteFloat(ratioLimit.second)) {
+            if (!parcel.WriteDouble(ratioLimit.first) || !parcel.WriteDouble(ratioLimit.second)) {
                 return false;
             }
         }
@@ -2151,7 +2142,7 @@ struct FloatViewLimits : public Parcelable {
         }
         floatViewLimits->ratioLimits_.resize(limitsCount);
         for (auto& ratioLimit : floatViewLimits->ratioLimits_) {
-            if (!parcel.ReadFloat(ratioLimit.first) || !parcel.ReadFloat(ratioLimit.second)) {
+            if (!parcel.ReadDouble(ratioLimit.first) || !parcel.ReadDouble(ratioLimit.second)) {
                 delete floatViewLimits;
                 return nullptr;
             }

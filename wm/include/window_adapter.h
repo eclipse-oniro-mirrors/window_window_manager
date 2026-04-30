@@ -264,7 +264,7 @@ public:
     /**
      * Float View
      */
-    virtual WMError GetFloatViewLimits(FloatViewLimits &limits);
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits);
 
 private:
     friend class sptr<WindowAdapter>;

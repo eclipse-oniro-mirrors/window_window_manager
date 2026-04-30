@@ -103,7 +103,10 @@ public:
         bool isUseDma = false, bool isCaptureFullOfScreen = false) { return nullptr; }
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(
         DisplayId displayId, DmErrorCode& errorCode, bool isUseDma = false,
-        bool isCaptureFullOfScreen = false) { return { nullptr, nullptr }; }
+        bool isCaptureFullOfScreen = false, DisplayIntentType displayIntent = DisplayIntentType::CANONICAL)
+    {
+        return { nullptr, nullptr };
+    }
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect,
         DmErrorCode* errorCode = nullptr)
     {

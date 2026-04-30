@@ -147,6 +147,7 @@ void AniFvController::OnStopFloatViewAni(ani_env* env)
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
         return;
     }
     WMError errCode = fvController_->StopFloatViewFromClient();
@@ -277,6 +278,7 @@ ani_object AniFvController::OnGetWindowPropertiesAni(ani_env* env)
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
     }
+    auto templateType = static_cast<uint32_t>(fvController_->GetTemplateType());
     auto state = fvController_->GetCurState();
     if (!fvController_->IsStateWithWindow(state)) {
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_FV_INVALID_STATE,
@@ -290,7 +292,7 @@ ani_object AniFvController::OnGetWindowPropertiesAni(ani_env* env)
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
     }
     auto windowInfo = fvController_->GetWindowInfo();
-    auto jsObject = AniFvUtils::CreateAniFvWindowInfoObject(env, fvWindow, windowInfo, state);
+    auto jsObject = AniFvUtils::CreateAniFloatViewPropertiesObject(env, templateType, fvWindow, windowInfo, state);
     if (jsObject == nullptr) {
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to create js object.");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));

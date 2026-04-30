@@ -1348,11 +1348,13 @@ HWTEST_F(SceneSessionManagerSupplementTest, CanCreateFloatView, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1)
 {
-    FloatViewLimits limits;
-    limits.minWidth_ = 100;
-    limits.minHeight_ = 100;
-    limits.maxWidth_ = 1000;
-    limits.maxHeight_ = 1000;
+    FloatViewLimits limit;
+    limit.minWidth_ = 100;
+    limit.minHeight_ = 100;
+    limit.maxWidth_ = 1000;
+    limit.maxHeight_ = 1000;
+    std::map<uint32_t, FloatViewLimits> limits;
+    limits.emplace(0, limit);
     
     auto ret = ssm_->SyncFloatViewLimits(limits);
     EXPECT_EQ(ret, WSError::WS_OK);
@@ -1388,14 +1390,17 @@ HWTEST_F(SceneSessionManagerSupplementTest, GetFloatViewLimits, TestSize.Level1)
     testLimits.minHeight_ = 100;
     testLimits.maxWidth_ = 1000;
     testLimits.maxHeight_ = 1000;
-    ssm_->floatViewLimits_ = testLimits;
+    ssm_->floatViewLimits_.emplace(0, testLimits);
     FloatViewLimits limits;
-    auto ret = ssm_->GetFloatViewLimits(limits);
+    auto ret = ssm_->GetFloatViewLimits(0, limits);
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(limits.minWidth_, 100);
     EXPECT_EQ(limits.minHeight_, 100);
     EXPECT_EQ(limits.maxWidth_, 1000);
     EXPECT_EQ(limits.maxHeight_, 1000);
+    
+    ret = ssm_->GetFloatViewLimits(2, limits);
+    EXPECT_EQ(ret, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
 }
 
 /**

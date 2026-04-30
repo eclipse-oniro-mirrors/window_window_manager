@@ -1694,23 +1694,32 @@ ani_object AniWindowUtils::CreateWindowsProperties(ani_env* env, const WindowPro
     ani_object aniRect = CreateAniRectObject(env, windowPropertyInfo.windowRect);
     ani_object aniDrawableRect = CreateAniRectObject(env, windowPropertyInfo.drawableRect);
     ani_object aniGlobalDisplayRect = CreateAniRectObject(env, windowPropertyInfo.globalDisplayRect);
-    int windowType;
-    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
-        windowType = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
+    int typeValue;
+    if (windowPropertyInfo.type == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+        typeValue = static_cast<int>(ApiWindowType::TYPE_SYSTEM_ALERT);
+    } else if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
+        typeValue = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
     } else {
-        windowType = static_cast<int>(windowPropertyInfo.type);
+        typeValue = static_cast<int>(windowPropertyInfo.type);
+    }
+    int windowTypeValue;
+    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
+        windowTypeValue = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
+    } else {
+        windowTypeValue = static_cast<int>(windowPropertyInfo.type);
     }
     ani_string aniWindowName;
     GetAniString(env, windowPropertyInfo.name, &aniWindowName);
     ani_object aniWindowsProperties = InitAniObjectByCreator(env, "@ohos.window.window.WindowPropertiesInternal",
-        "C{@ohos.window.window.Rect}C{@ohos.window.window.Rect}zzzzddzzzziilC{std.core.String}"
+        "C{@ohos.window.window.Rect}C{@ohos.window.window.Rect}zzzzddzzzziiilC{std.core.String}"
         "C{@ohos.window.window.Rect}:",
         aniRect, aniDrawableRect, ani_boolean(windowPropertyInfo.isFullScreen),
         ani_boolean(windowPropertyInfo.isLayoutFullScreen), ani_boolean(windowPropertyInfo.isFocusable),
         ani_boolean(windowPropertyInfo.isTouchable), ani_float(windowPropertyInfo.brightness), ani_float(0),
         ani_boolean(windowPropertyInfo.isKeepScreenOn), ani_boolean(windowPropertyInfo.isPrivacyMode),
-        ani_boolean(false),  ani_boolean(windowPropertyInfo.isTransparent), ani_int(windowType),
-        ani_int(windowPropertyInfo.id), ani_long(windowPropertyInfo.displayId), aniWindowName, aniGlobalDisplayRect);
+        ani_boolean(false),  ani_boolean(windowPropertyInfo.isTransparent), ani_int(typeValue),
+        ani_int(windowTypeValue), ani_int(windowPropertyInfo.id),
+        ani_long(windowPropertyInfo.displayId), aniWindowName, aniGlobalDisplayRect);
     return aniWindowsProperties;
 }
 

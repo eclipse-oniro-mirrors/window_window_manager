@@ -1583,7 +1583,7 @@ public:
      * @param floatViewLimits Float view limits.
      * @return WM_OK means get success, others means get failed.
      */
-    WMError GetFloatViewLimits(FloatViewLimits& floatViewLimits) const;
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& floatViewLimits) const;
 
 private:
     /**

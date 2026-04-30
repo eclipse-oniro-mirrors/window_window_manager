@@ -452,7 +452,7 @@ public:
     void NotifyPrepareCloseFloatView() override;
     WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
     WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
-    WSError SyncFvLimits(const FloatViewLimits& limits) override;
+    WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
     WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams) override;
 
@@ -696,10 +696,6 @@ public:
      * Window LifeCycle
      */
     WMError GetRouterStackInfo(std::string& routerStackInfo) override;
-
-    /*
-     * Window LifeCycle
-     */
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     void NotifyAfterLifecycleForeground();
@@ -707,6 +703,8 @@ public:
     void NotifyAfterLifecycleResumed(bool isGamePreLaunch = false);
     void NotifyAfterLifecyclePaused();
     void SetNavDestinationInfo(const std::string& navDestinationInfo) override;
+    bool IsLoosenedWithPcOrFreeMultiMode() const;
+
     /*
      * Window Lifecycle and mode Record
      */
@@ -872,7 +870,6 @@ protected:
     void GetSubWindows(int32_t parentPersistentId, std::vector<sptr<WindowSessionImpl>>& subWindows);
     void RemoveSubWindow(int32_t parentPersistentId);
     bool IsZLevelAboveParentLoosened() const override;
-    bool IsLoosenedWithPcOrFreeMultiMode() const;
 
     sptr<WindowOption> windowOption_;
     sptr<ISession> hostSession_;

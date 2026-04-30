@@ -363,6 +363,11 @@ ohos_shared_library("libwm") {
     defines += [ "IMF_ENABLE" ]
   }
 
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   if (is_ohos && is_clang && target_cpu == "arm64") {
     ldflags += [
       "-Wl,--emit-relocs",

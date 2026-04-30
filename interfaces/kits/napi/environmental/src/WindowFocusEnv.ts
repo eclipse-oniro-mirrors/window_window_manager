@@ -28,7 +28,7 @@ interface UIEnvHighlight {
 
 @ObservedV2
 class WindowFocusedEnv implements IEnvironmentValue<UIEnvFocus> {
-  @Trace isFocused: boolean;
+  @Trace isFocused: boolean = false;
   #win: window.Window;
 
   get value(): UIEnvFocus {
@@ -65,7 +65,7 @@ class WindowFocusedEnv implements IEnvironmentValue<UIEnvFocus> {
 
 @ObservedV2
 class WindowHighlightedEnv implements IEnvironmentValue<UIEnvHighlight> {
-  @Trace isHighlighted: boolean;
+  @Trace isHighlighted: boolean = false;
   #win: window.Window;
 
   get value() : UIEnvHighlight {

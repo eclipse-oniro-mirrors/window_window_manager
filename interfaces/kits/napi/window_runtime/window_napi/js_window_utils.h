@@ -94,6 +94,7 @@ enum class ApiWindowType : uint32_t {
     TYPE_MUTISCREEN_COLLABORATION,
     TYPE_FB,
     TYPE_FV,
+    TYPE_MAIN = 32,
     TYPE_END
 };
 

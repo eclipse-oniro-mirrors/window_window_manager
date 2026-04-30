@@ -2039,9 +2039,9 @@ WMError WindowManager::GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode
     return WindowAdapter::GetInstance(userId_).GetGlobalWindowMode(displayId, globalWinMode);
 }
 
-WMError WindowManager::GetFloatViewLimits(FloatViewLimits &limits) const
+WMError WindowManager::GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits) const
 {
-    return WindowAdapter::GetInstance(userId_).GetFloatViewLimits(limits);
+    return WindowAdapter::GetInstance(userId_).GetFloatViewLimits(templateType, limits);
 }
 
 WMError WindowManager::GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName) const

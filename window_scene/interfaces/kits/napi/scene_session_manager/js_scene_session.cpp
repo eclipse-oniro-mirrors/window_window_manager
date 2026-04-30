@@ -6821,11 +6821,11 @@ bool JsSceneSession::GetFloatViewWindowInfo(napi_env env, napi_value jsValue, Fl
         napi_get_named_property(env, jsValue, "windowRect", &jsWindowRect);
         ConvertRectFromJsValue(env, jsWindowRect, windowInfo.windowRect_);
     }
-    napi_has_named_property(env, jsValue, "titleBarRect", &hasProperty);
+    napi_has_named_property(env, jsValue, "avoidArea", &hasProperty);
     if (hasProperty) {
-        napi_value jsTitleBarRect = nullptr;
-        napi_get_named_property(env, jsValue, "titleBarRect", &jsTitleBarRect);
-        ConvertRectFromJsValue(env, jsTitleBarRect, windowInfo.titleBarRect_);
+        napi_value jsAvoidArea = nullptr;
+        napi_get_named_property(env, jsValue, "avoidArea", &jsAvoidArea);
+        ConvertAvoidAreaFromJsValue(env, jsAvoidArea, windowInfo.avoidArea_);
     }
     napi_has_named_property(env, jsValue, "scale", &hasProperty);
     if (hasProperty) {

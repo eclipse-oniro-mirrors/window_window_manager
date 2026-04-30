@@ -966,7 +966,7 @@ void SystemSession::SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func)
     PostTask(std::move(task), __func__);
 }
 
-WSError SystemSession::SyncFloatViewLimits(const FloatViewLimits& limits)
+WSError SystemSession::SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFloatViewLimits");
     if (!sessionStage_) {

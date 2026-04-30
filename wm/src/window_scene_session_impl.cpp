@@ -337,7 +337,7 @@ sptr<WindowSessionImpl> WindowSceneSessionImpl::FindParentMainSession(uint32_t p
     for (const auto& [_, pair] : sessionMap) {
         auto& window = pair.second;
         if (window && window->GetWindowId() == parentId) {
-            if (WindowHelper::IsMainWindow(window->GetType()) ||
+            if (WindowHelper::IsMainWindow(window->GetType()) || window->IsLoosenedWithPcOrFreeMultiMode() ||
                 (WindowHelper::IsSystemWindow(window->GetType()) && window->GetParentId() == INVALID_SESSION_ID)) {
                 TLOGD(WmsLogTag::WMS_SUB, "find main session, id:%{public}u", window->GetWindowId());
                 return window;
@@ -4340,24 +4340,21 @@ void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation pres
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, WaterfallResidentState state)
 {
-    // Convert WaterfallResidentState to AcrossDisplayPresentation
     auto acrossDisplay = static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
-    WMError checkRet = CheckMaximizePreConditions(acrossDisplay);
-    if (checkRet != WMError::WM_OK) {
-        return checkRet;
-    }
-    return ExecuteMaximizeWithOptions(presentation, acrossDisplay, { -1, -1 });
+    return MaximizeWithOptions(presentation, acrossDisplay, { -1, -1 });
 }
 
 WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config)
 {
     constexpr int64_t MAX_DURATION = 400;
     constexpr int64_t MAX_DELAY = 350;
-    if (config.duration < 0 || config.duration > MAX_DURATION ||
-        config.delay < 0 || config.delay > MAX_DELAY) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Invalid animation config: duration=%{public}" PRId64
-            ", delay=%{public}" PRId64 " (valid: duration [0,%{public}" PRId64
-            "], delay [0,%{public}" PRId64 "])",
+    constexpr int64_t USE_DEFAULT = -1;
+    auto isValid = [](int64_t value, int64_t max) {
+        return value == USE_DEFAULT || (value >= 0 && value <= max);
+    };
+    if (!isValid(config.duration, MAX_DURATION) || !isValid(config.delay, MAX_DELAY)) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Invalid animation config: duration=%{public}" PRId64 ", delay=%{public}" PRId64
+            " (valid: duration [0,%{public}" PRId64 "], delay [0,%{public}" PRId64 "] )",
             config.duration, config.delay, MAX_DURATION, MAX_DELAY);
         return WMError::WM_ERROR_ILLEGAL_PARAM;
     }
@@ -4366,16 +4363,6 @@ WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAn
 
 WMError WindowSceneSessionImpl::CheckMaximizePreConditions(AcrossDisplayPresentation state)
 {
-    if (IsWindowSessionInvalid()) {
-        return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-
-    if (property_->GetWindowAnchorInfo().isFromAttachOrDetach_ &&
-        property_->GetWindowAnchorInfo().isAnchoredByAttach_) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Cannot maximize due to in ancor enabled mode.");
-        return WMError::WM_OK;
-    }
-
     if (!CheckAcrossDisplayPresentation(state)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Invalid acrossDisplayPresentation. windowId: %{public}u, state: %{public}u",
               GetWindowId(), static_cast<uint32_t>(state));
@@ -4388,11 +4375,6 @@ WMError WindowSceneSessionImpl::CheckMaximizePreConditions(AcrossDisplayPresenta
     if (!WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
         return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    // The device is not supported
-    if (!IsPcOrPadFreeMultiWindowMode() || property_->IsFullScreenDisabled()) {
-        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
-        return WMError::WM_OK;
     }
     return WMError::WM_OK;
 }
@@ -4433,9 +4415,25 @@ WMError WindowSceneSessionImpl::MaximizeWithOptions(MaximizePresentation present
         return validateRet;
     }
 
+    if (IsWindowSessionInvalid()) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+
+    if (property_->GetWindowAnchorInfo().isFromAttachOrDetach_ &&
+        property_->GetWindowAnchorInfo().isAnchoredByAttach_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Cannot maximize due to in anchor enabled mode.");
+        return WMError::WM_OK;
+    }
+
     WMError checkRet = CheckMaximizePreConditions(state);
     if (checkRet != WMError::WM_OK) {
         return checkRet;
+    }
+
+    // The device is not supported
+    if (!IsPcOrPadFreeMultiWindowMode() || property_->IsFullScreenDisabled()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
+        return WMError::WM_OK;
     }
 
     return ExecuteMaximizeWithOptions(presentation, state, snapshotAnimationConfig);
@@ -4591,23 +4589,11 @@ WMError WindowSceneSessionImpl::Restore()
 
 WMError WindowSceneSessionImpl::Recover(uint32_t reason)
 {
-    WMError checkRet = CheckRecoverPreConditions();
-    if (checkRet != WMError::WM_OK) {
-        return checkRet;
-    }
-    return ExecuteRecover(reason, { -1, -1 });
+    return Recover(reason, { -1, -1 });
 }
 
 WMError WindowSceneSessionImpl::CheckRecoverPreConditions()
 {
-    if (IsWindowSessionInvalid()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
-        return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
-        return WMError::WM_OK;
-    }
     if (!IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -4663,6 +4649,16 @@ WMError WindowSceneSessionImpl::Recover(uint32_t reason, const SnapshotAnimation
     WMError validateRet = ValidateSnapshotAnimationConfig(snapshotAnimationConfig);
     if (validateRet != WMError::WM_OK) {
         return validateRet;
+    }
+
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    
+    if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
+        return WMError::WM_OK;
     }
 
     WMError checkRet = CheckRecoverPreConditions();
@@ -5598,7 +5594,7 @@ static WMError GetParentMainWindowIdInner(WindowSessionImplMap& sessionMap, int3
             continue;
         }
 
-        if (WindowHelper::IsMainWindow(window->GetType())) {
+        if (WindowHelper::IsMainWindow(window->GetType()) || window->IsLoosenedWithPcOrFreeMultiMode()) {
             TLOGI(WmsLogTag::WMS_SUB, "find main window, id:%{public}u", window->GetPersistentId());
             mainWindowId = window->GetPersistentId();
             return WMError::WM_OK;
@@ -6579,6 +6575,12 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
     if (uiContent == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "uiContent is null");
         return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+    if (isPcMode && windowSystemConfig_.isDockAutoHide_ && (isDecorHiddenByApp_ || isMaximizeInvoked_) && !IsAnco() &&
+        GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
+        TLOGI(WmsLogTag::WMS_DECOR, "dock auto hide skip updateTitleInTargetPos");
+        return WSError::WS_OK;
     }
     NotifyTitleChange(isShow, height);
     uiContent->UpdateTitleInTargetPos(isShow, height);

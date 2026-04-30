@@ -36,7 +36,7 @@ public:
 
     static ani_ref Create(ani_env* env, ani_long nativeObj, ani_object floatViewConfigurations);
     static ani_boolean IsFloatViewEnabledAni(ani_env* env);
-    static ani_object GetFloatViewLimitsAni(ani_env* env);
+    static ani_object GetFloatViewLimitsAni(ani_env* env, ani_int templateType);
     static ani_object BindAni(ani_env* env, ani_object fvController, ani_object fbController, ani_object aniFbOption);
     static ani_object UnBindAni(ani_env* env, ani_object fvController, ani_object fbController);
 private:

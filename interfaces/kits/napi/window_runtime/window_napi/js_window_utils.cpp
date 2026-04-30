@@ -57,6 +57,7 @@ constexpr std::array<DefaultSpecificZIndex, 2> DefaultSpecificZIndexList = {
 }
 
 const std::map<WindowType, ApiWindowType> NATIVE_JS_TO_WINDOW_TYPE_MAP {
+    { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW,          ApiWindowType::TYPE_MAIN                     },
     { WindowType::WINDOW_TYPE_APP_SUB_WINDOW,           ApiWindowType::TYPE_APP                      },
     { WindowType::WINDOW_TYPE_DIALOG,                   ApiWindowType::TYPE_DIALOG                   },
     { WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW,      ApiWindowType::TYPE_SYSTEM_ALERT             },
@@ -118,6 +119,7 @@ const std::map<ApiWindowType, WindowType> JS_TO_NATIVE_WINDOW_TYPE_MAP {
     { ApiWindowType::TYPE_MUTISCREEN_COLLABORATION, WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION },
     { ApiWindowType::TYPE_FB,                       WindowType::WINDOW_TYPE_FB                       },
     { ApiWindowType::TYPE_FV,                       WindowType::WINDOW_TYPE_FV                       },
+    { ApiWindowType::TYPE_MAIN,                     WindowType::WINDOW_TYPE_APP_MAIN_WINDOW          },
 };
 
 const std::map<WindowMode, ApiWindowMode> NATIVE_TO_JS_WINDOW_MODE_MAP {
@@ -855,11 +857,21 @@ napi_value CreateJsWindowPropertiesObject(napi_env env, const WindowPropertyInfo
     napi_set_named_property(env, objValue, "globalDisplayRect", globalDisplayRectObj);
 
     WindowType type = windowPropertyInfo.type;
-    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
-        napi_set_named_property(env, objValue, "type", CreateJsValue(env, NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type)));
-    } else {
-        napi_set_named_property(env, objValue, "type", CreateJsValue(env, type));
+    
+    uint32_t typeValue = static_cast<uint32_t>(type);
+    if (type == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+        typeValue = static_cast<uint32_t>(ApiWindowType::TYPE_SYSTEM_ALERT);
+    } else if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
+        typeValue = static_cast<uint32_t>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type));
     }
+    napi_set_named_property(env, objValue, "type", CreateJsValue(env, typeValue));
+    
+    uint32_t windowTypeValue = static_cast<uint32_t>(type);
+    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
+        windowTypeValue = static_cast<uint32_t>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type));
+    }
+    napi_set_named_property(env, objValue, "windowType", CreateJsValue(env, windowTypeValue));
+    
     napi_set_named_property(env, objValue, "isLayoutFullScreen",
                             CreateJsValue(env, windowPropertyInfo.isLayoutFullScreen));
     napi_set_named_property(env, objValue, "isFullScreen", CreateJsValue(env, windowPropertyInfo.isFullScreen));

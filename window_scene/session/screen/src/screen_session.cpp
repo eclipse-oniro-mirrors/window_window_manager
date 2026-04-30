@@ -3491,6 +3491,7 @@ void ScreenSession::UpdateScbScreenPropertyToServer(const ScreenProperty& screen
         property_.SetDisplayOrientation(screenProperty.GetDisplayOrientation());
         property_.SetScreenAreaOffsetY(screenProperty.GetScreenAreaOffsetY());
         property_.SetScreenAreaHeight(screenProperty.GetScreenAreaHeight());
+        property_.SetScreenAreaWidth(screenProperty.GetScreenAreaWidth());
     }
 
     property_.SetPhysicalTouchBoundsDirectly(screenProperty.GetPhysicalTouchBounds());
