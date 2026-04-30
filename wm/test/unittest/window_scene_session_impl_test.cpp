@@ -4056,9 +4056,10 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeDelegatedPath01, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    // Maximize(pres, state) -> MaximizeWithOptions(pres, state, {-1,-1})
-    WMError ret = window->Maximize(
-        MaximizePresentation::ENTER_IMMERSIVE, WaterfallResidentState::UNCHANGED);
+    // Maximize(pres, state) -> MaximizeWithOptions(pres, UNSPECIFIED, {-1,-1})
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     ASSERT_EQ(ret, WMError::WM_OK);
 }
 

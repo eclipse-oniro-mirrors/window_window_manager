@@ -271,12 +271,15 @@ HWTEST_F(WindowSceneSessionImplTest5, Maximize01, TestSize.Level1)
     auto ret = window->Maximize(presentation);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
-    // waterfallResidentState is invalid and windowType is invalid
-    ret = window->Maximize(presentation, WaterfallResidentState::OPEN);
+    // acrossDisplayPresentation is invalid and windowType is invalid
+    ret = window->MaximizeWithOptions(presentation,
+        AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
-    // waterfallResidentState is valid but windowType is invalid
-    ret = window->Maximize(presentation, WaterfallResidentState::UNCHANGED);
+    // acrossDisplayPresentation is valid but windowType is invalid
+    ret = window->MaximizeWithOptions(presentation,
+        AcrossDisplayPresentation::UNSPECIFIED, { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);

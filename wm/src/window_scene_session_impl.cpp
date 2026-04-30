@@ -4293,15 +4293,8 @@ WMError WindowSceneSessionImpl::Maximize()
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation)
 {
-    return Maximize(presentation, WaterfallResidentState::UNCHANGED);
-}
-
-bool WindowSceneSessionImpl::CheckWaterfallResidentState(WaterfallResidentState state) const
-{
-    if (WindowHelper::IsSubWindow(GetType())) {
-        return state == WaterfallResidentState::UNCHANGED;
-    }
-    return true;
+    return MaximizeWithOptions(presentation, AcrossDisplayPresentation::UNSPECIFIED,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 bool WindowSceneSessionImpl::CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const
@@ -4343,27 +4336,7 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
     auto acrossDisplay = (state == WaterfallResidentState::UNCHANGED)
         ? AcrossDisplayPresentation::UNSPECIFIED
         : static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
-
-    if (IsWindowSessionInvalid()) {
-        return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-
-    if (property_->GetWindowAnchorInfo().isFromAttachOrDetach_ &&
-        property_->GetWindowAnchorInfo().isAnchoredByAttach_) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Cannot maximize due to in anchor enabled mode.");
-        return WMError::WM_OK;
-    }
-
-    WMError checkRet = CheckMaximizePreConditions(acrossDisplay);
-    if (checkRet != WMError::WM_OK) {
-        return checkRet;
-    }
-
-    if (!IsPcOrPadFreeMultiWindowMode() || property_->IsFullScreenDisabled()) {
-        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
-        return WMError::WM_OK;
-    }
-    return ExecuteMaximizeWithOptions(presentation, acrossDisplay,
+    return MaximizeWithOptions(presentation, acrossDisplay,
         { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 

@@ -605,7 +605,6 @@ private:
     /*
      * PC Window Layout
      */
-    bool CheckWaterfallResidentState(WaterfallResidentState state) const;
     bool CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const;
     void ApplyMaximizePresentation(MaximizePresentation presentation);
     WMError CheckMaximizePreConditions(AcrossDisplayPresentation state);
