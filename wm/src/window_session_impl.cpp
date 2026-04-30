@@ -2019,10 +2019,6 @@ WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo
     return WSError::WS_OK;
 }
 
-WindowModeInfo WindowSessionImpl::GetWindowModeInfo() const
-{
-    return windowModeInfo_;
-}
 
 /** @note @window.layout */
 float WindowSessionImpl::GetVirtualPixelRatio()

@@ -5327,6 +5327,11 @@ WindowMode WindowSceneSessionImpl::GetWindowMode() const
     return property_->GetWindowMode();
 }
 
+WindowModeInfo WindowSceneSessionImpl::GetWindowModeInfo() const
+{
+    return windowModeInfo_;
+}
+
 bool WindowSceneSessionImpl::IsTransparent() const
 {
     if (IsWindowSessionInvalid()) {

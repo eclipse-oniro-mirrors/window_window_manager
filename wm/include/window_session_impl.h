@@ -269,7 +269,6 @@ public:
     WMError RequestFocus() const override;
     WMError RequestFocusByClient(bool isFocused) const override;
     WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
-    WindowModeInfo GetWindowModeInfo() const override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override { return WSError::WS_OK; }
     WSError HandleBackEvent() override;
     KeyboardAnimationConfig GetKeyboardAnimationConfig() override;
