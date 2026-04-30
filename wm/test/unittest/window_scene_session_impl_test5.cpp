@@ -178,10 +178,10 @@ HWTEST_F(WindowSceneSessionImplTest5, TestCheckAcrossDisplayPresentation, TestSi
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 
-    // Case 2: Sub window, only FOLLOW and UNSPECIFIED should return true
+    // Case 2: Sub window, only UNSPECIFIED should return true
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::UNSPECIFIED));
-    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
+    EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 }

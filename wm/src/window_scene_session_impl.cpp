@@ -4306,11 +4306,8 @@ bool WindowSceneSessionImpl::CheckWaterfallResidentState(WaterfallResidentState 
 
 bool WindowSceneSessionImpl::CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const
 {
-    if (state == AcrossDisplayPresentation::UNSPECIFIED) {
-        return true;
-    }
     if (WindowHelper::IsSubWindow(GetType())) {
-        return state == AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        return state == AcrossDisplayPresentation::UNSPECIFIED;
     }
     return true;
 }
@@ -4343,7 +4340,9 @@ void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation pres
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, WaterfallResidentState state)
 {
-    auto acrossDisplay = static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
+    auto acrossDisplay = (state == WaterfallResidentState::UNCHANGED)
+        ? AcrossDisplayPresentation::UNSPECIFIED
+        : static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
 
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -4420,7 +4419,9 @@ WMError WindowSceneSessionImpl::ExecuteMaximizeWithOptions(MaximizePresentation 
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "present: %{public}d, enableImmersiveMode_:%{public}d!",
         presentation, enableImmersiveMode_.load());
     SessionEventParam param;
-    param.waterfallResidentState = static_cast<uint32_t>(state);
+    param.waterfallResidentState = (state == AcrossDisplayPresentation::UNSPECIFIED)
+        ? static_cast<uint32_t>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING)
+        : static_cast<uint32_t>(state);
     param.snapshotAnimationConfig_ = snapshotAnimationConfig;
     hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE, param);
     return SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
@@ -4447,14 +4448,6 @@ WMError WindowSceneSessionImpl::MaximizeWithOptions(MaximizePresentation present
         property_->GetWindowAnchorInfo().isAnchoredByAttach_) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Cannot maximize due to in anchor enabled mode.");
         return WMError::WM_OK;
-    }
-
-    // Sub window must not explicitly specify acrossDisplayPresentation
-    if (WindowHelper::IsSubWindow(GetType()) &&
-        state != AcrossDisplayPresentation::UNSPECIFIED) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Sub window cannot specify acrossDisplayPresentation, state: %{public}u",
-            static_cast<uint32_t>(state));
-        return WMError::WM_ERROR_INVALID_CALLING;
     }
 
     WMError checkRet = CheckMaximizePreConditions(state);
