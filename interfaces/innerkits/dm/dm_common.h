@@ -384,6 +384,14 @@ enum class Orientation : uint32_t {
 };
 
 /**
+ * @brief The parameter of setting orientation options.
+ */
+struct OrientationOptions {
+    bool needAnimation = true;
+    bool ignoreRotationLock = false;
+};
+
+/**
  * @brief Rotation info type
  */
 enum class RotationInfoType : uint32_t {

@@ -34,6 +34,7 @@ const std::string ON_PROPERTY_CHANGE_CALLBACK = "propertyChange";
 const std::string ON_POWER_STATUS_CHANGE_CALLBACK = "powerStatusChange";
 const std::string ON_SENSOR_ROTATION_CHANGE_CALLBACK = "sensorRotationChange";
 const std::string ON_SCREEN_ORIENTATION_CHANGE_CALLBACK = "screenOrientationChange";
+const std::string ON_SCREEN_ORIENTATION_CHANGE_WITH_OPTIONS_CALLBACK = "screenOrientationChangeWithOptions";
 const std::string ON_SCREEN_ROTATION_LOCKED_CHANGE = "screenRotationLockedChange";
 const std::string ON_SCREEN_DENSITY_CHANGE = "screenDensityChange";
 const std::string ON_SCREEN_EXTEND_CHANGE = "screenExtendChange";
@@ -684,6 +685,54 @@ void JsScreenSession::OnScreenOrientationChange(float screenOrientation, ScreenI
         }
     } else {
         TLOGE(WmsLogTag::DMS, "env is nullptr");
+    }
+}
+
+void JsScreenSession::OnScreenOrientationChangeWithOptions(
+    float screenOrientation, const OrientationOptions& options, ScreenId screenId)
+{
+    const std::string callbackType = ON_SCREEN_ORIENTATION_CHANGE_WITH_OPTIONS_CALLBACK;
+    TLOGI(WmsLogTag::DMS,
+        "Call: %{public}s. Orientation: %{public}f, needAnimation: %{public}d, ignoreRotationLock: %{public}d",
+        callbackType.c_str(), screenOrientation, options.needAnimation, options.ignoreRotationLock);
+    if (!IsCallbackRegistered(callbackType)) {
+        TLOGE(WmsLogTag::DMS, "Callback %{public}s is unregistered!", callbackType.c_str());
+        return;
+    }
+
+    auto jsCallbackRef = GetJSCallback(callbackType);
+    wptr<ScreenSession> screenSessionWeak(screenSession_);
+    auto asyncTask = [jsCallbackRef, callbackType, screenSessionWeak, screenOrientation, options, env = env_]() {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "jsScreenSession::OnScreenOrientationChangeWithOptions");
+        if (jsCallbackRef == nullptr) {
+            TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, jsCallbackRef is null!", callbackType.c_str());
+            return;
+        }
+        auto method = jsCallbackRef->GetNapiValue();
+        if (method == nullptr) {
+            TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, method is null!", callbackType.c_str());
+            return;
+        }
+        auto screenSession = screenSessionWeak.promote();
+        if (screenSession == nullptr) {
+            TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, screenSession is null!", callbackType.c_str());
+            return;
+        }
+        napi_value optionsObj = nullptr;
+        napi_create_object(env, &optionsObj);
+        napi_value needAnimationValue = CreateJsValue(env, options.needAnimation);
+        napi_set_named_property(env, optionsObj, "needAnimation", needAnimationValue);
+        napi_value ignoreRotationLockValue = CreateJsValue(env, options.ignoreRotationLock);
+        napi_set_named_property(env, optionsObj, "ignoreRotationLock", ignoreRotationLockValue);
+        napi_value argv[] = { CreateJsValue(env, screenOrientation), optionsObj };
+        napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
+    };
+    if (env_ != nullptr) {
+        napi_status ret =
+            napi_send_event(env_, asyncTask, napi_eprio_immediate, "OnScreenOrientationChangeWithOptions");
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
+        }
     }
 }
 

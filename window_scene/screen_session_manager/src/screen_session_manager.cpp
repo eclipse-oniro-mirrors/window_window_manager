@@ -7144,24 +7144,41 @@ void ScreenSessionManager::NotifyDisplayAttributeChanged(sptr<DisplayInfo> displ
 
 DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi)
 {
+    return SetOrientationInternal(screenId, orientation, nullptr, isFromNapi);
+}
+
+DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orientation,
+    const OrientationOptions& options, bool isFromNapi)
+{
+    return SetOrientationInternal(screenId, orientation, &options, isFromNapi);
+}
+
+DMError ScreenSessionManager::SetOrientationInternal(ScreenId screenId, Orientation orientation,
+    const OrientationOptions* options, bool isFromNapi)
+{
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
-        TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
+        TLOGNFE(WmsLogTag::DMS, "Permission Denied. calling: %{public}s, pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     if (orientation < Orientation::UNSPECIFIED || orientation > Orientation::REVERSE_HORIZONTAL) {
-        TLOGNFE(WmsLogTag::DMS, "set: %{public}u", static_cast<uint32_t>(orientation));
+        TLOGNFE(WmsLogTag::DMS, "Set: %{public}u", static_cast<uint32_t>(orientation));
         return DMError::DM_ERROR_INVALID_PARAM;
     }
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetOrientation");
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     if (screenSession == nullptr) {
-        TLOGNFE(WmsLogTag::DMS, "fail, cannot find screen %{public}" PRIu64"", screenId);
+        TLOGNFE(WmsLogTag::DMS, "Cannot find screen %{public}" PRIu64"", screenId);
         return DMError::DM_ERROR_NULLPTR;
     }
+
     // just for get orientation test
     screenSession->SetOrientation(orientation);
-    screenSession->ScreenOrientationChange(orientation, GetFoldDisplayMode(), isFromNapi);
+    if (options == nullptr) {
+        screenSession->ScreenOrientationChange(orientation, GetFoldDisplayMode(), isFromNapi);
+    } else {
+        screenSession->ScreenOrientationChange(orientation, GetFoldDisplayMode(), *options, isFromNapi);
+    }
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetOrientation");
     return DMError::DM_OK;
 }
 
@@ -11529,6 +11546,20 @@ void ScreenSessionManager::OnScreenOrientationChange(float screenOrientation, Sc
         return;
     }
     clientProxy->OnScreenOrientationChanged(screenId, screenOrientation);
+}
+
+void ScreenSessionManager::OnScreenOrientationChangeWithOptions(float screenOrientation,
+    const OrientationOptions& options, ScreenId screenId)
+{
+    TLOGNFI(WmsLogTag::DMS,
+        "screenId: %{public}" PRIu64 " orientation: %{public}f, needAnimation: %{public}d, ignRotLock: %{public}d",
+        screenId, screenOrientation, options.needAnimation, options.ignoreRotationLock);
+    auto clientProxy = GetClientProxy();
+    if (!clientProxy) {
+        TLOGNFI(WmsLogTag::DMS, "ClientProxy_ is null");
+        return;
+    }
+    clientProxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
 }
 
 void ScreenSessionManager::OnScreenRotationLockedChange(bool isLocked, ScreenId screenId)

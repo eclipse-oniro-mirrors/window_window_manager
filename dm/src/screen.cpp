@@ -129,6 +129,13 @@ DMError Screen::SetScreenOrientation(Orientation orientation) const
     return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, true);
 }
 
+DMError Screen::SetScreenOrientation(Orientation orientation, const OrientationOptions& options) const
+{
+    TLOGI(WmsLogTag::DMS, "Orientation %{public}u, needAnimation %{public}d, ignoreRotationLock %{public}d",
+        orientation, options.needAnimation, options.ignoreRotationLock);
+    return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, options, true);
+}
+
 DMError Screen::GetScreenSupportedColorGamuts(std::vector<ScreenColorGamut>& colorGamuts) const
 {
     return SingletonContainer::Get<ScreenManagerAdapter>().GetScreenSupportedColorGamuts(GetId(), colorGamuts);

@@ -377,6 +377,17 @@ void ScreenSessionManagerClient::OnScreenOrientationChanged(ScreenId screenId, f
     screenSession->ScreenOrientationChange(screenOrientation);
 }
 
+void ScreenSessionManagerClient::OnScreenOrientationChangedWithOptions(ScreenId screenId,
+    float screenOrientation, const OrientationOptions& options)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->ScreenOrientationChange(screenOrientation, options);
+}
+
 void ScreenSessionManagerClient::OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked)
 {
     auto screenSession = GetScreenSession(screenId);

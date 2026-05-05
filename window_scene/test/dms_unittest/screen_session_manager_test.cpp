@@ -1458,6 +1458,192 @@ HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName003, TestSize.Level
     LOG_SetCallback(nullptr);
     ssm_->DestroyVirtualScreen(screenId);
 }
+
+
+/**
+ * @tc.name: SetOrientationWithOptions01
+ * @tc.desc: SetOrientation with options permission denied
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_NE(ret, DMError::DM_ERROR_NOT_SYSTEM_APP);
 }
+
+/**
+ * @tc.name: SetOrientationWithOptions02
+ * @tc.desc: SetOrientation with options invalid orientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 0;
+    Orientation orientation = static_cast<Orientation>(100);
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions03
+ * @tc.desc: SetOrientation with options screenSession nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 99999;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions04
+ * @tc.desc: SetOrientation overload1 call
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen3", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    Orientation orientation = Orientation::VERTICAL;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions05
+ * @tc.desc: SetOrientation overload2 call
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen4", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    Orientation orientation = Orientation::REVERSE_VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = true;
+    bool isFromNapi = false;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions06
+ * @tc.desc: SetOrientation with different orientation values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen5", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+
+    std::vector<Orientation> orientations = {
+        Orientation::UNSPECIFIED, Orientation::VERTICAL,
+        Orientation::HORIZONTAL, Orientation::REVERSE_VERTICAL, Orientation::REVERSE_HORIZONTAL
+    };
+
+    for (auto orientation : orientations) {
+        DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+        EXPECT_EQ(ret, DMError::DM_OK);
+    }
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangeWithOptions01
+ * @tc.desc: OnScreenOrientationChangeWithOptions - clientProxy is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto originalProxy = ssm_->clientProxy_;
+    ssm_->clientProxy_ = nullptr;
+
+    ScreenId screenId = 0;
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    ssm_->OnScreenOrientationChangeWithOptions(screenOrientation, options, screenId);
+    EXPECT_TRUE(g_logMsg.find("ClientProxy_ is null") != std::string::npos);
+
+    ssm_->clientProxy_ = originalProxy;
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangeWithOptions02
+ * @tc.desc: OnScreenOrientationChangeWithOptions - normal case with valid clientProxy
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    ssm_->OnScreenOrientationChangeWithOptions(screenOrientation, options, screenId);
+    EXPECT_TRUE(g_logMsg.find("ClientProxy_ is null") == std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+} // namespace
 } // namespace Rosen
 } // namespace OHOS
