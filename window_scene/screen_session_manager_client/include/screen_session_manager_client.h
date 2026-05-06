@@ -203,8 +203,6 @@ private:
 
     void UpdateWidthAndHeight(const sptr<ScreenSession>& screenSession, const RRect* bounds, ScreenId screenId);
 
-    std::shared_ptr<RSDisplayNode> GetDisplayNode(ScreenId screenId, ScreenId rsId);
-
     mutable std::mutex screenSessionMapMutex_;
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMap_;
     std::function<void()> switchingToAnotherUserFunc_ = nullptr;
