@@ -5251,7 +5251,12 @@ HWTEST_F(ScreenSessionTest, CheckAndNotifyPropertyChange, TestSize.Level1)
     g_errLog.clear();
 
     session->isNeedNotify = true;
-    session->SetPropertyNeedNotified(property);
+    session.SetIsInternal(false);
+    session->CheckAndNotifyPropertyChange();
+    EXPECT_FALSE(g_errLog.find("It's need notify") != std::string::npos);
+    g_errLog.clear();
+
+    session.SetIsInternal(true);
     session->CheckAndNotifyPropertyChange();
     EXPECT_TRUE(g_errLog.find("It's need notify") != std::string::npos);
     g_errLog.clear();
