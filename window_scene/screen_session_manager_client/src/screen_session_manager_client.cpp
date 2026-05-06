@@ -1146,6 +1146,15 @@ void ScreenSessionManagerClient::NotifyClientScreenConnect(sptr<ScreenSession>& 
     screenSession->Connect();
 }
 
+std::shared_ptr<RSDisplayNode> ScreenSessionManagerClient::GetDisplayNode(ScreenId screenId, ScreenId rsId)
+{
+    auto displayNode = screenSessionManager_->GetDisplayNode(screenId_);
+    if (displayNode != nullptr) {
+        displayNode->SetScreenId(rsId);
+    }
+    return displayNode;
+}
+
 bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
 {
     if (!CheckIfNeedConnectScreen(option)) {
@@ -1168,8 +1177,7 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     config.property = screenSessionManager_->GetScreenProperty(option.screenId_);
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());
-    config.displayNode = screenSessionManager_->GetDisplayNode(option.screenId_);
-    config.displayNode->SetScreenId(option.rsId_);
+    config.displayNode = GetDisplayNode(option.screenId_, option.rsId_);
     if (screenSession == nullptr) {
         screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
     } else {
