@@ -4469,7 +4469,8 @@ void Session::UpdateGravityWhenUpdateWindowMode(const WindowModeInfo& windowMode
         } else if (mode == WindowMode::WINDOW_MODE_FLOATING || mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
             surfaceNode->SetFrameGravity(Gravity::RESIZE);
         } else if (mode == WindowMode::WINDOW_MODE_SPLIT) {
-            // TODO: 明确当前场景下要设置的Gravity
+            // PC-specific scenario, use SPLIT_PRIMARY behavior
+            surfaceNode->SetFrameGravity(Gravity::LEFT);
         }
     }
 }

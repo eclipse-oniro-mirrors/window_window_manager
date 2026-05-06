@@ -5296,7 +5296,8 @@ WMError WindowSceneSessionImpl::SetWindowMode(WindowMode mode)
     } else if (mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
         hostSession->OnSessionEvent(SessionEvent::EVENT_SPLIT_SECONDARY);
     } else if (mode == WindowMode::WINDOW_MODE_SPLIT) {
-        // TODO: 增加触发事件？
+        // PC-specific scenario, use SPLIT_PRIMARY behavior
+        hostSession->OnSessionEvent(SessionEvent::EVENT_SPLIT_PRIMARY);
     }
     return WMError::WM_OK;
 }
