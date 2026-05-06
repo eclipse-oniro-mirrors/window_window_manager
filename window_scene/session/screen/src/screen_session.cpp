@@ -480,9 +480,10 @@ void ScreenSession::SetIsInternal(bool isInternal)
     property_.SetIsInternal(isInternal);
 }
 
-bool ScreenSession::GetIsInternal() const
+void ScreenSession::SetIsInternal(bool isInternal)
 {
-    return isInternal_;
+    isInternal_ = isInternal;
+    property_.SetInternalStatus(isInternal);
 }
 
 void ScreenSession::SetIsCurrentInUse(bool isInUse)
