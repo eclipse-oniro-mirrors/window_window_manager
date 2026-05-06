@@ -1499,6 +1499,8 @@ HWTEST_F(WindowImplTest3, SetNeedDefaultAnimation, TestSize.Level1)
     bool defaultAnimation = true;
     window->SetNeedDefaultAnimation(defaultAnimation);
     EXPECT_EQ(true, window->needDefaultAnimation_);
+    window->SetNeedDefaultAnimation(false);
+    EXPECT_EQ(false, window->needDefaultAnimation_);
     EXPECT_EQ(WMError::WM_OK, window->SetTextFieldAvoidInfo(2.0, 3.0));
 }
 } // namespace

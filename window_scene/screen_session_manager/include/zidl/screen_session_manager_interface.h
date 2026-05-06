@@ -41,6 +41,7 @@ public:
 
     virtual sptr<DisplayInfo> GetDefaultDisplayInfo(int32_t userId = CONCURRENT_USER_ID_DEFAULT) { return nullptr; }
     virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId) { return nullptr; }
+    virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId, bool isGetActualInfo) { return nullptr; }
     virtual sptr<DisplayInfo> GetVisibleAreaDisplayInfoById(DisplayId displayId) { return nullptr; }
     virtual sptr<DisplayInfo> GetDisplayInfoByScreen(ScreenId screenId) {return nullptr; }
     virtual DMError HasPrivateWindow(DisplayId displayId, bool& hasPrivateWindow) { return DMError::DM_OK; }
@@ -102,7 +103,10 @@ public:
         bool isUseDma = false, bool isCaptureFullOfScreen = false) { return nullptr; }
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(
         DisplayId displayId, DmErrorCode& errorCode, bool isUseDma = false,
-        bool isCaptureFullOfScreen = false) { return { nullptr, nullptr }; }
+        bool isCaptureFullOfScreen = false, DisplayIntentType displayIntent = DisplayIntentType::CANONICAL)
+    {
+        return { nullptr, nullptr };
+    }
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect,
         DmErrorCode* errorCode = nullptr)
     {
@@ -281,6 +285,7 @@ public:
 
     virtual bool IsFoldable() { return false; }
     virtual bool IsCaptured() { return false; }
+    virtual bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList) { return false; }
 
     virtual FoldStatus GetFoldStatus() { return FoldStatus::UNKNOWN; }
     virtual SuperFoldStatus GetSuperFoldStatus() { return SuperFoldStatus::UNKNOWN; }

@@ -39,6 +39,7 @@ const std::string SCREENSHOT_EVENT_CB = "screenshot";
 const std::string EXTENSION_SECURE_LIMIT_CHANGE_CB = "uiExtensionSecureLimitChange";
 const std::string KEYBOARD_DID_SHOW_CB = "keyboardDidShow";
 const std::string KEYBOARD_DID_HIDE_CB = "keyboardDidHide";
+const std::string WINDOW_STATUS_CHANGE_CB = "windowStatusChange";
 }
 
 JsExtensionWindowListener::~JsExtensionWindowListener()
@@ -444,6 +445,24 @@ void JsExtensionWindowListener::AfterPaused()
 void JsExtensionWindowListener::AfterDestroyed()
 {
     LifeCycleCallBack(LifeCycleEventType::DESTROYED, weakRef_, env_, eventHandler_);
+}
+
+void JsExtensionWindowListener::OnWindowStatusChange(WindowStatus status)
+{
+    TLOGI(WmsLogTag::WMS_UIEXT, "status: %{public}u", status);
+    auto jsCallback = [self = weakRef_, status, env = env_, funcName = __func__] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || env == nullptr) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "%{public}s: this listener or env is nullptr", funcName);
+            return;
+        }
+        HandleScope handleScope(env);
+        napi_value argv[] = { CreateJsValue(env, static_cast<uint32_t>(status)) };
+        thisListener->CallJsMethod(WINDOW_STATUS_CHANGE_CB.c_str(), argv, ArraySize(argv));
+    };
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnWindowStatusChange") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Failed to send event");
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

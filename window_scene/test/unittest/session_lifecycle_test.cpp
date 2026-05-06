@@ -405,25 +405,25 @@ HWTEST_F(WindowSessionLifecycleTest, IsActive43, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsSessionForeground01
- * @tc.desc: IsSessionForeground, normal scene
+ * @tc.name: IsLifecycleForeground01
+ * @tc.desc: IsLifecycleForeground, normal scene
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionLifecycleTest, IsSessionForeground, TestSize.Level1)
+HWTEST_F(WindowSessionLifecycleTest, IsLifecycleForeground, TestSize.Level1)
 {
     ASSERT_NE(session_, nullptr);
     session_->state_ = SessionState::STATE_FOREGROUND;
-    ASSERT_EQ(true, session_->IsSessionForeground());
+    ASSERT_EQ(true, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_ACTIVE;
-    ASSERT_EQ(true, session_->IsSessionForeground());
+    ASSERT_EQ(true, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_INACTIVE;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_BACKGROUND;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_DISCONNECT;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_CONNECT;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
 }
 
 /**
@@ -491,6 +491,11 @@ HWTEST_F(WindowSessionLifecycleTest, IsVisibleNotBackground01, TestSize.Level1)
     parentSession->SetSessionState(SessionState::STATE_FOREGROUND);
     EXPECT_EQ(subSession->IsVisibleNotBackground(), false);
     parentSession->isVisible_ = true;
+    EXPECT_EQ(subSession->IsVisibleNotBackground(), true);
+
+    subSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    subSession->property_->SetZLevelAboveParentLoosened(true);
+    subSession->isVisible_ = true;
     EXPECT_EQ(subSession->IsVisibleNotBackground(), true);
 }
 

@@ -26,23 +26,17 @@ class FloatingBallTemplateInfo : public FloatingBallTemplateBaseInfo,
                                  public Parcelable {
 public:
     FloatingBallTemplateInfo() = default;
-    FloatingBallTemplateInfo(const uint32_t& templateType, const std::string& title, const std::string& content,
-        const std::string& color, const std::shared_ptr<Media::PixelMap>& icon) : FloatingBallTemplateBaseInfo(
-        templateType, title, content, color), icon_(icon) {};
-    // LCOV_EXCL_START
     FloatingBallTemplateInfo(const FloatingBallTemplateBaseInfo& baseInfo,
-        const std::shared_ptr<Media::PixelMap>& icon) : FloatingBallTemplateBaseInfo(baseInfo.template_,
-        baseInfo.title_, baseInfo.content_, baseInfo.backgroundColor_), icon_(icon) {};
-    // LCOV_EXCL_STOP
+        const std::shared_ptr<Media::PixelMap>& icon) : FloatingBallTemplateBaseInfo(baseInfo), icon_(icon) {};
     ~FloatingBallTemplateInfo() override = default;
 
     std::shared_ptr<Media::PixelMap> icon_ {};
 
-    // LCOV_EXCL_START
     bool Marshalling(Parcel& parcel) const override
     {
-        if (!parcel.WriteUint32(template_) || !parcel.WriteString(title_) ||
-            !parcel.WriteString(content_) || !parcel.WriteString(backgroundColor_)) {
+        if (!parcel.WriteUint32(template_) || !parcel.WriteString(title_) || !parcel.WriteBool(isVisibleInApp_) ||
+            !parcel.WriteString(content_) || !parcel.WriteString(backgroundColor_) || !parcel.WriteBool(isBind_) ||
+            !parcel.WriteUint32(bindWindowId_) || !parcel.WriteBool(showWhenCreate_) || !parcel.WriteString(id_)) {
             return false;
         }
         bool hasIcon = icon_ ? true : false;
@@ -52,15 +46,20 @@ public:
         if (hasIcon && !parcel.WriteParcelable(icon_.get())) {
             return false;
         }
+        if (!parcel.WriteUint32(textUpdateAnimationType_)) {
+            return false;
+        }
         return true;
     }
-    // LCOV_EXCL_STOP
 
     static FloatingBallTemplateInfo* Unmarshalling(Parcel& parcel)
     {
         std::unique_ptr<FloatingBallTemplateInfo> fbTemplateInfo = std::make_unique<FloatingBallTemplateInfo>();
         if (!parcel.ReadUint32(fbTemplateInfo->template_) || !parcel.ReadString(fbTemplateInfo->title_) ||
-            !parcel.ReadString(fbTemplateInfo->content_) || !parcel.ReadString(fbTemplateInfo->backgroundColor_)) {
+            !parcel.ReadBool(fbTemplateInfo->isVisibleInApp_) || !parcel.ReadString(fbTemplateInfo->content_) ||
+            !parcel.ReadString(fbTemplateInfo->backgroundColor_) || !parcel.ReadBool(fbTemplateInfo->isBind_) ||
+            !parcel.ReadUint32(fbTemplateInfo->bindWindowId_) || !parcel.ReadBool(fbTemplateInfo->showWhenCreate_) ||
+            !parcel.ReadString(fbTemplateInfo->id_)) {
             return nullptr;
         }
         bool hasIcon = false;
@@ -72,6 +71,9 @@ public:
             if (!fbTemplateInfo->icon_) {
                 return nullptr;
             }
+        }
+        if (!parcel.ReadUint32(fbTemplateInfo->textUpdateAnimationType_)) {
+            return nullptr;
         }
         return fbTemplateInfo.release();
     }

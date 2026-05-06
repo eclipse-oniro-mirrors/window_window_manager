@@ -63,12 +63,15 @@ void AbstractScreenController::RegisterRsScreenConnectionChangeListener()
 {
     TLOGI(WmsLogTag::DMS, "RegisterRsScreenConnectionChangeListener");
     auto res = rsInterface_.SetScreenChangeCallback(
-        [this](ScreenId rsScreenId, ScreenEvent screenEvent, ScreenChangeReason reason) {
+        [this](ScreenId rsScreenId,
+               ScreenEvent screenEvent,
+               ScreenChangeReason reason,
+               sptr<IRemoteObject> connectToRenderToken) {
             if (reason == ScreenChangeReason::HWCDEAD) {
                 TLOGE(WmsLogTag::DMS, "hwcdead, ignore");
                 return;
             }
-            OnRsScreenConnectionChange(rsScreenId, screenEvent);
+            OnRsScreenConnectionChange(rsScreenId, screenEvent, connectToRenderToken);
         });
     if (res != StatusCode::SUCCESS) {
         auto task = [this] {
@@ -240,13 +243,14 @@ void AbstractScreenController::RegisterAbstractScreenCallback(sptr<AbstractScree
     }
 }
 
-void AbstractScreenController::OnRsScreenConnectionChange(ScreenId rsScreenId, ScreenEvent screenEvent)
+void AbstractScreenController::OnRsScreenConnectionChange(
+    ScreenId rsScreenId, ScreenEvent screenEvent, sptr<IRemoteObject> connectToRenderToken)
 {
     TLOGI(WmsLogTag::DMS, "RS screen event. rsScreenId:%{public}" PRIu64", defaultRsScreenId_:%{public}" PRIu64", "
         "event:%{public}u", rsScreenId, static_cast<uint64_t>(defaultRsScreenId_), static_cast<uint32_t>(screenEvent));
     if (screenEvent == ScreenEvent::CONNECTED) {
-        auto task = [this, rsScreenId] {
-            ProcessScreenConnected(rsScreenId);
+        auto task = [this, rsScreenId, connectToRenderToken] {
+            ProcessScreenConnected(rsScreenId, connectToRenderToken);
         };
         controllerHandler_->PostTask(task, "wms:OnRsScreenConnectionChange", 0, AppExecFwk::EventQueue::Priority::HIGH);
     } else if (screenEvent == ScreenEvent::DISCONNECTED) {
@@ -306,7 +310,7 @@ void AbstractScreenController::ProcessDefaultScreenReconnected(ScreenId rsScreen
     }
 }
 
-void AbstractScreenController::ProcessScreenConnected(ScreenId rsScreenId)
+void AbstractScreenController::ProcessScreenConnected(ScreenId rsScreenId, sptr<IRemoteObject> connectToRenderToken)
 {
     TLOGI(WmsLogTag::DMS, "start");
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -315,7 +319,7 @@ void AbstractScreenController::ProcessScreenConnected(ScreenId rsScreenId)
         ProcessDefaultScreenReconnected(rsScreenId);
         return;
     }
-    auto absScreen = InitAndGetScreen(rsScreenId);
+    auto absScreen = InitAndGetScreen(rsScreenId, connectToRenderToken);
     if (absScreen == nullptr) {
         return;
     }
@@ -354,15 +358,16 @@ void AbstractScreenController::ProcessScreenConnected(ScreenId rsScreenId)
     }
 }
 
-sptr<AbstractScreen> AbstractScreenController::InitAndGetScreen(ScreenId rsScreenId)
+sptr<AbstractScreen> AbstractScreenController::InitAndGetScreen(
+    ScreenId rsScreenId, sptr<IRemoteObject> connectToRenderToken)
 {
     ScreenId dmsScreenId = screenIdManager_.CreateAndGetNewScreenId(rsScreenId);
     RSScreenCapability screenCapability = rsInterface_.GetScreenCapability(rsScreenId);
     TLOGI(WmsLogTag::DMS, "Screen name is %{public}s, phyWidth is %{public}u, phyHeight is %{public}u",
         screenCapability.GetName().c_str(), screenCapability.GetPhyWidth(), screenCapability.GetPhyHeight());
 
-    sptr<AbstractScreen> absScreen =
-        new(std::nothrow) AbstractScreen(this, screenCapability.GetName(), dmsScreenId, rsScreenId);
+    sptr<AbstractScreen> absScreen = new(std::nothrow) AbstractScreen(this, screenCapability.GetName(), 
+        dmsScreenId, rsScreenId, connectToRenderToken);
     if (absScreen == nullptr) {
         TLOGE(WmsLogTag::DMS, "new AbstractScreen failed.");
         screenIdManager_.DeleteScreenId(dmsScreenId);

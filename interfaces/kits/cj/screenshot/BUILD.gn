@@ -50,6 +50,7 @@ ohos_shared_library("cj_screenshot_ffi") {
     sources = [ "display_runtime_mock.cpp" ]
     external_deps = [ "napi:cj_bind_ffi" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

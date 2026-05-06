@@ -178,6 +178,10 @@ void MultiScreenChangeUtils::ScreenCombinationChange(sptr<ScreenSession>& innerS
         return;
     }
     ssmClient->SetScreenCombination(innerScreen->GetScreenId(), externalScreen->GetScreenId(), externalCombination);
+    ScreenSessionManager::GetInstance().NotifyScreenChanged(innerScreen->ConvertToScreenInfo(),
+        ScreenChangeEvent::SCREEN_SOURCE_MODE_CHANGE);
+    ScreenSessionManager::GetInstance().NotifyScreenChanged(externalScreen->ConvertToScreenInfo(),
+        ScreenChangeEvent::SCREEN_SOURCE_MODE_CHANGE);
 }
 
 void MultiScreenChangeUtils::ScreenSerialNumberChange(sptr<ScreenSession>& innerScreen,
@@ -416,6 +420,7 @@ void MultiScreenChangeUtils::ScreenConnectionChange(sptr<IScreenSessionManagerCl
         .innerName_ = screenSession->GetInnerName(),
         .screenId_ = screenSession->GetScreenId(),
         .supportsFocus_ = screenSession->GetSupportsFocus(),
+        .connectToRenderToken_ = screenSession->GetRenderSession(),
     };
     ssmClient->OnScreenConnectionChanged(option, screenEvent);
 }

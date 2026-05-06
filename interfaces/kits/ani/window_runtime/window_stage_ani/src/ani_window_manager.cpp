@@ -38,6 +38,7 @@
 #include "scene_board_judgement.h"
 #include "singleton_container.h"
 #include "pixel_map.h"
+#include "window_histogram_management.h"
 #include "../../../../../../wm/include/get_snapshot_callback.h"
 
 namespace OHOS {
@@ -87,7 +88,9 @@ ani_status AniWindowManager::AniWindowManagerInit(ani_env* env, ani_namespace wi
             reinterpret_cast<void *>(AniWindowManager::NotifyScreenshotEvent)},
         ani_native_function {"setSpecificSystemWindowZIndexSync", "lC{@ohos.window.window.WindowType}i:",
             reinterpret_cast<void *>(AniWindowManager::SetSpecificSystemWindowZIndex)},
-        ani_native_function {"getAllWindowLayoutInfo", "ll:C{std.core.Array}",
+        ani_native_function {"moveMainWindowToTargetDisplaySync", "lli:",
+            reinterpret_cast<void *>(AniWindowManager::MoveMainWindowToTargetDisplay)},
+        ani_native_function {"getAllWindowLayoutInfo", "llC{@ohos.window.window.WindowInfoOptions}:C{std.core.Array}",
             reinterpret_cast<void *>(AniWindowManager::GetAllWindowLayoutInfo)},
         ani_native_function {"toggleShownStateForAllAppWindowsSync", "l:",
             reinterpret_cast<void *>(AniWindowManager::ToggleShownStateForAllAppWindows)},
@@ -99,7 +102,7 @@ ani_status AniWindowManager::AniWindowManagerInit(ani_env* env, ani_namespace wi
             reinterpret_cast<void *>(AniWindowManager::GetVisibleWindowInfo)},
         ani_native_function {"setGestureNavigationEnabled", "lz:",
             reinterpret_cast<void *>(AniWindowManager::SetGestureNavigationEnabled)},
-        ani_native_function {"setWaterMarkImage", "lC{@ohos.multimedia.image.image.PixelMap}z:",
+        ani_native_function {"setWaterMarkImage", "lC{@ohos.multimedia.image.image.PixelMap}zi:",
             reinterpret_cast<void *>(AniWindowManager::SetWaterMarkImage)},
         ani_native_function {"getWindowsByCoordinate",
             "lC{@ohos.window.window.GetWindowsByCoordinateParam}:C{std.core.Array}",
@@ -142,12 +145,16 @@ ani_ref AniWindowManager::OnGetLastWindow(ani_env* env, ani_object aniContext)
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
     if (context == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] context is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
             "[window][getLastWindow]msg: Stage mode without context");
     }
     auto window = Window::GetTopWindowWithContext(context->lock());
     if (window == nullptr || window->GetWindowState() == WindowState::STATE_DESTROYED) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] window is nullptr or destroyed");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
             "[window][getLastWindow]msg: Get top window failed");
     }
@@ -172,6 +179,7 @@ void AniWindowManager::OnShiftAppWindowFocus(ani_env* env, ani_int sourceWindowI
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
         SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourceWindowId, targetWindowId));
     if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", ret);
         AniWindowUtils::AniThrowError(env, ret,
             "[window][shiftAppWindowFocus]msg:ShiftAppWindowFocus failed");
     }
@@ -270,6 +278,8 @@ void AniWindowManager::OnSetWatermarkImageForAppWindows(ani_env* env, ani_object
         localPixelMap = Media::PixelMapTaiheAni::GetNativePixelMap(env, pixelMap);
         if (localPixelMap == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "parse image failed");
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWatermarkImageForAppWindows",
+                WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             return;
         }
@@ -282,6 +292,7 @@ void AniWindowManager::OnSetWatermarkImageForAppWindows(ani_env* env, ani_object
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] retCode: %{public}d", static_cast<int32_t>(retCode));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWatermarkImageForAppWindows", ret);
         AniWindowUtils::AniThrowError(env, ret, "setWatermarkImageForAppWindowsSync failed.");
         return;
     }
@@ -299,6 +310,8 @@ ani_string AniWindowManager::OnGetTopNavDestinationName(ani_env* env, ani_int wi
     ani_string result = nullptr;
     if (static_cast<int32_t>(windowId) < 1) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid windowId: %{public}d", static_cast<int32_t>(windowId));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName",
+            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return result;
     }
@@ -308,6 +321,7 @@ ani_string AniWindowManager::OnGetTopNavDestinationName(ani_env* env, ani_int wi
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] winId: %{public}d, topNavDestName: %{public}s, retCode: %{public}d",
             static_cast<int32_t>(windowId), topNavDestName.c_str(), static_cast<int32_t>(retCode));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName", ret);
         AniWindowUtils::AniThrowError(env, ret, "getTopNavDestinationNameSync failed.");
         return result;
     }
@@ -337,6 +351,8 @@ ani_int AniWindowManager::OnGetGlobalWindowMode(ani_env* env, ani_object nativeD
         if (aniDisplayId < 0) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid displayId value: %{public}" PRId64,
                 static_cast<int64_t>(aniDisplayId));
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getGlobalWindowMode",
+                WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             return result;
         }
@@ -348,6 +364,7 @@ ani_int AniWindowManager::OnGetGlobalWindowMode(ani_env* env, ani_object nativeD
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "globalWinMode: %{public}u, retCode: %{public}d, displayId: %{public}" PRIu64,
             static_cast<uint32_t>(globalWinMode), static_cast<int32_t>(retCode), displayId);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getGlobalWindowMode", ret);
         AniWindowUtils::AniThrowError(env, ret, "GetGlobalWindowMode failed.");
         return result;
     }
@@ -376,6 +393,8 @@ void AniWindowManager::OnSetStartWindowBackgroundColor(ani_env* env, ani_string 
     AniWindowUtils::GetStdString(env, moduleName, moduleNameStr);
     if (moduleNameStr.length() > maxNameLength) {
         TLOGE(WmsLogTag::WMS_PATTERN, "[ANI] moduleName length out of range");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor",
+            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return;
     }
@@ -383,6 +402,8 @@ void AniWindowManager::OnSetStartWindowBackgroundColor(ani_env* env, ani_string 
     AniWindowUtils::GetStdString(env, abilityName, abilityNameStr);
     if (abilityNameStr.length() > maxNameLength) {
         TLOGE(WmsLogTag::WMS_PATTERN, "abilityName length out of range");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor",
+            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return;
     }
@@ -393,6 +414,7 @@ void AniWindowManager::OnSetStartWindowBackgroundColor(ani_env* env, ani_string 
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] module=%{public}s, ability=%{public}s, color=%{public}u, ret=%{public}d",
             moduleNameStr.c_str(), abilityNameStr.c_str(), colorValue, static_cast<int32_t>(retCode));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor", ret);
         AniWindowUtils::AniThrowError(env, ret, "setStartWindowBackgroundColorSync failed.");
         return;
     }
@@ -414,6 +436,8 @@ void AniWindowManager::OnNotifyScreenshotEvent(ani_env* env, ani_enum_item event
     ani_status ani_ret = AniWindowUtils::GetEnumValue(env, eventType, tempEventType);
     if (ani_ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] GetEnumValue failed, ret: %{public}d", ani_ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.notifyScreenshotEvent",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
@@ -423,6 +447,7 @@ void AniWindowManager::OnNotifyScreenshotEvent(ani_env* env, ani_enum_item event
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] eventType: %{public}u, retCode: %{public}d",
             tempEventType, static_cast<int32_t>(retCode));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.notifyScreenshotEvent", ret);
         AniWindowUtils::AniThrowError(env, ret, "notifyScreenshotEventSync failed.");
     }
 }
@@ -524,6 +549,48 @@ bool GetConfigProp(ani_env* env, ani_object configuration, const char* propName,
     }
     if (ANI_OK != env->Reference_IsUndefined(ref, &isUndefined)) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to judge property %s undefined", propName);
+        return false;
+    }
+    return true;
+}
+
+bool ParseWindowInfoOptions(ani_env* env, ani_object optionObj, WindowInfoOptions& option)
+{
+    ani_ref result;
+    ani_boolean isPropUndefined = true;
+    GetConfigProp(env, optionObj, "excludeSystemWindows", result, isPropUndefined);
+    if (!isPropUndefined) {
+        ani_boolean boolValue;
+        if (env->Object_CallMethodByName_Boolean(static_cast<ani_object>(result),
+            "toBoolean", ":z", &boolValue) == ANI_OK) {
+            option.excludeSystemWindows = static_cast<bool>(boolValue);
+        }
+    }
+
+    isPropUndefined = true;
+    GetConfigProp(env, optionObj, "foregroundAboveWindow", result, isPropUndefined);
+    if (!isPropUndefined) {
+        ani_int intValue;
+        if (env->Object_CallMethodByName_Int(static_cast<ani_object>(result), "toInt", nullptr, &intValue) == ANI_OK) {
+            option.foregroundAboveWindow = static_cast<int32_t>(intValue);
+        }
+    }
+
+    isPropUndefined = true;
+    GetConfigProp(env, optionObj, "foregroundBelowWindow", result, isPropUndefined);
+    if (!isPropUndefined) {
+        ani_int intValue;
+        if (env->Object_CallMethodByName_Int(static_cast<ani_object>(result), "toInt", nullptr, &intValue) == ANI_OK) {
+            option.foregroundBelowWindow = static_cast<int32_t>(intValue);
+        }
+    }
+
+    if (option.foregroundAboveWindow < 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] invalid foregroundAboveWindow=%{public}d", option.foregroundAboveWindow);
+        return false;
+    }
+    if (option.foregroundBelowWindow < 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] invalid foregroundBelowWindow=%{public}d", option.foregroundBelowWindow);
         return false;
     }
     return true;
@@ -739,6 +806,7 @@ void AniWindowManager::OnRegisterWindowManagerCallback(ani_env* env, ani_string 
     WmErrorCode ret = registerManager_->RegisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER,
         env, callback, ani_double(0));
     if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
         AniWindowUtils::AniThrowError(env, ret);
     }
 }
@@ -763,6 +831,7 @@ void AniWindowManager::OnUnregisterWindowManagerCallback(ani_env* env, ani_strin
     WmErrorCode ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER,
         env, callback);
     if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.off", ret);
         AniWindowUtils::AniThrowError(env, ret);
     }
 }
@@ -771,6 +840,8 @@ void AniWindowManager::OnSetWindowLayoutMode(ani_env* env, ani_enum_item mode)
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] permission denied!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowLayoutMode",
+            WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         return;
     }
@@ -779,6 +850,8 @@ void AniWindowManager::OnSetWindowLayoutMode(ani_env* env, ani_enum_item mode)
     ani_status ani_ret = AniWindowUtils::GetEnumValue(env, mode, modeType);
     if (ani_ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] GetEnumValue failed, ret: %{public}d", ani_ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowLayoutMode",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
@@ -786,6 +859,8 @@ void AniWindowManager::OnSetWindowLayoutMode(ani_env* env, ani_enum_item mode)
     WindowLayoutMode winLayoutMode = static_cast<WindowLayoutMode>(modeType);
     if (winLayoutMode != WindowLayoutMode::CASCADE && winLayoutMode != WindowLayoutMode::TILE) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Invalid winLayoutMode: %{public}u", winLayoutMode);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowLayoutMode",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
@@ -795,6 +870,7 @@ void AniWindowManager::OnSetWindowLayoutMode(ani_env* env, ani_enum_item mode)
     if (errorCode != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Failed, modeType: %{public}u, ret: %{public}d",
             modeType, static_cast<int32_t>(ret));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowLayoutMode", errorCode);
         AniWindowUtils::AniThrowError(env, errorCode);
         return;
     }
@@ -822,6 +898,8 @@ void AniWindowManager::ShiftAppWindowPointerEvent(ani_env* env, ani_long nativeO
         aniWindowManager->OnShiftAppWindowPointerEvent(env, sourceWindowId, targetWindowId);
     } else {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]aniWindowManager is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowPointerEvent",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
 }
@@ -833,6 +911,8 @@ void AniWindowManager::OnShiftAppWindowPointerEvent(ani_env* env, ani_int source
     if (sourceWindowId == static_cast<int32_t>(INVALID_WINDOW_ID) ||
         targetWindowId == static_cast<int32_t>(INVALID_WINDOW_ID)) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]invalid sourceWindowId or targetWindowId");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowPointerEvent",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
@@ -840,6 +920,7 @@ void AniWindowManager::OnShiftAppWindowPointerEvent(ani_env* env, ani_int source
         SingletonContainer::Get<WindowManager>().ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]ShiftAppWindowPointerEvent failed, ret: %{public}d", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowPointerEvent", ret);
         AniWindowUtils::AniThrowError(env, ret, "ShiftAppWindowPointerEvent failed!");
     }
     return;
@@ -853,6 +934,8 @@ void AniWindowManager::ShiftAppWindowTouchEvent(ani_env* env, ani_long nativeObj
         aniWindowManager->OnShiftAppWindowTouchEvent(env, sourceWindowId, targetWindowId, fingerId);
     } else {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]aniWindowManager is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
 }
@@ -866,6 +949,8 @@ void AniWindowManager::OnShiftAppWindowTouchEvent(ani_env* env, ani_int sourceWi
         targetWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
         (fingerId <= static_cast<int32_t>(INVALID_FINGER_ID))) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]invalid sourceWindowId or targetWindowId or fingerId");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
+            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "shiftAppWindowTouchEvent failed");
         return;
     }
@@ -873,31 +958,48 @@ void AniWindowManager::OnShiftAppWindowTouchEvent(ani_env* env, ani_int sourceWi
         SingletonContainer::Get<WindowManager>().ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId, fingerId));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]ShiftAppWindowPointerEvent failed, ret: %{public}d", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent", ret);
         AniWindowUtils::AniThrowError(env, ret, "shiftAppWindowTouchEvent failed!");
     }
     return;
 }
 
-ani_object AniWindowManager::GetAllWindowLayoutInfo(ani_env* env, ani_long nativeObj, ani_long displayId)
+ani_object AniWindowManager::GetAllWindowLayoutInfo(ani_env* env, ani_long nativeObj, ani_long displayId,
+    ani_object optionObj)
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
     AniWindowManager* aniWindowManager = reinterpret_cast<AniWindowManager*>(nativeObj);
-    return aniWindowManager != nullptr ? aniWindowManager->OnGetAllWindowLayoutInfo(env, displayId) : nullptr;
+    return aniWindowManager != nullptr ? aniWindowManager->OnGetAllWindowLayoutInfo(
+        env, displayId, optionObj) : nullptr;
 }
 
-ani_object AniWindowManager::OnGetAllWindowLayoutInfo(ani_env* env, ani_long displayId)
+ani_object AniWindowManager::OnGetAllWindowLayoutInfo(ani_env* env, ani_long displayId, ani_object optionObj)
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
     if (static_cast<int64_t>(displayId) < 0 ||
         SingletonContainer::Get<DisplayManager>().GetDisplayById(static_cast<uint64_t>(displayId)) == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] GetAllWindowLayoutInfo failed, Invalidate params.");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getAllWindowLayoutInfo",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
+    WindowInfoOptions option;
+    if (!ParseWindowInfoOptions(env, optionObj, option)) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getAllWindowLayoutInfo",
+            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "[ANI] Failed to parse option");
+    }
     std::vector<sptr<WindowLayoutInfo>> infos;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<WindowManager>().GetAllWindowLayoutInfo(static_cast<uint64_t>(displayId), infos));
+    auto errCode = SingletonContainer::Get<WindowManager>().GetAllWindowLayoutInfo(
+        static_cast<uint64_t>(displayId), infos, option);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+        "[ANI] displayId=%{public}u, option=[%{public}d, %{public}d, %{public}d], errCode=%{public}d",
+        static_cast<uint32_t>(displayId), option.excludeSystemWindows, option.foregroundAboveWindow,
+        option.foregroundBelowWindow, errCode);
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] GetAllWindowLayoutInfo failed, ret:%{public}d", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getAllWindowLayoutInfo", ret);
         return AniWindowUtils::AniThrowError(env, ret, "failed");
     }
     return AniWindowUtils::CreateAniWindowLayoutInfoArray(env, infos);
@@ -995,15 +1097,20 @@ ani_object AniWindowManager::OnGetSnapshot(ani_env* env, ani_int windowId)
         static_cast<int>(windowId), pixelMap));
     if (result != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Get snapshot not ok!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSnapshot", result);
         return AniWindowUtils::AniThrowError(env, result);
     }
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Get snapshot is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSnapshot",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
     auto nativePixelMap = Media::PixelMapTaiheAni::CreateEtsPixelMap(env, pixelMap);
     if (nativePixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Create native pixelmap is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSnapshot",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
     return nativePixelMap;
@@ -1020,6 +1127,8 @@ ani_object AniWindowManager::OnGetVisibleWindowInfo(ani_env* env)
 {
     if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "device not support!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getVisibleWindowInfo",
+            WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
             "[window][getVisibleWindowInfo]");
     }
@@ -1027,11 +1136,15 @@ ani_object AniWindowManager::OnGetVisibleWindowInfo(ani_env* env)
     uint32_t apiVersion = SysCapUtil::GetApiCompatibleVersion();
     if (apiVersion < API_VERSION_18 && !Permission::IsSystemCalling()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied! api%{public}u", apiVersion);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getVisibleWindowInfo",
+            WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
             "[window][getVisibleWindowInfo]");
     } else if (apiVersion >= API_VERSION_18 &&
                !CheckCallingPermission(PermissionConstants::PERMISSION_VISIBLE_WINDOW_INFO)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied! api%{public}u", apiVersion);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getVisibleWindowInfo",
+            WmErrorCode::WM_ERROR_NO_PERMISSION);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NO_PERMISSION,
             "[window][getVisibleWindowInfo]msg: Need ohos.permission.VISIBLE_WINDOW_INFO permission");
     }
@@ -1051,6 +1164,7 @@ ani_object AniWindowManager::OnGetVisibleWindowInfo(ani_env* env)
         return AniWindowUtils::CreateAniWindowInfoArray(env, infos);
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "OnGetVisibleWindowInfo failed");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getVisibleWindowInfo", ret);
         return AniWindowUtils::AniThrowError(env, ret, "[window][getVisibleWindowInfo]");
     }
 }
@@ -1074,40 +1188,68 @@ void AniWindowManager::OnSetGestureNavigationEnabled(ani_env* env, ani_boolean e
         SingletonContainer::Get<WindowManager>().SetGestureNavigationEnabled(enabled));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "failed, ret %{public}d", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setGestureNavigationEnabled", ret);
         AniWindowUtils::AniThrowError(env, ret, "SetGestureNavigationEnabled failed");
         return;
     }
 }
 
 void AniWindowManager::SetWaterMarkImage(ani_env* env, ani_long nativeObj,
-    ani_object nativePixelMap, ani_boolean enable)
+    ani_object nativePixelMap, ani_boolean enable, ani_int priority)
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
     AniWindowManager* aniWindowManager = reinterpret_cast<AniWindowManager*>(nativeObj);
     if (aniWindowManager != nullptr) {
-        aniWindowManager->OnSetWaterMarkImage(env, nativePixelMap, enable);
+        aniWindowManager->OnSetWaterMarkImage(env, nativePixelMap, enable, priority);
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] aniWindowManager is nullptr");
         return;
     }
 }
 
-void AniWindowManager::OnSetWaterMarkImage(ani_env* env, ani_object nativePixelMap, ani_boolean enable)
+void AniWindowManager::OnSetWaterMarkImage(ani_env* env, ani_object nativePixelMap, ani_boolean enable,
+    ani_int priority)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
     std::shared_ptr<Media::PixelMap> pixelMap;
     pixelMap = OHOS::Media::PixelMapTaiheAni::GetNativePixelMap(env, nativePixelMap);
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to convert parameter to PixelMap");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    if (priority < 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]enable=%{public}d, priority=%{public}d < 0", enable, priority);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
     if (!Permission::IsSystemCalling()) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "set watermark image permission denied!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
+            WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         return;
     }
-    RSInterfaces::GetInstance().ShowWatermark(pixelMap, enable);
+    WMError errCode = WMError::WM_OK;
+    if (enable) {
+        errCode = SingletonContainer::Get<WindowManager>().SetScreenWatermarkImage(pixelMap, priority);
+    } else {
+        errCode = SingletonContainer::Get<WindowManager>().CleanScreenWatermarkImage(pixelMap);
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "enable=%{public}d, priority=%{public}d, errCode=%{public}d",
+        enable, priority, static_cast<int32_t>(errCode));
+    if (errCode == WMError::WM_OK || errCode == WMError::WM_DO_NOTHING) {
+        return;
+    }
+    auto ret = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+    if (WM_JS_TO_ERROR_CODE_MAP.count(errCode) > 0) {
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
+    }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage", ret);
+    AniWindowUtils::AniThrowError(env, ret, "setWaterMarkImage failed!");
 }
 
 ani_object AniWindowManager::GetWindowsByCoordinate(ani_env* env, ani_long nativeObj, ani_object getWindowsParam)
@@ -1123,12 +1265,16 @@ ani_object AniWindowManager::OnGetWindowsByCoordinate(ani_env* env, ani_object g
     ani_long aniDisplayId;
     if (ANI_OK != env->Object_GetPropertyByName_Long(getWindowsParam, "displayId", &aniDisplayId)) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI] Failed to convert parameter to displayId");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
     displayId = static_cast<int64_t>(aniDisplayId);
     if (displayId < 0 ||
         SingletonContainer::Get<DisplayManager>().GetDisplayById(displayId) == nullptr) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI] invalid displayId");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
     int32_t windowNumber = 0;
@@ -1151,6 +1297,7 @@ ani_object AniWindowManager::OnGetWindowsByCoordinate(ani_env* env, ani_object g
         GetWindowIdsByCoordinate(static_cast<uint64_t>(displayId), windowNumber, x, y, windowIds));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI] getWindowsByCoordinate failed");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate", ret);
         return AniWindowUtils::AniThrowError(env, ret);
     }
     std::vector<ani_ref> windows(windowIds.size());
@@ -1159,6 +1306,33 @@ ani_object AniWindowManager::OnGetWindowsByCoordinate(ani_env* env, ani_object g
         windows[i] = CreateAniWindowObject(env, window);
     }
     return AniWindowUtils::CreateAniWindowArray(env, windows);
+}
+
+void AniWindowManager::MoveMainWindowToTargetDisplay(ani_env* env, ani_long nativeObj,
+    ani_long displayId, ani_int windowId)
+{
+    AniWindowManager* aniWindowManager = reinterpret_cast<AniWindowManager*>(nativeObj);
+    if (aniWindowManager != nullptr) {
+        aniWindowManager->OnMoveMainWindowToTargetDisplay(env, displayId, windowId);
+    } else {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] aniWindowManager is nullptr");
+    }
+}
+
+void AniWindowManager::OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long displayId, ani_int windowId)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");
+    if (static_cast<int64_t>(displayId) < 0) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] failed, Invalid displayId.");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_DISPLAY,
+            "[window][moveMainWindowToTargetDisplay]msg: parameter verfication failed");
+        return;
+    }
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
+        MoveMainWindowToTargetDisplay(displayId, windowId));
+    if (ret != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, ret, "[window][moveMainWindowToTargetDisplay]msg:set failed");
+    }
 }
 
 void AniWindowManager::SetSpecificSystemWindowZIndex(ani_env* env, ani_long nativeObj,
@@ -1183,12 +1357,16 @@ void AniWindowManager::OnSetSpecificSystemWindowZIndex(ani_env* env, ani_enum_it
         windowType = JS_TO_NATIVE_WINDOW_TYPE_MAP.at(static_cast<ApiWindowType>(apiWindowTypeValue));
     } else {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] invalid windowType");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSpecificSystemWindowZIndex",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setSpecificSystemWindowZIndex]msg:failed to convert paramter to windowType");
         return;
     }
     if (!WindowHelper::IsSupportSetZIndexWindow(windowType)) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowType not support %{public}d", windowType);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSpecificSystemWindowZIndex",
+            WmErrorCode::WM_ERROR_INVALID_CALLING);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
             "[window][setSpecificSystemWindowZIndex]msg:windowType not support");
         return;
@@ -1196,6 +1374,7 @@ void AniWindowManager::OnSetSpecificSystemWindowZIndex(ani_env* env, ani_enum_it
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
         SetSpecificSystemWindowZIndex(windowType, zIndex));
     if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSpecificSystemWindowZIndex", ret);
         AniWindowUtils::AniThrowError(env, ret, "[window][setSpecificSystemWindowZIndex]msg:set failed");
     }
 }

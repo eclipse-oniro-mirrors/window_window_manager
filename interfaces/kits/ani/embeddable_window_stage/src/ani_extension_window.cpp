@@ -26,6 +26,7 @@
 #include "pixel_map.h"
 #include "pixel_map_taihe_ani.h"
 #include "window_manager_hilog.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -65,7 +66,9 @@ void AniExtensionWindow::Finalizer(ani_env* env, ani_long nativeObj)
             delete obj->second;
             localObjs.erase(obj);
         }
-        env->GlobalReference_Delete(extensionWindow->GetAniRef());
+        if (env->GlobalReference_Delete(extensionWindow->GetAniRef()) != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] GlobalReference_Delete failed");
+        }
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] extensionWindow is nullptr");
     }
@@ -112,7 +115,11 @@ ani_object AniExtensionWindow::CreateAniExtensionWindow(ani_env* env, sptr<Rosen
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Find method failed, ret: %{public}u", ret);
         return nullptr;
     }
-    env->Object_CallMethod_Void(obj, setObjFunc, reinterpret_cast<ani_long>(aniExtensionWindow.get()));
+    ret = env->Object_CallMethod_Void(obj, setObjFunc, reinterpret_cast<ani_long>(aniExtensionWindow.get()));
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] fail to setNativeObj");
+        return nullptr;
+    }
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(obj, &ref) == ANI_OK) {
         aniExtensionWindow->SetAniRef(ref);
@@ -185,7 +192,10 @@ WmErrorCode AniExtensionWindow::UnregisterListener(ani_env* env, ani_string type
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     std::string cbType;
-    AniWindowUtils::GetStdString(env, type, cbType);
+    if (AniWindowUtils::GetStdString(env, type, cbType) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] GetStdString failed");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
     TLOGI(WmsLogTag::WMS_UIEXT, "[ANI] type:%{public}s", cbType.c_str());
     sptr<Rosen::Window> window = extensionWindow_->GetWindow();
     return extensionRegisterManager_->UnregisterListener(window, cbType, CaseType::CASE_WINDOW, env, fn);
@@ -461,6 +471,8 @@ static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_lon
     bool hasAvoidAreaTypeErr = (areaType < static_cast<int32_t>(AvoidAreaType::TYPE_START) ||
         areaType >= static_cast<int32_t>(AvoidAreaType::TYPE_END));
     if (hasAvoidAreaTypeErr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowAvoidArea",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return static_cast<ani_int>(WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
@@ -475,10 +487,14 @@ static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_lon
     AniExtensionWindow* aniExtWinPtr = reinterpret_cast<AniExtensionWindow*>(win);
     if (aniExtWinPtr == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]aniExtWinPtr is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowAvoidArea",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return static_cast<ani_int>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
     WMError retCode = aniExtWinPtr->GetAvoidAreaByType(static_cast<AvoidAreaType>(areaType), avoidArea);
     if (retCode != WMError::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowAvoidArea",
+            AniWindowUtils::ToErrorCode(retCode));
         return static_cast<ani_int>(AniWindowUtils::ToErrorCode(retCode));
     }
     ret = ExtWindowSetRectMember(env, area, Builder::BuildPropertyName("leftRect").c_str(), avoidArea.leftRect_);
@@ -487,14 +503,20 @@ static ani_int ExtWindowGetWindowAvoidArea(ani_env* env, ani_object obj, ani_lon
     }
     if ((retCode = (WMError)ExtWindowSetRectMember(
         env, area, Builder::BuildPropertyName("rightRect").c_str(), avoidArea.rightRect_)) != WMError::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowAvoidArea",
+            AniWindowUtils::ToErrorCode(retCode));
         return (ani_int)retCode;
     }
     if ((retCode = (WMError)ExtWindowSetRectMember(
         env, area, Builder::BuildPropertyName("topRect").c_str(), avoidArea.topRect_)) != WMError::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowAvoidArea",
+            AniWindowUtils::ToErrorCode(retCode));
         return (ani_int)retCode;
     }
     if ((retCode = (WMError)ExtWindowSetRectMember(
         env, area, Builder::BuildPropertyName("bottomRect").c_str(), avoidArea.bottomRect_)) != WMError::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowAvoidArea",
+            AniWindowUtils::ToErrorCode(retCode));
         return (ani_int)retCode;
     }
     return static_cast<ani_int>(WmErrorCode::WM_OK);
@@ -505,10 +527,16 @@ static ani_int ExtWindowSetWaterMarkFlag(ani_env* env, ani_object obj, ani_long 
     AniExtensionWindow* aniExtWinPtr = reinterpret_cast<AniExtensionWindow*>(nativeObj);
     if (aniExtWinPtr == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]aniExtWinPtr is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkFlag",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return static_cast<ani_int>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
-    return static_cast<ani_int>(aniExtWinPtr->OnSetWaterMarkFlag(env, enable));
+    WmErrorCode ret = aniExtWinPtr->OnSetWaterMarkFlag(env, enable);
+    if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkFlag", ret);
+    }
+    return static_cast<ani_int>(ret);
 }
 
 static ani_int ExtWindowHidePrivacyContentForHost(ani_env* env, ani_object obj, ani_long nativeObj,
@@ -517,10 +545,16 @@ static ani_int ExtWindowHidePrivacyContentForHost(ani_env* env, ani_object obj, 
     AniExtensionWindow* aniExtWinPtr = reinterpret_cast<AniExtensionWindow*>(nativeObj);
     if (aniExtWinPtr == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]aniExtWinPtr is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.hidePrivacyContentForHost",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return static_cast<ani_int>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
-    return static_cast<ani_int>(aniExtWinPtr->OnHidePrivacyContentForHost(env, shouldHide));
+    WmErrorCode ret = aniExtWinPtr->OnHidePrivacyContentForHost(env, shouldHide);
+    if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.hidePrivacyContentForHost", ret);
+    }
+    return static_cast<ani_int>(ret);
 }
 
 static void RegisterExtWindowCallback(ani_env* env, ani_object obj, ani_long nativeObj, ani_string type,
@@ -564,10 +598,16 @@ static ani_int ExtWindowHideNonSecureWindows(ani_env* env, ani_object obj, ani_l
     AniExtensionWindow* aniExtWinPtr = reinterpret_cast<AniExtensionWindow*>(nativeObj);
     if (aniExtWinPtr == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]aniExtWinPtr is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.hideNonSecureWindows",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return static_cast<ani_int>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
-    return static_cast<ani_int>(aniExtWinPtr->OnHideNonSecureWindows(env, shouldHide));
+    WmErrorCode ret = aniExtWinPtr->OnHideNonSecureWindows(env, shouldHide);
+    if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.hideNonSecureWindows", ret);
+    }
+    return static_cast<ani_int>(ret);
 }
 
 static ani_object ExtWindowCreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
@@ -576,6 +616,8 @@ static ani_object ExtWindowCreateSubWindowWithOptions(ani_env* env, ani_object o
     AniExtensionWindow* aniExtWinPtr = reinterpret_cast<AniExtensionWindow*>(nativeObj);
     if (aniExtWinPtr == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]aniExtWinPtr is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::CreateAniUndefined(env);
     }
@@ -587,6 +629,8 @@ static void ExtWindowOccupyEvents(ani_env* env, ani_object obj, ani_long nativeO
     AniExtensionWindow* aniExtWinPtr = reinterpret_cast<AniExtensionWindow*>(nativeObj);
     if (aniExtWinPtr == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]aniExtWinPtr is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.occupyEvents",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }

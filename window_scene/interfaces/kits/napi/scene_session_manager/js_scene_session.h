@@ -122,6 +122,9 @@ enum class ListenerFuncType : uint32_t {
     SNAPSHOT_SKIP_CHANGE_CB,
     COMPATIBLE_MODE_CHANGE_CB,
     RECOVER_WINDOW_EFFECT_CB,
+    PRE_CALC_WINDOW_PROPERTY_CB,
+    FLOAT_VIEW_STOP_CB,
+    FLOAT_VIEW_UPDATE_CB,
 };
 
 class SceneSession;
@@ -173,7 +176,8 @@ private:
     void OnSessionException(const SessionInfo& info, const ExceptionInfo& exceptionInfo, bool startFail);
     void PendingSessionToForeground(const SessionInfo& info);
     void PendingSessionToBackground(const SessionInfo& info, const BackgroundParams& params);
-    void PendingSessionToBackgroundForDelegator(const SessionInfo& info, bool shouldBackToCaller);
+    void PendingSessionToBackgroundForDelegator(const SessionInfo& info, bool shouldBackToCaller,
+        LifeCycleChangeReason reason);
     static napi_value SetTemporarilyShowWhenLocked(napi_env env, napi_callback_info info);
 
     static napi_value ActivateDragBySystem(napi_env env, napi_callback_info info);
@@ -235,6 +239,8 @@ private:
     static void BindNativeMethodForWaterfall(napi_env env, napi_value objValue, const char* moduleName);
     static napi_value SetSkipSelfWhenShowOnVirtualScreen(napi_env env, napi_callback_info info);
     static napi_value SetSkipEventOnCastPlus(napi_env env, napi_callback_info info);
+    static napi_value AddSessionBlackList(napi_env env, napi_callback_info info);
+    static napi_value RemoveSessionBlackList(napi_env env, napi_callback_info info);
     static napi_value ToggleCompatibleMode(napi_env, napi_callback_info info);
     static napi_value SetAppSupportPhoneInPc(napi_env env, napi_callback_info info);
     static napi_value SetUniqueDensityDpiFromSCB(napi_env env, napi_callback_info info);
@@ -282,11 +288,20 @@ private:
     static napi_value SetPcAppInpadOrientationLandscape(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneAnimationConfig(napi_env env, napi_callback_info info);
     static napi_value SetMobileAppInPadLayoutFullScreen(napi_env env, napi_callback_info info);
+    static napi_value SetForceSplitEnable(napi_env env, napi_callback_info info);
+    static napi_value UpdateHookWindowInfo(napi_env env, napi_callback_info info);
+    static napi_value NotifyOrientationExecutionResult(napi_env env, napi_callback_info info);
     static napi_value GetSceneNodeCount(napi_env env, napi_callback_info info);
+    static napi_value NotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
     /*
      * PC Window
      */
     static napi_value GetZOrder(napi_env env, napi_callback_info info);
+    /*
+     * Float View Window
+     */
+    static napi_value SendFvActionEvent(napi_env env, napi_callback_info info);
+    static napi_value SyncFvWindowInfo(napi_env env, napi_callback_info info);
 
     napi_value OnActivateDragBySystem(napi_env env, napi_callback_info info);
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
@@ -336,6 +351,8 @@ private:
     napi_value OnSetSkipDraw(napi_env env, napi_callback_info info);
     napi_value OnSetSkipSelfWhenShowOnVirtualScreen(napi_env env, napi_callback_info info);
     napi_value OnSetSkipEventOnCastPlus(napi_env env, napi_callback_info info);
+    napi_value OnAddSessionBlackList(napi_env env, napi_callback_info info);
+    napi_value OnRemoveSessionBlackList(napi_env env, napi_callback_info info);
     napi_value OnToggleCompatibleMode(napi_env, napi_callback_info info);
     napi_value OnSetAppSupportPhoneInPc(napi_env env, napi_callback_info info);
     napi_value OnSetUniqueDensityDpiFromSCB(napi_env env, napi_callback_info info);
@@ -385,12 +402,23 @@ private:
     napi_value OnUpdateSceneAnimationConfig(napi_env env, napi_callback_info info);
     napi_value OnGetUid(napi_env env, napi_callback_info info);
     napi_value OnSetMobileAppInPadLayoutFullScreen(napi_env env, napi_callback_info info);
+    napi_value OnSetForceSplitEnable(napi_env env, napi_callback_info info);
+    napi_value OnUpdateHookWindowInfo(napi_env env, napi_callback_info info);
+    napi_value OnNotifyOrientationExecutionResult(napi_env env, napi_callback_info info);
     napi_value OnGetSceneNodeCount(napi_env env, napi_callback_info info);
+    napi_value OnNotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
 
     /*
      * PC Window
      */
     napi_value OnGetZOrder(napi_env env, napi_callback_info info);
+
+    /*
+     * Float View
+    */
+    napi_value OnSendFvActionEvent(napi_env env, napi_callback_info info);
+    napi_value OnSyncFvWindowInfo(napi_env env, napi_callback_info info);
+    bool GetFloatViewWindowInfo(napi_env env, napi_value jsValue, FloatViewWindowInfo& windowInfo);
 
     bool IsCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject);
     void ProcessChangeSessionVisibilityWithStatusBarRegister();
@@ -466,6 +494,14 @@ private:
     void ProcessRestartAppRegister();
 
     /*
+     * Float View
+    */
+    void ProcessFloatViewStopRegister();
+    void OnFloatViewStop(const std::string& reason);
+    void ProcessFloatViewUpdateRegister();
+    void OnFloatViewUpdate(const FloatViewTemplateInfo& fvTemplateInfo);
+
+    /*
      * Window Property
     */
     void ProcessSetWindowCornerRadiusRegister();
@@ -473,6 +509,7 @@ private:
     void ProcessRotationLockChangeRegister();
     void ProcessSnapshotSkipChangeRegister();
     void ProcessRecoverWindowEffectRegister();
+    void ProcessPreCalcWindowPropertyRegister();
 
     /*
      * PC Window Layout
@@ -524,7 +561,8 @@ private:
     void OnDefaultAnimationFlagChange(bool isNeedDefaultAnimationFlag);
     void OnIsCustomAnimationPlaying(bool status);
     void OnShowWhenLocked(bool showWhenLocked);
-    void OnReuqestedOrientationChange(uint32_t orientation, bool needAnimation = true);
+    void OnReuqestedOrientationChange(uint32_t orientation, bool needAnimation = true, uint32_t promiseId = 0);
+    void ProcessRequestedOrientationResult(uint32_t promiseId);
     void OnForceHideChange(bool hide);
     void OnWindowDragHotArea(uint32_t type, SizeChangeReason reason, DisplayId displayId);
     void OnTouchOutside();
@@ -565,6 +603,7 @@ private:
     void OnOutlineParamsChange(bool isOutlineEnabled, const OutlineStyleParams& outlineStyleParams);
     void OnRestartApp(const SessionInfo& info, int32_t callingPid);
     void OnCallingSessionIdChange(uint32_t callingSessionId);
+    void OnPreCalcWindowProperty();
 
     /*
      * Window Property
@@ -599,6 +638,10 @@ private:
     std::shared_ptr<NativeReference> GetJSCallback(const std::string& functionName);
     void ClearCbMap();
 
+    static napi_status BindJsSceneSessionProto(napi_env env, napi_value& objValue);
+    static napi_status GetJsSceneSessionProto(napi_env env, napi_value& proto);
+    static napi_status CreateProtoAndBindNativeMethod(napi_env env, napi_value& proto, const char* moduleName);
+
     napi_env env_;
     wptr<SceneSession> weakSession_ = nullptr;
     int32_t persistentId_ = -1;
@@ -606,6 +649,8 @@ private:
     std::map<std::string, std::shared_ptr<NativeReference>> jsCbMap_;
     std::shared_ptr<MainThreadScheduler> taskScheduler_;
     static std::map<int32_t, napi_ref> jsSceneSessionMap_;
+    std::atomic<bool> executionResultFinish_ = true;
+    static napi_ref jsSceneSessionProtoRef_;
 };
 } // namespace OHOS::Rosen
 

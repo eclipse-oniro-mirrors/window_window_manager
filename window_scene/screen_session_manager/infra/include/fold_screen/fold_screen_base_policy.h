@@ -35,6 +35,23 @@ public:
     static FoldScreenBasePolicy& GetInstance();
     virtual ScreenId GetCurrentScreenId();
     virtual Drawing::Rect GetScreenSnapshotRect();
+    // closed source not depend on open source
+    void NotifyDisplayModeChanged(FoldDisplayMode displayMode);
+    void SwitchScrollParam(FoldDisplayMode displayMode);
+    bool IsInRecoveryProcess();
+    void HandlePowerStateChange(ScreenPowerEvent event, const std::function<void()>& func);
+    std::shared_ptr<TaskScheduler> GetScreenPowerTaskScheduler();
+    std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalConfig();
+    ScreenProperty GetPhyScreenProperty(ScreenId screenId);
+    void SetTpFeatureConfig(int32_t tpType, const std::string& tpConfig, bool isDefaultConfigType = true);
+    bool TryToCancelScreenOff();
+    bool IsFoldScreenOn();
+    void NotifyScreenSwitched();
+    sptr<ScreenSession> GetScreenSession(ScreenId screenId) const;
+    uint32_t SetScreenActiveRect(ScreenId id, const Rect& activeRect);
+    void WakeupDeviceAsync();
+    void NotifyDisplayChanged(const sptr<DisplayInfo>& displayInfo, DisplayChangeEvent event);
+    // end
 
     void ClearState();
     FoldDisplayMode GetScreenDisplayMode();
@@ -50,7 +67,10 @@ public:
     virtual void SetSecondaryDisplayModeChangeStatus(bool status){};
     bool GetdisplayModeRunningStatus();
     FoldDisplayMode GetLastCacheDisplayMode();
-    virtual std::vector<uint32_t> GetScreenParams() { return screenParams_; };
+    virtual const std::map<FoldDisplayMode, RRect>& GetScreenActiveModeRectMap()
+    {
+        return screenActiveModeRectMap_;
+    };
 
     // tentMode
     void ChangeOnTentMode(FoldStatus currentState);
@@ -81,7 +101,7 @@ public:
         DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
     void SendSensorResult(FoldStatus foldStatus);
     void UpdateDeviceStatus(FoldDisplayMode displayMode);
-    void ChangeScreenDisplayModeInner(FoldDisplayMode displayMode, DisplayModeChangeReason reason);
+    virtual void ChangeScreenDisplayModeInner(FoldDisplayMode displayMode, DisplayModeChangeReason reason);
     void ChangeScreenDisplayModeToMain(sptr<ScreenSession> screenSession,
         DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
     void ChangeScreenDisplayModeToFull(sptr<ScreenSession> screenSession,
@@ -94,7 +114,10 @@ public:
     void ChangeScreenDisplayModePower(ScreenId screenId, ScreenPowerStatus screenPowerStatus);
     void SendPropertyChangeResult(sptr<ScreenSession> screenSession, ScreenId screenId,
         ScreenPropertyChangeReason reason);
+    void SendPropertyChangeResult(sptr<ScreenSession> screenSession, ScreenId screenId,
+        ScreenPropertyChangeReason reason, ScreenProperty& screenProperty);
     void SetdisplayModeChangeStatus(bool status, bool isOnBootAnimation = false);
+    void SetdisplayModeChangeStatusCount(bool status, uint32_t count);
     // common
     void LockDisplayStatus(bool locked);
     virtual FoldDisplayMode GetModeMatchStatus();
@@ -118,6 +141,8 @@ public:
     bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
         FoldStatus targetFoldStatus) const;
     virtual float GetSpecialVirtualPixelRatio();
+    virtual void PowerkeySetScreenActiveRect() {};
+    const std::map<FoldDisplayMode, RRect>& GetScreenActiveModeRectMap() const;
 
 protected:
     FoldScreenBasePolicy();
@@ -152,7 +177,7 @@ protected:
     bool onBootAnimation_ = false;
     std::atomic<bool> isClearingBootAnimation_ = false;
     bool isFirstFrameCommitReported_ = false;
-    std::vector<uint32_t> screenParams_ = {};
+    std::map<FoldDisplayMode, RRect> screenActiveModeRectMap_ = {};
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_WINDOW_SCENE_FOLD_SCREEN_BASE_POLICY_H

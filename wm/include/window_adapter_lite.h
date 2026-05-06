@@ -40,7 +40,7 @@ class WindowAdapterLite : public RefBase {
 public:
     static WindowAdapterLite& GetInstance(const int32_t userId);
 
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
     virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                                  std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
@@ -69,6 +69,7 @@ public:
     virtual WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds);
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType);
     virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled);
+    virtual WMError RecoverProcessWatermark();
     virtual WMError TerminateSessionByPersistentId(int32_t persistentId);
     virtual WMError CloseTargetFloatWindow(const std::string& bundleName);
     virtual WMError CloseTargetPiPWindow(const std::string& bundleName);
@@ -102,6 +103,9 @@ private:
     uint32_t observedFlags_ = 0;
     uint32_t interestedFlags_ = 0;
     WMError RecoverWindowPropertyChangeFlag();
+    mutable std::mutex processWatermarkMutex_;
+    int32_t processWatermarkPid_ = 0;
+    std::string processWatermarkName_;
 
     /*
      * Multi user and multi screen

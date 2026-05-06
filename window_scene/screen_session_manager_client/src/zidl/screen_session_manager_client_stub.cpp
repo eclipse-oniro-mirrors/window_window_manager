@@ -16,6 +16,7 @@
 #include "zidl/screen_session_manager_client_stub.h"
 
 #include "window_manager_hilog.h"
+#include <transaction/rs_interfaces.h>
 
 namespace OHOS::Rosen {
 
@@ -165,6 +166,10 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleTentModeChange(data, reply);
     };
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_TRANS_RS_EVENT_TO_DESKTOP] =
+        [this](MessageParcel& data, MessageParcel& reply) {
+        return HandleTransRSEvent(data, reply);
+    };
 }
 
 ScreenSessionManagerClientStub::ScreenSessionManagerClientStub()
@@ -231,6 +236,14 @@ int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParce
         return ERR_INVALID_DATA;
     }
 
+    bool hasRemoteObj = false;
+    sptr<IRemoteObject> connectToRenderToken;
+    if (data.ReadBool(hasRemoteObj)) {
+        if (hasRemoteObj) {
+            connectToRenderToken = data.ReadRemoteObject();
+        }
+    }
+
     SessionOption option = {
         .rsId_ = rsId,
         .name_ = name,
@@ -242,7 +255,8 @@ int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParce
         .isRotationLocked_ = rotationOptions.isRotationLocked_,
         .rotation_ = rotationOptions.rotation_,
         .rotationOrientationMap_ = rotationOrientationMap,
-        .isBooting_ = isBooting
+        .isBooting_ = isBooting,
+        .connectToRenderToken_ = connectToRenderToken,
     };
     TLOGD(WmsLogTag::DMS,
         "ClientStub received callback parameters, isRotationLocked: %{public}d, rotation: %{public}d, "
@@ -584,8 +598,9 @@ int ScreenSessionManagerClientStub::HandleOnCreateScreenSessionOnly(MessageParce
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto rsId = static_cast<ScreenId>(data.ReadUint64());
     auto name = data.ReadString();
+    sptr<IRemoteObject> renderSession = data.ReadRemoteObject();
     bool isExtend = data.ReadBool();
-    bool refreshStatus = OnCreateScreenSessionOnly(screenId, rsId, name, isExtend);
+    bool refreshStatus = OnCreateScreenSessionOnly(screenId, rsId, name, renderSession, isExtend);
     reply.WriteBool(refreshStatus);
     return ERR_NONE;
 }
@@ -651,5 +666,44 @@ int ScreenSessionManagerClientStub::HandleSetInternalClipToBounds(MessageParcel&
     auto clipToBounds = data.ReadBool();
     SetInternalClipToBounds(mainScreenId, clipToBounds);
     return ERR_NONE;
+}
+
+int ScreenSessionManagerClientStub::HandleTransRSEvent(MessageParcel& data, MessageParcel& reply)
+{
+    auto eventData = ReadRSEventFromParcel(data);
+    if (eventData) {
+        OnTransRSEvent(eventData);
+    }
+    return ERR_NONE;
+}
+
+sptr<RSEventDataBase> ScreenSessionManagerClientStub::CreateEventByType(const RSExposedEventType& type)
+{
+    switch (type) {
+        case RSExposedEventType::EXT_SCREEN_UNSUPPORT:
+            TLOGI(WmsLogTag::DMS, "Create RSExtScreenUnsupportEventData");
+            return (new (std::nothrow) RSExtScreenUnsupportEventData());
+        default:
+            return nullptr;
+    }
+}
+
+sptr<RSEventDataBase> ScreenSessionManagerClientStub::ReadRSEventFromParcel(MessageParcel& data)
+{
+    uint32_t typeValue = data.ReadUint32();
+    RSExposedEventType type = static_cast<RSExposedEventType>(typeValue);
+
+    sptr<RSEventDataBase> event = CreateEventByType(type);
+    if (!event) {
+        TLOGE(WmsLogTag::DMS, "Unknown event type:%{public}u", typeValue);
+        return nullptr;
+    }
+
+    if (!event->Unmarshalling(data)) {
+        TLOGE(WmsLogTag::DMS, "Unmarshalling failed, type:%{public}u", typeValue);
+        return nullptr;
+    }
+
+    return event;
 }
 } // namespace OHOS::Rosen

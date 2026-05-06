@@ -560,6 +560,26 @@ HWTEST_F(SessionListenerControllerTest, RegisterSessionLifecycleListenerByIds, T
 }
 
 /**
+ * @tc.name: RegisterSessionLifecycleListenerByAppInstance
+ * @tc.desc: Register session lifecycle listener by bundle+appIndex+appInstanceKey
+ * @tc.type: CLASS
+ */
+HWTEST_F(SessionListenerControllerTest, RegisterSessionLifecycleListenerByAppInstance, TestSize.Level1)
+{
+    WMError res = slController->RegisterSessionLifecycleListener(nullptr, "com.example.myapp", 0, "");
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_PARAM);
+
+    sptr<ISessionLifecycleListener> listener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+
+    res = slController->RegisterSessionLifecycleListener(listener, "", 0, "");
+    EXPECT_EQ(res, WMError::WM_ERROR_INVALID_PARAM);
+
+    res = slController->RegisterSessionLifecycleListener(listener, "com.example.myapp", 0, "");
+    EXPECT_EQ(res, WMError::WM_OK);
+}
+
+/**
  * @tc.name: UnregisterSessionLifecycleListener
  * @tc.desc: UnregisterSessionLifecycleListener
  * @tc.type: CLASS

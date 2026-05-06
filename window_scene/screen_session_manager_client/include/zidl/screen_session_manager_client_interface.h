@@ -21,6 +21,8 @@
 
 #include "display_info.h"
 #include "session/screen/include/screen_property.h"
+#include "session_option.h"
+#include "rs_event_data_manager.h"
 
 namespace OHOS::Rosen {
 class IScreenSessionManagerClient : public IRemoteBroker {
@@ -63,6 +65,7 @@ public:
         TRANS_ID_ON_FOLD_PROPERTY_CHANGED,
         TRANS_ID_SET_INTERNAL_CLIPTOBOUNDS,
         TRANS_ID_ON_TENT_MODE_CHANGE,
+        TRANS_ID_ON_TRANS_RS_EVENT_TO_DESKTOP,
     };
 
     virtual void SwitchUserCallback(std::vector<int32_t> oldScbPids, int32_t currentScbPid) = 0;
@@ -101,7 +104,7 @@ public:
         ExtendScreenConnectStatus extendScreenConnectStatus) = 0;
     virtual bool OnExtendDisplayNodeChange(ScreenId mainScreenId, ScreenId extendScreenId) = 0;
     virtual bool OnCreateScreenSessionOnly(ScreenId screenId, ScreenId rsId,
-        const std::string& name, bool isExtend) = 0;
+        const std::string& name, sptr<IRemoteObject> renderSession, bool isExtend) = 0;
     virtual bool OnMainDisplayNodeChange(ScreenId mainScreenId, ScreenId extendScreenId, ScreenId extendRSId) = 0;
     virtual void SetScreenCombination(ScreenId mainScreenId, ScreenId extendScreenId,
         ScreenCombination extendCombination) = 0;
@@ -110,6 +113,7 @@ public:
     virtual void OnAnimationFinish() = 0;
     virtual void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) = 0;
     virtual void OnTentModeChange(TentMode tentMode) = 0;
+    virtual void OnTransRSEvent(const sptr<RSEventDataBase>& param) = 0;
 };
 } // namespace OHOS::Rosen
 

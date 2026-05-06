@@ -755,7 +755,7 @@ void JsWindowListener::OnParentWindowSizeChange(Rect rect)
         napi_value argv[] = {objValue};
         thisListener->CallJsMethod(PARENT_WINDOW_SIZE_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_send_event(env_, jsCallback, napi_eprio_high, "parentWindowSizeChangeCallBack") != napi_status::napi_ok) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "parentWindowSizeChangeCallback") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "failed to send event");
     }
 }
@@ -781,7 +781,7 @@ void JsWindowListener::OnParentWindowStatusChange(WindowStatus status)
         napi_value argv[] = {CreateJsValue(env, static_cast<uint32_t>(status))};
         thisListener->CallJsMethod(PARENT_WINDOW_STATUS_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_send_event(env_, jsCallback, napi_eprio_high, "parentWindowStatusChangeCallBack") !=
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "parentWindowStatusChangeCallback") !=
             napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "failed to send event");
     }

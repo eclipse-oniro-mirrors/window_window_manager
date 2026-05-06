@@ -29,6 +29,7 @@ public:
     ~MockWindowSceneSessionImpl() {}
 
     MOCK_METHOD(float, GetVirtualPixelRatio, (const sptr<DisplayInfo>& displayInfo), (override));
+    MOCK_METHOD(WMError, GetVirtualPixelRatio, (float& vpr), (override));
 };
 } // Rosen
 } // OHOS

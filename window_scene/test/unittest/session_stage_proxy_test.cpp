@@ -224,6 +224,22 @@ HWTEST_F(SessionStageProxyTest, SwitchFreeMultiWindow, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConfigDockAutoHide
+ * @tc.desc: test function : ConfigDockAutoHide
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, ConfigDockAutoHide, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    bool isDockAutoHide = true;
+    WSError res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+    isDockAutoHide = false;
+    res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
+/**
  * @tc.name: GetUIContentRemoteObj
  * @tc.desc: test function : GetUIContentRemoteObj
  * @tc.type: FUNC
@@ -1500,6 +1516,211 @@ HWTEST_F(SessionStageProxyTest, SetUIExtensionTransparent, TestSize.Level1)
     sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetUIExtensionTransparent());
     MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SendFvActionEvent
+ * @tc.desc: test function : SendFvActionEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SendFvActionEvent, TestSize.Level1)
+{
+    ASSERT_TRUE(sessionStage_ != nullptr);
+    std::string action = "testAction";
+    std::string reason = "testReason";
+    
+    // Case 1: Success
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->SendFvActionEvent(action, reason));
+    
+    // Case 2: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SendFvActionEvent(action, reason));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    
+    // Case 3: Failed to write action
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SendFvActionEvent(action, reason));
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+    
+    // Case 4: Failed to write reason
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SendFvActionEvent(action, reason));
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+    
+    // Case 5: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SendFvActionEvent(action, reason));
+    
+    // Case 6: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SendFvActionEvent(action, reason));
+    
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SyncFvWindowInfo
+ * @tc.desc: test function : SyncFvWindowInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SyncFvWindowInfo, TestSize.Level1)
+{
+    ASSERT_TRUE(sessionStage_ != nullptr);
+    FloatViewWindowInfo windowInfo;
+    std::string reason = "testReason";
+    
+    // Case 1: Success
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->SyncFvWindowInfo(windowInfo, reason));
+    
+    // Case 2: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvWindowInfo(windowInfo, reason));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    
+    // Case 3: Failed to write windowInfo
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvWindowInfo(windowInfo, reason));
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+    
+    // Case 4: Failed to write reason
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvWindowInfo(windowInfo, reason));
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+    
+    // Case 5: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SyncFvWindowInfo(windowInfo, reason));
+    
+    // Case 6: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SyncFvWindowInfo(windowInfo, reason));
+    
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SyncFvLimits
+ * @tc.desc: test function : SyncFvLimits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SyncFvLimits, TestSize.Level1)
+{
+    ASSERT_TRUE(sessionStage_ != nullptr);
+    FloatViewLimits limit;
+    std::map<uint32_t, FloatViewLimits> limits {};
+    limits.emplace(0, limit);
+    
+    // Case 1: Success
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->SyncFvLimits(limits));
+    
+    // Case 2: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteUint32ErrorCount(1);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+
+    // Case 3: Failed to write limits
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+    
+    // Case 4: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SyncFvLimits(limits));
+    
+    // Case 5: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SyncFvLimits(limits));
+    
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SetForceSplitEnable01
+ * @tc.desc: test function : SetForceSplitEnable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SetForceSplitEnable01, TestSize.Level1)
+{
+    ASSERT_TRUE(sessionStage_ != nullptr);
+
+    // Case 1: Success
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+
+    // Case 2: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 3: Failed to write isForceSplitEnabled
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    // Case 4: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+
+    // Case 5: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE));
+
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: TestSetIsStartMoving
+ * @tc.desc: Test SetIsStartMoving behavior in various IPC scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, TestSetIsStartMoving, TestSize.Level1)
+{
+    constexpr bool isStartMoving = true;
+
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetIsStartMoving(isStartMoving));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: Failed to write bool
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetIsStartMoving(isStartMoving));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    // Case 3: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SetIsStartMoving(isStartMoving));
+
+    // Case 4: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetIsStartMoving(isStartMoving));
+
+    // Case 5: Success (true)
+    remoteMock->sendRequestResult_ = ERR_NONE;
+    sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_OK, successProxy->SetIsStartMoving(true));
+
+    // Case 6: Success (false)
+    EXPECT_EQ(WSError::WS_OK, successProxy->SetIsStartMoving(false));
 }
 } // namespace
 } // namespace Rosen

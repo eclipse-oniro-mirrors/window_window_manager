@@ -31,8 +31,9 @@ using OwnSystemBarPropertyPair = std::pair<SystemBarPropertyOwner, PartialSystem
 
 class WindowSceneSessionImpl : public WindowSessionImpl {
 public:
+    using WindowSessionImpl::GetVirtualPixelRatio;
     explicit WindowSceneSessionImpl(const sptr<WindowOption>& option,
-        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr, sptr<IRemoteObject> renderSession = nullptr);
     ~WindowSceneSessionImpl();
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
@@ -51,7 +52,6 @@ public:
     void SetDefaultProperty();
     WMError Minimize() override;
     void StartMove() override;
-    bool IsStartMoving() override;
     WindowMode GetWindowMode() const override;
     WMError SetHookTargetElementInfo(const AppExecFwk::ElementName& elementName) override;
     class WindowScreenListener : public ScreenManager::IScreenListener {
@@ -72,15 +72,24 @@ public:
     WMError GetGlobalScaledRect(Rect& globalScaledRect) override;
     WMError Resize(uint32_t width, uint32_t height) override;
     WMError ResizeAsync(uint32_t width, uint32_t height) override;
-    WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, bool isAttach = false) override;
+    WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
     WMError SetFollowParentWindowLayoutEnabled(bool isFollow) override;
     WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) override;
     WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) override;
-    WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode) override;
+    WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode, MaximizeMode maximizeMode,
+        bool isLayoutFullScreen) override;
     WMError SetFrameRectForPartialZoomIn(const Rect& frameRect) override;
     WMError UpdateWindowModeForUITest(int32_t updateMode) override;
-    WSError NotifyAppHookWindowInfoUpdated() override;
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
+    WSError UpdateAttachedWindowLimits(int32_t sourcePersistentId,
+        const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit,
+        bool isIntersectedWidthLimit) override;
+    WSError RemoveAttachedWindowLimits(int32_t sourcePersistentId) override;
+    WSError SyncAllAttachedLimitsToChild(
+        const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
+        const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList) override;
+    WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId) override;
 
     /*
      * Window Hierarchy
@@ -184,9 +193,7 @@ public:
     WMError AdjustKeyboardLayout(const KeyboardLayoutParams params) override;
     WMError CheckAndModifyWindowRect(uint32_t& width, uint32_t& height) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
-    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
     WSError NotifyAppForceLandscapeConfigUpdated() override;
-    WSError NotifyAppForceLandscapeConfigEnableUpdated(bool needUpdateViewport = false) override;
 
     /*
      * Sub Window
@@ -195,9 +202,16 @@ public:
     WMError GetParentWindow(sptr<Window>& parentWindow) override;
 
     /*
+     * Sub Window zLevel above parent loosened
+     */
+    WSError HideSubWindowZLevelAboveParentLoosened() override;
+    WSError ShowSubWindowZLevelAboveParentLoosened() override;
+
+    /*
      * PC Window
      */
     WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask) override;
+    WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight) override;
     WMError ClearWindowMask() override;
     WMError SetFollowParentMultiScreenPolicy(bool enabled) override;
     WMError UseImplicitAnimation(bool useImplicit) override;
@@ -220,8 +234,11 @@ public:
     WMError Maximize() override;
     WMError Maximize(MaximizePresentation presentation) override;
     WMError Maximize(MaximizePresentation presentation, WaterfallResidentState state) override;
+    WMError MaximizeWithOptions(MaximizePresentation presentation, AcrossDisplayPresentation state,
+        const SnapshotAnimationConfig& snapshotAnimationConfig) override;
     WMError Recover() override;
     WMError Recover(uint32_t reason) override;
+    WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig) override;
     WSError UpdateMaximizeMode(MaximizeMode mode) override;
     WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
         bool grayOutMaximizeButton = false) override;
@@ -241,9 +258,11 @@ public:
     void HookDecorButtonStyleInCompatibleMode(uint32_t contentColor);
     WSError PcAppInPadNormalClose() override;
     void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
-    void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false) override;
-    void SendLogicalDeviceConfigToArkUI();
+    void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false,
+        SelectMode selectMode = SelectMode::INVALID_MODE) override;
+    void SendCombinedCompatibleConfigToArkUI();
     WMError NotifyPageEnable(const std::string& action, const std::string& message) override;
+    WMError NotifySplitRatioChanged(float newRatio) override;
 
     /*
      * Free Multi Window
@@ -312,6 +331,7 @@ public:
     bool IsDecorEnable() const override;
     WMError Close() override;
     WMError CloseDirectly() override;
+    WSError ConfigDockAutoHide(bool isDockAutoHide) override;
 
     /*
      * Starting Window
@@ -363,12 +383,14 @@ public:
     /*
      * Window LifeCycle
      */
-    void Resume() override;
-    void Pause() override;
+    void Resume(bool isGamePreLaunch = false) override;
+    void Pause(bool isGamePreLaunch = false) override;
 
     WSError CloseSpecificScene() override;
     WMError SetSubWindowSource(SubWindowSource source) override;
     WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams) override;
+    WMError SetIsGamePreLaunch(bool isGamePreLaunch) override;
+    WMError ClearIsGamePreLaunch() override;
 
     /*
      * Window Event
@@ -382,6 +404,7 @@ public:
 
 protected:
     WMError CreateAndConnectSpecificSession();
+    void PostInitSurfaceNode(sptr<IRemoteObject> renderSession);
     WMError CreateSystemWindow(WindowType type);
     sptr<WindowSessionImpl> FindParentSessionByParentId(uint32_t parentId);
     bool IsSessionMainWindow(uint32_t parentId);
@@ -415,7 +438,45 @@ protected:
      *      may exceed system limits and is clamped to min(system limits, 40vp);
      *      other cases remain constrained by system limits.
      */
-    void UpdateWindowSizeLimits();
+    void UpdateWindowSizeLimits(bool needNotifySession = false);
+
+    /**
+     * @brief Calculate window limits intersection with attached windows.
+     * @param newLimits Reference to WindowLimits (PX unit) to be updated with intersected values.
+     * @param newLimitsVP Reference to WindowLimits (VP unit) to be updated with intersected values.
+     * @param virtualPixelRatio Virtual pixel ratio for unit conversion.
+     */
+    void CalculateAttachedWindowLimitsIntersection(WindowLimits& newLimits, WindowLimits& newLimitsVP,
+        float virtualPixelRatio);
+
+    /**
+     * @brief Result of calculating intersection with a single attached window.
+     */
+    struct WinIntersectResult {
+        bool pxValid;           // PX intersection is valid
+        bool vpValid;           // VP intersection is valid
+        WindowLimits pxLimits;  // PX intersection result
+        WindowLimits vpLimits;  // VP intersection result
+    };
+
+    /**
+     * @brief Calculate intersection with a single attached window.
+     * @param currentLimits Current PX limits.
+     * @param currentLimitsVP Current VP limits.
+     * @param attachedLimits Attached window limits (may be PX or VP).
+     * @param limitOptions Options for which limits (height/width) to intersect.
+     * @param virtualPixelRatio Virtual pixel ratio for conversion.
+     * @return Intersection result containing validity and calculated limits.
+     */
+    WinIntersectResult CalcSingleWinIntersect(
+        const WindowLimits& currentLimits, const WindowLimits& currentLimitsVP, const WindowLimits& attachedLimits,
+        const AttachLimitOptions& limitOptions, float virtualPixelRatio);
+
+    /**
+     * @brief Notify session side about window limits change.
+     * @param limitsToNotify The window limits to notify (already selected based on pixelUnit).
+     */
+    void NotifySessionSideLimitsChanged(const WindowLimits& limitsToNotify);
 
     // Checker to determine whether the caller has system permission.
     using SystemPermissionChecker = std::function<bool()>;
@@ -466,8 +527,12 @@ private:
     void UpdateWindowState();
     void UpdateNewSize();
     void FillWindowLimits(WindowLimits& windowLimits, PixelUnit pixelUnit);
+    bool HasIntersectedAttachLimits() const;
+    WindowLimits GetCustomizedLimitsForSetWindowLimits(const WindowLimits& windowLimits);
+    WindowLimits ConvertBaseLimitsToTargetUnit(const WindowLimits& srcLimits, PixelUnit targetPixelUnit);
     void UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     void PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+    WMError ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config);
     void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         MMI::PointerEvent::PointerItem& pointerItem, bool isHitTargetDraggable = false);
@@ -487,6 +552,9 @@ private:
     bool HandlePointDownEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const MMI::PointerEvent::PointerItem& pointerItem);
     std::unique_ptr<Media::PixelMap> HandleWindowMask(const std::vector<std::vector<uint32_t>>& windowMask);
+    std::shared_ptr<Media::PixelMap> HandleWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth,
+        uint32_t maskHeight);
+    WMError ApplyWindowMask(const std::shared_ptr<Media::PixelMap>& mask);
     void NotifyDisplayInfoChange(const sptr<DisplayInfo>& info = nullptr);
     void UpdateDensityInner(const sptr<DisplayInfo>& info = nullptr);
     sptr<DisplayInfo> GetDisplayInfo() const;
@@ -504,6 +572,7 @@ private:
     void OnWindowRecoverStateChange(bool isSpecificSession, const WindowRecoverState& state);
     void UpdateStartRecoverProperty(bool isSpecificSession);
     void UpdateFinishRecoverProperty(bool isSpecificSession);
+    void RecoverExtension();
     NotifyWindowRecoverStateChangeFunc windowRecoverStateChangeFunc_;
 
     /*
@@ -511,7 +580,7 @@ private:
      */
     void CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
-    WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) override;
+    WMError GetSelectMode(SelectMode& selectMode) override;
     bool ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode);
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
     uint32_t UpdateConfigValInVP(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
@@ -537,7 +606,13 @@ private:
      * PC Window Layout
      */
     bool CheckWaterfallResidentState(WaterfallResidentState state) const;
+    bool CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const;
     void ApplyMaximizePresentation(MaximizePresentation presentation);
+    WMError CheckMaximizePreConditions(AcrossDisplayPresentation state);
+    WMError ExecuteMaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation state, const SnapshotAnimationConfig& snapshotAnimationConfig);
+    WMError CheckRecoverPreConditions();
+    WMError ExecuteRecover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig);
     std::shared_ptr<MMI::PointerEvent> lastPointerEvent_ = nullptr;
     bool IsFullScreenSizeWindow(uint32_t width, uint32_t height);
     std::atomic<bool> isResizedByLimit_ = false;
@@ -608,6 +683,7 @@ private:
     static WMError VerifySubWindowLevel(bool isToast, const sptr<WindowSessionImpl>& parentSession);
     bool hasAncestorFloatSession(uint32_t parentId, const SessionMap& sessionMap);
     WMError SetParentWindowInner(int32_t oldParentWindowId, const sptr<WindowSessionImpl>& newParentWindow);
+    WMError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo);
 
     WMError RegisterKeyboardPanelInfoChangeListener(const sptr<IKeyboardPanelInfoChangeListener>& listener) override;
     WMError UnregisterKeyboardPanelInfoChangeListener(const sptr<IKeyboardPanelInfoChangeListener>& listener) override;
@@ -659,7 +735,7 @@ private:
     /*
      * Window Compatible Mode
      */
-    static std::atomic<bool> hasSentLogicalDeviceConfig_;
+    static std::atomic<bool> hasSentCombinedCompatibleConfig_;
 
     /*
      * Window Scene
@@ -679,7 +755,6 @@ private:
      */
     void NotifyFreeMultiWindowModeResume();
     std::string TransferLifeCycleEventToString(LifeCycleEvent type) const;
-    void RecordLifeCycleExceptionEvent(LifeCycleEvent event, WMError erCode) const;
     WindowLifeCycleInfo GetWindowLifecycleInfo() const;
 
     /**

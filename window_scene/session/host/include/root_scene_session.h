@@ -67,6 +67,7 @@ private:
     void GetCutoutAvoidAreaForRoot(const WSRect& rect, AvoidArea& avoidArea);
     void GetKeyboardAvoidAreaForRoot(const WSRect& rect, AvoidArea& avoidArea);
     void GetAINavigationBarAreaForRoot(const WSRect& rect, AvoidArea& avoidArea, bool ignoreVisibility = false);
+    void GetFloatNavigationAvoidAreaForRoot(const WSRect& rect, AvoidArea& avoidArea, bool ignoreVisibility = false);
 };
 } // namespace OHOS::Rosen
 

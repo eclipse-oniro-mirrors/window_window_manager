@@ -71,6 +71,7 @@ ohos_shared_library("libwindow_extension_client") {
     "ipc:ipc_single",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "window_manager"
   subsystem_name = "window"

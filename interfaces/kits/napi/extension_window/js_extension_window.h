@@ -41,6 +41,8 @@ public:
     static void Finalizer(napi_env env, void* data, void* hint);
     static void RegisterUnsupportFuncs(napi_env env, napi_value objValue, const char *moduleName);
     static napi_value GetWindowAvoidArea(napi_env env, napi_callback_info info);
+    static napi_value SetFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info);
+    static napi_value IsFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info);
     static napi_value RegisterExtensionWindowCallback(napi_env env, napi_callback_info info);
     static napi_value UnRegisterExtensionWindowCallback(napi_env env, napi_callback_info info);
     static napi_value AtomicRegisterExtensionWindowCallback(napi_env env, napi_callback_info info);
@@ -97,6 +99,8 @@ public:
 private:
     const std::string& GetWindowName() const;
     napi_value OnGetWindowAvoidArea(napi_env env, napi_callback_info info);
+    napi_value OnSetFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info);
+    napi_value OnIsFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info);
     napi_value OnRegisterRectChangeCallback(napi_env env, size_t argc, napi_value* argv,
         const sptr<Window>& windowImpl);
     napi_value OnRegisterExtensionWindowCallback(napi_env env, napi_callback_info info, bool atomicService = false);
@@ -140,6 +144,7 @@ private:
     napi_value OnSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSnapshotSync(napi_env env, napi_callback_info info);
     napi_value OnSnapshotIgnorePrivacy(napi_env env, napi_callback_info info);
+    napi_value OnGetWindowStatus(napi_env env, napi_callback_info info);
 
     static napi_value GetProperties(napi_env env, napi_callback_info info);
 

@@ -28,6 +28,15 @@
 namespace OHOS::Rosen {
 class ScreenInfo;
 
+enum class VirtualScreenCaller : uint32_t {
+    UNKNOWN = 0,
+    JS_DISPLAY_MANAGER,
+    JS_SCREEN_MANAGER,
+    ANI_DISPLAY_MANAGER,
+    ANI_SCREEN_MANAGER,
+    NATIVE_SCREEN_MANAGER
+};
+
 struct VirtualScreenOption {
     std::string name_;
     uint32_t width_;
@@ -50,6 +59,7 @@ struct VirtualScreenOption {
     int32_t screenId_ {-1};
     uint32_t renderWidth_ { 0 };
     uint32_t renderHeight_ { 0 };
+    VirtualScreenCaller caller_ {VirtualScreenCaller::UNKNOWN};
 };
 
 class Screen : public RefBase {

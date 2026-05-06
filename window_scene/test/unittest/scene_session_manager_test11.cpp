@@ -968,30 +968,30 @@ HWTEST_F(SceneSessionManagerTest11, CheckIfReuseSession06, TestSize.Level1)
     ASSERT_NE(ssm_, nullptr);
     ssm_->bundleMgr_ = ssm_->GetBundleManager();
     ssm_->currentUserId_ = 123;
- 
+
     SessionInfo sessionInfo;
     sessionInfo.moduleName_ = "SceneSessionManager";
     sessionInfo.bundleName_ = "SceneSessionManagerTest11";
     sessionInfo.abilityName_ = "CheckIfReuseSession06";
     sessionInfo.want = std::make_shared<AAFwk::Want>();
- 
+
     SceneSessionManager::SessionInfoList list = {
         .uid_ = 123, .bundleName_ = "SceneSessionManagerTest11",
         .abilityName_ = "CheckIfReuseSession06", .moduleName_ = "SceneSessionManager"
     };
- 
+
     std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
     ASSERT_NE(abilityInfo, nullptr);
     abilityInfo->applicationInfo.codePath = std::to_string(CollaboratorType::RESERVE_TYPE);
     ssm_->abilityInfoMap_[list] = abilityInfo;
- 
+
     sptr<AAFwk::IAbilityManagerCollaborator> collaborator =
         iface_cast<AAFwk::IAbilityManagerCollaborator>(nullptr);
     ssm_->collaboratorMap_.insert(std::make_pair(1, collaborator));
     MockCollaboratorDllManager::MockPreHandleStartAbility(1);
     auto ret4 = ssm_->CheckIfReuseSession(sessionInfo);
-    EXPECT_EQ((sessionInfo).callerTypeForAnco, 1);
- 
+    EXPECT_EQ((sessionInfo).callerTypeForAnco, 0);
+
     MockCollaboratorDllManager::MockPreHandleStartAbility(0);
     ssm_->abilityInfoMap_.erase(list);
     ssm_->collaboratorMap_.erase(1);
@@ -1730,6 +1730,7 @@ HWTEST_F(SceneSessionManagerTest11, WindowVisibilityInfoMarshallingDisplayAndGlo
     info.rect_ = { 1, 2, 300, 400 };
     info.globalDisplayRect_ = { 5, 6, 700, 800 };
     info.SetDisplayId(66);
+    info.SetModuleName("entry");
     info.SetGlobalRect({ 10, 20, 100, 200 });
 
     MessageParcel parcel;
@@ -1738,6 +1739,7 @@ HWTEST_F(SceneSessionManagerTest11, WindowVisibilityInfoMarshallingDisplayAndGlo
     WindowVisibilityInfo* unmarshalled = WindowVisibilityInfo::Unmarshalling(parcel);
     ASSERT_NE(unmarshalled, nullptr);
     EXPECT_EQ(unmarshalled->GetDisplayId(), 66);
+    EXPECT_EQ(unmarshalled->GetModuleName(), "entry");
     EXPECT_EQ(unmarshalled->GetGlobalRect().posX_, 10);
     EXPECT_EQ(unmarshalled->GetGlobalRect().posY_, 20);
     EXPECT_EQ(unmarshalled->GetGlobalRect().width_, 100);
@@ -1933,6 +1935,50 @@ HWTEST_F(SceneSessionManagerTest11, SetSpecificWindowZIndex, TestSize.Level1)
     EXPECT_EQ(ret, WSError::WS_OK);
     EXPECT_EQ(value, 20);
     ssm_->SetSpecificWindowZIndexListener(nullptr);
+}
+
+/**
+ * @tc.name: MoveMainWindowToTargetDisplay
+ * @tc.desc: test function : MoveMainWindowToTargetDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSystemApp(false);
+    WSError ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NOT_SYSTEM_APP);
+
+
+    MockAccesstokenKit::MockIsSystemApp(true);
+    ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_WINDOW);
+
+    sptr<SceneSession> sceneSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    ssm_->sceneSessionMap_.insert({1, sceneSession});
+    ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_WINDOW);
+    ssm_->sceneSessionMap_.clear();
+
+    sceneSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_PIP);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.insert({1, sceneSession});
+    ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_CALLING);
+
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->property_->SetDisplayId(-1);
+    ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_WINDOW);
+
+    sceneSession->property_->SetDisplayId(DEFAULT_DISPLAY_ID);
+    ret = ssm_->MoveMainWindowToTargetDisplay(999, 1); // 999 不存在
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_DISPLAY);
+
+    ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    ssm_->sceneSessionMap_.clear();
 }
 
 /**

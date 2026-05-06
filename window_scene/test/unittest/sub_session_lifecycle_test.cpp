@@ -264,6 +264,11 @@ HWTEST_F(SessionStubLifecycleTest, Show04, TestSize.Level1)
 
     subSession_->SetSessionProperty(property);
     ASSERT_EQ(subSession_->Show(property), WSError::WS_OK);
+
+    property->SetZLevelAboveParentLoosened(true);
+    subSession_->SetSessionProperty(property);
+    subSession_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ASSERT_EQ(subSession_->Show(property), WSError::WS_OK);
 }
 
 /**

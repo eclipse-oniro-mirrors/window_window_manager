@@ -64,6 +64,8 @@ bool ConvertStartAnimationSystemOptionsFromJsValue(napi_env env, napi_value jsOb
 bool ConvertWindowAnimationOptionFromJsValue(napi_env env, napi_value config,
     WindowAnimationOption& animationConfig, WmErrorCode& result);
 bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject, WindowCreateParams& windowCreateParams);
+bool ConvertSplitRatioPreferenceFromJsValue(
+    napi_env env, napi_value jsObject, SplitRatioPreference& splitRatioPreference);
 bool CheckWindowAnimationOption(napi_env env, WindowAnimationOption& animationConfig, WmErrorCode& result);
 }
 }

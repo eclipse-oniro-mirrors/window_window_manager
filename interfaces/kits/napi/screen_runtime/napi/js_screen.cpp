@@ -21,6 +21,7 @@
 #include "screen.h"
 #include "screen_info.h"
 #include "window_manager_hilog.h"
+#include "display_histogram_management.h"
 #ifdef XPOWER_EVENT_ENABLE
 #include "xpower_event_js.h"
 #endif // XPOWER_EVENT_ENABLE
@@ -30,6 +31,7 @@ namespace Rosen {
 using namespace AbilityRuntime;
 constexpr size_t ARGC_ONE = 1;
 constexpr size_t ARGC_TWO = 2;
+constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 
 static thread_local std::map<ScreenId, std::shared_ptr<NativeReference>> g_JsScreenMap;
 std::recursive_mutex g_mutex;
@@ -152,6 +154,7 @@ napi_value JsScreen::SetScreenActiveMode(napi_env env, napi_callback_info info)
 napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.setScreenActiveMode.Count", HISTOGRAM_BOOLEAN_COUNTS);
     bool paramValidFlag = true;
     uint32_t modeId = 0;
     size_t argc = 4;
@@ -171,6 +174,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
     }
     if (!paramValidFlag) {
         TLOGE(WmsLogTag::DMS, "paramValidFlag error");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setScreenActiveMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -188,6 +192,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "OnSetScreenActiveMode success");
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setScreenActiveMode", ret);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
                                             "JsScreen::OnSetScreenActiveMode failed."));
             TLOGNE(WmsLogTag::DMS, "OnSetScreenActiveMode failed");
@@ -208,6 +213,7 @@ napi_value JsScreen::SetDensityDpi(napi_env env, napi_callback_info info)
 napi_value JsScreen::OnSetDensityDpi(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.setDensityDpi.Count", HISTOGRAM_BOOLEAN_COUNTS);
     bool paramValidFlag = true;
     uint32_t densityDpi = 0;
     size_t argc = 4;
@@ -227,6 +233,7 @@ napi_value JsScreen::OnSetDensityDpi(napi_env env, napi_callback_info info)
     }
     if (!paramValidFlag) {
         TLOGE(WmsLogTag::DMS, "paramValidFlag error");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setDensityDpi", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -244,6 +251,7 @@ napi_value JsScreen::OnSetDensityDpi(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "OnSetDensityDpi success");
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setDensityDpi", ret);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
                                             "JsScreen::OnSetDensityDpi failed."));
             TLOGNE(WmsLogTag::DMS, "OnSetDensityDpi failed");

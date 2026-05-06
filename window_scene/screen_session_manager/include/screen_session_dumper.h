@@ -56,6 +56,8 @@ private:
     std::string ConvertFoldStatusToString(FoldStatus foldStatus);
     void DumpTentMode();
     void DumpFoldCreaseRegion();
+    void DumpCreaseRectsToOss(std::ostringstream& oss,
+        const std::string& label, const std::vector<DMRect>& rects);
     void OutputDumpInfo();
     void DumpScreenSessionById(ScreenId id);
     void DumpRsInfoById(ScreenId id);
@@ -93,6 +95,10 @@ private:
     void TriggerSecondarySensor(const std::string &valueStr);
     void TriggerSecondaryFoldStatus(const std::string &valueStr);
     void SetDuringCallState(std::string input);
+    void SetMultiScreenRelativePositionCmd(std::string input);
+    bool ExtractPositionGroups(const std::string& valueStr,
+        std::string& firstGroup, std::string& secondGroup);
+    bool ParsePositionGroup(const std::string& group, MultiScreenPositionOptions& opts);
     bool IsDeveloperModeCommand();
     void ShowCurrentLcdStatus(ScreenId screenId);
 private:

@@ -34,9 +34,9 @@ ohos_executable("demo_mirror_screen_listener") {
 
   include_dirs = [ "../common/utils/include" ]
 
-  deps = [ 
+  deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
    ]
 
@@ -57,7 +57,7 @@ ohos_executable("demo_screenshot_listener") {
 
   deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
   ]
 
@@ -86,7 +86,7 @@ ohos_executable("demo_snapshot_virtual_screen") {
   deps = [
     "${window_base_path}/dm:libdm_static",
     "${window_base_path}/dmserver:libdms",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_static",
     "../../snapshot:libsnapshot_util",
   ]
@@ -115,7 +115,7 @@ ohos_executable("demo_system_sub_window") {
   deps = [
     "${window_base_path}/test/common/utils:libtestutil",
     "${window_base_path}/wm:libwm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
   ]
 
@@ -153,9 +153,9 @@ ohos_executable("demo_water_mark_listener") {
     "${window_base_path}/test/common/utils/include",
   ]
 
-  deps = [ 
+  deps = [
     "${window_base_path}/wm:libwm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
  ]
   external_deps = [
@@ -177,9 +177,9 @@ ohos_executable("demo_visible_window_num_listener") {
     "${window_base_path}/test/common/utils/include",
   ]
 
-  deps = [ 
+  deps = [
     "${window_base_path}/wm:libwm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
  ]
 

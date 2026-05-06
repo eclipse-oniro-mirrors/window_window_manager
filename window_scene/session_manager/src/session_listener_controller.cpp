@@ -256,11 +256,24 @@ void SessionListenerController::ConstructPayload(ISessionLifecycleListener::Life
     payload.abilityName_ = sessionInfo.abilityName_;
     payload.appIndex_ = sessionInfo.appIndex_;
     payload.persistentId_ = sessionInfo.persistentId_;
+    payload.appInstanceKey_ = sessionInfo.appInstanceKey_;
     payload.resultCode_ = resultCode;
     payload.fromScreenId_ = fromScreenId;
     payload.toScreenId_ = toScreenId;
     payload.screenId_ = sessionInfo.screenId_;
     payload.lifeCycleChangeReason_ = reason;
+}
+
+void SessionListenerController::ConstructBatchPayload(
+    std::vector<ISessionLifecycleListener::LifecycleEventPayload>& payloads,
+    const std::vector<sptr<SceneSession>>& sessions)
+{
+    for (const auto& session : sessions) {
+        ISessionLifecycleListener::LifecycleEventPayload payload;
+        ConstructPayload(payload, session->GetSessionInfo());
+        payload.sessionState_ = session->GetSessionState();
+        payloads.emplace_back(std::move(payload));
+    }
 }
 
 WMError SessionListenerController::RegisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener,
@@ -360,6 +373,54 @@ WMError SessionListenerController::RegisterSessionLifecycleListener(const sptr<I
     return WMError::WM_OK;
 }
 
+WMError SessionListenerController::RegisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener,
+    const std::string& bundleName, int32_t appIndex, const std::string& appInstanceKey)
+{
+    if (!listener) {
+        TLOGE(WmsLogTag::WMS_LIFE, "listener is invalid.");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    if (!lifecycleListenerDeathRecipient_) {
+        auto task = [weakThis = weak_from_this()](const wptr<IRemoteObject>& remote) {
+            if (auto controller = weakThis.lock()) {
+                controller->OnSessionLifecycleListenerDied(remote);
+            }
+        };
+        lifecycleListenerDeathRecipient_ = sptr<ListenerDeathRecipient>::MakeSptr(task);
+    }
+    auto listenerObject = listener->AsObject();
+    if (listenerObject) {
+        listenerObject->AddDeathRecipient(lifecycleListenerDeathRecipient_);
+    }
+    if (UnregisterSessionLifecycleListener(listener) != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "listener is invalid.");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    if (bundleName.empty() || bundleName.size() > MAX_BUNDLE_NAME_LEN) {
+        TLOGW(WmsLogTag::WMS_LIFE, "invalid bundleName");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    if (appIndex < 0) {
+        TLOGW(WmsLogTag::WMS_LIFE, "invalid appIndex");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    AppInstanceFilterKey key = { bundleName, appIndex, appInstanceKey };
+    auto it = listenerMapByAppInstance_.find(key);
+    if (it != listenerMapByAppInstance_.end()) {
+        if (it->second.size() >= MAX_LIFECYCLE_LISTENER_LIMIT) {
+            TLOGE(WmsLogTag::WMS_LIFE, "The number of listen target has reached the upper limit.");
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
+        it->second.emplace_back(listener);
+    } else {
+        std::vector<sptr<ISessionLifecycleListener>> newListenerList;
+        newListenerList.emplace_back(listener);
+        listenerMapByAppInstance_.emplace(key, newListenerList);
+    }
+    TLOGI(WmsLogTag::WMS_LIFE, "register sessionLifecycleListener by bundle+appIndex+appInstanceKey finished.");
+    return WMError::WM_OK;
+}
+
 WMError SessionListenerController::UnregisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener)
 {
     if (!listener) {
@@ -376,31 +437,30 @@ WMError SessionListenerController::UnregisterSessionLifecycleListener(const sptr
     return WMError::WM_OK;
 }
 
+template <typename MapType>
+void SessionListenerController::RemoveListenersFromMap(MapType& listenerMap,
+    const std::function<bool(const sptr<ISessionLifecycleListener>&)>& predicate)
+{
+    for (auto it = listenerMap.begin(); it != listenerMap.end();) {
+        auto& listeners = it->second;
+        listeners.erase(std::remove_if(listeners.begin(), listeners.end(), predicate), listeners.end());
+        if (listeners.empty()) {
+            it = listenerMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 void SessionListenerController::RemoveSessionLifecycleListener(const sptr<IRemoteObject>& target)
 {
     auto compareByAsObject = [&target](const sptr<ISessionLifecycleListener>& item) {
         return (item != nullptr) && (item->AsObject() == target);
     };
 
-    for (auto it = listenerMapById_.begin(); it != listenerMapById_.end();) {
-        auto& listeners = it->second;
-        listeners.erase(std::remove_if(listeners.begin(), listeners.end(), compareByAsObject), listeners.end());
-        if (listeners.empty()) {
-            it = listenerMapById_.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    for (auto it = listenerMapByBundle_.begin(); it != listenerMapByBundle_.end();) {
-        auto& listeners = it->second;
-        listeners.erase(std::remove_if(listeners.begin(), listeners.end(), compareByAsObject), listeners.end());
-        if (listeners.empty()) {
-            it = listenerMapByBundle_.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    RemoveListenersFromMap(listenerMapById_, compareByAsObject);
+    RemoveListenersFromMap(listenerMapByBundle_, compareByAsObject);
+    RemoveListenersFromMap(listenerMapByAppInstance_, compareByAsObject);
 
     auto iter = std::remove_if(listenersOfAllBundles_.begin(), listenersOfAllBundles_.end(), compareByAsObject);
     listenersOfAllBundles_.erase(iter, listenersOfAllBundles_.end());
@@ -439,6 +499,52 @@ void SessionListenerController::NotifySessionLifecycleEvent(ISessionLifecycleLis
         }, __func__);
 }
 
+void SessionListenerController::NotifyAppInstanceLifecycleEvent(SessionState state,
+    const sptr<SceneSession>& session, LifeCycleChangeReason reason)
+{
+    if (!session) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr!");
+        return;
+    }
+    int32_t persistentId = session->GetPersistentId();
+    if (persistentId <= INVALID_SESSION_ID) {
+        TLOGE(WmsLogTag::WMS_LIFE, "invalid persistentId!");
+        return;
+    }
+    taskScheduler_->PostAsyncTask(
+        [weakThis = weak_from_this(), state, weakSession = wptr<SceneSession>(session), reason,
+            persistentId, where = __func__] {
+            auto controller = weakThis.lock();
+            if (controller == nullptr) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "controller is null.");
+                return;
+            }
+            auto session = weakSession.promote();
+            if (session == nullptr) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "session is null, persistentId:%{public}d", persistentId);
+                return;
+            }
+            const auto& sessionInfo = session->GetSessionInfo();
+            std::string bundleName = sessionInfo.bundleName_;
+            int32_t appIndex = sessionInfo.appIndex_;
+            std::string appInstanceKey = sessionInfo.appInstanceKey_;
+            if (appInstanceKey.empty()) {
+                auto mainSession = session->GetMainSession();
+                if (mainSession) {
+                    appInstanceKey = mainSession->GetSessionInfo().appInstanceKey_;
+                }
+            }
+            ISessionLifecycleListener::LifecycleEventPayload payload;
+            controller->ConstructPayload(payload, sessionInfo, 0, 0, 0, reason);
+            payload.sessionState_ = state;
+            TLOGI(WmsLogTag::WMS_LIFE,
+                "start notify listeners, bundleName:%{public}s, Id:%{public}d, state:%{public}d, reason: %{public}u",
+                bundleName.c_str(), persistentId, payload.sessionState_, payload.lifeCycleChangeReason_);
+            controller->NotifyAppInstanceListeners(AppInstanceFilterKey{ bundleName,
+                appIndex, appInstanceKey }, payload);
+        }, __func__);
+}
+
 template <typename KeyType, typename MapType>
 void SessionListenerController::NotifyListeners(const MapType& listenerMap, const KeyType& key,
     const ISessionLifecycleListener::SessionLifecycleEvent event,
@@ -450,6 +556,30 @@ void SessionListenerController::NotifyListeners(const MapType& listenerMap, cons
         for (const auto& listener : listeners) {
             if (listener != nullptr) {
                 listener->OnLifecycleEvent(event, payload);
+            }
+        }
+    }
+}
+
+void SessionListenerController::NotifyAppInstanceListeners(const AppInstanceFilterKey& key,
+    const ISessionLifecycleListener::LifecycleEventPayload& payload)
+{
+    NotifyAppInstanceListenersByKey(key, payload);
+    if (!key.appInstanceKey_.empty()) {
+        // Empty appInstanceKey is a wildcard, notify regardless of the appInstanceKey.
+        NotifyAppInstanceListenersByKey(AppInstanceFilterKey{ key.bundleName_, key.appIndex_, "" }, payload);
+    }
+}
+
+void SessionListenerController::NotifyAppInstanceListenersByKey(const AppInstanceFilterKey& filterKey,
+    const ISessionLifecycleListener::LifecycleEventPayload& payload)
+{
+    auto it = listenerMapByAppInstance_.find(filterKey);
+    if (it != listenerMapByAppInstance_.end()) {
+        const auto& listeners = it->second;
+        for (const auto& listener : listeners) {
+            if (listener != nullptr) {
+                listener->OnAppInstanceLifecycleEvent(payload);
             }
         }
     }
@@ -522,6 +652,13 @@ bool SessionListenerController::IsListenerMapByBundleSizeReachLimit(bool isBundl
         }
         return listenerMapByBundle_.size() >= MAX_LISTEN_TARGET_LIMIT;
     }, __func__);
+}
+
+bool SessionListenerController::IsListenerMapByAppInstanceSizeReachLimit() const
+{
+    return taskScheduler_->PostSyncTask([this] {
+        return listenerMapByAppInstance_.size() >= MAX_LISTEN_TARGET_LIMIT;
+        }, __func__);
 }
 } // namespace Rosen
 } // namespace OHOS

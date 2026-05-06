@@ -247,6 +247,7 @@ ohos_shared_library("sms") {
     "input:libmmi-napi",
     "samgr:samgr_proxy",
   ]
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   if (window_manager_use_sceneboard) {
     deps += [ "${window_base_path}/window_scene/session_manager_service:session_manager_service" ]
   }

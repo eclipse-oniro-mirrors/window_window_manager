@@ -69,11 +69,14 @@ HWTEST_F(FloatingBallOptionTest, TestParamSetAndGet, TestSize.Level1)
     option->SetContent(content);
     option->SetBackgroundColor(color);
     option->SetIcon(icon);
+    uint32_t textUpdateAnimationType = 0;
+    option->SetTextUpdateAnimationType(textUpdateAnimationType);
     EXPECT_EQ(templateType, option->GetTemplate());
     EXPECT_EQ(title, option->GetTitle());
     EXPECT_EQ(content, option->GetContent());
     EXPECT_EQ(nullptr, option->GetIcon());
     EXPECT_EQ(color, option->GetBackgroundColor());
+    EXPECT_EQ(textUpdateAnimationType, option->GetTextUpdateAnimationType());
 
     FloatingBallTemplateBaseInfo fbTemplateBaseInfo;
     option->GetFbTemplateBaseInfo(fbTemplateBaseInfo);
@@ -81,6 +84,38 @@ HWTEST_F(FloatingBallOptionTest, TestParamSetAndGet, TestSize.Level1)
     EXPECT_EQ(templateType, fbTemplateBaseInfo.template_);
     EXPECT_EQ(content, fbTemplateBaseInfo.content_);
     EXPECT_EQ(color, fbTemplateBaseInfo.backgroundColor_);
+    EXPECT_EQ(textUpdateAnimationType, fbTemplateBaseInfo.textUpdateAnimationType_);
+}
+/**
+ * @tc.name: TestTextUpdateAnimationTypeSetAndGet
+ * @tc.desc: TestTextUpdateAnimationTypeSetAndGet
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatingBallOptionTest, TestTextUpdateAnimationTypeSetAndGet, TestSize.Level1)
+{
+    auto option = sptr<FbOption>::MakeSptr();
+    uint32_t animateType = 0;
+    option->SetTextUpdateAnimationType(animateType);
+    EXPECT_EQ(animateType, option->GetTextUpdateAnimationType());
+
+    animateType = 1;
+    option->SetTextUpdateAnimationType(animateType);
+    EXPECT_EQ(animateType, option->GetTextUpdateAnimationType());
+}
+/**
+ * @tc.name: TestTextUpdateAnimationTypeInTemplateBaseInfo
+ * @tc.desc: TestTextUpdateAnimationTypeInTemplateBaseInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatingBallOptionTest, TestTextUpdateAnimationTypeInTemplateBaseInfo, TestSize.Level1)
+{
+    auto option = sptr<FbOption>::MakeSptr();
+    uint32_t animateType = 1;
+    option->SetTextUpdateAnimationType(animateType);
+
+    FloatingBallTemplateBaseInfo fbTemplateBaseInfo;
+    option->GetFbTemplateBaseInfo(fbTemplateBaseInfo);
+    EXPECT_EQ(animateType, fbTemplateBaseInfo.textUpdateAnimationType_);
 }
 }
 }

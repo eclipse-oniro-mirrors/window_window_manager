@@ -233,14 +233,13 @@ HWTEST_F(WindowSceneSessionImplTest2, SetNeedDefaultAnimation01, TestSize.Level1
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetNeedDefaultAnimation01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    auto ret = true;
     window->property_->SetPersistentId(1);
 
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     window->SetNeedDefaultAnimation(false);
-    ASSERT_TRUE(ret);
+    ASSERT_FALSE(window->enableDefaultAnimation_);
 }
 
 /**

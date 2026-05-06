@@ -72,7 +72,9 @@ constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
         }                                                                      \
     } while (false)
 
-WindowExtensionSessionImpl::WindowExtensionSessionImpl(const sptr<WindowOption>& option) : WindowSessionImpl(option)
+WindowExtensionSessionImpl::WindowExtensionSessionImpl(
+    const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession)
+    : WindowSessionImpl(option, nullptr, renderSession)
 {
     if (property_->GetUIExtensionUsage() == UIExtensionUsage::MODAL ||
         SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
@@ -1007,6 +1009,7 @@ void WindowExtensionSessionImpl::UpdateRectForRotation(const Rect& wmRect, const
         if (needSync) {
             window->UpdateRotateDuration(wmReason, duration, rsTransaction);
             RSTransactionAdapter::FlushImplicitTransaction(rsUIContext);
+            RSAdapterUtil::SetRSTransactionHandler(rsTransaction, rsUIContext);
             rsTransaction->Begin();
         }
         window->rotationAnimationCount_++;
@@ -1270,7 +1273,11 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfigInner(const Sessi
         TLOGW(WmsLogTag::WMS_UIEXT, "uiContent is null!");
         return WSError::WS_ERROR_NULLPTR;
     }
+    float oldDensity = virtualPixelRatio_;
     virtualPixelRatio_ = config.density_;
+    if (!NearEqual(oldDensity, config.density_)) {
+        NotifyWindowDensityChange(config.density_);
+    }
     uiContent->UpdateViewportConfig(viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, lastAvoidAreaMap_);
     return WSError::WS_OK;
 }
@@ -1352,6 +1359,10 @@ WMError WindowExtensionSessionImpl::GetAvoidAreaByType(AvoidAreaType type, Avoid
 {
     uint32_t currentApiVersion = GetTargetAPIVersionByApplicationInfo();
     apiVersion = (apiVersion == API_VERSION_INVALID) ? static_cast<int32_t>(currentApiVersion) : apiVersion;
+    if (!IsFloatNavigationAvoidAreaEnabled(type)) {
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u type not supported", GetWindowId());
+        return WMError::WM_DO_NOTHING;
+    }
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     WSRect sessionRect = { rect.posX_, rect.posY_, rect.width_, rect.height_ };
@@ -2116,9 +2127,14 @@ void WindowExtensionSessionImpl::UpdateExtensionConfig(const std::shared_ptr<AAF
         static_cast<WindowType>(configParam.GetIntParam(Extension::ROOT_HOST_WINDOW_TYPE_FIELD, 0));
     SetRootHostWindowType(rootHostWindowType);
     SetCompatInfo(configParam);
+    auto hostWindowStatus = static_cast<WindowStatus>(configParam.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
+    hostWindowStatus_ = hostWindowStatus;
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "CrossAxisState: %{public}d, waterfall: %{public}d, "
-        "rootHostWindowType: %{public}u, isHostWindowDelayRaiseEnabled: %{public}d, winId: %{public}u",
-        state, isFullScreenWaterfallMode_.load(), rootHostWindowType, isHostWindowDelayRaiseEnabled, GetWindowId());
+        "rootHostWindowType: %{public}u, isHostWindowDelayRaiseEnabled: %{public}d, "
+        "hostWindowStatus: %{public}u, winId: %{public}u",
+        state, isFullScreenWaterfallMode_.load(), rootHostWindowType,
+        isHostWindowDelayRaiseEnabled, hostWindowStatus, GetWindowId());
 }
 
 WMError WindowExtensionSessionImpl::SendExtensionMessageToHost(uint32_t code, const AAFwk::Want& data) const
@@ -2348,6 +2364,11 @@ WMError WindowExtensionSessionImpl::OnResyncExtensionConfig(AAFwk::Want&& data, 
     compatWant.SetParam(Extension::COMPAT_SCALE_X_FIELD, GetFloatParam(Extension::COMPAT_SCALE_X_FIELD, configParam));
     compatWant.SetParam(Extension::COMPAT_SCALE_Y_FIELD, GetFloatParam(Extension::COMPAT_SCALE_Y_FIELD, configParam));
     OnHostWindowCompatInfoChange(std::move(compatWant), reply);
+    AAFwk::Want windowStatusWant;
+    windowStatusWant.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        configParam.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD,
+            static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
+    OnHostWindowStatusChange(std::move(windowStatusWant), reply);
     return WMError::WM_OK;
 }
 
@@ -2431,6 +2452,21 @@ WMError WindowExtensionSessionImpl::OnHostRectChangeInGlobalDisplay(AAFwk::Want&
         uiContent->SendUIExtProprtyByPersistentId(
             static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY), data,
             rectChangeInGlobalDisplayUIExtListenerIds_, static_cast<uint8_t>(SubSystemId::WM_UIEXT));
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::OnRecover(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply)
+{
+    TLOGI(WmsLogTag::WMS_UIEXT, "id: %{public}d", GetPersistentId());
+    AddExtensionWindowStageToSCB(property_->IsConstrainedModal());
+    CheckAndAddExtWindowFlags();
+    if (property_->GetUIExtensionUsage() == UIExtensionUsage::MODAL && abilityToken_) {
+        WindowAdapter::GetInstance().UpdateModalExtensionRect(abilityToken_, property_->GetWindowRect());
+    }
+    if (auto uiContent = GetUIContentSharedPtr()) {
+        uiContent->SendUIExtProprty(static_cast<uint32_t>(Extension::Businesscode::RECOVER_EXTENSION), data,
+            static_cast<uint8_t>(SubSystemId::WM_UIEXT));
     }
     return WMError::WM_OK;
 }
@@ -2532,6 +2568,12 @@ void WindowExtensionSessionImpl::RegisterDataConsumer()
         this, std::placeholders::_1, std::placeholders::_2));
     RegisterConsumer(Extension::Businesscode::NOTIFY_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY,
         std::bind(&WindowExtensionSessionImpl::OnHostRectChangeInGlobalDisplay,
+        this, std::placeholders::_1, std::placeholders::_2));
+    RegisterConsumer(Extension::Businesscode::RECOVER_EXTENSION,
+        std::bind(&WindowExtensionSessionImpl::OnRecover,
+        this, std::placeholders::_1, std::placeholders::_2));
+    RegisterConsumer(Extension::Businesscode::SYNC_HOST_WINDOW_STATUS,
+        std::bind(&WindowExtensionSessionImpl::OnHostWindowStatusChange,
         this, std::placeholders::_1, std::placeholders::_2));
 
     auto consumersEntry = [weakThis = wptr(this)](SubSystemId id, uint32_t customId, AAFwk::Want&& data,
@@ -2671,6 +2713,37 @@ WMError WindowExtensionSessionImpl::OnHostStatusBarContentColorChange(AAFwk::Wan
 uint32_t WindowExtensionSessionImpl::GetHostStatusBarContentColor() const
 {
     return hostStatusBarContentColor_;
+}
+
+WMError WindowExtensionSessionImpl::OnHostWindowStatusChange(AAFwk::Want&& data,
+    std::optional<AAFwk::Want>& reply)
+{
+    if (!property_->GetIsAtomicService()) {
+        TLOGD(WmsLogTag::WMS_UIEXT, "win %{public}u no support", GetPersistentId());
+        return WMError::WM_OK;
+    }
+    auto windowStatus = static_cast<WindowStatus>(data.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
+    if (windowStatus == hostWindowStatus_) {
+        TLOGD(WmsLogTag::WMS_UIEXT, "windowStatus not changed");
+        return WMError::WM_OK;
+    }
+    hostWindowStatus_ = windowStatus;
+    TLOGI(WmsLogTag::WMS_UIEXT, "hostWindowStatus: %{public}u", windowStatus);
+    auto windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();
+    for (const auto& listener : windowStatusChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnWindowStatusChange(hostWindowStatus_);
+        }
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::GetWindowStatus(WindowStatus& windowStatus)
+{
+    windowStatus = hostWindowStatus_;
+    TLOGD(WmsLogTag::WMS_UIEXT, "windowStatus: %{public}u", windowStatus);
+    return WMError::WM_OK;
 }
 
 void WindowExtensionSessionImpl::NotifyOccupiedAreaChange(sptr<OccupiedAreaChangeInfo> info)

@@ -25,13 +25,19 @@
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
 #endif
-
+#include "ffrt.h"
 namespace OHOS::Rosen {
 namespace {
 constexpr int32_t MAX_QUEUE_SIZE = 1;
 constexpr uint64_t MAX_TIME_INTERVAL_MS = 2000;
 }
-SensorFoldStateManager::SensorFoldStateManager()
+
+class SensorFoldStateManager::Impl {
+public:
+    ffrt::recursive_mutex mStateMutex_;
+};
+
+SensorFoldStateManager::SensorFoldStateManager() : pImpl_(std::make_unique<Impl>())
 {
     taskProcess_ = new TaskSequenceProcess(
         MAX_QUEUE_SIZE,
@@ -74,7 +80,7 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, float angl
         return;
     }
     auto task = [=] {
-        std::lock_guard<std::recursive_mutex> lock(mStateMutex_);
+        std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mStateMutex_);
         if (mState_ != nextState) {
             TLOGI(WmsLogTag::DMS, "current state: %{public}d, next state: %{public}d.", mState_, nextState);
             ReportNotifyFoldStatusChange(static_cast<int32_t>(mState_), static_cast<int32_t>(nextState), angle);
@@ -110,7 +116,7 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, const std:
     const std::vector<uint16_t>& halls, sptr<FoldScreenPolicy> foldScreenPolicy)
 {
     {
-        std::lock_guard<std::recursive_mutex> lock(mStateMutex_);
+        std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mStateMutex_);
         if (nextState == FoldStatus::UNKNOWN) {
             TLOGW(WmsLogTag::DMS, "fold state is UNKNOWN");
             return;
@@ -145,13 +151,13 @@ void SensorFoldStateManager::HandleSensorChange(FoldStatus nextState, const std:
             FoldStatus currentState = FoldStatus::UNKNOWN;
             FoldStatus newState = FoldStatus::UNKNOWN;
             {
-                std::lock_guard<std::recursive_mutex> lock(manager->mStateMutex_);
+                std::lock_guard<ffrt::recursive_mutex> lock(manager->pImpl_->mStateMutex_);
                 currentState = manager->mState_;
             }
             TLOGNI(WmsLogTag::DMS, "current state: %{public}d, next state: %{public}d.", currentState, nextState);
             newState = manager->HandleSecondaryOneStep(currentState, nextState, angles, halls);
             {
-                std::lock_guard<std::recursive_mutex> lock(manager->mStateMutex_);
+                std::lock_guard<ffrt::recursive_mutex> lock(manager->pImpl_->mStateMutex_);
                 manager->mState_ = newState;
             }
             manager->ProcessNotifyFoldStatusChange(currentState, newState, angles, policy);

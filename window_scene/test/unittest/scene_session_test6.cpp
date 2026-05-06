@@ -285,23 +285,6 @@ HWTEST_F(SceneSessionTest6, SetWindowAnchorInfo01, TestSize.Level1)
     ASSERT_NE(nullptr, property);
     sceneSession->property_ = property;
 
-    windowAnchorInfo.isAnchoredByAttach_ = false;
-    property->SetWindowAnchorInfo(windowAnchorInfo);
-    ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_CALLING);
-
-    windowAnchorInfo.isAnchoredByAttach_ = true;
-
-    property->SetWindowAnchorInfo(windowAnchorInfo);
-
-    sptr<MainSession> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(nullptr, parentSession);
-    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-
-    sceneSession->parentSession_ = parentSession;
-    ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_OPERATION);
-
     property->subWindowLevel_ = 100;
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
@@ -344,8 +327,11 @@ HWTEST_F(SceneSessionTest6, SetWindowAnchorInfo02, TestSize.Level1)
     // test set isAnchorEnabled_
     sceneSession->windowAnchorInfo_.isAnchorEnabled_ = false;
     WindowAnchorInfo windowAnchorInfo = { true, WindowAnchor::TOP_START, 0, 0 };
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->parentSession_ = parentSession;
     sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
     EXPECT_TRUE(sceneSession->windowAnchorInfo_.isAnchorEnabled_);
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
 
     //test after set flag, call func
     std::shared_ptr<bool> isCall = std::make_shared<bool>(false);
@@ -356,6 +342,28 @@ HWTEST_F(SceneSessionTest6, SetWindowAnchorInfo02, TestSize.Level1)
     EXPECT_NE(nullptr, sceneSession->onWindowAnchorInfoChangeFunc_);
     sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
     EXPECT_TRUE(*isCall);
+}
+
+/**
+ * @tc.name: SetWindowAnchorInfo
+ * @tc.desc: SetWindowAnchorInfo03
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetWindowAnchorInfo03, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->property_ = property;
+
+    // create windowAnchorInfo
+    WindowAnchorInfo windowAnchorInfo;
+    windowAnchorInfo.isFromAttachOrDetach_ = false;
+    sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = false;
+    WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
+    EXPECT_EQ(ret, WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
 }
 
 /**
@@ -408,6 +416,8 @@ HWTEST_F(SceneSessionTest6, CalcSubWindowRectByAnchor02, TestSize.Level1)
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     sceneSession->property_ = property;
     sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = true;
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->parentSession_ = parentSession;
 
     WindowAnchorInfo windowAnchorInfo = { true, WindowAnchor::TOP_START, 0, 0 };
     WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
@@ -451,6 +461,8 @@ HWTEST_F(SceneSessionTest6, CalcSubWindowRectByAnchor03, TestSize.Level1)
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     sceneSession->property_ = property;
     sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = true;
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->parentSession_ = parentSession;
 
     WindowAnchorInfo windowAnchorInfo = { true, WindowAnchor::CENTER, 0, 0 };
     WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
@@ -2057,6 +2069,132 @@ HWTEST_F(SceneSessionTest6, UpdatePropertyWhenTriggerMode, Function | SmallTest 
     session->sessionStage_ = sessionStageMocker;
     EXPECT_CALL(*sessionStageMocker, UpdatePropertyWhenTriggerMode(session->property_)).Times(1);
     session->UpdatePropertyWhenTriggerMode();
+}
+
+/**
+ * @tc.name: PreWindowPropertyConstructors
+ * @tc.desc: Test PreWindowProperty constructors and assignment
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, PreWindowPropertyConstructors, Function | SmallTest | Level1)
+{
+    PreWindowProperty defaultProp;
+    EXPECT_EQ(defaultProp.rotation, 0u);
+    EXPECT_EQ(defaultProp.width, 0u);
+    EXPECT_EQ(defaultProp.height, 0u);
+    
+    PreWindowProperty paramProp(90, 1920, 1080);
+    EXPECT_EQ(paramProp.rotation, 90u);
+    EXPECT_EQ(paramProp.width, 1920u);
+    EXPECT_EQ(paramProp.height, 1080u);
+    
+    PreWindowProperty zeroProp(0, 0, 0);
+    EXPECT_EQ(zeroProp.rotation, 0u);
+    EXPECT_EQ(zeroProp.width, 0u);
+    EXPECT_EQ(zeroProp.height, 0u);
+    
+    std::vector<uint32_t> rotations = {0, 90, 180, 270};
+    for (uint32_t rotation : rotations) {
+        PreWindowProperty rotationProp(rotation, 1920, 1080);
+        EXPECT_EQ(rotationProp.rotation, rotation);
+        EXPECT_EQ(rotationProp.width, 1920u);
+        EXPECT_EQ(rotationProp.height, 1080u);
+    }
+}
+
+/**
+ * @tc.name: PreCalcWindowPropertyBasic
+ * @tc.desc: Test PreCalcWindowProperty basic functionality
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, PreCalcWindowPropertyBasic, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    
+    PreWindowProperty resultWithoutCallback = session->PreCalcWindowProperty();
+    EXPECT_EQ(resultWithoutCallback.rotation, 0u);
+    EXPECT_EQ(resultWithoutCallback.width, 0u);
+    EXPECT_EQ(resultWithoutCallback.height, 0u);
+    
+    bool callbackCalled = false;
+    NotifyPreCalcWindowPropertyFunc callback = [&callbackCalled]() {
+        callbackCalled = true;
+    };
+    
+    session->SetPreCalcWindowPropertyCallback(callback);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    PreWindowProperty resultWithCallback = session->PreCalcWindowProperty();
+    EXPECT_TRUE(callbackCalled);
+}
+
+/**
+ * @tc.name: PreCalcWindowPropertyWithValues
+ * @tc.desc: Test PreCalcWindowProperty with actual values
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, PreCalcWindowPropertyWithValues, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    
+    struct TestCase {
+        uint32_t rotation;
+        uint32_t width;
+        uint32_t height;
+    };
+    
+    std::vector<TestCase> testCases = {
+        {0, 1920, 1080},
+        {90, 1080, 1920},
+        {180, 3840, 2160},
+        {270, 2560, 1440}
+    };
+    
+    for (const auto& testCase : testCases) {
+        NotifyPreCalcWindowPropertyFunc callback = [session, testCase]() {
+            PreWindowProperty prop(testCase.rotation, testCase.width, testCase.height);
+            session->preWindowPropertyFuture_.SetValue(prop);
+        };
+        
+        session->SetPreCalcWindowPropertyCallback(callback);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        
+        PreWindowProperty result = session->PreCalcWindowProperty();
+        EXPECT_EQ(result.rotation, testCase.rotation);
+        EXPECT_EQ(result.width, testCase.width);
+        EXPECT_EQ(result.height, testCase.height);
+    }
+}
+
+/**
+ * @tc.name: ConfigDockAutoHide
+ * @tc.desc: ConfigDockAutoHide test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, ConfigDockAutoHide, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ConfigDockAutoHide";
+    info.bundleName_ = "ConfigDockAutoHide";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session->sessionStage_ = mockSessionStage;
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(nullptr, abilityInfo);
+    session->SetAbilitySessionInfo(abilityInfo);
+
+    session->sessionInfo_.isSystem_ = false;
+    session->state_ = SessionState::STATE_FOREGROUND;
+    bool isDockAutoHide = true;
+    auto ret = session->ConfigDockAutoHide(isDockAutoHide);
+    ASSERT_EQ(ret, WSError::WS_OK);
 }
 } // namespace
 } // namespace Rosen

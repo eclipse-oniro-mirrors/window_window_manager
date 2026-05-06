@@ -2862,7 +2862,9 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectChange, TestSize.Level1
         ret = ssm_->HandleResolutionEffectChange();
         EXPECT_EQ(!ret, ssm_->GetSuperFoldStatus() != SuperFoldStatus::EXPANDED);
     } else if (!IS_SUPPORT_PC_MODE) {
-        EXPECT_TRUE(ret);
+        bool effectFlag = false;
+        ScreenSettingHelper::GetResolutionEffect(effectFlag, externalSession->GetSerialNumber());
+        EXPECT_EQ(ret, effectFlag);
     }
 
     ssm_->screenSessionMap_.erase(51);
@@ -2994,8 +2996,6 @@ HWTEST_F(ScreenSessionManagerTest, RecoveryResolutionEffect, TestSize.Level1)
 HWTEST_F(ScreenSessionManagerTest, SetInternalScreenResolutionEffect001, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
 
     sptr<ScreenSession> screenSession = new ScreenSession(51, ScreenProperty(), 0);
     ASSERT_NE(nullptr, screenSession);
@@ -3010,11 +3010,6 @@ HWTEST_F(ScreenSessionManagerTest, SetInternalScreenResolutionEffect001, TestSiz
     ssm_->SetInternalScreenResolutionEffect(screenSession, targetRect2);
     screenProperty = screenSession->GetScreenProperty();
     EXPECT_EQ(screenProperty.GetInputOffsetY(), 20);
-
-    DMRect targetRect3 = {0, 0, 0, 0};
-    ssm_->SetInternalScreenResolutionEffect(screenSession, targetRect3);
-    EXPECT_TRUE(g_errLog.find("bounds not change") != std::string::npos);
-    g_errLog.clear();
 }
 
 /**

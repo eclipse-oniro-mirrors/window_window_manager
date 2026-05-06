@@ -98,7 +98,7 @@ ohos_source_set("ui_effect_controller") {
   deps = [
     "${window_base_path}/utils:ui_effect_controller_common",
     "${window_base_path}/window_scene/common:window_scene_common",
-    
+
     ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -130,6 +130,7 @@ ohos_static_library("scene_session_static") {
     "host/src/pc_fold_screen_manager.cpp",
     "host/src/root_scene_session.cpp",
     "host/src/scb_system_session.cpp",
+    "host/src/scene_node_count_callback.cpp",
     "host/src/scene_persistence.cpp",
     "host/src/scene_persistent_storage.cpp",
     "host/src/scene_session.cpp",
@@ -144,6 +145,8 @@ ohos_static_library("scene_session_static") {
     "host/src/ws_snapshot_helper.cpp",
     "host/src/zidl/session_proxy.cpp",
     "host/src/zidl/session_stub.cpp",
+    "host/src/zidl/scene_node_count_callback_proxy.cpp",
+    "host/src/zidl/scene_node_count_callback_stub.cpp",
   ]
 
   if (window_manager_feature_asbng_path_enable) {
@@ -200,7 +203,7 @@ ohos_static_library("scene_session_static") {
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
   }
-  
+
   defines = []
 
   if (defined(global_parts_info) &&
@@ -276,6 +279,7 @@ ohos_shared_library("scene_session") {
     "host/src/pc_fold_screen_manager.cpp",
     "host/src/root_scene_session.cpp",
     "host/src/scb_system_session.cpp",
+    "host/src/scene_node_count_callback.cpp",
     "host/src/scene_persistence.cpp",
     "host/src/scene_persistent_storage.cpp",
     "host/src/scene_session.cpp",
@@ -290,6 +294,8 @@ ohos_shared_library("scene_session") {
     "host/src/ws_snapshot_helper.cpp",
     "host/src/zidl/session_proxy.cpp",
     "host/src/zidl/session_stub.cpp",
+    "host/src/zidl/scene_node_count_callback_proxy.cpp",
+    "host/src/zidl/scene_node_count_callback_stub.cpp",
   ]
 
   if (window_manager_feature_asbng_path_enable) {
@@ -314,6 +320,7 @@ ohos_shared_library("scene_session") {
   external_deps = [
     "ability_base:base",
     "ability_base:configuration",
+    "ability_base:session_info",
     "ability_base:want",
     "ability_runtime:ability_manager",
     "ability_runtime:ability_start_setting",
@@ -338,17 +345,16 @@ ohos_shared_library("scene_session") {
     "image_framework:image_native",
     "init:libbegetutil",
     "input:libmmi-client",
+    "input:libmmi-napi",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "zlib:shared_libz",
   ]
+
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
   }
-  public_external_deps = [
-    "ability_base:session_info",
-    "input:libmmi-napi",
-  ]
+  
   defines = []
 
   if (defined(global_parts_info) &&
@@ -396,6 +402,7 @@ ohos_shared_library("scene_session") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 screen_session_sources = [
@@ -473,6 +480,7 @@ ohos_shared_library("screen_session") {
   sources = screen_session_sources
   deps = screen_session_deps
   external_deps = screen_session_external_deps
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   defines = []
   if (window_manager_feature_screen_color_gamut) {

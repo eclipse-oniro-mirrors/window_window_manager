@@ -120,14 +120,14 @@ std::shared_ptr<Media::PixelMap> DisplayManagerAdapter::GetDisplaySnapshot(Displ
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> DisplayManagerAdapter::GetDisplayHDRSnapshot(DisplayId displayId,
-    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen)
+    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent)
 {
     std::vector<std::shared_ptr<Media::PixelMap>> ret = { nullptr, nullptr };
     INIT_PROXY_CHECK_RETURN(ret);
  
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->GetDisplayHDRSnapshot(displayId, errorCode, isUseDma,
-            isCaptureFullOfScreen);
+            isCaptureFullOfScreen, displayIntent);
     }
     errorCode = DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT;
     return { nullptr, nullptr };
@@ -1085,6 +1085,11 @@ DMError DisplayManagerAdapter::HasImmersiveWindow(ScreenId screenId, bool& immer
 
 sptr<DisplayInfo> DisplayManagerAdapter::GetDisplayInfo(DisplayId displayId)
 {
+    return GetDisplayInfo(displayId, false);
+}
+
+sptr<DisplayInfo> DisplayManagerAdapter::GetDisplayInfo(DisplayId displayId, bool isGetActualInfo)
+{
     TLOGD(WmsLogTag::DMS, "enter, displayId: %{public}" PRIu64, displayId);
     if (displayId == DISPLAY_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "screen id is invalid");
@@ -1093,7 +1098,7 @@ sptr<DisplayInfo> DisplayManagerAdapter::GetDisplayInfo(DisplayId displayId)
     INIT_PROXY_CHECK_RETURN(nullptr);
 
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->GetDisplayInfoById(displayId);
+        return screenSessionManagerServiceProxy_->GetDisplayInfoById(displayId, isGetActualInfo);
     }
 
     sptr<DisplayInfo> displayInfo;
@@ -1235,6 +1240,17 @@ bool DisplayManagerAdapter::IsCaptured()
 
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->IsCaptured();
+    }
+
+    return false;
+}
+
+bool DisplayManagerAdapter::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    INIT_PROXY_CHECK_RETURN(false);
+
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->IsCapturedByBundleNameList(bundleNameList);
     }
 
     return false;

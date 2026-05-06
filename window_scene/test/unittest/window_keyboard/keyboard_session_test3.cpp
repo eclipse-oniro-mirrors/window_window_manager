@@ -884,6 +884,183 @@ HWTEST_F(KeyboardSessionTest3, ProcessKeyboardOccupiedAreaInfo, Function | Small
 }
 
 /**
+ * @tc.name: SetSessionBlackListWhenShowAdd
+ * @tc.desc: check func SetSessionBlackListWhenShow add branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, SetSessionBlackListWhenShowAdd, Function | SmallTest | Level0)
+{
+    SessionInfo keyboardInfo;
+    keyboardInfo.abilityName_ = "SetSessionBlackListWhenShowAdd";
+    keyboardInfo.bundleName_ = "SetSessionBlackListWhenShowAdd";
+    auto keyboardSpecificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    ASSERT_NE(keyboardSpecificCb, nullptr);
+    auto keyboardCb = sptr<KeyboardSession::KeyboardSessionCallback>::MakeSptr();
+    ASSERT_NE(keyboardCb, nullptr);
+    auto keyboardSession = sptr<KeyboardSession>::MakeSptr(keyboardInfo, keyboardSpecificCb, keyboardCb);
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo panelInfo;
+    panelInfo.abilityName_ = "SetSessionBlackListWhenShowAddPanel";
+    panelInfo.bundleName_ = "SetSessionBlackListWhenShowAddPanel";
+    auto panelSpecificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    ASSERT_NE(panelSpecificCb, nullptr);
+    auto panelSession = sptr<SceneSession>::MakeSptr(panelInfo, panelSpecificCb);
+    ASSERT_NE(panelSession, nullptr);
+
+    std::unordered_set<std::string> expectedTags = { "SCB_KEYBOARD_FLOATING" };
+    bool keyboardAddCalled = false;
+    bool panelAddCalled = false;
+    keyboardSpecificCb->onAddSessionBlackList_ = [&keyboardAddCalled, keyboardSession, expectedTags](int32_t id,
+        const std::unordered_set<std::string>& tags) {
+        keyboardAddCalled = (id == keyboardSession->GetPersistentId()) && (tags == expectedTags);
+        return WMError::WM_OK;
+    };
+    panelSpecificCb->onAddSessionBlackList_ = [&panelAddCalled, panelSession, expectedTags](int32_t id,
+        const std::unordered_set<std::string>& tags) {
+        panelAddCalled = (id == panelSession->GetPersistentId()) && (tags == expectedTags);
+        return WMError::WM_OK;
+    };
+
+    keyboardSession->SetSessionBlackListWhenShow(true, panelSession);
+    EXPECT_TRUE(keyboardAddCalled);
+    EXPECT_TRUE(panelAddCalled);
+}
+
+/**
+ * @tc.name: SetSessionBlackListWhenShowRemove
+ * @tc.desc: check func SetSessionBlackListWhenShow remove branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, SetSessionBlackListWhenShowRemove, Function | SmallTest | Level0)
+{
+    SessionInfo keyboardInfo;
+    keyboardInfo.abilityName_ = "SetSessionBlackListWhenShowRemove";
+    keyboardInfo.bundleName_ = "SetSessionBlackListWhenShowRemove";
+    auto keyboardSpecificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    ASSERT_NE(keyboardSpecificCb, nullptr);
+    auto keyboardCb = sptr<KeyboardSession::KeyboardSessionCallback>::MakeSptr();
+    ASSERT_NE(keyboardCb, nullptr);
+    auto keyboardSession = sptr<KeyboardSession>::MakeSptr(keyboardInfo, keyboardSpecificCb, keyboardCb);
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo panelInfo;
+    panelInfo.abilityName_ = "SetSessionBlackListWhenShowRemovePanel";
+    panelInfo.bundleName_ = "SetSessionBlackListWhenShowRemovePanel";
+    auto panelSpecificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    ASSERT_NE(panelSpecificCb, nullptr);
+    auto panelSession = sptr<SceneSession>::MakeSptr(panelInfo, panelSpecificCb);
+    ASSERT_NE(panelSession, nullptr);
+
+    std::unordered_set<std::string> expectedTags = { "SCB_KEYBOARD_FLOATING" };
+    bool keyboardRemoveCalled = false;
+    bool panelRemoveCalled = false;
+    keyboardSpecificCb->onRemoveSessionBlackList_ = [&keyboardRemoveCalled, keyboardSession, expectedTags](int32_t id,
+        const std::unordered_set<std::string>& tags) {
+        keyboardRemoveCalled = (id == keyboardSession->GetPersistentId()) && (tags == expectedTags);
+        return WMError::WM_OK;
+    };
+    panelSpecificCb->onRemoveSessionBlackList_ = [&panelRemoveCalled, panelSession, expectedTags](int32_t id,
+        const std::unordered_set<std::string>& tags) {
+        panelRemoveCalled = (id == panelSession->GetPersistentId()) && (tags == expectedTags);
+        return WMError::WM_OK;
+    };
+
+    keyboardSession->SetSessionBlackListWhenShow(false, panelSession);
+    EXPECT_TRUE(keyboardRemoveCalled);
+    EXPECT_TRUE(panelRemoveCalled);
+}
+
+/**
+ * @tc.name: GetSkipFlagForCallingSessionMain
+ * @tc.desc: check func GetSkipFlagForCallingSession main window branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionMain, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionMain",
+        "GetSkipFlagForCallingSessionMain");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo callingInfo;
+    callingInfo.abilityName_ = "GetSkipFlagForCallingSessionMain";
+    callingInfo.bundleName_ = "GetSkipFlagForCallingSessionMain";
+    auto callingSession = sptr<SceneSession>::MakeSptr(callingInfo, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    callingSession->isSkipSelfWhenShowOnVirtualScreen_.store(true);
+
+    EXPECT_TRUE(keyboardSession->GetSkipFlagForCallingSession(callingSession));
+}
+
+/**
+ * @tc.name: GetSkipFlagForCallingSessionSub
+ * @tc.desc: check func GetSkipFlagForCallingSession sub window branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionSub, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionSub",
+        "GetSkipFlagForCallingSessionSub");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "GetSkipFlagForCallingSessionSubMain";
+    mainInfo.bundleName_ = "GetSkipFlagForCallingSessionSubMain";
+    auto mainSession = sptr<SceneSession>::MakeSptr(mainInfo, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->isSkipSelfWhenShowOnVirtualScreen_.store(true);
+
+    SessionInfo callingInfo;
+    callingInfo.abilityName_ = "GetSkipFlagForCallingSessionSub";
+    callingInfo.bundleName_ = "GetSkipFlagForCallingSessionSub";
+    auto callingSession = sptr<SceneSession>::MakeSptr(callingInfo, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    callingSession->SetParentSession(mainSession);
+    callingSession->isSkipSelfWhenShowOnVirtualScreen_.store(false);
+
+    EXPECT_TRUE(keyboardSession->GetSkipFlagForCallingSession(callingSession));
+}
+
+/**
+ * @tc.name: GetSkipFlagForCallingSessionNull
+ * @tc.desc: check func GetSkipFlagForCallingSession null session branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionNull, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionNull",
+        "GetSkipFlagForCallingSessionNull");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    EXPECT_FALSE(keyboardSession->GetSkipFlagForCallingSession(nullptr));
+}
+
+/**
+ * @tc.name: GetSkipFlagForCallingSessionNoMain
+ * @tc.desc: check func GetSkipFlagForCallingSession no main session branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionNoMain, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionNoMain",
+        "GetSkipFlagForCallingSessionNoMain");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo callingInfo;
+    callingInfo.abilityName_ = "GetSkipFlagForCallingSessionNoMain";
+    callingInfo.bundleName_ = "GetSkipFlagForCallingSessionNoMain";
+    auto callingSession = sptr<SceneSession>::MakeSptr(callingInfo, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    callingSession->isSkipSelfWhenShowOnVirtualScreen_.store(true);
+
+    EXPECT_FALSE(keyboardSession->GetSkipFlagForCallingSession(callingSession));
+}
+
+/**
  * @tc.name: NotifyOccupiedAreaChanged
  * @tc.desc: check func NotifyOccupiedAreaChanged
  * @tc.type: FUNC

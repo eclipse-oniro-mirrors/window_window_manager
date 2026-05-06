@@ -26,8 +26,10 @@
 
 #include <iremote_broker.h>
 #include <want.h>
-#include "wm_animation_common.h"
 #include "pixel_map.h"
+#include "wm_animation_common.h"
+#include "wm_layout_common.h"
+
 
 namespace OHOS::AAFwk {
 class AbilityStartSetting;
@@ -52,6 +54,7 @@ constexpr float INVALID_SCALE = 0;
 constexpr int32_t MIN_REQUEST_ID_FROM_ABILITY = 1;
 constexpr int32_t DEFAULT_REQUEST_FROM_SCB_ID = -1;
 constexpr int32_t WINDOW_SUPPORT_MODE_MAX_SIZE = 4;
+constexpr uint32_t COMBINED_COMPATIBLE_CONFIG_MAX_SIZE = 5;
 constexpr int32_t DEFAULT_SCALE_RATIO = 100;
 constexpr uint32_t COLOR_WHITE = 0xffffffff;
 constexpr uint32_t COLOR_BLACK = 0xff000000;
@@ -128,6 +131,24 @@ enum class WSErrorCode : int32_t {
     WS_ERROR_CONTEXT_ABNORMALLY = 1300006,
 
     WS_ERROR_EDM_CONTROLLED = 16000013, // enterprise limit
+};
+
+enum class WSErrorReason : int32_t {
+    WS_REASON_WINDOW_ERR = 1000,
+    WS_REASON_WINDOW_MINIMIZE_ERR,
+    WS_REASON_WINDOW_START_ERR,
+    WS_REASON_WINDOW_PRE_TERMINATE_ERR,
+    WS_REASON_WINDOW_STARTUP_EXC_ERR,
+    WS_REASON_WINDOW_CALL_ERR,
+    WS_REASON_WINDOW_CLEAN_ERR,
+    WS_REASON_WINDOW_CLOSE_ERR,
+    WS_REASON_WINDOW_SPECIFIED_ERR,
+
+    WS_REASON_WINDOW_ANCO_ERR = 1200,
+    WS_REASON_WINDOW_ANCO_START_ERR,
+    WS_REASON_WINDOW_ANCO_SESSION_CREATE_ERR,
+    WS_REASON_WINDOW_ANCO_MOVE_SESSION_FOREGROUND_ERR,
+    WS_REASON_WINDOW_ANCO_CLEAR_SESSION_ERR,
 };
 
 extern const std::map<WSError, WSErrorCode> WS_JS_TO_ERROR_CODE_MAP;
@@ -407,6 +428,7 @@ struct SessionInfo {
     uint32_t windowType_ = 1; // WINDOW_TYPE_APP_MAIN_WINDOW
     sptr<IRemoteObject> callerToken_ = nullptr;
     sptr<IRemoteObject> rootToken_ = nullptr;
+    sptr<IRemoteObject> connectToRenderToken_ = nullptr;
     uint64_t screenId_ = -1ULL; // -1ULL：SCREEN_ID_INVALID
     bool isPersistentRecover_ = false;
     AtomicServiceInfo atomicServiceInfo_;
@@ -478,6 +500,7 @@ struct SessionInfo {
     SpecifiedReason specifiedReason_ = SpecifiedReason::DEFAULT;
     // only init when requestSceneSession from SCB
     bool isAncoApplication_ = false;
+    bool isSkipAncoNotifyPreStart = false;
     bool isPrelaunch_ = false;
     int32_t frameNum_ = 0;
     bool isTargetPlugin = false;
@@ -485,6 +508,8 @@ struct SessionInfo {
     int32_t hostAppIndex = 0;
     std::string hostAppInstanceKey = "";
     std::string hostAbilityName = "";
+    // Indicates whether the window should be hidden when the native process launches
+    bool nativeHideWindow_ = false;
 
     /*
      * Keyboard
@@ -499,6 +524,8 @@ struct SessionInfo {
      */
     bool isUseControlSession = false; // Indicates whether the session is used for controlling a main session.
     bool hasPrivacyModeControl = false;
+    // The Field has a value in useControlsession
+    int32_t mainWindowPersistentId_ = INVALID_SESSION_ID;
 
     /*
      * UIExtension
@@ -526,12 +553,23 @@ struct SessionInfo {
      * Window Rotation
      */
     int32_t currentRotation_ = 0;
+    
+    /*
+     * Split Ratio PreferenceValue
+     */
+    int32_t splitRatioPreference = 0;
 
     /*
      * Compatible Mode
      */
     std::string pageConfig = "";
-    std::string logicalDeviceConfig = "";
+    std::vector<std::string> combinedCompatibleConfig;
+
+    /**
+     * Game PreLaunch
+     */
+    bool isGamePrelaunch_ = false;
+    bool reuseSessionInGamePreLaunch_ = false;
 
     AAFwk::Want GetWantSafely() const
     {
@@ -613,6 +651,7 @@ enum class SizeChangeReason : uint32_t {
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
+    SWITCH_WINDOW_DISPLAY,
     END,
 };
 
@@ -643,6 +682,7 @@ enum class SessionEvent : uint32_t {
     EVENT_MAXIMIZE_FULLSCREEN,
     EVENT_SWITCH_COMPATIBLE_MODE = 200,
     EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
+    EVENT_CLEAR_GAME_PRELAUNCH_FLAG,
     EVENT_END
 };
 
@@ -1188,6 +1228,7 @@ struct SessionEventParam {
     int32_t windowGlobalPosX_ = 0;
     int32_t windowGlobalPosY_ = 0;
     uint32_t titleButtonEventType_ = 0;
+    SnapshotAnimationConfig snapshotAnimationConfig_;
 };
 
 struct BackgroundParams {
@@ -1348,7 +1389,7 @@ enum class LifeCycleChangeReason {
      */
     QUICK_BATCH_BACKGROUND,
 
-    SCREEN_ROTATION,
+    GAME_PRELAUNCH_BACKGROUND,
 
     REASON_END,
 };
@@ -1425,6 +1466,78 @@ enum class SidebarBlurType : uint32_t {
     DEFAULT_FLOAT,
     DEFAULT_MAXIMIZE,
     END,
+};
+
+struct PreWindowProperty {
+    uint32_t rotation = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+
+    PreWindowProperty() {}
+
+    PreWindowProperty(uint32_t rotation, uint32_t width, uint32_t height)
+    {
+        this->rotation = rotation;
+        this->width = width;
+        this->height = height;
+    }
+};
+
+/**
+ * @brief Context for prelayout during window creation.
+ *
+ * Provides expected window and display parameters to improve the
+ * initial layout and rendering effect.
+ */
+struct PrelayoutContext {
+    /**
+     * @brief Whether prelayout is enabled.
+     */
+    bool enable = false;
+
+    /**
+     * @brief Target window rectangle used in prelayout.
+     */
+    WSRect winRect = WSRect::EMPTY_RECT;
+
+    /**
+     * @brief Target display parameters used in prelayout.
+     */
+    struct DisplayInfo {
+        /**
+         * @brief Display width in pixels.
+         */
+        uint32_t width = 0;
+
+        /**
+         * @brief Display height in pixels.
+         */
+        uint32_t height = 0;
+
+        /**
+         * @brief Display density (pixel ratio).
+         *
+         * Default is 1.0 to avoid invalid scaling or division-by-zero issues.
+         */
+        float density = 1.0f;
+
+        /**
+         * @brief Display rotation in degrees.
+         *
+         * Expected values: 0, 90, 180, 270 (360 is equivalent to 0).
+         */
+        uint32_t rotation = 0;
+    } display;
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "enable: " << enable
+            << ", winRect: " << winRect.ToString()
+            << ", display: " << display.width << ", " << display.height
+            << ", " << display.density << ", " << display.rotation;
+        return oss.str();
+    }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_WS_COMMON_H

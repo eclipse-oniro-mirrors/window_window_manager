@@ -25,9 +25,11 @@
 #include "screen_session_manager.h"
 #include "fold_screen_base_policy.h"
 #include "task_sequence_process.h"
+#include "product_ext_wrapper.h"
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
 #endif
+#include "ffrt.h"
 
 namespace OHOS::Rosen::DMS {
 
@@ -48,6 +50,11 @@ constexpr uint64_t MAX_TIME_INTERVAL_MS = 2000;
 std::chrono::time_point<std::chrono::system_clock> g_lastUpdateTime = std::chrono::system_clock::now();
 }  // namespace
 
+class SensorFoldStateMgr::Impl {
+public:
+    ffrt::recursive_mutex statusMutex_;
+};
+
 SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
 {
     static std::mutex singletonMutex_;
@@ -55,13 +62,18 @@ SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
     if (instance_ == nullptr) {
         std::lock_guard<std::mutex> lock(singletonMutex_);
         if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init sensorFoldStateMgr from ext");
+            instance_ = ProductExtWrapper::GetExtInstance<SensorFoldStateMgr>("GetSensorFoldStateMgr");
+        }
+        if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init SensorFoldStateMgr");
             instance_ = new SensorFoldStateMgr();
         }
     }
     return *instance_;
 }
 
-SensorFoldStateMgr::SensorFoldStateMgr()
+SensorFoldStateMgr::SensorFoldStateMgr() : pImpl_(std::make_unique<Impl>())
 {
     taskProcess_ = new TaskSequenceProcess(
         MAX_QUEUE_SIZE,
@@ -70,6 +82,8 @@ SensorFoldStateMgr::SensorFoldStateMgr()
     currentFoldStatus_ = {FoldStatus::UNKNOWN};
     foldAlgorithmStrategy_ = {0, 0};
 }
+
+SensorFoldStateMgr::~SensorFoldStateMgr() = default;
 
 void SensorFoldStateMgr::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
 {
@@ -103,6 +117,9 @@ void SensorFoldStateMgr::HandleSensorEvent(const SensorStatus& sensorStatus)
 
 FoldStatus SensorFoldStateMgr::GetNextFoldStatus(const SensorStatus& sensorStatus)
 {
+    if (IsGetFoldStatusByHalls(sensorStatus)) {
+        return GetFoldStatusByHalls(sensorStatus);
+    }
     UpdateFoldAlgorithmStrategy(sensorStatus.axis_);
     std::vector<FoldStatus> nextFoldStatus;
     for (size_t i = 0; i < sensorStatus.axis_.size(); ++i) {
@@ -207,7 +224,7 @@ std::vector<std::string> SensorFoldStateMgr::getHallSwitchAppList()
 
 void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
 {
-    std::lock_guard<std::recursive_mutex> lock(statusMutex_);
+    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->statusMutex_);
     if (nextStatus == FoldStatus::UNKNOWN) {
         TLOGW(WmsLogTag::DMS, "fold state is UNKNOWN");
         return;
@@ -433,4 +450,13 @@ void SensorFoldStateMgr::SetTentMode(int tentType)
     tentModeType_ = tentType;
 }
 
+bool SensorFoldStateMgr::IsGetFoldStatusByHalls(const SensorStatus& sensorStatus)
+{
+    return false;
+}
+
+FoldStatus SensorFoldStateMgr::GetFoldStatusByHalls(const SensorStatus& sensorStatus)
+{
+    return FoldStatus::UNKNOWN;
+}
 }  // namespace OHOS::Rosen::DMS

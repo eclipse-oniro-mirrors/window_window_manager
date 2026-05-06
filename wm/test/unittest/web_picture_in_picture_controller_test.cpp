@@ -136,6 +136,9 @@ HWTEST_F(WebPictureInPictureControllerTest, StartPictureInPicture, TestSize.Leve
 
     webPipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
     EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType));
+
+    webPipControl->curState_ = PiPWindowState::STATE_STOPPING;
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType));
 }
 
 /**

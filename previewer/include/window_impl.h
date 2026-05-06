@@ -186,7 +186,6 @@ public:
     virtual void UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration) override;
     void UpdateConfigurationForSpecified(const std::shared_ptr<AppExecFwk::Configuration>& configuration,
         const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager) override;
-    void UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) override;
     void NotifyTouchDialogTarget(int32_t posX = 0, int32_t posY = 0) override;
     WMError SetUIContentByName(const std::string& contentInfo, napi_env env, napi_value storage,
         AppExecFwk::Ability* ability) override;
@@ -246,9 +245,6 @@ public:
     virtual WMError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
     virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) override;
     virtual void SetTouchEvent(int32_t touchType) override;
-    virtual WMError UpdateSystemBarProperty(bool status);
-    virtual WMError SetImmersiveModeEnabledState(bool enable) override;
-    virtual bool GetImmersiveModeEnabledState() const override;
 
     /*
      * Window Property
@@ -256,6 +252,22 @@ public:
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
     void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) override;
     uint32_t GetApiTargetVersion() const;
+
+    /*
+     * Window Immersive
+     */
+    void UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) override;
+    virtual WMError UpdateSystemBarProperty(bool status);
+    WMError SetImmersiveModeEnabledState(bool enable) override;
+    bool GetImmersiveModeEnabledState() const override;
+    WMError SetFloatNavigationAvoidAreaEnabled(bool enable) override;
+    WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const override;
+
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIContext> GetRSUIContext() const override;
+    std::shared_ptr<RSUIDirector> GetRSUIDirector() const override { return rsUIDirector_; }
 
 private:
     static sptr<Window> FindWindowById(uint32_t windowId);
@@ -342,6 +354,12 @@ private:
         { AvoidAreaType::TYPE_KEYBOARD,             new AvoidArea() },
         { AvoidAreaType::TYPE_NAVIGATION_INDICATOR, new AvoidArea() },
     };
+    std::atomic<bool> floatNavigationAvoidAreaEnabled_ = false;
+
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIDirector> rsUIDirector_;
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -154,6 +154,28 @@ ani_boolean DisplayManagerAni::IsCaptured(ani_env* env)
     return static_cast<ani_boolean>(isCapture);
 }
 
+ani_boolean DisplayManagerAni::IsCapturedByBundleNameList(ani_env* env, ani_object bundleNameListObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] IsCapturedByBundleNameList begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return false;
+    }
+
+    std::vector<std::string> bundleNameList;
+    ani_status ret = DisplayAniUtils::GetStdStringVector(env, bundleNameListObj, bundleNameList);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] GetStdStringVector fail");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert attributes");
+        return false;
+    }
+
+    bool isCapture = SingletonContainer::Get<DisplayManager>().IsCapturedByBundleNameList(bundleNameList);
+    TLOGI(WmsLogTag::DMS, "[ANI] BundleNameList size: %{public}zu, isCapturedByBundleNameList: %{public}u.",
+        bundleNameList.size(), isCapture);
+    return static_cast<ani_boolean>(isCapture);
+}
+
 ani_int DisplayManagerAni::GetFoldStatus(ani_env* env)
 {
     auto status = SingletonContainer::Get<DisplayManager>().GetFoldStatus();
@@ -896,6 +918,7 @@ ani_long DisplayManagerAni::OnCreateVirtualScreen(ani_env* env, ani_object virtu
         return static_cast<ani_long>(screenId);
     }
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::ANI_DISPLAY_MANAGER;
     DmErrorCode errCode = DisplayAniUtils::GetVirtualScreenOptionFromAni(env, virtualScreenConfig, option);
     if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM) {
         TLOGE(WmsLogTag::DMS, "[ANI] Get virtual screen option from ani failed");

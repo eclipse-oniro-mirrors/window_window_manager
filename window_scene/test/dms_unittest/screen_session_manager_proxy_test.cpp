@@ -1160,6 +1160,34 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetDisplayInfoById, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetDisplayInfoByIdWithHookRequired
+ * @tc.desc: GetDisplayInfoById with isGetActualInfo = true
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, GetDisplayInfoByIdWithHookRequired, TestSize.Level1)
+{
+    sptr<DisplayInfo> expectation = nullptr;
+    DisplayId displayId {0};
+    MockMessageParcel::ClearAllErrorFlag();
+    auto res = screenSessionManagerProxy->GetDisplayInfoById(displayId, true);
+    ASSERT_EQ(res, expectation);
+}
+
+/**
+ * @tc.name: GetDisplayInfoByIdWithHookRequiredFalse
+ * @tc.desc: GetDisplayInfoById with isGetActualInfo = false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, GetDisplayInfoByIdWithHookRequiredFalse, TestSize.Level1)
+{
+    sptr<DisplayInfo> expectation = nullptr;
+    DisplayId displayId {0};
+    MockMessageParcel::ClearAllErrorFlag();
+    auto res = screenSessionManagerProxy->GetDisplayInfoById(displayId, false);
+    ASSERT_EQ(res, expectation);
+}
+
+/**
  * @tc.name: GetDisplayInfoByScreen
  * @tc.desc: GetDisplayInfoByScreen
  * @tc.type: FUNC
@@ -2867,6 +2895,109 @@ HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen, TestSize.Level1)
     EXPECT_EQ(ret, DMError::DM_OK);
     MockMessageParcel::ClearAllErrorFlag();
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList001
+ * @tc.desc: IsCapturedByBundleNameList with remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsCapturedByBundleNameList001, TestSize.Level1)
+{
+    sptr<IRemoteObject> remoteMocker = nullptr;
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    std::vector<std::string> bundleNameList = {"com.test.app"};
+    auto ret = proxy->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList002
+ * @tc.desc: IsCapturedByBundleNameList with WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsCapturedByBundleNameList002, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    
+    std::vector<std::string> bundleNameList = {"com.test.app"};
+    auto ret = proxy->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
+
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList003
+ * @tc.desc: IsCapturedByBundleNameList with WriteStringVector failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsCapturedByBundleNameList003, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteStringVectorErrorFlag(true);
+    
+    std::vector<std::string> bundleNameList = {"com.test.app"};
+    auto ret = proxy->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
+
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList004
+ * @tc.desc: IsCapturedByBundleNameList with SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsCapturedByBundleNameList004, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    
+    std::vector<std::string> bundleNameList = {"com.test.app"};
+    auto ret = proxy->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
+    
+    remoteMocker->SetRequestResult(ERR_NONE);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList005
+ * @tc.desc: normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsCapturedByBundleNameList005, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    
+    std::vector<std::string> bundleNameList = {"com.test.app"};
+    auto ret = screenSessionManagerProxy->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList006
+ * @tc.desc: empty bundleNameList
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsCapturedByBundleNameList006, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    
+    std::vector<std::string> bundleNameList;
+    auto ret = screenSessionManagerProxy->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
 }
 }
 }

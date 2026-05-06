@@ -30,24 +30,40 @@ public:
     ~AniPiPWindow();
 
     static void Finalizer(ani_env* env, ani_long nativeObj);
-    ani_ref GetAniRef() { return aniRef_; }
-    void SetAniRef(const ani_ref& aniRef) { aniRef_ = aniRef; }
     static ani_status Init(ani_env* env, ani_namespace nsp);
     void SetPiPController(sptr<PictureInPictureControllerAni> pipControllerToken);
-
     static ani_ref Create(ani_env* env, ani_long nativeObj, ani_object pipconfiguration, ani_object nativeXComponent);
     static ani_boolean IsPiPEnabledAni(ani_env* env);
+    static ani_object NativeTransferStatic(ani_env* aniEnv, ani_class cls, ani_object input);
+    static ani_object NativeTransferDynamic(ani_env* aniEnv, ani_class cls, ani_long nativeObj);
+    static ani_status BindNamespaceFunctions(ani_env* env, ani_namespace& nsp);
+    static ani_status BindClassMethods(ani_env* env);
 
 private:
-    ani_ref CreateAniPiPControllerObject(ani_env* env, sptr<PictureInPictureControllerAni>& pipController);
+    static ani_object CreateAniPiPControllerObject(ani_env* env, sptr<PictureInPictureControllerAni>& pipController);
     static inline std::unordered_map<AniPipController*, ani_object> localObjs;
     static inline std::mutex mtxLocalObjs_;
     static void AddAniPiPControllerObj(AniPipController* pipController, ani_object obj);
     static ani_status DelAniPiPControllerObj(AniPipController* aniPipController);
+    static bool checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32_t> controlGroups);
+    static bool checkOptionParams(PipOptionAni& option);
+    static bool GetControlGroupFromJs(ani_env* env, ani_ref controlGroup, std::vector<std::uint32_t>& controls);
     ani_ref OnCreate(ani_env* env, ani_object pipconfiguration, ani_object nativeXComponent);
     ani_ref CreatePiPController(ani_env* env, PipOptionAni pipOption);
-
-    ani_ref aniRef_ = nullptr;
+    static bool OptionSetContext(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static bool OptionSetXComponentController(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetNavigationIdValue(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void GetWidthFromAniObject(ani_env* env, ani_object optionObject, uint32_t& width);
+    static void GetHeightFromAniObject(ani_env* env, ani_object optionObject, uint32_t& height);
+    static void OptionSetContentSize(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetPipTemplate(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetControlGroup(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetCustomUIController(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetDefaultWindowSizeType(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetStorage(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetHandleId(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static void OptionSetCornerAdsorptionEnabled(ani_env* env, ani_object optionObject, PipOptionAni& option);
+    static bool GetPiPOption(ani_env* env, ani_object optionObject, PipOptionAni& option);
 };
 
 enum DefaultWindowSizeType : uint32_t {

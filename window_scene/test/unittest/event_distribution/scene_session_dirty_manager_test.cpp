@@ -107,7 +107,9 @@ HWTEST_F(SceneSessionDirtyManagerTest, NotifyWindowInfoChange, TestSize.Level1)
  */
 HWTEST_F(SceneSessionDirtyManagerTest, GetFullWindowInfoList, TestSize.Level0)
 {
-    auto [windowInfoList, pixelMapList] = manager_->GetFullWindowInfoList();
+    auto fullInfoForMMI = manager_->GetFullWindowInfoList();
+    auto windowInfoList = fullInfoForMMI.windowInfoList;
+    auto pixelMapList = fullInfoForMMI.pixelMapList;
     SessionInfo info;
     info.abilityName_ = "TestAbilityName";
     info.bundleName_ = "TestBundleName";
@@ -136,7 +138,9 @@ HWTEST_F(SceneSessionDirtyManagerTest, GetFullWindowInfoList, TestSize.Level0)
         propertyModal1->SetWindowFlags(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_MODAL));
         ssm_->sceneSessionMap_.insert({ sceneSessionModal1->GetPersistentId(), sceneSessionModal1 });
     }
-    auto [windowInfoList1, pixelMapList1] = manager_->GetFullWindowInfoList();
+    auto fullInfoForMMI1 = manager_->GetFullWindowInfoList();
+    auto windowInfoList1 = fullInfoForMMI1.windowInfoList;
+    auto pixelMapList1 = fullInfoForMMI1.pixelMapList;
     ASSERT_EQ(windowInfoList.size() + 3, windowInfoList1.size());
 }
 
@@ -700,22 +704,22 @@ HWTEST_F(SceneSessionDirtyManagerTest, CheckDragActivatedInUpdatePointerAreas, T
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
 
     sceneSession->property_->SetDragEnabled(true);
-    sceneSession->SetDragActivated(false);
+    sceneSession->dragActivatedBitmap_ = 0;
     manager_->UpdatePointerAreas(sceneSession, pointerChangeAreas);
     ASSERT_EQ(0, pointerChangeAreas.size());
 
     sceneSession->property_->SetDragEnabled(false);
-    sceneSession->SetDragActivated(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     manager_->UpdatePointerAreas(sceneSession, pointerChangeAreas);
     ASSERT_EQ(0, pointerChangeAreas.size());
 
     sceneSession->property_->SetDragEnabled(false);
-    sceneSession->SetDragActivated(false);
+    sceneSession->dragActivatedBitmap_ = 0;
     manager_->UpdatePointerAreas(sceneSession, pointerChangeAreas);
     ASSERT_EQ(0, pointerChangeAreas.size());
 
     sceneSession->property_->SetDragEnabled(true);
-    sceneSession->SetDragActivated(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     float vpr = 1.5f;
     sceneSession->property_->SetDisplayId(100);
     int32_t pointerAreaFivePx = static_cast<int32_t>(POINTER_CHANGE_AREA_FIVE * vpr);
@@ -1454,11 +1458,11 @@ HWTEST_F(SceneSessionDirtyManagerTest, UpdateDefaultHotAreas2, TestSize.Level1)
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::BELOW_APP_SYSTEM_WINDOW_BASE);
     sceneSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     sceneSession->GetSessionProperty()->dragEnabled_ = true;
-    sceneSession->dragActivated_ = true;
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     empty.clear();
     manager_->UpdateDefaultHotAreas(sceneSession, empty, empty);
     ASSERT_EQ(empty[0].x, -offset);
-    sceneSession->dragActivated_ = false;
+    sceneSession->dragActivatedBitmap_ = 0;
     empty.clear();
     manager_->UpdateDefaultHotAreas(sceneSession, empty, empty);
     ASSERT_EQ(empty[0].x, 0);

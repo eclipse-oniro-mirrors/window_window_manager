@@ -144,6 +144,19 @@ HWTEST_F(WebPictureInPictureControllerInterfaceTest, StartPip, TestSize.Level1)
 }
 
 /**
+ * @tc.name: StartPip02
+ * @tc.desc: StartPip with stop state
+ * @tc.type: FUNC
+ */
+HWTEST_F(WebPictureInPictureControllerInterfaceTest, StartPip02, TestSize.Level1)
+{
+    controller->Create(pipConfig);
+    controller->sptrWebPipController_->curState_ = PiPWindowState::STATE_STARTING;
+    WMError ret = controller->StartPip(0);
+    EXPECT_EQ(ret, WMError::WM_ERROR_PIP_REPEAT_OPERATION);
+}
+
+/**
  * @tc.name: StopPip
  * @tc.desc: StopPip
  * @tc.type: FUNC

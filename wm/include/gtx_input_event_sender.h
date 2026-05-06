@@ -20,9 +20,10 @@
 #include <atomic>
 #include <algorithm>
 
+#include "pointer_event.h"
 #include "window.h"
 #include "window_input_channel.h"
-#include "pointer_event.h"
+#include "window_input_redistribute_client.h"
 
 namespace OHOS {
 const uint32_t GTX_MAX_TOUCH_POINTS_NUMBER = 10;
@@ -68,8 +69,29 @@ public:
     void GetTouchEvent(GtxTouchEventInfo& touchEvent);
     void SetTouchEvent(Rosen::Rect rect, std::shared_ptr<MMI::PointerEvent> pointerEvent);
 
+    void RegisterInputEventScale(int offsetX, int offsetY, float scaleX, float scaleY);
+    void UnRegisterInputEventScale();
+
+    class NapiAVSessionInputRedistributeCallback : public Rosen::IInputEventRecipientCallback {
+    public:
+        NapiAVSessionInputRedistributeCallback(int offsetX, int offsetY, float scaleX, float scaleY)
+            : mOffsetX(offsetX), mOffsetY(offsetY), mScaleX(scaleX), mScaleY(scaleY) {}
+        Rosen::InputAfterRedistributeBehavior OnInputEvent(const std::shared_ptr<MMI::KeyEvent>& KeyEvent) override;
+        Rosen::InputAfterRedistributeBehavior
+            OnInputEvent(const std::shared_ptr<MMI::PointerEvent>& PointerEvent) override;
+        void SetTouchEventScale(int offsetX, int offsetY, float scaleX, float scaleY);
+
+    private:
+        int32_t mOffsetX = 0;
+        int32_t mOffsetY = 0;
+        float mScaleX = 1.0f;
+        float mScaleY = 1.0f;
+    };
+
 private:
     std::atomic<bool> mIsEnable = false;
+    std::shared_ptr<NapiAVSessionInputRedistributeCallback> mCallbackInstance;
+    Rosen::IInputEventRecipientInfo mRecipientInfo;
 
     std::mutex mEventMutex;
     GtxTouchEventInfo mEvent = {};

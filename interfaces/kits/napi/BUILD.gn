@@ -18,6 +18,7 @@ group("napi_packages") {
     "display_runtime:display_napi",
     "embeddable_window_stage:embeddablewindowstage_kit",
     "environmental:windowenv_packages",
+    "environmental/inner:windowenv_napi",
     "extension:uiextension_napi",
     "extension_window:extensionwindow_napi",
     "picture_in_picture_napi:pipwindow_napi",
@@ -31,5 +32,6 @@ group("napi_packages") {
     "window_runtime:window_native_kit",
     "window_runtime:windowstage_kit",
     "floating_ball_napi:floatingball_napi",
+    "float_view_napi:floatview_napi",
   ]
 }

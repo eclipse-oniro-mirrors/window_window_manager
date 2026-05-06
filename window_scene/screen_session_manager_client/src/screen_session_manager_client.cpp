@@ -231,6 +231,18 @@ sptr<ScreenSession> ScreenSessionManagerClient::GetScreenSession(ScreenId screen
     return iter->second;
 }
 
+static inline bool IsBoundsChanged(RRect oldBounds, RRect newBounds)
+{
+    if (oldBounds.rect_.left_ == newBounds.rect_.left_ && newBounds.rect_.top_ == oldBounds.rect_.top_) {
+        if ((oldBounds.rect_.width_ == newBounds.rect_.width_ && oldBounds.rect_.height_ == newBounds.rect_.height_) ||
+            (oldBounds.rect_.height_ == newBounds.rect_.width_ && oldBounds.rect_.width_ == newBounds.rect_.height_)) {
+            return false;
+        }
+        return true;
+    }
+    return true;
+}
+
 void ScreenSessionManagerClient::OnPropertyChanged(ScreenId screenId,
     const ScreenProperty& property, ScreenPropertyChangeReason reason)
 {
@@ -240,6 +252,12 @@ void ScreenSessionManagerClient::OnPropertyChanged(ScreenId screenId,
         return;
     }
     if (reason == ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE) {
+        if (!IsBoundsChanged(screenSession->GetScreenProperty().GetBounds(), property.GetBounds()) &&
+            !IsBoundsChanged(screenSession->GetPropertyNeedNotified().GetBounds(), property.GetBounds())) {
+            TLOGNFI(WmsLogTag::DMS, "bounds not change");
+            return;
+        }
+        TLOGNFI(WmsLogTag::DMS, "bounds change");
         screenSession->NotifyListenerPropertyChange(property, reason);
         screenSession->SetPropertyNeedNotified(property);
         auto oldProperty = screenSession->GetScreenProperty();
@@ -893,6 +911,22 @@ std::shared_ptr<RSUIContext> ScreenSessionManagerClient::GetRSUIContext(ScreenId
     return rsUIContext;
 }
 
+sptr<IRemoteObject> ScreenSessionManagerClient::GetRenderSessionToken()
+{
+    auto screenSession = GetScreenSession(GetDefaultScreenId());
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "ScreenSession is null");
+        return nullptr;
+    }
+    auto renderSession = screenSession->GetRenderSession();
+    if (!renderSession) {
+        TLOGE(WmsLogTag::DMS, "RenderSession is null");
+        return nullptr;
+    }
+    TLOGI(WmsLogTag::DMS, "Get renderSession success");
+    return renderSession;
+}
+
 ScreenId ScreenSessionManagerClient::GetDefaultScreenId()
 {
     std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
@@ -1129,6 +1163,7 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
         .rsId = option.rsId_,
         .name = option.name_,
         .innerName = option.innerName_,
+        .renderSession = option.connectToRenderToken_,
     };
     config.property = screenSessionManager_->GetScreenProperty(option.screenId_);
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
@@ -1184,13 +1219,14 @@ bool ScreenSessionManagerClient::HandleScreenDisconnection(SessionOption option)
 }
 
 bool ScreenSessionManagerClient::OnCreateScreenSessionOnly(ScreenId screenId, ScreenId rsId,
-    const std::string& name, bool isExtend)
+    const std::string& name, sptr<IRemoteObject> renderSession, bool isExtend)
 {
     sptr<ScreenSession> screenSession = nullptr;
     ScreenSessionConfig config = {
         .screenId = screenId,
         .rsId = rsId,
         .name = name,
+        .renderSession = renderSession,
     };
     {
         std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
@@ -1280,10 +1316,16 @@ sptr<ScreenSession> ScreenSessionManagerClient::CreateTempScreenSession(
         TLOGE(WmsLogTag::DMS, "Failed to create temp screen session, screenSessionManager_ is null");
         return nullptr;
     }
+    auto screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return nullptr;
+    }
     ScreenSessionConfig config = {
         .screenId = screenId,
         .rsId = rsId,
         .displayNode = displayNode,
+        .renderSession = screenSession->GetRenderSession(),
     };
     config.property = screenSessionManager_->GetScreenProperty(screenId);
     TLOGW(WmsLogTag::DMS, "CreateTempScreenSession width:%{public}f, height=%{public}f",
@@ -1596,5 +1638,86 @@ bool ScreenSessionManagerClient::GetSupportsFocus(DisplayId displayId)
     bool supportsFocus = screenSession->GetSupportsFocus();
     TLOGD(WmsLogTag::DMS, "displayId:%{public}" PRIu64", supportsFocus:%{public}d", displayId, supportsFocus);
     return supportsFocus;
+}
+
+void ScreenSessionManagerClient::RegisterTransRSEventListener(
+    const RSExposedEventType& type, const sptr<ITransRSEventListener>& listener)
+{
+    if (!listener) {
+        TLOGE(WmsLogTag::DMS, "Failed to register transRSEvent listener, listener is null");
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(transToRSEventMutex_);
+        auto& listeners = transRSEventListener_[type];
+
+        if (std::find(listeners.begin(), listeners.end(), listener) != listeners.end()) {
+            TLOGI(WmsLogTag::DMS, "Listener already exists for type:%{public}u", static_cast<uint32_t>(type));
+            return;
+        }
+
+        listeners.push_back(listener);
+    }
+    ConnectToServer();
+    TLOGI(WmsLogTag::DMS, "Success to register transRSEvent listener.");
+}
+
+void ScreenSessionManagerClient::UnRegisterTransRSEventListener(
+    const RSExposedEventType& type, const sptr<ITransRSEventListener>& listener)
+{
+    if (!listener) {
+        TLOGE(WmsLogTag::DMS, "listener is null");
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(transToRSEventMutex_);
+    auto it = transRSEventListener_.find(type);
+    if (it == transRSEventListener_.end()) {
+        TLOGE(WmsLogTag::DMS, "No listeners for type:%{public}u", static_cast<uint32_t>(type));
+        return;
+    }
+
+    auto& vec = it->second;
+    auto iter = std::find(vec.begin(), vec.end(), listener);
+    if (iter != vec.end()) {
+        vec.erase(iter);
+        TLOGI(WmsLogTag::DMS, "Unregistered listener for type:%{public}u", static_cast<uint32_t>(type));
+
+        if (vec.empty()) {
+            transRSEventListener_.erase(it);
+            TLOGI(WmsLogTag::DMS, "Remove empty listener list for type:%{public}u", static_cast<uint32_t>(type));
+        }
+    } else {
+        TLOGE(WmsLogTag::DMS, "Listener not found for type:%{public}u", static_cast<uint32_t>(type));
+    }
+}
+
+void ScreenSessionManagerClient::OnTransRSEvent(const sptr<RSEventDataBase>& data)
+{
+    if (!data) {
+        TLOGE(WmsLogTag::DMS, "data is null");
+        return;
+    }
+
+    RSExposedEventType type = data->GetEventType();
+    TLOGI(WmsLogTag::DMS, "OnTransRSEvent begin, type:%{public}u", static_cast<uint32_t>(type));
+
+    std::vector<sptr<ITransRSEventListener>> listeners;
+    {
+        std::lock_guard<std::mutex> lock(transToRSEventMutex_);
+        auto it = transRSEventListener_.find(type);
+        if (it == transRSEventListener_.end() || it->second.empty()) {
+            TLOGW(WmsLogTag::DMS, "No listeners for type:%{public}u", static_cast<uint32_t>(type));
+            return;
+        }
+        listeners = it->second;
+    }
+
+    for (auto& listener : listeners) {
+        if (listener) {
+            listener->OnTransRSEvent(data);
+        }
+    }
 }
 } // namespace OHOS::Rosen

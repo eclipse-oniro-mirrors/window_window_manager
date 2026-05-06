@@ -203,7 +203,17 @@ namespace window {
      * @atomicservice
      * @since 12
      */
-    TYPE_NAVIGATION_INDICATOR
+    TYPE_NAVIGATION_INDICATOR,
+
+    /**
+     * Area for float navigation
+     *
+     * @syscap SystemCapability.Window.SessionManager
+     * @stagemodelonly
+     * @atomicservice
+     * @since 26.0.0 dynamic&static
+     */
+    TYPE_FLOAT_NAVIGATION
   }
   export interface AvoidArea {
     /**
@@ -566,8 +576,10 @@ namespace window {
 
   export interface SubWindowAttachOptions {
     currentLayoutMode?: string;
-    parentWindowSizeChangeCallBack?:Callback<Size>;
-    parentWindowStatusChangeCallBack?:Callback<WindowStatusType>;
+    parentWindowSizeChangeCallback? :Callback<Size>;
+    parentWindowStatusChangeCallback? :Callback<WindowStatusType>;
+    isIntersectedHeightLimit?: boolean;
+    isIntersectedWidthLimit?: boolean;
   }
 
   export interface Rect {
@@ -813,6 +825,12 @@ export enum MaximizePresentation {
     ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER = 3
 }
 
+export enum AcrossDisplayPresentation {
+    FOLLOW_ACROSS_DISPLAY_SETTING = 0,
+    ENTER_ACROSS_DISPLAY_MODE = 1,
+    EXIT_ACROSS_DISPLAY_MODE = 2
+}
+
 export enum WindowStatusType {
     UNDEFINED = 0,
     FULL_SCREEN = 1,
@@ -820,6 +838,17 @@ export enum WindowStatusType {
     MINIMIZE = 3,
     FLOATING = 4,
     SPLIT_SCREEN = 5
+}
+
+export interface WindowSnapshotAnimationConfig {
+  duration?: long;
+  delay?: long;
+}
+
+export interface MaximizeOptions {
+  maximizePresentation?: MaximizePresentation;
+  acrossDisplayPresentation?: AcrossDisplayPresentation;
+  snapshotAnimationConfig?: WindowSnapshotAnimationConfig;
 }
 
 export enum OcclusionState {
@@ -891,6 +920,12 @@ export enum Orientation {
     FOLLOW_DESKTOP = 17
 }
 
+export enum OrientationExecutionResult {
+    ORIENTATION_APPLIED = 0,
+    ORIENTATION_IGNORED = 1,
+    ORIENTATION_PENDING = 2,
+}
+
 export enum RotationInfoType {
   WINDOW_ORIENTATION = 0,
   DISPLAY_ORIENTATION = 1,
@@ -918,6 +953,12 @@ export enum WindowMode {
     PRIMARY = 3,
     SECONDARY = 4,
     FLOATING = 5
+}
+
+export enum SplitRatioPreference {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2,
 }
 
 export enum WindowLayoutMode {
@@ -948,20 +989,35 @@ export class StatusBarPropertyInternal implements StatusBarProperty {
   contentColor: string;
 }
 
+export interface WindowInfoOptions {
+  excludeSystemWindows?: boolean;
+  foregroundAboveWindow?: int;
+  foregroundBelowWindow?: int;
+}
+
+export class WindowInfoOptionsInternal implements WindowInfoOptions {
+  excludeSystemWindows?: boolean;
+  foregroundAboveWindow?: int;
+  foregroundBelowWindow?: int;
+}
+
 export interface WindowLayoutInfo {
   windowRect: Rect;
+  windowAlpha?: double;
 }
 
 export class WindowLayoutInfoInternal implements WindowLayoutInfo {
   windowRect: Rect;
+  windowAlpha?: double;
 }
 
 export interface WindowInfo {
   rect: Rect;
   globalDisplayRect?: Rect;
   globalRect?: Rect;
-  displayId?: int;
+  displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;
@@ -972,8 +1028,9 @@ export class WindowInfoInternal implements WindowInfo {
   rect: Rect;
   globalDisplayRect?: Rect;
   globalRect?: Rect;
-  displayId?: int;
+  displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;
@@ -1163,6 +1220,7 @@ export interface WindowProperties {
     drawableRect: Rect;
     globalDisplayRect?: Rect;
     type: WindowType;
+    windowType: WindowType;
     isFullScreen: boolean;
     isLayoutFullScreen: boolean;
     focusable: boolean;
@@ -1192,6 +1250,7 @@ export class WindowPropertiesInternal implements WindowProperties {
   isRoundCorner: boolean;
   isTransparent: boolean;
   type: WindowType;
+  windowType: WindowType;
   id: int;
   displayId?: long;
   name?: string;
@@ -1199,8 +1258,8 @@ export class WindowPropertiesInternal implements WindowProperties {
 
   constructor(windowRect: Rect, drawableRect: Rect, isFullScreen: boolean, isLayoutFullScreen: boolean,
     focusable: boolean, touchable: boolean, brightness: double, dimBehindValue: number, isKeepScreenOn: boolean,
-    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, id: int,
-    displayId: long, name: string, globalDisplayRect: Rect)
+    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, windowTypeInternal: int,
+    id: int, displayId: long, name: string, globalDisplayRect: Rect)
   {
     this.windowRect = windowRect;
     this.drawableRect = drawableRect;
@@ -1216,6 +1275,7 @@ export class WindowPropertiesInternal implements WindowProperties {
     this.isRoundCorner = isRoundCorner;
     this.isTransparent = isTransparent;
     this.type = WindowType.fromValue(typeInternal);
+    this.windowType = WindowType.fromValue(windowTypeInternal);
     this.id = id;
     this.displayId = displayId;
     this.name = name;
@@ -1445,6 +1505,10 @@ export class TranslateOptionsInternal implements TranslateOptions {
   x?: double;
   y?: double;
   z?: double;
+}
+
+export interface OrientationResult {
+  executionResult : OrientationExecutionResult;
 }
 
 /**
@@ -2226,6 +2290,16 @@ export interface SubWindowOptions {
    * @since 20
    */
   outlineEnabled?: boolean;
+ 
+  /**
+   * Indicates whether loose the restriction of sub window z-level above parent.
+   *
+   * @syscap SystemCapability.Window.SessionManager
+   * @stagemodelonly
+   * @atomicservice
+   * @since 26.0.0 dynamic&static
+   */
+  zLevelAboveParentLoosened?: boolean;
 }
 
 /**
@@ -2962,6 +3036,9 @@ export class WindowInternal implements Window {
     static readonly DEFAULT_RET_VAL = 1;
     static { loadLibrary('windowstageani_module.z') }
     private nativeObj: long;
+    private static nextPromiseId_: int = 0;
+    private static orientationPromiseMap_: Map<number, (value: OrientationResult) => void> =
+      new Map<number, (value: OrientationResult) => void>();
 
     public setNativeObj(nativeObj: long): void {
         this.nativeObj = nativeObj;
@@ -3026,10 +3103,11 @@ export class WindowInternal implements Window {
     private native setWindowShadowRadius(nativeObj: long, radius: double): void;
     private native setWindowColorSpaceSync(nativeObj: long, colorSpace: int): void;
     private native setPreferredOrientationSync(nativeObj: long, orientation: int): void;
+    private native setPreferredOrientationWithResultSync(nativeObj: long, orientation: int, promiseId: int): void;
     private native getPreferredOrientation(nativeObj: long): int;
     private native convertOrientationAndRotation(nativeObj: long, from: int, to: int, value: int): int;
     private native setWindowPrivacyModeSync(nativeObj: long, isPrivacyMode: boolean): void;
-    private native recoverSync(nativeObj: long): void;
+    private native recoverSync(nativeObj: long, snapshotAnimationConfig?: WindowSnapshotAnimationConfig): void;
     private native setUIContentSync(nativeObj: long, path: string): void;
     private native loadContentSync(nativeObj: long, path: string, storage?: LocalStorage): void;
     private native loadContentByNameSync(nativeObj: long, path: string, storage?: LocalStorage): void;
@@ -3038,6 +3116,7 @@ export class WindowInternal implements Window {
     private native setWindowTouchableSync(nativeObj: long, isTouchable: boolean): void;
     private native setDialogBackGestureEnabledSync(nativeObj: long, enabled: boolean): void;
     private native setWindowMaskSync(nativeObj: long, windowMask: Array<Array<long>>): void;
+    private native setWindowMaskWithAlphaSync(nativeObj: long, windowMask: Uint8Array, maskWidth: int, maskHeight: int): void;
     private native clearWindowMaskSync(nativeObj: long): void;
     private native getUIContextSync(nativeObj: long): UIContext;
     private native getWindowAvoidAreaSync(nativeObj: long, type: int): AvoidArea;
@@ -3056,6 +3135,8 @@ export class WindowInternal implements Window {
     private native getWindowSystemBarProperties(nativeObj: long): SystemBarProperties;
     private native isGestureBackEnabled(nativeObj: long): boolean;
     private native setGestureBackEnabled(nativeObj: long, enabled: boolean): void;
+    private native isFloatNavigationAvoidAreaEnabled(nativeObj: long): boolean;
+    private native setFloatNavigationAvoidAreaEnabled(nativeObj: long, enabled: boolean): void;
     private native setSingleFrameComposerEnabled(nativeObj: long, enabled: boolean): void;
     private native getWindowAvoidAreaIgnoringVisibilitySync(nativeObj: long, type: int): AvoidArea;
     private native setWaterMarkFlagSync(nativeObj: long, enable: boolean): void;
@@ -3106,6 +3187,7 @@ export class WindowInternal implements Window {
     private native getWindowStatus(nativeObj: long): int;
     private native minimize(nativeObj: long): void;
     private native maximize(nativeObj: long, presentation?: MaximizePresentation, acrossDisplay?: boolean): void;
+    private native maximizeWithOptionsSync(nativeObj: long, maximizeOptions?: MaximizeOptions): void;
     private native startMoving(nativeObj: long): void;
     private native startMoveWindowWithCoordinate(nativeObj: long, offsetX: int, offsetY: int): void;
     private native stopMoving(nativeObj: long): void;
@@ -3728,6 +3810,34 @@ export class WindowInternal implements Window {
       });
     }
 
+    private static generatePromiseId(): int {
+        if (WindowInternal.nextPromiseId_ >= Number.MAX_SAFE_INTEGER) {
+            WindowInternal.nextPromiseId_ = 0;
+        }
+        return ++WindowInternal.nextPromiseId_;
+    }
+
+    public static handleOrientationResult(promiseId: int, result: OrientationExecutionResult): void {
+        const resolve = WindowInternal.orientationPromiseMap_.get(promiseId);
+        if (resolve) {
+            WindowInternal.orientationPromiseMap_.delete(promiseId);
+            resolve({executionResult: result});
+        }
+    }
+
+    public setPreferredOrientationWithResult(orientation: Orientation): Promise<OrientationResult> {
+      return new Promise<OrientationResult>((resolve: (value: OrientationResult) => void, reject: (error: BusinessError) => void ) => {
+        const promiseId = WindowInternal.generatePromiseId();
+        WindowInternal.orientationPromiseMap_.set(promiseId, resolve);
+        taskpool.execute(() => {
+          this.setPreferredOrientationWithResultSync(this.nativeObj, orientation, promiseId);
+        }).then((ret: Any) => {
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public getPreferredOrientation(): Orientation {
       return Orientation.fromValue(this.getPreferredOrientation(this.nativeObj));
     }
@@ -3762,6 +3872,18 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.recoverSync(this.nativeObj);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public recover(snapshotAnimationConfig: WindowSnapshotAnimationConfig): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.recoverSync(this.nativeObj, snapshotAnimationConfig);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -3989,6 +4111,18 @@ export class WindowInternal implements Window {
       });
     }
 
+    public setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.setWindowMaskWithAlphaSync(this.nativeObj, windowMask, maskWidth, maskHeight);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public clearWindowMask(): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
@@ -4121,6 +4255,22 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.setGestureBackEnabled(this.nativeObj, enabled);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public isFloatNavigationAvoidAreaEnabled(): boolean {
+      return this.isFloatNavigationAvoidAreaEnabled(this.nativeObj);
+    }
+
+    public setFloatNavigationAvoidAreaEnabled(enabled: boolean): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.setFloatNavigationAvoidAreaEnabled(this.nativeObj, enabled);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -4935,6 +5085,18 @@ export class WindowInternal implements Window {
       });
     }
 
+    public maximizeWithOptions(maximizeOptions?: MaximizeOptions): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.maximizeWithOptionsSync(this.nativeObj, maximizeOptions);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public startMoving(): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute((): void => {
@@ -5325,11 +5487,13 @@ export interface Window {
     setWindowColorSpace(colorSpace: ColorSpace, callback: AsyncCallback<void>): void;
     setPreferredOrientation(orientation: Orientation): Promise<void>;
     setPreferredOrientation(orientation: Orientation, callback: AsyncCallback<void>): void;
+    setPreferredOrientationWithResult(orientation: Orientation): Promise<OrientationResult>;
     getPreferredOrientation(): Orientation;
     convertOrientationAndRotation(from: RotationInfoType, to: RotationInfoType, value: int): int;
     setWindowPrivacyMode(isPrivacyMode: boolean): Promise<void>;
     setWindowPrivacyMode(isPrivacyMode: boolean, callback: AsyncCallback<void>): void;
     recover(): Promise<void>;
+    recover(snapshotAnimationConfig: WindowSnapshotAnimationConfig): Promise<void>;
     setUIContent(path: string): Promise<void>;
     setUIContent(path: string, callback: AsyncCallback<void>): void;
     loadContent(path: string, storage: LocalStorage): Promise<void>;
@@ -5357,6 +5521,7 @@ export interface Window {
     setWindowTouchable(isTouchable: boolean, callback: AsyncCallback<void>): void;
     setDialogBackGestureEnabled(enabled: boolean): Promise<void>;
     setWindowMask(windowMask: Array<Array<long>>): Promise<void>;
+    setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void>;
     clearWindowMask(): Promise<void>;
     setTouchableAreas(rects: Array<Rect>): void;
     getUIContext(): UIContext;
@@ -5378,6 +5543,8 @@ export interface Window {
     getWindowSystemBarProperties(): SystemBarProperties;
     isGestureBackEnabled(): boolean;
     setGestureBackEnabled(enabled: boolean): Promise<void>;
+    isFloatNavigationAvoidAreaEnabled(): boolean;
+    setFloatNavigationAvoidAreaEnabled(enabled: boolean): Promise<void>;
     setSingleFrameComposerEnabled(enabled: boolean): Promise<void>;
     setWaterMarkFlag(enable: boolean): Promise<void>;
     setWaterMarkFlag(enable: boolean, callback: AsyncCallback<void>): void;
@@ -5491,6 +5658,7 @@ export interface Window {
     minimize(): Promise<void>;
     maximize(presentation?: MaximizePresentation): Promise<void>;
     maximize(presentation?: MaximizePresentation, acrossDisplay?: boolean): Promise<void>;
+    maximizeWithOptions(maximizeOptions?: MaximizeOptions): Promise<void>;
     startMoving(): Promise<void>;
     startMoving(offsetX: int, offsetY: int): Promise<void>;
     stopMoving(): Promise<void>;
@@ -5556,11 +5724,12 @@ native function findWindowSync(nativeObj: long, name: string): Window;
 native function onSync(nativeObj: long, type: string, callback: object): void;
 native function offSync(nativeObj: long, type: string, callback?: object): void;
 native function createWindowSync(nativeObj: long, config: Configuration): Window;
-native function getAllWindowLayoutInfo(nativeObj: long, displayId: long): Array<WindowLayoutInfo>;
+native function getAllWindowLayoutInfo(nativeObj: long, displayId: long,
+  option?: WindowInfoOptions): Array<WindowLayoutInfo>;
 native function getSnapshot(nativeObj: long, windowId: int): image.PixelMap;
 native function getVisibleWindowInfo(nativeObj: long): Array<WindowInfoInternal>;
 native function setGestureNavigationEnabled(nativeObj: long, enabled: boolean): void;
-native function setWaterMarkImage(nativeObj: long, pixelMap: image.PixelMap, enabled: boolean): void;
+native function setWaterMarkImage(nativeObj: long, pixelMap: image.PixelMap, enabled: boolean, priority: int): void;
 native function getWindowsByCoordinate(nativeObj: long, param: GetWindowsByCoordinateParam): Array<Window>;
 native function shiftAppWindowFocusSync(nativeObj: long, sourceWindowId: int, targetWindowId: int): void;
 native function shiftAppWindowPointerEventSync(nativeObj: long, sourceWindowId: int, targetWindowId: int): void;
@@ -5577,6 +5746,7 @@ native function toggleShownStateForAllAppWindowsSync(nativeObj: long): void;
 native function setSpecificSystemWindowZIndexSync(nativeObj: long, windowType: WindowType, zIndex: int): void;
 native function createSubWindowAndBindParentSync(nativeObj: long, name: string,
   parentId: int, ctx: BaseContext, parentWindowEventListener: WindowEventListener): Window;
+native function moveMainWindowToTargetDisplaySync(nativeObj: long, displayId: long, windowId: int): void;
 
 export function createSubWindowAndBindParent(name: string, parentId: int, ctx: BaseContext,
   parentWindowEventListener: WindowEventListener): Promise<Window> {
@@ -5769,7 +5939,25 @@ export function getAllWindowLayoutInfo(displayId: long): Promise<Array<WindowLay
   return new Promise<Array<WindowLayoutInfo>>((
     resolve: (value: Array<WindowLayoutInfo>) => void, reject: (error: BusinessError) => void): void => {
       taskpool.execute(() => {
-          return getAllWindowLayoutInfo(nativeObj, displayId);
+          let option: window.WindowInfoOptions = {
+            excludeSystemWindows: false,
+            foregroundAboveWindow: 0,
+            foregroundBelowWindow: 0
+          } as WindowInfoOptionsInternal;
+          return getAllWindowLayoutInfo(nativeObj, displayId, option);
+      }).then((ret: Any) => {
+          resolve(ret as Array<WindowLayoutInfo>);
+      }).catch((err: Any) => {
+          reject(err as BusinessError);
+      });
+  });
+}
+
+export function getAllWindowLayoutInfo(displayId: long, option?: WindowInfoOptions): Promise<Array<WindowLayoutInfo>> {
+  return new Promise<Array<WindowLayoutInfo>>((
+    resolve: (value: Array<WindowLayoutInfo>) => void, reject: (error: BusinessError) => void): void => {
+      taskpool.execute(() => {
+          return getAllWindowLayoutInfo(nativeObj, displayId, option);
       }).then((ret: Any) => {
           resolve(ret as Array<WindowLayoutInfo>);
       }).catch((err: Any) => {
@@ -5837,7 +6025,7 @@ export function setWaterMarkImage(pixelMap: image.PixelMap, enabled: boolean): P
   return new Promise<void>((
     resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
       taskpool.execute((): void => {
-          return setWaterMarkImage(nativeObj, pixelMap, enabled);
+          return setWaterMarkImage(nativeObj, pixelMap, enabled, 0);
       }).then((ret: Any) => {
           resolve(undefined);
       }).catch((err: Any) => {
@@ -5848,12 +6036,25 @@ export function setWaterMarkImage(pixelMap: image.PixelMap, enabled: boolean): P
 
 export function setWaterMarkImage(pixelMap: image.PixelMap, enabled: boolean, callback: AsyncCallback<void>): void {
     taskpool.execute((): void => {
-        setWaterMarkImage(nativeObj, pixelMap, enabled);
+        setWaterMarkImage(nativeObj, pixelMap, enabled, 0);
     }).then((ret: Any) => {
         callback(new BusinessError(), undefined);
     }).catch((err: Any) => {
         callback(err as BusinessError, undefined);
     });
+}
+
+export function setWaterMarkImage(pixelMap: image.PixelMap, enabled: boolean, priority: int): Promise<void> {
+  return new Promise<void>((
+    resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+      taskpool.execute((): void => {
+          return setWaterMarkImage(nativeObj, pixelMap, enabled, priority);
+      }).then((ret: Any) => {
+          resolve(undefined);
+      }).catch((err: Any) => {
+          reject(err as BusinessError);
+      });
+  });
 }
 
 export function getWindowsByCoordinate(displayId: long, windowNumber?: int,
@@ -6012,6 +6213,18 @@ export function getMainWindowSnapshot(windowId: Array<number>, config: WindowSna
   });
 }
 
+export function moveMainWindowToTargetDisplay(displayId: long, windowId: int): Promise<void> {
+  return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+      taskpool.execute((): void => {
+          return moveMainWindowToTargetDisplaySync(nativeObj, displayId, windowId);
+      }).then((ret: Any) => {
+          resolve(undefined);
+      }).catch((err: Any) => {
+          reject(err as BusinessError);
+      });
+  });
+}
+
 export function on<T>(type: string, callback: Callback<T>): void {
   onSync(nativeObj, type, callback);
 }
@@ -6099,6 +6312,11 @@ function runAvoidAreaChangeCallback(cb: object, area: object, type: int): void {
 function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
     const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
     func(WindowStageLifecycleEventType.fromValue(cbArg));
+}
+
+function runOrientationResultCallback(promiseId: int, result: int): void {
+  hilog.info(DOMAIN, TAG, `runOrientationResultCallback promiseId=${promiseId} result=${result}`);
+  WindowInternal.handleOrientationResult(promiseId, OrientationExecutionResult.fromValue(result));
 }
 
 function runWindowEventCallback(cb: object, cbArg: int): void {

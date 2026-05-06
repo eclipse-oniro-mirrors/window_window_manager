@@ -21,6 +21,7 @@
 #include "iremote_object_mocker.h"
 #include "mock/mock_session_stub.h"
 #include "parcel/accessibility_event_info_parcel.h"
+#include "session/host/include/scene_session.h"
 #include "session/host/include/zidl/session_ipc_interface_code.h"
 #include "session/host/include/zidl/session_stub.h"
 #include "want.h"
@@ -136,35 +137,105 @@ HWTEST_F(SessionStubLayoutTest, HandleSetSystemEnableDrag_TestReadBool, TestSize
     res = session_->HandleSetSystemEnableDrag(data, reply);
     ASSERT_EQ(ERR_NONE, res);
 }
-
 /**
- * @tc.name: HandleGetAppHookWindowInfoFromServer
- * @tc.desc: HandleGetAppHookWindowInfoFromServer01
+ * @tc.name: HandleNotifyAttachedWindowsLimitsChanged01
+ * @tc.desc: Test HandleNotifyAttachedWindowsLimitsChanged with valid data
  * @tc.type: FUNC
  */
-HWTEST_F(SessionStubLayoutTest, HandleGetAppHookWindowInfoFromServer01, TestSize.Level1)
+HWTEST_F(SessionStubLayoutTest, HandleNotifyAttachedWindowsLimitsChanged01, TestSize.Level1)
 {
-    ASSERT_TRUE(session_ != nullptr);
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option = { MessageOption::TF_SYNC };
-    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_HOOK_WINDOW_INFO);
-    auto res = session_->ProcessRemoteRequest(code, data, reply, option);
+
+    WindowLimits newLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    newLimits.Marshalling(data);
+
+    auto res = session->HandleNotifyAttachedWindowsLimitsChanged(data, reply);
     EXPECT_EQ(ERR_NONE, res);
 }
 
 /**
- * @tc.name: HandleGetAppHookWindowInfoFromServer
- * @tc.desc: HandleGetAppHookWindowInfoFromServer02
+ * @tc.name: HandleNotifyAttachedWindowsLimitsChanged02
+ * @tc.desc: Test HandleNotifyAttachedWindowsLimitsChanged with read limits failed
  * @tc.type: FUNC
  */
-HWTEST_F(SessionStubLayoutTest, HandleGetAppHookWindowInfoFromServer02, TestSize.Level1)
+HWTEST_F(SessionStubLayoutTest, HandleNotifyAttachedWindowsLimitsChanged02, TestSize.Level1)
 {
-    ASSERT_TRUE(session_ != nullptr);
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
     MessageParcel data;
     MessageParcel reply;
-    auto res = session_->HandleGetAppHookWindowInfoFromServer(data, reply);
-    EXPECT_EQ(res, ERR_NONE);
+    // Don't write limits - will fail to read
+
+    auto res = session->HandleNotifyAttachedWindowsLimitsChanged(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
+}
+
+/**
+ * @tc.name: HandleNotifyAttachedWindowsLimitsChanged03
+ * @tc.desc: Test HandleNotifyAttachedWindowsLimitsChanged with height only
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLayoutTest, HandleNotifyAttachedWindowsLimitsChanged03, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+
+    WindowLimits newLimits = { 1800, 900, 150, 250, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    newLimits.Marshalling(data);
+
+    auto res = session->HandleNotifyAttachedWindowsLimitsChanged(data, reply);
+    EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleNotifyAttachedWindowsLimitsChanged04
+ * @tc.desc: Test HandleNotifyAttachedWindowsLimitsChanged with VP unit limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLayoutTest, HandleNotifyAttachedWindowsLimitsChanged04, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+
+    WindowLimits newLimits = { 1000, 500, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
+    newLimits.Marshalling(data);
+
+    auto res = session->HandleNotifyAttachedWindowsLimitsChanged(data, reply);
+    EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleNotifyAttachedWindowsLimitsChanged05
+ * @tc.desc: Test HandleNotifyAttachedWindowsLimitsChanged with invalid pixelUnit value
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLayoutTest, HandleNotifyAttachedWindowsLimitsChanged05, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+
+    // Write WindowLimits data manually with invalid pixelUnit value
+    data.WriteUint32(1600); // maxWidth_
+    data.WriteUint32(800);  // maxHeight_
+    data.WriteUint32(100);  // minWidth_
+    data.WriteUint32(200);  // minHeight_
+    data.WriteFloat(0.0f);  // maxRatio_
+    data.WriteFloat(0.0f);  // minRatio_
+    data.WriteFloat(0.0f);  // vpRatio_
+    data.WriteUint32(999);  // Invalid pixelUnit (valid values are 0=PX, 1=VP)
+
+    // WindowLimits::Unmarshalling will fail due to invalid pixelUnit
+    auto res = session->HandleNotifyAttachedWindowsLimitsChanged(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
 }
 } // namespace
 } // namespace Rosen

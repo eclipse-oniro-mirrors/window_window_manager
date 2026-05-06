@@ -60,6 +60,10 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual WMError RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError TerminateSessionByPersistentId(int32_t persistentId) = 0;
     virtual WMError CloseTargetFloatWindow(const std::string& bundleName) = 0;
     virtual WMError CloseTargetPiPWindow(const std::string& bundleName) = 0;

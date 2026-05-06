@@ -81,12 +81,14 @@ public:
     sptr<Display> GetDefaultDisplaySync(int32_t userId = CONCURRENT_USER_ID_DEFAULT);
     std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution();
     sptr<Display> GetDisplayById(DisplayId displayId);
+    sptr<Display> GetDisplayById(DisplayId displayId, bool isGetActualInfo);
     sptr<DisplayInfo> GetVisibleAreaDisplayInfoById(DisplayId displayId);
     DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area);
     DMError HasPrivateWindow(DisplayId displayId, bool& hasPrivateWindow);
     bool ConvertScreenIdToRsScreenId(ScreenId screenId, ScreenId& rsScreenId);
     bool IsFoldable();
     bool IsCaptured();
+    bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
     FoldStatus GetFoldStatus();
     FoldDisplayMode GetFoldDisplayMode();
     FoldDisplayMode GetFoldDisplayModeForExternal();
@@ -154,6 +156,7 @@ public:
     DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributesNotListened);
 
 private:
+    FoldDisplayMode FoldDisplayModeTrans(FoldDisplayMode displaymode);
     void ClearDisplayStateCallback();
     void ClearFoldStatusCallback();
     void ClearFoldAngleCallback();
@@ -570,6 +573,32 @@ bool DisplayManager::Impl::CheckSizeValid(const Media::Size& size, int32_t oriHe
     return true;
 }
 
+FoldDisplayMode DisplayManager::Impl::FoldDisplayModeTrans(FoldDisplayMode displaymode)
+{
+    FoldDisplayMode transdisplaymode = FoldDisplayMode::UNKNOWN;
+    switch (displaymode) {
+        case FoldDisplayMode::FULL:
+        case FoldDisplayMode::L_FULL:
+            transdisplaymode = FoldDisplayMode::FULL;
+            break;
+        case FoldDisplayMode::N_MAIN:
+        case FoldDisplayMode::V_MAIN:
+        case FoldDisplayMode::MAIN:
+            transdisplaymode = FoldDisplayMode::MAIN;
+            break;
+        case FoldDisplayMode::GLOBAL_FULL:
+            transdisplaymode = FoldDisplayMode::GLOBAL_FULL;
+            break;
+        case FoldDisplayMode::COORDINATION:
+            transdisplaymode = FoldDisplayMode::COORDINATION;
+            break;
+        default:
+            transdisplaymode = FoldDisplayMode::UNKNOWN;
+            break;
+    }
+    return transdisplaymode;
+}
+
 void DisplayManager::Impl::ClearDisplayStateCallback()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -762,6 +791,11 @@ bool DisplayManager::Impl::SetVirtualScreenAsDefault(ScreenId screenId)
 
 sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
 {
+    return DisplayManager::Impl::GetDisplayById(displayId, false);
+}
+
+sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId, bool isGetActualInfo)
+{
     if (displayId == DISPLAY_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "screen id is invalid");
         return nullptr;
@@ -771,7 +805,7 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         auto iter = displayMap_.find(displayId);
-        if (iter != displayMap_.end()) {
+        if (iter != displayMap_.end() && !isGetActualInfo) {
             static uint32_t getDisplayIntervalUs_ = (std::string(program_invocation_name) != "com.ohos.sceneboard")
                                                         ? APP_GET_DISPLAY_INTERVAL_US
                                                         : SCB_GET_DISPLAY_INTERVAL_US;
@@ -782,7 +816,8 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
             targetTag = globalDisplayTagMap_[displayId];
         }
     }
-    sptr<DisplayInfo> displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(displayId);
+    sptr<DisplayInfo> displayInfo =
+        SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(displayId, isGetActualInfo);
     if (displayInfo == nullptr) {
         TLOGW(WmsLogTag::DMS, "display null id : %{public}" PRIu64" ", displayId);
         return nullptr;
@@ -793,6 +828,12 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
         displayMap_.erase(displayId);
     }
     currentDisplayTagMap_[displayId] = targetTag;
+    if (isGetActualInfo && displayMap_[displayId] != nullptr &&
+        displayMap_[displayId]->GetDisplayInfoWithCache() != nullptr) {
+        TLOGI(WmsLogTag::DMS, "display: %{public}" PRIu64 " width: %{public}d, height: %{public}d", displayId,
+            displayMap_[displayId]->GetDisplayInfoWithCache()->GetWidth(),
+            displayMap_[displayId]->GetDisplayInfoWithCache()->GetHeight());
+    }
     return displayMap_[displayId];
 }
 
@@ -836,12 +877,17 @@ sptr<DisplayInfo> DisplayManager::Impl::GetVisibleAreaDisplayInfoById(DisplayId 
 
 sptr<Display> DisplayManager::GetDisplayById(DisplayId displayId)
 {
+    return GetDisplayById(displayId, false);
+}
+
+sptr<Display> DisplayManager::GetDisplayById(DisplayId displayId, bool isGetActualInfo)
+{
     if (g_dmIsDestroyed) {
         TLOGI(WmsLogTag::DMS, "DM has been destructed");
         return nullptr;
     }
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return pImpl_->GetDisplayById(displayId);
+    return pImpl_->GetDisplayById(displayId, isGetActualInfo);
 }
 
 sptr<DisplayInfo> DisplayManager::GetVisibleAreaDisplayInfoById(DisplayId displayId)
@@ -917,7 +963,7 @@ std::shared_ptr<Media::PixelMap> DisplayManager::GetScreenshot(DisplayId display
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> DisplayManager::GetScreenHDRshot(DisplayId displayId,
-    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen)
+    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent)
 {
     if (displayId == DISPLAY_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "displayId invalid!");
@@ -925,7 +971,7 @@ std::vector<std::shared_ptr<Media::PixelMap>> DisplayManager::GetScreenHDRshot(D
     }
     const std::vector<std::shared_ptr<Media::PixelMap>>& screenShotVec =
         SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayHDRSnapshot(displayId, errorCode,
-            isUseDma, isCaptureFullOfScreen);
+            isUseDma, isCaptureFullOfScreen, displayIntent);
     if (screenShotVec.size() != PIXMAP_VECTOR_SIZE) {
         TLOGE(WmsLogTag::DMS, "failed!");
         return { nullptr, nullptr };
@@ -1182,7 +1228,15 @@ std::vector<DisplayId> DisplayManager::GetAllDisplayIds(int32_t userId)
 
 std::vector<DisplayPhysicalResolution> DisplayManager::Impl::GetAllDisplayPhysicalResolution()
 {
-    return SingletonContainer::Get<DisplayManagerAdapter>().GetAllDisplayPhysicalResolution();
+    auto physicalResolution = SingletonContainer::Get<DisplayManagerAdapter>().GetAllDisplayPhysicalResolution();
+    for (auto& info : physicalResolution) {
+        auto displayMode = FoldDisplayModeTrans(info.foldDisplayMode_);
+        info.foldDisplayMode_ = displayMode;
+        if (displayMode == FoldDisplayMode::GLOBAL_FULL) {
+            info.foldDisplayMode_ = FoldDisplayMode::FULL;
+        }
+    }
+    return physicalResolution;
 }
 
 std::vector<DisplayPhysicalResolution> DisplayManager::GetAllDisplayPhysicalResolution()
@@ -1236,6 +1290,16 @@ bool DisplayManager::Impl::IsCaptured()
     return SingletonContainer::Get<DisplayManagerAdapter>().IsCaptured();
 }
 
+bool DisplayManager::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    return pImpl_->IsCapturedByBundleNameList(bundleNameList);
+}
+
+bool DisplayManager::Impl::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    return SingletonContainer::Get<DisplayManagerAdapter>().IsCapturedByBundleNameList(bundleNameList);
+}
+
 FoldStatus DisplayManager::GetFoldStatus()
 {
     return pImpl_->GetFoldStatus();
@@ -1264,6 +1328,7 @@ FoldDisplayMode DisplayManager::Impl::GetFoldDisplayMode()
 FoldDisplayMode DisplayManager::Impl::GetFoldDisplayModeForExternal()
 {
     FoldDisplayMode displayMode = SingletonContainer::Get<DisplayManagerAdapter>().GetFoldDisplayMode();
+    displayMode = FoldDisplayModeTrans(displayMode);
     if (displayMode == FoldDisplayMode::GLOBAL_FULL) {
         return FoldDisplayMode::FULL;
     }
@@ -2012,6 +2077,7 @@ DMError DisplayManager::Impl::UnregisterDisplayUpdateListener(sptr<IDisplayUpdat
 
 void DisplayManager::Impl::NotifyDisplayModeChanged(FoldDisplayMode displayMode)
 {
+    displayMode = FoldDisplayModeTrans(displayMode);
     std::set<sptr<IDisplayModeListener>> displayModeListeners;
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);

@@ -26,7 +26,9 @@ public:
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
 
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void PresentFocusIfPointDown() override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     WSError UpdateFocus(bool isFocused) override;
@@ -46,6 +48,8 @@ public:
      */
     bool GetIsUseControlSession() const override;
     void SetIsUseControlSession(bool isUseControlSession) override;
+    int32_t GetMainWindowPersistentId() const override;
+    void SetMainWindowPersistentId(int32_t mainWindowPersistentId) override;
 
 protected:
     void UpdatePointerArea(const WSRect& rect) override;
@@ -58,6 +62,7 @@ private:
      * App Use Control
      */
     bool isUseControlSession_ = false; // Indicates whether the session is used for controlling a main session.
+    int32_t mainWindowPersistentId_ = INVALID_SESSION_ID;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SCB_SYSTEM_SESSION_H

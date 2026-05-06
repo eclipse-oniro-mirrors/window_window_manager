@@ -134,10 +134,11 @@ WSError SceneSessionManagerLite::PendingSessionToBackground(const sptr<IRemoteOb
 }
 
 WSError SceneSessionManagerLite::PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
-    bool shouldBackToCaller)
+    bool shouldBackToCaller, int32_t reason)
 {
     WLOGFD("in");
-    return SceneSessionManager::GetInstance().PendingSessionToBackgroundForDelegator(token, shouldBackToCaller);
+    return SceneSessionManager::GetInstance().PendingSessionToBackgroundForDelegator(token,
+        shouldBackToCaller, reason);
 }
 
 WSError SceneSessionManagerLite::GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId)
@@ -313,6 +314,11 @@ WMError SceneSessionManagerLite::SetProcessWatermark(int32_t pid, const std::str
     return SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
 }
 
+WMError SceneSessionManagerLite::RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
+{
+    return SceneSessionManager::GetInstance().RecoverProcessWatermark(pid, watermarkName);
+}
+
 WMError SceneSessionManagerLite::TerminateSessionByPersistentId(int32_t persistentId)
 {
     return SceneSessionManager::GetInstance().TerminateSessionByPersistentId(persistentId);
@@ -401,6 +407,15 @@ WMError SceneSessionManagerLite::RegisterSessionLifecycleListenerByBundles(
     const sptr<ISessionLifecycleListener>& listener, const std::vector<std::string>& bundleNameList)
 {
     return SceneSessionManager::GetInstance().RegisterSessionLifecycleListener(listener, bundleNameList);
+}
+
+WMError SceneSessionManagerLite::RegisterSessionLifecycleListenerByAppInstance(
+    const sptr<ISessionLifecycleListener>& listener, const std::string& bundleName,
+    int32_t appIndex, const std::string& appInstanceKey)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    return SceneSessionManager::GetInstance().RegisterSessionLifecycleListener(
+        listener, bundleName, appIndex, appInstanceKey);
 }
 
 WMError SceneSessionManagerLite::UnregisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener)
@@ -537,5 +552,12 @@ WSError SceneSessionManagerLite::NotifyAppUseControlDisplay(DisplayId displayId,
 {
     TLOGI(WmsLogTag::WMS_PATTERN, "in");
     return SceneSessionManager::GetInstance().NotifyAppUseControlDisplay(displayId, useControl);
+}
+
+WMError SceneSessionManagerLite::GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+    std::vector<AppWindowShowingInfo>& windowInfos)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
 }
 } // namespace OHOS::Rosen

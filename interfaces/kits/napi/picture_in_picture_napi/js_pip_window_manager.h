@@ -18,6 +18,7 @@
 
 #include "js_runtime_utils.h"
 #include "picture_in_picture_manager.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {

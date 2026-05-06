@@ -25,6 +25,7 @@
 #include "pixel_map.h"
 #include "transaction/rs_render_service_client.h"
 #include "screen_manager/rs_screen_mode_info.h"
+#include "common/rs_event_def.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -54,7 +55,7 @@ struct EventInfo {
     std::string description;  // the extend description for eventName，e.g."SCENE_APP_START_ANIMATION"
 };
 
-using ScreenChangeCallback = std::function<void(ScreenId, ScreenEvent, ScreenChangeReason)>;
+using ScreenChangeCallback = std::function<void(ScreenId, ScreenEvent, ScreenChangeReason, sptr<IRemoteObject>)>;
 using ScreenSwitchingNotifyCallback = std::function<void(bool)>;
 using BrightnessInfoChangeCallback = std::function<void(ScreenId, BrightnessInfo)>;
 using HgmRefreshRateUpdateCallback = std::function<void(int32_t)>;
@@ -145,6 +146,8 @@ public:
     int32_t RemoveVirtualScreenWhiteList(ScreenId id, const std::vector<NodeId>& whiteList);
     int32_t SetLogicalCameraRotationCorrection(ScreenId id, ScreenRotation screenRotation);
     ScreenId GetActiveScreenId();
+    int32_t RegisterExposedEventCallback(const RSExposedEventType type, const RSExposedEventCallback& callback);
+    int32_t UnRegisterExposedEventCallback(const RSExposedEventType type);
 };
 }  // namespace Rosen
 }  // namespace OHOS

@@ -205,7 +205,17 @@ void WindowManagerService::InitWithRanderServiceAdded()
     auto windowVisibilityChangeCb =
         [this](std::shared_ptr<RSOcclusionData> occlusionData) { this->WindowVisibilityChangeCallback(occlusionData); };
     WLOGI("RegisterWindowVisibilityChangeCallback");
-    if (rsInterface_.RegisterOcclusionChangeCallback(windowVisibilityChangeCb) != WM_OK) {
+    auto rsUICtx = rsUiDirector_->GetRSUIContext();
+    if (rsUICtx == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no rsUICtx");
+        return;
+    }
+    auto rsInterface = rsUICtx->GetRSRenderInterface();
+    if (rsInterface == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        return;
+    }
+    if (rsInterface->RegisterOcclusionChangeCallback(windowVisibilityChangeCb) != WM_OK) {
         WLOGFE("RegisterWindowVisibilityChangeCallback failed");
     }
 }
@@ -1366,7 +1376,8 @@ WMError WindowManagerService::UpdateProperty(sptr<WindowProperty>& windowPropert
     }
 
     if ((windowProperty->GetWindowFlags() == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_FORBID_SPLIT_MOVE) ||
-        action == PropertyChangeAction::ACTION_UPDATE_TRANSFORM_PROPERTY) &&
+        action == PropertyChangeAction::ACTION_UPDATE_TRANSFORM_PROPERTY ||
+        action == PropertyChangeAction::ACTION_UPDATE_SNAPSHOT_SKIP) &&
         !Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         WLOGFE("SetForbidSplitMove or SetShowWhenLocked or SetTranform or SetTurnScreenOn permission denied!");
         return WMError::WM_ERROR_INVALID_PERMISSION;
@@ -1673,7 +1684,7 @@ void WindowManagerService::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Displa
 
 void WindowManagerService::InitRSUIDirector()
 {
-    rsUiDirector_ = RSUIDirector::Create();
+    rsUiDirector_ = RSUIDirector::Create(nullptr);
     if (!rsUiDirector_) {
         TLOGE(WmsLogTag::WMS_SCB, "Failed to create RSUIDirector");
         return;
@@ -1688,7 +1699,6 @@ void WindowManagerService::InitRSUIDirector()
     rsUiDirector_->SetUITaskRunner([this](const std::function<void()>& task, uint32_t delay) {
             PostAsyncTask(task, "WindowManagerService:cacheGuard", delay);
         }, instanceId, useMultiInstance);
-    rsUiDirector_->Init(false, useMultiInstance);
     TLOGI(WmsLogTag::WMS_SCB, "Create RSUIDirector: %{public}s",
           RSAdapterUtil::RSUIDirectorToStr(rsUiDirector_).c_str());
 }

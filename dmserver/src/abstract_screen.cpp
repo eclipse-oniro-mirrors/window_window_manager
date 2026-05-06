@@ -29,12 +29,13 @@ constexpr float MAX_ZORDER = 100000.0f;
 }
 
 AbstractScreen::AbstractScreen(sptr<AbstractScreenController> screenController, const std::string& name, ScreenId dmsId,
-    ScreenId rsId) : dmsId_(dmsId), rsId_(rsId), screenController_(screenController)
+    ScreenId rsId, sptr<IRemoteObject> connectToRenderToken)
+    : dmsId_(dmsId), rsId_(rsId), screenController_(screenController), connectToRenderToken_(connectToRenderToken)
 {
     if (name != "") {
         name_ = name;
     }
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, true, true);
+    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, connectToRenderToken_);
 }
 
 AbstractScreen::~AbstractScreen()
@@ -142,6 +143,11 @@ void AbstractScreen::UpdateRSTree(std::shared_ptr<RSSurfaceNode>& surfaceNode, b
             }
         }
     }
+}
+
+sptr<IRemoteObject> AbstractScreen::GetConnectToRenderToken() const
+{
+    return connectToRenderToken_;
 }
 
 DMError AbstractScreen::AddSurfaceNode(std::shared_ptr<RSSurfaceNode>& surfaceNode, bool onTop, bool needToRecord)
@@ -538,9 +544,13 @@ std::shared_ptr<RSUIContext> AbstractScreen::GetRSUIContext() const
     return rsUIContext;
 }
 
-AbstractScreenGroup::AbstractScreenGroup(sptr<AbstractScreenController> screenController, ScreenId dmsId, ScreenId rsId,
-    std::string name, ScreenCombination combination) : AbstractScreen(screenController, name, dmsId, rsId),
-    combination_(combination)
+AbstractScreenGroup::AbstractScreenGroup(sptr<AbstractScreenController> screenController, 
+                                         ScreenId dmsId, 
+                                         ScreenId rsId,
+                                         std::string name, 
+                                         ScreenCombination combination, 
+                                         sptr<IRemoteObject> connectToRenderToken)
+    : AbstractScreen(screenController, name, dmsId, rsId, connectToRenderToken), combination_(combination)
 {
     type_ = ScreenType::UNDEFINED;
     isScreenGroup_ = true;

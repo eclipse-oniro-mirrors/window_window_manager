@@ -1001,12 +1001,17 @@ void WindowController::RecordBootAnimationEvent() const
 std::shared_ptr<Media::PixelMap> WindowController::GetSnapshot(int32_t windowId)
 {
     auto node = windowRoot_->GetWindowNode(windowId);
-    if (node == nullptr) {
+    if (node == nullptr || node->surfaceNode_ == nullptr) {
         WLOGFE("could not find window");
         return nullptr;
     }
+    auto rsUICtx = node->surfaceNode_->GetRSUIContext();
+    if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        return nullptr;
+    }
     auto callback = std::make_shared<SurfaceCaptureFuture>();
-    bool ret = RSInterfaces::GetInstance().TakeSurfaceCapture(node->surfaceNode_, callback);
+    bool ret = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(node->surfaceNode_, callback);
     if (!ret) {
         WLOGFE("takeSurfaceCapture failed");
         return nullptr;

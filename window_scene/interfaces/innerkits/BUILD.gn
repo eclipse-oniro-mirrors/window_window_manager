@@ -31,7 +31,7 @@ ohos_shared_library("libwsutils") {
   sources = [ "src/scene_board_judgement.cpp" ]
 
   public_configs = [ ":libwsutils_public_config" ]
-
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

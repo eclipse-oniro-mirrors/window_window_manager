@@ -21,16 +21,44 @@
 #include "js_runtime_utils.h"
 #include "window.h"
 #include "ani.h"
+#include "napi/native_api.h"
+
+#include "picture_in_picture_option.h"
+#include "picture_in_picture_option_ani.h"
+#include "picture_in_picture_controller.h"
+#include "picture_in_picture_controller_ani.h"
 
 namespace OHOS {
 namespace Rosen {
-ani_ref AniGetUndefined(ani_env* env);
-ani_ref AniThrowError(ani_env* env, WMError error, std::string msg = "");
-std::string GetErrorMsg(WmErrorCode errorCode);
-ani_status GetStdString(ani_env *env, ani_string ani_str, std::string &result);
-void* GetAbilityContext(ani_env *env, ani_object aniObj);
-ani_status CallAniFunctionVoid(ani_env* env, const char* ns, const char* fn, const char* signature, ...);
-ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result);
+class AniPipUtils {
+public:
+    AniPipUtils() = default;
+    ~AniPipUtils() = default;
+    static ani_object AniGetUndefined(ani_env* env);
+    static ani_ref AniThrowError(ani_env* env, WMError error, std::string msg = "");
+    static std::string GetErrorMsg(WmErrorCode errorCode);
+    static ani_status GetStdString(ani_env *env, ani_string ani_str, std::string &result);
+    static void* GetAbilityContext(ani_env *env, ani_object aniObj);
+    static ani_status CallAniFunctionVoid(ani_env* env, const char* ns, const char* fn, const char* signature, ...);
+    static ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result);
+    static bool TransferToPipOptionAni(ani_env* env, const sptr<PipOption>& pipOption,
+        sptr<PipOptionAni>& pipOptionAni);
+    static bool TransferToPipOptionNapi(ani_env* env, const sptr<PipOptionAni>& pipOptionAni,
+        sptr<PipOption>& pipOption);
+    static bool convertNativeRefToAniRef(ani_env* env, const std::shared_ptr<NativeReference>& nativeRef,
+        ani_ref& aniRef);
+    static void TransferToPipControllerAni(sptr<PictureInPictureController>& pipController,
+        sptr<PictureInPictureControllerAni>& pipControllerAni);
+    static void TransferToPipControllerNapi(sptr<PictureInPictureControllerAni>& pipControllerAni,
+        sptr<PictureInPictureController>& pipController);
+    static ani_object ConvertNapiValueToAniObject(ani_env* aniEnv, napi_env napiEnv, napi_value jsValue);
+    static void InitVM(ani_env* env);
+    static ani_vm* vm_;
+
+private:
+    static ani_status CreateBusinessError(ani_env* env, int32_t error, std::string message, ani_object* err);
+};
+
 } // Rosen
 } // OHOS
 #endif // ANI_PIP_UTILS_H

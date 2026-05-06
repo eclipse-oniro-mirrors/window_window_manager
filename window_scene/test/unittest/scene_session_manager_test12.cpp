@@ -704,6 +704,21 @@ HWTEST_F(SceneSessionManagerTest12, CreateAndConnectSpecificSession04, TestSize.
     ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
         systemConfig, token);
     EXPECT_NE(property->GetWindowType(), WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
+
+    // Test WINDOW_TYPE_FV with valid parent session
+    property->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    property->SetParentPersistentId(parentSession->GetPersistentId());
+    property->SetSystemCalling(true);
+    auto res = ssm_->CreateAndConnectSpecificSession(
+        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res);
+
+    // Test WINDOW_TYPE_FV with invalid parent session (background state)
+    property->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    property->SetParentPersistentId(parentSession->GetPersistentId());
+    res = ssm_->CreateAndConnectSpecificSession(
+        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res);
 }
 
 /**
@@ -1306,6 +1321,9 @@ HWTEST_F(SceneSessionManagerTest12, GetAllWindowLayoutInfo01, TestSize.Level0)
     sceneSession1->SetSessionGlobalRect(rect);
     int32_t zOrder = 100;
     sceneSession1->SetZOrder(zOrder);
+    struct RSSurfaceNodeConfig config;
+    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
+    sceneSession1->SetSurfaceNode(surfaceNode);
     ssm_->sceneSessionMap_.insert({ sceneSession1->GetPersistentId(), sceneSession1 });
 
     constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
@@ -2483,21 +2501,21 @@ HWTEST_F(SceneSessionManagerTest12, TerminateSessionByPersistentIdWhenNoPermissi
     auto result = ssm_->TerminateSessionByPersistentId(persistentId);
     EXPECT_EQ(result, WMError::WM_ERROR_INVALID_PERMISSION);
     MockAccesstokenKit::MockAccessTokenKitRet(0);
- 
+
     MockAccesstokenKit::MockIsSystemApp(false);
     result = ssm_->TerminateSessionByPersistentId(persistentId);
     EXPECT_EQ(result, WMError::WM_ERROR_NOT_SYSTEM_APP);
     MockAccesstokenKit::MockIsSystemApp(true);
- 
+
     MockAccesstokenKit::MockIsSACalling(false);
     result = ssm_->TerminateSessionByPersistentId(persistentId);
     EXPECT_EQ(result, WMError::WM_ERROR_NOT_SYSTEM_APP);
     MockAccesstokenKit::MockIsSACalling(true);
- 
+
     result = ssm_->TerminateSessionByPersistentId(persistentId);
     EXPECT_EQ(result, WMError::WM_ERROR_INVALID_PARAM);
 }
- 
+
 /**
  * @tc.name: PendingSessionToBackgroundByPersistentId
  * @tc.desc: test function : PendingSessionToBackgroundByPersistentId
@@ -2511,25 +2529,25 @@ HWTEST_F(SceneSessionManagerTest12, PendingSessionToBackgroundByPersistentId, Fu
     MockAccesstokenKit::MockIsSACalling(false);
     auto result = ssm_->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
- 
+
     MockAccesstokenKit::MockIsSystemApp(false);
     result = ssm_->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
     MockAccesstokenKit::MockIsSystemApp(true);
- 
+
     MockAccesstokenKit::MockIsSACalling(false);
     result = ssm_->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
     MockAccesstokenKit::MockIsSACalling(true);
- 
+
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     result = ssm_->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
     MockAccesstokenKit::MockAccessTokenKitRet(0);
- 
+
     result = ssm_->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
- 
+
     SessionInfo targetInfo;
     targetInfo.persistentId_ = persistentId;
     targetInfo.windowType_ = 1000;
@@ -2537,7 +2555,7 @@ HWTEST_F(SceneSessionManagerTest12, PendingSessionToBackgroundByPersistentId, Fu
     ssm_->sceneSessionMap_.insert({ persistentId, targetSceneSession });
     result = ssm_->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
- 
+
     targetInfo.windowType_ = 1;
     targetSceneSession = sptr<SceneSession>::MakeSptr(targetInfo, nullptr);
     ssm_->sceneSessionMap_.insert({ persistentId, targetSceneSession });
@@ -2807,7 +2825,7 @@ HWTEST_F(SceneSessionManagerTest12, RegisterGetStartWindowConfigCallback, TestSi
     ssm_->RegisterGetStartWindowConfigCallback(sceneSession);
 
     EXPECT_NE(sceneSession->getStartWindowConfigFunc_, nullptr);
-    
+
     g_logMsg.clear();
     ssm_->RegisterGetStartWindowConfigCallback(nullptr);
     EXPECT_TRUE(g_logMsg.find("session is nullptr") != std::string::npos);
@@ -2969,7 +2987,7 @@ HWTEST_F(SceneSessionManagerTest12, RegisterWindowStateErrorCallbackToMMI001, Te
     ssm_->isPrepareTerminateEnable_ = false;
     ssm_->RegisterWindowStateErrorCallbackToMMI();
 }
- 
+
 /**
  * @tc.name: NotifyAmsPendingSessionWhenFail001
  * @tc.desc: test function : NotifyAmsPendingSessionWhenFail
@@ -3417,16 +3435,6 @@ HWTEST_F(SceneSessionManagerTest12, CheckBrokeNotAliveAndRefresh01, Function | S
     info.callerTypeForAnco = 0;
     ssm->CheckBrokeNotAliveAndRefresh(info);
     EXPECT_EQ(info.callerTypeForAnco, 0);
- 
-    MockCollaboratorDllManager::MockPreHandleStartAbility(1);
-    ssm->CheckBrokeNotAliveAndRefresh(info);
-    EXPECT_EQ(info.callerTypeForAnco, 1);
- 
-    MockCollaboratorDllManager::MockPreHandleStartAbility(2);
-    ssm->CheckBrokeNotAliveAndRefresh(info);
-    EXPECT_EQ(info.callerTypeForAnco, 2);
- 
-    MockCollaboratorDllManager::MockPreHandleStartAbility(0);
 }
 
 /**
@@ -3457,7 +3465,7 @@ HWTEST_F(SceneSessionManagerTest12, ReportWindowProfileInfosTest, TestSize.Level
     ssm_->isScreenLocked_ = true;
     ssm_->ReportWindowProfileInfos();
     ssm_->isScreenLocked_ = isScreenLocked;
- 
+
     SessionInfo sessionInfo;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     EXPECT_NE(sceneSession, nullptr);
@@ -3467,15 +3475,15 @@ HWTEST_F(SceneSessionManagerTest12, ReportWindowProfileInfosTest, TestSize.Level
     ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION), WSError::WS_OK);
     ASSERT_EQ(sceneSession->GetVisibilityState(), WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
     ssm_->ReportWindowProfileInfos();
- 
+
     auto state = sceneSession->GetSessionState();
     sceneSession->SetSessionState(SessionState::STATE_BACKGROUND);
     ssm_->ReportWindowProfileInfos();
     sceneSession->SetSessionState(state);
- 
+
     ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION), WSError::WS_OK);
     ssm_->ReportWindowProfileInfos();
- 
+
     for (int id = 0; id < 51; id++) {
         ssm_->sceneSessionMap_.insert({ id, sceneSession });
     }
@@ -3568,19 +3576,19 @@ HWTEST_F(SceneSessionManagerTest12, FillWindowProfileInfoTest, TestSize.Level1)
     EXPECT_NE(sceneSession, nullptr);
     auto focusWindowId = static_cast<int32_t>(sceneSession->GetWindowId());
     ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
- 
+
     focusWindowId = 0;
     auto state = sceneSession->GetSessionState();
     sceneSession->SetSessionState(SessionState::STATE_BACKGROUND);
     ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
     sceneSession->SetSessionState(state);
- 
+
     auto visibilityState = sceneSession->GetVisibilityState();
     ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
- 
+
     ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION), WSError::WS_OK);
     ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
- 
+
     ASSERT_EQ(sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION), WSError::WS_OK);
     ssm_->FillWindowProfileInfo(sceneSession, focusWindowId);
 }
@@ -3721,6 +3729,26 @@ HWTEST_F(SceneSessionManagerTest12, NotifyPageEnableFunc01, TestSize.Level1)
     auto result = ssm_->NotifyPageEnableFunc("com.test.app", 1, "enter", "HomePage");
 
     EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: RecordLifeCycleExceptionEvent
+ * @tc.desc: Test RecordLifeCycleExceptionEvent function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, RecordLifeCycleExceptionEvent, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+
+    SessionInfo info;
+    info.abilityName_ = "RecordLifeCycleExceptionEvent";
+    info.bundleName_ = "RecordLifeCycleExceptionEvent";
+    info.screenId_ = SCREEN_ID_INVALID;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    ssm_->RecordLifeCycleExceptionEvent(sceneSession, ERR_OK,
+        WSErrorReason::WS_REASON_WINDOW_START_ERR, "test reason");
 }
 } // namespace
 } // namespace Rosen

@@ -183,14 +183,17 @@ void SuperFoldSensorManager::HandleHallData(const SensorEvent * const event)
         return;
     }
     auto data = reinterpret_cast<HallData*>(event->data);
-    auto status = static_cast<uint32_t>(data->status);
-    TLOGI(WmsLogTag::DMS, "HallData status is: %{public}u.", status);
-    
-    if (curHall_ == (status & HALL_ACTIVE)) {
-        TLOGI(WmsLogTag::DMS, "Hall don't change, hall = %{public}u", curHall_);
+    auto status = static_cast<uint16_t>(data->status);
+    uint16_t newHall = status & hallActive_;
+    TLOGI(WmsLogTag::DMS, "HallData status is: %{public}u, curHall: 0x%{public}04x -> newHall: 0x%{public}04x.",
+        status, curHall_, newHall);
+
+    if ((curHall_ == hallActive_) == (newHall == hallActive_)) {
+        TLOGI(WmsLogTag::DMS, "Hall status don't change, hall status = %{public}u", (curHall_ == hallActive_));
+        curHall_ = newHall;
         return;
     }
-    curHall_ = (status & HALL_ACTIVE);
+    curHall_ = newHall;
     TLOGI(WmsLogTag::DMS, "Hall change, hall = %{public}u", curHall_);
     auto task = [this, curHall = curHall_] {
         NotifyHallChanged(curHall);
@@ -200,13 +203,14 @@ void SuperFoldSensorManager::HandleHallData(const SensorEvent * const event)
     }
 }
 
-void SuperFoldSensorManager::NotifyHallChanged(uint16_t Hall)
+void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall)
 {
     SuperFoldStatusChangeEvents events;
-    if (Hall == HALL_REMOVE_KEYBOARD_THRESHOLD) {
+    bool isActive = (hall == hallActive_);
+    if (!isActive) {
         TLOGD(WmsLogTag::DMS, "NotifyHallChanged: Keyboard off!");
         events = SuperFoldStatusChangeEvents::KEYBOARD_OFF;
-    } else if (Hall == HALL_HAVE_KEYBOARD_THRESHOLD) {
+    } else {
         if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::EXPANDED) {
             TLOGI(WmsLogTag::DMS, "is expanded");
             return;
@@ -214,9 +218,6 @@ void SuperFoldSensorManager::NotifyHallChanged(uint16_t Hall)
         TLOGI(WmsLogTag::DMS, "NotifyHallChanged: Keyboard on!");
         events = SuperFoldStatusChangeEvents::KEYBOARD_ON;
         HandleSuperSensorChange(SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
-    } else {
-        TLOGI(WmsLogTag::DMS, "NotifyHallChanged: Invalid Hall Value!");
-        return;
     }
     // notify
     HandleSuperSensorChange(events);
@@ -283,7 +284,11 @@ float SuperFoldSensorManager::GetCurAngle()
     return curAngle_;
 }
 
-SuperFoldSensorManager::SuperFoldSensorManager() {}
+SuperFoldSensorManager::SuperFoldSensorManager()
+{
+    hallActive_ = static_cast<uint16_t>(system::GetIntParameter<int32_t>("const.product.magnetic.hall", HALL_ACTIVE));
+    TLOGI(WmsLogTag::DMS, "Set magnetic hall: %{public}u", hallActive_);
+}
 
 SuperFoldSensorManager::~SuperFoldSensorManager() {}
 

@@ -3020,6 +3020,55 @@ HWTEST_F(WindowTest, GetFreeMultiWindowModeEnabledState, TestSize.Level1)
     EXPECT_EQ(ret, false);
     EXPECT_EQ(WMError::WM_OK, window->Destroy());
 }
+
+/**
+ * @tc.name: CreateFf
+ * @tc.desc: Create FloatView window with option
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowTest, CreateFv, TestSize.Level1)
+{
+    sptr<WindowOption> option = nullptr;
+    FloatViewTemplateInfo fvTemplateInfo;
+    WMError errCode = WMError::WM_OK;
+    ASSERT_EQ(nullptr, Window::CreateFv(option, fvTemplateInfo, abilityContext_, errCode));
+    
+    option = sptr<WindowOption>::MakeSptr();
+    ASSERT_EQ(nullptr, Window::CreateFv(option, fvTemplateInfo, abilityContext_, errCode));
+    
+    option->SetWindowName("fv_window");
+    ASSERT_EQ(nullptr, Window::CreateFv(option, fvTemplateInfo, abilityContext_, errCode));
+    
+    option->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    option->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    Rect rect = {0, 0, 10, 10};
+    option->SetWindowRect(rect);
+    
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        sptr<Window> window = Window::CreateFv(option, fvTemplateInfo, abilityContext_, errCode);
+        if (errCode == WMError::WM_OK) {
+            ASSERT_NE(nullptr, window);
+        } else {
+            ASSERT_EQ(nullptr, window);
+        }
+    } else {
+        ASSERT_EQ(nullptr, Window::CreateFv(option, fvTemplateInfo, abilityContext_, errCode));
+    }
+}
+
+/**
+ * @tc.name: IsAnyWindowMatchState
+ * @tc.desc: IsAnyWindowMatchState test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowTest, IsAnyWindowMatchState, TestSize.Level1)
+{
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        EXPECT_FALSE(Window::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
+    } else {
+        EXPECT_FALSE(Window::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
+    }
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

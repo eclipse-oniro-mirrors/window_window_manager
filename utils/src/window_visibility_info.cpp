@@ -28,14 +28,16 @@ bool WindowVisibilityInfo::Marshalling(Parcel& parcel) const
            parcel.WriteUint32(static_cast<uint32_t>(windowType_)) &&
            parcel.WriteUint32(static_cast<uint32_t>(windowStatus_)) && parcel.WriteInt32(rect_.posX_) &&
            parcel.WriteInt32(rect_.posY_) && parcel.WriteUint32(rect_.width_) && parcel.WriteUint32(rect_.height_) &&
-           parcel.WriteString(bundleName_) && parcel.WriteString(abilityName_) && parcel.WriteBool(isFocused_) &&
+           parcel.WriteString(bundleName_) && parcel.WriteString(moduleName_) &&
+           parcel.WriteString(abilityName_) && parcel.WriteBool(isFocused_) &&
            parcel.WriteInt32(appIndex_) && parcel.WriteBool(isSystem_) && parcel.WriteUint32(zOrder_) &&
            parcel.WriteInt32(callingPid_) && parcel.WriteInt32(globalDisplayRect_.posX_) &&
            parcel.WriteInt32(globalDisplayRect_.posY_) && parcel.WriteUint32(globalDisplayRect_.width_) &&
            parcel.WriteUint32(globalDisplayRect_.height_) && parcel.WriteInt32(collaboratorType_) &&
            parcel.WriteUint64(displayId_) && parcel.WriteInt32(globalRect_.posX_) &&
            parcel.WriteInt32(globalRect_.posY_) && parcel.WriteUint32(globalRect_.width_) &&
-           parcel.WriteUint32(globalRect_.height_);
+           parcel.WriteUint32(globalRect_.height_) && parcel.WriteInt32(mainWindowPersistentId_) &&
+           parcel.WriteUint8(static_cast<uint8_t>(controlAppType_));
 }
 
 WindowVisibilityInfo* WindowVisibilityInfo::Unmarshalling(Parcel& parcel)
@@ -58,6 +60,7 @@ WindowVisibilityInfo* WindowVisibilityInfo::Unmarshalling(Parcel& parcel)
     windowVisibilityInfo->windowStatus_ = static_cast<WindowStatus>(parcel.ReadUint32());
     windowVisibilityInfo->rect_ = { parcel.ReadInt32(), parcel.ReadInt32(), parcel.ReadUint32(), parcel.ReadUint32() };
     windowVisibilityInfo->bundleName_ = parcel.ReadString();
+    windowVisibilityInfo->moduleName_ = parcel.ReadString();
     windowVisibilityInfo->abilityName_ = parcel.ReadString();
     windowVisibilityInfo->isFocused_ = parcel.ReadBool();
     windowVisibilityInfo->appIndex_ = parcel.ReadInt32();
@@ -70,6 +73,8 @@ WindowVisibilityInfo* WindowVisibilityInfo::Unmarshalling(Parcel& parcel)
     windowVisibilityInfo->displayId_ = parcel.ReadUint64();
     windowVisibilityInfo->globalRect_ = { parcel.ReadInt32(), parcel.ReadInt32(),
         parcel.ReadUint32(), parcel.ReadUint32() };
+    windowVisibilityInfo->mainWindowPersistentId_ = parcel.ReadInt32();
+    windowVisibilityInfo->controlAppType_ = static_cast<ControlAppType>(parcel.ReadUint8());
     return windowVisibilityInfo;
 }
 } // namespace OHOS::Rosen

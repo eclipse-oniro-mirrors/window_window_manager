@@ -924,6 +924,18 @@ FloatingBallTemplateInfo WindowSessionProperty::GetFbTemplateInfo() const
     return fbTemplateInfo_;
 }
 
+void WindowSessionProperty::SetFvTemplateInfo(const FloatViewTemplateInfo& fvTemplateInfo)
+{
+    std::lock_guard<std::mutex> lock(fvTemplateMutex_);
+    fvTemplateInfo_ = fvTemplateInfo;
+}
+
+FloatViewTemplateInfo WindowSessionProperty::GetFvTemplateInfo() const
+{
+    std::lock_guard<std::mutex> lock(fvTemplateMutex_);
+    return fvTemplateInfo_;
+}
+
 void WindowSessionProperty::SetIsNeedUpdateWindowMode(bool isNeedUpdateWindowMode)
 {
     isNeedUpdateWindowMode_ = isNeedUpdateWindowMode;
@@ -995,7 +1007,8 @@ bool WindowSessionProperty::MarshallingWindowLimits(Parcel& parcel) const
 
     return writeWindowLimits(limits_) &&
            writeWindowLimits(limitsVP_) &&
-           writeWindowLimits(userLimits_);
+           writeWindowLimits(userLimits_) &&
+           writeWindowLimits(limitsForAttachedWindows_);
 }
 
 void WindowSessionProperty::UnmarshallingWindowLimits(Parcel& parcel, WindowSessionProperty* property)
@@ -1016,6 +1029,7 @@ void WindowSessionProperty::UnmarshallingWindowLimits(Parcel& parcel, WindowSess
     property->SetWindowLimits(readWindowLimits());
     property->SetWindowLimitsVP(readWindowLimits());
     property->SetUserWindowLimits(readWindowLimits());
+    property->SetLimitsForAttachedWindows(readWindowLimits());
 }
 
 bool WindowSessionProperty::MarshallingSystemBarMap(Parcel& parcel) const
@@ -1110,6 +1124,7 @@ void WindowSessionProperty::UnmarshallingTouchHotAreas(Parcel& parcel, WindowSes
 
 void WindowSessionProperty::UnmarshallingKeyboardTouchHotAreas(Parcel& parcel, WindowSessionProperty* property)
 {
+    std::lock_guard lock(property->touchHotAreasMutex_);
     UnmarshallingTouchHotAreasInner(parcel, property->keyboardTouchHotAreas_.landscapeKeyboardHotAreas_);
     UnmarshallingTouchHotAreasInner(parcel, property->keyboardTouchHotAreas_.portraitKeyboardHotAreas_);
     UnmarshallingTouchHotAreasInner(parcel, property->keyboardTouchHotAreas_.landscapePanelHotAreas_);
@@ -1155,6 +1170,26 @@ void WindowSessionProperty::UnmarshallingFbTemplateInfo(Parcel& parcel, WindowSe
         return;
     }
     property->SetFbTemplateInfo(*fbTemplateInfo);
+}
+
+bool WindowSessionProperty::MarshallingFvTemplateInfo(Parcel& parcel) const
+{
+    if (!WindowHelper::IsFvWindow(type_)) {
+        return true;
+    }
+    return parcel.WriteParcelable(&fvTemplateInfo_);
+}
+
+void WindowSessionProperty::UnmarshallingFvTemplateInfo(Parcel& parcel, WindowSessionProperty* property)
+{
+    if (!WindowHelper::IsFvWindow(property->GetWindowType())) {
+        return;
+    }
+    sptr<FloatViewTemplateInfo> fvTemplateInfo = parcel.ReadParcelable<FloatViewTemplateInfo>();
+    if (fvTemplateInfo == nullptr) {
+        return;
+    }
+    property->SetFvTemplateInfo(*fvTemplateInfo);
 }
 
 bool WindowSessionProperty::MarshallingWindowMask(Parcel& parcel) const
@@ -1386,6 +1421,90 @@ WindowAnchorInfo WindowSessionProperty::GetWindowAnchorInfo() const
     return windowAnchorInfo_;
 }
 
+/** @note @window.layout */
+void WindowSessionProperty::SetAttachedWindowLimits(int32_t sourcePersistentId,
+    const WindowLimits& attachedWindowLimits)
+{
+    // Check if this sourceId already exists, if so, update it; otherwise, append
+    for (auto& [id, limits] : attachedWindowLimitsList_) {
+        if (id == sourcePersistentId) {
+            limits = attachedWindowLimits;
+            return;
+        }
+    }
+    // Not found, append to the end (later attached, lower priority)
+    attachedWindowLimitsList_.push_back({sourcePersistentId, attachedWindowLimits});
+}
+
+/** @note @window.layout */
+void WindowSessionProperty::RemoveAttachedWindowLimits(int32_t sourcePersistentId)
+{
+    auto it = std::remove_if(attachedWindowLimitsList_.begin(), attachedWindowLimitsList_.end(),
+        [sourcePersistentId](const auto& item) {
+            return item.first == sourcePersistentId;
+        });
+    attachedWindowLimitsList_.erase(it, attachedWindowLimitsList_.end());
+}
+
+/** @note @window.layout */
+std::vector<std::pair<int32_t, WindowLimits>> WindowSessionProperty::GetAttachedWindowLimitsList() const
+{
+    return attachedWindowLimitsList_;
+}
+
+/** @note @window.layout */
+void WindowSessionProperty::ClearAttachedWindowLimitsList()
+{
+    attachedWindowLimitsList_.clear();
+}
+
+/** @note @window.layout */
+void WindowSessionProperty::SetAttachedLimitOptions(int32_t sourcePersistentId, const AttachLimitOptions& options)
+{
+    // Find existing entry and update in-place to preserve order
+    for (auto& entry : attachedLimitOptionsList_) {
+        if (entry.first == sourcePersistentId) {
+            entry.second = options;  // In-place update, preserves position in vector
+            return;
+        }
+    }
+    // Not found, add new entry at the end
+    attachedLimitOptionsList_.emplace_back(sourcePersistentId, options);
+}
+
+/** @note @window.layout */
+AttachLimitOptions WindowSessionProperty::GetAttachedLimitOptions(int32_t sourcePersistentId) const
+{
+    for (const auto& [id, options] : attachedLimitOptionsList_) {
+        if (id == sourcePersistentId) {
+            return options;
+        }
+    }
+    return AttachLimitOptions{}; // Return default options if not found
+}
+
+/** @note @window.layout */
+void WindowSessionProperty::RemoveAttachedLimitOptions(int32_t sourcePersistentId)
+{
+    auto it = std::remove_if(attachedLimitOptionsList_.begin(), attachedLimitOptionsList_.end(),
+        [sourcePersistentId](const auto& entry) {
+            return entry.first == sourcePersistentId;
+        });
+    attachedLimitOptionsList_.erase(it, attachedLimitOptionsList_.end());
+}
+
+/** @note @window.layout */
+std::vector<std::pair<int32_t, AttachLimitOptions>> WindowSessionProperty::GetAttachedLimitOptionsList() const
+{
+    return attachedLimitOptionsList_;
+}
+
+/** @note @window.layout */
+void WindowSessionProperty::ClearAttachedLimitOptionsList()
+{
+    attachedLimitOptionsList_.clear();
+}
+
 void WindowSessionProperty::SetZIndex(int32_t zIndex)
 {
     zIndex_ = zIndex;
@@ -1416,6 +1535,16 @@ void WindowSessionProperty::SetSubWindowOutlineEnabled(bool subWindowOutlineEnab
 bool WindowSessionProperty::IsSubWindowOutlineEnabled() const
 {
     return subWindowOutlineEnabled_;
+}
+
+void WindowSessionProperty::SetZLevelAboveParentLoosened(bool zLevelAboveParentLoosened)
+{
+    zLevelAboveParentLoosened_ = zLevelAboveParentLoosened;
+}
+ 
+bool WindowSessionProperty::IsSubWindowZLevelAboveParentLoosened() const
+{
+    return zLevelAboveParentLoosened_;
 }
 
 bool WindowSessionProperty::Marshalling(Parcel& parcel) const
@@ -1478,6 +1607,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isAbilityHook_) &&
         parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(isFollowScreenChange_) &&
         parcel.WriteBool(subWindowOutlineEnabled_) &&
+        parcel.WriteBool(zLevelAboveParentLoosened_) &&
         parcel.WriteUint32(windowModeSupportType_) &&
         MarshallingShadowsInfo(parcel) &&
         MarshallingWindowAnchorInfo(parcel) &&
@@ -1488,6 +1618,8 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteString(ancoRealBundleName_) &&
         parcel.WriteBool(isShowDecorInFreeMultiWindow_) &&
         parcel.WriteBool(isMobileAppInPadLayoutFullScreen_) &&
+        parcel.WriteBool(isForceSplitEnabled_) &&
+        MarshallingHookWindowInfo(parcel) &&
         parcel.WriteBool(isFullScreenInForceSplitMode_) &&
         parcel.WriteInt32(static_cast<int32_t>(pageCompatibleMode_)) &&
         parcel.WriteFloat(aspectRatio_) &&
@@ -1495,7 +1627,9 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteInt32(frameNum_) &&
         parcel.WriteBool(isPrelaunch_) &&
         parcel.WriteBool(isAppBufferReady_) &&
-        parcel.WriteBool(isCrossProcessWindow_);
+        parcel.WriteBool(isFollowParentLayout_) &&
+        parcel.WriteBool(isCrossProcessWindow_) &&
+        MarshallingFvTemplateInfo(parcel);
 }
 
 WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
@@ -1602,6 +1736,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetCompatibleModeProperty(parcel.ReadParcelable<CompatibleModeProperty>());
     property->SetFollowScreenChange(parcel.ReadBool());
     property->SetSubWindowOutlineEnabled(parcel.ReadBool());
+    property->SetZLevelAboveParentLoosened(parcel.ReadBool());
     property->SetWindowModeSupportType(parcel.ReadUint32());
     UnmarshallingShadowsInfo(parcel, property);
     UnmarshallingWindowAnchorInfo(parcel, property);
@@ -1612,6 +1747,8 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetAncoRealBundleName(parcel.ReadString());
     property->SetIsShowDecorInFreeMultiWindow(parcel.ReadBool());
     property->SetMobileAppInPadLayoutFullScreen(parcel.ReadBool());
+    property->SetForceSplitEnable(parcel.ReadBool());
+    UnmarshallingHookWindowInfo(parcel, property);
     property->SetIsFullScreenInForceSplitMode(parcel.ReadBool());
     property->SetPageCompatibleMode(static_cast<CompatibleStyleMode>(parcel.ReadInt32()));
     property->SetAspectRatio(parcel.ReadFloat());
@@ -1619,7 +1756,9 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetFrameNum(parcel.ReadInt32());
     property->SetPrelaunch(parcel.ReadBool());
     property->SetAppBufferReady(parcel.ReadBool());
+    property->SetFollowParentLayout(parcel.ReadBool());
     property->SetIsCrossProcessWindow(parcel.ReadBool());
+    UnmarshallingFvTemplateInfo(parcel, property);
     return property;
 }
 
@@ -1723,7 +1862,9 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     isFollowScreenChange_ = property->isFollowScreenChange_;
     shadowsInfo_ = property->shadowsInfo_;
     windowAnchorInfo_ = property->windowAnchorInfo_;
+    limitsForAttachedWindows_ = property->GetLimitsForAttachedWindows();
     subWindowOutlineEnabled_ = property->subWindowOutlineEnabled_;
+    zLevelAboveParentLoosened_ = property->zLevelAboveParentLoosened_;
     isPcAppInpadSpecificSystemBarInvisible_ = property->isPcAppInpadSpecificSystemBarInvisible_;
     isPcAppInpadOrientationLandscape_ = property->isPcAppInpadOrientationLandscape_;
     isPcAppInpadCompatibleMode_ = property->isPcAppInpadCompatibleMode_;
@@ -2265,6 +2406,18 @@ WindowLimits WindowSessionProperty::GetConfigWindowLimitsVP() const
     return configLimitsVP_;
 }
 
+/** @note @window.layout */
+void WindowSessionProperty::SetLimitsForAttachedWindows(const WindowLimits& windowLimits)
+{
+    limitsForAttachedWindows_ = windowLimits;
+}
+
+/** @note @window.layout */
+WindowLimits WindowSessionProperty::GetLimitsForAttachedWindows() const
+{
+    return limitsForAttachedWindows_;
+}
+
 void WindowSessionProperty::SetLastLimitsVpr(float vpr)
 {
     lastVpr_ = vpr;
@@ -2520,14 +2673,16 @@ CompatibleStyleMode WindowSessionProperty::GetPageCompatibleMode() const
     return pageCompatibleMode_;
 }
 
-void WindowSessionProperty::SetLogicalDeviceConfig(const std::string& logicalDeviceConfig)
+void WindowSessionProperty::SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig)
 {
-    logicalDeviceConfig_ = logicalDeviceConfig;
+    std::lock_guard<std::mutex> lock(combinedCompatibleConfigMutex_);
+    combinedCompatibleConfig_ = combinedCompatibleConfig;
 }
 
-std::string WindowSessionProperty::GetLogicalDeviceConfig() const
+std::vector<std::string> WindowSessionProperty::GetCombinedCompatibleConfig() const
 {
-    return logicalDeviceConfig_;
+    std::lock_guard<std::mutex> lock(combinedCompatibleConfigMutex_);
+    return combinedCompatibleConfig_;
 }
 
 void WindowSessionProperty::SetPcAppInpadCompatibleMode(bool enabled)
@@ -2548,6 +2703,28 @@ void WindowSessionProperty::SetPcAppInpadOrientationLandscape(bool isPcAppInpadO
 void WindowSessionProperty::SetMobileAppInPadLayoutFullScreen(bool isMobileAppInPadLayoutFullScreen)
 {
     isMobileAppInPadLayoutFullScreen_ = isMobileAppInPadLayoutFullScreen;
+}
+
+void WindowSessionProperty::SetForceSplitEnable(bool isForceSplitEnabled)
+{
+    isForceSplitEnabled_ = isForceSplitEnabled;
+}
+
+bool WindowSessionProperty::GetForceSplitEnable() const
+{
+    return isForceSplitEnabled_;
+}
+
+void WindowSessionProperty::SetHookWindowInfo(const HookWindowInfo& hookWindowInfo)
+{
+    std::lock_guard<std::mutex> lock(hookWindowInfoMutex_);
+    hookWindowInfo_ = hookWindowInfo;
+}
+
+HookWindowInfo WindowSessionProperty::GetHookWindowInfo() const
+{
+    std::lock_guard<std::mutex> lock(hookWindowInfoMutex_);
+    return hookWindowInfo_;
 }
 
 bool WindowSessionProperty::GetPcAppInpadCompatibleMode() const
@@ -2816,6 +2993,21 @@ void WindowSessionProperty::UnmarshallingWindowAnchorInfo(Parcel& parcel, Window
     property->SetWindowAnchorInfo(*windowAnchorInfo);
 }
 
+bool WindowSessionProperty::MarshallingHookWindowInfo(Parcel& parcel) const
+{
+    return parcel.WriteParcelable(&hookWindowInfo_);
+}
+
+void WindowSessionProperty::UnmarshallingHookWindowInfo(Parcel& parcel, WindowSessionProperty* property)
+{
+    sptr<HookWindowInfo> hookWindowInfo = parcel.ReadParcelable<HookWindowInfo>();
+    if (hookWindowInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "hookWindowInfo is nullptr!");
+        return;
+    }
+    property->SetHookWindowInfo(*hookWindowInfo);
+}
+
 void WindowSessionProperty::SetMissionInfo(const MissionInfo& missionInfo)
 {
     std::lock_guard<std::mutex> lock(missionInfoMutex_);
@@ -2878,6 +3070,11 @@ void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& 
     supportUIExtensionSubWindow_ = StringUtil::ConvertStringToBool(itemValue);
 }
 
+void SystemSessionConfig::ConvertSupportCreateFloatView(const std::string& itemValue)
+{
+    supportCreateFloatView_ = StringUtil::ConvertStringToBool(itemValue);
+}
+
 void WindowSessionProperty::SetPrelaunch(bool isPrelaunch)
 {
     isPrelaunch_ = isPrelaunch;
@@ -2906,6 +3103,16 @@ void WindowSessionProperty::SetAppBufferReady(bool isAppBufferReady)
 bool WindowSessionProperty::IsAppBufferReady() const
 {
     return isAppBufferReady_;
+}
+
+void WindowSessionProperty::SetFollowParentLayout(bool isFollowParentLayout)
+{
+    isFollowParentLayout_ = isFollowParentLayout;
+}
+
+bool WindowSessionProperty::IsFollowParentLayout() const
+{
+    return isFollowParentLayout_;
 }
 
 void WindowSessionProperty::SetIsCrossProcessWindow(bool isCrossProcess)

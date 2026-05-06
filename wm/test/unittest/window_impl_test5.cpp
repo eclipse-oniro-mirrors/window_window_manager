@@ -1089,17 +1089,25 @@ HWTEST_F(WindowImplTest5, AdjustWindowAnimationFlag, TestSize.Level1)
     window->animationTransitionControllers_.push_back(animationTransitionController);
 
     window->AdjustWindowAnimationFlag(true);
+    EXPECT_EQ(static_cast<uint32_t>(WindowAnimation::CUSTOM), window->property_->GetAnimationFlag());
 
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    window->needDefaultAnimation_ = true;
+    window->SetNeedDefaultAnimation(true);
     window->AdjustWindowAnimationFlag(true);
+    EXPECT_EQ(static_cast<uint32_t>(WindowAnimation::DEFAULT), window->property_->GetAnimationFlag());
 
     window->animationTransitionControllers_.clear();
-    window->needDefaultAnimation_ = false;
+    window->SetNeedDefaultAnimation(false);
     window->AdjustWindowAnimationFlag(true);
+    EXPECT_EQ(static_cast<uint32_t>(WindowAnimation::NONE), window->property_->GetAnimationFlag());
+
+    window->SetNeedDefaultAnimation(true);
+    window->AdjustWindowAnimationFlag(false);
+    EXPECT_EQ(static_cast<uint32_t>(WindowAnimation::DEFAULT), window->property_->GetAnimationFlag());
 
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     window->AdjustWindowAnimationFlag(false);
+    EXPECT_EQ(static_cast<uint32_t>(WindowAnimation::INPUTE), window->property_->GetAnimationFlag());
 }
 
 /**

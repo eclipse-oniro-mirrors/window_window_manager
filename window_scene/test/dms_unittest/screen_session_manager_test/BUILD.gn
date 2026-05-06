@@ -78,6 +78,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/src/multi_screen_power_change_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/multi_screen_mode_change_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/publish/screen_session_publish.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/rs_event_data_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_aod_plugin.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_cutout_controller.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_edid_parse.cpp",
@@ -119,6 +120,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/infra/src/fold_screen/screen_sensor_mgr.cpp",
   "${window_base_path}/window_scene/screen_session_manager/infra/src/fold_screen/sensor_fold_state_mgr.cpp",
   "${window_base_path}/window_scene/screen_session_manager/infra/src/common/product_config.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/common/product_ext_wrapper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/infra/src/ffrt/ffrt_queue.cpp",
 
   # ScreenSession

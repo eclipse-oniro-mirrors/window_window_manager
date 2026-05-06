@@ -56,6 +56,10 @@ private:
         sptr<Window>& window, bool isRegister);
     WmErrorCode ProcessRegister(CaseType caseType, sptr<AniExtensionWindowListener>& listener,
         sptr<Window>& window, const std::string& type, bool isRegister);
+    WmErrorCode UnregisterAllListeners(CaseType caseType, sptr<Window>& window,
+        const std::string& type, ani_env* env);
+    WmErrorCode UnregisterSpecificListener(CaseType caseType, sptr<Window>& window,
+        const std::string& type, ani_env* env, ani_object fn);
     std::map<std::string, std::map<ani_ref, sptr<AniExtensionWindowListener>>> aniCbMap_;
     std::mutex mtx_;
     std::map<CaseType, std::map<std::string, ListenerType>> listenerCodeMap_;

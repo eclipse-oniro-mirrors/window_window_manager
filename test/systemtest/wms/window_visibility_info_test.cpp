@@ -238,6 +238,22 @@ HWTEST_F(WindowVisibilityInfoTest, WindowVisibilityInfoTest01, TestSize.Level1)
     subWindow1->Destroy();
     sleep(2);
 }
+
+/**
+ * @tc.name: WindowVisibilityInfoTest02
+ * @tc.desc: window visibility info test
+ * @tc.type: FUNC
+ * @tc.require: issueI5FSQW
+ */
+HWTEST_F(WindowVisibilityInfoTest, WindowVisibilityInfoTest02, TestSize.Level1)
+{
+    WindowVisibilityInfo info;
+    info.SetMainWindowPersistentId(-1);
+    EXPECT_EQ(info.GetMainWindowPersistentId(), -1);
+
+    info.SetControlAppType(ControlAppType::APP_LOCK);
+    EXPECT_EQ(info.GetControlAppType(), ControlAppType::APP_LOCK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

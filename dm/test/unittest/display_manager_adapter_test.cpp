@@ -65,6 +65,17 @@ HWTEST_F(DisplayManagerAdapterTest, GetDisplayInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetDisplayInfoWithGetActualInfo
+ * @tc.desc: test GetDisplayInfo with isGetActualInfo = true
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetDisplayInfoWithGetActualInfo, TestSize.Level1)
+{
+    sptr<DisplayInfo> info = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(DISPLAY_ID_INVALID, true);
+    ASSERT_EQ(info, nullptr);
+}
+
+/**
  * @tc.name: GetCutoutInfo
  * @tc.desc: test nullptr
  * @tc.type: FUNC

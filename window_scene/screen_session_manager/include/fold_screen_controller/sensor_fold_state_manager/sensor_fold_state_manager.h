@@ -53,7 +53,8 @@ protected:
         const std::vector<uint16_t>& halls, sptr<FoldScreenPolicy> foldScreenPolicy);
     FoldStatus GetCurrentState();
     void SetTentMode(int tentType);
-    std::recursive_mutex mStateMutex_;
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
     int tentModeType_ = 0;
     inline static bool isInOneStep_ = false;
     inline static std::condition_variable oneStep_;

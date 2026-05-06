@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@
 #include "floating_ball_option.h"
 #include "floating_ball_interface.h"
 #include "floating_ball_report.h"
- 
+#include <string>
+
 namespace OHOS {
 namespace Rosen {
 using namespace Ace;
@@ -32,14 +33,16 @@ public:
     FloatingBallController(const sptr<Window>& mainWindow, const uint32_t& mainWindowId, void* context);
     virtual ~FloatingBallController();
     WMError StartFloatingBall(sptr<FbOption>& option);
+    WMError StartFloatingBallSingle(const sptr<FbOption>& option, bool showWhenCreate = true);
     WMError StopFloatingBall();
     WMError UpdateFloatingBall(sptr<FbOption>& option);
+    WMError SetInApplicationVisible(bool isVisible);
     WMError RestoreMainWindow(const std::shared_ptr<AAFwk::Want>& want);
     WMError DestroyFloatingBallWindow();
     sptr<Window> GetFbWindow() const;
-    FbWindowState GetControllerState() const;
     WMError StopFloatingBallFromClient();
- 
+    WMError StopFloatingBallFromClientSingle();
+
     WMError RegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
     WMError RegisterFbClickObserver(const sptr<IFbClickObserver>& listener);
     WMError UnRegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
@@ -50,9 +53,16 @@ public:
     WMError GetFloatingBallWindowInfo(uint32_t& windowId);
 
     void UpdateMainWindow(const sptr<Window>& mainWindow);
- 
+    FbWindowState GetCurState();
+    void SetOption(const sptr<FbOption> &option);
+    sptr<FbOption> GetOption();
+    void SetBindState(bool isBind);
+    bool IsBind();
+    void SetBindWindowId(uint32_t windowId);
+    void SetShowWhenCreate(bool showWhenCreate);
 private:
     WMError CreateFloatingBallWindow(const sptr<FbOption>& option);
+    WMError PrepareStartFloatingBall(const sptr<FbOption>& option, bool showWhenCreate);
     WMError StartFloatingBallInner(const sptr<FbOption>& option);
  
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
@@ -69,12 +79,18 @@ private:
     FbWindowState curState_ = FbWindowState::STATE_UNDEFINED;
     void* contextPtr_ = nullptr;
     bool stopFromClient_ = false;
- 
+    bool visibleInApp_ = true;
+
+    sptr<FbOption> option_ = nullptr;
+    bool bindState_ = false;
+    uint32_t bindWindowId_ = INVALID_WINDOW_ID;
+    std::string id_;
+
     std::vector<sptr<IFbLifeCycle>> fbLifeCycleListeners_;
     std::vector<sptr<IFbClickObserver>> fbClickObservers_;
- 
+
     std::mutex controllerMutex_;
- 
+
     class WindowLifeCycleListener : public IWindowLifeCycle {
     public:
         void AfterDestroyed() override;

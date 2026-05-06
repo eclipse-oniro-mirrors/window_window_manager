@@ -57,6 +57,10 @@ struct WindowProfileInfo {
 enum class KeyboardLifeCycleException {
     ANIM_SYNC_EXCEPTION,
     CREATE_EXCEPTION,
+    SHOW_EXCEPTION,
+    HOT_AREA_EXCEPTION,
+    PANEL_AVOID_HEIGHT_EXCEPTION,
+    MOVE_DRAG_EXCEPTION,
 };
 
 static constexpr size_t WINDOW_PROFILE_STATISTIC_SIZE = 50;

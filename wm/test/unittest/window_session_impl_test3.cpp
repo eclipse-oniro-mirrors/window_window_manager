@@ -24,6 +24,7 @@
 #include "window_manager_hilog.h"
 #include "window_session_impl.h"
 #include "wm_common.h"
+#include "mock_session_stub.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -175,18 +176,7 @@ HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig, TestSize.Level1)
     window_ = GetTestWindowImpl("SetForceSplitConfig");
     ASSERT_NE(window_, nullptr);
 
-    int32_t FORCE_SPLIT_MODE = 5;
-    int32_t NAV_FORCE_SPLIT_MODE = 6;
-    AppForceLandscapeConfig config = { FORCE_SPLIT_MODE, true, false, {}, {}, {}, false, false, false, false };
-    window_->SetForceSplitConfig(config);
-
-    config = { FORCE_SPLIT_MODE, false, false, {}, {}, {}, false, false, false, false };
-    window_->SetForceSplitConfig(config);
-
-    config = { NAV_FORCE_SPLIT_MODE, true, false, {}, {}, {}, false, false, false, false };
-    window_->SetForceSplitConfig(config);
-
-    config = { NAV_FORCE_SPLIT_MODE, false, false, {}, {}, {}, false, false, false, false };
+    AppForceLandscapeConfig config = { {}, {}, {}, false, false, false, false };
     window_->SetForceSplitConfig(config);
     EXPECT_TRUE(logMsg.find("uiContent is null!") != std::string::npos);
     LOG_SetCallback(nullptr);
@@ -1670,6 +1660,257 @@ HWTEST_F(WindowSessionImplTest3, NeedShowDecorInOtherDisplay, Function | SmallTe
     decorVisible = window->NeedShowDecorInOtherDisplay(decorVisible);
     EXPECT_FALSE(decorVisible);
     window->Destroy();
+}
+
+/**
+ * @tc.name: updateDecorWhenDockAutoHide
+ * @tc.desc: updateDecorWhenDockAutoHide
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, updateDecorWhenDockAutoHide, Function | SmallTest | Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("updateDecorWhenDockAutoHide");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(PERSISTENT_ID_ONE);
+    ASSERT_NE(window, nullptr);
+
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::DEFAULT_TYPE));
+    bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+    window->windowSystemConfig_.isDockAutoHide_ = true;
+    window->isDecorHiddenByApp_ = false;
+    window->isMaximizeInvoked_ = false;
+    bool decorVisible = true;
+    decorVisible = window->updateDecorWhenDockAutoHide(decorVisible);
+    if (isPcMode) {
+        EXPECT_FALSE(decorVisible);
+    } else {
+        EXPECT_TRUE(decorVisible);
+    }
+
+    window->windowSystemConfig_.isDockAutoHide_ = true;
+    window->isDecorHiddenByApp_ = true;
+    window->isMaximizeInvoked_ = false;
+    decorVisible = true;
+    decorVisible = window->updateDecorWhenDockAutoHide(decorVisible);
+    EXPECT_TRUE(decorVisible);
+
+    window->windowSystemConfig_.isDockAutoHide_ = true;
+    window->isDecorHiddenByApp_ = false;
+    window->isMaximizeInvoked_ = true;
+    decorVisible = true;
+    decorVisible = window->updateDecorWhenDockAutoHide(decorVisible);
+    EXPECT_TRUE(decorVisible);
+
+    window->windowSystemConfig_.isDockAutoHide_ = false;
+    window->isDecorHiddenByApp_ = false;
+    window->isMaximizeInvoked_ = true;
+    decorVisible = true;
+    decorVisible = window->updateDecorWhenDockAutoHide(decorVisible);
+    EXPECT_TRUE(decorVisible);
+
+    window->windowSystemConfig_.isDockAutoHide_ = false;
+    window->isDecorHiddenByApp_ = true;
+    window->isMaximizeInvoked_ = false;
+    decorVisible = true;
+    decorVisible = window->updateDecorWhenDockAutoHide(decorVisible);
+    EXPECT_TRUE(decorVisible);
+    window->Destroy();
+}
+
+/**
+ * @tc.name: NotifyPrepareCloseFloatView
+ * @tc.desc: NotifyPrepareCloseFloatView
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, NotifyPrepareCloseFloatView, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyPrepareCloseFloatView");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    // branch: hostSession is null => return
+    window->hostSession_ = nullptr;
+    window->NotifyPrepareCloseFloatView();
+
+    // branch: session invalid => return
+    auto session = sptr<SessionStubMocker>::MakeSptr();
+    window->hostSession_ = session;
+    EXPECT_TRUE(window->IsWindowSessionInvalid());
+    window->NotifyPrepareCloseFloatView();
+
+    // branch: normal => hostSession->NotifyFloatViewPrepareClose
+    window->property_->persistentId_ = 1234;
+    EXPECT_FALSE(window->IsWindowSessionInvalid());
+    EXPECT_CALL(*session, NotifyFloatViewPrepareClose()).Times(1);
+    window->NotifyPrepareCloseFloatView();
+}
+
+/**
+ * @tc.name: UpdateFloatView
+ * @tc.desc: UpdateFloatView
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, UpdateFloatView, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFloatView");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    FloatViewTemplateInfo fvTemplateInfo {};
+
+    // branch: invalid session => WM_ERROR_INVALID_WINDOW
+    window->hostSession_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->UpdateFloatView(fvTemplateInfo));
+
+    // branch: hostSession null when persistentId valid => WM_ERROR_INVALID_WINDOW
+    window->property_->persistentId_ = 1234;
+    window->hostSession_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->UpdateFloatView(fvTemplateInfo));
+
+    // branch: normal => forward to hostSession
+    auto session = sptr<SessionStubMocker>::MakeSptr();
+    window->hostSession_ = session;
+    EXPECT_CALL(*session, UpdateFloatView(_)).Times(1).WillOnce(Return(WMError::WM_OK));
+    EXPECT_EQ(WMError::WM_OK, window->UpdateFloatView(fvTemplateInfo));
+}
+
+/**
+ * @tc.name: RestoreFloatViewMainWindow
+ * @tc.desc: RestoreFloatViewMainWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, RestoreFloatViewMainWindow, TestSize.Level1)
+{
+    // prepare parent window (must be found by FindWindowById)
+    auto parent = GetTestWindowImpl("RestoreFloatViewMainWindow_parent");
+    ASSERT_NE(parent, nullptr);
+    parent->property_->SetPersistentId(200);
+
+    auto fvWin = GetTestWindowImpl("RestoreFloatViewMainWindow");
+    ASSERT_NE(fvWin, nullptr);
+    fvWin->property_->SetParentPersistentId(200);
+
+    // branch: parentWindow invalid
+    fvWin->property_->SetParentPersistentId(999);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvWin->RestoreFloatViewMainWindow(nullptr));
+
+    // insert parent into map
+    WindowSessionImpl::windowSessionMap_.clear();
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(fvWin->GetWindowName(),
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(parent->GetWindowId(), parent)));
+
+    // branch: session invalid
+    fvWin->property_->SetParentPersistentId(200);
+    fvWin->property_->persistentId_ = INVALID_WINDOW_ID;
+    fvWin->hostSession_ = sptr<SessionStubMocker>::MakeSptr();
+    EXPECT_TRUE(fvWin->IsWindowSessionInvalid());
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvWin->RestoreFloatViewMainWindow(nullptr));
+
+    // branch: hostSession null when session valid
+    fvWin->property_->persistentId_ = 1234;
+    fvWin->hostSession_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvWin->RestoreFloatViewMainWindow(nullptr));
+
+    // branch: hostSession returns error => propagate
+    auto session = sptr<SessionStubMocker>::MakeSptr();
+    fvWin->hostSession_ = session;
+    EXPECT_CALL(*session, RestoreFloatViewMainWindow(_)).Times(1)
+        .WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, fvWin->RestoreFloatViewMainWindow(nullptr));
+
+    // branch: hostSession OK
+    EXPECT_CALL(*session, RestoreFloatViewMainWindow(_)).Times(1).WillOnce(Return(WMError::WM_OK));
+    EXPECT_EQ(WMError::WM_OK, fvWin->RestoreFloatViewMainWindow(nullptr));
+
+    parent->Destroy();
+    fvWin->Destroy();
+    WindowSessionImpl::windowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: SendFvActionEvent
+ * @tc.desc: SendFvActionEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SendFvActionEvent, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SendFvActionEvent");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    std::string action = "click";
+    std::string reason = "ut";
+
+    EXPECT_EQ(WSError::WS_OK, window->SendFvActionEvent(action, reason));
+}
+
+/**
+ * @tc.name: SyncFvWindowInfo
+ * @tc.desc: SyncFvWindowInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SyncFvWindowInfo, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SyncFvWindowInfo");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    FloatViewWindowInfo windowInfo;
+    std::string reason = "ut";
+
+    EXPECT_EQ(WSError::WS_OK, window->SyncFvWindowInfo(windowInfo, reason));
+}
+
+/**
+ * @tc.name: SyncFvLimits
+ * @tc.desc: SyncFvLimits
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SyncFvLimits, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SyncFvLimits");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    std::map<uint32_t, FloatViewLimits> limitsInfo;
+    FloatViewLimits limit;
+    limit.maxHeight_ = 1;
+    limitsInfo.emplace(0, limit);
+    EXPECT_EQ(WSError::WS_OK, window->SyncFvLimits(limitsInfo));
+}
+
+/**
+ * @tc.name: IsAnyWindowMatchState
+ * @tc.desc: IsAnyWindowMatchState test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, IsAnyWindowMatchState, TestSize.Level1)
+{
+    WindowSessionImpl::windowSessionMap_.clear();
+    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
+
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair("test",
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(1, nullptr)));
+    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
+
+    WindowSessionImpl::windowSessionMap_.clear();
+    sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
+    windowOption->SetWindowName("IsAnyWindowMatchState");
+    sptr<WindowSessionImpl> windowSession = sptr<WindowSessionImpl>::MakeSptr(windowOption);
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair("test",
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(1, windowSession)));
+    windowSession->state_ = WindowState::STATE_CREATED;
+    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
+
+    windowSession->state_ = WindowState::STATE_SHOWN;
+    EXPECT_TRUE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
 }
 } // namespace
 } // namespace Rosen

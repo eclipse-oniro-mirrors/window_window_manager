@@ -819,6 +819,8 @@ ani_object AniWindowUtils::CreateAniWindowLayoutInfo(ani_env* env, const WindowL
     }
     CallAniMethodVoid(env, windowLayoutInfo, cls, Builder::BuildSetterName("windowRect").c_str(),
         nullptr, CreateAniRect(env, info.rect));
+    CallAniMethodVoid(env, windowLayoutInfo, cls, Builder::BuildSetterName("windowAlpha").c_str(),
+        nullptr, CreateBaseTypeObject<double>(env, info.windowAlpha));
     return windowLayoutInfo;
 }
 
@@ -862,14 +864,21 @@ ani_object AniWindowUtils::CreateAniWindowInfo(ani_env* env, const WindowVisibil
         CreateAniRect(env, info.GetGlobalDisplayRect()));
     CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("globalRect").c_str(), nullptr,
         CreateAniRect(env, info.GetGlobalRect()));
-    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("displayId").c_str(), nullptr,
-        static_cast<ani_long>(info.GetDisplayId()));
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] WindowInfo displayId before set: %{public}" PRIu64, info.GetDisplayId());
+    ani_object aniDisplayId = CreateBaseTypeObject<long>(env, info.GetDisplayId());
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("displayId").c_str(), nullptr, aniDisplayId);
     ani_string bundleName;
     if (GetAniString(env, info.GetBundleName(), &bundleName) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
     CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("bundleName").c_str(), nullptr, bundleName);
+    ani_string moduleName;
+    if (GetAniString(env, info.GetModuleName(), &moduleName) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("moduleName").c_str(), nullptr, moduleName);
     ani_string abilityName;
     if (GetAniString(env, info.GetAbilityName(), &abilityName) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
@@ -1685,23 +1694,32 @@ ani_object AniWindowUtils::CreateWindowsProperties(ani_env* env, const WindowPro
     ani_object aniRect = CreateAniRectObject(env, windowPropertyInfo.windowRect);
     ani_object aniDrawableRect = CreateAniRectObject(env, windowPropertyInfo.drawableRect);
     ani_object aniGlobalDisplayRect = CreateAniRectObject(env, windowPropertyInfo.globalDisplayRect);
-    int windowType;
-    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
-        windowType = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
+    int typeValue;
+    if (windowPropertyInfo.type == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+        typeValue = static_cast<int>(ApiWindowType::TYPE_SYSTEM_ALERT);
+    } else if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
+        typeValue = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
     } else {
-        windowType = static_cast<int>(windowPropertyInfo.type);
+        typeValue = static_cast<int>(windowPropertyInfo.type);
+    }
+    int windowTypeValue;
+    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
+        windowTypeValue = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
+    } else {
+        windowTypeValue = static_cast<int>(windowPropertyInfo.type);
     }
     ani_string aniWindowName;
     GetAniString(env, windowPropertyInfo.name, &aniWindowName);
     ani_object aniWindowsProperties = InitAniObjectByCreator(env, "@ohos.window.window.WindowPropertiesInternal",
-        "C{@ohos.window.window.Rect}C{@ohos.window.window.Rect}zzzzddzzzziilC{std.core.String}"
+        "C{@ohos.window.window.Rect}C{@ohos.window.window.Rect}zzzzddzzzziiilC{std.core.String}"
         "C{@ohos.window.window.Rect}:",
         aniRect, aniDrawableRect, ani_boolean(windowPropertyInfo.isFullScreen),
         ani_boolean(windowPropertyInfo.isLayoutFullScreen), ani_boolean(windowPropertyInfo.isFocusable),
         ani_boolean(windowPropertyInfo.isTouchable), ani_float(windowPropertyInfo.brightness), ani_float(0),
         ani_boolean(windowPropertyInfo.isKeepScreenOn), ani_boolean(windowPropertyInfo.isPrivacyMode),
-        ani_boolean(false),  ani_boolean(windowPropertyInfo.isTransparent), ani_int(windowType),
-        ani_int(windowPropertyInfo.id), ani_long(windowPropertyInfo.displayId), aniWindowName, aniGlobalDisplayRect);
+        ani_boolean(false),  ani_boolean(windowPropertyInfo.isTransparent), ani_int(typeValue),
+        ani_int(windowTypeValue), ani_int(windowPropertyInfo.id),
+        ani_long(windowPropertyInfo.displayId), aniWindowName, aniGlobalDisplayRect);
     return aniWindowsProperties;
 }
 
@@ -2507,6 +2525,37 @@ bool AniWindowUtils::ParseWindowMaskInnerValue(ani_env* env, ani_array innerArra
     return true;
 }
 
+bool AniWindowUtils::GetUint8ArrayBufferData(ani_env* env, ani_object uint8Array, void*& data, ani_size& byteLength)
+{
+    ani_class clsUint8Array = nullptr;
+    ani_status aniRet = env->FindClass("std.core.Uint8Array", &clsUint8Array);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Find class std.core.Uint8Array failed: %{public}u", aniRet);
+        return false;
+    }
+
+    ani_field bufferField {};
+    aniRet = env->Class_FindField(clsUint8Array, "buffer", &bufferField);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Find field buffer failed: %{public}u", aniRet);
+        return false;
+    }
+
+    ani_ref result {};
+    aniRet = env->Object_GetField_Ref(uint8Array, bufferField, &result);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Get buffer ref failed: %{public}u", aniRet);
+        return false;
+    }
+
+    aniRet = env->ArrayBuffer_GetInfo(static_cast<ani_arraybuffer>(result), &data, &byteLength);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Get ArrayBuffer info failed: %{public}u", aniRet);
+        return false;
+    }
+    return true;
+}
+
 WmErrorCode AniWindowUtils::ParseTouchableAreas(ani_env* env, ani_array rects, const Rect& windowRect,
     std::vector<Rect>& touchableAreas)
 {
@@ -2693,25 +2742,42 @@ bool AniWindowUtils::ParseSubWindowOptions(ani_env *env, ani_object aniObject, c
         return false;
     }
     ani_ref titleRef;
-    env->Object_GetPropertyByName_Ref(aniObject, "title", &titleRef);
     std::string title;
-    ani_status ret = GetStdString(env, static_cast<ani_string>(titleRef), title);
-    if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_SUB, "Failed to convert parameter to title");
+    ani_status ret = env->Object_GetPropertyByName_Ref(aniObject, "title", &titleRef);
+    if (ret == ANI_OK) {
+        ret = GetStdString(env, static_cast<ani_string>(titleRef), title);
+        if (ret != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_SUB, "Failed to convert parameter to title");
+            return false;
+        }
+    } else {
+        TLOGE(WmsLogTag::WMS_SUB, "Failed to get property title");
         return false;
     }
     ani_boolean decorEnabled = false;
-    env->Object_GetPropertyByName_Boolean(aniObject, "decorEnabled", &decorEnabled);
-
+    ret = env->Object_GetPropertyByName_Boolean(aniObject, "decorEnabled", &decorEnabled);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SUB, "Failed to get property decorEnabled");
+        return false;
+    }
     // optional
     bool maximizeSupported = false;
-    GetPropertyBoolObject(env, "maximizeSupported", aniObject, maximizeSupported);
+    if (GetPropertyBoolObject(env, "maximizeSupported", aniObject, maximizeSupported) != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SUB, "Failed to get property maximizeSupported");
+    }
     bool outlineEnabled = false;
-    GetPropertyBoolObject(env, "outlineEnabled", aniObject, outlineEnabled);
+    if (GetPropertyBoolObject(env, "outlineEnabled", aniObject, outlineEnabled) != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SUB, "Failed to get property outlineEnabled");
+    }
+    bool zLevelAboveParentLoosened = false;
+    if (GetPropertyBoolObject(env, "zLevelAboveParentLoosened", aniObject, zLevelAboveParentLoosened) != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SUB, "Failed to get property zLevelAboveParentLoosened");
+    }
     windowOption->SetSubWindowTitle(title);
     windowOption->SetSubWindowDecorEnable(decorEnabled);
     windowOption->SetSubWindowMaximizeSupported(maximizeSupported);
     windowOption->SetSubWindowOutlineEnabled(outlineEnabled);
+    windowOption->SetZLevelAboveParentLoosened(zLevelAboveParentLoosened);
     if (!ParseRectParam(env, aniObject, windowOption)) {
         return false;
     }
@@ -2749,30 +2815,19 @@ bool AniWindowUtils::ParseRectParam(ani_env *env, ani_object aniObject, const sp
     return true;
 }
 
-bool AniWindowUtils::ParseModalityParam(ani_env *env, ani_object aniObject, const sptr<WindowOption>& windowOption)
+bool AniWindowUtils::HandleModalityTypeParsing(ani_env* env, ani_object aniObject,
+    const sptr<WindowOption>& windowOption, bool isModal)
 {
-    if (aniObject == nullptr || windowOption == nullptr) {
-        TLOGE(WmsLogTag::WMS_SUB, "aniObject or windowOption is null");
-        return false;
-    }
-    bool isModal = false;
-    GetPropertyBoolObject(env, "isModal", aniObject, isModal);
-    if (isModal) {
-        windowOption->AddWindowFlag(WindowFlag::WINDOW_FLAG_IS_MODAL);
-    }
-
-    bool isTopmost = false;
-    GetPropertyBoolObject(env, "isTopmost", aniObject, isTopmost);
-    if (!isModal && isTopmost) {
-        TLOGE(WmsLogTag::WMS_SUB, "Normal subwindow not support topmost");
-        return false;
-    }
-    windowOption->SetWindowTopmost(isTopmost);
-
     ani_ref modalityTypeRef;
     ani_status ret = env->Object_GetPropertyByName_Ref(aniObject, "modalityType", &modalityTypeRef);
+    if (ret != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SUB, "Failed to get property modalityType");
+    }
     ani_boolean isUndefined = false;
-    env->Reference_IsUndefined(modalityTypeRef, &isUndefined);
+    ani_status isUndefineRet = env->Reference_IsUndefined(modalityTypeRef, &isUndefined);
+    if (isUndefineRet != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SUB, "Failed to check reference isUndefined");
+    }
     ani_int modalityType;
     if (ret == ANI_OK && !isUndefined &&
         env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(modalityTypeRef), &modalityType) == ANI_OK) {
@@ -2792,6 +2847,37 @@ bool AniWindowUtils::ParseModalityParam(ani_env *env, ani_object aniObject, cons
             TLOGE(WmsLogTag::WMS_SUB, "Failed to convert parameter to modalityType");
             return false;
         }
+    }
+    return true;
+}
+
+bool AniWindowUtils::ParseModalityParam(ani_env *env, ani_object aniObject, const sptr<WindowOption>& windowOption)
+{
+    if (aniObject == nullptr || windowOption == nullptr) {
+        TLOGE(WmsLogTag::WMS_SUB, "aniObject or windowOption is null");
+        return false;
+    }
+    bool isModal = false;
+    ani_status ret = GetPropertyBoolObject(env, "isModal", aniObject, isModal);
+    if (ret != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SUB, "Failed to get property isModal");
+    }
+    if (isModal) {
+        windowOption->AddWindowFlag(WindowFlag::WINDOW_FLAG_IS_MODAL);
+    }
+
+    bool isTopmost = false;
+    ret = GetPropertyBoolObject(env, "isTopmost", aniObject, isTopmost);
+    if (ret != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SUB, "Failed to get property isTopmost");
+    }
+    if (!isModal && isTopmost) {
+        TLOGE(WmsLogTag::WMS_SUB, "Normal subwindow not support topmost");
+        return false;
+    }
+    windowOption->SetWindowTopmost(isTopmost);
+    if (!HandleModalityTypeParsing(env, aniObject, windowOption, isModal)) {
+        return false;
     }
     TLOGI(WmsLogTag::WMS_SUB, "isModal: %{public}d, isTopmost: %{public}d, WindowFlag: %{public}d",
         isModal, isTopmost, windowOption->GetWindowFlags());

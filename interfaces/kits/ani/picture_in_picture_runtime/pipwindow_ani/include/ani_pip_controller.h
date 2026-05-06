@@ -64,6 +64,7 @@ public:
     static void OffControlEventAni(ani_env* env, ani_object obj, ani_long nativeObj, ani_ref callback);
     static void OffPipWindowSizeChangeAni(ani_env* env, ani_object obj, ani_long nativeObj, ani_ref callback);
     static void OffActiveStatusChangeAni(ani_env* env, ani_object obj, ani_long nativeObj, ani_ref callback);
+    sptr<PictureInPictureControllerAni> GetController() { return pipController_; }
 
 private:
     enum class AniListenerType : uint32_t {
@@ -73,7 +74,7 @@ private:
         SIZE_CHANGE_CB,
         ACTIVE_STATUS_CHANGE_CB
     };
-
+    void SetMainEventHandler();
     void OnstartPiPAni(ani_env* env);
     void OnstopPiPAni(ani_env* env);
     bool IsCallbackRegistered(ani_env* env, AniListenerType type, ani_ref cb);
@@ -82,11 +83,13 @@ private:
     WMError ClearListener(const AniListenerType& type, sptr<AniPiPListener> listener);
     void ProcessRegisterListener(AniListenerType type, sptr<AniPiPListener> listener, WMError& ret);
 
+    void OnUpdateContentNodeAni(ani_env* env, ani_ref oldRef, ani_ref newRef);
     static inline std::mutex mtxListener_;
     static inline std::unordered_map<AniListenerType, std::unordered_map<ani_ref, sptr<AniPiPListener>>>
         typeCallbackListenerMap_;
     sptr<PictureInPictureControllerAni> pipController_ = nullptr;
     ani_ref aniRef_ = nullptr;
+    std::shared_ptr<AppExecFwk::EventHandler> mainHandler_ = nullptr;
 };
 
 ani_status ANI_Controller_Constructor(ani_vm *vm, uint32_t *result);

@@ -49,6 +49,16 @@ bool ProductConfig::IsSecondaryDisplayFoldDevice()
     return FoldScreenStateInternel::IsSecondaryDisplayFoldDevice();
 }
 
+bool ProductConfig::IsSecondaryDisplaySuperFoldDevice()
+{
+    return FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice();
+}
+ 
+bool ProductConfig::IsLoadDmsExt()
+{
+    return IsSingleDisplaySuperFoldDevice() || IsSecondaryDisplaySuperFoldDevice();
+}
+
 std::vector<std::string> ProductConfig::StringSplit(const std::string& str, char delim)
 {
     std::size_t previous = 0;

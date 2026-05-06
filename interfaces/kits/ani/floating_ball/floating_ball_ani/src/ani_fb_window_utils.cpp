@@ -133,7 +133,7 @@ ani_status CreateBusinessError(ani_env* env, int32_t error, std::string message,
         return status;
     }
     ani_method aniCtor = nullptr;
-    status = env->Class_FindMethod(aniClass, "<ctor>", "C{std.core.String}C{escompat.ErrorOptions}:", &aniCtor);
+    status = env->Class_FindMethod(aniClass, "<ctor>", "C{std.core.String}C{std.core.ErrorOptions}:", &aniCtor);
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[FB]ctor not found, status:%{public}d", static_cast<int32_t>(status));
         return status;

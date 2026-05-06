@@ -359,6 +359,5 @@ bool PictureInPictureManager::GetPipEnabled()
     SingletonContainer::Get<WindowAdapter>().GetIsPipEnabled(isPipEnabled);
     return isPipEnabled;
 }
-
 }
 }

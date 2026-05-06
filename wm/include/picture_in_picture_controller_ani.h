@@ -47,6 +47,17 @@ public:
     bool IsTypeNodeEnabled() const override;
     bool IsPullPiPAndHandleNavigation();
     std::string GetPiPNavigationId() const override;
+    inline std::shared_ptr<XComponentController> GetMainWindowXComponentController() const
+    {
+        return mainWindowXComponentController_;
+    }
+    inline void SetMainWindowXComponentController(std::shared_ptr<XComponentController> controller)
+    {
+        mainWindowXComponentController_ = controller;
+    }
+    inline int32_t GetFirstHandleId() const { return firstHandleId_; }
+    inline void SetFirstHandleId(int32_t id) { firstHandleId_ = id; }
+    inline sptr<PipOptionAni> GetPipOptionAni() const { return pipOption_; }
 
 protected:
     sptr<PipOptionAni> pipOption_ = nullptr;

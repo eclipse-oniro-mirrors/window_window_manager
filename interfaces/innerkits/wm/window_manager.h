@@ -90,22 +90,44 @@ public:
 class IWMSConnectionChangedListener : virtual public RefBase {
 public:
     /**
-     * @brief Notify caller when WMS connected
+     * @brief Notify caller when WMS connected (2-parameter version for backward compatibility)
      *
-     * @param userId ID of the user who has connected to the WMS.
-     *
-     * @param screenId ID of the screen that is connected to the WMS, screenId is currently always 0.
+     * @param userId ID of the user who has connected to WMS.
+     * @param screenId ID of the screen that is connected to WMS, screenId is currently always 0.
      */
     virtual void OnConnected(int32_t userId, int32_t screenId) = 0;
 
     /**
-     * @brief Notify caller when WMS disconnected
+     * @brief Notify caller when WMS disconnected (2-parameter version for backward compatibility)
      *
-     * @param userId ID of the user who has disconnected to the WMS.
-     *
-     * @param screenId ID of the screen that is disconnected to the WMS, screenId is currently always 0.
+     * @param userId ID of the user who has disconnected to WMS.
+     * @param screenId ID of the screen that is disconnected to WMS, screenId is currently always 0.
      */
     virtual void OnDisconnected(int32_t userId, int32_t screenId) = 0;
+
+    /**
+     * @brief Notify caller when WMS connected (3-parameter version with pid)
+     *
+     * @param userId ID of the user who has connected to WMS.
+     * @param screenId ID of the screen that is connected to WMS, screenId is currently always 0.
+     * @param pid Process ID of the WMS.
+     */
+    virtual void OnConnected(int32_t userId, int32_t screenId, int32_t pid)
+    {
+        OnConnected(userId, screenId);
+    }
+
+    /**
+     * @brief Notify caller when WMS disconnected (3-parameter version with pid)
+     *
+     * @param userId ID of the user who has disconnected to WMS.
+     * @param screenId ID of the screen that is disconnected to WMS, screenId is currently always 0.
+     * @param pid Process ID of the WMS.
+     */
+    virtual void OnDisconnected(int32_t userId, int32_t screenId, int32_t pid)
+    {
+        OnDisconnected(userId, screenId);
+    }
 };
 
 /**
@@ -436,7 +458,7 @@ struct AbilityInfoBase : public Parcelable {
                parcel.WriteString(abilityName) &&
                parcel.WriteInt32(appIndex);
     }
- 
+
     /**
      * @brief Unmarshalling AbilityInfoBase.
      *
@@ -455,17 +477,17 @@ struct AbilityInfoBase : public Parcelable {
         }
         return info;
     }
- 
+
     bool IsValid() const
     {
         return !bundleName.empty() && !moduleName.empty() && !abilityName.empty() && appIndex >= 0;
     }
- 
+
     std::string ToKeyString() const
     {
         return bundleName + "_" + moduleName + "_" + abilityName + "_" + std::to_string(appIndex);
     }
- 
+
     std::string bundleName;
     std::string moduleName;
     std::string abilityName;
@@ -1022,9 +1044,11 @@ public:
      *
      * @param displayId DisplayId of which display to get window layout infos.
      * @param infos Window layout infos.
+     * @param option Options for getting window info.
      * @return WM_OK means get success, others means get failed.
      */
-    WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos) const;
+    WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
+        const WindowInfoOptions& option = WindowInfoOptions()) const;
 
     /**
      * @brief Get global window mode.
@@ -1079,6 +1103,23 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap);
+
+    /**
+     * @brief Set screen watermark image.
+     *
+     * @param pixelMap the watermark image to set.
+     * @param priority the priority of application, less value means higher priority.
+     * @return WM_OK means success, others means failed.
+     */
+    WMError SetScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap, uint32_t priority);
+
+    /**
+     * @brief Clean screen watermark image.
+     *
+     * @param pixelMap the watermark image to clean.
+     * @return WM_OK means get success, others means get failed.
+     */
+    WMError CleanScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap);
 
     /**
      * @brief Get visibility window info.
@@ -1184,6 +1225,15 @@ public:
     WMError SetSpecificSystemWindowZIndex(WindowType windowType, int32_t zIndex);
 
     /**
+     * @brief Move main window to target display.
+     *
+     * @param displayId Display id of the target display
+     * @param windowId Window id of the main window
+     * @return WM_OK means move success, others means failed.
+     */
+    WMError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId);
+
+    /**
      * @brief Set start window background color.
      *
      * @param moduleName Module name that needs to be set
@@ -1258,7 +1308,7 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-    
+
     /**
      * @brief Unregister the listener that detects display changes for the keyboard calling window.
      *
@@ -1439,7 +1489,7 @@ public:
      */
     WMError RegisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
-    
+
     /**
      * @brief Unregister window info change callback.
      *
@@ -1449,7 +1499,7 @@ public:
      */
     WMError UnregisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
-    
+
     /**
      * @brief Whether new requested window needs hook.
      *
@@ -1549,6 +1599,14 @@ public:
      */
     WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams);
 
+    /**
+     * @brief Get Float View Limits.
+     *
+     * @param floatViewLimits Float view limits.
+     * @return WM_OK means get success, others means get failed.
+     */
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& floatViewLimits) const;
+
 private:
     /**
      * multi user and multi screen
@@ -1577,7 +1635,7 @@ private:
     bool isOutlineRecoverRegistered_ = false;
     WMError CheckOutlineParams(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams);
 
-    void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const;
+    void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected, int32_t pid) const;
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) const;
     void UpdateWindowModeTypeInfo(WindowModeType type) const;
     void UpdateSystemBarRegionTints(DisplayId displayId, const SystemBarRegionTints& tints) const;

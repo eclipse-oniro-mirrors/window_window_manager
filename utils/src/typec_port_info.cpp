@@ -42,7 +42,17 @@ static std::vector<std::string> GetDirList()
 
 static bool IsStringNumeric(const char* buffer)
 {
+    if (buffer == nullptr || *buffer == '\0') {
+        return false;
+    }
     auto begin = buffer;
+    if (*begin == '-') {
+        begin++;
+        if (*begin == '\0') {
+            return false;
+        }
+    }
+
     while (*begin) {
         if (!std::isdigit(*begin)) {
             return false;

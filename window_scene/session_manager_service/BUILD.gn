@@ -56,6 +56,8 @@ ohos_shared_library("session_manager_service") {
     "samgr:samgr_proxy",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
+
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

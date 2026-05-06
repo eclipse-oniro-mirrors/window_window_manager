@@ -53,8 +53,10 @@ public:
     static void Finalizer(ani_env *env, ani_long nativeObj);
     ani_ref GetAniRef() {return aniRef_;}
     void SetAniRef(const ani_ref &aniRef) {aniRef_ = aniRef;}
+    sptr<FloatingBallController> GetController() const;
     static void StartFloatingBallAni(ani_env *env, ani_object obj, ani_long nativeObj, ani_object paramsInterface);
     static void UpdateFloatingBallAni(ani_env *env, ani_object obj, ani_long nativeObj, ani_object paramsInterface);
+    static void SetInApplicationVisibleAni(ani_env *env, ani_object obj, ani_long nativeObj, ani_boolean isVisible);
     static void StopFloatingBallAni(ani_env *env, ani_object obj, ani_long nativeObj);
     static ani_object GetFloatingBallWindowInfoAni(ani_env *env, ani_object obj, ani_long nativeObj);
     static void RestoreMainWindowAni(ani_env *env, ani_object, ani_long nativeObj, ani_object want);
@@ -63,6 +65,7 @@ public:
     static void UnRegisterFbOnClickCallback(ani_env *env, ani_object obj, ani_long nativeObj, ani_ref callback);
     static void UnRegisterFbOnStateChangeCallback(ani_env *env, ani_object obj, ani_long nativeObj, ani_ref callback);
 
+    static bool GetFbOption(ani_env* env, ani_object paramsInterface, FbOption& option);
 private:
     sptr<FloatingBallController> fbController_ = nullptr;
     ani_ref aniRef_ = nullptr;
@@ -76,6 +79,7 @@ private:
 
     bool CheckParams(ani_env* env, const FbOption& option);
     void OnstartFloatingBallAni(ani_env *env, ani_object paramsInterface);
+    void OnSetInApplicationVisibleAni(ani_env* env, ani_boolean isVisible);
     void OnupdateFloatingBallAni(ani_env *env, ani_object paramsInterface);
     bool OnstopFloatingBallAni(ani_env* env);
     ani_object OnGetFloatingBallWindowInfoAni(ani_env *env);

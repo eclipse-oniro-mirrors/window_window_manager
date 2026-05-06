@@ -33,6 +33,11 @@ bool Permission::CheckCallingPermission(const std::string& permission)
     return true;
 }
 
+bool Permission::CheckSelfPermission(const std::string& permission)
+{
+    return true;
+}
+
 bool Permission::IsStartByHdcd(bool isLocalSysCalling)
 {
     return true;

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "occupied_area_change_info.h"
 #include "data_handler_interface.h"
 #include "floating_ball_template_base_info.h"
+#include "float_view_template_info.h"
 
 typedef struct napi_env__* napi_env;
 typedef struct napi_value__* napi_value;
@@ -85,6 +86,7 @@ class AccessibilityEventInfo;
 namespace OHOS {
 namespace Rosen {
 using NotifyNativeWinDestroyFunc = std::function<void(std::string windowName)>;
+using NotifyOrientationExecutionResultFunc = std::function<void(uint32_t, OrientationExecutionResult)>;
 using NotifyTransferComponentDataFunc = std::function<void(const AAFwk::WantParams& wantParams)>;
 using NotifyTransferComponentDataForResultFunc = std::function<AAFwk::WantParams(const AAFwk::WantParams& wantParams)>;
 using KeyEventFilterFunc = std::function<bool(const MMI::KeyEvent&)>;
@@ -173,6 +175,26 @@ public:
      * @brief Notify caller that window is already background.
      */
     virtual void AfterDidBackground() {}
+
+    /**
+     * @brief Set is window scene listener.
+     *
+     * @param isWindowSceneListener Whether is window listener.
+     */
+    void SetIsWindowSceneListener(bool isWindowSceneListener)
+    {
+        isWindowSceneListener_ = isWindowSceneListener;
+    }
+
+    /**
+     * @brief Whether is window listener.
+     */
+    bool IsWindowSceneListener()
+    {
+        return isWindowSceneListener_;
+    }
+protected:
+    bool isWindowSceneListener_ = false;
 };
 
 /**
@@ -661,6 +683,20 @@ public:
 };
 using ISystemDensityChangeListenerSptr = sptr<ISystemDensityChangeListener>;
 
+/**
+ * @class IWindowDensityChangeListener
+ *
+ * @brief Listener to observe window density changed.
+ */
+class IWindowDensityChangeListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when window density changed.
+     */
+    virtual void OnWindowDensityChanged(float density) {}
+};
+using IWindowDensityChangeListenerSptr = sptr<IWindowDensityChangeListener>;
+
 class IAcrossDisplaysChangeListener : virtual public RefBase {
 public:
     /**
@@ -1021,9 +1057,12 @@ public:
      * @param identityToken identity token of sceneSession
      * @return sptr<Window> If create window success, return window instance; Otherwise, return nullptr
      */
-    static sptr<Window> Create(sptr<WindowOption>& option, const std::shared_ptr<AbilityRuntime::Context>& context,
-        const sptr<IRemoteObject>& iSession, WMError& errCode = DefaultCreateErrCode,
-        const std::string& identityToken = "", bool isModuleAbilityHookEnd = false);
+    static sptr<Window> Create(sptr<WindowOption>& option,
+                               const std::shared_ptr<AbilityRuntime::Context>& context,
+                               const sptr<IRemoteObject>& iSession, WMError& errCode = DefaultCreateErrCode,
+                               const std::string& identityToken = "", 
+                               bool isModuleAbilityHookEnd = false,
+                               sptr<IRemoteObject> renderSession = nullptr);
 
     /**
      * @brief get and verify windowType, include sub_window/system_window
@@ -1126,6 +1165,26 @@ public:
      * @param configuration configuration for app.
      */
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
+
+    /**
+     * @brief create fb window with session
+     *
+     * @param option window propertion
+     * @param fvTemplateInfo template info of fv window
+     * @param context ability context
+     * @param errCode error code of create fv window
+     * @return sptr<Window> If create fv window success, return window instance; Otherwise, return nullptr
+     */
+    static sptr<Window> CreateFv(sptr<WindowOption>& option, const FloatViewTemplateInfo& fvTemplateInfo,
+        const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode);
+
+    /**
+     * @brief Check if any window matches the given state
+     *
+     * @param state The state to match
+     * @return True if any window matches the given state, false otherwise
+     */
+    static bool IsAnyWindowMatchState(const WindowState& state);
 
     /**
      * @brief Get surface node from RS
@@ -1627,12 +1686,12 @@ public:
     /**
      * @brief Resume window
      */
-    virtual void Resume() {}
+    virtual void Resume(bool isGamePreLaunch = false) {}
 
     /**
      * @brief Pause window
      */
-    virtual void Pause() {}
+    virtual void Pause(bool isGamePreLaunch = false) {}
 
     /**
      * @brief Hide window
@@ -2302,6 +2361,19 @@ public:
     virtual void UnregisterWindowDestroyedListener() {}
 
     /**
+     * @brief Register window Orientation execution result listener.
+     *
+     * @param func Function to notify Orientation execution result.
+     */
+    virtual void RegisterNotifyOrientationExecutionResultFunc(const NotifyOrientationExecutionResultFunc& func) {}
+
+    /**
+     * @brief Unregister window Orientation execution result listener.
+     *
+     */
+    virtual void UnregisterNotifyOrientationExecutionResultFunc() {}
+
+    /**
      * @brief Register Occupied Area Change listener.
      *
      * @param listener IOccupiedAreaChangeListener.
@@ -2566,6 +2638,18 @@ public:
     virtual void SetRequestedOrientation(Orientation orientation, bool needAnimation = true) {}
 
     /**
+     * @brief Set requested orientation.
+     *
+     * @param Orientation Screen orientation.
+     * @param animation true means window rotation needs animation. Otherwise not needed.
+     */
+    virtual WMError SetPreferredOrientationWithResult(
+        Orientation orientation, uint32_t promiseId, bool needAnimation = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Get the Target Orientation ConfigInfo.
      *
      * @param targetOrientation target Orientation.
@@ -2770,6 +2854,20 @@ public:
      * @return WMError::WM_OK on success, or appropriate error code on failure.
      */
     virtual WMError Maximize(MaximizePresentation presentation, WaterfallResidentState waterfallState)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Maximize window with presentation, across-display presentation, and snapshot animation config.
+     *
+     * @param presentation The presentation mode used for window layout when maximizing.
+     * @param acrossDisplayPresentation The across-display presentation to apply when maximizing.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError MaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation acrossDisplayPresentation, const SnapshotAnimationConfig& snapshotAnimationConfig)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -3308,6 +3406,24 @@ public:
      */
     virtual WMError UnregisterSystemDensityChangeListener(
         const ISystemDensityChangeListenerSptr& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Register window density change listener.
+     *
+     * @param listener IWindowDensityChangeListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterWindowDensityChangeListener(
+        const IWindowDensityChangeListenerSptr& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Unregister window density change listener.
+     *
+     * @param listener IWindowDensityChangeListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    virtual WMError UnregisterWindowDensityChangeListener(
+        const IWindowDensityChangeListenerSptr& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
      * @brief Register main window full screen across multi display change listener.
@@ -3872,6 +3988,18 @@ public:
     virtual WMError Recover(uint32_t reason) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Recovery the main window with snapshot animation config.
+     *
+     * @param reason Reason of update.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError
+     */
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Set to automatically save the window rect.
      *
      * @param enabled Enable the window rect auto-save if true, otherwise means the opposite.
@@ -4011,12 +4139,38 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    virtual WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     /**
      * @brief Clear the window mask of window.
      *
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError ClearWindowMask()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Set is game prelaunch.
+     *
+     * @param isGamePreLaunch is game prelaunch.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetIsGamePreLaunch(bool isGamePreLaunch)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Clear is game prelaunch.
+     *
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError ClearIsGamePreLaunch()
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -4387,12 +4541,26 @@ public:
      */
     virtual WMError SetGestureBackEnabled(bool enable) { return WMError::WM_OK; }
 
-    /**
+    /**	 
      * @brief Get whether to enable gesture back.
      * @param enable the value true means to enable gesture back, and false means the opposite.
      * @return WM_OK means get success, others means get failed.
      */
     virtual WMError GetGestureBackEnabled(bool& enable) const { return WMError::WM_OK; }
+
+    /*
+     * @brief Set whether to enable float navigation avoid area.
+     * @param enable value true means to enable float navigation avoid area, and false means to opposite.
+     * @return WM_OK means set success, others means set failed.
+     */
+    virtual WMError SetFloatNavigationAvoidAreaEnabled(bool enable) { return WMError::WM_OK; }
+
+    /*
+     * @brief Get whether to enable float navigation avoid area.
+     * @param enable value true means to enable float navigation avoid area, and false means to opposite.
+     * @return WM_OK means get success, others means get failed.
+     */
+    virtual WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const { return WMError::WM_OK; }
 
     /**
      * @brief this interface is invoked by the ACE to the native host.
@@ -4681,7 +4849,7 @@ public:
      * @param windowAnchorInfo the windowAnchorInfo of subWindow.
      * @return WM_OK means set success.
      */
-    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, bool isAttach = false)
+    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -4850,6 +5018,13 @@ public:
      */
     virtual bool IsSubWindowMaximizeSupported() const { return false; }
 
+     /**
+     * @brief Get is subwindow zLevel above parent loosened
+     *
+     * @return true means subwindow zLevel above parent loosened, others means follow parent.
+     */
+    virtual bool IsZLevelAboveParentLoosened() const { return false; }
+ 
     /**
      * @brief Set drag key frame policy.
      * effective order:
@@ -4990,6 +5165,16 @@ public:
         return WMError::WM_OK;
     }
  
+    /**
+     * @brief update the floating ball visibility.
+     *
+     * @param isVisible the visibility status of the floating-ball.
+     */
+    virtual WMError UpdateFloatingBallForVisible(bool isVisible)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief get windowId of floating-ball
      *
@@ -5298,6 +5483,65 @@ public:
     virtual WMError NotifyPageEnable(const std::string& action, const std::string& message)
     {
         return WMError::WM_ERROR_INVALID_WINDOW_TYPE;
+    }
+
+    /**
+     * @brief Get Window PersistentId.
+     *
+     * @return Window PersistentId.
+     */
+    virtual int32_t GetWindowPersistentId() const { return INVALID_WINDOW_ID; };
+
+    /**
+     * @brief Get whether this window is AtomicService.
+     *
+     * @return True means the window is AtomicService, false means the window is not AtomicService.
+     */
+    virtual bool GetIsAtomicService() const { return false; };
+
+    /**
+     * @brief notify split ratio changed
+     *
+     * @param newRatio new ratio
+     */
+    virtual WMError NotifySplitRatioChanged(float newRatio)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Notify prepare to close float view window
+     */
+    virtual void NotifyPrepareCloseFloatView() {}
+
+    /**
+     * @brief update float view.
+     *
+     * @param fvTemplateInfo the template info of the float view.
+     */
+    virtual WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief restore main window of the float view.
+     *
+     * @param wantParams the info deleverd to the main window.
+     */
+    virtual WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief update float view.
+     *
+     * @param showWhenCreate show when create for float view or floating ball.
+     */
+    virtual WMError UpdateFloatShowWhenCreate(const bool showWhenCreate)
+    {
+        return WMError::WM_OK;
     }
 };
 }

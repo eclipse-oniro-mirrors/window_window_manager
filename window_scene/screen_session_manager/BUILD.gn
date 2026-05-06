@@ -90,17 +90,14 @@ ohos_shared_library("screen_session_manager") {
     "src/setting_observer.cpp",
     "src/setting_provider.cpp",
     "src/zidl/screen_session_manager_stub.cpp",
-    "src/screen_session_manager_adapter.cpp"
+    "src/screen_session_manager_adapter.cpp",
+    "src/rs_event_data_manager.cpp"
   ]
 
   cflags_cc = [ "-std=c++17" ]
 
   public_configs = [ ":session_manager_public_config" ]
 
-  public_external_deps = [
-    "input:libmmi-client",
-    "input:libmmi-napi",
-  ]
   deps = [
     "${window_base_path}/etc:wms_etc",
     "${window_base_path}/utils:libwmutil",
@@ -141,8 +138,11 @@ ohos_shared_library("screen_session_manager") {
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "init:libbeget_proxy",
+    "input:libmmi-client",
+    "input:libmmi-napi",
     "ipc:ipc_core",
     "libxml2:libxml2",
+    "json:nlohmann_json_static",
     "os_account:os_account_innerkits",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -220,6 +220,7 @@ ohos_shared_library("screen_session_manager") {
       "infra/src/fold_screen/screen_sensor_mgr.cpp",
       "infra/src/fold_screen/sensor_fold_state_mgr.cpp",
       "infra/src/common/product_config.cpp",
+      "infra/src/common/product_ext_wrapper.cpp",
       "infra/src/ffrt/ffrt_queue.cpp",
     ]
     print("window manager fold ability is enabled.")
@@ -284,6 +285,7 @@ ohos_shared_library("screen_session_manager") {
     print("window manager screen multi usr ability is disabled.")
   }
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

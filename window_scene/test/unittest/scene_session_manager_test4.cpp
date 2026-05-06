@@ -794,11 +794,11 @@ HWTEST_F(SceneSessionManagerTest4, UpdateDarkColorModeToRS, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifySessionAINavigationBarChange
- * @tc.desc: NotifySessionAINavigationBarChange
+ * @tc.name: NotifySessionNavigationBarChange
+ * @tc.desc: NotifySessionNavigationBarChange
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest4, NotifySessionAINavigationBarChange, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest4, NotifySessionNavigationBarChange, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     SessionInfo info;
@@ -806,13 +806,13 @@ HWTEST_F(SceneSessionManagerTest4, NotifySessionAINavigationBarChange, TestSize.
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
-    ssm_->NotifySessionAINavigationBarChange(0);
-    ssm_->NotifySessionAINavigationBarChange(1);
+    ssm_->NotifySessionNavigationBarChange(0, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
+    ssm_->NotifySessionNavigationBarChange(1, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
 
     ASSERT_NE(sceneSession->property_, nullptr);
     sceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_END;
     sceneSession->state_ = SessionState::STATE_ACTIVE;
-    ssm_->NotifySessionAINavigationBarChange(1);
+    ssm_->NotifySessionNavigationBarChange(1, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, ssm_->HandleSecureSessionShouldHide(nullptr));
 
     ssm_->sceneSessionMap_.clear();
@@ -822,7 +822,7 @@ HWTEST_F(SceneSessionManagerTest4, NotifySessionAINavigationBarChange, TestSize.
     sceneSession->SetScbCoreEnabled(true);
     sceneSession->isVisible_ = true;
     sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    ssm_->NotifySessionAINavigationBarChange(persistentId);
+    ssm_->NotifySessionNavigationBarChange(persistentId, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
     EXPECT_EQ(WSError::WS_OK, ssm_->HandleSecureSessionShouldHide(sceneSession));
 }
 
@@ -1555,22 +1555,24 @@ HWTEST_F(SceneSessionManagerTest4, RegisterSessionSnapshotFunc, TestSize.Level1)
     ssm_->listenerController_ = std::make_shared<SessionListenerController>();
     ASSERT_NE(ssm_->listenerController_, nullptr);
     ssm_->RegisterSessionSnapshotFunc(sceneSession);
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    Session::SnapshotOptions options;
+    options.runInFfrt = true;
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.abilityInfo->excludeFromMissions = false;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     ssm_->listenerController_ = nullptr;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.abilityInfo = nullptr;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.isSystem_ = true;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
     sessionInfo.persistentId_ = 2;
-    EXPECT_EQ(sceneSession->Snapshot(1.f), nullptr);
+    EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
     usleep(WAIT_SYNC_IN_NS);
 }
 

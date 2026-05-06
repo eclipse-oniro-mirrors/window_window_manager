@@ -91,6 +91,7 @@ WindowAdapter& WindowAdapter::GetInstance()
 WindowAdapter& WindowAdapter::GetInstance(const int32_t userId)
 {
     if (userId <= INVALID_USER_ID) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
         return GetInstance();
     }
     // multi-instance mode
@@ -315,7 +316,7 @@ WMError WindowAdapter::GetAccessibilityWindowInfo(std::vector<sptr<Accessibility
 WMError WindowAdapter::ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
-    
+
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
     return wmsProxy->ConvertToRelativeCoordinateExtended(rect, newRect, newDisplayId);
@@ -347,12 +348,13 @@ WMError WindowAdapter::ListWindowInfo(const WindowInfoOption& windowInfoOption, 
     return wmsProxy->ListWindowInfo(windowInfoOption, infos);
 }
 
-WMError WindowAdapter::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos)
+WMError WindowAdapter::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
+    const WindowInfoOptions& option)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->GetAllWindowLayoutInfo(displayId, infos);
+    return wmsProxy->GetAllWindowLayoutInfo(displayId, infos, option);
 }
 
 WMError WindowAdapter::GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos)
@@ -362,7 +364,7 @@ WMError WindowAdapter::GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& i
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->GetAllMainWindowInfo(infos);
 }
- 
+
 WMError WindowAdapter::GetMainWindowSnapshot(const std::vector<int32_t>& windowIds,
     const WindowSnapshotConfiguration& config, const sptr<IRemoteObject>& callback)
 {
@@ -386,6 +388,14 @@ WMError WindowAdapter::GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->GetGlobalWindowMode(displayId, globalWinMode);
+}
+
+WMError WindowAdapter::GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->GetFloatViewLimits(templateType, limits);
 }
 
 WMError WindowAdapter::GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName)
@@ -420,6 +430,50 @@ WMError WindowAdapter::RecoverWatermarkImageForApp()
     auto errCode = windowManagerServiceProxy_->RecoverWatermarkImageForApp(appWatermarkName_);
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "watermarkName: %{public}s, errCode: %{public}d",
         appWatermarkName_.c_str(), static_cast<int32_t>(errCode));
+    return errCode;
+}
+
+WMError WindowAdapter::SetScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap, uint32_t priority)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    std::string bundleName;
+    auto errCode = wmsProxy->SetScreenWatermarkImage(pixelMap, priority, bundleName);
+    if (errCode == WMError::WM_OK) {
+        screenWatermarkBundleName_ = bundleName;
+        screenWatermarkPriority_ = priority;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "bundleName=%{public}s, priority=%{public}u, ret=%{public}d",
+        bundleName.c_str(), priority, static_cast<int32_t>(errCode));
+    return errCode;
+}
+
+WMError WindowAdapter::CleanScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    auto errCode = wmsProxy->CleanScreenWatermarkImage(pixelMap);
+    if (errCode == WMError::WM_OK) {
+        screenWatermarkBundleName_ = "";
+        screenWatermarkPriority_ = 0;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", static_cast<int32_t>(errCode));
+    return errCode;
+}
+
+WMError WindowAdapter::RecoverScreenWatermarkImage()
+{
+    if (screenWatermarkBundleName_.empty()) {
+        return WMError::WM_OK;
+    }
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    auto errCode = wmsProxy->RecoverScreenWatermarkImage(screenWatermarkBundleName_, screenWatermarkPriority_);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "bundleName=%{public}s, priority=%{public}u, errCode=%{public}d",
+        screenWatermarkBundleName_.c_str(), screenWatermarkPriority_, static_cast<int32_t>(errCode));
     return errCode;
 }
 
@@ -622,6 +676,8 @@ void WindowAdapter::WindowManagerAndSessionRecover()
     ReregisterWindowManagerAgent();
     RecoverWindowPropertyChangeFlag();
     RecoverWatermarkImageForApp();
+    RecoverScreenWatermarkImage();
+    RecoverProcessWatermark();
     RecoverSpecificZIndexSetByApp();
 
     // Avoid directly copying maps to improve performance and thread lock problem.
@@ -1195,17 +1251,28 @@ WMError WindowAdapter::SetSpecificWindowZIndex(WindowType windowType, int32_t zI
     return ret;
 }
 
+WMError WindowAdapter::MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
+    WMError ret = static_cast<WMError>(wmsProxy->MoveMainWindowToTargetDisplay(displayId, windowId));
+    TLOGI(WmsLogTag::WMS_LIFE, "displayId: %{public}" PRIu64 ", windowId: %{public}d, ret: %{public}d",
+        displayId, windowId, ret);
+    return ret;
+}
+
 void WindowAdapter::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-    SystemSessionConfig& systemConfig, sptr<IRemoteObject> token)
+    SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession, sptr<IRemoteObject> token)
 {
     INIT_PROXY_CHECK_RETURN();
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
     wmsProxy->CreateAndConnectSpecificSession(sessionStage, eventChannel,
-        surfaceNode, property, persistentId, session, systemConfig, token);
+        surfaceNode, property, persistentId, session, systemConfig, renderSession, token);
 }
 
 void WindowAdapter::RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
@@ -1445,7 +1512,41 @@ WMError WindowAdapter::SetProcessWatermark(int32_t pid, const std::string& water
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto errCode = wmsProxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    if (errCode == WMError::WM_OK) {
+        std::lock_guard<std::mutex> lock(processWatermarkMutex_);
+        if (isEnabled) {
+            processWatermarkPid_ = pid;
+            processWatermarkName_ = watermarkName;
+        } else {
+            processWatermarkPid_ = 0;
+            processWatermarkName_ = "";
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "pid=%{public}d, watermarkName=%{public}s, isEnabled=%{public}d, err=%{public}d",
+        pid, watermarkName.c_str(), isEnabled, static_cast<int32_t>(errCode));
+    return errCode;
+}
+
+WMError WindowAdapter::RecoverProcessWatermark()
+{
+    int32_t pid = 0;
+    std::string watermarkName;
+    {
+        std::lock_guard<std::mutex> lock(processWatermarkMutex_);
+        pid = processWatermarkPid_;
+        watermarkName = processWatermarkName_;
+    }
+    if (pid == 0 || watermarkName.empty()) {
+        return WMError::WM_OK;
+    }
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    auto errCode = wmsProxy->RecoverProcessWatermark(pid, watermarkName);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "pid=%{public}d, watermarkName=%{public}s, err=%{public}d",
+        pid, watermarkName.c_str(), static_cast<int32_t>(errCode));
+    return errCode;
 }
 
 WMError WindowAdapter::UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease)

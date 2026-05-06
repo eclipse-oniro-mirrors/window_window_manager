@@ -21,6 +21,7 @@
 #include "parameters.h"
 #include "picture_in_picture_controller.h"
 #include "picture_in_picture_manager.h"
+#include "float_window_manager.h"
 #include "window.h"
 #include "window_session_impl.h"
 #include "wm_common.h"
@@ -333,6 +334,24 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture01, TestSize.Level
     pipControl->curState_ = PiPWindowState::STATE_STARTED;
     EXPECT_EQ(WMError::WM_ERROR_PIP_REPEAT_OPERATION, pipControl->StartPictureInPicture(startType));
     delete contextPtr;
+}
+
+/**
+ * @tc.name: StartPictureInPicture03
+ * @tc.desc: StartPictureInPicture with stop state
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture03, TestSize.Level1)
+{
+    StartPipType startType = StartPipType::AUTO_START;
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto option = sptr<PipOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    auto pipControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
+    
+    pipControl->curState_ = PiPWindowState::STATE_STARTING;
+    EXPECT_EQ(WMError::WM_ERROR_PIP_REPEAT_OPERATION, pipControl->StartPictureInPicture(startType));
 }
 
 /**

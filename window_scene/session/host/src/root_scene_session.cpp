@@ -139,6 +139,32 @@ void RootSceneSession::GetAINavigationBarAreaForRoot(const WSRect& rect, AvoidAr
     CalculateAvoidAreaByType(AvoidAreaType::TYPE_NAVIGATION_INDICATOR, rect, barArea, avoidArea);
 }
 
+void RootSceneSession::GetFloatNavigationAvoidAreaForRoot(
+    const WSRect& rect, AvoidArea& avoidArea, bool ignoreVisibility)
+{
+    bool visible = false;
+    WSRect floatNavigationArea;
+    std::tuple<bool, WSRect, WSRect> floatNavagationInfo;
+    if (specificCallback_ != nullptr && specificCallback_->onGetFloatNavagationInfo_ &&
+        specificCallback_->onGetFloatNavagationInfo_(
+            GetSessionProperty()->GetDisplayId(), floatNavagationInfo) == WSError::WS_OK) {
+        auto [visibleFromTuple, portraitRect, landspaceRect] = floatNavagationInfo;
+        visible = visibleFromTuple;
+        auto display = DisplayManager::GetInstance().GetDisplayById(GetDisplayId());
+        if (!display) {
+            TLOGE(WmsLogTag::WMS_IMMS, "win %{public}d display is null", GetPersistentId());
+            return;
+        }
+        floatNavigationArea = display->GetWidth() > display->GetHeight() ? landspaceRect : portraitRect;
+    }
+    if (!visible && !ignoreVisibility) {
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d float navigation not visible", GetPersistentId());
+        return;
+    }
+    PatchFloatNavigationArea(floatNavigationArea);
+    CalculateAvoidAreaByType(AvoidAreaType::TYPE_FLOAT_NAVIGATION, rect, floatNavigationArea, avoidArea);
+}
+
 AvoidArea RootSceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, bool ignoreVisibility)
 {
     auto task = [weakThis = wptr(this), type, ignoreVisibility]() -> AvoidArea {
@@ -168,6 +194,10 @@ AvoidArea RootSceneSession::GetAvoidAreaByTypeInner(AvoidAreaType type, bool ign
             }
             case AvoidAreaType::TYPE_NAVIGATION_INDICATOR: {
                 session->GetAINavigationBarAreaForRoot(sessionRect, avoidArea, ignoreVisibility);
+                return avoidArea;
+            }
+            case AvoidAreaType::TYPE_FLOAT_NAVIGATION: {
+                session->GetFloatNavigationAvoidAreaForRoot(sessionRect, avoidArea, ignoreVisibility);
                 return avoidArea;
             }
             default: {

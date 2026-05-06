@@ -194,7 +194,34 @@ void OptionSetIcon(ani_env* env, ani_object paramsInterface, FbOption& option)
     }
 }
 
-bool GetFbOption(ani_env* env, ani_object paramsInterface, FbOption& option)
+bool OptionSetTextUpdateAnimationType(ani_env* env, ani_object paramsInterface, FbOption& option)
+{
+    ani_ref textUpdateAnimationTypeValue;
+    if (env->Object_GetPropertyByName_Ref(paramsInterface, "textUpdateAnimationType", &textUpdateAnimationTypeValue)
+        != ANI_OK) {
+        TLOGI(WmsLogTag::WMS_SYSTEM, "[ANI]textUpdateAnimationType is not provided");
+        return true;
+    }
+    ani_boolean isAnimateTypeValueUndefined = false;
+    env->Reference_IsUndefined(textUpdateAnimationTypeValue, &isAnimateTypeValueUndefined);
+    if (isAnimateTypeValueUndefined) {
+        return true;
+    }
+
+    ani_int ret;
+    ani_status res = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(textUpdateAnimationTypeValue), &ret);
+    if (res != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]get textUpdateAnimationType failed");
+        return false;
+    }
+
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]option.textUpdateAnimationType begin");
+    uint32_t textUpdateAnimationType = static_cast<uint32_t>(ret);
+    option.SetTextUpdateAnimationType(textUpdateAnimationType);
+    return true;
+}
+
+bool AniFbController::GetFbOption(ani_env* env, ani_object paramsInterface, FbOption& option)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
     if (!CheckParamsInterface(env, paramsInterface)) {return false;}
@@ -203,6 +230,9 @@ bool GetFbOption(ani_env* env, ani_object paramsInterface, FbOption& option)
     OptionSetContent(env, paramsInterface, option);
     OptionSetBackgroundColor(env, paramsInterface, option);
     OptionSetIcon(env, paramsInterface, option);
+    if (!OptionSetTextUpdateAnimationType(env, paramsInterface, option)) {
+        return false;
+    }
     return true;
 }
 
@@ -233,6 +263,13 @@ bool AniFbController::CheckParams(ani_env* env, const FbOption& option)
     if (!option.GetBackgroundColor().empty() && !ColorParser::IsValidColorNoAlpha(option.GetBackgroundColor())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]backgroundColor is invalid");
         AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "backgroundColor is invalid");
+        return false;
+    }
+    if (option.GetTextUpdateAnimationType() >=
+        static_cast<uint32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_END)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]textUpdateAnimationType %{public}u is invalid",
+            option.GetTextUpdateAnimationType());
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "textUpdateAnimationType is invalid");
         return false;
     }
     if (option.GetTemplate() == static_cast<uint32_t>(FloatingBallTemplate::STATIC) &&
@@ -298,6 +335,7 @@ void AniFbController::OnstartFloatingBallAni(ani_env* env, ani_object paramsInte
     // check parameters
     if (CheckParams(env, fbOption) == false) {return;}
     // working
+    fbOption.SetTextUpdateAnimationType(static_cast<uint32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_NONE));
     sptr<FbOption> optionPtr = sptr<FbOption>::MakeSptr(fbOption);
     WMError errCode = fbController_->StartFloatingBall(optionPtr);
     // check result
@@ -307,6 +345,42 @@ void AniFbController::OnstartFloatingBallAni(ani_env* env, ani_object paramsInte
         return;
     }
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]OnstartFloatingBallAni finish");
+}
+
+void AniFbController::SetInApplicationVisibleAni(ani_env* env,
+                                                 ani_object obj,
+                                                 ani_long nativeObj,
+                                                 ani_boolean isVisible)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]set in application visible");
+    // check nullptr
+    AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
+    if (aniFbController == nullptr) {
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+            "[FB]AniFbController* aniFbController for nativeObj is nullptr");
+        return;
+    }
+    // working
+    aniFbController->OnSetInApplicationVisibleAni(env, isVisible);
+}
+
+void AniFbController::OnSetInApplicationVisibleAni(ani_env* env, ani_boolean isVisible)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]SetInApplicationVisibleAni start");
+    // check nullptr
+    if (fbController_ == nullptr) {
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
+        return;
+    }
+    // check nullptr
+    WMError errCode = fbController_->SetInApplicationVisible(static_cast<bool>(isVisible));
+    // check result
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fbController_->SetInApplicationVisible failed");
+        AniThrowError(env, errCode, "[FB]internal error");
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]OnSetInApplicationVisibleAni finish");
 }
 
 void AniFbController::UpdateFloatingBallAni(ani_env* env,
@@ -801,6 +875,11 @@ WMError AniFbController::UnRegisterListener(FbListenerType fbListenerType, sptr<
             return WMError::WM_ERROR_FB_PARAM_INVALID;
     }
 }
+
+sptr<FloatingBallController> AniFbController::GetController() const
+{
+    return fbController_;
+}
 } // namespace Rosen
 } // namespace OHOS
 
@@ -824,6 +903,8 @@ ani_status OHOS::Rosen::ANI_Controller_Constructor(ani_vm *vm, uint32_t *result)
     std::array methods = {
         ani_native_function {"startFloatingBallNative", nullptr,
             reinterpret_cast<void*>(AniFbController::StartFloatingBallAni)},
+        ani_native_function {"SetInApplicationVisibleNative", nullptr,
+            reinterpret_cast<void*>(AniFbController::SetInApplicationVisibleAni)},
         ani_native_function {"updateFloatingBallNative", nullptr,
             reinterpret_cast<void*>(AniFbController::UpdateFloatingBallAni)},
         ani_native_function {"stopFloatingBallNative", "l:",

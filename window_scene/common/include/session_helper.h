@@ -33,11 +33,9 @@ public:
     static WSRectT<T> GetOverlap(const WSRectT<T>& rect1, const WSRectT<T>& rect2, T offsetX, T offsetY)
     {
         T x_begin = std::max(rect1.posX_, rect2.posX_);
-        T x_end = std::min(rect1.posX_ + static_cast<int32_t>(rect1.width_),
-            rect2.posX_ + static_cast<int32_t>(rect2.width_));
+        T x_end = std::min(rect1.posX_ + rect1.width_, rect2.posX_ + rect2.width_);
         T y_begin = std::max(rect1.posY_, rect2.posY_);
-        T y_end = std::min(rect1.posY_ + static_cast<int32_t>(rect1.height_),
-            rect2.posY_ + static_cast<int32_t>(rect2.height_));
+        T y_end = std::min(rect1.posY_ + rect1.height_, rect2.posY_ + rect2.height_);
         if (y_begin >= y_end || x_begin >= x_end) {
             return { 0, 0, 0, 0 };
         }

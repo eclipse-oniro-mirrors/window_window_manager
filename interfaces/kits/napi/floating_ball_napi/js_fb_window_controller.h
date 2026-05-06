@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@
 #include "floating_ball_controller.h"
 #include "wm_common.h"
 #include "js_fb_window_listener.h"
+#include "window_histogram_management.h"
+
 
 namespace OHOS {
 namespace Rosen {
@@ -37,11 +39,15 @@ public:
     static napi_value RegisterCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterCallback(napi_env env, napi_callback_info info);
     static napi_value GetFloatingBallWindowInfo(napi_env env, napi_callback_info info);
-
+    static napi_value SetInApplicationVisible(napi_env env, napi_callback_info info);
+    napi_value GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option);
+    sptr<FloatingBallController> GetController() const;
 private:
     napi_value OnStartFloatingBall(napi_env env, napi_callback_info info);
     napi_value StartFloatingBallTask(napi_env env, const FbOption& option);
     napi_value OnUpdateFloatingBall(napi_env env, napi_callback_info info);
+    napi_value UpdateFloatingBallTask(napi_env env, const FbOption &option);
+    napi_value OnSetInApplicationVisible(napi_env env, napi_callback_info info);
     napi_value OnStopFloatingBall(napi_env env, napi_callback_info info);
     napi_value OnRestoreMainWindow(napi_env env, napi_callback_info info);
 
@@ -60,8 +66,6 @@ private:
     WMError ProcessStateChangeUnRegister(const sptr<JsFbWindowListener>& listener);
     WMError ProcessClickEventUnRegister(const sptr<JsFbWindowListener>& listener);
 
-    napi_value GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option);
-    napi_value CheckParams(napi_env env, const FbOption& option);
     napi_value GetIcon(napi_env env, napi_value value, FbOption& option);
 
     sptr<FloatingBallController> fbController_ = nullptr;

@@ -104,6 +104,9 @@ public:
     void SetRsId(ScreenId rsId);
     ScreenId GetRsId() const;
 
+    void SetIsInternal(bool isInternal);
+    bool GetIsInternal() const;
+
     void SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason);
     ScreenPropertyChangeReason GetPropertyChangeReason() const;
 
@@ -277,9 +280,9 @@ public:
     void SetCurrentOffScreenRendering(bool enable) { isCurrentOffScreenRendering_ = enable; }
     bool GetCurrentOffScreenRendering() { return isCurrentOffScreenRendering_; }
     void SetScreenRealWidth(uint32_t width) { screenRealWidth_ = width; }
-    uint32_t GetScreenRealWidth() { return screenRealWidth_; }
+    uint32_t GetScreenRealWidth() const { return screenRealWidth_; }
     void SetScreenRealHeight(uint32_t height) { screenRealHeight_ = height; }
-    uint32_t GetScreenRealHeight() { return screenRealHeight_; }
+    uint32_t GetScreenRealHeight() const { return screenRealHeight_; }
     void SetScreenRealPPI() { screenRealPPI_ = CalculatePPI(); }
     float GetScreenRealPPI() { return screenRealPPI_; }
     void SetScreenRealDPI() { screenRealDPI_ = CalculateDPI(); }
@@ -340,6 +343,8 @@ private:
     uint32_t defaultDeviceRotationOffset_ { 0 };
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
+
+    bool isInternal_ = true;
 
     ScreenPropertyChangeReason propertyChangeReason_;
 

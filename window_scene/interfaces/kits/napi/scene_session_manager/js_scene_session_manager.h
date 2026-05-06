@@ -57,7 +57,9 @@ enum class ListenerFunctionType : uint32_t {
     SET_SPECIFIC_SESSION_ZINDEX_CB,
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
     MINIMIZE_ALL_CB,
+    MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
+    GET_FLOAT_VIEW_LIMIT_CB,
 };
 
 class JsSceneSessionManager final {
@@ -117,7 +119,6 @@ public:
     static napi_value NotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     static napi_value UpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
-    static napi_value UpdateAppHookWindowInfo(napi_env env, napi_callback_info info);
     static napi_value NotifyHookOrientationChange(napi_env env, napi_callback_info info);
     static napi_value InitScheduleUtils(napi_env env, napi_callback_info info);
     static napi_value SetAppForceLandscapeConfig(napi_env env, napi_callback_info info);
@@ -147,13 +148,14 @@ public:
     static napi_value NotifySupportRotationChange(napi_env env, napi_callback_info info);
     static napi_value GetAllJsonProfile(napi_env env, napi_callback_info info);
     static napi_value GetJsonProfile(napi_env env, napi_callback_info info);
-    static napi_value SetAppForceLandscapeConfigEnable(napi_env env, napi_callback_info info);
+    static napi_value SetSelectMode(napi_env env, napi_callback_info info);
 
     /*
      * PC Window
      */
     static napi_value GetWindowLimits(napi_env env, napi_callback_info info);
     static napi_value SetIsDockAutoHide(napi_env env, napi_callback_info info);
+    static napi_value SetShowOnDockSessionIds(napi_env env, napi_callback_info info);
     static napi_value SetTrayAppListInfo(napi_env env, napi_callback_info info);
     static napi_value HandlePcAppStatus(napi_env env, napi_callback_info info);
 
@@ -170,6 +172,7 @@ public:
      */
     static napi_value NotifyAINavigationBarShowStatus(napi_env env, napi_callback_info info);
     static napi_value NotifyNextAvoidRectInfo(napi_env env, napi_callback_info info);
+    static napi_value NotifyFloatNavigationInfo(napi_env env, napi_callback_info info);
     static napi_value GetIsLayoutFullScreen(napi_env env, napi_callback_info info);
     static napi_value SetMaximizeFullScreen(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarDefaultVisibilityPerDisplay(napi_env env, napi_callback_info info);
@@ -203,6 +206,11 @@ public:
      * Window Event
      */
     static napi_value SendAxisEvent(napi_env env, napi_callback_info info);
+
+    /*
+     * Float view
+     */
+    static napi_value SyncFloatViewLimits(napi_env env, napi_callback_info info);
 
 private:
     napi_value OnSetBehindWindowFilterEnabled(napi_env env, napi_callback_info info);
@@ -266,7 +274,6 @@ private:
     napi_value OnNotifySCBRecentStateChange(napi_env env, napi_callback_info info);
     napi_value OnUpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
-    napi_value OnUpdateAppHookWindowInfo(napi_env env, napi_callback_info info);
     napi_value OnNotifyHookOrientationChange(napi_env env, napi_callback_info info);
     napi_value OnInitScheduleUtils(napi_env env, napi_callback_info info);
     napi_value OnSetAppForceLandscapeConfig(napi_env env, napi_callback_info info);
@@ -292,8 +299,8 @@ private:
     napi_value OnNotifySupportRotationChange(napi_env env, napi_callback_info info);
     napi_value OnGetAllJsonProfile(napi_env env, napi_callback_info info);
     napi_value OnGetJsonProfile(napi_env env, napi_callback_info info);
-    napi_value OnSetAppForceLandscapeConfigEnable(napi_env env, napi_callback_info info);
-    
+    napi_value OnSetSelectMode(napi_env env, napi_callback_info info);
+
     /*
      * PC Window
      */
@@ -301,6 +308,7 @@ private:
     void RegisterVirtualPixelRatioChangeCallback();
     void OnVirtualPixelChange(float density, DisplayId displayId);
     napi_value OnSetIsDockAutoHide(napi_env env, napi_callback_info info);
+    napi_value OnSetShowOnDockSessionIds(napi_env env, napi_callback_info info);
     napi_value OnHandleTrayAppChange(napi_env env, napi_callback_info info);
 
     /*
@@ -316,6 +324,7 @@ private:
      */
     napi_value OnNotifyAINavigationBarShowStatus(napi_env env, napi_callback_info info);
     napi_value OnNotifyNextAvoidRectInfo(napi_env env, napi_callback_info info);
+    napi_value OnNotifyFloatNavigationInfo(napi_env env, napi_callback_info info);
     napi_value OnGetIsLayoutFullScreen(napi_env env, napi_callback_info info);
     napi_value OnSetMaximizeFullScreen(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarDefaultVisibilityPerDisplay(napi_env env, napi_callback_info info);
@@ -438,6 +447,9 @@ private:
      */
     void RegisterSetSpecificWindowZIndexCallback();
     void OnSetSpecificWindowZIndex(WindowType windowType, int32_t zIndex, SetSpecificZIndexReason reason);
+    void RegisterMoveMainWindowToTargetDisplayCallback();
+    void OnMoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId,
+        bool isFromScreenVirtual, bool isToScreenVirtual);
 
     napi_env env_;
     std::shared_mutex jsCbMapMutex_;
@@ -469,6 +481,13 @@ private:
     void RegisterPageEnableCallback();
     void OnNotifyPageEnableRegistered(const std::string& bundleName, int32_t windowId,
         const std::string& action, const std::string& message);
+    
+    /*
+     * Float view
+     */
+    napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
+    void RegisterGetFloatViewLimitCallback();
+    bool OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit);
 };
 } // namespace OHOS::Rosen
 

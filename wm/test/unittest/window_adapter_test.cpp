@@ -961,6 +961,20 @@ HWTEST_F(WindowAdapterTest, SetProcessWatermark, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RecoverProcessWatermark
+ * @tc.desc: WindowAdapter/RecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, RecoverProcessWatermark, TestSize.Level1)
+{
+    WindowAdapter windowAdapter;
+    windowAdapter.processWatermarkPid_ = 10;
+    windowAdapter.processWatermarkName_ = "test";
+    auto err = windowAdapter.RecoverProcessWatermark();
+    EXPECT_EQ(err, WMError::WM_OK);
+}
+
+/**
  * @tc.name: NotifyScreenshotEvent
  * @tc.desc: NotifyScreenshotEvent
  * @tc.type: FUNC
@@ -1712,6 +1726,30 @@ HWTEST_F(WindowAdapterTest, SetSpecificSystemWindowZIndex, TestSize.Level1)
 
     auto result = windowAdapter.SetSpecificWindowZIndex(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD, 20);
     EXPECT_NE(WMError::WM_OK, result);
+}
+
+/**
+ * @tc.name: MoveMainWindowToTargetDisplay
+ * @tc.desc: MoveMainWindowToTargetDisplay
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, MoveMainWindowToTargetDisplay, TestSize.Level1)
+{
+    instance_->isProxyValid_ = false;
+    auto ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
+
+    instance_->isProxyValid_ = true;
+    instance_->windowManagerServiceProxy_ = nullptr;
+    ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
+
+    auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
+    auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
+    instance_->windowManagerServiceProxy_ = wmsProxy;
+    EXPECT_CALL(*remoteObject, MoveMainWindowToTargetDisplay(_, _)).WillOnce(Return(WSError::WS_OK));
+    ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(WMError::WM_OK, ret);
 }
 
 /**

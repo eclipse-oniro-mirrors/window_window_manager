@@ -39,7 +39,7 @@ private:
 
     void OnInitXComponentController(ani_env* env, ani_object xComponentController);
     ani_ref OnGetCustomUIController(ani_env* env);
-    ani_ref OnGetTypeNode(ani_env* env);
+    ani_object OnGetTypeNode(ani_env* env);
     void OnRegisterCallback(ani_env* env, ani_string type, ani_ref callback);
     void OnUnregisterCallback(ani_env* env, ani_string type);
     void OnSetPipNodeType(ani_env* env, ani_object typeNode, ani_boolean markPip);

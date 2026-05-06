@@ -25,6 +25,7 @@ public:
     static bool IsSystemServiceCalling(bool needPrintLog = true, bool isLocalSysCalling = false);
     static bool IsSystemCalling(bool isLocalSysCalling = false);
     static bool CheckCallingPermission(const std::string& permission);
+    static bool CheckSelfPermission(const std::string& permission);
     static bool IsStartByHdcd(bool isLocalSysCalling = false);
     static bool IsSystemCallingOrStartByHdcd(bool isLocalSysCalling = false);
 };

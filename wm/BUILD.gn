@@ -60,6 +60,10 @@ ohos_static_library("libwm_static") {
     "src/floating_ball_controller.cpp",
     "src/floating_ball_manager.cpp",
     "src/floating_ball_option.cpp",
+    "src/float_view_controller.cpp",
+    "src/float_view_manager.cpp",
+    "src/float_view_option.cpp",
+    "src/float_window_manager.cpp",
     "src/future_callback.cpp",
     "src/lifecycle_future_callback.cpp",
     "src/load_intention_event.cpp",
@@ -219,6 +223,10 @@ ohos_shared_library("libwm") {
     "src/floating_ball_controller.cpp",
     "src/floating_ball_manager.cpp",
     "src/floating_ball_option.cpp",
+    "src/float_view_controller.cpp",
+    "src/float_view_manager.cpp",
+    "src/float_view_option.cpp",
+    "src/float_window_manager.cpp",
     "src/future_callback.cpp",
     "src/lifecycle_future_callback.cpp",
     "src/load_intention_event.cpp",
@@ -320,6 +328,7 @@ ohos_shared_library("libwm") {
   ]
 
   defines = []
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   if (defined(global_parts_info) &&
       defined(global_parts_info.barrierfree_accessibility)) {
@@ -354,8 +363,13 @@ ohos_shared_library("libwm") {
     defines += [ "IMF_ENABLE" ]
   }
 
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   if (is_ohos && is_clang && target_cpu == "arm64") {
-    ldflags = [
+    ldflags += [
       "-Wl,--emit-relocs",
       "-Wl,--no-relax",
       "-mno-fix-cortex-a53-843419"
@@ -445,6 +459,7 @@ ohos_shared_library("libwm_lite") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("test") {
@@ -468,7 +483,7 @@ ohos_shared_library("libwm_ndk") {
 
   include_dirs = [
     "${window_base_path}/interfaces/kits/ndk/wm",
-    "${window_base_path}/interfaces/inner_kits/wm",
+    "${window_base_path}/interfaces/innerkits/wm",
   ]
 
   sources = [
@@ -588,6 +603,7 @@ ohos_shared_library("libpip_web") {
     "samgr:samgr_proxy",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -622,7 +638,7 @@ ohos_shared_library("libpip_ndk") {
   include_dirs = [
     "//foundation/window/window_manager",
     "//foundation/window/window_manager/interfaces/innerkits",
-    "//foundation/window/window_manager/interfaces/inner_kits/wm",
+    "//foundation/window/window_manager/interfaces/innerkits/wm",
     "//foundation/window/window_manager/interfaces/kits/ndk/wm",
     "//foundation/window/window_manager/wm/include",
   ]

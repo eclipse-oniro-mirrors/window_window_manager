@@ -147,7 +147,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect01, TestSize.Level1)
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     systemSession_->sessionStage_ = mockSessionStage;
-    auto ret = systemSession_->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    auto ret = systemSession_->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 }
 
@@ -678,12 +678,12 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect02, TestSize.Level1)
 
     sysSession->dirtyFlags_ = 0;
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
-    sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     ASSERT_EQ(sysSession->GetSizeChangeReason(), SizeChangeReason::UNDEFINED);
 
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG);
-    sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     ASSERT_EQ(sysSession->GetSizeChangeReason(), SizeChangeReason::DRAG);
 }
@@ -712,7 +712,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect03, TestSize.Level1)
     sysSession->specificCallback_ = specificCallback;
     sysSession->specificCallback_->onUpdateAvoidArea_ = nullptr;
     sysSession->GetLayoutController()->SetSessionRect({ 0, 0, 800, 800 });
-    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     EXPECT_EQ(res, WSError::WS_OK);
 
@@ -720,7 +720,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect03, TestSize.Level1)
     sysSession->SetScbCoreEnabled(true);
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
     sysSession->specificCallback_->onUpdateAvoidArea_ = [](const int32_t& persistentId) {};
-    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     EXPECT_EQ(sysSession->dirtyFlags_, static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA));
     EXPECT_EQ(res, WSError::WS_OK);
@@ -897,7 +897,9 @@ HWTEST_F(SystemSessionTest, UpdateFloatingBall, Function | SmallTest | Level2)
     LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
     EXPECT_EQ(systemSession->UpdateFloatingBall(fbTemplateInfo), WMError::WM_OK);
 
-    FloatingBallTemplateInfo fbTmpInfo {static_cast<uint32_t>(FloatingBallTemplate::STATIC), "", "", "", nullptr};
+    FloatingBallTemplateBaseInfo fbBaseTmpInfo (
+        static_cast<uint32_t>(FloatingBallTemplate::STATIC), "", "", "", 0, false, 0, true, "test");
+    FloatingBallTemplateInfo fbTmpInfo {fbBaseTmpInfo, nullptr};
     systemSession->SetFbTemplateInfo(fbTmpInfo);
     EXPECT_EQ(systemSession->UpdateFloatingBall(fbTemplateInfo), WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED);
 
@@ -1011,6 +1013,45 @@ HWTEST_F(SystemSessionTest, GetFloatingBallWindowId, Function | SmallTest | Leve
 }
 
 /**
+ * @tc.name: GetFloatingBallWindowId_PollingWaitLoop
+ * @tc.desc: Test GetFloatingBallWindowId with windowId == 0 && waitTimes >= MAX_WAIT_TIMES polling loop
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, GetFloatingBallWindowId_PollingWaitLoop, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    EXPECT_NE(property, nullptr);
+
+    // Setup: FB window type
+    property->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    systemSession->SetSessionProperty(property);
+
+    // Setup: Set calling pid to match
+    LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
+
+    // Setup: Mock getFbPanelWindowIdFunc to track polling loop calls and always return 0
+    uint32_t callCount = 0;
+    auto getFbPanelWindowIdFunc = [&callCount](uint32_t& windowId) -> WMError {
+        windowId = 0;  // Always return 0 to trigger polling
+        callCount++;   // Count how many times this is called
+        return WMError::WM_OK;
+    };
+    systemSession->RegisterGetFbPanelWindowIdFunc(getFbPanelWindowIdFunc);
+
+    // Test: Call GetFloatingBallWindowId
+    uint32_t resultWindowId = 999;
+    WMError result = systemSession->GetFloatingBallWindowId(resultWindowId);
+
+    EXPECT_EQ(result, WMError::WM_OK);
+    EXPECT_EQ(resultWindowId, 0);
+    EXPECT_EQ(callCount, 11);
+}
+
+/**
  * @tc.name: NotifyUpdateFloatingBall
  * @tc.desc: NotifyUpdateFloatingBall
  * @tc.type: FUNC
@@ -1022,8 +1063,10 @@ HWTEST_F(SystemSessionTest, NotifyUpdateFloatingBall, Function | SmallTest | Lev
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
 
-    FloatingBallTemplateInfo fbTemplateInfo {1, "fb", "fb_content", "red", nullptr};
-    FloatingBallTemplateInfo newFbTemplateInfo {2, "fb_new", "fb_content_new", "red", nullptr};
+    FloatingBallTemplateBaseInfo fbBaseTmpInfo {1, "fb", "fb_content", "red", 0, false, 0, true, "test"};
+    FloatingBallTemplateInfo fbTemplateInfo {fbBaseTmpInfo, nullptr};
+    FloatingBallTemplateBaseInfo newFbBaseTmpInfo {2, "fb_new", "fb_content_new", "red", 0, false, 0, true, "test"};
+    FloatingBallTemplateInfo newFbTemplateInfo {newFbBaseTmpInfo, nullptr};
     systemSession->SetFloatingBallUpdateCallback(nullptr);
     systemSession->NotifyUpdateFloatingBall(newFbTemplateInfo);
     EXPECT_NE(fbTemplateInfo.template_, newFbTemplateInfo.template_);
@@ -1190,16 +1233,16 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindow, Function | SmallTest | Level
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_START_ABILITY_FAILED);
     parentSession->SetForegroundInteractiveStatus(true);
 
-    systemSession->floatWindowDownEventCnt_ = 0;
+    systemSession->floatDownEventCnt_ = 0;
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
-    systemSession->floatWindowDownEventCnt_ = 2;
+    systemSession->floatDownEventCnt_ = 2;
     EXPECT_EQ(systemSession->RestoreFloatMainWindow(wantParams), WMError::WM_OK);
-    EXPECT_EQ(systemSession->floatWindowDownEventCnt_, 0);
+    EXPECT_EQ(systemSession->floatDownEventCnt_, 0);
 }
 
 /**
  * @tc.name: RestoreFloatMainWindowGetIsAtRecent
- * @tc.desc: RestoreFloatMainWindowGetIsAtRecent Test
+ * @tc.desc: RestoreFloatMainWindowGetGetIsAtRecent Test
  * @tc.type: FUNC
  */
 HWTEST_F(SystemSessionTest, RestoreFloatMainWindowGetIsAtRecent, TestSize.Level1)
@@ -1216,6 +1259,250 @@ HWTEST_F(SystemSessionTest, RestoreFloatMainWindowGetIsAtRecent, TestSize.Level1
     };
     systemSession->RegisterGetIsRecentStateFunc(func);
     EXPECT_EQ(systemSession->getIsRecentStateFunc_(), true);
+}
+
+/**
+ * @tc.name: SetAndGetFvTemplateInfo
+ * @tc.desc: SetAndGetFvTemplateInfo Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, SetAndGetFvTemplateInfo, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetAndGetFvTemplateInfo";
+    info.bundleName_ = "SetAndGetFvTemplateInfo";
+
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(systemSession, nullptr);
+    systemSession->isActive_ = true;
+    FloatViewTemplateInfo fvTemplateInfo;
+    fvTemplateInfo.template_ = 1;
+    systemSession->SetFvTemplateInfo(fvTemplateInfo);
+    EXPECT_EQ(systemSession->GetFvTemplateInfo().template_, fvTemplateInfo.template_);
+}
+
+/**
+ * @tc.name: StopFloatView
+ * @tc.desc: StopFloatView Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, StopFloatView, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    EXPECT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    systemSession->SetSessionProperty(property);
+    EXPECT_EQ(systemSession->StopFloatView(), WSError::WS_DO_NOTHING);
+
+    property->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    systemSession->SetSessionProperty(property);
+    EXPECT_EQ(systemSession->StopFloatView(), WSError::WS_OK);
+
+    LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
+    EXPECT_EQ(systemSession->StopFloatView(), WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyStopFloatView
+ * @tc.desc: NotifyStopFloatView Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, NotifyStopFloatView, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+
+    uint32_t stopFuncCallTimes = 0;
+    auto fvStopFuncCb = [&stopFuncCallTimes] (const std::string& reason) {
+        stopFuncCallTimes++;
+    };
+
+    systemSession->SetFloatViewStopCallback(nullptr);
+    systemSession->NotifyStopFloatView();
+
+    systemSession->SetFloatViewStopCallback(fvStopFuncCb);
+    systemSession->NotifyStopFloatView();
+    EXPECT_EQ(stopFuncCallTimes, 2);
+}
+
+/**
+ * @tc.name: SendFvActionEvent
+ * @tc.desc: SendFvActionEvent Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, SendFvActionEvent, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
+
+    systemSession->sessionStage_ = nullptr;
+    EXPECT_EQ(systemSession->SendFvActionEvent("", ""), WSError::WS_ERROR_NULLPTR);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    systemSession->sessionStage_ = mockSessionStage;
+    auto ret = systemSession->SendFvActionEvent("click", "testReason");
+    ASSERT_EQ(WSError::WS_OK, ret);
+
+    ret = systemSession->SendFvActionEvent("on", "testReason");
+    ASSERT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: SyncFvWindowInfo
+ * @tc.desc: SyncFvWindowInfo Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, SyncFvWindowInfo, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
+
+    FloatViewWindowInfo windowInfo;
+    systemSession->sessionStage_ = nullptr;
+    EXPECT_EQ(systemSession->SyncFvWindowInfo(windowInfo, ""), WSError::WS_ERROR_NULLPTR);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    systemSession->sessionStage_ = mockSessionStage;
+    auto ret = systemSession->SyncFvWindowInfo(windowInfo, "testReason");
+    ASSERT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: UpdateFloatView
+ * @tc.desc: UpdateFloatView Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, UpdateFloatView, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+
+    FloatViewTemplateInfo fvTemplateInfo;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    EXPECT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    systemSession->SetSessionProperty(property);
+    EXPECT_EQ(systemSession->UpdateFloatView(fvTemplateInfo), WMError::WM_DO_NOTHING);
+
+    property->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    systemSession->SetSessionProperty(property);
+    EXPECT_EQ(systemSession->UpdateFloatView(fvTemplateInfo), WMError::WM_OK);
+
+    LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
+    EXPECT_EQ(systemSession->UpdateFloatView(fvTemplateInfo), WMError::WM_OK);
+
+    fvTemplateInfo.template_ = static_cast<uint32_t>(FloatViewTemplate::END);
+    EXPECT_EQ(systemSession->UpdateFloatView(fvTemplateInfo), WMError::WM_DO_NOTHING);
+}
+
+/**
+ * @tc.name: RestoreFloatViewMainWindow
+ * @tc.desc: RestoreFloatViewMainWindow Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, RestoreFloatViewMainWindow, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+
+    std::shared_ptr<AAFwk::WantParams> wantParams = std::make_shared<AAFwk::WantParams>();
+    SessionInfo info1;
+    info1.abilityName_ = "floatViewParentWindow";
+    info1.bundleName_ = "floatViewParentWindow";
+    sptr<Session> parentSession = sptr<Session>::MakeSptr(info1);
+    systemSession->SetParentSession(parentSession);
+
+    LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid() + 1));
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_INVALID_CALLING);
+    LOCK_GUARD_EXPR(SCENE_GUARD, systemSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
+
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED);
+    systemSession->state_.store(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+    systemSession->state_.store(SessionState::STATE_ACTIVE);
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+
+    systemSession->RegisterGetIsRecentStateFunc([]() {
+        return true;
+    });
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED);
+    systemSession->RegisterGetIsRecentStateFunc([]() {
+        return false;
+    });
+    parentSession->SetForegroundInteractiveStatus(false);
+    parentSession->state_.store(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED);
+    parentSession->state_.store(SessionState::STATE_ACTIVE);
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED);
+    parentSession->SetForegroundInteractiveStatus(true);
+
+    systemSession->floatDownEventCnt_ = 0;
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED);
+    systemSession->floatDownEventCnt_ = 2;
+    EXPECT_EQ(systemSession->RestoreFloatViewMainWindow(wantParams), WMError::WM_OK);
+    EXPECT_EQ(systemSession->floatDownEventCnt_, 0);
+}
+
+/**
+ * @tc.name: NotifyUpdateFloatView
+ * @tc.desc: NotifyUpdateFloatView Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, NotifyUpdateFloatView, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
+
+    FloatViewTemplateInfo fvTemplateInfo;
+    fvTemplateInfo.template_ = 1;
+    FloatViewTemplateInfo newFvTemplateInfo;
+    newFvTemplateInfo.template_ = 2;
+    systemSession->SetFloatViewUpdateCallback(nullptr);
+    systemSession->NotifyUpdateFloatView(newFvTemplateInfo);
+    EXPECT_NE(fvTemplateInfo.template_, newFvTemplateInfo.template_);
+
+    auto updateFvFuncCb = [&fvTemplateInfo] (const FloatViewTemplateInfo& newFvTemplateInfo) {
+        fvTemplateInfo.template_ = newFvTemplateInfo.template_;
+    };
+    systemSession->SetFloatViewUpdateCallback(updateFvFuncCb);
+    systemSession->NotifyUpdateFloatView(newFvTemplateInfo);
+    EXPECT_EQ(fvTemplateInfo.template_, newFvTemplateInfo.template_);
+}
+
+/**
+ * @tc.name: SyncFloatViewLimits
+ * @tc.desc: SyncFloatViewLimits Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, SyncFloatViewLimits, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
+
+    std::map<uint32_t, FloatViewLimits> limits;
+    systemSession->sessionStage_ = nullptr;
+    EXPECT_EQ(systemSession->SyncFloatViewLimits(limits), WSError::WS_ERROR_NULLPTR);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    systemSession->sessionStage_ = mockSessionStage;
+    auto ret = systemSession->SyncFloatViewLimits(limits);
+    ASSERT_EQ(WSError::WS_OK, ret);
 }
 } // namespace
 } // namespace Rosen

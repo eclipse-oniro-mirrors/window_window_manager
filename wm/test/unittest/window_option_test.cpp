@@ -636,6 +636,33 @@ HWTEST_F(WindowOptionTest, SetIsBlockSubwindow, TestSize.Level1)
     option->SetIsBlockSubwindow(false);
     ASSERT_EQ(false, option->IsBlockSubwindow());
 }
+
+/**
+ * @tc.name: SetZLevelAboveParentLoosened
+ * @tc.desc: test SetZLevelAboveParentLoosened and IsSubWindowZLevelAboveParentLoosened
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowOptionTest, SetZLevelAboveParentLoosened, TestSize.Level1)
+{
+    sptr<WindowOption> option = new WindowOption();
+    ASSERT_NE(nullptr, option);
+    option->SetZLevelAboveParentLoosened(true);
+    ASSERT_EQ(true, option->IsSubWindowZLevelAboveParentLoosened());
+    option->SetZLevelAboveParentLoosened(false);
+    ASSERT_EQ(false, option->IsSubWindowZLevelAboveParentLoosened());
+}
+
+/**
+ * @tc.name: SetZLevelAboveParentLoosenedDefault
+ * @tc.desc: test default value of ZLevelAboveParentLoosened
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowOptionTest, SetZLevelAboveParentLoosenedDefault, TestSize.Level1)
+{
+    sptr<WindowOption> option = new WindowOption();
+    ASSERT_NE(nullptr, option);
+    ASSERT_EQ(false, option->IsSubWindowZLevelAboveParentLoosened());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

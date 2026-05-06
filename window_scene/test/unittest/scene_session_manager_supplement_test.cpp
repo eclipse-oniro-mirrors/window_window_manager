@@ -29,6 +29,7 @@
 #include "zidl/window_manager_agent_interface.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
+#include "mock/mock_accesstoken_kit.h"
 #include "context.h"
 
 using namespace testing;
@@ -67,6 +68,7 @@ void SceneSessionManagerSupplementTest::SetUp()
 void SceneSessionManagerSupplementTest::TearDown()
 {
     ssm_->sceneSessionMap_.clear();
+    MockAccesstokenKit::ChangeMockStateToInit();
     usleep(WAIT_SYNC_IN_NS);
 }
 
@@ -591,7 +593,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_01, Test
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
     int32_t id = 0;
-
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
     auto res = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, node, property, id, session, systemConfig, token);
     ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
@@ -662,6 +664,9 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_04, Test
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetFloatingWindowAppType(true);
 
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
     auto res = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, node, property, id, session, systemConfig, token);
     ASSERT_EQ(res, WSError::WS_ERROR_NOT_SYSTEM_APP);
@@ -926,6 +931,9 @@ HWTEST_F(SceneSessionManagerSupplementTest, CheckSysWinPermWithFloatTypeThenFals
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
 
     ASSERT_NE(ssm_, nullptr);
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
     bool res = ssm_->CheckSystemWindowPermission(property);
     ASSERT_EQ(res, false);
 }
@@ -1259,6 +1267,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, NotifyCreateSpecificSession, TestSiz
     ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::WINDOW_TYPE_SCENE_BOARD);
     ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::WINDOW_TYPE_TOAST);
     ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::WINDOW_TYPE_FLOAT);
+    ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::WINDOW_TYPE_FV);
     property->SetParentPersistentId(1);
     ASSERT_EQ(property->GetParentPersistentId(), 1);
     SessionInfo info1;
@@ -1271,6 +1280,127 @@ HWTEST_F(SceneSessionManagerSupplementTest, NotifyCreateSpecificSession, TestSiz
     ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::WINDOW_TYPE_DIALOG);
     ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::BELOW_APP_SYSTEM_WINDOW_BASE);
+    ssm_->NotifyCreateSpecificSession(sceneSession, property, WindowType::WINDOW_TYPE_FV);
+}
+
+/**
+ * @tc.name: InitFvWindow
+ * @tc.desc: InitFvWindow test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, InitFvWindow, TestSize.Level1)
+{
+    // Test with FV window type
+    SessionInfo info;
+    info.bundleName_ = "test1";
+    info.abilityName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    
+    FloatViewTemplateInfo fvTemplateInfo;
+    fvTemplateInfo.template_ = 1;
+    property->SetFvTemplateInfo(fvTemplateInfo);
+    
+    ssm_->InitFvWindow(sceneSession, property);
+    
+    // Test with non-FV window type
+    SessionInfo info2;
+    info2.bundleName_ = "test3";
+    info2.abilityName_ = "test4";
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
+    ASSERT_NE(sceneSession2, nullptr);
+    
+    sptr<WindowSessionProperty> property2 = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property2, nullptr);
+    property2->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    
+    ssm_->InitFvWindow(sceneSession2, property2);
+}
+
+/**
+ * @tc.name: CanCreateFloatView
+ * @tc.desc: CanCreateFloatView test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, CanCreateFloatView, TestSize.Level1)
+{
+    // Test with null parent session
+    sptr<SceneSession> parentSession = nullptr;
+    EXPECT_EQ(ssm_->CanCreateFloatView(parentSession), WSError::WS_ERROR_INVALID_PARENT);
+    
+    // Test with disconnected parent session
+    SessionInfo info;
+    info.bundleName_ = "test1";
+    info.abilityName_ = "test2";
+    parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    EXPECT_EQ(ssm_->CanCreateFloatView(parentSession), WSError::WS_OK);
+}
+
+/**
+ * @tc.name: SyncFloatViewLimits
+ * @tc.desc: SyncFloatViewLimits test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1)
+{
+    FloatViewLimits limit;
+    limit.minWidth_ = 100;
+    limit.minHeight_ = 100;
+    limit.maxWidth_ = 1000;
+    limit.maxHeight_ = 1000;
+    std::map<uint32_t, FloatViewLimits> limits;
+    limits.emplace(0, limit);
+    
+    auto ret = ssm_->SyncFloatViewLimits(limits);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    
+    SessionInfo info;
+    info.bundleName_ = "test1";
+    info.abilityName_ = "test2";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV);
+    sptr<SceneSession> fvSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(fvSession, nullptr);
+
+    info.bundleName_ = "test3";
+    info.abilityName_ = "test4";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FLOAT);
+    sptr<SceneSession> fakeSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(fakeSession, nullptr);
+    ssm_->sceneSessionMap_.insert({ fakeSession->GetPersistentId(), fakeSession });
+    ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), nullptr });
+    ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), fvSession });
+    ret = ssm_->SyncFloatViewLimits(limits);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: GetFloatViewLimits
+ * @tc.desc: GetFloatViewLimits test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, GetFloatViewLimits, TestSize.Level1)
+{
+    FloatViewLimits testLimits;
+    testLimits.minWidth_ = 100;
+    testLimits.minHeight_ = 100;
+    testLimits.maxWidth_ = 1000;
+    testLimits.maxHeight_ = 1000;
+    ssm_->floatViewLimits_.emplace(0, testLimits);
+    FloatViewLimits limits;
+    auto ret = ssm_->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(limits.minWidth_, 100);
+    EXPECT_EQ(limits.minHeight_, 100);
+    EXPECT_EQ(limits.maxWidth_, 1000);
+    EXPECT_EQ(limits.maxHeight_, 1000);
+    
+    ret = ssm_->GetFloatViewLimits(2, limits);
+    EXPECT_EQ(ret, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
 }
 
 /**

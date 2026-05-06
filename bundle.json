@@ -34,7 +34,8 @@
         "window_manager_feature_screenless",
         "window_manager_feature_asbng_path",
         "window_manager_feature_support_dsoftbus",
-        "window_manager_feature_support_dmsfwk"
+        "window_manager_feature_support_dmsfwk",
+        "window_manager_feature_support_api_metrics"
       ],
       "adapted_system_type": [ "standard" ],
       "rom": "8000KB",
@@ -92,7 +93,9 @@
           "runtime_core",
           "zlib",
           "screenlock_mgr",
-          "os_account"
+          "os_account",
+          "api_metrics",
+          "json"
         ],
         "third_party": [
         ]
