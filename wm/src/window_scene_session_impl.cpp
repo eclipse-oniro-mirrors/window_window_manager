@@ -8652,7 +8652,7 @@ WSError WindowSceneSessionImpl::SetForceSplitEnable(bool isForceSplitEnabled, bo
     if (!WindowHelper::IsMainWindow(windowType)) {
         return WSError::WS_DO_NOTHING;
     }
-    property_->SetForceSplitEnabled(isForceSplitEnabled);
+    property_->SetForceSplitEnable(isForceSplitEnabled);
     SetForceSplitConfigEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
     return WSError::WS_OK;
 }
