@@ -2303,7 +2303,8 @@ void* AniWindowUtils::GetAbilityContext(ani_env *env, ani_object aniObj)
 
 bool AniWindowUtils::ParseWindowLimits(ani_env* env, ani_object aniWindowLimits, WindowLimits& windowLimits)
 {
-    auto getAndAssign = [&, where = __func__](const char* name, uint32_t& field) -> ani_status {
+    auto getAndAssign = [where = __func__](ani_env* env, ani_object aniWindowLimits, WindowLimits& windowLimits,
+            const char* name, uint32_t& field) -> ani_status {
         std::optional<ani_int> optValue;
         ani_status ret = AniWindowUtils::GetOptionalIntProperty(env, name, aniWindowLimits, optValue);
         if (ret != ANI_OK) {
@@ -2318,7 +2319,8 @@ bool AniWindowUtils::ParseWindowLimits(ani_env* env, ani_object aniWindowLimits,
         return ANI_OK;
     };
 
-    auto getAndAssignUnit = [&](const char* name, PixelUnit& field) -> ani_status {
+    auto getAndAssignUnit = [](ani_env* env, ani_object aniWindowLimits, const char* name,
+            PixelUnit& field) -> ani_status {
         std::optional<PixelUnit> optValue;
         ani_status ret = AniWindowUtils::GetOptionalEnumProperty(env, name, aniWindowLimits, optValue);
         if (ret != ANI_OK) {
@@ -2331,11 +2333,11 @@ bool AniWindowUtils::ParseWindowLimits(ani_env* env, ani_object aniWindowLimits,
         }
         return ANI_OK;
     };
-    if (getAndAssign("maxWidth", windowLimits.maxWidth_) != ANI_OK ||
-        getAndAssign("maxHeight", windowLimits.maxHeight_) != ANI_OK ||
-        getAndAssign("minWidth", windowLimits.minWidth_) != ANI_OK ||
-        getAndAssign("minHeight", windowLimits.minHeight_) != ANI_OK ||
-        getAndAssignUnit("pixelUnit", windowLimits.pixelUnit_) != ANI_OK) {
+    if (getAndAssign(env, aniWindowLimits, windowLimits, "maxWidth", windowLimits.maxWidth_) != ANI_OK ||
+        getAndAssign(env, aniWindowLimits, windowLimits, "maxHeight", windowLimits.maxHeight_) != ANI_OK ||
+        getAndAssign(env, aniWindowLimits, windowLimits, "minWidth", windowLimits.minWidth_) != ANI_OK ||
+        getAndAssign(env, aniWindowLimits, windowLimits, "minHeight", windowLimits.minHeight_) != ANI_OK ||
+        getAndAssignUnit(env, aniWindowLimits, "pixelUnit", windowLimits.pixelUnit_) != ANI_OK) {
         return false;
     }
     return true;
@@ -2355,7 +2357,8 @@ std::string AniWindowUtils::ANIStringToStdString(ani_env *env, ani_string ani_st
 bool AniWindowUtils::ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnchorInfo,
     WindowAnchorInfo& windowAnchorInfo)
 {
-    auto getAndAssign = [&, where = __func__](const char* name, int32_t& field) -> ani_status {
+    auto getAndAssign = [where = __func__](ani_env* env, ani_object aniWindowAnchorInfo,
+            const char* name, int32_t& field) -> ani_status {
         std::optional<ani_int> optValue;
         ani_status ret = AniWindowUtils::GetOptionalIntProperty(env, name, aniWindowAnchorInfo, optValue);
         if (ret != ANI_OK) {
@@ -2370,7 +2373,8 @@ bool AniWindowUtils::ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnc
         return ANI_OK;
     };
 
-    auto getAndAssignWindowAnchor = [&](const char* name, WindowAnchor& field) -> ani_status {
+    auto getAndAssignWindowAnchor = [](ani_env* env, ani_object aniWindowAnchorInfo, const char* name,
+            WindowAnchor& field) -> ani_status {
         std::optional<WindowAnchor> optValue;
         ani_status ret = AniWindowUtils::GetOptionalEnumProperty(env, name, aniWindowAnchorInfo, optValue);
         if (ret != ANI_OK) {
@@ -2383,9 +2387,9 @@ bool AniWindowUtils::ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnc
         }
         return ANI_OK;
     };
-    if (getAndAssign("offsetX", windowAnchorInfo.offsetX_) != ANI_OK ||
-        getAndAssign("offsetY", windowAnchorInfo.offsetY_) != ANI_OK ||
-        getAndAssignWindowAnchor("anchorType", windowAnchorInfo.windowAnchor_) != ANI_OK) {
+    if (getAndAssign(env, aniWindowAnchorInfo, "offsetX", windowAnchorInfo.offsetX_) != ANI_OK ||
+        getAndAssign(env, aniWindowAnchorInfo, "offsetY", windowAnchorInfo.offsetY_) != ANI_OK ||
+        getAndAssignWindowAnchor(env, aniWindowAnchorInfo, "anchorType", windowAnchorInfo.windowAnchor_) != ANI_OK) {
         return false;
     }
     return true;
