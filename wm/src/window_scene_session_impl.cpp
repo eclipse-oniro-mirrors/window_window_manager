@@ -6586,6 +6586,8 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(const WindowModeInfo& windowMod
             }
         }
     }
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, mode: %{public}u, ret: %{public}d",
+        GetWindowId(), static_cast<uint32_t>(mode), static_cast<int32_t>(ret));
     return static_cast<WSError>(ret);
 }
 
@@ -6619,6 +6621,8 @@ WSError WindowSceneSessionImpl::GetTopNavDestinationName(std::string& topNavDest
 WMError WindowSceneSessionImpl::UpdateWindowModeImmediately(const WindowModeInfo& windowModeInfo)
 {
     WindowMode mode = windowModeInfo.windowMode;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, mode: %{public}u, state: %{public}u",
+        GetWindowId(), static_cast<uint32_t>(mode), static_cast<uint32_t>(state_));
     if (state_ == WindowState::STATE_CREATED || state_ == WindowState::STATE_HIDDEN) {
         property_->SetWindowMode(mode);
         UpdateTitleButtonVisibility();
