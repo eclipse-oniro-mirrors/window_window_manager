@@ -189,6 +189,13 @@ HWTEST_F(ScreenSessionTest, CreateDisplayNode, TestSize.Level0)
         ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
     EXPECT_NE(nullptr, screenSession);
     screenSession->CreateDisplayNode(rsConfig);
+    // Test cast scale branch: set cast scale property and create display node again
+    ScreenProperty property = screenSession->GetScreenProperty();
+    property.SetNeedCastScale(true);
+    property.SetCastScaleX(1.5f);
+    property.SetCastScaleY(2.0f);
+    screenSession->SetScreenProperty(property);
+    screenSession->CreateDisplayNode(rsConfig);
     GTEST_LOG_(INFO) << "ScreenSessionTest: CreateDisplayNode end";
 }
 
@@ -1624,6 +1631,13 @@ HWTEST_F(ScreenSessionTest, InitRSDisplayNode, TestSize.Level1)
     RSDisplayNodeConfig config;
     Point startPoint;
     sessionGroup.InitRSDisplayNode(config, startPoint);
+    // Test cast scale branch in ScreenSession::InitRSDisplayNode
+    ScreenProperty property = session->GetScreenProperty();
+    property.SetNeedCastScale(true);
+    property.SetCastScaleX(1.5f);
+    property.SetCastScaleY(2.0f);
+    session->SetScreenProperty(property);
+    session->InitRSDisplayNode(config, startPoint, false, 0.0f, 0.0f);
     SUCCEED();
     GTEST_LOG_(INFO) << "ScreenSessionTest: InitRSDisplayNode end";
 }

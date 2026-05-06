@@ -135,6 +135,10 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
             if (config.isMirrored) {
                 EnableMirrorScreenRegion();
             }
+            if (property_.GetNeedCastScale()) {
+                displayNode_->SetPivot(0.0F, 0.0F);
+                displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+            }
         } else {
             TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
         }
@@ -2371,6 +2375,10 @@ void ScreenSession::InitRSDisplayNode(RSDisplayNodeConfig& config, Point& startP
         screenId_, width, height, positionX, positionY);
     displayNode_->SetFrame(positionX, positionY, static_cast<float>(width), static_cast<float>(height));
     displayNode_->SetBounds(positionX, positionY, static_cast<float>(width), static_cast<float>(height));
+    if (property_.GetNeedCastScale()) {
+        displayNode_->SetPivot(0.0F, 0.0F);
+        displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+    }
     if (config.isMirrored) {
         EnableMirrorScreenRegion();
     }
