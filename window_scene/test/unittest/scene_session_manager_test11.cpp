@@ -688,6 +688,7 @@ HWTEST_F(SceneSessionManagerTest11, DestroyToastSession, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.Level0)
 {
+    ssm_->listenerController_ = std::make_shared<SessionListenerController>(ssm_->taskScheduler_);
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
     std::shared_ptr<RSSurfaceNode> node = nullptr;
@@ -1963,6 +1964,9 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
 
     sceneSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_PIP);
     ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    sceneSession->isTerminating_ = false;
+    EXPECT_EQ(false, sceneSession->isTerminated());
     ssm_->sceneSessionMap_.insert({1, sceneSession});
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_CALLING);
@@ -1972,10 +1976,18 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_WINDOW);
 
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession = 
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(0, screenSession));
     sceneSession->property_->SetDisplayId(DEFAULT_DISPLAY_ID);
     ret = ssm_->MoveMainWindowToTargetDisplay(999, 1); // 999 不存在
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_DISPLAY);
 
+    ScreenSessionConfig config1;
+    sptr<ScreenSession> screenSession1 = 
+        sptr<ScreenSession>::MakeSptr(config1, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(1, screenSession1));
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(ret, WSError::WS_OK);
     ssm_->sceneSessionMap_.clear();
