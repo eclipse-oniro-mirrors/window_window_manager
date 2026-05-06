@@ -302,12 +302,14 @@ enum WindowModeSupport : uint32_t {
     WINDOW_MODE_SUPPORT_SPLIT_SECONDARY = 1 << 3,
     WINDOW_MODE_SUPPORT_PIP = 1 << 4,
     WINDOW_MODE_SUPPORT_FB = 1 << 5,
+    WINDOW_MODE_SUPPORT_SPLIT = 1 << 7,
     WINDOW_MODE_SUPPORT_ALL = WINDOW_MODE_SUPPORT_FULLSCREEN |
                               WINDOW_MODE_SUPPORT_SPLIT_PRIMARY |
                               WINDOW_MODE_SUPPORT_SPLIT_SECONDARY |
                               WINDOW_MODE_SUPPORT_FLOATING |
                               WINDOW_MODE_SUPPORT_PIP |
-                              WINDOW_MODE_SUPPORT_FB
+                              WINDOW_MODE_SUPPORT_FB  |
+                              WINDOW_MODE_SUPPORT_SPLIT
 };
 
 /**

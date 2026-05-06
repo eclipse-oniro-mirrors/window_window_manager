@@ -307,6 +307,8 @@ public:
                 return WindowModeSupport::WINDOW_MODE_SUPPORT_PIP & windowModeSupportType;
             case WindowMode::WINDOW_MODE_FB:
                 return WindowModeSupport::WINDOW_MODE_SUPPORT_FB & windowModeSupportType;
+            case WindowMode::WINDOW_MODE_SPLIT:
+                return WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT & windowModeSupportType;
             case WindowMode::WINDOW_MODE_UNDEFINED:
                 return false;
             default:
