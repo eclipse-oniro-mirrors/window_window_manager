@@ -90,6 +90,7 @@ group("unittest") {
       ":ws_scene_session_manager_kiosk_test",
       ":ws_scene_session_manager_lifecycle_test",
       ":ws_scene_session_manager_lifecycle_test2",
+      ":ws_scene_session_manager_lite_proxy_test_1",
       ":ws_scene_session_manager_lite_stub_test",
       ":ws_scene_session_manager_one_test",
       ":ws_scene_session_manager_proxy_lifecycle_test",
@@ -1563,6 +1564,21 @@ ohos_unittest("ws_scene_session_manager_lite_stub_test") {
   module_out_path = module_out_path
 
   sources = [ "scene_session_manager_lite_stub_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_scene_session_manager_lite_proxy_test_1") {
+  module_out_path = module_out_path
+
+  include_dirs = [ "../mock" ]
+
+  sources = [
+    "../mock/mock_message_parcel.cpp",
+    "scene_session_manager_lite_proxy_test_1.cpp",
+  ]
 
   deps = [ ":ws_unittest_common" ]
 

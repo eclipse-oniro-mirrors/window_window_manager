@@ -33,12 +33,22 @@ public:
 };
 
 namespace {
-/**
- * @tc.name: SessionLifecycleListenerProxy_Branches
- * @tc.desc: cover SessionLifecycleListenerProxy branch paths
- * @tc.type: FUNC
- */
-HWTEST_F(SessionLifecycleListenerProxyTest, SessionLifecycleListenerProxy_Branches, TestSize.Level1)
+HWTEST_F(SessionLifecycleListenerProxyTest, OnLifecycleEvent_NullRemote, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(nullptr);
+    ASSERT_NE(proxy, nullptr);
+    proxy->OnLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::CREATED, payload);
+    SUCCEED();
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnBatchLifecycleEvent_NullRemote, TestSize.Level1)
 {
     ISessionLifecycleListener::LifecycleEventPayload payload;
     payload.persistentId_ = 1;
@@ -48,41 +58,263 @@ HWTEST_F(SessionLifecycleListenerProxyTest, SessionLifecycleListenerProxy_Branch
     payload.sessionState_ = SessionState::STATE_ACTIVE;
     std::vector<ISessionLifecycleListener::LifecycleEventPayload> payloads = { payload };
 
-    sptr<SessionLifecycleListenerProxy> nullProxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(nullptr);
-    ASSERT_NE(nullProxy, nullptr);
-    nullProxy->OnLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::CREATED, payload);
-    nullProxy->OnBatchLifecycleEvent(payloads);
-    nullProxy->OnAppInstanceLifecycleEvent(payload);
-
-    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
-    ASSERT_NE(remoteMocker, nullptr);
-    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteMocker);
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(nullptr);
     ASSERT_NE(proxy, nullptr);
+    proxy->OnBatchLifecycleEvent(payloads);
+    SUCCEED();
+}
 
+HWTEST_F(SessionLifecycleListenerProxyTest, OnAppInstanceLifecycleEvent_NullRemote, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(nullptr);
+    ASSERT_NE(proxy, nullptr);
+    proxy->OnAppInstanceLifecycleEvent(payload);
+    SUCCEED();
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnLifecycleEvent_Normal, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).WillOnce(Return(NO_ERROR));
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
     MockMessageParcel::ClearAllErrorFlag();
     proxy->OnLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::CREATED, payload);
-    proxy->OnBatchLifecycleEvent(payloads);
-    proxy->OnAppInstanceLifecycleEvent(payload);
+}
 
+HWTEST_F(SessionLifecycleListenerProxyTest, OnBatchLifecycleEvent_Normal, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+    std::vector<ISessionLifecycleListener::LifecycleEventPayload> payloads = { payload };
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).WillOnce(Return(NO_ERROR));
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+    proxy->OnBatchLifecycleEvent(payloads);
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnAppInstanceLifecycleEvent_Normal, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).WillOnce(Return(NO_ERROR));
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+    proxy->OnAppInstanceLifecycleEvent(payload);
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnLifecycleEvent_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).Times(0);
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     proxy->OnLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::CREATED, payload);
-    proxy->OnBatchLifecycleEvent(payloads);
-    proxy->OnAppInstanceLifecycleEvent(payload);
-
     MockMessageParcel::ClearAllErrorFlag();
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnBatchLifecycleEvent_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+    std::vector<ISessionLifecycleListener::LifecycleEventPayload> payloads = { payload };
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).Times(0);
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    proxy->OnBatchLifecycleEvent(payloads);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnAppInstanceLifecycleEvent_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).Times(0);
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    proxy->OnAppInstanceLifecycleEvent(payload);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnLifecycleEvent_WriteParcelableFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).Times(0);
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
     proxy->OnLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::CREATED, payload);
-    proxy->OnBatchLifecycleEvent(payloads);
-    proxy->OnAppInstanceLifecycleEvent(payload);
+    MockMessageParcel::ClearAllErrorFlag();
+}
 
-    MockMessageParcel::ClearAllErrorFlag();
-    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
-    proxy->OnLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::CREATED, payload);
+HWTEST_F(SessionLifecycleListenerProxyTest, OnBatchLifecycleEvent_WriteParcelableFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+    std::vector<ISessionLifecycleListener::LifecycleEventPayload> payloads = { payload };
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).Times(0);
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
     proxy->OnBatchLifecycleEvent(payloads);
-    proxy->OnAppInstanceLifecycleEvent(payload);
-    remoteMocker->SetRequestResult(ERR_NONE);
     MockMessageParcel::ClearAllErrorFlag();
-    SUCCEED();
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnAppInstanceLifecycleEvent_WriteParcelableFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).Times(0);
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    proxy->OnAppInstanceLifecycleEvent(payload);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnLifecycleEvent_RemoteRequestFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).WillOnce(Return(ERR_INVALID_DATA));
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+    proxy->OnLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent::CREATED, payload);
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnBatchLifecycleEvent_RemoteRequestFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+    std::vector<ISessionLifecycleListener::LifecycleEventPayload> payloads = { payload };
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).WillOnce(Return(ERR_INVALID_DATA));
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+    proxy->OnBatchLifecycleEvent(payloads);
+}
+
+HWTEST_F(SessionLifecycleListenerProxyTest, OnAppInstanceLifecycleEvent_RemoteRequestFailed, TestSize.Level1)
+{
+    ISessionLifecycleListener::LifecycleEventPayload payload;
+    payload.persistentId_ = 1;
+    payload.bundleName_ = "bundle";
+    payload.appIndex_ = 1;
+    payload.appInstanceKey_ = "appKey";
+    payload.sessionState_ = SessionState::STATE_ACTIVE;
+
+    auto remoteObj = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteObj, nullptr);
+    EXPECT_CALL(*remoteObj, SendRequest(_, _, _, _)).WillOnce(Return(ERR_INVALID_DATA));
+
+    sptr<SessionLifecycleListenerProxy> proxy = sptr<SessionLifecycleListenerProxy>::MakeSptr(remoteObj);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+    proxy->OnAppInstanceLifecycleEvent(payload);
 }
 } // namespace
 } // namespace Rosen

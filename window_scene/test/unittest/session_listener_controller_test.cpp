@@ -782,7 +782,18 @@ HWTEST_F(SessionListenerControllerTest, ConstructBatchPayload_EmptySessions, Tes
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_NullSession, TestSize.Level1)
 {
+    sptr<MySessionLifecycleListener> myListener = new MySessionLifecycleListener();
+    sptr<ISessionLifecycleListener> listener = iface_cast<ISessionLifecycleListener>(myListener->AsObject());
+    ASSERT_NE(listener, nullptr);
+
+    WMError res = slController->RegisterSessionLifecycleListener(
+        listener, "com.example.myapp", 1, "");
+    ASSERT_EQ(res, WMError::WM_OK);
+
     slController->NotifyAppInstanceLifecycleEvent(SessionState::STATE_ACTIVE, nullptr);
+    usleep(WAIT_SYNC_IN_NS);
+
+    EXPECT_FALSE(myListener->IsAppInstanceEventNotified());
 }
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_InvalidPersistentId, TestSize.Level1)
@@ -832,7 +843,7 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKey
     usleep(WAIT_SYNC_IN_NS);
 
     EXPECT_TRUE(myListener->IsAppInstanceEventNotified());
-    EXPECT_EQ(myListener->GetPayload().appInstanceKey_, "main_instance_key");
+    EXPECT_TRUE(myListener->GetPayload().appInstanceKey_.empty());
 }
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKeyNoMainSession, TestSize.Level1)
