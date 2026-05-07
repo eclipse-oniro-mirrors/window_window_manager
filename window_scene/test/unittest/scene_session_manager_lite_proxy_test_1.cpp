@@ -85,9 +85,23 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RegisterSessionLifecycleListenerByApp
         nullptr, "bundle", 1, "key");
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
+    auto remoteMocker = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remoteMocker, nullptr);
+    EXPECT_CALL(*remoteMocker, SendRequest(_, _, _, _))
+        .WillOnce(Invoke([](uint32_t, MessageParcel&, MessageParcel& reply, MessageOption&) {
+            reply.WriteInt32(0);
+            return ERR_NONE;
+        }));
+    auto proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+    ret = proxy->RegisterSessionLifecycleListenerByAppInstance(listener, "bundle", 1, "key");
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    MockMessageParcel::ClearAllErrorFlag();
     ret = sceneSessionManagerLiteProxy_->RegisterSessionLifecycleListenerByAppInstance(
         listener, "bundle", 1, "key");
-    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     ret = sceneSessionManagerLiteProxy_->RegisterSessionLifecycleListenerByAppInstance(
