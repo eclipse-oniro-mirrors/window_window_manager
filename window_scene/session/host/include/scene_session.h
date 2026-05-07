@@ -1616,10 +1616,6 @@ private:
      */
     void SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal);
 
-    std::shared_ptr<RSSurfaceNode> CreateSurfaceNodeForConnect(NodeId surfaceNodeId, sptr<WindowSessionProperty> property);
-
-    RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
-
     /**
      * @brief Set surface bounds via the shadow surface node.
      *
