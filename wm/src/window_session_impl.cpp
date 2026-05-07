@@ -1251,16 +1251,26 @@ WSError WindowSessionImpl::UpdateRect(const WSRect& rect, SizeChangeReason reaso
     if (preRect.width_ != wmRect.width_ || preRect.height_ != wmRect.height_) {
         windowSizeChanged_ = true;
     }
+
+    // Rect anomaly detection
+    if (wmRect.width_ == 0 || wmRect.height_ == 0) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowRectUpdate:RectCheck] ZeroSize id:%{public}d, rect=%{public}s, reason:%{public}u",
+            GetPersistentId(), wmRect.ToString().c_str(), static_cast<uint32_t>(wmReason));
+    }
+
     property_->SetWindowRect(wmRect);
     property_->SetRequestRect(wmRect);
 
     TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
-        "id:%{public}d name:%{public}s rect:%{public}s->%{public}s reason:%{public}u displayId:%{public}"
-        PRIu64, GetPersistentId(), GetWindowName().c_str(), preRect.ToString().c_str(), rect.ToString().c_str(),
+        "[WindowRectUpdate:ClientRecv] UpdateRect id:%{public}d name:%{public}s, preRect=%{public}s, "
+        "newRect=%{public}s, reason:%{public}u displayId:%{public}" PRIu64,
+        GetPersistentId(), GetWindowName().c_str(), preRect.ToString().c_str(), wmRect.ToString().c_str(),
         wmReason, property_->GetDisplayId());
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-        "WindowSessionImpl::UpdateRect id: %d [%d, %d, %u, %u] reason: %u hasRSTransaction: %u", GetPersistentId(),
-        wmRect.posX_, wmRect.posY_, wmRect.width_, wmRect.height_, wmReason, config.rsTransaction_ != nullptr);
+        "WMS::WindowRectUpdate::ClientRecv::UpdateRect id=%d [%d,%d,%u,%u] reason=%u hasRSTransaction=%u",
+        GetPersistentId(), wmRect.posX_, wmRect.posY_, wmRect.width_, wmRect.height_,
+        wmReason, config.rsTransaction_ != nullptr);
     if (handler_ != nullptr && (wmReason == WindowSizeChangeReason::ROTATION ||
         wmReason == WindowSizeChangeReason::SNAPSHOT_ROTATION)) {
         postTaskDone_ = false;
