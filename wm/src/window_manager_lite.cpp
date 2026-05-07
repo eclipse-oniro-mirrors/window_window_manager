@@ -946,7 +946,6 @@ WMError WindowManagerLite::UnregisterWindowModeChangedListenerForPropertyChange(
         pImpl_->windowModeChangeListeners_.erase(listener);
         needUnregister = pImpl_->windowModeChangeListeners_.empty();
         windowPropertyChangeAgent = pImpl_->windowPropertyChangeAgent_;
-        uint32_t interestInfo = 0;
         for (auto windowInfoKey : listener->GetInterestInfo()) {
             if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
                 continue;
@@ -1838,7 +1837,7 @@ WMError WindowManagerLite::UnregisterWindowInfoChangeCallback(const std::unorder
             break;
         }
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s", observedInfoForLog.str().c_str());
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: %{public}s", observedInfoForLog.str().c_str());
     return ret;
 }
 
