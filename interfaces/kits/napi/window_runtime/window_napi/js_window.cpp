@@ -1922,7 +1922,7 @@ std::optional<SnapshotAnimationConfig> ParseSnapshotAnimationConfig(napi_env env
     // Get duration (optional, default: -1)
     if (napi_get_named_property(env, jsConfig, "duration", &jsDuration) == napi_ok &&
         jsDuration != nullptr && GetType(env, jsDuration) != napi_undefined) {
-        int64_t duration = -1;
+        int64_t duration = SnapshotAnimationConfig::UNSET;
         if (!ConvertFromJsValue(env, jsDuration, duration)) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert duration");
             return std::nullopt;
@@ -1937,7 +1937,7 @@ std::optional<SnapshotAnimationConfig> ParseSnapshotAnimationConfig(napi_env env
     // Get delay (optional, default: -1)
     if (napi_get_named_property(env, jsConfig, "delay", &jsDelay) == napi_ok &&
         jsDelay != nullptr && GetType(env, jsDelay) != napi_undefined) {
-        int64_t delay = -1;
+        int64_t delay = SnapshotAnimationConfig::UNSET;
         if (!ConvertFromJsValue(env, jsDelay, delay)) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert delay");
             return std::nullopt;
@@ -8194,21 +8194,23 @@ std::optional<MaximizePresentation> ParsePresentation(napi_env env, napi_value n
     return static_cast<MaximizePresentation>(value);
 }
 
-std::optional<WaterfallResidentState> ParseWaterfallResidentState(napi_env env, napi_value napiAcrossDisplay)
+std::optional<AcrossDisplayPresentation> ParseAcrossDisplayPresentationForMaximize(
+    napi_env env, napi_value napiAcrossDisplay)
 {
     if (env == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "env is nullptr");
         return std::nullopt;
     }
     if (napiAcrossDisplay == nullptr || GetType(env, napiAcrossDisplay) == napi_undefined) {
-        return WaterfallResidentState::UNCHANGED;
+        return AcrossDisplayPresentation::UNSPECIFIED;
     }
     bool acrossDisplay = false;
     if (!ConvertFromJsValue(env, napiAcrossDisplay, acrossDisplay)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Invalid acrossDisplay param");
         return std::nullopt;
     }
-    return acrossDisplay ? WaterfallResidentState::OPEN : WaterfallResidentState::CLOSE;
+    return acrossDisplay ? AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE
+                         : AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE;
 }
 
 napi_value JsWindow::OnMaximize(napi_env env, napi_callback_info info)
@@ -8234,8 +8236,8 @@ napi_value JsWindow::OnMaximize(napi_env env, napi_callback_info info)
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
                               "[window][maximize]msg: Failed to convert parameter to presentation");
     }
-    auto waterfallResidentStateOpt = ParseWaterfallResidentState(env, argv[INDEX_ONE]);
-    if (!waterfallResidentStateOpt) {
+    auto acrossDisplayOpt = ParseAcrossDisplayPresentationForMaximize(env, argv[INDEX_ONE]);
+    if (!acrossDisplayOpt) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.maximize", WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
                               "[window][maximize]msg: Failed to convert parameter to acrossDisplay");
@@ -8243,7 +8245,7 @@ napi_value JsWindow::OnMaximize(napi_env env, napi_callback_info info)
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [windowToken = wptr<Window>(windowToken_),
-                      presentation = *presentationOpt, waterfallResidentState = *waterfallResidentStateOpt,
+                      presentation = *presentationOpt, acrossDisplay = *acrossDisplayOpt,
                       env, napiAsyncTask, where = __func__] {
         auto window = windowToken.promote();
         if (window == nullptr) {
@@ -8252,7 +8254,8 @@ napi_value JsWindow::OnMaximize(napi_env env, napi_callback_info info)
                 "[window][maximize]msg: The window is not created or destroyed."));
             return;
         }
-        WMError ret = window->Maximize(presentation, waterfallResidentState);
+        WMError ret = window->MaximizeWithOptions(presentation, acrossDisplay,
+            { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
         if (ret == WMError::WM_OK) {
             napiAsyncTask->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -8261,9 +8264,9 @@ napi_value JsWindow::OnMaximize(napi_env env, napi_callback_info info)
             napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "[window][maximize]msg: Failed"));
         }
         TLOGNI(WmsLogTag::WMS_LAYOUT_PC,
-            "%{public}s: windowId: %{public}u, presentation: %{public}d, waterfallResidentState: %{public}u",
+            "%{public}s: windowId: %{public}u, presentation: %{public}d, acrossDisplay: %{public}u",
             where, window->GetWindowId(), static_cast<int32_t>(presentation),
-            static_cast<uint32_t>(waterfallResidentState));
+            static_cast<uint32_t>(acrossDisplay));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnMaximize") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.maximize", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
