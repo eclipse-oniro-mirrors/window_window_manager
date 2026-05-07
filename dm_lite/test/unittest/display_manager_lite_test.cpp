@@ -799,6 +799,30 @@ HWTEST_F(DisplayManagerTest, IsOnboardDisplay, TestSize.Level1)
     LOG_SetCallback(nullptr);
 }
 
+/**
+ * @tc.name: SetScreenSwitchState01
+ * @tc.desc: SetScreenSwitchState with CLOSE state and screen off
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SetScreenSwitchState01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    bool isScreenOn = false;
+
+    EXPECT_CALL(m->Mock(), SetScreenSwitchState(screenClosedState, isScreenOn))
+        .Times(1)
+        .WillOnce(Return(DMError::DM_OK));
+
+    DMError ret = DisplayManagerLite::GetInstance().SetScreenSwitchState(screenClosedState, isScreenOn);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    EXPECT_TRUE(g_errLog.find("[UL_POWER] start") != std::string::npos);
+    
+    LOG_SetCallback(nullptr);
+}
 }
 } // namespace Rosen
 } // namespace OHOS
