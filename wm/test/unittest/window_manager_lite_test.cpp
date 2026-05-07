@@ -1595,7 +1595,6 @@ HWTEST_F(WindowManagerLiteTest, ProcessRegisterWindowInfoChangeCallback01, Funct
     observedInfo = WindowInfoKey::BUNDLE_NAME;
     ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
-
     ret = instance_->ProcessRegisterWindowInfoChangeCallback(WindowInfoKey::WINDOW_MODE, nullptr);
     EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
 }
