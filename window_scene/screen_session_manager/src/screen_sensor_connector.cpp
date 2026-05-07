@@ -86,7 +86,7 @@ void MotionSubscriber::SubscribeMotionSensor()
     }
 
     int32_t sensorType = MOTION_TYPE_ROTATION;
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor", 
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
         DISABLE_SMART_ROTATION);
     if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
         TLOGNFI(WmsLogTag::DMS, "start subscribe smart rotation");
@@ -98,23 +98,23 @@ void MotionSubscriber::SubscribeMotionSensor()
     }
     isMotionSensorSubscribed_ = true;
 }
- 
-void MotionSubscriber::UnsubscribeMotionSensor()	 
-{	 
-    if (!isMotionSensorSubscribed_) { 
+
+void MotionSubscriber::UnsubscribeMotionSensor()
+{
+    if (!isMotionSensorSubscribed_) {
         TLOGI(WmsLogTag::DMS, "start");
         return;
     }
 
     int32_t sensorType = MOTION_TYPE_ROTATION;
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor", 
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
         DISABLE_SMART_ROTATION);
     if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
         TLOGNFI(WmsLogTag::DMS, "start unsubscribe smart rotation");
         sensorType = SMART_MOTION_TYPE_ROTATION;
     }
     if (!UnsubscribeCallback(sensorType, RotationMotionEventCallback)) {
-        TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed"); 
+        TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed");
         return;
     }
     isMotionSensorSubscribed_ = false;
