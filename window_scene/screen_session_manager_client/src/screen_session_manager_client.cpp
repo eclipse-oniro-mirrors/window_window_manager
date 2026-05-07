@@ -1180,6 +1180,9 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());
     config.displayNode = screenSessionManager_->GetDisplayNode(option.screenId_);
+    if (config.displayNode != nullptr) {
+        config.displayNode->SetScreenId(option.rsId_);
+    }
     if (screenSession == nullptr) {
         screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
     } else {

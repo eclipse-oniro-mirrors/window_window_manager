@@ -477,7 +477,7 @@ bool ScreenSession::GetIsExtend() const
 void ScreenSession::SetIsInternal(bool isInternal)
 {
     isInternal_ = isInternal;
-    property_.SetIsInternal(isInternal);
+    property_.SetInternalStatus(isInternal);
 }
 
 bool ScreenSession::GetIsInternal() const
@@ -832,7 +832,7 @@ ScreenProperty ScreenSession::GetPropertyByResolution(const DMRect& rect)
 void ScreenSession::CheckAndNotifyPropertyChange()
 {
     std::lock_guard<std::mutex> lock(propertyNeedNotifiedMutex_);
-    if (isNeedNotify) {
+    if (isNeedNotify && property_.GetInternalStatus()) {
         TLOGI(WmsLogTag::DMS, "It's need notify RESOLUTION_EFFECT_CHANGE");
         NotifyListenerPropertyChange(propertyNeedNotified_, ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
         isNeedNotify = false;
