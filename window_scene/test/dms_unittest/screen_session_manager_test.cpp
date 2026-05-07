@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "screen_session_manager/include/screen_session_manager.h"
+#include "motion_manager.h"
 #include "display_manager_agent_default.h"
 #include "iconsumer_surface.h"
 #include "connection/screen_cast_connection.h"
@@ -1476,6 +1477,50 @@ HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions01, TestSize.Level1)
     bool isFromNapi = true;
     DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
     EXPECT_NE(ret, DMError::DM_ERROR_NOT_SYSTEM_APP);
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor01
+ * @tc.desc: SubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SubscribeMotionSensor01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor02
+ * @tc.desc: SubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor01
+ * @tc.desc: UnsubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor02
+ * @tc.desc: UnsubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, UnsubscribeMotionSensor02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
 }
 
 /**
