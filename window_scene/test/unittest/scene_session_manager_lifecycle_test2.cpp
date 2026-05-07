@@ -15,6 +15,8 @@
 
 #include <gtest/gtest.h>
 #include <regex>
+#include <atomic>
+#include <mutex>
 #include <bundle_mgr_interface.h>
 #include <bundlemgr/launcher_service.h>
 #include "iremote_object_mocker.h"
@@ -33,6 +35,7 @@
 #include "application_info.h"
 #include "context.h"
 #include "get_snapshot_callback.h"
+#include "zidl/session_lifecycle_listener_stub.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -47,6 +50,40 @@ namespace {
         g_logMsg += msg;
     }
 }
+
+class LifecycleListenerForAppInstanceTest : public SessionLifecycleListenerStub {
+public:
+    void OnBatchLifecycleEvent(const std::vector<LifecycleEventPayload>& payloads) override
+    {
+        std::lock_guard<std::mutex> lock(payloadMutex_);
+        callbackCount_.fetch_add(1);
+        payloadSize_.store(static_cast<int32_t>(payloads.size()));
+        payloads_ = payloads;
+    }
+
+    int32_t GetCallbackCount() const
+    {
+        return callbackCount_.load();
+    }
+
+    int32_t GetPayloadSize() const
+    {
+        return payloadSize_.load();
+    }
+
+    std::vector<LifecycleEventPayload> GetPayloads() const
+    {
+        std::lock_guard<std::mutex> lock(payloadMutex_);
+        return payloads_;
+    }
+
+private:
+    mutable std::mutex payloadMutex_;
+    std::atomic<int32_t> callbackCount_ = 0;
+    std::atomic<int32_t> payloadSize_ = 0;
+    std::vector<LifecycleEventPayload> payloads_;
+};
+
 namespace {
 const std::string EMPTY_DEVICE_ID = "";
 }
@@ -531,6 +568,145 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, GetMainWindowSnapshot01, TestSize.Le
     callback = sceneSession->AsObject();
     EXPECT_EQ(ssm_->GetMainWindowSnapshot(windowIdsMaxSize, configs, callback), WMError::WM_ERROR_INVALID_PARAM);
     LOG_SetCallback(nullptr);
+}
+
+HWTEST_F(SceneSessionManagerLifecycleTest2,
+    RegisterSessionLifecycleListenerByAppInstance_PermissionDenied, TestSize.Level1)
+{
+    sptr<ISessionLifecycleListener> listener = sptr<LifecycleListenerForAppInstanceTest>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+
+    MockAccesstokenKit::MockIsSACalling(false);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    auto ret = ssm_->RegisterSessionLifecycleListener(listener, "bundle.app.instance", 0, "instance_0");
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PERMISSION);
+}
+
+HWTEST_F(SceneSessionManagerLifecycleTest2, RegisterSessionLifecycleListenerByAppInstance_NullListener, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSACalling(true);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    auto ret = ssm_->RegisterSessionLifecycleListener(nullptr, "bundle.app.instance", 0, "instance_0");
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+HWTEST_F(SceneSessionManagerLifecycleTest2, RegisterSessionLifecycleListenerByAppInstance_Success, TestSize.Level1)
+{
+    auto listener = sptr<LifecycleListenerForAppInstanceTest>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+
+    MockAccesstokenKit::MockIsSACalling(true);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    auto ret = ssm_->RegisterSessionLifecycleListener(listener, "bundle.app.instance", 0, "instance_0");
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_GE(listener->GetCallbackCount(), 1);
+    EXPECT_GE(listener->GetPayloadSize(), 0);
+}
+
+HWTEST_F(SceneSessionManagerLifecycleTest2, RegisterSessionLifecycleListenerByAppInstance_FilterByKey, TestSize.Level1)
+{
+    SessionInfo matchedInfo;
+    matchedInfo.bundleName_ = "bundle.app.instance";
+    matchedInfo.appIndex_ = 0;
+    matchedInfo.appInstanceKey_ = "instance_match";
+    matchedInfo.persistentId_ = 9001;
+    sptr<SceneSession> matchedSession = sptr<SceneSession>::MakeSptr(matchedInfo, nullptr);
+    ASSERT_NE(matchedSession, nullptr);
+
+    SessionInfo keyMismatchInfo;
+    keyMismatchInfo.bundleName_ = "bundle.app.instance";
+    keyMismatchInfo.appIndex_ = 0;
+    keyMismatchInfo.appInstanceKey_ = "instance_other";
+    keyMismatchInfo.persistentId_ = 9002;
+    sptr<SceneSession> keyMismatchSession = sptr<SceneSession>::MakeSptr(keyMismatchInfo, nullptr);
+    ASSERT_NE(keyMismatchSession, nullptr);
+
+    SessionInfo indexMismatchInfo;
+    indexMismatchInfo.bundleName_ = "bundle.app.instance";
+    indexMismatchInfo.appIndex_ = 1;
+    indexMismatchInfo.appInstanceKey_ = "instance_match";
+    indexMismatchInfo.persistentId_ = 9003;
+    sptr<SceneSession> indexMismatchSession = sptr<SceneSession>::MakeSptr(indexMismatchInfo, nullptr);
+    ASSERT_NE(indexMismatchSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ matchedInfo.persistentId_, matchedSession });
+    ssm_->sceneSessionMap_.insert({ keyMismatchInfo.persistentId_, keyMismatchSession });
+    ssm_->sceneSessionMap_.insert({ indexMismatchInfo.persistentId_, indexMismatchSession });
+
+    auto listener = sptr<LifecycleListenerForAppInstanceTest>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+
+    MockAccesstokenKit::MockIsSACalling(true);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    auto ret = ssm_->RegisterSessionLifecycleListener(listener,
+        matchedInfo.bundleName_, matchedInfo.appIndex_, matchedInfo.appInstanceKey_);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    usleep(WAIT_SYNC_IN_NS);
+    auto payloads = listener->GetPayloads();
+    ASSERT_EQ(payloads.size(), 1);
+    EXPECT_EQ(payloads[0].persistentId_, matchedInfo.persistentId_);
+    EXPECT_EQ(payloads[0].bundleName_, matchedInfo.bundleName_);
+    EXPECT_EQ(payloads[0].appIndex_, matchedInfo.appIndex_);
+    EXPECT_EQ(payloads[0].appInstanceKey_, matchedInfo.appInstanceKey_);
+}
+
+HWTEST_F(SceneSessionManagerLifecycleTest2,
+    RegisterSessionLifecycleListenerByAppInstance_EmptyKeyMatchAllInstances, TestSize.Level1)
+{
+    SessionInfo sameGroupInfo1;
+    sameGroupInfo1.bundleName_ = "bundle.app.instance";
+    sameGroupInfo1.appIndex_ = 2;
+    sameGroupInfo1.appInstanceKey_ = "instance_1";
+    sameGroupInfo1.persistentId_ = 9101;
+    sptr<SceneSession> sameGroupSession1 = sptr<SceneSession>::MakeSptr(sameGroupInfo1, nullptr);
+    ASSERT_NE(sameGroupSession1, nullptr);
+
+    SessionInfo sameGroupInfo2;
+    sameGroupInfo2.bundleName_ = "bundle.app.instance";
+    sameGroupInfo2.appIndex_ = 2;
+    sameGroupInfo2.appInstanceKey_ = "instance_2";
+    sameGroupInfo2.persistentId_ = 9102;
+    sptr<SceneSession> sameGroupSession2 = sptr<SceneSession>::MakeSptr(sameGroupInfo2, nullptr);
+    ASSERT_NE(sameGroupSession2, nullptr);
+
+    SessionInfo bundleMismatchInfo;
+    bundleMismatchInfo.bundleName_ = "bundle.other";
+    bundleMismatchInfo.appIndex_ = 2;
+    bundleMismatchInfo.appInstanceKey_ = "instance_3";
+    bundleMismatchInfo.persistentId_ = 9103;
+    sptr<SceneSession> bundleMismatchSession = sptr<SceneSession>::MakeSptr(bundleMismatchInfo, nullptr);
+    ASSERT_NE(bundleMismatchSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ sameGroupInfo1.persistentId_, sameGroupSession1 });
+    ssm_->sceneSessionMap_.insert({ sameGroupInfo2.persistentId_, sameGroupSession2 });
+    ssm_->sceneSessionMap_.insert({ bundleMismatchInfo.persistentId_, bundleMismatchSession });
+
+    auto listener = sptr<LifecycleListenerForAppInstanceTest>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+
+    MockAccesstokenKit::MockIsSACalling(true);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    auto ret = ssm_->RegisterSessionLifecycleListener(listener,
+        sameGroupInfo1.bundleName_, sameGroupInfo1.appIndex_, "");
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    usleep(WAIT_SYNC_IN_NS);
+    auto payloads = listener->GetPayloads();
+    ASSERT_EQ(payloads.size(), 2);
+
+    bool hasPid9101 = false;
+    bool hasPid9102 = false;
+    for (const auto& payload : payloads) {
+        if (payload.persistentId_ == sameGroupInfo1.persistentId_) hasPid9101 = true;
+        if (payload.persistentId_ == sameGroupInfo2.persistentId_) hasPid9102 = true;
+        EXPECT_EQ(payload.bundleName_, sameGroupInfo1.bundleName_);
+        EXPECT_EQ(payload.appIndex_, sameGroupInfo1.appIndex_);
+    }
+    EXPECT_TRUE(hasPid9101);
+    EXPECT_TRUE(hasPid9102);
 }
 
 } // namespace

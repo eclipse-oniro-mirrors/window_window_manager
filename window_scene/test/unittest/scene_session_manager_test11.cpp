@@ -2076,6 +2076,223 @@ HWTEST_F(SceneSessionManagerTest11, SetBufferAvailable4, Function | SmallTest | 
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_FilterByAppInstanceKey, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo matchedInfo;
+    matchedInfo.bundleName_ = "bundle.filter";
+    matchedInfo.appIndex_ = 3;
+    matchedInfo.appInstanceKey_ = "instance_a";
+    matchedInfo.persistentId_ = 201;
+    sptr<SceneSession> matchedSession = sptr<SceneSession>::MakeSptr(matchedInfo, nullptr);
+    ASSERT_NE(matchedSession, nullptr);
+
+    SessionInfo keyMismatchInfo;
+    keyMismatchInfo.bundleName_ = "bundle.filter";
+    keyMismatchInfo.appIndex_ = 3;
+    keyMismatchInfo.appInstanceKey_ = "instance_b";
+    keyMismatchInfo.persistentId_ = 202;
+    sptr<SceneSession> keyMismatchSession = sptr<SceneSession>::MakeSptr(keyMismatchInfo, nullptr);
+    ASSERT_NE(keyMismatchSession, nullptr);
+
+    SessionInfo indexMismatchInfo;
+    indexMismatchInfo.bundleName_ = "bundle.filter";
+    indexMismatchInfo.appIndex_ = 4;
+    indexMismatchInfo.appInstanceKey_ = "instance_a";
+    sptr<SceneSession> indexMismatchSession = sptr<SceneSession>::MakeSptr(indexMismatchInfo, nullptr);
+    ASSERT_NE(indexMismatchSession, nullptr);
+
+    SessionInfo bundleMismatchInfo;
+    bundleMismatchInfo.bundleName_ = "bundle.other";
+    bundleMismatchInfo.appIndex_ = 3;
+    bundleMismatchInfo.appInstanceKey_ = "instance_a";
+    sptr<SceneSession> bundleMismatchSession = sptr<SceneSession>::MakeSptr(bundleMismatchInfo, nullptr);
+    ASSERT_NE(bundleMismatchSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ 201, matchedSession });
+    ssm_->sceneSessionMap_.insert({ 202, keyMismatchSession });
+    ssm_->sceneSessionMap_.insert({ 203, indexMismatchSession });
+    ssm_->sceneSessionMap_.insert({ 204, bundleMismatchSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.filter", 3, "instance_a", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 1);
+    ASSERT_EQ(sceneSessions[0], matchedSession);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_EmptyKeyMatchAll, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info1;
+    info1.bundleName_ = "bundle.filter";
+    info1.appIndex_ = 5;
+    info1.appInstanceKey_ = "instance_1";
+    sptr<SceneSession> session1 = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    ASSERT_NE(session1, nullptr);
+
+    SessionInfo info2;
+    info2.bundleName_ = "bundle.filter";
+    info2.appIndex_ = 5;
+    info2.appInstanceKey_ = "instance_2";
+    sptr<SceneSession> session2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
+    ASSERT_NE(session2, nullptr);
+
+    SessionInfo mismatchInfo;
+    mismatchInfo.bundleName_ = "bundle.filter";
+    mismatchInfo.appIndex_ = 6;
+    mismatchInfo.appInstanceKey_ = "instance_3";
+    sptr<SceneSession> mismatchSession = sptr<SceneSession>::MakeSptr(mismatchInfo, nullptr);
+    ASSERT_NE(mismatchSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ 301, session1 });
+    ssm_->sceneSessionMap_.insert({ 302, session2 });
+    ssm_->sceneSessionMap_.insert({ 303, mismatchSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.filter", 5, "", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 2);
+    bool hasSession1 = false;
+    bool hasSession2 = false;
+    for (const auto& session : sceneSessions) {
+        if (session == session1) {
+            hasSession1 = true;
+        }
+        if (session == session2) {
+            hasSession2 = true;
+        }
+    }
+    ASSERT_TRUE(hasSession1);
+    ASSERT_TRUE(hasSession2);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_SkipNullSession, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info;
+    info.bundleName_ = "bundle.filter";
+    info.appIndex_ = 7;
+    info.appInstanceKey_ = "instance_7";
+    sptr<SceneSession> validSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(validSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ 401, nullptr });
+    ssm_->sceneSessionMap_.insert({ 402, validSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.filter", 7, "instance_7", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 1);
+    ASSERT_EQ(sceneSessions[0], validSession);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionNull, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info;
+    info.bundleName_ = "bundle.mainnull";
+    info.appIndex_ = 10;
+    info.appInstanceKey_ = "instance_null";
+    info.persistentId_ = 501;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+
+    ssm_->sceneSessionMap_.insert({ 501, session });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.mainnull", 10, "instance_null", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 0);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionKeyMatch, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "bundle.mainmatch";
+    mainInfo.appIndex_ = 11;
+    mainInfo.appInstanceKey_ = "instance_main";
+    mainInfo.persistentId_ = 601;
+    sptr<SceneSession> mainSession = sptr<MainSession>::MakeSptr(mainInfo, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "bundle.mainmatch";
+    subInfo.appIndex_ = 11;
+    subInfo.appInstanceKey_ = "instance_sub";
+    subInfo.persistentId_ = 602;
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    subSession->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    subSession->parentSession_ = mainSession;
+
+    ssm_->sceneSessionMap_.insert({ 601, mainSession });
+    ssm_->sceneSessionMap_.insert({ 602, subSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.mainmatch", 11, "instance_main", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 2);
+    bool hasMain = false;
+    bool hasSub = false;
+    for (const auto& s : sceneSessions) {
+        if (s == mainSession) hasMain = true;
+        if (s == subSession) hasSub = true;
+    }
+    EXPECT_TRUE(hasMain);
+    EXPECT_TRUE(hasSub);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionKeyMismatch, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "bundle.mainmismatch";
+    mainInfo.appIndex_ = 12;
+    mainInfo.appInstanceKey_ = "instance_other";
+    mainInfo.persistentId_ = 701;
+    sptr<SceneSession> mainSession = sptr<MainSession>::MakeSptr(mainInfo, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "bundle.mainmismatch";
+    subInfo.appIndex_ = 12;
+    subInfo.appInstanceKey_ = "instance_sub";
+    subInfo.persistentId_ = 702;
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    subSession->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    subSession->parentSession_ = mainSession;
+
+    ssm_->sceneSessionMap_.insert({ 701, mainSession });
+    ssm_->sceneSessionMap_.insert({ 702, subSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.mainmismatch", 12, "instance_target", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 0);
+    ssm_->sceneSessionMap_.clear();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
