@@ -34,6 +34,7 @@ const std::string ON_DISCONNECTION_CALLBACK = "disconnect";
 const std::string ON_PROPERTY_CHANGE_CALLBACK = "propertyChange";
 const std::string ON_POWER_STATUS_CHANGE_CALLBACK = "powerStatusChange";
 const std::string ON_SENSOR_ROTATION_CHANGE_CALLBACK = "sensorRotationChange";
+const std::string ON_SMART_SENSOR_ROTATION_CHANGE_CALLBACK = "sensorSmartRotationChange";
 const std::string ON_SCREEN_ORIENTATION_CHANGE_CALLBACK = "screenOrientationChange";
 const std::string ON_SCREEN_ORIENTATION_CHANGE_WITH_OPTIONS_CALLBACK = "screenOrientationChangeWithOptions";
 const std::string ON_SCREEN_ROTATION_LOCKED_CHANGE = "screenRotationLockedChange";
@@ -709,6 +710,47 @@ void JsScreenSession::OnSensorRotationChange(float sensorRotation, ScreenId scre
 
     if (env_ != nullptr) {
         napi_status ret = napi_send_event(env_, asyncTask, napi_eprio_immediate, "OnSensorRotationChange");
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
+        }
+    } else {
+        TLOGE(WmsLogTag::DMS, "env is nullptr");
+    }
+}
+
+void JsScreenSession::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId)
+{
+    const std::string callbackType = ON_SMART_SENSOR_ROTATION_CHANGE_CALLBACK;
+    TLOGI(WmsLogTag::DMS, "Call js callback: %{public}s.", callbackType.c_str());
+    if (!IsCallbackRegistered(callbackType)) {
+        TLOGE(WmsLogTag::DMS, "Callback %{public}s is unregistered!", callbackType.c_str());
+        return;
+    }
+
+    auto jsCallbackRef = GetJSCallback(callbackType);
+    wptr<ScreenSession> screenSessionWeak(screenSession_);
+    auto asyncTask = [jsCallbackRef, callbackType, screenSessionWeak, sensorRotation, env = env_]() {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "jsScreenSession::OnSmartSensorRotationChange");
+        if (jsCallbackRef == nullptr) {
+            TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, jsCallbackRef is null!", callbackType.c_str());
+            return;
+        }
+        auto method = jsCallbackRef->GetNapiValue();
+        if (method == nullptr) {
+            TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, method is null!", callbackType.c_str());
+            return;
+        }
+        auto screenSession = screenSessionWeak.promote();
+        if (screenSession == nullptr) {
+            TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, screenSession is null!", callbackType.c_str());
+            return;
+        }
+        napi_value argv[] = { CreateJsValue(env, sensorRotation) };
+        napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
+    };
+
+    if (env_ != nullptr) {
+        napi_status ret = napi_send_event(env_, asyncTask, napi_eprio_immediate, "OnSmartSensorRotationChange");
         if (ret != napi_status::napi_ok) {
             TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
         }

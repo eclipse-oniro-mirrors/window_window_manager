@@ -59,14 +59,19 @@ void MotionManager::Init()
     
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
     int32_t smartRotationEnabled = OHOS::system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
-        DISABLE_SMART_ROTATION);
-    isDefaultSmartMotionEnabled_ = (smartRotationEnabled == ENABLE_SMART_ROTATION);
+        DISABLED_SMART_ROTATION);
+    isDefaultSmartMotionEnabled_ = (smartRotationEnabled == ENABLED_SMART_ROTATION);
     TLOGI(WmsLogTag::WMS_ROTATION, "default_rotation_sensor: %{public}d, smartMotionEnabled: %{public}d",
         smartRotationEnabled, isDefaultSmartMotionEnabled_);
-    needSubscribedMotionTypes_[MotionType::DEVICE_MOTION_TYPE] = true;
+    
     if (isDefaultSmartMotionEnabled_) {
         needSubscribedMotionTypes_[MotionType::SMART_MOTION_TYPE] = true;
+        needSubscribedMotionTypes_[MotionType::DEVICE_MOTION_TYPE] = false;
+    } else {
+        needSubscribedMotionTypes_[MotionType::DEVICE_MOTION_TYPE] = true;
+        needSubscribedMotionTypes_[MotionType::SMART_MOTION_TYPE] = false;
     }
+    
     if (isScreenOn_) {
         SubscribeDefaultMotionSensors();
     }
@@ -79,11 +84,10 @@ void MotionManager::Init()
 void MotionManager::SubscribeDefaultMotionSensors()
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    SubscribeMotionSensorInternal(MotionType::DEVICE_MOTION_TYPE);
-    
-    if (isDefaultSmartMotionEnabled_) {
-        SubscribeMotionSensorInternal(MotionType::SMART_MOTION_TYPE);
-        TLOGI(WmsLogTag::WMS_ROTATION, "Smart motion sensor enabled by default");
+    for (auto& pair : needSubscribedMotionTypes_) {
+        if (pair.second) {
+            SubscribeMotionSensorInternal(pair.first);
+        }
     }
 #endif
 }
@@ -183,10 +187,14 @@ void MotionManager::OnScreenOn()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     isScreenOn_ = true;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Screen on, subscribing default motion sensors");
+    TLOGI(WmsLogTag::WMS_ROTATION, "Screen on, subscribing needed motion sensors");
     
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    SubscribeDefaultMotionSensors();
+    for (auto& pair : needSubscribedMotionTypes_) {
+        if (pair.second) {
+            SubscribeMotionSensorInternal(pair.first);
+        }
+    }
 #endif
 }
 
@@ -215,13 +223,13 @@ void MotionManager::UnsubscribeAllMotionSensors()
 DeviceRotation MotionManager::ConvertMotionActionToDeviceRotation(int32_t motionAction)
 {
     switch (motionAction) {
-        case MotionAction::MOTION_ACTION_PORTRAIT:
+        case MotionAction::MOTION_PORTRAIT:
             return DeviceRotation::ROTATION_PORTRAIT;
-        case MotionAction::MOTION_ACTION_LEFT_LANDSCAPE:
+        case MotionAction::MOTION_LANDSCAPE:
             return DeviceRotation::ROTATION_LANDSCAPE_INVERTED;
-        case MotionAction::MOTION_ACTION_PORTRAIT_INVERTED:
+        case MotionAction::MOTION_PORTRAIT_INVERTED:
             return DeviceRotation::ROTATION_PORTRAIT_INVERTED;
-        case MotionAction::MOTION_ACTION_RIGHT_LANDSCAPE:
+        case MotionAction::MOTION_LANDSCAPE_INVERTED:
             return DeviceRotation::ROTATION_LANDSCAPE;
         default:
             return DeviceRotation::INVALID;
@@ -249,7 +257,10 @@ void MotionManager::RotationMotionEventCallback(const MotionSensorEvent& motionD
     TLOGI(WmsLogTag::WMS_ROTATION, "Rotation motion callback, status: %{public}d", motionData.status);
     
     DeviceRotation motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
-    float rotation = ScreenRotationProperty::ConvertDeviceToFloat(motionRotation);
+    if (motionRotation == DeviceRotation::INVALID) {
+        return;
+    }
+    float rotation = ConvertDeviceMotionToFloat(motionRotation);
     
     MotionManager::GetInstance().HandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, rotation);
 }
@@ -259,7 +270,10 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
     TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, status: %{public}d", motionData.status);
     
     DeviceRotation motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
-    float rotation = ScreenRotationProperty::ConvertDeviceToFloat(motionRotation);
+    if (motionRotation == DeviceRotation::INVALID) {
+        return;
+    }
+    float rotation = ConvertDeviceMotionToFloat(motionRotation);
     
     MotionManager::GetInstance().HandleMotionEvent(MotionType::SMART_MOTION_TYPE, rotation);
 }
@@ -270,55 +284,43 @@ void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
     
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         lastMotionRotation_ = rotation;
+        HandleDeviceSensorRotation(rotation);
     } else if (motionType == MotionType::SMART_MOTION_TYPE) {
         lastSmartMotionRotation_ = rotation;
+        HandleSmartSensorRotation(rotation);
     }
-    
-    NotifyMotionRotationChangedInternal();
 }
 
-float MotionManager::CalculateAverageRotation(float rotation1, float rotation2)
+void MotionManager::HandleDeviceSensorRotation(float rotation)
 {
-    if (rotation1 < 0.0f || rotation2 < 0.0f) {
-        TLOGW(WmsLogTag::WMS_ROTATION, "Invalid rotation values, r1: %{public}f, r2: %{public}f", rotation1, rotation2);
-        return -1.0f;
-    }
+    TLOGI(WmsLogTag::WMS_ROTATION, "HandleDeviceSensorRotation rotation: %{public}f", rotation);
     
-    float avg = (rotation1 + rotation2) / 2.0f;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Calculate average rotation: (%{public}f + %{public}f) / 2 = %{public}f",
-        rotation1, rotation2, avg);
-    return avg;
-}
-
-void MotionManager::NotifyMotionRotationChangedInternal()
-{
-    float finalRotation = -1.0f;
-    
-    bool isMotionTypeSubscribed = subscribedMotionTypes_[MotionType::DEVICE_MOTION_TYPE];
-    bool isSmartMotionTypeSubscribed = subscribedMotionTypes_[MotionType::SMART_MOTION_TYPE];
-    
-    if (isMotionTypeSubscribed && isSmartMotionTypeSubscribed) {
-        float avgRotation = CalculateAverageRotation(lastMotionRotation_, lastSmartMotionRotation_);
-        if (avgRotation >= 0.0f) {
-            finalRotation = avgRotation;
-            TLOGI(WmsLogTag::WMS_ROTATION, "Both motion types subscribed, using average: %{public}f", finalRotation);
-        }
-    } else if (isMotionTypeSubscribed) {
-        finalRotation = lastMotionRotation_;
-        TLOGI(WmsLogTag::WMS_ROTATION, "Only MOTION_TYPE_ROTATION subscribed, using: %{public}f", finalRotation);
-    } else if (isSmartMotionTypeSubscribed) {
-        finalRotation = lastSmartMotionRotation_;
-        TLOGI(WmsLogTag::WMS_ROTATION, "Only SMART_MOTION_TYPE_ROTATION subscribed, using: %{public}f", finalRotation);
-    } else {
-        TLOGW(WmsLogTag::WMS_ROTATION, "No motion type subscribed");
+    auto screenSession = ScreenSessionManager::GetInstance().GetDefaultScreenSession();
+    if (!screenSession) {
+        TLOGW(WmsLogTag::WMS_ROTATION, "screenSession is null");
         return;
     }
-    
-    if (motionEventListener_ && finalRotation >= 0.0f) {
-        motionEventListener_->OnMotionRotationChanged(finalRotation);
-    } else {
-        TLOGW(WmsLogTag::WMS_ROTATION, "Motion event listener is null or invalid rotation");
+    if (lastMotionRotation_ == rotation) {
+        return;
     }
+    lastMotionRotation_ = rotation;
+    screenSession->HandleSensorRotation(rotation);
+}
+
+void MotionManager::HandleSmartSensorRotation(float rotation)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "HandleSmartSensorRotation rotation: %{public}f", rotation);
+    
+    auto screenSession = ScreenSessionManager::GetInstance().GetDefaultScreenSession();
+    if (!screenSession) {
+        TLOGW(WmsLogTag::WMS_ROTATION, "screenSession is null");
+        return;
+    }
+    if (lastSmartMotionRotation_ == rotation) {
+        return;
+    }
+    lastSmartMotionRotation_ = rotation;
+    screenSession->HandleSmartRotation(rotation);
 }
 
 float MotionManager::GetLastMotionRotation() const

@@ -50,6 +50,10 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnSensorRotationChanged(data, reply);
     };
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SMART_SENSOR_ROTATION_CHANGED] =
+        [this](MessageParcel& data, MessageParcel& reply) {
+        return HandleOnSmartSensorRotationChanged(data, reply);
+    };
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_HOVER_STATUS_CHANGED] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnHoverStatusChanged(data, reply);
@@ -387,6 +391,15 @@ int ScreenSessionManagerClientStub::HandleOnSensorRotationChanged(MessageParcel&
     auto sensorRotation = data.ReadFloat();
     auto isSwitchUser = data.ReadBool();
     OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
+    return ERR_NONE;
+}
+
+int ScreenSessionManagerClientStub::HandleOnSmartSensorRotationChanged(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::DMS, "enter");
+    auto screenId = static_cast<ScreenId>(data.ReadUint64());
+    auto sensorRotation = data.ReadFloat();
+    OnSmartSensorRotationChanged(screenId, sensorRotation);
     return ERR_NONE;
 }
 

@@ -87,14 +87,13 @@ private:
     void SubscribeMotionSensorInternal(MotionType motionType);
     void UnsubscribeMotionSensorInternal(MotionType motionType);
     void HandleMotionEvent(MotionType motionType, float rotation);
-    void NotifyMotionRotationChangedInternal();
+    void HandleDeviceSensorRotation(float rotation);
+    void HandleSmartSensorRotation(float rotation);
     
     static DeviceRotation ConvertMotionActionToDeviceRotation(int32_t motionAction);
     static float ConvertDeviceMotionToFloat(DeviceRotation deviceRotation);
     static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
     static void SmartRotationMotionEventCallback(const MotionSensorEvent& motionData);
-    
-    static float CalculateAverageRotation(float rotation1, float rotation2);
     
     std::mutex mutex_;
     IMotionEventListener* motionEventListener_ = nullptr;

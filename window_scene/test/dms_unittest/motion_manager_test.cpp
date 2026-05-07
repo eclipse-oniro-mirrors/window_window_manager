@@ -27,25 +27,6 @@ namespace {
 constexpr uint32_t SLEEP_TIME_US = 100000;
 }
 
-class MockMotionEventListener : public IMotionEventListener {
-public:
-    MockMotionEventListener() : lastRotation_(-1.0f), callCount_(0) {}
-    ~MockMotionEventListener() override = default;
-    
-    void OnMotionRotationChanged(float sensorRotation) override {
-        lastRotation_ = sensorRotation;
-        callCount_++;
-    }
-    
-    float GetLastRotation() const { return lastRotation_; }
-    int GetCallCount() const { return callCount_; }
-    void Reset() { lastRotation_ = -1.0f; callCount_ = 0; }
-    
-private:
-    float lastRotation_;
-    int callCount_;
-};
-
 class MotionManagerTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -111,51 +92,26 @@ HWTEST_F(MotionManagerTest, Init02, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetMotionEventListener01
- * @tc.desc: test function : SetMotionEventListener
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, SetMotionEventListener01, TestSize.Level1)
-{
-    MockMotionEventListener listener;
-    MotionManager::GetInstance().SetMotionEventListener(&listener);
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
-    usleep(SLEEP_TIME_US);
-}
-
-/**
- * @tc.name: SetMotionEventListener02
- * @tc.desc: test function : SetMotionEventListener with null
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, SetMotionEventListener02, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetMotionEventListener(nullptr);
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
-    usleep(SLEEP_TIME_US);
-}
-
-/**
  * @tc.name: SubscribeMotionSensor01
- * @tc.desc: test function : SubscribeMotionSensor
+ * @tc.desc: test function : SubscribeMotionSensor DEVICE_MOTION_TYPE
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, SubscribeMotionSensor01, TestSize.Level1)
 {
     MotionManager::GetInstance().SetScreenOnState(true);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
+    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
     usleep(SLEEP_TIME_US);
 }
 
 /**
  * @tc.name: SubscribeMotionSensor02
- * @tc.desc: test function : SubscribeMotionSensor SMART_MOTION_TYPE_ROTATION
+ * @tc.desc: test function : SubscribeMotionSensor SMART_MOTION_TYPE
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
 {
     MotionManager::GetInstance().SetScreenOnState(true);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::SMART_MOTION_TYPE_ROTATION);
+    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::SMART_MOTION_TYPE);
     usleep(SLEEP_TIME_US);
 }
 
@@ -167,8 +123,8 @@ HWTEST_F(MotionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
 HWTEST_F(MotionManagerTest, SubscribeMotionSensor03, TestSize.Level1)
 {
     MotionManager::GetInstance().SetScreenOnState(false);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
-    ASSERT_FALSE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::MOTION_TYPE_ROTATION));
+    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
+    ASSERT_FALSE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
 }
 
 /**
@@ -179,8 +135,8 @@ HWTEST_F(MotionManagerTest, SubscribeMotionSensor03, TestSize.Level1)
 HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
 {
     MotionManager::GetInstance().SetScreenOnState(true);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
-    MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
+    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
+    MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
     usleep(SLEEP_TIME_US);
 }
 
@@ -191,7 +147,7 @@ HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
  */
 HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor02, TestSize.Level1)
 {
-    MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
+    MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
     usleep(SLEEP_TIME_US);
 }
 
@@ -241,70 +197,26 @@ HWTEST_F(MotionManagerTest, GetLastSmartMotionRotation01, TestSize.Level1)
 
 /**
  * @tc.name: HandleMotionEvent01
- * @tc.desc: test function : HandleMotionEvent MOTION_TYPE_ROTATION
+ * @tc.desc: test function : HandleMotionEvent DEVICE_MOTION_TYPE
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, HandleMotionEvent01, TestSize.Level1)
 {
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
+    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, 90.0f);
     float rotation = MotionManager::GetInstance().GetLastMotionRotation();
     ASSERT_EQ(rotation, 90.0f);
 }
 
 /**
  * @tc.name: HandleMotionEvent02
- * @tc.desc: test function : HandleMotionEvent SMART_MOTION_TYPE_ROTATION
+ * @tc.desc: test function : HandleMotionEvent SMART_MOTION_TYPE
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, HandleMotionEvent02, TestSize.Level1)
 {
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::SMART_MOTION_TYPE_ROTATION, 180.0f);
+    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::SMART_MOTION_TYPE, 180.0f);
     float rotation = MotionManager::GetInstance().GetLastSmartMotionRotation();
     ASSERT_EQ(rotation, 180.0f);
-}
-
-/**
- * @tc.name: CalculateAverageRotation01
- * @tc.desc: test function : CalculateAverageRotation valid values
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, CalculateAverageRotation01, TestSize.Level1)
-{
-    float avg = MotionManager::CalculateAverageRotation(90.0f, 180.0f);
-    ASSERT_EQ(avg, 135.0f);
-}
-
-/**
- * @tc.name: CalculateAverageRotation02
- * @tc.desc: test function : CalculateAverageRotation invalid values
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, CalculateAverageRotation02, TestSize.Level1)
-{
-    float avg = MotionManager::CalculateAverageRotation(-1.0f, 90.0f);
-    ASSERT_EQ(avg, -1.0f);
-}
-
-/**
- * @tc.name: CalculateAverageRotation03
- * @tc.desc: test function : CalculateAverageRotation both invalid
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, CalculateAverageRotation03, TestSize.Level1)
-{
-    float avg = MotionManager::CalculateAverageRotation(-1.0f, -1.0f);
-    ASSERT_EQ(avg, -1.0f);
-}
-
-/**
- * @tc.name: CalculateAverageRotation04
- * @tc.desc: test function : CalculateAverageRotation same values
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, CalculateAverageRotation04, TestSize.Level1)
-{
-    float avg = MotionManager::CalculateAverageRotation(90.0f, 90.0f);
-    ASSERT_EQ(avg, 90.0f);
 }
 
 /**
@@ -315,19 +227,19 @@ HWTEST_F(MotionManagerTest, CalculateAverageRotation04, TestSize.Level1)
 HWTEST_F(MotionManagerTest, ConvertMotionActionToDeviceRotation01, TestSize.Level1)
 {
     DeviceRotation rotation = MotionManager::ConvertMotionActionToDeviceRotation(
-        MotionAction::MOTION_ACTION_PORTRAIT);
+        MotionAction::MOTION_PORTRAIT);
     ASSERT_EQ(rotation, DeviceRotation::ROTATION_PORTRAIT);
 }
 
 /**
  * @tc.name: ConvertMotionActionToDeviceRotation02
- * @tc.desc: test function : ConvertMotionActionToDeviceRotation LEFT_LANDSCAPE
+ * @tc.desc: test function : ConvertMotionActionToDeviceRotation LANDSCAPE
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, ConvertMotionActionToDeviceRotation02, TestSize.Level1)
 {
     DeviceRotation rotation = MotionManager::ConvertMotionActionToDeviceRotation(
-        MotionAction::MOTION_ACTION_LEFT_LANDSCAPE);
+        MotionAction::MOTION_LANDSCAPE);
     ASSERT_EQ(rotation, DeviceRotation::ROTATION_LANDSCAPE_INVERTED);
 }
 
@@ -339,19 +251,19 @@ HWTEST_F(MotionManagerTest, ConvertMotionActionToDeviceRotation02, TestSize.Leve
 HWTEST_F(MotionManagerTest, ConvertMotionActionToDeviceRotation03, TestSize.Level1)
 {
     DeviceRotation rotation = MotionManager::ConvertMotionActionToDeviceRotation(
-        MotionAction::MOTION_ACTION_PORTRAIT_INVERTED);
+        MotionAction::MOTION_PORTRAIT_INVERTED);
     ASSERT_EQ(rotation, DeviceRotation::ROTATION_PORTRAIT_INVERTED);
 }
 
 /**
  * @tc.name: ConvertMotionActionToDeviceRotation04
- * @tc.desc: test function : ConvertMotionActionToDeviceRotation RIGHT_LANDSCAPE
+ * @tc.desc: test function : ConvertMotionActionToDeviceRotation LANDSCAPE_INVERTED
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, ConvertMotionActionToDeviceRotation04, TestSize.Level1)
 {
     DeviceRotation rotation = MotionManager::ConvertMotionActionToDeviceRotation(
-        MotionAction::MOTION_ACTION_RIGHT_LANDSCAPE);
+        MotionAction::MOTION_LANDSCAPE_INVERTED);
     ASSERT_EQ(rotation, DeviceRotation::ROTATION_LANDSCAPE);
 }
 
@@ -367,13 +279,68 @@ HWTEST_F(MotionManagerTest, ConvertMotionActionToDeviceRotation05, TestSize.Leve
 }
 
 /**
+ * @tc.name: ConvertDeviceMotionToFloat01
+ * @tc.desc: test function : ConvertDeviceMotionToFloat PORTRAIT
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, ConvertDeviceMotionToFloat01, TestSize.Level1)
+{
+    float rotation = MotionManager::ConvertDeviceMotionToFloat(DeviceRotation::ROTATION_PORTRAIT);
+    ASSERT_EQ(rotation, 0.0f);
+}
+
+/**
+ * @tc.name: ConvertDeviceMotionToFloat02
+ * @tc.desc: test function : ConvertDeviceMotionToFloat LANDSCAPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, ConvertDeviceMotionToFloat02, TestSize.Level1)
+{
+    float rotation = MotionManager::ConvertDeviceMotionToFloat(DeviceRotation::ROTATION_LANDSCAPE);
+    ASSERT_EQ(rotation, 90.0f);
+}
+
+/**
+ * @tc.name: ConvertDeviceMotionToFloat03
+ * @tc.desc: test function : ConvertDeviceMotionToFloat PORTRAIT_INVERTED
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, ConvertDeviceMotionToFloat03, TestSize.Level1)
+{
+    float rotation = MotionManager::ConvertDeviceMotionToFloat(DeviceRotation::ROTATION_PORTRAIT_INVERTED);
+    ASSERT_EQ(rotation, 180.0f);
+}
+
+/**
+ * @tc.name: ConvertDeviceMotionToFloat04
+ * @tc.desc: test function : ConvertDeviceMotionToFloat LANDSCAPE_INVERTED
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, ConvertDeviceMotionToFloat04, TestSize.Level1)
+{
+    float rotation = MotionManager::ConvertDeviceMotionToFloat(DeviceRotation::ROTATION_LANDSCAPE_INVERTED);
+    ASSERT_EQ(rotation, 270.0f);
+}
+
+/**
+ * @tc.name: ConvertDeviceMotionToFloat05
+ * @tc.desc: test function : ConvertDeviceMotionToFloat INVALID
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, ConvertDeviceMotionToFloat05, TestSize.Level1)
+{
+    float rotation = MotionManager::ConvertDeviceMotionToFloat(DeviceRotation::INVALID);
+    ASSERT_EQ(rotation, -1.0f);
+}
+
+/**
  * @tc.name: IsMotionSensorSubscribed01
  * @tc.desc: test function : IsMotionSensorSubscribed not subscribed
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, IsMotionSensorSubscribed01, TestSize.Level1)
 {
-    bool subscribed = MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::MOTION_TYPE_ROTATION);
+    bool subscribed = MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE);
     ASSERT_FALSE(subscribed);
 }
 
@@ -440,7 +407,7 @@ HWTEST_F(MotionManagerTest, IsDefaultSmartMotionEnabled02, TestSize.Level1)
 HWTEST_F(MotionManagerTest, Reset01, TestSize.Level1)
 {
     MotionManager::GetInstance().Init();
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
+    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, 90.0f);
     MotionManager::GetInstance().Reset();
     ASSERT_FALSE(MotionManager::GetInstance().IsInitialized());
     ASSERT_EQ(MotionManager::GetInstance().GetLastMotionRotation(), -1.0f);
@@ -470,65 +437,6 @@ HWTEST_F(MotionManagerTest, SetDefaultSmartMotionEnabled01, TestSize.Level1)
     ASSERT_TRUE(MotionManager::GetInstance().IsDefaultSmartMotionEnabled());
     MotionManager::GetInstance().SetDefaultSmartMotionEnabled(false);
     ASSERT_FALSE(MotionManager::GetInstance().IsDefaultSmartMotionEnabled());
-}
-
-/**
- * @tc.name: NotifyMotionRotationChangedInternal01
- * @tc.desc: test function : NotifyMotionRotationChangedInternal single motion
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, NotifyMotionRotationChangedInternal01, TestSize.Level1)
-{
-    MockMotionEventListener listener;
-    MotionManager::GetInstance().SetMotionEventListener(&listener);
-    MotionManager::GetInstance().SetScreenOnState(true);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
-    usleep(SLEEP_TIME_US);
-}
-
-/**
- * @tc.name: NotifyMotionRotationChangedInternal02
- * @tc.desc: test function : NotifyMotionRotationChangedInternal both motion
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, NotifyMotionRotationChangedInternal02, TestSize.Level1)
-{
-    MockMotionEventListener listener;
-    MotionManager::GetInstance().SetMotionEventListener(&listener);
-    MotionManager::GetInstance().SetScreenOnState(true);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::SMART_MOTION_TYPE_ROTATION);
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::SMART_MOTION_TYPE_ROTATION, 180.0f);
-    usleep(SLEEP_TIME_US);
-}
-
-/**
- * @tc.name: NotifyMotionRotationChangedInternal03
- * @tc.desc: test function : NotifyMotionRotationChangedInternal no listener
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, NotifyMotionRotationChangedInternal03, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetMotionEventListener(nullptr);
-    MotionManager::GetInstance().SetScreenOnState(true);
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::MOTION_TYPE_ROTATION);
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
-    usleep(SLEEP_TIME_US);
-}
-
-/**
- * @tc.name: NotifyMotionRotationChangedInternal04
- * @tc.desc: test function : NotifyMotionRotationChangedInternal no subscription
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, NotifyMotionRotationChangedInternal04, TestSize.Level1)
-{
-    MockMotionEventListener listener;
-    MotionManager::GetInstance().SetMotionEventListener(&listener);
-    MotionManager::GetInstance().TestHandleMotionEvent(MotionType::MOTION_TYPE_ROTATION, 90.0f);
-    usleep(SLEEP_TIME_US);
 }
 
 }

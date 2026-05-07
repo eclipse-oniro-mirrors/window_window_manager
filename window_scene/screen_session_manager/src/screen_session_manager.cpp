@@ -11714,6 +11714,17 @@ void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId
     clientProxy->OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
 }
 
+void ScreenSessionManager::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId)
+{
+    TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " smartSensorRotation: %{public}f", screenId, sensorRotation);
+    auto clientProxy = GetClientProxy();
+    if (!clientProxy) {
+        TLOGNFI(WmsLogTag::DMS, "clientProxy_ is null");
+        return;
+    }
+    clientProxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+}
+
 void ScreenSessionManager::OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId)
 {
     TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " hoverStatus: %{public}d", screenId, hoverStatus);

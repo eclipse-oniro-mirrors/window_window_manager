@@ -1135,6 +1135,11 @@ void ScreenSession::HandleSensorRotation(float sensorRotation)
     SensorRotationChange(sensorRotation);
 }
 
+void ScreenSession::HandleSmartRotation(float sensorRotation)
+{
+    SmartSensorRotationChange(sensorRotation);
+}
+
 void ScreenSession::SensorRotationChange(Rotation sensorRotation)
 {
     float rotation = ConvertRotationToFloat(sensorRotation);
@@ -1159,6 +1164,18 @@ void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser
             continue;
         }
         listener->OnSensorRotationChange(sensorRotation, screenId_, isSwitchUser);
+    }
+}
+
+void ScreenSession::SmartSensorRotationChange(float sensorRotation)
+{
+    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
+    for (auto& listener : screenChangeListenerList_) {
+        if (!listener) {
+            TLOGE(WmsLogTag::DMS, "screenChangeListener is null.");
+            continue;
+        }
+        listener->OnSmartSensorRotationChange(sensorRotation, screenId_);
     }
 }
 

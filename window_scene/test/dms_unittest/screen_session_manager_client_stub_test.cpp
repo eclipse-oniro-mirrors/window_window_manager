@@ -698,6 +698,26 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnSensorRotationChanged, Test
 }
 
 /**
+ * @tc.name: HandleOnSmartSensorRotationChanged
+ * @tc.desc: HandleOnSmartSensorRotationChanged test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnSmartSensorRotationChanged, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+    ScreenId screenId = 0;
+    data.WriteUint64(screenId);
+    float sensorRotation = 90.0f;
+    data.WriteFloat(sensorRotation);
+
+    int ret = screenSessionManagerClientStub_->HandleOnSmartSensorRotationChanged(data, reply);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
  * @tc.name: HandleOnScreenExtendChanged
  * @tc.desc: HandleOnScreenExtendChanged test
  * @tc.type: FUNC
