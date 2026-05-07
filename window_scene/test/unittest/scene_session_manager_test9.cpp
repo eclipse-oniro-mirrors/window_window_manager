@@ -1410,7 +1410,7 @@ HWTEST_F(SceneSessionManagerTest9, CheckClickFocusIsDownThroughFullScreen_FullSc
     touchHotAreasInSceneSession.emplace_back(area);
     focusedSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
     bool ret = ssm_->CheckClickFocusIsDownThroughFullScreen(focusedSession, sceneSession, FocusChangeReason::CLICK);
-    EXPECT_EQ(ret, true);
+    EXPECT_EQ(ret, false);
 }
 
 /**

@@ -49,10 +49,11 @@ public:
     WMError SetVisibilityInApp(bool visibleInApp);
     WMError SetWindowSize(const Rect &rect);
     void SyncWindowInfo(uint32_t windowId, const FloatViewWindowInfo& windowInfo, const std::string& reason);
-    void SyncLimits(uint32_t windowId, const FloatViewLimits& limits);
+    void SyncLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& fvLimits);
     FloatViewWindowInfo GetWindowInfo() const;
     sptr<Window> GetWindow() const;
     FvWindowState GetCurState();
+    FloatViewTemplate GetTemplateType() const;
     void ChangeState(const FvWindowState &newState);
     bool IsStateWithWindow(FvWindowState state);
     void SetBindState(bool isBind);

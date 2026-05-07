@@ -93,6 +93,7 @@ const std::string UI_EFFECT_ANIMATE_TO_CB = "uiEffectAnimateTo";
 const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
 const std::string MINIMIZE_ALL_CB = "minimizeAll";
 const std::string NOTIFY_PAGE_ENABLE_REGISTERED_CB = "notifyPageEnableRegistered";
+const std::string GET_FLOAT_VIEW_LIMIT_CB = "getFloatViewLimit";
 
 const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {CREATE_SYSTEM_SESSION_CB,     ListenerFunctionType::CREATE_SYSTEM_SESSION_CB},
@@ -124,6 +125,7 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {MINIMIZE_ALL_CB,     ListenerFunctionType::MINIMIZE_ALL_CB},
     {MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,     ListenerFunctionType::MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB},
     {NOTIFY_PAGE_ENABLE_REGISTERED_CB, ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB},
+    {GET_FLOAT_VIEW_LIMIT_CB, ListenerFunctionType::GET_FLOAT_VIEW_LIMIT_CB},
 };
 } // namespace
 
@@ -168,6 +170,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "TitleButtonEventType", CreateTitleButtonEventType(env));
     napi_set_named_property(env, exportObj, "FloatingBallTextUpdateAnimationType",
         CreateJsSessionFbTextUpdateAnimationType(env));
+    napi_set_named_property(env, exportObj, "FloatViewTemplateType", CreateJsSessionFloatViewTemplateType(env));
 
     const char* moduleName = "JsSceneSessionManager";
     BindNativeFunction(env, exportObj, "setBehindWindowFilterEnabled",
@@ -1868,6 +1871,9 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
         case ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB:
             RegisterPageEnableCallback();
             break;
+        case ListenerFunctionType::GET_FLOAT_VIEW_LIMIT_CB:
+            RegisterGetFloatViewLimitCallback();
+            break;
         default:
             break;
     }
@@ -3413,7 +3419,7 @@ napi_value JsSceneSessionManager::OnSyncFloatViewLimits(napi_env env, napi_callb
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    FloatViewLimits limits;
+    std::map<uint32_t, FloatViewLimits> limits {};
     if (!ConvertFloatViewLimitsFromJs(env, jsLimits, limits)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to FloatViewLimits");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
@@ -6417,4 +6423,31 @@ void JsSceneSessionManager::OnNotifyPageEnableRegistered(const std::string& bund
         napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
         }, __func__);
 }
+
+void JsSceneSessionManager::RegisterGetFloatViewLimitCallback()
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "RegisterGetFloatViewLimitCallback called");
+    SceneSessionManager::GetInstance().RegisterGetFloatViewLimitCallback(
+        [this](std::map<uint32_t, FloatViewLimits>& limit) -> bool {
+            return this->OnRegisterGetFloatViewLimitCallback(limit);
+    });
+}
+
+bool JsSceneSessionManager::OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnRegisterGetFloatViewLimitCallback called");
+    auto jsCallBack = GetJSCallback(GET_FLOAT_VIEW_LIMIT_CB);
+    if (jsCallBack == nullptr) {
+        TLOGNE(WmsLogTag::WMS_SYSTEM, "jsCallBack is nullptr");
+        return false;
+    }
+    napi_value result = nullptr;
+    napi_value argv[] = {};
+    napi_call_function(env_, NapiGetUndefined(env_), jsCallBack->GetNapiValue(), 0, argv, &result);
+    if (!ConvertFloatViewLimitsFromJs(env_, result, fvlimit)) {
+        return false;
+    }
+    return true;
+}
+
 } // namespace OHOS::Rosen

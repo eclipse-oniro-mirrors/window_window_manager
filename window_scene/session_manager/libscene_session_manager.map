@@ -224,6 +224,7 @@
             OHOS::Rosen::SceneSessionManager::RegisterPageEnableFunc*;
             OHOS::Rosen::SceneSessionManagerLite::GetInstance*;
             OHOS::Rosen::SceneSessionManager::SyncFloatViewLimits*;
+            OHOS::Rosen::SceneSessionManager::RegisterGetFloatViewLimitCallback*;
             OHOS::Rosen::SessionLifecycleListenerStub::OnRemoteRequest*;
             OHOS::Rosen::SessionRouterStackListenerStub::OnRemoteRequest*;
             OHOS::Rosen::UIEffectManager::GetInstance*;

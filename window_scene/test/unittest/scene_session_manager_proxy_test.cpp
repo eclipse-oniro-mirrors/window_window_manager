@@ -2906,7 +2906,7 @@ HWTEST_F(sceneSessionManagerProxyTest, GetFloatViewLimits01, TestSize.Level1)
 {
     FloatViewLimits limits;
     auto tempProxy = sptr<SceneSessionManagerProxy>::MakeSptr(nullptr);
-    auto ret = tempProxy->GetFloatViewLimits(limits);
+    auto ret = tempProxy->GetFloatViewLimits(0, limits);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
@@ -2915,21 +2915,26 @@ HWTEST_F(sceneSessionManagerProxyTest, GetFloatViewLimits01, TestSize.Level1)
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    ret = proxy->GetFloatViewLimits(limits);
+    ret = proxy->GetFloatViewLimits(0, limits);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ret = proxy->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
-    ret = proxy->GetFloatViewLimits(limits);
+    ret = proxy->GetFloatViewLimits(0, limits);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     remoteMocker->SetRequestResult(ERR_NONE);
 
     MockMessageParcel::SetReadInt32ErrorFlag(true);
-    ret = proxy->GetFloatViewLimits(limits);
+    ret = proxy->GetFloatViewLimits(0, limits);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetReadInt32ErrorFlag(false);
 
-    ret = proxy->GetFloatViewLimits(limits);
+    ret = proxy->GetFloatViewLimits(0, limits);
     EXPECT_NE(ret, WMError::WM_OK);
 }
 

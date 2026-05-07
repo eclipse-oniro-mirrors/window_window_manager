@@ -2642,13 +2642,17 @@ WMError SceneSessionManagerProxy::GetGlobalWindowMode(DisplayId displayId, Globa
     return static_cast<WMError>(errCode);
 }
 
-WMError SceneSessionManagerProxy::GetFloatViewLimits(FloatViewLimits& limits)
+WMError SceneSessionManagerProxy::GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits)
 {
     MessageParcel data;
     MessageParcel reply;
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(templateType)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "write templateType failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();

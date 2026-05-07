@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const window = requireInternal('window');
+const windowenv = requireInternal('windowenv');
 const hilog = requireInternal('hilog');
 const HILOG_DOMAIN = 0x04209;
 const HILOG_TAG = 'WMSImms';
@@ -54,7 +54,7 @@ class WindowAvoidAreaPxEnv implements IEnvironmentValue<UIEnvAvoidArea> {
   @Trace keyboard: window.AvoidArea;
   @Trace navigationIndicator: window.AvoidArea;
 
-  #win: window.Window;
+  #win: window.Window | uiExtension.WindowProxy;
   
   get value() {
     return this;
@@ -62,7 +62,7 @@ class WindowAvoidAreaPxEnv implements IEnvironmentValue<UIEnvAvoidArea> {
 
   constructor(context: UIContext) {
     try {
-      this.#win = window.findWindow(context.getWindowName());
+      this.#win = windowenv.findWindowById(context.getId());
       this.statusBar = this.#win.getWindowAvoidArea(AvoidAreaType.TYPE_SYSTEM);
       this.cutout = this.#win.getWindowAvoidArea(AvoidAreaType.TYPE_CUTOUT);
       this.keyboard = this.#win.getWindowAvoidArea(AvoidAreaType.TYPE_KEYBOARD);
@@ -108,7 +108,7 @@ class WindowAvoidAreaVpEnv implements IEnvironmentValue<UIEnvAvoidArea> {
   @Trace keyboard: window.AvoidArea;
   @Trace navigationIndicator: window.AvoidArea;
 
-  #win: window.Window;
+  #win: window.Window | uiExtension.WindowProxy;
   #context: UIContext;
   #areaInPx: Map<AvoidAreaType, window.AvoidArea> = new Map();
   
@@ -119,7 +119,7 @@ class WindowAvoidAreaVpEnv implements IEnvironmentValue<UIEnvAvoidArea> {
   constructor(context: UIContext) {
     try {
       this.#context = context;
-      this.#win = window.findWindow(this.#context.getWindowName());
+      this.#win = windowenv.findWindowById(context.getId());
       for (const type of [AvoidAreaType.TYPE_SYSTEM, AvoidAreaType.TYPE_CUTOUT, AvoidAreaType.TYPE_KEYBOARD, AvoidAreaType.TYPE_NAVIGATION_INDICATOR]) {
         this.#areaInPx.set(type, this.#win.getWindowAvoidArea(type));
       }

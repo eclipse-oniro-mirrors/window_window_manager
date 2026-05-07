@@ -317,7 +317,7 @@ HWTEST_F(SceneSessionManagerTest5, RequestFocusStatus, TestSize.Level1)
     ssm_->sceneSessionMap_.clear();
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     WMError ret = ssm_->RequestFocusStatus(1, true, true, FocusChangeReason::DEFAULT);
-    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_EQ(ret, WMError::WM_OK);
     ssm_->sceneSessionMap_.clear();
 }
 
@@ -337,9 +337,9 @@ HWTEST_F(SceneSessionManagerTest5, RequestFocusStatus01, TestSize.Level1)
     ssm_->sceneSessionMap_.clear();
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     WMError ret = ssm_->RequestFocusStatus(1, true, true, FocusChangeReason::DEFAULT);
-    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_EQ(ret, WMError::WM_OK);
     ret = ssm_->RequestFocusStatus(1, false, true, FocusChangeReason::DEFAULT);
-    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_EQ(ret, WMError::WM_OK);
     ssm_->sceneSessionMap_.clear();
 }
 

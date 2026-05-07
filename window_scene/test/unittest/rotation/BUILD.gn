@@ -156,6 +156,7 @@ ohos_unittest("ws_session_stage_proxy_rotation_test") {
     "ENABLE_MOCK_READ_UINT32",
     "ENABLE_MOCK_READ_INT32",
     "ENABLE_MOCK_WRITE_REMOTE_OBJECT",
+    "ENABLE_MOCK_WRITE_INT32",
   ]
 
   deps = [ ws_unittest_common ]

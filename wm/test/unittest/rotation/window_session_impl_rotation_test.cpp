@@ -20,6 +20,7 @@
 #include "ability_context_impl.h"
 #include "common_test_utils.h"
 #include "extension_data_handler.h"
+#include "future_callback.h"
 #include "iremote_object_mocker.h"
 #include "mock_session.h"
 #include "mock_uicontent.h"
@@ -169,6 +170,36 @@ HWTEST_F(WindowSessionImplRotationTest, SetCurrentRotation, Function | SmallTest
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
     ret = window->SetCurrentRotation(ONE_FOURTH_FULL_CIRCLE_DEGREE);
     EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: SetCurrentRotation02
+ * @tc.desc: Test SetCurrentRotation with boundary values and property verification
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, SetCurrentRotation02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SetCurrentRotation02 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetCurrentRotation02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    // Case 1: Boundary value - ZERO_CIRCLE_DEGREE (0)
+    auto ret = window->SetCurrentRotation(ZERO_CIRCLE_DEGREE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(window->property_->GetSessionInfo().currentRotation_, ZERO_CIRCLE_DEGREE);
+
+    // Case 2: Boundary value - FULL_CIRCLE_DEGREE (360)
+    ret = window->SetCurrentRotation(FULL_CIRCLE_DEGREE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(window->property_->GetSessionInfo().currentRotation_, FULL_CIRCLE_DEGREE);
+
+    // Case 3: Typical value - 180 degrees
+    ret = window->SetCurrentRotation(180);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(window->property_->GetSessionInfo().currentRotation_, 180);
+
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SetCurrentRotation02 end";
 }
 
 /**
@@ -880,6 +911,266 @@ HWTEST_F(WindowSessionImplRotationTest, NotifyOrientationExecutionResult02, Test
     EXPECT_EQ(ret, WSError::WS_OK);
     
     GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: NotifyOrientationExecutionResult02 end";
+}
+
+/**
+ * @tc.name: ConvertUserOrientationToUserPageOrientation
+ * @tc.desc: Test ConvertUserOrientationToUserPageOrientation with all branch scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, ConvertUserOrientationToUserPageOrientation, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: ConvertUserOrientationToUserPageOrientation start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertUserOrientationToUserPageOrientation");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    // Case 1: USER_ROTATION_LANDSCAPE → USER_PAGE_ROTATION_LANDSCAPE
+    EXPECT_EQ(window->ConvertUserOrientationToUserPageOrientation(Orientation::USER_ROTATION_LANDSCAPE),
+              Orientation::USER_PAGE_ROTATION_LANDSCAPE);
+
+    // Case 2: USER_ROTATION_LANDSCAPE_INVERTED → USER_PAGE_ROTATION_LANDSCAPE_INVERTED
+    EXPECT_EQ(window->ConvertUserOrientationToUserPageOrientation(Orientation::USER_ROTATION_LANDSCAPE_INVERTED),
+              Orientation::USER_PAGE_ROTATION_LANDSCAPE_INVERTED);
+
+    // Case 3: USER_ROTATION_PORTRAIT → USER_PAGE_ROTATION_PORTRAIT
+    EXPECT_EQ(window->ConvertUserOrientationToUserPageOrientation(Orientation::USER_ROTATION_PORTRAIT),
+              Orientation::USER_PAGE_ROTATION_PORTRAIT);
+
+    // Case 4: USER_ROTATION_PORTRAIT_INVERTED → USER_PAGE_ROTATION_PORTRAIT_INVERTED
+    EXPECT_EQ(window->ConvertUserOrientationToUserPageOrientation(Orientation::USER_ROTATION_PORTRAIT_INVERTED),
+              Orientation::USER_PAGE_ROTATION_PORTRAIT_INVERTED);
+
+    // Case 5: UNSPECIFIED (default) → UNSPECIFIED
+    EXPECT_EQ(window->ConvertUserOrientationToUserPageOrientation(Orientation::UNSPECIFIED),
+              Orientation::UNSPECIFIED);
+
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: ConvertUserOrientationToUserPageOrientation end";
+}
+
+/**
+ * @tc.name: OrientationCheckMethods
+ * @tc.desc: Test IsUserOrientation, IsUserPageOrientation, IsVerticalOrientation, IsHorizontalOrientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, OrientationCheckMethods, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: OrientationCheckMethods start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("OrientationCheckMethods");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    // IsUserOrientation: true case + false case
+    EXPECT_TRUE(window->IsUserOrientation(Orientation::USER_ROTATION_PORTRAIT));
+    EXPECT_FALSE(window->IsUserOrientation(Orientation::VERTICAL));
+
+    // IsUserPageOrientation: true case + false case
+    EXPECT_TRUE(window->IsUserPageOrientation(Orientation::USER_PAGE_ROTATION_PORTRAIT));
+    EXPECT_FALSE(window->IsUserPageOrientation(Orientation::VERTICAL));
+
+    // IsVerticalOrientation: true case + false case
+    EXPECT_TRUE(window->IsVerticalOrientation(Orientation::VERTICAL));
+    EXPECT_FALSE(window->IsVerticalOrientation(Orientation::HORIZONTAL));
+
+    // IsHorizontalOrientation: true case + false case
+    EXPECT_TRUE(window->IsHorizontalOrientation(Orientation::HORIZONTAL));
+    EXPECT_FALSE(window->IsHorizontalOrientation(Orientation::VERTICAL));
+
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: OrientationCheckMethods end";
+}
+
+/**
+ * @tc.name: SetUserRequestedOrientation
+ * @tc.desc: Test SetUserRequestedOrientation with valid and invalid window scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, SetUserRequestedOrientation, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SetUserRequestedOrientation start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetUserRequestedOrientation");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_CREATED;
+
+    // Case 1: Normal scenario - window is valid
+    window->SetUserRequestedOrientation(Orientation::USER_ROTATION_PORTRAIT);
+    EXPECT_EQ(window->property_->GetUserRequestedOrientation(), Orientation::USER_ROTATION_PORTRAIT);
+
+    // Case 2: Window is invalid - property should not be updated
+    window->state_ = WindowState::STATE_DESTROYED;
+    window->SetUserRequestedOrientation(Orientation::USER_ROTATION_LANDSCAPE);
+    EXPECT_EQ(window->property_->GetUserRequestedOrientation(), Orientation::USER_ROTATION_PORTRAIT);
+
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SetUserRequestedOrientation end";
+}
+
+/**
+ * @tc.name: SimpleOrientationMethods
+ * @tc.desc: Test UpdateOrientation, UpdateCurrentWindowOrientation and GetCurrentWindowOrientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, SimpleOrientationMethods, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SimpleOrientationMethods start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SimpleOrientationMethods");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    // Case 1: UpdateOrientation - always returns WS_OK
+    EXPECT_EQ(window->UpdateOrientation(), WSError::WS_OK);
+
+    // Case 2: UpdateCurrentWindowOrientation + GetCurrentWindowOrientation
+    window->UpdateCurrentWindowOrientation(DisplayOrientation::PORTRAIT);
+    EXPECT_EQ(window->GetCurrentWindowOrientation(), DisplayOrientation::PORTRAIT);
+
+    // Case 3: Update with different orientation
+    window->UpdateCurrentWindowOrientation(DisplayOrientation::LANDSCAPE);
+    EXPECT_EQ(window->GetCurrentWindowOrientation(), DisplayOrientation::LANDSCAPE);
+
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SimpleOrientationMethods end";
+}
+
+/**
+ * @tc.name: isNeededForciblySetOrientation_Complete
+ * @tc.desc: Test isNeededForciblySetOrientation with IsUserOrientation branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, isNeededForciblySetOrientation_Complete, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: isNeededForciblySetOrientation_Complete start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetDisplayId(0);
+    option->SetWindowName("isNeededForciblySetOrientation_Complete");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_CREATED;
+    window->SetRequestedOrientation(Orientation::VERTICAL);
+
+    // Case 1: USER_ROTATION_PORTRAIT - direct return true (IsUserOrientation branch)
+    EXPECT_TRUE(window->isNeededForciblySetOrientation(Orientation::USER_ROTATION_PORTRAIT));
+
+    // Case 2: USER_ROTATION_LANDSCAPE - direct return true (IsUserOrientation branch)
+    EXPECT_TRUE(window->isNeededForciblySetOrientation(Orientation::USER_ROTATION_LANDSCAPE));
+
+    // Case 3: USER_ROTATION_PORTRAIT_INVERTED - direct return true (IsUserOrientation branch)
+    EXPECT_TRUE(window->isNeededForciblySetOrientation(Orientation::USER_ROTATION_PORTRAIT_INVERTED));
+
+    // Case 4: USER_ROTATION_LANDSCAPE_INVERTED - direct return true (IsUserOrientation branch)
+    EXPECT_TRUE(window->isNeededForciblySetOrientation(Orientation::USER_ROTATION_LANDSCAPE_INVERTED));
+
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: isNeededForciblySetOrientation_Complete end";
+}
+
+/**
+ * @tc.name: ConvertInvalidOrientation_Complete
+ * @tc.desc: Test ConvertInvalidOrientation with all USER_ROTATION_* and non-User orientations
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, ConvertInvalidOrientation_Complete, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: ConvertInvalidOrientation_Complete start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetDisplayId(0);
+    option->SetWindowName("ConvertInvalidOrientation_Complete");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_CREATED;
+
+    // Case 1: USER_ROTATION_LANDSCAPE → USER_PAGE_ROTATION_LANDSCAPE (IsUserOrientation branch)
+    window->SetRequestedOrientation(Orientation::UNSPECIFIED, false);
+    EXPECT_EQ(window->ConvertInvalidOrientation(), Orientation::USER_PAGE_ROTATION_LANDSCAPE);
+
+    // Case 2: USER_ROTATION_PORTRAIT_INVERTED → USER_PAGE_ROTATION_PORTRAIT_INVERTED
+    window->SetRequestedOrientation(Orientation::UNSPECIFIED, false);
+    EXPECT_EQ(window->ConvertInvalidOrientation(), Orientation::USER_PAGE_ROTATION_PORTRAIT_INVERTED);
+
+    // Case 3: VERTICAL (non-User orientation) → VERTICAL (not converted)
+    window->SetRequestedOrientation(Orientation::VERTICAL);
+    EXPECT_EQ(window->ConvertInvalidOrientation(), Orientation::VERTICAL);
+
+    // Case 4: UNSPECIFIED (non-User orientation) → UNSPECIFIED (not converted)
+    window->SetRequestedOrientation(Orientation::UNSPECIFIED);
+    EXPECT_EQ(window->ConvertInvalidOrientation(), Orientation::UNSPECIFIED);
+
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: ConvertInvalidOrientation_Complete end";
+}
+
+/**
+ * @tc.name: NotifyRotationChangeResult_NullFuture
+ * @tc.desc: Test NotifyRotationChangeResult when getRotationResultFuture_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, NotifyRotationChangeResult_NullFuture, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: NotifyRotationChangeResult_NullFuture start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRotationChangeResult_NullFuture");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->getRotationResultFuture_ = nullptr;
+    RotationChangeResult result = { RectType::RELATIVE_TO_SCREEN, { 0, 0, 100, 100 } };
+    window->NotifyRotationChangeResult(result);
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: NotifyRotationChangeResult_NullFuture end";
+}
+
+/**
+ * @tc.name: NotifyRotationChangeResult_ValidFuture
+ * @tc.desc: Test NotifyRotationChangeResult when getRotationResultFuture_ is valid
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, NotifyRotationChangeResult_ValidFuture, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: NotifyRotationChangeResult_ValidFuture start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyRotationChangeResult_ValidFuture");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->getRotationResultFuture_ = sptr<FutureCallback>::MakeSptr();
+    RotationChangeResult result = { RectType::RELATIVE_TO_SCREEN, { 0, 0, 100, 100 } };
+    window->NotifyRotationChangeResult(result);
+    EXPECT_NE(window->getRotationResultFuture_, nullptr);
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: NotifyRotationChangeResult_ValidFuture end";
+}
+
+/**
+ * @tc.name: SetRotationLocked_NotSupported
+ * @tc.desc: Test SetRotationLocked default implementation returns WM_ERROR_DEVICE_NOT_SUPPORT
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, SetRotationLocked_NotSupported, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SetRotationLocked_NotSupported start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetRotationLocked_NotSupported");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    auto ret = window->SetRotationLocked(true);
+    EXPECT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: SetRotationLocked_NotSupported end";
+}
+
+/**
+ * @tc.name: GetRotationLocked_NotSupported
+ * @tc.desc: Test GetRotationLocked default implementation returns WM_ERROR_DEVICE_NOT_SUPPORT
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplRotationTest, GetRotationLocked_NotSupported, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: GetRotationLocked_NotSupported start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRotationLocked_NotSupported");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    bool locked = false;
+    auto ret = window->GetRotationLocked(locked);
+    EXPECT_EQ(ret, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    GTEST_LOG_(INFO) << "WindowSessionImplRotationTest: GetRotationLocked_NotSupported end";
 }
 
 } // namespace

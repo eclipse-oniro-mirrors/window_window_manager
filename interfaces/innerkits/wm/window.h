@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4139,6 +4139,11 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    virtual WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     /**
      * @brief Clear the window mask of window.
      *
@@ -5160,6 +5165,16 @@ public:
         return WMError::WM_OK;
     }
  
+    /**
+     * @brief update the floating ball visibility.
+     *
+     * @param isVisible the visibility status of the floating-ball.
+     */
+    virtual WMError UpdateFloatingBallForVisible(bool isVisible)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief get windowId of floating-ball
      *

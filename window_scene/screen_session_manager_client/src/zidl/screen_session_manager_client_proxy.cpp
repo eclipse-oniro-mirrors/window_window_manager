@@ -463,6 +463,46 @@ void ScreenSessionManagerClientProxy::OnScreenOrientationChanged(ScreenId screen
     }
 }
 
+void ScreenSessionManagerClientProxy::OnScreenOrientationChangedWithOptions(
+    ScreenId screenId, float screenOrientation, const OrientationOptions& options)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(screenId)) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return;
+    }
+    if (!data.WriteFloat(screenOrientation)) {
+        TLOGE(WmsLogTag::DMS, "Write screenOrientation failed");
+        return;
+    }
+    if (!data.WriteBool(options.needAnimation)) {
+        TLOGE(WmsLogTag::DMS, "Write needAnimation failed");
+        return;
+    }
+    if (!data.WriteBool(options.ignoreRotationLock)) {
+        TLOGE(WmsLogTag::DMS, "Write ignoreRotationLock failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+}
+
 void ScreenSessionManagerClientProxy::OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked)
 {
     sptr<IRemoteObject> remote = Remote();

@@ -347,6 +347,7 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     int32_t wmsUserId = INVALID_USER_ID;
     int32_t screenId = DEFAULT_SCREEN_ID;
     bool isConnected = false;
+    int32_t pid = -1;
     auto listener = sptr<SessionManagerServiceRecoverListener>::MakeSptr(userId_);
 
     // branch 4: TRANS_ID_ON_WMS_CONNECTION_CHANGED
@@ -356,6 +357,7 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(wmsUserId);
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
+    data.WriteInt32(pid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 
@@ -365,6 +367,7 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(wmsUserId);
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
+    data.WriteInt32(pid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 

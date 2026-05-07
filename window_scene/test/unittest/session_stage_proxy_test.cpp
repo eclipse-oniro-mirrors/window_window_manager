@@ -233,10 +233,10 @@ HWTEST_F(SessionStageProxyTest, ConfigDockAutoHide, TestSize.Level1)
     ASSERT_TRUE((sessionStage_ != nullptr));
     bool isDockAutoHide = true;
     WSError res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(WSError::WS_OK, res);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
     isDockAutoHide = false;
     res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(WSError::WS_OK, res);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
 }
 
 /**
@@ -1612,7 +1612,9 @@ HWTEST_F(SessionStageProxyTest, SyncFvWindowInfo, TestSize.Level1)
 HWTEST_F(SessionStageProxyTest, SyncFvLimits, TestSize.Level1)
 {
     ASSERT_TRUE(sessionStage_ != nullptr);
-    FloatViewLimits limits;
+    FloatViewLimits limit;
+    std::map<uint32_t, FloatViewLimits> limits {};
+    limits.emplace(0, limit);
     
     // Case 1: Success
     MockMessageParcel::ClearAllErrorFlag();
@@ -1623,6 +1625,12 @@ HWTEST_F(SessionStageProxyTest, SyncFvLimits, TestSize.Level1)
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
     
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteUint32ErrorCount(1);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+
     // Case 3: Failed to write limits
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));

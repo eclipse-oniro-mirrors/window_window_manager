@@ -144,7 +144,8 @@ public:
     virtual DMError SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, bool autoRotate) override;
     virtual DMError SetVirtualMirrorScreenScaleMode(ScreenId screenId, ScreenScaleMode scaleMode) override;
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false) override;
-    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height) override;
+    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth, uint32_t renderHeight) override;
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
         ScreenId& screenGroupId, const RotationOption& rotationOption = {Rotation::ROTATION_0, false},
         bool forceMirror = false) override;
@@ -170,7 +171,7 @@ public:
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId,
         DmErrorCode* errorCode, bool isUseDma, bool isCaptureFullOfScreen) override;
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(DisplayId displayId,
-        DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen) override;
+        DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent) override;
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect, DmErrorCode* errorCode) override;
     virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId) override;
     virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId, bool isGetActualInfo) override;
@@ -186,6 +187,8 @@ public:
     DMError SetScreenRotationLocked(bool isLocked) override;
     DMError SetScreenRotationLockedFromJs(bool isLocked) override;
     DMError SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi) override;
+    DMError SetOrientation(ScreenId screenId, Orientation orientation,
+        const OrientationOptions& options, bool isFromNapi) override;
     bool SetRotation(ScreenId screenId, Rotation rotationAfter, bool isFromWindow);
     void SetSensorSubscriptionEnabled();
     bool SetRotationFromWindow(Rotation targetRotation);
@@ -408,6 +411,8 @@ public:
     void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) override;
     void OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId) override;
     void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) override;
+    void OnScreenOrientationChangeWithOptions(float screenOrientation,
+        const OrientationOptions& options, ScreenId screenId) override;
     void OnScreenRotationLockedChange(bool isLocked, ScreenId screenId) override;
     void OnCameraBackSelfieChange(bool isCameraBackSelfie, ScreenId screenId) override;
 
@@ -834,7 +839,8 @@ private:
     void SetMultiScreenModeInner(ScreenId mainScreenId, ScreenId secondaryScreenId,
         MultiScreenMode screenMode);
     std::vector<std::shared_ptr<Media::PixelMap>> GetScreenHDRSnapshot(DisplayId displayId, bool isUseDma = false,
-        bool isCaptureFullOfScreen = false, const std::vector<NodeId>& surfaceNodesList = {});
+        bool isCaptureFullOfScreen = false, const std::vector<NodeId>& surfaceNodesList = {},
+        DisplayIntentType displayIntent = DisplayIntentType::CANONICAL);
 
     void IsEnableRegionRotation(sptr<ScreenSession> screenSession);
     void CalculateXYPosition(sptr<ScreenSession> firstScreenSession,
@@ -1179,6 +1185,8 @@ private:
         bool phyMirrorEnable, ScreenEvent screenEvent);
     void RegisterSettingCoordinationReadyObserver();
     void UpdateCoordinationReadyFromSettingData();
+    DMError SetOrientationInternal(ScreenId screenId, Orientation orientation,
+        const OrientationOptions* options, bool isFromNapi);
 
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;

@@ -337,7 +337,7 @@ sptr<WindowSessionImpl> WindowSceneSessionImpl::FindParentMainSession(uint32_t p
     for (const auto& [_, pair] : sessionMap) {
         auto& window = pair.second;
         if (window && window->GetWindowId() == parentId) {
-            if (WindowHelper::IsMainWindow(window->GetType()) ||
+            if (WindowHelper::IsMainWindow(window->GetType()) || window->IsLoosenedWithPcOrFreeMultiMode() ||
                 (WindowHelper::IsSystemWindow(window->GetType()) && window->GetParentId() == INVALID_SESSION_ID)) {
                 TLOGD(WmsLogTag::WMS_SUB, "find main session, id:%{public}u", window->GetWindowId());
                 return window;
@@ -4293,21 +4293,14 @@ WMError WindowSceneSessionImpl::Maximize()
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation)
 {
-    return Maximize(presentation, WaterfallResidentState::UNCHANGED);
-}
-
-bool WindowSceneSessionImpl::CheckWaterfallResidentState(WaterfallResidentState state) const
-{
-    if (WindowHelper::IsSubWindow(GetType())) {
-        return state == WaterfallResidentState::UNCHANGED;
-    }
-    return true;
+    return MaximizeWithOptions(presentation, AcrossDisplayPresentation::UNSPECIFIED,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 bool WindowSceneSessionImpl::CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const
 {
     if (WindowHelper::IsSubWindow(GetType())) {
-        return state == AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        return state == AcrossDisplayPresentation::UNSPECIFIED;
     }
     return true;
 }
@@ -4340,24 +4333,24 @@ void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation pres
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, WaterfallResidentState state)
 {
-    // Convert WaterfallResidentState to AcrossDisplayPresentation
-    auto acrossDisplay = static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
-    WMError checkRet = CheckMaximizePreConditions(acrossDisplay);
-    if (checkRet != WMError::WM_OK) {
-        return checkRet;
-    }
-    return ExecuteMaximizeWithOptions(presentation, acrossDisplay, { -1, -1 });
+    auto acrossDisplay = (state == WaterfallResidentState::UNCHANGED)
+        ? AcrossDisplayPresentation::UNSPECIFIED
+        : static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
+    return MaximizeWithOptions(presentation, acrossDisplay,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config)
 {
     constexpr int64_t MAX_DURATION = 400;
     constexpr int64_t MAX_DELAY = 350;
-    if (config.duration < 0 || config.duration > MAX_DURATION ||
-        config.delay < 0 || config.delay > MAX_DELAY) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Invalid animation config: duration=%{public}" PRId64
-            ", delay=%{public}" PRId64 " (valid: duration [0,%{public}" PRId64
-            "], delay [0,%{public}" PRId64 "])",
+    constexpr int64_t USE_DEFAULT = -1;
+    auto isValid = [](int64_t value, int64_t max) {
+        return value == USE_DEFAULT || (value >= 0 && value <= max);
+    };
+    if (!isValid(config.duration, MAX_DURATION) || !isValid(config.delay, MAX_DELAY)) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Invalid animation config: duration=%{public}" PRId64 ", delay=%{public}" PRId64
+            " (valid: duration [0,%{public}" PRId64 "], delay [0,%{public}" PRId64 "] )",
             config.duration, config.delay, MAX_DURATION, MAX_DELAY);
         return WMError::WM_ERROR_ILLEGAL_PARAM;
     }
@@ -4366,16 +4359,6 @@ WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAn
 
 WMError WindowSceneSessionImpl::CheckMaximizePreConditions(AcrossDisplayPresentation state)
 {
-    if (IsWindowSessionInvalid()) {
-        return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-
-    if (property_->GetWindowAnchorInfo().isFromAttachOrDetach_ &&
-        property_->GetWindowAnchorInfo().isAnchoredByAttach_) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Cannot maximize due to in ancor enabled mode.");
-        return WMError::WM_OK;
-    }
-
     if (!CheckAcrossDisplayPresentation(state)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Invalid acrossDisplayPresentation. windowId: %{public}u, state: %{public}u",
               GetWindowId(), static_cast<uint32_t>(state));
@@ -4388,11 +4371,6 @@ WMError WindowSceneSessionImpl::CheckMaximizePreConditions(AcrossDisplayPresenta
     if (!WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
         return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    // The device is not supported
-    if (!IsPcOrPadFreeMultiWindowMode() || property_->IsFullScreenDisabled()) {
-        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
-        return WMError::WM_OK;
     }
     return WMError::WM_OK;
 }
@@ -4414,7 +4392,9 @@ WMError WindowSceneSessionImpl::ExecuteMaximizeWithOptions(MaximizePresentation 
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "present: %{public}d, enableImmersiveMode_:%{public}d!",
         presentation, enableImmersiveMode_.load());
     SessionEventParam param;
-    param.waterfallResidentState = static_cast<uint32_t>(state);
+    param.waterfallResidentState = (state == AcrossDisplayPresentation::UNSPECIFIED)
+        ? static_cast<uint32_t>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING)
+        : static_cast<uint32_t>(state);
     param.snapshotAnimationConfig_ = snapshotAnimationConfig;
     hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE, param);
     return SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
@@ -4433,9 +4413,25 @@ WMError WindowSceneSessionImpl::MaximizeWithOptions(MaximizePresentation present
         return validateRet;
     }
 
+    if (IsWindowSessionInvalid()) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+
+    if (property_->GetWindowAnchorInfo().isFromAttachOrDetach_ &&
+        property_->GetWindowAnchorInfo().isAnchoredByAttach_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Cannot maximize due to in anchor enabled mode.");
+        return WMError::WM_OK;
+    }
+
     WMError checkRet = CheckMaximizePreConditions(state);
     if (checkRet != WMError::WM_OK) {
         return checkRet;
+    }
+
+    // The device is not supported
+    if (!IsPcOrPadFreeMultiWindowMode() || property_->IsFullScreenDisabled()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
+        return WMError::WM_OK;
     }
 
     return ExecuteMaximizeWithOptions(presentation, state, snapshotAnimationConfig);
@@ -4591,23 +4587,11 @@ WMError WindowSceneSessionImpl::Restore()
 
 WMError WindowSceneSessionImpl::Recover(uint32_t reason)
 {
-    WMError checkRet = CheckRecoverPreConditions();
-    if (checkRet != WMError::WM_OK) {
-        return checkRet;
-    }
-    return ExecuteRecover(reason, { -1, -1 });
+    return Recover(reason, { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 WMError WindowSceneSessionImpl::CheckRecoverPreConditions()
 {
-    if (IsWindowSessionInvalid()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
-        return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
-        return WMError::WM_OK;
-    }
     if (!IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -4663,6 +4647,16 @@ WMError WindowSceneSessionImpl::Recover(uint32_t reason, const SnapshotAnimation
     WMError validateRet = ValidateSnapshotAnimationConfig(snapshotAnimationConfig);
     if (validateRet != WMError::WM_OK) {
         return validateRet;
+    }
+
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    
+    if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
+        return WMError::WM_OK;
     }
 
     WMError checkRet = CheckRecoverPreConditions();
@@ -5598,7 +5592,7 @@ static WMError GetParentMainWindowIdInner(WindowSessionImplMap& sessionMap, int3
             continue;
         }
 
-        if (WindowHelper::IsMainWindow(window->GetType())) {
+        if (WindowHelper::IsMainWindow(window->GetType()) || window->IsLoosenedWithPcOrFreeMultiMode()) {
             TLOGI(WmsLogTag::WMS_SUB, "find main window, id:%{public}u", window->GetPersistentId());
             mainWindowId = window->GetPersistentId();
             return WMError::WM_OK;
@@ -6580,6 +6574,12 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
         TLOGE(WmsLogTag::WMS_DECOR, "uiContent is null");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
+    const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+    if (isPcMode && windowSystemConfig_.isDockAutoHide_ && (isDecorHiddenByApp_ || isMaximizeInvoked_) && !IsAnco() &&
+        GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
+        TLOGI(WmsLogTag::WMS_DECOR, "dock auto hide skip updateTitleInTargetPos");
+        return WSError::WS_OK;
+    }
     NotifyTitleChange(isShow, height);
     uiContent->UpdateTitleInTargetPos(isShow, height);
     return WSError::WS_OK;
@@ -7228,6 +7228,63 @@ std::unique_ptr<Media::PixelMap> WindowSceneSessionImpl::HandleWindowMask(
     return mask;
 }
 
+std::shared_ptr<Media::PixelMap> WindowSceneSessionImpl::HandleWindowMaskWithAlpha(
+    const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
+{
+    if (windowMask == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "windowMask is nullptr");
+        return nullptr;
+    }
+    constexpr uint32_t bgraChannel = 4;
+    Media::InitializationOptions opts;
+    opts.size.width = static_cast<int32_t>(maskWidth);
+    opts.size.height = static_cast<int32_t>(maskHeight);
+    size_t length = static_cast<size_t>(maskWidth) * static_cast<size_t>(maskHeight) * bgraChannel;
+    uint8_t* data = static_cast<uint8_t*>(malloc(length));
+    if (data == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "data is nullptr");
+        return nullptr;
+    }
+    constexpr uint32_t fullChannel = 255;
+    constexpr uint32_t greenChannel = 1;
+    constexpr uint32_t redChannel = 2;
+    constexpr uint32_t alphaChannel = 3;
+    size_t totalPixels = static_cast<size_t>(maskWidth) * static_cast<size_t>(maskHeight);
+    for (size_t idx = 0; idx < totalPixels; idx++) {
+        size_t channelIndex = idx * bgraChannel;
+        data[channelIndex] = fullChannel;  // blue channel
+        data[channelIndex + greenChannel] = fullChannel;
+        data[channelIndex + redChannel] = fullChannel;
+        data[channelIndex + alphaChannel] = windowMask[idx];
+    }
+    std::shared_ptr<Media::PixelMap> mask = Media::PixelMap::Create(reinterpret_cast<uint32_t*>(data), length, opts);
+    free(data);
+    return mask;
+}
+
+WMError WindowSceneSessionImpl::ApplyWindowMask(const std::shared_ptr<Media::PixelMap>& mask)
+{
+    auto rsMask = RSMask::CreatePixelMapMask(mask);
+    surfaceNode_->SetCornerRadius(0.0f);
+    if (property_->GetWindowShadows().hasRadiusValue_) {
+        surfaceNode_->SetShadowRadius(WINDOW_SHADOW_RADIUS_INVALID);
+    }
+    surfaceNode_->SetAbilityBGAlpha(0);
+    surfaceNode_->SetMask(rsMask);
+    RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
+
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
+    hostSession->SetWindowCornerRadius(0);
+    ShadowsInfo shadowsInfo;
+    shadowsInfo.hasRadiusValue_ = true;
+    hostSession->SetWindowShadows(shadowsInfo);
+
+    property_->SetWindowMask(mask);
+    property_->SetIsShaped(true);
+    return UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_MASK);
+}
+
 WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask)
 {
     TLOGI(WmsLogTag::WMS_PC, "WindowId: %{public}u", GetWindowId());
@@ -7241,26 +7298,25 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
         TLOGE(WmsLogTag::WMS_PC, "Failed to create pixelMap of window mask");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    return ApplyWindowMask(mask);
+}
 
-    auto rsMask = RSMask::CreatePixelMapMask(mask);
-    surfaceNode_->SetCornerRadius(0.0f);
-    if (property_->GetWindowShadows().hasRadiusValue_) {
-        surfaceNode_->SetShadowRadius(WINDOW_SHADOW_RADIUS_INVALID);
+WMError WindowSceneSessionImpl::SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth,
+    uint32_t maskHeight)
+{
+    TLOGI(WmsLogTag::WMS_EVENT, "WindowId: %{public}u, maskWidth: %{public}u, maskHeight: %{public}u",
+        GetWindowId(), maskWidth, maskHeight);
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_EVENT, "session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    surfaceNode_->SetAbilityBGAlpha(0);
-    surfaceNode_->SetMask(rsMask); // RS interface to set mask
-    RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
 
-    auto hostSession = GetHostSession();
-    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
-    hostSession->SetWindowCornerRadius(0);
-    ShadowsInfo shadowsInfo;
-    shadowsInfo.hasRadiusValue_ = true;
-    hostSession->SetWindowShadows(shadowsInfo);
-
-    property_->SetWindowMask(mask);
-    property_->SetIsShaped(true);
-    return UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_MASK);
+    std::shared_ptr<Media::PixelMap> mask = HandleWindowMaskWithAlpha(windowMask, maskWidth, maskHeight);
+    if (mask == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to create pixelMap of window mask");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    return ApplyWindowMask(mask);
 }
 
 WMError WindowSceneSessionImpl::ClearWindowMask()
@@ -8749,6 +8805,7 @@ WSError WindowSceneSessionImpl::SetForceSplitEnable(bool isForceSplitEnabled, bo
     if (!WindowHelper::IsMainWindow(windowType)) {
         return WSError::WS_DO_NOTHING;
     }
+    property_->SetForceSplitEnable(isForceSplitEnabled);
     SetForceSplitConfigEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
     return WSError::WS_OK;
 }

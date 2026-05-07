@@ -576,6 +576,16 @@ HWTEST_F(SceneSessionManagerAttributeTest, FilterForGetAllWindowLayoutInfo004, T
     option.excludeSystemWindows = true;
     ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);
     EXPECT_EQ(filteredSessions.size(), 0);
+    sceneSession->GetSessionProperty()->SetDisplayId(DEFAULT_DISPLAY_ID);
+    sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);
+    EXPECT_EQ(filteredSessions.size(), 1);
+    filteredSessions.clear();
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);
+    EXPECT_EQ(filteredSessions.size(), 1);
+    filteredSessions.clear();
     option.excludeSystemWindows = false;
     option.foregroundAboveWindow = 100;
     ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);
