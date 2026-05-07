@@ -12620,10 +12620,10 @@ int ScreenSessionManager::NotifyFoldStatusChanged(const std::string& statusParam
         TLOGNFW(WmsLogTag::DMS, "status not support");
         return -1;
     }
-    SetFoldDisplayMode(displayMode);
     if (foldScreenController_ != nullptr) {
         foldScreenController_->SetFoldStatus(foldStatus);
     }
+    SetFoldDisplayMode(displayMode);
     NotifyFoldStatusChanged(foldStatus);
 #endif
     return 0;
