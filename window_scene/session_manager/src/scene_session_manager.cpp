@@ -5360,8 +5360,6 @@ void SceneSessionManager::NotifyRecoveringFinished()
     taskScheduler_->PostAsyncTask([this]() {
         TLOGNI(WmsLogTag::WMS_RECOVER, "RecoverFinished clear recoverSubSessionCacheMap");
         recoveringFinished_ = true;
-        recoverSubSessionCacheMap_.clear();
-        recoverDialogSessionCacheMap_.clear();
     }, __func__);
 }
 
