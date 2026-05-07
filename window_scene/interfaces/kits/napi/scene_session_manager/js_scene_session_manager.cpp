@@ -3152,25 +3152,11 @@ napi_value JsSceneSessionManager::OnUpdateWindowMode(napi_env env, napi_callback
         return NapiGetUndefined(env);
     }
     WindowModeInfo windowModeInfo;
-    napi_value windowModeObj = argv[1];
-    if (!ConvertFromJsValue(env, windowModeObj, windowModeInfo.windowMode)) {
-        WLOGFE("Failed to convert parameter to windowMode");
+    if (!ConvertWindowModeInfoFromJs(env, argv[1], windowModeInfo)) {
+        WLOGFE("Failed to convert parameter to windowModeInfo");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
-    }
-    napi_value splitStyleValue = nullptr;
-    napi_get_named_property(env, windowModeObj, "splitStyle", &splitStyleValue);
-    if (splitStyleValue != nullptr) {
-        int32_t splitStyle;
-        if (ConvertFromJsValue(env, splitStyleValue, splitStyle)) {
-            windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
-        }
-    }
-    napi_value splitIndexValue = nullptr;
-    napi_get_named_property(env, windowModeObj, "splitIndex", &splitIndexValue);
-    if (splitIndexValue != nullptr) {
-        ConvertFromJsValue(env, splitIndexValue, windowModeInfo.splitIndex);
     }
     SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowModeInfo);
     return NapiGetUndefined(env);

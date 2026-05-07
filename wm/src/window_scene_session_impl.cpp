@@ -6578,15 +6578,6 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(const WindowModeInfo& windowMod
     }
     WMError ret = UpdateWindowModeImmediately(windowModeInfo);
 
-    if (windowSystemConfig_.IsPcWindow()) {
-        if (mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
-            ret = SetLayoutFullScreenByApiVersion(true);
-            if (ret != WMError::WM_OK) {
-                TLOGE(WmsLogTag::WMS_IMMS, "SetLayoutFullScreenByApiVersion errCode:%{public}d winId:%{public}u",
-                    static_cast<int32_t>(ret), GetWindowId());
-            }
-        }
-    }
     TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, mode: %{public}u, ret: %{public}d",
         GetWindowId(), static_cast<uint32_t>(mode), static_cast<int32_t>(ret));
     return static_cast<WSError>(ret);

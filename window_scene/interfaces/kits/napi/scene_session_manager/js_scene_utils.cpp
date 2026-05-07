@@ -1718,6 +1718,36 @@ bool ConvertDragResizeTypeFromJs(napi_env env, napi_value value, DragResizeType&
     return true;
 }
 
+bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo& windowModeInfo)
+{
+    napi_valuetype type = GetType(env, value);
+    if (type == napi_number) {
+        return ConvertFromJsValue(env, value, windowModeInfo.windowMode);
+    }
+    if (type != napi_object) {
+        return false;
+    }
+    napi_value windowModeValue = nullptr;
+    napi_get_named_property(env, value, "windowMode", &windowModeValue);
+    if (!ConvertFromJsValue(env, windowModeValue, windowModeInfo.windowMode)) {
+        return false;
+    }
+    napi_value splitStyleValue = nullptr;
+    napi_get_named_property(env, value, "splitStyle", &splitStyleValue);
+    if (GetType(env, splitStyleValue) != napi_undefined) {
+        int32_t splitStyle;
+        if (ConvertFromJsValue(env, splitStyleValue, splitStyle)) {
+            windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+        }
+    }
+    napi_value splitIndexValue = nullptr;
+    napi_get_named_property(env, value, "splitIndex", &splitIndexValue);
+    if (GetType(env, splitIndexValue) != napi_undefined) {
+        ConvertFromJsValue(env, splitIndexValue, windowModeInfo.splitIndex);
+    }
+    return true;
+}
+
 bool ConvertThrowSlipModeFromJs(napi_env env, napi_value value, ThrowSlipMode& throwSlipMode)
 {
     int32_t fingers = 0;
