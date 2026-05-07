@@ -104,13 +104,15 @@ void AniFvController::StartFloatViewAni(ani_env* env, ani_object obj, ani_long n
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]StartFloatViewAni start");
     if (!Permission::CheckCallingPermission(FLOAT_VIEW_PERMISSION)) {
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NO_PERMISSION, "no permission.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NO_PERMISSION,
+            "Permission denied. ohos.permission.FLOAT_VIEW is required.");
         return;
     }
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->OnStartFloatViewAni(env);
@@ -120,13 +122,14 @@ void AniFvController::OnStartFloatViewAni(ani_env* env)
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     WMError errCode = fvController_->StartFloatView();
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]StartFloatView failed");
-        AniFvUtils::AniThrowError(env, errCode, "start failed");
+        AniFvUtils::AniThrowError(env, errCode, "Failed to start float view.");
         return;
     }
 }
@@ -137,7 +140,8 @@ void AniFvController::StopFloatViewAni(ani_env* env, ani_object obj, ani_long na
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->OnStopFloatViewAni(env);
@@ -147,13 +151,14 @@ void AniFvController::OnStopFloatViewAni(ani_env* env)
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     WMError errCode = fvController_->StopFloatViewFromClient();
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]StopFloatView failed");
-        AniFvUtils::AniThrowError(env, errCode, "stop failed");
+        AniFvUtils::AniThrowError(env, errCode, "Failed to stop float view.");
         return;
     }
 }
@@ -165,7 +170,8 @@ void AniFvController::SetUIContextAni(ani_env* env, ani_object obj, ani_long nat
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->OnSetUIContextAni(env, contextUrl, contentStorage);
@@ -175,7 +181,8 @@ void AniFvController::OnSetUIContextAni(ani_env* env, ani_string contextUrl, ani
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     std::string url;
@@ -187,7 +194,7 @@ void AniFvController::OnSetUIContextAni(ani_env* env, ani_string contextUrl, ani
     WMError errCode = fvController_->SetUIContext(url, contentStorage);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContext failed");
-        AniFvUtils::AniThrowError(env, errCode, "SetUIContext failed");
+        AniFvUtils::AniThrowError(env, errCode, "Failed to set UI content.");
         return;
     }
 }
@@ -199,7 +206,8 @@ void AniFvController::SetFloatViewVisibilityInAppAni(ani_env* env, ani_object ob
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->OnSetFloatViewVisibilityInAppAni(env, visibleInApp);
@@ -209,14 +217,15 @@ void AniFvController::OnSetFloatViewVisibilityInAppAni(ani_env* env, ani_boolean
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     bool visible = static_cast<bool>(visibleInApp);
     WMError errCode = fvController_->SetVisibilityInApp(visible);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetFloatViewVisibilityInApp failed");
-        AniFvUtils::AniThrowError(env, errCode, "SetFloatViewVisibilityInApp failed");
+        AniFvUtils::AniThrowError(env, errCode, "Failed to set float view visibility in app.");
         return;
     }
 }
@@ -227,7 +236,8 @@ void AniFvController::SetWindowSizeAni(ani_env* env, ani_object obj, ani_long na
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->OnSetWindowSizeAni(env, sizeObj);
@@ -237,24 +247,25 @@ void AniFvController::OnSetWindowSizeAni(ani_env* env, ani_object sizeObj)
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     Rect rect;
     if (!AniFvUtils::ParseWindowSize(env, sizeObj, rect)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]parse window size failed");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "convert window size failed.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Convert window size failed.");
         return;
     }
     if (rect.width_ <= 0 || rect.height_ <= 0) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]window size param illegal");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "window size param illegal.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "Window size param illegal.");
         return;
     }
     WMError errCode = fvController_->SetWindowSize(rect);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetWindowSize failed");
-        AniFvUtils::AniThrowError(env, errCode, "SetWindowSize failed");
+        AniFvUtils::AniThrowError(env, errCode, "Failed to set window size.");
         return;
     }
 }
@@ -265,7 +276,8 @@ ani_object AniFvController::GetWindowPropertiesAni(ani_env* env, ani_object obj,
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
     }
     return aniFvController->OnGetWindowPropertiesAni(env);
@@ -275,7 +287,8 @@ ani_object AniFvController::OnGetWindowPropertiesAni(ani_env* env)
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
     }
     auto templateType = static_cast<uint32_t>(fvController_->GetTemplateType());
@@ -288,13 +301,14 @@ ani_object AniFvController::OnGetWindowPropertiesAni(ani_env* env)
     auto fvWindow = fvController_->GetWindow();
     if (fvWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]window is null");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "window is null.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Float view window is not available.");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
     }
     auto windowInfo = fvController_->GetWindowInfo();
     auto jsObject = AniFvUtils::CreateAniFloatViewPropertiesObject(env, templateType, fvWindow, windowInfo, state);
     if (jsObject == nullptr) {
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to create js object.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Failed to create window properties object.");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
     }
     return jsObject;
@@ -306,7 +320,8 @@ void AniFvController::RestoreMainWindowAni(ani_env* env, ani_object obj, ani_lon
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->OnRestoreMainWindowAni(env, wantParameters);
@@ -316,7 +331,8 @@ void AniFvController::OnRestoreMainWindowAni(ani_env* env, ani_object wantParame
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     AAFwk::WantParams wantParams;
@@ -365,7 +381,7 @@ void AniFvController::RegisterCallbackWithType(ani_env* env, CallbackType callba
     TLOGI(WmsLogTag::WMS_SYSTEM, "RegisterCallbackWithType is called, type: %{public}d", callbackType);
     if (callback == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "RegisterCallbackWithType callback is null");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "No enough params");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Not enough parameters provided.");
         return;
     }
     if (IsCallbackRegistered(env, callbackType, callback)) {
@@ -376,20 +392,20 @@ void AniFvController::RegisterCallbackWithType(ani_env* env, CallbackType callba
     ani_ref cbRef{};
     if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]create ref failed");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to create callback reference.");
         return;
     }
     ani_vm* vm = nullptr;
     if (env->GetVM(&vm) != ANI_OK || vm == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]get vm failed");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Float view internal error.");
         env->GlobalReference_Delete(cbRef);
         return;
     }
     auto listener = sptr<AniFvWindowListener>::MakeSptr(env, vm, cbRef);
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]create callback func failed");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to create callback listener.");
         env->GlobalReference_Delete(cbRef);
         return;
     }
@@ -397,7 +413,7 @@ void AniFvController::RegisterCallbackWithType(ani_env* env, CallbackType callba
     auto ret = DoRegisterListenerWithType(callbackType, listener);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]register type %{public}d failed", static_cast<uint32_t>(callbackType));
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "unRegister failed.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to register callback.");
         env->GlobalReference_Delete(cbRef);
         return;
     }
@@ -419,7 +435,8 @@ void AniFvController::UnregisterCallbackWithType(ani_env* env, CallbackType call
             if (ret != WMError::WM_OK) {
                 TLOGE(WmsLogTag::WMS_SYSTEM,
                     "[FV]Unregister type %{public}d failed", static_cast<uint32_t>(callbackType));
-                AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "unRegister failed.");
+                AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    "Failed to unregister callback.");
                 return;
             }
             env->GlobalReference_Delete(ref);
@@ -437,7 +454,8 @@ void AniFvController::UnregisterCallbackWithType(ani_env* env, CallbackType call
         WMError retErr = DoUnRegisterListenerWithType(callbackType, listener);
         if (retErr != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Unregister type %{public}d failed", static_cast<uint32_t>(callbackType));
-            AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "unRegister failed.");
+            AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "Failed to unregister callback.");
             return;
         }
         env->GlobalReference_Delete(ref);
@@ -501,7 +519,8 @@ void AniFvController::OnStateChangeAni(ani_env* env, ani_object obj, ani_long na
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->RegisterCallbackWithType(env, CallbackType::STATE_CHANGE_CB, callback);
@@ -513,7 +532,8 @@ void AniFvController::OnRectChangeAni(ani_env* env, ani_object obj, ani_long nat
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->RegisterCallbackWithType(env, CallbackType::RECT_CHANGE_CB, callback);
@@ -525,7 +545,8 @@ void AniFvController::OnLimitsChangeAni(ani_env* env, ani_object obj, ani_long n
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->RegisterCallbackWithType(env, CallbackType::LIMITS_CHANGE_CB, callback);
@@ -537,7 +558,8 @@ void AniFvController::OffFvOnStateChangeAni(ani_env* env, ani_object obj, ani_lo
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->UnregisterCallbackWithType(env, CallbackType::STATE_CHANGE_CB, callback);
@@ -549,7 +571,8 @@ void AniFvController::OffRectChangeAni(ani_env* env, ani_object obj, ani_long na
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->UnregisterCallbackWithType(env, CallbackType::RECT_CHANGE_CB, callback);
@@ -561,7 +584,8 @@ void AniFvController::OffOnLimitsChangeAni(ani_env* env, ani_object obj, ani_lon
     AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
     if (aniFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
-        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "float view internal error.");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
         return;
     }
     aniFvController->UnregisterCallbackWithType(env, CallbackType::LIMITS_CHANGE_CB, callback);

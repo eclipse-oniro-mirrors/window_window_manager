@@ -99,6 +99,11 @@ public:
     {
         return DMError::DM_OK;
     }
+    virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
+        const OrientationOptions& options, bool isFromNapi)
+    {
+        return DMError::DM_OK;
+    }
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId, DmErrorCode* errorCode = nullptr,
         bool isUseDma = false, bool isCaptureFullOfScreen = false) { return nullptr; }
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(

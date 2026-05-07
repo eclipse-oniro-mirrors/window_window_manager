@@ -411,7 +411,7 @@ public:
      */
     WMError RegisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
-    
+
     /**
      * @brief Unregister window info change callback.
      *
@@ -533,7 +533,7 @@ private:
     void UpdateCameraWindowStatus(uint32_t accessTokenId, bool isShowing) const;
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground) const;
     void OnRemoteDied();
-    void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const;
+    void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected, int32_t pid) const;
     WMError ActiveFaultAgentReregister(const WindowManagerAgentType type,
         const sptr<WindowManagerAgentLite>& agent);
     WMError NotifyWindowStyleChange(WindowStyleType type);

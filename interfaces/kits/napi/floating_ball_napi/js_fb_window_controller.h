@@ -66,6 +66,9 @@ private:
     WMError ProcessStateChangeUnRegister(const sptr<JsFbWindowListener>& listener);
     WMError ProcessClickEventUnRegister(const sptr<JsFbWindowListener>& listener);
 
+    template <typename T>
+ 	void HandleProperty(napi_env env, napi_value optionObject, const char* propertyName,
+ 	    void (FbOption::*setter)(const T&), FbOption& option);
     napi_value GetIcon(napi_env env, napi_value value, FbOption& option);
 
     sptr<FloatingBallController> fbController_ = nullptr;

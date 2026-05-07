@@ -1230,5 +1230,33 @@ HWTEST_F(ScreenSessionManagerClientStubTest, ReadRSEventFromParcel02, TestSize.L
     sptr<RSEventDataBase> event = screenSessionManagerClientStub_->ReadRSEventFromParcel(data);
     EXPECT_EQ(event, nullptr);
 }
+
+/**
+ * @tc.name: OnRemoteRequestOnScreenOrientationChangedWithOptions
+ * @tc.desc: TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, OnRemoteRequestOnScreenOrientationChangedWithOptions, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+
+    ScreenId screenId = 0;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    float screenOrientation = 90.0f;
+    data.WriteFloat(screenOrientation);
+    bool needAnimation = true;
+    data.WriteBool(needAnimation);
+    bool ignoreRotationLock = false;
+    data.WriteBool(ignoreRotationLock);
+
+    uint32_t code = static_cast<uint32_t>(IScreenSessionManagerClient::ScreenSessionManagerClientMessage::
+        TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS);
+    int res = screenSessionManagerClientStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
 } // namespace Rosen
 } // namespace OHOS

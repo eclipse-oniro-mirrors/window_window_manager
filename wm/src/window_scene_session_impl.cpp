@@ -4293,21 +4293,14 @@ WMError WindowSceneSessionImpl::Maximize()
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation)
 {
-    return Maximize(presentation, WaterfallResidentState::UNCHANGED);
-}
-
-bool WindowSceneSessionImpl::CheckWaterfallResidentState(WaterfallResidentState state) const
-{
-    if (WindowHelper::IsSubWindow(GetType())) {
-        return state == WaterfallResidentState::UNCHANGED;
-    }
-    return true;
+    return MaximizeWithOptions(presentation, AcrossDisplayPresentation::UNSPECIFIED,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 bool WindowSceneSessionImpl::CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const
 {
     if (WindowHelper::IsSubWindow(GetType())) {
-        return state == AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        return state == AcrossDisplayPresentation::UNSPECIFIED;
     }
     return true;
 }
@@ -4340,8 +4333,11 @@ void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation pres
 
 WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, WaterfallResidentState state)
 {
-    auto acrossDisplay = static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
-    return MaximizeWithOptions(presentation, acrossDisplay, { -1, -1 });
+    auto acrossDisplay = (state == WaterfallResidentState::UNCHANGED)
+        ? AcrossDisplayPresentation::UNSPECIFIED
+        : static_cast<AcrossDisplayPresentation>(static_cast<uint32_t>(state));
+    return MaximizeWithOptions(presentation, acrossDisplay,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config)
@@ -4396,7 +4392,9 @@ WMError WindowSceneSessionImpl::ExecuteMaximizeWithOptions(MaximizePresentation 
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "present: %{public}d, enableImmersiveMode_:%{public}d!",
         presentation, enableImmersiveMode_.load());
     SessionEventParam param;
-    param.waterfallResidentState = static_cast<uint32_t>(state);
+    param.waterfallResidentState = (state == AcrossDisplayPresentation::UNSPECIFIED)
+        ? static_cast<uint32_t>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING)
+        : static_cast<uint32_t>(state);
     param.snapshotAnimationConfig_ = snapshotAnimationConfig;
     hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE, param);
     return SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
@@ -4589,7 +4587,7 @@ WMError WindowSceneSessionImpl::Restore()
 
 WMError WindowSceneSessionImpl::Recover(uint32_t reason)
 {
-    return Recover(reason, { -1, -1 });
+    return Recover(reason, { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
 }
 
 WMError WindowSceneSessionImpl::CheckRecoverPreConditions()
@@ -8807,6 +8805,7 @@ WSError WindowSceneSessionImpl::SetForceSplitEnable(bool isForceSplitEnabled, bo
     if (!WindowHelper::IsMainWindow(windowType)) {
         return WSError::WS_DO_NOTHING;
     }
+    property_->SetForceSplitEnable(isForceSplitEnabled);
     SetForceSplitConfigEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
     return WSError::WS_OK;
 }

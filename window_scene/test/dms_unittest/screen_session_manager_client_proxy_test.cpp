@@ -779,5 +779,203 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnTransRSEvent, TestSize.Level1)
     logMsg.clear();
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions01
+ * @tc.desc: OnScreenOrientationChangedWithOptions with remote nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOptions01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(nullptr);
+    ScreenId screenId = 0;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    proxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions02
+ * @tc.desc: OnScreenOrientationChangedWithOptions with WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOptions02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    proxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions03
+ * @tc.desc: OnScreenOrientationChangedWithOptions with WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOptions03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    proxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
+
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions04
+ * @tc.desc: OnScreenOrientationChangedWithOptions with WriteFloat screenOrientation failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOptions04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteFloatErrorFlag(true);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    proxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("Write screenOrientation failed") != std::string::npos);
+
+    MockMessageParcel::SetWriteFloatErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions05
+ * @tc.desc: OnScreenOrientationChangedWithOptions with WriteBool needAnimation failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOptions05, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    proxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("Write needAnimation failed") != std::string::npos);
+
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions06
+ * @tc.desc: OnScreenOrientationChangedWithOptions with SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOptions06, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    proxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions07
+ * @tc.desc: OnScreenOrientationChangedWithOptions normal success
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOptions07, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    ScreenId screenId = 0;
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    screenSessionManagerClientProxy_->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("failed") == std::string::npos);
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace Rosen
 } // namespace OHOS

@@ -162,7 +162,7 @@ public:
     static ani_boolean IsInFreeWindowMode(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_string GetWindowStateSnapshot(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetRelativePositionToParentWindowEnabled(ani_env* env, ani_object obj, ani_long nativeObj,
-        ani_boolean enabled, ani_object anchor, ani_object offsetX, ani_object offsetY);
+        ani_boolean enabled, ani_object anchor, ani_int offsetX, ani_int offsetY);
     static void AttachLayoutToParentWindow(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_object anchorInfo, ani_object attachOptions);
     static void DetachLayoutToParentWindow(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -355,7 +355,7 @@ private:
     ani_string OnGetWindowStateSnapshot(ani_env* env);
     void OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled);
     void OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boolean enabled,
-        ani_object anchor, ani_object offsetX, ani_object offsetY);
+        ani_object anchor, ani_int offsetX, ani_int offsetY);
     void OnAttachToParentWindow(ani_env* env, ani_object anchorInfo, ani_object attachOptions);
     void OnDetachLayoutToParentWindow(ani_env* env);
     void OnSetDefaultDensityEnabled(ani_env* env, ani_boolean enabled);

@@ -39,8 +39,8 @@ std::shared_mutex WindowManager::windowManagerMapMutex_;
 class WindowManager::Impl {
 public:
     explicit Impl(std::recursive_mutex& mutex) : mutex_(mutex) {}
-    void NotifyWMSConnected(int32_t userId, int32_t screenId);
-    void NotifyWMSDisconnected(int32_t userId, int32_t screenId);
+    void NotifyWMSConnected(int32_t userId, int32_t screenId, int32_t pid = INVALID_PID);
+    void NotifyWMSDisconnected(int32_t userId, int32_t screenId, int32_t pid = INVALID_PID);
     void NotifyFocused(uint32_t windowId, const sptr<IRemoteObject>& abilityToken,
         WindowType windowType, DisplayId displayId);
     void NotifyUnfocused(uint32_t windowId, const sptr<IRemoteObject>& abilityToken,
@@ -166,7 +166,7 @@ public:
     sptr<WindowManagerAgent> windowSystemBarPropertyChangeAgent_ = nullptr;
 };
 
-void WindowManager::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId)
+void WindowManager::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId, int32_t pid)
 {
     sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
@@ -178,11 +178,14 @@ void WindowManager::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId)
         }
         listener = wmsConnectionChangedListener_;
     }
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS on connected, userId=%{public}d, screenId=%{public}d", userId, screenId);
-    listener->OnConnected(userId, screenId);
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "WMS on connected, userId=%{public}d, screenId=%{public}d, pid=%{public}d",
+        userId, screenId, pid);
+    listener->OnConnected(userId, screenId, pid);
 }
 
-void WindowManager::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId)
+
+void WindowManager::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId, int32_t pid)
 {
     sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
@@ -194,8 +197,10 @@ void WindowManager::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId
         }
         listener = wmsConnectionChangedListener_;
     }
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS on disconnected, userId=%{public}d, screenId=%{public}d", userId, screenId);
-    listener->OnDisconnected(userId, screenId);
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "WMS on disconnected, userId=%{public}d, screenId=%{public}d, pid=%{public}d",
+        userId, screenId, pid);
+    listener->OnDisconnected(userId, screenId, pid);
 }
 
 void WindowManager::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChangeInfo)
@@ -710,7 +715,7 @@ WMError WindowManager::RemoveInstanceByUserId(const int32_t userId)
 bool WindowManager::IsMultiInstanceEnabled()
 {
     static bool enabled = [] {
-        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", false);
+        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", true);
         TLOGNI(WmsLogTag::WMS_SCB, "isConcurrentUser: %{public}d", isConcurrentUser);
         return isConcurrentUser;
     }();
@@ -760,13 +765,13 @@ WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConne
         pImpl_->wmsConnectionChangedListener_ = listener;
     }
     auto ret = WindowAdapter::GetInstance(userId_).RegisterWMSConnectionChangedListener(
-        [weakThis = wptr(this)](int32_t userId, int32_t screenId, bool isConnected) {
+        [weakThis = wptr(this)](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {
             auto windowManager = weakThis.promote();
             if (!windowManager) {
                 TLOGE(WmsLogTag::WMS_SCB, "window manager is null");
                 return;
             }
-            windowManager->OnWMSConnectionChanged(userId, screenId, isConnected);
+            windowManager->OnWMSConnectionChanged(userId, screenId, isConnected, pid);
         });
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_MULTI_USER, "Register callback failed");
@@ -1892,12 +1897,12 @@ void WindowManager::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
     WindowAdapter::GetInstance(userId_).GetFocusWindowInfoByAbilityToken(focusInfo, abilityToken);
 }
 
-void WindowManager::OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const
+void WindowManager::OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected, int32_t pid) const
 {
     if (isConnected) {
-        pImpl_->NotifyWMSConnected(userId, screenId);
+        pImpl_->NotifyWMSConnected(userId, screenId, pid);
     } else {
-        pImpl_->NotifyWMSDisconnected(userId, screenId);
+        pImpl_->NotifyWMSDisconnected(userId, screenId, pid);
     }
 }
 

@@ -2867,5 +2867,55 @@ HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent04, TestSize.Level1)
     screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener1);
     screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener2);
 }
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions01
+ * @tc.desc: OnScreenOrientationChangedWithOptions with screenSession nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenOrientationChangedWithOptions01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId = 99999;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    screenSessionManagerClient_->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("screenSession is null") != std::string::npos);
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions02
+ * @tc.desc: OnScreenOrientationChangedWithOptions with screenSession exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenOrientationChangedWithOptions02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    screenSessionManagerClient_->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("screenSession is null") == std::string::npos);
+
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace Rosen
 } // namespace OHOS

@@ -50,6 +50,16 @@ void FbOption::SetBackgroundColor(const std::string& color)
     backgroundColor_ = color;
 }
 
+void FbOption::SetTitleColor(const std::string& color)
+{
+    titleColor_ = color;
+}
+
+void FbOption::SetContentColor(const std::string& color)
+{
+    contentColor_ = color;
+}
+
 void FbOption::SetIcon(const std::shared_ptr<Media::PixelMap>& icon)
 {
     icon_ = icon;
@@ -85,6 +95,16 @@ std::string FbOption::GetBackgroundColor() const
     return backgroundColor_;
 }
 
+std::string FbOption::GetTitleColor() const
+{
+    return titleColor_;
+}
+
+std::string FbOption::GetContentColor() const
+{
+    return contentColor_;
+}
+
 std::shared_ptr<Media::PixelMap> FbOption::GetIcon() const
 {
     return icon_;
@@ -106,12 +126,14 @@ void FbOption::GetFbTemplateBaseInfo(FloatingBallTemplateBaseInfo& fbTemplateBas
     fbTemplateBaseInfo.title_ = title_;
     fbTemplateBaseInfo.content_ = content_;
     fbTemplateBaseInfo.backgroundColor_ = backgroundColor_;
+    fbTemplateBaseInfo.titleColor_ = titleColor_;
+    fbTemplateBaseInfo.contentColor_ = contentColor_;
     fbTemplateBaseInfo.isVisibleInApp_ = visibleInApp_;
     fbTemplateBaseInfo.textUpdateAnimationType_ = textUpdateAnimationType_;
     fbTemplateBaseInfo.showWhenCreate_ = showWhenCreate_;
 }
 
-bool FbOption::IsValid(std::string &errMsg) const
+bool FbOption::IsValid(std::string& errMsg) const
 {
     if (template_ < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
         template_ >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
@@ -134,11 +156,6 @@ bool FbOption::IsValid(std::string &errMsg) const
         errMsg = "Icon size Exceed the limit";
         return false;
     }
-    if (!backgroundColor_.empty() && !ColorParser::IsValidColorNoAlpha(backgroundColor_)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "BackgroundColor is invalid");
-        errMsg = "BackgroundColor is invalid";
-        return false;
-    }
     if (template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC) && icon_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Template %{public}u need icon", template_);
         errMsg = "Template need icon";
@@ -149,6 +166,36 @@ bool FbOption::IsValid(std::string &errMsg) const
         errMsg = "TextUpdateAnimationType is invalid";
         return false;
     }
+    
+    return VerifyColor(errMsg);
+}
+ 
+bool FbOption::VerifyColor(std::string& errMsg) const
+{
+    if (!backgroundColor_.empty() && !ColorParser::IsValidColorNoAlpha(backgroundColor_)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "BackgroundColor is invalid");
+        errMsg = "BackgroundColor is invalid";
+        return false;
+    }
+ 
+    bool hasTextColor = !titleColor_.empty() || !contentColor_.empty();
+    if (hasTextColor && backgroundColor_.empty()) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "When setting the text color, the background color must be set");
+        errMsg = "When setting the text color, the background color must be set";
+        return false;
+    }
+ 
+    if (!titleColor_.empty() && !ColorParser::IsValidColorNoAlpha(titleColor_)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "TitleColor is invalid");
+        errMsg = "TitleColor is invalid";
+        return false;
+    }
+    if (!contentColor_.empty() && !ColorParser::IsValidColorNoAlpha(contentColor_)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "ContentColor is invalid");
+        errMsg = "ContentColor is invalid";
+        return false;
+    }
+ 
     return true;
 }
 

@@ -3205,8 +3205,8 @@ export class WindowInternal implements Window {
     private native setRotationLocked(nativeObj: long, locked: boolean): void;
     private native getRotationLocked(nativeObj: long): boolean;
     private native isInFreeWindowMode(nativeObj: long): boolean;
-    private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor?: WindowAnchor,
-      offsetX?: int, offsetY?: int): void;
+    private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor: WindowAnchor,
+      offsetX: int, offsetY: int): void;
     private native setWindowDelayRaiseOnDrag(nativeObj: long, isEnabled: boolean): void;
     private native setDefaultDensityEnabled(nativeObj: long, enabled: boolean): void;
     private native setWindowContainerColor(nativeObj: long, activeColor: string, inactiveColor: string): void;
@@ -5362,7 +5362,8 @@ export class WindowInternal implements Window {
       return new Promise<void>(
         (resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
           taskpool.execute((): void => {
-            this.setRelativePositionToParentWindowEnabled(this.nativeObj, enabled, anchor, offsetX, offsetY);
+            this.setRelativePositionToParentWindowEnabled(
+              this.nativeObj, enabled, anchor ?? WindowAnchor.TOP_START, offsetX ?? 0, offsetY ?? 0);
           }).then((ret: Any) => {
             resolve(undefined);
           }).catch((err: Any) => {

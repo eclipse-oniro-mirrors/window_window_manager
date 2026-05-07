@@ -171,15 +171,17 @@ HWTEST_F(WindowSceneSessionImplTest5, TestCheckAcrossDisplayPresentation, TestSi
     auto option = sptr<WindowOption>::MakeSptr();
     auto window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
-    // Case 1: Main window, any state should return true
+    // Case 1: Main window, any state should return true (including UNSPECIFIED)
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::UNSPECIFIED));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 
-    // Case 2: Sub window, only FOLLOW_ACROSS_DISPLAY_SETTING should return true
+    // Case 2: Sub window, only UNSPECIFIED should return true
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
-    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::UNSPECIFIED));
+    EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 }
@@ -269,12 +271,15 @@ HWTEST_F(WindowSceneSessionImplTest5, Maximize01, TestSize.Level1)
     auto ret = window->Maximize(presentation);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
-    // waterfallResidentState is invalid and windowType is invalid
-    ret = window->Maximize(presentation, WaterfallResidentState::OPEN);
+    // acrossDisplayPresentation is invalid and windowType is invalid
+    ret = window->MaximizeWithOptions(presentation,
+        AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
-    // waterfallResidentState is valid but windowType is invalid
-    ret = window->Maximize(presentation, WaterfallResidentState::UNCHANGED);
+    // acrossDisplayPresentation is valid but windowType is invalid
+    ret = window->MaximizeWithOptions(presentation,
+        AcrossDisplayPresentation::UNSPECIFIED, { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
