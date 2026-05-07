@@ -613,17 +613,15 @@ HWTEST_F(SessionListenerControllerTest, RegisterSessionLifecycleListenerByAppIns
  */
 HWTEST_F(SessionListenerControllerTest, RegisterSessionLifecycleListenerByAppInstance_AppendSameKey, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> myListener1 = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener1 = iface_cast<ISessionLifecycleListener>(myListener1->AsObject());
-    ASSERT_NE(listener1, nullptr);
+    sptr<MySessionLifecycleListener> myListener1 = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener1, nullptr);
 
-    sptr<MySessionLifecycleListener> myListener2 = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener2 = iface_cast<ISessionLifecycleListener>(myListener2->AsObject());
-    ASSERT_NE(listener2, nullptr);
+    sptr<MySessionLifecycleListener> myListener2 = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener2, nullptr);
 
-    WMError res = slController->RegisterSessionLifecycleListener(listener1, "com.example.myapp", 8, "same_key");
+    WMError res = slController->RegisterSessionLifecycleListener(myListener1, "com.example.myapp", 8, "same_key");
     ASSERT_EQ(res, WMError::WM_OK);
-    res = slController->RegisterSessionLifecycleListener(listener2, "com.example.myapp", 8, "same_key");
+    res = slController->RegisterSessionLifecycleListener(myListener2, "com.example.myapp", 8, "same_key");
     ASSERT_EQ(res, WMError::WM_OK);
 
     SessionInfo info;
@@ -650,11 +648,10 @@ HWTEST_F(SessionListenerControllerTest, RegisterSessionLifecycleListenerByAppIns
  */
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_MatchedAppInstance, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> myListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener = iface_cast<ISessionLifecycleListener>(myListener->AsObject());
-    ASSERT_NE(listener, nullptr);
+    sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener, nullptr);
 
-    WMError res = slController->RegisterSessionLifecycleListener(listener, "com.example.myapp", 1, "app_instance_a");
+    WMError res = slController->RegisterSessionLifecycleListener(myListener, "com.example.myapp", 1, "app_instance_a");
     ASSERT_EQ(res, WMError::WM_OK);
 
     SessionInfo info;
@@ -685,11 +682,10 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_MatchedA
  */
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_MismatchedAppInstance, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> myListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener = iface_cast<ISessionLifecycleListener>(myListener->AsObject());
-    ASSERT_NE(listener, nullptr);
+    sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener, nullptr);
 
-    WMError res = slController->RegisterSessionLifecycleListener(listener, "com.example.myapp", 2, "app_instance_a");
+    WMError res = slController->RegisterSessionLifecycleListener(myListener, "com.example.myapp", 2, "app_instance_a");
     ASSERT_EQ(res, WMError::WM_OK);
 
     SessionInfo info;
@@ -782,12 +778,11 @@ HWTEST_F(SessionListenerControllerTest, ConstructBatchPayload_EmptySessions, Tes
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_NullSession, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> myListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener = iface_cast<ISessionLifecycleListener>(myListener->AsObject());
-    ASSERT_NE(listener, nullptr);
+    sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener, nullptr);
 
     WMError res = slController->RegisterSessionLifecycleListener(
-        listener, "com.example.myapp", 1, "");
+        myListener, "com.example.myapp", 1, "");
     ASSERT_EQ(res, WMError::WM_OK);
 
     slController->NotifyAppInstanceLifecycleEvent(SessionState::STATE_ACTIVE, nullptr);
@@ -798,6 +793,13 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_NullSess
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_InvalidPersistentId, TestSize.Level1)
 {
+    sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener, nullptr);
+
+    WMError res = slController->RegisterSessionLifecycleListener(
+        myListener, "com.example.myapp", 1, "");
+    ASSERT_EQ(res, WMError::WM_OK);
+
     SessionInfo info;
     info.bundleName_ = "com.example.myapp";
     info.appIndex_ = 1;
@@ -806,13 +808,15 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_InvalidP
     ASSERT_NE(session, nullptr);
 
     slController->NotifyAppInstanceLifecycleEvent(SessionState::STATE_ACTIVE, session);
+    usleep(WAIT_SYNC_IN_NS);
+
+    EXPECT_FALSE(myListener->IsAppInstanceEventNotified());
 }
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKeyWithMainSession, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> myListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener = iface_cast<ISessionLifecycleListener>(myListener->AsObject());
-    ASSERT_NE(listener, nullptr);
+    sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener, nullptr);
 
     SessionInfo mainInfo;
     mainInfo.bundleName_ = "com.example.myapp";
@@ -825,7 +829,7 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKey
     ASSERT_NE(mainSession, nullptr);
 
     WMError res = slController->RegisterSessionLifecycleListener(
-        listener, "com.example.myapp", 3, "main_instance_key");
+        myListener, "com.example.myapp", 3, "main_instance_key");
     ASSERT_EQ(res, WMError::WM_OK);
 
     SessionInfo subInfo;
@@ -848,12 +852,11 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKey
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKeyNoMainSession, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> myListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener = iface_cast<ISessionLifecycleListener>(myListener->AsObject());
-    ASSERT_NE(listener, nullptr);
+    sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(myListener, nullptr);
 
     WMError res = slController->RegisterSessionLifecycleListener(
-        listener, "com.example.myapp", 4, "");
+        myListener, "com.example.myapp", 4, "");
     ASSERT_EQ(res, WMError::WM_OK);
 
     SessionInfo info;
@@ -875,19 +878,17 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKey
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_WildcardNotify, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> specificListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener1 = iface_cast<ISessionLifecycleListener>(specificListener->AsObject());
-    ASSERT_NE(listener1, nullptr);
+    sptr<MySessionLifecycleListener> specificListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(specificListener, nullptr);
 
-    sptr<MySessionLifecycleListener> wildcardListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener2 = iface_cast<ISessionLifecycleListener>(wildcardListener->AsObject());
-    ASSERT_NE(listener2, nullptr);
+    sptr<MySessionLifecycleListener> wildcardListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(wildcardListener, nullptr);
 
     WMError res = slController->RegisterSessionLifecycleListener(
-        listener1, "com.example.myapp", 5, "specific_key");
+        specificListener, "com.example.myapp", 5, "specific_key");
     ASSERT_EQ(res, WMError::WM_OK);
     res = slController->RegisterSessionLifecycleListener(
-        listener2, "com.example.myapp", 5, "");
+        wildcardListener, "com.example.myapp", 5, "");
     ASSERT_EQ(res, WMError::WM_OK);
 
     SessionInfo info;
@@ -909,19 +910,17 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_Wildcard
 
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceListeners_EmptyKeyNotNotifySpecificListener, TestSize.Level1)
 {
-    sptr<MySessionLifecycleListener> specificListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener1 = iface_cast<ISessionLifecycleListener>(specificListener->AsObject());
-    ASSERT_NE(listener1, nullptr);
+    sptr<MySessionLifecycleListener> specificListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(specificListener, nullptr);
 
-    sptr<MySessionLifecycleListener> wildcardListener = new MySessionLifecycleListener();
-    sptr<ISessionLifecycleListener> listener2 = iface_cast<ISessionLifecycleListener>(wildcardListener->AsObject());
-    ASSERT_NE(listener2, nullptr);
+    sptr<MySessionLifecycleListener> wildcardListener = sptr<MySessionLifecycleListener>::MakeSptr();
+    ASSERT_NE(wildcardListener, nullptr);
 
     WMError res = slController->RegisterSessionLifecycleListener(
-        listener1, "com.example.myapp", 6, "specific_key");
+        specificListener, "com.example.myapp", 6, "specific_key");
     ASSERT_EQ(res, WMError::WM_OK);
     res = slController->RegisterSessionLifecycleListener(
-        listener2, "com.example.myapp", 6, "");
+        wildcardListener, "com.example.myapp", 6, "");
     ASSERT_EQ(res, WMError::WM_OK);
 
     SessionInfo info;
