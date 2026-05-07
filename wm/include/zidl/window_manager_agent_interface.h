@@ -46,6 +46,7 @@ public:
         TRANS_ID_NOTIFY_WINDOW_SYSTEM_BAR_PROPERTY_CHANGE,
         TRANS_ID_NOTIFY_WINDOW_SUPPORT_ROTATION_CHANGE,
         TRANS_ID_NOTIFY_DISPLAY_GROUP_INFO_CHANGE,
+        TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE,
     };
 
     virtual void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) = 0;
@@ -69,6 +70,7 @@ public:
     virtual void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground) = 0;
     virtual void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) = 0;
     virtual void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo) = 0;
+    virtual void NotifySessionSaveSnapShotComplete(int32_t persistentId) = 0;
 };
 } // namespace Rosen
 } // namespace OHOS

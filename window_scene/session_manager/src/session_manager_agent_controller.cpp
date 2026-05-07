@@ -322,5 +322,17 @@ void SessionManagerAgentController::NotifySupportRotationChange(const SupportRot
         }
     }
 }
+
+void SessionManagerAgentController::NotifySessionSaveSnapShotComplete(int32_t persistentId)
+{
+    for (const auto& agent : smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE)) {
+        if (agent != nullptr) {
+            agent->NotifySessionSaveSnapShotComplete(persistentId);
+        } else {
+            TLOGE(WmsLogTag::WMS_PATTERN, "agent is nullptr");
+        }
+    }
+}
 } // namespace Rosen
 } // namespace OHOS

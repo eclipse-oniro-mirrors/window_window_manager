@@ -613,6 +613,32 @@ void WindowManagerAgentProxy::NotifySupportRotationChange(const SupportRotationI
     }
 }
 
+void WindowManagerAgentProxy::NotifySessionSaveSnapShotComplete(int32_t persistentId)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write persistentId failed");
+        return;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "remote is null");
+        return;
+    }
+    int sendCode = remote->SendRequest(
+        static_cast<uint32_t>(WindowManagerAgentMsg::TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE),
+        data, reply, option);
+    if (sendCode != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "SendRequest failed, code: %{public}d", sendCode);
+    }
+}
+
 bool WindowManagerAgentProxy::WriteWindowChangeInfoValue(MessageParcel& data,
     const std::pair<WindowInfoKey, WindowChangeInfoType>& windowInfoPair)
 {
@@ -728,4 +754,3 @@ bool WindowManagerAgentProxy::WriteWindowChangeInfoValue(MessageParcel& data,
 }
 } // namespace Rosen
 } // namespace OHOS
-

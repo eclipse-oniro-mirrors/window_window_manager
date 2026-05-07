@@ -485,6 +485,43 @@ HWTEST_F(WindowManagerAgentStubTest, OnRemoteRequest23, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnRemoteRequest24
+ * @tc.desc: test TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE success
+ */
+HWTEST_F(WindowManagerAgentStubTest, OnRemoteRequest24, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(WindowManagerAgentStub::GetDescriptor());
+    data.WriteInt32(1001);
+
+    uint32_t code = static_cast<uint32_t>(
+        IWindowManagerAgent::WindowManagerAgentMsg::TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequest25
+ * @tc.desc: test TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE failed
+ */
+HWTEST_F(WindowManagerAgentStubTest, OnRemoteRequest25, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(WindowManagerAgentStub::GetDescriptor());
+
+    uint32_t code = static_cast<uint32_t>(
+        IWindowManagerAgent::WindowManagerAgentMsg::TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
  * @tc.name: ReadWindowInfoList01
  * @tc.desc: test ReadWindowInfoList
  * @tc.type: FUNC

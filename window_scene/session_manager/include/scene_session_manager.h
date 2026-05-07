@@ -1314,6 +1314,7 @@ private:
     sptr<SceneSession> SelectSesssionFromMap(const uint64_t& surfaceId);
     void WindowDestroyNotifyVisibility(const sptr<SceneSession>& sceneSession);
     void RegisterSessionSnapshotFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterSessionSaveSnapshotCompleteFunc(const sptr<SceneSession>& sceneSession);
 
     /*
      * Window Property

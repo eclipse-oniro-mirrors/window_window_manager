@@ -2563,6 +2563,15 @@ void Session::SetSessionSnapshotListener(const NotifySessionSnapshotFunc& func)
     notifySessionSnapshotFunc_ = func;
 }
 
+void Session::SetSessionSaveSnapshotCompleteListener(const NotifySessionSaveSnapshotCompleteFunc& func)
+{
+    if (func == nullptr) {
+        WLOGFE("func is nullptr");
+        return;
+    }
+    notifySessionSaveSnapshotCompleteFunc_ = func;
+}
+
 void Session::SetPendingSessionToForegroundListener(NotifyPendingSessionToForegroundFunc&& func)
 {
     PostTask([weakThis = wptr(this), func = std::move(func), where = __func__] {
@@ -3525,6 +3534,9 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         auto pixelMap = persistentPixelMap ? persistentPixelMap : session->Snapshot(options);
         if (pixelMap == nullptr) {
             return;
+        }
+        if (session->notifySessionSaveSnapshotCompleteFunc_) {
+            session->notifySessionSaveSnapshotCompleteFunc_(session->persistentId_);
         }
         session->SetBufferNameForPixelMap(where, pixelMap);
         {
