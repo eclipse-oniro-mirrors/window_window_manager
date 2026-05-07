@@ -24,7 +24,7 @@
 #include "window_manager_hilog.h"
 #include "singleton_container.h"
 #include "screen_manager.h"
-#include "screen_session_manager/include/screen_session_manager.h"
+#include "screen_session_manager_client/include/screen_session_manager_client.h"
 
 namespace OHOS::Rosen {
 using namespace AbilityRuntime;
@@ -579,7 +579,7 @@ napi_value JsScreenSession::OnRegisterMotionSensor(napi_env env, napi_callback_i
     }
     napi_get_value_int32(env, nativeVal, &motionType);
     
-    ScreenSessionManager::GetInstance().SubscribeMotionSensor(motionType);
+    ScreenSessionManagerClient::GetInstance().SubscribeMotionSensor(motionType);
     TLOGI(WmsLogTag::DMS, "RegisterMotionSensor motionType: %{public}d", motionType);
     return NapiGetUndefined(env);
 }
@@ -611,7 +611,7 @@ napi_value JsScreenSession::OnUnregisterMotionSensor(napi_env env, napi_callback
     }
     napi_get_value_int32(env, nativeVal, &motionType);
     
-    ScreenSessionManager::GetInstance().UnsubscribeMotionSensor(motionType);
+    ScreenSessionManagerClient::GetInstance().UnsubscribeMotionSensor(motionType);
     TLOGI(WmsLogTag::DMS, "UnregisterMotionSensor motionType: %{public}d", motionType);
     return NapiGetUndefined(env);
 }

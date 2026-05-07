@@ -1645,6 +1645,19 @@ void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()
     TLOGI(WmsLogTag::DMS, "notify animation finished by window");
     screenSessionManager_->NotifySwitchUserAnimationFinish();
 }
+
+void ScreenSessionManagerClient::SubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::DMS, "SubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->SubscribeMotionSensor(motionType);
+}
+
+void ScreenSessionManagerClient::UnsubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::DMS, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->UnsubscribeMotionSensor(motionType);
+}
+
 void ScreenSessionManagerClient::OnAnimationFinish()
 {
     std::lock_guard<std::mutex> lock(animateFinishNotificationSetMutex_);

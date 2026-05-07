@@ -143,6 +143,8 @@ public:
     void NotifyScreenMaskAppear();
     void NotifySwitchUserAnimationFinish(const std::string& description);
     void NotifySwitchUserAnimationFinishByWindow();
+    void SubscribeMotionSensor(int32_t motionType);
+    void UnsubscribeMotionSensor(int32_t motionType);
     void RegisterSwitchUserAnimationNotification(const std::string& description);
     void OnAnimationFinish() override;
     void OnTentModeChange(TentMode tentMode) override;

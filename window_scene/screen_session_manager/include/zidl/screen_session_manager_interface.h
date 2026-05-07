@@ -443,6 +443,8 @@ public:
         bool enable) { return DMError::DM_OK; }
     virtual bool SynchronizePowerStatus(ScreenPowerState state) { return false; }
     virtual void NotifySwitchUserAnimationFinish() {}
+    virtual void SubscribeMotionSensor(int32_t motionType) {}
+    virtual void UnsubscribeMotionSensor(int32_t motionType) {}
     virtual DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty)
     {
         return DMError::DM_OK;
