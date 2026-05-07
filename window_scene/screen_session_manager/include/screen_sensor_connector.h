@@ -41,6 +41,18 @@ public:
 };
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
+class MotionSubscriber {
+friend ScreenSensorConnector;
+public:
+    MotionSubscriber() = delete;
+    ~MotionSubscriber() = default;
+private:
+    static void SubscribeMotionSensor();
+    static void UnsubscribeMotionSensor();
+
+    static bool isMotionSensorSubscribed_;
+};
+
 class MotionTentSubscriber {
 friend ScreenSensorConnector;
 public:

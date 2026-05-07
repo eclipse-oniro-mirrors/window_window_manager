@@ -24,19 +24,24 @@
 #include "screen_sensor_plugin.h"
 #include "window_manager_hilog.h"
 
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
+constexpr int32_t DISABLED_SMART_ROTATION = 0;
+constexpr int32_t ENABLED_SMART_ROTATION = 1;
+#endif
+
 namespace OHOS {
 namespace Rosen {
 
 enum MotionType : int32_t {
-    MOTION_TYPE_ROTATION = 700,
-    SMART_MOTION_TYPE_ROTATION = 701,
+    DEVICE_MOTION_TYPE = 700,
+    SMART_MOTION_TYPE = 701,
 };
 
 enum MotionAction : int32_t {
-    MOTION_ACTION_PORTRAIT = 0,
-    MOTION_ACTION_LEFT_LANDSCAPE = 1,
-    MOTION_ACTION_PORTRAIT_INVERTED = 2,
-    MOTION_ACTION_RIGHT_LANDSCAPE = 3,
+    MOTION_PORTRAIT = 0,
+    MOTION_LANDSCAPE = 1,
+    MOTION_PORTRAIT_INVERTED = 2,
+    MOTION_LANDSCAPE_INVERTED = 3,
 };
 
 class IMotionEventListener {
@@ -85,6 +90,7 @@ private:
     void NotifyMotionRotationChangedInternal();
     
     static DeviceRotation ConvertMotionActionToDeviceRotation(int32_t motionAction);
+    static float ConvertDeviceMotionToFloat(DeviceRotation deviceRotation);
     static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
     static void SmartRotationMotionEventCallback(const MotionSensorEvent& motionData);
     
@@ -93,7 +99,10 @@ private:
     std::mutex mutex_;
     IMotionEventListener* motionEventListener_ = nullptr;
     
+    // 已注册类型
     std::map<MotionType, bool> subscribedMotionTypes_;
+    // 亮屏时需要注册类型
+    std::map<MotionType, bool> needSubscribedMotionTypes_;
     float lastMotionRotation_ = -1.0f;
     float lastSmartMotionRotation_ = -1.0f;
     

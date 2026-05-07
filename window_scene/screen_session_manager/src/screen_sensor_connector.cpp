@@ -23,12 +23,22 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
+    constexpr int32_t MOTION_ACTION_PORTRAIT = 0;
+    constexpr int32_t MOTION_ACTION_LEFT_LANDSCAPE = 1;
+    constexpr int32_t MOTION_ACTION_PORTRAIT_INVERTED = 2;
+    constexpr int32_t MOTION_ACTION_RIGHT_LANDSCAPE = 3;
+    constexpr int32_t MOTION_ACTION_TENT_MODE_OFF = 0;
+    constexpr int32_t MOTION_ACTION_TENT_MODE_ON = 1;
+    constexpr int32_t MOTION_ACTION_TENT_MODE_HOVER = 2;
+    const int32_t MOTION_TYPE_ROTATION = 700;
     const int32_t MOTION_TYPE_TENT = 2800;
 #endif
 }
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
+bool MotionSubscriber::isMotionSensorSubscribed_ = false;
 bool MotionTentSubscriber::isMotionSensorSubscribed_ = false;
+static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
 static void TentMotionEventCallback(const MotionSensorEvent& motionData);
 #endif
 
@@ -36,6 +46,7 @@ void ScreenSensorConnector::SubscribeRotationSensor()
 {
     TLOGD(WmsLogTag::DMS, "subscribe rotation-related sensor");
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
+    // MotionSubscriber::SubscribeMotionSensor();
     MotionManager::GetInstance().Init();
     MotionManager::GetInstance().OnScreenOn();
 #endif
@@ -44,6 +55,7 @@ void ScreenSensorConnector::SubscribeRotationSensor()
 void ScreenSensorConnector::UnsubscribeRotationSensor()
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
+    // MotionSubscriber::UnsubscribeMotionSensor();
     MotionManager::GetInstance().OnScreenOff();
 #endif
 }
@@ -73,14 +85,7 @@ void MotionSubscriber::SubscribeMotionSensor()
         return;
     }
 
-    int32_t sensorType = MOTION_TYPE_ROTATION;
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
-        DISABLE_SMART_ROTATION);
-    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
-        TLOGNFI(WmsLogTag::DMS, "start subscribe smart rotation");
-        sensorType = SMART_MOTION_TYPE_ROTATION;
-    }
-    if (!SubscribeCallback(sensorType, RotationMotionEventCallback)) {
+    if (!SubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor subscribe failed");
         return;
     }
@@ -93,15 +98,8 @@ void MotionSubscriber::UnsubscribeMotionSensor()
         TLOGI(WmsLogTag::DMS, "start");
         return;
     }
-
-    int32_t sensorType = MOTION_TYPE_ROTATION;
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
-        DISABLE_SMART_ROTATION);
-    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
-        TLOGNFI(WmsLogTag::DMS, "start unsubscribe smart rotation");
-        sensorType = SMART_MOTION_TYPE_ROTATION;
-    }
-    if (!UnsubscribeCallback(sensorType, RotationMotionEventCallback)) {
+    
+    if (!UnsubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed");
         return;
     }
