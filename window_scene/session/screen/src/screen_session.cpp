@@ -1209,7 +1209,7 @@ void ScreenSession::ScreenExtendChange(ScreenId mainScreenId, ScreenId extendScr
     }
 }
 
-void ScreenSession::ScreenOrientationChange(Orientation orientation,
+float ScreenSession::GetScreenOrientation(Orientation orientation,
     FoldDisplayMode foldDisplayMode, bool isFromNapi)
 {
     Rotation rotationAfter = Rotation::ROTATION_0;
@@ -1221,7 +1221,21 @@ void ScreenSession::ScreenOrientationChange(Orientation orientation,
         TLOGI(WmsLogTag::DMS, "set orientation from inner. rotationAfter: %{public}d", rotationAfter);
     }
     float screenRotation = ConvertRotationToFloat(rotationAfter);
+    return screenRotation;
+}
+
+void ScreenSession::ScreenOrientationChange(Orientation orientation,
+    FoldDisplayMode foldDisplayMode, bool isFromNapi)
+{
+    float screenRotation = GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
     ScreenOrientationChange(screenRotation);
+}
+
+void ScreenSession::ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode,
+    const OrientationOptions& options, bool isFromNapi)
+{
+    float screenRotation = GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+    ScreenOrientationChange(screenRotation, options);
 }
 
 void ScreenSession::ScreenOrientationChange(float orientation)
@@ -1233,6 +1247,20 @@ void ScreenSession::ScreenOrientationChange(float orientation)
             continue;
         }
         listener->OnScreenOrientationChange(orientation, screenId_);
+    }
+}
+
+void ScreenSession::ScreenOrientationChange(float orientation, const OrientationOptions& options)
+{
+    TLOGI(WmsLogTag::DMS, "Orientation: %{public}f, needAnimation: %{public}d, ignoreRotationLock: %{public}d",
+        orientation, options.needAnimation, options.ignoreRotationLock);
+    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
+    for (auto& listener : screenChangeListenerList_) {
+        if (!listener) {
+            TLOGE(WmsLogTag::DMS, "screenChangeListener is null.");
+            continue;
+        }
+        listener->OnScreenOrientationChangeWithOptions(orientation, options, screenId_);
     }
 }
 

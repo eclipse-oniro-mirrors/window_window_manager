@@ -35,6 +35,7 @@ public:
         TRANS_ID_ON_POWER_STATUS_CHANGED,
         TRANS_ID_ON_SENSOR_ROTATION_CHANGED,
         TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED,
+        TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS,
         TRANS_ID_ON_SCREEN_ROTATION_LOCKED_CHANGED,
         TRANS_ID_ON_DISPLAY_STATE_CHANGED,
         TRANS_ID_ON_SCREEN_SHOT,
@@ -79,6 +80,8 @@ public:
     virtual void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) = 0;
     virtual void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) = 0;
     virtual void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) = 0;
+    virtual void OnScreenOrientationChangedWithOptions(ScreenId screenId,
+        float screenOrientation, const OrientationOptions& options) = 0;
     virtual void OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked) = 0;
     virtual void OnScreenExtendChanged(ScreenId mainScreenId, ScreenId extendScreenId) = 0;
     virtual void OnSuperFoldStatusChanged(ScreenId screenId, SuperFoldStatus superFoldStatus) = 0;

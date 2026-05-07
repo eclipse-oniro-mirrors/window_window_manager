@@ -902,6 +902,17 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_ORIENTATION_WITH_OPTIONS: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            Orientation orientation = static_cast<Orientation>(data.ReadUint32());
+            OrientationOptions options;
+            options.needAnimation = data.ReadBool();
+            options.ignoreRotationLock = data.ReadBool();
+            bool isFromNapi = data.ReadBool();
+            DMError ret = SetOrientation(screenId, orientation, options, isFromNapi);
+            reply.WriteInt32(static_cast<int32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED: {
             bool isLocked = static_cast<bool>(data.ReadBool());
             DMError ret = SetScreenRotationLocked(isLocked);
