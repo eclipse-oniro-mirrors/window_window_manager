@@ -5292,7 +5292,7 @@ WSError SceneSessionManager::CheckSessionPropertyOnRecovery(const sptr<WindowSes
         return WSError::WS_ERROR_NOT_SYSTEM_APP;
     }
     if (isSpecificSession) {
-        if (property->GetParentPersistentId() > 0 && !IsNeedRecover(property->GetParentPersistentId())) {
+        if (property->GetParentPersistentId() == INVALID_SESSION_ID) {
             TLOGE(WmsLogTag::WMS_RECOVER, "no need to recover.");
             return WSError::WS_ERROR_INVALID_PARAM;
         }

@@ -395,6 +395,58 @@ HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetBatchAbilityInfos02
+ * @tc.desc: GetBatchAbilityInfos02
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr); 
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    ssm_->bundleMgr_ = sptr<AppExecFwk::BundleMgrProxy>::MakeSptr(iRemoteObjectMocker);
+    int32_t userId = 100;
+    std::vector<std::string> bundleNames = {};
+    auto scbAbilityInfos = std::make_shared<std::vector<SCBAbilityInfo>>();
+    WSError ret = ssm_->GetBatchAbilityInfos(bundleNames, userId, *scbAbilityInfos);
+    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
+}
+
+
+/**
+ * @tc.name: GetBatchAbilityInfos03
+ * @tc.desc: GetBatchAbilityInfos03
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    ssm_->bundleMgr_ = sptr<AppExecFwk::BundleMgrProxy>::MakeSptr(iRemoteObjectMocker);
+    int32_t userId = 100;
+    std::vector<std::string> bundleNames = { "" };
+    auto scbAbilityInfos = std::make_shared<std::vector<SCBAbilityInfo>>();
+    WSError ret = ssm_->GetBatchAbilityInfos(bundleNames, userId, *scbAbilityInfos);
+    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
+}
+
+/** 
+ * @tc.name: GetBatchAbilityInfos04
+ * @tc.desc: GetBatchAbilityInfos04
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    ssm_->bundleMgr_ = sptr<AppExecFwk::BundleMgrProxy>::MakeSptr(iRemoteObjectMocker);
+    int32_t userId = 100;
+    std::vector<std::string> bundleNames = { "test1", "test2" };
+    auto scbAbilityInfos = std::make_shared<std::vector<SCBAbilityInfo>>();
+    WSError ret = ssm_->GetBatchAbilityInfos(bundleNames, userId, *scbAbilityInfos);
+    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM); 
+}
+
+/**
  * @tc.name: IsWindowSupportCacheForRecovering
  * @tc.desc: test function : IsWindowSupportCacheForRecovering
  * @tc.type: FUNC
