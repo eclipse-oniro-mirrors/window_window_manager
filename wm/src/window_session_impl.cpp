@@ -538,17 +538,17 @@ RSSurfaceNodeType WindowSessionImpl::GetRSSurfaceNodeType(WindowType type)
                 rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_COMMON_NODE;
             }
             break;
-         case WindowType::WINDOW_TYPE_PIP:
+        case WindowType::WINDOW_TYPE_PIP:
             rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
             break;
-         case WindowType::WINDOW_TYPE_MAGNIFICATION:
+        case WindowType::WINDOW_TYPE_MAGNIFICATION:
             rsSurfaceNodeType = RSSurfaceNodeType::ABILITY_MAGNIFICATION_NODE;
             break;
-         default:
+        default:
             rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
             break;
-     }
-     return rsSurfaceNodeType;
+    }
+    return rsSurfaceNodeType;
 }
 
 RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string& name, WindowType type)
