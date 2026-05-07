@@ -296,7 +296,7 @@ void WindowManagerLite::Impl::NotifyWindowModeChangeForPropertyChange(const Wind
         windowModeChangeListeners.assign(windowModeChangeListeners_.begin(), windowModeChangeListeners_.end());
     }
 
-    for (auto &listener : windowModeChangeListeners) {
+    for (auto& listener : windowModeChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
             listener->OnWindowInfoChanged(windowInfoListForNotify);
