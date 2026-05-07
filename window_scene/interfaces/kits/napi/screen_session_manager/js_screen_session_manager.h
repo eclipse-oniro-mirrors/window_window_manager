@@ -90,6 +90,7 @@ private:
     void RegisterScreenConnectionCallback(napi_env env, napi_ref& callbackRef);
     void RegisterTentModeCallback(napi_env env, napi_ref& callbackRef);
     void RegisterScreenClosedStateChangeCallback(napi_env env, napi_ref& callbackRef);
+    void UnRegisterScreenClosedStateChangeCallback(napi_env env, napi_ref& callbackRef);
     void RegisterTransRSEventCallback(napi_env env, napi_ref& callback, RSExposedEventType type);
     void UnRegisterTransRSEventCallback(napi_env env, napi_ref& callback, RSExposedEventType type);
     napi_value ConvertRsEventToNapiValue(napi_env env, const sptr<RSEventDataBase>& data);

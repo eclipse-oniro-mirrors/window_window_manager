@@ -889,7 +889,9 @@ napi_value JsScreenSessionManager::OnUnRegisterCallback(napi_env env, const napi
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
         return NapiGetUndefined(env);
     }
-    if (callbackType == ON_EXT_SCREEN_UNSUPPORT_CALLBACK) {
+    if (callbackType == ON_SCREEN_CLOSED_STATE_CHANGE_CALLBACK) {
+        UnRegisterScreenClosedStateChangeCallback(env, callbackRef);
+    } else if (callbackType == ON_EXT_SCREEN_UNSUPPORT_CALLBACK) {
         UnRegisterTransRSEventCallback(env, callbackRef, RSExposedEventType::EXT_SCREEN_UNSUPPORT);
     } else {
         TLOGE(WmsLogTag::DMS, "Unsupported callback type: %{public}s.", callbackType.c_str());
@@ -930,6 +932,31 @@ void JsScreenSessionManager::RegisterScreenClosedStateChangeCallback(napi_env en
         screenClosedStateChangeCallback_.emplace_back(callbackRef);
     }
     ScreenSessionManagerClient::GetInstance().RegisterScreenClosedStateChangeListener(this);
+}
+
+void JsScreenSessionManager::UnRegisterScreenClosedStateChangeCallback(napi_env env, napi_ref& callback)
+{
+    std::unique_lock<std::shared_mutex> lock(screenClosedStateChangeCallbackMutex_);
+    if (screenClosedStateChangeCallback_.empty()) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] No callbacks registered");
+        return;
+    }
+
+    auto iter = std::find_if(screenClosedStateChangeCallback_.begin(), screenClosedStateChangeCallback_.end(),
+        [&](std::shared_ptr<NativeReference> callbackItem) {
+            if (!callbackItem) return false;
+            napi_value callbackNapi;
+            napi_get_reference_value(env, callback, &callbackNapi);
+            bool isEquals = false;
+            napi_strict_equals(env, callbackItem->GetNapiValue(), callbackNapi, &isEquals);
+            return isEquals;
+        });
+    if (iter != screenClosedStateChangeCallback_.end()) {
+        screenClosedStateChangeCallback_.erase(iter);
+        TLOGI(WmsLogTag::DMS, "[NAPI] Unregistered callback");
+    } else {
+        TLOGE(WmsLogTag::DMS, "[NAPI] Callback not registered");
+    }
 }
 
 bool JsScreenSessionManager::ObtainCallBackInfo(napi_env env, const napi_callback_info info,
