@@ -358,59 +358,6 @@ void SceneSession::ClearAllModifiers()
     surfaceNode->SetBackgroundFilter(nullptr);
 }
 
-std::shared_ptr<RSSurfaceNode> SceneSession::CreateSurfaceNodeForConnect(NodeId surfaceNodeId,
-    sptr<WindowSessionProperty> property)
-{
-    if (property == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "property is nullptr");
-        return nullptr;
-    }
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    rsSurfaceNodeConfig.SurfaceNodeName = property->GetWindowName();
-    RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(property->GetWindowType());
-    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType, true,
-        property->IsConstrainedModal(), GetRSUIContext());
-    if (surfaceNode == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Create RSSurfaceNode failed, name: %{public}s",
-            property->GetWindowName().c_str());
-        return nullptr;
-    }
-    TLOGI(WmsLogTag::WMS_LIFE, "Create RSSurfaceNode on server: %{public}s, name: %{public}s, nodeId: %{public}" PRIu64,
-        RSAdapterUtil::RSNodeToStr(surfaceNode).c_str(), property->GetWindowName().c_str(), surfaceNodeId);
-    return surfaceNode;
-}
-
-RSSurfaceNodeType SceneSession::GetRSSurfaceNodeType(WindowType type)
-{
-    RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
-    switch (type) {
-        case WindowType::WINDOW_TYPE_BOOT_ANIMATION:
-        case WindowType::WINDOW_TYPE_POINTER:
-            rsSurfaceNodeType = RSSurfaceNodeType::SELF_DRAWING_WINDOW_NODE;
-            break;
-        case WindowType::WINDOW_TYPE_APP_MAIN_WINDOW:
-            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
-            break;
-        case WindowType::WINDOW_TYPE_UI_EXTENSION:
-            if (property_ && SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
-                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_SECURE_NODE;
-            } else {
-                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_COMMON_NODE;
-            }
-            break;
-        case WindowType::WINDOW_TYPE_PIP:
-            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
-            break;
-        case WindowType::WINDOW_TYPE_MAGNIFICATION:
-            rsSurfaceNodeType = RSSurfaceNodeType::ABILITY_MAGNIFICATION_NODE;
-            break;
-        default:
-            rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
-            break;
-    }
-    return rsSurfaceNodeType;
-}
-
 bool SceneSession::IsShowOnLockScreen(uint32_t lockScreenZOrder)
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "UIExtOnLock: lockScreenZOrder: %{public}d, zOrder_: %{public}d", lockScreenZOrder,
