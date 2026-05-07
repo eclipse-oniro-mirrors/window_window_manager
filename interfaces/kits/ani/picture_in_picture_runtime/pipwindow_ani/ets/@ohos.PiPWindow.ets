@@ -190,19 +190,7 @@ export namespace PiPWindow {
   }
   
   export native function createSync(nativeObj: long, config: PiPConfiguration, contentNode?: typeNode.XComponent): PiPController;
-  function create(config: PiPConfiguration): Promise<PiPController> {
-    return new Promise<PiPController>((resolve: (value: PiPController) => void, reject: (error: BusinessError) => void ) => {
-        taskpool.execute((): PiPController => {
-            return createSync(nativeObj, config, undefined);
-        }).then((ret: Any) => {
-            resolve(ret as PiPController);
-        }).catch((err: Any) => {
-            reject(err as BusinessError);
-        });
-    });
-  }
-
-  function create(config: PiPConfiguration, contentNode: typeNode.XComponent): Promise<PiPController> {
+  export function create(config: PiPConfiguration, contentNode?: typeNode.XComponent): Promise<PiPController> {
     return new Promise<PiPController>((resolve: (value: PiPController) => void, reject: (error: BusinessError) => void ) => {
         taskpool.execute((): PiPController => {
             return createSync(nativeObj, config, contentNode);
@@ -472,40 +460,40 @@ export namespace PiPManager {
     nativeObj = nativeObject;
   }
 
-  export native function InitXComponentController(nativeObj: long, xComponentController: XComponentController): void;
-  export native function GetCustomUIController(nativeObj: long): NodeController;
-  export native function GetTypeNode(nativeObj: long): typeNode.XComponent;
-  export native function RegisterCallback(nativeObj: long, type: string, callback: OnCallback): void;
-  export native function UnregisterCallback(nativeObj: long, type: string): void;
-  export native function SetTypeNodeEnabled(nativeObj: long): void;
+  export native function InitXComponentController(nativeObj: long, windowId: int, xComponentController: XComponentController): void;
+  export native function GetCustomUIController(nativeObj: long, windowId: int): NodeController;
+  export native function GetTypeNode(nativeObj: long, windowId: int): typeNode.XComponent;
+  export native function RegisterCallback(nativeObj: long, windowId: int, type: string, callback: OnCallback): void;
+  export native function UnregisterCallback(nativeObj: long, windowId: int, type: string): void;
+  export native function SetTypeNodeEnabled(nativeObj: long, windowId: int): void;
   export native function SetPipNodeType(nativeObj: long, typeNode: typeNode.XComponent, markPip: boolean): void;
 
-  export function initXComponentController(xComponentController: XComponentController): void {
-    return InitXComponentController(nativeObj, xComponentController);
+  export function initXComponentController(windowId: int, xComponentController: XComponentController): void {
+    return InitXComponentController(nativeObj, windowId, xComponentController);
   }
 
-  export function getCustomUIController(): NodeController {
-    return GetCustomUIController(nativeObj);
+  export function getCustomUIController(windowId: int): NodeController {
+    return GetCustomUIController(nativeObj, windowId);
   }
 
-  export function getTypeNode(): typeNode.XComponent {
-    return GetTypeNode(nativeObj);
+  export function getTypeNode(windowId: int): typeNode.XComponent {
+    return GetTypeNode(nativeObj, windowId);
   }
 
-  export function setTypeNodeEnabled(): void {
-    return SetTypeNodeEnabled(nativeObj);
+  export function setTypeNodeEnabled(windowId: int): void {
+    return SetTypeNodeEnabled(nativeObj, windowId);
   }
 
   export function setPipNodeType(typeNode: typeNode.XComponent, markPip: boolean): void {
     return SetPipNodeType(nativeObj, typeNode, markPip);
   }
 
-  export function on(type: string, callback: OnCallback): void {
-    return RegisterCallback(nativeObj, type, callback);
+  export function on(windowId: int, type: string, callback: OnCallback): void {
+    return RegisterCallback(nativeObj, windowId, type, callback);
   }
 
-  export function off(type: string): void {
-    return UnregisterCallback(nativeObj, type);
+  export function off(windowId: int, type: string): void {
+    return UnregisterCallback(nativeObj, windowId, type);
   }
 
   export function runUpdateNodeCallback(fn: object, fnArg: object): void {

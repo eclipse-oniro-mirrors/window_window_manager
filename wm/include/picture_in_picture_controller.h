@@ -72,6 +72,9 @@ protected:
 private:
     void DeletePIPMode();
     virtual NavigationController* GetNavigationController(const std::string& navId);
+    WMError ValidatePiPCreateParams(StartPipType startType);
+    WMError PreparePiPWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo, 
+        std::shared_ptr<AbilityRuntime::Context>& abilityContext);
 };
 } // namespace Rosen
 } // namespace OHOS

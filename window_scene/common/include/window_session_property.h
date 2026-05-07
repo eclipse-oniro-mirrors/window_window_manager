@@ -994,9 +994,11 @@ struct SystemSessionConfig : public Parcelable {
     float defaultCornerRadius_ = 0.0f; // default corner radius of window set by system config
     bool supportUIExtensionSubWindow_ = false;
     bool supportCreateFloatView_ = false;
+    PiPMultiConfig pipMultiConfig_ = GetDefaultPiPMultiConfig();
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
+    void ConvertPipMultiConfig(const std::string& itemValue);
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
@@ -1067,6 +1069,9 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteFloat(defaultCornerRadius_)) {
             return false;
         }
+        if (!parcel.WriteParcelable(&pipMultiConfig_)) {
+            return false;
+        }
         if (!parcel.WriteBool(supportCreateFloatView_)) {
             return false;
         }
@@ -1128,6 +1133,12 @@ struct SystemSessionConfig : public Parcelable {
             return nullptr;
         }
         config->supportCreateFloatView_ = parcel.ReadBool();
+        sptr<PiPMultiConfig> pipConfig = parcel.ReadParcelable<PiPMultiConfig>();
+        if (pipConfig != nullptr) {
+            config->pipMultiConfig_ = *pipConfig;
+        } else {
+            config->pipMultiConfig_ = GetDefaultPiPMultiConfig();
+        }
         return config;
     }
         

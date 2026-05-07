@@ -637,7 +637,7 @@ WMError WindowSceneSessionImpl::RecoverAndConnectSpecificSession()
     }
     if (WindowHelper::IsPipWindow(type)) {
         TLOGI(WmsLogTag::WMS_RECOVER, "pipWindow");
-        PictureInPictureManager::DoClose(true, true);
+        PictureInPictureManager::DoClose(GetWindowId(), true, true);
         return WMError::WM_OK;
     }
     windowRecoverStateChangeFunc_(true, WindowRecoverState::WINDOW_START_RECONNECT);

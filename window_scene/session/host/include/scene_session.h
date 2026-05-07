@@ -387,6 +387,7 @@ public:
      * PiP Window
      */
     PiPTemplateInfo GetPiPTemplateInfo() const;
+    int64_t GetSessionCreateTimestamp() const;
     void SetPiPTemplateInfo(const PiPTemplateInfo& pipTemplateInfo);
     WSError UpdatePiPRect(const Rect& rect, SizeChangeReason reason) override;
     WSError UpdatePiPControlStatus(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -1247,6 +1248,7 @@ protected:
      */
     NotifyPrepareClosePiPSessionFunc onPrepareClosePiPSession_;
     std::atomic<bool> pipActiveStatus_{true};
+    int64_t createTimestamp_ = 0;
 
     /*
      * Window Layout

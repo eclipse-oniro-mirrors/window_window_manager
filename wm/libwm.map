@@ -114,6 +114,8 @@
  	        OHOS::Rosen::PictureInPictureControllerBase::SetPipWindow*;
  	        OHOS::Rosen::PictureInPictureControllerBase::GetSurfaceId*;
  	        OHOS::Rosen::PictureInPictureControllerBase::GetStateChangeReason*;
+            OHOS::Rosen::PictureInPictureManager::IsTemplateTypeSupported*;
+            OHOS::Rosen::PictureInPictureManager::GetCurrentWindow*;
             OHOS::Rosen::PictureInPictureManager::GetPipControllerInfo*;
             OHOS::Rosen::PictureInPictureManager::GetPipEnabled*;
             OHOS::Rosen::PictureInPictureManager::IsSupportPiP*;
