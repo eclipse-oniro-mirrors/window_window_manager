@@ -983,7 +983,7 @@ HWTEST_F(WindowManagerLiteTest, NotifyWindowPropertyChange02, TestSize.Level1)
     instance_->pImpl_->windowPropertyChangeAgent_ = nullptr;
 
     instance_->interestInfoMap_[WindowInfoKey::MID_SCENE] = 1;
-    sptr<IWindowInfoChangedListener> listener = sptr<IWindowInfoChangedListener>::MakeSptr();
+    sptr<IWindowInfoChangedListener> listener = sptr<TestWindowVisibilityStateListener>::MakeSptr();
     std::unordered_set<WindowInfoKey> interestInfo;
     interestInfo.insert(WindowInfoKey::MID_SCENE);
     interestInfo.insert(WindowInfoKey::WINDOW_MODE);
