@@ -295,7 +295,6 @@ void WindowManagerLite::Impl::NotifyWindowModeChangeForPropertyChange(const Wind
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowModeChangeListeners.assign(windowModeChangeListeners_.begin(), windowModeChangeListeners_.end());
     }
-
     for (auto& listener : windowModeChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
