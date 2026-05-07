@@ -8254,20 +8254,6 @@ sptr<Window> WindowSessionImpl::Find(const std::string& name)
     return iter->second.second;
 }
 
-bool WindowSessionImpl::IsAnyWindowMatchState(const WindowState& state)
-{
-    std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
-    for (const auto& [name, windowPair] : windowSessionMap_) {
-        if (windowPair.second == nullptr) {
-            continue;
-        }
-        if (windowPair.second->GetWindowState() == state) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void WindowSessionImpl::SetAceAbilityHandler(const sptr<IAceAbilityHandler>& handler)
 {
     if (handler == nullptr) {

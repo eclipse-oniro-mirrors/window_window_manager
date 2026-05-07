@@ -39,6 +39,8 @@ private:
     napi_value OnCreateFloatViewController(napi_env env, napi_callback_info info);
     std::string CheckAndGetParam(napi_env env, napi_callback_info info, FvOption& option);
     napi_value CreateFloatViewControllerTask(napi_env env, const FvOption &option);
+    static bool UpdateFloatViewControllerMainWindow(
+        const sptr<FloatViewController>& floatViewController, const FvOption& option);
     napi_value OnIsFloatViewEnabled(napi_env env, napi_callback_info info);
     napi_value OnGetFloatViewLimits(napi_env env, napi_callback_info info);
     napi_value OnBind(napi_env env, napi_callback_info info);

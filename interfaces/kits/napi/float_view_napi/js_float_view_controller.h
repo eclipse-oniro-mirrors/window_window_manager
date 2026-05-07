@@ -17,6 +17,8 @@
 
 #include "float_view_controller.h"
 
+#include "float_view_model.h"
+
 #include "js_float_view_listener.h"
 #include "js_runtime_utils.h"
 #include "window_histogram_management.h"
@@ -41,6 +43,7 @@ public:
     static napi_value SetUIContextByName(napi_env env, napi_callback_info info);
     static napi_value SetFloatViewVisibilityInApp(napi_env env, napi_callback_info info);
     static napi_value SetWindowSize(napi_env env, napi_callback_info info);
+    static napi_value SwitchTemplate(napi_env env, napi_callback_info info);
     static napi_value GetWindowProperties(napi_env env, napi_callback_info info);
     static napi_value RestoreMainWindow(napi_env env, napi_callback_info info);
 
@@ -60,6 +63,8 @@ private:
     napi_value OnSetFloatViewVisibilityInApp(napi_env env, napi_callback_info info);
     napi_value OnSetWindowSize(napi_env env, napi_callback_info info);
     napi_value OnSetWindowSizeTask(napi_env env, int32_t width, int32_t height);
+    napi_value OnSwitchTemplate(napi_env env, napi_callback_info info);
+    napi_value OnSwitchTemplateTask(napi_env env, std::shared_ptr<TemplateProperty> templateProperty);
     napi_value OnGetWindowProperties(napi_env env, napi_callback_info info);
     napi_value OnRestoreMainWindow(napi_env env, napi_callback_info info);
 

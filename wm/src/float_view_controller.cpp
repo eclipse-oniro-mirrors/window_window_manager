@@ -501,12 +501,27 @@ WMError FloatViewController::SetWindowSize(const Rect &rect)
     TLOGI(WmsLogTag::WMS_SYSTEM, "SetWindowSize called");
     std::lock_guard<std::mutex> lock(controllerMutex_);
     option_.SetRect(rect);
+    return UpdateFloatView();
+}
+
+WMError FloatViewController::SetTemplateTypeAndSize(const std::shared_ptr<TemplateProperty>& templateProperty)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "SetTemplateType called");
+    std::lock_guard<std::mutex> lock(controllerMutex_);
+    option_.SetTemplate(templateProperty->templateType);
+    Rect rect {0, 0, static_cast<uint32_t>(templateProperty->width), static_cast<uint32_t>(templateProperty->height)};
+    option_.SetRect(rect);
+    return UpdateFloatView();
+}
+
+WMError FloatViewController::UpdateFloatView()
+{
     if (window_ == nullptr) {
         if (IsStateWithWindow(curState_)) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "window is nullptr when SetWindowSize");
+            TLOGE(WmsLogTag::WMS_SYSTEM, "window is nullptr when change float view template info");
             return WMError::WM_ERROR_INVALID_WINDOW;
         }
-        TLOGI(WmsLogTag::WMS_SYSTEM, "SetWindowSize when window not created, save info");
+        TLOGI(WmsLogTag::WMS_SYSTEM, "change float view template info when window not created, save info");
         return WMError::WM_OK;
     }
     FloatViewTemplateInfo fvTemplateInfo;
@@ -514,7 +529,7 @@ WMError FloatViewController::SetWindowSize(const Rect &rect)
     fvTemplateInfo.id_ = id_;
     auto errCode = window_->UpdateFloatView(fvTemplateInfo);
     if (errCode != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Update float view failed when set window size, err: %{public}u", errCode);
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Update float view failed when change float view, err: %{public}u", errCode);
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     return WMError::WM_OK;

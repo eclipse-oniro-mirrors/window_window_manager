@@ -109,23 +109,34 @@ ani_ref AniFvWindow::CreateFvController(ani_env* env, void* contextPtr, uint32_t
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]start");
 
     if (!FloatViewManager::isSupportFloatView_) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Device does not support");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
             "Device does not support float view.");
     }
 
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
     if (context == nullptr) {
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Invalid context");
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Invalid context.");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Invalid context.");
     }
 
     if (templateType >= static_cast<uint32_t>(FloatViewTemplate::END)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Template type is invalid.");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "Template type is invalid.");
+    }
+
+    sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
+    if (mainWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get main window from context.");
+        return AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Failed to get main window from context.");
     }
     
     FvOption option;
     option.SetContext(contextPtr);
     option.SetTemplate(templateType);
     sptr<FloatViewController> fvController = sptr<FloatViewController>::MakeSptr(option, env);
+    fvController->UpdateMainWindow(mainWindow);
     return CreateAniFvControllerObject(env, fvController);
 }
 

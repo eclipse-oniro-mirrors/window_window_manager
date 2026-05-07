@@ -64,6 +64,7 @@
             OHOS::Rosen::FloatViewController::SetUIContext*;
             OHOS::Rosen::FloatViewController::SetVisibilityInApp*;
             OHOS::Rosen::FloatViewController::SetWindowSize*;
+            OHOS::Rosen::FloatViewController::SetTemplateType*;
             OHOS::Rosen::FloatViewController::RestoreMainWindow*;
             OHOS::Rosen::FloatViewController::GetController*;
             OHOS::Rosen::FloatViewController::GetTemplateType*;

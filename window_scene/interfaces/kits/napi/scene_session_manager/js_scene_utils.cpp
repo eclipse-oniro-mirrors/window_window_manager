@@ -2561,6 +2561,8 @@ napi_value CreateJsSessionFloatViewTemplateType(napi_env env)
 
     napi_set_named_property(env, objValue, "ROUNDED_RECTANGLE", CreateJsValue(env,
         static_cast<uint32_t>(FloatViewTemplate::ROUNDED_RECTANGLE)));
+    napi_set_named_property(env, objValue, "HORIZONTAL_BAR", CreateJsValue(env,
+        static_cast<uint32_t>(FloatViewTemplate::HORIZONTAL_BAR)));
     return objValue;
 }
 
