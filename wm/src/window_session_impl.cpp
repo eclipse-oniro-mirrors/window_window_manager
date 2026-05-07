@@ -519,6 +519,38 @@ void WindowSessionImpl::SetSubWindowZLevelToProperty()
     }
 }
 
+RSSurfaceNodeType WindowSessionImpl::GetRSSurfaceNodeType(WindowType type)
+{
+    RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
+    switch (type) {
+        case WindowType::WINDOW_TYPE_BOOT_ANIMATION:
+        case WindowType::WINDOW_TYPE_POINTER:
+            rsSurfaceNodeType = RSSurfaceNodeType::SELF_DRAWING_WINDOW_NODE;
+            break;
+        case WindowType::WINDOW_TYPE_APP_MAIN_WINDOW:
+            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
+            break;
+        case WindowType::WINDOW_TYPE_UI_EXTENSION:
+            TLOGD(WmsLogTag::WMS_UIEXT, "uiExtensionUsage=%{public}u", property_->GetUIExtensionUsage());
+            if (SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
+                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_SECURE_NODE;
+            } else {
+                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_COMMON_NODE;
+            }
+            break;
+         case WindowType::WINDOW_TYPE_PIP:
+            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
+            break;
+         case WindowType::WINDOW_TYPE_MAGNIFICATION:
+            rsSurfaceNodeType = RSSurfaceNodeType::ABILITY_MAGNIFICATION_NODE;
+            break;
+         default:
+            rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
+            break;
+     }
+     return rsSurfaceNodeType;
+}
+
 RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string& name, WindowType type)
 {
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
