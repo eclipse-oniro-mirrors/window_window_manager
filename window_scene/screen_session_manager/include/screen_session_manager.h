@@ -78,6 +78,7 @@ public:
     // inner interface of multimodal-input
     void NotifyScreenModeChange(ScreenId disconnectedScreenId = INVALID_SCREEN_ID);
     void NotifyTentModeChange(TentMode tentMode);
+    void NotifyScreenClosedStateChange(ScreenClosedState screenClosedState);
     void NotifyAbnormalScreenConnectChange(ScreenId screenId);
     DMError SetPrimaryDisplaySystemDpi(float dpi) override;
 
@@ -1098,6 +1099,7 @@ private:
     std::atomic<bool> gotScreenlockFingerprint_ = false;
     std::atomic<bool> isPhyScreenConnected_ = false;
     std::atomic<TentMode> tentMode_ = TentMode::UNKNOWN;
+    std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::atomic<ScreenPowerStatus> lastPowerForAllStatus_ = ScreenPowerStatus::INVALID_POWER_STATUS;
     std::atomic<ScreenId> lastScreenId_ = SCREEN_ID_INVALID;
     int32_t cameraStatus_ = {0};

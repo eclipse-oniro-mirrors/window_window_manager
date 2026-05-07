@@ -80,6 +80,33 @@ void ScreenSessionManagerClientProxy::OnTentModeChange(TentMode tentMode)
     }
 }
 
+
+void ScreenSessionManagerClientProxy::OnScreenClosedStateChange(ScreenClosedState screenClosedState)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is null");
+        return;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(screenClosedState))) {
+        TLOGE(WmsLogTag::DMS, "Write screenClosedState failed");
+        return;
+    }
+    int ret = remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_CLOSED_STATE_CHANGE),
+        data, reply, option);
+    if (ret != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "send request failed, ret=%{public}d", ret);
+    }
+}
+
 bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(const SessionOption& sessionOption,
     ScreenEvent screenEvent, MessageParcel& data)
 {

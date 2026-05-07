@@ -202,9 +202,9 @@ bool DisplayManagerAdapterLite::SuspendEnd()
 DMError DisplayManagerAdapterLite::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
 {
     if (IsScreenLessDevice()) {
-        return true;
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
-    INIT_PROXY_CHECK_RETURN(false);
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_NULLPTR);
 
     return displayManagerServiceProxy_->SetScreenSwitchState(screenClosedState, isScreenOn);
 }

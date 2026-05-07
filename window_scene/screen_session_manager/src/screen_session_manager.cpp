@@ -1164,6 +1164,18 @@ void ScreenSessionManager::NotifyTentModeChange(TentMode tentMode)
     clientProxy->OnTentModeChange(tentMode);
 }
 
+void ScreenSessionManager::NotifyScreenClosedStateChange(ScreenClosedState screenClosedState)
+{
+    auto clientProxy = GetClientProxy();
+    if (!clientProxy) {
+        TLOGNFW(WmsLogTag::DMS, "clientProxy null");
+        return;
+    }
+    screenClosedState_ = screenClosedState;
+    TLOGD(WmsLogTag::DMS, "change screenClosedState to: %{public}" PRIu32, static_cast<uint32_t>(screenClosedState));
+    clientProxy->OnScreenClosedStateChange(screenClosedState);
+}
+
 void ScreenSessionManager::OnVirtualScreenChange(ScreenId screenId, ScreenEvent screenEvent,
     const UniqueScreenRotationOptions& rotationOptions, int32_t userId)
 {
