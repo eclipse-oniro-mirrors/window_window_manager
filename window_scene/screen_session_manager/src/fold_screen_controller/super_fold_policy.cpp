@@ -17,6 +17,7 @@
 #include <hitrace_meter.h>
 #include "fold_screen_controller/super_fold_policy.h"
 #include "window_manager_hilog.h"
+#include <power_mgr_client.h>
 
 namespace OHOS::Rosen {
 WM_IMPLEMENT_SINGLE_INSTANCE(SuperFoldPolicy)
@@ -30,11 +31,12 @@ constexpr uint64_t SCREEN_ID_SIZE_ONE = 1;
 constexpr DMRect FULL_SCREEN_RECORD_DMRECT = {0, 0, 0, 0};
 constexpr DMRect FULL_SCREEN_RECORD_PHYDMRECT = {0, 0, DISPLAY_A_WIDTH, DISPLAY_A_HEIGHT};
 const uint32_t MODE_CHANGE_TIMEOUT_MS = 2000;
+const int64_t POWER_INIT_TIME_MS = 50;
 #ifdef TP_FEATURE_ENABLE
 const int32_t TP_TYPE = 12;
+#endif
 const std::string MAIN_TP = "1";
 const std::string FULL_TP = "0";
-#endif
 }
 
 bool SuperFoldPolicy::IsFakeDisplayExist()
@@ -199,19 +201,24 @@ void SuperFoldPolicy::SetOnBootAnimation(bool onBootAnimation)
     onBootAnimation_.store(onBootAnimation);
     if (!onBootAnimation_) {
         TLOGI(WmsLogTag::DMS, "when boot animation finished, change display mode");
-        RecoverWhenBootAnimationExit();
+        RecoverDisplayMode();
     }
 }
 
 void SuperFoldPolicy::BootAnimationFinishPowerInit()
 {
-    // 开机四步上下电
-    int64_t timeStamp = 50;
     if (GetScreenClosedState() == ScreenClosedState::OPEN) {
         // coordination to full: power off main screen
         TLOGI(WmsLogTag::DMS, "Fold Screen Power main screen off.");
+        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL,
+            ScreenPowerStatus::POWER_STATUS_OFF_FAKE);
+        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
+            ScreenPowerStatus::POWER_STATUS_ON);
+        std::this_thread::sleep_for(std::chrono::milliseconds(POWER_INIT_TIME_MS));
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_OFF);
+        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL,
+            ScreenPowerStatus::POWER_STATUS_ON);
     } else if (GetScreenClosedState() == ScreenClosedState::CLOSE) {
         // coordination to main: power off both and power on main screen
         TLOGI(WmsLogTag::DMS, "Fold Screen Power all screen off.");
@@ -220,17 +227,16 @@ void SuperFoldPolicy::BootAnimationFinishPowerInit()
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_FULL,
             ScreenPowerStatus::POWER_STATUS_OFF);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(timeStamp));
+        std::this_thread::sleep_for(std::chrono::milliseconds(POWER_INIT_TIME_MS));
         TLOGI(WmsLogTag::DMS, "Fold Screen Power main screen on.");
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
     } else {
         TLOGI(WmsLogTag::DMS, "Fold Screen Power Init, invalid active screen id");
     }
-    SetOnBootAnimation(false);
 }
 
-void SuperFoldPolicy::RecoverWhenBootAnimationExit()
+void SuperFoldPolicy::RecoverDisplayMode()
 {
     ScreenClosedState screenClosedState = GetScreenClosedState();
     FoldDisplayMode displayMode = GetModeMatchStatus(screenClosedState);
@@ -246,9 +252,11 @@ FoldDisplayMode SuperFoldPolicy::GetModeMatchStatus(ScreenClosedState screenClos
     switch (screenClosedState) {
         case ScreenClosedState::CLOSE: {
             foldDisplayMode = FoldDisplayMode::MAIN;
+            break;
         }
         case ScreenClosedState::OPEN: {
             foldDisplayMode = FoldDisplayMode::FULL;
+            break;
         }
         default: {
             TLOGE(WmsLogTag::DMS, "invalid screenClosedState");
@@ -277,7 +285,7 @@ void SuperFoldPolicy::SetCurrentScreenId(ScreenId screenId)
 
 void SuperFoldPolicy::SetLastCacheDisplayMode(FoldDisplayMode displayMode)
 {
-    lastCachedisplayMode_.store(displayMode);
+    lastCacheDisplayMode_.store(displayMode);
 }
 
 FoldDisplayMode SuperFoldPolicy::GetCurrentDisplayMode()
@@ -288,6 +296,11 @@ FoldDisplayMode SuperFoldPolicy::GetCurrentDisplayMode()
 void SuperFoldPolicy::SetCurrentDisplayMode(FoldDisplayMode displayMode)
 {
     currentDisplayMode_.store(displayMode);
+}
+
+void SuperFoldPolicy::LockDisplayMode(bool isLock)
+{
+    isLockDisplayMode_.store(isLock);
 }
 
 DMError SuperFoldPolicy::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
@@ -302,6 +315,9 @@ DMError SuperFoldPolicy::SetScreenSwitchState(ScreenClosedState screenClosedStat
         return DMError::DM_ERROR_INVALID_PARAM;
     }
     ChangeScreenDisplayModeInner(displayMode, isScreenOn);
+    // notify foldStatus
+    NotifyFoldStatus(screenClosedState);
+    ScreenSessionManager::GetInstance().NotifyScreenClosedStateChange(screenClosedState);
     return DMError::DM_OK;
 }
 
@@ -313,6 +329,10 @@ bool SuperFoldPolicy::CheckDisplayMode(FoldDisplayMode displayMode)
     }
     if (onBootAnimation_.load()) {
         TLOGW(WmsLogTag::DMS, "onBootAnimation can not change mode");
+        return false;
+    }
+    if (isLockDisplayMode_.load()) {
+        TLOGW(WmsLogTag::DMS, "displayMode is locked");
         return false;
     }
     if (GetModeChangeRunningStatus()) {
@@ -338,21 +358,28 @@ bool SuperFoldPolicy::GetdisplayModeRunningStatus()
     return displayModeChangeRunning_.load();
 }
 
-DMError SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isScreenOn)
+void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isScreenOn)
 {
-    ScreenId currentScreenId = GetCurrentScreenId();
+    ScreenId offScreenId = GetCurrentScreenId();
+    if (screenId == SCREEN_ID_MAIN) {
+        offScreenId = SCREEN_ID_FULL;
+    } else if (screenId == SCREEN_ID_FULL) {
+        offScreenId = SCREEN_ID_MAIN;
+    }
     if (isScreenOn) {
-        auto taskScreenOff = [=] {
-            TLOGNI(WmsLogTag::DMS, "SetScreenPower: off screenId: %{public}" PRIu64"", currentScreenId);
-            ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(currentScreenId,
+        auto task = [=] {
+            TLOGNI(WmsLogTag::DMS, "SetScreenPower: off screenId: %{public}" PRIu64"", offScreenId);
+            ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(offScreenId,
                 ScreenPowerStatus::POWER_STATUS_OFF);
             TLOGNI(WmsLogTag::DMS, "SetScreenPower: on screenId: %{public}" PRIu64"", screenId);
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(screenId,
                 ScreenPowerStatus::POWER_STATUS_ON);
             SetdisplayModeChangeStatus(false);
-        }
+        };
         ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
             PostAsyncTask(task, __func__);
+    } else {
+        SetdisplayModeChangeStatus(false);
     }
     SetCurrentScreenId(screenId);
 }
@@ -360,7 +387,7 @@ DMError SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool i
 DMError SuperFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode)
 {
     bool isScreenOn = PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn();
-    ChangeScreenDisplayModeInner(displayMode, isScreenOn);
+    return ChangeScreenDisplayModeInner(displayMode, isScreenOn);
 }
 
 DMError SuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMode, bool isScreenOn)
@@ -398,28 +425,41 @@ DMError SuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMod
 #endif
     SetCurrentDisplayMode(displayMode);
     SetdisplayModeChangeStatus(false);
-    //todo 通知scb切屏
+    ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
     return DMError::DM_OK;
 }
 
 void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
 {
     if (GetCurrentDisplayMode() != FoldDisplayMode::FULL) {
-        TLOGNI(WmsLogTag::DMS, "only full can enter coordination");
+        TLOGI(WmsLogTag::DMS, "only full can enter coordination");
         return;
     }
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     auto taskCoordination = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on full screenId");
         if (!isScreenOn) {
             PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
         }
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on main screenId");
-        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_SUB,
+        ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
         SetdisplayModeChangeStatus(false);
     };
     ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
         PostAsyncTask(taskCoordination, __func__);
+}
+
+void SuperFoldPolicy::ExitCoordination()
+{
+    if (GetCurrentDisplayMode() != FoldDisplayMode::COORDINATION) {
+        TLOGI(WmsLogTag::DMS, "not in coordination");
+        return;
+    }
+    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
+        ScreenPowerStatus::POWER_STATUS_OFF);
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+    RecoverDisplayMode();
 }
 
 void SuperFoldPolicy::ReportFoldDisplayModeChange(FoldDisplayMode displayMode)
@@ -439,20 +479,70 @@ void SuperFoldPolicy::ReportFoldDisplayModeChange(FoldDisplayMode displayMode)
 void SuperFoldPolicy::SetdisplayModeChangeStatus(bool status, bool isOnBootAnimation)
 {
     if (status) {
-        pengdingTask_ = SWITCH_SCREEN_TASK_NUM;
+        pendingTask_ = SWITCH_SCREEN_TASK_NUM;
         startTimePoint_ = std::chrono::steady_clock::now();
         displayModeChangeRunning_ = status;
     } else {
-        pengdingTask_ --;
-        if (pengdingTask_ != 0) {
+        pendingTask_ --;
+        if (pendingTask_ != 0) {
             return;
         }
         displayModeChangeRunning_ = false;
         endTimePoint_ = std::chrono::steady_clock::now();
-        if (lastCachedisplayMode_.load() != GetCurrentDisplayMode()) {
+        if (lastCacheDisplayMode_.load() != GetCurrentDisplayMode()) {
             TLOGI(WmsLogTag::DMS, "start change displaymode to lastest mode");
-            ScreenSessionManager::GetInstance().TriggerDisplayModeUpdate(lastCachedisplayMode_.load());
+            ScreenSessionManager::GetInstance().TriggerDisplayModeUpdate(lastCacheDisplayMode_.load());
         }
     }
+}
+
+bool SuperFoldPolicy::SetAndCheckFoldStatus(FoldStatus foldStatus)
+{
+    std::lock_guard<std::mutex> lock(phyFoldStatusMutex_);
+    phyFoldStatus_ = foldStatus;
+    if (GetScreenClosedState() == ScreenClosedState::CLOSE) {
+        return false;
+    }
+    if (foldStatus == FoldStatus::FOLDED) {
+        return false;
+    }
+    if (lastFoldStatus_ == foldStatus) {
+        return false;
+    }
+    lastFoldStatus_ = foldStatus;
+    return true;
+}
+
+FoldStatus SuperFoldPolicy::GetPhyFoldStatus()
+{
+    std::lock_guard<std::mutex> lock(phyFoldStatusMutex_);
+    return phyFoldStatus_;
+}
+
+void SuperFoldPolicy::NotifyFoldStatus(ScreenClosedState screenClosedState)
+{
+    FoldStatus foldStatus = FoldStatus::UNKNOWN;
+    if (screenClosedState == ScreenClosedState::CLOSE) {
+        foldStatus = FoldStatus::FOLDED;
+    } else if (screenClosedState == ScreenClosedState::OPEN) {
+        FoldStatus phyFoldStatus = GetPhyFoldStatus();
+        foldStatus = FoldStatus::HALF_FOLD;
+        if (phyFoldStatus == FoldStatus::HALF_FOLD || phyFoldStatus == FoldStatus::EXPAND) {
+            foldStatus = phyFoldStatus;
+        }
+    }
+    TLOGI(WmsLogTag::DMS, "ScreenClosedState:%{public}d, foldStatus:%{public}d", screenClosedState, foldStatus);
+    if (foldStatus == FoldStatus::UNKNOWN) {
+        TLOGE(WmsLogTag::DMS, "invalid foldstatus");
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock(phyFoldStatusMutex_);
+        if (lastFoldStatus_ == foldStatus) {
+            return;
+        }
+        lastFoldStatus_ = foldStatus;
+    }
+    ScreenSessionManager::GetInstance().NotifyFoldStatusChangedInner(foldStatus);
 }
 } // namespace OHOS::Rosen

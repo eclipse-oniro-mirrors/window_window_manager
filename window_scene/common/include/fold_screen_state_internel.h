@@ -35,6 +35,7 @@ static const std::string SINGLE_SUPER_DISPLAY = "7";
 static const std::string SECONDARY_SUPER_DISPLAY = "8";
 static const std::string DEFAULT_OFFSET = "0";
 static const std::string SCREEN_NUMBER = "2";
+static const size_t SCREEN_NUMBER_PARAM_SIZE = 2;
 static const size_t THIRD_ANGLE = 2;
 }
 class FoldScreenStateInternel {
@@ -92,7 +93,7 @@ public:
             return false;
         }
         std::vector<std::string> foldTypes = StringSplit(g_foldScreenType, ',');
-        if (foldTypes.size() < 2) {
+        if (foldTypes.size() < SCREEN_NUMBER_PARAM_SIZE) {
             return false;
         }
         return foldTypes[0] == SUPER_FOLD_DISPLAY && foldTypes[1] == SCREEN_NUMBER;

@@ -80,7 +80,6 @@ void ScreenSessionManagerClientProxy::OnTentModeChange(TentMode tentMode)
     }
 }
 
-
 void ScreenSessionManagerClientProxy::OnScreenClosedStateChange(ScreenClosedState screenClosedState)
 {
     sptr<IRemoteObject> remote = Remote();

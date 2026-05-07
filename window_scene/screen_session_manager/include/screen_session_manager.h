@@ -378,6 +378,7 @@ public:
 
     void TriggerFoldStatusChange(FoldStatus foldStatus);
     void NotifyFoldStatusChanged(FoldStatus foldStatus);
+    void NotifyFoldStatusChangedInner(FoldStatus foldStatus);
     void NotifyFoldAngleChanged(std::vector<float> foldAngles);
     int NotifyFoldStatusChanged(const std::string& statusParam);
     void NotifyDisplayModeChanged(FoldDisplayMode displayMode);
@@ -1099,7 +1100,6 @@ private:
     std::atomic<bool> gotScreenlockFingerprint_ = false;
     std::atomic<bool> isPhyScreenConnected_ = false;
     std::atomic<TentMode> tentMode_ = TentMode::UNKNOWN;
-    std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::atomic<ScreenPowerStatus> lastPowerForAllStatus_ = ScreenPowerStatus::INVALID_POWER_STATUS;
     std::atomic<ScreenId> lastScreenId_ = SCREEN_ID_INVALID;
     int32_t cameraStatus_ = {0};
@@ -1230,6 +1230,7 @@ private:
 
     void AddSecondaryDisplaySuperCapability(std::vector<std::string> specialOrientation,
         nlohmann::ordered_json& jsonDisplayCapabilityList);
+    void HandleSuperMultiFoldScreenPowerInit();
 
     // mirror screen
     bool SetResolutionEffect(ScreenId screenId,  uint32_t width, uint32_t height);

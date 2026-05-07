@@ -35,7 +35,7 @@ public:
     DMRect GetRecordRect(const std::vector<ScreenId>& screenIds);
     ScreenId GetRealScreenId(const std::vector<ScreenId>& screenIds);
     DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect);
-    ScreenId SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn);
+    DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn);
     ScreenClosedState GetScreenClosedState() const;
     ScreenId GetCurrentScreenId();
     void SetCurrentScreenId(ScreenId screenId);
@@ -48,22 +48,34 @@ public:
     void SetCurrentDisplayMode(FoldDisplayMode displayMode);
     void SetdisplayModeChangeStatus(bool status, bool isOnBootAnimation = false);
     void SetOnBootAnimation(bool onBootAnimation);
-    void RecoverWhenBootAnimationExit();
+    FoldDisplayMode GetModeMatchStatus(ScreenClosedState screenClosedState);
+    void BootAnimationFinishPowerInit();
+    void RecoverDisplayMode();
     bool GetModeChangeRunningStatus();
     bool GetdisplayModeRunningStatus();
     void ChangeScreenDisplayModeToCoordination(bool isScreenOn);
-
+    void ExitCoordination();
+    void SwitchScreenAndSetScreenPower(ScreenId screenId, bool isScreenOn);
+    bool SetAndCheckFoldStatus(FoldStatus foldStatus);
+    FoldStatus GetPhyFoldStatus();
+    void LockDisplayMode(bool isLock);
+ 
 private:
+    void NotifyFoldStatus(ScreenClosedState screenClosedState);
     std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::mutex currentScreenIdMutex_;
     ScreenId currentScreenId_ = { SCREEN_ID_INVALID };
-    std::atomic<FoldDisplayMode> lastCachedisplayMode_ = FoldDisplayMode::UNKNOWN;
+    std::atomic<FoldDisplayMode> lastCacheDisplayMode_ = FoldDisplayMode::UNKNOWN;
     std::atomic<FoldDisplayMode> currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
-    std::atomic<int> pengdingTask_{SWITCH_SCREEN_TASK_NUM};
+    std::atomic<int> pendingTask_{SWITCH_SCREEN_TASK_NUM};
     std::atomic<bool> displayModeChangeRunning_ = false;
     std::atomic<bool> onBootAnimation_ = true;
     std::chrono::steady_clock::time_point startTimePoint_ = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point endTimePoint_ = std::chrono::steady_clock::now();
+    std::mutex phyFoldStatusMutex_;
+    FoldStatus phyFoldStatus_;
+    FoldStatus lastFoldStatus_;
+    std::atomic<bool> isLockDisplayMode_ = false;
 };
 }
 #endif // OHOS_ROSEN_WINDOW_SUPER_FOLD_POLICY_H

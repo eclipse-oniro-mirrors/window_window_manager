@@ -941,7 +941,6 @@ void JsScreenSessionManager::UnRegisterScreenClosedStateChangeCallback(napi_env 
         TLOGE(WmsLogTag::DMS, "[NAPI] No callbacks registered");
         return;
     }
-
     auto iter = std::find_if(screenClosedStateChangeCallback_.begin(), screenClosedStateChangeCallback_.end(),
         [&](std::shared_ptr<NativeReference> callbackItem) {
             if (!callbackItem) return false;
