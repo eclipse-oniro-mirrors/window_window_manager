@@ -471,8 +471,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         SetDefaultDisplayIdIfNeed();
         property_->SetIsUIExtensionAbilityProcess(isUIExtensionAbilityProcess_);
         // create sub session by parent session
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-            surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+            property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         if (!hasToastFlag) {
             AddSubWindowMapForExtensionWindow();
         }
@@ -489,8 +489,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetDisplayId(crossProcessWindowInfo.displayId);
             property_->SetIsPcAppInPad(crossProcessWindowInfo.isPcAppInPad);
             property_->SetPcAppInpadCompatibleMode(crossProcessWindowInfo.isPcAppInpadCompatibleMode);
-            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-                surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+                property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         } else {
             sptr<WindowSessionImpl> parentSession = nullptr;
             auto ret = WindowSceneSessionImpl::GetParentSessionAndVerify(hasToastFlag, parentSession);
@@ -504,8 +504,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
             property_->SetPcAppInpadCompatibleMode(parentSession->GetProperty()->GetPcAppInpadCompatibleMode());
             // creat sub session by parent session
-            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-                surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+                property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
             {
                 std::lock_guard<std::recursive_mutex> lock(subWindowSessionMutex_);
                 // update subWindowSessionMap_
@@ -523,8 +523,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
         }
         PreProcessCreate();
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-            surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+            property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
     }
     property_->SetPersistentId(persistentId);
     if (session == nullptr) {
@@ -533,6 +533,11 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         RecordLifeCycleExceptionEvent(WMError::WM_ERROR_NULLPTR,
             WMErrorReason::WM_REASON_SUB_WINDOW_IPC_CREATE_ERR, "sub window create failed when ipc");
         return WMError::WM_ERROR_NULLPTR;
+    }
+    if (surfaceNode_ == nullptr) {
+        TLOGI(WmsLogTag::WMS_LIFE, "create specific failed, surfaceNode is nullptr, name: %{public}s",
+            property_->GetWindowName().c_str());
+            return WMError::WM_ERROR_NULLPTR;
     }
     if (renderSession == nullptr) {
         TLOGI(WmsLogTag::WMS_LIFE, "create specific failed, renderSession is nullptr, name: %{public}s",

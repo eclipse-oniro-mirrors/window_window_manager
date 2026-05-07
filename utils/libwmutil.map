@@ -70,6 +70,8 @@
             OHOS::Rosen::RSAdapterUtil::SetRSUIContext*;
             OHOS::Rosen::RSUIContextContainer::GetRenderSession*;
             OHOS::Rosen::RSUIContextContainer::SetRenderSession*;
+            OHOS::Rosen::RSUIContextContainer::GetRSUIContext*;
+            OHOS::Rosen::RSUIContextContainer::SetRSUIContext*;
             OHOS::Rosen::RSAdapterUtil::SetSkipCheckInMultiInstance*;
             OHOS::Rosen::RSSyncTransactionAdapter::CloseSyncTransaction*;
             OHOS::Rosen::RSSyncTransactionAdapter::GetRSTransaction*;

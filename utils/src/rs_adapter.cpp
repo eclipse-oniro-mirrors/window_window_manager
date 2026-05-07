@@ -604,7 +604,8 @@ std::string RSAdapterUtil::RSUIDirectorToStr(const std::shared_ptr<RSUIDirector>
 }
 
 sptr<IRemoteBroker> RSUIContextContainer::renderSession;
- 
+std::shared_ptr<RSUIContext> RSUIContextContainer::rsUIContext;
+
 sptr<IRemoteObject> RSUIContextContainer::GetRenderSession()
 {
     return renderSession;
@@ -613,6 +614,16 @@ sptr<IRemoteObject> RSUIContextContainer::GetRenderSession()
 void RSUIContextContainer::SetRenderSession(sptr<IRemoteObject> renderSessionObj)
 {
     renderSession = renderSessionObj;
+}
+
+std::shared_ptr<RSUIContext> RSUIContextContainer::GetRSUIContext()
+{
+    return rsUIContext;
+}
+
+void RSUIContextContainer::SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContextObj)
+{
+    rsUIContext = rsUIContextObj;
 }
 } // namespace Rosen
 } // namespace OHOS

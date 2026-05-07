@@ -200,10 +200,13 @@ inline void RunIfRSClientMultiInstanceEnabled(const std::function<void()>& actio
 class RSUIContextContainer {
 public:
     static sptr<IRemoteObject> GetRenderSession();
-    static void SetRenderSession(sptr<IRemoteObject> renderSession);
+    static void SetRenderSession(sptr<IRemoteObject> renderSessionObj);
+    static std::shared_ptr<RSUIContext> GetRSUIContext();
+    static void SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContextObj);
 
 private:
     static sptr<IRemoteBroker> renderSession;
+    static std::shared_ptr<RSUIContext> rsUIContext;
 }
 } // namespace Rosen
 } // namespace OHOS

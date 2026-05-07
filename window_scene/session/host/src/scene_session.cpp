@@ -195,12 +195,12 @@ SceneSession::~SceneSession()
 
 WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
-    sptr<IRemoteObject>& renderSession,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token, int32_t pid, int32_t uid,
     const std::string& identityToken)
 {
-    return PostSyncTask([weakThis = wptr(this), sessionStage, eventChannel, surfaceNode, &systemConfig,
+    return PostSyncTask([weakThis = wptr(this), sessionStage, eventChannel, nodeId, &surfaceNode, &systemConfig,
         property, token, pid, uid, identityToken, &renderSession, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
@@ -234,7 +234,9 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
         }
         session->RetrieveStatusBarDefaultVisibility();
         auto ret = LOCK_GUARD_EXPR(SCENE_GUARD, session->Session::ConnectInner(
-            sessionStage, eventChannel, surfaceNode, systemConfig, renderSession, property, token, pid, uid));
+            sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode, property, token, pid, uid));
+        renderSession = ScreenSessionManagerClient::GetInstance().GetRenderSessionToken();
+        RSUIContextContainer::SetRenderSession(renderSession);
         if (ret != WSError::WS_OK) {
             return ret;
         }
@@ -249,15 +251,15 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
 }
 
 WSError SceneSession::Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
-    sptr<IRemoteObject>& renderSession,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
 {
     // Get pid and uid before posting task.
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     int32_t uid = IPCSkeleton::GetCallingUid();
-    return ConnectInner(sessionStage, eventChannel, surfaceNode, systemConfig, renderSession,
+    return ConnectInner(sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode,
         property, token, pid, uid, identityToken);
 }
 
@@ -354,6 +356,59 @@ void SceneSession::ClearAllModifiers()
     surfaceNode->SetPivotZ(0);
     surfaceNode->SetMask(nullptr);
     surfaceNode->SetBackgroundFilter(nullptr);
+}
+
+std::shared_ptr<RSSurfaceNode> SceneSession::CreateSurfaceNodeForConnect(NodeId surfaceNodeId,
+    sptr<WindowSessionProperty> property)
+{
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "property is nullptr");
+        return nullptr;
+    }
+    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
+    rsSurfaceNodeConfig.SurfaceNodeName = property->GetWindowName();
+    RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(property->GetWindowType());
+    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType, true,
+        property->IsConstrainedModal(), GetRSUIContext());
+    if (surfaceNode == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Create RSSurfaceNode failed, name: %{public}s",
+            property->GetWindowName().c_str());
+        return nullptr;
+    }
+    TLOGI(WmsLogTag::WMS_LIFE, "Create RSSurfaceNode on server: %{public}s, name: %{public}s, nodeId: %{public}" PRIu64,
+        RSAdapterUtil::RSNodeToStr(surfaceNode).c_str(), property->GetWindowName().c_str(), surfaceNodeId);
+    return surfaceNode;
+}
+
+RSSurfaceNodeType SceneSession::GetRSSurfaceNodeType(WindowType type)
+{
+    RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
+    switch (type) {
+        case WindowType::WINDOW_TYPE_BOOT_ANIMATION:
+        case WindowType::WINDOW_TYPE_POINTER:
+            rsSurfaceNodeType = RSSurfaceNodeType::SELF_DRAWING_WINDOW_NODE;
+            break;
+        case WindowType::WINDOW_TYPE_APP_MAIN_WINDOW:
+            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
+            break;
+        case WindowType::WINDOW_TYPE_UI_EXTENSION:
+            if (property_ && SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
+                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_SECURE_NODE;
+            } else {
+                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_COMMON_NODE;
+            }
+            break;
+        case WindowType::WINDOW_TYPE_PIP:
+            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
+            break;
+        case WindowType::WINDOW_TYPE_MAGNIFICATION:
+            rsSurfaceNodeType = RSSurfaceNodeType::ABILITY_MAGNIFICATION_NODE;
+            break;
+        default:
+            rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
+            break;
+    }
+    return rsSurfaceNodeType;
 }
 
 bool SceneSession::IsShowOnLockScreen(uint32_t lockScreenZOrder)

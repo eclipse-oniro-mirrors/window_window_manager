@@ -352,13 +352,12 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
         property_->SetDecorEnable(option->GetSubWindowDecorEnable());
     }
     if (IsSceneBoardEnabled()) {
-        surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+        nodeId_ = RSNode::GenerateId();
+        TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}.", PRIu64, nodeId_);
+        vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
     } else {
-        needCreateCompleteSurfaceNode_ = true;
         RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
         surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
-    }
-    if (surfaceNode_ != nullptr) {
         vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
     }
     WindowHelper::SplitStringByDelimiter(
@@ -520,49 +519,14 @@ void WindowSessionImpl::SetSubWindowZLevelToProperty()
     }
 }
 
-RSSurfaceNodeType WindowSessionImpl::GetRSSurfaceNodeType(WindowType type)
-{
-    RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
-    switch (type) {
-        case WindowType::WINDOW_TYPE_BOOT_ANIMATION:
-        case WindowType::WINDOW_TYPE_POINTER:
-            rsSurfaceNodeType = RSSurfaceNodeType::SELF_DRAWING_WINDOW_NODE;
-            break;
-        case WindowType::WINDOW_TYPE_APP_MAIN_WINDOW:
-            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
-            break;
-        case WindowType::WINDOW_TYPE_UI_EXTENSION:
-            TLOGD(WmsLogTag::WMS_UIEXT, "uiExtensionUsage=%{public}u", property_->GetUIExtensionUsage());
-            if (SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
-                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_SECURE_NODE;
-            } else {
-                rsSurfaceNodeType = RSSurfaceNodeType::UI_EXTENSION_COMMON_NODE;
-            }
-            break;
-        case WindowType::WINDOW_TYPE_PIP:
-            rsSurfaceNodeType = RSSurfaceNodeType::APP_WINDOW_NODE;
-            break;
-        case WindowType::WINDOW_TYPE_MAGNIFICATION:
-            rsSurfaceNodeType = RSSurfaceNodeType::ABILITY_MAGNIFICATION_NODE;
-            break;
-        default:
-            rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
-            break;
-    }
-    return rsSurfaceNodeType;
-}
-
 RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string& name, WindowType type)
 {
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
     rsSurfaceNodeConfig.SurfaceNodeName = name;
     RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(type);
-    auto surfaceNode = needCreateCompleteSurfaceNode_ ? RSSurfaceNode::Create(rsSurfaceNodeConfig,
-        rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext())
-        : RSSurfaceNode::CreateSurfaceNode(rsSurfaceNodeConfig, true);
-    if (needCreateCompleteSurfaceNode_) {
-        RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
-    }
+    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig,
+        rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext());
+    RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
     TLOGI(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
         RSAdapterUtil::RSNodeToStr(surfaceNode).c_str(), name.c_str());
     return surfaceNode;
@@ -799,8 +763,8 @@ WMError WindowSessionImpl::Connect()
     }
     property_->SetApiVersion(GetTargetAPIVersion());
     auto ret = hostSession->Connect(
-        iSessionStage, iWindowEventChannel, surfaceNode_, windowSystemConfig_, renderSession, property_,
-        token, identityToken_);
+        iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode_,
+        property_, token, identityToken_);
     if (SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         WindowHelper::IsMainWindow(GetType()) && !property_->GetMissionInfo().startupInvisibility_) {
         auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -816,12 +780,16 @@ WMError WindowSessionImpl::Connect()
     TLOGI(WmsLogTag::WMS_LIFE, "Window Connect [name:%{public}s, id:%{public}d, type:%{public}u], ret:%{public}u, "
         "oriDisplayId:%{public}" PRIu64 ", curDisplayId:%{public}" PRIu64, property_->GetWindowName().c_str(),
         GetPersistentId(), property_->GetWindowType(), ret, originDisplayId, property_->GetDisplayId());
+    if (surfaceNode_ == nullptr) {
+        TLOGI(WmsLogTag::WMS_LIFE, "connect failed, surfaceNode is nullptr, name: %{public}s",
+            property_->GetWindowName().c_str());
+        return WMError::WM_ERROR_NULLPTR;
+    }
     if (renderSession == nullptr) {
         TLOGI(WmsLogTag::WMS_LIFE, "connect failed, renderSession is nullptr, name: %{public}s",
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
-    renderSession_ = renderSession;
     RSUIContextContainer::SetRenderSession(renderSession);
     PostInitSurfaceNode(renderSession);
     if (originDisplayId != property_->GetDisplayId() && property_->GetDisplayId() != DISPLAY_ID_C) {
@@ -840,11 +808,7 @@ void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
     RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
     auto rsUIContext = rsUIDirector_->GetRSUIContext();
     surfaceNode_->SetRSUIContext(rsUIContext);
-
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    rsSurfaceNodeConfig.SurfaceNodeName = property_->GetWindowName();
-    RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(property_->GetWindowType());
-    surfaceNode_->SendDataToRender(rsSurfaceNodeConfig, rsSurfaceNodeType, true, property_->IsConstrainedModal());
+    RSUIContextContainer::SetRSUIContext(rsUIContext);
     TLOGI(WmsLogTag::WMS_LIFE, "post init surfaceNode success, name: %{public}s", property_->GetWindowName().c_str());
 }
 

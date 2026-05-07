@@ -4731,9 +4731,10 @@ void SceneSessionManager::DestroySpecificSession(const sptr<IRemoteObject>& remo
 }
 
 WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
-    const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
+    const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
     sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-    SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession, sptr<IRemoteObject> token)
+    SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+    std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token)
 {
     if (!CheckSystemWindowPermission(property) || !CheckModalSubWindowPermission(property)) {
         TLOGE(WmsLogTag::WMS_LIFE, "create system window or modal subwindow permission denied!");
@@ -4807,7 +4808,7 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
     // Get pid and uid before posting task.
     auto pid = IPCSkeleton::GetCallingRealPid();
     auto uid = IPCSkeleton::GetCallingUid();
-    auto task = [this, sessionStage, eventChannel, surfaceNode, property, &persistentId, &session, &systemConfig, token,
+    auto task = [this, sessionStage, eventChannel, nodeId, &surfaceNode, property, &persistentId, &session, &systemConfig, token,
                 &renderSession, pid, uid, isSystemCalling, initClientDisplayId]() {
         if (property == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "property is nullptr");
@@ -4839,7 +4840,7 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         newSession->SetClientDisplayId(initClientDisplayId);
         property->SetSystemCalling(isSystemCalling);
         auto errCode = newSession->ConnectInner(
-            sessionStage, eventChannel, surfaceNode, systemConfig_, renderSession, property, token, pid, uid);
+            sessionStage, eventChannel, nodeId, systemConfig_, renderSession, surfaceNode, property, token, pid, uid);
         newSession->SetIsSystemSpecificSession(isSystemCalling);
         systemConfig = systemConfig_;
         persistentId = property->GetPersistentId();

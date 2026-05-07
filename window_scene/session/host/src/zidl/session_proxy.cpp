@@ -265,8 +265,8 @@ WSError ReadCombinedCompatibleConfig(MessageParcel& reply, sptr<WindowSessionPro
 }
 
 WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
-    sptr<IRemoteObject>& renderSession,
+    NodeId nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
 {
@@ -285,8 +285,8 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
         TLOGE(WmsLogTag::WMS_LIFE, "Write IWindowEventChannel failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!surfaceNode || !surfaceNode->Marshalling(data)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write surfaceNode failed");
+    if (!data.WriteUint64(nodeId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write nodeId failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (property) {
@@ -326,6 +326,11 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
         systemConfig = *config;
     }
     renderSession = reply.ReadRemoteObject();
+    surfaceNode = RSSurfaceNode::Unmarshalling(reply, false);
+    if (!surfaceNode) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read surfaceNode failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
     if (property) {
         property->SetPersistentId(reply.ReadInt32());
         property->SetDisplayId(reply.ReadUint64());

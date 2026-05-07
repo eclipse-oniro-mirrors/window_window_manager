@@ -243,13 +243,13 @@ public:
         return SessionType::SceneSession;
     }
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
-        sptr<IRemoteObject>& renderSession,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") override;
     WSError ConnectInner(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
-        sptr<IRemoteObject>& renderSession,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
@@ -1615,6 +1615,10 @@ private:
      * @param isGlobal Indicates whether global positioning is enabled.
      */
     void SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal);
+
+    std::shared_ptr<RSSurfaceNode> CreateSurfaceNodeForConnect(NodeId surfaceNodeId, sptr<WindowSessionProperty> property);
+
+    RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
 
     /**
      * @brief Set surface bounds via the shadow surface node.

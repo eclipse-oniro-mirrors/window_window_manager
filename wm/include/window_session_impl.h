@@ -882,6 +882,7 @@ protected:
     std::shared_ptr<AbilityRuntime::Context> context_;
     mutable std::shared_mutex contextMutex_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
+    uint64_t nodeId_;
 
     sptr<WindowSessionProperty> property_;
     SystemSessionConfig windowSystemConfig_;
@@ -1079,12 +1080,6 @@ protected:
      */
     std::shared_ptr<RSUIDirector> rsUIDirector_;
     std::shared_ptr<RSUIContext> rsUIContext_;
-
-    /**
-     * RS Multi Process
-     */
-    sptr<IRemoteObject> renderSession_;
-    bool needCreateCompleteSurfaceNode_ = false;
 
     /**
      * Game Prelaunch flag
