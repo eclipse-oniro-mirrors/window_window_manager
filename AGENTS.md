@@ -15,7 +15,7 @@ This repo is the window management subsystem of OpenHarmony. It provides core ca
 - `extension/` — Ability Component window integration
 - `utils/` — Shared utilities
 
-Two compile-time architectures are selected via `window_manager_use_sceneboard` in `product/define.gni`:
+Two compile-time architectures are selected via `window_manager_use_sceneboard` (set externally by the OpenHarmony build system):
 
 | Value | Architecture | Key module compiled |
 |-------|-------------|---------------------|
