@@ -1966,7 +1966,7 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
     ASSERT_NE(sceneSession, nullptr);
     sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession->isTerminating_ = false;
-    EXPECT_EQ(false, sceneSession->isTerminated());
+    EXPECT_EQ(false, sceneSession->IsTerminated());
     ssm_->sceneSessionMap_.insert({1, sceneSession});
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_CALLING);
