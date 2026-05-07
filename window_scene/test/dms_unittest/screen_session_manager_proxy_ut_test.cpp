@@ -899,8 +899,10 @@ HWTEST_F(ScreenSessionManagerProxyUtTest, ResizeVirtualScreen, TestSize.Level1)
     ScreenId ScreenId = 1001;
     uint32_t width = 1024;
     uint32_t height = 1024;
+    uint32_t renderWidth = 2048;
+    uint32_t renderHeight = 2048;
     EXPECT_NE(DMError::DM_ERROR_IPC_FAILED,
-              screenSessionManagerProxy->ResizeVirtualScreen(ScreenId, width, height));
+        screenSessionManagerProxy->ResizeVirtualScreen(ScreenId, width, height, renderWidth, renderHeight));
 }
 
 /**
