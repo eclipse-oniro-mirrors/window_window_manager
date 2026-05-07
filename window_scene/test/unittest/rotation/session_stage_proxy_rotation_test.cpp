@@ -200,6 +200,53 @@ HWTEST_F(SessionStageProxyRotationTest, NotifyOrientationExecutionResult, TestSi
     MockMessageParcel::ClearAllErrorFlag();
     GTEST_LOG_(INFO) << "SessionStageProxyRotationTest: NotifyOrientationExecutionResult end";
 }
+
+/**
+ * @tc.name: SetCurrentRotation_Complete
+ * @tc.desc: Test SetCurrentRotation with all IPC failure branches
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyRotationTest, SetCurrentRotation_Complete, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageProxyRotationTest: SetCurrentRotation_Complete start";
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SessionStageProxy> sessionStageProxy = sptr<SessionStageProxy>::MakeSptr(remoteMocker);
+
+    int32_t currentRotation = 90;
+
+    // Case 1: Success
+    remoteMocker->SetRequestResult(0);
+    WSError errCode = sessionStageProxy->SetCurrentRotation(currentRotation);
+    EXPECT_EQ(errCode, WSError::WS_OK);
+
+    // Case 2: WriteInterfaceToken failed
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    errCode = sessionStageProxy->SetCurrentRotation(currentRotation);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 3: WriteInt32 failed
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    errCode = sessionStageProxy->SetCurrentRotation(currentRotation);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    // Case 4: Remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    errCode = nullProxy->SetCurrentRotation(currentRotation);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+
+    // Case 5: SendRequest failed
+    remoteMocker->SetRequestResult(1);
+    errCode = sessionStageProxy->SetCurrentRotation(currentRotation);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(0);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    GTEST_LOG_(INFO) << "SessionStageProxyRotationTest: SetCurrentRotation_Complete end";
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

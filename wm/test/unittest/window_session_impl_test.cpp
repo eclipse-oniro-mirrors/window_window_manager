@@ -2856,6 +2856,31 @@ HWTEST_F(WindowSessionImplTest, GetAttachStateSyncResult, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateFloatingBallForVisible
+ * @tc.desc: UpdateFloatingBallForVisible
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFloatingBallForVisible01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFloatingBallForVisible01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, window->UpdateFloatingBallForVisible(true));
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, window->UpdateFloatingBallForVisible(false));
+
+    SessionInfo sessionInfo = {"UpdateFloatingBallForVisible01", "UpdateFloatingBallForVisible01",
+        "UpdateFloatingBallForVisible01"};
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->state_ = WindowState::STATE_CREATED;
+    EXPECT_CALL(*(session), UpdateFloatingBall(_)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_EQ(WMError::WM_OK, window->UpdateFloatingBallForVisible(true));
+
+    window->hostSession_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, window->UpdateFloatingBallForVisible(true));
+}
+
+/**
  * @tc.name: NotifyPrepareCloseFloatView
  * @tc.desc: NotifyPrepareCloseFloatView Test
  * @tc.type: FUNC
@@ -2866,19 +2891,19 @@ HWTEST_F(WindowSessionImplTest, NotifyPrepareCloseFloatView, TestSize.Level1)
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("NotifyPrepareCloseFloatView");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    
+
     SessionInfo sessionInfo = { "NotifyPrepareCloseFloatView", "NotifyPrepareCloseFloatView",
         "NotifyPrepareCloseFloatView" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     ASSERT_NE(nullptr, session);
-    
+
     window->property_->SetPersistentId(1);
     WindowSessionImpl::windowSessionMap_.clear();
     WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
         std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
-    
+
     window->NotifyPrepareCloseFloatView();
-    
+
     window->hostSession_ = session;
     window->state_ = WindowState::STATE_CREATED;
     EXPECT_CALL(*(session), NotifyFloatViewPrepareClose()).Times(1);
@@ -2898,11 +2923,11 @@ HWTEST_F(WindowSessionImplTest, UpdateFloatView, TestSize.Level1)
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("UpdateFloatView");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    
+
     SessionInfo sessionInfo = { "UpdateFloatView", "UpdateFloatView", "UpdateFloatView" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     ASSERT_NE(nullptr, session);
-    
+
     FloatViewTemplateInfo fvTemplateInfo;
     fvTemplateInfo.template_ = 1;
     fvTemplateInfo.visibleInApp_ = true;
@@ -2910,24 +2935,24 @@ HWTEST_F(WindowSessionImplTest, UpdateFloatView, TestSize.Level1)
     fvTemplateInfo.bindWindowId_ = INVALID_WINDOW_ID;
     fvTemplateInfo.rect_ = {0, 0, 100, 100};
     fvTemplateInfo.showWhenCreate_ = true;
-    
+
     WMError res = window->UpdateFloatView(fvTemplateInfo);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    
+
     window->property_->SetPersistentId(1);
     WindowSessionImpl::windowSessionMap_.clear();
     WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
         std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
-    
+
     res = window->UpdateFloatView(fvTemplateInfo);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    
+
     window->hostSession_ = session;
     window->state_ = WindowState::STATE_CREATED;
     EXPECT_CALL(*(session), UpdateFloatView(_)).WillOnce(Return(WMError::WM_OK));
     res = window->UpdateFloatView(fvTemplateInfo);
     ASSERT_EQ(res, WMError::WM_OK);
-    
+
     EXPECT_CALL(*(session), UpdateFloatView(_)).WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
     res = window->UpdateFloatView(fvTemplateInfo);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
@@ -2946,42 +2971,42 @@ HWTEST_F(WindowSessionImplTest, RestoreFloatViewMainWindow, TestSize.Level1)
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("RestoreFloatViewMainWindow");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    
+
     SessionInfo sessionInfo = { "RestoreFloatViewMainWindow", "RestoreFloatViewMainWindow",
         "RestoreFloatViewMainWindow" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     ASSERT_NE(nullptr, session);
-    
+
     std::shared_ptr<AAFwk::WantParams> wantParams = std::make_shared<AAFwk::WantParams>();
-    
+
     WMError res = window->RestoreFloatViewMainWindow(wantParams);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    
+
     window->property_->SetPersistentId(1);
     window->property_->SetParentPersistentId(2);
     WindowSessionImpl::windowSessionMap_.clear();
     WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
         std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
-    
+
     res = window->RestoreFloatViewMainWindow(wantParams);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    
+
     sptr<WindowOption> parentOption = sptr<WindowOption>::MakeSptr();
     parentOption->SetWindowName("RestoreFloatViewMainWindow_Parent");
     sptr<WindowSessionImpl> parentWindow = sptr<WindowSessionImpl>::MakeSptr(parentOption);
     parentWindow->property_->SetPersistentId(2);
     WindowSessionImpl::windowSessionMap_.insert(std::make_pair(parentWindow->GetWindowName(),
         std::pair<uint64_t, sptr<WindowSessionImpl>>(parentWindow->GetWindowId(), parentWindow)));
-    
+
     res = window->RestoreFloatViewMainWindow(wantParams);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    
+
     window->hostSession_ = session;
     window->state_ = WindowState::STATE_CREATED;
     EXPECT_CALL(*(session), RestoreFloatViewMainWindow(_)).WillOnce(Return(WMError::WM_OK));
     res = window->RestoreFloatViewMainWindow(wantParams);
     ASSERT_EQ(res, WMError::WM_OK);
-    
+
     EXPECT_CALL(*(session), RestoreFloatViewMainWindow(_)).WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
     res = window->RestoreFloatViewMainWindow(wantParams);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
@@ -3003,18 +3028,18 @@ HWTEST_F(WindowSessionImplTest, UpdateFloatShowWhenCreate, TestSize.Level1)
 
     WMError res = window->UpdateFloatShowWhenCreate(true);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
-    
+
     SessionInfo sessionInfo = { "UpdateFloatShowWhenCreate", "UpdateFloatShowWhenCreate", "UpdateFloatShowWhenCreate" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     ASSERT_NE(nullptr, session);
-    
+
     window->property_->SetPersistentId(1);
     WindowSessionImpl::windowSessionMap_.clear();
     WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
         std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
     window->hostSession_ = session;
     window->state_ = WindowState::STATE_CREATED;
-    
+
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
     window->UpdateFloatShowWhenCreate(true);
     EXPECT_EQ(true, window->property_->GetFbTemplateInfo().showWhenCreate_);

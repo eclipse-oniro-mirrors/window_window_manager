@@ -612,6 +612,18 @@ DMError ScreenManagerAdapter::SetOrientation(ScreenId screenId, Orientation orie
     return ConvertToDMError(errCode, dmError);
 }
 
+DMError ScreenManagerAdapter::SetOrientation(ScreenId screenId, Orientation orientation,
+    const OrientationOptions& options, bool isFromNapi)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+ 
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->SetOrientation(screenId, orientation, options, isFromNapi);
+    }
+ 
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError BaseAdapter::RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     DisplayManagerAgentType type)
 {

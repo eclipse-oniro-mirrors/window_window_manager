@@ -33,6 +33,7 @@ config("libdm_public_config") {
   include_dirs = [
     "../interfaces/innerkits",
     "../interfaces/innerkits/dm",
+    "../interfaces/kits/dmndk/dm",
     "../utils/include",
   ]
 }
@@ -208,6 +209,11 @@ ohos_shared_library("libdm_ndk") {
     "image_framework:pixelmap",
     "ipc:ipc_core",
   ]
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines = [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   part_name = "window_manager"
   subsystem_name = "window"

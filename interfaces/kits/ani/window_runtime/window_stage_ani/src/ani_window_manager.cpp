@@ -898,6 +898,8 @@ void AniWindowManager::ShiftAppWindowPointerEvent(ani_env* env, ani_long nativeO
         aniWindowManager->OnShiftAppWindowPointerEvent(env, sourceWindowId, targetWindowId);
     } else {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]aniWindowManager is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowPointerEvent",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
 }
@@ -909,6 +911,8 @@ void AniWindowManager::OnShiftAppWindowPointerEvent(ani_env* env, ani_int source
     if (sourceWindowId == static_cast<int32_t>(INVALID_WINDOW_ID) ||
         targetWindowId == static_cast<int32_t>(INVALID_WINDOW_ID)) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]invalid sourceWindowId or targetWindowId");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowPointerEvent",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
@@ -916,6 +920,7 @@ void AniWindowManager::OnShiftAppWindowPointerEvent(ani_env* env, ani_int source
         SingletonContainer::Get<WindowManager>().ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]ShiftAppWindowPointerEvent failed, ret: %{public}d", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowPointerEvent", ret);
         AniWindowUtils::AniThrowError(env, ret, "ShiftAppWindowPointerEvent failed!");
     }
     return;
@@ -929,6 +934,8 @@ void AniWindowManager::ShiftAppWindowTouchEvent(ani_env* env, ani_long nativeObj
         aniWindowManager->OnShiftAppWindowTouchEvent(env, sourceWindowId, targetWindowId, fingerId);
     } else {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]aniWindowManager is nullptr!");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
 }
@@ -942,6 +949,8 @@ void AniWindowManager::OnShiftAppWindowTouchEvent(ani_env* env, ani_int sourceWi
         targetWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
         (fingerId <= static_cast<int32_t>(INVALID_FINGER_ID))) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]invalid sourceWindowId or targetWindowId or fingerId");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
+            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "shiftAppWindowTouchEvent failed");
         return;
     }
@@ -949,6 +958,7 @@ void AniWindowManager::OnShiftAppWindowTouchEvent(ani_env* env, ani_int sourceWi
         SingletonContainer::Get<WindowManager>().ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId, fingerId));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PC, "[ANI]ShiftAppWindowPointerEvent failed, ret: %{public}d", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent", ret);
         AniWindowUtils::AniThrowError(env, ret, "shiftAppWindowTouchEvent failed!");
     }
     return;

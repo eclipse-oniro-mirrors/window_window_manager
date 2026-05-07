@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,8 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
     BindNativeFunction(env, object, "on", moduleName, JsFbController::RegisterCallback);
     BindNativeFunction(env, object, "off", moduleName, JsFbController::UnregisterCallback);
     BindNativeFunction(env, object, "getFloatingBallWindowInfo", moduleName, JsFbController::GetFloatingBallWindowInfo);
+    BindNativeFunction(env, object, "setFloatingBallVisibilityInApp", moduleName,
+        JsFbController::SetInApplicationVisible);
 }
 
 napi_value CreateJsFbControllerObject(napi_env env, const sptr<FloatingBallController>& fbController)
@@ -248,6 +250,64 @@ napi_value JsFbController::UpdateFloatingBallTask(napi_env env, const FbOption& 
     return result;
 }
 
+napi_value JsFbController::SetInApplicationVisible(napi_env env, napi_callback_info info)
+{
+    JsFbController* me = CheckParamsAndGetThis<JsFbController>(env, info);
+    return (me != nullptr) ? me->OnSetInApplicationVisible(env, info) : nullptr;
+}
+
+napi_value JsFbController::OnSetInApplicationVisible(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnSetInApplicationVisible is called");
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < 1) {
+        return NapiThrowInvalidParam(env, "Missing args when set floating ball visible in app");
+    }
+
+    napi_valuetype valueType = napi_undefined;
+    napi_status status = napi_typeof(env, argv[0], &valueType);
+    if (status != napi_ok || valueType != napi_boolean) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "param type is not boolean");
+        return NapiThrowInvalidParam(env, "param type is not boolean");
+    }
+
+    bool isVisible = false;
+    napi_get_value_bool(env, argv[0], &isVisible);
+
+    wptr<FloatingBallController> weakController(fbController_);
+    std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    NapiAsyncTask::ExecuteCallback execute = [weakController, isVisible, errCodePtr] {
+        if (errCodePtr == nullptr) {
+            return;
+        }
+        auto fbController = weakController.promote();
+        if (fbController == nullptr) {
+            *errCodePtr = WmErrorCode::WM_ERROR_FB_STATE_ABNORMALLY;
+            return;
+        }
+        *errCodePtr = ConvertErrorToCode(fbController->SetInApplicationVisible(isVisible));
+    };
+    NapiAsyncTask::CompleteCallback complete =
+        [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
+            if (errCodePtr == nullptr) {
+                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR));
+                return;
+            }
+            if (*errCodePtr == WmErrorCode::WM_OK) {
+                task.Resolve(env, NapiGetUndefined(env));
+            } else {
+                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
+                    "JsFbController::OnSetFloatingBallVisibleInApp failed."));
+            }
+        };
+    napi_value result = nullptr;
+    NapiAsyncTask::Schedule("JsFbController::OnSetFloatingBallVisibleInApp",
+        env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
+    return result;
+}
+
 napi_value JsFbController::StopFloatingBall(napi_env env, napi_callback_info info)
 {
     JsFbController* me = CheckParamsAndGetThis<JsFbController>(env, info);
@@ -360,50 +420,34 @@ napi_value JsFbController::OnRestoreMainWindow(napi_env env, napi_callback_info 
     return result;
 }
 
+template <typename T>
+void JsFbController::HandleProperty(napi_env env, napi_value optionObject, const char* propertyName,
+    void (FbOption::*setter)(const T&), FbOption& option)
+{
+    bool hasProperty = false;
+    napi_has_named_property(env, optionObject, propertyName, &hasProperty);
+    if (hasProperty) {
+        napi_value propertyValue = nullptr;
+        napi_get_named_property(env, optionObject, propertyName, &propertyValue);
+        T value;
+        if (ConvertFromJsValue(env, propertyValue, value)) {
+            (option.*setter)(value);
+        }
+    }
+}
+
 napi_value JsFbController::GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option)
 {
-    napi_value templateValue = nullptr;
-    napi_value titleValue = nullptr;
-    napi_value contentValue = nullptr;
-    napi_value colorValue = nullptr;
-    napi_value textUpdateAnimationTypeValue = nullptr;
+// 处理属性
+    HandleProperty(env, optionObject, "template", &FbOption::SetTemplate, option);
+    HandleProperty(env, optionObject, "title", &FbOption::SetTitle, option);
+    HandleProperty(env, optionObject, "content", &FbOption::SetContent, option);
+    HandleProperty(env, optionObject, "backgroundColor", &FbOption::SetBackgroundColor, option);
+    HandleProperty(env, optionObject, "titleColor", &FbOption::SetTitleColor, option);
+    HandleProperty(env, optionObject, "contentColor", &FbOption::SetContentColor, option);
+    HandleProperty(env, optionObject, "textUpdateAnimationType", &FbOption::SetTextUpdateAnimationType, option);
 
-    uint32_t templateType = 0;
-    std::string title = "";
-    std::string content = "";
-    std::string color = "";
-    uint32_t textUpdateAnimationType = 0;
-    bool hasProperty = false;
-    napi_has_named_property(env, optionObject, "template", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "template", &templateValue);
-        ConvertFromJsValue(env, templateValue, templateType);
-        option.SetTemplate(templateType);
-    }
-    napi_has_named_property(env, optionObject, "title", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "title", &titleValue);
-        ConvertFromJsValue(env, titleValue, title);
-        option.SetTitle(title);
-    }
-    napi_has_named_property(env, optionObject, "content", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "content", &contentValue);
-        ConvertFromJsValue(env, contentValue, content);
-        option.SetContent(content);
-    }
-    napi_has_named_property(env, optionObject, "backgroundColor", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "backgroundColor", &colorValue);
-        ConvertFromJsValue(env, colorValue, color);
-        option.SetBackgroundColor(color);
-    }
-    napi_has_named_property(env, optionObject, "textUpdateAnimationType", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "textUpdateAnimationType", &textUpdateAnimationTypeValue);
-        ConvertFromJsValue(env, textUpdateAnimationTypeValue, textUpdateAnimationType);
-        option.SetTextUpdateAnimationType(textUpdateAnimationType);
-    }
+    // 处理图标
     if (GetIcon(env, optionObject, option) == nullptr) {
         napi_throw(env, AbilityRuntime::CreateJsError(env,
             static_cast<int32_t>(WmErrorCode::WM_ERROR_FB_PARAM_INVALID), "Invalid icon object"));

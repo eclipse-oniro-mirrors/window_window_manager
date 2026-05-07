@@ -31,6 +31,7 @@ using namespace AbilityRuntime;
 namespace {
 const std::string FLOATING_BALL_PERMISSION = "ohos.permission.USE_FLOAT_BALL";
 const std::string FLOAT_VIEW_PERMISSION = "ohos.permission.FLOAT_VIEW";
+constexpr size_t ARG_COUNT_ONE = 1;
 constexpr size_t ARG_COUNT_TWO = 2;
 constexpr size_t ARG_COUNT_THREE = 3;
 const char* ARKUI_WINDOW_FV_CREATE = "ArkUI.window.fv.create";
@@ -131,7 +132,7 @@ napi_value JsFloatViewManager::CreateFloatViewControllerTask(napi_env env, const
                 task.Resolve(env, CreateJsFloatViewControllerObject(env, floatViewController));
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFloatViewManager::OnCreateFloatViewController failed."));
+                    "Failed to create float view controller."));
             }
         };
     napi_value result = nullptr;
@@ -216,9 +217,28 @@ napi_value JsFloatViewManager::OnGetFloatViewLimits(napi_env env, napi_callback_
         return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
             "Device do not support float view.");
     }
+    size_t argc = ARG_COUNT_ONE;
+    napi_value argv[ARG_COUNT_ONE] = { nullptr };
+    // 解析应用传参FloatViewConfiguration对象
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARG_COUNT_ONE) {
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Missing args.");
+    }
+    uint32_t templateType = 0;
+    if (!ConvertFromJsValue(env, argv[0], templateType)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to template type");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "Failed to convert parameter to template type");
+    }
+    if (templateType >= static_cast<uint32_t>(FloatViewTemplate::END)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "template type is invalid");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "template type is invalid");
+    }
+
     FloatViewLimits limits;
-    WMError errCode = SingletonContainer::Get<WindowManager>().GetFloatViewLimits(limits);
+    WMError errCode = SingletonContainer::Get<WindowManager>().GetFloatViewLimits(templateType, limits);
     if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get global float view limits, code: %{public}d", errCode);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
             "Failed to get global float view limits.");
     }
@@ -243,11 +263,10 @@ napi_value JsFloatViewManager::OnBind(napi_env env, napi_callback_info info)
     TLOGI(WmsLogTag::WMS_SYSTEM, "OnBind");
     size_t argc = ARG_COUNT_THREE;
     napi_value argv[ARG_COUNT_THREE] = {nullptr};
-    // 解析应用传参FloatViewConfiguration对象
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARG_COUNT_THREE) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Missing args when bind.");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Missing arguments for bind operation.");
     }
 
     auto controllerPair = GetBindControllers(env, argv);
@@ -261,7 +280,7 @@ napi_value JsFloatViewManager::OnBind(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to get floatViewController from js object");
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "Failed to get floatViewController from js object.");
+            "Float view controller is invalid.");
     }
 
     auto jsFbController = static_cast<JsFbController*>(controllerPair.second);
@@ -269,7 +288,7 @@ napi_value JsFloatViewManager::OnBind(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to get floatingBallController from js object");
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "Failed to get floatingBallController from js object.");
+            "Floating ball controller is invalid.");
     }
 
     napi_value jsFbOption = argv[2];
@@ -348,7 +367,7 @@ napi_value JsFloatViewManager::BindTask(napi_env env, const sptr<FloatViewContro
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "JsFloatViewManager::BindTask failed."));
+                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to bind controllers."));
             }
         };
     napi_value result = nullptr;
@@ -372,7 +391,7 @@ napi_value JsFloatViewManager::OnUnBind(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARG_COUNT_TWO) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_UNBIND, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Missing args when bind.");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Missing arguments for unbind operation.");
     }
     auto controllerPair = GetBindControllers(env, argv);
     if (controllerPair.first == nullptr || controllerPair.second == nullptr) {
@@ -427,7 +446,7 @@ napi_value JsFloatViewManager::UnBindTask(napi_env env, const sptr<FloatViewCont
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "JsFloatViewManager::UnBindTask failed."));
+                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to unbind controllers."));
             }
         };
     napi_value result = nullptr;

@@ -1220,6 +1220,7 @@ export interface WindowProperties {
     drawableRect: Rect;
     globalDisplayRect?: Rect;
     type: WindowType;
+    windowType: WindowType;
     isFullScreen: boolean;
     isLayoutFullScreen: boolean;
     focusable: boolean;
@@ -1249,6 +1250,7 @@ export class WindowPropertiesInternal implements WindowProperties {
   isRoundCorner: boolean;
   isTransparent: boolean;
   type: WindowType;
+  windowType: WindowType;
   id: int;
   displayId?: long;
   name?: string;
@@ -1256,8 +1258,8 @@ export class WindowPropertiesInternal implements WindowProperties {
 
   constructor(windowRect: Rect, drawableRect: Rect, isFullScreen: boolean, isLayoutFullScreen: boolean,
     focusable: boolean, touchable: boolean, brightness: double, dimBehindValue: number, isKeepScreenOn: boolean,
-    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, id: int,
-    displayId: long, name: string, globalDisplayRect: Rect)
+    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, windowTypeInternal: int,
+    id: int, displayId: long, name: string, globalDisplayRect: Rect)
   {
     this.windowRect = windowRect;
     this.drawableRect = drawableRect;
@@ -1273,6 +1275,7 @@ export class WindowPropertiesInternal implements WindowProperties {
     this.isRoundCorner = isRoundCorner;
     this.isTransparent = isTransparent;
     this.type = WindowType.fromValue(typeInternal);
+    this.windowType = WindowType.fromValue(windowTypeInternal);
     this.id = id;
     this.displayId = displayId;
     this.name = name;
@@ -3113,6 +3116,7 @@ export class WindowInternal implements Window {
     private native setWindowTouchableSync(nativeObj: long, isTouchable: boolean): void;
     private native setDialogBackGestureEnabledSync(nativeObj: long, enabled: boolean): void;
     private native setWindowMaskSync(nativeObj: long, windowMask: Array<Array<long>>): void;
+    private native setWindowMaskWithAlphaSync(nativeObj: long, windowMask: Uint8Array, maskWidth: int, maskHeight: int): void;
     private native clearWindowMaskSync(nativeObj: long): void;
     private native getUIContextSync(nativeObj: long): UIContext;
     private native getWindowAvoidAreaSync(nativeObj: long, type: int): AvoidArea;
@@ -3201,8 +3205,8 @@ export class WindowInternal implements Window {
     private native setRotationLocked(nativeObj: long, locked: boolean): void;
     private native getRotationLocked(nativeObj: long): boolean;
     private native isInFreeWindowMode(nativeObj: long): boolean;
-    private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor?: WindowAnchor,
-      offsetX?: int, offsetY?: int): void;
+    private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor: WindowAnchor,
+      offsetX: int, offsetY: int): void;
     private native setWindowDelayRaiseOnDrag(nativeObj: long, isEnabled: boolean): void;
     private native setDefaultDensityEnabled(nativeObj: long, enabled: boolean): void;
     private native setWindowContainerColor(nativeObj: long, activeColor: string, inactiveColor: string): void;
@@ -4099,6 +4103,18 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.setWindowMaskSync(this.nativeObj, windowMask);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.setWindowMaskWithAlphaSync(this.nativeObj, windowMask, maskWidth, maskHeight);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -5346,7 +5362,8 @@ export class WindowInternal implements Window {
       return new Promise<void>(
         (resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
           taskpool.execute((): void => {
-            this.setRelativePositionToParentWindowEnabled(this.nativeObj, enabled, anchor, offsetX, offsetY);
+            this.setRelativePositionToParentWindowEnabled(
+              this.nativeObj, enabled, anchor ?? WindowAnchor.TOP_START, offsetX ?? 0, offsetY ?? 0);
           }).then((ret: Any) => {
             resolve(undefined);
           }).catch((err: Any) => {
@@ -5505,6 +5522,7 @@ export interface Window {
     setWindowTouchable(isTouchable: boolean, callback: AsyncCallback<void>): void;
     setDialogBackGestureEnabled(enabled: boolean): Promise<void>;
     setWindowMask(windowMask: Array<Array<long>>): Promise<void>;
+    setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void>;
     clearWindowMask(): Promise<void>;
     setTouchableAreas(rects: Array<Rect>): void;
     getUIContext(): UIContext;

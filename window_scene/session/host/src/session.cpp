@@ -2078,17 +2078,23 @@ std::optional<bool> Session::GetClientDragEnable() const
     return clientDragEnable_;
 }
 
-void Session::SetDragActivated(bool dragActivated)
+void Session::SetDragActivated(DragActivateSource source, bool activated)
 {
-    dragActivated_ = dragActivated;
+    uint32_t bit = static_cast<uint32_t>(source);
+    if (activated) {
+        dragActivatedBitmap_ |= bit;
+    } else {
+        dragActivatedBitmap_ &= ~bit;
+    }
 }
 
 bool Session::IsDragAccessible() const
 {
     bool isDragEnabled = GetSessionProperty()->GetDragEnabled();
+    bool isDragActivated = (dragActivatedBitmap_ & DRAG_ACTIVATE_ALL_MASK) == DRAG_ACTIVATE_ALL_MASK;
     TLOGD(WmsLogTag::WMS_LAYOUT, "PersistentId: %{public}d, dragEnabled: %{public}d, dragActivate: %{public}d",
-        GetPersistentId(), isDragEnabled, dragActivated_);
-    return isDragEnabled && dragActivated_;
+        GetPersistentId(), isDragEnabled, isDragActivated);
+    return isDragEnabled && isDragActivated;
 }
 
 bool Session::IsScreenLockWindow() const

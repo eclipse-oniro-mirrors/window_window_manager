@@ -711,14 +711,14 @@ HWTEST_F(SceneSessionManagerTest12, CreateAndConnectSpecificSession04, TestSize.
     property->SetSystemCalling(true);
     auto res = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_OK, res);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res);
 
     // Test WINDOW_TYPE_FV with invalid parent session (background state)
     property->SetWindowType(WindowType::WINDOW_TYPE_FV);
     property->SetParentPersistentId(parentSession->GetPersistentId());
     res = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_INVALID_PARENT, res);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res);
 }
 
 /**

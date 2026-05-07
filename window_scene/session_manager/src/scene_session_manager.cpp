@@ -7738,6 +7738,9 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         displayId2GroupIdMap = groupInfoMap;
+        if (displayId2GroupIdMap.find(VIRTUAL_DISPLAY_ID) == displayId2GroupIdMap.end()) {
+            displayId2GroupIdMap[VIRTUAL_DISPLAY_ID] = DEFAULT_DISPLAY_ID;
+        }
         std::unordered_map<DisplayGroupId, sptr<FocusGroup>> allFocusGroupMap;
         windowFocusController_->GetAllFocusGroup(allFocusGroupMap);
         for (const auto& elem : allFocusGroupMap) {
@@ -9958,7 +9961,7 @@ WSError SceneSessionManager::SendAxisEvent(const std::shared_ptr<MMI::PointerEve
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::SyncFloatViewLimits(const FloatViewLimits &limits)
+WSError SceneSessionManager::SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits)
 {
     {
         std::lock_guard<std::mutex> lock(floatViewLimitsMutex_);
@@ -16327,7 +16330,9 @@ void SceneSessionManager::FilterForGetAllWindowLayoutInfo(DisplayId displayId, b
             if (session->GetSessionGlobalRect().IsInvalid()) {
                 continue;
             }
-            if (option.excludeSystemWindows && WindowHelper::IsSystemWindow(session->GetWindowType())) {
+            if (option.excludeSystemWindows && WindowHelper::IsApiSystemWindow(session->GetWindowType())) {
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "exclude api system: win=[%{public}d, %{public}s], type=%{public}u",
+                    session->GetWindowId(), session->GetWindowName().c_str(), session->GetWindowType());
                 continue;
             }
             if ((zOrderForAboveWin > 0 && session->GetZOrder() <= zOrderForAboveWin) ||
@@ -21085,6 +21090,22 @@ void SceneSessionManager::NotifyRotationBegin()
     SceneInputManager::GetInstance().SetIsRotationBegin(true);
 }
 
+WMError SceneSessionManager::GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits)
+{
+    std::lock_guard<std::mutex> lock(floatViewLimitsMutex_);
+    if (floatViewLimits_.find(templateType) != floatViewLimits_.end()) {
+        limits = floatViewLimits_[templateType];
+        return WMError::WM_OK;
+    }
+    TLOGE(WmsLogTag::WMS_SYSTEM, "fv limit not found, templateType: %{public}u", templateType);
+    return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+}
+
+void SceneSessionManager::RegisterGetFloatViewLimitCallback(GetFloatViewLimitFunc&& func)
+{
+    getFloatViewLimitFunc_ = std::move(func);
+}
+
 void SceneSessionManager::SetSelectMode(SelectMode selectMode)
 {
     TLOGI(WmsLogTag::WMS_COMPAT, "set SelectMode from %{public}u to %{public}u",
@@ -21095,13 +21116,6 @@ void SceneSessionManager::SetSelectMode(SelectMode selectMode)
 SelectMode SceneSessionManager::GetSelectMode() const
 {
     return selectMode_.load();
-}
-
-WMError SceneSessionManager::GetFloatViewLimits(FloatViewLimits &limits)
-{
-    std::lock_guard<std::mutex> lock(floatViewLimitsMutex_);
-    limits = floatViewLimits_;
-    return WMError::WM_OK;
 }
 
 } // namespace OHOS::Rosen

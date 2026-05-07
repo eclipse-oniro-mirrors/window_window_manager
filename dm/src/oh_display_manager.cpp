@@ -25,6 +25,7 @@
 #include "oh_display_manager_inner.h"
 #include "pixelmap_native_impl.h"
 #include "window_manager_hilog.h"
+#include "display_histogram_management.h"
 
 using namespace OHOS;
 using namespace Rosen;
@@ -305,13 +306,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayId(uint6
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayWidth(int32_t *displayWidth)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayWidth.Count", 1);
     if (displayWidth == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input displayWidth null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayWidth",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayWidth",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *displayWidth = displayInfo->GetWidth();
@@ -320,13 +326,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayWidth(in
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayHeight(int32_t *displayHeight)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayHeight.Count", 1);
     if (displayHeight == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input displayHeight null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayHeight",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayHeight",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *displayHeight = displayInfo->GetHeight();
@@ -336,13 +347,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayHeight(i
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayRotation(
     NativeDisplayManager_Rotation *displayRotation)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayRotation.Count", 1);
     if (displayRotation == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input displayRotation null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayRotation",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayRotation",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *displayRotation = static_cast<NativeDisplayManager_Rotation>(displayInfo->GetRotation());
@@ -352,13 +368,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayRotation
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayOrientation(
     NativeDisplayManager_Orientation *displayOrientation)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayOrientation.Count", 1);
     if (displayOrientation == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input displayOrientation null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayOrientation",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayOrientation",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *displayOrientation = static_cast<NativeDisplayManager_Orientation>(displayInfo->GetDisplayOrientation());
@@ -367,13 +388,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayOrientat
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayVirtualPixelRatio(float *virtualPixel)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayVirtualPixelRatio.Count", 1);
     if (virtualPixel == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input virtualPixel null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayVirtualPixelRatio",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayVirtualPixelRatio",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *virtualPixel = displayInfo->GetVirtualPixelRatio();
@@ -382,13 +408,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayVirtualP
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayRefreshRate(uint32_t *refreshRate)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayRefreshRate.Count", 1);
     if (refreshRate == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input refreshRate null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayRefreshRate",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayRefreshRate",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *refreshRate = displayInfo->GetRefreshRate();
@@ -397,13 +428,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayRefreshR
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayDensityDpi(int32_t *densityDpi)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityDpi.Count", 1);
     if (densityDpi == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input densityDpi null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityDpi",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityDpi",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *densityDpi = displayInfo->GetVirtualPixelRatio() * DOT_PER_INCH;
@@ -412,13 +448,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayDensityD
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayDensityPixels(float *densityPixels)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityPixels.Count", 1);
     if (densityPixels == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input densityPixels null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityPixels",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityPixels",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *densityPixels = displayInfo->GetVirtualPixelRatio();
@@ -427,13 +468,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayDensityP
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayScaledDensity(float *scaledDensity)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayScaledDensity.Count", 1);
     if (scaledDensity == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input scaledDensity null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayScaledDensity",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayScaledDensity",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *scaledDensity = displayInfo->GetVirtualPixelRatio();
@@ -442,13 +488,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayScaledDe
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayDensityXdpi(float *xDpi)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityXdpi.Count", 1);
     if (xDpi == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input xDpi null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityXdpi",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityXdpi",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *xDpi = displayInfo->GetXDpi();
@@ -457,13 +508,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayDensityX
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDefaultDisplayDensityYdpi(float *yDpi)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityYdpi.Count", 1);
     if (yDpi == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input yDpi null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityYdpi",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     auto displayInfo = OH_GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get default display info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDefaultDisplayDensityYdpi",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *yDpi = displayInfo->GetYDpi();
@@ -550,24 +606,33 @@ static NativeDisplayManager_CutoutInfo* OH_CreateCutoutInfoObject(const sptr<Cut
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateDefaultDisplayCutoutInfo(
     NativeDisplayManager_CutoutInfo **cutoutInfo)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.CreateDefaultDisplayCutoutInfo.Count", 1);
     if (cutoutInfo == NULL) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input cutoutInfo null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateDefaultDisplayCutoutInfo",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     TLOGI(WmsLogTag::DMS, "[DMNDK] get display cutout info.");
     sptr<Display> defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync();
     if (defaultDisplay == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get cutout info (display) null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateDefaultDisplayCutoutInfo",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     sptr<CutoutInfo> cutoutInfoInner = defaultDisplay->GetCutoutInfo();
     if (cutoutInfoInner == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get cutout info (from display) null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateDefaultDisplayCutoutInfo",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *cutoutInfo = OH_CreateCutoutInfoObject(cutoutInfoInner);
     if (*cutoutInfo == NULL) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] convert cutout info null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateDefaultDisplayCutoutInfo",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     TLOGI(WmsLogTag::DMS, "[DMNDK] get display cutout info success.");
@@ -577,8 +642,11 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateDefaultDisplayCutou
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_DestroyDefaultDisplayCutoutInfo(
     NativeDisplayManager_CutoutInfo *cutoutInfo)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.DestroyDefaultDisplayCutoutInfo.Count", 1);
     if (cutoutInfo == NULL) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input cutoutInfo null pointer.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.DestroyDefaultDisplayCutoutInfo",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     if (cutoutInfo->boundingRects != NULL) {
@@ -593,6 +661,7 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_DestroyDefaultDisplayCuto
 
 bool OH_NativeDisplayManager_IsFoldable()
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.IsFoldable.Count", 1);
     bool isFoldable = DisplayManager::GetInstance().IsFoldable();
     TLOGI(WmsLogTag::DMS, "[DMNDK] get display isFoldable=%{public}d.", isFoldable);
     return isFoldable;
@@ -601,13 +670,18 @@ bool OH_NativeDisplayManager_IsFoldable()
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetFoldDisplayMode(
     NativeDisplayManager_FoldDisplayMode *foldDisplayMode)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetFoldDisplayMode.Count", 1);
     TLOGI(WmsLogTag::DMS, "[DMNDK] get fold display mode.");
     if (foldDisplayMode == NULL) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input foldDisplayMode null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetFoldDisplayMode",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     if (!DisplayManager::GetInstance().IsFoldable()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] device is not foldable.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetFoldDisplayMode",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED;
     }
     FoldDisplayMode foldMode = DisplayManager::GetInstance().GetFoldDisplayModeForExternal();
@@ -652,30 +726,41 @@ bool CheckFoldChangeHasRegistered(OH_NativeDisplayManager_FoldDisplayModeChangeC
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener(
     OH_NativeDisplayManager_FoldDisplayModeChangeCallback displayModeChangeCallback, uint32_t *listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener.Count", 1);
     TLOGI(WmsLogTag::DMS, "[DMNDK] register fold display mode change listener.");
     if (displayModeChangeCallback == NULL || listenerIndex == NULL) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input params null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     if (!DisplayManager::GetInstance().IsFoldable()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] device is not foldable.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED;
     }
     std::unique_lock<std::shared_mutex> lock(foldChangeMutex);
     if (CheckFoldChangeHasRegistered(displayModeChangeCallback)) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input params error (has registered).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     sptr<DisplayManager::IDisplayModeListener> displayModeListener =
         sptr<OH_DisplayModeChangeListener>::MakeSptr(displayModeChangeCallback);
     if (displayModeListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] display mode listener MakeSptr fail.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     static std::atomic<uint32_t> registerCount = 1;
     DMError ret = DisplayManager::GetInstance().RegisterDisplayModeListener(displayModeListener);
     if (ret != DMError::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] display mode listener register failed ret=%{public}d.", ret);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *listenerIndex = registerCount++;
@@ -687,15 +772,20 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterFoldDisplayModeCh
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterFoldDisplayModeChangeListener(uint32_t listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.UnregisterFoldDisplayModeChangeListener.Count", 1);
     TLOGI(WmsLogTag::DMS, "[DMNDK] unregister fold display mode change listener %{public}d.", listenerIndex);
     if (!DisplayManager::GetInstance().IsFoldable()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] unregister fail(device is not foldable).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.UnregisterFoldDisplayModeChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED;
     }
     std::unique_lock<std::shared_mutex> lock(foldChangeMutex);
     auto iter = g_foldDisplayModeChangeListenerMap.find(listenerIndex);
     if (iter == g_foldDisplayModeChangeListenerMap.end()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] unregister listener fail(not find register info).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.UnregisterFoldDisplayModeChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     DMError ret = DMError::DM_OK;
@@ -729,26 +819,35 @@ bool CheckDisplayChangeHasRegistered(OH_NativeDisplayManager_DisplayChangeCallba
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayChangeListener(
     OH_NativeDisplayManager_DisplayChangeCallback displayChangeCallback, uint32_t *listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.RegisterDisplayChangeListener.Count", 1);
     TLOGI(WmsLogTag::DMS, "[DMNDK] register display change listener.");
     if (displayChangeCallback == NULL || listenerIndex == NULL) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register fail(input params null).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     std::unique_lock<std::shared_mutex> lock(displayChangeMutex);
     if (CheckDisplayChangeHasRegistered(displayChangeCallback)) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input params error (has registered).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     sptr<DisplayManager::IDisplayListener> displayListener =
         sptr<OH_DisplayChangeListener>::MakeSptr(displayChangeCallback);
     if (displayListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register display change MakeSptr fail.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     static std::atomic<uint32_t> registerCount = 1;
     DMError ret = DisplayManager::GetInstance().RegisterDisplayListener(displayListener);
     if (ret != DMError::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register failed ret=%{public}d.", ret);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *listenerIndex = registerCount++;
@@ -760,11 +859,14 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayChangeList
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterDisplayChangeListener(uint32_t listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.UnregisterDisplayChangeListener.Count", 1);
     TLOGI(WmsLogTag::DMS, "[DMNDK] unregister display change listener %{public}d.", listenerIndex);
     std::unique_lock<std::shared_mutex> lock(displayChangeMutex);
     auto iter = g_displayChangeListenerMap.find(listenerIndex);
     if (iter == g_displayChangeListenerMap.end()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] unregister fail(not find register info).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.UnregisterDisplayChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     DMError ret = DMError::DM_OK;
@@ -970,6 +1072,7 @@ static void NativeDisplayManager_DestroyDisplaysInfoInner(uint32_t displaysLengt
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAllDisplays(
     NativeDisplayManager_DisplaysInfo **allDisplays)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.CreateAllDisplays.Count", 1);
     if (allDisplays == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] param is null.");
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
@@ -1021,6 +1124,7 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAllDisplays(
 
 void OH_NativeDisplayManager_DestroyAllDisplays(NativeDisplayManager_DisplaysInfo *allDisplays)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.DestroyAllDisplays.Count", 1);
     if (allDisplays == nullptr) {
         TLOGI(WmsLogTag::DMS, "[DMNDK] param is null.");
         return;
@@ -1073,13 +1177,18 @@ static NativeDisplayManager_DisplayInfo* NativeDisplayManager_FillDisplayInfo(sp
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateDisplayById(uint32_t id,
     NativeDisplayManager_DisplayInfo **displayInfo)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.CreateDisplayById.Count", 1);
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] param is null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateDisplayById",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(static_cast<DisplayId>(id));
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get display by id null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateDisplayById",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     TLOGI(WmsLogTag::DMS, "[DMNDK] get display id[%{public}" PRIu64"] info", display->GetId());
@@ -1091,13 +1200,18 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateDisplayById(uint32_
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreatePrimaryDisplay(
     NativeDisplayManager_DisplayInfo **displayInfo)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.CreatePrimaryDisplay.Count", 1);
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] param is null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreatePrimaryDisplay",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     sptr<Display> display = DisplayManager::GetInstance().GetPrimaryDisplaySync();
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get primary display is null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreatePrimaryDisplay",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     TLOGI(WmsLogTag::DMS, "[DMNDK] get primary display id[%{public}" PRIu64"].", display->GetId());
@@ -1108,6 +1222,7 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreatePrimaryDisplay(
 
 void OH_NativeDisplayManager_DestroyDisplay(NativeDisplayManager_DisplayInfo *displayInfo)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.DestroyDisplay.Count", 1);
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] free display info is null.");
         return;
@@ -1130,8 +1245,11 @@ void OH_NativeDisplayManager_DestroyDisplay(NativeDisplayManager_DisplayInfo *di
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CaptureScreenPixelmap(uint32_t displayId,
     OH_PixelmapNative **pixelMap)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.CaptureScreenPixelmap.Count", 1);
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] pixelMap is null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CaptureScreenPixelmap",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     CaptureOption option;
@@ -1142,23 +1260,33 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CaptureScreenPixelmap(uin
 
     if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] param error.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CaptureScreenPixelmap",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM;
     }
     if (errCode == DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] not support.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CaptureScreenPixelmap",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORTED;
     }
     if (errCode == DmErrorCode::DM_ERROR_NO_PERMISSION) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] pixelMap no permission.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CaptureScreenPixelmap",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_NO_PERMISSION);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_NO_PERMISSION;
     }
     if (captureImage == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] pixelMap is null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CaptureScreenPixelmap",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *pixelMap = new OH_PixelmapNative(captureImage);
     if (*pixelMap == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] pixelMap convert pixelMapNative null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CaptureScreenPixelmap",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     TLOGI(WmsLogTag::DMS, "[DMNDK] get screen capture end.");
@@ -1168,8 +1296,11 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CaptureScreenPixelmap(uin
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterAvailableAreaChangeListener(
     OH_NativeDisplayManager_AvailableAreaChangeCallback availableAreaChangeCallback, uint32_t* listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.RegisterAvailableAreaChangeListener.Count", 1);
     if (availableAreaChangeCallback == nullptr || listenerIndex == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input params null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterAvailableAreaChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<AvailableAreaChangeListener> availableAreaChangeListener =
@@ -1184,6 +1315,8 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterAvailableAreaChan
     DMError ret = DisplayManager::GetInstance().RegisterAvailableAreaListener(displayAvailableAreaListener);
     if (ret != DMError::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register failed ret=%{public}d.", ret);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterAvailableAreaChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *listenerIndex = registerCount++;
@@ -1195,10 +1328,13 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterAvailableAreaChan
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterAvailableAreaChangeListener(uint32_t listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.UnregisterAvailableAreaChangeListener.Count", 1);
     std::unique_lock<std::shared_mutex> lock(availableAreaChangeMutex);
     auto iter = availableAreaChangeListenerMap.find(listenerIndex);
     if (iter == availableAreaChangeListenerMap.end()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] unregister listener fail(not find register info).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.UnregisterAvailableAreaChangeListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     DMError ret = DMError::DM_OK;
@@ -1214,8 +1350,11 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterAvailableAreaCh
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayAddListener(
     OH_NativeDisplayManager_DisplayAddCallback displayAddCallback, uint32_t* listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.RegisterDisplayAddListener.Count", 1);
     if (displayAddCallback == nullptr || listenerIndex == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register fail(input params null).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayAddListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<DisplayAddListener> displayAddListener =
@@ -1230,6 +1369,8 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayAddListene
     DMError ret = DisplayManager::GetInstance().RegisterDisplayListener(displayListener);
     if (ret != DMError::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register failed ret=%{public}d.", ret);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayAddListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *listenerIndex = registerCount++;
@@ -1241,10 +1382,13 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayAddListene
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterDisplayAddListener(uint32_t listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.UnregisterDisplayAddListener.Count", 1);
     std::unique_lock<std::shared_mutex> lock(displayAddMutex);
     auto iter = displayAddListenerMap.find(listenerIndex);
     if (iter == displayAddListenerMap.end()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] unregister fail(not find register info).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.UnregisterDisplayAddListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     DMError ret = DMError::DM_OK;
@@ -1260,8 +1404,11 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterDisplayAddListe
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayRemoveListener(
     OH_NativeDisplayManager_DisplayRemoveCallback displayRemoveCallback, uint32_t* listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.RegisterDisplayRemoveListener.Count", 1);
     if (displayRemoveCallback == nullptr || listenerIndex == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register fail(input params null).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayRemoveListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<DisplayRemoveListener> displayRemoveListener =
@@ -1276,6 +1423,8 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayRemoveList
     DMError ret = DisplayManager::GetInstance().RegisterDisplayListener(displayListener);
     if (ret != DMError::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register failed ret=%{public}d.", ret);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayRemoveListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     *listenerIndex = registerCount++;
@@ -1287,10 +1436,13 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayRemoveList
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterDisplayRemoveListener(uint32_t listenerIndex)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.UnregisterDisplayRemoveListener.Count", 1);
     std::unique_lock<std::shared_mutex> lock(displayRemoveMutex);
     auto iter = displayRemoveListenerMap.find(listenerIndex);
     if (iter == displayRemoveListenerMap.end()) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] unregister fail(not find register info).");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.UnregisterDisplayRemoveListener",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     DMError ret = DMError::DM_OK;
@@ -1306,24 +1458,33 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterDisplayRemoveLi
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAvailableArea(
     uint64_t displayId, NativeDisplayManager_Rect** availableArea)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.CreateAvailableArea.Count", 1);
     if (availableArea == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input availableArea null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateAvailableArea",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     int64_t displayCheck = static_cast<int64_t>(displayId);
     if (displayCheck < 0) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input display illegal.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateAvailableArea",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(static_cast<DisplayId>(displayId));
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] display is  null, id %{public}" PRIu64" ", displayId);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateAvailableArea",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     NativeDisplayManager_Rect* availableAreaInfo =
         static_cast<NativeDisplayManager_Rect*>(malloc(sizeof(NativeDisplayManager_Rect)));
     if (availableAreaInfo == NULL) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] memory failed.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateAvailableArea",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
 
@@ -1333,6 +1494,8 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAvailableArea(
         free(availableAreaInfo);
         availableAreaInfo = nullptr;
         TLOGE(WmsLogTag::DMS, "[DMNDK] memset failed.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.CreateAvailableArea",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
 
@@ -1348,8 +1511,11 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAvailableArea(
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_DestroyAvailableArea(NativeDisplayManager_Rect* availableArea)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.DestroyAvailableArea.Count", 1);
     if (availableArea == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input availableArea null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.DestroyAvailableArea",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     free(availableArea);
@@ -1361,23 +1527,32 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_DestroyAvailableArea(Nati
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDisplaySourceMode(
     uint64_t displayId, NativeDisplayManager_SourceMode* sourceMode)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDisplaySourceMode.Count", 1);
     if (sourceMode == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input sourceMode null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplaySourceMode",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     int64_t displayCheck = static_cast<int64_t>(displayId);
     if (displayCheck < 0) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input display illegal.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplaySourceMode",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(static_cast<DisplayId>(displayId));
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] display is  null, id %{public}" PRIu64" ", displayId);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplaySourceMode",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     sptr<DisplayInfo> displayInfo = display->GetDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get displayInfo null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplaySourceMode",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     DisplaySourceMode getSourceMode = displayInfo->GetDisplaySourceMode();
@@ -1388,23 +1563,32 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDisplaySourceMode(
 
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDisplayPosition(uint64_t displayId, int32_t* x, int32_t* y)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.GetDisplayPosition.Count", 1);
     if (x == nullptr || y == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input x or y is null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplayPosition",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     int64_t displayCheck = static_cast<int64_t>(displayId);
     if (displayCheck < 0) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input display illegal.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplayPosition",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
     sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(static_cast<DisplayId>(displayId));
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] display is  null, id %{public}" PRIu64" ", displayId);
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplayPosition",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     sptr<DisplayInfo> displayInfo = display->GetDisplayInfo();
     if (displayInfo == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] get displayInfo null.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplayPosition",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
     DisplaySourceMode getSourceMode = displayInfo->GetDisplaySourceMode();
@@ -1414,6 +1598,8 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_GetDisplayPosition(uint64
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_OK;
     } else {
         TLOGE(WmsLogTag::DMS, "[DMNDK] just main and extend has x, y.");
+        HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.GetDisplayPosition",
+            NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM;
     }
 }

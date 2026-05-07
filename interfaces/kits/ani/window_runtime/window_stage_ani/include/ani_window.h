@@ -31,6 +31,14 @@ namespace Rosen {
 #define WINDOW_EXPORT __attribute__((visibility("default")))
 #endif
 
+struct WindowMaskWithAlphaParseParams {
+    ani_int rawMaskWidth = 0;
+    ani_int rawMaskHeight = 0;
+    void* maskData = nullptr;
+    ani_size byteLength = 0;
+    uint32_t maskWidth = 0;
+    uint32_t maskHeight = 0;
+};
 
 class AniWindow {
 public:
@@ -86,6 +94,8 @@ public:
     static void SetWindowTouchable(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isTouchable);
     static void SetDialogBackGestureEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
     static void SetWindowMask(ani_env* env, ani_object obj, ani_long nativeObj, ani_array windowMask);
+    static void SetWindowMaskWithAlpha(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object windowMask, ani_int maskWidth, ani_int maskHeight);
     static void ClearWindowMask(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetTouchableAreas(ani_env* env, ani_object obj, ani_long nativeObj, ani_array rects);
     static ani_object GetUIContext(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -152,7 +162,7 @@ public:
     static ani_boolean IsInFreeWindowMode(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_string GetWindowStateSnapshot(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetRelativePositionToParentWindowEnabled(ani_env* env, ani_object obj, ani_long nativeObj,
-        ani_boolean enabled, ani_object anchor, ani_object offsetX, ani_object offsetY);
+        ani_boolean enabled, ani_object anchor, ani_int offsetX, ani_int offsetY);
     static void AttachLayoutToParentWindow(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_object anchorInfo, ani_object attachOptions);
     static void DetachLayoutToParentWindow(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -287,6 +297,8 @@ private:
     void OnSetWindowTouchable(ani_env* env, ani_boolean isTouchable);
     void OnSetDialogBackGestureEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWindowMask(ani_env* env, ani_array windowMaskArray);
+    void OnSetWindowMaskWithAlpha(ani_env* env, ani_object windowMaskArray, ani_int maskWidth,
+        ani_int maskHeight);
     void OnClearWindowMask(ani_env* env);
     void OnSetTouchableAreas(ani_env* env, ani_array rects);
     void OnSetWindowTitle(ani_env* env, ani_string titleName);
@@ -321,6 +333,8 @@ private:
     static bool ParseScaleOption(ani_env* env, ani_object scaleOptions, Transform& trans);
     static bool ParseTranslateOption(ani_env* env, ani_object translateOptions, Transform& trans);
     static bool ParseRotateOption(ani_env* env, ani_object rotateOptions, Transform& trans);
+    bool ParseWindowMaskWithAlphaParams(ani_env* env, ani_object windowMaskArray,
+        sptr<Window>& window, WindowMaskWithAlphaParseParams& params);
     bool CheckWindowMaskParams(ani_env* env, ani_array windowMask);
     void OnSetBlur(ani_env* env, ani_double radius);
     void OnSetBackdropBlurStyle(ani_env* env, ani_int blurStyle);
@@ -341,7 +355,7 @@ private:
     ani_string OnGetWindowStateSnapshot(ani_env* env);
     void OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled);
     void OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boolean enabled,
-        ani_object anchor, ani_object offsetX, ani_object offsetY);
+        ani_object anchor, ani_int offsetX, ani_int offsetY);
     void OnAttachToParentWindow(ani_env* env, ani_object anchorInfo, ani_object attachOptions);
     void OnDetachLayoutToParentWindow(ani_env* env);
     void OnSetDefaultDensityEnabled(ani_env* env, ani_boolean enabled);

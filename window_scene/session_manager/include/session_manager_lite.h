@@ -37,7 +37,8 @@ public:
     void OnWMSConnectionChanged(int32_t wmsUserId,
                                 int32_t screenId,
                                 bool isConnected,
-                                const sptr<IRemoteObject>& sessionManagerService) override;
+                                const sptr<IRemoteObject>& sessionManagerService,
+                                int32_t pid) override;
 
 private:
     const int32_t userId_;
@@ -83,11 +84,12 @@ public:
     /*
      * Multi User
      */
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();
     void OnWMSConnectionChanged(
-        int32_t userId, int32_t screenId, bool isConnected, const sptr<ISessionManagerService>& sessionManagerService);
+        int32_t userId, int32_t screenId, bool isConnected,
+        const sptr<ISessionManagerService>& sessionManagerService, int32_t pid);
 
     using UserSwitchCallbackFunc = std::function<void()>;
     void RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc);
@@ -116,7 +118,7 @@ private:
     static std::unordered_map<int32_t, sptr<SessionManagerLite>> sessionManagerLiteMap_;
     static std::mutex sessionManagerLiteMapMutex_;
     void OnUserSwitch(const sptr<ISessionManagerService>& sessionManagerService);
-    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected);
+    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected, int32_t pid);
 
     /*
      * Window Recover
@@ -155,6 +157,7 @@ private:
     std::mutex wmsConnectionMutex_;
     int32_t currentWMSUserId_ = INVALID_USER_ID;
     int32_t currentScreenId_ = DEFAULT_SCREEN_ID;
+    int32_t currentWMSPid_ = INVALID_PID;
     bool isWMSConnected_ = false;
     WMSConnectionChangedCallbackFunc wmsConnectionChangedFunc_ = nullptr;
     // above guarded by wmsConnectionMutex_

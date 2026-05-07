@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,6 +132,22 @@ public:
     {
         TLOGI(WmsLogTag::WMS_SCB, "wms disconnected");
     };
+
+    void OnConnected(int32_t userId, int32_t screenId, int32_t pid) override
+    {
+        connectedWithPid_ = true;
+        lastPid_ = pid;
+    }
+
+    void OnDisconnected(int32_t userId, int32_t screenId, int32_t pid) override
+    {
+        disconnectedWithPid_ = true;
+        lastPid_ = pid;
+    }
+
+    bool connectedWithPid_ = false;
+    bool disconnectedWithPid_ = false;
+    int32_t lastPid_ = INVALID_PID;
 };
 
 class TestFocusChangedListener : public IFocusChangedListener {
@@ -1053,11 +1069,11 @@ HWTEST_F(WindowManagerLiteTest, OnWMSConnectionChanged, TestSize.Level1)
 
     // branch 1: Set isConnected=true
     isConnected = true;
-    instance_->OnWMSConnectionChanged(userId, screenId, isConnected);
+    instance_->OnWMSConnectionChanged(userId, screenId, isConnected, INVALID_PID);
 
     // branch 2: Set isConnected=false
     isConnected = false;
-    instance_->OnWMSConnectionChanged(userId, screenId, isConnected);
+    instance_->OnWMSConnectionChanged(userId, screenId, isConnected, INVALID_PID);
 }
 
 /**
@@ -2055,6 +2071,45 @@ HWTEST_F(WindowManagerLiteTest, ReregisterWindowManagerLiteAgentWithFaultMap, Fu
         mockAdapter_->windowManagerLiteFaultAgentMap_.clear();
         EXPECT_TRUE(mockAdapter_->windowManagerLiteFaultAgentMap_.empty());
     }
+}
+
+/**
+ * @tc.name: WMSConnectionChangedListenerWithPid
+ * @tc.desc: Test IWMSConnectionChangedListener with 3-parameter version (Lite version)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, WMSConnectionChangedListenerWithPid, TestSize.Level1)
+{
+    auto listener = sptr<TestWMSConnectionChangedListener>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+    
+    int32_t testPid = 8888;
+    listener->OnConnected(100, 0, testPid);
+    ASSERT_TRUE(listener->connectedWithPid_);
+    ASSERT_EQ(listener->lastPid_, testPid);
+    
+    listener->OnDisconnected(100, 0, testPid);
+    ASSERT_TRUE(listener->disconnectedWithPid_);
+    ASSERT_EQ(listener->lastPid_, testPid);
+}
+
+/**
+ * @tc.name: WMSConnectionChangedListenerBackwardCompatibility
+ * @tc.desc: Test IWMSConnectionChangedListener backward compatibility (Lite version)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, WMSConnectionChangedListenerBackwardCompatibility, TestSize.Level1)
+{
+    auto listener = sptr<TestWMSConnectionChangedListener>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+    
+    // 测试2参数版本仍然有效
+    listener->OnConnected(100, 0);
+    listener->OnDisconnected(100, 0);
+    
+    // 3参数版本应该调用2参数版本
+    listener->OnConnected(100, 0, 7777);
+    listener->OnDisconnected(100, 0, 7777);
 }
 }
 } // namespace

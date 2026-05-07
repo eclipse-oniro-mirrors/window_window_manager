@@ -8770,20 +8770,20 @@ WMError SceneSession::SetWindowEnableDragBySystem(bool enableDrag)
     return WMError::WM_OK;
 }
 
-WMError SceneSession::ActivateDragBySystem(bool activateDrag)
+WMError SceneSession::ActivateDragBySystem(DragActivateSource source, bool activateDrag)
 {
-    PostTask([weakThis = wptr(this), activateDrag, where = __func__] {
+    PostTask([weakThis = wptr(this), source, activateDrag, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s session is null", where);
             return;
         }
-        session->SetDragActivated(activateDrag);
+        session->SetDragActivated(source, activateDrag);
         session->NotifySessionInfoChange();
-        TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s id: %{public}d, activate drag: %{public}d",
-            where, session->GetPersistentId(), activateDrag);
+        TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s id: %{public}d, activate drag: %{public}d, source: %{public}u",
+            where, session->GetPersistentId(), activateDrag, static_cast<uint32_t>(source));
         if (session->sessionStage_) {
-            session->sessionStage_->SetDragActivated(activateDrag);
+            session->sessionStage_->SetDragActivated(session->GetDragActivatedBitmap());
         }
     }, __func__);
     return WMError::WM_OK;

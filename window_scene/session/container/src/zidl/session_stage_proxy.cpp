@@ -1618,7 +1618,7 @@ WSError SessionStageProxy::SyncFvWindowInfo(const FloatViewWindowInfo& windowInf
     return WSError::WS_OK;
 }
 
-WSError SessionStageProxy::SyncFvLimits(const FloatViewLimits& limits)
+WSError SessionStageProxy::SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -1628,9 +1628,19 @@ WSError SessionStageProxy::SyncFvLimits(const FloatViewLimits& limits)
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
-    if (!data.WriteParcelable(&limits)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits failed");
+    if (!data.WriteUint32(limits.size())) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits size failed");
         return WSError::WS_ERROR_IPC_FAILED;
+    }
+    for (const auto& [templateType, fvLimits] : limits) {
+        if (!data.WriteUint32(templateType)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits type failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
+        if (!data.WriteParcelable(&fvLimits)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
     }
 
     sptr<IRemoteObject> remote = Remote();
@@ -2053,7 +2063,7 @@ WSError SessionStageProxy::SetStageKeyFramePolicy(const KeyFramePolicy& keyFrame
     return WSError::WS_OK;
 }
 
-WSError SessionStageProxy::SetDragActivated(bool dragActivated)
+WSError SessionStageProxy::SetDragActivated(uint32_t dragActivatedBitmap)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -2062,7 +2072,7 @@ WSError SessionStageProxy::SetDragActivated(bool dragActivated)
         TLOGE(WmsLogTag::WMS_LAYOUT, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!data.WriteBool(dragActivated)) {
+    if (!data.WriteUint32(dragActivatedBitmap)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Write params failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }

@@ -407,6 +407,49 @@ HWTEST_F(SessionLayoutTest, SetGetRsCmdBlockingCountFunc, TestSize.Level1)
     });
     ASSERT_NE(nullptr, session->getRsCmdBlockingCountFunc_);
 }
+
+/**
+ * @tc.name: SetDragActivated01
+ * @tc.desc: Test SetDragActivated with activated=true sets bit
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, SetDragActivated01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragActivated01";
+    info.bundleName_ = "SetDragActivated01";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    uint32_t layoutBit = static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT);
+    uint32_t appLockBit = static_cast<uint32_t>(DragActivateSource::APP_LOCK);
+
+    session->SetDragActivated(DragActivateSource::FOLLOW_PARENT_LAYOUT, true);
+    EXPECT_EQ(layoutBit, session->GetDragActivatedBitmap());
+
+    session->SetDragActivated(DragActivateSource::APP_LOCK, true);
+    EXPECT_EQ(layoutBit | appLockBit, session->GetDragActivatedBitmap());
+}
+
+/**
+ * @tc.name: SetDragActivated02
+ * @tc.desc: Test SetDragActivated with activated=false clears bit
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, SetDragActivated02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragActivated02";
+    info.bundleName_ = "SetDragActivated02";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    uint32_t layoutBit = static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT);
+    uint32_t appLockBit = static_cast<uint32_t>(DragActivateSource::APP_LOCK);
+
+    EXPECT_EQ(DRAG_ACTIVATE_ALL_MASK, session->GetDragActivatedBitmap());
+    session->SetDragActivated(DragActivateSource::FOLLOW_PARENT_LAYOUT, false);
+    EXPECT_EQ(DRAG_ACTIVATE_ALL_MASK & ~layoutBit, session->GetDragActivatedBitmap());
+
+    session->SetDragActivated(DragActivateSource::APP_LOCK, false);
+    EXPECT_EQ(DRAG_ACTIVATE_ALL_MASK & ~layoutBit & ~appLockBit, session->GetDragActivatedBitmap());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

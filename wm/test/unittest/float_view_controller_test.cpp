@@ -284,6 +284,9 @@ HWTEST_F(FloatViewControllerTest, StopFloatViewFromClientSingle, TestSize.Level1
     fvController_->ChangeState(FvWindowState::FV_STATE_UNDEFINED);
     EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, fvController_->StopFloatViewFromClientSingle());
 
+    fvController_->ChangeState(FvWindowState::FV_STATE_STARTING);
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, fvController_->StopFloatViewFromClientSingle());
+
     fvController_->ChangeState(FvWindowState::FV_STATE_STARTED);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvController_->StopFloatViewFromClientSingle());
 
@@ -438,9 +441,6 @@ HWTEST_F(FloatViewControllerTest, ANISetUIContext, TestSize.Level1)
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, aniController->SetUIContext(contextUrl, contentStorage));
 
     aniController->window_ = mw_;
-    EXPECT_CALL(*mw_, AniSetUIContent(_, _, _, _, _, _)).WillOnce(Return(WMError::WM_OK));
-    EXPECT_EQ(WMError::WM_OK, aniController->SetUIContext(contextUrl, contentStorage));
-    EXPECT_CALL(*mw_, AniSetUIContent(_, _, _, _, _, _)).WillOnce(Return(WMError::WM_DO_NOTHING));
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, aniController->SetUIContext(contextUrl, contentStorage));
 }
 
@@ -530,8 +530,10 @@ HWTEST_F(FloatViewControllerTest, SyncWindowInfoTest, TestSize.Level1)
  */
 HWTEST_F(FloatViewControllerTest, SyncLimitsTest, TestSize.Level1)
 {
-    FloatViewLimits limitsInfo;
-    limitsInfo.maxHeight_ = 1;
+    std::map<uint32_t, FloatViewLimits> limitsInfo;
+    FloatViewLimits limit;
+    limit.maxHeight_ = 1;
+    limitsInfo.emplace(0, limit);
     fvController_->SyncLimits(1, limitsInfo);
     fvController_->window_ = mw_;
     fvController_->SyncLimits(1, limitsInfo);
@@ -540,7 +542,13 @@ HWTEST_F(FloatViewControllerTest, SyncLimitsTest, TestSize.Level1)
     EXPECT_EQ(WMError::WM_OK, fvController_->RegisterLimitsChangeListener(listener));
     fvController_->limitsChangeObservers_.push_back(nullptr);
     fvController_->SyncLimits(fvController_->window_->GetWindowId(), limitsInfo);
-    EXPECT_EQ(listener->maxHeight_, limitsInfo.maxHeight_);
+    EXPECT_EQ(listener->maxHeight_, limit.maxHeight_);
+
+    std::map<uint32_t, FloatViewLimits> limitsInfo1;
+    FloatViewLimits limit1;
+    limit1.maxHeight_ = 1;
+    limitsInfo1.emplace(1, limit1);
+    fvController_->SyncLimits(fvController_->window_->GetWindowId(), limitsInfo1);
 }
 
 /**

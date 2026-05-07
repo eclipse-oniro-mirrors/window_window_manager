@@ -781,7 +781,7 @@ HWTEST_F(SceneSessionLayoutTest, ActivateDragBySystem, TestSize.Level1)
     info.abilityName_ = "ActivateDragBySystem";
     info.bundleName_ = "ActivateDragBySystem";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    auto ret = sceneSession->ActivateDragBySystem(true);
+    auto ret = sceneSession->ActivateDragBySystem(DragActivateSource::FOLLOW_PARENT_LAYOUT, true);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 
@@ -804,14 +804,14 @@ HWTEST_F(SceneSessionLayoutTest, CheckDragActivatedSettings, TestSize.Level1)
     info.bundleName_ = "CheckDragActivatedSettings";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
 
-    sceneSession->ActivateDragBySystem(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
     ASSERT_EQ(true, sceneSession->IsDragAccessible());
 
     sceneSession->GetSessionProperty()->SetDragEnabled(false);
     ASSERT_EQ(false, sceneSession->IsDragAccessible());
 
-    sceneSession->ActivateDragBySystem(false);
+    sceneSession->dragActivatedBitmap_ = 0;
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
     ASSERT_EQ(false, sceneSession->IsDragAccessible());
 
@@ -927,7 +927,7 @@ HWTEST_F(SceneSessionLayoutTest, IsDraggable, TestSize.Level1)
     sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     sceneSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
-    sceneSession->SetDragActivated(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
 
     sceneSession->moveDragController_ = nullptr;
     EXPECT_EQ(sceneSession->IsDraggable(), false);

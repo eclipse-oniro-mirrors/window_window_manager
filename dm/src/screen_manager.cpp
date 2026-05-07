@@ -81,7 +81,7 @@ private:
     std::set<sptr<IVirtualScreenGroupListener>> virtualScreenGroupListeners_;
     std::set<sptr<IRecordDisplayListener>> recordDisplayListeners_;
     sptr<IDisplayManagerAgent> virtualScreenAgent_ = nullptr;
-    std::mutex virtualScreenAgentMutex_;
+    std::recursive_mutex virtualScreenAgentMutex_;
 };
 
 class ScreenManager::Impl::ScreenManagerListener : public DisplayManagerAgentDefault {
@@ -724,10 +724,12 @@ ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
             return SCREEN_ID_INVALID;
         }
     }
-    //  After the process creating the virtual screen is killed, DMS needs to delete the virtual screen
-    std::lock_guard<std::mutex> agentLock(virtualScreenAgentMutex_);
-    if (virtualScreenAgent_ == nullptr) {
-        virtualScreenAgent_ = new DisplayManagerAgentDefault();
+    {
+        //  After the process creating the virtual screen is killed, DMS needs to delete the virtual screen
+        std::lock_guard<std::recursive_mutex> agentLock(virtualScreenAgentMutex_);
+        if (virtualScreenAgent_ == nullptr) {
+            virtualScreenAgent_ = new DisplayManagerAgentDefault();
+        }
     }
     if (option.caller_ == VirtualScreenCaller::UNKNOWN) {
         option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
@@ -911,7 +913,7 @@ void ScreenManager::Impl::OnRemoteDied()
 {
     TLOGD(WmsLogTag::DMS, "dms is died");
     {
-        std::lock_guard<std::mutex> agentLock(virtualScreenAgentMutex_);
+        std::lock_guard<std::recursive_mutex> agentLock(virtualScreenAgentMutex_);
         virtualScreenAgent_ = nullptr;
     }
 

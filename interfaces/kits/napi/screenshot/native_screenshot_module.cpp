@@ -33,10 +33,12 @@
 #include "pixel_map_napi.h"
 #include "window_manager_hilog.h"
 #include "dm_common.h"
+#include "display_histogram_management.h"
 #include "dm_napi_common.h"
 
 namespace OHOS::Rosen {
 namespace save {
+constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 static const uint32_t PIXMAP_VECTOR_ONLY_SDR_SIZE = 1;
 static const uint32_t PIXMAP_VECTOR_SIZE = 2;
 static const uint32_t SDR_PIXMAP = 0;
@@ -440,6 +442,8 @@ napi_value Resolve(napi_env env, std::unique_ptr<Param> &param)
     TLOGI(WmsLogTag::DMS, "screen shot ret=%{public}d.", param->wret);
     if (isThrowError) {
         TLOGE(WmsLogTag::DMS, "screen shot isThrowError ret=%{public}d.", param->wret);
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE(
+            param->isPick ? "ArkUI.screenshot.pick" : "ArkUI.screenshot.capture", param->wret);
         napi_throw(env, error);
         return error;
     }
@@ -533,10 +537,12 @@ napi_value HDRResolve(napi_env env, std::unique_ptr<HdrParam>& param)
     }
     TLOGI(WmsLogTag::DMS, "screen shot ret=%{public}d.", param->wret);
     if (isThrowError) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screenshot.saveHdrPicture", param->wret);
         napi_throw(env, error);
         return error;
     }
     if (param->wret != DmErrorCode::DM_OK) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screenshot.saveHdrPicture", param->wret);
         NAPI_CALL(env, napi_get_undefined(env, &result));
         return result;
     }
@@ -546,6 +552,7 @@ napi_value HDRResolve(napi_env env, std::unique_ptr<HdrParam>& param)
 
 napi_value PickFunc(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.screenshot.pick.Count", HISTOGRAM_BOOLEAN_COUNTS);
     TLOGI(WmsLogTag::DMS, "%{public}s called", __PRETTY_FUNCTION__);
     napi_value argv[1] = { nullptr };  // the max number of input parameters is 1
     size_t argc = 1;  // the max number of input parameters is 1
@@ -604,6 +611,7 @@ static void AsyncGetScreenCapture(napi_env env, std::unique_ptr<Param> &param)
 
 napi_value CaptureFunc(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.screenshot.capture.Count", HISTOGRAM_BOOLEAN_COUNTS);
     TLOGI(WmsLogTag::DMS, "%{public}s called", __PRETTY_FUNCTION__);
     napi_value argv[1] = { nullptr };
     size_t argc = 1;
@@ -670,6 +678,7 @@ napi_value MainFunc(napi_env env, napi_callback_info info)
 
 napi_value SaveHDRFunc(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.screenshot.saveHdrPicture.Count", HISTOGRAM_BOOLEAN_COUNTS);
     TLOGI(WmsLogTag::DMS, "%{public}s called", __PRETTY_FUNCTION__);
     napi_value argv[1] = {nullptr}; // the max number of input parameters is 1
     size_t argc = 1; // the max number of input parameters is 1

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ public:
     static napi_value RegisterCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterCallback(napi_env env, napi_callback_info info);
     static napi_value GetFloatingBallWindowInfo(napi_env env, napi_callback_info info);
+    static napi_value SetInApplicationVisible(napi_env env, napi_callback_info info);
     napi_value GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option);
     sptr<FloatingBallController> GetController() const;
 private:
@@ -46,6 +47,7 @@ private:
     napi_value StartFloatingBallTask(napi_env env, const FbOption& option);
     napi_value OnUpdateFloatingBall(napi_env env, napi_callback_info info);
     napi_value UpdateFloatingBallTask(napi_env env, const FbOption &option);
+    napi_value OnSetInApplicationVisible(napi_env env, napi_callback_info info);
     napi_value OnStopFloatingBall(napi_env env, napi_callback_info info);
     napi_value OnRestoreMainWindow(napi_env env, napi_callback_info info);
 
@@ -64,6 +66,9 @@ private:
     WMError ProcessStateChangeUnRegister(const sptr<JsFbWindowListener>& listener);
     WMError ProcessClickEventUnRegister(const sptr<JsFbWindowListener>& listener);
 
+    template <typename T>
+ 	void HandleProperty(napi_env env, napi_value optionObject, const char* propertyName,
+ 	    void (FbOption::*setter)(const T&), FbOption& option);
     napi_value GetIcon(napi_env env, napi_value value, FbOption& option);
 
     sptr<FloatingBallController> fbController_ = nullptr;

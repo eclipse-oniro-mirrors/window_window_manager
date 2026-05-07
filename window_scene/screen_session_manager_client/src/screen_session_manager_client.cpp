@@ -377,6 +377,17 @@ void ScreenSessionManagerClient::OnScreenOrientationChanged(ScreenId screenId, f
     screenSession->ScreenOrientationChange(screenOrientation);
 }
 
+void ScreenSessionManagerClient::OnScreenOrientationChangedWithOptions(ScreenId screenId,
+    float screenOrientation, const OrientationOptions& options)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->ScreenOrientationChange(screenOrientation, options);
+}
+
 void ScreenSessionManagerClient::OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked)
 {
     auto screenSession = GetScreenSession(screenId);
@@ -1169,6 +1180,9 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());
     config.displayNode = screenSessionManager_->GetDisplayNode(option.screenId_);
+    if (config.displayNode != nullptr) {
+        config.displayNode->SetScreenId(option.rsId_);
+    }
     if (screenSession == nullptr) {
         screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
     } else {

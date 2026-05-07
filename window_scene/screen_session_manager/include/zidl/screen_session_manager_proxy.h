@@ -149,6 +149,8 @@ public:
         std::vector<ScreenColorGamut>& colorGamuts) override;
 
     virtual DMError SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi) override;
+    virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
+        const OrientationOptions& options, bool isFromNapi) override;
     virtual DMError SetScreenRotationLocked(bool isLocked) override;
     virtual DMError SetScreenRotationLockedFromJs(bool isLocked) override;
     virtual DMError IsScreenRotationLocked(bool& isLocked) override;

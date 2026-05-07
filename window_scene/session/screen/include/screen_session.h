@@ -53,6 +53,8 @@ public:
         PowerStateChangeReason reason) {}
     virtual void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
     virtual void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) {}
+    virtual void OnScreenOrientationChangeWithOptions(float screenOrientation,
+        const OrientationOptions& options, ScreenId screenId) {}
     virtual void OnScreenRotationLockedChange(bool isLocked, ScreenId screenId) {}
     virtual void OnScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId) {}
     virtual void OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId extendScreenId) {}
@@ -341,6 +343,11 @@ public:
     void CameraBackSelfieChange(bool isCameraBackSelfie);
     void ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode, bool isFromNapi);
     void ScreenOrientationChange(float orientation);
+    void ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode,
+        const OrientationOptions& options, bool isFromNapi);
+    void ScreenOrientationChange(float orientation, const OrientationOptions& options);
+    float GetScreenOrientation(Orientation orientation,
+        FoldDisplayMode foldDisplayMode, bool isFromNapi);
     void ScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId);
     DMRect GetAvailableArea();
     DMRect GetExpandAvailableArea();
