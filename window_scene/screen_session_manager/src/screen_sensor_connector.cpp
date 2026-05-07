@@ -27,12 +27,9 @@ namespace {
     constexpr int32_t MOTION_ACTION_LEFT_LANDSCAPE = 1;
     constexpr int32_t MOTION_ACTION_PORTRAIT_INVERTED = 2;
     constexpr int32_t MOTION_ACTION_RIGHT_LANDSCAPE = 3;
-    constexpr int32_t MOTION_ACTION_TENT_MODE_OFF = 0;
-    constexpr int32_t MOTION_ACTION_TENT_MODE_ON = 1;
-    constexpr int32_t MOTION_ACTION_TENT_MODE_HOVER = 2;
     const int32_t MOTION_TYPE_ROTATION = 700;
-    const int32_t SMART_MOTION_TYPE_ROTATION = 701; 
-    const int32_t DISABLE_SMART_ROTATION = 0; 
+    const int32_t SMART_MOTION_TYPE_ROTATION = 701;
+    const int32_t DISABLE_SMART_ROTATION = 0;
     const int32_t ENABLE_SMART_ROTATION = 1;
     const int32_t MOTION_TYPE_TENT = 2800;
 #endif
@@ -80,51 +77,49 @@ void ScreenSensorConnector::UnsubscribeTentSensor()
 
 // Motion
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-void MotionSubscriber::SubscribeMotionSensor()	 
-{	 
-    TLOGI(WmsLogTag::DMS, "start");	 
-    if (isMotionSensorSubscribed_) {	 
-        TLOGE(WmsLogTag::DMS, "motion sensor's already subscribed");	 
-        return;	 
-    }	 
-
-
-    int32_t sensorType = MOTION_TYPE_ROTATION;	 
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor", 
-        DISABLE_SMART_ROTATION); 
-    if (smartRotationEnabled == ENABLE_SMART_ROTATION) { 
-        TLOGNFI(WmsLogTag::DMS, "start subscribe smart rotation"); 
-        sensorType = SMART_MOTION_TYPE_ROTATION; 
-    } 
-    if (!SubscribeCallback(sensorType, RotationMotionEventCallback)) { 
-        TLOGE(WmsLogTag::DMS, "dms: motion sensor subscribe failed");	 
-        return;	 
-    }	 
-    isMotionSensorSubscribed_ = true;	 
-}	 
- 
- 
- void MotionSubscriber::UnsubscribeMotionSensor()	 
- {	 
-    if (!isMotionSensorSubscribed_) {	 
-        TLOGI(WmsLogTag::DMS, "start");	 
-        return;	 
-    }	 
-
-
-    int32_t sensorType = MOTION_TYPE_ROTATION;	 
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor", 
-        DISABLE_SMART_ROTATION); 
-    if (smartRotationEnabled == ENABLE_SMART_ROTATION) { 
-        TLOGNFI(WmsLogTag::DMS, "start unsubscribe smart rotation"); 
-        sensorType = SMART_MOTION_TYPE_ROTATION; 
-    } 
-    if (!UnsubscribeCallback(sensorType, RotationMotionEventCallback)) { 
-        TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed");	 
-        return;	 
+void MotionSubscriber::SubscribeMotionSensor()
+{
+    TLOGI(WmsLogTag::DMS, "start");
+    if (isMotionSensorSubscribed_) {
+        TLOGE(WmsLogTag::DMS, "motion sensor's already subscribed");
+        return;
     }
-    isMotionSensorSubscribed_ = false;	 
+
+    int32_t sensorType = MOTION_TYPE_ROTATION;
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor", 
+        DISABLE_SMART_ROTATION);
+    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
+        TLOGNFI(WmsLogTag::DMS, "start subscribe smart rotation");
+        sensorType = SMART_MOTION_TYPE_ROTATION;
+    }
+    if (!SubscribeCallback(sensorType, RotationMotionEventCallback)) {
+        TLOGE(WmsLogTag::DMS, "dms: motion sensor subscribe failed");
+        return;
+    }
+    isMotionSensorSubscribed_ = true;
 }
+ 
+void MotionSubscriber::UnsubscribeMotionSensor()	 
+{	 
+    if (!isMotionSensorSubscribed_) { 
+        TLOGI(WmsLogTag::DMS, "start");
+        return;
+    }
+
+    int32_t sensorType = MOTION_TYPE_ROTATION;
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor", 
+        DISABLE_SMART_ROTATION);
+    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
+        TLOGNFI(WmsLogTag::DMS, "start unsubscribe smart rotation");
+        sensorType = SMART_MOTION_TYPE_ROTATION;
+    }
+    if (!UnsubscribeCallback(sensorType, RotationMotionEventCallback)) {
+        TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed"); 
+        return;
+    }
+    isMotionSensorSubscribed_ = false;
+}
+
 void RotationMotionEventCallback(const MotionSensorEvent& motionData)
 {
     DeviceRotation motionRotation = DeviceRotation::INVALID;
