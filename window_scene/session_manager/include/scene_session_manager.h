@@ -1886,6 +1886,7 @@ private:
     WMError FlushSessionBlackListInfoMapWhenRemove(ScreenId screenId);
     void UpdateVirtualScreenBlackList(ScreenId screenId);
     void AddSkipSurfaceNodeWhenAttach(int32_t windowId, const std::string& bundleName, uint64_t surfaceNodeId);
+    bool IsSessionVisibleAndRealForeground(const sptr<SceneSession>& session);
     SessionState GetRealSessionState(const sptr<SceneSession>& session);
     std::unordered_map<std::string, std::unordered_set<std::string>> bundleRSBlackListConfigMap_;
     inline static const std::string WMS_DEFAULT = "WMS_DEFAULT";
