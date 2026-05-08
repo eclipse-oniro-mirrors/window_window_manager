@@ -234,6 +234,7 @@ void SuperFoldPolicy::BootAnimationFinishPowerInit()
     } else {
         TLOGI(WmsLogTag::DMS, "Fold Screen Power Init, invalid active screen id");
     }
+    LockDisplayMode(false);
 }
 
 void SuperFoldPolicy::RecoverDisplayMode()
@@ -300,6 +301,7 @@ void SuperFoldPolicy::SetCurrentDisplayMode(FoldDisplayMode displayMode)
 
 void SuperFoldPolicy::LockDisplayMode(bool isLock)
 {
+    TLOGI(WmsLogTag::DMS, "isLock:%{public}d", isLock);
     isLockDisplayMode_.store(isLock);
 }
 

@@ -2910,7 +2910,6 @@ HWTEST_F(ScreenSessionManagerClientTest, RegisterScreenClosedStateChangeListener
     EXPECT_TRUE(logMsg.find("Success to register screen closed state listener") != std::string::npos);
     logMsg.clear();
     LOG_SetCallback(nullptr);
-    delete listener;
 }
 
 /**
@@ -2927,8 +2926,6 @@ HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChange, TestSize.Lev
     screenSessionManagerClient_->OnScreenClosedStateChange(state);
     EXPECT_EQ(listener->lastScreenClosedState_, state);
     EXPECT_GT(listener->callCount_, 0);
-
-    delete listener;
 }
 
 /**

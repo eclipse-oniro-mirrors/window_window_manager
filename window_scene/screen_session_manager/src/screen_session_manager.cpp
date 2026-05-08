@@ -5944,7 +5944,8 @@ bool ScreenSessionManager::SetSpecifiedScreenPower(ScreenId screenId, ScreenPowe
 void ScreenSessionManager::SetLockDisplayModeWhenShutDown(PowerStateChangeReason reason, bool isLock)
 {
 #ifdef FOLD_ABILITY_ENABLE
-    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+    if (reason == PowerStateChangeReason::STATE_CHANGE_REASON_SHUT_DOWN &&
+        FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
         SuperFoldPolicy::GetInstance().LockDisplayMode(isLock);
     }
 #endif

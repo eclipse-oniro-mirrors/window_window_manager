@@ -88,6 +88,7 @@ public:
     MOCK_METHOD(void, SetInternalClipToBounds, (ScreenId screenId, bool clipToBounds), (override));
     MOCK_METHOD(void, OnTentModeChange, (TentMode tentMode), (override));
     MOCK_METHOD(void, OnTransRSEvent, (const sptr<RSEventDataBase>& param), (override));
+    MOCK_METHOD(void, OnScreenClosedStateChange, (ScreenClosedState screenClosedState), (override));
 };
 
 class DisplayManagerAgentMock : public IRemoteStub<IDisplayManagerAgent> {

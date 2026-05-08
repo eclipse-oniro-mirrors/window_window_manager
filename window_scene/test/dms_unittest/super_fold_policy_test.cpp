@@ -323,7 +323,7 @@ HWTEST_F(SuperFoldPolicyTest, CheckDisplayMode05, TestSize.Level1)
 HWTEST_F(SuperFoldPolicyTest, GetModeChangeRunningStatus01, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
-    SuperFoldPolicy::GetInstance().startTimePoint_ = std::chrono::steady_clock::now() - 
+    SuperFoldPolicy::GetInstance().startTimePoint_ = std::chrono::steady_clock::now() -
         std::chrono::milliseconds(3000);
     bool ret = SuperFoldPolicy::GetInstance().GetModeChangeRunningStatus();
     EXPECT_FALSE(ret);

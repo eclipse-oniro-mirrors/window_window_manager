@@ -70,6 +70,7 @@ public:
     sptr<IRemoteObject> AsObject() override {return testPtr;};
     void OnTentModeChange(TentMode tentMode) override {};
     void OnTransRSEvent(const sptr<RSEventDataBase>& param) override {};
+    void OnScreenClosedStateChange(ScreenClosedState screenClosedState) override {};
     sptr<IRemoteObject> testPtr;
 };
 }
