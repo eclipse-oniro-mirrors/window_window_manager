@@ -3051,6 +3051,129 @@ HWTEST_F(WindowSessionImplTest, UpdateFloatShowWhenCreate, TestSize.Level1)
     WindowSessionImpl::windowSessionMap_.clear();
     GTEST_LOG_(INFO) << "WindowSessionImplTest: UpdateFloatShowWhenCreate end";
 }
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported01
+ * @tc.desc: IsSubWindowMaximizeSupported - not sub window returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported01 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported01 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported02
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported02 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported02");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = true;
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_EQ(true, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN |
+        WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    EXPECT_EQ(true, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY |
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_SECONDARY);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported02 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported03
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is false, use windowOption
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported03 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported03");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = false;
+    EXPECT_EQ(true, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported03 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported04
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is false, windowOption is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported04 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported04");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = false;
+    window->windowOption_ = nullptr;
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported04 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported05
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is false, windowOption returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported05, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported05 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported05");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    option->SetSubWindowMaximizeSupported(false);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = false;
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported05 end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

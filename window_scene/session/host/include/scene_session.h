@@ -521,6 +521,8 @@ public:
     void RegisterMainModalTypeChangeCallback(NotifyMainModalTypeChangeFunc&& func);
     void CloneWindow(NodeId surfaceNodeId, bool needOffScreen);
     void RegisterSupportWindowModesCallback(NotifySetSupportedWindowModesFunc&& func);
+    virtual WSError NotifySupportWindowModesChange(
+        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     void AddSidebarBlur();
     void SetSidebarBlur(bool isDefaultSidebarBlur, bool isNeedAnimation);
     void SaveLastDensity();

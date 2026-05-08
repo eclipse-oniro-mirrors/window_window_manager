@@ -781,6 +781,8 @@ protected:
      */
     void ClearSwitchFreeMultiWindowListenersById(int32_t persistentId);
     void NotifySwitchFreeMultiWindow(bool enable);
+    virtual void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() {}
+    virtual void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() {}
 
     void ClearVsyncStation();
     WMError WindowSessionCreateCheck();
@@ -872,6 +874,7 @@ protected:
     bool IsZLevelAboveParentLoosened() const override;
 
     sptr<WindowOption> windowOption_;
+    bool haveSetSupportedWindowModes_ = false;
     sptr<ISession> hostSession_;
     mutable std::mutex hostSessionMutex_;
     std::shared_ptr<Ace::UIContent> uiContent_;
