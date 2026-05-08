@@ -23,6 +23,7 @@
 #include "singleton_container.h"
 #include "window_adapter.h"
 #include "window_group_mgr.h"
+#include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "window_manager_service.h"
 #include "minimize_app.h"

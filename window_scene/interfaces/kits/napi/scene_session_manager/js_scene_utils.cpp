@@ -1725,11 +1725,13 @@ bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo&
         return ConvertFromJsValue(env, value, windowModeInfo.windowMode);
     }
     if (type != napi_object) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "type is not number or object, type: %{public}d", static_cast<int32_t>(type));
         return false;
     }
     napi_value windowModeValue = nullptr;
     napi_get_named_property(env, value, "windowMode", &windowModeValue);
     if (!ConvertFromJsValue(env, windowModeValue, windowModeInfo.windowMode)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert windowMode");
         return false;
     }
     napi_value splitStyleValue = nullptr;
@@ -1738,12 +1740,23 @@ bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo&
         int32_t splitStyle;
         if (ConvertFromJsValue(env, splitStyleValue, splitStyle)) {
             windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+        } else {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert splitStyle");
         }
+    } else {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "splitStyle is undefined, use default");
     }
     napi_value splitIndexValue = nullptr;
     napi_get_named_property(env, value, "splitIndex", &splitIndexValue);
     if (GetType(env, splitIndexValue) != napi_undefined) {
-        ConvertFromJsValue(env, splitIndexValue, windowModeInfo.splitIndex);
+        int32_t splitIndex;
+        if (ConvertFromJsValue(env, splitIndexValue, splitIndex)) {
+            windowModeInfo.splitIndex = splitIndex;
+        } else {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert splitIndex");
+        }
+    } else {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "splitIndex is undefined, use default");
     }
     return true;
 }

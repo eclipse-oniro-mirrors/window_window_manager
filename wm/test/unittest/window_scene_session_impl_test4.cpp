@@ -296,12 +296,13 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediately, TestSize.Leve
     sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSessionImpl->state_ = WindowState::STATE_CREATED;
-    auto ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_FLOATING);
+    WindowModeInfo floatingModeInfo = { WindowMode::WINDOW_MODE_FLOATING };
+    auto ret = windowSceneSessionImpl->UpdateWindowModeImmediately(floatingModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_FLOATING, windowSceneSessionImpl->property_->GetWindowMode());
 
     windowSceneSessionImpl->state_ = WindowState::STATE_HIDDEN;
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_FLOATING);
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(floatingModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_FLOATING, windowSceneSessionImpl->property_->GetWindowMode());
 
@@ -310,16 +311,18 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediately, TestSize.Leve
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSessionImpl->property_->SetPersistentId(1);
     windowSceneSessionImpl->hostSession_ = session;
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    WindowModeInfo splitPrimaryModeInfo = { WindowMode::WINDOW_MODE_SPLIT_PRIMARY };
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(splitPrimaryModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_SPLIT_PRIMARY, windowSceneSessionImpl->property_->GetWindowMode());
 
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    WindowModeInfo splitSecondaryModeInfo = { WindowMode::WINDOW_MODE_SPLIT_SECONDARY };
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(splitSecondaryModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_SPLIT_SECONDARY, windowSceneSessionImpl->property_->GetWindowMode());
 
     windowSceneSessionImpl->state_ = WindowState::STATE_UNFROZEN;
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(splitSecondaryModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_SPLIT_SECONDARY, windowSceneSessionImpl->property_->GetWindowMode());
 }

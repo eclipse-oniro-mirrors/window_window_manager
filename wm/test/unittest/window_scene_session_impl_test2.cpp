@@ -376,9 +376,10 @@ HWTEST_F(WindowSceneSessionImplTest2, UpdateWindowModeImmediately01, TestSize.Le
     option->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
 
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_UNDEFINED));
+    WindowModeInfo undefinedModeInfo = { WindowMode::WINDOW_MODE_UNDEFINED };
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(undefinedModeInfo));
     windowSceneSession->state_ = WindowState::STATE_CREATED;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_UNDEFINED));
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(undefinedModeInfo));
 }
 
 /**

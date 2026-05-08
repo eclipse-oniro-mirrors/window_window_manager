@@ -216,8 +216,8 @@ enum class WindowMode : uint32_t {
     WINDOW_MODE_FLOATING,
     WINDOW_MODE_PIP,
     WINDOW_MODE_FB,
-    WINDOW_MODE_FV,
     WINDOW_MODE_SPLIT,
+    WINDOW_MODE_FV,
     END = WINDOW_MODE_FV,
 };
 
