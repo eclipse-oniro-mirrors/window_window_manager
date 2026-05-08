@@ -11224,7 +11224,7 @@ napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info 
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (!argc == ARG_COUNT_ONE) {
+    if (argc != ARG_COUNT_ONE) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setSupportedWindowModes]msg: The number of parameters is invalid"));
