@@ -3489,6 +3489,7 @@ struct RotationChangeResult {
 enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
+    BANNER_LIVE_SHARE = 2210,
 };
 
 /**
@@ -4059,7 +4060,7 @@ enum class WaterfallResidentState : uint32_t {
 struct MaximizeOptions {
     MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
     AcrossDisplayPresentation acrossDisplayPresentation =
-        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        AcrossDisplayPresentation::UNSPECIFIED;
     SnapshotAnimationConfig snapshotAnimationConfig;
 };
 

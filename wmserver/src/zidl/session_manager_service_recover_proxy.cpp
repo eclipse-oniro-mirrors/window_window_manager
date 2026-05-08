@@ -52,7 +52,7 @@ void SessionManagerServiceRecoverProxy::OnSessionManagerServiceRecover(
 }
 
 void SessionManagerServiceRecoverProxy::OnWMSConnectionChanged(
-    int32_t userId, int32_t screenId, bool isConnected, const sptr<IRemoteObject>& sessionManagerService)
+    int32_t userId, int32_t screenId, bool isConnected, const sptr<IRemoteObject>& sessionManagerService, int32_t pid)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -71,6 +71,10 @@ void SessionManagerServiceRecoverProxy::OnWMSConnectionChanged(
     }
     if (!data.WriteBool(isConnected)) {
         WLOGFE("Write isConnected failed");
+        return;
+    }
+    if (!data.WriteInt32(pid)) {
+        WLOGFE("Write pid failed");
         return;
     }
 

@@ -89,7 +89,7 @@ ani_ref AniFvWindow::Create(ani_env* env, ani_long nativeObj, ani_object floatVi
 ani_ref AniFvWindow::OnCreate(ani_env* env, ani_object floatViewConfigurations)
 {
     if (floatViewConfigurations == nullptr) {
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "floatViewConfigurations is null");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "Float view configuration is null.");
     }
     void* contextPtr = nullptr;
     if (AniFvUtils::GetContextPtr(env, floatViewConfigurations, contextPtr) == ANI_ERROR) {
@@ -109,7 +109,8 @@ ani_ref AniFvWindow::CreateFvController(ani_env* env, void* contextPtr, uint32_t
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]start");
 
     if (!FloatViewManager::isSupportFloatView_) {
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT, "device not support floatView");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
+            "Device does not support float view.");
     }
 
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
@@ -118,7 +119,7 @@ ani_ref AniFvWindow::CreateFvController(ani_env* env, void* contextPtr, uint32_t
     }
 
     if (templateType >= static_cast<uint32_t>(FloatViewTemplate::END)) {
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "template type is invalid");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "Template type is invalid.");
     }
     
     FvOption option;
@@ -140,7 +141,7 @@ ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env, ani_int templateType
     if (!FloatViewManager::isSupportFloatView_) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Device do not support float view");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "Device do not support float view.");
+            "Device does not support float view.");
     }
     uint32_t templateType_ = static_cast<uint32_t>(templateType);
     if (templateType_ >= static_cast<uint32_t>(FloatViewTemplate::END)) {
@@ -163,9 +164,9 @@ ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env, ani_int templateType
 
 ani_object AniFvWindow::BindAni(ani_env* env, ani_object fvController, ani_object fbController, ani_object aniFbOption)
 {
-    if (fbController == nullptr || fvController == nullptr) {
+    if (fbController == nullptr || fvController == nullptr || aniFbOption == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]null controller exists");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "null controller exists.");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "Not enough parameters provided.");
     }
     ani_long fbAddress;
     ani_long fvAddress;
@@ -174,36 +175,37 @@ ani_object AniFvWindow::BindAni(ani_env* env, ani_object fvController, ani_objec
         !AniFvUtils::GetNativeAddress(env, fvController,
         "@ohos.window.floatView.floatView.FvControllerInternal", "nativeObj", fvAddress)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]no controller in ani controller");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM,
-            "Failed to get controllers from js objects.");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "Controller invalid.");
     }
     auto aniFbController = reinterpret_cast<AniFbController*>(fbAddress);
     auto aniFvController = reinterpret_cast<AniFvController*>(fvAddress);
     FbOption fbOption;
     if (!AniFbController::GetFbOption(env, aniFbOption, fbOption)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Failed to convert fb option.");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "Failed to convert fb option.");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "Floating ball params is invalid.");
     }
 
     auto nFbController = aniFbController->GetController();
     auto nFvController = aniFvController->GetController();
     if (nFbController == nullptr || nFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "one of the controller is null");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR);
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Controller instance is null.");
     }
     if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "device not support");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
+            "Device does not support this operation.");
     }
     if (!Permission::CheckCallingPermission(FLOATING_BALL_PERMISSION) ||
         !Permission::CheckCallingPermission(FLOAT_VIEW_PERMISSION)) {
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PERMISSION, "no permission.");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PERMISSION,
+            "Permission denied. Required permissions: ohos.permission.FLOAT_VIEW, ohos.permission.USE_FLOAT_BALL.");
     }
     TLOGI(WmsLogTag::WMS_SYSTEM, "start bind controller");
     WMError err = FloatWindowManager::Bind(nFvController, nFbController, fbOption);
     if (err != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "bind controller failed");
-        return AniFvUtils::AniThrowError(env, err, "bind controller failed.");
+        return AniFvUtils::AniThrowError(env, err, "Failed to bind controllers.");
     }
     return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
 }
@@ -212,7 +214,8 @@ ani_object AniFvWindow::UnBindAni(ani_env* env, ani_object fvController, ani_obj
 {
     if (fbController == nullptr || fvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]null controller exists");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "null controller exists.");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM,
+            "Missing arguments for unbind operation.");
     }
     ani_long fbAddress;
     ani_long fvAddress;
@@ -221,8 +224,7 @@ ani_object AniFvWindow::UnBindAni(ani_env* env, ani_object fvController, ani_obj
         !AniFvUtils::GetNativeAddress(env, fvController,
         "@ohos.window.floatView.floatView.FvControllerInternal", "nativeObj", fvAddress)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]no controller in ani controller");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM,
-            "Failed to get controllers from js objects.");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "Controller invalid.");
     }
     auto aniFbController = reinterpret_cast<AniFbController*>(fbAddress);
     auto aniFvController = reinterpret_cast<AniFvController*>(fvAddress);
@@ -230,16 +232,17 @@ ani_object AniFvWindow::UnBindAni(ani_env* env, ani_object fvController, ani_obj
     auto nFvController = aniFvController->GetController();
     if (nFbController == nullptr || nFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "one of the controller is null");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR);
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Controller instance is null.");
     }
     if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "device not support");
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
+            "Device does not support this operation.");
     }
     WMError err = FloatWindowManager::UnBind(nFvController, nFbController);
     if (err != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "unbind controller failed");
-        return AniFvUtils::AniThrowError(env, err, "unbind controller failed.");
+        return AniFvUtils::AniThrowError(env, err, "Failed to unbind controllers.");
     }
     return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
 }

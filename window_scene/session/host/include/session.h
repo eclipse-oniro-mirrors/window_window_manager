@@ -981,6 +981,7 @@ public:
     bool HasSnapshotFreeMultiWindow();
     bool HasSnapshot(SnapshotStatus key);
     bool HasSnapshot();
+    virtual void NotifyForceHideChange(bool hide) {};
     virtual void RecoverSnapshotPersistence(const SessionInfo& info) {};
     virtual void ClearSnapshotPersistence() {};
     virtual void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) {};

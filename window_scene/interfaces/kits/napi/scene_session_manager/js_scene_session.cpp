@@ -344,6 +344,10 @@ static napi_value CreateFbTemplateInfo(napi_env env, const FloatingBallTemplateI
         CreateJsValue(env, fbTemplateInfo.content_));
     napi_set_named_property(env, fbTemplateInfoValue, "backgroundColor",
         CreateJsValue(env, fbTemplateInfo.backgroundColor_));
+    napi_set_named_property(env, fbTemplateInfoValue, "titleColor",
+        CreateJsValue(env, fbTemplateInfo.titleColor_));
+    napi_set_named_property(env, fbTemplateInfoValue, "contentColor",
+        CreateJsValue(env, fbTemplateInfo.contentColor_));
     napi_set_named_property(env, fbTemplateInfoValue, "isVisibleInApp",
         CreateJsValue(env, fbTemplateInfo.isVisibleInApp_));
     napi_set_named_property(env, fbTemplateInfoValue, "textUpdateAnimationType",

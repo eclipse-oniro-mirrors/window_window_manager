@@ -612,6 +612,18 @@ DMError ScreenManagerAdapter::SetOrientation(ScreenId screenId, Orientation orie
     return ConvertToDMError(errCode, dmError);
 }
 
+DMError ScreenManagerAdapter::SetOrientation(ScreenId screenId, Orientation orientation,
+    const OrientationOptions& options, bool isFromNapi)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+ 
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->SetOrientation(screenId, orientation, options, isFromNapi);
+    }
+ 
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError BaseAdapter::RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     DisplayManagerAgentType type)
 {
@@ -1529,12 +1541,14 @@ DMError ScreenManagerAdapter::GetDensityInCurResolution(ScreenId screenId, float
     return ConvertToDMError(errCode, dmError);
 }
 
-DMError ScreenManagerAdapter::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+DMError ScreenManagerAdapter::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
 
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->ResizeVirtualScreen(screenId, width, height);
+        return screenSessionManagerServiceProxy_->ResizeVirtualScreen(screenId, width, height,
+            renderWidth, renderHeight);
     }
 
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;

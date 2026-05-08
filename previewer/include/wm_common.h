@@ -2041,6 +2041,7 @@ struct RotationChangeResult {
 enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
+    BANNER_LIVE_SHARE = 2210,
 };
 
 /**
@@ -2206,8 +2207,9 @@ enum class ScreenshotEventType : int32_t {
  * @brief Configuration for snapshot animation duration and delay.
  */
 struct SnapshotAnimationConfig {
-    int64_t duration = -1;  // Animation duration in ms, -1 means use system default
-    int64_t delay = -1;     // Animation delay in ms, -1 means use system default
+    static constexpr int64_t UNSET = -1;  // Use system default
+    int64_t duration = UNSET;  // Animation duration in ms
+    int64_t delay = UNSET;     // Animation delay in ms
 };
 
 /**
@@ -2253,6 +2255,9 @@ enum class AcrossDisplayPresentation : uint32_t {
      * re-entering half-folded.
      */
     EXIT_ACROSS_DISPLAY_MODE = 2,
+
+    /** Internal sentinel indicating the user did not specify this parameter. */
+    UNSPECIFIED = UINT32_MAX,
 };
 
 /**
@@ -2262,7 +2267,7 @@ enum class AcrossDisplayPresentation : uint32_t {
 struct MaximizeOptions {
     MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
     AcrossDisplayPresentation acrossDisplayPresentation =
-        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        AcrossDisplayPresentation::UNSPECIFIED;
     SnapshotAnimationConfig snapshotAnimationConfig;
 };
 

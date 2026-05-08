@@ -123,8 +123,8 @@ napi_value JsFloatViewController::OnStartFloatView(napi_env env, napi_callback_i
         }
         auto errCode = ConvertErrorToCode(fvController->StartFloatView());
         if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
-                "JsFloatViewController::StartFloatView failed."));            return;
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode, "Failed to start float view."));
+            return;
         }
         task->Resolve(env, NapiGetUndefined(env));
     };
@@ -165,8 +165,7 @@ napi_value JsFloatViewController::OnStopFloatView(napi_env env, napi_callback_in
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFloatViewController::OnStopFloatView failed."));
+                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to stop float view."));
             }
         };
     napi_value result = nullptr;
@@ -237,8 +236,7 @@ napi_value JsFloatViewController::SetUIContextTask(napi_env env, const std::stri
         }
         auto errCode = ConvertErrorToCode(fvController->SetUIContext(contextUrl, contentStorage));
         if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
-                "JsFloatViewController::SetUIContext failed."));
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode, "Failed to set UI content."));
             return;
         }
         task->Resolve(env, NapiGetUndefined(env));
@@ -300,7 +298,7 @@ napi_value JsFloatViewController::OnSetFloatViewVisibilityInApp(napi_env env, na
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFloatViewController::OnSetFloatViewVisibilityInApp failed."));
+                    "Failed to set float view visibility in app."));
             }
         };
     napi_value result = nullptr;
@@ -384,8 +382,7 @@ napi_value JsFloatViewController::OnSetWindowSizeTask(napi_env env, int32_t widt
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFloatViewController::OnSetWindowSizeTask failed."));
+                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to set window size."));
             }
         };
     napi_value result = nullptr;
@@ -483,7 +480,7 @@ napi_value JsFloatViewController::OnRestoreMainWindow(napi_env env, napi_callbac
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "restore main window failed."));
+                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to restore main window."));
             }
         };
     napi_value result = nullptr;
@@ -557,7 +554,7 @@ napi_value JsFloatViewController::RegisterCallbackWithType(
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Register callback failed, type: %{public}d", callbackType);
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_ONCHANGE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Register callback failed.");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to register callback.");
     }
     jsCallbackMap_[callbackType].insert(fvWindowListener);
     TLOGI(WmsLogTag::WMS_SYSTEM, "Register type %{public}d success", callbackType);
@@ -580,7 +577,7 @@ napi_value JsFloatViewController::UnregisterCallbackWithType(
             if (ret != WMError::WM_OK) {
                 TLOGE(WmsLogTag::WMS_SYSTEM, "Unregister type %{public}d failed, no value", callbackType);
                 HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_OFFCHANGE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-                return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "unRegister failed.");
+                return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to unregister callback.");
             }
         }
         jsCallbackMap_.erase(callbackType);
@@ -598,7 +595,7 @@ napi_value JsFloatViewController::UnregisterCallbackWithType(
         if (ret != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Unregister type %{public}d failed, no value", callbackType);
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_OFFCHANGE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-            return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "unRegister failed.");
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Failed to unregister callback.");
         }
         jsCallbackMap_[callbackType].erase(callback);
         break;

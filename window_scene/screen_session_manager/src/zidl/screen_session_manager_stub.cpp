@@ -336,6 +336,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             int32_t userId = data.ReadInt32();
             uint32_t phyWidth = data.ReadUint32();
             uint32_t phyHeight = data.ReadUint32();
+            uint32_t renderWidth = data.ReadUint32();
+            uint32_t renderHeight = data.ReadUint32();
             int32_t screenIdParam = data.ReadInt32();
             VirtualScreenCaller caller = static_cast<VirtualScreenCaller>(data.ReadUint32());
             bool isSurfaceValid = data.ReadBool();
@@ -365,6 +367,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .phyWidth_ = phyWidth,
                 .phyHeight_ = phyHeight,
                 .userId_ = userId,
+                .renderWidth_ = renderWidth,
+                .renderHeight_ = renderHeight,
                 .screenId_ = screenIdParam,
                 .caller_ = caller
             };
@@ -902,6 +906,17 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_ORIENTATION_WITH_OPTIONS: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            Orientation orientation = static_cast<Orientation>(data.ReadUint32());
+            OrientationOptions options;
+            options.needAnimation = data.ReadBool();
+            options.ignoreRotationLock = data.ReadBool();
+            bool isFromNapi = data.ReadBool();
+            DMError ret = SetOrientation(screenId, orientation, options, isFromNapi);
+            reply.WriteInt32(static_cast<int32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED: {
             bool isLocked = static_cast<bool>(data.ReadBool());
             DMError ret = SetScreenRotationLocked(isLocked);
@@ -1249,7 +1264,9 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             uint32_t width = data.ReadUint32();
             uint32_t height = data.ReadUint32();
-            DMError ret = ResizeVirtualScreen(screenId, width, height);
+            uint32_t renderWidth = data.ReadUint32();
+            uint32_t renderHeight = data.ReadUint32();
+            DMError ret = ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }

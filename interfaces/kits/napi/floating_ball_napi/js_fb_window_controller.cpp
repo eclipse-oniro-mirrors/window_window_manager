@@ -420,50 +420,34 @@ napi_value JsFbController::OnRestoreMainWindow(napi_env env, napi_callback_info 
     return result;
 }
 
+template <typename T>
+void JsFbController::HandleProperty(napi_env env, napi_value optionObject, const char* propertyName,
+    void (FbOption::*setter)(const T&), FbOption& option)
+{
+    bool hasProperty = false;
+    napi_has_named_property(env, optionObject, propertyName, &hasProperty);
+    if (hasProperty) {
+        napi_value propertyValue = nullptr;
+        napi_get_named_property(env, optionObject, propertyName, &propertyValue);
+        T value;
+        if (ConvertFromJsValue(env, propertyValue, value)) {
+            (option.*setter)(value);
+        }
+    }
+}
+
 napi_value JsFbController::GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option)
 {
-    napi_value templateValue = nullptr;
-    napi_value titleValue = nullptr;
-    napi_value contentValue = nullptr;
-    napi_value colorValue = nullptr;
-    napi_value textUpdateAnimationTypeValue = nullptr;
+// 处理属性
+    HandleProperty(env, optionObject, "template", &FbOption::SetTemplate, option);
+    HandleProperty(env, optionObject, "title", &FbOption::SetTitle, option);
+    HandleProperty(env, optionObject, "content", &FbOption::SetContent, option);
+    HandleProperty(env, optionObject, "backgroundColor", &FbOption::SetBackgroundColor, option);
+    HandleProperty(env, optionObject, "titleColor", &FbOption::SetTitleColor, option);
+    HandleProperty(env, optionObject, "contentColor", &FbOption::SetContentColor, option);
+    HandleProperty(env, optionObject, "textUpdateAnimationType", &FbOption::SetTextUpdateAnimationType, option);
 
-    uint32_t templateType = 0;
-    std::string title = "";
-    std::string content = "";
-    std::string color = "";
-    uint32_t textUpdateAnimationType = 0;
-    bool hasProperty = false;
-    napi_has_named_property(env, optionObject, "template", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "template", &templateValue);
-        ConvertFromJsValue(env, templateValue, templateType);
-        option.SetTemplate(templateType);
-    }
-    napi_has_named_property(env, optionObject, "title", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "title", &titleValue);
-        ConvertFromJsValue(env, titleValue, title);
-        option.SetTitle(title);
-    }
-    napi_has_named_property(env, optionObject, "content", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "content", &contentValue);
-        ConvertFromJsValue(env, contentValue, content);
-        option.SetContent(content);
-    }
-    napi_has_named_property(env, optionObject, "backgroundColor", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "backgroundColor", &colorValue);
-        ConvertFromJsValue(env, colorValue, color);
-        option.SetBackgroundColor(color);
-    }
-    napi_has_named_property(env, optionObject, "textUpdateAnimationType", &hasProperty);
-    if (hasProperty) {
-        napi_get_named_property(env, optionObject, "textUpdateAnimationType", &textUpdateAnimationTypeValue);
-        ConvertFromJsValue(env, textUpdateAnimationTypeValue, textUpdateAnimationType);
-        option.SetTextUpdateAnimationType(textUpdateAnimationType);
-    }
+    // 处理图标
     if (GetIcon(env, optionObject, option) == nullptr) {
         napi_throw(env, AbilityRuntime::CreateJsError(env,
             static_cast<int32_t>(WmErrorCode::WM_ERROR_FB_PARAM_INVALID), "Invalid icon object"));

@@ -1562,6 +1562,7 @@ HWTEST_F(SceneSessionManagerTest4, RegisterSessionSnapshotFunc, TestSize.Level1)
     sessionInfo.abilityInfo->excludeFromMissions = false;
     EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
+    auto TempController = ssm_->listenerController_;
     ssm_->listenerController_ = nullptr;
     EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
 
@@ -1574,6 +1575,7 @@ HWTEST_F(SceneSessionManagerTest4, RegisterSessionSnapshotFunc, TestSize.Level1)
     sessionInfo.persistentId_ = 2;
     EXPECT_EQ(sceneSession->Snapshot(options), nullptr);
     usleep(WAIT_SYNC_IN_NS);
+    ssm_->listenerController_ = TempController;
 }
 
 /**

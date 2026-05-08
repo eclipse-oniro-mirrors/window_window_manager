@@ -5084,14 +5084,15 @@ std::optional<MaximizePresentation> ParsePresentation(ani_env* env, ani_object a
     return static_cast<MaximizePresentation>(value);
 }
 
-std::optional<WaterfallResidentState> ParseWaterfallResidentState(ani_env* env, ani_object aniAcrossDisplay)
+std::optional<AcrossDisplayPresentation> ParseAcrossDisplayPresentationForMaximize(
+    ani_env* env, ani_object aniAcrossDisplay)
 {
     if (env == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] env is nullptr");
         return std::nullopt;
     }
     if (AniWindowUtils::CheckParaIsUndefined(env, aniAcrossDisplay)) {
-        return WaterfallResidentState::UNCHANGED;
+        return AcrossDisplayPresentation::UNSPECIFIED;
     }
     ani_boolean acrossDisplay = ANI_FALSE;
     ani_status ret = env->Object_CallMethodByName_Boolean(aniAcrossDisplay, "toBoolean", ":z", &acrossDisplay);
@@ -5099,7 +5100,8 @@ std::optional<WaterfallResidentState> ParseWaterfallResidentState(ani_env* env, 
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] Invalid acrossDisplay param, ret: %{public}d", ret);
         return std::nullopt;
     }
-    return acrossDisplay ? WaterfallResidentState::OPEN : WaterfallResidentState::CLOSE;
+    return acrossDisplay ? AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE
+                         : AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE;
 }
 
 /**
@@ -5260,30 +5262,31 @@ void AniWindow::OnMaximize(ani_env* env, ani_object aniPresentation, ani_object 
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
-    auto waterfallResidentStateOpt = ParseWaterfallResidentState(env, aniAcrossDisplay);
-    if (!waterfallResidentStateOpt) {
+    auto acrossDisplayOpt = ParseAcrossDisplayPresentationForMaximize(env, aniAcrossDisplay);
+    if (!acrossDisplayOpt) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.maximize", WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return;
     }
-    auto ret = windowToken_->Maximize(*presentationOpt, *waterfallResidentStateOpt);
+    auto ret = windowToken_->MaximizeWithOptions(*presentationOpt, *acrossDisplayOpt,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC,
-              "[ANI] Failed, windowId: %{public}u, presentation: %{public}d, waterfallResidentState: %{public}u, ret: "
+              "[ANI] Failed, windowId: %{public}u, presentation: %{public}d, acrossDisplay: %{public}u, ret: "
               "%{public}d",
               windowToken_->GetWindowId(),
               static_cast<int32_t>(*presentationOpt),
-              static_cast<uint32_t>(*waterfallResidentStateOpt),
+              static_cast<uint32_t>(*acrossDisplayOpt),
               static_cast<int32_t>(ret));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.maximize", AniWindowUtils::ToErrorCode(ret));
         AniWindowUtils::AniThrowError(env, AniWindowUtils::ToErrorCode(ret));
         return;
     }
     TLOGD(WmsLogTag::WMS_LAYOUT_PC,
-          "[ANI] Success, windowId: %{public}u, presentation: %{public}d, waterfallResidentState: %{public}d",
+          "[ANI] Success, windowId: %{public}u, presentation: %{public}d, acrossDisplay: %{public}d",
           windowToken_->GetWindowId(),
           static_cast<int32_t>(*presentationOpt),
-          static_cast<uint32_t>(*waterfallResidentStateOpt));
+          static_cast<uint32_t>(*acrossDisplayOpt));
 }
 
 void AniWindow::MaximizeWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
@@ -6060,7 +6063,7 @@ void AniWindow::OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled)
 }
 
 void AniWindow::SetRelativePositionToParentWindowEnabled(ani_env* env, ani_object obj, ani_long nativeObj,
-    ani_boolean enabled, ani_object anchor, ani_object offsetX, ani_object offsetY)
+    ani_boolean enabled, ani_object anchor, ani_int offsetX, ani_int offsetY)
 {
     TLOGD(WmsLogTag::WMS_SUB, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
@@ -6073,7 +6076,7 @@ void AniWindow::SetRelativePositionToParentWindowEnabled(ani_env* env, ani_objec
 }
 
 void AniWindow::OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boolean enabled,
-    ani_object anchor, ani_object offsetX, ani_object offsetY)
+    ani_object anchor, ani_int offsetX, ani_int offsetY)
 {
     TLOGI(WmsLogTag::WMS_SUB, "[ANI]");
     if (windowToken_ == nullptr) {
@@ -6111,23 +6114,8 @@ void AniWindow::OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boo
         }
         anchorValue = static_cast<WindowAnchor>(aniAnchorValue);
     }
-    int32_t offsetXValue = 0;
-    aniRet = AniWindowUtils::GetIntInObject(env, offsetX, offsetXValue);
-    if (aniRet != ANI_OK && aniRet != ANI_INVALID_ARGS) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRelativePositionToParentWindowEnabled",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return;
-    }
-    int32_t offsetYValue = 0;
-    aniRet = AniWindowUtils::GetIntInObject(env, offsetY, offsetYValue);
-    if (aniRet != ANI_OK && aniRet != ANI_INVALID_ARGS) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRelativePositionToParentWindowEnabled",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return;
-    }
-    WindowAnchorInfo windowAnchorInfo = { static_cast<bool>(enabled), anchorValue, offsetXValue, offsetYValue };
+    WindowAnchorInfo windowAnchorInfo = {
+        static_cast<bool>(enabled), anchorValue, static_cast<int32_t>(offsetX), static_cast<int32_t>(offsetY) };
     WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetWindowAnchorInfo(windowAnchorInfo));
     if (errorCode != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_SUB, "[ANI] failed");
@@ -7880,7 +7868,7 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
         ani_native_function {"setWindowDelayRaiseOnDrag", "lz:",
             reinterpret_cast<void *>(AniWindow::SetWindowDelayRaiseOnDrag)},
         ani_native_function {"setRelativePositionToParentWindowEnabled",
-            "lzC{@ohos.window.window.WindowAnchor}C{std.core.Int}C{std.core.Int}:",
+            "lzC{@ohos.window.window.WindowAnchor}ii:",
             reinterpret_cast<void *>(AniWindow::SetRelativePositionToParentWindowEnabled)},
         ani_native_function {"attachLayoutToParentWindow",
             "lC{@ohos.window.window.WindowAnchorInfo}C{@ohos.window.window.SubWindowAttachOptions}:",

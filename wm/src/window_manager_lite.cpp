@@ -56,8 +56,8 @@ public:
         windowDrawingContentInfos);
     void NotifyWindowModeChange(WindowModeType type);
     void UpdateCameraWindowStatus(uint32_t accessTokenId, bool isShowing);
-    void NotifyWMSConnected(int32_t userId, int32_t screenId);
-    void NotifyWMSDisconnected(int32_t userId, int32_t screenId);
+    void NotifyWMSConnected(int32_t userId, int32_t screenId, int32_t pid = INVALID_PID);
+    void NotifyWMSDisconnected(int32_t userId, int32_t screenId, int32_t pid = INVALID_PID);
     void NotifyWindowStyleChange(WindowStyleType type);
     void NotifyCallingWindowDisplayChanged(const CallingWindowInfo& callingWindowInfo);
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground);
@@ -131,7 +131,7 @@ public:
     std::mutex callingDisplayChangedMutex_;
 };
 
-void WindowManagerLite::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId)
+void WindowManagerLite::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId, int32_t pid)
 {
     sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
@@ -145,11 +145,13 @@ void WindowManagerLite::Impl::NotifyWMSConnected(int32_t userId, int32_t screenI
         }
         listener = wmsConnectionChangedListener_;
     }
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS on connected, userId=%{public}d, screenId=%{public}d", userId, screenId);
-    listener->OnConnected(userId, screenId);
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "WMS on connected, userId=%{public}d, screenId=%{public}d, pid=%{public}d",
+        userId, screenId, pid);
+    listener->OnConnected(userId, screenId, pid);
 }
 
-void WindowManagerLite::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId)
+void WindowManagerLite::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId, int32_t pid)
 {
     sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
@@ -163,8 +165,10 @@ void WindowManagerLite::Impl::NotifyWMSDisconnected(int32_t userId, int32_t scre
         }
         listener = wmsConnectionChangedListener_;
     }
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS on disconnected, userId=%{public}d, screenId=%{public}d", userId, screenId);
-    listener->OnDisconnected(userId, screenId);
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "WMS on disconnected, userId=%{public}d, screenId=%{public}d, pid=%{public}d",
+        userId, screenId, pid);
+    listener->OnDisconnected(userId, screenId, pid);
 }
 
 void WindowManagerLite::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChangeInfo)
@@ -503,14 +507,14 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
      */
     int32_t clientUserId = GetUserIdByUid(getuid());
     if (clientUserId != SYSTEM_USERID || userId <= INVALID_USER_ID) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance , userId: %{public}d", userId);
         return GetInstance();
     }
 
     if (!WindowManagerLite::IsMultiInstanceEnabled()) {
-        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance in multi, userId: %{public}d", userId);
         return GetInstance();
     }
-
     /**
      * multi-instance mode
      * At present, map does not have memory leak issues. In actual business scenarios,
@@ -519,6 +523,7 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
     std::unique_lock<std::shared_mutex> lock(windowManagerLiteMapMutex_);
     auto iter = windowManagerLiteMap_.find(userId);
     if (iter != windowManagerLiteMap_.end() && iter->second) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get existing instance, userId: %{public}d", userId);
         return *iter->second;
     }
     if (windowManagerLiteMap_.size() >= MAX_INSTANCE_NUM) {
@@ -528,6 +533,9 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
     TLOGI(WmsLogTag::WMS_MULTI_USER, "get new instance, userId: %{public}d", userId);
     auto instance = sptr<WindowManagerLite>::MakeSptr(userId);
     windowManagerLiteMap_.insert({ userId, instance });
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "After insert, map size: %{public}zu, userId: %{public}d, instance ptr: %{public}p",
+        windowManagerLiteMap_.size(), userId, instance.GetRefPtr());
     return *instance;
 }
 
@@ -542,7 +550,7 @@ WMError WindowManagerLite::RemoveInstanceByUserId(const int32_t userId)
 bool WindowManagerLite::IsMultiInstanceEnabled()
 {
     static bool enabled = [] {
-        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", false);
+        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", true);
         TLOGNI(WmsLogTag::WMS_SCB, "isConcurrentUser: %{public}d", isConcurrentUser);
         return isConcurrentUser;
     }();
@@ -1253,13 +1261,13 @@ WMError WindowManagerLite::RegisterWMSConnectionChangedListener(const sptr<IWMSC
         pImpl_->wmsConnectionChangedListener_ = listener;
     }
     auto ret = WindowAdapterLite::GetInstance(userId_).RegisterWMSConnectionChangedListener(
-        [weakThis = wptr(this)](int32_t userId, int32_t screenId, bool isConnected) {
+        [weakThis = wptr(this)](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {
             auto wml = weakThis.promote();
             if (!wml) {
                 TLOGE(WmsLogTag::WMS_SCB, "window manager lite is null");
                 return;
             }
-            wml->OnWMSConnectionChanged(userId, screenId, isConnected);
+            wml->OnWMSConnectionChanged(userId, screenId, isConnected, pid);
         });
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_MULTI_USER, "Register callback failed");
@@ -1280,14 +1288,15 @@ WMError WindowManagerLite::UnregisterWMSConnectionChangedListener()
     return WMError::WM_OK;
 }
 
-void WindowManagerLite::OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const
+void WindowManagerLite::OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected, int32_t pid) const
 {
     if (isConnected) {
-        pImpl_->NotifyWMSConnected(userId, screenId);
+        pImpl_->NotifyWMSConnected(userId, screenId, pid);
     } else {
-        pImpl_->NotifyWMSDisconnected(userId, screenId);
+        pImpl_->NotifyWMSDisconnected(userId, screenId, pid);
     }
 }
+
 
 WMError WindowManagerLite::GetAllMainWindowInfos(std::vector<MainWindowInfo>& infos) const
 {

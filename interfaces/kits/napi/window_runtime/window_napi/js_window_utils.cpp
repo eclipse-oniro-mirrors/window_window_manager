@@ -50,9 +50,10 @@ static napi_value CreateJsNumber(napi_env env, uint64_t value)
     napi_create_int64(env, static_cast<int64_t>(value), &result);
     return result;
 }
-constexpr std::array<DefaultSpecificZIndex, 2> DefaultSpecificZIndexList = {
+constexpr std::array<DefaultSpecificZIndex, 3> DefaultSpecificZIndexList = {
     DefaultSpecificZIndex::MUTISCREEN_COLLABORATION,
-    DefaultSpecificZIndex::SUPER_PRIVACY_ANIMATION
+    DefaultSpecificZIndex::SUPER_PRIVACY_ANIMATION,
+    DefaultSpecificZIndex::BANNER_LIVE_SHARE
 };
 }
 

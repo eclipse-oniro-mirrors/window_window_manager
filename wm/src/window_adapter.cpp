@@ -91,6 +91,7 @@ WindowAdapter& WindowAdapter::GetInstance()
 WindowAdapter& WindowAdapter::GetInstance(const int32_t userId)
 {
     if (userId <= INVALID_USER_ID) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
         return GetInstance();
     }
     // multi-instance mode
@@ -315,7 +316,7 @@ WMError WindowAdapter::GetAccessibilityWindowInfo(std::vector<sptr<Accessibility
 WMError WindowAdapter::ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
-    
+
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
     return wmsProxy->ConvertToRelativeCoordinateExtended(rect, newRect, newDisplayId);
@@ -363,7 +364,7 @@ WMError WindowAdapter::GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& i
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->GetAllMainWindowInfo(infos);
 }
- 
+
 WMError WindowAdapter::GetMainWindowSnapshot(const std::vector<int32_t>& windowIds,
     const WindowSnapshotConfiguration& config, const sptr<IRemoteObject>& callback)
 {

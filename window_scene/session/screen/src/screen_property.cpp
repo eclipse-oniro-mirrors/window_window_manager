@@ -280,12 +280,12 @@ ScreenId ScreenProperty::GetRsId() const
     return rsId_;
 }
 
-void ScreenProperty::SetIsInternal(bool isInternal)
+void ScreenProperty::SetInternalStatus(bool isInternal)
 {
     isInternal_ = isInternal;
 }
 
-bool ScreenProperty::GetIsInternal() const
+bool ScreenProperty::GetInternalStatus() const
 {
     return isInternal_;
 }

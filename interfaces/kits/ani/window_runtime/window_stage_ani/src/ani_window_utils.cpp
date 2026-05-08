@@ -561,7 +561,7 @@ ani_status AniWindowUtils::GetIntInObject(ani_env* env, ani_object int_object, i
         return ANI_INVALID_ARGS;
     }
     ani_int int_value;
-    ani_status ret = env->Object_CallMethodByName_Int(int_object, "intValue", nullptr, &int_value);
+    ani_status ret = env->Object_CallMethodByName_Int(int_object, "toInt", ":i", &int_value);
     if (ANI_OK != ret) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_CallMethodByName_Int Failed!");
         return ret;

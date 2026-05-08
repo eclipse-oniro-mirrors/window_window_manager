@@ -7144,24 +7144,41 @@ void ScreenSessionManager::NotifyDisplayAttributeChanged(sptr<DisplayInfo> displ
 
 DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi)
 {
+    return SetOrientationInternal(screenId, orientation, nullptr, isFromNapi);
+}
+
+DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orientation,
+    const OrientationOptions& options, bool isFromNapi)
+{
+    return SetOrientationInternal(screenId, orientation, &options, isFromNapi);
+}
+
+DMError ScreenSessionManager::SetOrientationInternal(ScreenId screenId, Orientation orientation,
+    const OrientationOptions* options, bool isFromNapi)
+{
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
-        TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
+        TLOGNFE(WmsLogTag::DMS, "Permission Denied. calling: %{public}s, pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
     if (orientation < Orientation::UNSPECIFIED || orientation > Orientation::REVERSE_HORIZONTAL) {
-        TLOGNFE(WmsLogTag::DMS, "set: %{public}u", static_cast<uint32_t>(orientation));
+        TLOGNFE(WmsLogTag::DMS, "Set: %{public}u", static_cast<uint32_t>(orientation));
         return DMError::DM_ERROR_INVALID_PARAM;
     }
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetOrientation");
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     if (screenSession == nullptr) {
-        TLOGNFE(WmsLogTag::DMS, "fail, cannot find screen %{public}" PRIu64"", screenId);
+        TLOGNFE(WmsLogTag::DMS, "Cannot find screen %{public}" PRIu64"", screenId);
         return DMError::DM_ERROR_NULLPTR;
     }
+
     // just for get orientation test
     screenSession->SetOrientation(orientation);
-    screenSession->ScreenOrientationChange(orientation, GetFoldDisplayMode(), isFromNapi);
+    if (options == nullptr) {
+        screenSession->ScreenOrientationChange(orientation, GetFoldDisplayMode(), isFromNapi);
+    } else {
+        screenSession->ScreenOrientationChange(orientation, GetFoldDisplayMode(), *options, isFromNapi);
+    }
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:SetOrientation");
     return DMError::DM_OK;
 }
 
@@ -7569,8 +7586,14 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
     ScreenId associatedScreenId = GetAssociatedScreenId();
     TLOGNFI(WmsLogTag::DMS, "missionID size:%{public}ud, associatedScreenId: %{public}" PRIu64,
         static_cast<uint32_t>(option.missionIds_.size()), associatedScreenId);
-    ScreenId rsId = rsInterface_.CreateVirtualScreen(option.name_, option.width_,
-        option.height_, option.surface_, associatedScreenId, option.flags_, option.missionIds_);
+    uint32_t width = option.width_;
+    uint32_t height = option.height_;
+    if (option.renderWidth_ > 0 && option.renderHeight_ > 0) {
+        width = option.renderWidth_;
+        height = option.renderHeight_;
+    }
+    ScreenId rsId = rsInterface_.CreateVirtualScreen(option.name_, width,
+        height, option.surface_, SCREEN_ID_INVALID, option.flags_, option.missionIds_);
     if (rsId == SCREEN_ID_INVALID) {
         TLOGNFI(WmsLogTag::DMS, "rsId is invalid");
         return SCREEN_ID_INVALID;
@@ -8008,7 +8031,8 @@ DMError ScreenSessionManager::SetVirtualMirrorScreenCanvasRotation(ScreenId scre
     return DMError::DM_OK;
 }
 
-DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
 {
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
@@ -8032,7 +8056,12 @@ DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t wi
         TLOGNFE(WmsLogTag::DMS, "No corresponding rsId");
         return DMError::DM_ERROR_NULLPTR;
     }
-    int32_t rsRet = rsInterface_.ResizeVirtualScreen(rsScreenId, width, height);
+    int32_t rsRet = RSERROR_SUCCESS;
+    if (renderWidth > 0 && renderHeight > 0) {
+        rsRet = rsInterface_.ResizeVirtualScreen(rsScreenId, renderWidth, renderHeight);
+    } else {
+        rsRet = rsInterface_.ResizeVirtualScreen(rsScreenId, width, height);
+    }
     if (rsRet != RSERROR_SUCCESS) {
         TLOGNFE(WmsLogTag::DMS, "RS side failed in resizing virtual screen, rsRet: %{public}d", rsRet);
         return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
@@ -11557,6 +11586,20 @@ void ScreenSessionManager::OnScreenOrientationChange(float screenOrientation, Sc
         return;
     }
     clientProxy->OnScreenOrientationChanged(screenId, screenOrientation);
+}
+
+void ScreenSessionManager::OnScreenOrientationChangeWithOptions(float screenOrientation,
+    const OrientationOptions& options, ScreenId screenId)
+{
+    TLOGNFI(WmsLogTag::DMS,
+        "screenId: %{public}" PRIu64 " orientation: %{public}f, needAnimation: %{public}d, ignRotLock: %{public}d",
+        screenId, screenOrientation, options.needAnimation, options.ignoreRotationLock);
+    auto clientProxy = GetClientProxy();
+    if (!clientProxy) {
+        TLOGNFI(WmsLogTag::DMS, "ClientProxy_ is null");
+        return;
+    }
+    clientProxy->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
 }
 
 void ScreenSessionManager::OnScreenRotationLockedChange(bool isLocked, ScreenId screenId)

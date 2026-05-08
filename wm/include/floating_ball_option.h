@@ -29,6 +29,8 @@ public:
     void SetTitle(const std::string& title);
     void SetContent(const std::string& content);
     void SetBackgroundColor(const std::string& color);
+    void SetTitleColor(const std::string& color);
+    void SetContentColor(const std::string& color);
     void SetIcon(const std::shared_ptr<Media::PixelMap>& icon);
     void SetTextUpdateAnimationType(const uint32_t& type);
     void SetShowWhenCreate(bool showWhenCreate);
@@ -37,6 +39,8 @@ public:
     std::string GetTitle() const;
     std::string GetContent() const;
     std::string GetBackgroundColor() const;
+    std::string GetTitleColor() const;
+    std::string GetContentColor() const;
     std::shared_ptr<Media::PixelMap> GetIcon() const;
     uint32_t GetTextUpdateAnimationType() const;
 
@@ -44,10 +48,14 @@ public:
     void GetFbTemplateBaseInfo(FloatingBallTemplateBaseInfo& fbTemplateBaseInfo);
     bool IsValid(std::string &errMsg) const;
 private:
+    bool VerifyColor(std::string &errMsg) const;
+
     uint32_t template_ {};
     std::string title_ {};
     std::string content_ {};
     std::string backgroundColor_ {};
+    std::string titleColor_ {};
+    std::string contentColor_ {};
     bool visibleInApp_ = true;
     std::shared_ptr<Media::PixelMap> icon_ {};
     uint32_t textUpdateAnimationType_ {0};

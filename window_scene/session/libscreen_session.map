@@ -99,8 +99,8 @@
             OHOS::Rosen::ScreenProperty::SetCastScaleX*;
             OHOS::Rosen::ScreenProperty::SetCastScaleY*;
             OHOS::Rosen::ScreenProperty::SetNeedCastScale*;
-            OHOS::Rosen::ScreenProperty::SetIsInternal*;
-            OHOS::Rosen::ScreenProperty::GetIsInternal*;
+            OHOS::Rosen::ScreenProperty::SetInternalStatus*;
+            OHOS::Rosen::ScreenProperty::GetInternalStatus*;
             OHOS::Rosen::ScreenSession::AddHdrFormats*;
             OHOS::Rosen::ScreenSession::AddRotationCorrection*;
             OHOS::Rosen::ScreenSession::BeforeScreenPropertyChange*;

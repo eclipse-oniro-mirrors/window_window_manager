@@ -35,7 +35,8 @@ public:
     bool Marshalling(Parcel& parcel) const override
     {
         if (!parcel.WriteUint32(template_) || !parcel.WriteString(title_) || !parcel.WriteBool(isVisibleInApp_) ||
-            !parcel.WriteString(content_) || !parcel.WriteString(backgroundColor_) || !parcel.WriteBool(isBind_) ||
+            !parcel.WriteString(content_) || !parcel.WriteString(backgroundColor_) ||
+            !parcel.WriteString(titleColor_) || !parcel.WriteString(contentColor_) ||!parcel.WriteBool(isBind_) ||
             !parcel.WriteUint32(bindWindowId_) || !parcel.WriteBool(showWhenCreate_) || !parcel.WriteString(id_)) {
             return false;
         }
@@ -57,7 +58,8 @@ public:
         std::unique_ptr<FloatingBallTemplateInfo> fbTemplateInfo = std::make_unique<FloatingBallTemplateInfo>();
         if (!parcel.ReadUint32(fbTemplateInfo->template_) || !parcel.ReadString(fbTemplateInfo->title_) ||
             !parcel.ReadBool(fbTemplateInfo->isVisibleInApp_) || !parcel.ReadString(fbTemplateInfo->content_) ||
-            !parcel.ReadString(fbTemplateInfo->backgroundColor_) || !parcel.ReadBool(fbTemplateInfo->isBind_) ||
+            !parcel.ReadString(fbTemplateInfo->backgroundColor_) || !parcel.ReadString(fbTemplateInfo->titleColor_) ||
+            !parcel.ReadString(fbTemplateInfo->contentColor_) ||!parcel.ReadBool(fbTemplateInfo->isBind_) ||
             !parcel.ReadUint32(fbTemplateInfo->bindWindowId_) || !parcel.ReadBool(fbTemplateInfo->showWhenCreate_) ||
             !parcel.ReadString(fbTemplateInfo->id_)) {
             return nullptr;

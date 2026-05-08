@@ -111,8 +111,8 @@ public:
     void SetRsId(ScreenId rsId);
     ScreenId GetRsId() const;
 
-    void SetIsInternal(bool isInternal);
-    bool GetIsInternal() const;
+    void SetInternalStatus(bool isInternal);
+    bool GetInternalStatus() const;
 
     void SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason);
     ScreenPropertyChangeReason GetPropertyChangeReason() const;

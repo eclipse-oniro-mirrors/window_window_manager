@@ -100,7 +100,8 @@ public:
 
     DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay) override;
 
-    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height) override;
+    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth, uint32_t renderHeight) override;
 
     virtual DMError SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, bool autoRotate) override;
 
@@ -149,6 +150,8 @@ public:
         std::vector<ScreenColorGamut>& colorGamuts) override;
 
     virtual DMError SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi) override;
+    virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
+        const OrientationOptions& options, bool isFromNapi) override;
     virtual DMError SetScreenRotationLocked(bool isLocked) override;
     virtual DMError SetScreenRotationLockedFromJs(bool isLocked) override;
     virtual DMError IsScreenRotationLocked(bool& isLocked) override;

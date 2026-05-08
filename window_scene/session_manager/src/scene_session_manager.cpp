@@ -7738,6 +7738,9 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         displayId2GroupIdMap = groupInfoMap;
+        if (displayId2GroupIdMap.find(VIRTUAL_DISPLAY_ID) == displayId2GroupIdMap.end()) {
+            displayId2GroupIdMap[VIRTUAL_DISPLAY_ID] = DEFAULT_DISPLAY_ID;
+        }
         std::unordered_map<DisplayGroupId, sptr<FocusGroup>> allFocusGroupMap;
         windowFocusController_->GetAllFocusGroup(allFocusGroupMap);
         for (const auto& elem : allFocusGroupMap) {

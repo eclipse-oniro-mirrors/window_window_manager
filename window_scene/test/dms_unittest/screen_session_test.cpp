@@ -5265,10 +5265,304 @@ HWTEST_F(ScreenSessionTest, CheckAndNotifyPropertyChange, TestSize.Level1)
     g_errLog.clear();
 
     session->isNeedNotify = true;
-    session->SetPropertyNeedNotified(property);
+    session.SetIsInternal(false);
+    session->CheckAndNotifyPropertyChange();
+    EXPECT_FALSE(g_errLog.find("It's need notify") != std::string::npos);
+    g_errLog.clear();
+
+    session.SetIsInternal(true);
     session->CheckAndNotifyPropertyChange();
     EXPECT_TRUE(g_errLog.find("It's need notify") != std::string::npos);
     g_errLog.clear();
+}
+
+/**
+ * @tc.name: GetScreenOrientation01
+ * @tc.desc: GetScreenOrientation with VERTICAL orientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenOrientation01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetScreenOrientation01 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::VERTICAL;
+    FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN;
+    bool isFromNapi = false;
+
+    float result = screenSession->GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+    EXPECT_EQ(result, 0.0f);
+    GTEST_LOG_(INFO) << "GetScreenOrientation01 end";
+}
+
+/**
+ * @tc.name: GetScreenOrientation02
+ * @tc.desc: GetScreenOrientation with HORIZONTAL orientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenOrientation02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetScreenOrientation02 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::HORIZONTAL;
+    FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN;
+    bool isFromNapi = false;
+
+    float result = screenSession->GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+    EXPECT_EQ(result, 0.0f);
+    GTEST_LOG_(INFO) << "GetScreenOrientation02 end";
+}
+
+/**
+ * @tc.name: GetScreenOrientation03
+ * @tc.desc: GetScreenOrientation with REVERSE_VERTICAL orientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenOrientation03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetScreenOrientation03 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::REVERSE_VERTICAL;
+    FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN;
+    bool isFromNapi = false;
+
+    float result = screenSession->GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+    EXPECT_EQ(result, 0.0f);
+    GTEST_LOG_(INFO) << "GetScreenOrientation03 end";
+}
+
+/**
+ * @tc.name: GetScreenOrientation04
+ * @tc.desc: GetScreenOrientation with REVERSE_HORIZONTAL orientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenOrientation04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetScreenOrientation04 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::REVERSE_HORIZONTAL;
+    FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN;
+    bool isFromNapi = false;
+
+    float result = screenSession->GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+    EXPECT_EQ(result, 0.0f);
+    GTEST_LOG_(INFO) << "GetScreenOrientation04 end";
+}
+
+/**
+ * @tc.name: GetScreenOrientation05
+ * @tc.desc: GetScreenOrientation with different foldDisplayMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenOrientation05, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetScreenOrientation05 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::VERTICAL;
+    bool isFromNapi = false;
+
+    std::vector<FoldDisplayMode> displayModes = {
+        FoldDisplayMode::UNKNOWN, FoldDisplayMode::FULL,
+        FoldDisplayMode::MAIN, FoldDisplayMode::SUB
+    };
+
+    for (auto foldDisplayMode : displayModes) {
+        float result = screenSession->GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+        EXPECT_EQ(result, 0.0f);
+    }
+    GTEST_LOG_(INFO) << "GetScreenOrientation05 end";
+}
+
+/**
+ * @tc.name: GetScreenOrientation06
+ * @tc.desc: GetScreenOrientation with isFromNapi true
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenOrientation06, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetScreenOrientation06 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::VERTICAL;
+    FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN;
+    bool isFromNapi = true;
+
+    float result = screenSession->GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+    EXPECT_EQ(result, 0.0f);
+    GTEST_LOG_(INFO) << "GetScreenOrientation06 end";
+}
+
+/**
+ * @tc.name: ScreenOrientationChangeWithOptions01
+ * @tc.desc: ScreenOrientationChange with Orientation and options
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ScreenOrientationChangeWithOptions01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeWithOptions01 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::VERTICAL;
+    FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = false;
+
+    screenSession->ScreenOrientationChange(orientation, foldDisplayMode, options, isFromNapi);
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeWithOptions01 end";
+}
+
+/**
+ * @tc.name: ScreenOrientationChangeWithOptions02
+ * @tc.desc: ScreenOrientationChange with different options values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ScreenOrientationChangeWithOptions02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeWithOptions02 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    Orientation orientation = Orientation::HORIZONTAL;
+    FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN;
+    OrientationOptions options;
+    options.needAnimation = false;
+    options.ignoreRotationLock = true;
+    bool isFromNapi = false;
+
+    screenSession->ScreenOrientationChange(orientation, foldDisplayMode, options, isFromNapi);
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeWithOptions02 end";
+}
+
+/**
+ * @tc.name: ScreenOrientationChangeFloatWithOptions01
+ * @tc.desc: ScreenOrientationChange(float, options) with listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ScreenOrientationChangeFloatWithOptions01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeFloatWithOptions01 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    MockScreenChangeListener* listener = new MockScreenChangeListener();
+    screenSession->RegisterScreenChangeListener(listener);
+
+    float orientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    EXPECT_CALL(*listener, OnScreenOrientationChangeWithOptions(_, _, _)).Times(1);
+    screenSession->ScreenOrientationChange(orientation, options);
+
+    screenSession->UnregisterScreenChangeListener(listener);
+    delete listener;
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeFloatWithOptions01 end";
+}
+
+/**
+ * @tc.name: ScreenOrientationChangeFloatWithOptions02
+ * @tc.desc: ScreenOrientationChange(float, options) with multiple listeners
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ScreenOrientationChangeFloatWithOptions02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeFloatWithOptions03 start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+
+    MockScreenChangeListener* listener1 = new MockScreenChangeListener();
+    MockScreenChangeListener* listener2 = new MockScreenChangeListener();
+    screenSession->RegisterScreenChangeListener(listener1);
+    screenSession->RegisterScreenChangeListener(listener2);
+
+    float orientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    EXPECT_CALL(*listener1, OnScreenOrientationChangeWithOptions(_, _, _)).Times(1);
+    EXPECT_CALL(*listener2, OnScreenOrientationChangeWithOptions(_, _, _)).Times(1);
+    screenSession->ScreenOrientationChange(orientation, options);
+
+    screenSession->UnregisterScreenChangeListener(listener1);
+    screenSession->UnregisterScreenChangeListener(listener2);
+    delete listener1;
+    delete listener2;
+    GTEST_LOG_(INFO) << "ScreenOrientationChangeFloatWithOptions03 end";
 }
 } // namespace
 } // namespace Rosen
