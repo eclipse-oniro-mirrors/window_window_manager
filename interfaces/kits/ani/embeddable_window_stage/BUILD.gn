@@ -88,6 +88,13 @@ ohos_shared_library("embeddablewindowstageani_kit") {
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
+  
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

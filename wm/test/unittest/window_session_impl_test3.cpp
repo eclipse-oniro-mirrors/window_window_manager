@@ -1879,8 +1879,11 @@ HWTEST_F(WindowSessionImplTest3, SyncFvLimits, TestSize.Level1)
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
 
-    FloatViewLimits limits;
-    EXPECT_EQ(WSError::WS_OK, window->SyncFvLimits(limits));
+    std::map<uint32_t, FloatViewLimits> limitsInfo;
+    FloatViewLimits limit;
+    limit.maxHeight_ = 1;
+    limitsInfo.emplace(0, limit);
+    EXPECT_EQ(WSError::WS_OK, window->SyncFvLimits(limitsInfo));
 }
 
 /**

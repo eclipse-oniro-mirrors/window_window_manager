@@ -99,11 +99,19 @@ public:
     {
         return DMError::DM_OK;
     }
+    virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
+        const OrientationOptions& options, bool isFromNapi)
+    {
+        return DMError::DM_OK;
+    }
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId, DmErrorCode* errorCode = nullptr,
         bool isUseDma = false, bool isCaptureFullOfScreen = false) { return nullptr; }
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(
         DisplayId displayId, DmErrorCode& errorCode, bool isUseDma = false,
-        bool isCaptureFullOfScreen = false) { return { nullptr, nullptr }; }
+        bool isCaptureFullOfScreen = false, DisplayIntentType displayIntent = DisplayIntentType::CANONICAL)
+    {
+        return { nullptr, nullptr };
+    }
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect,
         DmErrorCode* errorCode = nullptr)
     {
@@ -259,7 +267,7 @@ public:
     virtual DMError GetDensityInCurResolution(ScreenId screenId,
         float& virtualPixelRatio) { return DMError::DM_OK; }
     virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width,
-        uint32_t height) { return DMError::DM_OK; }
+        uint32_t height, uint32_t renderWidth, uint32_t renderHeight) { return DMError::DM_OK; }
     virtual DMError AddSurfaceNodeToDisplay(DisplayId displayId,
         std::shared_ptr<class RSSurfaceNode>& surfaceNode, bool onTop = true) { return DMError::DM_OK; }
     virtual DMError RemoveSurfaceNodeFromDisplay(DisplayId displayId,

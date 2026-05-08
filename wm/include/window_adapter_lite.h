@@ -40,7 +40,7 @@ class WindowAdapterLite : public RefBase {
 public:
     static WindowAdapterLite& GetInstance(const int32_t userId);
 
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
     virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                                  std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);

@@ -17,6 +17,7 @@
 #include "singleton_container.h"
 #include "window_manager.h"
 #include "window_manager_hilog.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -68,6 +69,9 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowChangeRegister(sptr<J
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowSizeChange" : "ArkUI.window.offWindowSizeChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowChangeListener> thisListener(listener);
@@ -77,6 +81,8 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowChangeRegister(sptr<J
     } else {
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowSizeChange" : "ArkUI.window.offWindowSizeChange", ret);
     return ret;
 }
 
@@ -85,11 +91,17 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowRectChangeRegister(
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onRectChange" : "ArkUI.window.offRectChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
-    return isRegister ?
+    WmErrorCode ret = isRegister ?
         WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowRectChangeListener(listener)) :
         WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowRectChangeListener(listener));
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onRectChange" : "ArkUI.window.offRectChange", ret);
+    return ret;
 }
 
 WmErrorCode JsExtensionWindowRegisterManager::ProcessAvoidAreaChangeRegister(sptr<JsExtensionWindowListener> listener,
@@ -97,6 +109,9 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessAvoidAreaChangeRegister(spt
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onAvoidAreaChange" : "ArkUI.window.offAvoidAreaChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IAvoidAreaChangedListener> thisListener(listener);
@@ -106,6 +121,8 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessAvoidAreaChangeRegister(spt
     } else {
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterAvoidAreaChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onAvoidAreaChange" : "ArkUI.window.offAvoidAreaChange", ret);
     return ret;
 }
 

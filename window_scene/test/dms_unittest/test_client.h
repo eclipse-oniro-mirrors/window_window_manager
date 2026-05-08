@@ -33,6 +33,8 @@ public:
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override {};
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override {};
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override {};
+    void OnScreenOrientationChangedWithOptions(ScreenId screenId,
+        float screenOrientation, const OrientationOptions& options) override {}
     void OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked) override {};
     void OnScreenExtendChanged(ScreenId mainScreenId, ScreenId extendScreenId) override {};
 

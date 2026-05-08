@@ -7738,6 +7738,9 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         displayId2GroupIdMap = groupInfoMap;
+        if (displayId2GroupIdMap.find(VIRTUAL_DISPLAY_ID) == displayId2GroupIdMap.end()) {
+            displayId2GroupIdMap[VIRTUAL_DISPLAY_ID] = DEFAULT_DISPLAY_ID;
+        }
         std::unordered_map<DisplayGroupId, sptr<FocusGroup>> allFocusGroupMap;
         windowFocusController_->GetAllFocusGroup(allFocusGroupMap);
         for (const auto& elem : allFocusGroupMap) {
@@ -8956,8 +8959,9 @@ bool SceneSessionManager::CheckTopmostWindowFocus(const sptr<SceneSession>& focu
 
 bool SceneSessionManager::CheckRequestFocusImmediately(const sptr<SceneSession>& sceneSession)
 {
-    if ((sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
-         (SessionHelper::IsSubWindow(sceneSession->GetWindowType()) && !sceneSession->IsModal())) &&
+    bool isMainSession = sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
+        sceneSession->IsLoosenedWithFreeMultiMode();
+    if ((isMainSession || (SessionHelper::IsSubWindow(sceneSession->GetWindowType()) && !sceneSession->IsModal())) &&
         (ProcessModalTopmostRequestFocusImmediately(sceneSession) == WSError::WS_OK ||
          ProcessDialogRequestFocusImmediately(sceneSession) == WSError::WS_OK)) {
         TLOGD(WmsLogTag::WMS_FOCUS, "dialog or modal subwindow get focused");
@@ -9957,7 +9961,7 @@ WSError SceneSessionManager::SendAxisEvent(const std::shared_ptr<MMI::PointerEve
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::SyncFloatViewLimits(const FloatViewLimits &limits)
+WSError SceneSessionManager::SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits)
 {
     {
         std::lock_guard<std::mutex> lock(floatViewLimitsMutex_);
@@ -10686,7 +10690,8 @@ WSError SceneSessionManager::ProcessModalTopmostRequestFocusImmediately(const sp
 {
     // focus must on modal topmost subwindow when APP_MAIN_WINDOW or sub window request focus
     sptr<SceneSession> mainSession = nullptr;
-    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
+        sceneSession->IsLoosenedWithFreeMultiMode()) {
         mainSession = sceneSession;
     } else if (SessionHelper::IsSubWindow(sceneSession->GetWindowType())) {
         mainSession = GetSceneSession(sceneSession->GetParentPersistentId());
@@ -10773,7 +10778,8 @@ WSError SceneSessionManager::ProcessDialogRequestFocusImmediately(const sptr<Sce
 {
     // focus must on dialog when APP_MAIN_WINDOW or sub window request focus
     sptr<SceneSession> mainSession = nullptr;
-    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW ||
+        sceneSession->IsLoosenedWithFreeMultiMode()) {
         mainSession = sceneSession;
     } else if (SessionHelper::IsSubWindow(sceneSession->GetWindowType())) {
         mainSession = GetSceneSession(sceneSession->GetParentPersistentId());
@@ -15865,6 +15871,9 @@ WSError SceneSessionManager::RaiseWindowToTop(int32_t persistentId)
         if (WindowHelper::IsSubWindow(sceneSession->GetWindowType())) {
             sceneSession->RaiseToAppTop();
         }
+        if (sceneSession->IsLoosenedWithFreeMultiMode()) {
+            return WSError::WS_OK;
+        }
         if (WindowHelper::IsSubWindow(sceneSession->GetWindowType()) ||
             sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_DIALOG) {
             TLOGND(WmsLogTag::WMS_HIERARCHY, "parent session id: %{public}d", sceneSession->GetParentPersistentId());
@@ -16321,7 +16330,9 @@ void SceneSessionManager::FilterForGetAllWindowLayoutInfo(DisplayId displayId, b
             if (session->GetSessionGlobalRect().IsInvalid()) {
                 continue;
             }
-            if (option.excludeSystemWindows && WindowHelper::IsSystemWindow(session->GetWindowType())) {
+            if (option.excludeSystemWindows && WindowHelper::IsApiSystemWindow(session->GetWindowType())) {
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "exclude api system: win=[%{public}d, %{public}s], type=%{public}u",
+                    session->GetWindowId(), session->GetWindowName().c_str(), session->GetWindowType());
                 continue;
             }
             if ((zOrderForAboveWin > 0 && session->GetZOrder() <= zOrderForAboveWin) ||
@@ -21079,6 +21090,22 @@ void SceneSessionManager::NotifyRotationBegin()
     SceneInputManager::GetInstance().SetIsRotationBegin(true);
 }
 
+WMError SceneSessionManager::GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits)
+{
+    std::lock_guard<std::mutex> lock(floatViewLimitsMutex_);
+    if (floatViewLimits_.find(templateType) != floatViewLimits_.end()) {
+        limits = floatViewLimits_[templateType];
+        return WMError::WM_OK;
+    }
+    TLOGE(WmsLogTag::WMS_SYSTEM, "fv limit not found, templateType: %{public}u", templateType);
+    return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+}
+
+void SceneSessionManager::RegisterGetFloatViewLimitCallback(GetFloatViewLimitFunc&& func)
+{
+    getFloatViewLimitFunc_ = std::move(func);
+}
+
 void SceneSessionManager::SetSelectMode(SelectMode selectMode)
 {
     TLOGI(WmsLogTag::WMS_COMPAT, "set SelectMode from %{public}u to %{public}u",
@@ -21089,13 +21116,6 @@ void SceneSessionManager::SetSelectMode(SelectMode selectMode)
 SelectMode SceneSessionManager::GetSelectMode() const
 {
     return selectMode_.load();
-}
-
-WMError SceneSessionManager::GetFloatViewLimits(FloatViewLimits &limits)
-{
-    std::lock_guard<std::mutex> lock(floatViewLimitsMutex_);
-    limits = floatViewLimits_;
-    return WMError::WM_OK;
 }
 
 } // namespace OHOS::Rosen

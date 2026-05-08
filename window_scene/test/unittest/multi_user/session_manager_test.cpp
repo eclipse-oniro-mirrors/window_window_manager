@@ -48,8 +48,10 @@ HWTEST_F(SessionManagerTest, OnWMSConnectionChangedCallback, Function | SmallTes
     sptr<SessionManager> sm = &SessionManager::GetInstance(100);
     ASSERT_NE(nullptr, sm);
     bool funcInvoked = false;
-    sm->wmsConnectionChangedFunc_ = [&](int32_t userId, int32_t screenId, bool isConnected) { funcInvoked = true; };
-    sm->OnWMSConnectionChangedCallback(101, DEFAULT_SCREEN_ID, true);
+    sm->wmsConnectionChangedFunc_ = [&](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {
+        funcInvoked = true;
+    };
+    sm->OnWMSConnectionChangedCallback(101, DEFAULT_SCREEN_ID, true, INVALID_PID);
     sm->wmsConnectionChangedFunc_ = nullptr;
     ASSERT_EQ(funcInvoked, true);
 }
@@ -65,12 +67,12 @@ HWTEST_F(SessionManagerTest, OnWMSConnectionChanged1, Function | SmallTest | Lev
     sptr<ISessionManagerService> sessionManagerService;
     sm->isWMSConnected_ = true;
     sm->currentWMSUserId_ = 100;
-    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService);
+    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService, INVALID_PID);
     ASSERT_EQ(sm->isWMSConnected_, false);
 
     sm->currentWMSUserId_ = 101;
     sm->isWMSConnected_ = true;
-    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService);
+    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService, INVALID_PID);
     ASSERT_EQ(sm->isWMSConnected_, true);
 }
 
@@ -85,13 +87,13 @@ HWTEST_F(SessionManagerTest, OnWMSConnectionChanged2, Function | SmallTest | Lev
     sptr<ISessionManagerService> sessionManagerService;
     sm->isWMSConnected_ = false;
     sm->currentWMSUserId_ = INVALID_USER_ID;
-    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true, sessionManagerService);
+    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true, sessionManagerService, INVALID_PID);
     ASSERT_EQ(sm->isWMSConnected_, true);
 
     // user switch
     sm->currentWMSUserId_ = 100;
     sm->isWMSConnected_ = true;
-    sm->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, sessionManagerService);
+    sm->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, sessionManagerService, INVALID_PID);
     ASSERT_EQ(sm->isWMSConnected_, true);
 }
 
@@ -159,7 +161,7 @@ HWTEST_F(SessionManagerTest, RegisterWMSConnectionChangedListener1, Function | S
     sm->currentWMSUserId_ = 100;
     sm->currentScreenId_ = 0;
     sm->isWMSConnected_ = true;
-    auto callbackFunc = [](int32_t userId, int32_t screenId, bool isConnected) {};
+    auto callbackFunc = [](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {};
     auto ret = sm->RegisterWMSConnectionChangedListener(callbackFunc);
     ASSERT_EQ(WMError::WM_OK, ret);
 }

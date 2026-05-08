@@ -40,6 +40,7 @@ private:
     int HandleOnPowerStatusChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnSensorRotationChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenOrientationChanged(MessageParcel& data, MessageParcel& reply);
+    int HandleOnScreenOrientationChangedWithOptions(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenRotationLockedChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnDisplayStateChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenshot(MessageParcel& data, MessageParcel& reply);

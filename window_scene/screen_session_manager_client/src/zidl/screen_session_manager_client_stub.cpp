@@ -58,6 +58,10 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnScreenOrientationChanged(data, reply);
     };
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS] =
+        [this](MessageParcel& data, MessageParcel& reply) {
+        return HandleOnScreenOrientationChangedWithOptions(data, reply);
+    };
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_ROTATION_LOCKED_CHANGED] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnScreenRotationLockedChanged(data, reply);
@@ -402,6 +406,19 @@ int ScreenSessionManagerClientStub::HandleOnScreenOrientationChanged(MessageParc
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto screenOrientation = data.ReadFloat();
     OnScreenOrientationChanged(screenId, screenOrientation);
+    return ERR_NONE;
+}
+
+int ScreenSessionManagerClientStub::HandleOnScreenOrientationChangedWithOptions(
+    MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::DMS, "HandleOnScreenOrientationChangedWithOptions");
+    auto screenId = static_cast<ScreenId>(data.ReadUint64());
+    auto screenOrientation = data.ReadFloat();
+    OrientationOptions options;
+    options.needAnimation = data.ReadBool();
+    options.ignoreRotationLock = data.ReadBool();
+    OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
     return ERR_NONE;
 }
 

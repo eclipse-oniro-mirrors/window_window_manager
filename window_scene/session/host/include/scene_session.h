@@ -443,7 +443,7 @@ public:
         const std::string& reason){ return WSError::WS_OK; };
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override { return WMError::WM_OK; };
     virtual void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) {};
-    virtual WSError SyncFloatViewLimits(const FloatViewLimits &limits) { return WSError::WS_OK; };
+    virtual WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) { return WSError::WS_OK; };
 
     /*
      * Float Window
@@ -453,7 +453,7 @@ public:
     /*
      * Window Layout
      */
-    WMError ActivateDragBySystem(bool activateDrag);
+    WMError ActivateDragBySystem(DragActivateSource source, bool activateDrag);
     WMError SetSystemWindowEnableDrag(bool enableDrag) override;
     WMError SetWindowEnableDragBySystem(bool enableDrag);
     WSError OnDefaultDensityEnabled(bool isDefaultDensityEnabled) override;
@@ -675,7 +675,7 @@ public:
     bool CheckTouchOutsideCallbackRegistered();
     void UpdateNativeVisibility(bool visible);
     void DumpSessionElementInfo(const std::vector<std::string>& params);
-    void NotifyForceHideChange(bool hide);
+    void NotifyForceHideChange(bool hide) override;
     WSError BindDialogSessionTarget(const sptr<SceneSession>& sceneSession);
     void DumpSessionInfo(std::vector<std::string>& info) const;
     bool AddSubSession(const sptr<SceneSession>& subSession);

@@ -1488,6 +1488,45 @@ bool ConvertRotateAnimationConfigFromJs(napi_env env, napi_value value, RotateAn
     }
     return true;
 }
+
+bool ConvertAvoidAreaFromJsValue(napi_env env, napi_value jsObject, AvoidArea& avoidArea)
+{
+    napi_value jsLeftRect_ = nullptr;
+    napi_value jsTopRect_ = nullptr;
+    napi_value jsRightRect_ = nullptr;
+    napi_value jsBottomRect_ = nullptr;
+    bool hasProperty = false;
+    napi_has_named_property(env, jsObject, "leftRect", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsObject, "leftRect", &jsLeftRect_);
+        if (!ConvertRectFromJsValue(env, jsLeftRect_, avoidArea.leftRect_)) {
+            return false;
+        }
+    }
+    napi_has_named_property(env, jsObject, "topRect", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsObject, "topRect", &jsTopRect_);
+        if (!ConvertRectFromJsValue(env, jsTopRect_, avoidArea.topRect_)) {
+            return false;
+        }
+    }
+    napi_has_named_property(env, jsObject, "rightRect", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsObject, "rightRect", &jsRightRect_);
+        if (!ConvertRectFromJsValue(env, jsRightRect_, avoidArea.rightRect_)) {
+            return false;
+        }
+    }
+    napi_has_named_property(env, jsObject, "bottomRect", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsObject, "bottomRect", &jsBottomRect_);
+        if (!ConvertRectFromJsValue(env, jsBottomRect_, avoidArea.bottomRect_)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect)
 {
     napi_value jsPosX_ = nullptr;
@@ -2419,6 +2458,25 @@ napi_value CreateJsSessionFbTextUpdateAnimationType(napi_env env)
     return objValue;
 }
 
+napi_value CreateJsSessionFloatViewTemplateType(napi_env env)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Env is nullptr");
+        return nullptr;
+    }
+
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to create fv template type!");
+        return NapiGetUndefined(env);
+    }
+
+    napi_set_named_property(env, objValue, "ROUNDED_RECTANGLE", CreateJsValue(env,
+        static_cast<uint32_t>(FloatViewTemplate::ROUNDED_RECTANGLE)));
+    return objValue;
+}
+
 napi_value CreateJsSessionGravity(napi_env env)
 {
     napi_value objValue = nullptr;
@@ -3270,66 +3328,80 @@ bool convertAnimConfigFromJs(napi_env env, napi_value jsObject, SceneAnimationCo
     return true;
 }
 
-bool ConvertFloatViewLimitsFromJs(napi_env env, napi_value jsLimits, FloatViewLimits& limits)
+bool ConvertFloatViewLimitsFromJs(napi_env env, napi_value jsLimits, std::map<uint32_t, FloatViewLimits>& tmp2Limits)
 {
-    napi_value jsMinWidth = nullptr;
-    napi_get_named_property(env, jsLimits, "minWidth", &jsMinWidth);
-    napi_value jsMinHeight = nullptr;
-    napi_get_named_property(env, jsLimits, "minHeight", &jsMinHeight);
-    napi_value jsMaxWidth = nullptr;
-    napi_get_named_property(env, jsLimits, "maxWidth", &jsMaxWidth);
-    napi_value jsMaxHeight = nullptr;
-    napi_get_named_property(env, jsLimits, "maxHeight", &jsMaxHeight);
-    double minWidth = 0.0;
-    double minHeight = 0.0;
-    double maxWidth = 0.0;
-    double maxHeight = 0.0;
-    if (jsMinWidth == nullptr || !ConvertFromJsValue(env, jsMinWidth, minWidth)) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to minWidth");
+    bool isArray;
+    napi_is_array(env, jsLimits, &isArray);
+    if (!isArray) {
         return false;
     }
-    limits.minWidth_ = static_cast<float>(minWidth);
-    if (jsMinHeight == nullptr || !ConvertFromJsValue(env, jsMinHeight, minHeight)) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to minHeight");
-        return false;
+    uint32_t length;
+    napi_get_array_length(env, jsLimits, &length);
+    for (uint32_t i = 0; i < length; ++i) {
+        napi_value jsLimit;
+        napi_get_element(env, jsLimits, i, &jsLimit);
+        FloatViewLimits limits;
+        napi_value jsMinWidth = nullptr;
+        napi_get_named_property(env, jsLimit, "minWidth", &jsMinWidth);
+        napi_value jsMinHeight = nullptr;
+        napi_get_named_property(env, jsLimit, "minHeight", &jsMinHeight);
+        napi_value jsMaxWidth = nullptr;
+        napi_get_named_property(env, jsLimit, "maxWidth", &jsMaxWidth);
+        napi_value jsMaxHeight = nullptr;
+        napi_get_named_property(env, jsLimit, "maxHeight", &jsMaxHeight);
+        napi_value jsTemplate = nullptr;
+        napi_get_named_property(env, jsLimit, "template", &jsTemplate);
+        uint32_t templateType = 0;
+        if (jsMinWidth == nullptr || !ConvertFromJsValue(env, jsMinWidth, limits.minWidth_)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to minWidth");
+            continue;
+        }
+        if (jsMinHeight == nullptr || !ConvertFromJsValue(env, jsMinHeight, limits.minHeight_)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to minHeight");
+            continue;
+        }
+        if (jsMaxWidth == nullptr || !ConvertFromJsValue(env, jsMaxWidth, limits.maxWidth_)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to maxWidth");
+            continue;
+        }
+        if (jsMaxHeight == nullptr || !ConvertFromJsValue(env, jsMaxHeight, limits.maxHeight_)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to maxHeight");
+            continue;
+        }
+        limits.ratioLimits_ = ConvertRatioLimitsFromJs(env, jsLimit);
+        if (jsTemplate == nullptr || !ConvertFromJsValue(env, jsTemplate, templateType)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to templateType");
+            continue;
+        }
+        tmp2Limits.emplace(templateType, limits);
     }
-    limits.minHeight_ = static_cast<float>(minHeight);
-    if (jsMaxWidth == nullptr || !ConvertFromJsValue(env, jsMaxWidth, maxWidth)) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to maxWidth");
-        return false;
-    }
-    limits.maxWidth_ = static_cast<float>(maxWidth);
-    if (jsMaxHeight == nullptr || !ConvertFromJsValue(env, jsMaxHeight, maxHeight)) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to convert parameter to maxHeight");
-        return false;
-    }
-    limits.maxHeight_ = static_cast<float>(maxHeight);
-    return ConvertRatioLimitsFromJs(env, jsLimits, limits);
+    return true;
 }
 
-bool ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits, FloatViewLimits& limits)
+std::vector<std::pair<double, double>> ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits)
 {
     napi_value jsRatio = nullptr;
     napi_get_named_property(env, jsLimits, "ratioLimits", &jsRatio);
+    std::vector<std::pair<double, double>> result {};
     if (jsRatio == nullptr) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "jsRatio is null");
-        return false;
+        TLOGE(WmsLogTag::WMS_SYSTEM, "jsRatio is null");
+        return result;
     }
     bool isArray = false;
     if (napi_is_array(env, jsRatio, &isArray) != napi_ok || !isArray) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Params ratio is not array");
-        return false;
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Params ratio is not array");
+        return result;
     }
     uint32_t arrayLen = 0;
     napi_get_array_length(env, jsRatio, &arrayLen);
     if (arrayLen == 0) {
-        return true;
+        return result;
     }
     for (uint32_t i = 0; i < arrayLen; ++i) {
         napi_value element = nullptr;
         double paramValue = 0.0;
         if (napi_get_element(env, jsRatio, i, &element) != napi_ok) {
-            return false;
+            return result;
         }
         napi_value jsMinRatio = nullptr;
         napi_get_named_property(env, element, "minRatio", &jsMinRatio);
@@ -3338,13 +3410,13 @@ bool ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits, FloatViewLimits
         double minRatio = 0.0;
         double maxRatio = 0.0;
         if (jsMinRatio == nullptr || !ConvertFromJsValue(env, jsMinRatio, minRatio)) {
-            return false;
+            return result;
         }
         if (jsMaxRatio == nullptr || !ConvertFromJsValue(env, jsMaxRatio, maxRatio)) {
-            return false;
+            return result;
         }
-        limits.ratioLimits_.emplace_back(std::make_pair(static_cast<float>(minRatio), static_cast<float>(maxRatio)));
+        result.emplace_back(std::make_pair(minRatio, maxRatio));
     }
-    return true;
+    return result;
 }
 } // namespace OHOS::Rosen

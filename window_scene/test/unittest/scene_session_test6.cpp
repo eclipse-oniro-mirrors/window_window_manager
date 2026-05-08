@@ -2178,23 +2178,23 @@ HWTEST_F(SceneSessionTest6, PreCalcWindowPropertyWithValues, Function | SmallTes
 HWTEST_F(SceneSessionTest6, ConfigDockAutoHide, TestSize.Level1)
 {
     SessionInfo info;
+    info.abilityName_ = "ConfigDockAutoHide";
+    info.bundleName_ = "ConfigDockAutoHide";
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session->sessionStage_ = mockSessionStage;
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(nullptr, abilityInfo);
+    session->SetAbilitySessionInfo(abilityInfo);
 
     session->sessionInfo_.isSystem_ = false;
     session->state_ = SessionState::STATE_FOREGROUND;
     bool isDockAutoHide = true;
     auto ret = session->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_NE(ret, WSError::WS_ERROR_INVALID_SESSION);
-    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
-    ASSERT_NE(nullptr, mockSessionStage);
-    session->sessionStage_ = mockSessionStage;
-    session->ConfigDockAutoHide(isDockAutoHide);
-    WSError res = session->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(WSError::WS_OK, res);
-    session->sessionInfo_.isSystem_ = true;
-    ret = session->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    ASSERT_EQ(ret, WSError::WS_OK);
 }
 } // namespace
 } // namespace Rosen

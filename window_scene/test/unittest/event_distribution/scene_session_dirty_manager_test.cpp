@@ -704,22 +704,22 @@ HWTEST_F(SceneSessionDirtyManagerTest, CheckDragActivatedInUpdatePointerAreas, T
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
 
     sceneSession->property_->SetDragEnabled(true);
-    sceneSession->SetDragActivated(false);
+    sceneSession->dragActivatedBitmap_ = 0;
     manager_->UpdatePointerAreas(sceneSession, pointerChangeAreas);
     ASSERT_EQ(0, pointerChangeAreas.size());
 
     sceneSession->property_->SetDragEnabled(false);
-    sceneSession->SetDragActivated(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     manager_->UpdatePointerAreas(sceneSession, pointerChangeAreas);
     ASSERT_EQ(0, pointerChangeAreas.size());
 
     sceneSession->property_->SetDragEnabled(false);
-    sceneSession->SetDragActivated(false);
+    sceneSession->dragActivatedBitmap_ = 0;
     manager_->UpdatePointerAreas(sceneSession, pointerChangeAreas);
     ASSERT_EQ(0, pointerChangeAreas.size());
 
     sceneSession->property_->SetDragEnabled(true);
-    sceneSession->SetDragActivated(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     float vpr = 1.5f;
     sceneSession->property_->SetDisplayId(100);
     int32_t pointerAreaFivePx = static_cast<int32_t>(POINTER_CHANGE_AREA_FIVE * vpr);
@@ -1458,11 +1458,11 @@ HWTEST_F(SceneSessionDirtyManagerTest, UpdateDefaultHotAreas2, TestSize.Level1)
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::BELOW_APP_SYSTEM_WINDOW_BASE);
     sceneSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     sceneSession->GetSessionProperty()->dragEnabled_ = true;
-    sceneSession->dragActivated_ = true;
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     empty.clear();
     manager_->UpdateDefaultHotAreas(sceneSession, empty, empty);
     ASSERT_EQ(empty[0].x, -offset);
-    sceneSession->dragActivated_ = false;
+    sceneSession->dragActivatedBitmap_ = 0;
     empty.clear();
     manager_->UpdateDefaultHotAreas(sceneSession, empty, empty);
     ASSERT_EQ(empty[0].x, 0);

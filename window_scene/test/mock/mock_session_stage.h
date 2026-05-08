@@ -95,7 +95,7 @@ public:
     MOCK_METHOD2(UpdateWindowModeByIdForUITest, WMError(int32_t windowId, int32_t updateMode));
     MOCK_METHOD2(NotifyHighlightChange, WSError(const sptr<HighlightNotifyInfo>& highlightNotifyInfo,
         bool isHighlight));
-    MOCK_METHOD1(SetDragActivated, WSError(bool dragActivated));
+    MOCK_METHOD1(SetDragActivated, WSError(uint32_t dragActivatedBitmap));
     MOCK_METHOD3(NotifyPipWindowSizeChange, WSError(double width, double height, double scale));
     MOCK_METHOD1(NotifyPiPActiveStatusChange, WSError(bool status));
     MOCK_METHOD1(NotifyWindowCrossAxisChange, void(CrossAxisState state));
@@ -122,7 +122,7 @@ public:
         SelectMode selectMode));
     MOCK_METHOD2(SendFvActionEvent, WSError(const std::string& action, const std::string& reason));
     MOCK_METHOD2(SyncFvWindowInfo, WSError(const FloatViewWindowInfo& windowInfo, const std::string& reason));
-    MOCK_METHOD1(SyncFvLimits, WSError(const FloatViewLimits& limits));
+    MOCK_METHOD1(SyncFvLimits, WSError(const std::map<uint32_t, FloatViewLimits>& limits));
 };
 } // namespace Rosen
 } // namespace OHOS

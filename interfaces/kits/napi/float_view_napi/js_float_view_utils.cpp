@@ -127,8 +127,25 @@ napi_value GetRectAndConvertToJsValue(napi_env env, const Rect& rect)
     return objValue;
 }
 
-napi_value CreateJsFvWindowInfoObject(napi_env env, const sptr<Window>& window, const FloatViewWindowInfo &windowInfo,
-    const FvWindowState &state)
+napi_value ConvertAvoidAreaToJsValue(napi_env env, const AvoidArea& avoidArea)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to create object when get avoidArea");
+        return nullptr;
+    }
+
+    napi_set_named_property(env, objValue, "visible", CreateJsValue(env, true));
+    napi_set_named_property(env, objValue, "leftRect", GetRectAndConvertToJsValue(env, avoidArea.leftRect_));
+    napi_set_named_property(env, objValue, "topRect", GetRectAndConvertToJsValue(env, avoidArea.topRect_));
+    napi_set_named_property(env, objValue, "rightRect", GetRectAndConvertToJsValue(env, avoidArea.rightRect_));
+    napi_set_named_property(env, objValue, "bottomRect", GetRectAndConvertToJsValue(env, avoidArea.bottomRect_));
+    return objValue;
+}
+
+napi_value CreateJsFloatViewPropertiesObject(napi_env env, uint32_t templateType,
+    const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state)
 {
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
@@ -136,6 +153,7 @@ napi_value CreateJsFvWindowInfoObject(napi_env env, const sptr<Window>& window, 
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get object");
         return nullptr;
     }
+    napi_set_named_property(env, objValue, "templateType", CreateJsValue(env, templateType));
     auto windowId = window->GetWindowId();
     napi_set_named_property(env, objValue, "windowId", CreateJsValue(env, windowId));
     auto displayId = window->GetDisplayId();
@@ -147,12 +165,12 @@ napi_value CreateJsFvWindowInfoObject(napi_env env, const sptr<Window>& window, 
     }
     napi_set_named_property(env, objValue, "windowRect", windowRectObj);
     napi_set_named_property(env, objValue, "windowScale", CreateJsValue(env, windowInfo.scale_));
-    napi_value titleBarRectObj = GetRectAndConvertToJsValue(env, windowInfo.titleBarRect_);
-    if (titleBarRectObj == nullptr) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "GetTitleBarRect failed!");
+    napi_value avoidAreaObj = ConvertAvoidAreaToJsValue(env, windowInfo.avoidArea_);
+    if (avoidAreaObj == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "GetWindowAvoidArea failed!");
         return nullptr;
     }
-    napi_set_named_property(env, objValue, "titleBarRect", titleBarRectObj);
+    napi_set_named_property(env, objValue, "avoidArea", avoidAreaObj);
     bool isSidebar = state == FvWindowState::FV_STATE_IN_SIDEBAR;
     napi_set_named_property(env, objValue, "inSidebar", CreateJsValue(env, isSidebar));
     return objValue;

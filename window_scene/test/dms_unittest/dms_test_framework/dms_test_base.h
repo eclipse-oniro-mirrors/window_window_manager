@@ -47,6 +47,8 @@ public:
                 (override));
     MOCK_METHOD(void, OnHoverStatusChanged, (ScreenId screenId, int32_t hoverStatus, bool needRotate), (override));
     MOCK_METHOD(void, OnScreenOrientationChanged, (ScreenId screenId, float screenOrientation), (override));
+    MOCK_METHOD(void, OnScreenOrientationChangedWithOptions, (ScreenId screenId,
+        float screenOrientation, const OrientationOptions& options), (override));
     MOCK_METHOD(void, OnScreenRotationLockedChanged, (ScreenId screenId, bool isLocked), (override));
     MOCK_METHOD(void, OnScreenExtendChanged, (ScreenId mainScreenId, ScreenId extendScreenId), (override));
     MOCK_METHOD(void, OnSuperFoldStatusChanged, (ScreenId screenId, SuperFoldStatus superFoldStatus), (override));

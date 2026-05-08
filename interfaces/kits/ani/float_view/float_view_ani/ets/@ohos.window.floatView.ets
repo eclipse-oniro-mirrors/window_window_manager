@@ -62,28 +62,31 @@ export default namespace floatView {
   }
 
   export interface FloatViewProperties {
+    templateType: FloatViewTemplateType;
     windowId: int;
     displayId: int;
     windowRect: window.Rect;
     windowScale: double;
-    titleBarRect: window.Rect;
+    avoidArea: window.AvoidArea;
     inSidebar: boolean;
   }
 
   export class FloatViewPropertiesInner implements FloatViewProperties {
+    templateType: FloatViewTemplateType;
     windowId: int;
     displayId: int;
     windowRect: window.Rect;
     windowScale: double;
-    titleBarRect: window.Rect;
+    avoidArea: window.AvoidArea;
     inSidebar: boolean;
-    constructor(windowId: int, displayId: int,
-      windowRect: window.Rect, scale: double, titleBarRect: window.Rect, sidebar: boolean) {
+    constructor(templateType: int, windowId: int, displayId: int,
+      windowRect: window.Rect, scale: double, avoidArea: window.AvoidArea, sidebar: boolean) {
+      this.templateType = FloatViewTemplateType.fromValue(templateType);
       this.windowId = windowId;
       this.displayId = displayId;
       this.windowRect = windowRect;
       this.windowScale = scale;
-      this.titleBarRect = titleBarRect;
+      this.avoidArea = avoidArea;
       this.inSidebar = sidebar;
     }
   }
@@ -185,7 +188,7 @@ export default namespace floatView {
   }
 
   export native function isFloatViewEnabled(): boolean;
-  export native function getFloatViewLimits(): FloatViewLimits;
+  export native function getFloatViewLimits(templateType: FloatViewTemplateType): FloatViewLimits;
 
   export native function bindSync(fvController: FloatViewController,
     fbController: floatingBall.FloatingBallController, fbOption: floatingBall.FloatingBallParams): void;

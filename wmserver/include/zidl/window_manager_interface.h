@@ -434,7 +434,7 @@ public:
     /*
      * Float view
      */
-    virtual WMError GetFloatViewLimits(FloatViewLimits& limits)
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -4210,6 +4210,7 @@ WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
     }
     uiContent->SetContainerModalTitleVisible(isVisible, true);
     isDecorHiddenByApp_ = !isVisible;
+    UpdateDecorEnable(true);
     handler_->PostTask([weakWindow = wptr(this), isVisible, where = __func__] {
         auto window = weakWindow.promote();
         if (window == nullptr) {
@@ -6909,11 +6910,10 @@ WSError WindowSessionImpl::SyncFvWindowInfo(const FloatViewWindowInfo& windowInf
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SyncFvLimits(const FloatViewLimits& limits)
+WSError WindowSessionImpl::SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits)
 {
     auto windowId = GetWindowId();
-    TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFvLimits, windowId: %{public}u, limits %{public}s", windowId,
-        limits.ToString().c_str());
+    TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFvLimits, windowId: %{public}u", windowId);
     auto task = [limits, windowId]() {
         FloatViewManager::SyncFvLimits(windowId, limits);
     };
@@ -8546,6 +8546,21 @@ void WindowSessionImpl::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
         hostSession->UpdatePiPTemplateInfo(pipTemplateInfo);
     }
 }
+WMError WindowSessionImpl::UpdateFloatingBallForVisible(bool isVisible)
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "session is invalid");
+        return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
+    }
+    FloatingBallTemplateInfo fbTemplateInfo = GetProperty()->GetFbTemplateInfo();
+    fbTemplateInfo.isVisibleInApp_ = isVisible;
+    fbTemplateInfo.updateMode_ = static_cast<uint32_t>(FloatingBallUpdateMode::VISIBLE_IN_APP);
+    GetProperty()->SetFbTemplateInfo(fbTemplateInfo);
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_FB_STATE_ABNORMALLY);
+    return hostSession->UpdateFloatingBall(fbTemplateInfo);
+}
+
 
 WMError WindowSessionImpl::UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
     const std::shared_ptr<Media::PixelMap>& icon)
@@ -8554,7 +8569,6 @@ WMError WindowSessionImpl::UpdateFloatingBall(const FloatingBallTemplateBaseInfo
         TLOGE(WmsLogTag::WMS_SYSTEM, "session is invalid");
         return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
     }
-
     if (GetProperty()->GetFbTemplateInfo().template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb static template can't update");
         return WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED;
@@ -8567,6 +8581,7 @@ WMError WindowSessionImpl::UpdateFloatingBall(const FloatingBallTemplateBaseInfo
     }
     FloatingBallTemplateInfo fbTemplateInfo = FloatingBallTemplateInfo(fbTemplateBaseInfo, icon);
     GetProperty()->SetFbTemplateInfo(fbTemplateInfo);
+    fbTemplateInfo.updateMode_ = static_cast<uint32_t>(FloatingBallUpdateMode::DEFAULT);
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_FB_STATE_ABNORMALLY);
     return hostSession->UpdateFloatingBall(fbTemplateInfo);
@@ -9248,18 +9263,19 @@ WSError WindowSessionImpl::SetEnableDragBySystem(bool enableDrag)
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SetDragActivated(bool dragActivated)
+WSError WindowSessionImpl::SetDragActivated(uint32_t dragActivatedBitmap)
 {
-    dragActivated_ = dragActivated;
+    dragActivatedBitmap_.store(dragActivatedBitmap);
     return WSError::WS_OK;
 }
 
 bool WindowSessionImpl::IsWindowDraggable()
 {
     bool isDragEnabled = GetProperty()->GetDragEnabled();
+    bool isDragActivated = (dragActivatedBitmap_.load() & DRAG_ACTIVATE_ALL_MASK) == DRAG_ACTIVATE_ALL_MASK;
     TLOGD(WmsLogTag::WMS_LAYOUT, "PersistentId: %{public}d, dragEnabled: %{public}d, dragActivate: %{public}d",
-        GetPersistentId(), isDragEnabled, dragActivated_.load());
-    return isDragEnabled && dragActivated_.load();
+        GetPersistentId(), isDragEnabled, isDragActivated);
+    return isDragEnabled && isDragActivated;
 }
 
 void WindowSessionImpl::SetTargetAPIVersion(uint32_t targetAPIVersion)

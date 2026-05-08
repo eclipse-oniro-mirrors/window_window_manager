@@ -43,7 +43,7 @@ public:
         const FloatViewState state, const std::string& reason);
     static ani_object CreateAniFloatViewRectChangeInfoObject(ani_env* env,
         const Rect& rect, double scale, const std::string& reason);
-    static ani_object CreateAniFvWindowInfoObject(ani_env* env,
+    static ani_object CreateAniFloatViewPropertiesObject(ani_env* env, uint32_t templateType,
         const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state);
     static ani_object CreateAniFloatViewLimitsObject(ani_env* env, const FloatViewLimits& limits);
     static ani_object CreateAniRatioObject(ani_env* env, const double& min, const double& max);

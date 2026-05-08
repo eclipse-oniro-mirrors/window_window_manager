@@ -297,6 +297,22 @@ class TestWMSConnectionChangedListener : public IWMSConnectionChangedListener {
 public:
     void OnConnected(int32_t userId, int32_t screenId) override {}
     void OnDisconnected(int32_t userId, int32_t screenId) override {}
+
+    void OnConnected(int32_t userId, int32_t screenId, int32_t pid) override
+    {
+        connectedWithPid_ = true;
+        lastPid_ = pid;
+    }
+
+    void OnDisconnected(int32_t userId, int32_t screenId, int32_t pid) override
+    {
+        disconnectedWithPid_ = true;
+        lastPid_ = pid;
+    }
+
+    bool connectedWithPid_ = false;
+    bool disconnectedWithPid_ = false;
+    int32_t lastPid_ = INVALID_PID;
 };
 
 class TestInterestWindowIdsListener : public IWindowInfoChangedListener {
@@ -1895,12 +1911,12 @@ HWTEST_F(WindowManagerTest, OnWMSConnectionChanged, TestSize.Level1)
 
     WMError ret_1 = WindowManager::GetInstance().ShiftAppWindowFocus(0, 1);
     ASSERT_NE(WMError::WM_OK, ret_1);
-    WindowManager::GetInstance().OnWMSConnectionChanged(userId, screenId, isConnected);
+    WindowManager::GetInstance().OnWMSConnectionChanged(userId, screenId, isConnected, INVALID_PID);
 
     isConnected = 0;
     WMError ret_2 = WindowManager::GetInstance().ShiftAppWindowFocus(0, 1);
     ASSERT_NE(WMError::WM_OK, ret_2);
-    WindowManager::GetInstance().OnWMSConnectionChanged(userId, screenId, isConnected);
+    WindowManager::GetInstance().OnWMSConnectionChanged(userId, screenId, isConnected, INVALID_PID);
 }
 
 /**
@@ -3196,6 +3212,45 @@ HWTEST_F(WindowManagerTest, MoveMainWindowToTargetDisplay, TestSize.Level1)
 
     ret = mockInstance_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: WMSConnectionChangedListenerWithPid
+ * @tc.desc: Test IWMSConnectionChangedListener with 3-parameter version
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, WMSConnectionChangedListenerWithPid, TestSize.Level1)
+{
+    auto listener = sptr<TestWMSConnectionChangedListener>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+    
+    int32_t testPid = 7777;
+    listener->OnConnected(100, 0, testPid);
+    ASSERT_TRUE(listener->connectedWithPid_);
+    ASSERT_EQ(listener->lastPid_, testPid);
+    
+    listener->OnDisconnected(100, 0, testPid);
+    ASSERT_TRUE(listener->disconnectedWithPid_);
+    ASSERT_EQ(listener->lastPid_, testPid);
+}
+
+/**
+ * @tc.name: WMSConnectionChangedListenerBackwardCompatibility
+ * @tc.desc: Test IWMSConnectionChangedListener backward compatibility
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, WMSConnectionChangedListenerBackwardCompatibility, TestSize.Level1)
+{
+    auto listener = sptr<TestWMSConnectionChangedListener>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+    
+    // 测试2参数版本仍然有效
+    listener->OnConnected(100, 0);
+    listener->OnDisconnected(100, 0);
+    
+    // 3参数版本应该调用2参数版本
+    listener->OnConnected(100, 0, 6666);
+    listener->OnDisconnected(100, 0, 6666);
 }
 } // namespace
 } // namespace Rosen

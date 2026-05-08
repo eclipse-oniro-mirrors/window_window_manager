@@ -1319,5 +1319,73 @@ HWTEST_F(DisplayManagerAdapterTest, RemoveVirtualScreenWhiteList_proxyNotNull, T
     EXPECT_TRUE(g_errLog.find("Device not support") == std::string::npos);
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: SetOrientationWithOptions01
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions01, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err =
+        SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions02
+ * @tc.desc: test SetOrientation with options success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions02, TestSize.Level1)
+{
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        return;
+    }
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+
+    DMError err =
+        SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(err, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions03
+ * @tc.desc: test SetOrientation with options custom values
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions03, TestSize.Level1)
+{
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        return;
+    }
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::HORIZONTAL;
+    OrientationOptions options;
+    options.needAnimation = false;
+    options.ignoreRotationLock = true;
+    bool isFromNapi = false;
+
+    DMError err =
+        SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(err, DMError::DM_OK);
+}
 } // namespace
 } // namespace OHOS::Rosen

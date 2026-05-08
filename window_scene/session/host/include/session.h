@@ -869,7 +869,8 @@ public:
     void SetClientRect(const WSRect& rect);
     WSRect GetClientRect() const;
     void ResetDirtyFlags();
-    void SetDragActivated(bool dragActivated);
+    void SetDragActivated(DragActivateSource source, bool activated);
+    uint32_t GetDragActivatedBitmap() const { return dragActivatedBitmap_; }
     void SetClientDragEnable(bool dragEnable);
     std::optional<bool> GetClientDragEnable() const;
     std::shared_ptr<AppExecFwk::EventHandler> GetEventHandler() const;
@@ -980,6 +981,7 @@ public:
     bool HasSnapshotFreeMultiWindow();
     bool HasSnapshot(SnapshotStatus key);
     bool HasSnapshot();
+    virtual void NotifyForceHideChange(bool hide) {};
     virtual void RecoverSnapshotPersistence(const SessionInfo& info) {};
     virtual void ClearSnapshotPersistence() {};
     virtual void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) {};
@@ -1450,7 +1452,7 @@ private:
     void HandleHookDisplay(const PrelayoutContext& ctx);
 
     std::optional<bool> clientDragEnable_;
-    bool dragActivated_ = true;
+    uint32_t dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     SingleHandTransform singleHandTransform_;
     bool singleHandModeFlag_ = false;
     SingleHandScreenInfo singleHandScreenInfo_;
