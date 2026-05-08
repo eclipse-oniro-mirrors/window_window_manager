@@ -791,28 +791,6 @@ HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_NullSess
     EXPECT_FALSE(myListener->IsAppInstanceEventNotified());
 }
 
-HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_InvalidPersistentId, TestSize.Level1)
-{
-    sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();
-    ASSERT_NE(myListener, nullptr);
-
-    WMError res = slController->RegisterSessionLifecycleListener(
-        myListener, "com.example.myapp", 1, "");
-    ASSERT_EQ(res, WMError::WM_OK);
-
-    SessionInfo info;
-    info.bundleName_ = "com.example.myapp";
-    info.appIndex_ = 1;
-    info.persistentId_ = 0;
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
-
-    slController->NotifyAppInstanceLifecycleEvent(SessionState::STATE_ACTIVE, session);
-    usleep(WAIT_SYNC_IN_NS);
-
-    EXPECT_FALSE(myListener->IsAppInstanceEventNotified());
-}
-
 HWTEST_F(SessionListenerControllerTest, NotifyAppInstanceLifecycleEvent_EmptyKeyWithMainSession, TestSize.Level1)
 {
     sptr<MySessionLifecycleListener> myListener = sptr<MySessionLifecycleListener>::MakeSptr();

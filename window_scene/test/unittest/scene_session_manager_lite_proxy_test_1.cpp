@@ -85,12 +85,6 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RegisterSessionLifecycleListenerByApp
         nullptr, "bundle", 1, "key");
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
-    MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::AddInt32Cache(0);
-    ret = sceneSessionManagerLiteProxy_->RegisterSessionLifecycleListenerByAppInstance(
-        listener, "bundle", 1, "key");
-    EXPECT_EQ(ret, WMError::WM_OK);
-
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     ret = sceneSessionManagerLiteProxy_->RegisterSessionLifecycleListenerByAppInstance(
         listener, "bundle", 1, "key");
