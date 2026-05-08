@@ -440,6 +440,8 @@ export interface Screen {
     setOrientation(orientation: Orientation, callback: AsyncCallback<void>): void;
     
     setOrientation(orientation: Orientation): Promise<void>;
+
+    setOrientation(orientation: Orientation, orientationOptions: OrientationOptions): Promise<void>;
 }
 
 class ScreenImpl implements Screen {
@@ -551,11 +553,25 @@ class ScreenImpl implements Screen {
         });
     }
 
+    setOrientation(orientation: Orientation, orientationOptions: OrientationOptions): Promise<void> {
+        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void):
+            void => {
+            taskpool.execute((): void => {
+                this.setOrientationWithOptions(orientation, orientationOptions);
+            }).then(() => {
+                resolve(undefined);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
     native setDensityDpiInternal(densityDpi: double): void;
     native static nativeTransferStatic(input: ESValue, screen: Object): boolean;
     native static nativeTransferDynamic(nativeObj: long): ESValue;
     native setScreenActiveModeInternal(modeIndex: long): void;
     native setOrientationInternal(orientation: Orientation): void;
+    native setOrientationWithOptions(orientation: Orientation, orientationOptions: OrientationOptions): void;
 }
 
 export interface ScreenModeInfo {
@@ -620,6 +636,12 @@ export enum Orientation {
     REVERSE_VERTICAL = 3,
 
     REVERSE_HORIZONTAL = 4
+}
+
+interface OrientationOptions {
+    needAnimation?: boolean;
+
+    ignoreRotationLock?: boolean;
 }
 
 export interface VirtualScreenOption {
