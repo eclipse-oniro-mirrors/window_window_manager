@@ -1936,8 +1936,8 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
 
         int32_t persistentId = session->GetPersistentId();
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-            "WMS::WindowRectUpdate::RSCallback::UpdateRect id=%d [%d,%d,%u,%u]",
-            persistentId, rect.posX_, rect.posY_, rect.width_, rect.height_);
+            "WMS::WindowRectUpdate::RSCallback::UpdateRect id=%d %{public}s",
+            persistentId, rect.ToString().c_str());
         // check whether to notify the client rect update
         // SetWinRectWhenUpdateRect needs to be set after determining whether to skip
         if (session->ShouldSkipUpdateRectNotify(rect)) {
@@ -1949,7 +1949,7 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         session->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
         TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
-            "[WindowRectUpdate:RSCallback] UpdateRect id:%{public}d, preRect=%{public}s, rect=%{public}s, "
+            "[WindowRectUpdate:RSCallback] %{public}s id:%{public}d, preRect=%{public}s, rect=%{public}s, "
             "reason:%{public}d %{public}s client=%{public}s", where, persistentId,
             session->GetSessionRect().ToString().c_str(), rect.ToString().c_str(),
             session->GetSizeChangeReason(), updateReason.c_str(),
@@ -1983,8 +1983,8 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
     WSRect winRect = updateRect.value_or(GetSessionRect());
 
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-        "WMS::WindowRectUpdate::ServerNotify::NotifyClient id=%d reason=%u",
-        persistentId, static_cast<uint32_t>(reason));
+        "WMS::WindowRectUpdate::ServerNotify::NotifyClient id=%d reason=%u rect=%{public}s",
+        persistentId, static_cast<uint32_t>(reason), winRect.ToString().c_str());
     TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
         "[WindowRectUpdate:ServerNotify] NotifyClient id:%{public}d, rect=%{public}s, "
         "preRect=%{public}s, reason:%{public}u, %{public}s",
@@ -2003,10 +2003,6 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
             UpdatePrivateStateOfLayout(winRect);
         }
     }
-
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-        "SceneSession::NotifyClientToUpdateRect%d [%d, %d, %u, %u] reason:%u",
-        persistentId, winRect.posX_, winRect.posY_, winRect.width_, winRect.height_, reason);
 
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
     if (GetForegroundInteractiveStatus()) {
@@ -4385,8 +4381,8 @@ void SceneSession::NotifySessionRectChange(const WSRect& rect,
         }
         if (session->sessionRectChangeFunc_) {
             HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::NotifySessionRectChange");
-            TLOGNI(WmsLogTag::WMS_LAYOUT,
-                "[WindowRectUpdate:SceneBoard] NotifySessionRectChange id:%{public}d, rect=%{public}s, reason:%{public}u",
+            TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, session->GetPersistentId(), WmsLogTag::WMS_LAYOUT,
+                "[WindowRectUpdate:SceneBoard] %{public}s id:%{public}d, rect=%{public}s, reason:%{public}u",
                 where, session->GetPersistentId(), rect.ToString().c_str(), static_cast<uint32_t>(reason));
             session->sessionRectChangeFunc_(rect, reason, displayId);
         }
@@ -9706,7 +9702,7 @@ bool SceneSession::NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeC
         return false;
     }
     if (GetKeyFramePolicy().running_) {
-        TLOGD(WmsLogTag::WMS_LAYOUT_PC,
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC,
             "[WindowRectUpdate:FlushUI] skip: key frame running, id:%{public}d", GetPersistentId());
         return false;
     }

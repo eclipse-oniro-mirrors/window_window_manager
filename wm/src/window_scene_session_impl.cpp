@@ -1744,7 +1744,7 @@ void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
         systemLimits.minWidth_, systemLimits.minHeight_, systemLimits.maxWidth_, systemLimits.maxHeight_,
         customizedLimits.minWidth_, customizedLimits.minHeight_,
         customizedLimits.maxWidth_, customizedLimits.maxHeight_,
-        customizedLimits.pixelUnit_, userLimitsSet_);
+        customizedLimits.pixelUnit_, userLimitsSet_.load());
 
     newLimits = systemLimits;
     newLimitsVP = systemLimitsVP;
@@ -4792,6 +4792,13 @@ WMError WindowSceneSessionImpl::IsWindowRectAutoSave(bool& enabled)
 WMError WindowSceneSessionImpl::SetSupportedWindowModes(
     const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes, bool grayOutMaximizeButton)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowSupportModes::ClientReq::SetSupportedWindowModes id=%d modes=%zu",
+        GetPersistentId(), supportedWindowModes.size());
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:ClientReq] SetSupportedWindowModes id:%{public}u, "
+        "modes=%{public}zu grayOut:%{public}d",
+        GetWindowId(), supportedWindowModes.size(), grayOutMaximizeButton);
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -4844,14 +4851,26 @@ WMError WindowSceneSessionImpl::GrayOutMaximizeButton(bool isGrayOut)
     }
     grayOutMaximizeButton_ = isGrayOut;
     uiContent->OnContainerModalEvent(WINDOW_GRAY_OUT_MAXIMIZE_EVENT, isGrayOut ? "true" : "false");
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC,
+        "[WindowSupportModes:GrayOut] GrayOutMaximizeButton id:%{public}u, isGrayOut:%{public}d",
+        GetWindowId(), isGrayOut);
     return WMError::WM_OK;
 }
 
 void WindowSceneSessionImpl::UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowSupportModes::ModeChange id=%d type=%u", GetPersistentId(), windowModeSupportType);
     bool onlySupportFullScreen =
         WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
         !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    bool onlySupportFloating =
+        !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
+        WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:ModeChange] id:%{public}d, type:0x%{public}x, "
+        "onlyFullScreen:%{public}d onlyFloating:%{public}d",
+        GetPersistentId(), windowModeSupportType, onlySupportFullScreen, onlySupportFloating);
     bool disableFullScreen = property_->IsFullScreenDisabled();
     if (onlySupportFullScreen && !property_->IsLayoutFullScreen() && !disableFullScreen) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d IsLayoutFullScreen:%{public}d",
@@ -4860,9 +4879,6 @@ void WindowSceneSessionImpl::UpdateWindowModeWhenSupportTypeChange(uint32_t wind
         return;
     }
 
-    bool onlySupportFloating =
-        !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
-        WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
     if (onlySupportFloating) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFloating:%{public}d", onlySupportFloating);
         Recover(REASON_MAXIMIZE_MODE_CHANGE);
@@ -4872,6 +4888,8 @@ void WindowSceneSessionImpl::UpdateWindowModeWhenSupportTypeChange(uint32_t wind
 WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowSupportModes::SetInner id=%d", GetPersistentId());
     auto size = supportedWindowModes.size();
     if (size <= 0 || size > WINDOW_SUPPORT_MODE_MAX_SIZE) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "mode param is invalid");
@@ -4892,6 +4910,9 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     }
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "winId: %{public}u, windowModeSupportType: %{public}u",
         GetWindowId(), windowModeSupportType);
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:SetInner] supportType=0x%{public}x, id:%{public}u",
+        windowModeSupportType, GetWindowId());
 
     // update windowModeSupportType to server
     auto hostSession = GetHostSession();
@@ -4899,7 +4920,8 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     hostSession->NotifySupportWindowModesChange(supportedWindowModes);
     if (!IsPcOrPadFreeMultiWindowMode()) {
         pendingWindowModeSupportType_ = windowModeSupportType;
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "pending update, winId: %{public}u, windowModeSupportType: %{public}u",
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+            "[WindowSupportModes:SetInner] pending (not free multi window), id:%{public}u, type:%{public}u",
             GetWindowId(), windowModeSupportType);
         return WMError::WM_OK;
     }
@@ -4908,6 +4930,9 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     property_->SetWindowModeSupportType(windowModeSupportType);
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
     UpdateTitleButtonVisibility();
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:SetInner] saved id:%{public}u, type:%{public}u, updateModeChange",
+        GetWindowId(), windowModeSupportType);
     UpdateWindowModeWhenSupportTypeChange(windowModeSupportType);
     return WMError::WM_OK;
 }
