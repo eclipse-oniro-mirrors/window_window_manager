@@ -8458,7 +8458,8 @@ bool JsWindow::ParseWindowLimits(napi_env env, napi_value jsObject, WindowLimits
     if (GetType(env, jsObject) != napi_object) {
         return false;
     }
-    auto parseField = [&](const char* fieldName, auto& field, auto& defValue) -> bool {
+    auto parseField = [](napi_env env, napi_value jsObject, const char* fieldName, auto& field,
+        const auto& defValue, uint32_t& data) -> bool {
         if (!ParseJsValueOrGetDefault(jsObject, env, fieldName, data, defValue)) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert object to %{public}s", fieldName);
             return false;
@@ -8467,16 +8468,16 @@ bool JsWindow::ParseWindowLimits(napi_env env, napi_value jsObject, WindowLimits
         return true;
     };
 
-    if (!parseField("maxWidth", windowLimits.maxWidth_, defaultValue)) {
+    if (!parseField(env, jsObject, "maxWidth", windowLimits.maxWidth_, defaultValue, data)) {
         return false;
     }
-    if (!parseField("minWidth", windowLimits.minWidth_, defaultValue)) {
+    if (!parseField(env, jsObject, "minWidth", windowLimits.minWidth_, defaultValue, data)) {
         return false;
     }
-    if (!parseField("maxHeight", windowLimits.maxHeight_, defaultValue)) {
+    if (!parseField(env, jsObject, "maxHeight", windowLimits.maxHeight_, defaultValue, data)) {
         return false;
     }
-    if (!parseField("minHeight", windowLimits.minHeight_, defaultValue)) {
+    if (!parseField(env, jsObject, "minHeight", windowLimits.minHeight_, defaultValue, data)) {
         return false;
     }
     if (!ParseJsValueOrGetDefault(jsObject, env, "pixelUnit", pixelUnit, PixelUnit::PX)) {

@@ -9322,6 +9322,10 @@ WSError SceneSession::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorIn
         session->windowAnchorInfo_ = windowAnchorInfo;
         if (session->onWindowAnchorInfoChangeFunc_) {
             session->onWindowAnchorInfoChangeFunc_(windowAnchorInfo);
+        } else {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s func is null", where);
+        }
+        if (windowAnchorInfo.isAnchoredByAttach_) {
             WSRect rect = parentSession->GetSessionRect();
             Rect parentRect = {rect.posX_, rect.posY_, rect.width_, rect.height_};
             if (session->sessionStage_) {
@@ -9330,8 +9334,6 @@ WSError SceneSession::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorIn
                 session->sessionStage_->NotifySubWindowAfterParentWindowStatusChange(parentSession->GetWindowMode(),
                     parentProperty->GetMaximizeMode(), session->IsLayoutFullScreen());
             }
-        } else {
-            TLOGI(WmsLogTag::WMS_SUB, "func is null");
         }
 
         // Notify related windows about attach/detach for limits intersection
