@@ -301,8 +301,8 @@ static void GetScreenshotParam(napi_env env, std::unique_ptr<Param> &param, napi
     IsNeedNotify(env, param, argv);
     IsNeedPointer(env, param, argv);
     IsCaptureFullOfScreen(env, param, argv);
-    GetDisplayIntent(env, param, argv);
     ConvertWindowIdList(env, param, argv);
+    GetDisplayIntent(env, param, argv);
 }
 
 static void AsyncGetScreenshot(napi_env env, std::unique_ptr<Param> &param)
@@ -355,7 +355,7 @@ static void AsyncGetScreenHDRshot(napi_env env, std::unique_ptr<HdrParam>& param
     if (!param->validInputParam) {
         TLOGE(WmsLogTag::DMS, "Invalid Input Param!");
         param->imageVec = {};
-        param->wret = DmErrorCode::DM_ERROR_INVALID_PARAM;
+        param->wret = DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
         param->errMessage = "Get Screenshot Failed: Invalid input param";
         return;
     }
