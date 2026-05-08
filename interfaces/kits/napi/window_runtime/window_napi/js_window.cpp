@@ -18,7 +18,6 @@
 #include <new>
 #include <optional>
 
-
 #ifndef WINDOW_PREVIEW
 #include "js_transition_controller.h"
 #else
