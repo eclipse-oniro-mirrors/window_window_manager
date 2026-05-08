@@ -1508,8 +1508,15 @@ void WindowSessionImpl::UpdateRectForOtherReasonTask(const Rect& wmRect, const R
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     bool exceptedTrue = true;
+    bool compatibleModeChanged = notifySizeChangeInCompatibleMode_.compare_exchange_strong(exceptedTrue, false);
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowRectUpdate:ClientRecv] UpdateRectForOtherReasonTask id:%{public}d, "
+        "rectChanged:%{public}d reasonChanged:%{public}d postTaskDone:%{public}d "
+        "notifyFlag:%{public}d compatibleModeChanged:%{public}d",
+        GetPersistentId(), wmRect != preRect, wmReason != lastSizeChangeReason_, postTaskDone_.load(),
+        notifySizeChangeFlag_.load(), notifySizeChangeInCompatibleMode_.load());
     if ((wmRect != preRect) || (wmReason != lastSizeChangeReason_) || !postTaskDone_ ||
-        notifySizeChangeFlag_ || notifySizeChangeInCompatibleMode_.compare_exchange_strong(exceptedTrue, false)) {
+        notifySizeChangeFlag_ || compatibleModeChanged) {
         NotifySizeChange(wmRect, wmReason);
         SetNotifySizeChangeFlag(false);
         lastSizeChangeReason_ = wmReason;

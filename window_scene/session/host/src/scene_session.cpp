@@ -9701,17 +9701,17 @@ bool SceneSession::NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeC
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
         "WMS::WindowRectUpdate::FlushUI::NotifyServerToUpdateRect id=%d", GetPersistentId());
     if (!GetForegroundInteractiveStatus()) {
-        TLOGD(WmsLogTag::WMS_LAYOUT,
+        TLOGD(WmsLogTag::WMS_PIPELINE,
             "[WindowRectUpdate:FlushUI] skip: not foreground interactive, id:%{public}d", GetPersistentId());
         return false;
     }
     if (GetKeyFramePolicy().running_) {
-        TLOGD(WmsLogTag::WMS_LAYOUT,
+        TLOGD(WmsLogTag::WMS_LAYOUT_PC,
             "[WindowRectUpdate:FlushUI] skip: key frame running, id:%{public}d", GetPersistentId());
         return false;
     }
     if (uiParam.rect_.IsInvalid()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT,
+        TLOGE(WmsLogTag::WMS_PIPELINE,
             "[WindowRectUpdate:FlushUI] skip: invalid rect, id:%{public}d, rect:%{public}s",
             GetPersistentId(), uiParam.rect_.ToString().c_str());
         return false;
@@ -9731,13 +9731,13 @@ bool SceneSession::NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeC
         uiParam.rect_.width_, uiParam.rect_.height_ };
     if (GetSessionRect() == rect && (!sessionStage_ || GetClientRect() == rect) &&
         reason != SizeChangeReason::SPLIT_DRAG_END) {
-        TLOGD(WmsLogTag::WMS_LAYOUT,
+        TLOGD(WmsLogTag::WMS_PIPELINE,
             "[WindowRectUpdate:FlushUI] skip: same rect, id:%{public}d, rect:%{public}s",
             GetPersistentId(), rect.ToString().c_str());
         return false;
     }
     if (rect.IsInvalid()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT,
+        TLOGE(WmsLogTag::WMS_PIPELINE,
             "[WindowRectUpdate:FlushUI] skip: invalid rect after offset, id:%{public}d, rect:%{public}s",
             GetPersistentId(), rect.ToString().c_str());
         return false;

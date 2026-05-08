@@ -4531,6 +4531,8 @@ void Session::RectSizeCheckProcess(float curWidth, float curHeight, uint32_t min
 
     const bool needReportException = isSizeAboveMax ||
                                      (!isSystemWindowButNotDialog && isSizeBelowMin && isSizeBelowScreen);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "RectCheck sessionID: %{public}d rect %{public}s isReportException %{public}d",
+            GetPersistentId(), GetSessionRect().ToString().c_str(), needReportException);
 
     if (needReportException) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "RectCheck err sessionID: %{public}d rect %{public}s",
