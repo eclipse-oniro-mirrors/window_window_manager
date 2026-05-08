@@ -22,14 +22,13 @@
 #include <napi_common_want.h>
 
 #include "js_window_animation_utils.h"
+#include "process_options.h"
 #include "property/rs_properties_def.h"
 #include "root_scene.h"
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_helper.h"
-#include "window_manager_hilog.h"
 #include "window_visibility_info.h"
-#include "process_options.h"
 
 namespace OHOS::Rosen {
 using namespace AbilityRuntime;
@@ -45,18 +44,6 @@ const std::unordered_map<int32_t, ThrowSlipMode> FINGERS_TO_THROWSLIPMODE_MAP = 
     { 5, ThrowSlipMode::FIVE_FINGERS_SWIPE }
 };
 
-// Refer to OHOS::Ace::TouchType
-enum class AceTouchType : int32_t {
-    DOWN = 0,
-    UP,
-    MOVE,
-    CANCEL,
-    HOVER_ENTER = 9,
-    HOVER_MOVE = 10,
-    HOVER_EXIT = 11,
-    HOVER_CANCEL = 12,
-};
-
 // Refer to OHOS::Ace::SourceType
 enum class AceSourceType : int32_t {
     NONE = 0,
@@ -65,26 +52,6 @@ enum class AceSourceType : int32_t {
     TOUCH_PAD = 3,
     KEYBOARD = 4
 };
-
-const std::map<int32_t, int32_t> TOUCH_ACTION_MAP = {
-    { (int32_t)AceTouchType::DOWN, MMI::PointerEvent::POINTER_ACTION_DOWN },
-    { (int32_t)AceTouchType::UP, MMI::PointerEvent::POINTER_ACTION_UP },
-    { (int32_t)AceTouchType::MOVE, MMI::PointerEvent::POINTER_ACTION_MOVE },
-    { (int32_t)AceTouchType::CANCEL, MMI::PointerEvent::POINTER_ACTION_CANCEL },
-    { (int32_t)AceTouchType::HOVER_ENTER, MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER },
-    { (int32_t)AceTouchType::HOVER_MOVE, MMI::PointerEvent::POINTER_ACTION_HOVER_MOVE },
-    { (int32_t)AceTouchType::HOVER_EXIT, MMI::PointerEvent::POINTER_ACTION_HOVER_EXIT },
-    { (int32_t)AceTouchType::HOVER_CANCEL, MMI::PointerEvent::POINTER_ACTION_HOVER_CANCEL }
-};
-
-int32_t GetMMITouchType(int32_t aceType)
-{
-    auto it = TOUCH_ACTION_MAP.find(aceType);
-    if (it == TOUCH_ACTION_MAP.end()) {
-        return MMI::PointerEvent::POINTER_ACTION_UNKNOWN;
-    }
-    return it->second;
-}
 } // namespace
 
 const std::map<WindowType, JsSessionType> WINDOW_TO_JS_SESSION_TYPE_MAP {
@@ -184,6 +151,56 @@ const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP {
     { JsSessionType::TYPE_FLOATING_BALL,            WindowType::WINDOW_TYPE_FB                      },
     { JsSessionType::TYPE_FLOAT_VIEW,               WindowType::WINDOW_TYPE_FV                      },
 };
+
+const std::unordered_map<int32_t, int32_t> JS_TO_MMI_ACTION_MAP = {
+    { static_cast<int32_t>(JsTouchType::DOWN), MMI::PointerEvent::POINTER_ACTION_DOWN },
+    { static_cast<int32_t>(JsTouchType::UP), MMI::PointerEvent::POINTER_ACTION_UP },
+    { static_cast<int32_t>(JsTouchType::MOVE), MMI::PointerEvent::POINTER_ACTION_MOVE },
+    { static_cast<int32_t>(JsTouchType::CANCEL), MMI::PointerEvent::POINTER_ACTION_CANCEL },
+    { static_cast<int32_t>(JsTouchType::HOVER_ENTER), MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER },
+    { static_cast<int32_t>(JsTouchType::HOVER_MOVE), MMI::PointerEvent::POINTER_ACTION_HOVER_MOVE },
+    { static_cast<int32_t>(JsTouchType::HOVER_EXIT), MMI::PointerEvent::POINTER_ACTION_HOVER_EXIT },
+    { static_cast<int32_t>(JsTouchType::HOVER_CANCEL), MMI::PointerEvent::POINTER_ACTION_HOVER_CANCEL },
+
+    // Customized hover event, indicates that the pen hover proximity action.
+    { static_cast<int32_t>(JsTouchType::PROXIMITY_IN), MMI::PointerEvent::POINTER_ACTION_PROXIMITY_IN },
+    { static_cast<int32_t>(JsTouchType::PROXIMITY_OUT), MMI::PointerEvent::POINTER_ACTION_PROXIMITY_OUT },
+    { static_cast<int32_t>(JsTouchType::LEVITATE_MOVE), MMI::PointerEvent::POINTER_ACTION_LEVITATE_MOVE }
+};
+
+int32_t ConvertToMMIActionType(int32_t type)
+{
+    auto it = JS_TO_MMI_ACTION_MAP.find(type);
+    if (it != JS_TO_MMI_ACTION_MAP.end()) {
+        TLOGD(WmsLogTag::WMS_EVENT, "type mapping: key=%{public}d, value=%{public}d", type, it->second);
+        return it->second;
+    }
+    TLOGE(WmsLogTag::WMS_EVENT, "unknown type");
+    return MMI::PointerEvent::POINTER_ACTION_UNKNOWN;
+}
+
+const std::unordered_map<int32_t, int32_t> ACE_SOURCE_TOOL_TO_MMI_TOOL_TYPE_MAP = {
+    { static_cast<int32_t>(AceSourceTool::FINGER), MMI::PointerEvent::TOOL_TYPE_FINGER },
+    { static_cast<int32_t>(AceSourceTool::PEN), MMI::PointerEvent::TOOL_TYPE_PEN },
+    { static_cast<int32_t>(AceSourceTool::RUBBER), MMI::PointerEvent::TOOL_TYPE_RUBBER },
+    { static_cast<int32_t>(AceSourceTool::BRUSH), MMI::PointerEvent::TOOL_TYPE_BRUSH },
+    { static_cast<int32_t>(AceSourceTool::PENCIL), MMI::PointerEvent::TOOL_TYPE_PENCIL },
+    { static_cast<int32_t>(AceSourceTool::AIRBRUSH), MMI::PointerEvent::TOOL_TYPE_AIRBRUSH },
+    { static_cast<int32_t>(AceSourceTool::MOUSE), MMI::PointerEvent::TOOL_TYPE_MOUSE },
+    { static_cast<int32_t>(AceSourceTool::LENS), MMI::PointerEvent::TOOL_TYPE_LENS },
+    { static_cast<int32_t>(AceSourceTool::TOUCHPAD), MMI::PointerEvent::TOOL_TYPE_TOUCHPAD }
+};
+
+int32_t ConvertToMMIToolType(int32_t type)
+{
+    auto it = ACE_SOURCE_TOOL_TO_MMI_TOOL_TYPE_MAP.find(type);
+    if (it != ACE_SOURCE_TOOL_TO_MMI_TOOL_TYPE_MAP.end()) {
+        TLOGD(WmsLogTag::WMS_EVENT, "type mapping: key=%{public}d, value=%{public}d", type, it->second);
+        return it->second;
+    }
+    TLOGE(WmsLogTag::WMS_EVENT, "unknown type, input type=%{public}d", type);
+    return UNKNOWN_JS_SOURCE_TOOL;
+}
 
 napi_value NapiGetUndefined(napi_env env)
 {
@@ -1200,177 +1217,180 @@ bool ConvertHookWindowInfoFromJs(napi_env env, napi_value jsObject, HookWindowIn
     return true;
 }
 
-bool ConvertPointerItemFromJs(napi_env env, napi_value touchObject, MMI::PointerEvent& pointerEvent)
+bool ConvertPointerItemFromJs(napi_env env, napi_value touchObject, int32_t toolType, MMI::PointerEvent& pointerEvent)
 {
     auto vpr = RootScene::staticRootScene_->GetDisplayDensity();
     MMI::PointerEvent::PointerItem pointerItem;
-    napi_value jsId = nullptr;
-    napi_get_named_property(env, touchObject, "id", &jsId);
-    napi_value jsWindowX = nullptr;
-    napi_get_named_property(env, touchObject, "windowX", &jsWindowX);
-    napi_value jsWindowY = nullptr;
-    napi_get_named_property(env, touchObject, "windowY", &jsWindowY);
-    napi_value jsDisplayX = nullptr;
-    napi_get_named_property(env, touchObject, "displayX", &jsDisplayX);
-    napi_value jsDisplayY = nullptr;
-    napi_get_named_property(env, touchObject, "displayY", &jsDisplayY);
-    napi_value jsPressure = nullptr;
-    napi_get_named_property(env, touchObject, "pressure", &jsPressure);
+
     int32_t id;
-    if (!ConvertFromJsValue(env, jsId, id)) {
-        WLOGFE("Failed to convert parameter to id");
+    if (!GetPropertyFromJs(env, touchObject, "id", id)) {
         return false;
     }
     pointerItem.SetPointerId(id);
-    pointerEvent.SetPointerId(id);
+
     double windowX;
-    if (!ConvertFromJsValue(env, jsWindowX, windowX)) {
-        WLOGFE("Failed to convert parameter to windowX");
+    if (!GetPropertyFromJs(env, touchObject, "windowX", windowX)) {
         return false;
     }
     pointerItem.SetWindowX(std::round(windowX * vpr));
     pointerItem.SetWindowXPos(windowX * vpr);
+
     double windowY;
-    if (!ConvertFromJsValue(env, jsWindowY, windowY)) {
-        WLOGFE("Failed to convert parameter to windowY");
+    if (!GetPropertyFromJs(env, touchObject, "windowY", windowY)) {
         return false;
     }
     pointerItem.SetWindowY(std::round(windowY * vpr));
     pointerItem.SetWindowYPos(windowY * vpr);
+
     double displayX;
-    if (!ConvertFromJsValue(env, jsDisplayX, displayX)) {
-        WLOGFE("Failed to convert parameter to displayX");
+    if (!GetPropertyFromJs(env, touchObject, "displayX", displayX)) {
         return false;
     }
     pointerItem.SetDisplayXPos(displayX * vpr);
+
     double displayY;
-    if (!ConvertFromJsValue(env, jsDisplayY, displayY)) {
-        WLOGFE("Failed to convert parameter to displayY");
+    if (!GetPropertyFromJs(env, touchObject, "displayY", displayY)) {
         return false;
     }
     pointerItem.SetDisplayYPos(displayY * vpr);
+
     double pressure;
-    if (!ConvertFromJsValue(env, jsPressure, pressure)) {
-        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to pressure");
+    if (!GetPropertyFromJs(env, touchObject, "pressure", pressure)) {
         return false;
     }
     pointerItem.SetPressure(pressure);
+    pointerItem.SetToolType(toolType);
     pointerEvent.AddPointerItem(pointerItem);
     return true;
 }
 
-bool ConvertTouchesObjectFromJs(napi_env env, napi_value jsTouches, int32_t pointerId, MMI::PointerEvent& pointerEvent)
+bool ConvertTouchesObjectFromJs(napi_env env, napi_value jsTouches,
+    int32_t pointerId, int32_t toolType, MMI::PointerEvent& pointerEvent)
 {
     // iterator touches
     if (jsTouches == nullptr) {
-        WLOGFE("Failed to convert to touchesObject list");
+        TLOGE(WmsLogTag::WMS_EVENT, "jsTouches is null");
         return false;
     }
     bool isArray = false;
-    napi_is_array(env, jsTouches, &isArray);
-    if (!isArray) {
+    if (napi_is_array(env, jsTouches, &isArray) != napi_ok || !isArray) {
+        TLOGE(WmsLogTag::WMS_EVENT, "'touches' is not a valid array");
         return false;
     }
     uint32_t length = 0;
     napi_get_array_length(env, jsTouches, &length);
     for (uint32_t i = 0; i < length; i++) {
-        napi_value touchesObject = nullptr;
-        napi_get_element(env, jsTouches, i, &touchesObject);
-        if (touchesObject == nullptr) {
-            WLOGFE("Failed get to touchesObject");
+        napi_value touchObject = nullptr;
+        if (napi_get_element(env, jsTouches, i, &touchObject) != napi_ok || !touchObject) {
+            TLOGE(WmsLogTag::WMS_EVENT, "touchObject is null");
             return false;
         }
-        napi_value jsNoChangedId = nullptr;
-        napi_get_named_property(env, touchesObject, "id", &jsNoChangedId);
         int32_t noChangedId;
-        if (!ConvertFromJsValue(env, jsNoChangedId, noChangedId)) {
-            WLOGFE("Failed to convert parameter to jsNoChangeId");
+        if (!GetPropertyFromJs(env, touchObject, "id", noChangedId)) {
             return false;
         }
         if (pointerId == noChangedId) {
             continue;
         }
-        if (!ConvertPointerItemFromJs(env, touchesObject, pointerEvent)) {
+        if (!ConvertPointerItemFromJs(env, touchObject, toolType, pointerEvent)) {
             return false;
         }
+    }
+    return true;
+}
+
+bool ProcessAllTouchPointsFromJs(napi_env env, napi_value jsObject,
+    int32_t toolType, MMI::PointerEvent& pointerEvent)
+{
+    // Set pointerItem from changedTouches.
+    napi_value jsChangedTouches = nullptr;
+    napi_status status = napi_get_named_property(env, jsObject, "changedTouches", &jsChangedTouches);
+    if (status != napi_ok || !jsChangedTouches) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to get changedTouches");
+        return false;
+    }
+    bool isArray = false;
+    if (napi_is_array(env, jsChangedTouches, &isArray) != napi_ok || !isArray) {
+        TLOGE(WmsLogTag::WMS_EVENT, "changedTouches is not a valid array");
+        return false;
+    }
+    uint32_t changedLength = 0;
+    if (napi_get_array_length(env, jsChangedTouches, &changedLength) != napi_ok || changedLength == 0) {
+        TLOGE(WmsLogTag::WMS_EVENT, "changedTouches array is empty");
+        return false;
+    }
+    // use changedTouches[0] only.
+    napi_value touchObject = nullptr;
+    if (napi_get_element(env, jsChangedTouches, 0, &touchObject) != napi_ok || !touchObject) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to get touchObject");
+        return false;
+    }
+    int32_t pointerId;
+    if (!GetPropertyFromJs(env, touchObject, "id", pointerId)) {
+        return false;
+    }
+    pointerEvent.SetPointerId(pointerId);
+    if (!ConvertPointerItemFromJs(env, touchObject, toolType, pointerEvent)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert pointer item in changedTouches");
+        return false;
+    }
+
+    // Set pointerItem from touches.
+    napi_value jsTouches = nullptr;
+    if (napi_get_named_property(env, jsObject, "touches", &jsTouches) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to get 'touches' property");
+        return false;
+    }
+    if (!ConvertTouchesObjectFromJs(env, jsTouches, pointerId, toolType, pointerEvent)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert pointer item in touches");
+        return false;
     }
     return true;
 }
 
 bool ConvertPointerEventFromJs(napi_env env, napi_value jsObject, MMI::PointerEvent& pointerEvent)
 {
-    napi_value jsSourceType = nullptr;
-    napi_get_named_property(env, jsObject, "source", &jsSourceType);
-    napi_value jsTimestamp = nullptr;
-    napi_get_named_property(env, jsObject, "timestamp", &jsTimestamp);
-    napi_value jsChangedTouches = nullptr;
-    napi_get_named_property(env, jsObject, "changedTouches", &jsChangedTouches);
-    napi_value jsTouches = nullptr;
-    napi_get_named_property(env, jsObject, "touches", &jsTouches);
     int32_t sourceType;
-    if (!ConvertFromJsValue(env, jsSourceType, sourceType)) {
-        WLOGFE("Failed to convert parameter to sourceType");
+    if (!GetPropertyFromJs(env, jsObject, "source", sourceType)) {
         return false;
     }
     pointerEvent.SetSourceType(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
     if (sourceType == static_cast<int32_t>(AceSourceType::MOUSE)) {
         pointerEvent.AddFlag(MMI::InputEvent::EVENT_FLAG_GESTURE_SUPPLEMENT);
     }
-    double timestamp;
-    if (!ConvertFromJsValue(env, jsTimestamp, timestamp)) {
-        WLOGFE("Failed to convert parameter to timestamp");
-        return false;
-    }
-    pointerEvent.SetActionTime(std::round(timestamp / US_PER_NS));
-    if (jsChangedTouches == nullptr) {
-        WLOGFE("Failed to convert parameter to touchesArray");
-        return false;
-    }
-    // use changedTouches[0] only
-    napi_value touchObject = nullptr;
-    napi_get_element(env, jsChangedTouches, 0, &touchObject);
-    if (touchObject == nullptr) {
-        WLOGFE("Failed get to touchObject");
-        return false;
-    }
-    napi_value jsTouchType = nullptr;
-    napi_get_named_property(env, touchObject, "type", &jsTouchType);
-    int32_t touchType;
-    if (!ConvertFromJsValue(env, jsTouchType, touchType)) {
-        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to touchType");
-        return false;
-    }
-    pointerEvent.SetPointerAction(GetMMITouchType(touchType));
-    napi_value jsId = nullptr;
-    napi_get_named_property(env, touchObject, "id", &jsId);
-    int32_t pointerId;
-    if (!ConvertFromJsValue(env, jsId, pointerId)) {
-        WLOGFE("Failed to convert parameter to id");
-        return false;
-    }
-    if (!ConvertPointerItemFromJs(env, touchObject, pointerEvent)) {
-        return false;
-    }
-    if (!ConvertTouchesObjectFromJs(env, jsTouches, pointerId, pointerEvent)) {
-        return false;
-    }
-    pointerEvent.SetPointerId(pointerId);
-    if (!ConvertDeviceIdFromJs(env, jsObject, pointerEvent)) {
-        return false;
-    }
-    return true;
-}
 
-bool ConvertDeviceIdFromJs(napi_env env, napi_value jsObject, MMI::PointerEvent& pointerEvent)
-{
-    napi_value jsDeviceId = nullptr;
-    napi_get_named_property(env, jsObject, "deviceId", &jsDeviceId);
-    int32_t deviceId = 0;
-    if (!ConvertFromJsValue(env, jsDeviceId, deviceId)) {
-        WLOGFE("Failed to convert parameter to deviceId");
+    int32_t deviceId;
+    if (!GetPropertyFromJs(env, jsObject, "deviceId", deviceId)) {
         return false;
     }
     pointerEvent.SetDeviceId(deviceId);
+
+    int32_t touchType;
+    if (!GetPropertyFromJs(env, jsObject, "type", touchType)) {
+        return false;
+    }
+    pointerEvent.SetPointerAction(ConvertToMMIActionType(touchType));
+
+    double timestamp;
+    if (!GetPropertyFromJs(env, jsObject, "timestamp", timestamp)) {
+        return false;
+    }
+    pointerEvent.SetActionTime(std::round(timestamp / US_PER_NS));
+
+    int32_t sourceTool;
+    if (!GetPropertyFromJs(env, jsObject, "sourceTool", sourceTool)) {
+        return false;
+    }
+    auto mmiToolType = ConvertToMMIToolType(sourceTool);
+    if (mmiToolType == UNKNOWN_JS_SOURCE_TOOL) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Error, unknown source tool type");
+        return false;
+    }
+    if (!ProcessAllTouchPointsFromJs(env, jsObject, mmiToolType, pointerEvent)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to process all touch points");
+        return false;
+    }
+    TLOGD(WmsLogTag::WMS_EVENT, "success");
     return true;
 }
 

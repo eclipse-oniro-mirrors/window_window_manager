@@ -1326,7 +1326,7 @@ WmErrorCode ParseTouchableAreas(napi_env env, napi_callback_info info,
     napi_get_array_length(env, nativeArray, &size);
     if (size > MAX_TOUCHABLE_AREAS) {
         TLOGE(WmsLogTag::WMS_EVENT, "Exceeded maximum limit");
-        return errCode;
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
     errCode = WmErrorCode::WM_OK;
     for (uint32_t i = 0; i < size; i++) {

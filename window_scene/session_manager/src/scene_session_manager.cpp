@@ -10041,10 +10041,13 @@ WSError SceneSessionManager::RedispatchTouchEvent(const std::shared_ptr<MMI::Poi
 #ifdef SECURITY_COMPONENT_MANAGER_ENABLE
     FillSecCompEnhanceData(pointerEvent, pointerItem);
 #endif
-    TLOGI(WmsLogTag::WMS_EVENT, "eid=%{public}d,ac=%{public}d,deviceId=%{public}d,zIndex=%{public}f",
-        pointerEvent->GetPointerId(), pointerEvent->GetPointerAction(), pointerEvent->GetDeviceId(),
-        pointerEvent->GetZOrder());
     pointerEvent->AddFlag(MMI::PointerEvent::EVENT_FLAG_REDISPATCH);
+    TLOGI(WmsLogTag::WMS_EVENT,
+          "pointerId=%{public}d, action=%{public}d, deviceId=%{public}d, zIndex=%{public}f",
+          pointerEvent->GetPointerId(),
+          pointerEvent->GetPointerAction(),
+          pointerEvent->GetDeviceId(),
+          pointerEvent->GetZOrder());
     MMI::InputManager::GetInstance()->RedispatchInputEvent(pointerEvent);
     return WSError::WS_OK;
 }

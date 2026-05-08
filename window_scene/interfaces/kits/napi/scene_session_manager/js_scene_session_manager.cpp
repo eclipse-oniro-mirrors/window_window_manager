@@ -385,6 +385,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::GetJsonProfile);
     BindNativeFunction(env, exportObj, "sendAxisEvent", moduleName, JsSceneSessionManager::SendAxisEvent);
     BindNativeFunction(env, exportObj, "redispatchTouchEvent", moduleName, JsSceneSessionManager::RedispatchTouchEvent);
+    BindNativeFunction(env, exportObj, "redispatchCustomizedTouchEvent", moduleName,
+        JsSceneSessionManager::RedispatchCustomizedTouchEvent);
     BindNativeFunction(env, exportObj, "syncFloatViewLimits", moduleName, JsSceneSessionManager::SyncFloatViewLimits);
     return NapiGetUndefined(env);
 }
@@ -1240,6 +1242,13 @@ napi_value JsSceneSessionManager::RedispatchTouchEvent(napi_env env, napi_callba
     TLOGI(WmsLogTag::WMS_EVENT, "in");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnRedispatchTouchEvent(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::RedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_EVENT, "in");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnRedispatchCustomizedTouchEvent(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::SyncFloatViewLimits(napi_env env, napi_callback_info info)
@@ -3461,6 +3470,58 @@ napi_value JsSceneSessionManager::OnRedispatchTouchEvent(napi_env env, napi_call
         return NapiGetUndefined(env);
     }
     pointerEvent->SetZOrder(zIndex);
+    SceneSessionManager::GetInstance().RedispatchTouchEvent(pointerEvent);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::OnRedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info)
+{
+    size_t argc = 4;
+    napi_value argv[4] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_TWO) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    napi_value touchEventNative = argv[0];
+    if (touchEventNative == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "touchEventNative is null");
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    // Step 1: construct the MMI::PointerEvent from the ts side.
+    auto pointerEvent = MMI::PointerEvent::Create();
+    if (pointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Create pointer event failed");
+        return NapiGetUndefined(env);
+    }
+    if (!ConvertPointerEventFromJs(env, touchEventNative, *pointerEvent)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Convert pointer event failed");
+        return NapiGetUndefined(env);
+    }
+
+    // Step 2: set zIndex.
+    uint32_t zIndex;
+    if (!ConvertFromJsValue(env, argv[1], zIndex)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to zIndex");
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    pointerEvent->SetZOrder(zIndex);
+
+    TLOGD(WmsLogTag::WMS_EVENT,
+          "Redispatch touch event: pointerId=%{public}d, action=%{public}d, zIndex=%{public}u",
+          pointerEvent->GetPointerId(),
+          pointerEvent->GetPointerAction(),
+          zIndex);
     SceneSessionManager::GetInstance().RedispatchTouchEvent(pointerEvent);
     return NapiGetUndefined(env);
 }
