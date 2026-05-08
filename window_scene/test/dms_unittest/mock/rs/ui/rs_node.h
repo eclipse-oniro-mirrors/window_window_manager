@@ -87,6 +87,8 @@ public:
     void SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContext) {}
     void SetSkipCheckInMultiInstance(bool isSkipCheckInMultiInstance) {}
     void SetHDRBrightnessFactor(float factor) {}
+    void SetScale(float scaleX, float scaleY) {}
+    void SetPivot(float pivotX, float pivotY) {}
 
     Vector4f frame_;
 
