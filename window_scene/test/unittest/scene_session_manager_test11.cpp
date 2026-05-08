@@ -1977,7 +1977,7 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_WINDOW);
 
     ScreenSessionConfig config;
-    sptr<ScreenSession> screenSession = 
+    sptr<ScreenSession> screenSession =
         sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(0, screenSession));
     sceneSession->property_->SetDisplayId(DEFAULT_DISPLAY_ID);
@@ -1985,7 +1985,7 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_DISPLAY);
 
     ScreenSessionConfig config1;
-    sptr<ScreenSession> screenSession1 = 
+    sptr<ScreenSession> screenSession1 =
         sptr<ScreenSession>::MakeSptr(config1, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(1, screenSession1));
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
