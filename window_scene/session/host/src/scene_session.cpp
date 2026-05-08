@@ -10059,6 +10059,23 @@ void SceneSession::RegisterSupportWindowModesCallback(NotifySetSupportedWindowMo
     }, __func__);
 }
 
+WSError SceneSession::NotifySupportWindowModesChange(
+    const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes)
+{
+    PostTask([weakThis = wptr(this), supportedWindowModes = supportedWindowModes,
+        where = __func__]() mutable {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is null", where);
+            return;
+        }
+        if (session->onSetSupportedWindowModesFunc_) {
+            session->onSetSupportedWindowModesFunc_(std::move(supportedWindowModes));
+        }
+    }, __func__);
+    return WSError::WS_OK;
+}
+
 void SceneSession::ActivateKeyboardAvoidArea(bool active, bool recalculateAvoid)
 {
     if (recalculateAvoid && !active) {

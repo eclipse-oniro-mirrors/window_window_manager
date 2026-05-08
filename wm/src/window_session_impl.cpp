@@ -2189,7 +2189,7 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     bool isSubWindow = WindowHelper::IsSubWindow(windowType);
     bool isDialogWindow = WindowHelper::IsDialogWindow(windowType);
     if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow)) {
-        uiContent->HideWindowTitleButton(true, !windowOption_->GetSubWindowMaximizeSupported(), true, false);
+        uiContent->HideWindowTitleButton(true, !IsSubWindowMaximizeSupported(), true, false);
         return;
     }
     auto windowModeSupportType = property_->GetWindowModeSupportType();
@@ -9775,6 +9775,10 @@ bool WindowSessionImpl::IsSubWindowMaximizeSupported() const
     if (!WindowHelper::IsSubWindow(GetType())) {
         return false;
     }
+    if (haveSetSupportedWindowModes_) {
+        return WindowHelper::IsWindowModeSupported(
+            property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FULLSCREEN);
+    }
     if (windowOption_ != nullptr) {
         return windowOption_->GetSubWindowMaximizeSupported();
     }
@@ -9913,6 +9917,9 @@ void WindowSessionImpl::SwitchSubWindow(bool freeMultiWindowEnable, int32_t pare
         if (subWindowSession &&
             subWindowSession->windowSystemConfig_.freeMultiWindowEnable_ != freeMultiWindowEnable) {
             subWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
+            if (freeMultiWindowEnable) {
+                subWindowSession->PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+            }
             subWindowSession->UpdateTitleButtonVisibility();
             subWindowSession->UpdateDecorEnable(true);
             subWindowSession->NotifyFreeWindowModeChange(freeMultiWindowEnable);
