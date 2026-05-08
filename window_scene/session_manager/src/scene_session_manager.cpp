@@ -16287,7 +16287,7 @@ WMError SceneSessionManager::GetAllWindowLayoutInfo(DisplayId displayId,
             auto windowLayoutInfo = sptr<WindowLayoutInfo>::MakeSptr();
             windowLayoutInfo->rect = globalScaledRect;
             if (auto surfaceNode = session->GetSurfaceNode()) {
-                windowLayoutInfo->windowAlpha = surfaceNode->GetStagingProperties().GetAlpha();
+                windowLayoutInfo->windowAlpha = surfaceNode->GetAlphaValue();
                 TLOGD(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f", funcName,
                     session->GetWindowId(), session->GetWindowName().c_str(), windowLayoutInfo->windowAlpha);
             }
