@@ -4299,10 +4299,11 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation)
 
 bool WindowSceneSessionImpl::CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const
 {
-    if (WindowHelper::IsSubWindow(GetType())) {
-        return state == AcrossDisplayPresentation::UNSPECIFIED;
+    if (!WindowHelper::IsSubWindow(GetType())) {
+        return true;
     }
-    return true;
+    return state == AcrossDisplayPresentation::UNSPECIFIED ||
+           state == AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
 }
 
 void WindowSceneSessionImpl::ApplyMaximizePresentation(MaximizePresentation presentation)
