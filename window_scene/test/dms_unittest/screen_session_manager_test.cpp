@@ -1459,6 +1459,7 @@ HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName003, TestSize.Level
     ssm_->DestroyVirtualScreen(screenId);
 }
 
+
 /**
  * @tc.name: SetOrientationWithOptions01
  * @tc.desc: SetOrientation with options permission denied

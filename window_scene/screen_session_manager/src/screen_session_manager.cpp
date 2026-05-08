@@ -7660,7 +7660,7 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
 void ScreenSessionManager::SetScreenSessionScale(const sptr<ScreenSession>& screenSession,
     float scaleX, float scaleY)
 {
-    if (scaleX <= 0 || scaleY <=0) {
+    if (scaleX <= 0.0f || scaleY <= 0.0f) {
         TLOGNFI(WmsLogTag::DMS, "scale is invalid");
         return;
     }
