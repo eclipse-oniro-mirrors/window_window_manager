@@ -42,7 +42,7 @@ struct WindowMaskWithAlphaParseParams {
 
 class AniWindow {
 public:
-    explicit AniWindow(const sptr<Window>& window, ani_env* env);
+    explicit AniWindow(const sptr<Window>& window, ani_vm* vm);
     explicit AniWindow(const std::shared_ptr<OHOS::Rosen::Window>& window);
     ~AniWindow();
     sptr<Window> GetWindow() { return windowToken_; }
@@ -396,7 +396,7 @@ private:
 
     sptr<Window> windowToken_ = nullptr;
     std::unique_ptr<AniWindowRegisterManager> registerManager_ = nullptr;
-    ani_env* env_;
+    ani_vm* vm_ = nullptr;
     ani_ref aniRef_ = nullptr;
     ani_object aniTransControllerObj_ = nullptr;
 };
