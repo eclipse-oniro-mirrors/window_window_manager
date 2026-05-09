@@ -4607,24 +4607,12 @@ WMError WindowSceneSessionImpl::ExecuteRecover(uint32_t reason, const SnapshotAn
 {
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
-    uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
-    TLOGI(WmsLogTag::WMS_LAYOUT, "ExecuteRecover: windowModeSupportType=%{public}u, reason=%{public}u, id=%{public}d",
-        windowModeSupportType, reason, GetPersistentId());
-    
-    bool isSubWindow = WindowHelper::IsSubWindow(GetType());
-    bool supportFloating = WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
-    bool supportFullscreen = WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN);
-    bool onlySupportFloating = isSubWindow && supportFloating && !supportFullscreen;
-    
-    TLOGI(WmsLogTag::WMS_LAYOUT, 
-        "ExecuteRecover: supportFloating=%{public}d, supportFullscreen=%{public}d, onlySupportFloating=%{public}d",
-        supportFloating, supportFullscreen, onlySupportFloating);
-    
-    bool isMainWindow = WindowHelper::IsMainWindow(GetType());
+    bool onlySupportFloating = WindowHelper::IsSubWindow(GetType()) &&
+        WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING) &&
+        !WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FULLSCREEN);
     bool isSubWindowMaxSupported = IsSubWindowMaximizeSupported();
-    TLOGI(WmsLogTag::WMS_LAYOUT,
-        "ExecuteRecover: isMainWindow=%{public}d, IsSubWindowMaximizeSupported=%{public}d",
-        isMainWindow, isSubWindowMaxSupported);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "ExecuteRecover: onlySupportFloating=%{public}d, isSubWindowMaxSupported=%{public}d",
+        onlySupportFloating, isSubWindowMaxSupported);
     
     if (!onlySupportFloating && !WindowHelper::IsMainWindow(GetType()) && !IsSubWindowMaximizeSupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "recovery is invalid on sub window");
@@ -4765,13 +4753,10 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
         return WMError::WM_ERROR_INVALID_CALLING;
     }
 
-    if (isSubWindow) {
-        if (std::find(supportedWindowModes.begin(), supportedWindowModes.end(),
-            AppExecFwk::SupportWindowMode::SPLIT) != supportedWindowModes.end()) {
-            TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Sub window does not support split mode");
-            return WMError::WM_ERROR_ILLEGAL_PARAM;
-        }
-        return SetSupportedWindowModesInner(supportedWindowModes);
+    if (isSubWindow && std::find(supportedWindowModes.begin(), supportedWindowModes.end(),
+        AppExecFwk::SupportWindowMode::SPLIT) != supportedWindowModes.end()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Sub window does not support split mode");
+        return WMError::WM_ERROR_ILLEGAL_PARAM;
     }
 
     if (grayOutMaximizeButton) {
