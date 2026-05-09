@@ -16288,8 +16288,10 @@ WMError SceneSessionManager::GetAllWindowLayoutInfo(DisplayId displayId,
             windowLayoutInfo->rect = globalScaledRect;
             if (auto surfaceNode = session->GetSurfaceNode()) {
                 windowLayoutInfo->windowAlpha = surfaceNode->GetAlphaValue();
-                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f", funcName,
-                    session->GetWindowId(), session->GetWindowName().c_str(), windowLayoutInfo->windowAlpha);
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE,
+                    "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f, nodeId=%{public}" PRIu64,
+                    funcName, session->GetWindowId(), session->GetWindowName().c_str(),
+                    windowLayoutInfo->windowAlpha, surfaceNode->GetId());
             }
             infos.emplace_back(windowLayoutInfo);
         }
