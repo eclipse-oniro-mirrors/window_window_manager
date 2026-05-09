@@ -174,6 +174,10 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleTransRSEvent(data, reply);
     };
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_SET_DISPLAY_NODE_RS_SCREEN_ID] =
+ 	         [this](MessageParcel& data, MessageParcel& reply) {
+ 	         return HandleOnSetDisplayNodeRSScreenId(data, reply);
+ 	};
 }
 
 ScreenSessionManagerClientStub::ScreenSessionManagerClientStub()
@@ -691,6 +695,15 @@ int ScreenSessionManagerClientStub::HandleTransRSEvent(MessageParcel& data, Mess
     if (eventData) {
         OnTransRSEvent(eventData);
     }
+    return ERR_NONE;
+}
+
+int ScreenSessionManagerClientStub::HandleOnSetDisplayNodeRSScreenId(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::DMS, "enter");
+    auto screenId = static_cast<ScreenId>(data.ReadUint64());
+    auto rsScreenId = static_cast<ScreenId>(data.ReadUint64());
+    SetDisplayNodeRSScreenId(screenId, rsScreenId);
     return ERR_NONE;
 }
 

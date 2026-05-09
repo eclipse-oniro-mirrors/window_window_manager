@@ -275,6 +275,16 @@ ScreenId RSInterfaces::GetActiveScreenId()
     return 0;
 }
 
+ScreenId RSInterfaces::GetMainScreenId()
+{
+    return 0;
+}
+
+int32_t RSInterfaces::SetAsMainScreen(ScreenId id, bool isMainScreen)
+{
+    return 0;
+}
+
 int32_t RSInterfaces::RegisterExposedEventCallback(
     const RSExposedEventType type, const RSExposedEventCallback& callback)
 {

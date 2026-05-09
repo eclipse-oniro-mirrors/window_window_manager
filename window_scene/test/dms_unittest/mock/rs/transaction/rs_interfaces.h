@@ -146,6 +146,8 @@ public:
     int32_t RemoveVirtualScreenWhiteList(ScreenId id, const std::vector<NodeId>& whiteList);
     int32_t SetLogicalCameraRotationCorrection(ScreenId id, ScreenRotation screenRotation);
     ScreenId GetActiveScreenId();
+    int32_t SetAsMainScreen(ScreenId id, bool isMainScreen);
+    ScreenId GetMainScreenId();
     int32_t RegisterExposedEventCallback(const RSExposedEventType type, const RSExposedEventCallback& callback);
     int32_t UnRegisterExposedEventCallback(const RSExposedEventType type);
 };

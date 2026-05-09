@@ -71,6 +71,7 @@ public:
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override {};
     sptr<IRemoteObject> AsObject() override {return testPtr;};
     void OnTentModeChange(TentMode tentMode) override {};
+    void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override {};
     void OnTransRSEvent(const sptr<RSEventDataBase>& param) override {};
     sptr<IRemoteObject> testPtr;
 };

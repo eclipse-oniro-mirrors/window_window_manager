@@ -1994,6 +1994,12 @@ void ScreenSession::SetScreenCombination(ScreenCombination combination)
         static_cast<int32_t>(combination));
     std::lock_guard<std::mutex> lock(combinationMutex_);
     combination_ = combination;
+    if (combination_ == ScreenCombination::SCREEN_MAIN) {
+        auto ret = RSInterfaces::GetInstance().SetAsMainScreen(GetRSScreenId(), true);
+        if (ret != StatusCode::SUCCESS) {
+            TLOGE(WmsLogTag::DMS, "SetAsMainScreen fail! rsId %{public}" PRIu64"", rsId_);
+        }
+ 	}
 }
 
 ScreenCombination ScreenSession::GetScreenCombination() const
