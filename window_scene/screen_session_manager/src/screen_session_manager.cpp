@@ -7624,6 +7624,11 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
             screenIdManager_.DeleteScreenId(smsScreenId);
             return SCREEN_ID_INVALID;
         }
+        if (option.width_ != 0 && option.height_ != 0) {
+            auto scaleX = static_cast<float>(option.renderWidth_) / option.width_;
+            auto scaleY = static_cast<float>(option.renderHeight_) / option.height_;
+            SetScreenSessionScale(screenSession, scaleX, scaleY);
+        }
         screenSession->SetName(option.name_);
         screenSession->SetVirtualScreenType(option.virtualScreenType_);
         screenSession->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
@@ -7652,6 +7657,28 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
     SetOptionConfig(smsScreenId, option);
     ReportCreateVirtualScreen(smsScreenId);
     return smsScreenId;
+}
+
+void ScreenSessionManager::SetScreenSessionScale(const sptr<ScreenSession>& screenSession,
+    float scaleX, float scaleY)
+{
+    if (scaleX <= 0.0f || scaleY <= 0.0f) {
+        TLOGNFI(WmsLogTag::DMS, "scale is invalid");
+        return;
+    }
+    auto screenProperty = screenSession->GetScreenProperty();
+    screenProperty.SetCastScaleX(scaleX);
+    screenProperty.SetCastScaleY(scaleY);
+    screenProperty.SetNeedCastScale(true);
+    screenSession->SetScreenProperty(screenProperty);
+    TLOGNFI(WmsLogTag::DMS, "screenId:%{public}" PRIu64", scaleX:%{public}f, scaleY:%{public}f",
+        screenSession->GetScreenId(), scaleX, scaleY);
+    auto displayNode = screenSession->GetDisplayNode();
+    if (displayNode != nullptr) {
+        displayNode->SetPivot(0.0f, 0.0f);
+        displayNode->SetScale(scaleX, scaleY);
+        RSTransactionAdapter::FlushImplicitTransaction(screenSession->GetRSUIContext());
+    }
 }
 
 ScreenId ScreenSessionManager::GetAssociatedScreenId()
@@ -8040,6 +8067,11 @@ DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t wi
     if (rsRet != RSERROR_SUCCESS) {
         TLOGNFE(WmsLogTag::DMS, "RS side failed in resizing virtual screen, rsRet: %{public}d", rsRet);
         return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
+    }
+    if (width != 0 && height != 0) {
+        auto scaleX = static_cast<float>(renderWidth) / width;
+        auto scaleY = static_cast<float>(renderHeight) / height;
+        SetScreenSessionScale(screenSession, scaleX, scaleY);
     }
     screenSession->Resize(width, height);
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
