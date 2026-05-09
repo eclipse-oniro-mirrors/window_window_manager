@@ -5544,6 +5544,24 @@ int32_t SceneSession::GetParentPersistentId() const
     return INVALID_SESSION_ID;
 }
 
+/** @note @window.layout */
+WSRect SceneSession::GetParentSessionRectSync()
+{
+    return PostSyncTask([weakThis = wptr(this), where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s session is null", where);
+            return WSRect { 0, 0, 0, 0 };
+        }
+        auto parentSession = session->GetParentSession();
+        if (!parentSession) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s parent is null", where);
+            return WSRect { 0, 0, 0, 0 };
+        }
+        return parentSession->GetSessionRect();
+    }, "GetParentSessionRect");
+}
+
 int32_t SceneSession::GetMainSessionId()
 {
     const auto& mainSession = GetMainSession();

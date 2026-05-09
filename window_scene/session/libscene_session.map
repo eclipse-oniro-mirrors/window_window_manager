@@ -117,6 +117,7 @@
             OHOS::Rosen::SceneSession::AddNormalModalUIExtension*;
             OHOS::Rosen::SceneSession::ClearSpecificSessionCbMap*;
             OHOS::Rosen::SceneSession::GetCombinedExtWindowFlags*;
+            OHOS::Rosen::SceneSession::GetParentSessionRectSync*;
             OHOS::Rosen::SceneSession::NotifyPipWindowSizeChange*;
             OHOS::Rosen::SceneSession::RegisterAnimateToCallback*;
             OHOS::Rosen::SceneSession::RegisterNeedAvoidCallback*;
