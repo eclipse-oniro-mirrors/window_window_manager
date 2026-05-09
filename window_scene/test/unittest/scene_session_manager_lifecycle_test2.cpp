@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 #include <regex>
 #include <atomic>
-#include <mutex>
 #include <bundle_mgr_interface.h>
 #include <bundlemgr/launcher_service.h>
 #include "iremote_object_mocker.h"
@@ -55,9 +54,7 @@ class LifecycleListenerForAppInstanceTest : public SessionLifecycleListenerStub 
 public:
     void OnBatchLifecycleEvent(const std::vector<LifecycleEventPayload>& payloads) override
     {
-        std::lock_guard<std::mutex> lock(payloadMutex_);
         callbackCount_.fetch_add(1);
-        payloadSize_.store(static_cast<int32_t>(payloads.size()));
         payloads_ = payloads;
     }
 
@@ -66,21 +63,13 @@ public:
         return callbackCount_.load();
     }
 
-    int32_t GetPayloadSize() const
-    {
-        return payloadSize_.load();
-    }
-
     std::vector<LifecycleEventPayload> GetPayloads() const
     {
-        std::lock_guard<std::mutex> lock(payloadMutex_);
         return payloads_;
     }
 
 private:
-    mutable std::mutex payloadMutex_;
     std::atomic<int32_t> callbackCount_ = 0;
-    std::atomic<int32_t> payloadSize_ = 0;
     std::vector<LifecycleEventPayload> payloads_;
 };
 
@@ -602,7 +591,7 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, RegisterSessionLifecycleListenerByAp
 
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_GE(listener->GetCallbackCount(), 1);
-    EXPECT_GE(listener->GetPayloadSize(), 0);
+    EXPECT_GE(static_cast<int32_t>(listener->GetPayloads().size()), 0);
 }
 
 HWTEST_F(SceneSessionManagerLifecycleTest2, RegisterSessionLifecycleListenerByAppInstance_FilterByKey, TestSize.Level1)
