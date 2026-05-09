@@ -591,7 +591,6 @@ HWTEST_F(SceneSessionManagerLifecycleTest2, RegisterSessionLifecycleListenerByAp
 
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_GE(listener->GetCallbackCount(), 1);
-    EXPECT_GE(static_cast<int32_t>(listener->GetPayloads().size()), 0);
 }
 
 HWTEST_F(SceneSessionManagerLifecycleTest2, RegisterSessionLifecycleListenerByAppInstance_FilterByKey, TestSize.Level1)
