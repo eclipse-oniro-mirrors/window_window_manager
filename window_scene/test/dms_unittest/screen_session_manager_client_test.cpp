@@ -2988,6 +2988,7 @@ HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChangeWithoutListene
     screenSessionManagerClient_->screenClosedStateListener_ = nullptr;
     ScreenClosedState state = ScreenClosedState::CLOSE;
     screenSessionManagerClient_->OnScreenClosedStateChange(state);
+    EXPECT_EQ(screenSessionManagerClient_->screenClosedState_, state);
 }
 } // namespace Rosen
 } // namespace OHOS

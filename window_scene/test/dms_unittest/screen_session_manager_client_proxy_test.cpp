@@ -991,7 +991,7 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenClosedStateChange01, TestS
     auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(nullptr);
     ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
     proxy->OnScreenClosedStateChange(screenClosedState);
-    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
     logMsg.clear();
 
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();

@@ -73,8 +73,8 @@ private:
     std::chrono::steady_clock::time_point startTimePoint_ = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point endTimePoint_ = std::chrono::steady_clock::now();
     std::mutex phyFoldStatusMutex_;
-    FoldStatus phyFoldStatus_;
-    FoldStatus lastFoldStatus_;
+    FoldStatus phyFoldStatus_ = FoldStatus::UNKNOWN;
+    FoldStatus lastFoldStatus_ = FoldStatus::UNKNOWN;
     std::atomic<bool> isLockDisplayMode_ = false;
 };
 }

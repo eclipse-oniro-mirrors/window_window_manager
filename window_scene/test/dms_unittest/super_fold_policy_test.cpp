@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "screen_session_manager/include/fold_screen_controller/super_fold_policy.h"
 #include "../mock/mock_accesstoken_kit.h"
@@ -126,6 +127,7 @@ HWTEST_F(SuperFoldPolicyTest, RecoverDisplayMode02, TestSize.Level1)
     SuperFoldPolicy::GetInstance().screenClosedState_.store(ScreenClosedState::OPEN);
     SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
     SuperFoldPolicy::GetInstance().RecoverDisplayMode();
+    EXPECT_FALSE(g_logMsg.find("recover displayMode") != std::string::npos);
     g_logMsg.clear();
 }
 
@@ -134,6 +136,7 @@ HWTEST_F(SuperFoldPolicyTest, RecoverDisplayMode03, TestSize.Level1)
     LOG_SetCallback(MyLogCallback);
     SuperFoldPolicy::GetInstance().screenClosedState_.store(ScreenClosedState::UNKNOWN);
     SuperFoldPolicy::GetInstance().RecoverDisplayMode();
+    EXPECT_FALSE(g_logMsg.find("recover displayMode") != std::string::npos);
     g_logMsg.clear();
 }
 
@@ -359,6 +362,7 @@ HWTEST_F(SuperFoldPolicyTest, SwitchScreenAndSetScreenPower01, TestSize.Level1)
     bool isScreenOn = true;
     SuperFoldPolicy::GetInstance().SetCurrentScreenId(SCREEN_ID_FULL);
     SuperFoldPolicy::GetInstance().SwitchScreenAndSetScreenPower(screenId, isScreenOn);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().GetCurrentScreenId(), screenId);
     usleep(SLEEP_TIME_IN_US);
 }
 
@@ -368,6 +372,7 @@ HWTEST_F(SuperFoldPolicyTest, SwitchScreenAndSetScreenPower02, TestSize.Level1)
     bool isScreenOn = true;
     SuperFoldPolicy::GetInstance().SetCurrentScreenId(SCREEN_ID_MAIN);
     SuperFoldPolicy::GetInstance().SwitchScreenAndSetScreenPower(screenId, isScreenOn);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().GetCurrentScreenId(), screenId);
     usleep(SLEEP_TIME_IN_US);
 }
 
@@ -376,6 +381,7 @@ HWTEST_F(SuperFoldPolicyTest, SwitchScreenAndSetScreenPower03, TestSize.Level1)
     ScreenId screenId = SCREEN_ID_MAIN;
     bool isScreenOn = false;
     SuperFoldPolicy::GetInstance().SwitchScreenAndSetScreenPower(screenId, isScreenOn);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().GetCurrentScreenId(), screenId);
 }
 
 HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayMode01, TestSize.Level1)
