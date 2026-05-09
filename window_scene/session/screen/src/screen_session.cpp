@@ -1999,7 +1999,7 @@ void ScreenSession::SetScreenCombination(ScreenCombination combination)
         if (ret != StatusCode::SUCCESS) {
             TLOGE(WmsLogTag::DMS, "SetAsMainScreen fail! rsId %{public}" PRIu64"", rsId_);
         }
- 	}
+    }
 }
 
 ScreenCombination ScreenSession::GetScreenCombination() const
