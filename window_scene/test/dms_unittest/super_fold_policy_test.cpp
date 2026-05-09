@@ -291,7 +291,8 @@ HWTEST_F(SuperFoldPolicyTest, CheckDisplayMode03, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
     SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(true);
-    FoldDisplayMode mode = FoldDisplayMode::FULL;
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    FoldDisplayMode mode = FoldDisplayMode::MAIN;
     bool ret = SuperFoldPolicy::GetInstance().CheckDisplayMode(mode);
     EXPECT_FALSE(ret);
     EXPECT_TRUE(g_logMsg.find("displayMode is locked") != std::string::npos);
@@ -496,7 +497,7 @@ HWTEST_F(SuperFoldPolicyTest, ReportFoldDisplayModeChange01, TestSize.Level1)
     LOG_SetCallback(MyLogCallback);
     FoldDisplayMode mode = FoldDisplayMode::FULL;
     SuperFoldPolicy::GetInstance().ReportFoldDisplayModeChange(mode);
-    EXPECT_TRUE(g_logMsg.find("displayMode: 0") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("displayMode: 1") != std::string::npos);
     g_logMsg.clear();
 }
 
@@ -505,7 +506,7 @@ HWTEST_F(SuperFoldPolicyTest, ReportFoldDisplayModeChange02, TestSize.Level1)
     LOG_SetCallback(MyLogCallback);
     FoldDisplayMode mode = FoldDisplayMode::MAIN;
     SuperFoldPolicy::GetInstance().ReportFoldDisplayModeChange(mode);
-    EXPECT_TRUE(g_logMsg.find("displayMode: 1") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("displayMode: 2") != std::string::npos);
     g_logMsg.clear();
 }
 
