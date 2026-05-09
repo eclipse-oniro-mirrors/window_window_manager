@@ -177,7 +177,7 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_SET_DISPLAY_NODE_RS_SCREEN_ID] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnSetDisplayNodeRSScreenId(data, reply);
- 	};
+    };
 }
 
 ScreenSessionManagerClientStub::ScreenSessionManagerClientStub()
