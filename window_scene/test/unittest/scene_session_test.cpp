@@ -2419,6 +2419,138 @@ HWTEST_F(SceneSessionTest, ApplySessionEventParam05, TestSize.Level1)
     EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.duration, 400);
     EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.delay, 60);
 }
+
+/**
+ * @tc.name: SetDragDisabledAreas01
+ * @tc.desc: Set drag disable areas with valid property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas01";
+    info.bundleName_ = "SetDragDisabledAreas01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    areas.push_back({ 200, 200, 50, 50 });
+
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_EQ(result[0].posX_, 0);
+    EXPECT_EQ(result[0].posY_, 0);
+    EXPECT_EQ(result[0].width_, 100);
+    EXPECT_EQ(result[0].height_, 100);
+    EXPECT_EQ(result[1].posX_, 200);
+    EXPECT_EQ(result[1].posY_, 200);
+    EXPECT_EQ(result[1].width_, 50);
+    EXPECT_EQ(result[1].height_, 50);
+}
+
+/**
+ * @tc.name: SetDragDisabledAreas02
+ * @tc.desc: Set drag disable areas with empty vector
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas02";
+    info.bundleName_ = "SetDragDisabledAreas02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: SetDragDisabledAreas03
+ * @tc.desc: Set drag disable areas with null property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas03";
+    info.bundleName_ = "SetDragDisabledAreas03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->property_ = nullptr;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: GetDragDisabledAreas01
+ * @tc.desc: Get drag disable areas with null property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetDragDisabledAreas01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetDragDisabledAreas01";
+    info.bundleName_ = "GetDragDisabledAreas01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->property_ = nullptr;
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: GetDragDisabledAreas02
+ * @tc.desc: Get drag disable areas after setting multiple areas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetDragDisabledAreas02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetDragDisabledAreas02";
+    info.bundleName_ = "GetDragDisabledAreas02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 10, 10, 200, 150 });
+    areas.push_back({ 300, 400, 80, 60 });
+    areas.push_back({ 500, 500, 1, 1 });
+
+    sceneSession->SetDragDisabledAreas(areas);
+    auto result = sceneSession->GetDragDisabledAreas();
+
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0], areas[0]);
+    EXPECT_EQ(result[1], areas[1]);
+    EXPECT_EQ(result[2], areas[2]);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

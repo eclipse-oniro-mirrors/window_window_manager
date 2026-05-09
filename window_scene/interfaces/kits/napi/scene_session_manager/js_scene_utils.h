@@ -206,6 +206,8 @@ bool ConvertRotateAnimationConfigFromJs(napi_env env, napi_value value, RotateAn
 bool ConvertDragResizeTypeFromJs(napi_env env, napi_value value, DragResizeType& dragResizeType);
 bool ConvertAvoidAreaFromJsValue(napi_env env, napi_value jsObject, AvoidArea& avoidArea);
 bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect);
+bool ConvertDragDisabledAreasFromJsValue(napi_env env, napi_value nativeArray,
+    std::vector<Rect>& dragDisabledAreas);
 bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInfo& rotationChangeInfo);
 bool ConvertThrowSlipModeFromJs(napi_env env, napi_value value, ThrowSlipMode& throwSlipMode);
 bool convertAnimConfigFromJs(napi_env env, napi_value value, SceneAnimationConfig& config);

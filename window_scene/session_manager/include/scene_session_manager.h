@@ -377,6 +377,7 @@ public:
     bool IsScreenLocked() const;
     void ConfigSupportZLevel();
     WSError SendAxisEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    WSError RedispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 
     /*
      * Float view
