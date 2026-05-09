@@ -661,7 +661,8 @@ public:
 
     void SetOnBootAnimation(const bool onBootAnimation);
     bool IsOnBootAnimation() const;
-
+    sptr<ScreenSession> GetOrCreatePhysicalScreenSession(ScreenId screenId,
+        sptr<IRemoteObject> connectToRenderToken = nullptr);
 protected:
     ScreenSessionManager();
     virtual ~ScreenSessionManager() = default;
@@ -694,8 +695,6 @@ protected:
     std::mutex hasPrivateWindowForegroundMutex_;
     sptr<ScreenSession> GetOrCreateScreenSession(ScreenId screenId, sptr<IRemoteObject> connectToRenderToken = nullptr);
     void AdaptSuperHorizonalBoot(sptr<ScreenSession> screenSession, ScreenId screenId);
-    sptr<ScreenSession> GetOrCreatePhysicalScreenSession(ScreenId screenId,
-        sptr<IRemoteObject> connectToRenderToken = nullptr);
     void DestroyExtendVirtualScreen();
     void HandleScreenDisconnectEvent(sptr<ScreenSession> screenSession, ScreenId screenId, ScreenEvent screenEvent);
     void HandleScreenConnectEvent(sptr<ScreenSession> screenSession, ScreenId screenId, ScreenEvent screenEvent);
@@ -1242,6 +1241,7 @@ private:
     void SetResolutionEffectFromSettingData();
     void RegisterSettingOsSwitchStatusObserver();
     void HandleOsSwitchStatusChange();
+    void HandleOsSwitchResolutionStatusChange(const std::string& status);
     void HandleResolutionEffectAfterSwitchUser();
     void SetInternalScreenResolutionEffect(const sptr<ScreenSession>& internalSession, DMRect& toRect);
     void SetExternalScreenResolutionEffect(const sptr<ScreenSession>& externalSession, DMRect& toRect);

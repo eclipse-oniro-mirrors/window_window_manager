@@ -258,9 +258,9 @@ void MultiScreenChangeUtils::ScreenPropertyChange(sptr<ScreenSession>& innerScre
     }
     /* change property from physical session */
     sptr<ScreenSession> innerPhyScreen =
-        ScreenSessionManager::GetInstance().GetPhysicalScreenSession(innerScreen->GetRSScreenId());
+        ScreenSessionManager::GetInstance().GetOrCreatePhysicalScreenSession(innerScreen->GetRSScreenId());
     sptr<ScreenSession> externalPhyScreen =
-        ScreenSessionManager::GetInstance().GetPhysicalScreenSession(externalScreen->GetRSScreenId());
+        ScreenSessionManager::GetInstance().GetOrCreatePhysicalScreenSession(externalScreen->GetRSScreenId());
 
     if (innerPhyScreen == nullptr || externalPhyScreen == nullptr) {
         TLOGE(WmsLogTag::DMS, "physicalScreen is null!");
