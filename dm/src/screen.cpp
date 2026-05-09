@@ -308,4 +308,9 @@ sptr<ScreenInfo> Screen::GetScreenInfo() const
     UpdateScreenInfo();
     return pImpl_->GetScreenInfo();
 }
+
+DMError Screen::GetScreenCapability(ScreenCapability& capability) const
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().GetScreenCapability(GetId(), capability);
+}
 } // namespace OHOS::Rosen

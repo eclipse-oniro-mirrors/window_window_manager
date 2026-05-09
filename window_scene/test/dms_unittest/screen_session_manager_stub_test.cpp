@@ -3905,6 +3905,129 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetOrientationWithOptions,
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, 0);
 }
+
+/**
+ * @tc.name: OnRemoteRequestSetOrientationWithOptions
+ * @tc.desc: TRANS_ID_SET_ORIENTATION_WITH_OPTIONS normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetOrientationWithOptions, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    ScreenId screenId = 0;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_GetScreenCapability01
+ * @tc.desc: TRANS_ID_GET_SCREEN_CAPABILITY normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1001;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+    DMError ret = static_cast<DMError>(reply.ReadInt32());
+    EXPECT_EQ(ret, DMError::DM_OK);
+    uint32_t phyWidth = reply.ReadUint32();
+    uint32_t phyHeight = reply.ReadUint32();
+    uint32_t interfaceType = reply.ReadUint32();
+    uint8_t colorBitDepth = reply.ReadUint8();
+    EXPECT_EQ(phyHeight, 0);
+    EXPECT_EQ(interfaceType, static_cast<uint32_t>(ScreenInterfaceType::DISP_INVALID));
+    EXPECT_EQ(colorBitDepth, 0);
+}
+
+
+/**
+ * @tc.name: OnRemoteRequest_GetScreenCapability02
+ * @tc.desc: TRANS_ID_GET_SCREEN_CAPABILITY write ret failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(1001);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+    EXPECT_TRUE(g_logMsg.find("Write ret failed.") != std::string::npos);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_GetScreenCapability03
+ * @tc.desc: TRANS_ID_GET_SCREEN_CAPABILITY write capability colorBitDepth failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    data.WriteUint64(1001);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+    MockMessageParcel::SetWriteUint8ErrorFlag(true);
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+    EXPECT_TRUE(g_logMsg.find("Write screenCapability failed.") != std::string::npos);
+    MockMessageParcel::SetWriteUint8ErrorFlag(false);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_GetScreenCapability04
+ * @tc.desc: TRANS_ID_GET_SCREEN_CAPABILITY return DM_ERROR_INVALID_PARAM
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability04, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = SCREEN_ID_INVALID;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+    DMError ret = static_cast<DMError>(reply.ReadInt32());
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

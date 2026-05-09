@@ -478,6 +478,18 @@ HWTEST_F(ScreenTest, SetScreenOrientationWithOptions, TestSize.Level1)
     auto res = screen_->SetScreenOrientation(orientation, options);
     ASSERT_NE(DMError::DM_OK, res);
 }
+
+/**
+ * @tc.name: GetScreenCapability
+ * @tc.desc: test GetScreenCapability
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenTest, GetScreenCapability, TestSize.Level1)
+{
+    ScreenCapability capability;
+    auto res = screen_->GetScreenCapability(capability);
+    ASSERT_NE(DMError::DM_OK, res);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

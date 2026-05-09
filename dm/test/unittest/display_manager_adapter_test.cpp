@@ -1387,5 +1387,41 @@ HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions03, TestSize.Level1
         SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
     EXPECT_EQ(err, DMError::DM_OK);
 }
+
+/**
+ * @tc.name: GetScreenCapability01
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetScreenCapability01, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    ScreenCapability capability;
+
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().GetScreenCapability(screenId, capability);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: GetScreenCapability02
+ * @tc.desc: test GetScreenCapability success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetScreenCapability02, TestSize.Level1)
+{
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        return;
+    }
+    ScreenId screenId = 0;
+    ScreenCapability capability;
+
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().GetScreenCapability(screenId, capability);
+    EXPECT_EQ(err, DMError::DM_OK);
+}
 } // namespace
 } // namespace OHOS::Rosen

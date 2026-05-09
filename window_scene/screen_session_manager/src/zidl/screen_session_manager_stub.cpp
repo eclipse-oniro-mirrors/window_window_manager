@@ -1708,6 +1708,24 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            ScreenCapability capability;
+            DMError ret = GetScreenCapability(screenId, capability);
+            if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+                TLOGE(WmsLogTag::DMS, "Write ret failed.");
+                break;
+            }
+            if (ret != DMError::DM_OK) {
+                TLOGE(WmsLogTag::DMS, "Ret %{public}d", static_cast<int32_t>(ret));
+                break;
+            }
+            if (!reply.WriteUint32(capability.phyWidth_) || !reply.WriteUint32(capability.phyHeight_) ||
+                !reply.WriteUint32(capability.interfaceType_) || !reply.WriteUint8(capability.colorBitDepth_)) {
+                TLOGE(WmsLogTag::DMS, "Write screenCapability failed.");
+            }
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);

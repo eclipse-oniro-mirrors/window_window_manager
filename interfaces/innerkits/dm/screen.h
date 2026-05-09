@@ -62,6 +62,13 @@ struct VirtualScreenOption {
     VirtualScreenCaller caller_ {VirtualScreenCaller::UNKNOWN};
 };
 
+struct ScreenCapability {
+    uint32_t phyWidth_ { 0 };
+    uint32_t phyHeight_ { 0 };
+    ScreenInterfaceType interfaceType_ {ScreenInterfaceType::DISP_INVALID};
+    uint8_t colorBitDepth_ {0};
+};
+
 class Screen : public RefBase {
 friend class ScreenManager;
 public:
@@ -353,6 +360,14 @@ public:
      * @return DM_OK means set success, others means set failed.
      */
     DMError SetScreenColorSpace(GraphicCM_ColorSpaceType colorSpace);
+
+    /**
+     * @brief Get the screen capability of the screen.
+     *
+     * @param capability Screen capability of the screen.
+     * @return DM_OK means get success, others means get failed.
+     */
+    DMError GetScreenCapability(ScreenCapability& capability) const;
 
 protected:
     // No more methods or variables can be defined here.
