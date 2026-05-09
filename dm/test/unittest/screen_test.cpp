@@ -478,6 +478,21 @@ HWTEST_F(ScreenTest, SetScreenOrientationWithOptions, TestSize.Level1)
     auto res = screen_->SetScreenOrientation(orientation, options);
     ASSERT_NE(DMError::DM_OK, res);
 }
+
+/**
+ * @tc.name: SetOrientationWithOptions
+ * @tc.desc: SetOrientation with OrientationOptions
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenTest, SetOrientationWithOptions, TestSize.Level1)
+{
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    Orientation orientation = Orientation::VERTICAL;
+    auto res = screen_->SetOrientation(orientation, options);
+    ASSERT_NE(DMError::DM_OK, res);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

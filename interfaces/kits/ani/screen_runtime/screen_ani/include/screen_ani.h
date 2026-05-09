@@ -14,13 +14,13 @@
  */
 #ifndef OHOS_ANI_SCREEN_H
 #define OHOS_ANI_SCREEN_H
- 
+
 #include "ani.h"
 #include "screen.h"
- 
+
 namespace OHOS {
 namespace Rosen {
- 
+
 class ScreenAni {
 public:
     explicit ScreenAni(const sptr<Screen>& screen);
@@ -33,8 +33,15 @@ public:
     void OnSetScreenActiveMode(ani_env* env, ani_object obj, ani_long modeIndex);
     static void SetOrientation(ani_env* env, ani_object obj, ani_enum_item orientationAni);
     void OnSetOrientation(ani_env* env, ani_object obj, ani_enum_item orientationAni);
+    static void SetOrientationWithOptions(ani_env* env, ani_object obj, ani_enum_item orientationAni,
+        ani_object optionsAni);
+    void OnSetOrientationWithOptions(ani_env* env, ani_object obj, ani_enum_item orientationAni,
+        ani_object optionsAni);
  
 private:
+    static ScreenAni* GetScreenAni(ani_env* env, ani_object obj);
+    static bool ParseOrientation(ani_env* env, ani_enum_item orientationAni, Orientation& outOrientation);
+    static void ParseOrientationOptions(ani_env* env, ani_object optionsAni, OrientationOptions& options);
     sptr<Screen> screen_ = nullptr;
 };
 }
