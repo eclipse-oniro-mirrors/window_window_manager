@@ -538,7 +538,7 @@ public:
         const WSRect& portraitRect, const WSRect& landspaceRect, DisplayId displayId);
     WSError NotifyFloatNavigationInfo(DisplayId displayId, bool visible,
         const WSRect& portraitRect, const WSRect& landspaceRect);
-    WSError GetFloatNavagationInfo(DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo);
+    WSError GetFloatNavigationInfo(DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo);
     WSError GetNextAvoidRectInfo(DisplayId displayId, AvoidAreaType type,
         std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo);
     WSRect GetAINavigationBarArea(uint64_t displayId, bool ignoreVisibility = false);

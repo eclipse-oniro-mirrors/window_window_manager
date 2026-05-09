@@ -23,7 +23,9 @@
 #include "mock_window_adapter.h"
 #include "mock_window_scene_session_impl.h"
 #include "scene_board_judgement.h"
+#include "singleton_mocker.h"
 #include "session/host/include/scene_session.h"
+#include "window_impl.h"
 #include "window_scene_session_impl.h"
 #include "window_session_impl.h"
 
@@ -32,6 +34,7 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
+using Mocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
 
 class WindowSceneSessionImplImmersiveTest : public testing::Test {
 public:
@@ -515,6 +518,36 @@ HWTEST_F(WindowSceneSessionImplImmersiveTest, UpdateAvoidArea_1, TestSize.Level1
     EXPECT_EQ(window->UpdateAvoidArea(new AvoidArea(avoidArea), AvoidAreaType::TYPE_FLOAT_NAVIGATION), WSError::WS_OK);
     window->floatNavigationAvoidAreaEnabled_ = true;
     EXPECT_EQ(window->UpdateAvoidArea(new AvoidArea(avoidArea), AvoidAreaType::TYPE_FLOAT_NAVIGATION), WSError::WS_OK);
+}
+
+/*
+ * @tc.name: GetWindowStateSnapshot
+ * @tc.desc: GetWindowStateSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplImmersiveTest, GetWindowStateSnapshot, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetWindowStateSnapshot");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowImpl> window = sptr<WindowImpl>::MakeSptr(option);
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+
+    window->property_ = sptr<WindowProperty>::MakeSptr();
+    window->property_->SetWindowId(1);
+
+    // Test when WindowAdapter returns error
+    EXPECT_CALL(m->Mock(), GetWindowStateSnapshot(_, _))
+        .WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
+    std::string winStateSnapshotJsonStr;
+    auto errCode = window->GetWindowStateSnapshot(winStateSnapshotJsonStr);
+    EXPECT_EQ(errCode, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+
+    // Test when WindowAdapter returns success
+    EXPECT_CALL(m->Mock(), GetWindowStateSnapshot(_, _))
+        .WillOnce(Return(WMError::WM_OK));
+    errCode = window->GetWindowStateSnapshot(winStateSnapshotJsonStr);
+    EXPECT_EQ(errCode, WMError::WM_OK);
 }
 } // namespace
 } // namespace Rosen

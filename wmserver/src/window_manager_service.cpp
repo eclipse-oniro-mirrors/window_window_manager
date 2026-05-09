@@ -1108,6 +1108,32 @@ AvoidArea WindowManagerService::GetAvoidAreaByType(uint32_t windowId, AvoidAreaT
     return PostSyncTask(task, "GetAvoidAreaByType");
 }
 
+WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
+{
+    auto task = [this, persistentId, &winStateSnapshotJsonStr]() {
+        if (winStateSnapshotJsonStr.empty()) {
+            winStateSnapshotJsonStr = "{}";
+        }
+        nlohmann::json winStateSnapshotJson = nlohmann::json::parse(winStateSnapshotJsonStr, nullptr, false);
+        if (winStateSnapshotJson.is_discarded()) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "parse json error: winId=%{public}d, winStateSnapshot=%{public}s",
+                persistentId, winStateSnapshotJsonStr.c_str());
+            return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+        }
+        std::string systemUiVisible(4, '0');
+        auto IsSystemUiVisible = [this](WindowType type) {
+            auto systemUiNode = this->windowRoot_->GetWindowNodeByWindowType(type);
+            return systemUiNode && systemUiNode->currentVisibility_ ? '1' : '0';
+        };
+        systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR);
+        systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
+        winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
+        winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+        return WMError::WM_OK;
+    };
+    return PostSyncTask(task, "GetWindowStateSnapshot");
+}
+
 WMError WindowManagerService::RegisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent)
 {

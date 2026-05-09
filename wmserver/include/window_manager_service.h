@@ -101,6 +101,7 @@ public:
     WMError RequestFocus(uint32_t windowId) override;
     AvoidArea GetAvoidAreaByType(uint32_t windowId, AvoidAreaType avoidAreaType,
         const Rect& rect = Rect::EMPTY_RECT) override;
+    WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
     void NotifyServerReadyToMoveOrDrag(uint32_t windowId, sptr<WindowProperty>& windowProperty,
         sptr<MoveDragProperty>& moveDragProperty) override;
     void ProcessPointDown(uint32_t windowId, bool isPointDown) override;

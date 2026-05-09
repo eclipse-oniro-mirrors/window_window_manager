@@ -2324,9 +2324,9 @@ sptr<SceneSession::SpecificSessionCallback> SceneSessionManager::CreateSpecificS
         DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
         return this->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
     };
-    specificCb->onGetFloatNavagationInfo_ = [this](
+    specificCb->onGetFloatNavigationInfo_ = [this](
         DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo) {
-        return this->GetFloatNavagationInfo(displayId, floatNavagationInfo);
+        return this->GetFloatNavigationInfo(displayId, floatNavagationInfo);
     };
     specificCb->onGetLSState_ = [this]() {
         return this->GetLSState();
@@ -14307,7 +14307,7 @@ WSError SceneSessionManager::NotifyFloatNavigationInfo(DisplayId displayId, bool
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::GetFloatNavagationInfo(
+WSError SceneSessionManager::GetFloatNavigationInfo(
     DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)
 {
     std::lock_guard<std::mutex> lock(floatNavagationInfoMapMutex_);
@@ -14426,6 +14426,24 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     winStateSnapshotJson["showInLandscapeMode"] = appWindowSceneConfig_.systemUIStatusBarConfig_.showInLandscapeMode_;
+    auto session = GetSceneSession(persistentId);
+    if (session) {
+        auto IsSystemUiVisible = [this](WindowType type, DisplayId displayId) {
+            auto systemUiVector = this->GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
+            for (auto& systemUi : systemUiVector) {
+                return systemUi->IsVisible() ? '1' : '0';
+            }
+            return '0';
+        };
+        std::string systemUiVisible(4, '0');
+        auto displayId = session->GetSessionProperty()->GetDisplayId();
+        systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
+        systemUiVisible[2] = IsSystemUiVisible(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION, displayId);
+        systemUiVisible[1] = systemUiVisible[2] == '1' ? '0' :
+            (GetAINavigationBarArea(displayId, false) != WSRect::EMPTY_RECT ? '1' : '0');
+        systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR, displayId);
+        winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
+    }
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
         persistentId, winStateSnapshotJsonStr.c_str());

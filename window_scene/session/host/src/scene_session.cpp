@@ -3315,7 +3315,7 @@ void SceneSession::GetAINavigationBarArea(WSRect& rect, AvoidArea& avoidArea, bo
     }
     CalculateAvoidAreaByType(AvoidAreaType::TYPE_NAVIGATION_INDICATOR, rect, barArea, avoidArea);
     PatchAINavigationBarArea(avoidArea);
-	bool diffY = (rect.posY_ - avoidArea.bottomRect_.posY_ - avoidArea.bottomRect_.height_) == 1;
+    bool diffY = (rect.posY_ - avoidArea.bottomRect_.posY_ - static_cast<int32_t>(avoidArea.bottomRect_.height_)) == 1;
  	avoidArea.bottomRect_.height_ = diffY ? avoidArea.bottomRect_.height_ + 1 : avoidArea.bottomRect_.height_;
 }
 
@@ -3361,8 +3361,8 @@ void SceneSession::GetFloatNavigationAvoidArea(WSRect& rect, AvoidArea& avoidAre
     bool visible = false;
     WSRect floatNavigationArea;
     std::tuple<bool, WSRect, WSRect> floatNavagationInfo;
-    if (specificCallback_ != nullptr && specificCallback_->onGetFloatNavagationInfo_ &&
-        specificCallback_->onGetFloatNavagationInfo_(
+    if (specificCallback_ != nullptr && specificCallback_->onGetFloatNavigationInfo_ &&
+        specificCallback_->onGetFloatNavigationInfo_(
             GetSessionProperty()->GetDisplayId(), floatNavagationInfo) == WSError::WS_OK) {
         auto [visibleFromTuple, portraitRect, landspaceRect] = floatNavagationInfo;
         visible = visibleFromTuple;
