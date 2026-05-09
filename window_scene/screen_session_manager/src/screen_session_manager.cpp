@@ -13583,7 +13583,7 @@ DMError ScreenSessionManager::GetSuperFoldCapability(std::string& capabilitInfo)
 {
     nlohmann::ordered_json jsonDisplayCapabilityList;
     jsonDisplayCapabilityList["capability"] = nlohmann::json::array();
-    if () {
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
         nlohmann::ordered_json expandCapabilityInfo = GetCapabilityJson(FoldStatus::EXPAND, FoldDisplayMode::FULL,
             ROTATION_DEFAULT, ORIENTATION_DEFAULT);
         jsonDisplayCapabilityList["capability"].push_back(std::move(expandCapabilityInfo));
