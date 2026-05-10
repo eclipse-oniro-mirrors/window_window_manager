@@ -19784,7 +19784,7 @@ void SceneSessionManager::SetResTypeFloatingBall(nlohmann::json payload)
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_BALL;
     int64_t hasForegroundFloatingBall = CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FB) ? 1 : 0;
     ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, hasForegroundFloatingBall, payload);
-    TLOGI(WmsLogTag::WMS_LIFE, "set RES_TYPE_FLOATING_BALL success, value is %{public}ld", hasForegroundFloatingBall);
+    TLOGI(WmsLogTag::WMS_LIFE, "set RES_TYPE_FLOATING_BALL success, value is %{public}lld", hasForegroundFloatingBall);
 }
 
 void SceneSessionManager::SetResTypeFloatingWindowV1(nlohmann::json payload)
@@ -19792,7 +19792,7 @@ void SceneSessionManager::SetResTypeFloatingWindowV1(nlohmann::json payload)
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_WINDOW_V1;
     int64_t hasForegroundFloatingWindowV1 = CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FLOAT) ? 1 : 0;
     ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, hasForegroundFloatingWindowV1, payload);
-    TLOGI(WmsLogTag::WMS_LIFE, "set RES_TYPE_FLOATING_WINDOW_V1 success, value is %{public}ld",
+    TLOGI(WmsLogTag::WMS_LIFE, "set RES_TYPE_FLOATING_WINDOW_V1 success, value is %{public}lld",
         hasForegroundFloatingWindowV1);
 }
 
