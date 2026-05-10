@@ -154,8 +154,8 @@ WSError SystemSession::Hide()
             sessionProperty->GetAnimationFlag() == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
             session->NotifyIsCustomAnimationPlaying(true);
             if (session->reportWindowRssFunc_) {
- 	            session->reportWindowRssFunc_(false, type, session);
- 	        }
+                session->reportWindowRssFunc_(false, type, session);
+            }
             return WSError::WS_OK;
         }
         session->UpdateCameraWindowStatus(false);
