@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
- /**
+/**
  * @addtogroup OH_PictureInPicture
  *
  * @brief Declares C APIs for picture in picture window
