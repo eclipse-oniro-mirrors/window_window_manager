@@ -166,7 +166,7 @@ using NotifyAnimateToFunc = std::function<void(const WindowAnimationProperty& an
 using GetAllAppUseControlMapFunc =
     std::function<std::unordered_map<std::string, std::unordered_map<ControlAppType, ControlInfo>>&()>;
 using GetFbPanelWindowIdFunc =  std::function<WMError(uint32_t& windowId)>;
- using ReportWindowRssFunc =  std::function<void(const bool isForeground,
+using ReportWindowRssFunc =  std::function<void(const bool isForeground,
  	                                             const WindowType& type,
  	                                             const sptr<SceneSession>& session)>;
 using FindScenePanelRsNodeByZOrderFunc = std::function<std::shared_ptr<Rosen::RSNode>(DisplayId displayId,

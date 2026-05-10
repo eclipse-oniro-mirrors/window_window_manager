@@ -116,7 +116,7 @@ WSError SystemSession::Show(sptr<WindowSessionProperty> property)
         auto ret = session->SceneSession::Foreground(property);
         if (session->reportWindowRssFunc_) {
             session->reportWindowRssFunc_(true, type, session);
- 	    }
+        }
         return ret;
     }, "Show");
     return WSError::WS_OK;
@@ -162,8 +162,8 @@ WSError SystemSession::Hide()
         session->UpdatePiPWindowStateChanged(false);
         ret = session->SceneSession::Background();
         if (session->reportWindowRssFunc_) {
- 	        session->reportWindowRssFunc_(false, type, session);
- 	    }
+            session->reportWindowRssFunc_(false, type, session);
+        }
         return ret;
     }, "Hide");
     return WSError::WS_OK;
@@ -172,7 +172,7 @@ WSError SystemSession::Hide()
 WSError SystemSession::Disconnect(bool isFromClient, const std::string& identityToken)
 {
     auto type = GetWindowType();
- 	    PostTask([weakThis = wptr(this), isFromClient, type]() {
+        PostTask([weakThis = wptr(this), isFromClient, type]() {
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_LIFE, "session is null");
@@ -183,8 +183,8 @@ WSError SystemSession::Disconnect(bool isFromClient, const std::string& identity
         session->UpdateCameraWindowStatus(false);
         session->UpdatePiPWindowStateChanged(false);
         if (session->reportWindowRssFunc_) {
- 	        session->reportWindowRssFunc_(false, type, session);
- 	    }
+            session->reportWindowRssFunc_(false, type, session);
+        }
         return WSError::WS_OK;
     }, "Disconnect");
     return WSError::WS_OK;
@@ -791,7 +791,7 @@ void SystemSession::RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& call
 
  void SystemSession::RegisterReportWindowRssFunc(ReportWindowRssFunc&& callback)
 {
- 	reportWindowRssFunc_ = std::move(callback);
+    reportWindowRssFunc_ = std::move(callback);
 }
 
 void SystemSession::SetFvTemplateInfo(const FloatViewTemplateInfo& fvTemplateInfo)
