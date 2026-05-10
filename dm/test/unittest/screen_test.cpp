@@ -480,14 +480,32 @@ HWTEST_F(ScreenTest, SetScreenOrientationWithOptions, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetScreenCapability
- * @tc.desc: test GetScreenCapability
+ * @tc.name: SetOrientationWithOptions
+ * @tc.desc: SetOrientation with OrientationOptions
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenTest, GetScreenCapability, TestSize.Level1)
+HWTEST_F(ScreenTest, SetOrientationWithOptions, TestSize.Level1)
 {
-    ScreenCapability capability;
-    auto res = screen_->GetScreenCapability(capability);
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    Orientation orientation = Orientation::VERTICAL;
+    auto res = screen_->SetOrientation(orientation, options);
+    ASSERT_NE(DMError::DM_OK, res);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions
+ * @tc.desc: SetOrientation with OrientationOptions
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenTest, SetOrientationWithOptions, TestSize.Level1)
+{
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    Orientation orientation = Orientation::VERTICAL;
+    auto res = screen_->SetOrientation(orientation, options);
     ASSERT_NE(DMError::DM_OK, res);
 }
 } // namespace

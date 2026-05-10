@@ -123,6 +123,13 @@ DMError Screen::SetOrientation(Orientation orientation) const
     return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, false);
 }
 
+DMError Screen::SetOrientation(Orientation orientation, const OrientationOptions& options) const
+{
+    TLOGI(WmsLogTag::DMS, "Orientation %{public}u, needAnimation %{public}d, ignoreRotationLock %{public}d",
+        orientation, options.needAnimation, options.ignoreRotationLock);
+    return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, options, false);
+}
+
 DMError Screen::SetScreenOrientation(Orientation orientation) const
 {
     TLOGD(WmsLogTag::DMS, "Orientation %{public}u", orientation);
