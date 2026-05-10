@@ -3186,7 +3186,7 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetOrientationWithOptions09, TestSize.Le
  */
 HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability01, TestSize.Level1)
 {
-    g_logMsg.clear();
+    logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     ScreenId screenId = 1001;
     ScreenCapability capability;
@@ -3194,8 +3194,7 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability01, TestSize.Level1)
     auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
     auto ret = proxy->GetScreenCapability(screenId, capability);
     EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
-    EXPECT_TRUE(g_logMsg.find("remote is nullptr") != std::string::npos);
-    g_logMsg.clear();
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 
@@ -3206,7 +3205,7 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability01, TestSize.Level1)
  */
 HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability02, TestSize.Level1)
 {
-    g_logMsg.clear();
+    logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     ScreenId screenId = 1001;
     ScreenCapability capability;
@@ -3217,9 +3216,8 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability02, TestSize.Level1)
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     auto ret = proxy->GetScreenCapability(screenId, capability);
     EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED);
-    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
-    g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
 
@@ -3230,7 +3228,7 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability02, TestSize.Level1)
  */
 HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability03, TestSize.Level1)
 {
-    g_logMsg.clear();
+    logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     ScreenId screenId = 1001;
     ScreenCapability capability;
@@ -3241,9 +3239,8 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability03, TestSize.Level1)
     MockMessageParcel::SetWriteUint64ErrorFlag(true);
     auto ret = proxy->GetScreenCapability(screenId, capability);
     EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
-    EXPECT_TRUE(g_logMsg.find("WriteUint64 screenId failed") != std::string::npos);
+    EXPECT_TRUE(logMsg.find("WriteUint64 screenId failed") != std::string::npos);
     MockMessageParcel::SetWriteUint64ErrorFlag(false);
-    g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
 
@@ -3254,7 +3251,7 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability03, TestSize.Level1)
  */
 HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability04, TestSize.Level1)
 {
-    g_logMsg.clear();
+    logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     ScreenId screenId = 1001;
     ScreenCapability capability;
@@ -3265,41 +3262,17 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability04, TestSize.Level1)
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
     auto ret = proxy->GetScreenCapability(screenId, capability);
     EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
-    EXPECT_TRUE(g_logMsg.find("SendRequest failed") != std::string::npos);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
     remoteMocker->SetRequestResult(ERR_NONE);
-    g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
 
 /**
  * @tc.name: GetScreenCapability05
- * @tc.desc: GetScreenCapability with reply ret != DM_OK
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability05, TestSize.Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-    ScreenId screenId = 1001;
-    ScreenCapability capability;
-
-    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
-    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
-    MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::SetReadInt32ErrorFlag(true);
-    auto ret = proxy->GetScreenCapability(screenId, capability);
-    EXPECT_NE(ret, DMError::DM_OK);
-    MockMessageParcel::SetReadInt32ErrorFlag(false);
-    g_logMsg.clear();
-    LOG_SetCallback(nullptr);
-}
-
-/**
- * @tc.name: GetScreenCapability06
  * @tc.desc: GetScreenCapability normal success
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability06, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability05, TestSize.Level1)
 {
     ScreenId screenId = 1001;
     ScreenCapability capability;
@@ -3317,4 +3290,3 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability06, TestSize.Level1)
 }
 } // namespace
 } // namespace OHOS::Rosen
-

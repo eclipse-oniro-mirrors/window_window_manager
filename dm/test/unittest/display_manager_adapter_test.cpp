@@ -1351,9 +1351,6 @@ HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions01, TestSize.Level1
  */
 HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions02, TestSize.Level1)
 {
-    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
-        return;
-    }
     ScreenId screenId = 0;
     Orientation orientation = Orientation::VERTICAL;
     OrientationOptions options;
@@ -1373,9 +1370,6 @@ HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions02, TestSize.Level1
  */
 HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions03, TestSize.Level1)
 {
-    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
-        return;
-    }
     ScreenId screenId = 0;
     Orientation orientation = Orientation::HORIZONTAL;
     OrientationOptions options;
@@ -1414,9 +1408,6 @@ HWTEST_F(DisplayManagerAdapterTest, GetScreenCapability01, TestSize.Level1)
  */
 HWTEST_F(DisplayManagerAdapterTest, GetScreenCapability02, TestSize.Level1)
 {
-    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
-        return;
-    }
     ScreenId screenId = 0;
     ScreenCapability capability;
 

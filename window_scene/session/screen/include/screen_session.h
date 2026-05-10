@@ -476,7 +476,7 @@ public:
     void CheckAndNotifyPropertyChange();
     void SetPropertyNeedNotified(const ScreenProperty& property);
     ScreenProperty GetPropertyNeedNotified();
-    DMError GetScreenCapability(ScreenCapability& capability); 
+    void GetScreenCapability(ScreenCapability& capability);
 private:
     bool IsVertical(Rotation rotation) const;
     Orientation CalcDisplayOrientationToOrientation(DisplayOrientation displayOrientation) const;

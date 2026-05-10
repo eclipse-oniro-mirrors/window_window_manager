@@ -5582,9 +5582,8 @@ HWTEST_F(ScreenSessionTest, GetScreenCapability, TestSize.Level1)
     ASSERT_NE(screenSession, nullptr);
     ScreenCapability capability;
     DMError ret = screenSession->GetScreenCapability(capability);
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        ASSERT_EQ(ret, DMError::DM_OK);
-    }
+    ASSERT_EQ(capability.phyWidth_, 0);
+    ASSERT_EQ(capability.phyHeight_, 0);
 }
 } // namespace
 } // namespace Rosen

@@ -16389,18 +16389,13 @@ DMError ScreenSessionManager::GetScreenCapability(ScreenId screenId, ScreenCapab
     } else {
         TLOGW(WmsLogTag::DMS, "GetEdid failed, bpc remains 0.");
     }
-    auto ret = screenSession->GetScreenCapability(capability);
-    if (ret == DMError::DM_OK) {
-        TLOGI(WmsLogTag::DMS, "GetScreenCapability success. screenId %{public}" PRIu64 ", "
-            "width %{public}u, height %{public}u, interfaceType %{public}u, colorBitDepth %{public}u",
-            screenId, capability.phyWidth_, capability.phyHeight_, 
-            static_cast<uint32_t>(capability.interfaceType_), capability.colorBitDepth_);
-    }
-    return ret;
-    
-#else
-    return DMError::DM_OK;
+    screenSession->GetScreenCapability(capability);
+    TLOGI(WmsLogTag::DMS, "GetScreenCapability success. screenId %{public}" PRIu64 ", "
+        "width %{public}u, height %{public}u, interfaceType %{public}u, colorBitDepth %{public}u",
+        screenId, capability.phyWidth_, capability.phyHeight_, 
+        static_cast<uint32_t>(capability.interfaceType_), capability.colorBitDepth_);
 #endif
+    return DMError::DM_OK;
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen
