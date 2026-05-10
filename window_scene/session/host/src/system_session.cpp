@@ -99,7 +99,7 @@ WSError SystemSession::Show(sptr<WindowSessionProperty> property)
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
     }
-    PostTask([weakThis = wptr(this), property]() {
+    PostTask([weakThis = wptr(this), property, type]() {
         auto session = weakThis.promote();
         if (!session) {
             WLOGFE("session is null");
@@ -114,6 +114,9 @@ WSError SystemSession::Show(sptr<WindowSessionProperty> property)
         session->UpdateCameraWindowStatus(true);
         session->UpdatePiPWindowStateChanged(true);
         auto ret = session->SceneSession::Foreground(property);
+        if (session->reportWindowRssFunc_) {
+            session->reportWindowRssFunc_(true, type, session);
+ 	    }
         return ret;
     }, "Show");
     return WSError::WS_OK;
@@ -133,7 +136,7 @@ WSError SystemSession::Hide()
             return WSError::WS_ERROR_INVALID_PERMISSION;
         }
     }
-    PostTask([weakThis = wptr(this)]() {
+    PostTask([weakThis = wptr(this), type]() {
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_LIFE, "session is null");
@@ -150,11 +153,17 @@ WSError SystemSession::Hide()
         if (sessionProperty &&
             sessionProperty->GetAnimationFlag() == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
             session->NotifyIsCustomAnimationPlaying(true);
+            if (session->reportWindowRssFunc_) {
+ 	            session->reportWindowRssFunc_(false, type, session);
+ 	        }
             return WSError::WS_OK;
         }
         session->UpdateCameraWindowStatus(false);
         session->UpdatePiPWindowStateChanged(false);
         ret = session->SceneSession::Background();
+        if (session->reportWindowRssFunc_) {
+ 	        session->reportWindowRssFunc_(false, type, session);
+ 	    }
         return ret;
     }, "Hide");
     return WSError::WS_OK;
@@ -162,7 +171,8 @@ WSError SystemSession::Hide()
 
 WSError SystemSession::Disconnect(bool isFromClient, const std::string& identityToken)
 {
-    PostTask([weakThis = wptr(this), isFromClient]() {
+    auto type = GetWindowType();
+ 	    PostTask([weakThis = wptr(this), isFromClient, type]() {
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_LIFE, "session is null");
@@ -172,6 +182,9 @@ WSError SystemSession::Disconnect(bool isFromClient, const std::string& identity
         session->SceneSession::Disconnect(isFromClient);
         session->UpdateCameraWindowStatus(false);
         session->UpdatePiPWindowStateChanged(false);
+        if (session->reportWindowRssFunc_) {
+ 	        session->reportWindowRssFunc_(false, type, session);
+ 	    }
         return WSError::WS_OK;
     }, "Disconnect");
     return WSError::WS_OK;
@@ -774,6 +787,11 @@ void SystemSession::RegisterGetIsRecentStateFunc(GetIsRecentStateFunc&& callback
 void SystemSession::RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& callback)
 {
     getFbPanelWindowIdFunc_ = std::move(callback);
+}
+
+ void SystemSession::RegisterReportWindowRssFunc(ReportWindowRssFunc&& callback)
+{
+ 	reportWindowRssFunc_ = std::move(callback);
 }
 
 void SystemSession::SetFvTemplateInfo(const FloatViewTemplateInfo& fvTemplateInfo)

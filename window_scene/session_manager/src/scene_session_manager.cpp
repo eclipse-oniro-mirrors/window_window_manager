@@ -3055,6 +3055,11 @@ sptr<SceneSession> SceneSessionManager::CreateSceneSession(const SessionInfo& se
         sceneSession->RegisterGetFbPanelWindowIdFunc([this](uint32_t& windowId) {
             return this->GetFbPanelWindowId(windowId);
         });
+        sceneSession->RegisterReportWindowRssFunc([this](const bool isForeground,
+ 	                                              const WindowType& type,
+ 	                                              const sptr<SceneSession>& session) {
+ 	        this->ReportWindowRss(isForeground, type, session);
+ 	    });
         sceneSession->SetFindScenePanelRsNodeByZOrderFunc([this](uint64_t screenId, uint32_t targetZOrder) {
             return this->findScenePanelRsNodeByZOrderFunc_(screenId, targetZOrder);
         });
@@ -19698,6 +19703,111 @@ WMError SceneSessionManager::GetFbPanelWindowId(uint32_t& windowId)
     }
     TLOGW(WmsLogTag::WMS_SYSTEM, "No Fb panel");
     return WMError::WM_ERROR_FB_INTERNAL_ERROR;
+}
+
+void SceneSessionManager::ReportWindowRss(const bool isForeground,
+                                          const WindowType& type,
+                                          const sptr<SceneSession>& session)
+{
+    TLOGW(WmsLogTag::WMS_LIFE, "in");
+    switch (type) {
+        case WindowType::WINDOW_TYPE_FLOAT: {
+            ReportRssFloatWindowV1(isForeground, session);
+            break;
+        }
+        case WindowType::WINDOW_TYPE_FB: {
+            ReportRssFB(isForeground, session);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void SceneSessionManager::ReportRssFloatWindowV1(const bool isForeground, sptr<SceneSession> session)
+{
+    uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_WINDOW_V1;
+    nlohmann::json payload = GetRssPayload();
+    TLOGI(WmsLogTag::WMS_LIFE, "Start to Report Rss FloatWindowV1, payload: %{public}s", payload.dump().c_str());
+    std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatWindowV1SetMutex_);
+    // report foreground
+    if (isForeground) {
+        foregroundSessionFloatWindowV1Set_.insert(session);
+        ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 1, payload);
+        TLOGI(WmsLogTag::WMS_LIFE, "report foreground successfully, window ResType is RES_TYPE_FLOATING_WINDOW_V1");
+        return;
+    }
+    // report background
+    foregroundSessionFloatWindowV1Set_.erase(session);
+    if (foregroundSessionFloatWindowV1Set_.empty()) {
+        ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 0, payload);
+        TLOGI(WmsLogTag::WMS_LIFE, "report background successfully, window ResType is RES_TYPE_FLOATING_WINDOW_V1");
+    }
+}
+
+void SceneSessionManager::ReportRssFB(const bool isForeground, sptr<SceneSession> session)
+{
+    uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_BALL;
+    nlohmann::json payload = GetRssPayload();
+    TLOGI(WmsLogTag::WMS_LIFE, "Start to Report Rss FloatingBall, payload: %{public}s", payload.dump().c_str());
+    std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatBallSetMutex_);
+    // report foreground
+    if (isForeground) {
+        foregroundSessionFloatBallSet_.insert(session);
+        ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 1, payload);
+        TLOGI(WmsLogTag::WMS_LIFE, "report foreground successfully, window ResType is RES_TYPE_FLOATING_BALL");
+        return;
+    }
+    // report background
+    foregroundSessionFloatBallSet_.erase(session);
+    if (foregroundSessionFloatBallSet_.empty()) {
+        ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 0, payload);
+        TLOGI(WmsLogTag::WMS_LIFE, "report background successfully, window ResType is RES_TYPE_FLOATING_BALL");
+    }
+}
+
+nlohmann::json SceneSessionManager::GetRssPayload()
+{
+    int32_t curUserId = GetUserIdByUid(getuid());
+    // get steady time, it will not change whe system time change.
+    std::chrono::microseconds microSecs = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch());
+    int64_t curtime = static_cast<int64_t>(microSecs.count());
+    nlohmann::json payload;
+    payload["time"] = std::to_string(curtime);
+    payload["uid"] = std::to_string(curUserId);
+    return payload;
+}
+
+void SceneSessionManager::SetResTypeFloatingBall(nlohmann::json payload)
+{
+    uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_BALL;
+    int64_t hasForegroundFloatingBall = CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FB) ? 1 : 0;
+    ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, hasForegroundFloatingBall, payload);
+    TLOGI(WmsLogTag::WMS_LIFE, "set RES_TYPE_FLOATING_BALL success, value is %{public}ld", hasForegroundFloatingBall);
+}
+
+void SceneSessionManager::SetResTypeFloatingWindowV1(nlohmann::json payload)
+{
+    uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_WINDOW_V1;
+    int64_t hasForegroundFloatingWindowV1 = CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FLOAT) ? 1 : 0;
+    ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, hasForegroundFloatingWindowV1, payload);
+    TLOGI(WmsLogTag::WMS_LIFE, "set RES_TYPE_FLOATING_WINDOW_V1 success, value is %{public}ld",
+        hasForegroundFloatingWindowV1);
+}
+
+bool SceneSessionManager::CheckHasForegroundSessionByType(const WindowType& windowType)
+{
+    std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+    for (const auto& iter : sceneSessionMap_) {
+        auto& session = iter.second;
+        if (session && 
+            session->GetWindowType() == windowType &&
+            session->IsSessionForeground()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void SceneSessionManager::SetStatusBarAvoidHeight(DisplayId displayId, int32_t height)

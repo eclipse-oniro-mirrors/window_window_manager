@@ -62,6 +62,7 @@
 #include "zidl/session_router_stack_listener.h"
 #include "zidl/pip_change_listener.h"
 #include "pip_controller.h"
+#include "nlohmann/json.hpp"
 
 namespace OHOS::AAFwk {
 class SessionInfo;
@@ -806,6 +807,13 @@ public:
     /*
      * Window Lifecycle
      */
+    void ReportWindowRss(const bool isForeground, const WindowType& type, const sptr<SceneSession>& session);
+    void ReportRssFloatWindowV1(const bool isForeground, sptr<SceneSession> session);
+    void ReportRssFB(const bool isForeground, sptr<SceneSession> session);
+    bool CheckHasForegroundSessionByType(const WindowType& windowType);
+    void SetResTypeFloatingBall(nlohmann::json payload);
+    void SetResTypeFloatingWindowV1(nlohmann::json payload);
+    nlohmann::json GetRssPayload();
     void GetMainSessionByBundleNameAndAppIndex(
         const std::string& bundleName, int32_t appIndex, std::vector<sptr<SceneSession>>& mainSessions);
     void GetSceneSessionsByAppInstance(const std::string& bundleName,
@@ -1981,6 +1989,10 @@ private:
     std::vector<std::string> kioskAppListCache_;
     bool isKioskMode_ = false;
     int32_t kioskAppPersistentId_ = INVALID_SESSION_ID;
+    std::set<sptr<SceneSession>> foregroundSessionFloatWindowV1Set_;
+    std::shared_mutex foregroundSessionFloatWindowV1SetMutex_;
+    std::set<sptr<SceneSession>> foregroundSessionFloatBallSet_;
+    std::shared_mutex foregroundSessionFloatBallSetMutex_;
 
     /*
      * Window Pattern

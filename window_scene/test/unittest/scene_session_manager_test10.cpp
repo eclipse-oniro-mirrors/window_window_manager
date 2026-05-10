@@ -437,6 +437,219 @@ HWTEST_F(SceneSessionManagerTest10, RegisterAcquireRotateAnimationConfigFunc, Te
 }
 
 /**
+ * @tc.name: GetRssPayload
+ * @tc.desc: Verify GetRssPayload contains time and uid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetRssPayload, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    auto payload = ssm_->GetRssPayload();
+    EXPECT_TRUE(payload.contains("time"));
+    EXPECT_TRUE(payload.contains("uid"));
+    EXPECT_FALSE(payload["time"].get<std::string>().empty());
+    EXPECT_FALSE(payload["uid"].get<std::string>().empty());
+}
+
+/**
+ * @tc.name: CheckHasForegroundSessionByType_FB
+ * @tc.desc: Verify CheckHasForegroundSessionByType for floating-ball windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, CheckHasForegroundSessionByType_FB, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    info.abilityName_ = "testFb";
+    info.bundleName_ = "testFb";
+    sptr<SceneSession> fbSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    fbSession->property_->SetPersistentId(1001);
+    fbSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    ssm_->sceneSessionMap_.insert({fbSession->GetPersistentId(), fbSession});
+
+    EXPECT_TRUE(ssm_->CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FB));
+
+    ssm_->sceneSessionMap_.clear();
+    EXPECT_FALSE(ssm_->CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FB));
+}
+
+/**
+ * @tc.name: ReportRssFB
+ * @tc.desc: Verify ReportRssFB inserts and erases sessions in foreground set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ReportRssFB, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatBallSet_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    info.abilityName_ = "fbReport";
+    info.bundleName_ = "fbReport";
+    sptr<SceneSession> fbSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    fbSession->property_->SetPersistentId(2001);
+    fbSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // report foreground
+    ssm_->ReportRssFB(true, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 1);
+
+    // report background with erase(session)
+    ssm_->ReportRssFB(false, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 0);
+
+    // report background without erase(session)
+    ssm_->ReportRssFB(false, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 0);
+}
+
+/**
+ * @tc.name: ReportRssFloatWindowV1
+ * @tc.desc: Verify ReportRssFloatWindowV1 inserts and erases sessions in foreground set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ReportRssFloatWindowV1, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatWindowV1Set_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    info.abilityName_ = "floatReport";
+    info.bundleName_ = "floatReport";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    floatSession->property_->SetPersistentId(3001);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // report foreground
+    ssm_->ReportRssFloatWindowV1(true, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 1);
+
+    // report background with erase(session)
+    ssm_->ReportRssFloatWindowV1(false, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 0);
+
+    // report background without erase(session)
+    ssm_->ReportRssFloatWindowV1(false, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 0);
+}
+
+/**
+ * @tc.name: ReportWindowRss_Dispatch
+ * @tc.desc: Verify ReportWindowRss dispatches to the correct reporter
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ReportWindowRss_Dispatch, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatWindowV1Set_.clear();
+    ssm_->foregroundSessionFloatBallSet_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    // float window
+    SessionInfo infoFloat;
+    infoFloat.abilityName_ = "floatDispatch";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(infoFloat, nullptr);
+    floatSession->property_->SetPersistentId(4001);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // fb window
+    SessionInfo infoFb;
+    infoFb.abilityName_ = "fbDispatch";
+    sptr<SceneSession> fbSession = sptr<SceneSession>::MakeSptr(infoFb, nullptr);
+    fbSession->property_->SetPersistentId(4002);
+    fbSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // default branch
+    SessionInfo infoDefault;
+    infoDefault.abilityName_ = "defaultDispatch";
+    sptr<SceneSession> defaultSession = sptr<SceneSession>::MakeSptr(infoDefault, nullptr);
+    defaultSession->property_->SetPersistentId(4003);
+    defaultSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    defaultSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // floatWindowV1 branch
+    ssm_->ReportWindowRss(true, WindowType::WINDOW_TYPE_FLOAT, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 1);
+
+    // floatingBall branch
+    ssm_->ReportWindowRss(true, WindowType::WINDOW_TYPE_FB, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 1);
+
+    // default branch
+    ssm_->ReportWindowRss(true, WindowType::APP_MAIN_WINDOW_BASE, defaultSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(defaultSession), 0);
+}
+
+/**
+ * @tc.name: SetResTypeFloatingBall
+ * @tc.desc: Call SetResTypeFloatingBall with a basic payload to ensure it runs
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, SetResTypeFloatingBall, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    nlohmann::json payload;
+    payload["testKey"] = "testValue";
+    // function should run without crashing; actual RSS call is guarded by compile flags / mock in environment
+    ssm_->SetResTypeFloatingBall(payload);
+    SUCCEED();
+}
+
+/**
+ * @tc.name: SetResTypeFloatingWindowV1_NoForeground
+ * @tc.desc: Call SetResTypeFloatingWindowV1 when no WINDOW_TYPE_FLOAT session is in foreground; value should be 0
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, SetResTypeFloatingWindowV1_NoForeground, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+    nlohmann::json payload;
+    payload["testKey"] = "testValue";
+    // No float window in sceneSessionMap_, so hasForeground == 0; should run without crashing
+    ssm_->SetResTypeFloatingWindowV1(payload);
+    SUCCEED();
+}
+
+/**
+ * @tc.name: SetResTypeFloatingWindowV1_WithForeground
+ * @tc.desc: Call SetResTypeFloatingWindowV1 when a WINDOW_TYPE_FLOAT session is in foreground; value should be 1
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, SetResTypeFloatingWindowV1_WithForeground, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info;
+    info.abilityName_ = "floatWindowV1";
+    info.bundleName_ = "floatWindowV1";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(floatSession, nullptr);
+    floatSession->property_->SetPersistentId(5001);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    ssm_->sceneSessionMap_.insert({floatSession->GetPersistentId(), floatSession});
+
+    nlohmann::json payload;
+    payload["testKey"] = "testValue";
+    // A foreground WINDOW_TYPE_FLOAT exists, so hasForeground == 1; should run without crashing
+    ssm_->SetResTypeFloatingWindowV1(payload);
+    EXPECT_TRUE(ssm_->CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FLOAT));
+
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
  * @tc.name: TestCheckLastFocusedAppSessionFocus_01
  * @tc.desc: Test CheckLastFocusedAppSessionFocus with GetPersistentId
  * @tc.type: FUNC
