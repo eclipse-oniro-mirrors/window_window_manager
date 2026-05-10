@@ -13,8 +13,17 @@
  * limitations under the License.
  */
 
-/**
+ /**
  * @addtogroup OH_PictureInPicture
+ *
+ * @brief Declares C APIs for picture in picture window
+ *
+ * @syscap SystemCapability.Window.SessionManager
+ * @since 20
+ * @version 1.0
+ */
+
+/**
  * @file oh_window_pip.h
  *
  * @brief Declares C APIs for picture in picture window
