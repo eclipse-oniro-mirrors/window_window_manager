@@ -1644,6 +1644,96 @@ HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions02, TestS
 
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: SetScreenSessionScale_ValidScale
+ * @tc.desc: Verify SetScreenSessionScale sets cast scale properties with valid scale values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_ValidScale, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleValid", screenId);
+    float scaleX = 1920.0f / 1080.0f;
+    float scaleY = 1080.0f / 720.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleZero
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is zero
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleZero, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleZero", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 0.0f, 1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleNegative
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is negative
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleNegative, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNeg", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 1.0f, -1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_WithDisplayNode
+ * @tc.desc: Verify SetScreenSessionScale applies scale on displayNode when it is not null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_WithDisplayNode, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNode", screenId);
+    // Create displayNode first so GetDisplayNode returns non-null
+    RSDisplayNodeConfig rsConfig;
+    rsConfig.screenId = screenId;
+    rsConfig.isMirrored = false;
+    screenSession->CreateDisplayNode(rsConfig);
+    ASSERT_NE(screenSession->GetDisplayNode(), nullptr);
+    float scaleX = 1.5f;
+    float scaleY = 2.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

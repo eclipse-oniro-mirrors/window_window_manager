@@ -96,6 +96,9 @@
             OHOS::Rosen::ScreenProperty::SetDisplayOrientation*;
             OHOS::Rosen::ScreenProperty::SetDeviceOrientation*;
             OHOS::Rosen::ScreenProperty::GetDeviceOrientation*;
+            OHOS::Rosen::ScreenProperty::SetCastScaleX*;
+            OHOS::Rosen::ScreenProperty::SetCastScaleY*;
+            OHOS::Rosen::ScreenProperty::SetNeedCastScale*;
             OHOS::Rosen::ScreenProperty::SetInternalStatus*;
             OHOS::Rosen::ScreenProperty::GetInternalStatus*;
             OHOS::Rosen::ScreenSession::AddHdrFormats*;

@@ -293,6 +293,7 @@ private:
     static napi_value NotifyOrientationExecutionResult(napi_env env, napi_callback_info info);
     static napi_value GetSceneNodeCount(napi_env env, napi_callback_info info);
     static napi_value NotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
+    static napi_value SetDragDisabledAreas(napi_env env, napi_callback_info info);
     /*
      * PC Window
      */
@@ -407,6 +408,7 @@ private:
     napi_value OnNotifyOrientationExecutionResult(napi_env env, napi_callback_info info);
     napi_value OnGetSceneNodeCount(napi_env env, napi_callback_info info);
     napi_value OnNotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
+    napi_value OnSetDragDisabledAreas(napi_env env, napi_callback_info info);
 
     /*
      * PC Window

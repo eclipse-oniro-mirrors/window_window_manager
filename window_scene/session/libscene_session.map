@@ -365,6 +365,8 @@
             OHOS::Rosen::SceneSession::RegisterRecoverWindowEffectCallback*;
             OHOS::Rosen::SceneSession::AddSessionBlackList*;
             OHOS::Rosen::SceneSession::RemoveSessionBlackList*;
+            OHOS::Rosen::SceneSession::GetDragDisabledAreas*;
+            OHOS::Rosen::SceneSession::SetDragDisabledAreas*;
             OHOS::Rosen::MoveDragController::SaveMoveResampleSystemConfig*;
             OHOS::Rosen::MoveDragController::SaveMovingEventThrottleSystemConfig*;
             OHOS::Rosen::SessionStub::OnRemoteRequest*;

@@ -1256,6 +1256,7 @@ private:
     void DoSetScreenPowerStatus(ScreenId rsScreenId, ScreenPowerStatus status);
     void ClearScreenPowerStatus(ScreenId rsScreenId);
     void InitScreenActiveModeRectMap();
+    void SetScreenSessionScale(const sptr<ScreenSession>& screenSession, float scaleX, float scaleY);
 
     std::map<ScreenId, ScreenPowerStatus> screenPowerStatusMap_;
     std::mutex screenPowerStatusMapMutex_;

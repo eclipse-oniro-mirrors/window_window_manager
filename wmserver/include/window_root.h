@@ -44,6 +44,7 @@ public:
     sptr<WindowNodeContainer> CreateWindowNodeContainer(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo);
     sptr<WindowNode> GetWindowNode(uint32_t windowId) const;
     sptr<WindowNode> GetWindowNodeByMissionId(uint32_t missionId) const;
+    sptr<WindowNode> GetWindowNodeByWindowType(WindowType type) const;
     void GetBackgroundNodesByScreenId(ScreenId screenGroupId, std::vector<sptr<WindowNode>>& windowNodes);
     void GetForegroundNodes(std::vector<sptr<WindowNode>>& windowNodes);
 

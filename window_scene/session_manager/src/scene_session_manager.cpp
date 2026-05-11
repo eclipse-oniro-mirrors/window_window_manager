@@ -2324,9 +2324,9 @@ sptr<SceneSession::SpecificSessionCallback> SceneSessionManager::CreateSpecificS
         DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
         return this->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
     };
-    specificCb->onGetFloatNavagationInfo_ = [this](
+    specificCb->onGetFloatNavigationInfo_ = [this](
         DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo) {
-        return this->GetFloatNavagationInfo(displayId, floatNavagationInfo);
+        return this->GetFloatNavigationInfo(displayId, floatNavagationInfo);
     };
     specificCb->onGetLSState_ = [this]() {
         return this->GetLSState();
@@ -9961,6 +9961,28 @@ WSError SceneSessionManager::SendAxisEvent(const std::shared_ptr<MMI::PointerEve
     return WSError::WS_OK;
 }
 
+WSError SceneSessionManager::RedispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (!pointerEvent) {
+        TLOGE(WmsLogTag::WMS_EVENT, "pointerEvent is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    MMI::PointerEvent::PointerItem pointerItem;
+    if (!pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to get pointerItem");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+#ifdef SECURITY_COMPONENT_MANAGER_ENABLE
+    FillSecCompEnhanceData(pointerEvent, pointerItem);
+#endif
+    TLOGI(WmsLogTag::WMS_EVENT, "eid=%{public}d,ac=%{public}d,deviceId=%{public}d,zIndex=%{public}f",
+        pointerEvent->GetPointerId(), pointerEvent->GetPointerAction(), pointerEvent->GetDeviceId(),
+        pointerEvent->GetZOrder());
+    pointerEvent->AddFlag(MMI::PointerEvent::EVENT_FLAG_REDISPATCH);
+    MMI::InputManager::GetInstance()->RedispatchInputEvent(pointerEvent);
+    return WSError::WS_OK;
+}
+
 WSError SceneSessionManager::SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits)
 {
     {
@@ -14307,7 +14329,7 @@ WSError SceneSessionManager::NotifyFloatNavigationInfo(DisplayId displayId, bool
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::GetFloatNavagationInfo(
+WSError SceneSessionManager::GetFloatNavigationInfo(
     DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)
 {
     std::lock_guard<std::mutex> lock(floatNavagationInfoMapMutex_);
@@ -14426,6 +14448,24 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     winStateSnapshotJson["showInLandscapeMode"] = appWindowSceneConfig_.systemUIStatusBarConfig_.showInLandscapeMode_;
+    auto session = GetSceneSession(persistentId);
+    if (session) {
+        auto IsSystemUiVisible = [this](WindowType type, DisplayId displayId) {
+            auto systemUiVector = this->GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
+            for (auto& systemUi : systemUiVector) {
+                return systemUi->IsVisible() ? '1' : '0';
+            }
+            return '0';
+        };
+        std::string systemUiVisible(4, '0');
+        auto displayId = session->GetSessionProperty()->GetDisplayId();
+        systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
+        systemUiVisible[2] = IsSystemUiVisible(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION, displayId);
+        systemUiVisible[1] = systemUiVisible[2] == '1' ? '0' :
+            (GetAINavigationBarArea(displayId, false) != WSRect::EMPTY_RECT ? '1' : '0');
+        systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR, displayId);
+        winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
+    }
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
         persistentId, winStateSnapshotJsonStr.c_str());

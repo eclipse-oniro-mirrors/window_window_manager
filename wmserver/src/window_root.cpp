@@ -171,6 +171,15 @@ sptr<WindowNode> WindowRoot::GetWindowNodeByMissionId(uint32_t missionId) const
     return it == windowNodeMap_.end() ? nullptr : it->second;
 }
 
+sptr<WindowNode> WindowRoot::GetWindowNodeByWindowType(WindowType type) const
+{
+    using ValueType = const std::map<uint32_t, sptr<WindowNode>>::value_type&;
+    auto iter = std::find_if(windowNodeMap_.begin(), windowNodeMap_.end(), [type] (ValueType item) {
+        return item.second && item.second->GetWindowType() == type;
+    });
+    return iter == windowNodeMap_.end() ? nullptr : iter->second;
+}
+
 void WindowRoot::GetBackgroundNodesByScreenId(ScreenId screenGroupId, std::vector<sptr<WindowNode>>& windowNodes)
 {
     for (const auto& it : windowNodeMap_) {
