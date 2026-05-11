@@ -8539,13 +8539,13 @@ bool SceneSession::GetSurfaceNodeAlpha(float& alpha)
     auto surfaceNode = GetSurfaceNode();
     if (surfaceNode == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surface node is null, win=[%{public}d, %{public}s]",
-            GetWindowId(), GetWindowName.c_str());
+            GetWindowId(), GetWindowName().c_str());
         return false;
     }
     auto rsUICtx = surfaceNode->GetRSUIContext();
     if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUICtx is null, win=[%{public}d, %{public}s]",
-            GetWindowId(), GetWindowName.c_str());
+            GetWindowId(), GetWindowName().c_str());
         return false;
     }
     alpha = rsUICtx->GetRSRenderInterface()->GetAlphaValue(surfaceNode->GetId());
