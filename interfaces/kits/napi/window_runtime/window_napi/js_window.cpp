@@ -11224,23 +11224,17 @@ napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info 
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != ARG_COUNT_ONE) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
+    if (argc != ARG_COUNT_ONE || GetType(env, argv[INDEX_ZERO]) != napi_object) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc or type is invalid");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][setSupportedWindowModes]msg: The number of parameters is invalid"));
-        return NapiGetUndefined(env);
-    }
-    if (GetType(env, argv[INDEX_ZERO]) != napi_object) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid parameter type");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][setSupportedWindowModes]msg: Failed to covert object"));
+            "[window][setSupportedWindowModes]msg: Invalid parameters"));
         return NapiGetUndefined(env);
     }
     std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
     if (!ConvertNativeValueToVector(env, argv[INDEX_ZERO], supportedWindowModes)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "ConvertNativeValueToVector failed");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][setSupportedWindowModes]msg: Failed to convert supportedWindowModes parameter"));
+            "[window][setSupportedWindowModes]msg: Failed to convert parameter"));
         return NapiGetUndefined(env);
     }
     napi_value result = nullptr;
@@ -11249,25 +11243,20 @@ napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info 
         grayOutMaximizeButton = false, env, task = napiAsyncTask] {
         auto window = weakWindow.promote();
         if (window == nullptr) {
-            TLOGNE(WmsLogTag::WMS_LAYOUT, "window is nullptr");
             task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR),
                 "The window is not created or destoryed."));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSupportedWindowModes(supportedWindowModes,
-            grayOutMaximizeButton));
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSupportedWindowModes(
+            supportedWindowModes, grayOutMaximizeButton));
         if (ret != WmErrorCode::WM_OK) {
-            TLOGNE(WmsLogTag::WMS_LAYOUT, "window [%{public}u, %{public}s] set support modes failed!",
-                window->GetWindowId(), window->GetWindowName().c_str());
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][setSupportedWindowModes]"));
         } else {
-            TLOGNI(WmsLogTag::WMS_LAYOUT, "window [%{public}u] set support modes succeed.", window->GetWindowId());
             task->Resolve(env, NapiGetUndefined(env));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetSupportedWindowModes") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env,
-            static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
             "[window][setSupportedWindowModes]msg: Failed to send event"));
     }
     return result;

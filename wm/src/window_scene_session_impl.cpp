@@ -4734,31 +4734,25 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-
     if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "This is PcAppInpad, not supported");
         return WMError::WM_OK;
     }
-
     if (!(windowSystemConfig_.IsPcWindow() || windowSystemConfig_.freeMultiWindowSupport_)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Neither is Pc nor support free multi window, invalid calling");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-
     bool isMainWindow = WindowHelper::IsMainWindow(GetType());
     bool isSubWindow = WindowHelper::IsSubWindow(GetType());
-
     if (!isMainWindow && !isSubWindow) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "This is not main window or sub window, not supported");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-
     if (isSubWindow && std::find(supportedWindowModes.begin(), supportedWindowModes.end(),
         AppExecFwk::SupportWindowMode::SPLIT) != supportedWindowModes.end()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Sub window does not support split mode");
         return WMError::WM_ERROR_ILLEGAL_PARAM;
     }
-
     if (grayOutMaximizeButton) {
         size_t size = supportedWindowModes.size();
         if (size == 0 || size > WINDOW_SUPPORT_MODE_MAX_SIZE) {
