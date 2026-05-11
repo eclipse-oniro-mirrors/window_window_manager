@@ -12070,8 +12070,7 @@ void ScreenSessionManager::SwitchModeHandleExternalScreen(bool isSwitchToPcMode)
 
 void ScreenSessionManager::HandlePhySessionWhenSwitchToPCMode()
 {
-    if (g_isPcDevice) {
-        TLOGNFE(WmsLogTag::DMS, "internal session is null.");
+    if (!g_isPcDevice) {
         return;
     }
     sptr<ScreenSession> internalSession = GetInternalScreenSession();
