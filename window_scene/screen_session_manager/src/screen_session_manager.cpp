@@ -12063,8 +12063,27 @@ void ScreenSessionManager::SwitchModeHandleExternalScreen(bool isSwitchToPcMode)
             ScreenPowerUtils::DisablePowerForceTimingOut();
         }
     }
+    HandlePhySessionWhenSwitchToPCMode();
     SwitchModeOffScreenRenderingAdapter(externalScreenIds);
     SetExtendScreenDpi();
+}
+
+void ScreenSessionManager::HandlePhySessionWhenSwitchToPCMode()
+{
+    if (g_isPcDevice) {
+        TLOGNFE(WmsLogTag::DMS, "internal session is null.");
+        return;
+    }
+    sptr<ScreenSession> internalSession = GetInternalScreenSession();
+    if (internalSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "internal session is null.");
+        return;
+    }
+    sptr<ScreenSession> internalPhySession = GetOrCreatePhysicalScreenSession(internalSession->GetRSScreenId());
+    if (internalPhySession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "internal phy session is null.");
+        return;
+    }
 }
 
 void ScreenSessionManager::SwitchModeOffScreenRenderingResetScreenProperty(const sptr<ScreenSession>& externalScreenSession,
