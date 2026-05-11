@@ -6723,6 +6723,14 @@ void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScree
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "only support fullscreen, enter immersive");
         Maximize(MaximizePresentation::ENTER_IMMERSIVE);
     }
+    bool onlySupportFloating =
+        !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
+        WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    if (onlySupportFloating && GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING) {
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "only support floating, switch to floating, id: %{public}d",
+            GetPersistentId());
+        Recover(REASON_MAXIMIZE_MODE_CHANGE);
+    }
 }
 
 void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable)
