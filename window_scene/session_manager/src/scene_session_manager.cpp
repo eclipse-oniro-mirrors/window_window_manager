@@ -7773,12 +7773,20 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
 
 WSError SceneSessionManager::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
-    return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
+    return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64 
+            ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
+        return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
+    }, __func__);
 }
 
 WSError SceneSessionManager::RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
-    return windowFocusController_->RemoveFocusGroup(displayGroupId, displayId);
+    return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64 
+            ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
+        return windowFocusController_->RemoveFocusGroup(displayGroupId, displayId);
+    }, __func__);
 }
 
 WSError SceneSessionManager::SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
