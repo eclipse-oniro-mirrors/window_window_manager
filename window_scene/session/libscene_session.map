@@ -312,6 +312,7 @@
             OHOS::Rosen::SceneSession::IsSystemKeyboard*;
             OHOS::Rosen::SceneSession::GetForceHideState*;
             OHOS::Rosen::SceneSession::GetPiPTemplateInfo*;
+            OHOS::Rosen::SceneSession::GetSurfaceNodeAlpha*;
             OHOS::Rosen::SceneSession::IsLayoutFullScreen*;
             OHOS::Rosen::SceneSession::IsViewKeepScreenOn*;
             OHOS::Rosen::SceneSession::GetAbilityColorMode*;
@@ -367,7 +368,6 @@
             OHOS::Rosen::SceneSession::RemoveSessionBlackList*;
             OHOS::Rosen::SceneSession::GetDragDisabledAreas*;
             OHOS::Rosen::SceneSession::SetDragDisabledAreas*;
-            OHOS::Rosen::SceneSession::GetSurfaceNodeAlpha*;
             OHOS::Rosen::MoveDragController::SaveMoveResampleSystemConfig*;
             OHOS::Rosen::MoveDragController::SaveMovingEventThrottleSystemConfig*;
             OHOS::Rosen::SessionStub::OnRemoteRequest*;
