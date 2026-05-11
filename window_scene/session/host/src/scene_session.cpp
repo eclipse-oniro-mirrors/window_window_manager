@@ -8534,6 +8534,26 @@ std::string SceneSession::GetAbilityColorMode() const
     return colorMode_;
 }
 
+bool SceneSession::GetSurfaceNodeAlpha(float& alpha)
+{
+    auto surfaceNode = GetSurfaceNode();
+    if (surfaceNode == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surface node is null, win=[%{public}d, %{public}s]",
+            GetWindowId(), GetWindowName.c_str());
+        return false;
+    }
+    auto rsUICtx = surfaceNode->GetRSUIContext();
+    if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUICtx is null, win=[%{public}d, %{public}s]",
+            GetWindowId(), GetWindowName.c_str());
+        return false;
+    }
+    alpha = rsUICtx->GetRSRenderInterface()->GetAlphaValue(surfaceNode->GetId());
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], alpha=%{public}f, nodeId=%{public}" PRIu64,
+        GetWindowId(), GetWindowName().c_str(), alpha, surfaceNode->GetId());
+    return true;
+}
+
 void SceneSession::OnSurfaceNodeChanged()
 {
     UpdateSurfaceDarkMode();

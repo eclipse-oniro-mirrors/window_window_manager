@@ -16326,17 +16326,7 @@ WMError SceneSessionManager::GetAllWindowLayoutInfo(DisplayId displayId,
             }
             auto windowLayoutInfo = sptr<WindowLayoutInfo>::MakeSptr();
             windowLayoutInfo->rect = globalScaledRect;
-            if (auto surfaceNode = session->GetSurfaceNode()) {
-                auto rsUICtx = surfaceNode->GetRSUIContext();
-                if (rsUICtx != nullptr && rsUICtx->GetRSRenderInterface() != nullptr) {
-                    windowLayoutInfo->windowAlpha = rsUICtx->GetRSRenderInterface()->GetAlphaValue(
-                        surfaceNode->GetId());
-                }
-                TLOGD(WmsLogTag::WMS_ATTRIBUTE,
-                    "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f, nodeId=%{public}" PRIu64,
-                    funcName, session->GetWindowId(), session->GetWindowName().c_str(),
-                    windowLayoutInfo->windowAlpha, surfaceNode->GetId());
-            }
+            session->GetSurfaceNodeAlpha(windowLayoutInfo->windowAlpha);
             infos.emplace_back(windowLayoutInfo);
         }
         return WMError::WM_OK;
