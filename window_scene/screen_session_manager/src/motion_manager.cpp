@@ -28,7 +28,8 @@ namespace Rosen {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
 std::map<MotionType, bool> MotionSubscriberWrapper::isMotionSubscribedMap_ = {
     {MotionType::DEVICE_MOTION_TYPE, false},
-    {MotionType::SMART_MOTION_TYPE, false}
+    {MotionType::SMART_MOTION_TYPE, false},
+    {MotionType::SMART_MOTION_ENHANCE_TYPE, false},
 };
 #endif
 
@@ -39,7 +40,7 @@ MotionManager& MotionManager::GetInstance()
 }
 
 MotionManager::MotionManager()
-{
+{9
     TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager created");
 }
 
@@ -120,7 +121,7 @@ void MotionManager::SubscribeMotionSensorInternal(MotionType motionType)
     OnMotionChangedPtr callback = nullptr;
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         callback = RotationMotionEventCallback;
-    } else if (motionType == MotionType::SMART_MOTION_TYPE) {
+    } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
         callback = SmartRotationMotionEventCallback;
     } else {
         TLOGE(WmsLogTag::WMS_ROTATION, "Unknown motion type: %{public}d", motionType);
@@ -150,7 +151,7 @@ void MotionManager::UnsubscribeMotionSensorInternal(MotionType motionType)
     OnMotionChangedPtr callback = nullptr;
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         callback = RotationMotionEventCallback;
-    } else if (motionType == MotionType::SMART_MOTION_TYPE) {
+    } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
         callback = SmartRotationMotionEventCallback;
     } else {
         TLOGE(WmsLogTag::WMS_ROTATION, "Unknown motion type: %{public}d", motionType);
@@ -285,7 +286,7 @@ void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         lastMotionRotation_ = rotation;
         HandleDeviceSensorRotation(rotation);
-    } else if (motionType == MotionType::SMART_MOTION_TYPE) {
+    } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
         lastSmartMotionRotation_ = rotation;
         HandleSmartSensorRotation(rotation);
     }
@@ -337,6 +338,15 @@ bool MotionManager::IsMotionSensorSubscribed(MotionType motionType) const
 {
     auto it = subscribedMotionTypes_.find(motionType);
     if (it != subscribedMotionTypes_.end()) {
+        return it->second;
+    }
+    return false;
+}
+
+bool MotionManager::NeedMotionSensorSubscribe(MotionType motionType) const
+{
+    auto it = needSubscribedMotionTypes_.find(motionType);
+    if (it != needSubscribedMotionTypes_.end()) {
         return it->second;
     }
     return false;

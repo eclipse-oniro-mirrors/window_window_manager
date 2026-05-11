@@ -697,10 +697,11 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnSmartSensorRotationChanged01, Te
 
     ScreenId screenId = 0;
     float sensorRotation = 90.0f;
+    bool isSwitchUser = false;
 
     MockMessageParcel::ClearAllErrorFlag();
     auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(nullptr);
-    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
     EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
     logMsg.clear();
 
@@ -709,32 +710,39 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnSmartSensorRotationChanged01, Te
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     ASSERT_NE(proxy, nullptr);
-    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
     EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
     logMsg.clear();
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteUint64ErrorFlag(true);
     ASSERT_NE(proxy, nullptr);
-    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
     EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
     logMsg.clear();
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteFloatErrorFlag(true);
     ASSERT_NE(proxy, nullptr);
-    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
     EXPECT_TRUE(logMsg.find("Write sensorRotation failed") != std::string::npos);
     logMsg.clear();
 
     MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
+    EXPECT_TRUE(logMsg.find("Write isSwitchUser failed") != std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
-    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
     EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
     logMsg.clear();
 
     remoteMocker->SetRequestResult(ERR_NONE);
-    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+    proxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
     EXPECT_FALSE(logMsg.find("SendRequest failed") != std::string::npos);
     logMsg.clear();
     LOG_SetCallback(nullptr);

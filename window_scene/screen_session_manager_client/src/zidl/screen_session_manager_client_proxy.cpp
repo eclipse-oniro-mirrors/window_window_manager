@@ -397,7 +397,8 @@ void ScreenSessionManagerClientProxy::OnSensorRotationChanged(ScreenId screenId,
     }
 }
 
-void ScreenSessionManagerClientProxy::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation)
+void ScreenSessionManagerClientProxy::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
+    bool isSwitchUser)
 {
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
@@ -418,6 +419,10 @@ void ScreenSessionManagerClientProxy::OnSmartSensorRotationChanged(ScreenId scre
     }
     if (!data.WriteFloat(sensorRotation)) {
         TLOGE(WmsLogTag::DMS, "Write sensorRotation failed");
+        return;
+    }
+    if (!data.WriteBool(isSwitchUser)) {
+        TLOGE(WmsLogTag::DMS, "Write isSwitchUser failed");
         return;
     }
     if (remote->SendRequest(

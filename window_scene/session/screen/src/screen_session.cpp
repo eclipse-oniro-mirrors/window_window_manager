@@ -1151,6 +1151,11 @@ void ScreenSession::SensorRotationChange(float sensorRotation)
     SensorRotationChange(sensorRotation, false);
 }
 
+void ScreenSession::SmartRotationChange(float sensorRotation)
+{
+    SmartRotationChange(sensorRotation, false);
+}
+
 void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser)
 {
     std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
@@ -1167,21 +1172,29 @@ void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser
     }
 }
 
-void ScreenSession::SmartSensorRotationChange(float sensorRotation)
+void ScreenSession::SmartSensorRotationChange(float sensorRotation, bool isSwitchUser)
 {
     std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
+    if (sensorRotation >= 0.0f) {
+        currentValidSmartRotation_ = sensorRotation;
+    }
     for (auto& listener : screenChangeListenerList_) {
         if (!listener) {
             TLOGE(WmsLogTag::DMS, "screenChangeListener is null.");
             continue;
         }
-        listener->OnSmartSensorRotationChange(sensorRotation, screenId_);
+        listener->OnSmartSensorRotationChange(sensorRotation, screenId_, isSwitchUser);
     }
 }
 
 float ScreenSession::GetValidSensorRotation()
 {
     return currentValidSensorRotation_.load();
+}
+
+float ScreenSession::GetValidSmartSensorRotation()
+{
+    return currentValidSmartRotation_.load();
 }
 
 void ScreenSession::HandleHoverStatusChange(int32_t hoverStatus, bool needRotate)

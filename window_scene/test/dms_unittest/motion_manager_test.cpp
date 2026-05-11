@@ -345,6 +345,30 @@ HWTEST_F(MotionManagerTest, IsMotionSensorSubscribed01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NeedMotionSensorSubscribe01
+ * @tc.desc: test function : NeedMotionSensorSubscribe
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, NeedMotionSensorSubscribe01, TestSize.Level1)
+{
+    bool needed = MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE);
+    ASSERT_FALSE(needed);
+}
+
+/**
+ * @tc.name: NeedMotionSensorSubscribe02
+ * @tc.desc: test function : NeedMotionSensorSubscribe after Subscribe
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, NeedMotionSensorSubscribe02, TestSize.Level1)
+{
+    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
+    bool needed = MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE);
+    ASSERT_TRUE(needed);
+    MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
+}
+
+/**
  * @tc.name: IsScreenOn01
  * @tc.desc: test function : IsScreenOn
  * @tc.type: FUNC

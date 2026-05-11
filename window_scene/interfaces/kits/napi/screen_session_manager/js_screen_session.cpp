@@ -718,7 +718,7 @@ void JsScreenSession::OnSensorRotationChange(float sensorRotation, ScreenId scre
     }
 }
 
-void JsScreenSession::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId)
+void JsScreenSession::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser)
 {
     const std::string callbackType = ON_SMART_SENSOR_ROTATION_CHANGE_CALLBACK;
     TLOGI(WmsLogTag::DMS, "Call js callback: %{public}s.", callbackType.c_str());
@@ -729,7 +729,7 @@ void JsScreenSession::OnSmartSensorRotationChange(float sensorRotation, ScreenId
 
     auto jsCallbackRef = GetJSCallback(callbackType);
     wptr<ScreenSession> screenSessionWeak(screenSession_);
-    auto asyncTask = [jsCallbackRef, callbackType, screenSessionWeak, sensorRotation, env = env_]() {
+    auto asyncTask = [jsCallbackRef, callbackType, screenSessionWeak, sensorRotation, isSwitchUser, env = env_]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "jsScreenSession::OnSmartSensorRotationChange");
         if (jsCallbackRef == nullptr) {
             TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, jsCallbackRef is null!", callbackType.c_str());
@@ -745,7 +745,7 @@ void JsScreenSession::OnSmartSensorRotationChange(float sensorRotation, ScreenId
             TLOGNE(WmsLogTag::DMS, "Call js callback %{public}s failed, screenSession is null!", callbackType.c_str());
             return;
         }
-        napi_value argv[] = { CreateJsValue(env, sensorRotation) };
+        napi_value argv[] = { CreateJsValue(env, sensorRotation), CreateJsValue(env, isSwitchUser)};
         napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
     };
 

@@ -399,7 +399,8 @@ int ScreenSessionManagerClientStub::HandleOnSmartSensorRotationChanged(MessagePa
     TLOGD(WmsLogTag::DMS, "enter");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto sensorRotation = data.ReadFloat();
-    OnSmartSensorRotationChanged(screenId, sensorRotation);
+    auto isSwitchUser = data.ReadBool();
+    OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
     return ERR_NONE;
 }
 

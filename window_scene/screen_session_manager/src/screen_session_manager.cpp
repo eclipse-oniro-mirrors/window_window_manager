@@ -11714,15 +11714,16 @@ void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId
     clientProxy->OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
 }
 
-void ScreenSessionManager::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId)
+void ScreenSessionManager::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser)
 {
-    TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " smartSensorRotation: %{public}f", screenId, sensorRotation);
+    TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " smartSensorRotation: %{public}f isSwitchUser: %{public}d",
+        screenId, sensorRotation, isSwitchUser);
     auto clientProxy = GetClientProxy();
     if (!clientProxy) {
         TLOGNFI(WmsLogTag::DMS, "clientProxy_ is null");
         return;
     }
-    clientProxy->OnSmartSensorRotationChanged(screenId, sensorRotation);
+    clientProxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
 }
 
 void ScreenSessionManager::OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId)
@@ -11998,7 +11999,25 @@ void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> 
             TLOGNFE(WmsLogTag::DMS, "unsupport foldStatus: %{public}u", foldStatus);
         }
     } else {
-        screenSession->UpdateValidRotationToScb();
+            bool deviceMotionNeeded = MotionManager::GetInstance().IsMotionSensorSubscribed(
+                MotionType::DEVICE_MOTION_TYPE);
+            bool smartMotionNeeded = MotionManager::GetInstance().IsMotionSensorSubscribed(
+                MotionType::SMART_MOTION_TYPE) ||
+                MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::SMART_MOTION_ENHANCE_TYPE);
+            
+            TLOGNFI(WmsLogTag::DMS, "deviceMotionSubscribe: %{public}d, smartMotionNeeded: %{public}d",
+                deviceMotionNeeded, smartMotionNeeded);
+            
+            if (deviceMotionNeeded && smartMotionNeeded) {
+                screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
+                screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
+            } else if (deviceMotionNeeded) {
+                screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
+            } else if (smartMotionNeeded) {
+                screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
+            } else {
+                screenSession->UpdateValidRotationToScb();
+            }
     }
     auto task = [=] {
         auto clientProxy = GetClientProxy();

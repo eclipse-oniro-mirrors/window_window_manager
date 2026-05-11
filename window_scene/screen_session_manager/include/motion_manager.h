@@ -35,6 +35,7 @@ namespace Rosen {
 enum MotionType : int32_t {
     DEVICE_MOTION_TYPE = 700,
     SMART_MOTION_TYPE = 701,
+    SMART_MOTION_ENHANCE_TYPE = 702,
 };
 
 enum MotionAction : int32_t {
@@ -67,6 +68,7 @@ public:
     float GetLastSmartMotionRotation() const;
     
     bool IsMotionSensorSubscribed(MotionType motionType) const;
+    bool NeedMotionSensorSubscribe(MotionType motionType) const;
     bool IsScreenOn() const;
     bool IsInitialized() const;
     bool IsDefaultSmartMotionEnabled() const;

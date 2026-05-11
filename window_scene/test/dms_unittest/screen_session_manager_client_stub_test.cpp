@@ -712,6 +712,8 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnSmartSensorRotationChanged,
     data.WriteUint64(screenId);
     float sensorRotation = 90.0f;
     data.WriteFloat(sensorRotation);
+    bool isSwitchUser = false;
+    data.WriteBool(isSwitchUser);
 
     int ret = screenSessionManagerClientStub_->HandleOnSmartSensorRotationChanged(data, reply);
     EXPECT_EQ(ret, 0);

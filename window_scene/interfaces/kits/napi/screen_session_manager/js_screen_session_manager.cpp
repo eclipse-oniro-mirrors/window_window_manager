@@ -79,6 +79,8 @@ napi_value JsScreenSessionManager::Init(napi_env env, napi_value exportObj)
         JsScreenUtils::CreateJsFoldStatus(env));
     napi_set_named_property(env, exportObj, "ScreenPropertyChangeType",
         JsScreenUtils::CreateJsScreenPropertyChangeType(env));
+    napi_set_named_property(env, exportObj, "MotionType",
+        JsScreenUtils::CreateJsMotionType(env));
     napi_set_named_property(env, exportObj, "ScreenPowerState",
         JsScreenUtils::CreateJsScreenPowerState(env));
     napi_set_named_property(env, exportObj, "SuperFoldStatus",
