@@ -168,6 +168,10 @@ constexpr int32_t MAX_LOCK_STATUS_CACHE_SIZE = 1000;
 constexpr std::size_t MAX_SNAPSHOT_IN_RECENT_PC = 50;
 constexpr std::size_t MAX_SNAPSHOT_IN_RECENT_PAD = 0;
 constexpr std::size_t MAX_SNAPSHOT_IN_RECENT_PHONE = 0;
+constexpr int32_t SNAPSHOT_ERROR_INVALID_OPERATION = -1;
+constexpr int32_t SNAPSHOT_ERROR_RENDER_CONTEXT = -2;
+constexpr int32_t SNAPSHOT_ERROR_TAKE_CAPTURE = -3;
+constexpr int32_t SNAPSHOT_ERROR_EMPTY_PIXELMAP = -4;
 constexpr uint64_t NOTIFY_START_ABILITY_TIMEOUT = 4000;
 constexpr uint64_t START_UI_ABILITY_TIMEOUT = 5000;
 constexpr int32_t SHOWABILITY_SCENARIOS = 0x00000002;
@@ -11864,6 +11868,7 @@ WMError SceneSessionManager::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap
         auto surfaceNode = sceneSession->GetSurfaceNode();
         if (!surfaceNode || !surfaceNode->IsBufferAvailable()) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode invalid: %{public}d", persistentId);
+            ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_INVALID_OPERATION, "surface node is invalid");
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
         auto callback = std::make_shared<SurfaceCaptureFuture>();
@@ -11875,15 +11880,60 @@ WMError SceneSessionManager::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap
         auto rsUICtx = surfaceNode->GetRSUIContext();
         if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+            ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
         if (!rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode, callback, rsConfig)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "TakeSurfaceCapture failed: %{public}d", persistentId);
+            ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
         pixelMap = callback->GetResult(SNAPSHOT_INNER_TIMEOUT_MS);
-        return pixelMap ? WMError::WM_OK : WMError::WM_ERROR_TIMEOUT;
+        if (pixelMap == nullptr) {
+            ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+            return WMError::WM_ERROR_TIMEOUT;
+        }
+        return WMError::WM_OK;
     }, __func__);
+}
+
+void SceneSessionManager::ReportPrivacyWindowSnapshotFail(const sptr<SceneSession>& sceneSession, int32_t errorCode,
+    const std::string& errorMsg)
+{
+    if (sceneSession == nullptr || (!sceneSession->GetIsPrivacyMode() && !sceneSession->GetSnapshotPrivacyMode())) {
+        return;
+    }
+    const auto& sessionInfo = sceneSession->GetSessionInfo();
+    auto sessionRect = sceneSession->GetSessionRect();
+    PrivacyWindowSnapshotInfo reportInfo;
+    reportInfo.bundleName = sessionInfo.bundleName_;
+    reportInfo.abilityName = sessionInfo.abilityName_;
+    reportInfo.windowId = sceneSession->GetPersistentId();
+    reportInfo.windowType = sceneSession->GetWindowType();
+    reportInfo.windowMode = sceneSession->GetWindowMode();
+    reportInfo.rect.posX_ = sessionRect.posX_;
+    reportInfo.rect.posY_ = sessionRect.posY_;
+    reportInfo.rect.width_ = static_cast<uint32_t>(sessionRect.width_ < 0 ? 0 : sessionRect.width_);
+    reportInfo.rect.height_ = static_cast<uint32_t>(sessionRect.height_ < 0 ? 0 : sessionRect.height_);
+    reportInfo.errorCode = errorCode;
+    reportInfo.errorMsg = errorMsg;
+    int32_t ret = HiSysEventWrite(
+        HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, "PRIVACY_WINDOW_SNAPSHOT_FAIL",
+        HiviewDFX::HiSysEvent::EventType::FAULT,
+        "BUNDLE_NAME", reportInfo.bundleName,
+        "ABILITY_NAME", reportInfo.abilityName,
+        "WINDOW_ID", reportInfo.windowId,
+        "WINDOW_TYPE", static_cast<int32_t>(reportInfo.windowType),
+        "WINDOW_MODE", static_cast<int32_t>(reportInfo.windowMode),
+        "POS_X", reportInfo.rect.posX_,
+        "POS_Y", reportInfo.rect.posY_,
+        "WIDTH", static_cast<int32_t>(reportInfo.rect.width_),
+        "HEIGHT", static_cast<int32_t>(reportInfo.rect.height_),
+        "ERROR_CODE", reportInfo.errorCode,
+        "ERROR_MSG", reportInfo.errorMsg);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write HiSysEvent error, ret: %{public}d", ret);
+    }
 }
 
 WSError SceneSessionManager::GetUIContentRemoteObj(int32_t persistentId, sptr<IRemoteObject>& uiContentRemoteObj)

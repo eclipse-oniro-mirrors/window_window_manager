@@ -68,6 +68,10 @@ constexpr int64_t LIFE_CYCLE_TASK_EXPIRED_TIME_LIMIT = 350;
 static bool g_enableForceUIFirst = system::GetParameter("window.forceUIFirst.enabled", "1") == "1";
 constexpr int64_t STATE_DETECT_DELAYTIME = 6 * 1000;
 constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
+constexpr int32_t SNAPSHOT_ERROR_INVALID_SURFACE_NODE = -1;
+constexpr int32_t SNAPSHOT_ERROR_RENDER_CONTEXT = -2;
+constexpr int32_t SNAPSHOT_ERROR_TAKE_CAPTURE = -3;
+constexpr int32_t SNAPSHOT_ERROR_EMPTY_PIXELMAP = -4;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_ONECE = 1;
 constexpr int32_t TIMES_TO_WAIT_FOR_VSYNC_TWICE = 2;
 constexpr double KILOBYTE = 1024.0;
@@ -3139,6 +3143,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     auto surfaceNode = GetSurfaceNode();
     if (!CheckSurfaceNodeForSnapshot(surfaceNode)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "SurfaceNode invalid %{public}d", persistentId_);
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_SURFACE_NODE, "surface node is invalid");
         return nullptr;
     }
     bool needBlurSnapshot = options.disableBlur ? false : GetNeedUseBlurSnapshot();
@@ -3157,6 +3162,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     auto rsUICtx = surfaceNode->GetRSUIContext();
     if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
         TLOGE(WmsLogTag::WMS_PATTERN, "rsUIContext is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
         return nullptr;
     }
     bool ret = false;
@@ -3169,6 +3175,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     if (!ret) {
         TLOGE(WmsLogTag::WMS_PATTERN, "TakeSurfaceCapture failed %{public}d", persistentId_);
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         return nullptr;
     }
     constexpr int32_t FFRT_SNAPSHOT_TIMEOUT_MS = 5000;
@@ -3185,7 +3192,45 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         return pixelMap;
     }
     TLOGE(WmsLogTag::WMS_PATTERN, "Save snapshot failed, id: %{public}d", persistentId_);
+    ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
     return nullptr;
+}
+
+void Session::ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const
+{
+    if (!GetIsPrivacyMode() && !GetSnapshotPrivacyMode()) {
+        return;
+    }
+    auto sessionRect = GetSessionRect();
+    PrivacyWindowSnapshotInfo reportInfo;
+    reportInfo.bundleName = sessionInfo_.bundleName_;
+    reportInfo.abilityName = sessionInfo_.abilityName_;
+    reportInfo.windowId = persistentId_;
+    reportInfo.windowType = GetWindowType();
+    reportInfo.windowMode = GetWindowMode();
+    reportInfo.rect.posX_ = sessionRect.posX_;
+    reportInfo.rect.posY_ = sessionRect.posY_;
+    reportInfo.rect.width_ = static_cast<uint32_t>(sessionRect.width_ < 0 ? 0 : sessionRect.width_);
+    reportInfo.rect.height_ = static_cast<uint32_t>(sessionRect.height_ < 0 ? 0 : sessionRect.height_);
+    reportInfo.errorCode = errorCode;
+    reportInfo.errorMsg = errorMsg;
+    int32_t ret = HiSysEventWrite(
+        HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, "PRIVACY_WINDOW_SNAPSHOT_FAIL",
+        HiviewDFX::HiSysEvent::EventType::FAULT,
+        "BUNDLE_NAME", reportInfo.bundleName,
+        "ABILITY_NAME", reportInfo.abilityName,
+        "WINDOW_ID", reportInfo.windowId,
+        "WINDOW_TYPE", static_cast<int32_t>(reportInfo.windowType),
+        "WINDOW_MODE", static_cast<int32_t>(reportInfo.windowMode),
+        "POS_X", reportInfo.rect.posX_,
+        "POS_Y", reportInfo.rect.posY_,
+        "WIDTH", static_cast<int32_t>(reportInfo.rect.width_),
+        "HEIGHT", static_cast<int32_t>(reportInfo.rect.height_),
+        "ERROR_CODE", reportInfo.errorCode,
+        "ERROR_MSG", reportInfo.errorMsg);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "write HiSysEvent error, ret: %{public}d", ret);
+    }
 }
 
 bool Session::CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
