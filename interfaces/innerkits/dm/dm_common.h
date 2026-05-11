@@ -927,9 +927,9 @@ enum class DisplayModeChangeReason : uint32_t {
 };
 
 enum class ScreenClosedState : uint32_t {
+    UNKNOWN = 0,
     CLOSE = 0,
-    OPEN,
-    UNKNOWN
+    OPEN
 };
 }
 #endif // OHOS_ROSEN_DM_COMMON_H
