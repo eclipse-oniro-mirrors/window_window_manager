@@ -4924,7 +4924,15 @@ sptr<ScreenSession> ScreenSessionManager::GetOrCreateScreenSession(ScreenId scre
     }
     if (g_isPcDevice) {
         std::lock_guard<std::recursive_mutex> lock_phy(phyScreenPropMapMutex_);
-        if (phyScreenPropMap_.size() > 1) {
+        int count = 0;
+        for (const auto& entry : phyScreenPropMap_) {
+            if (entry.first != SCREEN_ID_MAIN && entry.first != SCREEN_ID_FULL &&
+                entry.first != SCREEN_ID_PC_MAIN) {
+                    count++;
+            }
+        }
+
+        if (count > 1) {
             // pc is none, pad&&phone is mirror
             TLOGNFW(WmsLogTag::DMS, "only support one external screen");
             return nullptr;
@@ -15094,7 +15102,10 @@ void ScreenSessionManager::NotifyExtendScreenCreateFinish()
         TLOGNFE(WmsLogTag::DMS, "main screen is null");
         return;
     }
-    NotifyCreatedScreen(mainScreen);
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()){
+        NotifyCreatedScreen(mainScreen);
+    }
+
     if (extendScreen == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "extend screen is null");
         return;
