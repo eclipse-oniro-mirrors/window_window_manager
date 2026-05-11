@@ -19803,7 +19803,7 @@ bool SceneSessionManager::CheckHasForegroundSessionByType(const WindowType& wind
         auto& session = iter.second;
         if (session && 
             session->GetWindowType() == windowType &&
-            session->IsSessionForeground()) {
+            session->isLifecycleForeground()) {
             return true;
         }
     }
