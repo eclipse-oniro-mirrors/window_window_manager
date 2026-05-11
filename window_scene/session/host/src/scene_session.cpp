@@ -1958,8 +1958,9 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         }
 
         int32_t persistentId = session->GetPersistentId();
-        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::UpdateRect %d [%d, %d, %u, %u]",
-            persistentId, rect.posX_, rect.posY_, rect.width_, rect.height_);
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+            "WMS::WindowRectUpdate::RSCallback::UpdateRect id=%d %{public}s",
+            persistentId, rect.ToString().c_str());
         // check whether to notify the client rect update
         // SetWinRectWhenUpdateRect needs to be set after determining whether to skip
         if (session->ShouldSkipUpdateRectNotify(rect)) {
@@ -1971,9 +1972,11 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         session->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
         TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
-            "%{public}s: id:%{public}d, reason:%{public}d %{public}s rect:win=%{public}s "
-            "client=%{public}s", where, persistentId, session->GetSizeChangeReason(),
-            updateReason.c_str(), rect.ToString().c_str(), session->GetClientRect().ToString().c_str());
+            "[WindowRectUpdate:RSCallback] %{public}s id:%{public}d, preRect=%{public}s, rect=%{public}s, "
+            "reason:%{public}d %{public}s client=%{public}s", where, persistentId,
+            session->GetSessionRect().ToString().c_str(), rect.ToString().c_str(),
+            session->GetSizeChangeReason(), updateReason.c_str(),
+            session->GetClientRect().ToString().c_str());
     }, __func__ + GetRectInfo(rect));
     return WSError::WS_OK;
 }
@@ -1985,6 +1988,9 @@ void SceneSession::SetWinRectWhenUpdateRect(const WSRect& rect)
     if (GetIsMidScene() && rect.posX_ == 0 && rect.posY_ == 0) {
         WSRect curRect = GetSessionRect();
         newRect = { curRect.posX_, curRect.posY_, rect.width_, rect.height_ };
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "[WindowRectUpdate:RSCallback] SetWinRect: midScene keep pos, id:%{public}d, "
+            "rect=%{public}s, newRect=%{public}s", GetPersistentId(), rect.ToString().c_str(), newRect.ToString().c_str());
     } else {
         newRect = rect;
     }
@@ -1999,9 +2005,14 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
     SizeChangeReason reason = GetSizeChangeReason();
     WSRect winRect = updateRect.value_or(GetSessionRect());
 
-    TLOGD(WmsLogTag::WMS_LAYOUT,
-          "id: %{public}d, reason: %{public}d, rect: %{public}s",
-          persistentId, reason, winRect.ToString().c_str());
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowRectUpdate::ServerNotify::NotifyClient id=%d reason=%u rect=%{public}s",
+        persistentId, static_cast<uint32_t>(reason), winRect.ToString().c_str());
+    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
+        "[WindowRectUpdate:ServerNotify] NotifyClient id:%{public}d, rect=%{public}s, "
+        "preRect=%{public}s, reason:%{public}u, %{public}s",
+        persistentId, winRect.ToString().c_str(), GetSessionRect().ToString().c_str(),
+        static_cast<uint32_t>(reason), updateReason.c_str());
 
     if (reason == SizeChangeReason::UNDEFINED && (IsDragZooming() || IsDragMoving())) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Skip update rect. id: %{public}d, rect: %{public}s",
@@ -2015,10 +2026,6 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
             UpdatePrivateStateOfLayout(winRect);
         }
     }
-
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-        "SceneSession::NotifyClientToUpdateRect%d [%d, %d, %u, %u] reason:%u",
-        persistentId, winRect.posX_, winRect.posY_, winRect.width_, winRect.height_, reason);
 
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
     if (GetForegroundInteractiveStatus()) {
@@ -2430,6 +2437,12 @@ WSError SceneSession::UpdateSessionRect(
     const WSRect& rect, SizeChangeReason reason, bool isGlobal,
     bool isFromMoveToGlobal, MoveConfiguration moveConfiguration)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowRectUpdate::ServerRecv::UpdateSessionRect id=%d reason=%u",
+        GetPersistentId(), static_cast<uint32_t>(reason));
+    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetPersistentId(), WmsLogTag::WMS_LAYOUT,
+        "[WindowRectUpdate:ServerRecv] UpdateSessionRect id:%{public}d, rect=%{public}s, reason:%{public}u",
+        GetPersistentId(), rect.ToString().c_str(), static_cast<uint32_t>(reason));
     if ((reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE) &&
         GetWindowType() == WindowType::WINDOW_TYPE_PIP) {
         return WSError::WS_DO_NOTHING;
@@ -4391,6 +4404,9 @@ void SceneSession::NotifySessionRectChange(const WSRect& rect,
         }
         if (session->sessionRectChangeFunc_) {
             HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::NotifySessionRectChange");
+            TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, session->GetPersistentId(), WmsLogTag::WMS_LAYOUT,
+                "[WindowRectUpdate:SceneBoard] %{public}s id:%{public}d, rect=%{public}s, reason:%{public}u",
+                where, session->GetPersistentId(), rect.ToString().c_str(), static_cast<uint32_t>(reason));
             session->sessionRectChangeFunc_(rect, reason, displayId);
         }
     }, __func__ + GetRectInfo(rect));
@@ -9679,6 +9695,9 @@ bool SceneSession::PipelineNeedNotifyClientToUpdateRect() const
 
 bool SceneSession::UpdateRectInner(const SessionUIParam& uiParam, SizeChangeReason reason)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowRectUpdate::FlushUI::UpdateRectInner id=%d reason=%u",
+        GetPersistentId(), static_cast<uint32_t>(reason));
     if (reason == SizeChangeReason::PAGE_ROTATION) {
         dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
     }
@@ -9700,16 +9719,21 @@ bool SceneSession::UpdateRectInner(const SessionUIParam& uiParam, SizeChangeReas
 
 bool SceneSession::NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeChangeReason reason)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowRectUpdate::FlushUI::NotifyServerToUpdateRect id=%d", GetPersistentId());
     if (!GetForegroundInteractiveStatus()) {
-        TLOGD(WmsLogTag::WMS_PIPELINE, "skip recent, id:%{public}d", GetPersistentId());
+        TLOGD(WmsLogTag::WMS_PIPELINE,
+            "[WindowRectUpdate:FlushUI] skip: not foreground interactive, id:%{public}d", GetPersistentId());
         return false;
     }
     if (GetKeyFramePolicy().running_) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "skip for key frame running, id:%{public}d", GetPersistentId());
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC,
+            "[WindowRectUpdate:FlushUI] skip: key frame running, id:%{public}d", GetPersistentId());
         return false;
     }
     if (uiParam.rect_.IsInvalid()) {
-        TLOGE(WmsLogTag::WMS_PIPELINE, "id:%{public}d rect:%{public}s is invalid",
+        TLOGE(WmsLogTag::WMS_PIPELINE,
+            "[WindowRectUpdate:FlushUI] skip: invalid rect, id:%{public}d, rect:%{public}s",
             GetPersistentId(), uiParam.rect_.ToString().c_str());
         return false;
     }
@@ -9719,29 +9743,31 @@ bool SceneSession::NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeC
         UpdateAllModalUIExtensions(uiParam.rect_);
     }
     if (!uiParam.needSync_ || !isNeedSyncSessionRect_) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "id:%{public}d, scenePanelNeedSync:%{public}u needSyncSessionRect:%{public}u "
-            "rectAfter:%{public}s preRect:%{public}s preGlobalRect:%{public}s", GetPersistentId(), uiParam.needSync_,
-            isNeedSyncSessionRect_, uiParam.rect_.ToString().c_str(), GetSessionRect().ToString().c_str(),
-            globalRect.ToString().c_str());
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "[WindowRectUpdate:FlushUI] skip: needSync:%{public}u, isNeedSyncSessionRect:%{public}u, id:%{public}d",
+            uiParam.needSync_, isNeedSyncSessionRect_, GetPersistentId());
         return false;
     }
     WSRect rect = { uiParam.rect_.posX_ - uiParam.transX_, uiParam.rect_.posY_ - uiParam.transY_,
         uiParam.rect_.width_, uiParam.rect_.height_ };
     if (GetSessionRect() == rect && (!sessionStage_ || GetClientRect() == rect) &&
         reason != SizeChangeReason::SPLIT_DRAG_END) {
-        TLOGD(WmsLogTag::WMS_PIPELINE, "skip same rect update id:%{public}d rect:%{public}s preGlobalRect:%{public}s!",
-            GetPersistentId(), rect.ToString().c_str(), globalRect.ToString().c_str());
+        TLOGD(WmsLogTag::WMS_PIPELINE,
+            "[WindowRectUpdate:FlushUI] skip: same rect, id:%{public}d, rect:%{public}s",
+            GetPersistentId(), rect.ToString().c_str());
         return false;
     }
     if (rect.IsInvalid()) {
-        TLOGE(WmsLogTag::WMS_PIPELINE, "id:%{public}d rect:%{public}s is invalid, preGlobalRect:%{public}s",
-            GetPersistentId(), rect.ToString().c_str(), globalRect.ToString().c_str());
+        TLOGE(WmsLogTag::WMS_PIPELINE,
+            "[WindowRectUpdate:FlushUI] skip: invalid rect after offset, id:%{public}d, rect:%{public}s",
+            GetPersistentId(), rect.ToString().c_str());
         return false;
     }
     TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetPersistentId(), WmsLogTag::WMS_LAYOUT,
-        "id:%{public}d, rect:%{public}s->%{public}s global=%{public}s client=%{public}s",
+        "[WindowRectUpdate:FlushUI] NotifyServerToUpdateRect id:%{public}d, preRect=%{public}s, rect=%{public}s, "
+        "global=%{public}s, client=%{public}s, reason:%{public}u",
         GetPersistentId(), GetSessionRect().ToString().c_str(), rect.ToString().c_str(),
-        globalRect.ToString().c_str(), GetClientRect().ToString().c_str());
+        globalRect.ToString().c_str(), GetClientRect().ToString().c_str(), static_cast<uint32_t>(reason));
     layoutController_->SetSessionRect(rect);
     RectCheckProcess();
     return true;
