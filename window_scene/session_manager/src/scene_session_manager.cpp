@@ -7774,7 +7774,7 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
 WSError SceneSessionManager::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
     return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
-        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64 
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64
             ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
         return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
     }, __func__);
@@ -7783,7 +7783,7 @@ WSError SceneSessionManager::AddFocusGroup(DisplayGroupId displayGroupId, Displa
 WSError SceneSessionManager::RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
     return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
-        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64 
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64
             ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
         return windowFocusController_->RemoveFocusGroup(displayGroupId, displayId);
     }, __func__);
