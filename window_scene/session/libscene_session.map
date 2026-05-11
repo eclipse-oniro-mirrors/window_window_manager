@@ -367,6 +367,7 @@
             OHOS::Rosen::SceneSession::RemoveSessionBlackList*;
             OHOS::Rosen::SceneSession::GetDragDisabledAreas*;
             OHOS::Rosen::SceneSession::SetDragDisabledAreas*;
+            OHOS::Rosen::SceneSession::GetSurfaceNodeAlpha*;
             OHOS::Rosen::MoveDragController::SaveMoveResampleSystemConfig*;
             OHOS::Rosen::MoveDragController::SaveMovingEventThrottleSystemConfig*;
             OHOS::Rosen::SessionStub::OnRemoteRequest*;
