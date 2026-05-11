@@ -3158,8 +3158,15 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
                                    windowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
                                    windowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
     WindowType windowType = Session::GetWindowType();
+    DisplayId displayId = sessionProperty->GetDisplayId();
+    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
+    if (!display) {
+        TLOGE(WmsLogTag::WMS_IMMS, "win %{public}d display is null", GetPersistentId());
+        return;
+    }
     bool isAvailableSystemWindow = WindowHelper::IsSystemWindow(windowType) &&
-        (GetSessionProperty()->GetAvoidAreaOption() & static_cast<uint32_t>(AvoidAreaOption::ENABLE_SYSTEM_WINDOW));
+        (GetSessionProperty()->GetAvoidAreaOption() & static_cast<uint32_t>(AvoidAreaOption::ENABLE_SYSTEM_WINDOW)) &&
+        !(rect.width_ == display->GetWidth() && rect.height_ == display->GetHeight());
     bool isAvailableAppSubWindow = WindowHelper::IsSubWindow(windowType) &&
         (GetSessionProperty()->GetAvoidAreaOption() & static_cast<uint32_t>(AvoidAreaOption::ENABLE_APP_SUB_WINDOW));
     bool isParentFloatingOrSplit = SessionHelper::IsNonSecureToUIExtension(windowType) &&
@@ -3170,17 +3177,10 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
                                  isAvailableAppSubWindow || isParentFloatingOrSplit;
     bool isAvailableDevice = (systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) &&
                               !IsFreeMultiWindowMode();
-    DisplayId displayId = sessionProperty->GetDisplayId();
     auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(displayId);
     bool isAvailableScreen = !screenSession || (screenSession->GetName() != "HiCar");
     if (isWindowFloatingOrSplit && isAvailableWindowType && isAvailableDevice && isAvailableScreen) {
-        float vpr = 3.5f; // 3.5f: default pixel ratio
-        auto display = DisplayManager::GetInstance().GetDefaultDisplay();
-        if (display == nullptr) {
-            TLOGE(WmsLogTag::WMS_IMMS, "display is null");
-            return;
-        }
-        vpr = display->GetVirtualPixelRatio();
+        float vpr = vpr = display->GetVirtualPixelRatio();
         bool isFloat = windowMode == WindowMode::WINDOW_MODE_FLOATING && !GetIsMidScene();
         int32_t maxFloatTitleBarHeight = static_cast<int32_t>(vpr * MAX_FLOAT_TITLE_BAR_HEIGHT_VP);
         int32_t floatTitleBarHeight = std::min(maxFloatTitleBarHeight, GetStatusBarHeight());
@@ -3234,9 +3234,9 @@ void SceneSession::GetKeyboardAvoidArea(WSRect& rect, AvoidArea& avoidArea)
         return;
     }
     std::vector<sptr<SceneSession>> inputMethodVector;
-    if (specificCallback_ != nullptr && specificCallback_->onGetSceneSessionVectorByType_) {
-        inputMethodVector = specificCallback_->onGetSceneSessionVectorByType_(
-            WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    if (specificCallback_ != nullptr && specificCallback_->onGetSceneSessionVectorByTypeAndDisplayId_) {
+        inputMethodVector = specificCallback_->onGetSceneSessionVectorByTypeAndDisplayId_(
+            WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, GetSessionProperty()->GetDisplayId());
     }
     for (auto& inputMethod : inputMethodVector) {
         if (!inputMethod) {
