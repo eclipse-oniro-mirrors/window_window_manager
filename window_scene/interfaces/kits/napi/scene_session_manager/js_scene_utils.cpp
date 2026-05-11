@@ -23,6 +23,7 @@
 
 #include "js_window_animation_utils.h"
 #include "property/rs_properties_def.h"
+#include "window_helper.h"
 #include "root_scene.h"
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "session_manager/include/scene_session_manager.h"
@@ -1722,7 +1723,17 @@ bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo&
 {
     napi_valuetype type = GetType(env, value);
     if (type == napi_number) {
-        return ConvertFromJsValue(env, value, windowModeInfo.windowMode);
+        uint32_t modeValue = 0;
+        if (!ConvertFromJsValue(env, value, modeValue)) {
+            return false;
+        }
+        auto mode = static_cast<WindowMode>(modeValue);
+        if (!WindowHelper::IsValidWindowMode(mode)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "invalid windowMode: %{public}u", modeValue);
+            return false;
+        }
+        windowModeInfo.windowMode = mode;
+        return true;
     }
     if (type != napi_object) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "type is not number or object, type: %{public}d", static_cast<int32_t>(type));
@@ -1730,16 +1741,27 @@ bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo&
     }
     napi_value windowModeValue = nullptr;
     napi_get_named_property(env, value, "windowMode", &windowModeValue);
-    if (!ConvertFromJsValue(env, windowModeValue, windowModeInfo.windowMode)) {
+    uint32_t modeValue = 0;
+    if (!ConvertFromJsValue(env, windowModeValue, modeValue)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert windowMode");
         return false;
     }
+    auto mode = static_cast<WindowMode>(modeValue);
+    if (!WindowHelper::IsValidWindowMode(mode)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "invalid windowMode: %{public}u", modeValue);
+        return false;
+    }
+    windowModeInfo.windowMode = mode;
     napi_value splitStyleValue = nullptr;
     napi_get_named_property(env, value, "splitStyle", &splitStyleValue);
     if (GetType(env, splitStyleValue) != napi_undefined) {
-        int32_t splitStyle;
+        int32_t splitStyle = 0;
         if (ConvertFromJsValue(env, splitStyleValue, splitStyle)) {
-            windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+            if (splitStyle >= 0 && splitStyle <= static_cast<int32_t>(SplitStyle::THREE_WINDOW_HORIZONTAL)) {
+                windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+            } else {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "invalid splitStyle: %{public}d", splitStyle);
+            }
         } else {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert splitStyle");
         }

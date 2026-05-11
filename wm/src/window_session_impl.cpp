@@ -2019,7 +2019,6 @@ WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo
     return WSError::WS_OK;
 }
 
-
 /** @note @window.layout */
 float WindowSessionImpl::GetVirtualPixelRatio()
 {

@@ -124,6 +124,7 @@ enum class ApiWindowMode : uint32_t {
     PRIMARY,
     SECONDARY,
     FLOATING,
+    SPLIT,
     MODE_END = FLOATING
 };
 

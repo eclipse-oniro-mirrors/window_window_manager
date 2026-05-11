@@ -3149,6 +3149,8 @@ WMError WindowSceneSessionImpl::UpdateWindowModeForUITest(int32_t updateMode)
             return SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
         case static_cast<int32_t>(WindowMode::WINDOW_MODE_SPLIT_SECONDARY):
             return SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+        case static_cast<int32_t>(WindowMode::WINDOW_MODE_SPLIT):
+            return SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
         default:
             break;
     }
@@ -6526,7 +6528,8 @@ bool WindowSceneSessionImpl::ShouldSkipSupportWindowModeCheck(uint32_t windowMod
     bool onlySupportSplitInFreeMultiWindow =
         isFreeMultiWindowMode && mode == WindowMode::WINDOW_MODE_FLOATING &&
         (WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT_PRIMARY) ||
-         WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT_SECONDARY)) &&
+         WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT_SECONDARY) ||
+         WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT)) &&
         !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN);
     if (onlySupportSplitInFreeMultiWindow) {
         return true;
