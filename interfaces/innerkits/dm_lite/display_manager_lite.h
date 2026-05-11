@@ -234,6 +234,14 @@ public:
     bool SuspendEnd();
 
     /**
+     * @brief Set the open/close lid status.
+     *
+     * @param screenClosedState open or close state.
+     * @param isScreenOn power status.
+     */
+    DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn);
+
+    /**
      * @brief Get id of internal screen.
      *
      * @return Internal screen id.

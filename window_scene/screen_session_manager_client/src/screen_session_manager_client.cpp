@@ -194,6 +194,29 @@ void ScreenSessionManagerClient::OnTentModeChange(TentMode tentMode)
     }
 }
 
+void ScreenSessionManagerClient::RegisterScreenClosedStateChangeListener(IScreenClosedStateListener* listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to register screen closed state listener, listener is null");
+        return;
+    }
+
+    screenClosedStateListener_ = listener;
+    ConnectToServer();
+
+    OnScreenClosedStateChange(screenClosedState_);
+    TLOGI(WmsLogTag::DMS, "Success to register screen closed state listener");
+}
+
+void ScreenSessionManagerClient::OnScreenClosedStateChange(ScreenClosedState screenClosedState)
+{
+    TLOGD(WmsLogTag::DMS, "screenClosedState callback trigger");
+    screenClosedState_ = screenClosedState;
+    if (screenClosedStateListener_) {
+        screenClosedStateListener_->OnScreenClosedStateChange(screenClosedState);
+    }
+}
+
 void ScreenSessionManagerClient::HandleScreenDisconnectEvent(SessionOption option, ScreenEvent screenEvent)
 {
     if (HandleScreenDisconnection(option)) {

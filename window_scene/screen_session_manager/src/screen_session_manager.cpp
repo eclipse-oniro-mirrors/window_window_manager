@@ -380,6 +380,9 @@ ScreenSessionManager::ScreenSessionManager()
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         g_foldScreenFlag = false;
     }
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        HandleSuperMultiFoldScreenPowerInit();
+    }
     ScreenStateMachine::GetInstance().SetTransitionState(ScreenTransitionState::SCREEN_INIT);
     if (g_foldScreenFlag) {
         ScreenStateMachine::GetInstance().InitStateMachine(FOLD_SCREEN_STATE_MACHINE_REF_COUNT);
@@ -489,6 +492,20 @@ void ScreenSessionManager::HandleFoldScreenPowerInit()
         // 后续其他设备rs上电规格将陆续迁移到BootAnimationFinishPowerInit中
         FoldScreenPowerInit();
     }
+#endif
+}
+
+void ScreenSessionManager::HandleSuperMultiFoldScreenPowerInit()
+{
+#ifdef FOLD_ABILITY_ENABLE
+    TLOGNFI(WmsLogTag::DMS, "register power init");
+    SuperFoldPolicy::GetInstance().SetOnBootAnimation(true);
+    SetFoldScreenPowerInit([&]() {
+        TLOGNFI(WmsLogTag::DMS, "init super multi screen power");
+        SuperFoldPolicy::GetInstance().BootAnimationFinishPowerInit();
+        FixPowerStatus();
+        SuperFoldPolicy::GetInstance().SetOnBootAnimation(false);
+    });
 #endif
 }
 
@@ -1149,6 +1166,17 @@ void ScreenSessionManager::NotifyTentModeChange(TentMode tentMode)
     tentMode_ = tentMode;
     TLOGD(WmsLogTag::DMS, "change tentMode to: %{public}" PRIu32, static_cast<uint32_t>(tentMode));
     clientProxy->OnTentModeChange(tentMode);
+}
+
+void ScreenSessionManager::NotifyScreenClosedStateChange(ScreenClosedState screenClosedState)
+{
+    auto clientProxy = GetClientProxy();
+    if (!clientProxy) {
+        TLOGNFW(WmsLogTag::DMS, "clientProxy null");
+        return;
+    }
+    TLOGD(WmsLogTag::DMS, "change screenClosedState to: %{public}" PRIu32, static_cast<uint32_t>(screenClosedState));
+    clientProxy->OnScreenClosedStateChange(screenClosedState);
 }
 
 void ScreenSessionManager::OnVirtualScreenChange(ScreenId screenId, ScreenEvent screenEvent,
@@ -2037,6 +2065,9 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
 {
     screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_ONE;
     InitRotationCorrectionMap(DISPLAYMODE_CORRECTION);
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        ExitCoordination("screen connect");
+    }
     {
         std::shared_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
         screenSession->SetRotationCorrectionMap(rotationCorrectionMap_);
@@ -5268,6 +5299,25 @@ bool ScreenSessionManager::WakeUpEnd()
         PowerStateChangeReason::STATE_CHANGE_REASON_INIT);
 }
 
+DMError ScreenSessionManager::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
+{
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "[UL_POWER]ssm:SetScreenSwitchState(%u, %d)",
+        screenClosedState, isScreenOn);
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+        TLOGNFE(WmsLogTag::DMS, "permission denied! calling: %{public}s, pid: %{public}d",
+            SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
+        return DMError::DM_ERROR_INVALID_PERMISSION;
+    }
+    TLOGNFI(WmsLogTag::DMS, "[UL_POWER]screenClosedState: %{public}u, isScreenOn: %{public}d",
+        static_cast<uint32_t>(screenClosedState), isScreenOn);
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        return SuperFoldPolicy::GetInstance().SetScreenSwitchState(screenClosedState, isScreenOn);
+    }
+#endif
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 bool ScreenSessionManager::SuspendBegin(PowerStateChangeReason reason)
 {
     // only power use
@@ -5897,6 +5947,12 @@ bool ScreenSessionManager::SetSpecifiedScreenPower(ScreenId screenId, ScreenPowe
 
 void ScreenSessionManager::SetLockDisplayModeWhenShutDown(PowerStateChangeReason reason, bool isLock)
 {
+#ifdef FOLD_ABILITY_ENABLE
+    if (reason == PowerStateChangeReason::STATE_CHANGE_REASON_SHUT_DOWN &&
+        FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        SuperFoldPolicy::GetInstance().LockDisplayMode(isLock);
+    }
+#endif
     if (foldScreenController_ != nullptr && reason == PowerStateChangeReason::STATE_CHANGE_REASON_SHUT_DOWN) {
         TLOGNFI(WmsLogTag::DMS, "lock display mode when shut down");
         foldScreenController_->SetIsClearingBootAnimation(isLock);
@@ -6009,6 +6065,9 @@ void ScreenSessionManager::ExitCoordination(const std::string& reason)
         TLOGNFI(WmsLogTag::DMS, "[UL_POWER] reason:%{public}s", reason.c_str());
         foldScreenController_->ExitCoordination();
     }
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        SuperFoldPolicy::GetInstance().ExitCoordination();
+    }
 #endif
 }
 
@@ -6087,6 +6146,15 @@ bool ScreenSessionManager::SetScreenPower(ScreenPowerStatus status, PowerStateCh
 void ScreenSessionManager::SetRsSetScreenPowerStatusSync(std::vector<ScreenId>& screenIds,
     ScreenPowerStatus status, PowerStateChangeReason reason)
 {
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        ScreenId currentScreenId = SuperFoldPolicy::GetInstance().GetCurrentScreenId();
+        CallRsSetScreenPowerStatusSync(currentScreenId, status, reason);
+        CallRsSetScreenPowerStatusSyncForExtend(screenIds, status, reason);
+        SuperFoldPolicy::GetInstance().RecoverDisplayMode();
+        return;
+    }
+#endif
     if (g_isPcDevice && status == ScreenPowerStatus::POWER_STATUS_ON) {
         std::sort(screenIds.begin(), screenIds.end(), SortByScreenId);
         for (auto screenId : screenIds) {
@@ -6192,6 +6260,12 @@ void ScreenSessionManager::SetScreenPowerForFold(ScreenId screenId, ScreenPowerS
 void ScreenSessionManager::TriggerDisplayModeUpdate(FoldDisplayMode targetDisplayMode)
 {
     auto updateDisplayModeTask = [=] {
+#ifdef FOLD_ABILITY_ENABLE
+        if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+            SuperFoldPolicy::GetInstance().ChangeScreenDisplayMode(targetDisplayMode);
+            return;
+        }
+#endif
         TLOGNI(WmsLogTag::DMS, "start change displaymode to lastest mode");
         foldScreenController_->SetDisplayMode(targetDisplayMode);
     };
@@ -10338,11 +10412,18 @@ void ScreenSessionManager::SetFoldDisplayMode(const FoldDisplayMode displayMode)
 
 DMError ScreenSessionManager::SetFoldDisplayModeInner(const FoldDisplayMode displayMode, std::string reason)
 {
-#ifdef FOLD_ABILITY_ENABLE
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d, reason: %{public}s",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid(), reason.c_str());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        if (reason == "exitCoordinationMode" || reason == "exitBackSelfie") {
+            SuperFoldPolicy::GetInstance().ExitCoordination();
+            return DMError::DM_OK;
+        }
+        return SuperFoldPolicy::GetInstance().ChangeScreenDisplayMode(displayMode);
     }
     if (!g_foldScreenFlag) {
         return DMError::DM_ERROR_INVALID_MODE_ID;
@@ -10768,6 +10849,9 @@ FoldDisplayMode ScreenSessionManager::GetFoldDisplayMode()
 {
 #ifdef FOLD_ABILITY_ENABLE
     DmsXcollie dmsXcollie("DMS:GetFoldDisplayMode", XCOLLIE_TIMEOUT_10S);
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        return SuperFoldPolicy::GetInstance().GetCurrentDisplayMode();
+    }
     if (!g_foldScreenFlag) {
         return FoldDisplayMode::UNKNOWN;
     }
@@ -11148,6 +11232,11 @@ DMError ScreenSessionManager::GetLiveCreaseRegion(FoldCreaseRegion& region)
 {
 #ifdef FOLD_ABILITY_ENABLE
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+            GetFoldDisplayMode() == FoldDisplayMode::MAIN) {
+            region = FoldCreaseRegion(0, {});
+            return DMError::DM_OK;
+        }
         region = SuperFoldStateManager::GetInstance().GetLiveCreaseRegion();
         return DMError::DM_OK;
     }
@@ -11173,6 +11262,19 @@ uint32_t ScreenSessionManager::GetCurvedCompressionArea()
 }
 
 void ScreenSessionManager::NotifyFoldStatusChanged(FoldStatus foldStatus)
+{
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        if (!SuperFoldPolicy::GetInstance().SetAndCheckFoldStatus(foldStatus)) {
+            TLOGNFI(WmsLogTag::DMS, "no need notify foldStatus:%{public}d", foldStatus);
+            return;
+        }
+    }
+    NotifyFoldStatusChangedInner(foldStatus);
+#endif
+}
+ 
+void ScreenSessionManager::NotifyFoldStatusChangedInner(FoldStatus foldStatus)
 {
 #ifdef FOLD_ABILITY_ENABLE
     sptr<ScreenSession> screenSession = GetDefaultScreenSession();
@@ -13521,21 +13623,33 @@ DMError ScreenSessionManager::GetSuperFoldCapability(std::string& capabilitInfo)
 {
     nlohmann::ordered_json jsonDisplayCapabilityList;
     jsonDisplayCapabilityList["capability"] = nlohmann::json::array();
-
-    nlohmann::ordered_json expandCapabilityInfo = GetCapabilityJson(FoldStatus::EXPAND, FoldDisplayMode::UNKNOWN,
-        ROTATION_DEFAULT, ORIENTATION_DEFAULT);
-    jsonDisplayCapabilityList["capability"].push_back(std::move(expandCapabilityInfo));
-    nlohmann::ordered_json foldCapabilityInfo = GetCapabilityJson(FoldStatus::FOLDED, FoldDisplayMode::UNKNOWN,
-        ROTATION_DEFAULT, ORIENTATION_DEFAULT);
-    jsonDisplayCapabilityList["capability"].push_back(std::move(foldCapabilityInfo));
-    nlohmann::ordered_json halfFoldCapabilityInfo = GetCapabilityJson(FoldStatus::HALF_FOLD, FoldDisplayMode::UNKNOWN,
-        ROTATION_DEFAULT, ORIENTATION_DEFAULT);
-    jsonDisplayCapabilityList["capability"].push_back(std::move(halfFoldCapabilityInfo));
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        nlohmann::ordered_json expandCapabilityInfo = GetCapabilityJson(FoldStatus::EXPAND, FoldDisplayMode::FULL,
+            ROTATION_DEFAULT, ORIENTATION_DEFAULT);
+        jsonDisplayCapabilityList["capability"].push_back(std::move(expandCapabilityInfo));
+        nlohmann::ordered_json foldCapabilityInfo = GetCapabilityJson(FoldStatus::FOLDED, FoldDisplayMode::MAIN,
+            ROTATION_DEFAULT, ORIENTATION_DEFAULT);
+        jsonDisplayCapabilityList["capability"].push_back(std::move(foldCapabilityInfo));
+        nlohmann::ordered_json halfFoldCapabilityInfo = GetCapabilityJson(FoldStatus::HALF_FOLD, FoldDisplayMode::FULL,
+            ROTATION_DEFAULT, ORIENTATION_DEFAULT);
+        jsonDisplayCapabilityList["capability"].push_back(std::move(halfFoldCapabilityInfo));
+    } else {
+        nlohmann::ordered_json expandCapabilityInfo = GetCapabilityJson(FoldStatus::EXPAND, FoldDisplayMode::UNKNOWN,
+            ROTATION_DEFAULT, ORIENTATION_DEFAULT);
+        jsonDisplayCapabilityList["capability"].push_back(std::move(expandCapabilityInfo));
+        nlohmann::ordered_json foldCapabilityInfo = GetCapabilityJson(FoldStatus::FOLDED, FoldDisplayMode::UNKNOWN,
+            ROTATION_DEFAULT, ORIENTATION_DEFAULT);
+        jsonDisplayCapabilityList["capability"].push_back(std::move(foldCapabilityInfo));
+        nlohmann::ordered_json halfFoldCapabilityInfo = GetCapabilityJson(FoldStatus::HALF_FOLD, FoldDisplayMode::UNKNOWN,
+            ROTATION_DEFAULT, ORIENTATION_DEFAULT);
+        jsonDisplayCapabilityList["capability"].push_back(std::move(halfFoldCapabilityInfo));
+    }
     jsonDisplayCapabilityList["foldScreenType"] = g_foldScreenType;
 #ifdef FOLD_ABILITY_ENABLE
     nlohmann::ordered_json foldCreaseRegion = SuperFoldStateManager::GetInstance().GetFoldCreaseRegionJson();
     jsonDisplayCapabilityList["allCreaseRegion"] = foldCreaseRegion;
 #endif
+    jsonDisplayCapabilityList["isMultiDevice"] = FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice();
 
     capabilitInfo = jsonDisplayCapabilityList.dump();
     return DMError::DM_OK;
@@ -14318,6 +14432,12 @@ sptr<DisplayInfo> ScreenSessionManager::GetPrimaryDisplayInfo()
                 screenSession = session;
                 break;
             }
+        }
+    }
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        auto displayMode = GetFoldDisplayMode();
+        if (displayMode == FoldDisplayMode::MAIN) {
+            screenSession = GetScreenSession(SCREEN_ID_MAIN);
         }
     }
     if (screenSession == nullptr) {

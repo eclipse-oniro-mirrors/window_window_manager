@@ -973,7 +973,51 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenOrientationChangedWithOpti
 
     screenSessionManagerClientProxy_->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
     EXPECT_TRUE(logMsg.find("failed") == std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 
+/**
+ * @tc.name: OnScreenClosedStateChange01
+ * @tc.desc: OnScreenClosedStateChange test with CLOSE state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenClosedStateChange01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(nullptr);
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    proxy->OnScreenClosedStateChange(screenClosedState);
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
+    logMsg.clear();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    proxy->OnScreenClosedStateChange(screenClosedState);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    proxy->OnScreenClosedStateChange(screenClosedState);
+    EXPECT_TRUE(logMsg.find("Write screenClosedState failed") != std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->OnScreenClosedStateChange(screenClosedState);
+    EXPECT_TRUE(logMsg.find("send request failed") != std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    proxy->OnScreenClosedStateChange(screenClosedState);
+    EXPECT_FALSE(logMsg.find("send request failed") != std::string::npos);
     logMsg.clear();
     LOG_SetCallback(nullptr);
 }
