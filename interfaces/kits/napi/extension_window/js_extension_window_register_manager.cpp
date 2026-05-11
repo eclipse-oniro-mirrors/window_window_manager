@@ -70,7 +70,7 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowChangeRegister(sptr<J
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE(
-            isRegister ? "ArkUI.window.onWindowSizeChange" : "ArkUI.window.offWindowSizeChange",
+            isRegister ? "ArkUI.uiExtension.onWindowSizeChange" : "ArkUI.uiExtension.offWindowSizeChange",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
@@ -82,7 +82,7 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowChangeRegister(sptr<J
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowChangeListener(thisListener));
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(
-        isRegister ? "ArkUI.window.onWindowSizeChange" : "ArkUI.window.offWindowSizeChange", ret);
+        isRegister ? "ArkUI.uiExtension.onWindowSizeChange" : "ArkUI.uiExtension.offWindowSizeChange", ret);
     return ret;
 }
 
@@ -92,7 +92,7 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowRectChangeRegister(
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE(
-            isRegister ? "ArkUI.window.onRectChange" : "ArkUI.window.offRectChange",
+            isRegister ? "ArkUI.uiExtension.onRectChange" : "ArkUI.uiExtension.offRectChange",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
@@ -100,7 +100,7 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowRectChangeRegister(
         WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowRectChangeListener(listener)) :
         WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowRectChangeListener(listener));
     HISTOGRAM_ENUMERATION_ERROR_CODE(
-        isRegister ? "ArkUI.window.onRectChange" : "ArkUI.window.offRectChange", ret);
+        isRegister ? "ArkUI.uiExtension.onRectChange" : "ArkUI.uiExtension.offRectChange", ret);
     return ret;
 }
 
@@ -110,7 +110,7 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessAvoidAreaChangeRegister(spt
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE(
-            isRegister ? "ArkUI.window.onAvoidAreaChange" : "ArkUI.window.offAvoidAreaChange",
+            isRegister ? "ArkUI.uiExtension.onAvoidAreaChange" : "ArkUI.uiExtension.offAvoidAreaChange",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
@@ -122,7 +122,7 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessAvoidAreaChangeRegister(spt
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterAvoidAreaChangeListener(thisListener));
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(
-        isRegister ? "ArkUI.window.onAvoidAreaChange" : "ArkUI.window.offAvoidAreaChange", ret);
+        isRegister ? "ArkUI.uiExtension.onAvoidAreaChange" : "ArkUI.uiExtension.offAvoidAreaChange", ret);
     return ret;
 }
 
