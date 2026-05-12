@@ -2116,7 +2116,7 @@ HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModes01, TestSize.Level1
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     ret = window->SetSupportedWindowModes(supportedWindowModes);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     supportedWindowModes.push_back(static_cast<AppExecFwk::SupportWindowMode>(10));
     ret = window->SetSupportedWindowModes(supportedWindowModes);
@@ -2147,7 +2147,7 @@ HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModes02, TestSize.Level1
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     ret = window->SetSupportedWindowModes(supportedWindowModes, true);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
 
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     supportedWindowModes.push_back(static_cast<AppExecFwk::SupportWindowMode>(10));
@@ -2374,6 +2374,30 @@ HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModesForMainWindow01, Te
     supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::SPLIT);
     auto ret = window->SetSupportedWindowModes(supportedWindowModes);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
+}
+
+/**
+ * @tc.name: SetSupportedWindowModesForDialogWindow01
+ * @tc.desc: SetSupportedWindowModes for dialog window - dialog window is not supported
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModesForDialogWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSupportedWindowModesForDialogWindow01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FULLSCREEN);
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FLOATING);
+    auto ret = window->SetSupportedWindowModes(supportedWindowModes);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
 }
 
 } // namespace

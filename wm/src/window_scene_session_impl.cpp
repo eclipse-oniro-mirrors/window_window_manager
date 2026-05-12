@@ -4753,7 +4753,7 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Sub window does not support split mode");
         return WMError::WM_ERROR_ILLEGAL_PARAM;
     }
-    if (grayOutMaximizeButton) {
+    if (isMainWindow && grayOutMaximizeButton) {
         size_t size = supportedWindowModes.size();
         if (size == 0 || size > WINDOW_SUPPORT_MODE_MAX_SIZE) {
             TLOGE(WmsLogTag::WMS_LAYOUT_PC, "mode param is invalid");
@@ -4765,7 +4765,7 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
             return WMError::WM_ERROR_ILLEGAL_PARAM;
         }
         GrayOutMaximizeButton(true);
-    } else if (grayOutMaximizeButton_) {
+    } else if (isMainWindow && grayOutMaximizeButton_) {
         GrayOutMaximizeButton(false);
     }
 
