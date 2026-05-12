@@ -34,7 +34,7 @@ struct BrightnessInfo {
     float currentHeadroom = 1.0f;
     float maxHeadroom = 1.0f;
     float sdrNits = 500.0f;
-    float brightnessPosition = 0.0f;
+    float brightnessPosition = -1.0f;
 
     bool operator==(const BrightnessInfo& other) const
     {
@@ -47,6 +47,17 @@ struct BrightnessInfo {
     {
         return !(*this == other);
     }
+};
+
+struct RsScreenBrightnessData {
+    ScreenId screenId;
+    uint32_t level;
+    float brightnessPosition;
+ 
+    RsScreenBrightnessData() : screenId(0), level(0), brightnessPosition(-1.0f) {}
+ 
+    RsScreenBrightnessData(ScreenId id, uint32_t lvl, float position)
+        : screenId(id), level(lvl), brightnessPosition(position) {}
 };
 
 struct EventInfo {
@@ -106,7 +117,7 @@ public:
     ScreenPowerStatus GetScreenPowerStatus(ScreenId id);
     PanelPowerStatus GetPanelPowerStatus(ScreenId id);
     int32_t GetScreenBacklight(ScreenId id);
-    void SetScreenBacklight(ScreenId id, uint32_t level);
+    void SetScreenBacklight(const RsScreenBrightnessData& brightnessData);
     int32_t GetScreenSupportedColorGamuts(ScreenId id, std::vector<ScreenColorGamut>& mode);
     int32_t GetScreenColorGamut(ScreenId id, ScreenColorGamut& mode);
     int32_t SetScreenColorGamut(ScreenId id, int32_t modeIdx);

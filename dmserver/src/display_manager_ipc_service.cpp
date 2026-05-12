@@ -426,9 +426,9 @@ ErrCode DisplayManagerIpcService::GetAllDisplayPhysicalResolution(
     return ERR_OK;
 }
 
-ErrCode DisplayManagerIpcService::SetScreenBrightness(uint64_t screenId, uint32_t level, bool& isSucc)
+ErrCode DisplayManagerIpcService::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData, bool& isSucc)
 {
-    isSucc = displayManagerService_.SetScreenBrightness(screenId, level);
+    isSucc = displayManagerService_.SetScreenBrightness(brightnessData);
     return ERR_OK;
 }
 

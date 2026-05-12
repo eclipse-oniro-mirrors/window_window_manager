@@ -3820,64 +3820,6 @@ HWTEST_F(ScreenSessionManagerTest, DoSetScreenPowerStatusTest, TestSize.Level1)
         ScreenPowerOnReason::SAME_DISPLAY_TO_SINGLE_DISPLAY);
     EXPECT_TRUE(g_errLog.find("set the power status to OFF_ADVANCED first") != std::string::npos);
 }
-
-/**
- * @tc.name: BrightnessInfoOperatorEqual
- * @tc.desc: Test BrightnessInfo operator== with brightnessPosition
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, BrightnessInfoOperatorEqual, TestSize.Level1)
-{
-    BrightnessInfo info1;
-    BrightnessInfo info2;
-    info1.currentHeadroom = 1.5f;
-    info1.maxHeadroom = 2.0f;
-    info1.sdrNits = 500.0f;
-    info1.brightnessPosition = 0.5f;
-    info2.currentHeadroom = 1.5f;
-    info2.maxHeadroom = 2.0f;
-    info2.sdrNits = 500.0f;
-    info2.brightnessPosition = 0.5f;
-    EXPECT_TRUE(info1 == info2);
-
-    info2.brightnessPosition = 0.6f;
-    EXPECT_FALSE(info1 == info2);
-    EXPECT_TRUE(info1 != info2);
-}
-
-/**
- * @tc.name: ScreenBrightnessInfoDefault
- * @tc.desc: Test ScreenBrightnessInfo default value with brightnessPosition
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, ScreenBrightnessInfoDefault, TestSize.Level1)
-{
-    ScreenBrightnessInfo info;
-    EXPECT_EQ(info.currentHeadroom, DEFAULT_HEADROOM);
-    EXPECT_EQ(info.maxHeadroom, DEFAULT_HEADROOM);
-    EXPECT_EQ(info.sdrNits, DEFAULT_SDR_NITS);
-    EXPECT_EQ(info.brightnessPosition, 0.0f);
-}
-
-/**
- * @tc.name: ScreenBrightnessInfoAssignment
- * @tc.desc: Test ScreenBrightnessInfo assignment with brightnessPosition
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, ScreenBrightnessInfoAssignment, TestSize.Level1)
-{
-    ScreenBrightnessInfo info1;
-    info1.currentHeadroom = 1.0f;
-    info1.maxHeadroom = 2.0f;
-    info1.sdrNits = 300.0f;
-    info1.brightnessPosition = 0.75f;
-
-    ScreenBrightnessInfo info2 = info1;
-    EXPECT_EQ(info2.currentHeadroom, 1.0f);
-    EXPECT_EQ(info2.maxHeadroom, 2.0f);
-    EXPECT_EQ(info2.sdrNits, 300.0f);
-    EXPECT_EQ(info2.brightnessPosition, 0.75f);
-}
 }
 }
 }

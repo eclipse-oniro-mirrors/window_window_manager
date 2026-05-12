@@ -935,10 +935,7 @@ ErrCode DisplayManagerLiteProxy::GetScreenInfoById(
     return ERR_OK;
 }
 
-ErrCode DisplayManagerLiteProxy::SetScreenBrightness(
-    uint64_t screenId,
-    uint32_t level,
-    bool& isSucc)
+ErrCode DisplayManagerLiteProxy::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData, bool& isSucc)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -949,12 +946,8 @@ ErrCode DisplayManagerLiteProxy::SetScreenBrightness(
         return ERR_INVALID_VALUE;
     }
 
-    if (!data.WriteUint64(screenId)) {
-        TLOGE(WmsLogTag::DMS, "Write [screenId] failed!");
-        return ERR_INVALID_DATA;
-    }
-    if (!data.WriteUint32(level)) {
-        TLOGE(WmsLogTag::DMS, "Write [level] failed!");
+    if (!brightnessData.Marshalling(data)) {
+        TLOGE(WmsLogTag::DMS, "Write [brightnessData] failed");
         return ERR_INVALID_DATA;
     }
 

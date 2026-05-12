@@ -5093,7 +5093,7 @@ DMError ScreenSessionManager::GetBrightnessInfo(DisplayId displayId, ScreenBrigh
         return DMError::DM_ERROR_ILLEGAL_PARAM;
     }
     TLOGNFI(WmsLogTag::DMS, "RS brightnessInfo currentHeadroom:%{public}f maxHeadroom:%{public}f sdrNits:%{public}f "
-          "brightnessPosition:%{public}f", rsBrightnessInfo.currentHeadroom, rsBrightnessInfo.maxHeadroom,
+          "brightnessPosition: %{public}.4f", rsBrightnessInfo.currentHeadroom, rsBrightnessInfo.maxHeadroom,
           rsBrightnessInfo.sdrNits, rsBrightnessInfo.brightnessPosition);
     brightnessInfo.currentHeadroom = rsBrightnessInfo.currentHeadroom;
     brightnessInfo.maxHeadroom = rsBrightnessInfo.maxHeadroom;
@@ -5816,14 +5816,16 @@ void ScreenSessionManager::ForceSkipScreenOffAnimation()
     }
 }
 
-bool ScreenSessionManager::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool ScreenSessionManager::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "set screen brightness permission denied!");
         return false;
     }
-    TLOGD(WmsLogTag::DMS, "screenId: %{public}" PRIu64", level: %{public}u", screenId, level);
-    RSInterfaces::GetInstance().SetScreenBacklight(screenId, level);
+    RsScreenBrightnessData data{brightnessData.screenId, brightnessData.level, brightnessData.brightnessPosition};
+    TLOGI(WmsLogTag::DMS, "screenId: %{public}" PRIu64", level: %{public}u, brightnessPosition: %{public}f",
+        data.screenId, data.level, data.brightnessPosition);
+    RSInterfaces::GetInstance().SetScreenBacklight(data);
     return true;
 }
 
