@@ -3174,13 +3174,13 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
         GetParentSession()->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
         GetParentSession()->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
     bool isAvailableWindowType = WindowHelper::IsMainWindow(windowType) || isAvailableSystemWindow ||
-                                 isAvailableAppSubWindow || isParentFloatingOrSplit;
+        isAvailableAppSubWindow || isParentFloatingOrSplit;
     bool isAvailableDevice = (systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) &&
-                              !IsFreeMultiWindowMode();
+        !IsFreeMultiWindowMode();
     auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(displayId);
     bool isAvailableScreen = !screenSession || (screenSession->GetName() != "HiCar");
     if (isWindowFloatingOrSplit && isAvailableWindowType && isAvailableDevice && isAvailableScreen) {
-        float vpr = vpr = display->GetVirtualPixelRatio();
+        float vpr = display->GetVirtualPixelRatio();
         bool isFloat = windowMode == WindowMode::WINDOW_MODE_FLOATING && !GetIsMidScene();
         int32_t maxFloatTitleBarHeight = static_cast<int32_t>(vpr * MAX_FLOAT_TITLE_BAR_HEIGHT_VP);
         int32_t floatTitleBarHeight = std::min(maxFloatTitleBarHeight, GetStatusBarHeight());
