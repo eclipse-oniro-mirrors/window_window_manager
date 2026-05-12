@@ -1268,9 +1268,8 @@ WSError WindowSessionImpl::UpdateRect(const WSRect& rect, SizeChangeReason reaso
         GetPersistentId(), GetWindowName().c_str(), preRect.ToString().c_str(), wmRect.ToString().c_str(),
         wmReason, property_->GetDisplayId());
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-        "WMS::WindowRectUpdate::ClientRecv::UpdateRect id=%d [%d,%d,%u,%u] reason=%u hasRSTransaction=%u",
-        GetPersistentId(), wmRect.posX_, wmRect.posY_, wmRect.width_, wmRect.height_,
-        wmReason, config.rsTransaction_ != nullptr);
+        "WMS::WindowRectUpdate::ClientRecv::UpdateRect id=%d rect=%s reason=%u",
+        GetPersistentId(), wmRect.ToString().c_str(), wmReason);
     if (handler_ != nullptr && (wmReason == WindowSizeChangeReason::ROTATION ||
         wmReason == WindowSizeChangeReason::SNAPSHOT_ROTATION)) {
         postTaskDone_ = false;
@@ -1516,6 +1515,9 @@ void WindowSessionImpl::UpdateRectForOtherReasonTask(const Rect& wmRect, const R
         notifySizeChangeFlag_.load(), notifySizeChangeInCompatibleMode_.load());
     if ((wmRect != preRect) || (wmReason != lastSizeChangeReason_) || !postTaskDone_ ||
         notifySizeChangeFlag_ || notifySizeChangeInCompatibleMode_.compare_exchange_strong(exceptedTrue, false)) {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+            "WMS::WindowRectUpdate::ClientRecv::UpdateRectForOtherReasonTask id=%d reason=%d rect=%s",
+            GetPersistentId(), static_cast<int32_t>(wmReason), wmRect.ToString().c_str());
         NotifySizeChange(wmRect, wmReason);
         SetNotifySizeChangeFlag(false);
         lastSizeChangeReason_ = wmReason;
@@ -1545,9 +1547,14 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
     }
 
     auto task = [weak = wptr(this), wmReason, wmRect, preRect, rsTransaction, avoidAreas] {
+        auto where = __func__;
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+            "WMS::WindowRectUpdate::ClientRecv::UpdateRectForOtherReason reason=%d rect=%s",
+            static_cast<int32_t>(wmReason), wmRect.ToString().c_str());
         auto window = weak.promote();
         if (!window) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "window is null, updateViewPortConfig failed");
+            TLOGNE(WmsLogTag::WMS_LAYOUT,
+                "[WindowRectUpdate:ClientRecv] %{public}s: window is null", where);
             return;
         }
         bool ifNeedCommitRsTransaction = window->CheckIfNeedCommitRsTransaction(wmReason);
@@ -8780,15 +8787,20 @@ uint32_t WindowSessionImpl::GetStatusBarHeight() const
 /** @note @window.layout */
 void WindowSessionImpl::NotifyWindowStatusChange(WindowMode mode)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowModeUpdate::Inner::NotifyWindowStatusChange id=%d mode=%d", GetPersistentId(), static_cast<int32_t>(mode));
     auto windowStatus = GetOwnWindowStatus(mode);
     if (windowSystemConfig_.skipRedundantWindowStatusNotifications_ && lastWindowStatus_.load() == windowStatus) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "Duplicate windowStatus:%{public}d, id:%{public}d, WindowMode:%{public}d",
-            windowStatus, GetPersistentId(), mode);
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:Inner] NotifyWindowStatusChange skip: duplicate status:%{public}d, id:%{public}d",
+            windowStatus, GetPersistentId());
         return;
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, windowMode:%{public}d, windowStatus:%{public}d, "
-        "lastWindowStatus:%{public}d, skipRedundantWindowStatusNotifications:%{public}d", GetPersistentId(), mode,
-        windowStatus, lastWindowStatus_.load(), windowSystemConfig_.skipRedundantWindowStatusNotifications_);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowModeUpdate:Inner] NotifyWindowStatusChange id:%{public}d, mode:%{public}d, "
+        "status:%{public}d, lastStatus:%{public}d, skipRedundant:%{public}d", GetPersistentId(),
+        static_cast<int32_t>(mode), windowStatus, lastWindowStatus_.load(),
+        windowSystemConfig_.skipRedundantWindowStatusNotifications_);
     lastWindowStatus_.store(windowStatus);
     std::lock_guard<std::recursive_mutex> lockListener(windowStatusChangeListenerMutex_);
     auto windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();
@@ -8819,11 +8831,15 @@ void WindowSessionImpl::NotifyWindowStatusChange(WindowMode mode)
 /** @note @window.layout */
 void WindowSessionImpl::NotifyWindowStatusDidChange(WindowMode mode)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowModeUpdate::Inner::NotifyWindowStatusDidChange id=%d mode=%d",
+        GetPersistentId(), static_cast<int32_t>(mode));
     auto windowStatus = GetOwnWindowStatus(mode);
     auto lastStatus = lastStatusWhenNotifyWindowStatusDidChange_.load();
     if (lastStatus == windowStatus) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "Duplicate windowStatus:%{public}u, id:%{public}d, windowMode:%{public}u",
-            windowStatus, GetPersistentId(), mode);
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:Inner] NotifyWindowStatusDidChange skip: duplicate status:%{public}d, id:%{public}d",
+            windowStatus, GetPersistentId());
         return;
     }
     lastStatusWhenNotifyWindowStatusDidChange_.store(windowStatus);
@@ -8833,10 +8849,11 @@ void WindowSessionImpl::NotifyWindowStatusDidChange(WindowMode mode)
         windowStatusDidChangeListeners = GetListeners<IWindowStatusDidChangeListener>();
     }
     const auto& windowRect = GetRect();
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, WindowMode:%{public}u, windowStatus:%{public}u, "
-        "lastWindowStatus:%{public}u, listenerSize:%{public}zu, rect:%{public}s",
-        GetPersistentId(), mode, windowStatus, lastStatus, windowStatusDidChangeListeners.size(),
-        windowRect.ToString().c_str());
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowModeUpdate:Inner] NotifyWindowStatusDidChange id:%{public}d, mode:%{public}d, "
+        "status:%{public}d, lastStatus:%{public}d, listenerSize:%{public}zu, rect:%{public}s",
+        GetPersistentId(), static_cast<int32_t>(mode), windowStatus, lastStatus,
+        windowStatusDidChangeListeners.size(), windowRect.ToString().c_str());
     for (auto& listener : windowStatusDidChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowStatusDidChange(windowStatus);

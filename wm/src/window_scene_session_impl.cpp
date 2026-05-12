@@ -2803,28 +2803,37 @@ WMError WindowSceneSessionImpl::MoveToAsync(int32_t x, int32_t y, MoveConfigurat
 
 WMError WindowSceneSessionImpl::MoveWindowToGlobal(int32_t x, int32_t y, MoveConfiguration moveConfiguration)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d MoveTo %{public}d %{public}d", property_->GetPersistentId(), x, y);
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowRectUpdate::ClientReq::MoveWindowToGlobal id=%d [%d,%d]",
+        property_->GetPersistentId(), x, y);
     if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowRectUpdate:ClientReq] MoveWindowToGlobal skip: session invalid, id:%{public}d",
+            property_->GetPersistentId());
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
 
     if (GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "window should not move, winId:%{public}u, mode:%{public}u",
-            GetWindowId(), GetWindowMode());
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+            "[WindowRectUpdate:ClientReq] MoveWindowToGlobal skip: not floating, id:%{public}d, mode:%{public}u",
+            GetWindowId(), static_cast<uint32_t>(GetWindowMode()));
         return WMError::WM_ERROR_INVALID_OP_IN_CUR_STATUS;
     }
 
     if (property_->GetWindowType() == WindowType::WINDOW_TYPE_PIP) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Unsupported operation for pip window");
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+            "[WindowRectUpdate:ClientReq] MoveWindowToGlobal skip: pip window, id:%{public}d",
+            property_->GetPersistentId());
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     const auto& windowRect = GetRect();
     const auto& requestRect = GetRequestRect();
     Rect newRect = { x, y, requestRect.width_, requestRect.height_ }; // must keep x/y
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, state: %{public}d, type: %{public}d, mode: %{public}d, requestRect: "
-        "%{public}s, windowRect: %{public}s, newRect: %{public}s",
-        property_->GetPersistentId(), state_, GetType(), GetWindowMode(), requestRect.ToString().c_str(),
-        windowRect.ToString().c_str(), newRect.ToString().c_str());
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowRectUpdate:ClientReq] MoveWindowToGlobal id:%{public}d, curRect=%{public}s, newRect=%{public}s, "
+        "moveConfig=%{public}s",
+        property_->GetPersistentId(), windowRect.ToString().c_str(), newRect.ToString().c_str(),
+        moveConfiguration.ToString().c_str());
 
     property_->SetRequestRect(newRect);
 
@@ -2842,7 +2851,9 @@ WMError WindowSceneSessionImpl::MoveWindowToGlobal(int32_t x, int32_t y, MoveCon
             std::chrono::system_clock::now().time_since_epoch()).count();
         auto waitTime = endTime - startTime;
         if (waitTime >= WINDOW_LAYOUT_TIMEOUT) {
-            TLOGW(WmsLogTag::WMS_LAYOUT, "Layout timeout, Id:%{public}d", property_->GetPersistentId());
+            TLOGW(WmsLogTag::WMS_LAYOUT,
+                "[WindowRectUpdate:ClientReq] MoveWindowToGlobal layout timeout, id:%{public}d, waitTime:%{public}lld",
+                property_->GetPersistentId(), static_cast<long long>(waitTime));
             layoutCallback_->GetMoveToAsyncResult(WINDOW_LAYOUT_TIMEOUT);
         }
     }
@@ -6563,16 +6574,28 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(const WindowModeInfo& windowMod
 {
     windowModeInfo_ = windowModeInfo;
     WindowMode mode = windowModeInfo.windowMode;
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowModeUpdate::ClientRecv::UpdateWindowMode id=%u mode=%d splitStyle=%d splitIndex=%d",
+        GetWindowId(), static_cast<int32_t>(mode),
+        static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex);
     if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:ClientRecv] skip: session invalid, id:%{public}u, mode:%{public}u",
+            GetWindowId(), static_cast<uint32_t>(mode));
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
     uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, windowModeSupportType: %{public}u, mode: %{public}u",
-        GetWindowId(), property_->GetWindowModeSupportType(), static_cast<uint32_t>(mode));
+    auto preMode = GetMode();
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowModeUpdate:ClientRecv] id:%{public}u, preMode:%{public}u, mode:%{public}u, "
+        "splitStyle:%{public}d, splitIndex:%{public}d, supportType:%{public}u",
+        GetWindowId(), static_cast<uint32_t>(preMode), static_cast<uint32_t>(mode),
+        static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex, windowModeSupportType);
     if (!WindowHelper::IsWindowModeSupported(windowModeSupportType, mode) &&
         !ShouldSkipSupportWindowModeCheck(windowModeSupportType, mode)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "%{public}u do not support mode: %{public}u",
-            GetWindowId(), static_cast<uint32_t>(mode));
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:ClientRecv] skip: mode not supported, id:%{public}u, mode:%{public}u, "
+            "supportType:%{public}u", GetWindowId(), static_cast<uint32_t>(mode), windowModeSupportType);
         return WSError::WS_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
     }
     if (mode != WindowMode::WINDOW_MODE_FULLSCREEN) {
@@ -6581,7 +6604,8 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(const WindowModeInfo& windowMod
     }
     WMError ret = UpdateWindowModeImmediately(windowModeInfo);
 
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, mode: %{public}u, ret: %{public}d",
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowModeUpdate:ClientRecv] done, id:%{public}u, mode:%{public}u, ret:%{public}d",
         GetWindowId(), static_cast<uint32_t>(mode), static_cast<int32_t>(ret));
     return static_cast<WSError>(ret);
 }
@@ -6616,15 +6640,19 @@ WSError WindowSceneSessionImpl::GetTopNavDestinationName(std::string& topNavDest
 WMError WindowSceneSessionImpl::UpdateWindowModeImmediately(const WindowModeInfo& windowModeInfo)
 {
     WindowMode mode = windowModeInfo.windowMode;
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, mode: %{public}u, state: %{public}u",
-        GetWindowId(), static_cast<uint32_t>(mode), static_cast<uint32_t>(state_));
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowModeUpdate:Inner] UpdateWindowModeImmediately id:%{public}u, mode:%{public}u, "
+        "splitStyle:%{public}d, splitIndex:%{public}d, state:%{public}u",
+        GetWindowId(), static_cast<uint32_t>(mode),
+        static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex,
+        static_cast<uint32_t>(state_));
     if (state_ == WindowState::STATE_CREATED || state_ == WindowState::STATE_HIDDEN) {
-        property_->SetWindowMode(mode);
+        property_->SetWindowModeInfo(windowModeInfo);
         UpdateTitleButtonVisibility();
         UpdateDecorEnable(true);
     } else if (state_ == WindowState::STATE_SHOWN) {
         // set client window mode if success.
-        property_->SetWindowMode(mode);
+        property_->SetWindowModeInfo(windowModeInfo);
         UpdateTitleButtonVisibility();
         UpdateDecorEnable(true, mode);
         if (WindowHelper::IsSplitWindowMode(mode)) {
