@@ -74,43 +74,6 @@ HWTEST_F(SCBSystemSessionLayoutTest, UpdateWindowMode, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyClientToUpdateRect02
- * @tc.desc: check func NotifyClientToUpdateRect
- * @tc.type: FUNC
- */
-HWTEST_F(SCBSystemSessionLayoutTest, NotifyClientToUpdateRect02, TestSize.Level1)
-{
-    auto specificCallback1 = sptr<SCBSystemSession::SpecificSessionCallback>::MakeSptr();
-    SessionInfo info;
-    sptr<SCBSystemSession> scbSystemSession = sptr<SCBSystemSession>::MakeSptr(info, specificCallback1);
-    UpdateAvoidAreaCallback onUpdateAvoidArea;
-    ClearDisplayStatusBarTemporarilyFlags onClearDisplayStatusBarTemporarilyFlags;
-    scbSystemSession->specificCallback_ = specificCallback1;
-    scbSystemSession->specificCallback_->onUpdateAvoidArea_ = onUpdateAvoidArea;
-    scbSystemSession->specificCallback_->onClearDisplayStatusBarTemporarilyFlags_ =
-        onClearDisplayStatusBarTemporarilyFlags;
-    auto ret = scbSystemSession->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
-    ASSERT_EQ(WSError::WS_OK, ret);
-
-    scbSystemSession->specificCallback_->onClearDisplayStatusBarTemporarilyFlags_ = nullptr;
-    ret = scbSystemSession->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
-    ASSERT_EQ(WSError::WS_OK, ret);
-
-    scbSystemSession->specificCallback_->onUpdateAvoidArea_ = nullptr;
-    ret = scbSystemSession->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
-    ASSERT_EQ(WSError::WS_OK, ret);
-
-    scbSystemSession->specificCallback_->onClearDisplayStatusBarTemporarilyFlags_ =
-        onClearDisplayStatusBarTemporarilyFlags;
-    ret = scbSystemSession->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
-    ASSERT_EQ(WSError::WS_OK, ret);
-
-    scbSystemSession->specificCallback_ = nullptr;
-    ret = scbSystemSession->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
-    ASSERT_EQ(WSError::WS_OK, ret);
-}
-
-/**
  * @tc.name: NotifyClientToUpdateRect03
  * @tc.desc: check func NotifyClientToUpdateRect
  * @tc.type: FUNC
@@ -123,42 +86,42 @@ HWTEST_F(SCBSystemSessionLayoutTest, NotifyClientToUpdateRect03, TestSize.Level1
     auto ret = scbSystemSession_->SetSessionProperty(property);
     ASSERT_EQ(WSError::WS_OK, ret);
     scbSystemSession_->isKeyboardPanelEnabled_ = true;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     scbSystemSession_->isKeyboardPanelEnabled_ = false;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     scbSystemSession_->isKeyboardPanelEnabled_ = true;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     scbSystemSession_->isKeyboardPanelEnabled_ = false;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     ret = scbSystemSession_->SetSessionProperty(property);
     ASSERT_EQ(WSError::WS_OK, ret);
     scbSystemSession_->isKeyboardPanelEnabled_ = true;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     scbSystemSession_->isKeyboardPanelEnabled_ = false;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     scbSystemSession_->isKeyboardPanelEnabled_ = true;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     scbSystemSession_->isKeyboardPanelEnabled_ = false;
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 
     scbSystemSession_->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG);
-    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 }
 
@@ -170,7 +133,7 @@ HWTEST_F(SCBSystemSessionLayoutTest, NotifyClientToUpdateRect03, TestSize.Level1
 HWTEST_F(SCBSystemSessionLayoutTest, NotifyClientToUpdateRect04, TestSize.Level1)
 {
     scbSystemSession_->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
-    auto ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", nullptr);
+    auto ret = scbSystemSession_->NotifyClientToUpdateRect("SCBSystemSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 }
 } // namespace

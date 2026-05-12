@@ -112,6 +112,9 @@ private:
     int HandleSetWindowSnapshotSkip(MessageParcel& data, MessageParcel& reply);
     int HandleGetGlobalWindowMode(MessageParcel& data, MessageParcel& reply);
     int HandleGetTopNavDestinationName(MessageParcel& data, MessageParcel& reply);
+    int HandleSetScreenWatermarkImage(MessageParcel& data, MessageParcel& reply);
+    int HandleCleanScreenWatermarkImage(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverScreenWatermarkImage(MessageParcel& data, MessageParcel& reply);
     int HandleSetWatermarkImageForApp(MessageParcel& data, MessageParcel& reply);
     int HandleRecoverWatermarkImageForApp(MessageParcel& data, MessageParcel& reply);
     int HandleGetVisibilityWindowInfo(MessageParcel& data, MessageParcel& reply);
@@ -132,6 +135,7 @@ private:
     int HandleSkipSnapshotForAppProcess(MessageParcel& data, MessageParcel& reply);
     int HandleSkipSnapshotByUserIdAndBundleNames(MessageParcel& data, MessageParcel& reply);
     int HandleSetProcessWatermark(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverProcessWatermark(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowIdsByCoordinate(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionScreenLock(MessageParcel& data, MessageParcel& reply);
     int HandleAddSkipSelfWhenShowOnVirtualScreenList(MessageParcel& data, MessageParcel& reply);
@@ -171,6 +175,8 @@ private:
     int HandleMoveMainWindowToTargetDisplay(MessageParcel& data, MessageParcel& reply);
     int HandleNotifySupportRotationRegistered(MessageParcel& data, MessageParcel& reply);
     int HandleGetCrossProcessWindowInfo(MessageParcel& data, MessageParcel& reply);
+    int HandleGetFloatViewLimits(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_STUB_H

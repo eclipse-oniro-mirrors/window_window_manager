@@ -333,6 +333,9 @@ HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeTest, TestSize.Level1)
  */
 HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeInnerTest, TestSize.Level1)
 {
+    if (FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     ScreenSessionManager::GetInstance().screenSessionMap_[0] = sptr<ScreenSession>::MakeSptr();
@@ -539,6 +542,82 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl05, TestSize.Level
     }
 }
 
+/**
+ * @tc.name: SetdisplayModeChangeStatusCountTest01
+ * @tc.desc: test function : SetdisplayModeChangeStatusCount with status true
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, SetdisplayModeChangeStatusCountTest01, TestSize.Level1)
+{
+    FoldScreenBasePolicy::GetInstance().displayModeChangeRunning_ = false;
+    FoldScreenBasePolicy::GetInstance().pendingTask_ = 0;
+
+    FoldScreenBasePolicy::GetInstance().SetdisplayModeChangeStatusCount(true, 5);
+    EXPECT_TRUE(FoldScreenBasePolicy::GetInstance().displayModeChangeRunning_);
+    EXPECT_EQ(FoldScreenBasePolicy::GetInstance().pendingTask_, 5);
+}
+
+/**
+ * @tc.name: SetdisplayModeChangeStatusCountTest02
+ * @tc.desc: test function : SetdisplayModeChangeStatusCount with status false
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, SetdisplayModeChangeStatusCountTest02, TestSize.Level1)
+{
+    FoldScreenBasePolicy::GetInstance().displayModeChangeRunning_ = true;
+    FoldScreenBasePolicy::GetInstance().pendingTask_ = 5;
+
+    FoldScreenBasePolicy::GetInstance().SetdisplayModeChangeStatusCount(false, 0);
+    EXPECT_TRUE(FoldScreenBasePolicy::GetInstance().displayModeChangeRunning_);
+    EXPECT_EQ(FoldScreenBasePolicy::GetInstance().pendingTask_, 4);
+}
+
+/**
+ * @tc.name: SetdisplayModeChangeStatusCountTest03
+ * @tc.desc: test function : SetdisplayModeChangeStatusCount with FOLD_TASK_NUM_ONBOOTANIMATION
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, SetdisplayModeChangeStatusCountTest03, TestSize.Level1)
+{
+    FoldScreenBasePolicy::GetInstance().displayModeChangeRunning_ = false;
+    FoldScreenBasePolicy::GetInstance().pendingTask_ = 0;
+
+    uint32_t bootAnimationCount = 10;
+    FoldScreenBasePolicy::GetInstance().SetdisplayModeChangeStatusCount(true, bootAnimationCount);
+    EXPECT_TRUE(FoldScreenBasePolicy::GetInstance().displayModeChangeRunning_);
+    EXPECT_EQ(FoldScreenBasePolicy::GetInstance().pendingTask_, bootAnimationCount);
+}
+
+/**
+ * @tc.name: GetScreenActiveModeRectMapTest01
+ * @tc.desc: test function : GetScreenActiveModeRectMap returns screenActiveModeRectMap_
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, GetScreenActiveModeRectMapTest01, TestSize.Level1)
+{
+    RRect rectOld = FoldScreenBasePolicy::GetInstance().screenActiveModeRectMap_[FoldDisplayMode::FULL];
+    RRect rect = RRect({0, 0, 100, 100}, 0.0f, 0.0f);
+    FoldScreenBasePolicy::GetInstance().screenActiveModeRectMap_[FoldDisplayMode::FULL] = rect;
+
+    auto result = FoldScreenBasePolicy::GetInstance().GetScreenActiveModeRectMap();
+    EXPECT_EQ(result[FoldDisplayMode::FULL], rect);
+    FoldScreenBasePolicy::GetInstance().screenActiveModeRectMap_[FoldDisplayMode::FULL] = rectOld;
+}
+
+/**
+ * @tc.name: GetScreenActiveModeRectMap
+ * @tc.desc: test function : GetScreenActiveModeRectMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, GetScreenActiveModeRectMap, TestSize.Level1)
+{
+    FoldScreenBasePolicy* policy = mockBasePolicy.get();
+    policy->screenActiveModeRectMap_.clear();
+    RRect bounds = RRect{{0, 0, 100, 100}, 0.0f, 0.0f};
+    policy->screenActiveModeRectMap_.insert(std::make_pair(FoldDisplayMode::MAIN, bounds));
+    auto map = policy->GetScreenActiveModeRectMap();
+    EXPECT_EQ(map.size(), 1);
+}
 }
 }
 } // namespace Rosen

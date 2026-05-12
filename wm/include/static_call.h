@@ -32,7 +32,7 @@ public:
         sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> context = nullptr);
     virtual sptr<Window> CreateWindow(sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> context,
         const sptr<IRemoteObject>& iSession, const std::string& identityToken = "",
-        bool isModuleAbilityHookEnd = false);
+        bool isModuleAbilityHookEnd = false, sptr<IRemoteObject> renderSession = nullptr);
     virtual std::vector<sptr<Window>> GetSubWindow(uint32_t parentId);
 
 protected:

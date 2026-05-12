@@ -917,12 +917,12 @@ void AniWindowListener::OnParentWindowSizeChange(Rect rect)
         auto env = aniVm.GetAniEnv();
         RETURN_IF_NULL(env);
 
-        AniWindowUtils::CallAniFunctionVoid(env, "@ohos.window.window", "runParentWindowSizeChangeCallBack",
+        AniWindowUtils::CallAniFunctionVoid(env, "@ohos.window.window", "runParentWindowSizeChangeCallback",
             nullptr, listener->aniCallback_, AniWindowUtils::CreateAniSize(env, rect.width_, rect.height_));
     };
 
     RETURN_IF_NULL(eventHandler_);
-    eventHandler_->PostTask(task, "wms:AniWindowListener::ParentWindowSizeChangeCallBack", 0,
+    eventHandler_->PostTask(task, "wms:AniWindowListener::parentWindowSizeChangeCallback", 0,
         AppExecFwk::EventQueue::Priority::HIGH);
 }
 

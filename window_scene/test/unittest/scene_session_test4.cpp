@@ -405,7 +405,7 @@ HWTEST_F(SceneSessionTest4, SetRequestedOrientation, TestSize.Level1)
     session->SetRequestedOrientation(orientation);
     session->onRequestedOrientationChange_ = nullptr;
     session->SetRequestedOrientation(orientation);
-    NotifyReqOrientationChangeFunc func = [](uint32_t orientation, bool needAnimation) {
+    NotifyReqOrientationChangeFunc func = [](uint32_t orientation, bool needAnimation, uint32_t promiseId) {
         return;
     };
     session->onRequestedOrientationChange_ = func;
@@ -420,21 +420,32 @@ HWTEST_F(SceneSessionTest4, SetRequestedOrientation, TestSize.Level1)
  */
 HWTEST_F(SceneSessionTest4, UpdateSessionPropertyByAction, TestSize.Level1)
 {
+    WMError ret;
     SessionInfo info;
     info.abilityName_ = "UpdateSessionPropertyByAction";
     info.bundleName_ = "UpdateSessionPropertyByAction";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(nullptr, property);
-    WSPropertyChangeAction action = WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE;
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, sceneSession->UpdateSessionPropertyByAction(nullptr, action));
+    auto sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    auto action = WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE;
 
+    // branch 1: property is null
+    ret = sceneSession->UpdateSessionPropertyByAction(nullptr, action);
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+
+    // branch 2: action = ACTION_UPDATE_PRIVACY_MODE
     sceneSession->SetSessionProperty(property);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->UpdateSessionPropertyByAction(property, action));
+    ret = sceneSession->UpdateSessionPropertyByAction(property, action);
+    EXPECT_EQ(WMError::WM_OK, ret);
 
+    // branch 3: action = ACTION_UPDATE_TURN_SCREEN_ON
     action = WSPropertyChangeAction::ACTION_UPDATE_TURN_SCREEN_ON;
-    EXPECT_EQ(WMError::WM_OK, sceneSession->UpdateSessionPropertyByAction(property, action));
+    ret = sceneSession->UpdateSessionPropertyByAction(property, action);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    // branch 4: action = ACTION_UPDATE_TOUCH_HOT_AREA
+    action = WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA;
+    ret = sceneSession->UpdateSessionPropertyByAction(property, action);
+    EXPECT_EQ(WMError::WM_OK, ret);
 }
 
 /**
@@ -668,9 +679,6 @@ HWTEST_F(SceneSessionTest4, HandleSpecificSystemBarProperty, TestSize.Level1)
     WindowType type = WindowType::WINDOW_TYPE_STATUS_BAR;
     sceneSession->HandleSpecificSystemBarProperty(type, property);
 
-    sceneSession->isDisplayStatusBarTemporarily_.store(true);
-    sceneSession->HandleSpecificSystemBarProperty(type, property);
-
     sceneSession->specificCallback_ = nullptr;
     sceneSession->HandleSpecificSystemBarProperty(type, property);
 
@@ -857,7 +865,7 @@ HWTEST_F(SceneSessionTest4, UnregisterSessionChangeListeners01, TestSize.Level1)
 
     sceneSession->UnregisterSessionChangeListeners();
     NotifyPendingSessionToBackgroundForDelegatorFunc func =[sceneSession](const SessionInfo& info,
-        bool shouldBackToCaller) { return; };
+        bool shouldBackToCaller, LifeCycleChangeReason reason) { return; };
     sceneSession->pendingSessionToBackgroundForDelegatorFunc_ = func;
     ASSERT_EQ(WSError::WS_OK, sceneSession->PendingSessionToBackgroundForDelegator(true));
 }

@@ -23,6 +23,7 @@
 #include "window_option.h"
 #include "viewport_config.h"
 #include "singleton_container.h"
+#include <ui/rs_ui_director.h>
 
 namespace OHOS {
 namespace Rosen {
@@ -46,6 +47,7 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
     } else {
         name_ = "main_window";
     }
+    rsUIDirector_ = RSUIDirector::Create(nullptr);
     WLOGFI("WindowImpl constructorCnt: %{public}d",
         ++constructorCnt);
 }
@@ -63,7 +65,7 @@ void WindowImpl::CreateSurfaceNode(const std::string name, const SendRenderDataC
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
     rsSurfaceNodeConfig.SurfaceNodeName = name;
     rsSurfaceNodeConfig.additionalData = reinterpret_cast<void*>(callback);
-    surfaceNode_ = RSSurfaceNode::Create(rsSurfaceNodeConfig);
+    surfaceNode_ = RSSurfaceNode::Create(rsSurfaceNodeConfig, true, GetRSUIContext());
     if (surfaceNode_ != nullptr) {
         vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
     }
@@ -99,6 +101,13 @@ sptr<Window> WindowImpl::FindWindowById(uint32_t windowId)
     }
     WLOGFE("Cannot find Window!");
     return nullptr;
+}
+
+std::shared_ptr<RSUIContext> WindowImpl::GetRSUIContext() const
+{
+    auto rsUIContext = rsUIDirector_ ? rsUIDirector_->GetRSUIContext() : nullptr;
+    WLOGFE("GetRSUIContext uicontext is %{public}d", rsUIContext != nullptr);
+    return rsUIContext;
 }
 
 sptr<Window> WindowImpl::GetTopWindowWithId(uint32_t mainWinId)
@@ -443,6 +452,18 @@ WMError WindowImpl::SetSpecificBarProperty(WindowType type, const SystemBarPrope
     }
     NotifySystemBarChange(type, property);
     UpdateViewportConfig();
+    return WMError::WM_OK;
+}
+
+WMError WindowImpl::SetFloatNavigationAvoidAreaEnabled(bool enable)
+{
+    floatNavigationAvoidAreaEnabled_ = enable;
+    return WMError::WM_OK;
+}
+
+WMError WindowImpl::GetFloatNavigationAvoidAreaEnabled(bool& enable) const
+{
+    enable = floatNavigationAvoidAreaEnabled_;
     return WMError::WM_OK;
 }
 
@@ -974,7 +995,11 @@ void WindowImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType
         WLOGFE("invalid avoidArea");
         return;
     }
-
+    bool floatNavigationAvoidAreaEnabled_ = false;
+    GetFloatNavigationAvoidAreaEnabled(floatNavigationAvoidAreaEnabled_);
+    if (!floatNavigationAvoidAreaEnabled_ && type == AvoidAreaType::TYPE_FLOAT_NAVIGATION) {
+        return;
+    }
     WLOGFI("type:%{public}d, top:{%{public}d,%{public}d,%{public}d,%{public}d}, "
         "left:{%{public}d,%{public}d,%{public}d,%{public}d}, right:{%{public}d,%{public}d,%{public}d,%{public}d}, "
         "bottom:{%{public}d,%{public}d,%{public}d,%{public}d}",

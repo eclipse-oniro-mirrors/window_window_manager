@@ -74,6 +74,10 @@ std::string AniPiPListener::GetStringByStateChangeReason(const PiPStateChangeRea
 void AniPiPListener::OnPipStateChangeDispatch(const PiPState& state, const PiPStateChangeReason& reason)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_PIP, "[pip]main event handler null");
+        return;
+    }
     std::string reasonString = GetStringByStateChangeReason(reason);
     auto task = [self = weakRef_, vm = vm_, state, reasonString]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "[PIP]AniPiPListener::OnPipStateChangeDispatch");
@@ -89,14 +93,10 @@ void AniPiPListener::OnPipStateChangeDispatch(const PiPState& state, const PiPSt
             return;
         }
         ani_string reasonStringAni;
-        GetAniString(env, reasonString, &reasonStringAni);
-        CallAniFunctionVoid(env, ETS_NS, "runOnStateChangeEvent", nullptr,
-                            thisListener->aniCallback_, state, reasonStringAni);
+        AniPipUtils::GetAniString(env, reasonString, &reasonStringAni);
+        AniPipUtils::CallAniFunctionVoid(env, ETS_NS, "runOnStateChangeEvent", nullptr,
+                                         thisListener->aniCallback_, state, reasonStringAni);
     };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_PIP, "[pip]main event handler null");
-        return;
-    }
     eventHandler_->PostTask(task, "AniPiPListener::OnPipStateChangeDispatch", 0,
                             AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
@@ -104,6 +104,10 @@ void AniPiPListener::OnPipStateChangeDispatch(const PiPState& state, const PiPSt
 void AniPiPListener::OnPipStateChangeDispatchError(const int32_t& errorCode)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_PIP, "[pip]main event handler null");
+        return;
+    }
     PiPState state = PiPState::ERROR;
     std::string reasonString = std::to_string(errorCode);
     auto task = [self = weakRef_, vm = vm_, state, reasonString]() {
@@ -119,13 +123,9 @@ void AniPiPListener::OnPipStateChangeDispatchError(const int32_t& errorCode)
             TLOGE(WmsLogTag::WMS_PIP, "[pip]GetEnv failed, ret:%{public}u", ret);
             return;
         }
-        CallAniFunctionVoid(env, ETS_NS, "runOnStateChangeEvent", nullptr, thisListener->aniCallback_,
-                            state, reasonString.c_str());
+        AniPipUtils::CallAniFunctionVoid(env, ETS_NS, "runOnStateChangeEvent", nullptr, thisListener->aniCallback_,
+                                         state, reasonString.c_str());
     };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_PIP, "[pip]main event handler null");
-        return;
-    }
     eventHandler_->PostTask(task, "AniPiPListener::OnPipStateChangeDispatchError", 0,
                             AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
@@ -165,6 +165,10 @@ void AniPiPListener::OnPictureInPictureOperationError(int32_t errorCode)
 void AniPiPListener::OnActionEvent(const std::string& actionEvent, int32_t statusCode)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
+        return;
+    }
     auto task = [self = weakRef_, vm = vm_, actionEvent, statusCode]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "[PIP]AniPiPListener::OnActionEvent");
         auto thisListener = self.promote();
@@ -181,13 +185,9 @@ void AniPiPListener::OnActionEvent(const std::string& actionEvent, int32_t statu
         ani_string act;
         env->String_NewUTF8(actionEvent.c_str(), static_cast<ani_size>(actionEvent.size()), &act);
 
-        CallAniFunctionVoid(env, ETS_NS, "runOnControlPanelActionEvent", nullptr,
-                            thisListener->aniCallback_, act, static_cast<ani_int>(statusCode));
+        AniPipUtils::CallAniFunctionVoid(env, ETS_NS, "runOnControlPanelActionEvent", nullptr,
+                                         thisListener->aniCallback_, act, static_cast<ani_int>(statusCode));
     };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
-        return;
-    }
     eventHandler_->PostTask(task, "AniPiPListener::OnActionEvent", 0,
                             AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
@@ -196,6 +196,10 @@ void AniPiPListener::OnActionEvent(const std::string& actionEvent, int32_t statu
 void AniPiPListener::OnControlEvent(PiPControlType controlType, PiPControlStatus statusCode)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
+        return;
+    }
     auto task = [self = weakRef_, vm = vm_, controlType, statusCode]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "[PIP]AniPiPListener::OnControlEvent");
         auto thisListener = self.promote();
@@ -209,15 +213,11 @@ void AniPiPListener::OnControlEvent(PiPControlType controlType, PiPControlStatus
             TLOGE(WmsLogTag::WMS_PIP, "GetEnv failed ret:%{public}u", ret);
             return;
         }
-        CallAniFunctionVoid(env, ETS_NS, "runOnControlEvent", nullptr,
-                            thisListener->aniCallback_,
-                            static_cast<ani_int>(controlType),
-                            static_cast<ani_int>(statusCode));
+        AniPipUtils::CallAniFunctionVoid(env, ETS_NS, "runOnControlEvent", nullptr,
+                                         thisListener->aniCallback_,
+                                         static_cast<ani_int>(controlType),
+                                         static_cast<ani_int>(statusCode));
     };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
-        return;
-    }
     eventHandler_->PostTask(task, "AniPiPListener::OnControlEvent", 0,
                             AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
@@ -226,6 +226,10 @@ void AniPiPListener::OnControlEvent(PiPControlType controlType, PiPControlStatus
 void AniPiPListener::OnPipSizeChange(const PiPWindowSize& size)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
+        return;
+    }
     auto task = [self = weakRef_, vm = vm_, size]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "[PIP]AniPiPListener::OnPipSizeChange");
         auto thisListener = self.promote();
@@ -239,16 +243,12 @@ void AniPiPListener::OnPipSizeChange(const PiPWindowSize& size)
             TLOGE(WmsLogTag::WMS_PIP, "GetEnv failed ret:%{public}d", (int)ret);
             return;
         }
-        CallAniFunctionVoid(env, ETS_NS, "runOnPipWindowSizeChangeEvent", nullptr,
-                            thisListener->aniCallback_,
-                            static_cast<ani_int>(size.width),
-                            static_cast<ani_int>(size.height),
-                            static_cast<ani_double>(size.scale));
+        AniPipUtils::CallAniFunctionVoid(env, ETS_NS, "runOnPipWindowSizeChangeEvent", nullptr,
+                                         thisListener->aniCallback_,
+                                         static_cast<ani_int>(size.width),
+                                         static_cast<ani_int>(size.height),
+                                         static_cast<ani_double>(size.scale));
     };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
-        return;
-    }
     eventHandler_->PostTask(task, "AniPiPListener::OnPipSizeChange", 0,
                             AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
@@ -257,6 +257,10 @@ void AniPiPListener::OnPipSizeChange(const PiPWindowSize& size)
 void AniPiPListener::OnActiveStatusChange(const bool& status)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
+        return;
+    }
     auto task = [self = weakRef_, vm = vm_, status]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "[PIP]AniPiPListener::OnActiveStatusChange");
         auto thisListener = self.promote();
@@ -270,12 +274,9 @@ void AniPiPListener::OnActiveStatusChange(const bool& status)
             TLOGE(WmsLogTag::WMS_PIP, "GetEnv failed ret:%{public}d", (int)ret);
             return;
         }
-        CallAniFunctionVoid(env, ETS_NS, "runOnActiveStatusChangeEvent", nullptr, thisListener->aniCallback_, status);
+        AniPipUtils::CallAniFunctionVoid(env, ETS_NS, "runOnActiveStatusChangeEvent", nullptr,
+            thisListener->aniCallback_, status);
     };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_PIP, "main event handler null");
-        return;
-    }
     eventHandler_->PostTask(task, "AniPiPListener::OnActiveStatusChange", 0,
                             AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }

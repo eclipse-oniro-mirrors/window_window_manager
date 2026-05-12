@@ -137,6 +137,7 @@ ohos_shared_library("libdms") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("test") {

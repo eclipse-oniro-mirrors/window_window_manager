@@ -78,7 +78,8 @@ void FoldScreenBaseController::RecoverDisplayMode()
         !ProductConfig::GetInstance().IsSingleDisplayPocketFoldDevice() &&
         !ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice() &&
         !ProductConfig::GetInstance().IsDualDisplayFoldDevice() &&
-        !ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice()) {
+        !ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice() &&
+        !ProductConfig::GetInstance().IsSecondaryDisplaySuperFoldDevice()) {
         TLOGI(WmsLogTag::DMS, "current fold device do not need recover, skip");
         return;
     }
@@ -255,5 +256,15 @@ float FoldScreenBaseController::GetSpecialVirtualPixelRatio()
 FoldDisplayMode FoldScreenBaseController::GetCurrentDisplayMode() const
 {
     return FoldScreenBasePolicy::GetInstance().GetCurrentDisplayMode();
+}
+
+void FoldScreenBaseController::PowerkeySetScreenActiveRect()
+{
+    FoldScreenBasePolicy::GetInstance().PowerkeySetScreenActiveRect();
+}
+
+const std::map<FoldDisplayMode, RRect>& FoldScreenBaseController::GetScreenActiveModeRectMap() const
+{
+    return FoldScreenBasePolicy::GetInstance().GetScreenActiveModeRectMap();
 }
 } // namespace OHOS::Rosen

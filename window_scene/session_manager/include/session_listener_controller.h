@@ -17,6 +17,7 @@
 #define OHOS_SESSION_MANAGER_SESSION_LISTENER_CONTROLLER_H
 
 #include <mutex>
+#include <tuple>
 #include <vector>
 #include <list>
 
@@ -33,6 +34,7 @@
 namespace OHOS {
 namespace Rosen {
 using ISessionListener = AAFwk::IMissionListener;
+class SceneSession;
 class SessionListenerController : public std::enable_shared_from_this<SessionListenerController> {
 public:
     SessionListenerController() = default;
@@ -49,6 +51,9 @@ public:
     void NotifySessionLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent event,
         const SessionInfo& sessionInfo, LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
 
+    void NotifyAppInstanceLifecycleEvent(SessionState state,
+        const sptr<SceneSession>& session, LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+
     void NotifySessionTransferToTargetScreenEvent(const SessionInfo& sessionInfo,
         const uint32_t resultCode, const uint64_t fromScreenId, const uint64_t toScreenId,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
@@ -59,11 +64,16 @@ public:
     WMError RegisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener,
         const std::vector<std::string>& bundleNameList);
 
+    WMError RegisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener,
+        const std::string& bundleName, int32_t appIndex, const std::string& appInstanceKey = "");
+
     WMError UnregisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener);
 
     bool IsListenerMapByIdSizeReachLimit() const;
 
     bool IsListenerMapByBundleSizeReachLimit(bool isBundleNameListEmpty) const;
+
+    bool IsListenerMapByAppInstanceSizeReachLimit() const;
 
     void NotifySessionClosed(const SessionInfo& sessionInfo,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
@@ -113,6 +123,18 @@ private:
     };
 
 private:
+    struct AppInstanceFilterKey {
+        std::string bundleName_;
+        int32_t appIndex_ = 0;
+        std::string appInstanceKey_ = "";
+
+        bool operator<(const AppInstanceFilterKey& other) const
+        {
+            return std::tie(bundleName_, appIndex_, appInstanceKey_) <
+                std::tie(other.bundleName_, other.appIndex_, other.appInstanceKey_);
+        }
+    };
+
     std::mutex listenerLock_;
     std::vector<sptr<ISessionListener>> sessionListeners_;
     sptr<IRemoteObject::DeathRecipient> listenerDeathRecipient_;
@@ -123,17 +145,27 @@ private:
     void ConstructPayload(ISessionLifecycleListener::LifecycleEventPayload& payload, const SessionInfo& sessionInfo,
         const uint32_t resultCode = 0, const uint64_t fromScreenId = 0, const uint64_t toScreenId = 0,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+    void ConstructBatchPayload(std::vector<ISessionLifecycleListener::LifecycleEventPayload>& payloads,
+        const std::vector<sptr<SceneSession>>& sessions);
     void OnSessionLifecycleListenerDied(const wptr<IRemoteObject>& remote);
     void RemoveSessionLifecycleListener(const sptr<IRemoteObject>& target);
+    template <typename MapType>
+    void RemoveListenersFromMap(MapType& listenerMap,
+        const std::function<bool(const sptr<ISessionLifecycleListener>&)>& predicate);
 
     template <typename KeyType, typename MapType>
     void NotifyListeners(const MapType& listenerMap, const KeyType& key,
         const ISessionLifecycleListener::SessionLifecycleEvent event,
         const ISessionLifecycleListener::LifecycleEventPayload& payload);
+    void NotifyAppInstanceListeners(const AppInstanceFilterKey& key,
+        const ISessionLifecycleListener::LifecycleEventPayload& payload);
+    void NotifyAppInstanceListenersByKey(const AppInstanceFilterKey& filterKey,
+        const ISessionLifecycleListener::LifecycleEventPayload& payload);
     std::shared_ptr<TaskScheduler> taskScheduler_;
     sptr<IRemoteObject::DeathRecipient> lifecycleListenerDeathRecipient_;
     std::map<int32_t, std::vector<sptr<ISessionLifecycleListener>>> listenerMapById_;
     std::map<std::string, std::vector<sptr<ISessionLifecycleListener>>> listenerMapByBundle_;
+    std::map<AppInstanceFilterKey, std::vector<sptr<ISessionLifecycleListener>>> listenerMapByAppInstance_;
     std::vector<sptr<ISessionLifecycleListener>> listenersOfAllBundles_;
 };
 }  // namespace Rosen

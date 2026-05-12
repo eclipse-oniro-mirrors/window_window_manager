@@ -56,6 +56,7 @@ ohos_unittest("ws_keyboard_session_test") {
     "keyboard_session_test2.cpp",
     "keyboard_session_test3.cpp",
     "keyboard_session_test4.cpp",
+    "keyboard_session_test5.cpp",
   ]
   cflags_cc = [ "-Wno-thread-safety" ]
   deps = [ ws_unittest_common ]

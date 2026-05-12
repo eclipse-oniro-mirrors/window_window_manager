@@ -16,6 +16,7 @@
 #include "singleton_container.h"
 #include "parameters.h"
 #include "picture_in_picture_manager.h"
+#include "float_window_manager.h"
 #include "web_picture_in_picture_controller.h"
 #include "window_manager_hilog.h"
 #include "window_scene_session_impl.h"
@@ -66,10 +67,10 @@ WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType
     pipTemplateInfo.isWeb = true;
     auto context = mainWindow_->GetContext();
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(context->GetApplicationInfo()->name);
-    sptr<Window> window = Window::CreatePiP(windowOption, pipTemplateInfo, context, errCode);
+    sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context, errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS ? errCode : WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     window_ = window;
     window_->UpdatePiPRect(windowRect_, WindowSizeChangeReason::PIP_START);

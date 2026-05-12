@@ -190,6 +190,15 @@ bool MoveDragController::IsWindowCrossScreenOnDragEnd() const
            moveDragEndDisplayId_ != moveDragStartDisplayId_;
 }
 
+bool MoveDragController::ShouldFlushOnDragEnd() const
+{
+    if (moveDragStartDisplayId_ == DISPLAY_ID_INVALID ||
+        moveDragEndDisplayId_ == DISPLAY_ID_INVALID) {
+        return false;
+    }
+    return moveDragEndDisplayId_ == moveDragStartDisplayId_;
+}
+
 void MoveDragController::OnConnect(ScreenId id)
 {
     TLOGW(WmsLogTag::WMS_LAYOUT, "Moving or dragging is interrupt due to new screen %{public}" PRIu64 " connection.",

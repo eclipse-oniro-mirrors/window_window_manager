@@ -67,6 +67,9 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+
+protected:
+    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
 };
 
 void SceneSessionRotationTest::SetUpTestCase() {}
@@ -460,6 +463,36 @@ HWTEST_F(SceneSessionRotationTest, GetSceneNodeCount, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetSceneNodeCountWithTimeout
+ * @tc.desc: GetSceneNodeCountWithTimeout function with different timeout values
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionRotationTest, GetSceneNodeCountWithTimeout, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: GetSceneNodeCountWithTimeout start";
+    SessionInfo info;
+    info.abilityName_ = "GetSceneNodeCountWithTimeout";
+    info.bundleName_ = "GetSceneNodeCountWithTimeout";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    // Case 1: sessionStage_ is nullptr - should return error
+    uint32_t nodeCount = 0;
+    auto ret = session->GetSceneNodeCount(nodeCount);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, ret);
+
+    sptr<SessionStageMocker> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStage;
+
+    // Case 2: Custom timeout
+    int32_t customTimeout = 5000;
+    ret = session->GetSceneNodeCountWithTimeout(nodeCount, customTimeout);
+    EXPECT_EQ(WSError::WS_OK, ret);
+
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: GetSceneNodeCountWithTimeout end";
+}
+
+/**
  * @tc.name: ConvertOrientationAndRotation
  * @tc.desc: ConvertOrientationAndRotation function
  * @tc.type: FUNC
@@ -691,6 +724,130 @@ HWTEST_F(SceneSessionRotationTest, ConvertWindowOrientationToDisplayRotation, Fu
     WSError result1 = sceneSession->ConvertWindowOrientationToDisplayRotation(value, convertedValue);
     EXPECT_EQ(result1, WSError::WS_ERROR_INVALID_DISPLAY);
 }
+
+/**
+ * @tc.name: SetPreferredOrientationWithResult01
+ * @tc.desc: 测试正常流程
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionRotationTest, SetPreferredOrientationWithResult01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetPreferredOrientationWithResult01 start";
+    SessionInfo info;
+    info.abilityName_ = "SetPreferredOrientationWithResult01";
+    info.bundleName_ = "SetPreferredOrientationWithResult01";
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    Orientation orientation = Orientation::VERTICAL;
+    uint32_t promiseId = 123;
+    bool needAnimation = true;
+    
+    WMError result = sceneSession->SetPreferredOrientationWithResult(orientation, promiseId, needAnimation);
+    EXPECT_EQ(result, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetPreferredOrientationWithResult01 end";
+}
+
+/**
+ * @tc.name: SetPreferredOrientationWithResult02
+ * @tc.desc: 测试 onRequestedOrientationChange_ 为空
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionRotationTest, SetPreferredOrientationWithResult02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetPreferredOrientationWithResult02 start";
+    SessionInfo info;
+    info.abilityName_ = "SetPreferredOrientationWithResult02";
+    info.bundleName_ = "SetPreferredOrientationWithResult02";
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    Orientation orientation = Orientation::VERTICAL;
+    uint32_t promiseId = 123;
+    bool needAnimation = true;
+    
+    WMError result = sceneSession->SetPreferredOrientationWithResult(orientation, promiseId, needAnimation);
+    EXPECT_EQ(result, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetPreferredOrientationWithResult02 end";
+}
+
+/**
+ * @tc.name: NotifyOrientationExecutionResult01
+ * @tc.desc: 测试正常流程
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionRotationTest, NotifyOrientationExecutionResult01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: NotifyOrientationExecutionResult01 start";
+    SessionInfo info;
+    info.abilityName_ = "NotifyOrientationExecutionResult01";
+    info.bundleName_ = "NotifyOrientationExecutionResult01";
+    sptr<SessionStageMocker> sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sceneSession->sessionStage_ = sessionStageMocker;
+    EXPECT_NE(sceneSession, nullptr);
+    uint32_t promiseId = 123;
+    OrientationExecutionResult result = OrientationExecutionResult::ORIENTATION_APPLIED;
+    
+    WSError ret = sceneSession->NotifyOrientationExecutionResult(promiseId, result);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: NotifyOrientationExecutionResult01 end";
+}
+
+/**
+ * @tc.name: NotifyOrientationExecutionResult02
+ * @tc.desc: 测试 sessionStage_ 为空
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionRotationTest, NotifyOrientationExecutionResult02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: NotifyOrientationExecutionResult02 start";
+    SessionInfo info;
+    info.abilityName_ = "NotifyOrientationExecutionResult02";
+    info.bundleName_ = "NotifyOrientationExecutionResult02";
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sceneSession->sessionStage_ = nullptr;
+    EXPECT_NE(sceneSession, nullptr);
+    uint32_t promiseId = 123;
+    OrientationExecutionResult result = OrientationExecutionResult::ORIENTATION_APPLIED;
+    
+    WSError ret = sceneSession->NotifyOrientationExecutionResult(promiseId, result);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: NotifyOrientationExecutionResult02 end";
+}
+
+/**
+ * @tc.name: SetCurrentRotation
+ * @tc.desc: Test SetCurrentRotation with various branch scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionRotationTest, SetCurrentRotation, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetCurrentRotation start";
+
+    // Case 1: Normal scenario - sessionStage_ exists
+    SessionInfo info;
+    info.abilityName_ = "SetCurrentRotation";
+    info.bundleName_ = "SetCurrentRotation";
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sptr<SessionStageMocker> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = sessionStage;
+
+    int32_t currentRotation = 90;
+    WSError ret = sceneSession->SetCurrentRotation(currentRotation);
+    EXPECT_EQ(WSError::WS_OK, ret);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(sceneSession->currentRotation_, currentRotation);
+
+    // Case 2: sessionStage_ is nullptr - skip callback, still return WS_OK
+    sptr<SceneSessionMocker> sessionNoStage = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sessionNoStage->sessionStage_ = nullptr;
+    ret = sessionNoStage->SetCurrentRotation(90);
+    EXPECT_EQ(WSError::WS_OK, ret);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(sessionNoStage->currentRotation_, 90);
+
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetCurrentRotation end";
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

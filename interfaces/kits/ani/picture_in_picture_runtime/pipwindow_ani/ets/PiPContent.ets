@@ -68,13 +68,13 @@ export class XCNodeController extends NodeController {
 @Component
 struct PiPContent {
   private xComponentController: XComponentController = new XComponentController();
-  private nodeController: NodeController | null = null;
+  private nodeController: NodeController | null | undefined = undefined;
   private mXCNodeController: XCNodeController | null = null;
   @State useNode: boolean = false;
   @State nodeChange: boolean = false;
-  private xComponent: typeNode.XComponent | null = null;
+  private xComponent: typeNode.XComponent | null | undefined = undefined;
 
-  validateNode(node: typeNode.XComponent | null): boolean {
+  validateNode(node: typeNode.XComponent | null | undefined): boolean {
     if (node === null || node === undefined) {
       return false;
     }
@@ -147,7 +147,7 @@ struct PiPContent {
       this.mXCNodeController = new XCNodeController(this.xComponent!);
       this.registerStateChangeListener();
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'aboutToAppear error');
+      hilog.error(DOMAIN, TAG, `aboutToAppear error, code:${err.code}, msg:${err.message}}`);
     }
   }
 
@@ -167,7 +167,7 @@ struct PiPContent {
       } else {
         this.buildXComponent();
       }
-      if (this.nodeController !== null) {
+      if (this.nodeController !== null && this.nodeController !== undefined) {
         this.buildCustomUI();
       }
     }

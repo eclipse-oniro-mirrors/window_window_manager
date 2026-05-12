@@ -113,6 +113,11 @@ public:
         return (type == WindowType::WINDOW_TYPE_FB);
     }
 
+    static inline bool IsFvWindow(WindowType type)
+    {
+        return (type == WindowType::WINDOW_TYPE_FV);
+    }
+
     static inline bool IsBelowSystemWindow(WindowType type)
     {
         return (type >= WindowType::BELOW_APP_SYSTEM_WINDOW_BASE && type < WindowType::BELOW_APP_SYSTEM_WINDOW_END);
@@ -141,6 +146,11 @@ public:
     static inline bool IsSystemWindowButNotDialog(WindowType type)
     {
         return IsSystemWindow(type) && !IsDialogWindow(type);
+    }
+
+    static inline bool IsApiSystemWindow(WindowType type)
+    {
+        return IsSystemWindow(type) && !IsWindowInApp(type);
     }
 
     static inline bool IsUIExtensionWindow(WindowType type)
@@ -216,7 +226,8 @@ public:
     static inline bool IsWindowInApp(WindowType type)
     {
         return (type == WindowType::WINDOW_TYPE_FLOAT || type == WindowType::WINDOW_TYPE_DIALOG ||
-                type == WindowType::WINDOW_TYPE_PIP || type == WindowType::WINDOW_TYPE_FB);
+                type == WindowType::WINDOW_TYPE_PIP || type == WindowType::WINDOW_TYPE_FB ||
+                type == WindowType::WINDOW_TYPE_FV);
     }
 
     static inline bool IsFullScreenWindow(WindowMode mode)
@@ -246,7 +257,8 @@ public:
     {
         return mode == WindowMode::WINDOW_MODE_FULLSCREEN || mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
             mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY || mode == WindowMode::WINDOW_MODE_FLOATING ||
-            mode == WindowMode::WINDOW_MODE_PIP || mode == WindowMode::WINDOW_MODE_FB;
+            mode == WindowMode::WINDOW_MODE_PIP || mode == WindowMode::WINDOW_MODE_FB ||
+            mode == WindowMode::WINDOW_MODE_FV;
     }
 
     static inline bool IsEmptyRect(const Rect& r)

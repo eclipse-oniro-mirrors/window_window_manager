@@ -26,6 +26,7 @@ const CUTO_ARRAY_LENGTH = 5;
 const CREASE_RECTS_LENGTH = 10;
 const DISPLAY_PHYSICAL_RESOLUTION_LENGTH = 15;
 const ERROR_INVALID_PARAM = 401;
+const ERROR_ILLEGAL_PARAM = 1400004;
 const ROUNDED_CORNER_LENGTH = 4;
 
 export interface Rect {
@@ -569,7 +570,22 @@ function minusRoundedCornerArray(cornerArr: Array<RoundedCorner>): void {
 
 export native function isFoldable(): boolean;
 
-export native function isCaptured(): boolean;
+export native function isCapturedWithoutParam(): boolean;
+
+export native function isCapturedByBundleNameList(bundleNameList: Array<string>): boolean;
+
+export function isCaptured(): boolean {
+    return isCapturedWithoutParam();
+}
+
+export function isCaptured(bundleNameList: Array<string>): boolean {
+    const MAX_BUNDLE_NAME_LIST_SIZE = 100;
+    if (bundleNameList.length > MAX_BUNDLE_NAME_LIST_SIZE) {
+        throw new BusinessError(ERROR_ILLEGAL_PARAM, 
+            new Error(`[ANI] The size of bundleNameList is larger than 100, actual size: ${bundleNameList.length}`));
+    }
+    return isCapturedByBundleNameList(bundleNameList);
+}
 
 export function getFoldDisplayMode(): FoldDisplayMode {
     let res = getFoldDisplayModeNative();

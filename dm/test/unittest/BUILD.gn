@@ -43,7 +43,7 @@ group("unittest") {
 
 dm_unittest_common_deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/wm:libwm",
@@ -212,7 +212,7 @@ ohos_unittest("dm_display_manager_agent_stub_test") {
 ohos_unittest("dm_display_manager_agent_proxy_test") {
   module_out_path = module_out_path
 
-  sources = [ 
+  sources = [
     "display_manager_agent_proxy_test.cpp",
     "${window_base_path}/window_scene/test/mock/mock_message_parcel.cpp",
   ]

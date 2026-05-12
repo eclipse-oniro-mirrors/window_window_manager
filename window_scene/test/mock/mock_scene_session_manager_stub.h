@@ -30,7 +30,7 @@ public:
     MOCK_METHOD(WSError, PendingSessionToForeground, (const sptr<IRemoteObject>& token, int32_t windowMode),
         (override));
     MOCK_METHOD(WSError, PendingSessionToBackgroundForDelegator, (const sptr<IRemoteObject>& token,
-        bool shouldBackToCaller), (override));
+        bool shouldBackToCaller, int32_t reason), (override));
     MOCK_METHOD(WSError, GetFocusSessionToken, (sptr<IRemoteObject>& token, DisplayId displayId), (override));
     MOCK_METHOD(WSError, GetFocusSessionElement, (AppExecFwk::ElementName& element, DisplayId displayId), (override));
     MOCK_METHOD(WSError, RegisterSessionListener, (const sptr<ISessionListener>& listener), (override));

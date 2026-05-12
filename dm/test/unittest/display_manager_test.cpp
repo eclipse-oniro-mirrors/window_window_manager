@@ -27,6 +27,7 @@
 #include "scene_board_judgement.h"
 #include "singleton_mocker.h"
 #include "window_scene.h"
+#include "screen_session_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -420,6 +421,19 @@ HWTEST_F(DisplayManagerTest, GetDisplayById, TestSize.Level1)
     DisplayId displayId = -1;
     g_dmIsDestroyed = true;
     auto ret = DisplayManager::GetInstance().GetDisplayById(displayId);
+    ASSERT_EQ(ret, nullptr);
+}
+
+/**
+ * @tc.name: GetDisplayByIdWithGetActualInfo
+ * @tc.desc: GetDisplayById with isGetActualInfo parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetDisplayByIdWithGetActualInfo, TestSize.Level1)
+{
+    DisplayId displayId = -1;
+    g_dmIsDestroyed = true;
+    auto ret = DisplayManager::GetInstance().GetDisplayById(displayId, true);
     ASSERT_EQ(ret, nullptr);
 }
 
@@ -1023,6 +1037,18 @@ HWTEST_F(DisplayManagerTest, RegisterDisplayUpdateListener01, TestSize.Level1)
 HWTEST_F(DisplayManagerTest, IsCaptured01, TestSize.Level1)
 {
     auto ret = DisplayManager::GetInstance().IsCaptured();
+    ASSERT_FALSE(ret);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList01
+ * @tc.desc: IsCapturedByBundleNameList01 fun
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, IsCapturedByBundleNameList01, TestSize.Level1)
+{
+    std::vector<std::string> bundleNameList;
+    auto ret = DisplayManager::GetInstance().IsCapturedByBundleNameList(bundleNameList);
     ASSERT_FALSE(ret);
 }
 
@@ -2315,7 +2341,7 @@ HWTEST_F(DisplayManagerTest, GetScreenHDRshot_ShouldReturnNullptrVector_WhenSnap
  
     // Mock the behavior of DisplayManagerAdapter to return a vector with size != PIXMAP_VECTOR_SIZE
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), GetDisplayHDRSnapshot(_, _, _, _)).Times(EXECUTION_TIMES).WillOnce(
+    EXPECT_CALL(m->Mock(), GetDisplayHDRSnapshot(_, _, _, _, _)).Times(EXECUTION_TIMES).WillOnce(
         Return(std::vector<std::shared_ptr<Media::PixelMap>> { nullptr }));
  
     std::vector<std::shared_ptr<Media::PixelMap>> result = displayManager.GetScreenHDRshot(
@@ -2342,7 +2368,7 @@ HWTEST_F(DisplayManagerTest, GetScreenHDRshot_ShouldReturnSnapshotVector_WhenSna
  
     // Mock the GetDisplayHDRSnapshot function to return a vector with size equal to 2
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), GetDisplayHDRSnapshot(_, _, _, _)).Times(EXECUTION_TIMES).WillOnce(
+    EXPECT_CALL(m->Mock(), GetDisplayHDRSnapshot(_, _, _, _, _)).Times(EXECUTION_TIMES).WillOnce(
         Return(std::vector<std::shared_ptr<Media::PixelMap>> { nullptr, nullptr }));
  
     std::vector<std::shared_ptr<Media::PixelMap>> result =
@@ -3692,6 +3718,117 @@ HWTEST_F(DisplayManagerTest, NotifyDisplayCreateNullPtr, TestSize.Level1)
     
     EXPECT_EQ(mapSizeBefore, mapSizeAfter);
 }
+
+/**
+ * @tc.name: FoldDisplayModeTrans_FullMode
+ * @tc.desc: Test FoldDisplayModeTrans with FULL mode returns FULL
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_FullMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::FULL);
+    EXPECT_EQ(result, FoldDisplayMode::FULL);
+}
+
+/**
+ * @tc.name: FoldDisplayModeTrans_LFullMode
+ * @tc.desc: Test FoldDisplayModeTrans with L_FULL mode returns FULL
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_LFullMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::L_FULL);
+    EXPECT_EQ(result, FoldDisplayMode::FULL);
+}
+
+/**
+ * @tc.name: FoldDisplayModeTrans_NMainMode
+ * @tc.desc: Test FoldDisplayModeTrans with N_MAIN mode returns MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_NMainMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::N_MAIN);
+    EXPECT_EQ(result, FoldDisplayMode::MAIN);
+}
+
+/**
+ * @tc.name: FoldDisplayModeTrans_VMainMode
+ * @tc.desc: Test FoldDisplayModeTrans with V_MAIN mode returns MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_VMainMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::V_MAIN);
+    EXPECT_EQ(result, FoldDisplayMode::MAIN);
+}
+
+/**
+ * @tc.name: FoldDisplayModeTrans_MainMode
+ * @tc.desc: Test FoldDisplayModeTrans with MAIN mode returns MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_MainMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::MAIN);
+    EXPECT_EQ(result, FoldDisplayMode::MAIN);
+}
+
+/**
+ * @tc.name: FoldDisplayModeTrans_GlobalFullMode
+ * @tc.desc: Test FoldDisplayModeTrans with GLOBAL_FULL mode returns GLOBAL_FULL
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_GlobalFullMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::GLOBAL_FULL);
+    EXPECT_EQ(result, FoldDisplayMode::GLOBAL_FULL);
+}
+
+/**
+ * @tc.name: FoldDisplayModeTrans_CoordinationMode
+ * @tc.desc: Test FoldDisplayModeTrans with COORDINATION mode returns COORDINATION
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_CoordinationMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::COORDINATION);
+    EXPECT_EQ(result, FoldDisplayMode::COORDINATION);
+}
+
+/**
+ * @tc.name: FoldDisplayModeTrans_UnknownMode
+ * @tc.desc: Test FoldDisplayModeTrans with UNKNOWN mode returns UNKNOWN
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_UnknownMode, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+
+    FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::UNKNOWN);
+    EXPECT_EQ(result, FoldDisplayMode::UNKNOWN);
 }
 } // namespace Rosen
 } // namespace OHOS

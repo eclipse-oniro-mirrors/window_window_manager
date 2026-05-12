@@ -288,6 +288,20 @@ public:
     bool IsSubWindowOutlineEnabled() const;
 
     /**
+     * @brief Set sub window zLevelAboveParentLoosened
+     *
+     * @param zLevelAboveParentLoosened whether loose the restriction of sub window z-level above parent
+     */
+    void SetZLevelAboveParentLoosened(bool zLevelAboveParentLoosened);
+ 
+    /**
+     * @brief Get sub window zLevelAboveParentLoosened
+     *
+     * @return whether loose the restriction of sub window z-level above parent
+     */
+    bool IsSubWindowZLevelAboveParentLoosened() const;
+
+    /**
      * @brief Get window mode.
      *
      * @return The mode of window.
@@ -471,6 +485,7 @@ private:
     std::string subWindowTitle_ = { "" };
     bool subWindowMaximizeSupported_ = false;
     bool subWindowOutlineEnabled_ = false;
+    bool zLevelAboveParentLoosened_ = false;
     WindowType type_ { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW };
     WindowMode mode_ { WindowMode::WINDOW_MODE_UNDEFINED };
     bool focusable_ { true };

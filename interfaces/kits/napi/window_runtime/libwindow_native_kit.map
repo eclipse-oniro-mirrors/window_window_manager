@@ -244,6 +244,7 @@
             OHOS::Rosen::JsWindow::SetSystemBarProperties*;
             OHOS::Rosen::JsWindow::SetTitleAndDockHoverShown*;
             OHOS::Rosen::JsWindow::SetTitleButtonVisible*;
+            OHOS::Rosen::JsWindow::SetPreferredOrientationWithResult*;
             OHOS::Rosen::JsWindow::SetTopmost*;
             OHOS::Rosen::JsWindow::SetTouchable*;
             OHOS::Rosen::JsWindow::SetTouchableAreas*;
@@ -349,11 +350,13 @@
             OHOS::Rosen::JsWindowRegisterManager::UnregisterListener*;
             OHOS::Rosen::MappingWmErrorCodeSafely*;
             OHOS::Rosen::MaximizePresentationInit*;
+            OHOS::Rosen::AcrossDisplayPresentationInit*;
             OHOS::Rosen::ModalityTypeInit*;
             OHOS::Rosen::NapiGetUndefined*;
             OHOS::Rosen::NapiIsCallable*;
             OHOS::Rosen::NapiThrowError*;
             OHOS::Rosen::OrientationInit*;
+            OHOS::Rosen::OrientationExecutionResultInit*;
             OHOS::Rosen::ParseAndCheckRect*;
             OHOS::Rosen::ParseColorMetrics*;
             OHOS::Rosen::ParseJsValue*;
@@ -381,6 +384,7 @@
             OHOS::Rosen::WindowEventTypeInit*;
             OHOS::Rosen::WindowLayoutModeInit*;
             OHOS::Rosen::WindowModeInit*;
+            OHOS::Rosen::SplitRatioPreferenceInit*;
             OHOS::Rosen::WindowOcclusionStateInit*;
             OHOS::Rosen::WindowStageEventTypeInit*;
             OHOS::Rosen::WindowStageLifecycleEventTypeInit*;

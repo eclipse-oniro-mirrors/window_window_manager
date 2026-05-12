@@ -371,6 +371,99 @@ HWTEST_F(ScreenSessionManagerTest, GetDisplayInfoById01, Function | SmallTest | 
 }
 
 /**
+ * @tc.name: GetDisplayInfoByIdWithGetActualInfo
+ * @tc.desc: GetDisplayInfoById with isGetActualInfo = true
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetDisplayInfoByIdWithGetActualInfo, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    DisplayId id = 50;
+    sptr<ScreenSession> screenSession = nullptr;
+    ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
+    auto res = ssm_->GetDisplayInfoById(id, true);
+    ASSERT_EQ(res, nullptr);
+    ssm_->screenSessionMap_.erase(50);
+}
+
+/**
+ * @tc.name: GetDisplayInfoByIdWithGetActualInfoFalse
+ * @tc.desc: GetDisplayInfoById with isGetActualInfo = false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetDisplayInfoByIdWithGetActualInfoFalse, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    DisplayId id = 50;
+    sptr<ScreenSession> screenSession = nullptr;
+    ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
+    auto res = ssm_->GetDisplayInfoById(id, false);
+    ASSERT_EQ(res, nullptr);
+    ssm_->screenSessionMap_.erase(50);
+}
+
+/**
+ * @tc.name: FindDisplayInfoInSession
+ * @tc.desc: FindDisplayInfoInSession with nullptr session
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, FindDisplayInfoInSession, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    DisplayId id = 50;
+    auto res = ssm_->FindDisplayInfoInSession(nullptr, id, true);
+    ASSERT_EQ(res, nullptr);
+}
+
+/**
+ * @tc.name: FindDisplayInfoInSessionWithGetActualInfo
+ * @tc.desc: FindDisplayInfoInSession with isGetActualInfo parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, FindDisplayInfoInSessionWithGetActualInfo, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    DisplayId id = 50;
+    sptr<ScreenSession> screenSession = new ScreenSession(id, ScreenProperty(), 0);
+    ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
+    auto res = ssm_->FindDisplayInfoInSession(screenSession, id, true);
+    ASSERT_NE(res, nullptr);
+    ssm_->screenSessionMap_.erase(50);
+}
+
+/**
+ * @tc.name: FindDisplayInfoInSessionWithGetActualInfoFalse
+ * @tc.desc: FindDisplayInfoInSession with isGetActualInfo = false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, FindDisplayInfoInSessionWithGetActualInfoFalse, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    DisplayId id = 50;
+    sptr<ScreenSession> screenSession = new ScreenSession(id, ScreenProperty(), 0);
+    ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
+    auto res = ssm_->FindDisplayInfoInSession(screenSession, id, false);
+    ASSERT_NE(res, nullptr);
+    ssm_->screenSessionMap_.erase(50);
+}
+
+/**
+ * @tc.name: FindDisplayInfoInSessionIdWrong
+ * @tc.desc: FindDisplayInfoInSession with isGetActualInfo = false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, FindDisplayInfoInSessionIdWrong, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    DisplayId id = 50;
+    sptr<ScreenSession> screenSession = new ScreenSession(id, ScreenProperty(), 0);
+    ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
+    auto res = ssm_->FindDisplayInfoInSession(screenSession, 51, false);
+    ASSERT_NE(res, nullptr);
+    ssm_->screenSessionMap_.erase(50);
+}
+
+/**
  * @tc.name: GetVisibleAreaDisplayInfoById01
  * @tc.desc: GetVisibleAreaDisplayInfoById01
  * @tc.type: FUNC

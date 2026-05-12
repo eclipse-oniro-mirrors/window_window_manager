@@ -147,7 +147,7 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
     }
     name_ = option->GetWindowName();
 
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, true, true);
+    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, nullptr);
 
     surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), option->GetWindowType());
     if (surfaceNode_ != nullptr) {
@@ -464,6 +464,21 @@ WMError WindowImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea,
             static_cast<int32_t>(ret), property_->GetWindowId(), static_cast<uint32_t>(type));
     }
     return ret;
+}
+
+WMError WindowImpl::GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)
+{
+    auto windowId = property_->GetWindowId();
+    auto errCode = SingletonContainer::Get<WindowAdapter>().GetWindowStateSnapshot(windowId,
+        winStateSnapshotJsonStr);
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d, retCode=%{public}d",
+            windowId, static_cast<int32_t>(errCode));
+        return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
+        windowId, winStateSnapshotJsonStr.c_str());
+    return WMError::WM_OK;
 }
 
 WMError WindowImpl::SetWindowType(WindowType type)
@@ -963,11 +978,17 @@ ColorSpace WindowImpl::GetColorSpace()
 
 std::shared_ptr<Media::PixelMap> WindowImpl::Snapshot()
 {
-    if (!IsWindowValid()) {
+    if (!IsWindowValid() || surfaceNode_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid window");
         return nullptr;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode_, callback);
+    auto rsUICtx = surfaceNode_->GetRSUIContext();
+    if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        return nullptr;
+    }
+    auto isSucceeded = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode_, callback);
     std::shared_ptr<Media::PixelMap> pixelMap;
     if (isSucceeded) {
         pixelMap = callback->GetResult(2000); // wait for <= 2000ms
@@ -1872,10 +1893,17 @@ void WindowImpl::AdjustWindowAnimationFlag(bool withAnimation)
     // use custom animation when transitionController exists; else use default animation
     WindowType winType = property_->GetWindowType();
     bool isAppWindow = WindowHelper::IsAppWindow(winType);
-    if (withAnimation && !isAppWindow && !animationTransitionControllers_.empty()) {
+    bool hasTransitionController = false;
+    bool needDefaultAnimation = false;
+    {
+        std::lock_guard<std::mutex> lockListener(transitionControllerMutex_);
+        hasTransitionController = !animationTransitionControllers_.empty();
+        needDefaultAnimation = needDefaultAnimation_;
+    }
+    if (withAnimation && !isAppWindow && hasTransitionController) {
         // use custom animation
         property_->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::CUSTOM));
-    } else if ((isAppWindow && needDefaultAnimation_) || (withAnimation && animationTransitionControllers_.empty())) {
+    } else if ((isAppWindow && needDefaultAnimation) || (withAnimation && !hasTransitionController)) {
         // use default animation
         property_->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::DEFAULT));
     } else if (winType == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
@@ -4821,7 +4849,8 @@ bool WindowImpl::IsAllowHaveSystemSubWindow()
 
 void WindowImpl::SetNeedDefaultAnimation(bool needDefaultAnimation)
 {
-    needDefaultAnimation_= needDefaultAnimation;
+    std::lock_guard<std::mutex> lockListener(transitionControllerMutex_);
+    needDefaultAnimation_ = needDefaultAnimation;
 }
 
 WMError WindowImpl::SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight)

@@ -60,6 +60,7 @@ public:
     void OnSetWindowRectTop(ani_env* env, ani_int value);
     void OnSetWindowRectWidth(ani_env* env, ani_int value);
     void OnSetWindowRectHeight(ani_env* env, ani_int value);
+    void ParseSubWindowOptionsProperties(ani_env* env, ani_object value, SubWindowOptions& options);
     void OnSetSubWindowOptions(ani_env* env, ani_object value);
     void OnSetSubWindowOptionsTitle(ani_env* env, ani_string value);
     void OnSetSubWindowOptionsDecorEnabled(ani_env* env, ani_boolean value);

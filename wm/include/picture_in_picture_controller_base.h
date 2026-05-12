@@ -115,6 +115,31 @@ public:
     void SetStateChangeReason(PiPStateChangeReason reason);
     PiPStateChangeReason GetStateChangeReason() const;
     virtual std::string GetPiPNavigationId() const { return ""; };
+    inline sptr<PipOption> GetPipOption() const { return pipOption_; }
+    inline sptr<IWindowLifeCycle> GetMainWindowLifeCycleListener() const { return mainWindowLifeCycleListener_; }
+    inline void SetMainWindowLifeCycleListener(sptr<IWindowLifeCycle> listener)
+    {
+        mainWindowLifeCycleListener_ = listener;
+    }
+    inline const Rect& GetWindowRect() const { return windowRect_; }
+    inline void SetWindowRect(const Rect& rect) { windowRect_ = rect; }
+    inline bool GetIsAutoStartEnabled() const { return isAutoStartEnabled_; }
+    inline void SetIsAutoStartEnabled(bool enable) { isAutoStartEnabled_ = enable; }
+    inline bool GetCurActiveStatus() const { return curActiveStatus_; }
+    inline void SetCurActiveStatus(bool status) { curActiveStatus_ = status; }
+    inline std::shared_ptr<XComponentController> GetPipXComponentController() const
+    {
+        return pipXComponentController_;
+    }
+    inline void SetPipXComponentController(std::shared_ptr<XComponentController> controller)
+    {
+        pipXComponentController_ = controller;
+    }
+    inline bool GetIsStoppedFromClient() const { return isStoppedFromClient_; }
+    inline void SetIsStoppedFromClient(bool stopped) { isStoppedFromClient_ = stopped; }
+    inline int32_t GetHandleId() const { return handleId_; }
+    inline void SetHandleId(int32_t id) { handleId_ = id; }
+    inline sptr<Window> GetMainWindow() const { return mainWindow_; }
 
     // diffrent between normal and web
     virtual WMError StartPictureInPicture(StartPipType startType) = 0;

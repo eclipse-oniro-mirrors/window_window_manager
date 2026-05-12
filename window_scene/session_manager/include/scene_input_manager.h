@@ -41,6 +41,7 @@ WM_DECLARE_SINGLE_INSTANCE_BASE(SceneInputManager)
 public:
     void Init();
     void FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& windowInfoList,
+        std::vector<MMI::UIExtensionInfo>&& uiExtensionInfoList,
         std::vector<std::shared_ptr<Media::PixelMap>>&& pixelMapList, const bool forceFlush = false);
     void NotifyWindowInfoChange(const sptr<SceneSession>& scenenSession, const WindowUpdateType& type);
     void NotifyWindowInfoChangeFromSession(const sptr<SceneSession>& sceneSession);
@@ -52,8 +53,7 @@ public:
     using FlushWindowInfoCallback = std::function<void()>;
     void RegisterFlushWindowInfoCallback(FlushWindowInfoCallback&& callback);
     void ResetSessionDirty();
-    std::pair<std::vector<MMI::WindowInfo>, std::vector<std::shared_ptr<Media::PixelMap>>>
-        GetFullWindowInfoList();
+    FullInfoForMMI GetFullWindowInfoList();
     void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
         std::vector<MMI::Rect>& pointerHotAreas) const;
     void SetRootSceneSessionCreated(bool created);
@@ -75,7 +75,8 @@ private:
     void UpdateFocusedSessionId(int32_t focusedSessionId);
     void FlushFullInfoToMMI(const std::vector<MMI::ScreenInfo>& screenInfos,
         std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap,
-        const std::vector<MMI::WindowInfo>& windowInfoList, bool isOverBatchSize = false);
+        const std::vector<MMI::WindowInfo>& windowInfoList,
+        const std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList, bool isOverBatchSize = false);
     void FlushChangeInfoToMMI(const std::map<uint64_t, std::vector<MMI::WindowInfo>>& screenId2Windows);
     std::vector<MMI::ScreenInfo> ConstructScreenInfos(std::map<ScreenId, ScreenProperty>& screensProperties);
     void ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProperty>& screensProperties,
@@ -87,7 +88,8 @@ private:
     void PrintWindowInfo(const std::vector<MMI::WindowInfo>& windowInfoList);
     void UpdateDisplayAndWindowInfo(const std::vector<MMI::ScreenInfo>& screenInfos,
         std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap,
-        std::vector<MMI::WindowInfo> windowInfoList);
+        std::vector<MMI::WindowInfo> windowInfoList,
+        const std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList);
     void ConstructDumpDisplayInfo(const MMI::DisplayInfo& displayInfo,
         std::ostringstream& dumpDisplayListStream);
     void ConstructDumpWindowInfo(const MMI::WindowInfo& windowInfo,

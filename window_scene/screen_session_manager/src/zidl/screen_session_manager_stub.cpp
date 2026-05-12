@@ -100,6 +100,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteBool(SuspendEnd());
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE: {
+            ScreenClosedState screenClosedState = static_cast<ScreenClosedState>(data.ReadUint32());
+            bool isScreenOn = data.ReadBool();
+            DMError ret = SetScreenSwitchState(screenClosedState, isScreenOn);
+            reply.WriteUint32(static_cast<uint32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_GET_INTERNAL_SCREEN_ID: {
             reply.WriteUint64(GetInternalScreenId());
             break;
@@ -169,7 +176,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         }
         case DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID: {
             DisplayId displayId = data.ReadUint64();
-            auto info = GetDisplayInfoById(displayId);
+            bool isGetActualInfo = data.ReadBool();
+            auto info = GetDisplayInfoById(displayId, isGetActualInfo);
             reply.WriteParcelable(info);
             break;
         }
@@ -335,7 +343,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             int32_t userId = data.ReadInt32();
             uint32_t phyWidth = data.ReadUint32();
             uint32_t phyHeight = data.ReadUint32();
+            uint32_t renderWidth = data.ReadUint32();
+            uint32_t renderHeight = data.ReadUint32();
             int32_t screenIdParam = data.ReadInt32();
+            VirtualScreenCaller caller = static_cast<VirtualScreenCaller>(data.ReadUint32());
             bool isSurfaceValid = data.ReadBool();
             sptr<Surface> surface = nullptr;
             if (isSurfaceValid) {
@@ -363,7 +374,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .phyWidth_ = phyWidth,
                 .phyHeight_ = phyHeight,
                 .userId_ = userId,
-                .screenId_ = screenIdParam
+                .renderWidth_ = renderWidth,
+                .renderHeight_ = renderHeight,
+                .screenId_ = screenIdParam,
+                .caller_ = caller
             };
             ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
             static_cast<void>(reply.WriteUint64(static_cast<uint64_t>(screenId)));
@@ -683,6 +697,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             DisplayId displayId = DISPLAY_ID_INVALID;
             bool isUseDma = false;
             bool isCaptureFullOfScreen = false;
+            uint32_t displayIntentValue = 0;
             DmErrorCode errCode = DmErrorCode::DM_OK;
             if (!data.ReadUint64(displayId)) {
                 TLOGE(WmsLogTag::DMS, "Read displayId failed");
@@ -696,8 +711,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::DMS, "Read isCaptureFullOfScreen failed");
                 return ERR_INVALID_DATA;
             }
+            if (!data.ReadUint32(displayIntentValue)) {
+                TLOGE(WmsLogTag::DMS, "Read displayIntent failed");
+                return ERR_INVALID_DATA;
+            }
+            DisplayIntentType displayIntent = static_cast<DisplayIntentType>(displayIntentValue);
             std::vector<std::shared_ptr<Media::PixelMap>> displaySnapshotVec = GetDisplayHDRSnapshot(
-                displayId, errCode, isUseDma, isCaptureFullOfScreen);
+                displayId, errCode, isUseDma, isCaptureFullOfScreen, displayIntent);
             if (displaySnapshotVec.size() != PIXMAP_VECTOR_SIZE) {
                 TLOGE(WmsLogTag::DMS, "Dail to receive displaySnapshotVec in stub.");
                 reply.WriteParcelable(nullptr);
@@ -893,6 +913,17 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_ORIENTATION_WITH_OPTIONS: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            Orientation orientation = static_cast<Orientation>(data.ReadUint32());
+            OrientationOptions options;
+            options.needAnimation = data.ReadBool();
+            options.ignoreRotationLock = data.ReadBool();
+            bool isFromNapi = data.ReadBool();
+            DMError ret = SetOrientation(screenId, orientation, options, isFromNapi);
+            reply.WriteInt32(static_cast<int32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED: {
             bool isLocked = static_cast<bool>(data.ReadBool());
             DMError ret = SetScreenRotationLocked(isLocked);
@@ -976,7 +1007,16 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteBool(IsCaptured());
             break;
         }
-        //Fold Screen
+        case DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST: {
+            std::vector<std::string> bundleNameList;
+            if (!data.ReadStringVector(&bundleNameList)) {
+                TLOGE(WmsLogTag::DMS, "Failed to read bundleNameList");
+                return ERR_INVALID_DATA;
+            }
+            reply.WriteBool(IsCapturedByBundleNameList(bundleNameList));
+            break;
+        }
+        // Fold Screen
         case DisplayManagerMessage::TRANS_ID_SCENE_BOARD_SET_FOLD_DISPLAY_MODE: {
             FoldDisplayMode displayMode = static_cast<FoldDisplayMode>(data.ReadUint32());
             SetFoldDisplayMode(displayMode);
@@ -1231,7 +1271,9 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             uint32_t width = data.ReadUint32();
             uint32_t height = data.ReadUint32();
-            DMError ret = ResizeVirtualScreen(screenId, width, height);
+            uint32_t renderWidth = data.ReadUint32();
+            uint32_t renderHeight = data.ReadUint32();
+            DMError ret = ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }
@@ -1847,6 +1889,12 @@ void ScreenSessionManagerStub::ProcGetDisplayHDRSnapshotWithOption(MessageParcel
         TLOGE(WmsLogTag::DMS, "Read surfaceNodesList failed");
         return;
     }
+    uint32_t displayIntentValue = 0;
+    if (!data.ReadUint32(displayIntentValue)) {
+        TLOGE(WmsLogTag::DMS, "Read displayIntent failed");
+        return;
+    }
+    option.displayIntent_ = static_cast<DisplayIntentType>(displayIntentValue);
     DmErrorCode errCode = DmErrorCode::DM_OK;
     std::vector<std::shared_ptr<Media::PixelMap>> captureVec = GetDisplayHDRSnapshotWithOption(option, errCode);
     if (captureVec.size() != PIXMAP_VECTOR_SIZE) {

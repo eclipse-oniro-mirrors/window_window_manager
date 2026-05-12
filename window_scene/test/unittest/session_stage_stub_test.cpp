@@ -611,6 +611,44 @@ HWTEST_F(SessionStageStubTest, HandleUpdateWindowMode, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleNotifySubWindowAfterParentWindowSizeChange
+ * @tc.desc: test function : HandleNotifySubWindowAfterParentWindowSizeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleNotifyLayoutFinishAfterWindowModeChange, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageStubTest: HandleNotifySubWindowAfterParentWindowSizeChange start";
+    ASSERT_NE(nullptr, sessionStageStub_);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    Rect rect = { 10, 20, 100, 200 };
+    uint32_t code =
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SUB_WINDOW_AFTER_PARENT_WINDOW_SIZE_CHANGE);
+
+    // case 1:Read failed
+    {
+        data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+        data.WriteInt32(rect.posX_);
+        data.WriteInt32(rect.posY_);
+        int32_t ret = sessionStageStub->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(ERR_INVALID_VALUE, ret);
+    }
+    // case 2: Success
+    {
+        data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+        data.WriteInt32(rect.posX_);
+        data.WriteInt32(rect.posY_);
+        data.WriteInt32(rect.width_);
+        data.WriteInt32(rect.height_);
+        EXPECT_EQ(ERR_NONE, sessionStageStub->OnRemoteRequest(code, data, reply, option));
+        int32_t ret = reply.ReadInt32();
+        EXPECT_EQ(ret, static_cast<int32_t>(WSError::WS_OK));
+    }
+    GTEST_LOG_(INFO) << "SessionStageStubTest: HandleNotifySubWindowAfterParentWindowSizeChange end";
+}
+
+/**
  * @tc.name: HandleNotifyLayoutFinishAfterWindowModeChange
  * @tc.desc: test function : HandleNotifyLayoutFinishAfterWindowModeChange
  * @tc.type: FUNC
@@ -634,53 +672,58 @@ HWTEST_F(SessionStageStubTest, HandleNotifyLayoutFinishAfterWindowModeChange, Te
 }
 
 /**
- * @tc.name: HandleHandleNotifySubWindowAfterParentWindowSizeChange
- * @tc.desc: test function : HandleHandleNotifySubWindowAfterParentWindowSizeChange
- * @tc.type: FUNC
- */
-HWTEST_F(SessionStageStubTest, HandleHandleNotifySubWindowAfterParentWindowSizeChange, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, sessionStageStub_);
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-    Rect rect = { 10, 20, 100, 200 };
-    uint32_t code =
-        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SUB_WINDOW_AFTER_PARENT_WINDOW_SIZE_CHANGE);
-    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
-    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
-
-    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
-    data.WriteInt32(rect.posX_);
-    data.WriteInt32(rect.posY_);
-    data.WriteInt32(rect.width_);
-    data.WriteInt32(rect.height_);
-    EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
-    int32_t ret = reply.ReadInt32();
-    EXPECT_EQ(ret, static_cast<int32_t>(WSError::WS_OK));
-}
-
-/**
  * @tc.name: HandleHandleNotifySubWindowAfterParentWindowStatusChange
  * @tc.desc: test function : HandleHandleNotifySubWindowAfterParentWindowStatusChange
  * @tc.type: FUNC
  */
 HWTEST_F(SessionStageStubTest, HandleHandleNotifySubWindowAfterParentWindowStatusChange, TestSize.Level1)
 {
+    GTEST_LOG_(INFO) << "SessionStageStubTest: HandleHandleNotifySubWindowAfterParentWindowStatusChange start";
     ASSERT_NE(nullptr, sessionStageStub_);
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
     uint32_t code =
         static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SUB_WINDOW_AFTER_PARENT_WINDOW_STATUS_CHANGE);
-    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
-    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
 
-    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
-    data.WriteUint32(1);
-    EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
-    int32_t ret = reply.ReadInt32();
-    EXPECT_EQ(ret, static_cast<int32_t>(WSError::WS_OK));
+    // Case1: Invalid data
+    {
+        data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+        EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+    }
+
+    // Case2: Failed to read mode
+    {
+        int32_t ret = sessionStageStub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(ERR_INVALID_DATA, ret);
+    }
+    // Case3: Failed to read maximizeMode
+    {
+        data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+        data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_FULLSCREEN));
+        int32_t ret = sessionStageStub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(ERR_INVALID_DATA, ret);
+    }
+    // Case4: Failed to read isLayoutFullScreen
+    {
+        data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+        data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_FULLSCREEN));
+        data.WriteUint32(static_cast<uint32_t>(MaximizeMode::MODE_AVOID_SYSTEM_BAR));
+        int32_t ret = sessionStageStub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(ERR_INVALID_DATA, ret);
+    }
+
+    // Case5: Success with calid windowMode
+    {
+        data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+        data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_FULLSCREEN));
+        data.WriteUint32(static_cast<uint32_t>(MaximizeMode::MODE_AVOID_SYSTEM_BAR));
+        data.WriteBool(true);
+        EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+        int32_t ret = reply.ReadInt32();
+        EXPECT_EQ(ret, static_cast<int32_t>(WSError::WS_OK));
+    }
+    GTEST_LOG_(INFO) << "SessionStageStubTest: HandleHandleNotifySubWindowAfterParentWindowStatusChange end";
 }
 
 /**
@@ -973,6 +1016,23 @@ HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow, TestSize.Level1)
     uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SWITCH_FREEMULTIWINDOW);
     data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
     data.WriteBool(true); // enable
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    ASSERT_EQ(0, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
+ * @tc.name: HandleConfigDockAutoHide
+ * @tc.desc: test function : HandleConfigDockAutoHide
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleConfigDockAutoHide, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_CONFIG_DOCK_AUTO_HIDE);
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteBool(true);
     ASSERT_TRUE((sessionStageStub_ != nullptr));
     ASSERT_EQ(0, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
 }
@@ -1582,22 +1642,6 @@ HWTEST_F(SessionStageStubTest, HandleUpdateGlobalDisplayRectFromServerSuccess, T
 }
 
 /**
- * @tc.name: HandleNotifyAppHookWindowInfoUpdated
- * @tc.desc: test function : HandleNotifyAppHookWindowInfoUpdated
- * @tc.type: FUNC
- */
-HWTEST_F(SessionStageStubTest, HandleNotifyAppHookWindowInfoUpdated, TestSize.Level1)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
-    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_APP_HOOK_WINDOW_INFO_UPDATED);
-    ASSERT_TRUE(sessionStageStub_ != nullptr);
-    EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
-}
-
-/**
  * @tc.name: HandleUpdateAppHookWindowInfo
  * @tc.desc: test function : HandleUpdateAppHookWindowInfo
  * @tc.type: FUNC
@@ -1811,6 +1855,231 @@ HWTEST_F(SessionStageStubTest, HandleUpdatePropertyWhenTriggerMode02, TestSize.L
     uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_PROPERTY_WHEN_TRIGGER_MODE);
     ASSERT_TRUE(sessionStageStub_ != nullptr);
     EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
+ * @tc.name: HandleSendFvActionEvent
+ * @tc.desc: test function : HandleSendFvActionEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSendFvActionEvent, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    
+    // Case 1: Success
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    std::string action = "testAction";
+    std::string reason = "testReason";
+    data.WriteString(action);
+    data.WriteString(reason);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_FV_ACTION_EVENT);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+
+    // Case 2: Failed to read action
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data2, reply2, option));
+
+    // Case 3: Failed to read reason
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data3.WriteString(action);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data3, reply3, option));
+}
+
+/**
+ * @tc.name: HandleSyncFvWindowInfo
+ * @tc.desc: test function : HandleSyncFvWindowInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSyncFvWindowInfo, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    
+    // Case 1: Success
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    sptr<FloatViewWindowInfo> windowInfo = sptr<FloatViewWindowInfo>::MakeSptr();
+    data.WriteParcelable(windowInfo);
+    std::string reason = "testReason";
+    data.WriteString(reason);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_FV_WINDOW_INFO);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+    
+    // Case 2: Failed to read windowInfo
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data2, reply2, option));
+    
+    // Case 3: Failed to read reason
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data3.WriteParcelable(windowInfo);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data3, reply3, option));
+}
+
+/**
+ * @tc.name: HandleSyncFvLimits
+ * @tc.desc: test function : HandleSyncFvLimits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSyncFvLimits, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    sptr<FloatViewLimits> limits = sptr<FloatViewLimits>::MakeSptr();
+    data.WriteUint32(1);
+    data.WriteUint32(0);
+    data.WriteParcelable(limits);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_FV_LIMITS);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+    
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data2, reply2, option));
+
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data3.WriteUint32(1);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data3, reply3, option));
+
+    MessageParcel data4;
+    MessageParcel reply4;
+    data4.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data4.WriteUint32(11);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data4, reply4, option));
+
+    MessageParcel data5;
+    MessageParcel reply5;
+    data5.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data5.WriteUint32(1);
+    data5.WriteUint32(5);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data5, reply5, option));
+
+    MessageParcel data6;
+    MessageParcel reply6;
+    data6.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data6.WriteUint32(1);
+    data6.WriteUint32(0);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data6, reply6, option));
+}
+
+/**
+ * @tc.name: HandleSetForceSplitEnable01
+ * @tc.desc: test function : HandleSetForceSplitEnable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetForceSplitEnable01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    // Case 1: Success
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    bool isForceSplitEnabled = true;
+    bool needUpdateViewport = false;
+    uint32_t selectModeValue = static_cast<uint32_t>(SelectMode::WIDE_MODE);
+    data.WriteBool(isForceSplitEnabled);
+    data.WriteBool(needUpdateViewport);
+    data.WriteUint32(selectModeValue);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+}
+
+/**
+ * @tc.name: HandleSetForceSplitEnable02
+ * @tc.desc: test function : HandleSetForceSplitEnable with read failure
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetForceSplitEnable02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    // Case 1: Failed to read isForceSplitEnabled
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+    ASSERT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+
+    // Case 2: Failed to read needUpdateViewport
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data2.WriteBool(true);
+    ASSERT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data2, reply2, option));
+
+    // Case 3: Failed to read selectMode
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data3.WriteBool(true);
+    data3.WriteBool(false);
+    ASSERT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data3, reply3, option));
+}
+
+/**
+ * @tc.name: HandleSetIsStartMoving
+ * @tc.desc: Verify HandleSetIsStartMoving handles invalid and valid cases correctly
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetIsStartMoving, TestSize.Level1)
+{
+    // Case 1: ReadBool failed (no data)
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        int result = sessionStageStub_->HandleSetIsStartMoving(data, reply);
+        EXPECT_EQ(result, ERR_INVALID_DATA);
+    }
+
+    // Case 2: isStartMoving = true
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        data.WriteBool(true);
+        int result = sessionStageStub_->HandleSetIsStartMoving(data, reply);
+        EXPECT_EQ(result, ERR_NONE);
+    }
+
+    // Case 3: isStartMoving = false
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        data.WriteBool(false);
+        int result = sessionStageStub_->HandleSetIsStartMoving(data, reply);
+        EXPECT_EQ(result, ERR_NONE);
+    }
+
+    // Case 4: OnRemoteRequest with TRANS_ID_SET_IS_START_MOVING
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+        data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+        data.WriteBool(true);
+        uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_IS_START_MOVING);
+        int result = sessionStageStub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(result, ERR_NONE);
+    }
 }
 } // namespace
 } // namespace Rosen

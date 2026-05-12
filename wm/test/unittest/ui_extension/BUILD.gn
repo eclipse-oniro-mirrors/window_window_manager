@@ -35,3 +35,13 @@ ohos_unittest("wm_window_extension_session_impl_test") {
   deps = [ wm_unittest_common ]
   external_deps = test_external_deps
 }
+
+ohos_unittest("wm_window_scene_session_impl_uiextension_test") {
+  module_out_path = module_out_path
+  include_dirs = [ "${window_base_path}/window_scene/test/unittest/ui_extension/data_handler" ]
+  sources = [
+    "window_scene_session_impl_uiextension_test.cpp",
+  ]
+  deps = [ wm_unittest_common ]
+  external_deps = test_external_deps
+}

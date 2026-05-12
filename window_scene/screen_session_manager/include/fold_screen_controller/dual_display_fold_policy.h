@@ -22,6 +22,7 @@
 #include "fold_screen_controller/fold_screen_policy.h"
 #include "fold_screen_info.h"
 #include "session/screen/include/screen_session.h"
+#include "ffrt_queue.h"
 
 namespace OHOS::Rosen {
 class DualDisplayFoldPolicy : public FoldScreenPolicy {
@@ -62,6 +63,7 @@ private:
     void GetFoldCreaseRect(bool isVertical, const std::vector<int32_t>& foldRect,
         std::vector<DMRect>& foldCreaseRect) const;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
+    std::shared_ptr<DMS::FfrtQueue> ffrtQueue_ = nullptr;
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_WINDOW_SCENE_DUAL_DISPLAY_FOLD_POLICY_H

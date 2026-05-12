@@ -16,10 +16,13 @@ import("../../../../windowmanager_aafwk.gni")
 
 config("pip_config") {
   visibility = [ ":*" ]
-  include_dirs = [ "../../../../wm/include" ]
+  include_dirs = [
+    "../../../../wm/include",
+    "../../../../utils/include",
+  ]
 }
 
-ohos_shared_library("pipwindow_napi") {
+ohos_shared_library("pipwindow_kit") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
@@ -33,7 +36,6 @@ ohos_shared_library("pipwindow_napi") {
     "js_pip_utils.cpp",
     "js_pip_window_listener.cpp",
     "js_pip_window_manager.cpp",
-    "js_pipwindow_module.cpp",
   ]
 
   configs = [
@@ -59,6 +61,57 @@ ohos_shared_library("pipwindow_napi") {
     "napi:ace_napi",
   ]
 
+  innerapi_tags = [ "platformsdk" ]
+  part_name = "window_manager"
+  subsystem_name = "window"
+
+  defines = []
+  if (build_variant == "user") {
+    defines += [ "IS_RELEASE_VERSION" ]
+  }
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+}
+
+ohos_shared_library("pipwindow_napi") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
+  sources = [
+    "js_pipwindow_module.cpp",
+  ]
+
+  configs = [
+    ":pip_config",
+    "../../../../resources/config/build:coverage_flags",
+  ]
+
+  deps = [
+    ":pipwindow_kit",
+    "../../../../utils:libwmutil",
+    "../../../../utils:libwmutil_base",
+    "../../../../wm:libwm",
+  ]
+
+  external_deps = [
+    "ability_runtime:ability_context_native",
+    "ability_runtime:abilitykit_native",
+    "ability_runtime:runtime",
+    "ace_engine:ace_uicontent",
+    "ace_engine:ace_xcomponent_controller",
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "napi:ace_napi",
+  ]
+
   relative_install_dir = "module"
   part_name = "window_manager"
   subsystem_name = "window"
@@ -66,5 +119,9 @@ ohos_shared_library("pipwindow_napi") {
   defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
+  }
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
   }
 }

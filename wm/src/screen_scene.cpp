@@ -168,9 +168,14 @@ void ScreenScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configur
         }
         std::string colorMode = configuration->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE);
         bool isDark = (colorMode == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
-        bool ret = RSInterfaces::GetInstance().SetGlobalDarkColorMode(isDark);
-        if (!ret) {
-            TLOGI(WmsLogTag::DMS, "SetGlobalDarkColorMode fail with colorMode : %{public}s", colorMode.c_str());
+        auto rsUICtx = GetRSUIContext();
+        if (rsUICtx == nullptr) {
+            TLOGE(WmsLogTag::DMS, "no rsUICtx");
+            return;
+        }
+        if (auto rsInterface = rsUICtx->GetRSRenderInterface()) {
+            bool ret = rsInterface->SetGlobalDarkColorMode(isDark);
+            TLOGI(WmsLogTag::DMS, "screen colorMode: %{public}s, ret: %{public}d", colorMode.c_str(), ret);
         }
     }
 }

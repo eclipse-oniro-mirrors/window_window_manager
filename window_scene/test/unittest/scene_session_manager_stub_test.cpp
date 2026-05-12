@@ -3170,6 +3170,80 @@ HWTEST_F(SceneSessionManagerStubTest, HandleNotifySupportRotationRegistered, Fun
     int res = stub_->HandleNotifySupportRotationRegistered(data, reply);
     EXPECT_EQ(res, ERR_NONE);
 }
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_Success
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleGetAppWindowShowingInfosByBundleName_Success, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteString("com.test.app");
+    data.WriteInt32(0);
+    data.WriteString("");
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME);
+
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_ReadBundleNameFailed
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName when ReadString bundleName failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest,
+    HandleGetAppWindowShowingInfosByBundleName_ReadBundleNameFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    int res = stub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_ReadAppIndexFailed
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName when ReadInt32 appIndex failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest,
+    HandleGetAppWindowShowingInfosByBundleName_ReadAppIndexFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteString("com.test.app");
+    int res = stub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetAppWindowShowingInfosByBundleName_ReadAppInstanceKeyFailed
+ * @tc.desc: Test HandleGetAppWindowShowingInfosByBundleName when ReadString appInstanceKey failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest,
+    HandleGetAppWindowShowingInfosByBundleName_ReadAppInstanceKeyFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteString("com.test.app");
+    data.WriteInt32(0);
+    int res = stub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -78,6 +78,9 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
         mainWindow_ = mainWindow;
     }
     mainWindowId_ = mainWindow->GetWindowId();
+    if (listener != nullptr) {
+        listener->SetIsWindowSceneListener(true);
+    }
     mainWindow->RegisterLifeCycleListener(listener);
 
     // report when application startup request window
@@ -88,7 +91,7 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
 
 WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRuntime::Context>& context,
     sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option, const sptr<IRemoteObject>& iSession,
-    const std::string& identityToken, bool isModuleAbilityHookEnd)
+    const std::string& identityToken, bool isModuleAbilityHookEnd, sptr<IRemoteObject> renderSession)
 {
     TLOGI(WmsLogTag::WMS_MAIN, "WindowScene with window session!");
     if (option == nullptr || iSession == nullptr) {
@@ -105,7 +108,7 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
             SingletonContainer::Get<WindowManager>().IsModuleHookOff(isModuleAbilityHookEnd, moduleName);
     }
     auto mainWindow = SingletonContainer::Get<StaticCall>()
-        .CreateWindow(option, context, iSession, identityToken, isModuleAbilityHookEnd);
+        .CreateWindow(option, context, iSession, identityToken, isModuleAbilityHookEnd, renderSession);
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "mainWindow is null after create Window!");
         return WMError::WM_ERROR_NULLPTR;
@@ -115,6 +118,9 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
         mainWindow_ = mainWindow;
     }
     mainWindowId_ = mainWindow->GetWindowId();
+    if (listener != nullptr) {
+        listener->SetIsWindowSceneListener(true);
+    }
     mainWindow->RegisterLifeCycleListener(listener);
 
     // report when application startup request window
@@ -154,38 +160,41 @@ std::vector<sptr<Window>> WindowScene::GetSubWindow()
     return SingletonContainer::Get<StaticCall>().GetSubWindow(parentId);
 }
 
-WMError WindowScene::GoForeground(uint32_t reason)
+WMError WindowScene::GoForeground(uint32_t reason, bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_MAIN, "reason: %{public}u", reason);
+    TLOGI(WmsLogTag::WMS_MAIN, "reason: %{public}u isGamePreLaunch: %{public}d", reason, isGamePreLaunch);
     auto mainWindow = GetMainWindow();
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "failed, because main window is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    return mainWindow->Show(reason);
+    mainWindow->SetIsGamePreLaunch(isGamePreLaunch);
+    WMError err = mainWindow->Show(reason);
+    mainWindow->ClearIsGamePreLaunch();
+    return err;
 }
 
-WMError WindowScene::GoResume()
+WMError WindowScene::GoResume(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_MAIN, "in");
+    TLOGI(WmsLogTag::WMS_MAIN, "in isGamePreLaunch: %{public}d", isGamePreLaunch);
     auto mainWindow = GetMainWindow();
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "failed, because main window is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    mainWindow->Resume();
+    mainWindow->Resume(isGamePreLaunch);
     return WMError::WM_OK;
 }
 
-WMError WindowScene::GoPause()
+WMError WindowScene::GoPause(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGI(WmsLogTag::WMS_LIFE, "in isGamePreLaunch: %{public}d", isGamePreLaunch);
     auto mainWindow = GetMainWindow();
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "failed, because main window is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    mainWindow->Pause();
+    mainWindow->Pause(isGamePreLaunch);
     return WMError::WM_OK;
 }
 

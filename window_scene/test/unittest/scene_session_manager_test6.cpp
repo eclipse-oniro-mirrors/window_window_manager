@@ -48,7 +48,7 @@ using ConfigItem = WindowSceneConfig::ConfigItem;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
-        g_logMsg = msg;
+        g_logMsg += msg;
     }
 } // namespace
 class SceneSessionManagerTest6 : public testing::Test {
@@ -1551,6 +1551,7 @@ HWTEST_F(SceneSessionManagerTest6, SetSessionVisibilityInfo02, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest2";
+    sessionInfo.moduleName_ = "entry";
     sessionInfo.abilityName_ = "DumpSessionWithId";
     sessionInfo.callerPersistentId_ = 2;
     auto session1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
@@ -1566,8 +1567,84 @@ HWTEST_F(SceneSessionManagerTest6, SetSessionVisibilityInfo02, TestSize.Level1)
     ssm_->occlusionStateListenerSessionSet_.insert(1);
     ssm_->SetSessionVisibilityInfo(session1, visibleState, windowVisibilityInfos, visibilityInfo);
     EXPECT_NE(windowVisibilityInfos.size(), 0);
+    EXPECT_EQ(windowVisibilityInfos[0]->GetModuleName(), "entry");
     ssm_->sceneSessionMap_.clear();
     ssm_->occlusionStateListenerSessionSet_.clear();
+}
+
+/**
+ * @tc.name: SetSessionVisibilityInfo03
+ * @tc.desc: SetSessionVisibilityInfo03
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, SetSessionVisibilityInfo03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    WindowVisibilityState visibleState = WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION;
+    std::vector<sptr<WindowVisibilityInfo>> windowVisibilityInfos;
+    std::string visibilityInfo = "";
+    EXPECT_NE(nullptr, ssm_);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest2";
+    sessionInfo.abilityName_ = "DumpSessionWithId";
+    sessionInfo.callerPersistentId_ = 2;
+    auto session1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto session2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    session1->persistentId_ = 1;
+    session2->persistentId_ = 2;
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_.insert({ 1, session1 });
+    ssm_->sceneSessionMap_.insert({ 2, session2 });
+    ssm_->SetSessionVisibilityInfo(session2, visibleState, windowVisibilityInfos, visibilityInfo);
+    EXPECT_NE(windowVisibilityInfos.size(), 0);
+    EXPECT_TRUE(g_logMsg.find("Main window id:") == std::string::npos);
+    windowVisibilityInfos.clear();
+
+    session2->SetMainWindowPersistentId(1);
+    ssm_->SetSessionVisibilityInfo(session2, visibleState, windowVisibilityInfos, visibilityInfo);
+    EXPECT_TRUE(windowVisibilityInfos[0]->GetControlAppType() == ControlAppType::CONTROL_APP_TYPE_BEGIN);
+
+    ssm_->sceneSessionMap_.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: AddOptionWindowMetaInfo
+ * @tc.desc: AddOptionWindowMetaInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, AddOptionWindowMetaInfo, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    WindowVisibilityState visibleState = WindowVisibilityState::WINDOW_VISIBILITY_STATE_NO_OCCLUSION;
+    auto windowInfo = sptr<WindowInfo>::MakeSptr();
+    EXPECT_NE(nullptr, ssm_);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest2";
+    sessionInfo.abilityName_ = "DumpSessionWithId";
+    sessionInfo.callerPersistentId_ = 2;
+    auto session1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto session2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    session1->persistentId_ = 1;
+    session2->persistentId_ = 2;
+
+    session2->SetMainWindowPersistentId(INVALID_SESSION_ID);
+    ssm_->AddOptionWindowMetaInfo(windowInfo, session2);
+    EXPECT_TRUE(windowInfo->windowMetaInfo.mainWindowPersistentId == INVALID_SESSION_ID);
+
+    session2->SetMainWindowPersistentId(1);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_.insert({ 1, session1 });
+    ssm_->sceneSessionMap_.insert({ 2, session2 });
+
+    ssm_->AddOptionWindowMetaInfo(windowInfo, session2);
+    EXPECT_TRUE(windowInfo->windowMetaInfo.controlAppType == ControlAppType::CONTROL_APP_TYPE_BEGIN);
+
+    ssm_->sceneSessionMap_.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -2356,11 +2433,11 @@ HWTEST_F(SceneSessionManagerTest6, RequestSceneSessionDestruction, TestSize.Leve
 }
 
 /**
- * @tc.name: NotifySessionAINavigationBarChange
- * @tc.desc: NotifySessionAINavigationBarChange
+ * @tc.name: NotifySessionNavigationBarChange
+ * @tc.desc: NotifySessionNavigationBarChange
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest6, NotifySessionAINavigationBarChange, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest6, NotifySessionNavigationBarChange, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     int32_t persistentId = 1;
@@ -2368,13 +2445,13 @@ HWTEST_F(SceneSessionManagerTest6, NotifySessionAINavigationBarChange, TestSize.
     sptr<SceneSession::SpecificSessionCallback> specificCallback = nullptr;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback);
     ssm_->sceneSessionMap_.insert({ 0, sceneSession });
-    ssm_->NotifySessionAINavigationBarChange(persistentId);
+    ssm_->NotifySessionNavigationBarChange(persistentId, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
 
     persistentId = 0;
     Session session(info);
     session.isVisible_ = true;
     session.state_ = SessionState::STATE_FOREGROUND;
-    ssm_->NotifySessionAINavigationBarChange(persistentId);
+    ssm_->NotifySessionNavigationBarChange(persistentId, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
 }
 
 /**

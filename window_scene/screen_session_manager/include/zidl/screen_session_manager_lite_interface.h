@@ -52,6 +52,7 @@ public:
         TRANS_ID_SET_SCREEN_ACTIVE_MODE,
         TRANS_ID_GET_ALL_SCREEN_INFOS,
         TRANS_ID_SET_ORIENTATION,
+        TRANS_ID_SET_ORIENTATION_WITH_OPTIONS,
         TRANS_ID_SET_VIRTUAL_PIXEL_RATIO,
         TRANS_ID_IS_SCREEN_ROTATION_LOCKED,
         TRANS_ID_SET_SCREEN_ROTATION_LOCKED,
@@ -64,6 +65,7 @@ public:
         TRANS_ID_GET_CUTOUT_INFO,
         TRANS_ID_GET_SCREEN_POWER_AUTO,
         TRANS_ID_SET_RESOLUTION,
+        TRANS_ID_SET_SCREEN_SWITCH_STATE,
     };
 
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,

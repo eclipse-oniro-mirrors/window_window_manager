@@ -81,6 +81,18 @@ bool Permission::CheckCallingPermission(const std::string& permission)
     return true;
 }
 
+bool Permission::CheckSelfPermission(const std::string& permission)
+{
+    TLOGI(WmsLogTag::DEFAULT, "permission: %{public}s", permission.c_str());
+ 
+    if (Security::AccessToken::AccessTokenKit::VerifyAccessToken(IPCSkeleton::GetSelfTokenID(), permission) !=
+        AppExecFwk::Constants::PERMISSION_GRANTED) {
+        TLOGE(WmsLogTag::DEFAULT, "Permission denied!");
+        return false;
+    }
+    return true;
+}
+
 bool Permission::IsStartByHdcd(bool isLocalSysCalling)
 {
     uint32_t tokenId = isLocalSysCalling ?

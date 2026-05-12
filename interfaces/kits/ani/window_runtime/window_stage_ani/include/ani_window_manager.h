@@ -49,11 +49,13 @@ public:
     static void ShiftAppWindowPointerEvent(ani_env* env, ani_long nativeObj,
         ani_int sourceWindowId, ani_int targetWindowId);
     static void SetWatermarkImageForAppWindows(ani_env* env, ani_long nativeObj, ani_object pixelMap);
-    static ani_object GetAllWindowLayoutInfo(ani_env* env, ani_long nativeObj, ani_long displayId);
+    static ani_object GetAllWindowLayoutInfo(ani_env* env, ani_long nativeObj, ani_long displayId,
+        ani_object optionObj);
     static ani_object GetSnapshot(ani_env* env, ani_long nativeObj, ani_int windowId);
     static ani_object GetVisibleWindowInfo(ani_env* env, ani_long nativeObj);
     static void SetGestureNavigationEnabled(ani_env* env, ani_long nativeObj, ani_boolean enabled);
-    static void SetWaterMarkImage(ani_env* env, ani_long nativeObj, ani_object nativePixelMap, ani_boolean enabled);
+    static void SetWaterMarkImage(ani_env* env, ani_long nativeObj, ani_object nativePixelMap, ani_boolean enabled,
+        ani_int priority);
     static ani_object GetWindowsByCoordinate(ani_env* env, ani_long nativeObj, ani_object getWindowsParam);
     static ani_string GetTopNavDestinationName(ani_env* env, ani_long nativeObj, ani_int windowId);
     static ani_int GetGlobalWindowMode(ani_env* env, ani_long nativeObj, ani_object displayId);
@@ -94,11 +96,11 @@ private:
     void OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long displayId, ani_int windowId);
     void OnSetWindowLayoutMode(ani_env* env, ani_enum_item mode);
     void OnToggleShownStateForAllAppWindows(ani_env* env);
-    ani_object OnGetAllWindowLayoutInfo(ani_env* env, ani_long displayId);
+    ani_object OnGetAllWindowLayoutInfo(ani_env* env, ani_long displayId, ani_object optionObj);
     ani_object OnGetSnapshot(ani_env* env, ani_int windowId);
     ani_object OnGetVisibleWindowInfo(ani_env* env);
     void OnSetGestureNavigationEnabled(ani_env* env, ani_boolean enabled);
-    void OnSetWaterMarkImage(ani_env* env, ani_object nativePixelMap, ani_boolean enabled);
+    void OnSetWaterMarkImage(ani_env* env, ani_object nativePixelMap, ani_boolean enabled, ani_int priority);
     ani_object OnGetWindowsByCoordinate(ani_env* env, ani_object getWindowsParam);
     ani_ref OnCreateSubWindowAndBindParent(ani_env* env, ani_string name, ani_int parentId,
         ani_object aniContext, ani_ref callback);

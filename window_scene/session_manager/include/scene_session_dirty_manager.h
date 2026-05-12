@@ -62,7 +62,7 @@ public:
 
     void NotifyWindowInfoChange(const sptr<SceneSession>& sceneSession,
         const WindowUpdateType& type, const bool startMoving = false);
-    std::pair<std::vector<MMI::WindowInfo>, std::vector<std::shared_ptr<Media::PixelMap>>> GetFullWindowInfoList();
+    FullInfoForMMI GetFullWindowInfoList();
     void RegisterFlushWindowInfoCallback(FlushWindowInfoCallback&& callback);
     void ResetSessionDirty();
     void UpdateSecSurfaceInfo(const std::map<uint64_t, std::vector<SecSurfaceInfo>>& secSurfaceInfoMap);
@@ -72,6 +72,8 @@ public:
         SecSurfaceInfo& constrainedModalUIExtInfo);
     void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
         std::vector<MMI::Rect>& pointerHotAreas) const;
+    void UpdateDragDisabledAreas(const sptr<SceneSession>& sceneSession,
+        std::vector<MMI::Rect>& dragDisabledAreas) const;
 
 private:
     std::vector<MMI::WindowInfo> FullSceneSessionInfoUpdate() const;

@@ -1465,6 +1465,106 @@ HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList04, TestSize.Level1)
 }
 
 /**
+ * @tc.name: AddSessionBlackListForSession01
+ * @tc.desc: test function : AddSessionBlackListForSession(session not found)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, AddSessionBlackListForSession01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+    auto ret = ssm_->AddSessionBlackListForSession(1, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_SESSION, ret);
+
+    ssm_->sessionRSBlackListConfigSet_.clear();
+}
+
+/**
+ * @tc.name: AddSessionBlackListForSession02
+ * @tc.desc: test function : AddSessionBlackListForSession(success)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, AddSessionBlackListForSession02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "test";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    const auto persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+
+    auto ret = ssm_->AddSessionBlackListForSession(persistentId, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_TRUE(ssm_->sessionRSBlackListConfigSet_.find(
+        { .windowId = persistentId, .privacyWindowTag = "WMS_DEFAULT" }) != ssm_->sessionRSBlackListConfigSet_.end());
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+}
+
+/**
+ * @tc.name: RemoveSessionBlackListForSession01
+ * @tc.desc: test function : RemoveSessionBlackListForSession(session not found)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackListForSession01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+    auto ret = ssm_->RemoveSessionBlackListForSession(1, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_SESSION, ret);
+
+    ssm_->sessionRSBlackListConfigSet_.clear();
+}
+
+/**
+ * @tc.name: RemoveSessionBlackListForSession02
+ * @tc.desc: test function : RemoveSessionBlackListForSession(success)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackListForSession02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "test";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    const auto persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+
+    auto ret = ssm_->AddSessionBlackListForSession(persistentId, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    ret = ssm_->RemoveSessionBlackListForSession(persistentId, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_TRUE(ssm_->sessionRSBlackListConfigSet_.find(
+        { .windowId = persistentId, .privacyWindowTag = "WMS_DEFAULT" }) == ssm_->sessionRSBlackListConfigSet_.end());
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+}
+
+/**
  * @tc.name: SessionBlackListSystemTest
  * @tc.desc: test function : SessionBlackListSystemTest
  * @tc.type: FUNC

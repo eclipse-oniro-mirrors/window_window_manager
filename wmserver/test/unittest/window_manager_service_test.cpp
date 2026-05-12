@@ -285,6 +285,12 @@ HWTEST_F(WindowManagerServiceTest, UpdateProperty01, TestSize.Level1)
     sptr<WindowProperty> windowProperty = nullptr;
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, wms->UpdateProperty(windowProperty,
         PropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG, true));
+
+    windowProperty = sptr<WindowProperty>::MakeSptr();
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, wms->UpdateProperty(windowProperty,
+        PropertyChangeAction::ACTION_UPDATE_TRANSFORM_PROPERTY, true));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, wms->UpdateProperty(windowProperty,
+        PropertyChangeAction::ACTION_UPDATE_SNAPSHOT_SKIP, true));
 }
 
 /**

@@ -109,6 +109,9 @@ public:
         TRANS_ID_SET_WINDOW_SNAPSHOT_SKIP,
         TRANS_ID_GET_GLOBAL_WINDOW_MODE,
         TRANS_ID_GET_TOP_NAV_DEST_NAME,
+        TRANS_ID_SET_SCREEN_WATERMARK_IMAGE,
+        TRANS_ID_CLEAN_SCREEN_WATERMARK_IMAGE,
+        TRANS_ID_RECOVER_SCREEN_WATERMARK_IMAGE,
         TRANS_ID_SET_APP_WATERMARK_IMAGE,
         TRANS_ID_RECOVER_APP_WATERMARK_IMAGE,
         TRANS_ID_GET_VISIBILITY_WINDOW_INFO_ID,
@@ -130,6 +133,7 @@ public:
         TRANS_ID_SET_PROCESS_SNAPSHOT_SKIP,
         TRANS_ID_SET_SNAPSHOT_SKIP_BY_USERID_AND_BUNDLENAMES,
         TRANS_ID_SET_PROCESS_WATERMARK,
+        TRANS_ID_RECOVER_PROCESS_WATERMARK,
         TRANS_ID_GET_WINDOW_IDS_BY_COORDINATE,
         TRANS_ID_UPDATE_SESSION_SCREEN_LOCK,
         TRANS_ID_ADD_SKIP_SELF_ON_VIRTUAL_SCREEN,
@@ -178,6 +182,8 @@ public:
         TRANS_ID_MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY,
         TRANS_ID_SNAPSHOT_BY_WINDOW_ID,
         TRANS_ID_GET_CROSS_PROCESS_WINDOW_INFO,
+        TRANS_ID_GET_FLOAT_VIEW_LIMITS,
+        TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -186,7 +192,7 @@ public:
     virtual WSError PendingSessionToForeground(const sptr<IRemoteObject>& token,
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) = 0;
     virtual WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
-        bool shouldBackToCaller = true) = 0;
+        bool shouldBackToCaller = true, int32_t reason = 0) = 0;
     virtual WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
     virtual WSError GetFocusSessionElement(AppExecFwk::ElementName& element,
         DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
@@ -326,8 +332,8 @@ public:
     }
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) override { return WMError::WM_OK; }
-    WMError GetAllWindowLayoutInfo(DisplayId displayId,
-        std::vector<sptr<WindowLayoutInfo>>& infos) override { return WMError::WM_OK; }
+    WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
+        const WindowInfoOptions& option = WindowInfoOptions()) override { return WMError::WM_OK; }
     WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos) override { return WMError::WM_OK; }
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) override { return WMError::WM_OK; }
@@ -503,6 +509,10 @@ public:
         return WMError::WM_OK;
     }
     WMError NotifySupportRotationRegistered() override { return WMError::WM_OK; }
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override { return WMError::WM_OK; }
+
+    virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_INTERFACE_H

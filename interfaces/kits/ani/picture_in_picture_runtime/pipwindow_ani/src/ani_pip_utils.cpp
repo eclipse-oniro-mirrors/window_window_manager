@@ -22,9 +22,15 @@
 #include "window.h"
 #include "wm_common.h"
 #include "window_manager_hilog.h"
+#include "interop_js/hybridgref_ani.h"
+#include "interop_js/arkts_esvalue.h"
+#include "interop_js/hybridgref_napi.h"
+#include "interop_js/arkts_interop_js_api.h"
 
 namespace OHOS {
 namespace Rosen {
+ani_vm* AniPipUtils::vm_ = nullptr;
+
 constexpr const char* WM_ERROR_CODE_MSG_OK = "ok";
 constexpr const char* WM_ERROR_CODE_MSG_NO_PERMISSION = "Permission verification failed,"
     "The application does not have the permission required to call the API";
@@ -70,14 +76,14 @@ static std::map<WmErrorCode, const char*> WM_ERROR_CODE_TO_ERROR_MSG_MAP {
     {WmErrorCode::WM_ERROR_INVALID_OP_IN_CUR_STATUS,  WM_ERROR_CODE_MSG_INVALID_OP_IN_CUR_STATUS },
 };
 
-ani_ref AniGetUndefined(ani_env* env)
+ani_object AniPipUtils::AniGetUndefined(ani_env* env)
 {
     ani_ref res;
     env->GetUndefined(&res);
     return static_cast<ani_object>(res);
 }
 
-ani_status CreateBusinessError(ani_env* env, int32_t error, std::string message, ani_object* err)
+ani_status AniPipUtils::CreateBusinessError(ani_env* env, int32_t error, std::string message, ani_object* err)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     ani_class aniClass;
@@ -108,20 +114,24 @@ ani_status CreateBusinessError(ani_env* env, int32_t error, std::string message,
     return ANI_OK;
 }
 
-ani_ref AniThrowError(ani_env* env, WMError error, std::string msg)
+ani_ref AniPipUtils::AniThrowError(ani_env* env, WMError error, std::string msg)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
      // WMError → WmErrorCode
     WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(error);
     std::string errorMessage = msg.empty() ? GetErrorMsg(errorCode) : msg;
     ani_object aniError;
-    CreateBusinessError(env, static_cast<int32_t>(errorCode), errorMessage, &aniError);
+    ani_status status = CreateBusinessError(env, static_cast<int32_t>(errorCode), errorMessage, &aniError);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_PIP, "CreateBusinessError failed, status:%{public}d", status);
+        return AniGetUndefined(env);
+    }
     env->ThrowError(static_cast<ani_error>(aniError));
     TLOGI(WmsLogTag::WMS_PIP, "finish");
     return AniGetUndefined(env);
 }
 
-std::string GetErrorMsg(WmErrorCode errorCode)
+std::string AniPipUtils::GetErrorMsg(WmErrorCode errorCode)
 {
     auto it = WM_ERROR_CODE_TO_ERROR_MSG_MAP.find(errorCode);
     if (it == WM_ERROR_CODE_TO_ERROR_MSG_MAP.end()) {
@@ -130,7 +140,7 @@ std::string GetErrorMsg(WmErrorCode errorCode)
     return it->second;
 }
 
-ani_status GetStdString(ani_env *env, ani_string ani_str, std::string &result)
+ani_status AniPipUtils::GetStdString(ani_env *env, ani_string ani_str, std::string &result)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     ani_size strSize;
@@ -150,7 +160,7 @@ ani_status GetStdString(ani_env *env, ani_string ani_str, std::string &result)
     return ret;
 }
 
-void* GetAbilityContext(ani_env *env, ani_object aniObj)
+void* AniPipUtils::GetAbilityContext(ani_env *env, ani_object aniObj)
 {
     ani_long nativeContextLong;
     ani_class cls = nullptr;
@@ -171,7 +181,7 @@ void* GetAbilityContext(ani_env *env, ani_object aniObj)
     return (void*)nativeContextLong;
 }
 
-ani_status CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, const char* signature, ...)
+ani_status AniPipUtils::CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, const char* signature, ...)
 {
     ani_status ret = ANI_OK;
     ani_namespace aniNamespace{};
@@ -195,10 +205,244 @@ ani_status CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, con
     return ret;
 }
 
-ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result)
+ani_status AniPipUtils::GetAniString(ani_env* env, const std::string& str, ani_string* result)
 {
     return env->String_NewUTF8(str.c_str(), static_cast<ani_size>(str.size()), result);
 }
 
+bool AniPipUtils::convertNativeRefToAniRef(ani_env* env,
+                                           const std::shared_ptr<NativeReference>& nativeRef,
+                                           ani_ref& aniRef)
+{
+    aniRef = nullptr;
+    if (nativeRef == nullptr) {
+        return true;
+    }
+    napi_env napiEnv = nullptr;
+    bool napiScopeOpened = arkts_napi_scope_open(env, &napiEnv);
+    if (!napiScopeOpened) {
+        TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_open failed");
+        return false;
+    }
+    if (napiEnv == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "cannot open napi scope");
+        return false;
+    }
+    napi_value value = nativeRef->GetNapiValue();
+    if (value == nullptr) {
+        TLOGW(WmsLogTag::WMS_PIP, "NativeReference has null napi value");
+        return true;
+    }
+    hybridgref ref {};
+    if (!hybridgref_create_from_napi(napiEnv, value, &ref)) {
+        TLOGE(WmsLogTag::WMS_PIP, "hybridgref_create_from_napi failed");
+        return false;
+    }
+    ani_object esValue = nullptr;
+    if (!hybridgref_get_esvalue(env, ref, &esValue)) {
+        TLOGE(WmsLogTag::WMS_PIP, "hybridgref_get_esvalue failed");
+        hybridgref_delete_from_napi(napiEnv, ref);
+        return false;
+    }
+    ani_status st = env->GlobalReference_Create(esValue, &aniRef);
+    if (st != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_PIP, "GlobalReference_Create failed: %{public}d", static_cast<int32_t>(st));
+        hybridgref_delete_from_napi(napiEnv, ref);
+        return false;
+    }
+    if (!hybridgref_delete_from_napi(napiEnv, ref)) {
+        TLOGW(WmsLogTag::WMS_PIP, "hybridgref_delete_from_napi failed");
+        env->GlobalReference_Delete(aniRef);
+        return false;
+    }
+    if (napiScopeOpened) {
+        if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
+            TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_close_n failed");
+        }
+    }
+    return true;
+}
+
+bool AniPipUtils::TransferToPipOptionAni(ani_env* env,
+                                         const sptr<PipOption>& pipOption,
+                                         sptr<PipOptionAni>& pipOptionAni)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (env == nullptr || pipOption == nullptr || pipOptionAni == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "env、pipOption or pipOptionAni is nullptr");
+        return false;
+    }
+    // copy simple fields
+    pipOptionAni->SetContext(pipOption->GetContext());
+    pipOptionAni->SetPipTemplate(pipOption->GetPipTemplate());
+    pipOptionAni->SetNavigationId(pipOption->GetNavigationId());
+    pipOptionAni->SetDefaultWindowSizeType(pipOption->GetDefaultWindowSizeType());
+    pipOptionAni->SetControlGroup(pipOption->GetControlGroup());
+    pipOptionAni->SetXComponentController(pipOption->GetXComponentController());
+    pipOptionAni->SetTypeNodeEnabled(pipOption->IsTypeNodeEnabled());
+    pipOptionAni->SetHandleId(pipOption->GetHandleId());
+    pipOptionAni->SetCornerAdsorptionEnabled(pipOption->GetCornerAdsorptionEnabled());
+    // copy content size
+    uint32_t w = 0;
+    uint32_t h = 0;
+    pipOption->GetContentSize(w, h);
+    pipOptionAni->SetContentSize(w, h);
+    // copy pipControlStatusInfoList_
+    for (const auto& statusInfo : pipOption->GetControlStatus()) {
+        pipOptionAni->SetPiPControlStatus(statusInfo.controlType, statusInfo.status);
+    }
+    // copy pipControlEnableInfoList_
+    for (const auto& enableInfo : pipOption->GetControlEnable()) {
+        pipOptionAni->SetPiPControlEnabled(enableInfo.controlType, enableInfo.enabled);
+    }
+
+    TLOGI(WmsLogTag::WMS_PIP, "start convert nativeRef to ani_ref");
+
+    ani_ref typeAni = nullptr;
+    if (convertNativeRefToAniRef(env, pipOption->GetTypeNodeRef(), typeAni)) {
+        pipOptionAni->SetTypeNodeRef(typeAni);
+        TLOGI(WmsLogTag::WMS_PIP, "pip transfer typeNode to ani_ref successfully");
+    }
+
+    ani_ref nodeAni = nullptr;
+    if (convertNativeRefToAniRef(env, pipOption->GetNodeControllerRef(), nodeAni)) {
+        pipOptionAni->SetNodeControllerRef(nodeAni);
+        TLOGI(WmsLogTag::WMS_PIP, "pip transfer customNodeController to ani_ref successfully");
+    }
+
+    ani_ref storageAni = nullptr;
+    if (convertNativeRefToAniRef(env, pipOption->GetStorageRef(), storageAni)) {
+        pipOptionAni->SetStorageRef(storageAni);
+        TLOGI(WmsLogTag::WMS_PIP, "pip transfer storage to ani_ref successfully");
+    }
+
+    TLOGI(WmsLogTag::WMS_PIP, "finish");
+    return true;
+}
+
+bool AniPipUtils::TransferToPipOptionNapi(ani_env* env,
+                                          const sptr<PipOptionAni>& pipOptionAni,
+                                          sptr<PipOption>& pipOption)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (env == nullptr || pipOptionAni == nullptr || pipOption == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "env、pipOptionAni or pipOption is nullptr");
+        return false;
+    }
+    // copy simple fields
+    pipOption->SetContext(pipOptionAni->GetContext());
+    pipOption->SetPipTemplate(pipOptionAni->GetPipTemplate());
+    pipOption->SetNavigationId(pipOptionAni->GetNavigationId());
+    pipOption->SetDefaultWindowSizeType(pipOptionAni->GetDefaultWindowSizeType());
+    pipOption->SetControlGroup(pipOptionAni->GetControlGroup());
+    pipOption->SetXComponentController(pipOptionAni->GetXComponentController());
+    pipOption->SetTypeNodeEnabled(pipOptionAni->IsTypeNodeEnabled());
+    pipOption->SetHandleId(pipOptionAni->GetHandleId());
+    pipOption->SetCornerAdsorptionEnabled(pipOptionAni->GetCornerAdsorptionEnabled());
+    // copy content size
+    uint32_t w = 0;
+    uint32_t h = 0;
+    pipOptionAni->GetContentSize(w, h);
+    pipOption->SetContentSize(w, h);
+    // copy pipControlStatusInfoList_
+    for (const auto& statusInfo : pipOptionAni->GetControlStatus()) {
+        pipOption->SetPiPControlStatus(statusInfo.controlType, statusInfo.status);
+    }
+    // copy pipControlEnableInfoList_
+    for (const auto& enableInfo : pipOptionAni->GetControlEnable()) {
+        pipOption->SetPiPControlEnabled(enableInfo.controlType, enableInfo.enabled);
+    }
+
+    TLOGI(WmsLogTag::WMS_PIP, "finish");
+    return true;
+}
+
+void AniPipUtils::TransferToPipControllerAni(sptr<PictureInPictureController>& pipController,
+                                             sptr<PictureInPictureControllerAni>& pipControllerAni)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (pipController == nullptr || pipControllerAni == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipController or pipControllerAni is nullptr");
+        return;
+    }
+    // get fields from PictureInPictureControllerBase (exclude curState_)
+    pipControllerAni->SetControllerId(pipController->GetControllerId());
+    pipControllerAni->SetPipWindow(pipController->GetPipWindow());
+    pipControllerAni->SetMainWindowLifeCycleListener(pipController->GetMainWindowLifeCycleListener());
+    pipControllerAni->SetWindowRect(pipController->GetWindowRect());
+    pipControllerAni->SetIsAutoStartEnabled(pipController->GetIsAutoStartEnabled());
+    pipControllerAni->SetCurActiveStatus(pipController->GetCurActiveStatus());
+    pipControllerAni->SetPipXComponentController(pipController->GetPipXComponentController());
+    pipControllerAni->SetIsStoppedFromClient(pipController->GetIsStoppedFromClient());
+    pipControllerAni->SetHandleId(pipController->GetHandleId());
+    pipControllerAni->SetSurfaceId(pipController->GetSurfaceId());
+    pipControllerAni->SetStateChangeReason(pipController->GetStateChangeReason());
+    // get fields from PictureInPictureController
+    pipControllerAni->SetMainWindowXComponentController(pipController->GetMainWindowXComponentController());
+    pipControllerAni->SetFirstHandleId(pipController->GetFirstHandleId());
+    TLOGI(WmsLogTag::WMS_PIP, "finish");
+}
+
+void AniPipUtils::TransferToPipControllerNapi(sptr<PictureInPictureControllerAni>& pipControllerAni,
+                                              sptr<PictureInPictureController>& pipController)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (pipControllerAni == nullptr || pipController == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipControllerAni or pipController is nullptr");
+        return;
+    }
+    // set fields from PictureInPictureControllerBase (exclude curState_)
+    pipController->SetControllerId(pipControllerAni->GetControllerId());
+    pipController->SetPipWindow(pipControllerAni->GetPipWindow());
+    pipController->SetMainWindowLifeCycleListener(pipControllerAni->GetMainWindowLifeCycleListener());
+    pipController->SetWindowRect(pipControllerAni->GetWindowRect());
+    pipController->SetIsAutoStartEnabled(pipControllerAni->GetIsAutoStartEnabled());
+    pipController->SetCurActiveStatus(pipControllerAni->GetCurActiveStatus());
+    pipController->SetPipXComponentController(pipControllerAni->GetPipXComponentController());
+    pipController->SetIsStoppedFromClient(pipControllerAni->GetIsStoppedFromClient());
+    pipController->SetHandleId(pipControllerAni->GetHandleId());
+    pipController->SetSurfaceId(pipControllerAni->GetSurfaceId());
+    pipController->SetStateChangeReason(pipControllerAni->GetStateChangeReason());
+    // set fields from PictureInPictureController
+    pipController->SetMainWindowXComponentController(pipControllerAni->GetMainWindowXComponentController());
+    pipController->SetFirstHandleId(pipControllerAni->GetFirstHandleId());
+    TLOGI(WmsLogTag::WMS_PIP, "finish");
+}
+
+ani_object AniPipUtils::ConvertNapiValueToAniObject(ani_env* aniEnv, napi_env napiEnv, napi_value jsValue)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    hybridgref ref {};
+    if (!hybridgref_create_from_napi(napiEnv, jsValue, &ref)) {
+        TLOGE(WmsLogTag::WMS_PIP, "create hybridgref fail");
+        AniThrowError(aniEnv, WMError::WM_ERROR_INVALID_PARAM);
+        return AniGetUndefined(aniEnv);
+    }
+    ani_object result {};
+    if (!hybridgref_get_esvalue(aniEnv, ref, &result)) {
+        TLOGE(WmsLogTag::WMS_PIP, "get esvalue fail");
+        AniThrowError(aniEnv, WMError::WM_ERROR_INVALID_PARAM);
+        return AniGetUndefined(aniEnv);
+    }
+    if (!hybridgref_delete_from_napi(napiEnv, ref)) {
+        TLOGE(WmsLogTag::WMS_PIP, "delete hybridgref fail");
+    }
+    if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
+        TLOGE(WmsLogTag::WMS_PIP, "napi close scope fail");
+        AniThrowError(aniEnv, WMError::WM_ERROR_INVALID_PARAM);
+        return AniGetUndefined(aniEnv);
+    }
+    TLOGI(WmsLogTag::WMS_PIP, "end");
+    return result;
+}
+
+void AniPipUtils::InitVM(ani_env* env)
+{
+    if (env->GetVM(&vm_) != ANI_OK || !vm_) {
+    TLOGE(WmsLogTag::WMS_PIP, "Get VM failed");
+    AniPipUtils::AniThrowError(env, WMError::WM_ERROR_PIP_INTERNAL_ERROR);
+    return;
+    }
+}
 } // Rosen
 } // OHOS

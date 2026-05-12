@@ -380,7 +380,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWMSConnectionChangedListener, TestSize
 HWTEST_F(WindowAdapterLiteTest, RegisterWMSConnectionChangedListener, TestSize.Level1)
 {
     ASSERT_NE(nullptr, instance_);
-    auto callbackFunc = [](int32_t, int32_t, bool) { return; };
+    auto callbackFunc = [](int32_t, int32_t, bool, int32_t) { return; };
     instance_->RegisterWMSConnectionChangedListener(callbackFunc);
 }
 

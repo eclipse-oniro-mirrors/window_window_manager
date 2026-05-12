@@ -23,6 +23,7 @@ import hilog from '@ohos.hilog';
 
 const DOMAIN = 0x420E;
 const TAG = '[ANI]';
+const WM_ERROR_INVALID_PARAM = 401;
 
 export type Callback<T> = (data: T) => void;
 export type CallbackState = (state: int) => void;
@@ -30,7 +31,7 @@ export type OnCallback = Callback<typeNode.XComponent> | CallbackState;
 
 export namespace PiPWindow {
   static { loadLibrary('pipwindowani_kit.z') };
-  hilog.info(DOMAIN, TAG, 'PiPWindow load pipwindowani_kit.z finish ');
+  hilog.info(DOMAIN, TAG, 'PiPWindow load pipwindowani_kit.z finish');
   
   export native function isPiPEnabled(): boolean;
 
@@ -184,6 +185,8 @@ export namespace PiPWindow {
     customUIController?: NodeController;
     localStorage?: LocalStorage;
     defaultWindowSizeType?: int;
+    handleId?: int;
+    cornerAdsorptionEnabled?: boolean;
   }
   
   export native function createSync(nativeObj: long, config: PiPConfiguration, contentNode?: typeNode.XComponent): PiPController;
@@ -223,7 +226,7 @@ export namespace PiPWindow {
   export function runOnControlEvent(cb: Object, controlType: int, status: int): void {
     const param: ControlEventParam = {
       controlType: PiPControlType.fromValue(controlType),
-      status: PiPControlStatus.fromValue(status),
+ 	    status: PiPControlStatus.fromValue(status),
     };
     (cb as Callback<ControlEventParam>)(param);
   }
@@ -241,7 +244,7 @@ export namespace PiPWindow {
   let pipControllerFinalizerRegister = new FinalizationRegistry<long>(pipControllerFinalizerCallback);
 
   export class PiPControllerInternal implements PiPController {
-    private nativeObj: long = 0;
+    public nativeObj: long = 0;
     public setNativeObj(nativeObject: long): void {
       if (this.nativeObj) {
         pipControllerFinalizerRegister.unregister(this);
@@ -293,7 +296,7 @@ export namespace PiPWindow {
     
     native updatePiPControlStatusNative(nativeObj: long, controlType: int, status: int): void;
     public updatePiPControlStatus(controlType: PiPControlType, status: PiPControlStatus): void {
-      this.updatePiPControlStatusNative(this.nativeObj, controlType, status);
+       this.updatePiPControlStatusNative(this.nativeObj, controlType, status);
     }
 
     native updateContentNodeNative(nativeObj: long, contentNode: typeNode.XComponent): void;
@@ -433,8 +436,29 @@ export namespace PiPWindow {
       }
       this.offActiveStatusChangeNative(this.nativeObj, callback);
     }
-
   }  // class PiPControllerInternal
+
+  export class Transfer {
+    private static native nativeTransferStatic(input: ESValue): Object;
+    public static transferStatic(input: Any): Object {
+      hilog.info(DOMAIN, TAG, 'pip transferStatic is called');
+      if (!input) {
+        throw new BusinessError(WM_ERROR_INVALID_PARAM, new Error('pip TransferStatic get invalid input'));
+      }
+      hilog.info(DOMAIN, TAG, 'pip tranTransferStatic, input is ok');
+      return Transfer.nativeTransferStatic(ESValue.wrap(input));
+    }
+
+    private static native nativeTransferDynamic(nativeObj: long): ESValue;
+    public static transferDynamic(input: Object): Any {
+      hilog.info(DOMAIN, TAG, 'pip transferDynamic is called');
+      if (!input) {
+        throw new BusinessError(WM_ERROR_INVALID_PARAM, new Error('pip TransferDynamic get invalid input'));
+      }
+      hilog.info(DOMAIN, TAG, 'pip transferDynamic, input is ok');
+      return Transfer.nativeTransferDynamic((input as PiPControllerInternal).nativeObj).unwrap();
+    }
+  }  // class Transfer
 }  // namespace PiPWindow
 
 

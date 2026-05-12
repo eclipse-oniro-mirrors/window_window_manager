@@ -1251,6 +1251,29 @@ HWTEST_F(PcFoldScreenControllerTest, IsSupportEnterWaterfallMode, TestSize.Level
     EXPECT_TRUE(controller_->IsSupportEnterWaterfallMode(SuperFoldStatus::HALF_FOLDED, false));
     EXPECT_FALSE(controller_->IsSupportEnterWaterfallMode(SuperFoldStatus::HALF_FOLDED, true));
     EXPECT_FALSE(controller_->IsSupportEnterWaterfallMode(SuperFoldStatus::EXPANDED, false));
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "SubSession";
+    subInfo.bundleName_ = "SubSession";
+    sptr<SubSession> subSession = sptr<SubSession>::MakeSptr(subInfo, nullptr);
+    EXPECT_NE(subSession, nullptr);
+    WindowAnchorInfo windowAnchorInfo = {true, true, WindowAnchor::TOP_START, 0, 0};
+    windowAnchorInfo.attachOptions.currentLayoutMode = "subwindow";
+    subSession->windowAnchorInfo_ = windowAnchorInfo;
+    mainSession_->AddSubSession(subSession);
+    EXPECT_FALSE(controller_->IsSupportEnterWaterfallMode(SuperFoldStatus::HALF_FOLDED, false));
+
+    subSession->windowAnchorInfo_.attachOptions.currentLayoutMode = "minibar";
+    EXPECT_FALSE(controller_->IsSupportEnterWaterfallMode(SuperFoldStatus::HALF_FOLDED, false));
+
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = false;
+    EXPECT_TRUE(controller_->IsSupportEnterWaterfallMode(SuperFoldStatus::HALF_FOLDED, false));
+
+    auto& subController = subSession->pcFoldScreenController_;
+    EXPECT_TRUE(subController->IsSupportEnterWaterfallMode(SuperFoldStatus::HALF_FOLDED, false));
+
+    mainSession_ = nullptr;
+    EXPECT_TRUE(controller_->IsSupportEnterWaterfallMode(SuperFoldStatus::HALF_FOLDED, false));
 }
 } // namespace
 } // namespace Rosen

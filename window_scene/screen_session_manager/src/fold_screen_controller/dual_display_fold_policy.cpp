@@ -55,6 +55,7 @@ DualDisplayFoldPolicy::DualDisplayFoldPolicy(std::recursive_mutex& displayInfoMu
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler): screenPowerTaskScheduler_(screenPowerTaskScheduler)
 {
     TLOGI(WmsLogTag::DMS, "DualDisplayFoldPolicy created");
+    ffrtQueue_ = std::make_shared<DMS::FfrtQueue>("DualDisplayFoldPolicy");
 
     ScreenId screenIdMain = 0;
     int32_t foldCreaseRegionPosX = 0;
@@ -132,7 +133,10 @@ void DualDisplayFoldPolicy::SetdisplayModeChangeStatus(bool status, bool isOnBoo
         endTimePoint_ = std::chrono::steady_clock::now();
         if (lastCachedisplayMode_.load() != GetScreenDisplayMode()) {
             TLOGI(WmsLogTag::DMS, "start change displaymode to lastest mode");
-            ChangeScreenDisplayMode(lastCachedisplayMode_.load());
+            auto mode = lastCachedisplayMode_.load();
+            ffrtQueue_->Submit([this, mode] {
+                this->ChangeScreenDisplayMode(mode);
+            });
         }
     }
 }

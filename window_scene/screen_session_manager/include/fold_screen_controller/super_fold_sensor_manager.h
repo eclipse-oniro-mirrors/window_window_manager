@@ -72,6 +72,8 @@ private:
     int32_t curInterval_ = 0;
 
     uint16_t curHall_ = USHRT_MAX;
+
+    uint16_t hallActive_ = 1 << 2;
  
     void NotifyFoldAngleChanged(float foldAngle);
  

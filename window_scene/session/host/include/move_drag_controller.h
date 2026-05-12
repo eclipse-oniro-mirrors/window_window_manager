@@ -224,6 +224,19 @@ public:
      */
     bool IsWindowCrossScreenOnDragEnd() const;
 
+    /**
+     * @brief Decide whether RS commands should be flushed to RS process on drag end.
+     *
+     * - Cross-screen: no flush. RS commands will be submitted together with the
+     *   ArkUI relayout on the next vsync.
+     * - Not cross-screen: flush immediately to ensure pending RS commands are
+     *   committed, avoiding impact on subsequent drag operations.
+     * - Invalid display IDs: return false.
+     *
+     * @return true if RS commands need to be flushed; false otherwise.
+     */
+    bool ShouldFlushOnDragEnd() const;
+
     /*
      * Monitor screen connection status
      */

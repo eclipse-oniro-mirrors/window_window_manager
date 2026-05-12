@@ -14,9 +14,9 @@
  */
 
 #include "screen_sensor_connector.h"
-#include "screen_session_manager.h"
 #include <chrono>
 #include <securec.h>
+#include <parameters.h>
 
 namespace OHOS {
 namespace Rosen {
@@ -27,6 +27,9 @@ namespace {
     constexpr int32_t MOTION_ACTION_PORTRAIT_INVERTED = 2;
     constexpr int32_t MOTION_ACTION_RIGHT_LANDSCAPE = 3;
     const int32_t MOTION_TYPE_ROTATION = 700;
+    const int32_t SMART_MOTION_TYPE_ROTATION = 701;
+    const int32_t DISABLE_SMART_ROTATION = 0;
+    const int32_t ENABLE_SMART_ROTATION = 1;
     const int32_t MOTION_TYPE_TENT = 2800;
 #endif
 }
@@ -78,7 +81,14 @@ void MotionSubscriber::SubscribeMotionSensor()
         return;
     }
 
-    if (!SubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
+    int32_t sensorType = MOTION_TYPE_ROTATION;
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
+        DISABLE_SMART_ROTATION);
+    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
+        TLOGNFI(WmsLogTag::DMS, "start subscribe smart rotation");
+        sensorType = SMART_MOTION_TYPE_ROTATION;
+    }
+    if (!SubscribeCallback(sensorType, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor subscribe failed");
         return;
     }
@@ -91,8 +101,15 @@ void MotionSubscriber::UnsubscribeMotionSensor()
         TLOGI(WmsLogTag::DMS, "start");
         return;
     }
-    
-    if (!UnsubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
+
+    int32_t sensorType = MOTION_TYPE_ROTATION;
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
+        DISABLE_SMART_ROTATION);
+    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
+        TLOGNFI(WmsLogTag::DMS, "start unsubscribe smart rotation");
+        sensorType = SMART_MOTION_TYPE_ROTATION;
+    }
+    if (!UnsubscribeCallback(sensorType, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed");
         return;
     }

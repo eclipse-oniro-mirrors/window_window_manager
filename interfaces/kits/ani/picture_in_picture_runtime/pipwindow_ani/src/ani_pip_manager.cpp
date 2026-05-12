@@ -63,12 +63,11 @@ void AniPipManager::InitXComponentController(ani_env* env, ani_long nativeObj, a
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
-    if (me != nullptr) {
-        return me->OnInitXComponentController(env, xComponentController);
-    } else {
+    if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
+    me->OnInitXComponentController(env, xComponentController);
 }
 
 void AniPipManager::OnInitXComponentController(ani_env* env, ani_object xComponentController)
@@ -91,40 +90,39 @@ void AniPipManager::OnInitXComponentController(ani_env* env, ani_object xCompone
     WMError errCode = pipController->SetXComponentController(xComponentControllerResult);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to set xComponentController");
+        return;
     }
-    return;
 }
 
 ani_ref AniPipManager::GetCustomUIController(ani_env* env, ani_long nativeObj)
 {
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
-    if (me != nullptr) {
-        return me->OnGetCustomUIController(env);
-    } else {
+    if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return nullptr;
     }
+    return me->OnGetCustomUIController(env);
 }
 
 ani_ref AniPipManager::OnGetCustomUIController(ani_env* env)
 {
-    TLOGD(WmsLogTag::WMS_PIP, "start");
+    TLOGI(WmsLogTag::WMS_PIP, "OnGetCustomUIController");
     sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
     if (pipWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return AniGetUndefined(env);
+        return AniPipUtils::AniGetUndefined(env);
     }
     int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
     auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pipController");
-        return AniGetUndefined(env);
+        return AniPipUtils::AniGetUndefined(env);
     }
     ani_ref ref = pipController->GetANICustomNodeController();
     if (ref == nullptr) {
         TLOGI(WmsLogTag::WMS_PIP, "invalid custom UI controller");
-        return AniGetUndefined(env);
+        return AniPipUtils::AniGetUndefined(env);
     }
     return ref;
 }
@@ -132,47 +130,45 @@ ani_ref AniPipManager::OnGetCustomUIController(ani_env* env)
 ani_ref AniPipManager::GetTypeNode(ani_env* env, ani_long nativeObj)
 {
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
-    if (me != nullptr) {
-        return me->OnGetTypeNode(env);
-    } else {
+    if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return nullptr;
     }
+    return me->OnGetTypeNode(env);
 }
 
-ani_ref AniPipManager::OnGetTypeNode(ani_env* env)
+ani_object AniPipManager::OnGetTypeNode(ani_env* env)
 {
-    TLOGD(WmsLogTag::WMS_PIP, "start");
+    TLOGI(WmsLogTag::WMS_PIP, "start");
     sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
     if (pipWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return AniGetUndefined(env);
+        return AniPipUtils::AniGetUndefined(env);
     }
     int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
     auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pipController");
-        return AniGetUndefined(env);
+        return AniPipUtils::AniGetUndefined(env);
     }
     ani_ref ref = pipController->GetANITypeNode();
     if (!ref) {
         TLOGE(WmsLogTag::WMS_PIP, "invalid typeNode");
-        return AniGetUndefined(env);
+        return AniPipUtils::AniGetUndefined(env);
     }
-    return ref;
+    return static_cast<ani_object>(ref);
 }
- 
+
 void AniPipManager::SetTypeNodeEnabled(ani_env* env, ani_long nativeObj)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
-    if (me != nullptr) {
-        return me->OnSetTypeNodeEnabled(env);
-    } else {
+    if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
+    return me->OnSetTypeNodeEnabled(env);
 }
 
 void AniPipManager::OnSetTypeNodeEnabled(ani_env* env)
@@ -191,19 +187,17 @@ void AniPipManager::OnSetTypeNodeEnabled(ani_env* env)
         return;
     }
     pipController->OnPictureInPictureStart();
-    return;
 }
 
 void AniPipManager::SetPipNodeType(ani_env* env, ani_long nativeObj, ani_object typeNode, ani_boolean markPip)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
-    if (me != nullptr) {
-        return me->OnSetPipNodeType(env, typeNode, markPip);
-    } else {
+    if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
+    return me->OnSetPipNodeType(env, typeNode, markPip);
 }
 
 void AniPipManager::OnSetPipNodeType(ani_env* env, ani_object typeNode, ani_boolean markPip)
@@ -211,32 +205,32 @@ void AniPipManager::OnSetPipNodeType(ani_env* env, ani_object typeNode, ani_bool
     TLOGD(WmsLogTag::WMS_PIP, "start");
     ani_boolean isUndefined;
     env->Reference_IsUndefined(typeNode, &isUndefined);
-    if (!isUndefined) {
-        XComponentControllerErrorCode ret =
-            XComponentController::SetSurfaceCallbackModeFromAniValue(env, typeNode, markPip ?
-            SurfaceCallbackMode::PIP: SurfaceCallbackMode::DEFAULT);
-        TLOGI(WmsLogTag::WMS_PIP, "set surface mode, ret:%{public}u, isPip:%{public}d",
-            static_cast<uint32_t>(ret), static_cast<uint32_t>(markPip));
+    if (isUndefined) {
+        TLOGE(WmsLogTag::WMS_PIP, "typeNode is undefined");
+        return;
     }
-    return;
+    XComponentControllerErrorCode ret =
+        XComponentController::SetSurfaceCallbackModeFromAniValue(env, typeNode, markPip ?
+        SurfaceCallbackMode::PIP: SurfaceCallbackMode::DEFAULT);
+    TLOGI(WmsLogTag::WMS_PIP, "set surface mode, ret:%{public}u, isPip:%{public}d",
+        static_cast<uint32_t>(ret), static_cast<uint32_t>(markPip));
 }
 
 void AniPipManager::RegisterCallback(ani_env* env, ani_long nativeObj, ani_string type, ani_ref callback)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
-    if (me != nullptr) {
-        return me->OnRegisterCallback(env, type, callback);
-    } else {
+    if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
+    me->OnRegisterCallback(env, type, callback);
 }
 
 void AniPipManager::OnRegisterCallback(ani_env* env, ani_string type, ani_ref callback)
 {
     std::string cbType;
-    GetStdString(env, type, cbType);
+    AniPipUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::WMS_PIP, "type:%{public}s", cbType.c_str());
     if (PIP_CONTENT_CALLBACK.count(cbType) == 0) {
         TLOGE(WmsLogTag::WMS_PIP, "OnRegisterCallback cbType is not in PIP_CONTENT_CALLBACK");
@@ -268,25 +262,23 @@ void AniPipManager::OnRegisterCallback(ani_env* env, ani_string type, ani_ref ca
         return;
     }
     TLOGI(WmsLogTag::WMS_PIP, "Register type %{public}s success!", cbType.c_str());
-    return;
 }
 
 void AniPipManager::UnregisterCallback(ani_env* env, ani_long nativeObj, ani_string type)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
-    if (me != nullptr) {
-        return me->OnUnregisterCallback(env, type);
-    } else {
+    if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
+    me->OnUnregisterCallback(env, type);
 }
 
 void AniPipManager::OnUnregisterCallback(ani_env* env, ani_string type)
 {
     std::string cbType;
-    GetStdString(env, type, cbType);
+    AniPipUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::WMS_PIP, "OnUnregisterCallback type:%{public}s", cbType.c_str());
     if (PIP_CONTENT_CALLBACK.count(cbType) == 0) {
         TLOGE(WmsLogTag::WMS_PIP, "cbType is not in PIP_CONTENT_CALLBACK");
@@ -311,7 +303,6 @@ void AniPipManager::OnUnregisterCallback(ani_env* env, ani_string type)
         return;
     }
     TLOGI(WmsLogTag::WMS_PIP, "unregister type:%{public}s success!", cbType.c_str());
-    return;
 }
 } // namespace Rosen
 } // namespace OHOS

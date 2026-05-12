@@ -229,8 +229,7 @@ void SceneInputManager::ResetSessionDirty()
     sceneSessionDirty_->ResetSessionDirty();
 }
 
-auto SceneInputManager::GetFullWindowInfoList() ->
-    std::pair<std::vector<MMI::WindowInfo>, std::vector<std::shared_ptr<Media::PixelMap>>>
+auto SceneInputManager::GetFullWindowInfoList() -> FullInfoForMMI
 {
     return sceneSessionDirty_->GetFullWindowInfoList();
 }
@@ -370,7 +369,8 @@ std::unordered_map<DisplayId, int32_t> SceneInputManager::GetFocusedSessionMap()
 
 void SceneInputManager::FlushFullInfoToMMI(const std::vector<MMI::ScreenInfo>& screenInfos,
     std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap,
-    const std::vector<MMI::WindowInfo>& windowInfoList, bool isOverBatchSize)
+    const std::vector<MMI::WindowInfo>& windowInfoList,
+    const std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList, bool isOverBatchSize)
 {
     auto focusInfoMap = GetFocusedSessionMap();
     std::unordered_map<DisplayGroupId, std::vector<MMI::WindowInfo>> windowInfoMap;
@@ -390,7 +390,8 @@ void SceneInputManager::FlushFullInfoToMMI(const std::vector<MMI::ScreenInfo>& s
         .userId = currentUserId_,
         .userState = MMI::USER_ACTIVE,
         .screens = screenInfos,
-        .displayGroups = displayGroupInfos
+        .displayGroups = displayGroupInfos,
+        .uiExtensionInfos = uiExtensionInfoList
     };
     MMI::InputManager::GetInstance()->UpdateDisplayInfo(userScreenInfo);
 
@@ -700,10 +701,11 @@ void SceneInputManager::SetCurrentUserId(int32_t userId)
 
 void SceneInputManager::UpdateDisplayAndWindowInfo(const std::vector<MMI::ScreenInfo>& screenInfos,
     std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap,
-    std::vector<MMI::WindowInfo> windowInfoList)
+    std::vector<MMI::WindowInfo> windowInfoList,
+    const std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList)
 {
     if (windowInfoList.size() == 0) {
-        FlushFullInfoToMMI(screenInfos, displayGroupMap, windowInfoList);
+        FlushFullInfoToMMI(screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
         return;
     }
     int32_t windowBatchSize = MAX_WINDOWINFO_NUM;
@@ -714,7 +716,7 @@ void SceneInputManager::UpdateDisplayAndWindowInfo(const std::vector<MMI::Screen
     }
     int32_t windowListSize = static_cast<int32_t>(windowInfoList.size());
     if (windowListSize <= windowBatchSize) {
-        FlushFullInfoToMMI(screenInfos, displayGroupMap, windowInfoList);
+        FlushFullInfoToMMI(screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
         return;
     }
     std::unordered_map<int32_t, std::vector<int32_t>> windowIndexMap;
@@ -729,7 +731,8 @@ void SceneInputManager::UpdateDisplayAndWindowInfo(const std::vector<MMI::Screen
     auto iterBegin = windowInfoList.begin();
     auto iterEnd = windowInfoList.end();
     auto iterNext = std::next(iterBegin, windowBatchSize);
-    FlushFullInfoToMMI(screenInfos, displayGroupMap, std::vector<MMI::WindowInfo>(iterBegin, iterNext), true);
+    FlushFullInfoToMMI(screenInfos, displayGroupMap, std::vector<MMI::WindowInfo>(iterBegin, iterNext),
+        uiExtensionInfoList, true);
     while (iterNext != iterEnd) {
         auto iterNewBegin = iterNext;
         if (iterNewBegin->defaultHotAreas.size() <= MMI::WindowInfo::DEFAULT_HOTAREA_COUNT) {
@@ -747,11 +750,12 @@ void SceneInputManager::UpdateDisplayAndWindowInfo(const std::vector<MMI::Screen
 }
 
 void SceneInputManager::FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& windowInfoList,
+                                              std::vector<MMI::UIExtensionInfo>&& uiExtensionInfoList,
                                               std::vector<std::shared_ptr<Media::PixelMap>>&& pixelMapList,
                                               const bool forceFlush)
 {
     eventHandler_->PostTask([this, windowInfoList = std::move(windowInfoList),
-                            pixelMapList = std::move(pixelMapList), forceFlush] {
+        uiExtensionInfoList = std::move(uiExtensionInfoList), pixelMapList = std::move(pixelMapList), forceFlush] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "FlushDisplayInfoToMMI");
         if (isUserBackground_.load()) {
             TLOGND(WmsLogTag::WMS_MULTI_USER, "User in background, no need to flush display info");
@@ -787,7 +791,7 @@ void SceneInputManager::FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& win
         PrintScreenInfo(screenInfos);
         PrintDisplayInfo(displayInfos);
         PrintWindowInfo(windowInfoList);
-        UpdateDisplayAndWindowInfo(screenInfos, displayGroupMap, std::move(windowInfoList));
+        UpdateDisplayAndWindowInfo(screenInfos, displayGroupMap, std::move(windowInfoList), uiExtensionInfoList);
     });
 }
 

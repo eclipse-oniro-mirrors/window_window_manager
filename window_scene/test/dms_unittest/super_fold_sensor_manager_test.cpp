@@ -25,15 +25,6 @@
 
 using namespace testing;
 using namespace testing::ext;
-namespace {
-std::string g_logMsg;
-void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
-    const char* msg)
-{
-    g_logMsg = msg;
-}
-}
-
 namespace OHOS {
 namespace Rosen {
 namespace {
@@ -121,30 +112,6 @@ HWTEST_F(SuperFoldSensorManagerTest, UnregisterHallCallback02, TestSize.Level1)
     mgr.UnregisterHallCallback();
     void (*func)(SensorEvent *event) = nullptr;
     ASSERT_FALSE(SecondaryFoldSensorManager::GetInstance().IsHallUserCallbackInvalid());
-}
-
-/**
- * @tc.name: UnRegisterHallCallback03
- * @tc.desc: test function : UnRegisterHallCallback
- * @tc.type: FUNC
-*/
-HWTEST_F(SuperFoldSensorManagerTest, UnRegisterHallCallback03, TestSize.Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-
-    SuperFoldSensorManager manager;
-    manager.RegisterHallCallback();
-    manager.UnregisterHallCallback();
-
-    if (!(ssm_->IsFoldable())) {
-        GTEST_SKIP();
-    }
-    EXPECT_TRUE(g_logMsg.find("success.") != std::string::npos);
-    EXPECT_TRUE(g_logMsg.find("FoldScreenSensorManager.RegisterHallCallback failed.") == std::string::npos);
-
-    g_logMsg.clear();
-    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -508,6 +475,43 @@ HWTEST_F(SuperFoldSensorManagerTest, HandleHallData08, TestSize.Level1)
     mgr.SetTaskScheduler(nullptr);
     mgr.HandleHallData(&event);
     EXPECT_EQ(mgr.curHall_, VALID_HALL_STATUS);
+}
+
+/**
+ * @tc.name: HandleHallData09
+ * @tc.desc: test function : HandleHallData when hall status not changed (both inactive)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, HandleHallData09, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    mgr.curHall_ = 0;
+    SensorEvent event;
+    HallData hallData;
+    hallData.status = 128;
+    event.data = reinterpret_cast<uint8_t*>(&hallData);
+    event.dataLen = sizeof(HallData);
+    
+    mgr.HandleHallData(&event);
+    ASSERT_EQ(mgr.curHall_, 0);
+}
+ 
+/**
+ * @tc.name: HandleHallData10
+ * @tc.desc: test function : HandleHallData when hall status changed (inactive -> active)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, HandleHallData10, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    mgr.curHall_ = 0;
+    SensorEvent event;
+    HallData hallData;
+    hallData.status = mgr.hallActive_ | 128;
+    event.data = reinterpret_cast<uint8_t*>(&hallData);
+    event.dataLen = sizeof(HallData);
+    mgr.HandleHallData(&event);
+    ASSERT_EQ(mgr.curHall_, mgr.hallActive_);
 }
 
 /**

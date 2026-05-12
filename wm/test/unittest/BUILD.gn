@@ -25,6 +25,7 @@ group("unittest") {
     ":wm_gtx_input_event_sender_test",
     ":wm_load_intention_event_test",
     ":wm_picture_in_picture_option_test",
+    ":wm_picture_in_picture_option_ani_test",
     ":wm_screen_scene_test",
     ":wm_vsync_station_test",
     ":wm_window_display_change_adapter_test",
@@ -44,6 +45,10 @@ group("unittest") {
       ":wm_compatible_mode_window_session_impl_test",
       ":wm_floating_ball_new_test",
       ":wm_floating_ball_test",
+      ":wm_float_view_controller_test",
+      ":wm_float_view_manager_test",
+      ":wm_float_view_option_test",
+      ":wm_float_window_manager_test",
       ":wm_get_snapshot_callback_proxy_test",
       ":wm_get_snapshot_callback_stub_test",
       ":wm_input_transfer_station_test",
@@ -95,6 +100,7 @@ group("unittest") {
       "special_window:window_scene_session_impl_special_window_test",
       "ui_extension:wm_extension_window_impl_test",
       "ui_extension:wm_window_extension_session_impl_test",
+      "ui_extension:wm_window_scene_session_impl_uiextension_test",
       ":wm_input_transfer_station_new_test",
     ]
   }
@@ -105,6 +111,34 @@ ohos_unittest("wm_window_manager_test") {
 
   include_dirs = [ "${window_base_path}/wm/src" ]
   sources = [ "window_manager_test.cpp", "window_manager_test2.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_game_prelaunch_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [ "${window_base_path}/wm/src" ]
+    sources = [ "game_prelaunch_test.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_window_scene_game_prelaunch_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [ "${window_base_path}/wm/src" ]
+    sources = [ "window_scene_game_prelaunch_test.cpp" ]
 
   deps = [
     ":wm_unittest_common",
@@ -603,6 +637,16 @@ ohos_unittest("wm_picture_in_picture_option_test") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("wm_picture_in_picture_option_ani_test") {
+  module_out_path = module_out_path
+
+  sources = [ "picture_in_picture_option_ani_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ohos_unittest("wm_web_picture_in_picture_controller_interface_test") {
   module_out_path = module_out_path
 
@@ -834,6 +878,46 @@ ohos_unittest("wm_load_intention_event_test") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("wm_float_view_controller_test") {
+  module_out_path = module_out_path
+
+  sources = [ "float_view_controller_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_float_view_manager_test") {
+  module_out_path = module_out_path
+
+  sources = [ "float_view_manager_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_float_view_option_test") {
+  module_out_path = module_out_path
+
+  sources = [ "float_view_option_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_float_window_manager_test") {
+  module_out_path = module_out_path
+
+  sources = [ "float_window_manager_test.cpp" ]
+
+  deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ## Build wm_unittest_common.a {{{
 config("wm_unittest_common_public_config") {
   include_dirs = [
@@ -890,7 +974,7 @@ ohos_static_library("wm_unittest_common") {
     # need delete it for abilitycontext
     "${window_base_path}/dm:libdm",
     "${window_base_path}/dmserver:libdms",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/wm:libwm_lite",

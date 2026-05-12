@@ -52,13 +52,15 @@ SCBSystemSession::SCBSystemSession(const SessionInfo& info, const sptr<SpecificS
                 break;
             }
         }
-        surfaceNode_ = Rosen::RSSurfaceNode::Create(config, Rosen::RSSurfaceNodeType::APP_WINDOW_NODE);
+        surfaceNode_ = Rosen::RSSurfaceNode::Create(
+            config, Rosen::RSSurfaceNodeType::APP_WINDOW_NODE, true, false, GetRSUIContext());
         shadowSurfaceNode_ = RSAdapterUtil::IsClientMultiInstanceEnabled() && surfaceNode_ ?
             surfaceNode_->CreateShadowSurfaceNode() : nullptr;
         RSAdapterUtil::SetRSUIContext(surfaceNode_, GetRSUIContext(), true);
         TLOGD(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
               RSAdapterUtil::RSNodeToStr(surfaceNode_).c_str(), name.c_str());
         SetIsUseControlSession(info.isUseControlSession);
+        SetMainWindowPersistentId(info.mainWindowPersistentId_);
     }
     WLOGFD("Create SCBSystemSession");
 }
@@ -79,23 +81,22 @@ WSError SCBSystemSession::ProcessPointDownSession(int32_t posX, int32_t posY)
 }
 
 WSError SCBSystemSession::NotifyClientToUpdateRect(const std::string& updateReason,
-    std::shared_ptr<RSTransaction> rsTransaction)
+                                                   std::optional<WSRect> updateRect,
+                                                   std::shared_ptr<RSTransaction> rsTransaction)
 {
-    PostTask([weakThis = wptr(this), rsTransaction, updateReason]() {
+    PostTask([weakThis = wptr(this), updateReason, updateRect, rsTransaction, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            WLOGFE("session is null");
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, rsTransaction);
-        if (session->specificCallback_ != nullptr && session->specificCallback_->onUpdateAvoidArea_ != nullptr &&
-            session->specificCallback_->onClearDisplayStatusBarTemporarilyFlags_ != nullptr) {
+        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, updateRect, rsTransaction);
+        if (session->specificCallback_ != nullptr && session->specificCallback_->onUpdateAvoidArea_ != nullptr) {
             if (Session::IsScbCoreEnabled()) {
                 session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA);
             } else {
                 session->specificCallback_->onUpdateAvoidArea_(session->GetPersistentId());
             }
-            session->specificCallback_->onClearDisplayStatusBarTemporarilyFlags_();
         }
         return ret;
     }, "NotifyClientToUpdateRect");
@@ -200,6 +201,7 @@ void SCBSystemSession::SetSkipSelfWhenShowOnVirtualScreen(bool isSkip)
         if (session->specificCallback_ != nullptr &&
             session->specificCallback_->onSetSkipSelfWhenShowOnVirtualScreen_ != nullptr) {
             session->specificCallback_->onSetSkipSelfWhenShowOnVirtualScreen_(surfaceNode->GetId(), isSkip);
+            session->isSkipSelfWhenShowOnVirtualScreen_ = isSkip;
         }
         return;
     }, __func__);
@@ -253,5 +255,15 @@ bool SCBSystemSession::GetIsUseControlSession() const
 void SCBSystemSession::SetIsUseControlSession(bool isUseControlSession)
 {
     isUseControlSession_ = isUseControlSession;
+}
+
+int32_t SCBSystemSession::GetMainWindowPersistentId() const
+{
+    return mainWindowPersistentId_;
+}
+
+void SCBSystemSession::SetMainWindowPersistentId(int32_t mainWindowPersistentId)
+{
+    mainWindowPersistentId_ = mainWindowPersistentId;
 }
 } // namespace OHOS::Rosen

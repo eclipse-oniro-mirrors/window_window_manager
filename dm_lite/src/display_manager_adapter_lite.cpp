@@ -199,6 +199,16 @@ bool DisplayManagerAdapterLite::SuspendEnd()
     return displayManagerServiceProxy_->SuspendEnd();
 }
 
+DMError DisplayManagerAdapterLite::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
+{
+    if (IsScreenLessDevice()) {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    return displayManagerServiceProxy_->SetScreenSwitchState(screenClosedState, isScreenOn);
+}
+
 ScreenId DisplayManagerAdapterLite::GetInternalScreenId()
 {
     if (IsScreenLessDevice()) {

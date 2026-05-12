@@ -310,6 +310,16 @@ bool WindowOption::IsSubWindowOutlineEnabled() const
 {
     return subWindowOutlineEnabled_;
 }
+
+void WindowOption::SetZLevelAboveParentLoosened(bool zLevelAboveParentLoosened)
+{
+    zLevelAboveParentLoosened_ = zLevelAboveParentLoosened;
+}
+ 
+bool WindowOption::IsSubWindowZLevelAboveParentLoosened() const
+{
+    return zLevelAboveParentLoosened_;
+}
 } // namespace Rosen
 } // namespace OHOS
 

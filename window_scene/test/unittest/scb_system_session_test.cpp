@@ -347,6 +347,27 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction002, TestSize.Level1)
     auto scbSystemSession8 = sptr<SCBSystemSession>::MakeSptr(info8, specificCallback);
     ASSERT_NE(nullptr, scbSystemSession8);
 }
+
+/**
+ * @tc.name: SCBSystemSession
+ * @tc.desc: check func GetMainWindowPersistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SCBSystemSessionTest, GetMainWindowPersistentId, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testSCBSystemSession1";
+    info.moduleName_ = "testSCBSystemSession2";
+    info.bundleName_ = "testSCBSystemSession3";
+    info.isSystem_ = true;
+    info.persistentId_ = 9527;
+    auto scbSystemSession = sptr<SCBSystemSession>::MakeSptr(info, specificCallback);
+    ASSERT_NE(nullptr, scbSystemSession);
+
+    int32_t mainWindowPersistentId = 8;
+    scbSystemSession->SetMainWindowPersistentId(mainWindowPersistentId);
+    EXPECT_TRUE(scbSystemSession->GetMainWindowPersistentId() == mainWindowPersistentId);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOSS
