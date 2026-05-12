@@ -288,7 +288,7 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
             break;
         }
         case WindowManagerAgentMsg::TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE: {
-            int32_t persistentId = INVALID_SESSION_ID;
+            int32_t persistentId = 0;
             if (!data.ReadInt32(persistentId)) {
                 TLOGE(WmsLogTag::WMS_PATTERN, "read persistentId failed");
                 return ERR_INVALID_DATA;
