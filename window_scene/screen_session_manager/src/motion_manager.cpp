@@ -40,7 +40,7 @@ MotionManager& MotionManager::GetInstance()
 }
 
 MotionManager::MotionManager()
-{9
+{
     TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager created");
 }
 

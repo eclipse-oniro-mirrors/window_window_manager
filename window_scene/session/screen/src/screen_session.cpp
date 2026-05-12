@@ -1146,9 +1146,9 @@ void ScreenSession::SensorRotationChange(Rotation sensorRotation)
     SensorRotationChange(rotation);
 }
 
-void ScreenSession::SensorRotationChange(float sensorRotation)
+void ScreenSession::SmartSensorRotationChange(float sensorRotation)
 {
-    SensorRotationChange(sensorRotation, false);
+    SmartSensorRotationChange(sensorRotation, false);
 }
 
 void ScreenSession::SmartRotationChange(float sensorRotation)

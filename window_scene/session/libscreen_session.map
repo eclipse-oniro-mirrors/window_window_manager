@@ -201,6 +201,7 @@
             OHOS::Rosen::ScreenSession::HandleHoverStatusChange*;
             OHOS::Rosen::ScreenSession::HandleSensorRotation*;
             OHOS::Rosen::ScreenSession::HandleSmartRotation*;
+            OHOS::Rosen::ScreenSession::GetValidSmartSensorRotation*;
             OHOS::Rosen::ScreenSession::HoverStatusChange*;
             OHOS::Rosen::ScreenSession::IsBootingConnect*;
             OHOS::Rosen::ScreenSession::IsScreenAvailable*;

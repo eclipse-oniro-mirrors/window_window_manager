@@ -340,7 +340,9 @@ public:
     void SensorRotationChange(Rotation sensorRotation);
     void SensorRotationChange(float sensorRotation);
     void SensorRotationChange(float sensorRotation, bool isSwitchUser);
-    void SmartSensorRotationChange(float sensorRotation, bool isSwitchUser = false);
+    void SmartSensorRotationChange(Rotation sensorRotation);
+    void SmartSensorRotationChange(float sensorRotation);
+    void SmartSensorRotationChange(float sensorRotation, bool isSwitchUser);
     float GetValidSensorRotation();
     float GetValidSmartSensorRotation();
     void HoverStatusChange(int32_t hoverStatus, bool needRotate = true);
