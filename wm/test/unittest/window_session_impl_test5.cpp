@@ -2929,7 +2929,7 @@ HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType08, TestSize.Level1)
 
 /**
  * @tc.name: CreateSurfaceNode01
- * @tc.desc: Test CreateSurfaceNode without renderSession
+ * @tc.desc: Test CreateSurfaceNode
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode01, TestSize.Level1)
@@ -2941,7 +2941,6 @@ HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode01, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     ASSERT_NE(window->property_, nullptr);
 
-    window->renderSession_ = nullptr;
     auto surfaceNode = window->CreateSurfaceNode("TestNode", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     ASSERT_NE(surfaceNode, nullptr);
 }
@@ -2959,7 +2958,6 @@ HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode02, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     ASSERT_NE(window->property_, nullptr);
 
-    window->renderSession_ = nullptr;
     auto surfaceNode = window->CreateSurfaceNode("TestBootNode", WindowType::WINDOW_TYPE_BOOT_ANIMATION);
     ASSERT_NE(surfaceNode, nullptr);
 }
@@ -2978,7 +2976,6 @@ HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode03, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     ASSERT_NE(window->property_, nullptr);
 
-    window->renderSession_ = nullptr;
     auto surfaceNode = window->CreateSurfaceNode("TestPipNode", WindowType::WINDOW_TYPE_PIP);
     ASSERT_NE(surfaceNode, nullptr);
 }
@@ -2998,7 +2995,6 @@ HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode04, TestSize.Level1)
     ASSERT_NE(window->property_, nullptr);
 
     window->property_->SetUIExtensionUsage(UIExtensionUsage::MODAL);
-    window->renderSession_ = nullptr;
     auto surfaceNode = window->CreateSurfaceNode("TestUIExtNode", WindowType::WINDOW_TYPE_UI_EXTENSION);
     ASSERT_NE(surfaceNode, nullptr);
 
@@ -3020,7 +3016,6 @@ HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode05, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     ASSERT_NE(window->property_, nullptr);
 
-    window->renderSession_ = nullptr;
     auto surfaceNode = window->CreateSurfaceNode("TestMagnificationNode", WindowType::WINDOW_TYPE_MAGNIFICATION);
     ASSERT_NE(surfaceNode, nullptr);
 }
@@ -3038,7 +3033,6 @@ HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode06, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     ASSERT_NE(window->property_, nullptr);
 
-    window->renderSession_ = nullptr;
     auto surfaceNode = window->CreateSurfaceNode("TestDialogNode", WindowType::WINDOW_TYPE_DIALOG);
     ASSERT_NE(surfaceNode, nullptr);
 

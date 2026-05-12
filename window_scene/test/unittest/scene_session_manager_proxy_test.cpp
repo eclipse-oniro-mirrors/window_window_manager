@@ -88,19 +88,19 @@ HWTEST_F(sceneSessionManagerProxyTest, CreateAndConnectSpecificSession, TestSize
 
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    std::shared_ptr<RSSurfaceNode> node = RSSurfaceNode::Create(rsSurfaceNodeConfig, RSSurfaceNodeType::DEFAULT);
-    auto rsUIContext = ScreenSessionManagerClient::GetInstance().GetRSUIContext(0);
-    node->SetRSUIContext(rsUIContext);
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     int32_t persistentId = 0;
     SessionInfo info;
     sptr<ISession> session = sptr<SessionMocker>::MakeSptr(info);
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
 
     sceneSessionManagerProxy->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, token);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig,
+        renderSession, surfaceNode, token);
     EXPECT_NE(sceneSessionManagerProxy, nullptr);
 }
 
@@ -118,16 +118,19 @@ HWTEST_F(sceneSessionManagerProxyTest, CreateAndConnectSpecificSession2, TestSiz
 
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     int32_t persistentId = 0;
     SessionInfo info;
     sptr<ISession> session = sptr<SessionMocker>::MakeSptr(info);
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
 
     sceneSessionManagerProxy->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, token);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig,
+        renderSession, surfaceNode, token);
     EXPECT_NE(sceneSessionManagerProxy, nullptr);
 }
 
@@ -145,17 +148,19 @@ HWTEST_F(sceneSessionManagerProxyTest, CreateAndConnectSpecificSession3, TestSiz
 
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    std::shared_ptr<RSSurfaceNode> node = RSSurfaceNode::Create(rsSurfaceNodeConfig, RSSurfaceNodeType::DEFAULT);
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = nullptr;
     int32_t persistentId = 0;
     SessionInfo info;
     sptr<ISession> session = sptr<SessionMocker>::MakeSptr(info);
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
 
     sceneSessionManagerProxy->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, token);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig,
+        renderSession, surfaceNode, token);
     EXPECT_NE(sceneSessionManagerProxy, nullptr);
 }
 
@@ -173,19 +178,19 @@ HWTEST_F(sceneSessionManagerProxyTest, CreateAndConnectSpecificSession4, TestSiz
 
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    std::shared_ptr<RSSurfaceNode> node = RSSurfaceNode::Create(rsSurfaceNodeConfig, RSSurfaceNodeType::DEFAULT);
-    auto rsUIContext = ScreenSessionManagerClient::GetInstance().GetRSUIContext(0);
-    node->SetRSUIContext(rsUIContext);
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     int32_t persistentId = 0;
     SessionInfo info;
     sptr<ISession> session = sptr<SessionMocker>::MakeSptr(info);
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token = nullptr;
 
     sceneSessionManagerProxy->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, token);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig,
+        renderSession, surfaceNode, token);
     EXPECT_NE(sceneSessionManagerProxy, nullptr);
 }
 
