@@ -1246,6 +1246,8 @@ private:
     void SetResolutionEffectFromSettingData();
     void RegisterSettingOsSwitchStatusObserver();
     void HandleOsSwitchStatusChange();
+    void HandleOsSwitchResolutionStatusChange(const std::string& status);
+    void HandlePhySessionWhenSwitchToPCMode();
     void HandleResolutionEffectAfterSwitchUser();
     void SetInternalScreenResolutionEffect(const sptr<ScreenSession>& internalSession, DMRect& toRect);
     void SetExternalScreenResolutionEffect(const sptr<ScreenSession>& externalSession, DMRect& toRect);

@@ -3506,11 +3506,11 @@ void ScreenSessionManager::UpdateSessionByActiveModeChange(sptr<ScreenSession> s
         return;
     }
     int32_t activeIdx = screenMode.GetScreenModeId();
-    if (!(g_isPcDevice || IS_SUPPORT_PC_MODE)) {
+    if (!g_isPcDevice) {
         screenSession->activeIdx_ = activeIdx;
         screenSession->UpdatePropertyByScreenMode(screenMode);
     } else {
-        sptr<ScreenSession>  phyScreenSession = GetPhysicalScreenSession(screenSession->GetRSScreenId());
+        sptr<ScreenSession>  phyScreenSession = GetOrCreatePhysicalScreenSession(screenSession->GetRSScreenId());
         if (phyScreenSession == nullptr) {
             TLOGNFE(WmsLogTag::DMS, "phyScreenSession is null");
             return;
@@ -6306,7 +6306,7 @@ void ScreenSessionManager::CallRsSetScreenPowerStatusSync(ScreenId screenId, Scr
     };
     screenPowerTaskScheduler_->PostVoidSyncTask(rsSetScreenPowerStatusTask, "rsInterface_.SetScreenPowerStatus task");
 #ifdef WM_MULTI_SCREEN_ENABLE
-    if ((g_isPcDevice || IS_SUPPORT_PC_MODE) && status == ScreenPowerStatus::POWER_STATUS_ON &&
+    if (g_isPcDevice && status == ScreenPowerStatus::POWER_STATUS_ON &&
         IsDefaultMirrorMode(screenId)) {
         TLOGNFI(WmsLogTag::DMS, "set screen active mode, rsScreenId:%{public}" PRId64, screenId);
         RecoverScreenActiveMode(screenId);
@@ -6619,12 +6619,48 @@ void ScreenSessionManager::HandleOsSwitchStatusChange()
     std::string status = "";
     ScreenSettingHelper::GetOsSwitchStatus(status);
     TLOGNFI(WmsLogTag::DMS, "Os Switch change, status:%{public}s, ispcmode:%{public}d", status.c_str(), g_isPcDevice);
+    // handle resolution recovery when os switch from pcmode to padmode.
+    HandleOsSwitchResolutionStatusChange(status);
     bool isOsSwitchToPadNeedRecovery = IS_SUPPORT_PC_MODE && g_isPcDevice && IS_OS_SWITCH_PAD_NEED_RECOVER;
     if (status == "start" && isOsSwitchToPadNeedRecovery) {
         RecoveryResolutionEffect();
     }
     if (status == "end" && g_isPcDevice) {
         HandleResolutionEffectChange();
+    }
+}
+ 
+void ScreenSessionManager::HandleOsSwitchResolutionStatusChange(const std::string& status)
+{
+    sptr<ScreenSession> internalSession = nullptr;
+    sptr<ScreenSession> externalSession = nullptr;
+    GetInternalAndExternalSession(internalSession, externalSession);
+    if (externalSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "extend session is null.");
+        return;
+    }
+    if (status == "start" && g_isPcDevice) {
+        TLOGNFI(WmsLogTag::DMS, "Os Switch change to Padmode, start resolution recovery.");
+        int32_t activeId = -1;
+ 
+        std::vector<sptr<SupportedScreenModes>> modes = externalSession->GetScreenModes();
+        if (modes.empty()) {
+            TLOGNFE(WmsLogTag::DMS, "modes is empty");
+            return;
+        }
+        // interface not support parameter zero
+        activeId = static_cast<int32_t>(modes.size()) - 2; // corresponds to the second-to-last element in list
+        TLOGNFI(WmsLogTag::DMS, "activeId: %{public}d", activeId);
+        if (activeId < 0) {
+            TLOGNFE(WmsLogTag::DMS, "no matching resolution, activeId: %{public}d", activeId);
+            return;
+        }
+        TLOGNFI(WmsLogTag::DMS, "will SetScreenActiveMode, activeId: %{public}d", activeId);
+        DMError ret = SetScreenActiveMode(externalSession->GetScreenId(), static_cast<uint32_t>(activeId));
+        if (ret != DMError::DM_OK) {
+            TLOGNFE(WmsLogTag::DMS, "recover error, activeId: %{public}u", activeId);
+            return;
+        }
     }
 }
 
@@ -12129,8 +12165,26 @@ void ScreenSessionManager::SwitchModeHandleExternalScreen(bool isSwitchToPcMode)
             ScreenPowerUtils::DisablePowerForceTimingOut();
         }
     }
+    HandlePhySessionWhenSwitchToPCMode();
     SwitchModeOffScreenRenderingAdapter(externalScreenIds);
     SetExtendScreenDpi();
+}
+
+void ScreenSessionManager::HandlePhySessionWhenSwitchToPCMode()
+{
+    if (!g_isPcDevice) {
+        return;
+    }
+    sptr<ScreenSession> internalSession = GetInternalScreenSession();
+    if (internalSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "internal session is null.");
+        return;
+    }
+    sptr<ScreenSession> internalPhySession = GetOrCreatePhysicalScreenSession(internalSession->GetRSScreenId());
+    if (internalPhySession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "internal phy session is null.");
+        return;
+    }
 }
 
 void ScreenSessionManager::SwitchModeOffScreenRenderingResetScreenProperty(const sptr<ScreenSession>& externalScreenSession,
@@ -14897,7 +14951,7 @@ sptr<ScreenSession> ScreenSessionManager::GetFakePhysicalScreenSession(ScreenId 
 {
     sptr<ScreenSession> screenSession = nullptr;
     ScreenSessionConfig config;
-    if (g_isPcDevice || IS_SUPPORT_PC_MODE) {
+    if (g_isPcDevice) {
         config = {
             .screenId = screenId,
             .rsId = screenId,
@@ -14924,7 +14978,7 @@ sptr<ScreenSession> ScreenSessionManager::CreateFakePhysicalMirrorSessionInner(S
         TLOGNFE(WmsLogTag::DMS, "screenSession is null");
         return nullptr;
     }
-    if (g_isPcDevice || IS_SUPPORT_PC_MODE) {
+    if (g_isPcDevice) {
         InitExtendScreenProperty(screenId, screenSession, property);
         screenSession->SetName(SCREEN_NAME_EXTEND);
         screenSession->SetIsExtend(true);
