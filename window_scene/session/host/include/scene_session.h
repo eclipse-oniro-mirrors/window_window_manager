@@ -633,6 +633,7 @@ public:
     WSRect GetSessionTargetRectByDisplayId(DisplayId displayId) const;
     std::string GetUpdatedIconPath() const;
     int32_t GetParentPersistentId() const;
+    WSRect GetParentSessionRectSync();
     int32_t GetMainSessionId();
     int32_t GetMainSessionOrLoosenedSessionId();
     virtual int32_t GetMissionId() const { return persistentId_; };
