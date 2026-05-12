@@ -247,6 +247,7 @@ public:
     WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
         bool grayOutMaximizeButton = false) override;
     WmErrorCode StartMoveWindow() override;
+    WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY) override;
     WmErrorCode StopMoveWindow() override;
     WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);

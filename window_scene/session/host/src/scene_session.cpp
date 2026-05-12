@@ -1223,7 +1223,7 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
             }
         }
         if (event == SessionEvent::EVENT_START_MOVE) {
-            if (!session->IsMovable()) {
+            if (!session->IsMovable(param.needFocused)) {
                 return WSError::WS_OK;
             }
             HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::StartMove");
@@ -1233,6 +1233,7 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
             }
             session->InitializeCrossMoveDrag();
             session->moveDragController_->InitMoveDragProperty();
+            session->moveDragController_->SetMovingAvoidRect(param.avoidRect);
             if (session->pcFoldScreenController_) {
                 WSRect currRect;
                 session->HookStartMoveRect(currRect, session->GetSessionRect());
@@ -1409,6 +1410,26 @@ WSError SceneSession::StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY
         session->moveDragController_->SetSpecifyMoveStartDisplay(displayId);
         session->OnSessionEvent(SessionEvent::EVENT_START_MOVE);
         return WSError::WS_OK;
+    }, __func__);
+}
+
+WMError SceneSession::StartMovingWithOptions(const StartMovingOptions& options)
+{
+    return PostSyncTask([weakThis = wptr(this), options, where = __func__] {
+        auto session = weakThis.promote();
+        RETURN_IF_NULL(session, WMError::WM_ERROR_NULLPTR);
+        RETURN_IF_NULL(session->moveDragController_, WMError::WM_ERROR_NULLPTR);
+
+        if (session->moveDragController_->GetStartMoveFlag()) {
+            TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s: Repeat operation, window is moving", where);
+            return WMError::WM_ERROR_REPEAT_OPERATION;
+        }
+
+        SessionEventParam param;
+        param.needFocused = options.needFocused;
+        param.avoidRect = SessionHelper::TransferToWSRect(options.avoidRect);
+        session->OnSessionEvent(SessionEvent::EVENT_START_MOVE, param);
+        return WMError::WM_OK;
     }, __func__);
 }
 
@@ -4300,26 +4321,40 @@ bool SceneSession::IsFullScreenMovable() const
         WindowHelper::IsWindowModeSupported(property->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING);
 }
 
-bool SceneSession::IsMovable() const
+bool SceneSession::IsMovable(bool needFocused) const
 {
-    if (!moveDragController_) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "moveDragController_ is null, id: %{public}d", GetPersistentId());
-        return false;
+    RETURN_IF_NULL(moveDragController_, false);
+
+    const WindowType windowType = GetSessionProperty()->GetWindowType();
+    const bool isInputMethodWindow =
+        windowType == WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS_BAR ||
+        windowType == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT;
+
+    // Currently, input method windows are forced to move without focus.
+    // This temporary logic should be removed after input method windows
+    // adapt to the new startMovingWithOptions interface.
+    if (isInputMethodWindow) {
+        needFocused = false;
     }
 
-    bool windowIsMovable = !moveDragController_->GetStartDragFlag() && IsMovableWindowType() &&
-                           moveDragController_->HasPointDown() && moveDragController_->GetMovable() &&
-                           !GetWindowAnchorInfo().isAnchorEnabled_;
-    auto property = GetSessionProperty();
-    if (property->GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS_BAR &&
-        property->GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
-        windowIsMovable = windowIsMovable && IsFocused();
-    }
-    if (!windowIsMovable) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Window is not movable, id: %{public}d, startDragFlag: %{public}d, "
-            "isFocused: %{public}d, movableWindowType: %{public}d, hasPointDown: %{public}d, movable: %{public}d",
-            GetPersistentId(), moveDragController_->GetStartDragFlag(), IsFocused(), IsMovableWindowType(),
-            moveDragController_->HasPointDown(), moveDragController_->GetMovable());
+    bool isStartDrag = moveDragController_->GetStartDragFlag();
+    bool isMovableWindowType = IsMovableWindowType();
+    bool hasPointDown = moveDragController_->HasPointDown();
+    bool movable = moveDragController_->GetMovable();
+    bool isFocused = IsFocused();
+    bool isAnchorEnabled = GetWindowAnchorInfo().isAnchorEnabled_;
+
+    const bool isMovable = !isStartDrag && isMovableWindowType &&
+                           hasPointDown && movable && !isAnchorEnabled &&
+                           (!needFocused || isFocused);
+
+    if (!isMovable) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Window is not movable, id: %{public}d, startDragFlag: %{public}d, "
+              "needFocused: %{public}d, isFocused: %{public}d, movableWindowType: %{public}d, "
+              "hasPointDown: %{public}d, movable: %{public}d, isAnchorEnabled: %{public}d",
+              GetPersistentId(), isStartDrag, needFocused, isFocused, isMovableWindowType,
+              hasPointDown, movable,  isAnchorEnabled);
         return false;
     }
     return true;

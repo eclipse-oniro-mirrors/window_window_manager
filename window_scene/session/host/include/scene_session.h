@@ -463,7 +463,15 @@ public:
     WMError UpdateWindowModeForUITest(int32_t updateMode);
     void RegisterDefaultDensityEnabledCallback(NotifyDefaultDensityEnabledFunc&& callback);
     void SetSessionDisplayIdChangeCallback(NotifySessionDisplayIdChangeFunc&& func);
-    bool IsMovable() const;
+
+    /**
+     * @brief Checks if the window is movable.
+     *
+     * @param needFocused Indicates whether the window needs to be focused to be movable. Default is true.
+     * @return true if the window is movable, false otherwise.
+     */
+    bool IsMovable(bool needFocused = true) const;
+
     bool IsDraggable() const;
 
     WSError SetKeepScreenOn(bool keepScreenOn);
@@ -540,6 +548,7 @@ public:
      */
     void SetIsLayoutFullScreen(bool isLayoutFullScreen);
     bool IsLayoutFullScreen() const;
+    WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WSError StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
         int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId) override;
 
