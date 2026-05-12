@@ -542,17 +542,17 @@ bool KeyboardSession::RaiseCallingSession(const sptr<SceneSession>& callingSessi
 {
     bool occupiedAreaChanged = false;
     WSRect panelAvoidRect = GetPanelRect();
+    if (!IsLifecycleForeground()) {
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "Keyboard is not foreground, sessionState: %{public}d", GetSessionState());
+        return false;
+    }
+    NotifyKeyboardPanelInfoChange(panelAvoidRect, true);
     if (!keyboardAvoidAreaActive_) {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Id: %{public}d, isSystemKeyboard: %{public}d, state: %{public}d, "
             "gravity: %{public}d", callingSession->GetPersistentId(), IsSystemKeyboard(), GetSessionState(),
             GetKeyboardGravity());
         return false;
     }
-    if (!IsLifecycleForeground()) {
-        TLOGI(WmsLogTag::WMS_KEYBOARD, "Keyboard is not foreground, sessionState: %{public}d", GetSessionState());
-        return false;
-    }
-    NotifyKeyboardPanelInfoChange(panelAvoidRect, true);
 
     bool isCallingSessionFloating = (callingSession->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING) &&
         !callingSession->GetIsMidScene();
