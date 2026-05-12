@@ -879,6 +879,16 @@ struct PointInfo {
 };
 
 /**
+ * @struct DisplayPosition.
+ *
+ * @brief Display coordinate position for window coordinate conversion.
+ */
+struct DisplayPosition {
+    int32_t displayX = 0;
+    int32_t displayY = 0;
+};
+
+/**
  * @struct MainWindowInfo.
  *
  * @brief topN main window info.

@@ -1262,6 +1262,19 @@ public:
     }
 
     /**
+     * @brief Get original display position coordinates.
+     *
+     * @param displayPos Input display position.
+     * @param originalPos [out] Output original display position after calculation.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError GetOriginalDisplayXY(const DisplayPosition& displayPos,
+        DisplayPosition& originalPos) const
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Get the window type
      *
      * @return Type of window

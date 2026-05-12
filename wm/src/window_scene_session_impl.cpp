@@ -2856,6 +2856,18 @@ WMError WindowSceneSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect)
     return static_cast<WMError>(ret);
 }
 
+WMError WindowSceneSessionImpl::GetOriginalDisplayXY(const DisplayPosition& displayPos,
+    DisplayPosition& originalPos) const
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    originalPos.displayX = displayPos.displayX;
+    originalPos.displayY = displayPos.displayY;
+    return WMError::WM_OK;
+}
+
 void WindowSceneSessionImpl::LimitCameraFloatWindowMininumSize(uint32_t& width, uint32_t& height, float& vpr)
 {
     // Float camera window has a special limit:
