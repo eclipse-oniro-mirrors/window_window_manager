@@ -419,7 +419,7 @@ napi_value Resolve(napi_env env, std::unique_ptr<Param> &param)
     bool isThrowError = true;
     if (param->wret != DmErrorCode::DM_OK) {
         napi_create_error(env, nullptr, nullptr, &error);
-        napi_create_int32(env, (int32_t)param->wret, &code);
+        napi_create_int32(env, static_cast<int32_t>(param->wret), &code);
     }
     switch (param->wret) {
         case DmErrorCode::DM_ERROR_NO_PERMISSION:
@@ -498,7 +498,7 @@ napi_value HDRResolve(napi_env env, std::unique_ptr<HdrParam>& param)
     bool isThrowError = true;
     if (param->wret != DmErrorCode::DM_OK) {
         napi_create_error(env, nullptr, nullptr, &error);
-        napi_create_int32(env, (int32_t)param->wret, &code);
+        napi_create_int32(env, static_cast<int32_t>(param->wret), &code);
     }
     switch (param->wret) {
         case DmErrorCode::DM_ERROR_NO_PERMISSION:
