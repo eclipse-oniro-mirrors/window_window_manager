@@ -216,12 +216,18 @@ enum class SplitStyle : int32_t {
 };
 
 /**
+ * @brief Split index constants for split window mode.
+ */
+static constexpr int32_t SPLIT_INDEX_PRIMARY = 0;
+static constexpr int32_t SPLIT_INDEX_SECONDARY = 1;
+
+/**
  * @brief Window mode info, including mode, split style and split index.
  */
 struct WindowModeInfo {
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
     SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
-    int32_t splitIndex = 0;
+    int32_t splitIndex = SPLIT_INDEX_PRIMARY;
 };
 
 /**

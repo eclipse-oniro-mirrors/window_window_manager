@@ -4436,12 +4436,12 @@ WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
             GetPersistentId(), GetSessionState());
         return WSError::WS_ERROR_INVALID_SESSION;
     } else if (state_ == SessionState::STATE_DISCONNECT) {
-        property->SetWindowMode(mode);
+        property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
         property->SetIsNeedUpdateWindowMode(true);
         UpdateGestureBackEnabled();
     } else {
-        property->SetWindowMode(mode);
+        property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
         RequestNextVsyncWhenModeChange();
         if (WindowHelper::IsSplitWindowMode(mode)) {
