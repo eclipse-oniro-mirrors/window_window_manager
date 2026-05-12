@@ -704,4 +704,27 @@ HWTEST_F(DisplayManagerAgentProxyTest, NotifyFoldStatusChanged01, TestSize.Level
     displayManagerAgentProxy->NotifyFoldStatusChanged(FoldStatus::EXPAND);
     EXPECT_TRUE(g_logMsg.find("Write foldStatus failed") != std::string::npos);
 }
+
+/**
+ * @tc.name: NotifyBrightnessInfoChangedWithPosition
+ * @tc.desc: Test NotifyBrightnessInfoChanged with brightnessPosition field
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyBrightnessInfoChangedWithPosition, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenBrightnessInfo info;
+    info.currentHeadroom = 2.0f;
+    info.maxHeadroom = 3.0f;
+    info.sdrNits = 600.0f;
+    info.brightnessPosition = 1.0f;
+
+    MockMessageParcel::ClearAllErrorFlag();
+    displayManagerAgentProxy->NotifyBrightnessInfoChanged(100, info);
+    EXPECT_TRUE(g_logMsg.find("write info failed") != std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 }

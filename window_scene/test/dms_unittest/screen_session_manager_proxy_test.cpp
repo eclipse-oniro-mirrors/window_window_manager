@@ -3001,6 +3001,25 @@ HWTEST_F(ScreenSessionManagerProxyTest, IsCapturedByBundleNameList006, TestSize.
 }
 
 /**
+ * @tc.name: GetBrightnessInfoWithPosition
+ * @tc.desc: Test GetBrightnessInfo with brightnessPosition field
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, GetBrightnessInfoWithPosition, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    ScreenBrightnessInfo brightnessInfo;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    auto ret = proxy->GetBrightnessInfo(0, brightnessInfo);
+    EXPECT_EQ(DMError::DM_ERROR_IPC_FAILED, ret);
+}
+
+/**
  * @tc.name: SetOrientationWithOptions01
  * @tc.desc: SetOrientation with Options - remote is nullptr
  * @tc.type: FUNC
