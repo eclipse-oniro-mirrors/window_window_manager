@@ -252,14 +252,14 @@ HWTEST_F(WindowRecoverSessionTest, CheckSessionPropertyOnRecovery, TestSize.Leve
     result = ssm_->CheckSessionPropertyOnRecovery(property, false);
     ASSERT_EQ(result, WSError::WS_OK);
 
-    // 特殊窗，不需要恢复
+    // 特殊窗，parentPersistentId无效，不需要恢复
     property->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
-    property->SetParentPersistentId(111);
+    property->SetParentPersistentId(INVALID_SESSION_ID);
     result = ssm_->CheckSessionPropertyOnRecovery(property, true);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
 
-    // 特殊窗，需要恢复
-    ssm_->SetAlivePersistentIds({ 111 });
+    // 特殊窗，parentPersistentId有效，需要恢复
+    property->SetParentPersistentId(111);
     result = ssm_->CheckSessionPropertyOnRecovery(property, true);
     ASSERT_EQ(result, WSError::WS_OK);
 }
