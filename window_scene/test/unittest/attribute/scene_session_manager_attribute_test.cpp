@@ -152,6 +152,53 @@ HWTEST_F(SceneSessionManagerAttributeTest, GetRealSessionState, TestSize.Level1)
 }
 
 /**
+ * @tc.name: IsSessionVisibleAndRealForeground
+ * @tc.desc: test session visible and real foreground state.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, IsSessionVisibleAndRealForeground, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    auto isScbCoreEnabled = Session::IsScbCoreEnabled();
+    ssm_->sceneSessionMap_.clear();
+    Session::SetScbCoreEnabled(true);
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(nullptr), false);
+
+    SessionInfo parentInfo;
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    parentSession->persistentId_ = 1;
+    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionState(SessionState::STATE_ACTIVE);
+    parentSession->isVisible_ = true;
+    ssm_->sceneSessionMap_.insert(std::make_pair(parentSession->GetPersistentId(), parentSession));
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(parentSession), true);
+
+    SessionInfo childInfo;
+    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(childInfo, nullptr);
+    ASSERT_NE(childSession, nullptr);
+    childSession->persistentId_ = 2;
+    childSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    childSession->SetParentPersistentId(parentSession->GetPersistentId());
+    childSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    childSession->isVisible_ = true;
+    ssm_->sceneSessionMap_.insert(std::make_pair(childSession->GetPersistentId(), childSession));
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(childSession), true);
+
+    parentSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(childSession), false);
+
+    parentSession->SetSessionState(SessionState::STATE_ACTIVE);
+    childSession->isVisible_ = false;
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(childSession), false);
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+    Session::SetScbCoreEnabled(isScbCoreEnabled);
+}
+
+/**
  * @tc.name: IsNeedNotifyScreenshotEvent
  * @tc.desc: test IsNeedNotifyScreenshotEvent.
  * @tc.type: FUNC

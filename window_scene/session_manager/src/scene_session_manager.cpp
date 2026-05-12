@@ -7438,7 +7438,7 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
         if (auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(currScreenId)) {
             sourceMode = screenSession->GetSourceMode();
         }
-        bool shouldLock = requireLock && IsSessionVisibleForeground(sceneSession) &&
+        bool shouldLock = requireLock && IsSessionVisibleAndRealForeground(sceneSession) &&
             sourceMode != ScreenSourceMode::SCREEN_UNIQUE;
         TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "keep screen on: winName=%{public}s, sessionState=%{public}d, "
             "isVisible=%{public}d, requireLock=%{public}d, shouldLock=%{public}d, screenId=%{public}" PRIu64
@@ -8078,6 +8078,25 @@ bool SceneSessionManager::IsSessionVisibleForeground(const sptr<SceneSession>& s
         return session->IsVisibleForeground();
     }
     return IsSessionVisible(session);
+}
+
+bool SceneSessionManager::IsSessionVisibleAndRealForeground(const sptr<SceneSession>& session)
+{
+    if (session == nullptr) {
+        return false;
+    }
+    if (!Session::IsScbCoreEnabled()) {
+        return IsSessionVisible(session);
+    }
+    auto state = GetRealSessionState(session);
+    if (session->IsVisible() && (state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND)) {
+        TLOGD(WmsLogTag::WMS_LIFE, "Window is visible and real foreground, id: %{public}d",
+            session->GetPersistentId());
+        return true;
+    }
+    TLOGD(WmsLogTag::WMS_LIFE, "Window is not visible or real background, id: %{public}d",
+        session->GetPersistentId());
+    return false;
 }
 
 void SceneSessionManager::DumpSessionInfo(const sptr<SceneSession>& session, std::ostringstream& oss)
@@ -19186,7 +19205,7 @@ WMError SceneSessionManager::RelockScreenLockForApp(const std::string& bundleNam
             if (screenSession) {
                 sourceMode = screenSession->GetSourceMode();
             }
-            if (sceneSession->IsKeepScreenOn() && IsSessionVisibleForeground(sceneSession) &&
+            if (sceneSession->IsKeepScreenOn() && IsSessionVisibleAndRealForeground(sceneSession) &&
                 sourceMode != ScreenSourceMode::SCREEN_UNIQUE && sceneSession->keepScreenLock_ != nullptr) {
                 auto res = sceneSession->keepScreenLock_->Lock();
                 TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "relock screenlock, window: [%{public}d, %{public}s], res:%{public}d",
