@@ -1679,10 +1679,6 @@ WmErrorCode ParseWindowMaskWithAlphaParams(napi_env env, napi_value* argv, size_
         TLOGE(WmsLogTag::WMS_EVENT, "Get maskHeight failed");
         return WmErrorCode::WM_ERROR_INVALID_PARAM;
     }
-    if (windowToken == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "windowToken is nullptr");
-        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
-    }
     Rect windowRect = windowToken->GetRequestRect();
     if (params.maskWidth != static_cast<uint32_t>(windowRect.width_) ||
         params.maskHeight != static_cast<uint32_t>(windowRect.height_)) {
