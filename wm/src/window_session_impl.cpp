@@ -1545,9 +1545,8 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
         UpdateRectForOtherReasonTask(wmRect, preRect, wmReason, rsTransaction, avoidAreas);
         return;
     }
-
-    auto task = [weak = wptr(this), wmReason, wmRect, preRect, rsTransaction, avoidAreas] {
-        auto where = __func__;
+    auto where = __func__;
+    auto task = [weak = wptr(this), wmReason, wmRect, preRect, rsTransaction, avoidAreas, where] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
             "WMS::WindowRectUpdate::ClientRecv::UpdateRectForOtherReason reason=%d rect=%s",
             static_cast<int32_t>(wmReason), wmRect.ToString().c_str());

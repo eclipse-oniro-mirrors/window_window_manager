@@ -6586,7 +6586,7 @@ WSError WindowSceneSessionImpl::UpdateWindowMode(const WindowModeInfo& windowMod
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
     uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
-    auto preMode = GetMode();
+    auto preMode = GetWindowMode();
     TLOGI(WmsLogTag::WMS_LAYOUT,
         "[WindowModeUpdate:ClientRecv] id:%{public}u, preMode:%{public}u, mode:%{public}u, "
         "splitStyle:%{public}d, splitIndex:%{public}d, supportType:%{public}u",

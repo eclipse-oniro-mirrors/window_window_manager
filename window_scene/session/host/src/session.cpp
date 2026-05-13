@@ -4374,7 +4374,6 @@ void Session::OnVsyncReceivedAfterModeChanged()
 {
     const char* const funcName = __func__;
     PostTask([weakThis = wptr(this), funcName] {
-        auto where = funcName;
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", funcName);
@@ -4383,13 +4382,13 @@ void Session::OnVsyncReceivedAfterModeChanged()
         if (!session->isWindowModeDirty_.load()) {
             TLOGND(WmsLogTag::WMS_LAYOUT,
                 "[WindowModeUpdate:VsyncWait] %{public}s: not dirty, skip, id:%{public}d",
-                where, session->GetPersistentId());
+                funcName, session->GetPersistentId());
             return;
         }
         session->timesToWaitForVsync_.fetch_sub(1);
         TLOGI(WmsLogTag::WMS_LAYOUT,
             "[WindowModeUpdate:VsyncWait] %{public}s: id:%{public}d, mode:%{public}d, waitTimes:%{public}d",
-            where, session->GetPersistentId(), static_cast<int32_t>(session->GetWindowMode()),
+            funcName, session->GetPersistentId(), static_cast<int32_t>(session->GetWindowMode()),
             session->timesToWaitForVsync_.load());
         bool isWindowModeDirty = true;
         if (session->timesToWaitForVsync_.load() > 0) {
@@ -4397,20 +4396,20 @@ void Session::OnVsyncReceivedAfterModeChanged()
         } else if (session->timesToWaitForVsync_.load() < 0) {
             TLOGNW(WmsLogTag::WMS_LAYOUT,
                 "[WindowModeUpdate:VsyncWait] %{public}s: abnormal waitTimes, id:%{public}d, waitTimes:%{public}d",
-                where, session->GetPersistentId(), session->timesToWaitForVsync_.load());
+                funcName, session->GetPersistentId(), session->timesToWaitForVsync_.load());
             session->timesToWaitForVsync_.store(0);
             session->isWindowModeDirty_.store(false);
         } else if (session->timesToWaitForVsync_.load() == 0 && session->sessionStage_ &&
                    session->isWindowModeDirty_.compare_exchange_strong(isWindowModeDirty, false)) {
             TLOGI(WmsLogTag::WMS_LAYOUT,
                 "[WindowModeUpdate:VsyncWait] %{public}s: layout done, notify client, id:%{public}d, mode:%{public}d",
-                where, session->GetPersistentId(), static_cast<int32_t>(session->GetWindowMode()));
+                funcName, session->GetPersistentId(), static_cast<int32_t>(session->GetWindowMode()));
             session->sessionStage_->NotifyLayoutFinishAfterWindowModeChange(session->GetWindowMode());
             session->NotifySubSessionParentStatusChange(session->GetWindowMode());
         } else {
             TLOGD(WmsLogTag::WMS_LAYOUT,
                 "[WindowModeUpdate:VsyncWait] %{public}s: skip: stage null or not dirty, id:%{public}d",
-                where, session->GetPersistentId());
+                funcName, session->GetPersistentId());
             session->isWindowModeDirty_.store(false);
         }
         }, funcName);
