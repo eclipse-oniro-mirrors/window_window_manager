@@ -5357,14 +5357,10 @@ WSError SceneSessionManager::RecoverAndConnectSpecificSession(const sptr<ISessio
 
 void SceneSessionManager::NotifyRecoveringFinished()
 {
-    // delay 500 ms
-    const int64_t delayTime = 500;
     taskScheduler_->PostAsyncTask([this]() {
         TLOGNI(WmsLogTag::WMS_RECOVER, "RecoverFinished clear recoverSubSessionCacheMap");
         recoveringFinished_ = true;
-        recoverSubSessionCacheMap_.clear();
-        recoverDialogSessionCacheMap_.clear();
-    }, __func__, delayTime);
+    }, __func__);
 }
 
 void SceneSessionManager::CacheSpecificSessionForRecovering(
