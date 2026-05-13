@@ -428,8 +428,7 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
         weak = wptr<PictureInPictureController>(pipController_)]() {
         if (!PictureInPictureManager::IsSupportPiP()) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
-                "[PiPWindow][getPiPWindowInfo]msg: Capability not supported. "
-                "Failed to call the API due to limited device capabilities."));
+                "[PiPWindow][getPiPWindowInfo]msg: Failed to call the API due to limited device capabilities."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                              WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
@@ -485,8 +484,7 @@ napi_value JsPipController::OnGetPiPSettingSwitch(napi_env env, napi_callback_in
         }
         if (!pipController->GetPipSettingSwitchStatusEnabled()) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
-                "[PiPWindow][getPiPSettingSwitch]msg: Capability not supported. "
-                "Failed to call the API due to limited device capabilities."));
+                "[PiPWindow][getPiPSettingSwitch]msg: Failed to call the API due to limited device capabilities."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
                                              WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
