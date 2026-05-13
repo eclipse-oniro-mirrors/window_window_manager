@@ -108,12 +108,15 @@ public:
     /*
      * inherits from window
      */
-    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) override;
-    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) override;
+    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
+    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError Hide(uint32_t reason = 0, bool withAnimation = false, bool isFromInnerkits = true) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
-    WMError Destroy(uint32_t reason = 0) override;
-    virtual WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0);
+    WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) override;
+    virtual WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0,
+        bool isFromInnerkits = false);
     WMError NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
         BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
     WMError AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,

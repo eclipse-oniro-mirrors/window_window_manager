@@ -46,8 +46,9 @@ public:
     const uint32_t mockWindowId_ = 101;
     MockWindow() {};
     ~MockWindow() {};
-    MOCK_METHOD3(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus));
-    MOCK_METHOD1(Destroy, WMError(uint32_t reason));
+    MOCK_METHOD5(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus,
+        int32_t requestId, int32_t scbRequestId));
+    MOCK_METHOD2(Destroy, WMError(uint32_t reason, bool isFromInnerkits));
     uint32_t GetWindowId() const override
     {
         return mockWindowId_;

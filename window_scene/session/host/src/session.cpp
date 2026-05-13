@@ -469,6 +469,7 @@ void Session::SetSessionInfo(const SessionInfo& info)
     sessionInfo_.callingTokenId_ = info.callingTokenId_;
     sessionInfo_.uiAbilityId_ = info.uiAbilityId_;
     sessionInfo_.requestId = info.requestId;
+    sessionInfo_.scbRequestId = info.scbRequestId;
     sessionInfo_.startSetting = info.startSetting;
     if (!info.continueSessionId_.empty()) {
         sessionInfo_.continueSessionId_ = info.continueSessionId_;
@@ -584,6 +585,26 @@ bool Session::GetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition)
 void Session::SetSessionInfoWindowMode(int32_t windowMode)
 {
     sessionInfo_.windowMode = windowMode;
+}
+
+void Session::SetSessionInfoRequestId(int32_t requestId)
+{
+    sessionInfo_.requestId = requestId;
+}
+
+int32_t Session::GetSessionInfoRequestId() const
+{
+    return sessionInfo_.requestId;
+}
+
+void Session::SetSessionInfoScbRequestId(int32_t scbRequestId)
+{
+    sessionInfo_.scbRequestId = scbRequestId;
+}
+
+int32_t Session::GetSessionInfoScbRequestId() const
+{
+    return sessionInfo_.scbRequestId;
 }
 
 DisplayId Session::GetScreenId() const
@@ -1900,7 +1921,7 @@ void Session::HandleDialogForeground()
     }
 }
 
-WSError Session::Background(bool isFromClient, const std::string& identityToken)
+WSError Session::Background(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     HandleDialogBackground();
     NotifySubSessionParentStatusChange(GetWindowMode());
@@ -1943,7 +1964,7 @@ void Session::ResetIsActive()
     isActive_ = false;
 }
 
-WSError Session::Disconnect(bool isFromClient, const std::string& identityToken)
+WSError Session::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     auto state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] Disconnect session, state: %{public}u", GetPersistentId(), state);

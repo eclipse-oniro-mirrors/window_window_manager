@@ -28,7 +28,8 @@ public:
 
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     int32_t GetMissionId() const override;
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
 

@@ -3461,7 +3461,7 @@ HWTEST_F(WindowSceneSessionImplTest, Destroy01, TestSize.Level0)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    EXPECT_CALL(*session, Disconnect(_, _)).WillOnce(Return(WSError::WS_ERROR_IPC_FAILED));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_ERROR_IPC_FAILED));
     EXPECT_EQ(WMError::WM_OK, window->Destroy(false));
 }
 
@@ -3482,7 +3482,7 @@ HWTEST_F(WindowSceneSessionImplTest, Destroy02, TestSize.Level0)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    EXPECT_CALL(*session, Disconnect(_, _)).Times(AtLeast(1)).WillOnce(Return(WSError::WS_ERROR_INVALID_SESSION));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).Times(AtLeast(1)).WillOnce(Return(WSError::WS_ERROR_INVALID_SESSION));
     EXPECT_EQ(WMError::WM_ERROR_INVALID_SESSION, window->Destroy(false));
 }
 // ==================== MaximizeWithOptions Tests ====================

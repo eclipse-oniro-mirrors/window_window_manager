@@ -37,8 +37,9 @@ public:
     const uint32_t mockWindowId_ = 101;
     MockWindow() {};
     ~MockWindow() {};
-    MOCK_METHOD3(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus));
-    MOCK_METHOD1(Destroy, WMError(uint32_t reason));
+    MOCK_METHOD5(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus,
+        int32_t requestId, int32_t scbRequestId));
+    MOCK_METHOD2(Destroy, WMError(uint32_t reason, bool isFromInnerkits));
     MOCK_METHOD0(NotifyPrepareCloseFloatView, void());
     MOCK_METHOD1(UpdateFloatView, WMError(const FloatViewTemplateInfo& fvTemplateInfo));
     MOCK_METHOD1(RestoreFloatViewMainWindow, WMError(const std::shared_ptr<AAFwk::WantParams>& wantParams));
@@ -320,9 +321,9 @@ HWTEST_F(FloatViewControllerTest, DestroyFloatViewWindow, TestSize.Level1)
 {
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvController_->DestroyFloatViewWindow("testReason"));
     fvController_->window_ = mw_;
-    EXPECT_CALL(*mw_, Destroy(_)).Times(AtLeast(1)).WillRepeatedly(Return(WMError::WM_ERROR_INVALID_WINDOW));
+    EXPECT_CALL(*mw_, Destroy(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(WMError::WM_ERROR_INVALID_WINDOW));
     EXPECT_EQ(WMError::WM_ERROR_SYSTEM_ABNORMALLY, fvController_->DestroyFloatViewWindow("testReason"));
-    EXPECT_CALL(*mw_, Destroy(_)).Times(AtLeast(1)).WillRepeatedly(Return(WMError::WM_OK));
+    EXPECT_CALL(*mw_, Destroy(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(WMError::WM_OK));
     EXPECT_EQ(WMError::WM_OK, fvController_->DestroyFloatViewWindow("testReason"));
     fvController_->window_ = mw_;
     EXPECT_EQ(WMError::WM_OK, fvController_->DestroyFloatViewWindow("testReason"));

@@ -35,8 +35,8 @@ public:
 
     MOCK_METHOD3(
         Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken));
-    MOCK_METHOD2(Background, WSError(bool isFromClient, const std::string& identityToken));
-    MOCK_METHOD2(Disconnect, WSError(bool isFromClient, const std::string& identityToken));
+    MOCK_METHOD3(Background, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
+    MOCK_METHOD3(Disconnect, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
 
     MOCK_METHOD5(UpdateSessionRect, WSError(const WSRect& rect, SizeChangeReason reason,
         bool isGlobal, bool isFromMoveToGlobal, MoveConfiguration moveConfiguration));

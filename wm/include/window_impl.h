@@ -171,11 +171,13 @@ public:
         bool isColdStart) override;
     WMError Create(uint32_t parentId,
         const std::shared_ptr<AbilityRuntime::Context>& context = nullptr);
-    virtual WMError Destroy(uint32_t reason = 0) override;
+    virtual WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) override;
     void SetShowWithOptions(bool showWithOptions) override;
     bool IsShowWithOptions() const override;
-    virtual WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) override;
-    virtual WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) override;
+    virtual WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
+    virtual WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     virtual WMError Hide(uint32_t reason = 0, bool withAnimation = false, bool isFromInnerkits = true) override;
     virtual WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,

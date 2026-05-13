@@ -1047,14 +1047,17 @@ void WindowSessionImpl::UpdateSubWindowStateWithOptions(const StateChangeOption&
     }
 }
 
-WMError WindowSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus)
+WMError WindowSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus,
+    int32_t requestId, int32_t scbRequestId)
 {
-    return Show(reason, withAnimation, withFocus, false);
+    return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach)
+WMError WindowSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "name:%{public}s, id:%{public}d, type:%{public}u, reason:%{public}u, state:%{public}u",
+    TLOGI(WmsLogTag::WMS_LIFE, "[requestId: %{public}d][scbRequestId: %{public}d]name:%{public}s, id:%{public}d, "
+        "type:%{public}u, reason:%{public}u, state:%{public}u", requestId, scbRequestId,
         property_->GetWindowName().c_str(), property_->GetPersistentId(), GetType(), reason, state_);
     if (IsWindowSessionInvalid()) {
         WLOGFE("session is invalid");
@@ -1185,11 +1188,12 @@ void WindowSessionImpl::DestroySubWindow()
     }
 }
 
-WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason)
+WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason,
+    bool isFromInnerkits)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d Destroy, state:%{public}u, needNotifyServer:%{public}d, "
-        "needClearListener:%{public}d, reason:%{public}u", GetPersistentId(), state_, needNotifyServer,
-        needClearListener, reason);
+        "needClearListener:%{public}d, reason:%{public}u, isFromInnerkits:%{public}d",
+        GetPersistentId(), state_, needNotifyServer, needClearListener, reason, isFromInnerkits);
     if (IsWindowSessionInvalid()) {
         WLOGFW("session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -1224,9 +1228,9 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
     return WMError::WM_OK;
 }
 
-WMError WindowSessionImpl::Destroy(uint32_t reason)
+WMError WindowSessionImpl::Destroy(uint32_t reason, bool isFromInnerkits)
 {
-    return Destroy(true, true, reason);
+    return Destroy(true, true, reason, isFromInnerkits);
 }
 
 WSError WindowSessionImpl::SetActive(bool active)
