@@ -247,8 +247,7 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
             weak = wptr<PictureInPictureController>(pipController_)]() {
         if (!PictureInPictureManager::IsSupportPiP()) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
-                "[PiPWindow][updateContentNode]msg: Capability not supported. "
-                "Failed to call the API due to limited device capabilities."));
+                "[PiPWindow][updateContentNode]msg: Failed to call the API due to limited device capabilities."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
                                              WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
